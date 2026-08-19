@@ -11,7 +11,6 @@ venv/
 env/
 
 # uv
-uv.lock
 
 # Distribution / packaging
 dist/
@@ -36,7 +35,6 @@ htmlcov/
 # Keep migrations in version control — do NOT ignore alembic/versions/
 
 # ── Node / Frontend ───────────────────────────────────────────────────────────
-package-lock.json
 node_modules/
 frontend/dist/
 frontend/coverage/
@@ -71,3 +69,13 @@ logs/
 # ── Misc ──────────────────────────────────────────────────────────────────────
 *.bak
 *.tmp
+
+# Generated local orchestration state. Tracked branch documentation under
+# ops/workstreams is deliberately not ignored.
+.ai/worktrees/
+.ai/runtime/
+.ai/validation/
+.ai/deploy/
+.ai/config/
+.ai/integration/
+.ai/*.lock

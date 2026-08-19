@@ -1,0 +1,35 @@
+schema: 1
+branch: chore/parallel-workflow
+base_sha: 8a9c26a872ce02e69817b119885a0dfe0aedcb0d
+goal: "Provide isolated parallel worktrees, exact-candidate integration, and safe manual RPi deployment primitives."
+scope:
+  - worktree lifecycle and runtime allocator
+  - reproducible dependency inputs
+  - integration gate and CI replay
+  - manual ARM64 bundle deployment tooling
+  - provider availability monitoring contracts
+owned_paths:
+  - scripts/worktree.py
+  - scripts/worktree-runtime.py
+  - scripts/validate-workstream.py
+  - deploy/rpi
+  - ops/workstreams/chore-parallel-workflow
+dependencies:
+  - docker
+  - docker-compose-v2
+  - uv
+  - node20
+acceptance_criteria:
+  - two worktrees receive distinct persisted runtime resources
+  - integration captures one exact source SHA
+  - RPi tooling refuses unsafe target state without mutation
+  - provider classifications are persisted and testable
+branch_tests: []
+live_test_impact: "No live deployment until a human supplies an exact validated master SHA and RPi configuration."
+migration_impact: "Provider monitoring adds an additive migration; existing application migrations remain unchanged."
+deployment_impact: "Adds manual image-bundle deployment only; no automatic deploy trigger."
+status: in_progress
+remaining_gaps:
+  - finish provider persistence and Settings presentation
+  - complete exact-candidate integration implementation
+  - perform real RPi rehearsal after target configuration is supplied

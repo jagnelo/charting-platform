@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     # OneSignal
     ONESIGNAL_APP_ID: str = ""
     ONESIGNAL_REST_API_KEY: str = ""
+    PROVIDER_AVAILABILITY_MONITOR_ENABLED: bool = False
+    PROVIDER_AVAILABILITY_LIVE_ENABLED: bool = False
+    PROVIDER_AVAILABILITY_NOTIFICATIONS_ENABLED: bool = True
+    PROVIDER_AVAILABILITY_NOTIFICATION_COOLDOWN_SECONDS: int = 86400
 
     # CORS
     CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:4173"]

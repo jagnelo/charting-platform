@@ -179,9 +179,7 @@ def test_admin_family_history_refresh_queues_deduplicated_local_members(
     assert response.status_code == 200
     assert response.json()["queued"] == 2
     assert response.json()["queue_unavailable"] is False
-    pending_leg = next(
-        leg for leg in response.json()["legs"] if leg["role"] == "value"
-    )
+    pending_leg = next(leg for leg in response.json()["legs"] if leg["role"] == "value")
     assert pending_leg["status"] == "pending"
     assert pending_leg["message"] == "holdings_snapshot_not_loaded"
     assert [call[0][1] for call in redis.calls] == [10, 20]

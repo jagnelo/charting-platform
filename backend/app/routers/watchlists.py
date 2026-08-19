@@ -65,7 +65,9 @@ async def _refresh_run_progress(run: WatchlistHistoryRefreshRun, redis) -> dict:
         elif status == "in_progress":
             counts["in_progress"] += 1
         elif status == "complete":
-            if any(isinstance(value, str) and value.startswith("error:") for value in results.values()):
+            if any(
+                isinstance(value, str) and value.startswith("error:") for value in results.values()
+            ):
                 counts["failed"] += 1
             else:
                 counts["complete"] += 1
@@ -250,15 +252,17 @@ async def queue_watchlist_source_history_refresh(
         source_ids=plan["source_ids"],
         timeframes=plan["timeframes"],
         membership_versions={
-            source["source_id"]: source.get("membership_version")
-            for source in plan["sources"]
+            source["source_id"]: source.get("membership_version") for source in plan["sources"]
         },
         instrument_ids=plan["instrument_ids"],
         as_of=plan["as_of"],
         max_instruments=plan["max_instruments"],
         available_instrument_count=plan["available_instrument_count"],
         selected_instrument_count=plan["selected_instrument_count"],
-        progress={"instrument_count": len(plan["instrument_ids"]), "pending": len(plan["instrument_ids"])},
+        progress={
+            "instrument_count": len(plan["instrument_ids"]),
+            "pending": len(plan["instrument_ids"]),
+        },
     )
     db.add(run)
     await db.flush()

@@ -63,7 +63,13 @@ def test_python_breadth_history_projects_member_transitions_with_metric_lineage(
             {
                 "timestamp": "2026-01-02T00:00:00Z",
                 "cells": [
-                    {"instrument_id": 7, "symbol": "A", "name": "A", "value": False, "metric": -0.02},
+                    {
+                        "instrument_id": 7,
+                        "symbol": "A",
+                        "name": "A",
+                        "value": False,
+                        "metric": -0.02,
+                    },
                 ],
             },
             1,

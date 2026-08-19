@@ -315,9 +315,7 @@ def _sec_nport_identity_match(
     normalized_observed = {
         key: value.strip().upper() for key, value in observed.items() if value.strip()
     }
-    normalized_targets = {
-        key: value.strip().upper() for key, value in targets.items() if value
-    }
+    normalized_targets = {key: value.strip().upper() for key, value in targets.items() if value}
     if not normalized_targets:
         return True, observed, "registrant_only_unverified"
 
@@ -3266,8 +3264,7 @@ KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
             "sec_class_id": "C000103352",
             "sec_fund_tickers_symbol": "QQQE",
             "issuer_product_url": (
-                "https://www.direxion.com/product/"
-                "nasdaq-100-equal-weighted-index-etf"
+                "https://www.direxion.com/product/" "nasdaq-100-equal-weighted-index-etf"
             ),
         },
     },
@@ -3577,9 +3574,7 @@ class IsharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         parsed = urlparse(resolved_source_url)
         query = parse_qs(parsed.query, keep_blank_values=True)
         query["asOfDate"] = [requested_date.strftime("%Y%m%d")]
-        dated_source_url = urlunparse(
-            parsed._replace(query=urlencode(query, doseq=True))
-        )
+        dated_source_url = urlunparse(parsed._replace(query=urlencode(query, doseq=True)))
         async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
             response = await client.get(
                 dated_source_url,
@@ -4630,9 +4625,7 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
         )
 
     @staticmethod
-    def _sec_fallback_identifiers(
-        *, symbol: str, identifiers: dict[str, str]
-    ) -> dict[str, str]:
+    def _sec_fallback_identifiers(*, symbol: str, identifiers: dict[str, str]) -> dict[str, str]:
         """Complete SEC fallback identity from verified canonical route metadata.
 
         Invesco's current holdings endpoint can fail independently of SEC EDGAR.
@@ -41979,9 +41972,7 @@ class GraniteSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 f"GraniteShares product page did not expose a native workbook or holdings API for {symbol}."
             )
         snapshot_url = f"https://graniteshares.com/product/{product_id}/en-us/"
-        async with httpx.AsyncClient(
-            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
-        ) as client:
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
             snapshot_response = await client.get(
                 snapshot_url,
                 headers=_issuer_page_request_headers(accept="application/json,*/*"),
@@ -41989,12 +41980,18 @@ class GraniteSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
             )
             snapshot_response.raise_for_status()
             snapshot_payload = snapshot_response.json()
-            snapshot_data = snapshot_payload.get("Data") if isinstance(snapshot_payload, dict) else None
+            snapshot_data = (
+                snapshot_payload.get("Data") if isinstance(snapshot_payload, dict) else None
+            )
             if isinstance(snapshot_data, str):
                 snapshot_data = json.loads(snapshot_data)
-            data_date = _clean(snapshot_data.get("NavDate")) if isinstance(snapshot_data, dict) else None
+            data_date = (
+                _clean(snapshot_data.get("NavDate")) if isinstance(snapshot_data, dict) else None
+            )
             if not data_date:
-                raise ValueError(f"GraniteShares snapshot did not expose a holdings date for {symbol}.")
+                raise ValueError(
+                    f"GraniteShares snapshot did not expose a holdings date for {symbol}."
+                )
             holdings_response = await client.post(
                 api_url,
                 headers=_issuer_page_request_headers(accept="application/json,*/*"),
@@ -42009,7 +42006,9 @@ class GraniteSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         rows: list[CanonicalHoldingRow] = []
         for position, item in enumerate(payload, start=1):
             if not isinstance(item, dict):
-                raise ValueError(f"GraniteShares holdings API returned an invalid row for {symbol}.")
+                raise ValueError(
+                    f"GraniteShares holdings API returned an invalid row for {symbol}."
+                )
             security = _clean(item.get("security"))
             if not security:
                 continue
@@ -50285,9 +50284,7 @@ class PointBridgeHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     follow_redirects=True,
                 )
             response.raise_for_status()
-            rows, composition_date = self._parse_holdings_page(
-                response.text, fund_symbol=symbol
-            )
+            rows, composition_date = self._parse_holdings_page(response.text, fund_symbol=symbol)
             if not rows:
                 raise ValueError(f"Point Bridge holdings page did not expose rows for {symbol}.")
         except (httpx.HTTPError, requests.RequestException, ValueError) as route_error:
@@ -50325,12 +50322,8 @@ class PointBridgeHoldingsAdapter(IssuerCsvHoldingsAdapter):
             # recover the latest predecessor snapshot rather than accepting a
             # different Truth Social series.
             predecessor_cik = _identifier(fallback_identifiers, "sec_predecessor_cik")
-            predecessor_series = _identifier(
-                fallback_identifiers, "sec_predecessor_series_id"
-            )
-            predecessor_class = _identifier(
-                fallback_identifiers, "sec_predecessor_class_id"
-            )
+            predecessor_series = _identifier(fallback_identifiers, "sec_predecessor_series_id")
+            predecessor_class = _identifier(fallback_identifiers, "sec_predecessor_class_id")
             if sec_result is None and predecessor_cik and (predecessor_series or predecessor_class):
                 predecessor_identifiers = dict(fallback_identifiers)
                 predecessor_identifiers.update(
@@ -63286,9 +63279,7 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         adapter_key="alerian",
         source_provider="alerian",
         source_access="issuer_public_hubspot_proxy_complete_json_holdings",
-        product_page_templates=(
-            "https://www.alpsfunds.com/exchange-traded-funds/{symbol_lower}",
-        ),
+        product_page_templates=("https://www.alpsfunds.com/exchange-traded-funds/{symbol_lower}",),
         live_tested_default_route=True,
         terms_note=(
             "ALPS/Alerian public product pages and holdings proxy may be subject to issuer terms."
@@ -63986,7 +63977,9 @@ class AlerianHoldingsAdapter(IssuerCsvHoldingsAdapter):
         composition_dates: set[date] = set()
         for index, item in enumerate(payload):
             if not isinstance(item, dict):
-                raise ValueError(f"ALPS returned a non-object holdings row for {normalized_symbol}.")
+                raise ValueError(
+                    f"ALPS returned a non-object holdings row for {normalized_symbol}."
+                )
             fund_symbol = _clean(item.get("fundsymbol"))
             if fund_symbol is None or fund_symbol.upper() != normalized_symbol:
                 raise ValueError(

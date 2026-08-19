@@ -48,7 +48,9 @@ _PROFILE_FIELD_CONFLICT_RELATIVE_TOLERANCE = 0.01
 
 
 def _warning(code: str, message: str, instrument_id: int | None = None, node_id: str | None = None):
-    return MarketMapWarning(code=code, message=message, instrument_id=instrument_id, node_id=node_id)
+    return MarketMapWarning(
+        code=code, message=message, instrument_id=instrument_id, node_id=node_id
+    )
 
 
 def _membership_evaluation_timestamp(
@@ -99,7 +101,9 @@ def _return(bars: list[OHLCVBar], period: str, start: datetime | None, end: date
         return None, None, "no_bars", "No local bars are available."
     latest = eligible[-1]
     if period.upper() == "CUSTOM":
-        base = next((bar for bar in reversed(eligible) if start is not None and bar.ts < start), None)
+        base = next(
+            (bar for bar in reversed(eligible) if start is not None and bar.ts < start), None
+        )
     elif period.upper() in {"YTD", "MTD"}:
         # MTD/YTD performance is measured from the last completed session before
         # the calendar window, not from the first bar inside that window. Using
@@ -108,7 +112,9 @@ def _return(bars: list[OHLCVBar], period: str, start: datetime | None, end: date
         # standard market-map convention. If that baseline is unavailable, keep
         # the result explicitly uncovered instead of silently changing the
         # calculation to an in-window return.
-        base = next((bar for bar in reversed(eligible) if start is not None and bar.ts < start), None)
+        base = next(
+            (bar for bar in reversed(eligible) if start is not None and bar.ts < start), None
+        )
     else:
         offset = _OFFSETS.get(period.upper(), 1)
         base = eligible[-offset - 1] if len(eligible) > offset else None
@@ -147,7 +153,12 @@ def _colour(
             benchmark_bars=reference_bars,
             events=events,
         )
-        return (1.0 if value else -1.0) if value is not None else None, warning, value, condition_metric
+        return (
+            (1.0 if value else -1.0) if value is not None else None,
+            warning,
+            value,
+            condition_metric,
+        )
     if not bars:
         return None, "no_bars", None, None
     latest = float(bars[-1].close)
@@ -186,14 +197,10 @@ def _group_path(
     detail = instrument.equity_detail
     point_in_time = classification or {}
     sector = (
-        point_in_time.get("sector")
-        if historical
-        else (detail.sector if detail else None)
+        point_in_time.get("sector") if historical else (detail.sector if detail else None)
     ) or "Unclassified"
     industry = (
-        point_in_time.get("industry")
-        if historical
-        else (detail.industry if detail else None)
+        point_in_time.get("industry") if historical else (detail.industry if detail else None)
     ) or "Unclassified"
     if request.group_by == "none":
         return []
@@ -213,7 +220,9 @@ def _condition_requires_events(condition: object) -> bool:
     if not isinstance(params, dict):
         return False
     children = params.get("conditions")
-    return isinstance(children, list) and any(_condition_requires_events(child) for child in children)
+    return isinstance(children, list) and any(
+        _condition_requires_events(child) for child in children
+    )
 
 
 def _is_cross_sectional_condition(condition: object) -> bool:
@@ -222,10 +231,15 @@ def _is_cross_sectional_condition(condition: object) -> bool:
     params = condition.get("params")
     if not isinstance(params, dict):
         params = {}
-    if str(condition.get("target_scope", params.get("target_scope", "member"))).lower() == "cross_sectional":
+    if (
+        str(condition.get("target_scope", params.get("target_scope", "member"))).lower()
+        == "cross_sectional"
+    ):
         return True
     children = params.get("conditions")
-    return isinstance(children, list) and any(_is_cross_sectional_condition(child) for child in children)
+    return isinstance(children, list) and any(
+        _is_cross_sectional_condition(child) for child in children
+    )
 
 
 async def _events_by_instrument(
@@ -238,15 +252,19 @@ async def _events_by_instrument(
     if not instrument_ids:
         return {}, None
     rows = (
-        await db.execute(
-            select(InstrumentEvent)
-            .where(
-                InstrumentEvent.instrument_id.in_(instrument_ids),
-                InstrumentEvent.event_time <= period_end,
+        (
+            await db.execute(
+                select(InstrumentEvent)
+                .where(
+                    InstrumentEvent.instrument_id.in_(instrument_ids),
+                    InstrumentEvent.event_time <= period_end,
+                )
+                .order_by(InstrumentEvent.instrument_id, InstrumentEvent.event_time)
             )
-            .order_by(InstrumentEvent.instrument_id, InstrumentEvent.event_time)
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     fetch_states = (
         (
             await db.execute(
@@ -254,7 +272,9 @@ async def _events_by_instrument(
                     InstrumentEventFetchState.instrument_id.in_(instrument_ids)
                 )
             )
-        ).scalars().all()
+        )
+        .scalars()
+        .all()
     )
     loaded_ids = {int(state.instrument_id) for state in fetch_states}
     events: dict[int, list[InstrumentEvent] | None] = {
@@ -300,7 +320,11 @@ async def _python_colour_values(
     config = run.run_config if isinstance(run.run_config, dict) else {}
     output_contract = str(config.get("output_contract") or "series")
     artifact = next(
-        (item for item in run.artifacts if item.name == "batch_cells" and isinstance(item.payload, dict)),
+        (
+            item
+            for item in run.artifacts
+            if item.name == "batch_cells" and isinstance(item.payload, dict)
+        ),
         None,
     )
     if artifact is None or not isinstance(artifact.payload.get("value"), dict):
@@ -320,7 +344,9 @@ async def _python_colour_values(
         metric = raw.get("metric")
         numeric_metric = (
             float(metric)
-            if isinstance(metric, int | float) and not isinstance(metric, bool) and math.isfinite(float(metric))
+            if isinstance(metric, int | float)
+            and not isinstance(metric, bool)
+            and math.isfinite(float(metric))
             else None
         )
         if output_contract == "boolean":
@@ -331,7 +357,9 @@ async def _python_colour_values(
             continue
         numeric_value = (
             float(value)
-            if isinstance(value, int | float) and not isinstance(value, bool) and math.isfinite(float(value))
+            if isinstance(value, int | float)
+            and not isinstance(value, bool)
+            and math.isfinite(float(value))
             else numeric_metric
         )
         if numeric_value is None:
@@ -349,7 +377,9 @@ def _node_metric(cells: list[MarketMapCell], area_metric: str) -> tuple[float | 
     if area_metric != "equal" and len(weighted) == len(values):
         total = sum(cell.area_value or 0 for cell in weighted)
         if total:
-            return sum((cell.color_value or 0) * (cell.area_value or 0) for cell in weighted) / total, "area_weighted_mean"
+            return sum(
+                (cell.color_value or 0) * (cell.area_value or 0) for cell in weighted
+            ) / total, "area_weighted_mean"
     return sum(cell.color_value or 0 for cell in values) / len(values), "equal_mean"
 
 
@@ -375,9 +405,7 @@ def _numeric_area_field(
     return numeric, provenance_value, None
 
 
-def _snapshot_numeric_value(
-    snapshot: InstrumentProfileSnapshot | None, field: str
-) -> float | None:
+def _snapshot_numeric_value(snapshot: InstrumentProfileSnapshot | None, field: str) -> float | None:
     """Read an allow-listed positive numeric field from a profile snapshot.
 
     Provider profile payloads retain their native field names in ``extra``. The
@@ -582,12 +610,17 @@ async def _profile_snapshot_provider_policy(
         )
     ).all()
     revision_rows = (
-        await db.execute(
-            select(ProviderEntitlementRevision).where(
-                ProviderEntitlementRevision.capability == ProviderCapability.INSTRUMENT_METADATA,
+        (
+            await db.execute(
+                select(ProviderEntitlementRevision).where(
+                    ProviderEntitlementRevision.capability
+                    == ProviderCapability.INSTRUMENT_METADATA,
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     revisions_by_source: dict[int, list[ProviderEntitlementRevision]] = defaultdict(list)
     for revision in revision_rows:
         revisions_by_source[revision.data_source_id].append(revision)
@@ -608,8 +641,7 @@ async def _profile_snapshot_provider_policy(
         historical_revision_missing = not revisions_by_source.get(data_source.id)
         entitlement_view = revision or entitlement
         enabled_environments = {
-            str(value).strip().lower()
-            for value in (entitlement_view.enabled_environments or [])
+            str(value).strip().lower() for value in (entitlement_view.enabled_environments or [])
         }
         yfinance_disabled = (
             data_source.name == "yfinance" and not settings.ENABLE_LEGACY_YFINANCE_FALLBACK
@@ -622,8 +654,14 @@ async def _profile_snapshot_provider_policy(
             and not yfinance_disabled
             and (not enabled_environments or environment in enabled_environments)
             and revision is not None
-            and (entitlement_view.effective_at is None or _as_utc(entitlement_view.effective_at) <= evaluation_at)
-            and (entitlement_view.review_due_at is None or _as_utc(entitlement_view.review_due_at) > evaluation_at)
+            and (
+                entitlement_view.effective_at is None
+                or _as_utc(entitlement_view.effective_at) <= evaluation_at
+            )
+            and (
+                entitlement_view.review_due_at is None
+                or _as_utc(entitlement_view.review_due_at) > evaluation_at
+            )
         )
         # A source with no recorded revision retains the current row as a
         # compatibility fallback. It is rankable, but its provenance remains
@@ -704,9 +742,7 @@ async def _profile_snapshot_provider_policy(
             item[2].name,
         )
     )
-    provider_rank = {
-        data_source.id: rank for rank, (_, _, data_source, _) in enumerate(eligible)
-    }
+    provider_rank = {data_source.id: rank for rank, (_, _, data_source, _) in enumerate(eligible)}
     for rank, (_, _, data_source, metadata) in enumerate(eligible):
         provider_metadata[data_source.id] = {**metadata, "provider_precedence_rank": rank}
     fingerprint = hashlib.sha256(
@@ -779,7 +815,9 @@ async def read_market_map_cache(
     return result
 
 
-async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapRequest) -> MarketMapOut:
+async def build_market_map(
+    db: AsyncSession, user_id: int, request: MarketMapRequest
+) -> MarketMapOut:
     # Imported lazily to avoid the analysis router/service import cycle.  The
     # existing helper is intentionally reused so freshness semantics stay
     # identical across batch analysis surfaces.
@@ -813,7 +851,11 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
     }
     missing_ids = set(member_ids) - set(instruments)
     exclusions = [
-        _warning("missing_instrument", "Membership refers to an unavailable canonical instrument.", instrument_id=item)
+        _warning(
+            "missing_instrument",
+            "Membership refers to an unavailable canonical instrument.",
+            instrument_id=item,
+        )
         for item in sorted(missing_ids)
     ]
     end_hint = request.end or request.as_of or datetime.now(UTC)
@@ -823,18 +865,22 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
     except ValueError as exc:
         raise ValueError("invalid_timeframe") from exc
     bars = (
-        await db.execute(
-            select(OHLCVBar)
-            .where(
-                OHLCVBar.instrument_id.in_(member_ids),
-                OHLCVBar.timeframe == timeframe,
-                OHLCVBar.is_adjusted.is_(request.adjusted),
-                OHLCVBar.ts >= history_start,
-                OHLCVBar.ts <= end_hint,
+        (
+            await db.execute(
+                select(OHLCVBar)
+                .where(
+                    OHLCVBar.instrument_id.in_(member_ids),
+                    OHLCVBar.timeframe == timeframe,
+                    OHLCVBar.is_adjusted.is_(request.adjusted),
+                    OHLCVBar.ts >= history_start,
+                    OHLCVBar.ts <= end_hint,
+                )
+                .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
             )
-            .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     bars_by_id: dict[int, list[OHLCVBar]] = defaultdict(list)
     for bar in bars:
         bars_by_id[bar.instrument_id].append(bar)
@@ -852,7 +898,9 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
     profile_snapshot_revision_missing_ids: set[int] = set()
     profile_snapshot_conflicts_by_id: dict[int, dict[str, object]] = {}
     profile_snapshot_candidate_ids: set[int] = set()
-    profile_snapshot_rows_by_instrument: dict[int, list[InstrumentProfileSnapshot]] = defaultdict(list)
+    profile_snapshot_rows_by_instrument: dict[int, list[InstrumentProfileSnapshot]] = defaultdict(
+        list
+    )
     classification_by_id: dict[int, dict[str, object]] = {}
     classification_snapshot_ids: list[int] = []
     profile_snapshot_area = request.area_metric in {"market_cap", "field"}
@@ -867,27 +915,31 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
             evaluation_at=end_hint,
         )
         profile_snapshot_rows = (
-            await db.execute(
-                select(InstrumentProfileSnapshot)
-                .options(selectinload(InstrumentProfileSnapshot.data_source))
-                .where(
-                    InstrumentProfileSnapshot.instrument_id.in_(member_ids),
-                    InstrumentProfileSnapshot.observed_at <= end_hint,
-                    # ``observed_at`` describes when the provider says the
-                    # value was true; ``fetched_at`` is the knowledge boundary
-                    # for a reproducible as-of calculation.  A snapshot that
-                    # was only fetched after the requested evaluation time is
-                    # future information even when its observation date is in
-                    # the past, so it must not enter historical area or
-                    # classification selection.
-                    InstrumentProfileSnapshot.fetched_at <= end_hint,
-                )
-                .order_by(
-                    InstrumentProfileSnapshot.instrument_id,
-                    InstrumentProfileSnapshot.id.desc(),
+            (
+                await db.execute(
+                    select(InstrumentProfileSnapshot)
+                    .options(selectinload(InstrumentProfileSnapshot.data_source))
+                    .where(
+                        InstrumentProfileSnapshot.instrument_id.in_(member_ids),
+                        InstrumentProfileSnapshot.observed_at <= end_hint,
+                        # ``observed_at`` describes when the provider says the
+                        # value was true; ``fetched_at`` is the knowledge boundary
+                        # for a reproducible as-of calculation.  A snapshot that
+                        # was only fetched after the requested evaluation time is
+                        # future information even when its observation date is in
+                        # the past, so it must not enter historical area or
+                        # classification selection.
+                        InstrumentProfileSnapshot.fetched_at <= end_hint,
+                    )
+                    .order_by(
+                        InstrumentProfileSnapshot.instrument_id,
+                        InstrumentProfileSnapshot.id.desc(),
+                    )
                 )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         for snapshot in profile_snapshot_rows:
             profile_snapshot_rows_by_instrument[snapshot.instrument_id].append(snapshot)
         for instrument_id, candidates in profile_snapshot_rows_by_instrument.items():
@@ -935,21 +987,25 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         # local snapshot set when the map is equal/weight/volume sized.
         if not profile_snapshot_rows_by_instrument:
             classification_rows = (
-                await db.execute(
-                    select(InstrumentProfileSnapshot)
-                    .options(selectinload(InstrumentProfileSnapshot.data_source))
-                    .where(
-                        InstrumentProfileSnapshot.instrument_id.in_(member_ids),
-                        InstrumentProfileSnapshot.observed_at <= end_hint,
-                        InstrumentProfileSnapshot.fetched_at <= end_hint,
-                    )
-                    .order_by(
-                        InstrumentProfileSnapshot.instrument_id,
-                        InstrumentProfileSnapshot.observed_at.desc(),
-                        InstrumentProfileSnapshot.id.desc(),
+                (
+                    await db.execute(
+                        select(InstrumentProfileSnapshot)
+                        .options(selectinload(InstrumentProfileSnapshot.data_source))
+                        .where(
+                            InstrumentProfileSnapshot.instrument_id.in_(member_ids),
+                            InstrumentProfileSnapshot.observed_at <= end_hint,
+                            InstrumentProfileSnapshot.fetched_at <= end_hint,
+                        )
+                        .order_by(
+                            InstrumentProfileSnapshot.instrument_id,
+                            InstrumentProfileSnapshot.observed_at.desc(),
+                            InstrumentProfileSnapshot.id.desc(),
+                        )
                     )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
             for snapshot in classification_rows:
                 profile_snapshot_rows_by_instrument[snapshot.instrument_id].append(snapshot)
         for instrument_id, candidates in profile_snapshot_rows_by_instrument.items():
@@ -982,20 +1038,26 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         ).scalar_one_or_none()
         if reference:
             reference_bars = (
-                await db.execute(
-                    select(OHLCVBar)
-                    .where(
-                        OHLCVBar.instrument_id == reference.id,
-                        OHLCVBar.timeframe == timeframe,
-                        OHLCVBar.is_adjusted.is_(request.adjusted),
-                        OHLCVBar.ts >= history_start,
-                        OHLCVBar.ts <= period_end,
+                (
+                    await db.execute(
+                        select(OHLCVBar)
+                        .where(
+                            OHLCVBar.instrument_id == reference.id,
+                            OHLCVBar.timeframe == timeframe,
+                            OHLCVBar.is_adjusted.is_(request.adjusted),
+                            OHLCVBar.ts >= history_start,
+                            OHLCVBar.ts <= period_end,
+                        )
+                        .order_by(OHLCVBar.ts)
                     )
-                    .order_by(OHLCVBar.ts)
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
         else:
-            exclusions.append(_warning("reference_not_found", "The relative-return reference is not canonical."))
+            exclusions.append(
+                _warning("reference_not_found", "The relative-return reference is not canonical.")
+            )
     elif request.reference_source_id:
         try:
             reference_resolved = await resolve_watchlist_source(
@@ -1024,18 +1086,22 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
             dict.fromkeys(member.instrument_id for member in reference_resolved.members)
         )
         reference_source_bars = (
-            await db.execute(
-                select(OHLCVBar)
-                .where(
-                    OHLCVBar.instrument_id.in_(reference_source_member_ids),
-                    OHLCVBar.timeframe == timeframe,
-                    OHLCVBar.is_adjusted.is_(request.adjusted),
-                    OHLCVBar.ts >= history_start,
-                    OHLCVBar.ts <= period_end,
+            (
+                await db.execute(
+                    select(OHLCVBar)
+                    .where(
+                        OHLCVBar.instrument_id.in_(reference_source_member_ids),
+                        OHLCVBar.timeframe == timeframe,
+                        OHLCVBar.is_adjusted.is_(request.adjusted),
+                        OHLCVBar.ts >= history_start,
+                        OHLCVBar.ts <= period_end,
+                    )
+                    .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
                 )
-                .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         reference_bars_by_id: dict[int, list[OHLCVBar]] = defaultdict(list)
         for bar in reference_source_bars:
             reference_bars_by_id[bar.instrument_id].append(bar)
@@ -1059,16 +1125,17 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         if reference or reference_source
         else (None, None, None, None)
     )
-    source_bar_watermark = max((bar.ts for rows in bars_by_id.values() for bar in rows), default=None)
+    source_bar_watermark = max(
+        (bar.ts for rows in bars_by_id.values() for bar in rows), default=None
+    )
     reference_bar_watermark = max((bar.ts for bar in reference_bars), default=None)
     events_by_id, event_watermark = (
         await _events_by_instrument(db, member_ids, period_end)
         if request.color_metric == "breadth" and _condition_requires_events(request.condition)
         else ({}, None)
     )
-    cross_sectional_condition = (
-        request.color_metric == "breadth"
-        and _is_cross_sectional_condition(request.condition)
+    cross_sectional_condition = request.color_metric == "breadth" and _is_cross_sectional_condition(
+        request.condition
     )
     cross_sectional_results = {}
     if cross_sectional_condition:
@@ -1087,9 +1154,7 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
             request.condition or {},
             benchmark_bars=reference_bars,
         )
-        cross_sectional_results = {
-            item.instrument_id: item for item in cross_sectional_results
-        }
+        cross_sectional_results = {item.instrument_id: item for item in cross_sectional_results}
     cache_key = _cache_key(
         request,
         resolved.descriptor.membership_version,
@@ -1106,9 +1171,8 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
     )
     python_values, python_output_contract = ({}, "")
     if (
-        (request.color_metric == "python" or request.area_metric == "python")
-        and request.python_run_id is not None
-    ):
+        request.color_metric == "python" or request.area_metric == "python"
+    ) and request.python_run_id is not None:
         python_values, python_output_contract = await _python_colour_values(
             db, user_id, request.python_run_id
         )
@@ -1164,8 +1228,7 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
             message = (
                 "The cross-sectional breadth target is unavailable for this member."
                 if cross_sectional_condition
-                else
-                "The isolated Python colour output is unavailable for this member."
+                else "The isolated Python colour output is unavailable for this member."
                 if request.color_metric == "python"
                 else "The requested colour metric is not covered by available local data."
             )
@@ -1216,12 +1279,20 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
                 area_provenance = {
                     "kind": "point_in_time_membership",
                     "source": member.source,
-                    "effective_at": member.effective_at.isoformat() if member.effective_at else None,
+                    "effective_at": member.effective_at.isoformat()
+                    if member.effective_at
+                    else None,
                     "known_at": member.known_at.isoformat() if member.known_at else None,
                     "membership_version": resolved.descriptor.membership_version,
                 }
             if area is None:
-                warnings.append(_warning("missing_weight", "No point-in-time source weight is available.", instrument_id=instrument_id))
+                warnings.append(
+                    _warning(
+                        "missing_weight",
+                        "No point-in-time source weight is available.",
+                        instrument_id=instrument_id,
+                    )
+                )
         elif request.area_metric == "volume":
             area = float(rows[-1].volume) if rows and rows[-1].volume is not None else None
             if area is not None and rows:
@@ -1232,7 +1303,13 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
                     "adjustment": "raw_volume",
                 }
             if area is None:
-                warnings.append(_warning("missing_volume", "No local volume is available for area sizing.", instrument_id=instrument_id))
+                warnings.append(
+                    _warning(
+                        "missing_volume",
+                        "No local volume is available for area sizing.",
+                        instrument_id=instrument_id,
+                    )
+                )
         elif request.area_metric == "field":
             snapshot = profile_snapshots_by_id.get(instrument_id)
             snapshot_area = _snapshot_numeric_value(snapshot, request.area_field or "")
@@ -1271,7 +1348,9 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
                         )
                     )
             else:
-                area, area_provenance, area_code = _numeric_area_field(instrument, request.area_field)
+                area, area_provenance, area_code = _numeric_area_field(
+                    instrument, request.area_field
+                )
                 if area is not None and isinstance(area_provenance, dict):
                     area_provenance = {
                         **area_provenance,
@@ -1335,19 +1414,43 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
                         )
                     )
             else:
-                area = float(instrument.stats.market_cap) if instrument.stats and instrument.stats.market_cap is not None else None
+                area = (
+                    float(instrument.stats.market_cap)
+                    if instrument.stats and instrument.stats.market_cap is not None
+                    else None
+                )
                 if area is not None:
-                    market_cap_provenance = (instrument.stats.field_provenance or {}).get("market_cap") if instrument.stats else None
-                    area_provenance = market_cap_provenance if isinstance(market_cap_provenance, dict) else {
-                        "kind": "current_metadata",
-                        "field": "market_cap",
-                        "source": "local_instrument_stats",
-                        "point_in_time": False,
-                    }
+                    market_cap_provenance = (
+                        (instrument.stats.field_provenance or {}).get("market_cap")
+                        if instrument.stats
+                        else None
+                    )
+                    area_provenance = (
+                        market_cap_provenance
+                        if isinstance(market_cap_provenance, dict)
+                        else {
+                            "kind": "current_metadata",
+                            "field": "market_cap",
+                            "source": "local_instrument_stats",
+                            "point_in_time": False,
+                        }
+                    )
                 if area is None:
-                    warnings.append(_warning("missing_market_cap", "No market-cap value is available.", instrument_id=instrument_id))
+                    warnings.append(
+                        _warning(
+                            "missing_market_cap",
+                            "No market-cap value is available.",
+                            instrument_id=instrument_id,
+                        )
+                    )
                 else:
-                    warnings.append(_warning("current_market_cap", "Market-cap area uses the latest stored value and is not point-in-time.", instrument_id=instrument_id))
+                    warnings.append(
+                        _warning(
+                            "current_market_cap",
+                            "Market-cap area uses the latest stored value and is not point-in-time.",
+                            instrument_id=instrument_id,
+                        )
+                    )
         classification = classification_by_id.get(instrument_id) if historical_grouping else None
         path = _group_path(
             request,
@@ -1373,26 +1476,32 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         color_coverage = 1.0 if colour is not None else 0.0
         area_coverage = 1.0 if area is not None and math.isfinite(area) and area > 0 else 0.0
         coverage = min(color_coverage, area_coverage)
-        cells.append(MarketMapCell(
-            instrument_id=instrument_id,
-            symbol=instrument.symbol,
-            name=instrument.name,
-            sector=(classification or {}).get("sector") if historical_grouping else (instrument.equity_detail.sector if instrument.equity_detail else None),
-            industry=(classification or {}).get("industry") if historical_grouping else (instrument.equity_detail.industry if instrument.equity_detail else None),
-            classification_provenance=(classification if historical_grouping else None),
-            group_path=path,
-            area_value=area,
-            area_provenance=area_provenance,
-            color_value=colour,
-            return_value=result,
-            condition_value=condition_value,
-            condition_metric=condition_metric,
-            observation_time=observed,
-            coverage=coverage,
-            color_coverage=color_coverage,
-            area_coverage=area_coverage,
-            warnings=warnings,
-        ))
+        cells.append(
+            MarketMapCell(
+                instrument_id=instrument_id,
+                symbol=instrument.symbol,
+                name=instrument.name,
+                sector=(classification or {}).get("sector")
+                if historical_grouping
+                else (instrument.equity_detail.sector if instrument.equity_detail else None),
+                industry=(classification or {}).get("industry")
+                if historical_grouping
+                else (instrument.equity_detail.industry if instrument.equity_detail else None),
+                classification_provenance=(classification if historical_grouping else None),
+                group_path=path,
+                area_value=area,
+                area_provenance=area_provenance,
+                color_value=colour,
+                return_value=result,
+                condition_value=condition_value,
+                condition_metric=condition_metric,
+                observation_time=observed,
+                coverage=coverage,
+                color_coverage=color_coverage,
+                area_coverage=area_coverage,
+                warnings=warnings,
+            )
+        )
     cells.sort(key=lambda cell: (cell.area_value is not None, cell.area_value or 0), reverse=True)
     nodes: list[MarketMapNode] = []
     buckets: dict[tuple[str, ...], list[MarketMapCell]] = defaultdict(list)
@@ -1402,7 +1511,9 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         buckets = {(): cells}
     for path, bucket in sorted(buckets.items()):
         node_id = "root" if not path else "group:" + "/".join(path)
-        parent = None if not path else ("root" if len(path) == 1 else "group:" + "/".join(path[:-1]))
+        parent = (
+            None if not path else ("root" if len(path) == 1 else "group:" + "/".join(path[:-1]))
+        )
         metric, method = _node_metric(bucket, request.area_metric)
         node_warnings = []
         if any(
@@ -1425,22 +1536,27 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
                     node_id=node_id,
                 )
             )
-        nodes.append(MarketMapNode(
-            node_id=node_id,
-            parent_id=parent,
-            level="root" if not path else ("sector" if request.group_by == "sector" or len(path) == 1 else "industry"),
-            label="All members" if not path else path[-1],
-            group_path=list(path),
-            member_count=len(bucket),
-            covered_count=sum(1 for item in bucket if item.coverage),
-            area_total=sum(item.area_value for item in bucket if item.area_value is not None) or None,
-            color_value=metric,
-            coverage=sum(item.coverage for item in bucket) / max(len(bucket), 1),
-            color_coverage=sum(item.color_coverage for item in bucket) / max(len(bucket), 1),
-            area_coverage=sum(item.area_coverage for item in bucket) / max(len(bucket), 1),
-            aggregation_method=method,
-            warnings=node_warnings,
-        ))
+        nodes.append(
+            MarketMapNode(
+                node_id=node_id,
+                parent_id=parent,
+                level="root"
+                if not path
+                else ("sector" if request.group_by == "sector" or len(path) == 1 else "industry"),
+                label="All members" if not path else path[-1],
+                group_path=list(path),
+                member_count=len(bucket),
+                covered_count=sum(1 for item in bucket if item.coverage),
+                area_total=sum(item.area_value for item in bucket if item.area_value is not None)
+                or None,
+                color_value=metric,
+                coverage=sum(item.coverage for item in bucket) / max(len(bucket), 1),
+                color_coverage=sum(item.color_coverage for item in bucket) / max(len(bucket), 1),
+                area_coverage=sum(item.area_coverage for item in bucket) / max(len(bucket), 1),
+                aggregation_method=method,
+                warnings=node_warnings,
+            )
+        )
     if request.group_by == "sector_industry":
         # Add sector parents for the flattened child rows.
         sector_buckets: dict[str, list[MarketMapCell]] = defaultdict(list)
@@ -1449,8 +1565,32 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         parents = []
         for sector, bucket in sorted(sector_buckets.items()):
             metric, method = _node_metric(bucket, request.area_metric)
-            parents.append(MarketMapNode(node_id=f"group:{sector}", parent_id="root", level="sector", label=sector, group_path=[sector], member_count=len(bucket), covered_count=sum(1 for item in bucket if item.coverage), area_total=sum(item.area_value for item in bucket if item.area_value is not None) or None, color_value=metric, coverage=sum(item.coverage for item in bucket) / max(len(bucket), 1), color_coverage=sum(item.color_coverage for item in bucket) / max(len(bucket), 1), area_coverage=sum(item.area_coverage for item in bucket) / max(len(bucket), 1), aggregation_method=method))
-        nodes = [node for node in nodes if node.node_id == "root"] + parents + [node for node in nodes if node.node_id != "root"]
+            parents.append(
+                MarketMapNode(
+                    node_id=f"group:{sector}",
+                    parent_id="root",
+                    level="sector",
+                    label=sector,
+                    group_path=[sector],
+                    member_count=len(bucket),
+                    covered_count=sum(1 for item in bucket if item.coverage),
+                    area_total=sum(
+                        item.area_value for item in bucket if item.area_value is not None
+                    )
+                    or None,
+                    color_value=metric,
+                    coverage=sum(item.coverage for item in bucket) / max(len(bucket), 1),
+                    color_coverage=sum(item.color_coverage for item in bucket)
+                    / max(len(bucket), 1),
+                    area_coverage=sum(item.area_coverage for item in bucket) / max(len(bucket), 1),
+                    aggregation_method=method,
+                )
+            )
+        nodes = (
+            [node for node in nodes if node.node_id == "root"]
+            + parents
+            + [node for node in nodes if node.node_id != "root"]
+        )
     if request.group_by != "none":
         root_metric, root_method = _node_metric(cells, request.area_metric)
         root = MarketMapNode(
@@ -1460,7 +1600,8 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
             label="All members",
             member_count=len(cells),
             covered_count=sum(1 for item in cells if item.coverage),
-            area_total=sum(item.area_value for item in cells if item.area_value is not None) or None,
+            area_total=sum(item.area_value for item in cells if item.area_value is not None)
+            or None,
             color_value=root_metric,
             coverage=sum(item.coverage for item in cells) / max(len(cells), 1),
             color_coverage=sum(item.color_coverage for item in cells) / max(len(cells), 1),
@@ -1468,8 +1609,17 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
             aggregation_method=root_method,
         )
         nodes = [root, *nodes]
-    freshness, freshness_detail = await _batch_freshness(db, member_ids, timeframe, request.adjusted)
-    exclusions.extend(_warning(item.get("reason", "source_exclusion"), "Member excluded while resolving the source.", item.get("instrument_id")) for item in resolved.exclusions)
+    freshness, freshness_detail = await _batch_freshness(
+        db, member_ids, timeframe, request.adjusted
+    )
+    exclusions.extend(
+        _warning(
+            item.get("reason", "source_exclusion"),
+            "Member excluded while resolving the source.",
+            item.get("instrument_id"),
+        )
+        for item in resolved.exclusions
+    )
     result = MarketMapOut(
         source=resolved.descriptor,
         group_by=request.group_by,
@@ -1525,7 +1675,10 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
                     ]
                     if request.area_metric in {"market_cap", "field"}
                     and any(
-                        any(item.code == "profile_snapshot_unranked_source" for item in cell.warnings)
+                        any(
+                            item.code == "profile_snapshot_unranked_source"
+                            for item in cell.warnings
+                        )
                         for cell in cells
                     )
                     else []

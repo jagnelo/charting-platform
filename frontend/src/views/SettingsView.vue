@@ -41,6 +41,15 @@
     <section class="settings-section">
       <h3>Providers</h3>
       <p class="hint">Capability routing, fallback health, and observed provider usage over time.</p>
+      <div v-if="availabilityRows.length" class="availability-list" aria-label="Provider availability">
+        <div class="availability-head"><strong>Latest availability probes</strong><span>Daily core / weekly supported sweep</span></div>
+        <div v-for="row in availabilityRows" :key="`${row.provider}:${row.capability}`" class="availability-row">
+          <span><strong>{{ row.provider }}</strong> · {{ humanizeKey(row.capability) }}</span>
+          <span :class="row.success ? 'availability-ok' : 'availability-fail'">{{ humanizeKey(row.classification) }}</span>
+          <span>{{ row.latency_ms == null ? 'n/a' : `${row.latency_ms}ms` }} · {{ row.consecutive_failures }} failures</span>
+          <small>{{ formatDateTime(row.observed_at) }}</small>
+        </div>
+      </div>
       <div v-if="providersLoading" class="empty-hint">Loading provider policies...</div>
       <div v-else-if="providerError" class="push-status err">{{ providerError }}</div>
       <div v-else class="provider-list">
@@ -311,6 +320,7 @@ const pushStatus = ref<{ ok: boolean; msg: string } | null>(null)
 const connStatus = ref<{ ok: boolean; msg: string } | null>(null)
 const providerPolicies = ref<ProviderPolicyStatus[]>([])
 const providerUsage = ref<ProviderUsageSummary[]>([])
+const availabilityRows = ref<Array<{ provider: string; capability: string; classification: string; success: boolean; latency_ms: number | null; consecutive_failures: number; observed_at: string }>>([])
 const providersLoading = ref(false)
 const providerError = ref<string | null>(null)
 const providerPanels = ref<Record<string, { usage: boolean; config: boolean }>>({})
@@ -497,12 +507,14 @@ async function loadProviderPolicies() {
   providersLoading.value = true
   providerError.value = null
   try {
-    const [policies, usage] = await Promise.all([
+    const [policies, usage, availability] = await Promise.all([
       api.get<ProviderPolicyStatus[]>('/providers/policies'),
       api.get<ProviderUsageSummary[]>('/providers/usage'),
+      api.get<typeof availabilityRows.value>('/providers/availability'),
     ])
     providerPolicies.value = policies
     providerUsage.value = usage
+    availabilityRows.value = availability
   } catch (e: any) {
     providerError.value = e?.message ?? 'Failed to load providers'
   } finally {
@@ -610,6 +622,13 @@ onMounted(async () => {
 .preset-row .btn-danger:hover { border-color: #ef5350; color: #ef5350; }
 
 .empty-hint { color: #444; font-size: 12px; font-style: italic; }
+.availability-list { margin: 12px 0 16px; border: 1px solid #252525; border-radius: 6px; overflow: hidden; }
+.availability-head, .availability-row { display: grid; grid-template-columns: minmax(220px, 1.5fr) minmax(150px, 1fr) 150px 180px; gap: 10px; align-items: center; padding: 8px 10px; font-size: 11px; }
+.availability-head { background: #151515; color: #aaa; }
+.availability-head span, .availability-row small, .availability-row span:last-of-type { color: #666; }
+.availability-row { border-top: 1px solid #202020; color: #bbb; }
+.availability-ok { color: #66bb6a; }
+.availability-fail { color: #ef9a9a; }
 
 .provider-list {
   display: flex;

@@ -56,7 +56,9 @@ async def task_bulk_fetch_instrument(
         return summary
 
 
-async def task_refresh_benchmark_family_history(ctx: dict, instrument_ids: list[int], timeframes: list[str] | None = None):
+async def task_refresh_benchmark_family_history(
+    ctx: dict, instrument_ids: list[int], timeframes: list[str] | None = None
+):
     """Compatibility task for callers that submit a bounded family batch.
 
     The HTTP maintenance route currently submits the existing per-instrument task
@@ -66,9 +68,7 @@ async def task_refresh_benchmark_family_history(ctx: dict, instrument_ids: list[
 
     results = []
     for instrument_id in instrument_ids:
-        results.append(
-            await task_bulk_fetch_instrument(ctx, instrument_id, timeframes=timeframes)
-        )
+        results.append(await task_bulk_fetch_instrument(ctx, instrument_id, timeframes=timeframes))
     return {"instrument_count": len(instrument_ids), "results": results}
 
 
@@ -421,6 +421,34 @@ async def scheduled_core_workstation_bootstrap(ctx: dict):
     return await task_bootstrap_core_workstation(ctx)
 
 
+async def scheduled_daily_provider_availability(ctx: dict):
+    if (
+        not settings.PROVIDER_AVAILABILITY_MONITOR_ENABLED
+        or not settings.PROVIDER_AVAILABILITY_LIVE_ENABLED
+    ):
+        return {"status": "disabled"}
+    from app.database import AsyncSessionLocal
+    from app.services.provider_availability import run_availability_probes
+
+    async with AsyncSessionLocal() as db:
+        return await run_availability_probes(db, "daily_core", application_version=settings.APP_ENV)
+
+
+async def scheduled_weekly_provider_availability(ctx: dict):
+    if (
+        not settings.PROVIDER_AVAILABILITY_MONITOR_ENABLED
+        or not settings.PROVIDER_AVAILABILITY_LIVE_ENABLED
+    ):
+        return {"status": "disabled"}
+    from app.database import AsyncSessionLocal
+    from app.services.provider_availability import run_availability_probes
+
+    async with AsyncSessionLocal() as db:
+        return await run_availability_probes(
+            db, "weekly_supported_sweep", application_version=settings.APP_ENV
+        )
+
+
 async def worker_startup(ctx: dict):
     """Queue the first hydration without blocking worker readiness.
 
@@ -468,6 +496,8 @@ class WorkerSettings:
         scheduled_etf_holdings_sec_backfill,
         scheduled_etf_holdings_classification_refresh,
         scheduled_benchmark_family_holdings_refresh,
+        scheduled_daily_provider_availability,
+        scheduled_weekly_provider_availability,
     ]
     cron_jobs = (
         [
@@ -480,6 +510,8 @@ class WorkerSettings:
             cron(scheduled_etf_holdings_classification_refresh, weekday=6, hour=7, minute=0),
             cron(scheduled_benchmark_family_holdings_refresh, weekday=6, hour=8, minute=0),
             cron(scheduled_core_workstation_bootstrap, hour=1, minute=0),
+            cron(scheduled_daily_provider_availability, hour=2, minute=0),
+            cron(scheduled_weekly_provider_availability, weekday=6, hour=3, minute=0),
         ]
         if (
             settings.INSTRUMENT_SYNC_SCHEDULE_ENABLED
@@ -489,6 +521,7 @@ class WorkerSettings:
             or settings.ETF_HOLDINGS_CLASSIFICATION_REFRESH_ENABLED
             or settings.BENCHMARK_FAMILY_HOLDINGS_REFRESH_ENABLED
             or settings.CORE_WORKSTATION_BOOTSTRAP_ENABLED
+            or settings.PROVIDER_AVAILABILITY_MONITOR_ENABLED
         )
         else []
     )

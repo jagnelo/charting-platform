@@ -483,9 +483,7 @@ async def test_bootstrap_retries_instead_of_short_circuiting_partial_snapshot(mo
     monkeypatch.setattr(
         "app.services.etf_holdings_refresh._refresh_adapter_route", fake_refresh_adapter_route
     )
-    monkeypatch.setattr(
-        "app.services.etf_holdings_refresh._record_success", fake_record_success
-    )
+    monkeypatch.setattr("app.services.etf_holdings_refresh._record_success", fake_record_success)
 
     result = await bootstrap_etf_holdings_profile(db, symbol="SPY", name=instrument.name)
 

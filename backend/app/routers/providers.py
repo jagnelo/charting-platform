@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_admin
+from app.config import settings
 from app.database import get_db
 from app.models.data_source import DataSource
 from app.models.instrument_reconciliation import InstrumentReconciliationIssue
@@ -21,6 +22,7 @@ from app.services.instrument_reconciliation import (
     list_reconciliation_issues,
     resolve_reconciliation_issue,
 )
+from app.services.provider_availability import latest_availability, run_availability_probes
 from app.services.provider_maintenance import (
     list_stale_dataset_states,
     prune_provider_observations,
@@ -269,6 +271,26 @@ async def get_provider_usage(
     current_user: User = Depends(get_current_user),
 ):
     return await summarize_provider_usage(db)
+
+
+@router.get("/availability")
+async def get_provider_availability(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Latest durable daily/weekly probe result for Settings and operators."""
+    return await latest_availability(db)
+
+
+@router.post("/availability/run")
+async def run_provider_availability(
+    mode: Literal["daily_core", "weekly_supported_sweep"] = "daily_core",
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    if not settings.PROVIDER_AVAILABILITY_LIVE_ENABLED:
+        raise HTTPException(409, "Live provider probes are disabled by deployment configuration")
+    return await run_availability_probes(db, mode, application_version=settings.APP_ENV)
 
 
 @router.get("/datasets/stale")

@@ -71,7 +71,9 @@ class MarketMapRequest(BaseModel):
             raise ValueError("reference_symbol and reference_source_id are mutually exclusive")
         if self.color_metric == "breadth" and not self.condition:
             raise ValueError("breadth requires condition")
-        if (self.color_metric == "python" or self.area_metric == "python") and self.python_run_id is None:
+        if (
+            self.color_metric == "python" or self.area_metric == "python"
+        ) and self.python_run_id is None:
             raise ValueError("python map output requires python_run_id")
         if self.area_metric == "field" and self.area_field is None:
             raise ValueError("field area requires area_field")

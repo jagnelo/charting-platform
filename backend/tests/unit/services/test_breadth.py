@@ -145,7 +145,12 @@ def test_series_comparison_history_requires_reference_at_each_timestamp():
         {1: member},
         {
             "kind": "series_comparison",
-            "params": {"field": "return", "target_field": "return", "operator": "gte", "threshold": 0},
+            "params": {
+                "field": "return",
+                "target_field": "return",
+                "operator": "gte",
+                "threshold": 0,
+            },
         },
         limit=10,
         benchmark_bars=reference,
@@ -321,8 +326,21 @@ def test_composite_conditions_and_comparison_fields_are_reusable():
         "kind": "all",
         "params": {
             "conditions": [
-                {"kind": "comparison", "params": {"field": "return", "operator": ">", "threshold": 0}},
-                {"kind": "not", "params": {"conditions": [{"kind": "rsi", "params": {"period": 2, "threshold": 50, "comparator": "below"}}]}},
+                {
+                    "kind": "comparison",
+                    "params": {"field": "return", "operator": ">", "threshold": 0},
+                },
+                {
+                    "kind": "not",
+                    "params": {
+                        "conditions": [
+                            {
+                                "kind": "rsi",
+                                "params": {"period": 2, "threshold": 50, "comparator": "below"},
+                            }
+                        ]
+                    },
+                },
             ]
         },
     }

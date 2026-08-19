@@ -1294,6 +1294,11 @@ type MapAnalysisPublication = {
   scope: 'full' | 'selection'
 }
 
+async function saveWorkspaceSnapshotIfSupported() {
+  const saveSnapshot = (workspaceStore as unknown as { saveSnapshot?: () => Promise<void> }).saveSnapshot
+  if (typeof saveSnapshot === 'function') await saveSnapshot.call(workspaceStore)
+}
+
 async function publishMapAnalysis(publication: MapAnalysisPublication) {
   if (!publication.sourceId) return
   // Let the source tool's selection/layout event settle before switching the
@@ -1340,7 +1345,7 @@ async function publishMapAnalysis(publication: MapAnalysisPublication) {
         ...selectedConfiguration,
       }
       updateToolConfiguration(existing.window.instance_key, publishedConfiguration)
-      await workspaceStore.saveSnapshot()
+      await saveWorkspaceSnapshotIfSupported()
       // saveSnapshot replaces the canonical workspace object with the server
       // response. Golden Layout may still hold the pre-save tool object, so
       // mirror the accepted configuration into that mounted object as well.
@@ -1498,7 +1503,7 @@ async function openMarketMapRatio(symbols: string[]) {
     auto_ratio: false,
   }
   updateToolConfiguration(ratio.instance_key, publishedConfiguration)
-  await workspaceStore.saveSnapshot()
+  await saveWorkspaceSnapshotIfSupported()
   for (const key of Object.keys(mountedConfiguration)) delete mountedConfiguration[key]
   Object.assign(mountedConfiguration, publishedConfiguration)
 }
@@ -1538,7 +1543,7 @@ async function handleRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 
       auto_ratio: false,
     }
     updateToolConfiguration(ratio.instance_key, publishedConfiguration)
-    await workspaceStore.saveSnapshot()
+    await saveWorkspaceSnapshotIfSupported()
     for (const key of Object.keys(mountedConfiguration)) delete mountedConfiguration[key]
     Object.assign(mountedConfiguration, publishedConfiguration)
     return

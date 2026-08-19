@@ -53,5 +53,8 @@ def test_plan_rejects_empty_and_over_bound_dates():
 
     with pytest.raises(ValueError, match="At most"):
         plan_benchmark_family_holdings_refresh(
-            requested_dates=[date(2020, 1, 1) + timedelta(days=offset) for offset in range(MAX_HOLDINGS_REFRESH_DATES + 1)]
+            requested_dates=[
+                date(2020, 1, 1) + timedelta(days=offset)
+                for offset in range(MAX_HOLDINGS_REFRESH_DATES + 1)
+            ]
         )

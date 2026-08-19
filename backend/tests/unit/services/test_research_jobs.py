@@ -37,7 +37,9 @@ def test_enqueue_prepares_both_shared_volumes_and_job_file(tmp_path, monkeypatch
     assert stat.S_IMODE(job.stat().st_mode) == 0o666
 
 
-def test_collect_projects_breadth_history_occurrences_into_persisted_artifact(tmp_path, monkeypatch):
+def test_collect_projects_breadth_history_occurrences_into_persisted_artifact(
+    tmp_path, monkeypatch
+):
     result_directory = tmp_path / "results"
     result_directory.mkdir()
     monkeypatch.setattr(research_jobs.settings, "RESEARCH_RESULT_DIR", str(result_directory))

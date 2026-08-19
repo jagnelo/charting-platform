@@ -1,0 +1,5 @@
+{"command":"python3 scripts/worktree-runtime.py json","result":"pass","evidence":"path-derived allocation and environment emitted"}
+{"command":"python3 -m py_compile scripts/worktree.py scripts/worktree-runtime.py scripts/validate-workstream.py","result":"pass","evidence":"stdlib syntax validation"}
+{"command":"uv lock --check; npm ci; npm run build","result":"pass","evidence":"frozen dependency inputs and frontend production build"}
+{"command":"pytest tests/unit/services/test_provider_availability.py tests/unit/test_worktree_runtime.py","result":"pass","evidence":"3 focused tests; repository coverage threshold disabled for focused run"}
+{"command":"docker compose -f deploy/rpi/compose.yml config --quiet","result":"pass","evidence":"image-only ARM deployment Compose contract renders"}

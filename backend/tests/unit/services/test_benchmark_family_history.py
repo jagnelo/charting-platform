@@ -7,9 +7,10 @@ from app.services import benchmark_family_history as history
 
 def test_canonical_history_job_id_separates_historical_end_bounds():
     assert history.canonical_history_job_id(7, ["D1"]) == "watchlist-source-history:7:D1"
-    assert history.canonical_history_job_id(
-        7, ["D1"], history.datetime(2024, 1, 2)
-    ) == "watchlist-source-history:7:D1:end=2024-01-02T00:00:00+00:00"
+    assert (
+        history.canonical_history_job_id(7, ["D1"], history.datetime(2024, 1, 2))
+        == "watchlist-source-history:7:D1:end=2024-01-02T00:00:00+00:00"
+    )
 
 
 def test_family_history_normalizers_reject_unknown_values_and_dedupe_timeframes():

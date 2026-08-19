@@ -132,7 +132,9 @@ async def _get_own_benchmark_family_holdings_run(
         )
     ).scalar_one_or_none()
     if run is None:
-        raise HTTPException(status_code=404, detail="Benchmark family holdings refresh run not found")
+        raise HTTPException(
+            status_code=404, detail="Benchmark family holdings refresh run not found"
+        )
     return run
 
 
@@ -305,7 +307,30 @@ async def queue_benchmark_family_history_refresh(
     except Exception as exc:  # noqa: BLE001 - queue outage is an explicit admin outcome.
         queue_unavailable = True
         return BenchmarkFamilyHistoryRefreshSummary(
-            **{key: plan[key] for key in (
+            **{
+                key: plan[key]
+                for key in (
+                    "family_keys",
+                    "roles",
+                    "timeframes",
+                    "as_of",
+                    "max_instruments",
+                    "available_instrument_count",
+                    "selected_instrument_count",
+                    "limited",
+                    "legs",
+                )
+            },
+            queued=queued,
+            already_queued=already_queued,
+            queue_unavailable=True,
+            message=(f"History queue unavailable after {queued + already_queued} jobs: {exc}"),
+        )
+
+    return BenchmarkFamilyHistoryRefreshSummary(
+        **{
+            key: plan[key]
+            for key in (
                 "family_keys",
                 "roles",
                 "timeframes",
@@ -315,35 +340,12 @@ async def queue_benchmark_family_history_refresh(
                 "selected_instrument_count",
                 "limited",
                 "legs",
-            )},
-            queued=queued,
-            already_queued=already_queued,
-            queue_unavailable=True,
-            message=(
-                f"History queue unavailable after {queued + already_queued} jobs: {exc}"
-            ),
-        )
-
-    return BenchmarkFamilyHistoryRefreshSummary(
-        **{key: plan[key] for key in (
-            "family_keys",
-            "roles",
-            "timeframes",
-            "as_of",
-            "max_instruments",
-            "available_instrument_count",
-            "selected_instrument_count",
-            "limited",
-            "legs",
-        )},
+            )
+        },
         queued=queued,
         already_queued=already_queued,
         queue_unavailable=queue_unavailable,
-        message=(
-            "Selection was bounded by max_instruments."
-            if plan["limited"]
-            else None
-        ),
+        message=("Selection was bounded by max_instruments." if plan["limited"] else None),
     )
 
 

@@ -21,8 +21,14 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND="$ROOT/backend"
 FRONTEND="$ROOT/frontend"
 DEV_STACK_HELPER="$ROOT/scripts/dev-stack.sh"
-DEV_COMPOSE_PROJECT="$("$DEV_STACK_HELPER" project-name)"
-DEV_BRANCH_NAME="$("$DEV_STACK_HELPER" branch-name)"
+RUNTIME_HELPER="$ROOT/scripts/worktree-runtime.py"
+RUNTIME_ENV_FILE="$(python3 "$RUNTIME_HELPER" env-file)"
+set -a
+# shellcheck disable=SC1090
+. "$RUNTIME_ENV_FILE"
+set +a
+DEV_COMPOSE_PROJECT="$DEV_COMPOSE_PROJECT"
+DEV_BRANCH_NAME="$WORKTREE_BRANCH"
 
 # ── Colour helpers ─────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
@@ -54,12 +60,13 @@ start_infra() {
     log "Starting branch-scoped Postgres + Redis..."
     log "Branch: $DEV_BRANCH_NAME"
     log "Docker project: $DEV_COMPOSE_PROJECT"
-    "$DEV_STACK_HELPER" stop-others "$ROOT/docker-compose.dev.yml"
-    COMPOSE_PROJECT_NAME="$DEV_COMPOSE_PROJECT" docker compose -f "$ROOT/docker-compose.dev.yml" up -d
+    COMPOSE_PROJECT_NAME="$DEV_COMPOSE_PROJECT" docker compose -f "$ROOT/docker-compose.dev.yml" \
+        -p "$DEV_COMPOSE_PROJECT" up -d
 
     log "Waiting for Postgres to be ready..."
     for i in $(seq 1 30); do
-        COMPOSE_PROJECT_NAME="$DEV_COMPOSE_PROJECT" docker compose -f "$ROOT/docker-compose.dev.yml" exec postgres \
+        COMPOSE_PROJECT_NAME="$DEV_COMPOSE_PROJECT" docker compose -f "$ROOT/docker-compose.dev.yml" \
+            -p "$DEV_COMPOSE_PROJECT" exec postgres \
             pg_isready -U postgres -q 2>/dev/null && break
         sleep 1
     done
@@ -73,10 +80,10 @@ start_infra() {
 
 # ── Process launchers ──────────────────────────────────────────────────────────
 run_backend() {
-    log "Starting FastAPI backend on :8000 (hot-reload)..."
+    log "Starting FastAPI backend on :$DEV_BACKEND_PORT (hot-reload)..."
     cd "$BACKEND" && ENV_FILE=.env.dev uv run uvicorn app.main:app \
         --host 0.0.0.0 \
-        --port 8000 \
+        --port "$DEV_BACKEND_PORT" \
         --reload \
         --reload-dir app \
         --log-level debug
@@ -89,8 +96,8 @@ run_worker() {
 }
 
 run_frontend() {
-    log "Starting Vite dev server on :5173 (HMR)..."
-    cd "$FRONTEND" && npm run dev
+    log "Starting Vite dev server on :$VITE_PORT (HMR)..."
+    cd "$FRONTEND" && VITE_PORT="$VITE_PORT" VITE_API_PROXY_TARGET="$VITE_API_PROXY_TARGET" npm run dev
 }
 
 # ── Main ───────────────────────────────────────────────────────────────────────
@@ -124,9 +131,9 @@ case "$MODE" in
 
         ok "Starting all dev processes. Press Ctrl+C to stop."
         echo ""
-        echo "  Backend  →  http://localhost:8000"
-        echo "  API docs →  http://localhost:8000/docs"
-        echo "  Frontend →  http://localhost:5173"
+        echo "  Backend  →  http://localhost:$DEV_BACKEND_PORT"
+        echo "  API docs →  http://localhost:$DEV_BACKEND_PORT/docs"
+        echo "  Frontend →  http://localhost:$VITE_PORT"
         echo ""
 
         run_backend  &

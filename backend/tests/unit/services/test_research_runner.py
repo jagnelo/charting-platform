@@ -233,9 +233,24 @@ def test_runner_computes_cross_sectional_percentile_breadth_for_snapshot_and_his
             "dataset": {
                 "timestamps": timestamps,
                 "datasets": [
-                    {"instrument_id": 1, "symbol": "A", "timestamps": timestamps, "closes": [1, 2, 3]},
-                    {"instrument_id": 2, "symbol": "B", "timestamps": timestamps, "closes": [3, 2, 1]},
-                    {"instrument_id": 3, "symbol": "C", "timestamps": timestamps, "closes": [2, 2, 2]},
+                    {
+                        "instrument_id": 1,
+                        "symbol": "A",
+                        "timestamps": timestamps,
+                        "closes": [1, 2, 3],
+                    },
+                    {
+                        "instrument_id": 2,
+                        "symbol": "B",
+                        "timestamps": timestamps,
+                        "closes": [3, 2, 1],
+                    },
+                    {
+                        "instrument_id": 3,
+                        "symbol": "C",
+                        "timestamps": timestamps,
+                        "closes": [2, 2, 2],
+                    },
                 ],
             },
         }
@@ -283,9 +298,7 @@ def test_runner_computes_cross_sectional_statistic_breadth_for_snapshot_and_hist
 
 def test_runner_promoted_python_breadth_helper_preserves_cross_sectional_series_semantics():
     timestamps = ["2026-01-01", "2026-01-02", "2026-01-03"]
-    source = (
-        "output.series('score', [dataset['closes'][-1] - dataset['closes'][0]])"
-    )
+    source = "output.series('score', [dataset['closes'][-1] - dataset['closes'][0]])"
     result = execute_job(
         {
             "source": (
@@ -310,8 +323,18 @@ def test_runner_promoted_python_breadth_helper_preserves_cross_sectional_series_
             "dataset": {
                 "timestamps": timestamps,
                 "datasets": [
-                    {"instrument_id": 1, "symbol": "A", "timestamps": timestamps, "closes": [1, 2, 4]},
-                    {"instrument_id": 2, "symbol": "B", "timestamps": timestamps, "closes": [3, 3, 3]},
+                    {
+                        "instrument_id": 1,
+                        "symbol": "A",
+                        "timestamps": timestamps,
+                        "closes": [1, 2, 4],
+                    },
+                    {
+                        "instrument_id": 2,
+                        "symbol": "B",
+                        "timestamps": timestamps,
+                        "closes": [3, 3, 3],
+                    },
                 ],
             },
         }
@@ -345,9 +368,24 @@ def test_runner_composes_nested_cross_sectional_and_member_breadth_conditions():
             "dataset": {
                 "timestamps": timestamps,
                 "datasets": [
-                    {"instrument_id": 1, "symbol": "A", "timestamps": timestamps, "closes": [1, 2, 3]},
-                    {"instrument_id": 2, "symbol": "B", "timestamps": timestamps, "closes": [3, 2, 1]},
-                    {"instrument_id": 3, "symbol": "C", "timestamps": timestamps, "closes": [2, 2, 2]},
+                    {
+                        "instrument_id": 1,
+                        "symbol": "A",
+                        "timestamps": timestamps,
+                        "closes": [1, 2, 3],
+                    },
+                    {
+                        "instrument_id": 2,
+                        "symbol": "B",
+                        "timestamps": timestamps,
+                        "closes": [3, 2, 1],
+                    },
+                    {
+                        "instrument_id": 3,
+                        "symbol": "C",
+                        "timestamps": timestamps,
+                        "closes": [2, 2, 2],
+                    },
                 ],
             },
         }
@@ -400,9 +438,7 @@ def test_runner_executes_arbitrary_python_breadth_predicate_in_current_batch_mod
         {
             "source": source,
             "output_contract": "boolean",
-            "parameters": {
-                "condition": {"kind": "above_moving_average", "params": {"period": 2}}
-            },
+            "parameters": {"condition": {"kind": "above_moving_average", "params": {"period": 2}}},
             "dataset": {
                 "datasets": [
                     {"instrument_id": 1, "symbol": "A", "closes": [100, 101]},
@@ -431,9 +467,7 @@ def test_runner_executes_arbitrary_python_breadth_predicate_over_aligned_history
             "output_contract": "boolean",
             "execution_mode": "breadth_history",
             "history_limit": 3,
-            "parameters": {
-                "condition": {"kind": "above_moving_average", "params": {"period": 2}}
-            },
+            "parameters": {"condition": {"kind": "above_moving_average", "params": {"period": 2}}},
             "dataset": {
                 "datasets": [
                     {
@@ -554,9 +588,24 @@ def test_runner_applies_cross_sectional_group_statistic_to_python_series_history
             },
             "dataset": {
                 "datasets": [
-                    {"instrument_id": 1, "symbol": "A", "timestamps": timestamps, "closes": [10, 12]},
-                    {"instrument_id": 2, "symbol": "B", "timestamps": timestamps, "closes": [10, 10]},
-                    {"instrument_id": 3, "symbol": "C", "timestamps": timestamps, "closes": [10, 8]},
+                    {
+                        "instrument_id": 1,
+                        "symbol": "A",
+                        "timestamps": timestamps,
+                        "closes": [10, 12],
+                    },
+                    {
+                        "instrument_id": 2,
+                        "symbol": "B",
+                        "timestamps": timestamps,
+                        "closes": [10, 10],
+                    },
+                    {
+                        "instrument_id": 3,
+                        "symbol": "C",
+                        "timestamps": timestamps,
+                        "closes": [10, 8],
+                    },
                 ]
             },
         }
