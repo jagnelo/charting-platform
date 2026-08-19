@@ -1,5 +1,16 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Future-bar rejection is a backend invariant, not a visible V25 state
+
+Historical source hydration now rejects provider rows after the requested evaluation end before
+they reach chart, breadth, ratio, or Study Lab inputs. The composite visual board does not need a
+new visual baseline for this internal guard, but any historical loading/partial/error reference
+must not imply that future bars can appear in an as-of result.
+
+Gap status remains `required_missing` for exact V25 history-maintenance controls, progress/error
+copy, and coverage-state geometry. Provider depth, stale/partial responses, and rebalance
+continuity remain separate data gaps; no visual criterion was relaxed.
+
 ## 2026-08-19 — Historical source hydration boundary is implemented; provider coverage remains open
 
 The universal locked-watchlist heatmap now carries a requested historical evaluation end through

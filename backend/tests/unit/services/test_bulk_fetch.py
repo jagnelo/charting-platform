@@ -51,3 +51,14 @@ async def test_bulk_fetch_passes_historical_end_to_each_provider_request(monkeyp
         bulk_fetch.datetime(2024, 1, 2, tzinfo=bulk_fetch.UTC),
         bulk_fetch.datetime(2024, 1, 2, tzinfo=bulk_fetch.UTC),
     ]
+
+
+def test_bars_through_end_rejects_future_provider_rows():
+    end = bulk_fetch.datetime(2024, 1, 2, tzinfo=bulk_fetch.UTC)
+    bars = [
+        SimpleNamespace(ts=bulk_fetch.datetime(2024, 1, 1)),
+        SimpleNamespace(ts=bulk_fetch.datetime(2024, 1, 2, 23, 59)),
+        SimpleNamespace(ts=bulk_fetch.datetime(2024, 1, 3)),
+    ]
+
+    assert bulk_fetch._bars_through_end(bars, end) == bars[:1]

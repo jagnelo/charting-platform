@@ -1,5 +1,18 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Historical hydration rejects future-dated provider rows
+
+The canonical bulk-history worker now applies a second, local timestamp guard after a provider
+responds: rows after the requested evaluation end are excluded before observations, dataset state,
+or OHLCV persistence. This protects historical Market Map, breadth, Study Lab, and ratio inputs even
+when a free provider returns a broader range than requested. The existing `as_of` transport and
+deterministic job identity remain unchanged.
+
+The complete backend unit suite passes `1239/1239`; focused bulk-history tests, Ruff, compileall,
+and diff checks are green. This is a data-integrity invariant, not proof of provider completeness,
+corporate-action quality, rebalance continuity, or exact V25 visual parity; no acceptance
+flexibility was used.
+
 ## 2026-08-19 — Historical source refreshes preserve the requested evaluation end
 
 The source-polymorphic history maintenance contract now carries a requested `as_of` timestamp

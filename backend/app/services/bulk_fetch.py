@@ -233,7 +233,7 @@ async def _do_fetch_and_store(
         response_items=lambda result: len(result),
         treat_empty_as_failure=False,
     )
-    bars = execution.result
+    bars = _bars_through_end(execution.result, end)
     if not bars:
         await _touch_ohlcv_dataset_state(
             db,
@@ -293,6 +293,12 @@ def _normalize_fetch_end(value: datetime | None) -> datetime:
     if value.tzinfo is None:
         return value.replace(tzinfo=UTC)
     return value.astimezone(UTC)
+
+
+def _bars_through_end(bars: list[Any], end: datetime) -> list[Any]:
+    """Defensively remove provider rows beyond the requested evaluation end."""
+
+    return [bar for bar in bars if _to_utc(bar.ts) <= end]
 
 
 async def _existing_timestamps(

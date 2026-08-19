@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-08-19 — Historical hydration rejects future provider rows
+
+- [x] Defensively filter provider-returned OHLCV rows at the bulk-history persistence boundary so
+      a provider that ignores or misinterprets the requested historical end cannot insert bars
+      after the source's evaluation timestamp. The filter is applied before observations, dataset
+      state, or canonical bars are persisted.
+- [x] Add a regression for future-row rejection and rerun the complete backend unit suite (`1239/1239`)
+      plus Ruff, compileall, and diff checks. Acceptance flexibility used: **None**.
+- [ ] Provider history depth, stale/partial responses, corporate-action correctness, and full
+      benchmark-family rebalance continuity remain open data-quality gaps; this closes only the
+      future-bar leakage invariant.
+
 ### 2026-08-19 — Historical watchlist hydration carries the requested evaluation end
 
 - [x] Carry a source refresh request's `as_of` timestamp through the canonical watchlist queue,
