@@ -1,4 +1,39 @@
 tasks:
+  - id: tc2000-top-down-trader-family-browser-acceptance-20260819
+    title: Validate the seeded top-down trader flow and make E2E data modes explicit
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Close the browser-acceptance context for the universal locked-watchlist Market Map by
+      exercising the complete benchmark → sector → ratio → indicator/drawing → industry →
+      constituent → return/persistence → keyboard traversal flow and the eight-family map,
+      breadth, and rotation matrix. Make fixture and canonical-provider prerequisites explicit so
+      an identity-only default database cannot be mistaken for a product regression or a live-data
+      acceptance pass.
+    definition_of_done:
+      - Seeded authenticated F8e.swing-analysis, F8e.1, and F8e.1a pass without critical browser diagnostics
+      - Seeded F8s-family-map-drilldown, F8s-family-matrix, F8s-breadth-family-ratio, and F8s-rotation-family pass
+      - Fixture-dependent flows require E2E_SEED_MARKET_DATA=true
+      - Canonical membership flows require explicit E2E_CANONICAL_MARKET_DATA=true and never silently use fixtures
+      - Default identity-only mode remains an honest unavailable-data state
+      - Canonical hydrated free-source membership and sector drilldown remain tracked required gaps
+      - The test-harness change and evidence are documented before the next context begins
+    validation:
+      - seeded-F8e-top-down-drilldown-3-of-3
+      - seeded-F8s-family-map-breadth-rotation-4-of-4
+      - frontend-Vitest-915-of-915
+      - vue-tsc-and-Vite-production-build
+      - Playwright-list-153-tests
+      - rebuilt-seeded-stack-migrated-and-stopped
+      - git-diff-check
+    acceptance_flexibility: none
+    implementation_commit: 63cdae149ffd0d28ca110196c2a9ba338dc6aff9
+    remaining_gaps: >-
+      A hydrated network-enabled canonical free-source database is still required for the live
+      membership and sector-drilldown oracle; exact Version 25 visual geometry and the final whole
+      goal acceptance matrix remain open. The explicit skips are environment prerequisites, not
+      acceptance relaxation or fixture substitution.
   - id: tc2000-python-breadth-benchmark-target-20260819
     title: Allow Python breadth comparisons against the selected benchmark dataset
     status: completed

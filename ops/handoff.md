@@ -1,5 +1,30 @@
 # Active Handoff
 
+## 2026-08-19 — Top-down trader browser acceptance context closed
+
+- Rebuilt the branch-scoped stack with `E2E_SEED_MARKET_DATA=true` and exercised the real
+  authenticated trader sequence: benchmark trend → sector selection → sector/SPY ratio → RSI
+  plot → horizontal drawing → industry → constituent → return to sector → persisted chart state
+  → Space traversal. `F8e.swing-analysis`, `F8e.1`, and `F8e.1a` passed `3/3`.
+- The independent family matrix passed `4/4`: `F8s-family-map-drilldown`, `F8s-family-matrix`,
+  `F8s-breadth-family-ratio`, and `F8s-rotation-family`, covering all eight configured family
+  roots and role-aware views.
+- The E2E harness now requires `E2E_SEED_MARKET_DATA=true` for deterministic fixture flows and
+  `E2E_CANONICAL_MARKET_DATA=true` for canonical membership flows. The default identity-only
+  stack therefore exposes unavailable coverage honestly instead of failing as if it were a
+  product regression. This is an explicit environment boundary, not acceptance flexibility.
+- The initial default-mode run exposed two genuine canonical hydration gaps (SPY holdings and
+  sector industry membership) and three fixture-dependent flows run without their fixture. The
+  seeded rerun passed; no chart defect was claimed and no silent skip closes the live-data gate.
+- Validation: frontend Vitest `915/915`; `vue-tsc`; Vite production build; Playwright discovery
+  `153` tests; seeded browser `7/7`; `git diff --check`; stack rebuilt, migrated, and stopped.
+- Implementation/docs files for this context: `frontend/tests/e2e/flows.spec.ts`,
+  `docs/project-todos.md`, `docs/tc2000-parity.md`, `docs/tc2000-acceptance-governance.md`, and
+  `docs/tc2000-reference-board.md`. Implementation/docs commit `63cdae149ffd0d28ca110196c2a9ba338dc6aff9`
+  is pushed and matches origin. Only the separate operational record is dirty and should now be
+  committed/pushed. Remaining gaps are the hydrated canonical free-source oracle, exact V25
+  geometry, and the final whole-goal acceptance matrix.
+
 ## 2026-08-19 — Python breadth benchmark-target changeset closed
 
 - Added explicit `right_scope=member|benchmark` to recursive Python numeric-series breadth

@@ -1,5 +1,24 @@
 # Run Report
 
+## 2026-08-19 — Top-down trader flow and family matrix browser acceptance
+
+- Rebuilt the branch-scoped stack with `E2E_SEED_MARKET_DATA=true` and passed the authenticated
+  top-down sequence `F8e.swing-analysis`, `F8e.1`, and `F8e.1a` (`3/3`): benchmark trend, sector
+  selection, sector/SPY ratio, RSI, drawing, industry/proxy, constituent, return/persistence, and
+  keyboard traversal.
+- Passed the independent family matrix (`4/4`): `F8s-family-map-drilldown`,
+  `F8s-family-matrix`, `F8s-breadth-family-ratio`, and `F8s-rotation-family`.
+- Made data prerequisites explicit in the browser harness. Fixture flows require
+  `E2E_SEED_MARKET_DATA=true`; canonical membership flows require the separate
+  `E2E_CANONICAL_MARKET_DATA=true` opt-in. The default identity-only stack remains an honest
+  unavailable-data mode. The first default run's two canonical hydration failures and three
+  fixture-mode mismatches are documented; the seeded rerun passed and no acceptance flexibility
+  or fixture substitution was used.
+- Validation: frontend Vitest `915/915`, `vue-tsc`, Vite production build, Playwright discovery
+  `153` tests, seeded browser `7/7`, stack rebuild/migration/stop, and `git diff --check`.
+- Canonical SPY/sector holdings hydration and exact Version 25 visual geometry remain open gates;
+  the explicit environment skips do not close either gate.
+
 ## 2026-08-19 — Python breadth comparisons target the selected benchmark
 
 - Added `right_scope=member|benchmark` to recursive Python series comparisons. The benchmark
