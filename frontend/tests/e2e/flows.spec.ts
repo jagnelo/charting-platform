@@ -3462,6 +3462,27 @@ test.describe('TC2000 workstation', () => {
     await page.route('**/api/v1/analysis/benchmark-families/sp500/overview*', async route => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ family_key: 'sp500', name: 'S&P 500', official_index_symbol: 'SPX', mappings: [{ role: 'cap_weight', symbol: 'SPY', label: 'SPY', verification_state: 'verified', available: true, holdings_available: true, holdings_completeness_status: 'complete' }, { role: 'equal_weight', symbol: 'RSP', label: 'RSP', verification_state: 'verified', available: true, holdings_available: true, holdings_completeness_status: 'complete' }], rows: [], exclusions: [] }) })
     })
+    await page.route('**/api/v1/analysis/etf/SPY/constituents/snapshot*', async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        group_key: 'etf:SPY',
+        etf_symbol: 'SPY',
+        benchmark: 'SPY',
+        market_benchmark: 'SPY',
+        timeframe: 'D1',
+        adjustment: 'split_adjusted',
+        as_of: null,
+        composition_date: '2026-06-27',
+        known_at: '2026-06-27T00:00:00Z',
+        membership_version: 1,
+        universe_provenance: { membership_semantics: 'etf_proxy_holdings' },
+        coverage: 1,
+        provenance: 'e2e fixture',
+        source_provider: 'e2e',
+        completeness_status: 'complete',
+        rows: [],
+        exclusions: [],
+      }) })
+    })
     await page.route('**/api/v1/watchlists/sources**', async route => {
       const pathname = new URL(route.request().url()).pathname
       if (pathname.includes('/history-status/')) {
@@ -3534,6 +3555,16 @@ test.describe('TC2000 workstation', () => {
       if (!family) return route.continue()
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ family_key: family.key, name: family.name, official_index_symbol: family.official, mappings: [{ role: 'cap_weight', symbol: family.proxy, label: family.proxy, verification_state: 'verified', available: true, holdings_available: true, holdings_completeness_status: 'complete' }], rows: [], exclusions: [] }) })
     })
+    await page.route('**/api/v1/analysis/etf/SPY/constituents/snapshot*', async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        group_key: 'etf:SPY', etf_symbol: 'SPY', benchmark: 'SPY', market_benchmark: 'SPY',
+        timeframe: 'D1', adjustment: 'split_adjusted', as_of: null,
+        composition_date: '2026-06-27', known_at: '2026-06-27T00:00:00Z', membership_version: 1,
+        universe_provenance: { membership_semantics: 'etf_proxy_holdings' }, coverage: 1,
+        provenance: 'e2e fixture', source_provider: 'e2e', completeness_status: 'complete',
+        rows: [], exclusions: [],
+      }) })
+    })
     await page.route('**/api/v1/watchlists/sources**', async route => {
       const pathname = new URL(route.request().url()).pathname
       if (pathname.includes('/history-status/')) {
@@ -3552,18 +3583,23 @@ test.describe('TC2000 workstation', () => {
     await page.goto('/chart/SPY')
     const benchmarkSurface = page.locator('.benchmark-surface').first()
     await expect(benchmarkSurface).toBeVisible({ timeout: 15_000 })
-    const familySelect = benchmarkSurface.getByRole('combobox', { name: 'Benchmark family' })
+    const familySelect = benchmarkSurface.getByRole('combobox', { name: 'Benchmark family', exact: true })
     for (const family of families) {
       await familySelect.selectOption(family.key)
       await expect(benchmarkSurface).toContainText(`${family.name} legs`)
       await expect(benchmarkSurface).toContainText(`Official series: ${family.official}`)
       await expect(benchmarkSurface).toContainText(`Using tradable proxy: ${family.proxy}`)
+
+      await benchmarkSurface.getByRole('button', { name: 'Open Market Map' }).click()
+      const mapWindow = page.locator('.tool-window:visible').filter({ has: page.locator('.market-map-tool') }).last()
+      await expect(mapWindow).toBeVisible({ timeout: 15_000 })
+      await expect(mapWindow.getByRole('combobox', { name: 'Market Map universe' })).toHaveValue(`benchmark-family:${family.key}:cap_weight`)
+      await expect.poll(() => selectedSources.at(-1), { timeout: 15_000 }).toBe(`benchmark-family:${family.key}:cap_weight`)
+      await expect(mapWindow).toContainText('Locked source')
+      await expect(mapWindow.locator('.market-map-tool__tile')).toHaveCount(1)
+      await mapWindow.getByRole('button', { name: 'Close tool' }).click()
+      await expect(mapWindow).toBeHidden()
     }
-    await benchmarkSurface.getByRole('button', { name: 'Open Market Map' }).click()
-    const mapWindow = page.locator('.tool-window:visible').filter({ has: page.locator('.market-map-tool') }).last()
-    await expect(mapWindow).toBeVisible({ timeout: 15_000 })
-    await expect(mapWindow.getByRole('combobox', { name: 'Market Map universe' })).toHaveValue('benchmark-family:nasdaq100:cap_weight')
-    await expect.poll(() => selectedSources.at(-1), { timeout: 15_000 }).toBe('benchmark-family:nasdaq100:cap_weight')
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

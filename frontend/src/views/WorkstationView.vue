@@ -1625,6 +1625,10 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
     onFloat: (windowKey: string) => floatTool(windowKey),
     onMaximize: () => actions.toggleMaximize(),
     onClose: () => {
+      // The layout host removes the component through a filtered serializable
+      // tree and tears down Golden Layout before emitting the new layout. That
+      // avoids the library's live-stack resize race while keeping the store's
+      // close guard (a workspace must retain one tool) authoritative.
       if (workspaceStore.closeTool(dockTool.instance_key)) actions.close()
     },
     onUpdateLinkGroup: (windowKey: string, group: LinkGroup, displayedSymbol?: string) => updateLinkGroup(windowKey, group, displayedSymbol),

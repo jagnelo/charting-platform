@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-08-19 — Repeated family Map open/close is Golden Layout-safe
+
+- [x] Keep the universal Market Map action usable while drilling through all eight configured US
+      benchmark roots. Closing a tool now filters the serializable Golden Layout tree, clamps each
+      surviving stack's `activeItemIndex`, tears down the old instance, and reinstalls the filtered
+      tree before the parent snapshot round-trip. This avoids Golden Layout's live `removeChild`
+      resize race and prevents the remaining workstation controls from disappearing during rapid
+      source traversal.
+- [x] Add a host-level regression for filtered-tree close/reinstall and authenticated Chromium
+      coverage that opens/closes the map for S&P 500/400/600/1500, Russell 1000/2000/3000, and
+      Nasdaq 100. The rebuilt family suite passes `2/2`; the host component gate is `8/8`; full
+      frontend Vitest is `915/915`; `vue-tsc`, production build, and `git diff --check` pass.
+      Acceptance flexibility used: **None**. The ETF snapshot fixture is deterministic test data,
+      not a provider-completeness waiver.
+- [ ] Keep exact V25 close/action geometry and source-picker copy as `required_missing` where the
+      visual board has no authoritative capture. Provider-backed family population, point-in-time
+      holdings/weights, canonical member-bar history, combo version reconstruction, and final
+      visual acceptance remain open.
+
 ### 2026-08-19 — Arbitrary watchlists now share the locked-constituent Market Map and Study handoff
 
 - [x] Treat every index/index-ETF constituent set as a system-managed, membership-locked

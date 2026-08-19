@@ -239,6 +239,70 @@ function teardown() {
   resizeObserver = null
 }
 
+/**
+ * Remove a tool from the serializable Golden Layout tree without asking
+ * Golden Layout to mutate a live stack. The library can schedule a resize
+ * callback while `ComponentItem.close()` is deleting the last tab in a stack;
+ * that callback then dereferences the tab it just removed. Rebuilding from a
+ * filtered JSON tree keeps the same persisted layout contract while allowing
+ * teardown to disconnect every observer before the old tree is destroyed.
+ */
+function withoutComponent(value: unknown, windowKey: string): unknown {
+  if (Array.isArray(value)) {
+    const children = value
+      .map(child => withoutComponent(child, windowKey))
+      .filter(child => child !== null)
+    return children
+  }
+  if (!value || typeof value !== 'object') return value
+  const record = value as Record<string, unknown>
+  if (record.type === 'component') {
+    const state = record.componentState
+    if (state && typeof state === 'object' && (state as Record<string, unknown>).instance_key === windowKey) {
+      return null
+    }
+    return record
+  }
+  if (record.root && typeof record.root === 'object') {
+    const root = withoutComponent(record.root, windowKey)
+    return root && typeof root === 'object' ? { ...record, root } : null
+  }
+  if (!Array.isArray(record.content)) return record
+  const content = withoutComponent(record.content, windowKey)
+  const children = Array.isArray(content) ? content : []
+  if (children.length === 0) return null
+  // Golden Layout accepts a single remaining child at the root, but a stack is
+  // required for component tabs. Keep stacks intact and only collapse empty or
+  // redundant row/column containers created by the removed component.
+  if (children.length === 1 && (record.type === 'row' || record.type === 'column')) return children[0]
+  if (record.type === 'stack') {
+    const requestedIndex = typeof record.activeItemIndex === 'number' ? record.activeItemIndex : 0
+    return {
+      ...record,
+      content: children,
+      activeItemIndex: Math.max(0, Math.min(requestedIndex, children.length - 1)),
+    }
+  }
+  return { ...record, content: children }
+}
+
+function closeComponent(windowKey: string) {
+  if (!goldenLayout) return
+  const saved = goldenLayout.saveLayout() as unknown as Record<string, unknown>
+  const filtered = withoutComponent(saved, windowKey)
+  if (!filtered || typeof filtered !== 'object') return
+  const nextLayout = normaliseGoldenLayoutConfig(filtered as Record<string, unknown>)
+  suppressChange = true
+  suppressChangeUntil = Date.now() + 1_000
+  teardown()
+  // Reinstall immediately from the filtered tree. The parent store will apply
+  // the same JSON snapshot and update the active-window key on the next Vue
+  // turn; leaving the host empty until that round trip makes the remaining
+  // workstation controls disappear during rapid drill-down.
+  install(nextLayout as LayoutConfig)
+  emit('changed', nextLayout, extractToolKeys(nextLayout))
+}
+
 function install(layout: LayoutConfig) {
   if (!host.value) return
   initialEventsSuppressed = true
@@ -271,7 +335,7 @@ function install(layout: LayoutConfig) {
         const stack = container.parent.parentItem as unknown as { toggleMaximise?: () => void }
         stack.toggleMaximise?.()
       },
-      close: () => container.close(),
+      close: () => closeComponent(tool.instance_key),
     })
     // Golden Layout asks Vue to render each virtual component into a detached root.
     // Carry the host application context across that boundary so injected services

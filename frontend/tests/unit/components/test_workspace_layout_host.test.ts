@@ -118,6 +118,41 @@ describe('WorkspaceLayoutHost', () => {
     wrapper.unmount()
   })
 
+  it('closes a tool by rebuilding the serializable tree before Golden Layout teardown', async () => {
+    const layout = {
+      root: {
+        type: 'stack',
+        content: [
+          { type: 'component', componentState: { instance_key: 'chart-1', title: 'Chart', tool_type: 'chart' } },
+          { type: 'component', componentState: { instance_key: 'notes-1', title: 'Notes', tool_type: 'notes' } },
+        ],
+      },
+    } as any
+    const renderTool = vi.fn((tool: any, actions: any) => h('button', {
+      'data-tool': tool.instance_key,
+      onClick: actions.close,
+    }, 'close'))
+    const wrapper = mount(WorkspaceLayoutHost, { props: { layout, renderTool } })
+    const gl = goldenLayouts[0]
+    gl.saved = JSON.parse(JSON.stringify(layout))
+    const rendered = gl.factory!({ parent: { parentItem: { toggleMaximise: vi.fn() } } }, { instance_key: 'chart-1', title: 'Chart', tool_type: 'chart' }) as any
+    void rendered
+    expect(renderTool.mock.calls.at(-1)?.[0]).toMatchObject({ instance_key: 'chart-1' })
+    renderTool.mock.calls.at(-1)?.[1].close()
+    await nextTick()
+
+    expect(gl.destroyed).toBe(true)
+    expect(wrapper.emitted('changed')?.at(-1)?.[0]).toEqual({
+      root: {
+        type: 'stack',
+        activeItemIndex: 0,
+        content: [{ type: 'component', componentState: { instance_key: 'notes-1', title: 'Notes', tool_type: 'notes' } }],
+      },
+    })
+    expect(goldenLayouts).toHaveLength(2)
+    wrapper.unmount()
+  })
+
   it('reinstalls virtual roots when a complete workspace snapshot is replaced', async () => {
     const layout = { root: { type: 'row', content: [] } } as any
     const wrapper = mount(WorkspaceLayoutHost, {

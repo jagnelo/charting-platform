@@ -1,5 +1,20 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Family Market Map traversal is safe across repeated close/reopen cycles
+
+The source-polymorphic Map now survives the full family traversal, not only the final selected
+family. The Golden Layout host removes a closed tool from its serializable tree, clamps the
+surviving stack active index, disconnects the old instance, and reinstalls the filtered tree before
+the workspace snapshot settles. This prevents stale resize callbacks and out-of-range tab state
+from corrupting the workstation during rapid index/ETF drill-down.
+
+The deterministic rebuilt Chromium suite passes both `F8s-family-map-drilldown` and
+`F8s-family-matrix` (`2/2`) across S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100.
+The host component regression is `8/8`; full frontend Vitest is `915/915`; type-check, production
+build, and diff-check pass. No acceptance flexibility was used. Exact V25 close/action geometry
+and source-picker visuals remain board gaps, as do provider-backed family population,
+point-in-time holdings/weights, and canonical member-bar history.
+
 ## 2026-08-19 — Universal watchlist heatmap and research handoff contract
 
 Market Map is source-polymorphic: an index or ETF constituent set is a locked,

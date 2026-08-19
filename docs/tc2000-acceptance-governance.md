@@ -1,5 +1,19 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Repeated Market Map close/reopen must preserve the workstation
+
+The family acceptance gate now opens and closes the universal Market Map for every configured US
+benchmark root. A close is accepted only when the serializable layout remains valid, the surviving
+stack has a valid active tab, the host reinstalls without a Golden Layout exception, and the next
+family can be opened through the same source-polymorphic action. The current rebuilt Chromium gate
+passes `2/2`; the host component gate is `8/8`; full frontend Vitest is `915/915`; type-check,
+build, and diff-check pass. Acceptance flexibility used: **None**.
+
+The test-only ETF snapshot payload is a deterministic fixture to isolate the family source/action
+contract. It does not claim provider-backed holdings completeness. Exact V25 close/action geometry,
+provider-backed family population, point-in-time weights, canonical member-bar history, combo
+version reconstruction, and the final visual-board audit remain explicitly open.
+
 ## 2026-08-19 — Downstream tools must disclose selected-source lineage
 
 When a Market Map selection is handed into Study Lab, the receiving tool must show selected member
