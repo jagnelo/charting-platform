@@ -8,7 +8,7 @@
   contract.
 - Pending bootstrap remains honest: if no usable holdings snapshot exists, the source is still
   locked/followable and reports pending membership; ordinary Market Map reads remain provider-free.
-- Validation: focused Market Map `31/31`, full frontend Vitest `913/913`, type-check, production
+- Validation: focused Market Map `32/32`, full frontend Vitest `914/914`, type-check, production
   build, docs parsing, and `git diff --check`. Acceptance flexibility: **None**.
 - Implementation/docs commit `f2b56591` is pushed and synchronized. The separate operational
   checkpoint is pending. Remaining gaps: exact V25 add-source/search visuals, provider-backed

@@ -17,8 +17,8 @@ tasks:
       - Focused/full frontend tests, type-check, build, docs, and diff checks pass
       - Exact V25 add-source/search geometry and provider completeness remain explicit gaps
     validation:
-      - market-map-component-31-of-31
-      - frontend-vitest-913-of-913
+      - market-map-component-32-of-32
+      - frontend-vitest-914-of-914
       - frontend-type-check-and-production-build
       - git-diff-check
     notes:

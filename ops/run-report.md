@@ -6,7 +6,7 @@
   reloads the source catalog, and selects the resulting locked `etf-holdings:<SYMBOL>` source.
 - Pending profile/holdings remains visible as pending; no provider fan-out was added to ordinary map
   reads and no membership is fabricated.
-- Focused Market Map component `31/31`, full frontend Vitest `913/913`, type-check, production
+- Focused Market Map component `32/32`, full frontend Vitest `914/914`, type-check, production
   build, docs parsing, and `git diff --check` passed. Acceptance flexibility: **None**.
 - Exact V25 add-source/search geometry, progress/error copy, provider-backed holdings, historical
   continuity, and final acceptance remain open.
