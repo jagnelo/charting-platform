@@ -9,3 +9,7 @@ records bundle/prior-release/schema/smoke metadata. The authenticated smoke now
 checks health, login, stable workspace reads, and provider availability. A real
 preflight/deployment rehearsal still requires the developer's RPi target and
 0600 shared environment file.
+
+The branch also carries the corrected independent CI replay contract: generated
+uv headers are normalized, pytest runs through `uv run`, and integration-only
+coverage does not apply the combined threshold.

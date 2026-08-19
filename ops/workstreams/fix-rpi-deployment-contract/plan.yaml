@@ -12,6 +12,7 @@ owned_paths:
   - deploy/rpi/compose.yml
   - deploy/rpi/rpi.env.example
   - tests/deployment/test_rpi_contract.py
+  - .github/workflows/ci.yml
 dependencies: []
 acceptance_criteria:
   - "rpi-bundle includes the three SHA-tagged application images and pinned ARM64 Postgres/Redis images."
@@ -19,6 +20,7 @@ acceptance_criteria:
   - "Release env files contain image/runtime values only; shared app secrets remain in the 0600 remote shared/app.env."
   - "Checksum, free-space, no-pull, backup, prior-release, schema, and smoke metadata are retained under the charting release root."
   - "Authenticated LAN smoke validates health, login, stable persisted workspace reads, and provider availability."
+  - "The branch replay uses the path-independent lock export check, repository uv environment, and integration-only coverage threshold."
 branch_tests:
   - "python3 -m py_compile scripts/rpi.py"
   - "uv run ruff check scripts/rpi.py"
