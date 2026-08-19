@@ -1,4 +1,30 @@
 tasks:
+  - id: tc2000-market-map-clone-dated-source-20260819
+    title: Clone locked Market Map sources into dated personal watchlists
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Let users clone any selectable locked/index/ETF/watchlist Market Map source using its full
+      canonical resolved membership and preserve dated source lineage in the personal copy.
+    definition_of_done:
+      - Resolve complete canonical members through the user-isolated source endpoint
+      - Use composition-date as-of when available and reject empty/partial source resolution
+      - Persist source ID, membership version, effective/known/composition timestamps, and provenance
+      - Add focused unit and authenticated browser regressions and retain exact V25 visual gaps
+    validation:
+      - market-map-component-28-of-28
+      - authenticated-chromium-F8s-market-map-watchlist-1-of-1
+      - frontend-vitest-901-of-901
+      - frontend-type-check
+      - frontend-build
+      - git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. The first browser fixture used an encoded source path;
+        it was corrected at the mock boundary after the product rejected an empty canonical result.
+        Exact V25 clone visuals, conflict/retry UX, and provider/history completeness remain open.
+
   - id: tc2000-family-map-role-selector-20260819
     title: Add role-aware benchmark-family Market Map selection
     status: completed

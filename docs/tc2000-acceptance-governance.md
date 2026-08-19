@@ -1,5 +1,20 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Clone locked sources only from canonical resolved membership
+
+The universal watchlist contract now includes a durable `Clone snapshot` operation. The source
+resolver is authoritative: the UI must obtain the complete canonical member set (with a
+composition-date `as_of` when available) before creating a personal copy. A map response with
+missing bars or zero resolved members cannot produce a partial clone. The clone description keeps
+membership/effective/known/composition lineage so the user can audit what was copied.
+
+Tie-break evidence: the first browser fixture failed because its encoded source path returned the
+wrong payload; the product correctly stopped rather than cloning an empty set. The fixture was
+fixed at its boundary and the unchanged rerun passed. Unit `28/28`, browser `1/1`, full Vitest
+`901/901`, type-check/build/diff-check pass. Exact V25 action geometry, conflict/retry visuals,
+provider-backed history, and all-family population remain acceptance gaps. Acceptance flexibility:
+**None**.
+
 ## 2026-08-19 — Role-aware locked-watchlist Map handoff
 
 The benchmark-family Map control is now governed as a role-aware locked-watchlist handoff. The

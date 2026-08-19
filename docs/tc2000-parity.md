@@ -1,5 +1,20 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Locked source cloning is a shared watchlist operation
+
+Market Map now treats cloning as a source operation shared by locked index/ETF/managed sources
+and editable lists. `Clone snapshot` resolves the canonical source member set locally, uses the
+dated composition boundary where available, creates an editable personal watchlist, and retains
+the source ID, membership version, effective/known/composition timestamps, and provenance in the
+clone description. It never infers membership from visible map cells or provider symbols.
+
+Focused component coverage is `28/28`; authenticated Chromium `F8s-market-map-watchlist` passes
+`1/1`; full frontend Vitest is `901/901`, with type-check, production build, and diff-check green.
+The first browser fixture used an encoded source ID and was corrected at the fixture boundary
+after the product correctly rejected an empty canonical member response; the unchanged rerun
+passed. Exact V25 clone-action placement/copy, conflict/retry treatment, provider-backed member
+bars, and historical continuity remain open. Acceptance flexibility used: **None**.
+
 ## 2026-08-19 — Benchmark-family Market Map role selection
 
 The selected benchmark-family surface now has one explicit `Map role` control for cap-weight,

@@ -1,5 +1,19 @@
 # Active Handoff
 
+## 2026-08-19 — Locked Market Map source cloning
+
+- Added `Clone snapshot` to the universal Market Map source controls. It resolves the complete
+  canonical source through the user-isolated source endpoint, applies the composition-date
+  boundary when present, creates an editable personal watchlist, and records source/membership/
+  effective/known/composition provenance in its description.
+- Validation: focused Market Map unit `28/28`; rebuilt authenticated Chromium
+  `F8s-market-map-watchlist` `1/1`; full Vitest `901/901`; type-check; production build;
+  diff-check. The first browser fixture exposed an encoded-source-path mismatch and was repaired
+  at the fixture boundary before the unchanged rerun passed.
+- Code checkpoint pushed as `feat(market-map): clone dated source watchlists`. Acceptance
+  flexibility: **None**. Remaining: exact V25 clone-action visuals, conflict/retry UX, provider
+  member bars/history, and all-eight family population.
+
 ## 2026-08-19 — Benchmark-family Map role selector
 
 - Added the persisted `Map role` selector to the selected-family benchmark surface. It supports

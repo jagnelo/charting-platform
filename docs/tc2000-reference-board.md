@@ -1,5 +1,17 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Clone snapshot behavior covered; V25 action visuals missing
+
+The working board now includes a shared `Clone snapshot` source action for locked and editable
+watchlists. The implementation resolves the full canonical source, preserves dated membership
+lineage, and creates an editable personal copy. Authenticated browser coverage confirms the
+behavior for a locked source.
+
+The board has no sufficiently authoritative V25 capture for clone-action placement, wording,
+busy/success/error states, conflict handling, or the transition into the copied personal list.
+Those states remain `required_missing`; the browser oracle is functional interim evidence only.
+No screenshot threshold, mask, or acceptance requirement was relaxed.
+
 ## 2026-08-19 — Role selector behavior covered; exact V25 imagery still missing
 
 The working product vision now includes a benchmark-family `Map role` control. The accepted

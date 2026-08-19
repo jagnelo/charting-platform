@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-08-19 — Locked Market Map sources can be cloned as dated watchlists
+
+- [x] Add `Clone snapshot` to the shared Market Map source controls. It resolves the complete
+      canonical source through `/watchlists/sources/{source_id}` (using composition date when
+      available), then creates an editable personal watchlist containing every resolved member,
+      not merely map cells with available bars.
+- [x] Persist source lineage in the clone description: source ID, membership version, effective,
+      known, and composition timestamps, plus source/provider label. The clone status reports the
+      resolved-versus-added count and failures remain visible without partial success being hidden.
+- [x] Validate the localized fixture-encoding defect under the fix-first rule: the first browser
+      attempt correctly rejected an empty resolver response; the fixture was corrected to decode
+      the encoded canonical ID, then the unchanged authenticated flow passed (`F8s-market-map-
+      watchlist`, `1/1`). Focused Market Map unit tests pass `28/28`; full frontend gates pass
+      `901/901`, type-check, production build, and diff-check.
+- [ ] This closes durable cloning mechanics, not point-in-time provider completeness. Member bars,
+      historical rebalance continuity, clone conflict/retry UX, exact V25 source-action geometry,
+      and all-eight family population remain tracked gaps; no acceptance flexibility was used.
+
 ### 2026-08-19 — Benchmark-family Market Map role selector
 
 - [x] Add a persisted `Map role` selector to the selected benchmark-family surface. It exposes

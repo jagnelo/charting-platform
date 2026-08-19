@@ -1,5 +1,16 @@
 # Run Report
 
+## 2026-08-19 — Canonical locked-source clone validation
+
+- Added and validated a durable clone operation for any selectable Market Map source. A locked
+  benchmark source resolves both canonical members and dated lineage before creating the personal
+  copy; missing/empty resolution is rejected visibly.
+- Focused Market Map unit `28/28`; rebuilt authenticated Chromium `F8s-market-map-watchlist`
+  `1/1`; full frontend Vitest `901/901`; type-check, production build, and diff-check pass.
+- The first browser run found only a fixture encoding mismatch; the product's empty-source guard
+  behaved correctly, the fixture was repaired, and the unchanged rerun passed. No acceptance
+  flexibility used. Exact V25 clone controls and provider/history gaps remain open.
+
 ## 2026-08-19 — Role-aware benchmark-family Market Map validation
 
 - Rebuilt the local authenticated stack from current source and ran the focused Chromium flow.
