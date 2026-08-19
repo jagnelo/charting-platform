@@ -1,5 +1,19 @@
 # Active Handoff
 
+## 2026-08-19 — Canvas group labels remain visible after member paint
+
+- Fixed the large-universe Market Map paint order: member fills/text are rendered first, then group
+  boundaries and labels are drawn over them. Previously the labels could be completely covered by
+  tile fills even though the geometry existed.
+- No interaction path changed: canvas hit-testing, selection, hover, zoom/pan, and keyboard search
+  remain unchanged. The 10,000-member canvas still avoids proportional DOM.
+- Validation: focused layout/frame and Market Map component `35/35`; full frontend Vitest `912/912`;
+  type-check; production build; and `git diff --check`. Acceptance flexibility: **None**.
+- Exact V25 canvas typography, gutter, density, and hover treatment remain reference-board gaps.
+- Implementation/docs commit `d9e4abbb5d7fb49b90fd34e05a214d68c93a22bf` is pushed and synchronized;
+  this follow-up is now ready for its operational checkpoint. Next context remains provider-backed
+  family/source population and the remaining V25 visual/reference gaps.
+
 ## 2026-08-19 — Arbitrary Market Maps now expose visible group frames
 
 - Extended the source-polymorphic heatmap renderer beyond group-first geometry. Ordinary HTML tile

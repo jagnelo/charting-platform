@@ -16,6 +16,9 @@ Vitest `912/912`, type-check, and production build. Evidence needed: reviewed V2
 an arbitrary user/managed list rendered with sector/industry group boundaries. No visual threshold
 or mask was relaxed.
 
+Canvas parity correction: group boundaries and labels are painted after member fills/text so the
+interim hierarchy is not hidden in the large-universe path. Exact V25 styling remains `required_missing`.
+
 ## 2026-08-19 — Unresolved holdings state remains a required visual gap
 
 The backend now distinguishes an existing locked ETF/index universe whose disclosed rows cannot yet

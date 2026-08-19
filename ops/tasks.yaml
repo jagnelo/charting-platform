@@ -1,4 +1,30 @@
 tasks:
+  - id: tc2000-universe-performance-map-canvas-label-order-20260819
+    title: Keep large-universe Market Map group labels visible
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Correct the canvas renderer's paint order so group boundaries and labels are painted after
+      member fills/text. Preserve the no-proportional-DOM canvas path and all member interaction
+      behavior while preventing tile paint from obscuring the hierarchy layer.
+    definition_of_done:
+      - Canvas group boundaries and labels are painted after member tiles
+      - Canvas hit testing, selection, hover, zoom, pan, and keyboard search remain unchanged
+      - Focused layout/component, full frontend, type-check, build, and diff checks pass
+      - Exact V25 canvas typography/borders remain explicitly tracked as visual gaps
+    validation:
+      - market-map-layout-and-frames-35-of-35
+      - frontend-vitest-912-of-912
+      - frontend-type-check-and-production-build
+      - git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. This fixes an owning-boundary paint-order defect; it
+        does not promote the interim canvas oracle to exact V25 visual approval.
+      - >-
+        Implementation/docs commit d9e4abbb5d7fb49b90fd34e05a214d68c93a22bf is pushed and synchronized.
+
   - id: tc2000-universe-performance-map-group-frames-20260819
     title: Expose grouped Market Map frames for arbitrary watchlists
     status: completed

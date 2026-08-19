@@ -15,6 +15,10 @@ layout/Market Map coverage passes `35/35`, full frontend Vitest passes `912/912`
 pass. No acceptance flexibility was used. Exact V25 group-label/border/gutter/density/hover treatment
 and provider-backed membership/bar completeness remain open visual/data gaps.
 
+The canvas draw-order follow-up now paints group boundaries and labels after member fills/text, so the
+large-universe hierarchy is visible in the same way as the HTML overlay path. The fix passed the same
+focused `35/35`, full `912/912`, type-check, and build gates; no visual threshold or mask was relaxed.
+
 ## 2026-08-19 — Unresolved provider holdings remain pending in every source surface
 
 The universal source lifecycle no longer treats a provider snapshot with raw rows but zero

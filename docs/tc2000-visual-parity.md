@@ -16,6 +16,10 @@ remain `required_missing` in the reference board. Focused layout/Market Map cove
 full frontend Vitest is `912/912`, and type-check/build pass; no threshold, mask, or acceptance
 criterion was relaxed.
 
+The canvas renderer's group-frame draw order was corrected so member paint cannot cover the interim
+boundary/label layer. This is a functional visibility correction, not a claim of exact V25 styling;
+the same reference gaps remain tracked.
+
 ## 2026-08-17 — Mixed-scope breadth condition state
 
 The interim Market Map/breadth oracle now covers a nested tree that combines member-level and

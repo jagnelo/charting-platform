@@ -11,6 +11,8 @@
       proportional tile DOM is introduced.
 - [x] Render top-level group frames and member counts for HTML tiles, and draw the same boundaries
       and labels in the large-universe canvas path without intercepting member selection.
+- [x] Paint canvas group boundaries and labels after member fills/text so the large-universe hierarchy
+      remains visible instead of being overwritten by tile paint.
 - [x] Add grouped-layout/frame regression coverage and run the focused layout/Market Map component
       suite `35/35`, full frontend Vitest `912/912`, type-check, production build, and diff checks.
 - [ ] Exact V25 group labels, borders/gutters, density, hover treatment, and arbitrary-watchlist map
