@@ -222,6 +222,9 @@
       <button type="button" :disabled="publishing || (!publicationTargetId && !newPublicationName.trim())" @click="publishSelection">{{ publishing ? 'Saving…' : 'Save selection' }}</button>
       <input v-model.trim="lockedSourceName" aria-label="Market Map locked source name" placeholder="Locked source name" maxlength="160" />
       <button type="button" :disabled="lockedSourceSaving || !lockedSourceName || !selectedIds.length" aria-label="Save selected members as locked source" @click="saveSelectedAsLockedSource">{{ lockedSourceSaving ? 'Saving…' : 'Save as locked source' }}</button>
+      <button type="button" :disabled="!selectedSymbols.length" aria-label="Open selected members in chart" @click="openSelectedInChart">Open in Chart</button>
+      <button type="button" :disabled="selectedSymbols.length < 2" aria-label="Compare selected members in chart" @click="compareSelectedInChart">Compare in Chart</button>
+      <button type="button" :disabled="!selectedSymbols.length" aria-label="Open selected members in relative strength" @click="openSelectedInRatio">Relative Strength</button>
       <button type="button" aria-label="Open selected members in Market Breadth" @click="publishAnalysis('breadth', 'selection')">Open selected members in Breadth</button>
       <button type="button" aria-label="Open selected members in Study Lab" @click="publishAnalysis('study_lab', 'selection')">Open selected members in Study Lab</button>
       <span v-if="publicationMessage" role="status">{{ publicationMessage }}</span>
@@ -275,6 +278,8 @@ const props = withDefaults(defineProps<{ configuration?: Record<string, unknown>
 const emit = defineEmits<{
   configuration: [value: Record<string, unknown>]
   select: [symbol: string, instrumentId: number]
+  compare: [symbols: string[]]
+  ratio: [symbols: string[]]
   publishAnalysis: [payload: { target: 'breadth' | 'study_lab'; sourceId: string; selectedIds: number[]; selectedSymbols: string[]; scope: 'full' | 'selection' }]
 }>()
 const watchlistStore = useWatchlistStore()
@@ -1017,6 +1022,24 @@ function publishAnalysis(target: 'breadth' | 'study_lab', scope: 'full' | 'selec
     selectedSymbols,
     scope,
   })
+}
+
+const selectedMembers = computed(() => selectedIds.value
+  .map(instrumentId => map.value?.cells.find(cell => cell.instrument_id === instrumentId))
+  .filter((cell): cell is NonNullable<typeof cell> => Boolean(cell)))
+const selectedSymbols = computed(() => selectedMembers.value.map(cell => cell.symbol))
+
+function openSelectedInChart() {
+  const member = selectedMembers.value[0]
+  if (member) emit('select', member.symbol, member.instrument_id)
+}
+
+function compareSelectedInChart() {
+  if (selectedSymbols.value.length >= 2) emit('compare', selectedSymbols.value.slice(0, 6))
+}
+
+function openSelectedInRatio() {
+  if (selectedSymbols.value.length) emit('ratio', selectedSymbols.value.slice(0, 2))
 }
 
 function pythonLiteral(value: unknown): string {

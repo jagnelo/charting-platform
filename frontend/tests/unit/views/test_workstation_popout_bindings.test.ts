@@ -59,6 +59,7 @@ const harness = vi.hoisted(() => {
     loadETFIndustries: vi.fn().mockResolvedValue(undefined),
     loadTechnical: vi.fn().mockResolvedValue(undefined),
     scheduleSnapshot: vi.fn(),
+    setActiveWindow: vi.fn(),
     updateToolLinkGroup: vi.fn(),
     updateToolTimeframe: vi.fn(),
     updateToolTimeframeLinkGroup: vi.fn(),
@@ -75,7 +76,7 @@ const harness = vi.hoisted(() => {
     add: vi.fn(),
     clear: vi.fn(),
   }
-  return { workspace, recent, popoutWindow, chartWindow }
+  return { workspace, recent, popoutWindow, chartWindow, ratioWindow }
 })
 const routeState = vi.hoisted(() => ({ path: '/popout/benchmark-list', params: { windowKey: 'benchmark-list' }, query: {} as Record<string, string> }))
 const apiGet = vi.hoisted(() => vi.fn().mockResolvedValue([]))
@@ -118,7 +119,7 @@ function mount(component: typeof WorkstationView, options: MountingOptions<typeo
 }
 
 const ToolStub = defineComponent({
-  emits: ['conditionFilterMode', 'pinnedBooleanKeys', 'columnGroups', 'stackedColumnKeys', 'configuration', 'selectProxy', 'selectIndustry', 'compare', 'row-action'],
+  emits: ['conditionFilterMode', 'pinnedBooleanKeys', 'columnGroups', 'stackedColumnKeys', 'configuration', 'selectProxy', 'selectIndustry', 'compare', 'ratio', 'row-action'],
   template: `<div class="tool-stub">
     <button class="mode" @click="$emit('conditionFilterMode', 'benchmark-list', 'active')">mode</button>
     <button class="pin" @click="$emit('pinnedBooleanKeys', 'benchmark-list', ['above_ma50'])">pin</button>
@@ -129,6 +130,7 @@ const ToolStub = defineComponent({
     <button class="proxy-without-id" @click="$emit('selectProxy', 'XLK')">proxy without id</button>
     <button class="industry" @click="$emit('selectIndustry', 'Semiconductors', 'XLK')">industry</button>
     <button class="compare" @click="$emit('compare', ['SPY', 'XLK', 'XLE'])">compare</button>
+    <button class="ratio" @click="$emit('ratio', ['XLK', 'SPY'])">ratio</button>
     <button class="copy" @click="$emit('row-action', 'copy', { symbol: 'XLK', instrumentId: 1 })">copy</button>
   </div>`,
 })
@@ -138,6 +140,7 @@ describe('WorkstationView pop-out bindings', () => {
     vi.clearAllMocks()
     harness.popoutWindow.configuration = {}
     harness.chartWindow.configuration = {}
+    harness.ratioWindow.configuration = { expression: '=SPY/RSP', auto_ratio: true }
     routeState.path = '/popout/benchmark-list'
     routeState.params = { windowKey: 'benchmark-list' }
     routeState.query = {}
@@ -167,6 +170,7 @@ describe('WorkstationView pop-out bindings', () => {
     await wrapper.find('.proxy').trigger('click')
     await wrapper.find('.industry').trigger('click')
     await wrapper.find('.compare').trigger('click')
+    await wrapper.find('.ratio').trigger('click')
     await wrapper.find('.copy').trigger('click')
 
     expect(harness.popoutWindow.configuration).toMatchObject({
@@ -178,6 +182,7 @@ describe('WorkstationView pop-out bindings', () => {
     })
     expect(harness.popoutWindow.configuration).toBe(configurationReference)
     expect(harness.chartWindow.configuration).toMatchObject({ comparison_symbols: ['XLK', 'XLE'] })
+    expect(harness.ratioWindow.configuration).toMatchObject({ expression: '=XLK/SPY', auto_ratio: false })
     expect(harness.workspace.error).toBe('Copied XLK')
     expect(harness.workspace.selectIndustryProxy).toHaveBeenCalledWith('XLK')
     expect(harness.workspace.selectIndustry).toHaveBeenCalledWith('XLK', 'Semiconductors')

@@ -169,6 +169,7 @@
         :factory-layout="workspaceStore.activeTabKey"
         @select="(symbol, instrumentId) => selectSymbol(symbol, undefined, false, instrumentId)"
         @compare="compareSymbols"
+        @ratio="openMarketMapRatio"
         @reorder="reorderWatchlistItems"
         @row-action="handleRowAction"
         @market-map="openMarketMap"
@@ -1432,6 +1433,27 @@ function compareSymbols(symbols: string[]) {
   })
 }
 
+function openMarketMapRatio(symbols: string[]) {
+  const normalized = [...new Set(symbols.map(symbol => symbol.trim().toUpperCase()).filter(Boolean))].slice(0, 2)
+  const numerator = normalized[0]
+  const denominator = normalized[1] ?? activeSymbol.value.trim().toUpperCase()
+  if (!numerator || !denominator || numerator === denominator) {
+    workspaceStore.error = 'Select a different member or two members to create a relative-strength ratio.'
+    return
+  }
+  const ratio = workspaceStore.activeTab?.windows.find(window => window.instance_key === 'ratio-chart')
+  if (!ratio) {
+    workspaceStore.error = 'Open a Relative Strength tool to create a ratio.'
+    return
+  }
+  updateToolConfiguration(ratio.instance_key, {
+    ...ratio.configuration,
+    expression: `=${numerator}/${denominator}`,
+    auto_ratio: false,
+  })
+  workspaceStore.setActiveWindow(ratio.instance_key)
+}
+
 async function handleRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }) {
   if (action === 'copy') {
     try {
@@ -1572,6 +1594,7 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
     factoryLayout: workspaceStore.activeTabKey,
     onSelect: (symbol: string, instrumentId?: number | null) => void selectSymbol(symbol, undefined, false, instrumentId),
     onCompare: (symbols: string[]) => compareSymbols(symbols),
+    onRatio: (symbols: string[]) => void openMarketMapRatio(symbols),
     onReorder: (watchlistId: number, itemIds: number[]) => reorderWatchlistItems(watchlistId, itemIds),
     onRowAction: (action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }) => void handleRowAction(action, row),
     onMarketMap: (sourceId: string) => void openMarketMap(sourceId),

@@ -1,5 +1,20 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Market Map selected-member Chart and Relative Strength handoffs
+
+The universal Market Map now exposes direct downstream actions for a selected canonical member
+set: `Open in Chart` selects the first resolved member, `Compare in Chart` publishes up to six
+selected symbols through the existing comparison contract, and `Relative Strength` creates a
+validated two-symbol ratio (or selected member versus the active symbol). Docked and floating
+workstation shells forward the same events. Locked index/ETF sources and arbitrary personal,
+combo, managed, sector, industry, or explicit sources share this behavior; membership governance
+is unchanged.
+
+Validation: Market Map component `32/32`, workstation pop-out bindings `23/23`, full frontend
+Vitest `914/914`, type-check, production build, and diff checks pass. No acceptance flexibility
+was used. The exact V25 selection-action toolbar geometry/copy is `required_missing` on the
+reference board; this is a visual gap, not a functional fallback.
+
 ## 2026-08-19 — Lazard JPY route now has an identity-safe fallback
 
 Lazard's configured ETF directory currently returns 503. The adapter keeps that route as primary,

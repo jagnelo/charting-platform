@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-08-19 — Market Map selections now hand off directly to Chart and Relative Strength
+
+- [x] Add selected-member actions for `Open in Chart`, `Compare in Chart`, and `Relative Strength`
+      to the universal Market Map toolbar. These actions use resolved canonical map cells, never
+      ticker-only reconstruction, and remain available for locked index/ETF sources and arbitrary
+      editable or derived watchlists alike.
+- [x] Forward the new events through docked and floating workstation shells. A one-member ratio
+      uses the active symbol as denominator; a two-member selection uses the selected pair; equal
+      symbols and a missing ratio tool return an explicit recovery message without mutating state.
+- [x] Validate Market Map component `32/32`, workstation pop-out bindings `23/23`, full frontend
+      Vitest `914/914`, type-check, production build, and diff checks. Acceptance flexibility used:
+      **None**.
+- [ ] The board has no authoritative V25 capture for this exact selection-action toolbar or its
+      Chart/Relative Strength handoff copy and geometry. Keep that as a `required_missing` visual
+      gap; provider-backed family population, historical reconciliation, and remaining V25 gaps
+      are unaffected and remain open.
+
 ### 2026-08-19 — Lazard JPY now recovers through identity-safe SEC fallback
 
 - [x] Reproduce Lazard's current ETF directory 503 and retain the directory/product API as the

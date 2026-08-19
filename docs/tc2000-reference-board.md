@@ -1,5 +1,18 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Market Map selection handoff controls remain unrepresented
+
+The functional Market Map now offers `Open in Chart`, `Compare in Chart`, and `Relative
+Strength` actions for selected canonical members, with identical behavior across locked
+index/ETF and arbitrary watchlist sources.
+
+Gap status: `required_missing` for the exact V25 toolbar placement, button labels, selected-state
+chrome, disabled-state treatment, ratio handoff confirmation, and floating/docked variants.
+Interim oracle: Market Map component `32/32`, workstation pop-out bindings `23/23`, full frontend
+Vitest `914/914`, type-check, production build, and diff checks. No visual threshold or mask was
+relaxed. Evidence needed to close the gap: a board capture showing this selected-member action
+surface in the relevant V25 workspace state.
+
 ## 2026-08-19 — Lazard issuer outage/fallback needs a V25 visual oracle
 
 The JPY locked source now has a functional outage path: Lazard directory 503, bounded SEC candidate
