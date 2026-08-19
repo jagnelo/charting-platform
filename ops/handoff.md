@@ -13,9 +13,10 @@
 - Validation: history unit `5/5`; Docker-backed watchlists integration `46/46`; backend unit
   `1249/1249`; Ruff; compileall; YAML/JSON parsing; and `git diff --check`. Acceptance flexibility:
   **None**.
-- Implementation/docs commit `7bcdc401efb80b1c3daf3202995c114488e021fa` is pushed. The operational
-  checkpoint is next; then continue provider-backed family/source population and remaining V25
-  heatmap/reference gaps from a clean synchronized tree.
+- Implementation/docs commit `7bcdc401efb80b1c3daf3202995c114488e021fa` and operational checkpoint
+  `c580ee9dafba16adb23c06e03b3506b5625599ad` are pushed; local HEAD and origin are synchronized and
+  the tree is clean. Next context: provider-backed family/source population and remaining V25
+  heatmap/reference gaps.
 
 ## 2026-08-19 — Family coverage preserves pending canonical roles without profiles
 

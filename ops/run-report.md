@@ -12,7 +12,8 @@
 - Evidence: focused history unit `5/5`; Docker-backed watchlists integration `46/46`; backend unit
   `1249/1249`; Ruff; compileall; YAML/JSON parsing; and `git diff --check`. No acceptance flexibility,
   visual threshold, or mask relaxation.
-- Implementation/docs commit `7bcdc401efb80b1c3daf3202995c114488e021fa` is pushed. Provider-backed
+- Implementation/docs commit `7bcdc401efb80b1c3daf3202995c114488e021fa` and operational checkpoint
+  `c580ee9dafba16adb23c06e03b3506b5625599ad` are pushed and synchronized. Provider-backed
   membership/bar population, historical continuity, complete family coverage, and exact V25
   arbitrary-watchlist heatmap/source-picker visuals remain open.
 
