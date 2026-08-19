@@ -1,4 +1,34 @@
 tasks:
+  - id: tc2000-provider-bootstrap-readiness-20260819
+    title: Keep partial provider data retryable during core workstation bootstrap
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Prevent the opt-in provider bootstrap from treating a single local D1 bar or an unknown/
+      partial ETF holdings snapshot as ready. Retain explicit coverage evidence while allowing
+      later provider maintenance to fill the locked family/watchlist sources.
+    definition_of_done:
+      - Fewer than 252 adjusted D1 bars remains retryable for the default 200-day/52-week contract
+      - Holdings readiness requires non-fixture, resolved, complete or filing-reconstructed data
+      - Focused regressions prove both retry paths and preserve explicit failure evidence
+      - Full backend unit, lint, compile, docs, and diff checks pass
+      - Provider route gaps, family population, rebalance continuity, and exact V25 visuals remain tracked
+    validation:
+      - bootstrap-worker-unit-20-of-20
+      - backend-unit-1241-of-1241
+      - backend-ruff-and-compileall
+      - docs-yaml-json-and-git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. This closes a readiness false-positive only; it does
+        not claim live provider completeness, all-eight family population, historical rebalance
+        continuity, canonical member bars, or exact Version 25 maintenance visuals.
+      - >-
+        Implementation/docs commit `722c1546528e71f7545e6c87c5c5ef27d34cf46b` is pushed and the
+        branch is synchronized. The separate operational checkpoint must be committed and pushed
+        before the next implementation context.
+
   - id: tc2000-family-history-shared-queue-bound-20260819
     title: Align benchmark-family history refresh with the shared historical queue
     status: completed

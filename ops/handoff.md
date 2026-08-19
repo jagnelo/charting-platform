@@ -1,5 +1,22 @@
 # Active Handoff
 
+## 2026-08-19 — Provider bootstrap keeps partial data retryable
+
+- Fixed the opt-in core workstation provider bootstrap's false-ready gates. A symbol now needs at
+  least `252` adjusted D1 bars before its default 200-day/52-week technical history is considered
+  ready. Holdings now require a non-fixture snapshot with resolved members and explicit
+  `complete`/`filing_reconstructed` completeness; `partial`/`unknown` evidence remains retryable.
+- Added focused regressions for one persisted bar and a partial holdings snapshot. The focused
+  bootstrap/worker slice passes `20/20`; the complete backend unit suite passes `1241/1241`;
+  Ruff, compileall, docs parsing, and `git diff --check` are next closure gates.
+- Acceptance flexibility: **None**. This repairs retryability only. Provider route availability,
+  all-eight family population, historical rebalance continuity, canonical member-bar coverage,
+  and exact V25 maintenance/progress visuals remain open.
+- Implementation/docs commit `722c1546528e71f7545e6c87c5c5ef27d34cf46b` is pushed and the branch
+  is synchronized. Only the separate operational checkpoint remains before context closure.
+- Next context after closure: provider-backed saved-source/family population and continuity, then
+  the next parity gap, starting from a clean synchronized branch.
+
 ## 2026-08-19 — Benchmark-family history uses the shared historical queue
 
 - Closed a route-specific family hydration divergence. The administrative

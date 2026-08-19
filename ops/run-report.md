@@ -1,5 +1,22 @@
 # Run Report
 
+## 2026-08-19 — Provider bootstrap does not suppress partial data retries
+
+- Changed `workstation_bootstrap` readiness: fewer than `252` adjusted D1 bars is retryable, and
+  only non-fixture resolved holdings snapshots marked `complete` or `filing_reconstructed` count
+  as ready. This prevents under-populated locked family/watchlist sources from becoming silently
+  non-retryable.
+- Evidence: focused bootstrap/worker slice `20/20`; full backend unit suite `1241/1241`; Ruff;
+  compileall; and `git diff --check`. The first focused run used the repository's default coverage
+  gate and exited after reporting the expected low focused coverage; the unchanged `--no-cov`
+  rerun passed. This is a test-command boundary, not acceptance flexibility.
+- Acceptance flexibility: **None**. Provider availability/depth, complete all-eight family
+  population, historical rebalance continuity, canonical member bars, and exact V25 maintenance
+  visuals remain explicit gaps.
+- Implementation/docs commit `722c1546528e71f7545e6c87c5c5ef27d34cf46b` is pushed and synchronized.
+  The separate operational checkpoint is pending; no next context begins until it is pushed and
+  the worktree is clean.
+
 ## 2026-08-19 — Benchmark-family history refreshes preserve historical bounds
 
 - Replaced the administrative route's route-specific job namespace with the shared canonical history
