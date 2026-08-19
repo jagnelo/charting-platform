@@ -1,5 +1,16 @@
 # Run Report
 
+## 2026-08-19 — Thrivent TSCV 403 recovers through curated SEC identity
+
+- Preserved the official TSCV CSV path as primary and added a canonical SEC fallback for the live
+  403 case. The fallback retains issuer failure/product provenance and route identity instead of
+  presenting SEC reconstruction as a daily issuer export.
+- Evidence: adapter/taxonomy `508/508`, focused provider regressions `11/11`, opt-in live TSCV `1/1`,
+  Ruff, compileall, and `git diff --check` pass. No acceptance flexibility, visual threshold, mask,
+  provider substitution, or interactive fan-out was introduced.
+- Remaining work is other provider repairs, all-family membership/bar continuity, entitlement review,
+  and exact V25 maintenance/fallback visuals.
+
 ## 2026-08-19 — SoFi SFY primary route repaired and fallback coverage bounded
 
 - Corrected the stale SoFi CloudFront hostname to the current official linked `aqfv4` artifact.

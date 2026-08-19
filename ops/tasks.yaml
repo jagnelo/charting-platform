@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-thrivent-tscv-sec-fallback-20260819
+    title: Recover Thrivent TSCV after issuer 403
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Preserve Thrivent's official TSCV CSV as primary, but recover the observed backend 403 via
+      canonical SEC EDGAR fund identity. Retain issuer failure and fallback provenance and ensure the
+      result is not relabelled as a daily issuer export.
+    definition_of_done:
+      - Curated TSCV SEC identity is used only when caller identity is absent
+      - Issuer 403 and SEC fallback route are retained in legal metadata
+      - Unit regression covers the blocked issuer route and fallback
+      - Adapter/taxonomy units, focused provider tests, live TSCV, lint/compile checks pass
+      - Remaining provider-family, historical, entitlement, and exact V25 visual gaps stay explicit
+    validation:
+      - thrivent-adapter-and-taxonomy-unit-508-of-508
+      - focused-provider-regressions-11-of-11
+      - opt-in-live-tscv-probe-1-of-1
+      - ruff-compileall-and-git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. This repairs one issuer-blocked route and does not
+        establish family-wide provider completeness.
+
   - id: tc2000-sofi-sfy-route-fallback-20260819
     title: Repair SoFi SFY issuer route and partial SEC fallback
     status: completed

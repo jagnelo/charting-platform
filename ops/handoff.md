@@ -1,5 +1,18 @@
 # Active Handoff
 
+## 2026-08-19 — Thrivent TSCV fallback recovers the issuer-blocked route
+
+- The official TSCV CSV returned live HTTP 403 to backend clients. The adapter retains that route as
+  primary, then uses curated SEC identity (`0001896670`, `C000263596`, `TSCV`) to reconstruct via
+  SEC EDGAR when blocked. Fallback metadata remains `sec_edgar_filing_fallback`; it is not labelled
+  as a daily Thrivent export.
+- Validation: adapter/taxonomy `508/508`, focused provider regressions `11/11`, opt-in live TSCV
+  `1/1`, Ruff, compileall, and `git diff --check` pass. Acceptance flexibility: **None**.
+- Implementation/docs commit `2e74bdb5` is pushed and synchronized; operational checkpoint follows.
+  Remaining gaps: other provider routes, all-eight family population, canonical member bars, historical continuity, entitlement/terms review, and exact
+  V25 maintenance/fallback visuals.
+- Next context: continue the remaining provider failures and family-wide population.
+
 ## 2026-08-19 — SoFi SFY route is repaired with honest SEC fallback semantics
 
 - The live SFY failure was a repository defect: the configured SoFi CloudFront hostname used
