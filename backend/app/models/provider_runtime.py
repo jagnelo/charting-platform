@@ -254,3 +254,53 @@ class ProviderRequestLog(Base, TimestampMixin):
         Index("ix_provider_request_log_capability_requested", "capability", "requested_at"),
         Index("ix_provider_request_log_source_requested", "data_source_id", "requested_at"),
     )
+
+
+class ProviderAvailabilityRun(Base, TimestampMixin):
+    """One scheduled availability sweep and its immutable observations."""
+
+    __tablename__ = "provider_availability_run"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    mode: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(24), nullable=False, default="running")
+    application_version: Mapped[str] = mapped_column(String(80), nullable=False)
+    probe_contract_version: Mapped[str] = mapped_column(String(32), nullable=False, default="v1")
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class ProviderAvailabilityObservation(Base, TimestampMixin):
+    """Durable result for one provider/capability representative request."""
+
+    __tablename__ = "provider_availability_observation"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    run_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("provider_availability_run.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    data_source_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    capability: Mapped[ProviderCapability] = mapped_column(
+        SAEnum(ProviderCapability), nullable=False, index=True
+    )
+    representative_request: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    success: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    classification: Mapped[str] = mapped_column(String(48), nullable=False)
+    response_shape: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    consecutive_failures: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    recovered: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    __table_args__ = (
+        Index(
+            "ix_provider_availability_observation_source_capability", "data_source_id", "capability"
+        ),
+        Index("ix_provider_availability_observation_classification", "classification"),
+    )

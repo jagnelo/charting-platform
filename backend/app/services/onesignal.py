@@ -63,3 +63,26 @@ async def send_indicator_alert_notification(
         url=f"/chart/{symbol}",
         data={"alert_id": alert_id, "alert_kind": "indicator", "symbol": symbol},
     )
+
+
+async def send_provider_availability_notification(
+    provider: str, capability: str, classification: str, *, recovered: bool = False
+) -> str | None:
+    """Notify only on a confirmed failure/recovery transition.
+
+    Cooldown and streak decisions happen in the availability service so this
+    transport remains reusable and does not need database access.
+    """
+    if recovered:
+        return await _send(
+            title=f"✅ {provider} recovered",
+            message=f"{provider} is healthy again for {capability}.",
+            url="/legacy/settings",
+            data={"provider": provider, "capability": capability, "classification": classification},
+        )
+    return await _send(
+        title=f"⚠️ {provider} availability",
+        message=f"{provider} {capability}: {classification}.",
+        url="/legacy/settings",
+        data={"provider": provider, "capability": capability, "classification": classification},
+    )

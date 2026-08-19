@@ -29,8 +29,10 @@ cp .env.example .env
 # Edit .env — at minimum set SECRET_KEY:
 #   echo "SECRET_KEY=$(openssl rand -hex 32)" >> .env
 
-# 2. Start everything with a branch-scoped Compose project
-COMPOSE_PROJECT_NAME="$(./scripts/dev-stack.sh project-name stack)" docker compose up -d
+# 2. Allocate isolated resources for this worktree and start the stack
+RUNTIME_ENV="$(python3 scripts/worktree-runtime.py env-file)"
+set -a; . "$RUNTIME_ENV"; set +a
+COMPOSE_PROJECT_NAME="$STACK_COMPOSE_PROJECT" docker compose up -d
 
 # 3. Apply DB migrations
 COMPOSE_PROJECT_NAME="$(./scripts/dev-stack.sh project-name stack)" docker compose exec backend alembic upgrade head
@@ -41,7 +43,10 @@ open http://localhost
 
 Register an account and start searching for symbols. Market data comes from the active provider policy chain for each capability and is persisted locally before it is served back to the UI.
 
-Every local stack started from this repository is branch-scoped by default. On a branch like `feat/provider-abstraction`, the full app stack is named `charting-stack-feat-provider-abstraction`; the dev infra stack is named `charting-dev-feat-provider-abstraction`.
+Every local stack started from this repository is worktree-scoped by default.
+The resolved worktree path contributes a stable suffix to Compose projects and
+the allocator also assigns distinct host ports, URLs, databases, queues,
+volumes, and networks. No local command stops another worktree.
 
 ---
 

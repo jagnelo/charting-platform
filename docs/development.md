@@ -41,7 +41,7 @@ make dev-install
 This will:
 - Install Python 3.12.4 via uv (if not already present)
 - Create a virtual environment at `backend/.venv` and install all dependencies
-- Run `npm install` in the frontend
+- Run frozen `npm ci` in the frontend
 - `ENV_FILE=.env.dev` is passed to all local commands automatically
 
 ### 3. Start infrastructure
@@ -50,13 +50,14 @@ This will:
 make dev-infra
 ```
 
-Starts Postgres (port 5432) and Redis (port 6379) via `docker-compose.dev.yml`, then runs `alembic upgrade head`.
-The dev infrastructure is isolated per git branch using a branch-scoped Docker Compose project name, so each branch keeps its own persisted Postgres and Redis state.
+Starts Postgres and Redis via `docker-compose.dev.yml`, then runs `alembic upgrade head`.
+The allocator derives a persisted resource bundle from the resolved worktree path,
+so branch slug collisions still receive different Compose projects, ports,
+volumes, networks, URLs, and databases.
 
-When you switch branches and run `make dev-infra`, the tooling:
-- stops any other running `charting-dev-*` dev stack without deleting its data
-- starts the current branch's stack
-- reconnects your local backend to the same localhost ports (`5432`, `6379`)
+When you switch branches and run `make dev-infra`, the tooling starts only the
+current worktree's exact project. It never stops another worktree or reclaims a
+port by shutting down an unrelated process.
 
 That means Alembic history and DB data stay separated by branch, while the local backend/frontend config stays simple.
 
@@ -69,8 +70,23 @@ POSTGRES_HOST_PORT=55432 BACKEND_HOST_PORT=18000 FRONTEND_HOST_PORT=18080 \
   docker compose -p charting-acceptance up -d
 ```
 
-`REDIS_HOST_PORT` is likewise available for the development-only Redis binding. The defaults
-remain `5432`, `8000`, `80`, and `6379`.
+`REDIS_HOST_PORT` is likewise available for the development-only Redis binding.
+The defaults are replaced by generated values in `.ai/runtime/*.env`.
+
+Use the supported lifecycle interface from the clean root `master` checkout:
+
+```bash
+make worktree-create BRANCH=feat/provider-health
+make worktree-list
+make worktree-status BRANCH=feat/provider-health
+make branch-validate
+make integrate BRANCH=feat/provider-health
+make worktree-close BRANCH=feat/provider-health
+```
+
+Each worktree gets an `ops/workstreams/<branch-slug>/` record with a plan,
+handoff, and append-only validation evidence. Closing refuses dirty, unmerged,
+or running worktrees.
 
 `make test-stack-up` preserves the normal unseeded market-data default, but accepts
 `E2E_SEED_INSTRUMENTS` and `E2E_SEED_MARKET_DATA` from the caller. For deterministic visual

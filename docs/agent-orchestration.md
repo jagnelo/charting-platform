@@ -41,9 +41,22 @@ That is the only initial documentation path the orchestrator needs to inject.
 
 From this file, the worker must then read the live state/memory files under `ops/`.
 
+For a checked-out feature/fix/chore/docs/test branch, the worker must also read
+the branch-owned durable record at `ops/workstreams/<branch-slug>/`:
+
+- `plan.yaml` is the scope and acceptance contract;
+- `handoff.md` is the current human/agent handoff;
+- `validation.jsonl` is append-only command/result evidence.
+
+The global `ops/tasks.yaml`, `ops/handoff.md`, `ops/state.json`, and
+`ops/run-report.md` remain legacy integration evidence. A branch must not edit
+another branch's workstream directory; proposed shared-document changes belong
+in its own record until an integration agent reconciles them.
+
 So the correct model is:
 - **single initial entry point**: this file
-- **live operational state**: `ops/*`
+- **live operational state**: global `ops/*` plus the current branch's
+  `ops/workstreams/<branch-slug>/` record
 
 This avoids making the orchestrator juggle multiple peer instruction files.
 
@@ -70,7 +83,8 @@ After being pointed to this file, every worker must do the following before maki
 4. Read `ops/state.json`
 5. Optionally read `ops/run-report.md` if more historical context is needed
 6. Determine the active task and current handoff state
-7. Only then begin implementation/validation work
+7. If the current branch is not `master`, read its `ops/workstreams/<branch-slug>/plan.yaml`, `handoff.md`, and `validation.jsonl`
+8. Only then begin implementation/validation work
 
 This means the orchestrator only needs to say:
 

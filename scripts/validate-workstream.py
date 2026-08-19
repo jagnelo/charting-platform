@@ -1,0 +1,98 @@
+#!/usr/bin/env python3
+"""Validate one branch-local workstream record without external dependencies."""
+
+from __future__ import annotations
+
+import json
+import re
+import sys
+from pathlib import Path
+
+
+REQUIRED = {
+    "schema",
+    "branch",
+    "base_sha",
+    "goal",
+    "scope",
+    "owned_paths",
+    "dependencies",
+    "acceptance_criteria",
+    "branch_tests",
+    "live_test_impact",
+    "migration_impact",
+    "deployment_impact",
+    "status",
+    "remaining_gaps",
+}
+STATUSES = {"planned", "in_progress", "ready", "integrated", "closed", "blocked"}
+
+
+def parse_keys(path: Path) -> dict[str, str]:
+    values: dict[str, str] = {}
+    for line in path.read_text().splitlines():
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        match = re.match(r"^([A-Za-z_][A-Za-z0-9_]*):(?:\s*)(.*)$", line)
+        if match:
+            values[match.group(1)] = match.group(2).strip().strip("'\"")
+    return values
+
+
+def main() -> int:
+    directory = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("ops/workstreams")
+    directories = (
+        [directory]
+        if (directory / "plan.yaml").exists()
+        else sorted(directory.glob("*/plan.yaml"))
+    )
+    if not directories:
+        print(f"no workstream plan found under {directory}", file=sys.stderr)
+        return 1
+    errors: list[str] = []
+    for plan_path in directories:
+        stream = plan_path.parent
+        values = parse_keys(plan_path)
+        missing = sorted(REQUIRED - values.keys())
+        if missing:
+            errors.append(f"{plan_path}: missing keys: {', '.join(missing)}")
+        if values.get("schema") != "1":
+            errors.append(f"{plan_path}: schema must be 1")
+        if values.get("status") not in STATUSES:
+            errors.append(f"{plan_path}: unsupported status {values.get('status')!r}")
+        if not re.fullmatch(r"[0-9a-f]{40}", values.get("base_sha", "")):
+            errors.append(f"{plan_path}: base_sha must be a full lowercase Git SHA")
+        if (
+            values.get("branch")
+            and stream.name
+            != re.sub(r"[^a-zA-Z0-9]+", "-", values["branch"]).strip("-").lower()
+        ):
+            errors.append(f"{plan_path}: directory does not match the branch slug")
+        for file_name in ("handoff.md", "validation.jsonl"):
+            if not (stream / file_name).exists():
+                errors.append(f"{stream}: missing {file_name}")
+        validation = stream / "validation.jsonl"
+        if validation.exists():
+            for number, line in enumerate(validation.read_text().splitlines(), 1):
+                try:
+                    item = json.loads(line)
+                except json.JSONDecodeError as exc:
+                    errors.append(f"{validation}:{number}: invalid JSON: {exc}")
+                    continue
+                if (
+                    not isinstance(item, dict)
+                    or not item.get("command")
+                    or not item.get("result")
+                ):
+                    errors.append(
+                        f"{validation}:{number}: entries need command and result"
+                    )
+    if errors:
+        print("\n".join(errors), file=sys.stderr)
+        return 1
+    print(f"validated {len(directories)} workstream record(s)")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

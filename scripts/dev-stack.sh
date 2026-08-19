@@ -42,41 +42,6 @@ project_name() {
     printf '%s-%s\n' "$prefix" "$(branch_slug)"
 }
 
-list_active_projects() {
-    local flavor prefix
-    flavor="${1:-dev}"
-    case "$flavor" in
-        dev)
-            prefix="${PROJECT_PREFIX_BASE}-dev"
-            ;;
-        app|stack|e2e|test)
-            prefix="${PROJECT_PREFIX_BASE}-stack"
-            ;;
-        *)
-            prefix="${PROJECT_PREFIX_BASE}-${flavor}"
-            ;;
-    esac
-    docker ps --format '{{.Label "com.docker.compose.project"}}' 2>/dev/null \
-        | awk 'NF' \
-        | sort -u \
-        | grep "^${prefix}-" || true
-}
-
-stop_other_projects() {
-    local compose_file flavor current project
-    compose_file="${1:-$COMPOSE_FILE_DEFAULT}"
-    flavor="${2:-dev}"
-    current="$(project_name "$flavor")"
-
-    while IFS= read -r project; do
-        [[ -z "$project" ]] && continue
-        [[ "$project" == "$current" ]] && continue
-
-        printf '[dev-stack] Stopping other branch dev stack: %s\n' "$project"
-        COMPOSE_PROJECT_NAME="$project" docker compose -f "$compose_file" down
-    done < <(list_active_projects "$flavor")
-}
-
 describe() {
     printf 'branch=%s\n' "$(branch_name)"
     printf 'slug=%s\n' "$(branch_slug)"
@@ -92,8 +57,8 @@ Commands:
   branch-name           Print the current git branch name
   branch-slug           Print the normalized branch slug
   project-name [flavor] Print the branch-scoped Docker Compose project name
-  stop-others [file] [flavor]
-                        Stop other running branch-scoped Compose projects for that flavor
+  stop-current [file] [flavor]
+                        Stop only this worktree's exact Compose project
   describe              Print branch, slug, and project name
 EOF
 }
@@ -110,8 +75,8 @@ main() {
         project-name)
             project_name "${2:-dev}"
             ;;
-        stop-others)
-            stop_other_projects "${2:-$COMPOSE_FILE_DEFAULT}" "${3:-dev}"
+        stop-current)
+            COMPOSE_PROJECT_NAME="$(project_name "${3:-dev}")" docker compose -f "${2:-$COMPOSE_FILE_DEFAULT}" down
             ;;
         describe)
             describe

@@ -27,6 +27,9 @@
   test-stack-up test-stack-down test-platform test-all test-backend-coverage \
   test-uplot-contract \
   test-visual-policy \
+  validate-integration branch-validate \
+  worktree-create worktree-list worktree-status worktree-close integrate \
+  rpi-preflight rpi-bundle deploy-rpi rpi-status \
   lint lint-backend lint-frontend format \
   migrate migrate-new migrate-down \
   coverage clean ci
@@ -34,13 +37,16 @@
 # ENV_FILE is passed to every local backend command so pydantic-settings
 # loads backend/.env.dev instead of looking for a .env file.
 BACKEND_ENV := ENV_FILE=.env.dev
+RUNTIME_HELPER := python3 scripts/worktree-runtime.py
+RUNTIME_ENV_FILE := $(shell $(RUNTIME_HELPER) env-file)
+RUNTIME_ENV = set -a; . "$(RUNTIME_ENV_FILE)"; set +a;
 # Read LOG_LEVEL from the dev env file so uvicorn's --log-level matches it.
 BACKEND_LOG_LEVEL := $(shell grep -E '^LOG_LEVEL=' backend/.env.dev 2>/dev/null | cut -d= -f2 | tr '[:upper:]' '[:lower:]')
 BACKEND_LOG_LEVEL := $(if $(BACKEND_LOG_LEVEL),$(BACKEND_LOG_LEVEL),info)
 DEV_STACK_HELPER := ./scripts/dev-stack.sh
-DEV_COMPOSE_PROJECT := $(shell $(DEV_STACK_HELPER) project-name dev)
-STACK_COMPOSE_PROJECT := $(shell $(DEV_STACK_HELPER) project-name stack)
-DEV_BRANCH_NAME := $(shell $(DEV_STACK_HELPER) branch-name)
+DEV_COMPOSE_PROJECT := $(shell sed -n 's/^DEV_COMPOSE_PROJECT=//p' "$(RUNTIME_ENV_FILE)" | tr -d "'\"")
+STACK_COMPOSE_PROJECT := $(shell sed -n 's/^STACK_COMPOSE_PROJECT=//p' "$(RUNTIME_ENV_FILE)" | tr -d "'\"")
+DEV_BRANCH_NAME := $(shell sed -n 's/^WORKTREE_BRANCH=//p' "$(RUNTIME_ENV_FILE)" | tr -d "'\"")
 
 # ── Dev environment ────────────────────────────────────────────────────────────
 
@@ -50,49 +56,49 @@ dev-install:
 	  (echo "uv not found — installing..." && curl -LsSf https://astral.sh/uv/install.sh | sh && \
 	   echo "Restart your shell or run: source ~/.cargo/env")
 	@echo "▶  Installing backend dependencies..."
-	cd backend && uv sync --dev
+	cd backend && uv sync --frozen --dev
 	@echo "▶  Installing frontend dependencies..."
-	cd frontend && npm install
+	cd frontend && npm ci
 	@echo ""
 	@echo "✅  All done. Now run:"
 	@echo "    make dev-infra   # start Postgres + Redis"
 	@echo "    make dev         # start everything with hot-reload"
 
 dev-infra:
+	@$(RUNTIME_ENV)
 	@echo "▶  Starting branch-scoped Postgres + Redis..."
 	@echo "   Branch  →  $(DEV_BRANCH_NAME)"
 	@echo "   Project →  $(DEV_COMPOSE_PROJECT)"
-	@$(DEV_STACK_HELPER) stop-others docker-compose.dev.yml dev
-	COMPOSE_PROJECT_NAME=$(DEV_COMPOSE_PROJECT) docker compose -f docker-compose.dev.yml up -d
+	$(RUNTIME_ENV) COMPOSE_PROJECT_NAME=$$DEV_COMPOSE_PROJECT docker compose -f docker-compose.dev.yml up -d
 	@echo "▶  Waiting for Postgres to be ready..."
 	@for i in $$(seq 1 30); do \
-	  COMPOSE_PROJECT_NAME=$(DEV_COMPOSE_PROJECT) docker compose -f docker-compose.dev.yml exec postgres pg_isready -U postgres -q 2>/dev/null && break; \
+	  $(RUNTIME_ENV) COMPOSE_PROJECT_NAME=$$DEV_COMPOSE_PROJECT docker compose -f docker-compose.dev.yml exec postgres pg_isready -U postgres -q 2>/dev/null && break; \
 	  sleep 1; \
 	done
 	@echo "▶  Applying migrations..."
-	cd backend && $(BACKEND_ENV) uv run alembic upgrade head
-	@echo "✅  Infrastructure ready — Postgres :5432, Redis :6379"
+	$(RUNTIME_ENV) cd backend && $(BACKEND_ENV) uv run alembic upgrade head
+	@echo "✅  Infrastructure ready — Postgres :$$(sed -n 's/^POSTGRES_HOST_PORT=//p' $(RUNTIME_ENV_FILE)), Redis :$$(sed -n 's/^REDIS_HOST_PORT=//p' $(RUNTIME_ENV_FILE))"
 	@echo "   Data is isolated under Docker project $(DEV_COMPOSE_PROJECT)"
 
 dev-infra-stop:
 	@echo "▶  Stopping branch-scoped dev stack $(DEV_COMPOSE_PROJECT)"
-	COMPOSE_PROJECT_NAME=$(DEV_COMPOSE_PROJECT) docker compose -f docker-compose.dev.yml down
+	$(RUNTIME_ENV) COMPOSE_PROJECT_NAME=$$DEV_COMPOSE_PROJECT docker compose -f docker-compose.dev.yml down
 
 dev-backend:
-	cd backend && $(BACKEND_ENV) uv run uvicorn app.main:app \
-	  --host 0.0.0.0 --port 8000 --reload --reload-dir app --log-level $(BACKEND_LOG_LEVEL)
+	$(RUNTIME_ENV) cd backend && $(BACKEND_ENV) uv run uvicorn app.main:app \
+	  --host 0.0.0.0 --port $$DEV_BACKEND_PORT --reload --reload-dir app --log-level $(BACKEND_LOG_LEVEL)
 
 dev-worker:
 	cd backend && $(BACKEND_ENV) uv run watchfiles "arq app.tasks.worker.WorkerSettings" app
 
 dev-frontend:
-	cd frontend && npm run dev
+	$(RUNTIME_ENV) cd frontend && VITE_PORT=$$VITE_PORT VITE_API_PROXY_TARGET=$$VITE_API_PROXY_TARGET npm run dev
 
 dev:
 	@echo "▶  Starting dev environment..."
-	@echo "   Backend  →  http://localhost:8000"
-	@echo "   API docs →  http://localhost:8000/docs"
-	@echo "   Frontend →  http://localhost:5173"
+	@$(RUNTIME_ENV)
+	@echo "   Backend  →  http://localhost:$$(sed -n 's/^DEV_BACKEND_PORT=//p' $(RUNTIME_ENV_FILE))/"
+	@echo "   Frontend →  http://localhost:$$(sed -n 's/^VITE_PORT=//p' $(RUNTIME_ENV_FILE))/"
 	@echo ""
 	./dev.sh all
 
@@ -158,25 +164,23 @@ test-e2e-install:
 
 test-e2e: test-e2e-install
 	@echo "▶  E2E tests (Playwright headless — stack must be running on :80)..."
-	cd frontend && STACK_URL=$${STACK_URL:-http://localhost} npx playwright test
+	$(RUNTIME_ENV) cd frontend && STACK_URL=$${STACK_URL:-$$STACK_URL} npx playwright test
 
 test-e2e-headed: test-e2e-install
 	@echo "▶  E2E tests (Playwright headed)..."
-	cd frontend && STACK_URL=$${STACK_URL:-http://localhost} npx playwright test --headed
+	$(RUNTIME_ENV) cd frontend && STACK_URL=$${STACK_URL:-$$STACK_URL} npx playwright test --headed
 
 test-stack-up:
+	@$(RUNTIME_ENV)
 	@echo "▶  Starting branch-scoped full application stack for browser validation..."
 	@echo "   Branch  →  $(DEV_BRANCH_NAME)"
 	@echo "   Project →  $(STACK_COMPOSE_PROJECT)"
 	@echo "   Fixtures → instruments=$${E2E_SEED_INSTRUMENTS:-true}, market-data=$${E2E_SEED_MARKET_DATA:-false}"
-	@$(DEV_STACK_HELPER) stop-others docker-compose.yml stack
-	E2E_SEED_INSTRUMENTS=$${E2E_SEED_INSTRUMENTS:-true} E2E_SEED_MARKET_DATA=$${E2E_SEED_MARKET_DATA:-false} COMPOSE_BAKE=true COMPOSE_PROJECT_NAME=$(STACK_COMPOSE_PROJECT) docker compose up -d --build --force-recreate --wait
-	@echo "▶  Applying migrations to the running stack..."
-	$(MAKE) migrate
+	$(RUNTIME_ENV) E2E_SEED_INSTRUMENTS=$${E2E_SEED_INSTRUMENTS:-true} E2E_SEED_MARKET_DATA=$${E2E_SEED_MARKET_DATA:-false} COMPOSE_BAKE=true COMPOSE_PROJECT_NAME=$$STACK_COMPOSE_PROJECT POSTGRES_HOST_PORT=$$POSTGRES_HOST_PORT BACKEND_HOST_PORT=$$BACKEND_HOST_PORT FRONTEND_HOST_PORT=$$FRONTEND_HOST_PORT docker compose up -d --build --force-recreate --wait
 
 test-stack-down:
 	@echo "▶  Stopping branch-scoped full application stack $(STACK_COMPOSE_PROJECT)..."
-	COMPOSE_PROJECT_NAME=$(STACK_COMPOSE_PROJECT) docker compose down -v
+	$(RUNTIME_ENV) COMPOSE_PROJECT_NAME=$$STACK_COMPOSE_PROJECT docker compose down -v
 
 test: test-unit test-int test-fe
 	@echo ""
@@ -235,3 +239,55 @@ clean:
 	rm -rf frontend/coverage frontend/playwright-report frontend/test-results
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	find . -name "*.pyc" -delete 2>/dev/null || true
+
+# ── Worktrees and integration ────────────────────────────────────────────────
+
+worktree-create:
+	@test -n "$(BRANCH)" || (echo "usage: make worktree-create BRANCH=feat/name" >&2; exit 2)
+	python3 scripts/worktree.py create "$(BRANCH)"
+
+worktree-list:
+	python3 scripts/worktree.py list
+
+worktree-status:
+	@test -n "$(BRANCH)" || (echo "usage: make worktree-status BRANCH=feat/name" >&2; exit 2)
+	python3 scripts/worktree.py status "$(BRANCH)"
+
+worktree-close:
+	@test -n "$(BRANCH)" || (echo "usage: make worktree-close BRANCH=feat/name" >&2; exit 2)
+	python3 scripts/worktree.py close "$(BRANCH)"
+
+branch-validate:
+	python3 scripts/validate-workstream.py ops/workstreams
+
+integrate:
+	@test -n "$(BRANCH)" || (echo "usage: make integrate BRANCH=feat/name" >&2; exit 2)
+	python3 scripts/integrate.py "$(BRANCH)" --publish
+
+validate-integration:
+	@set -e; \
+	git diff --check; \
+	$(MAKE) branch-validate; \
+	(cd backend && uv lock --check && uv sync --frozen --dev && uv export --locked --format requirements-txt --output-file /tmp/charting-requirements.lock && cmp -s /tmp/charting-requirements.lock requirements.txt); \
+	(cd frontend && npm ci); \
+	$(MAKE) lint; \
+	$(MAKE) test-backend-coverage; \
+	$(MAKE) test-fe; \
+	trap '$(MAKE) test-stack-down' EXIT; \
+	E2E_SEED_MARKET_DATA=true $(MAKE) test-stack-up; \
+	E2E_SEED_MARKET_DATA=true $(MAKE) test-e2e; \
+	cd frontend && E2E_SEED_MARKET_DATA=true RUN_BOARD_VISUAL_PARITY=1 npx playwright test tests/e2e/tc2000_visual.spec.ts
+
+rpi-preflight:
+	python3 scripts/rpi.py preflight
+
+rpi-bundle:
+	@test -n "$(COMMIT)" || (echo "usage: make rpi-bundle COMMIT=<full-master-sha>" >&2; exit 2)
+	python3 scripts/rpi.py bundle "$(COMMIT)"
+
+deploy-rpi:
+	@test -n "$(COMMIT)" -a -n "$(CONFIRM)" || (echo "usage: make deploy-rpi COMMIT=<sha> CONFIRM=<same-sha>" >&2; exit 2)
+	python3 scripts/rpi.py deploy "$(COMMIT)" "$(CONFIRM)"
+
+rpi-status:
+	python3 scripts/rpi.py status

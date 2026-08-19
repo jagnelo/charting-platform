@@ -54,6 +54,8 @@ from app.models.provider_observation import (
     UniverseDiscoverySnapshot,
 )
 from app.models.provider_runtime import (
+    ProviderAvailabilityObservation,
+    ProviderAvailabilityRun,
     ProviderCapability,
     ProviderEntitlement,
     ProviderEntitlementRevision,
@@ -127,6 +129,8 @@ __all__ = [
     "ProviderEntitlementRevision",
     "ProviderPolicy",
     "ProviderHealthState",
+    "ProviderAvailabilityRun",
+    "ProviderAvailabilityObservation",
     "ProviderRequestLog",
     "DatasetStatus",
     "InstrumentDatasetState",
