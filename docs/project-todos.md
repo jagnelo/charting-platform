@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-08-19 — Complete four-environment seeded visual baseline refresh
+
+- [x] Refresh the remaining stale seeded baselines across `visual-1080p-125`,
+      `visual-1440p-100`, and `visual-1440p-125` (22 + 18 + 18 images). Together with the
+      earlier 1080p-100 refresh, 80 local baselines now represent the current hydrated product
+      state across all four required display-scale environments.
+- [x] Rerun every unchanged project: `visual-1080p-100`, `visual-1080p-125`,
+      `visual-1440p-100`, and `visual-1440p-125` each pass `26/26` (`104/104` total). Existing
+      0.5% thresholds, masks, and overlap assertions were unchanged.
+- [x] Keep the evidence explicitly classified as deterministic seeded product-state evidence;
+      it is not a permission-cleared TC2000 V25 capture and does not close exact visual, provider,
+      historical, or entitlement gaps.
+- [ ] Continue exact V25 reference coverage, canonical free-source population/history, promotion
+      fan-out, and remaining functional/security/performance acceptance work.
+
 ### 2026-08-19 — Board-guided 1080p seeded baselines refreshed after canonical-pane hydration
 
 - [x] Refresh the 22 stale `visual-1080p-100` snapshots whose prior expected images still showed

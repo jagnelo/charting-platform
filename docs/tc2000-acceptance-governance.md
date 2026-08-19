@@ -1,5 +1,15 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Full four-environment seeded visual matrix synchronized
+
+The remaining display-scale projects were refreshed for the same deterministic seeded hydration
+change: 80 images across four environments. Unchanged reruns pass `26/26` in each project,
+`104/104` combined, with overlap checks, masks, and the 0.5% per-image threshold untouched.
+
+Acceptance flexibility: **seeded fixture evidence for represented current product states only**.
+It does not approve exact TC2000 V25 imagery or close canonical provider/history, entitlement,
+unrepresented-state, or final whole-goal gates.
+
 ## 2026-08-19 — Seeded 1080p baseline refresh is explicitly interim evidence
 
 The 1080p seeded visual project was stale after canonical fixture hydration changed the visible

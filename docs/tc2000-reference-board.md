@@ -1,5 +1,16 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Four display-scale product-state oracles now agree
+
+The remaining three seeded visual projects were refreshed after the same canonical-pane hydration
+change: 22 images at 1080p/125%, 18 at 1440p/100%, and 18 at 1440p/125%. All four projects pass
+their unchanged `26/26` suites (`104/104` total). These are local product-state oracles kept
+separate from the external TC2000 media board and cannot be promoted to exact-reference status.
+
+The relaxed policy remains limited to represented seeded states. Exact V25 typography, gutters,
+density, action rows, and unrepresented interactions remain `required_missing`; no mask or pixel
+threshold was relaxed.
+
 ## 2026-08-19 — Current hydrated workstation states have deterministic 1080p evidence
 
 Twenty-two local `visual-1080p-100` baselines were refreshed after the workstation began correctly

@@ -1,5 +1,16 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Four-environment seeded baseline matrix is synchronized
+
+The same stale pre-hydration expectation was present in the other three display-scale projects.
+Refreshing 22 images at 1080p/125%, 18 at 1440p/100%, and 18 at 1440p/125% brings the complete
+local matrix to 80 refreshed baselines. Every unchanged project now passes `26/26` (`104/104`
+combined), with the existing threshold, mask, and geometry/overlap assertions unchanged.
+
+Acceptance flexibility used: **board-guided seeded fixture evidence for current represented states**.
+This is not exact V25 approval. Exact typography/gutters/density/action-row references, canonical
+provider population/history, and broader acceptance remain open.
+
 ## 2026-08-19 — Seeded 1080p baseline maintenance after workstation hydration
 
 The deterministic seeded workstation now has refreshed local baselines for 22 states whose old
