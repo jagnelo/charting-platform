@@ -1,5 +1,21 @@
 # Run Report
 
+## 2026-08-19 — Universal arbitrary-watchlist heatmap readiness is source-polymorphic
+
+- The shared history planner/status endpoint now derives source readiness from canonical descriptor
+  provenance. `profile_not_loaded`, `holdings_snapshot_not_loaded`, and `membership_not_loaded`
+  remain `pending` when the source has zero local members; empty personal lists and unverified
+  sources remain `unavailable`.
+- This completes the backend status boundary for treating index/ETF constituents as locked
+  watchlists and arbitrary user lists as the same Market Map class. Market Map, Breadth, Study Lab,
+  scans, gauges, and chart handoffs continue to use the same source IDs/resolver.
+- Evidence: focused history unit `5/5`; Docker-backed watchlists integration `46/46`; backend unit
+  `1249/1249`; Ruff; compileall; YAML/JSON parsing; and `git diff --check`. No acceptance flexibility,
+  visual threshold, or mask relaxation.
+- Implementation/docs commit `7bcdc401efb80b1c3daf3202995c114488e021fa` is pushed. Provider-backed
+  membership/bar population, historical continuity, complete family coverage, and exact V25
+  arbitrary-watchlist heatmap/source-picker visuals remain open.
+
 ## 2026-08-19 — Family coverage reports pending profile state
 
 - Changed benchmark-family coverage so mapped canonical roles without `ETFProfile` are reported as

@@ -1,4 +1,35 @@
 tasks:
+  - id: tc2000-universal-watchlist-history-pending-20260819
+    title: Keep pending arbitrary watchlists in the shared heatmap readiness contract
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Treat every canonical index/ETF/sector/industry universe and every arbitrary user watchlist as
+      one source-polymorphic TC2000-style heatmap/watchlist contract. Preserve pending profile,
+      holdings, or membership hydration as pending in generic history readiness instead of collapsing
+      an existing locked source to unavailable.
+    definition_of_done:
+      - Pending locked source descriptors produce pending history plans and status responses
+      - Empty personal lists and genuinely unverified mappings remain unavailable
+      - Arbitrary ETF Market Map and history-status integration proves one source lifecycle
+      - Unit compatibility doubles, full watchlist integration, backend unit, lint, compile, docs, and diff checks pass
+      - Documentation records the locked-universe versus editable-watchlist ownership distinction and remaining V25 visual/provider gaps
+    validation:
+      - watchlist-history-unit-5-of-5
+      - watchlists-integration-46-of-46
+      - backend-unit-1249-of-1249
+      - backend-ruff-and-compileall
+      - yaml-json-and-git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. Provider-backed membership/bar population, historical
+        continuity, all-family completeness, and exact V25 arbitrary-watchlist heatmap/source-picker
+        visuals remain explicit gaps.
+      - >-
+        Implementation/docs commit 7bcdc401efb80b1c3daf3202995c114488e021fa is pushed; the separate
+        operational checkpoint must be recorded and pushed before the next context.
+
   - id: tc2000-family-coverage-pending-profile-20260819
     title: Preserve pending profile state in benchmark-family coverage
     status: completed

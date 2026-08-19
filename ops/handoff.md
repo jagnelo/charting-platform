@@ -1,5 +1,22 @@
 # Active Handoff
 
+## 2026-08-19 — Universal watchlist heatmap preserves pending history state
+
+- Closed the remaining owning-boundary mismatch for the universal heatmap/watchlist model. A
+  canonical index/ETF/sector/industry source with known identity but missing local profile, holdings,
+  or membership hydration now produces `pending` in both the history-refresh plan and read-only
+  `/watchlists/sources/history-status` response. Empty personal lists and genuinely unavailable
+  mappings remain `unavailable`.
+- This makes the user's requested model explicit: index/ETF constituents are locked system-managed
+  watchlists, arbitrary personal/managed/combo/explicit sources are the same Market Map class, and
+  only membership ownership differs. No provider calls or guessed members were added.
+- Validation: history unit `5/5`; Docker-backed watchlists integration `46/46`; backend unit
+  `1249/1249`; Ruff; compileall; YAML/JSON parsing; and `git diff --check`. Acceptance flexibility:
+  **None**.
+- Implementation/docs commit `7bcdc401efb80b1c3daf3202995c114488e021fa` is pushed. The operational
+  checkpoint is next; then continue provider-backed family/source population and remaining V25
+  heatmap/reference gaps from a clean synchronized tree.
+
 ## 2026-08-19 — Family coverage preserves pending canonical roles without profiles
 
 - Closed a state-model mismatch in `/analysis/benchmark-families/{family_key}/coverage`: a mapped
