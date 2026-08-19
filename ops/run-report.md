@@ -1,5 +1,20 @@
 # Run Report
 
+## 2026-08-19 — Arbitrary Market Maps preserve hierarchy without large-list regression
+
+- The shared renderer now partitions grouped sources by canonical top-level `group_path` and then
+  lays out members inside each group. This applies equally to locked index/ETF/sector/industry
+  universes and classified user/managed/combo watchlists; explicit/unclassified sources remain
+  flat.
+- A first O(n²) cell lookup was caught by the existing 10,000-member canvas test and replaced with
+  indexed lookup before the authoritative rerun. No provider calls or proportional tile DOM were
+  introduced.
+- Evidence: focused layout/Market Map `33/33`; full frontend Vitest `910/910`; type-check;
+  production build; YAML/JSON parsing; and `git diff --check`. No acceptance flexibility, visual
+  threshold, or mask relaxation.
+- Implementation/docs commit `7da0eeff20c3b6f0f00ef65cde9532f5230cce27` is pushed and synchronized.
+  Exact V25 hierarchy visuals and provider-backed membership/bar completeness remain explicit gaps.
+
 ## 2026-08-19 — Unresolved holdings cannot masquerade as a ready heatmap
 
 - A provider holdings snapshot with raw rows but zero resolved canonical members now exposes

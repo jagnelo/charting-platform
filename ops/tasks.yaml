@@ -1,4 +1,32 @@
 tasks:
+  - id: tc2000-universe-performance-map-hierarchical-layout-20260819
+    title: Preserve hierarchical geometry for arbitrary watchlist Market Maps
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Make the shared Market Map renderer consume canonical group paths for grouped index/ETF,
+      sector/industry, managed, combo, and classified personal universes. Partition top-level
+      groups before laying out members, retain flat deterministic geometry for ungrouped sources,
+      and preserve the bounded large-universe canvas path.
+    definition_of_done:
+      - Grouped sources receive deterministic group-first then member treemap geometry
+      - Explicit/ungrouped sources retain the existing single-level geometry contract
+      - Large 10,000-member maps avoid per-member linear lookup and remain canvas-rendered
+      - Focused layout/component, full frontend, type-check, build, docs, and diff checks pass
+      - Exact V25 group labels/borders/density and provider population remain explicit gaps
+    validation:
+      - market-map-layout-3-of-3
+      - market-map-component-30-of-30
+      - frontend-vitest-910-of-910
+      - frontend-type-check-and-production-build
+      - git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. This closes the functional group geometry and its
+        large-list performance regression; exact V25 hierarchical visuals and provider-backed
+        membership/bar completeness remain open under the parent performance-map task.
+
   - id: tc2000-unresolved-holdings-pending-20260819
     title: Keep unresolved locked universes pending across heatmap and family coverage
     status: completed

@@ -1,5 +1,23 @@
 # Active Handoff
 
+## 2026-08-19 — Arbitrary Market Maps now preserve group hierarchy
+
+- Closed the renderer-side gap in the source-polymorphic heatmap contract. The frontend now uses
+  each cell's canonical top-level `group_path` to partition grouped index/ETF/sector/industry,
+  managed, combo, and classified personal universes into group rectangles before laying out their
+  members. Explicit or unclassified sources retain flat deterministic geometry.
+- The first implementation exposed an O(n²) lookup in the 10,000-member path; it was repaired with
+  indexed cell lookup before acceptance. The canvas path remains bounded and does not create
+  proportional tile DOM.
+- Validation: layout/component `33/33`; full frontend Vitest `910/910`; type-check; production
+  build; docs YAML/JSON parsing; and `git diff --check`. Acceptance flexibility: **None**.
+- Exact V25 group labels, borders/gutters, density, text scaling, hover treatment, and root versus
+  drill-down composition remain reference-board gaps. Provider-backed membership/bar completeness
+  remains open under the parent performance-map task.
+- Implementation/docs commit `7da0eeff20c3b6f0f00ef65cde9532f5230cce27` is pushed and synchronized.
+  Operational checkpoint is pending; next context remains provider-backed family/source population
+  and the remaining V25 visual/reference gaps.
+
 ## 2026-08-19 — Unresolved holdings remain pending, not ready
 
 - Closed the next source-lifecycle integrity gap for the universal TC2000-style heatmap model.
