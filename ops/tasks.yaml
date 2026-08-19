@@ -1,4 +1,30 @@
 tasks:
+  - id: tc2000-combo-watchlist-map-oracle-20260819
+    title: Prove derived combo watchlists share the universal Market Map
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Extend authenticated Market Map acceptance beyond personal and locked index/ETF sources to
+      a user-owned derived combo watchlist. The combo must retain canonical source identity,
+      locked membership governance, coverage/history status, and the same downstream contracts;
+      no provider-specific or ticker-only map path is allowed.
+    definition_of_done:
+      - A combo source is selectable from the same Market Map source picker
+      - The combo reaches the same batch request, tiles, coverage, and history readiness surfaces
+      - Browser diagnostics remain clean and no existing personal/locked handoff regresses
+      - Full frontend, type/build, and diff validation pass
+      - Combo definition history, provider member bars, and exact V25 visuals remain explicit gaps
+    validation:
+      - rebuilt-authenticated-f8s-market-map-watchlist-1-of-1
+      - full-frontend-vitest-914-of-914
+      - frontend-typecheck-production-build-and-diff-check
+    notes:
+      - >-
+        The first run exposed only an assertion wording mismatch (`Derived combo watchlists` versus
+        the canonical UI label `Combo watchlists`); the oracle was corrected and the unchanged
+        browser flow passed. Acceptance flexibility used: None.
+
   - id: tc2000-market-map-study-handoff-20260819
     title: Close universal arbitrary-watchlist Market Map and Study Lab handoffs
     status: completed

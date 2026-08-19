@@ -1,5 +1,18 @@
 # Active Handoff
 
+## 2026-08-19 — Derived combo watchlist Market Map oracle completed
+
+- Extended the universal authenticated Market Map flow to a user-owned `combo:analysis-combo`
+  source after locked constituent and personal watchlist cases. The combo retained locked,
+  source-polymorphic membership semantics and reached the same map tiles, coverage, history,
+  and canonical batch request.
+- Validation: rebuilt Chromium `F8s-market-map-watchlist` `1/1`, full frontend Vitest `914/914`,
+  type-check, production build, and diff checks pass. The first run caught only an assertion-label
+  mismatch and was corrected before the unchanged passing rerun. Acceptance flexibility: **None**.
+- Combo definition/version reconstruction, provider-backed member history, exact V25 source-picker
+  visuals, and the wider family matrix remain open. This context is ready for separate commit and
+  operational closure.
+
 ## 2026-08-19 — Universal arbitrary-watchlist Market Map and Study handoff completed
 
 - Index/ETF constituent universes and arbitrary personal/managed/combo/sector/industry/explicit

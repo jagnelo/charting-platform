@@ -1,5 +1,16 @@
 # Run Report
 
+## 2026-08-19 — Derived combo watchlist Market Map oracle completed
+
+- Added authenticated coverage for `combo:analysis-combo` alongside personal and locked
+  constituent sources. The combo uses the same source picker, map request, tile renderer,
+  coverage/history readiness, and locked membership treatment.
+- Evidence: rebuilt Chromium `F8s-market-map-watchlist` `1/1`, full frontend Vitest `914/914`,
+  type-check, production build, and diff checks. The initial assertion wording was fixed at the
+  test boundary; no product or acceptance criterion changed. Acceptance flexibility: **None**.
+- Remaining gaps are combo definition history, provider-backed member bars, exact V25 visuals, and
+  the broader family/provider acceptance matrix.
+
 ## 2026-08-19 — Universal arbitrary-watchlist Market Map and Study handoff completed
 
 - Fixed the factory Breadth identity/race and preserved parent-source lineage when a selected
