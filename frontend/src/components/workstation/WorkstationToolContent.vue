@@ -12,6 +12,9 @@
         <span v-if="benchmarkFamilyLoading" role="status">Loading family legs…</span>
         <span v-else-if="benchmarkFamilyError" class="benchmark-surface__family-error" role="alert">{{ benchmarkFamilyError }}</span>
       </div>
+      <div v-if="benchmarkFamilyKey && benchmarkFamilyOverview" class="benchmark-surface__family-roles" aria-label="Selected benchmark family roles">
+        <span v-for="mapping in benchmarkFamilyOverview.mappings" :key="mapping.role"><b>{{ familyRoleLabel(mapping.role) }}</b> {{ mapping.symbol ?? mapping.label }} · {{ familyMappingState(mapping) }}</span>
+      </div>
       <div class="benchmark-surface__identity" :aria-label="`${activeBenchmarkLabel} benchmark identity`">
         <strong>{{ activeBenchmarkLabel }}</strong>
         <span>Official series: {{ activeBenchmarkIdentity.official_index_symbol }}</span>
@@ -1872,10 +1875,13 @@ const benchmarkFamilyCapProxy = computed(() => {
   return typeof symbol === 'string' && symbol.trim() ? symbol.trim().toUpperCase() : undefined
 })
 const benchmarkFamilySnapshot = computed(() => benchmarkFamilyKey.value ? workspaceStore.groupSnapshots[benchmarkFamilyKey.value] : null)
+const benchmarkFamilyOverviewKey = computed(() => `${benchmarkFamilyKey.value}:${activeTimeframe.value}:adj:latest`)
+const benchmarkFamilyOverview = computed(() => benchmarkFamilyKey.value ? workspaceStore.benchmarkFamilyOverviews[benchmarkFamilyOverviewKey.value] : null)
+const benchmarkFamilyOverviewError = computed(() => benchmarkFamilyKey.value ? workspaceStore.benchmarkFamilyOverviewErrors[benchmarkFamilyOverviewKey.value] ?? '' : '')
 const benchmarkFamilyLoading = ref(false)
 const benchmarkFamilyError = computed(() => {
   if (!benchmarkFamilyKey.value) return ''
-  return workspaceStore.marketGroupErrors[benchmarkFamilyKey.value] ?? workspaceStore.groupSnapshotErrors[benchmarkFamilyKey.value] ?? ''
+  return workspaceStore.marketGroupErrors[benchmarkFamilyKey.value] ?? workspaceStore.groupSnapshotErrors[benchmarkFamilyKey.value] ?? benchmarkFamilyOverviewError.value
 })
 const activeBenchmarkLabel = computed(() => activeBenchmarkFamily.value?.name ?? 'S&P 500')
 const activeBenchmarkIdentity = computed(() => {
@@ -3202,6 +3208,9 @@ watch([benchmarkFamilyKey, benchmarkFamilyCapProxy, activeTimeframe], async ([fa
       workspaceStore.loadGroupSnapshot(familyKey, benchmarkFamilyCapProxy.value, {
         ...(timeframe !== 'D1' ? { timeframe } : {}),
       }),
+      workspaceStore.loadBenchmarkFamilyOverview(familyKey, {
+        ...(timeframe !== 'D1' ? { timeframe } : {}),
+      }),
     ])
   } finally {
     if (sequence === benchmarkFamilyLoadSequence) benchmarkFamilyLoading.value = false
@@ -3284,12 +3293,15 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 }
 .tool-state { display: grid; place-items: center; height: 100%; padding: 12px; color: #98a7b2; font: 11px "Segoe UI", Arial, sans-serif; text-align: center; }
 .tool-state--error { color: #ec8f8f; }
-.benchmark-surface { display: grid; grid-template-rows: auto auto minmax(0, 1fr); height: 100%; min-height: 0; }
+.benchmark-surface { display: grid; grid-template-rows: auto auto auto minmax(0, 1fr); height: 100%; min-height: 0; }
 .benchmark-surface__family-controls { display: flex; align-items: center; gap: 8px; min-height: 25px; padding: 3px 7px; border-bottom: 1px solid #28343c; background: #172027; color: #9aabb6; font: 10px "Segoe UI", Arial, sans-serif; }
 .benchmark-surface__family-controls label { display: inline-flex; align-items: center; gap: 5px; }
 .benchmark-surface__family-controls select { min-width: 180px; border: 1px solid #34434e; background: #11181d; color: #c7d6df; padding: 2px 4px; font: inherit; }
 .benchmark-surface__family-state { color: #9bb6c3; }
 .benchmark-surface__family-error { color: #ff9b8a; }
+.benchmark-surface__family-roles { display: flex; flex-wrap: wrap; gap: 3px 8px; padding: 3px 7px; border-bottom: 1px solid #28343c; background: #121920; color: #80909d; font: 9px "Segoe UI", Arial, sans-serif; }
+.benchmark-surface__family-roles span { padding-left: 6px; border-left: 1px solid #34434e; white-space: nowrap; }
+.benchmark-surface__family-roles b { color: #c7d6df; }
 .benchmark-surface__identity { display: flex; align-items: baseline; gap: 9px; padding: 5px 7px; border-bottom: 1px solid #28343c; background: #121920; color: #91a2ad; font: 10px "Segoe UI", Arial, sans-serif; }
 .benchmark-surface__identity strong { color: #d7e4eb; font-size: 11px; }
 .benchmark-surface__identity span:first-of-type { color: #d2bc7a; }

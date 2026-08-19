@@ -439,14 +439,18 @@ describe('workspace store layout tabs', () => {
   it('loads a selected benchmark family with its own cap proxy and timeframe', async () => {
     apiGet.mockImplementation((path: string) => path.includes('/snapshot')
       ? { group_key: 'sp400', rows: [], coverage: 0 }
-      : { stable_key: 'sp400', group_type: 'benchmark_family', members: [] })
+      : path.includes('/overview')
+        ? { family_key: 'sp400', mappings: [], rows: [] }
+        : { stable_key: 'sp400', group_type: 'benchmark_family', members: [] })
     const store = useWorkspaceStore()
 
     await store.loadMarketGroup('sp400')
     await store.loadGroupSnapshot('sp400', 'MDY', { timeframe: 'W1' })
+    await store.loadBenchmarkFamilyOverview('sp400', { timeframe: 'W1' })
 
     expect(apiGet).toHaveBeenCalledWith('/market-groups/sp400')
     expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp400/snapshot', { benchmark: 'MDY', timeframe: 'W1' })
+    expect(apiGet).toHaveBeenCalledWith('/analysis/benchmark-families/sp400/overview', { timeframe: 'W1' })
     expect(store.marketGroups.sp400?.stable_key).toBe('sp400')
     expect(store.groupSnapshots.sp400).toEqual(expect.objectContaining({ group_key: 'sp400' }))
   })
