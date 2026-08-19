@@ -1,4 +1,25 @@
 tasks:
+  - id: tc2000-market-map-historical-classification-20260819
+    title: Keep arbitrary-watchlist Market Map grouping point-in-time safe
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Preserve one source-polymorphic TC2000-style heatmap for locked index/ETF constituent
+      watchlists and arbitrary personal, combo, sector, industry, managed, or explicit lists, and
+      prevent historical maps from leaking today's classification into an earlier evaluation.
+    definition_of_done:
+      - Historical system-managed grouping uses the latest local profile snapshot at or before end/as_of
+      - Missing dated classification is Unclassified with a structured warning, never current fallback
+      - Cell classification provenance is serializable and visible in Market Map hover detail
+      - Focused integration, unit, frontend, type/build, lint, compile, and diff checks pass
+      - Exact V25 provenance/hover geometry and provider/member-bar gaps remain explicitly tracked
+    validation:
+      - backend unit market-map: 5/5
+      - Docker-backed watchlists/Market Map integration: 47/47
+      - frontend Market Map component: 32/32
+      - Ruff, compileall, vue-tsc, production build, and git diff --check
+    acceptance_flexibility: none
   - id: tc2000-family-map-close-reopen-20260819
     title: Make repeated family Market Map close/reopen Golden Layout safe
     status: completed

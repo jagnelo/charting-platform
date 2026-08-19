@@ -1,5 +1,29 @@
 # Active Handoff
 
+## 2026-08-19 — Universal Market Map historical classification gate completed
+
+- The product contract remains one source-polymorphic TC2000-style heatmap: an index/index-ETF
+  constituent set is a locked watchlist, while personal, combo, explicit, sector, industry,
+  managed, and ETF sources use the same map, breadth, chart, ratio, scan, gauge, and Study Lab
+  actions. `locked` governs membership mutation only.
+- Historical system-managed maps now select the latest local profile snapshot observed at or before
+  `end`/`as_of` for sector/industry grouping. The response retains `classification_provenance`; a
+  missing dated classification is `Unclassified` with `historical_classification_unavailable`
+  rather than a current `Instrument.equity_detail` leak. Market Map hover detail shows the
+  snapshot provider/date.
+- Validation: backend Market Map unit `5/5`, Docker-backed watchlists integration `47/47`, frontend
+  Market Map component `32/32`, Ruff, compileall, `vue-tsc`, production build, and `git diff
+  --check` pass. Acceptance flexibility: **None**. The initial focused run exposed the missing-
+  snapshot current-classification fallback and was fixed, then rerun unchanged to green; this was
+  a product defect repair, not a relaxed criterion.
+- Implementation/docs commit `678802f94b7529da84c45fcaafa6b311f5ff38b7` is pushed and matches
+  `origin/feat/tc2000-frontend-rework`. The separate operational files in this handoff/state/task
+  context are now the only dirty files and must be committed/pushed before the next context.
+- Next action: stage only the operational record, commit and push it, then verify clean synchronized
+  hashes. Continue the active full goal afterward; provider-backed family population,
+  point-in-time weights, canonical member bars, combo version reconstruction, and exact V25 visual
+  states remain open.
+
 ## 2026-08-19 — Family Market Map close/reopen lifecycle repaired
 
 - Repeatedly opening and closing the source-polymorphic Market Map while traversing all eight US
