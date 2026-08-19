@@ -1,4 +1,30 @@
 tasks:
+  - id: tc2000-breadth-study-definition-reuse-20260819
+    title: Persist generic breadth predicates as immutable Study Lab definitions
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Let a completed generic Breadth predicate be saved as one sandboxed Study Lab asset while
+      retaining its canonical locked/editable WatchlistSource, condition AST, timeframe,
+      adjustment, and as-of semantics.
+    definition_of_done:
+      - Breadth exposes a named save action after a non-Python generic evaluation
+      - The generated Study asset delegates to research.breadth_condition through the isolated SDK
+      - Default parameters retain the full predicate and canonical source lineage
+      - Pure serializer/payload tests pass and no provider fan-out is introduced
+      - Documentation records remaining promotion and V25 visual gaps
+    validation:
+      - breadth-definition-focused-2-of-2
+      - frontend-Vitest-918-of-918
+      - vue-tsc
+      - Vite-production-build
+      - git-diff-check
+    acceptance_flexibility: none
+    implementation_commit: pending
+    remaining_gaps: >-
+      Complete promotion fan-out to every compatible target, provider-backed family population and
+      history, and exact Version 25 promotion-row visuals remain open.
   - id: tc2000-board-seeded-four-environment-baseline-refresh-20260819
     title: Synchronize seeded visual baselines across all four required display environments
     status: completed

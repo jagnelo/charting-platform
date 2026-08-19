@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-19 — Generic breadth definition reuse
+
+- Added direct Breadth → Study Lab definition persistence for completed generic predicates. The
+  immutable asset preserves the selected `WatchlistSource` (including locked index/ETF sources),
+  predicate AST, timeframe, adjustment, and as-of semantics.
+- Focused serializer/payload tests pass `2/2`; full frontend Vitest passes `918/918`; type-check and
+  production build pass. No acceptance flexibility used.
+- Still open: target-specific promotion fan-out, canonical provider-backed family population and
+  history, and exact Version 25 promotion visuals.
+
 ## 2026-08-19 — Complete four-environment seeded visual matrix refresh
 
 - Refreshed 80 stale seeded baselines across the four required display environments: 22 at

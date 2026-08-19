@@ -1,5 +1,23 @@
 # Active Handoff
 
+## 2026-08-19 — Generic breadth definition reuse context
+
+- Added a Breadth-tool action that saves any completed non-Python generic predicate as an immutable
+  Study Lab code asset. The payload retains the complete condition/universe AST, canonical locked
+  or editable source ID, timeframe, adjustment, and as-of boundary; no ticker-string widening or
+  provider call is introduced.
+- Extracted the Python-literal serializer/payload builder to
+  `frontend/src/lib/workstation/breadthDefinitions.ts` and added focused `2/2` tests. Full
+  frontend Vitest passes `918/918`; `vue-tsc` and Vite production build pass.
+- Acceptance flexibility: **none**. The seeded visual evidence remains a separate interim basis;
+  exact V25 visuals, provider-backed family population/history, and complete promotion fan-out are
+  still open.
+- Implementation/docs commit is pending. Before moving contexts, stage implementation, tests, and
+  docs together, commit and push; then record the separate ops checkpoint and verify a clean,
+  synchronized worktree.
+
+Next context: continue target-specific breadth promotion adapters and canonical family/data gates.
+
 ## 2026-08-19 — Complete four-environment seeded visual matrix context
 
 - Refreshed the remaining 80 stale deterministic PNG baselines: 22 at 1080p/125%, 18 at
