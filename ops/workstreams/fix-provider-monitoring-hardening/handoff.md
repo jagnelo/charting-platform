@@ -7,3 +7,7 @@ daily core probes notify only from the second consecutive failure, weekly sweeps
 notify schema/content regressions, and recovery is emitted only after a notified
 failure. Settings now receives last-success and last-failure timestamps. Focused
 tests and the migration gate remain to be run.
+
+The branch also carries the corrected independent CI replay contract: generated
+uv headers are normalized, pytest runs through `uv run`, and integration-only
+coverage does not apply the combined threshold.

@@ -1,1 +1,2 @@
 {"command":"provider availability notification policy tests","result":"implemented","evidence":"pure policy covers first failure, second failure, cooldown suppression, weekly schema regression, and recovery; focused test pending"}
+{"command":"branch CI workflow replay corrections","result":"implemented","evidence":"provider branch carries normalized uv export comparison, uv-run pytest, and --cov-fail-under=0 for integration-only tests"}
