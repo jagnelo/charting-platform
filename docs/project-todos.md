@@ -1,6 +1,6 @@
 # Project TODO Memory
 
-### 2026-08-19 — Arbitrary watchlists now receive visible hierarchical map frames
+### 2026-08-19 — Arbitrary watchlists now receive visible nested map frames
 
 - [x] Make the shared Market Map renderer use the source's top-level group paths when laying out
       cells. Grouped index/ETF/sector/industry and classified personal watchlists now partition
@@ -11,6 +11,8 @@
       proportional tile DOM is introduced.
 - [x] Render top-level group frames and member counts for HTML tiles, and draw the same boundaries
       and labels in the large-universe canvas path without intercepting member selection.
+- [x] Derive nested group frames (for example sector → industry) from the already-computed member
+      rectangles, preserving parent keys, levels, counts, and one geometry pass per visible map.
 - [x] Paint canvas group boundaries and labels after member fills/text so the large-universe hierarchy
       remains visible instead of being overwritten by tile paint.
 - [x] Make the 10,000-member regression assert the ordering invariant directly, rather than only

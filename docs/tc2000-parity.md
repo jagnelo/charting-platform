@@ -1,15 +1,17 @@
 # TC2000 Version 25 Parity Matrix
 
-## 2026-08-19 — Market Map visibly preserves hierarchy for every watchlist source
+## 2026-08-19 — Market Map visibly preserves nested hierarchy for every watchlist source
 
 The shared Market Map layout now consumes the backend's canonical `group_path` for every source.
 Grouped index/ETF/sector/industry and classified personal/managed/combo universes are partitioned
-into top-level group rectangles before their members are laid out; explicit or unclassified lists
-retain deterministic flat geometry. This means the same heatmap contract can present an arbitrary
-watchlist with meaningful sector/industry grouping without introducing a feature-specific renderer.
+into top-level group rectangles before their members are laid out, then expose nested child frames
+(for example sector → industry) derived from the same member rectangles; explicit or unclassified
+lists retain deterministic flat geometry. This means the same heatmap contract can present an
+arbitrary watchlist with meaningful sector/industry grouping without introducing a feature-specific
+renderer.
 
 The layout remains provider-free and indexed: the 10,000-member canvas path avoids proportional DOM
-and does not regress into per-member linear lookup. Top-level group frames/counts are rendered as
+and does not regress into per-member linear lookup. Top-level and nested group frames/counts are rendered as
 lightweight overlays for HTML tiles and drawn directly on the canvas for large universes. Focused
 layout/Market Map coverage passes `35/35`, full frontend Vitest passes `912/912`, and type-check/build
 pass. No acceptance flexibility was used. Exact V25 group-label/border/gutter/density/hover treatment

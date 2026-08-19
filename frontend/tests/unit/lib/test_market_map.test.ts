@@ -53,10 +53,13 @@ describe('market map layout', () => {
       { instrument_id: 4, symbol: 'D', name: 'D', group_path: [], area_value: 1, color_value: 0, coverage: 1, warnings: [] },
     ]
     const groups = layoutMarketMapGroups(cells)
-    expect(groups.map(group => group.label)).toEqual(['Technology', 'Health Care', 'All members'])
-    expect(groups.map(group => group.member_count)).toEqual([2, 1, 1])
+    expect(groups).toHaveLength(5)
+    expect(groups.filter(group => group.level === 0).map(group => group.label).sort()).toEqual(['Health Care', 'Technology'])
+    expect(groups.filter(group => group.level === 1).map(group => group.label).sort()).toEqual(['Devices', 'Hardware', 'Software'])
+    expect(groups.find(group => group.label === 'Software')?.parent_key).toBe(groups.find(group => group.label === 'Technology')?.key)
+    expect(groups.find(group => group.label === 'Devices')?.parent_key).toBe(groups.find(group => group.label === 'Health Care')?.key)
     expect(groups.every(group => group.x >= 0 && group.y >= 0 && group.width > 0 && group.height > 0 && group.x + group.width <= 100.001 && group.y + group.height <= 100.001)).toBe(true)
-    expect(groups[0].width * groups[0].height).toBeGreaterThan(groups[1].width * groups[1].height)
+    expect(groups.find(group => group.label === 'Technology')!.width * groups.find(group => group.label === 'Technology')!.height).toBeGreaterThan(groups.find(group => group.label === 'Health Care')!.width * groups.find(group => group.label === 'Health Care')!.height)
   })
 
   it('does not expose a frame for a single ungrouped source', () => {

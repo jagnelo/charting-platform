@@ -234,7 +234,7 @@
         <button v-else v-for="cell in visibleLayoutCells" :key="cell.instrument_id" type="button" class="market-map-tool__tile" :class="[tileClass(cell.color_value), { 'market-map-tool__tile--selected': selectedIds.includes(cell.instrument_id) }]" :style="tileStyle(cell)" :title="`${cell.symbol} · ${cell.name}`" @pointerdown.stop @mouseenter="hoveredCell = cell" @mouseleave="hoveredCell = null" @click="selectCell($event, cell)">
           <strong>{{ cell.symbol }}</strong><span>{{ formatMetric(cell.color_value) }}</span><small>{{ cell.group_path.join(' · ') || 'All members' }}</small>
         </button>
-        <div v-if="!useCanvasTiles" v-for="group in visibleLayoutGroups" :key="`group-${group.key}`" class="market-map-tool__group-frame" :style="groupFrameStyle(group)" aria-hidden="true">
+        <div v-if="!useCanvasTiles" v-for="group in visibleLayoutGroups" :key="`group-${group.key}`" class="market-map-tool__group-frame" :style="groupFrameStyle(group)" :data-group-level="group.level" aria-hidden="true">
           <strong>{{ group.label }}</strong><small>{{ group.member_count }} members</small>
         </div>
         <small v-if="useCanvasTiles" class="market-map-tool__canvas-hint">Large universe · canvas rendering · click a tile to select</small>
@@ -257,7 +257,7 @@ import { invalidateCodeAssets } from '@/lib/workstation/libraryQueries'
 import { resolveCanonicalSymbols } from '@/lib/instruments'
 import BreadthConditionTreeEditor, { type BreadthConditionNode } from './BreadthConditionTreeEditor.vue'
 import { marketMapPythonUniverse } from '@/lib/workstation/marketMapPublication'
-import { cancelWatchlistHistoryRefreshRun, deleteMarketMapSnapshot, fetchMarketMap, fetchMarketMapSnapshot, fetchMarketMapSnapshots, fetchWatchlistHistoryRefreshRun, fetchWatchlistSourceHistoryStatus, layoutMarketMapCells, layoutMarketMapGroups, refreshWatchlistSourceHistory, saveMarketMapSnapshot, type MarketMapLayoutCell, type MarketMapLayoutGroup, type WatchlistHistoryRefreshRun, type WatchlistSourceHistoryStatus } from '@/lib/workstation/marketMap'
+import { cancelWatchlistHistoryRefreshRun, deleteMarketMapSnapshot, fetchMarketMap, fetchMarketMapSnapshot, fetchMarketMapSnapshots, fetchWatchlistHistoryRefreshRun, fetchWatchlistSourceHistoryStatus, layoutMarketMapCells, layoutMarketMapGroupsFromLayout, refreshWatchlistSourceHistory, saveMarketMapSnapshot, type MarketMapLayoutCell, type MarketMapLayoutGroup, type WatchlistHistoryRefreshRun, type WatchlistSourceHistoryStatus } from '@/lib/workstation/marketMap'
 import type { MarketMap, MarketMapAreaMetric, MarketMapCell, MarketMapColorMetric, MarketMapGroupBy, MarketMapNumericAreaField, MarketMapSnapshotSummary, Timeframe, WatchlistSource, WatchlistSourceKind } from '@/types'
 
 type MarketMapSort = 'area_desc' | 'color_desc' | 'symbol_asc'
@@ -597,7 +597,7 @@ function tileStyle(cell: MarketMapLayoutCell) {
   return { left: `${cell.x}%`, top: `${cell.y}%`, width: `${cell.width}%`, height: `${cell.height}%` }
 }
 function groupFrameStyle(group: MarketMapLayoutGroup) {
-  return { left: `${group.x}%`, top: `${group.y}%`, width: `${group.width}%`, height: `${group.height}%` }
+  return { left: `${group.x}%`, top: `${group.y}%`, width: `${group.width}%`, height: `${group.height}%`, zIndex: 3 + group.level }
 }
 function selectCell(event: MouseEvent, cell: MarketMapCell) {
   const additive = event.shiftKey || event.ctrlKey || event.metaKey
@@ -635,7 +635,7 @@ const visibleCells = computed(() => {
   })
 })
 const visibleLayoutCells = computed<MarketMapLayoutCell[]>(() => layoutMarketMapCells(visibleCells.value))
-const visibleLayoutGroups = computed<MarketMapLayoutGroup[]>(() => layoutMarketMapGroups(visibleCells.value))
+const visibleLayoutGroups = computed<MarketMapLayoutGroup[]>(() => layoutMarketMapGroupsFromLayout(visibleLayoutCells.value))
 const useCanvasTiles = computed(() => visibleLayoutCells.value.length > LARGE_MAP_CANVAS_THRESHOLD)
 const canvasSearchMatch = computed(() => {
   const query = canvasSearch.value.trim().toLowerCase()
@@ -701,9 +701,9 @@ function drawCanvas() {
     context.strokeStyle = '#90a2b5'
     context.lineWidth = 1
     context.strokeRect(x + 0.5, y + 0.5, Math.max(0, groupWidth - 1), Math.max(0, groupHeight - 1))
-    if (groupWidth >= 92 && groupHeight >= 24) {
+    if (groupWidth >= 48 && groupHeight >= 18) {
       context.fillStyle = '#d4d9e2'
-      context.font = '600 11px Segoe UI, Arial, sans-serif'
+      context.font = `${group.level === 0 ? '600 11px' : '600 10px'} Segoe UI, Arial, sans-serif`
       context.textAlign = 'left'
       context.textBaseline = 'top'
       context.fillText(`${group.label} · ${group.member_count}`, x + 5, y + 4, Math.max(20, groupWidth - 10))
@@ -1282,6 +1282,7 @@ onUnmounted(() => {
 .market-map-tool__tiles:active { cursor: grabbing; }
 .market-map-tool__canvas { position: absolute; inset: 0; transform-origin: top left; transition: transform 120ms ease-out; }
 .market-map-tool__group-frame { position: absolute; z-index: 3; box-sizing: border-box; display: flex; align-items: flex-start; gap: 5px; padding: 4px 5px; overflow: hidden; border: 1px solid #90a2b5aa; color: #d4d9e2; font-size: 10px; pointer-events: none; }
+.market-map-tool__group-frame[data-group-level="1"] { border-color: #90a2b577; color: #c2ccd8; }
 .market-map-tool__group-frame strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .market-map-tool__group-frame small { flex: 0 0 auto; color: #aeb8c7; }
 .market-map-tool__canvas-map { position: absolute; inset: 0; z-index: 0; display: block; width: 100%; height: 100%; cursor: pointer; }

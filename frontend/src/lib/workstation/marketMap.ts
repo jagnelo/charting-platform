@@ -135,6 +135,8 @@ export interface MarketMapLayoutCell extends MarketMapCell {
 export interface MarketMapLayoutGroup {
   key: string
   label: string
+  level: number
+  parent_key: string | null
   x: number
   y: number
   width: number
@@ -255,37 +257,53 @@ export function layoutMarketMapCells(cells: MarketMapCell[], width = 100, height
 }
 
 /**
- * Returns the top-level rectangles used to frame grouped map members. This is
+ * Returns nested rectangles used to frame grouped map members. This is
  * deliberately separate from member geometry so the large-universe canvas can
- * draw group boundaries without creating one DOM node per tile.
+ * draw sector/industry boundaries without creating one DOM node per tile.
  */
 export function layoutMarketMapGroups(cells: MarketMapCell[], width = 100, height = 100): MarketMapLayoutGroup[] {
-  const groups = new Map<string, { area: number; member_count: number }>()
-  for (const cell of cells) {
-    if (cell.area_value == null || !Number.isFinite(cell.area_value) || cell.area_value <= 0) continue
-    const key = cell.group_path[0] || 'All members'
-    const group = groups.get(key)
-    if (group) {
-      group.area += cell.area_value
-      group.member_count += 1
-    } else {
-      groups.set(key, { area: cell.area_value, member_count: 1 })
+  return layoutMarketMapGroupsFromLayout(layoutMarketMapCells(cells, width, height))
+}
+
+/** Build nested group frames from an existing member layout to avoid a second geometry pass. */
+export function layoutMarketMapGroupsFromLayout(layout: MarketMapLayoutCell[]): MarketMapLayoutGroup[] {
+  const groups = new Map<string, {
+    path: string[]
+    x: number
+    y: number
+    right: number
+    bottom: number
+    member_count: number
+  }>()
+  for (const cell of layout) {
+    for (let level = 0; level < cell.group_path.length; level += 1) {
+      const path = cell.group_path.slice(0, level + 1)
+      const key = JSON.stringify(path)
+      const right = cell.x + cell.width
+      const bottom = cell.y + cell.height
+      const group = groups.get(key)
+      if (group) {
+        group.x = Math.min(group.x, cell.x)
+        group.y = Math.min(group.y, cell.y)
+        group.right = Math.max(group.right, right)
+        group.bottom = Math.max(group.bottom, bottom)
+        group.member_count += 1
+      } else {
+        groups.set(key, { path, x: cell.x, y: cell.y, right, bottom, member_count: 1 })
+      }
     }
   }
-  if (!groups.size || (groups.size === 1 && groups.has('All members'))) return []
-  return layoutRectangles(
-    [...groups.entries()].map(([key, value]) => ({ key, area: value.area })),
-    0,
-    0,
-    width,
-    height,
-  ).map(rect => ({
-    key: rect.key,
-    label: rect.key,
-    x: rect.x,
-    y: rect.y,
-    width: rect.width,
-    height: rect.height,
-    member_count: groups.get(rect.key)?.member_count ?? 0,
-  }))
+  return [...groups.entries()]
+    .sort(([, left], [, right]) => left.path.length - right.path.length || left.y - right.y || left.x - right.x || left.path.join('\u0000').localeCompare(right.path.join('\u0000')))
+    .map(([key, group]) => ({
+      key,
+      label: group.path[group.path.length - 1],
+      level: group.path.length - 1,
+      parent_key: group.path.length > 1 ? JSON.stringify(group.path.slice(0, -1)) : null,
+      x: group.x,
+      y: group.y,
+      width: Math.max(0, group.right - group.x),
+      height: Math.max(0, group.bottom - group.y),
+      member_count: group.member_count,
+    }))
 }
