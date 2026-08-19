@@ -1,5 +1,20 @@
 # Active Handoff
 
+## 2026-08-19 — Family coverage preserves pending canonical roles without profiles
+
+- Closed a state-model mismatch in `/analysis/benchmark-families/{family_key}/coverage`: a mapped
+  canonical ETF identity with no `ETFProfile` is now `profile_not_loaded` (pending), while a missing
+  identity remains `mapping_unavailable` and a loaded profile without dated holdings remains
+  `no_snapshot`.
+- This keeps coverage diagnostics, maintenance planning, source selection, and Market Map aligned;
+  no provider calls, guessed roles, or proxy substitution were introduced.
+- Validation: focused coverage `2/2`; workspace integration `50/50`; backend unit `1248/1248`; Ruff;
+  compileall; YAML/JSON parsing; and `git diff --check`. Acceptance flexibility: **None**.
+- Provider-backed role population, canonical member bars, historical continuity, all-family view/
+  reuse acceptance, and exact V25 status visuals remain documented gaps. Implementation/docs commit
+  and operational checkpoint are pending; next action is push both cleanly, then continue provider-
+  backed family population.
+
 ## 2026-08-19 — Arbitrary canonical ETFs are pending-capable locked heatmap sources
 
 - Closed a universal-source gap: the authenticated source catalog now includes every active,

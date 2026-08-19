@@ -1,5 +1,16 @@
 # Run Report
 
+## 2026-08-19 — Family coverage reports pending profile state
+
+- Changed benchmark-family coverage so mapped canonical roles without `ETFProfile` are reported as
+  `profile_not_loaded` with a pending warning. Missing identities remain `mapping_unavailable`; a
+  loaded profile without dated holdings remains `no_snapshot`.
+- Evidence: focused coverage `2/2`; workspace integration `50/50`; backend unit `1248/1248`; Ruff;
+  compileall; YAML/JSON parsing; and `git diff --check`. No acceptance flexibility or visual
+  threshold/mask relaxation.
+- Exact V25 coverage/status visuals, provider-backed population/history, rebalance continuity, and
+  complete family-role view/reuse acceptance remain open.
+
 ## 2026-08-19 — Arbitrary canonical ETFs become pending locked heatmap sources
 
 - Added all active canonical ETF instruments to the source catalog, including ETFs without an

@@ -1,4 +1,31 @@
 tasks:
+  - id: tc2000-family-coverage-pending-profile-20260819
+    title: Preserve pending profile state in benchmark-family coverage
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Align family coverage diagnostics with the universal locked WatchlistSource lifecycle. A
+      mapped canonical ETF identity without an ETFProfile is pending profile hydration, not a
+      missing holdings snapshot; genuinely absent mappings and profiled-but-unhydrated roles retain
+      distinct states.
+    definition_of_done:
+      - Canonical role without ETFProfile returns profile_not_loaded with explicit warning
+      - Missing canonical role remains mapping_unavailable without substitution
+      - Profiled role without dated holdings remains no_snapshot
+      - Role identity, availability, and provenance remain stable without provider calls
+      - Focused coverage, workspace integration, backend unit, lint, compile, docs, and diff checks pass
+    validation:
+      - benchmark-family-coverage-2-of-2
+      - workspace-integration-50-of-50
+      - backend-unit-1248-of-1248
+      - backend-ruff-and-compileall
+      - yaml-json-and-git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. Provider-backed role population, member bars, historical
+        continuity, all-family view/reuse acceptance, and exact V25 maintenance visuals remain open.
+
   - id: tc2000-canonical-etf-pending-source-20260819
     title: Expose arbitrary canonical ETFs as pending locked heatmap sources
     status: completed
