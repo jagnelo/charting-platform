@@ -12,7 +12,7 @@ import asyncio
 import inspect
 import time
 from collections.abc import Awaitable, Callable
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import desc, select
@@ -26,6 +26,7 @@ from app.models.provider_runtime import (
     ProviderAvailabilityRun,
     ProviderCapability,
     ProviderEntitlement,
+    ProviderHealthState,
     ProviderPolicy,
 )
 from app.providers import get_provider
@@ -79,7 +80,11 @@ def classify_exception(exc: BaseException) -> str:
         return "quota_rate_limit"
     if isinstance(status, int) and status >= 400:
         return "upstream_http"
-    if isinstance(exc, KeyError | TypeError | ValueError | AttributeError):
+    if isinstance(exc, KeyError) or any(
+        token in message for token in ("schema", "field", "column", "payload")
+    ):
+        return "schema_content_incompatibility"
+    if isinstance(exc, TypeError | ValueError | AttributeError):
         return "internal_parser_failure"
     return "internal_parser_failure"
 
@@ -119,6 +124,7 @@ async def default_probe(
         ProviderCapability.INSTRUMENT_IDENTIFIERS: "fetch_stable_identifiers",
         ProviderCapability.UNIVERSE_DISCOVERY: "discover_universe_page",
         ProviderCapability.OPTION_CHAIN: "fetch_option_chain",
+        ProviderCapability.OPTION_QUOTE_HISTORY: "fetch_option_quote_history",
     }.get(capability)
     if method_name is None:
         raise RuntimeError(f"no representative probe contract for {capability.value}")
@@ -134,12 +140,20 @@ async def default_probe(
         ProviderCapability.INSTRUMENT_EVENTS,
         ProviderCapability.INSTRUMENT_IDENTIFIERS,
         ProviderCapability.OPTION_CHAIN,
+        ProviderCapability.OPTION_QUOTE_HISTORY,
     }:
         args = {"symbol": request["symbol"]}
     if capability == ProviderCapability.PRICE_HISTORY:
         args = {"symbol": request["symbol"], "timeframe": Timeframe.D1, "limit": request["limit"]}
     if capability == ProviderCapability.UNIVERSE_DISCOVERY:
         args = {"quote_type": request["quote_type"], "offset": request["offset"]}
+    if capability == ProviderCapability.OPTION_QUOTE_HISTORY:
+        now = datetime.now(UTC)
+        args = {
+            "symbol": request["symbol"],
+            "start": now - timedelta(days=request["days"]),
+            "end": now,
+        }
     result = method(**args)
     return await result if inspect.isawaitable(result) else result
 
@@ -152,6 +166,39 @@ def provider_configured(source: DataSource, entitlement: ProviderEntitlement | N
         provider_key = f"{source.name.upper()}_API_KEY"
         return bool(getattr(settings, provider_key, ""))
     return True
+
+
+def notification_due(
+    *,
+    mode: str,
+    classification: str,
+    success: bool,
+    consecutive_failures: int,
+    last_notification_kind: str | None,
+    last_notification_at: datetime | None,
+    now: datetime,
+) -> str | None:
+    """Return the OneSignal transition to emit, if any.
+
+    A first failure is always durable in Settings but does not notify. Core
+    failures notify on the second consecutive observation; weekly sweeps notify
+    only on an explicit schema/content regression. Recovery is emitted only for
+    a failure that previously generated a notification.
+    """
+
+    if success:
+        return "recovery" if last_notification_kind == "failure" else None
+    eligible = (mode == "daily_core" and consecutive_failures >= 2) or (
+        mode == "weekly_supported_sweep" and classification == "schema_content_incompatibility"
+    )
+    if not eligible:
+        return None
+    if last_notification_kind != "failure" or last_notification_at is None:
+        return "failure"
+    cooldown = timedelta(
+        seconds=max(0, settings.PROVIDER_AVAILABILITY_NOTIFICATION_COOLDOWN_SECONDS)
+    )
+    return "failure" if now - last_notification_at >= cooldown else None
 
 
 async def run_availability_probes(
@@ -222,8 +269,47 @@ async def run_availability_probes(
                 .limit(1)
             )
         ).scalar_one_or_none()
-        streak = 0 if success else int(previous.consecutive_failures if previous else 0) + 1
+        excluded = classification in {"not_configured", "entitlement_exclusion"}
+        effective_failure = not success and not excluded
+        streak = (
+            0 if success or excluded else int(previous.consecutive_failures if previous else 0) + 1
+        )
         recovered = bool(success and previous and previous.consecutive_failures > 0)
+        health = (
+            await db.execute(
+                select(ProviderHealthState).where(
+                    ProviderHealthState.data_source_id == source.id,
+                    ProviderHealthState.capability == policy.capability,
+                )
+            )
+        ).scalar_one_or_none()
+        if health is None:
+            health = ProviderHealthState(
+                data_source_id=source.id,
+                capability=policy.capability,
+            )
+            db.add(health)
+            await db.flush()
+        observed_at = datetime.now(UTC)
+        notification_kind = notification_due(
+            mode=mode,
+            classification=classification,
+            success=success,
+            consecutive_failures=streak,
+            last_notification_kind=health.last_notification_kind,
+            last_notification_at=health.last_notification_at,
+            now=observed_at,
+        )
+        if success:
+            health.failure_streak = 0
+            health.last_success_at = observed_at
+            health.last_error_type = None
+            health.last_error_message = None
+        elif effective_failure:
+            health.failure_streak = streak
+            health.last_failure_at = observed_at
+            health.last_error_type = classification
+            health.last_error_message = error_message
         observation = ProviderAvailabilityObservation(
             run_id=run.id,
             data_source_id=source.id,
@@ -239,12 +325,17 @@ async def run_availability_probes(
         )
         db.add(observation)
         observations.append(observation)
-        if (
-            streak >= 2 or (recovered and previous and previous.consecutive_failures >= 2)
-        ) and settings.PROVIDER_AVAILABILITY_NOTIFICATIONS_ENABLED:
-            await send_provider_availability_notification(
-                source.name, policy.capability.value, classification, recovered=recovered
+        if notification_kind and settings.PROVIDER_AVAILABILITY_NOTIFICATIONS_ENABLED:
+            notification_id = await send_provider_availability_notification(
+                source.name,
+                policy.capability.value,
+                classification,
+                recovered=notification_kind == "recovery",
             )
+            if notification_id:
+                health.last_notification_at = observed_at
+                health.last_notification_kind = notification_kind
+                health.notified_failure_streak = streak if notification_kind == "failure" else 0
     run.status = "completed"
     run.finished_at = datetime.now(UTC)
     await db.commit()
@@ -259,14 +350,22 @@ async def run_availability_probes(
 async def latest_availability(db: AsyncSession) -> list[dict[str, Any]]:
     rows = (
         await db.execute(
-            select(ProviderAvailabilityObservation, DataSource)
+            select(ProviderAvailabilityObservation, DataSource, ProviderHealthState)
             .join(DataSource, DataSource.id == ProviderAvailabilityObservation.data_source_id)
+            .outerjoin(
+                ProviderHealthState,
+                (
+                    ProviderHealthState.data_source_id
+                    == ProviderAvailabilityObservation.data_source_id
+                )
+                & (ProviderHealthState.capability == ProviderAvailabilityObservation.capability),
+            )
             .order_by(desc(ProviderAvailabilityObservation.created_at))
         )
     ).all()
     seen: set[tuple[int, ProviderCapability]] = set()
     result = []
-    for observation, source in rows:
+    for observation, source, health in rows:
         key = (source.id, observation.capability)
         if key in seen:
             continue
@@ -282,6 +381,8 @@ async def latest_availability(db: AsyncSession) -> list[dict[str, Any]]:
                 "recovered": observation.recovered,
                 "error_message": observation.error_message,
                 "observed_at": observation.created_at,
+                "last_success_at": health.last_success_at if health else None,
+                "last_failure_at": health.last_failure_at if health else None,
                 "response_shape": observation.response_shape,
             }
         )

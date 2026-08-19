@@ -1,0 +1,1 @@
+{"command":"provider availability notification policy tests","result":"implemented","evidence":"pure policy covers first failure, second failure, cooldown suppression, weekly schema regression, and recovery; focused test pending"}

@@ -47,7 +47,7 @@
           <span><strong>{{ row.provider }}</strong> · {{ humanizeKey(row.capability) }}</span>
           <span :class="row.success ? 'availability-ok' : 'availability-fail'">{{ humanizeKey(row.classification) }}</span>
           <span>{{ row.latency_ms == null ? 'n/a' : `${row.latency_ms}ms` }} · {{ row.consecutive_failures }} failures</span>
-          <small>{{ formatDateTime(row.observed_at) }}</small>
+          <small>{{ formatDateTime(row.observed_at) }} · success {{ formatDateTime(row.last_success_at) }} · failure {{ formatDateTime(row.last_failure_at) }}</small>
         </div>
       </div>
       <div v-if="providersLoading" class="empty-hint">Loading provider policies...</div>
@@ -320,7 +320,7 @@ const pushStatus = ref<{ ok: boolean; msg: string } | null>(null)
 const connStatus = ref<{ ok: boolean; msg: string } | null>(null)
 const providerPolicies = ref<ProviderPolicyStatus[]>([])
 const providerUsage = ref<ProviderUsageSummary[]>([])
-const availabilityRows = ref<Array<{ provider: string; capability: string; classification: string; success: boolean; latency_ms: number | null; consecutive_failures: number; observed_at: string }>>([])
+const availabilityRows = ref<Array<{ provider: string; capability: string; classification: string; success: boolean; latency_ms: number | null; consecutive_failures: number; observed_at: string; last_success_at: string | null; last_failure_at: string | null }>>([])
 const providersLoading = ref(false)
 const providerError = ref<string | null>(null)
 const providerPanels = ref<Record<string, { usage: boolean; config: boolean }>>({})

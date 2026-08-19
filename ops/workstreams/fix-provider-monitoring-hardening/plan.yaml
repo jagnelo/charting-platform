@@ -1,0 +1,32 @@
+schema: 1
+branch: fix/provider-monitoring-hardening
+base_sha: aecea059fa39ee43fdae36ad935c401a6b5a607e
+goal: "Complete persisted provider availability transitions, cooldown notifications, and Settings evidence."
+scope:
+  - "Persist availability health and notification transition state per provider and capability."
+  - "Classify schema/content regressions and exercise option-quote-history representative probes."
+  - "Expose last-success and last-failure timestamps in the authenticated Settings availability surface."
+owned_paths:
+  - backend/app/models/provider_runtime.py
+  - backend/app/services/provider_availability.py
+  - backend/app/services/onesignal.py
+  - backend/alembic/versions/fe4f5a6b7c8d_add_provider_availability_notification_state.py
+  - backend/tests/unit/services/test_provider_availability.py
+  - frontend/src/views/SettingsView.vue
+dependencies: []
+acceptance_criteria:
+  - "First failures remain visible in durable observations without sending a notification; the second daily core failure may notify."
+  - "Repeated failures are suppressed during the configured cooldown, weekly schema regressions may notify, and recovery notifies only after a previously notified failure."
+  - "Missing credentials and entitlement exclusions are classified without live provider calls."
+  - "Settings displays classification, latency, consecutive failures, last success, and last failure."
+  - "The new migration leaves one Alembic head."
+branch_tests:
+  - "uv run pytest backend/tests/unit/services/test_provider_availability.py -q --no-cov"
+  - "uv run ruff check backend/app/services/provider_availability.py backend/app/models/provider_runtime.py backend/tests/unit/services/test_provider_availability.py"
+  - "uv run ruff format --check backend/app/services/provider_availability.py backend/app/models/provider_runtime.py backend/tests/unit/services/test_provider_availability.py"
+  - "git diff --check"
+live_test_impact: none
+migration_impact: none
+deployment_impact: none
+status: in_progress
+remaining_gaps: []
