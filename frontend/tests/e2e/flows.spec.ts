@@ -3275,6 +3275,67 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8s-market-map-watchlist — locked constituents and personal lists share one heatmap workflow', async ({ page, browserDiagnostics }) => {
+    const sources = [
+      {
+        source_id: 'market-group:us-benchmarks', source_kind: 'index_membership', name: 'US benchmark constituents',
+        locked: true, can_follow: true, can_clone: true, can_edit_membership: false, member_count: 2,
+        membership_version: 'benchmarks:v1', provenance: { availability: 'available', membership_semantics: 'etf_proxy_holdings' },
+      },
+      {
+        source_id: 'watchlist:7', source_kind: 'personal', name: 'Swing candidates',
+        locked: false, can_follow: true, can_clone: true, can_edit_membership: true, member_count: 2,
+        membership_version: 'watchlist:7:v3', provenance: { availability: 'available' },
+      },
+    ]
+    const requestedSources: string[] = []
+    const mapResponse = (sourceId: string) => {
+      const source = sources.find(item => item.source_id === sourceId) ?? sources[0]
+      return {
+        source, group_by: 'sector_industry', period: '1D', period_start: '2026-08-07T00:00:00Z', period_end: '2026-08-08T00:00:00Z',
+        timeframe: 'D1', adjustment: 'split_adjusted', area_metric: 'equal', color_metric: 'return', membership_version: source.membership_version,
+        calculation_version: 'market-map-v1', cache_key: `e2e-${sourceId}`, cache_hit: false, freshness: 'current', freshness_detail: { requested: 2, current: 2, stale: 0, other: 0 },
+        requested_count: 2, evaluated_count: 2, coverage: 1, color_coverage: 1, area_coverage: 1, warnings: [], exclusions: [],
+        nodes: [{ node_id: 'root', level: 'root', label: 'All members', group_path: [], member_count: 2, covered_count: 2, area_total: 2, color_value: 0.02, coverage: 1, color_coverage: 1, area_coverage: 1, aggregation_method: 'equal_member_mean', warnings: [] }],
+        cells: [
+          { instrument_id: 1, symbol: 'NVDA', name: 'NVIDIA', sector: 'Technology', industry: 'Semiconductors', group_path: ['Technology', 'Semiconductors'], area_value: 1, color_value: 0.05, return_value: 0.05, coverage: 1, color_coverage: 1, area_coverage: 1, warnings: [] },
+          { instrument_id: 2, symbol: 'MSFT', name: 'Microsoft', sector: 'Technology', industry: 'Software', group_path: ['Technology', 'Software'], area_value: 1, color_value: -0.01, return_value: -0.01, coverage: 1, color_coverage: 1, area_coverage: 1, warnings: [] },
+        ],
+      }
+    }
+    await page.route('**/api/v1/watchlists/sources**', async route => {
+      const pathname = new URL(route.request().url()).pathname
+      if (pathname.endsWith('/history-status/market-group:us-benchmarks') || pathname.endsWith('/history-status/watchlist:7')) {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ source_id: pathname.endsWith('watchlist:7') ? 'watchlist:7' : 'market-group:us-benchmarks', source_kind: 'personal', name: 'Map source', locked: false, membership_version: 'v1', max_instruments: 5000, available_instrument_count: 2, selected_instrument_count: 2, limited: false, excluded_count: 0, overall_status: 'ready', timeframes: [{ timeframe: 'D1', member_count: 2, covered_member_count: 2, coverage_percent: 100, bar_count: 4, in_progress_count: 0, complete_count: 2, failed_count: 0, pending_count: 0 }] }) })
+        return
+      }
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(sources) })
+    })
+    await page.route('**/api/v1/analysis/market-map', async route => {
+      const body = route.request().postDataJSON() as { source_id?: string }
+      requestedSources.push(String(body.source_id ?? ''))
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(mapResponse(String(body.source_id ?? ''))) })
+    })
+    await page.route('**/api/v1/analysis/market-map/snapshots**', async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+    })
+    await page.goto('/chart/SPY')
+    const benchmarks = page.getByRole('region', { name: 'Major US benchmarks' })
+    await expect(benchmarks).toBeVisible({ timeout: 15_000 })
+    await benchmarks.getByRole('button', { name: 'Open Market Map' }).click()
+    const mapWindow = page.locator('.tool-window:visible').filter({ has: page.locator('.market-map-tool') }).last()
+    await expect(mapWindow).toBeVisible({ timeout: 15_000 })
+    const universe = mapWindow.getByRole('combobox', { name: 'Market Map universe' })
+    await expect(universe).toHaveValue('market-group:us-benchmarks')
+    await expect(mapWindow).toContainText('Locked source')
+    await universe.selectOption('watchlist:7')
+    await mapWindow.getByRole('button', { name: 'Refresh', exact: true }).click()
+    await expect.poll(() => requestedSources.at(-1), { timeout: 15_000 }).toBe('watchlist:7')
+    await expect(mapWindow).toContainText('Swing candidates')
+    await expect(mapWindow.locator('.market-map-tool__tile')).toHaveCount(2)
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8s-breadth — Market Breadth exposes universe-scoped loading and failure semantics', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart/SPY')
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
