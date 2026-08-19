@@ -488,8 +488,10 @@ visual comparison, not reasons to invent a V25 appearance or silently accept pro
 The board also has no authoritative capture of the explicit-source durability action or its
 subsequent Breadth/Python reuse. The interim oracle is the source-descriptor member-ID set, the
 user-owned locked library write, the saved-source → Breadth integration, and the provider-neutral
-Python universe helper; exact V25 button wording/placement and source-library affordance remain a
-tracked visual gap.
+Python universe helper. The interim historical oracle now also requires a pre-`known_at` request to
+show zero members with an explicit membership-not-known exclusion and a post-`known_at` request to
+restore the exact saved IDs; exact V25 button wording/placement and source-library affordance remain
+a tracked visual gap.
 
 ## 2026-08-19 universal derived-watchlist reference gap
 

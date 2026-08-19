@@ -509,6 +509,28 @@ def _saved_explicit_instrument_ids(item: WorkspaceLibraryItem) -> list[int]:
     return list(dict.fromkeys(values))
 
 
+def _saved_explicit_known_at_exclusions(
+    item: WorkspaceLibraryItem,
+    instrument_ids: list[int],
+    as_of: datetime | None,
+) -> tuple[dict, ...]:
+    """Explain why a saved selection is unavailable before its library version existed."""
+
+    if as_of is None:
+        return ()
+    known_at = item.updated_at or item.created_at
+    if known_at is not None and known_at <= as_of:
+        return ()
+    return tuple(
+        {
+            "instrument_id": instrument_id,
+            "reason": "membership_not_known_at_as_of",
+            "known_at": known_at.isoformat() if known_at is not None else None,
+        }
+        for instrument_id in instrument_ids
+    )
+
+
 def _explicit_descriptor(instrument_ids: list[int]) -> WatchlistSourceRead:
     membership = ",".join(str(instrument_id) for instrument_id in instrument_ids)
     return WatchlistSourceRead(
@@ -542,7 +564,7 @@ def _saved_explicit_descriptor(
     parent_membership_version = payload.get("parent_membership_version")
     provenance = {
         "membership_semantics": "saved_explicit_canonical_selection",
-        "point_in_time": False,
+        "point_in_time": True,
         "instrument_ids": instrument_ids,
         "durability": "user_library",
         "library_item_id": item.id,
@@ -563,6 +585,7 @@ def _saved_explicit_descriptor(
         member_count=len(instrument_ids),
         source="user_explicit_selection",
         provenance=provenance,
+        effective_at=item.created_at,
         known_at=item.updated_at,
     )
 
@@ -839,6 +862,13 @@ async def resolve_watchlist_source(
         if item is None:
             raise LookupError("saved_explicit_source_not_found")
         instrument_ids = _saved_explicit_instrument_ids(item)
+        as_of_exclusions = _saved_explicit_known_at_exclusions(item, instrument_ids, as_of)
+        if as_of_exclusions:
+            return ResolvedWatchlistSource(
+                descriptor=_saved_explicit_descriptor(item, instrument_ids),
+                members=(),
+                exclusions=as_of_exclusions,
+            )
         instruments = (
             await db.execute(select(Instrument).where(Instrument.id.in_(instrument_ids)))
         ).scalars().all()

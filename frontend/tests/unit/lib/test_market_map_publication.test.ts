@@ -28,7 +28,7 @@ describe('Market Map analysis publication', () => {
     expect(marketMapPythonUniverse('explicit-list:selection-abc123')).toEqual({
       kind: 'watchlist',
       key: 'explicit-list:selection-abc123',
-      point_in_time: false,
+      point_in_time: true,
     })
     expect(marketMapPythonUniverse('benchmark-family:sp500:cap_weight')).toEqual({
       kind: 'watchlist',

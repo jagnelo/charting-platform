@@ -12,6 +12,15 @@ Focused helper/unit coverage and a Docker-backed saved-source → Breadth integr
 Python-universe/source-library visuals, historical saved-source materialization, and provider-
 backed bars/history remain explicit reference/data gaps; no acceptance flexibility was used.
 
+## 2026-08-19 — Durable explicit source known-at boundary
+
+Each immutable `explicit-list:<stable-key>` version now behaves as a fixed user-owned membership
+snapshot for point-in-time resolution. A request before the source's `known_at` returns no members
+with explicit `membership_not_known_at_as_of` exclusions; a request after it returns the exact
+canonical IDs. Ephemeral `explicit:<ids>` remains non-point-in-time. Historical replacement/version
+retention, provider-backed bars, and exact V25 historical-source controls remain open; no acceptance
+flexibility was used.
+
 ## 2026-08-19 — Saved arbitrary selections are first-class locked heatmap sources
 
 The universal Market Map now supports durable explicit selections in addition to ephemeral

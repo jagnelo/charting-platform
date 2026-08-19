@@ -15,9 +15,9 @@
       and diff-check. The browser test saves the source while the map is focused, then republishes
       the same selection into Breadth after the map-to-tool focus transition.
 - [ ] Exact V25 source-library/action geometry, provider-backed bars/history for arbitrary saved
-      selections, point-in-time membership snapshots, and the remaining visual-reference gaps stay
-      open. Acceptance flexibility used: **None**; the hidden-map test interaction was corrected,
-      not waived.
+      selections, historical version retention, and the remaining visual-reference gaps stay open.
+      The per-version known-at boundary is now covered. Acceptance flexibility used: **None**; the
+      hidden-map test interaction was corrected, not waived.
 
 ### 2026-08-19 — Durable explicit sources work across breadth and isolated Python
 
@@ -31,6 +31,18 @@
       regression. No acceptance flexibility used.
 - [ ] Historical saved-source materialization, provider-backed bars/history, and exact V25
       Python-universe/source-library visuals remain tracked gaps.
+
+### 2026-08-19 — Durable explicit sources respect their known-at boundary
+
+- [x] Treat each durable `explicit-list:<stable-key>` version as a fixed user-owned membership
+      snapshot: direct resolution before its saved library version returns no members and explicit
+      `membership_not_known_at_as_of` exclusions, while resolution after `known_at` returns the
+      exact canonical IDs without provider fan-out.
+- [x] Mark durable explicit Python declarations as point-in-time capable while retaining ephemeral
+      `explicit:<ids>` as a non-point-in-time transport selection.
+- [ ] Historical version retention across a renamed/replaced library item, provider-backed bars,
+      and exact V25 historical-source controls remain open; this checkpoint closes only the
+      known-at boundary for each immutable saved version.
 
 ### 2026-08-19 — Study Lab discloses selected-source lineage
 

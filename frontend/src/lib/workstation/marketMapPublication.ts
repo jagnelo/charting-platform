@@ -16,9 +16,10 @@ export interface MarketMapAnalysisSource {
 /**
  * Build the declared universe contract for an isolated Python Market Map run.
  *
- * Durable explicit-list sources are canonical user-library selections rather
- * than the ephemeral ``explicit:<ids>`` transport form, but both must enter
- * the sandbox through the same provider-neutral watchlist resolver.
+ * Durable explicit-list sources are canonical user-library snapshots rather
+ * than the ephemeral ``explicit:<ids>`` transport form. Both enter the
+ * sandbox through the same provider-neutral watchlist resolver, while only
+ * the durable version carries a point-in-time known-at boundary.
  */
 export function marketMapPythonUniverse(sourceId: string): { kind: 'watchlist'; key: string; point_in_time: boolean } {
   const prefixes = [
@@ -31,7 +32,7 @@ export function marketMapPythonUniverse(sourceId: string): { kind: 'watchlist'; 
     'explicit-list:',
   ]
   if (prefixes.some(prefix => sourceId.startsWith(prefix) && sourceId.length > prefix.length)) {
-    return { kind: 'watchlist', key: sourceId, point_in_time: !sourceId.startsWith('explicit') }
+    return { kind: 'watchlist', key: sourceId, point_in_time: !sourceId.startsWith('explicit:') }
   }
   throw new Error('Python Market Map colours require a canonical watchlist source.')
 }
