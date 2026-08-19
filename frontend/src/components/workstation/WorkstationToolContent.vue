@@ -46,6 +46,7 @@
       :python-condition="configuredPythonCondition"
       :membership-targets="personalWatchlistTargets"
       :market-map-source-id="activeBenchmarkMarketMapSourceId"
+      :market-map-source-for-row="benchmarkFamilyKey ? benchmarkFamilyMarketMapSourceForRow : undefined"
       @select="selectSymbol($event.symbol, $event.instrumentId)"
       @compare="emit('compare', $event)"
       @market-map="emit('marketMap', $event)"
@@ -2634,6 +2635,14 @@ const benchmarkFamilyRows = computed(() => {
   })
 })
 const activeBenchmarkRows = computed(() => benchmarkFamilyKey.value ? benchmarkFamilyRows.value : benchmarkRows.value)
+function benchmarkFamilyMarketMapSourceForRow(row: WatchlistRow): string | null {
+  const familyKey = benchmarkFamilyKey.value
+  const overview = benchmarkFamilyOverview.value
+  if (!familyKey || !overview) return null
+  const mapping = overview.mappings.find(item => item.symbol?.toUpperCase() === row.symbol.toUpperCase())
+  if (!mapping || !mapping.symbol || !mapping.holdings_available || mapping.available === false) return null
+  return benchmarkFamilyConstituentSourceId(familyKey, mapping.role)
+}
 const activeBenchmarkDataError = computed(() => benchmarkFamilyKey.value ? benchmarkFamilyError.value : benchmarkDataError.value)
 const benchmarkDataError = computed(() => workspaceStore.marketGroupErrors['us-benchmarks'] ?? workspaceStore.groupSnapshotErrors['us-benchmarks'] ?? '')
 const sectorRows = computed(() => (workspaceStore.marketGroups['sp500-sectors']?.members ?? []).map(member => ({

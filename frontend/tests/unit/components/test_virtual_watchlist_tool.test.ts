@@ -568,6 +568,21 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.emitted('row-action')?.[0]).toEqual(['chart', rows[1]])
   })
 
+  it('opens a row-specific locked constituent source from the desktop context menu', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'S&P 500 family legs',
+        rows,
+        marketMapSourceForRow: row => row.symbol === 'XLE' ? 'benchmark-family:sp500:value' : null,
+      },
+    })
+    await wrapper.findAll('.watchlist__row').find(row => row.text().includes('XLE'))?.trigger('contextmenu', { clientX: 20, clientY: 24 })
+    const mapAction = wrapper.findAll('button[role="menuitem"]').find(button => button.text() === 'Open constituents in Market Map')
+    expect(mapAction?.exists()).toBe(true)
+    await mapAction?.trigger('click')
+    expect(wrapper.emitted('market-map')).toEqual([['benchmark-family:sp500:value']])
+  })
+
   it('offers a direct relative-strength ratio action against the active symbol', async () => {
     const wrapper = mount(VirtualWatchlistTool, { props: { label: 'Sectors', rows, selected: 'SPY' } })
     await wrapper.find('.watchlist__row').trigger('contextmenu', { clientX: 20, clientY: 24 })

@@ -101,6 +101,7 @@
       <button type="button" role="menuitem" tabindex="-1" @click="runContextAction('note')">Open note</button>
       <button type="button" role="menuitem" tabindex="-1" @click="runContextAction('alert')">Open alerts</button>
       <button type="button" role="menuitem" tabindex="-1" @click="runContextAction('copy')">Copy symbol</button>
+      <button v-if="contextMarketMapSourceId" type="button" role="menuitem" tabindex="-1" @click="openContextMarketMap">Open constituents in Market Map</button>
       <button v-if="contextMenu.row.itemId != null" type="button" role="menuitem" tabindex="-1" @click="runContextAction('flag')">{{ contextMenu.row.flagged ? 'Unflag' : 'Flag' }}</button>
       <button v-if="relatedLists.length" type="button" role="menuitem" tabindex="-1" @click="membershipInspectionOpen = !membershipInspectionOpen">{{ membershipInspectionOpen ? 'Hide list membership' : 'Show list membership' }}</button>
       <div v-if="membershipInspectionOpen" class="watchlist__membership-inspection" aria-label="List membership">
@@ -208,6 +209,8 @@ const props = withDefaults(defineProps<{
   sourceWatchlistId?: number | null
   /** Canonical source consumed by Market Map; may be a locked system source. */
   marketMapSourceId?: string | null
+  /** Optional row-specific canonical source, used for role/ETF constituent drill-down. */
+  marketMapSourceForRow?: (row: WatchlistRow) => string | null
   membershipTargets?: WatchlistMembershipTarget[]
   columnOverrides?: Record<string, { label?: string; width?: string; format?: 'percent' | 'number'; decimals?: number }>
 }>(), {
@@ -239,6 +242,7 @@ const props = withDefaults(defineProps<{
   allowRemove: false,
   sourceWatchlistId: null,
   marketMapSourceId: null,
+  marketMapSourceForRow: undefined,
   membershipTargets: () => [],
   columnOverrides: () => ({}),
 })
@@ -453,6 +457,10 @@ const contextSelectionRows = computed(() => {
   return selected.length ? selected : [row]
 })
 const contextSourceWatchlistId = computed(() => contextMenu.value?.row.sourceWatchlistId ?? props.sourceWatchlistId)
+const contextMarketMapSourceId = computed(() => {
+  const row = contextMenu.value?.row
+  return row && props.marketMapSourceForRow ? props.marketMapSourceForRow(row) : null
+})
 const relatedLists = computed(() => {
   const instrumentId = contextMenu.value?.row.instrumentId
   if (instrumentId == null) return []
@@ -1327,6 +1335,14 @@ function openContextMenu(event: MouseEvent, row: WatchlistRow) {
   membershipInspectionOpen.value = false
   contextMenu.value = { row, left: Math.max(2, event.clientX - (bounds?.left ?? 0)), top: Math.max(2, event.clientY - (bounds?.top ?? 0)) }
   void nextTick(() => focusContextMenuItem(0))
+}
+
+function openContextMarketMap() {
+  const sourceId = contextMarketMapSourceId.value
+  if (!sourceId) return
+  contextMenu.value = null
+  emit('market-map', sourceId)
+  void nextTick(() => contextRowElement.value?.focus())
 }
 
 function runContextAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy' | 'copy-to-watchlist' | 'move-to-watchlist' | 'flag' | 'remove') {
