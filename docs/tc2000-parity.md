@@ -1,5 +1,16 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Single-output Boolean column browser acceptance added
+
+The authenticated browser matrix now includes `F8g-boolean-column`: it authors a single-output
+Boolean Study Lab result, validates and runs it, uses the explicit `Save as Boolean column`
+action, returns to `US Top Down`, and adds the resulting asset through the real watchlist column
+editor. This closes the test-shape gap between the component contract and the workstation
+consumer. The first run reached Chromium but found no branch-scoped stack (`POST
+/api/v1/auth/register` returned `ECONNREFUSED ::1:80`). After the repository-mandated
+`make test-stack-up` rebuild, force-recreate, wait, and migration step, the unchanged browser
+test passed `1/1` with no critical diagnostics. Acceptance flexibility used: **None**.
+
 ## 2026-08-19 — Study Lab Boolean artifact column promotion
 
 Completed Study Lab Boolean artifacts now expose a reusable watchlist-column action. The action

@@ -1,5 +1,18 @@
 # Active Handoff
 
+## 2026-08-19 — Boolean-column browser oracle passed
+
+- Added `F8g-boolean-column` to the authenticated E2E suite. It authors a single-output Boolean
+  study, validates/runs it, clicks `Save as Boolean column`, returns to `US Top Down`, and adds
+  the resulting asset through the real watchlist column editor.
+- The first focused attempt failed before the product flow because no branch-scoped API was
+  listening (`POST /api/v1/auth/register` → `ECONNREFUSED ::1:80`). Chromium was installed and
+  the stack was then rebuilt with `make test-stack-up` (`--build --force-recreate --wait`),
+  migrations applied, and the unchanged focused test passed `1/1` with no critical diagnostics.
+- Docs record the exact V25 promotion imagery as `required_missing`; the functional browser gate
+  is now closed. No acceptance flexibility used. Implementation/docs are ready for a separate
+  commit, followed by an operational checkpoint.
+
 ## 2026-08-19 — Single-output Boolean Study Lab column promotion completed
 
 - Repaired the remaining contract hole in the Boolean-column slice: a single-output Boolean Study

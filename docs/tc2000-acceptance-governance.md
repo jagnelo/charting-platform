@@ -1,5 +1,16 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Boolean-column browser gate added
+
+The Boolean-column promotion gate now has an authenticated end-to-end oracle for the previously
+uncovered single-output path (`F8g-boolean-column`). It proves authoring, validation, isolated
+execution, the dedicated typed-column action, return to the source workstation, and consumption
+through the watchlist column editor. The first run launched Chromium successfully but stopped at
+the environment boundary because the branch-scoped API was not listening (`ECONNREFUSED ::1:80`).
+After `make test-stack-up` rebuilt, force-recreated, waited for, and migrated the branch stack, the
+unchanged browser test passed `1/1` with no critical diagnostics. No implementation fallback or
+acceptance relaxation was used.
+
 ## 2026-08-19 — Boolean Study results use a typed column promotion gate
 
 The shared programmable-surface contract now permits a completed Study Lab Boolean artifact to be

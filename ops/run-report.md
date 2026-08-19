@@ -1,5 +1,14 @@
 # Run Report
 
+## 2026-08-19 — Single-output Boolean column browser oracle passed
+
+- Added authenticated `F8g-boolean-column` coverage from Boolean Study Lab authoring through
+  typed-column promotion and real watchlist-column consumption.
+- The first attempt stopped before login because no branch-scoped API was listening
+  (`ECONNREFUSED ::1:80`). After the repository-mandated `make test-stack-up` rebuild/recreate and
+  migrations, the unchanged focused browser test passed `1/1` with no critical diagnostics.
+- No acceptance flexibility used. The exact V25 promotion visual remains a documented board gap.
+
 ## 2026-08-19 — Single-output Boolean Study column promotion repaired
 
 - Closed the remaining Study Lab Boolean-column gap. Single-output Boolean studies now have a

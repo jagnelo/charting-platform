@@ -16,6 +16,11 @@
 - [x] Add focused frontend and Docker-backed API regressions proving both actions are rendered,
       create a Boolean column asset, and retain source lineage (`24/24` Study Lab tests and
       `2/2` targeted API tests; the elevated run passed). Acceptance flexibility used: **None**.
+- [x] Add and pass an authenticated browser oracle covering the single-output Boolean path from
+      authoring through `Save as Boolean column` and real watchlist-column consumption. The first
+      attempt hit the absent-stack `ECONNREFUSED ::1:80`; after `make test-stack-up` rebuilt and
+      migrated the branch stack, the unchanged browser test passed `1/1` with no critical
+      diagnostics. No acceptance flexibility was used.
 - [ ] Continue the remaining promotion fan-out for cross-sectional/aggregate, event, and
       derived-series outputs only where their output contract is compatible; preserve structured
       capability errors rather than forcing incompatible studies into per-symbol columns. Exact

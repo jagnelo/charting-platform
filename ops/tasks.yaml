@@ -1,4 +1,23 @@
 tasks:
+  - id: tc2000-study-single-boolean-column-browser-acceptance-20260819
+    title: Verify single-output Boolean Study Lab column promotion in the authenticated browser
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Add and execute an authenticated browser oracle for the single-output Boolean Study Lab to
+      typed watchlist-column path, including real column-editor consumption after returning to the
+      source workstation.
+    definition_of_done:
+      - Browser test proves authoring, validation, isolated run, and Save as Boolean column
+      - Browser test proves the created asset is consumed by the real watchlist column editor
+      - Rebuilt branch-scoped stack rerun passes with no critical browser diagnostics
+      - Any environment or product failure is recorded explicitly; no acceptance relaxation is used
+    validation:
+      - test-added-F8g-boolean-column
+      - focused-browser-initial-absent-stack-ECONNREFUSED
+      - rebuilt-stack-browser-1-of-1
+    acceptance_flexibility: none
   - id: tc2000-study-single-boolean-column-promotion-20260819
     title: Close single-output Boolean Study Lab column promotion
     status: completed
