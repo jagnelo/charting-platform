@@ -1,18 +1,29 @@
 <template>
   <ToolWindow :window-key="tool.instance_key" :title="tool.title || tool.tool_type" :symbol="activeSymbol" :link-group="localLinkGroup" :timeframe-link-group="timeframeLinkGroup" :timeframe="tool.tool_type === 'chart' ? activeTimeframe : ''" :active="tool.instance_key === activeWindowKey" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="handleLinkGroupChange" @update:timeframe-link-group="setTimeframeLinkGroup" @update:timeframe="setTimeframe">
     <div v-if="tool.instance_key === 'benchmark-list'" class="benchmark-surface">
-      <div class="benchmark-surface__identity" aria-label="S&P 500 benchmark identity">
-        <strong>S&amp;P 500</strong>
-        <span>Official series: {{ benchmarkIdentity.official_index_symbol }}</span>
-        <span>Using tradable proxy: {{ benchmarkIdentity.default_tradable_proxy }}</span>
+      <div class="benchmark-surface__family-controls" aria-label="Benchmark family selector">
+        <label>Family
+          <select :value="benchmarkFamilyKey" aria-label="Benchmark family" @change="setBenchmarkFamily(($event.target as HTMLSelectElement).value)">
+            <option value="">Major US benchmarks</option>
+            <option v-for="family in benchmarkFamilyOptions" :key="family.logicalKey" :value="family.logicalKey">{{ family.name }}</option>
+          </select>
+        </label>
+        <span v-if="benchmarkFamilyKey" class="benchmark-surface__family-state">{{ activeBenchmarkLabel }} · locked family legs</span>
+        <span v-if="benchmarkFamilyLoading" role="status">Loading family legs…</span>
+        <span v-else-if="benchmarkFamilyError" class="benchmark-surface__family-error" role="alert">{{ benchmarkFamilyError }}</span>
+      </div>
+      <div class="benchmark-surface__identity" :aria-label="`${activeBenchmarkLabel} benchmark identity`">
+        <strong>{{ activeBenchmarkLabel }}</strong>
+        <span>Official series: {{ activeBenchmarkIdentity.official_index_symbol }}</span>
+        <span>Using tradable proxy: {{ activeBenchmarkIdentity.default_tradable_proxy }}</span>
       </div>
       <VirtualWatchlistTool
-      label="Major US benchmarks"
+      :label="activeBenchmarkListLabel"
       :timeframe="activeTimeframe"
-      :rows="benchmarkRows"
-      :loading="workspaceStore.marketAnalysisRefreshing"
+      :rows="activeBenchmarkRows"
+      :loading="workspaceStore.marketAnalysisRefreshing || benchmarkFamilyLoading"
       loading-label="Refreshing benchmark analysis…"
-      :error-message="benchmarkDataError"
+      :error-message="activeBenchmarkDataError"
       :columns="benchmarkColumns"
       :selected="activeSymbol"
       :visible-column-keys="configuredColumnKeys"
@@ -31,7 +42,7 @@
       :python-columns="configuredPythonColumns"
       :python-condition="configuredPythonCondition"
       :membership-targets="personalWatchlistTargets"
-      market-map-source-id="market-group:us-benchmarks"
+      :market-map-source-id="activeBenchmarkMarketMapSourceId"
       @select="selectSymbol($event.symbol, $event.instrumentId)"
       @compare="emit('compare', $event)"
       @market-map="emit('marketMap', $event)"
@@ -1315,7 +1326,7 @@ onMounted(async () => {
     ...personalWatchlistRows.value,
     ...flaggedWatchlistRows.value,
     ...comboWatchlistRows.value,
-    ...benchmarkRows.value,
+    ...activeBenchmarkRows.value,
     ...sectorRows.value,
     ...factoryWatchlistRows.value,
     ...proxyRows.value,
@@ -1325,7 +1336,7 @@ onMounted(async () => {
     ...personalWatchlistRows.value,
     ...flaggedWatchlistRows.value,
     ...comboWatchlistRows.value,
-    ...benchmarkRows.value,
+    ...activeBenchmarkRows.value,
     ...sectorRows.value,
     ...factoryWatchlistRows.value,
     ...proxyRows.value,
@@ -1842,6 +1853,44 @@ const benchmarkFamilyOptions = computed(() => {
     return logicalKey && name ? [{ logicalKey, name }] : []
   })
 })
+const benchmarkFamilyKey = ref(typeof props.tool.configuration.benchmark_family_key === 'string' ? props.tool.configuration.benchmark_family_key.trim() : '')
+watch(() => props.tool.configuration.benchmark_family_key, value => {
+  benchmarkFamilyKey.value = typeof value === 'string' ? value.trim() : ''
+})
+const activeBenchmarkFamily = computed(() => benchmarkFamilyOptions.value.find(family => family.logicalKey === benchmarkFamilyKey.value) ?? null)
+const benchmarkFamilyRecord = computed<Record<string, unknown> | null>(() => {
+  if (!benchmarkFamilyKey.value) return null
+  const raw = workspaceStore.marketGroups['us-benchmarks']?.provenance?.benchmark_families
+  if (!Array.isArray(raw)) return null
+  const found = raw.find(item => item && typeof item === 'object' && (item as Record<string, unknown>).logical_key === benchmarkFamilyKey.value)
+  return found && typeof found === 'object' ? found as Record<string, unknown> : null
+})
+const benchmarkFamilyCapProxy = computed(() => {
+  const mapping = benchmarkFamilyRecord.value?.cap_weight
+  if (!mapping || typeof mapping !== 'object') return undefined
+  const symbol = (mapping as Record<string, unknown>).symbol
+  return typeof symbol === 'string' && symbol.trim() ? symbol.trim().toUpperCase() : undefined
+})
+const benchmarkFamilySnapshot = computed(() => benchmarkFamilyKey.value ? workspaceStore.groupSnapshots[benchmarkFamilyKey.value] : null)
+const benchmarkFamilyLoading = ref(false)
+const benchmarkFamilyError = computed(() => {
+  if (!benchmarkFamilyKey.value) return ''
+  return workspaceStore.marketGroupErrors[benchmarkFamilyKey.value] ?? workspaceStore.groupSnapshotErrors[benchmarkFamilyKey.value] ?? ''
+})
+const activeBenchmarkLabel = computed(() => activeBenchmarkFamily.value?.name ?? 'S&P 500')
+const activeBenchmarkIdentity = computed(() => {
+  const details = benchmarkFamilyRecord.value
+  const official = details?.official_index_symbol
+  const capMapping = details?.cap_weight
+  return {
+    official_index_symbol: typeof official === 'string' && official ? official : benchmarkIdentity.value.official_index_symbol,
+    default_tradable_proxy: capMapping && typeof capMapping === 'object' && typeof (capMapping as Record<string, unknown>).symbol === 'string'
+      ? String((capMapping as Record<string, unknown>).symbol)
+      : benchmarkIdentity.value.default_tradable_proxy,
+  }
+})
+const activeBenchmarkListLabel = computed(() => benchmarkFamilyKey.value ? `${activeBenchmarkLabel.value} legs` : 'Major US benchmarks')
+const activeBenchmarkMarketMapSourceId = computed(() => benchmarkFamilyKey.value ? `market-group:${benchmarkFamilyKey.value}` : 'market-group:us-benchmarks')
 const isBenchmarkFamily = computed(() => benchmarkFamilyOptions.value.some(family => family.logicalKey === breadthGroupKey.value))
 const benchmarkIdentity = computed(() => {
   const identity = workspaceStore.marketGroups['us-benchmarks']?.provenance?.benchmark_identities
@@ -2548,6 +2597,35 @@ const benchmarkRows = computed(() => (workspaceStore.marketGroups['us-benchmarks
   })(),
   warnings: snapshotWarnings(benchmarkSnapshot.value?.rows.find(item => item.instrument_id === member.instrument.id)),
 })))
+const benchmarkFamilyRows = computed(() => {
+  const key = benchmarkFamilyKey.value
+  if (!key) return []
+  const snapshot = benchmarkFamilySnapshot.value
+  return (workspaceStore.marketGroups[key]?.members ?? []).map(member => {
+    const row = snapshot?.rows.find(item => item.instrument_id === member.instrument.id)
+    return {
+      instrumentId: member.instrument.id,
+      symbol: member.instrument.symbol,
+      name: member.instrument.name,
+      values: {
+        performance_1d: row?.performance['1D']?.value ?? null,
+        performance_1w: row?.performance['1W']?.value ?? null,
+        performance_1m: row?.performance['1M']?.value ?? null,
+        performance_3m: row?.performance['3M']?.value ?? null,
+        performance_ytd: row?.performance.YTD?.value ?? null,
+        performance_1y: row?.performance['1Y']?.value ?? null,
+        relative_ratio: row?.relative_to_benchmark?.value == null ? null : row.relative_to_benchmark.value.toFixed(4),
+        rsi14: row?.technical?.rsi14?.value ?? null,
+        position_52w: row?.technical?.position_52w?.value ?? null,
+        volume_ratio_50: row?.technical?.volume_ratio_50?.value == null ? null : row.technical.volume_ratio_50.value.toFixed(2),
+        ...snapshotLineage(snapshot),
+      },
+      warnings: snapshotWarnings(row),
+    }
+  })
+})
+const activeBenchmarkRows = computed(() => benchmarkFamilyKey.value ? benchmarkFamilyRows.value : benchmarkRows.value)
+const activeBenchmarkDataError = computed(() => benchmarkFamilyKey.value ? benchmarkFamilyError.value : benchmarkDataError.value)
 const benchmarkDataError = computed(() => workspaceStore.marketGroupErrors['us-benchmarks'] ?? workspaceStore.groupSnapshotErrors['us-benchmarks'] ?? '')
 const sectorRows = computed(() => (workspaceStore.marketGroups['sp500-sectors']?.members ?? []).map(member => ({
   instrumentId: member.instrument.id,
@@ -2917,7 +2995,7 @@ async function addConditionColumn(payload: TechnicalConditionDragPayload) {
     // new Boolean header remains hidden until the user edits Columns.
     const nextKeys = configuredKeys.includes(column.key) ? configuredKeys : [...configuredKeys, column.key]
     emit('configuration', props.tool.instance_key, { ...props.tool.configuration, column_keys: nextKeys, condition_columns: [...columns, column] })
-    void loadConditionColumns([...personalWatchlistRows.value, ...flaggedWatchlistRows.value, ...comboWatchlistRows.value, ...benchmarkRows.value, ...sectorRows.value, ...factoryWatchlistRows.value, ...proxyRows.value, ...constituentRows.value])
+    void loadConditionColumns([...personalWatchlistRows.value, ...flaggedWatchlistRows.value, ...comboWatchlistRows.value, ...activeBenchmarkRows.value, ...sectorRows.value, ...factoryWatchlistRows.value, ...proxyRows.value, ...constituentRows.value])
   } catch (cause: any) {
     pendingConditionColumns.value = pendingConditionColumns.value.filter(column => column.key !== key)
     conditionDropError.value = `Unable to create ${name} Boolean column: ${cause?.message ?? 'unknown error'}`
@@ -2968,7 +3046,7 @@ watch(
     ...personalWatchlistRows.value,
     ...flaggedWatchlistRows.value,
     ...comboWatchlistRows.value,
-    ...benchmarkRows.value,
+    ...activeBenchmarkRows.value,
     ...sectorRows.value,
     ...factoryWatchlistRows.value,
     ...proxyRows.value,
@@ -2979,7 +3057,7 @@ watch(
       ...personalWatchlistRows.value,
       ...flaggedWatchlistRows.value,
       ...comboWatchlistRows.value,
-      ...benchmarkRows.value,
+      ...activeBenchmarkRows.value,
       ...sectorRows.value,
       ...factoryWatchlistRows.value,
       ...proxyRows.value,
@@ -2989,7 +3067,7 @@ watch(
       ...personalWatchlistRows.value,
       ...flaggedWatchlistRows.value,
       ...comboWatchlistRows.value,
-      ...benchmarkRows.value,
+      ...activeBenchmarkRows.value,
       ...sectorRows.value,
       ...factoryWatchlistRows.value,
       ...proxyRows.value,
@@ -3064,6 +3142,14 @@ function setBreadthGroup(groupKey: string) {
     : 'sp500-sectors'
   setBreadthConfiguration({ group_key: normalized })
 }
+function setBenchmarkFamily(familyKey: string) {
+  const normalized = benchmarkFamilyOptions.value.some(family => family.logicalKey === familyKey) ? familyKey : ''
+  benchmarkFamilyKey.value = normalized
+  emit('configuration', props.tool.instance_key, {
+    ...props.tool.configuration,
+    benchmark_family_key: normalized || null,
+  })
+}
 function setBreadthConfiguration(configuration: Record<string, unknown>) {
   breadthDraftConfiguration.value = { ...breadthDraftConfiguration.value, ...configuration }
   emit('configuration', props.tool.instance_key, { ...props.tool.configuration, ...breadthDraftConfiguration.value })
@@ -3105,6 +3191,22 @@ async function loadBreadthUniverse(groupKey: string, timeframe = breadthTimefram
     workspaceStore.loadBreadthHistory(groupKey, options),
   ])
 }
+let benchmarkFamilyLoadSequence = 0
+watch([benchmarkFamilyKey, benchmarkFamilyCapProxy, activeTimeframe], async ([familyKey, _capProxy, timeframe]) => {
+  if (props.tool.instance_key !== 'benchmark-list' || !familyKey) return
+  const sequence = ++benchmarkFamilyLoadSequence
+  benchmarkFamilyLoading.value = true
+  try {
+    await Promise.all([
+      workspaceStore.loadMarketGroup(familyKey),
+      workspaceStore.loadGroupSnapshot(familyKey, benchmarkFamilyCapProxy.value, {
+        ...(timeframe !== 'D1' ? { timeframe } : {}),
+      }),
+    ])
+  } finally {
+    if (sequence === benchmarkFamilyLoadSequence) benchmarkFamilyLoading.value = false
+  }
+}, { immediate: true })
 watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, breadthLookback, familyAsOf], ([groupKey, timeframe, adjusted, lookback]) => {
   if (props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth') void loadBreadthUniverse(groupKey, timeframe, adjusted, lookback)
 }, { immediate: true })
@@ -3182,7 +3284,12 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 }
 .tool-state { display: grid; place-items: center; height: 100%; padding: 12px; color: #98a7b2; font: 11px "Segoe UI", Arial, sans-serif; text-align: center; }
 .tool-state--error { color: #ec8f8f; }
-.benchmark-surface { display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100%; min-height: 0; }
+.benchmark-surface { display: grid; grid-template-rows: auto auto minmax(0, 1fr); height: 100%; min-height: 0; }
+.benchmark-surface__family-controls { display: flex; align-items: center; gap: 8px; min-height: 25px; padding: 3px 7px; border-bottom: 1px solid #28343c; background: #172027; color: #9aabb6; font: 10px "Segoe UI", Arial, sans-serif; }
+.benchmark-surface__family-controls label { display: inline-flex; align-items: center; gap: 5px; }
+.benchmark-surface__family-controls select { min-width: 180px; border: 1px solid #34434e; background: #11181d; color: #c7d6df; padding: 2px 4px; font: inherit; }
+.benchmark-surface__family-state { color: #9bb6c3; }
+.benchmark-surface__family-error { color: #ff9b8a; }
 .benchmark-surface__identity { display: flex; align-items: baseline; gap: 9px; padding: 5px 7px; border-bottom: 1px solid #28343c; background: #121920; color: #91a2ad; font: 10px "Segoe UI", Arial, sans-serif; }
 .benchmark-surface__identity strong { color: #d7e4eb; font-size: 11px; }
 .benchmark-surface__identity span:first-of-type { color: #d2bc7a; }
