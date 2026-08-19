@@ -75,6 +75,7 @@ async def bulk_fetch_instrument(
     adjusted: bool = True,
     redis=None,  # optional arq Redis pool for progress reporting
     cancel_key: str | None = None,
+    end: datetime | None = None,
 ) -> dict[str, Any]:
     """
     Fetch the maximum available history for *instrument* across all timeframes.
@@ -89,6 +90,7 @@ async def bulk_fetch_instrument(
 
     ticker_sym = instrument.symbol
     summary: dict[str, Any] = {}
+    fetch_end = _normalize_fetch_end(end)
 
     if await _is_cancel_requested(redis, cancel_key):
         await _publish_progress(redis, instrument.id, "canceled", timeframes, summary)
@@ -123,6 +125,7 @@ async def bulk_fetch_instrument(
             ticker_sym=ticker_sym,
             timeframe=tf,
             adjusted=adjusted,
+            end=fetch_end,
         )
         summary[tf.value] = result
 
@@ -188,6 +191,7 @@ async def _fetch_one_timeframe(
     ticker_sym: str,
     timeframe: Timeframe,
     adjusted: bool,
+    end: datetime,
 ) -> int | str:
     try:
         return await _do_fetch_and_store(
@@ -196,6 +200,7 @@ async def _fetch_one_timeframe(
             ticker_sym=ticker_sym,
             timeframe=timeframe,
             adjusted=adjusted,
+            end=end,
         )
     except Exception as e:
         logger.error(f"Bulk fetch failed for {ticker_sym} {timeframe.value}: {e}")
@@ -208,6 +213,7 @@ async def _do_fetch_and_store(
     ticker_sym: str,
     timeframe: Timeframe,
     adjusted: bool,
+    end: datetime,
 ) -> int:
     """Request from EPOCH and upsert all returned bars. Returns new-bar count."""
     execution = await execute_provider_call(
@@ -219,7 +225,7 @@ async def _do_fetch_and_store(
             provider_symbol_for_instrument(instrument, provider.name),
             timeframe,
             EPOCH_START,
-            datetime.now(UTC),
+            end,
             adjusted=adjusted,
             instrument_id=instrument.id,
             data_source_id=0,
@@ -277,6 +283,16 @@ async def _do_fetch_and_store(
     await db.commit()
 
     return len(new_bars)
+
+
+def _normalize_fetch_end(value: datetime | None) -> datetime:
+    """Return a timezone-aware UTC provider bound for reproducible refreshes."""
+
+    if value is None:
+        return datetime.now(UTC)
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 async def _existing_timestamps(

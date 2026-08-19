@@ -1,5 +1,20 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Historical source refreshes preserve the requested evaluation end
+
+The source-polymorphic history maintenance contract now carries a requested `as_of` timestamp
+from an authenticated watchlist refresh through the queue and worker into the provider history
+request. Historical Market Map/Breadth/Study Lab source membership therefore hydrates bars only
+through the same evaluation boundary; unbounded current refreshes preserve the prior job identity.
+The normalized end is part of the idempotence key, preventing a current and historical refresh
+from being conflated. This applies equally to durable explicit saved selections and locked
+index/ETF/sector/industry and benchmark-family sources.
+
+Unit/worker/history tests `14/14` and complete watchlist integration `45/45` pass, with Ruff,
+compileall, and diff checks green. This closes the transport/evaluation-boundary contract only:
+free-provider history availability, coverage, rebalance continuity, and exact V25 maintenance
+state visuals remain open; no acceptance flexibility was used.
+
 ## 2026-08-19 — Durable explicit sources are reusable in Breadth and isolated Python
 
 Generic Breadth now accepts `explicit-list:<stable-key>` as a canonical watchlist universe, and

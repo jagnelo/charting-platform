@@ -9,7 +9,7 @@ is contacted while building a Market Map, breadth view, or watchlist response.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import select
@@ -25,10 +25,18 @@ MAX_HISTORY_INSTRUMENTS = 5000
 BENCHMARK_FAMILY_ROLES = ("cap_weight", "equal_weight", "value", "growth")
 
 
-def canonical_history_job_id(instrument_id: int, timeframes: list[str]) -> str:
+def canonical_history_job_id(
+    instrument_id: int,
+    timeframes: list[str],
+    end: datetime | None = None,
+) -> str:
     """Return the shared idempotence key for every canonical history request."""
 
-    return f"watchlist-source-history:{int(instrument_id)}:{','.join(timeframes)}"
+    end_key = ""
+    if end is not None:
+        normalized = end if end.tzinfo is not None else end.replace(tzinfo=UTC)
+        end_key = f":end={normalized.astimezone(UTC).isoformat()}"
+    return f"watchlist-source-history:{int(instrument_id)}:{','.join(timeframes)}{end_key}"
 
 
 def normalize_family_keys(family_keys: list[str] | None) -> list[str]:
@@ -182,6 +190,7 @@ async def queue_snapshot_member_history(
     *,
     timeframes: list[str] | None = None,
     max_instruments: int = MAX_HISTORY_INSTRUMENTS,
+    end: datetime | None = None,
 ) -> dict[str, Any]:
     """Queue canonical history for the exact holdings snapshots just ingested.
 
@@ -255,11 +264,12 @@ async def queue_snapshot_member_history(
 
     queued = already_queued = 0
     for instrument_id in selected_ids:
+        job_args = ["task_bulk_fetch_instrument", instrument_id, normalized_timeframes]
+        if end is not None:
+            job_args.extend([None, end.isoformat()])
         job = await redis.enqueue_job(
-            "task_bulk_fetch_instrument",
-            instrument_id,
-            normalized_timeframes,
-            _job_id=canonical_history_job_id(instrument_id, normalized_timeframes),
+            *job_args,
+            _job_id=canonical_history_job_id(instrument_id, normalized_timeframes, end),
         )
         if job is None:
             already_queued += 1

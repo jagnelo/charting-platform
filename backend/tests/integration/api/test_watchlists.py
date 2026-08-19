@@ -1170,6 +1170,27 @@ class TestWatchlistsCrud:
             body["run_id"],
         )
 
+        historical_refresh = client.post(
+            "/api/v1/watchlists/sources/history-refresh",
+            headers=auth_headers,
+            json={
+                "source_ids": ["market-group:history-refresh-index"],
+                "timeframes": ["D1"],
+                "as_of": "2024-01-02T00:00:00Z",
+            },
+        )
+        assert historical_refresh.status_code == 200, historical_refresh.text
+        historical_body = historical_refresh.json()
+        assert historical_body["available_instrument_count"] == 1
+        assert redis.calls[-1][0] == (
+            "task_bulk_fetch_instrument",
+            instrument.id,
+            ["D1"],
+            historical_body["run_id"],
+            "2024-01-02T00:00:00+00:00",
+        )
+        assert "end=2024-01-02T00:00:00+00:00" in redis.calls[-1][1]["_job_id"]
+
         status = client.get(
             f"/api/v1/watchlists/history-refresh-runs/{body['run_id']}",
             headers=auth_headers,

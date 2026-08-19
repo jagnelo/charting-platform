@@ -29,3 +29,25 @@ async def test_bulk_fetch_honours_refresh_cancellation_before_provider_work(monk
 
     assert result == {}
     assert events == [(42, "canceled")]
+
+
+@pytest.mark.asyncio
+async def test_bulk_fetch_passes_historical_end_to_each_provider_request(monkeypatch):
+    requested_ends = []
+
+    async def fetch_one(*, end, **_kwargs):
+        requested_ends.append(end)
+        return 0
+
+    monkeypatch.setattr(bulk_fetch, "_fetch_one_timeframe", fetch_one)
+    await bulk_fetch.bulk_fetch_instrument(
+        object(),
+        SimpleNamespace(id=42, symbol="SPY"),
+        [Timeframe.D1, Timeframe.W1],
+        end=bulk_fetch.datetime(2024, 1, 2),
+    )
+
+    assert requested_ends == [
+        bulk_fetch.datetime(2024, 1, 2, tzinfo=bulk_fetch.UTC),
+        bulk_fetch.datetime(2024, 1, 2, tzinfo=bulk_fetch.UTC),
+    ]

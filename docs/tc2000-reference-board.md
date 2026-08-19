@@ -1,5 +1,18 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Historical source hydration boundary is implemented; provider coverage remains open
+
+The universal locked-watchlist heatmap now carries a requested historical evaluation end through
+source refresh queueing and provider history hydration. The board's historical-source states must
+therefore distinguish a correctly bounded `as_of` refresh from current/open-ended refresh, including
+partial, unavailable, and insufficient-history messaging. No authoritative V25 capture currently
+shows this exact maintenance interaction or copy.
+
+Gap status: `required_missing` for exact V25 historical-refresh controls, progress/busy/error copy,
+and coverage-state geometry. The backend transport contract is covered by worker/history `14/14`
+and watchlists integration `45/45`; provider depth, completeness, and rebalance continuity remain
+separate data gaps and are not treated as visually accepted.
+
 ## 2026-08-19 — Study Lab selected-source lineage imagery is missing
 
 The product now has an explicit downstream lineage state for arbitrary heatmap selections: a

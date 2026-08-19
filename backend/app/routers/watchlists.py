@@ -269,12 +269,21 @@ async def queue_watchlist_source_history_refresh(
         redis = await create_pool(RedisSettings.from_dsn(settings.REDIS_URL))
         try:
             for instrument_id in plan["instrument_ids"]:
-                job = await redis.enqueue_job(
+                job_args = [
                     "task_bulk_fetch_instrument",
                     instrument_id,
                     plan["timeframes"],
                     run.id,
-                    _job_id=canonical_history_job_id(instrument_id, plan["timeframes"]),
+                ]
+                if plan["as_of"] is not None:
+                    job_args.append(plan["as_of"].isoformat())
+                job = await redis.enqueue_job(
+                    *job_args,
+                    _job_id=canonical_history_job_id(
+                        instrument_id,
+                        plan["timeframes"],
+                        plan["as_of"],
+                    ),
                 )
                 if job is None:
                     already_queued += 1

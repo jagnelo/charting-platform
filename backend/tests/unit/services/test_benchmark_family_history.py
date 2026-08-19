@@ -5,6 +5,13 @@ import pytest
 from app.services import benchmark_family_history as history
 
 
+def test_canonical_history_job_id_separates_historical_end_bounds():
+    assert history.canonical_history_job_id(7, ["D1"]) == "watchlist-source-history:7:D1"
+    assert history.canonical_history_job_id(
+        7, ["D1"], history.datetime(2024, 1, 2)
+    ) == "watchlist-source-history:7:D1:end=2024-01-02T00:00:00+00:00"
+
+
 def test_family_history_normalizers_reject_unknown_values_and_dedupe_timeframes():
     assert history.normalize_family_roles(["growth", "cap_weight", "growth"]) == [
         "cap_weight",
@@ -112,3 +119,21 @@ async def test_queue_snapshot_member_history_deduplicates_canonical_members_and_
             {"_job_id": "watchlist-source-history:20:D1,W1"},
         ),
     ]
+
+    historical = await history.queue_snapshot_member_history(
+        Session(),
+        redis,
+        [101],
+        timeframes=["D1"],
+        max_instruments=2,
+        end=history.datetime(2024, 1, 2),
+    )
+    assert historical["queued"] == 2
+    assert redis.calls[-2][0] == (
+        "task_bulk_fetch_instrument",
+        10,
+        ["D1"],
+        None,
+        "2024-01-02T00:00:00",
+    )
+    assert "end=2024-01-02T00:00:00+00:00" in redis.calls[-2][1]["_job_id"]

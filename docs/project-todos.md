@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-08-19 — Historical watchlist hydration carries the requested evaluation end
+
+- [x] Carry a source refresh request's `as_of` timestamp through the canonical watchlist queue,
+      ARQ task, provider-neutral bulk-history worker, and provider `fetch_ohlcv` end bound. The
+      same contract now applies to arbitrary saved explicit sources, index/ETF/sector/industry
+      sources, and benchmark-family member hydration; current refreshes retain the existing
+      open-ended behavior.
+- [x] Include the normalized historical end in the canonical job identity so a current refresh
+      cannot deduplicate or replace a distinct historical request. Preserve the existing job
+      identity for unbounded refreshes and keep provider calls outside interactive source resolve.
+- [x] Add unit, queue-boundary, worker, and complete watchlist integration regressions. Focused
+      worker/history tests pass `14/14`; complete watchlists integration passes `45/45`; Ruff,
+      compileall, and diff checks pass. Acceptance flexibility used: **None**.
+- [ ] This closes the historical end propagation contract, not provider availability or coverage.
+      Free-source history depth, incomplete provider responses, rebalance continuity, and exact
+      V25 maintenance/coverage visuals remain explicit open gaps.
+
 ### 2026-08-19 — Durable explicit selections complete the universal heatmap source model
 
 - [x] Persist any selected canonical subset from an index, ETF, sector, industry, combo, personal,

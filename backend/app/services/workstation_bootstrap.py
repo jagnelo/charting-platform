@@ -221,11 +221,16 @@ async def queue_core_family_member_history(db: AsyncSession, redis) -> dict:
     plan = await plan_benchmark_family_history_refresh(db)
     queued = already_queued = 0
     for instrument_id in plan["instrument_ids"]:
+        job_args = ["task_bulk_fetch_instrument", instrument_id, plan["timeframes"]]
+        if plan.get("as_of") is not None:
+            job_args.extend([None, plan["as_of"].isoformat()])
         job = await redis.enqueue_job(
-            "task_bulk_fetch_instrument",
-            instrument_id,
-            plan["timeframes"],
-            _job_id=canonical_history_job_id(instrument_id, plan["timeframes"]),
+            *job_args,
+            _job_id=canonical_history_job_id(
+                instrument_id,
+                plan["timeframes"],
+                plan.get("as_of"),
+            ),
         )
         if job is None:
             already_queued += 1

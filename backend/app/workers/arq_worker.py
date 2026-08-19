@@ -8,7 +8,7 @@ in separate worker processes, keeping the FastAPI server non-blocking.
 """
 
 import logging
-from datetime import UTC
+from datetime import UTC, datetime
 
 from arq import cron
 from arq.connections import RedisSettings
@@ -26,6 +26,7 @@ async def task_bulk_fetch_instrument(
     instrument_id: int,
     timeframes: list[str] | None = None,
     run_id: int | None = None,
+    end: str | None = None,
 ):
     """
     ARQ task: pull maximum available history for one instrument.
@@ -49,6 +50,7 @@ async def task_bulk_fetch_instrument(
             tf_list,
             redis=ctx.get("redis"),
             cancel_key=refresh_cancel_key(run_id) if run_id is not None else None,
+            end=datetime.fromisoformat(end) if end else None,
         )
         logger.info(f"bulk_fetch complete for {instrument.symbol}: {summary}")
         return summary
