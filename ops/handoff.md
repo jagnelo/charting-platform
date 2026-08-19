@@ -15,9 +15,9 @@
   `git diff --check`. Acceptance flexibility: **None**. This improves bounded population ordering
   but does not prove dated snapshot completeness, point-in-time weights/rebalance continuity,
   canonical member bars, entitlements, or exact V25 maintenance visuals.
-- Implementation/docs commit `fd7ac268` is pushed and matches `origin/feat/tc2000-frontend-rework`.
-  The operational files in this context are the only remaining dirty changes and must be committed
-  as a separate checkpoint before starting the next context. Next context:
+- Implementation/docs commit `fd7ac268` and operational checkpoint `55204442` are pushed and
+  match `origin/feat/tc2000-frontend-rework`; the worktree is clean and synchronized. This
+  context is closed. Next context:
   implement or verify deployment-level dated family snapshot/rebalance continuity using the existing
   durable refresh-run contract; preserve the single locked-watchlist/Market Map abstraction.
 
