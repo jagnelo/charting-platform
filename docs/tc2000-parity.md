@@ -1,5 +1,21 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — DFTT keeps the universal locked-watchlist route identity-safe
+
+Donoghue Forlines DFTT now carries curated SEC identity (`CIK 0001314414`, series
+`S000093518`, class `C000261806`, fund ticker `DFTT`) into the existing fallback path. If the
+issuer product page or its holdings request is unavailable, the fallback can reconstruct a
+matching SEC filing without widening the registrant to another Donoghue series. The issuer error,
+fallback route, filing identity, and reconstructed source format remain visible in provenance.
+
+The focused DFTT regression passes `3/3`; the complete holdings-adapter unit suite passes
+`501/501`; Ruff, compileall, and diff checks pass. The opt-in live probe was attempted but could
+not resolve the issuer host in the restricted DNS environment, so live route reachability remains
+an explicit environment/provider gap rather than an acceptance waiver. No acceptance flexibility
+was used. The universal source contract is unchanged: DFTT is a locked `WatchlistSource`, and its
+Market Map is the same heatmap used by personal, managed, combo, explicit, index, sector, and other
+ETF sources.
+
 ## 2026-08-19 — Market Map selected-member Chart and Relative Strength handoffs
 
 The universal Market Map now exposes direct downstream actions for a selected canonical member

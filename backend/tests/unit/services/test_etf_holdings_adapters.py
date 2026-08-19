@@ -12171,6 +12171,56 @@ United States Treasury Bill,,,"$1,000.00",0.10%
 
 
 @pytest.mark.asyncio
+async def test_donoghue_forlines_route_failure_uses_curated_sec_identity(monkeypatch):
+    adapter = get_holdings_adapter("donoghue_forlines")
+    assert adapter is not None
+    observed: dict[str, object] = {}
+
+    async def fake_sec_fallback(*, symbol, issuer_product_id, identifiers):
+        observed.update(
+            {
+                "symbol": symbol,
+                "issuer_product_id": issuer_product_id,
+                "identifiers": identifiers,
+            }
+        )
+        return HoldingsFetchResult(
+            rows=[CanonicalHoldingRow(symbol="NVDA", name="NVIDIA Corporation")],
+            source_url="https://www.sec.gov/Archives/edgar/data/1314414/fixture.xml",
+            source_identifier="fixture",
+            legal_metadata={"route_resolution": "sec_edgar_filing_fallback"},
+        )
+
+    monkeypatch.setattr(adapter, "_fetch_latest_sec_filing_holdings", fake_sec_fallback)
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        httpx.Response(
+            status_code=503,
+            request=httpx.Request(
+                "GET", "https://etfs.donoghueforlines.com/etfs/tactical-30-etf/"
+            ),
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="DFTT")
+
+    assert observed == {
+        "symbol": "DFTT",
+        "issuer_product_id": None,
+        "identifiers": {
+            "sec_cik": "0001314414",
+            "sec_series_id": "S000093518",
+            "sec_class_id": "C000261806",
+            "sec_fund_tickers_symbol": "DFTT",
+        },
+    }
+    assert result.legal_metadata["route_resolution"] == "sec_edgar_filing_fallback"
+    assert result.legal_metadata["issuer_route_fallback"] == "sec_edgar_filing"
+    assert "503" in result.legal_metadata["issuer_route_failure"]
+
+
+@pytest.mark.asyncio
 async def test_donoghue_forlines_requests_fallback_retries_transient_read_timeout(
     monkeypatch,
 ):

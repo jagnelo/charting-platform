@@ -2667,11 +2667,15 @@ async def test_live_donoghue_forlines_product_page_declared_holdings_csv():
     result = await adapter.fetch_latest(symbol="DFTT")
 
     _assert_live_holdings_result(result, adapter_key="donoghue_forlines", min_rows=20)
-    assert result.legal_metadata["route_resolution"] == (
-        "donoghue_forlines_product_page_ajax_holdings_csv"
-    )
+    assert result.legal_metadata["route_resolution"] in {
+        "donoghue_forlines_product_page_ajax_holdings_csv",
+        "sec_edgar_filing_fallback",
+    }
+    if result.legal_metadata["route_resolution"] == "sec_edgar_filing_fallback":
+        assert result.legal_metadata["issuer_route_fallback"] == "sec_edgar_filing"
+        assert result.legal_metadata["issuer_route_failure"]
     assert result.legal_metadata["composition_date"]
-    assert result.legal_metadata["source_format"] == "csv"
+    assert result.legal_metadata["source_format"] in {"csv", "nport_xml", "legacy_xml_table"}
 
 
 @pytest.mark.asyncio

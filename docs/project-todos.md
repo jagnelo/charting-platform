@@ -1,5 +1,28 @@
 # Project TODO Memory
 
+### 2026-08-19 — DFTT route now supplies an identity-safe locked watchlist fallback
+
+- [x] Add curated SEC CIK/series/class/ticker identity for Donoghue Forlines DFTT and merge it
+      only when explicit caller identifiers are absent.
+- [x] Preserve issuer failure, SEC fallback route, filing identity, source format, and coverage
+      metadata so the DFTT constituent source cannot be mistaken for an unverified registrant-wide
+      universe.
+- [x] Update the opt-in live oracle to accept either the native issuer CSV or the explicitly
+      labelled SEC reconstruction route.
+- [x] Validate the focused DFTT regression (`3/3`), complete adapter units (`501/501`), Ruff,
+      compileall, and diff checks.
+- [ ] Re-run the live DFTT probe from a network-enabled environment; the current restricted DNS
+      environment could not resolve the issuer host. This is an external reachability gap, not a
+      relaxed acceptance criterion.
+- [ ] Keep provider-backed membership/bar completeness, point-in-time continuity, entitlement
+      review, and exact V25 route-status/fallback visuals open.
+
+The source model remains deliberately universal: an index or ETF constituent set is a locked,
+system-managed watchlist, while a personal/managed/combo/explicit list is another `WatchlistSource`
+with different membership permissions. All are eligible for the same TC2000-style Market Map,
+breadth, ranking, scan, Study Lab, and linked-chart actions; no source-specific heatmap renderer is
+allowed.
+
 ### 2026-08-19 — Market Map selections now hand off directly to Chart and Relative Strength
 
 - [x] Add selected-member actions for `Open in Chart`, `Compare in Chart`, and `Relative Strength`

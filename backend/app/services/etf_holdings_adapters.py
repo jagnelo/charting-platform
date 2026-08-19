@@ -3197,6 +3197,16 @@ KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
             "sec_fund_tickers_symbol": "QQQ",
         },
     },
+    "DFTT": {
+        "issuer": "Donoghue Forlines",
+        "provider_aliases": {
+            "holdings_adapter": "donoghue_forlines",
+            "sec_cik": "0001314414",
+            "sec_series_id": "S000093518",
+            "sec_class_id": "C000261806",
+            "sec_fund_tickers_symbol": "DFTT",
+        },
+    },
     "SFY": {
         "issuer": "SoFi",
         "provider_aliases": {
@@ -45395,6 +45405,25 @@ class DonoghueForlinesHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raise ValueError(
                 f"Donoghue Forlines does not have a verified native holdings route for {normalized_symbol}."
             )
+
+        # The issuer route may be access-limited.  Complete the fallback identity
+        # from curated SEC aliases, while allowing explicit caller identifiers to
+        # remain authoritative.  This prevents a registrant-level SEC fallback from
+        # accidentally selecting another Donoghue series.
+        route_metadata = known_etf_route_metadata(normalized_symbol)
+        provider_aliases = route_metadata.get("provider_aliases")
+        identifiers = {
+            **(
+                {
+                    key: value
+                    for key, value in (provider_aliases or {}).items()
+                    if key.startswith("sec_") or key == "sec_fund_tickers_symbol"
+                }
+                if isinstance(provider_aliases, dict)
+                else {}
+            ),
+            **(identifiers or {}),
+        }
 
         async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
             product_page_response = await client.get(
