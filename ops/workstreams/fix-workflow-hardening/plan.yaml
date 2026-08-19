@@ -11,15 +11,19 @@ owned_paths:
   - scripts/worktree-runtime.py
   - scripts/integrate.py
   - docs/development.md
+  - frontend/src/views/WorkstationView.vue
+  - frontend/tests/e2e/flows.spec.ts
 dependencies: []
 acceptance_criteria:
   - "Dirty, unmerged, or running worktrees remain non-removable."
   - "Stale allocation records are reclaimed only with Git and Docker proof."
   - "A paused conflict candidate can resume only after all conflicts are resolved and the captured source SHA remains present."
+  - "Ratio row actions remount the dock after snapshot replacement so persisted and visible configurations remain aligned."
 branch_tests:
   - "backend/.venv/bin/python -m pytest backend/tests/unit/test_worktree_runtime.py -q --no-cov"
   - "uv run ruff check scripts backend/tests/unit/test_worktree_runtime.py"
   - "uv run ruff format --check scripts backend/tests/unit/test_worktree_runtime.py"
+  - "E2E_SEED_MARKET_DATA=true npx playwright test tests/e2e/flows.spec.ts -g 'F8e\\.2' --project=chromium"
 live_test_impact: none
 migration_impact: none
 deployment_impact: none

@@ -1299,6 +1299,20 @@ async function saveWorkspaceSnapshotIfSupported() {
   if (typeof saveSnapshot === 'function') await saveSnapshot.call(workspaceStore)
 }
 
+async function remountDockAfterSnapshot(
+  mountedConfiguration: Record<string, unknown>,
+  publishedConfiguration: Record<string, unknown>,
+) {
+  // saveSnapshot replaces the canonical workspace object with the server
+  // response. Golden Layout may still hold the pre-save tool object, so mirror
+  // the accepted configuration into that mounted object and then reinstall the
+  // completed layout from the server-confirmed workspace.
+  for (const key of Object.keys(mountedConfiguration)) delete mountedConfiguration[key]
+  Object.assign(mountedConfiguration, publishedConfiguration)
+  workspaceReloadKey.value += 1
+  await nextTick()
+}
+
 async function publishMapAnalysis(publication: MapAnalysisPublication) {
   if (!publication.sourceId) return
   // Let the source tool's selection/layout event settle before switching the
@@ -1504,8 +1518,7 @@ async function openMarketMapRatio(symbols: string[]) {
   }
   updateToolConfiguration(ratio.instance_key, publishedConfiguration)
   await saveWorkspaceSnapshotIfSupported()
-  for (const key of Object.keys(mountedConfiguration)) delete mountedConfiguration[key]
-  Object.assign(mountedConfiguration, publishedConfiguration)
+  await remountDockAfterSnapshot(mountedConfiguration, publishedConfiguration)
 }
 
 async function handleRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }) {
@@ -1544,8 +1557,7 @@ async function handleRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 
     }
     updateToolConfiguration(ratio.instance_key, publishedConfiguration)
     await saveWorkspaceSnapshotIfSupported()
-    for (const key of Object.keys(mountedConfiguration)) delete mountedConfiguration[key]
-    Object.assign(mountedConfiguration, publishedConfiguration)
+    await remountDockAfterSnapshot(mountedConfiguration, publishedConfiguration)
     return
   }
   await selectSymbol(row.symbol, undefined, false, row.instrumentId)

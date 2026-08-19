@@ -2101,9 +2101,11 @@ test.describe('TC2000 workstation', () => {
     // workspace before mounting this page. Do not reset again here: a second
     // Golden Layout replacement can leave the row-action handler attached to
     // a detached tool root while the visible workspace has already hydrated.
-    const sectorList = page.locator('.watchlist[aria-label="Relative to SPY"]:visible').filter({ has: page.locator('.watchlist__row') }).last()
+    const sectorWindow = page.locator('[data-window-key="sector-list"]:visible').filter({ has: page.locator('.watchlist__row') }).last()
+    const sectorList = sectorWindow.locator('.watchlist[aria-label="Relative to SPY"]')
     const xlk = sectorList.getByRole('option', { name: /XLK/ }).first()
     await expect(xlk).toBeVisible({ timeout: 20_000 })
+    await expect(sectorList).toHaveAttribute('aria-busy', 'false')
     await xlk.click({ button: 'right', position: { x: 8, y: 14 } })
     // Scope the action to the originating watchlist. Golden Layout can retain
     // detached tool roots while a workspace is hydrating, so a page-global
