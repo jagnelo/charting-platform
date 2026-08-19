@@ -1,5 +1,19 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Partial provider data must remain visibly retryable
+
+The board-guided product contract now treats a short D1 history or `partial`/`unknown` holdings
+snapshot as a retryable coverage state, not as a ready source. The bootstrap gate requires `252`
+adjusted daily bars for the default technical surface and an explicitly complete/reconstructed,
+resolved holdings snapshot before suppressing provider maintenance. This is a backend readiness
+invariant; the board still lacks authoritative Version 25 geometry for the maintenance/progress
+controls that should communicate it.
+
+Gap status: `required_missing` for exact maintenance/progress visuals. Interim oracle: bootstrap
+regressions `20/20`, backend unit suite `1241/1241`, and explicit freshness/coverage states in the
+universal Market Map. Evidence needed to close the visual gap: a reviewed V25 capture of partial,
+retrying, successful, and failed source-maintenance states.
+
 ## 2026-08-19 — Family history queue consistency is functional; exact maintenance visuals remain open
 
 Benchmark-family history refreshes now use the same historical-bound and job-identity contract as

@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-08-19 — Provider bootstrap no longer treats partial data as ready
+
+- [x] Tighten the opt-in core workstation bootstrap readiness gate. A persisted D1 row count
+      below `252` (the minimum needed for the default 200-day/52-week technical contract) no
+      longer suppresses a provider backfill retry, and holdings snapshots are reusable only when
+      they are non-fixture, resolved, and explicitly `complete` or `filing_reconstructed`.
+- [x] Add regressions proving that one local bar and an explicitly `partial` holdings snapshot
+      still invoke the provider-backed retry path. The focused bootstrap/worker slice passes
+      `20/20`; the complete backend unit suite passes `1241/1241`; Ruff, compileall, and diff
+      checks pass. Acceptance flexibility used: **None**.
+- [ ] This fixes a readiness false-positive only. Provider route availability, complete all-eight
+      family population, historical rebalance continuity, canonical member-bar coverage, and exact
+      V25 maintenance/progress visuals remain open and must continue to be reported as gaps.
+
 ### 2026-08-19 — Benchmark-family history refresh uses the shared historical queue contract
 
 - [x] Fix the administrative benchmark-family history route so it preserves `as_of` through the

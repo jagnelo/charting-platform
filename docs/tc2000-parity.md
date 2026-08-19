@@ -1,5 +1,20 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Provider bootstrap distinguishes usable history from partial evidence
+
+The opt-in core workstation bootstrap no longer treats any persisted provider row as a successful
+history load. It requires at least `252` adjusted D1 bars before marking a symbol ready, matching
+the default 200-day and 52-week technical contract; shorter local history remains retryable. ETF
+holdings are likewise retryable until a non-fixture snapshot has resolved members and an explicit
+`complete` or `filing_reconstructed` completeness state. Unknown/partial snapshots remain visible
+coverage evidence but cannot suppress a later provider attempt.
+
+The focused bootstrap/worker slice passes `20/20`, the complete backend unit suite passes
+`1241/1241`, and Ruff, compileall, and diff checks pass. This closes only a local readiness
+false-positive; it does not claim provider route availability, complete all-eight family
+population, historical rebalance continuity, canonical member-bar coverage, or exact Version 25
+maintenance/progress visuals. No acceptance flexibility was used.
+
 ## 2026-08-19 — Benchmark-family history refreshes preserve historical bounds
 
 The administrative benchmark-family constituent-history route now shares the generic watchlist

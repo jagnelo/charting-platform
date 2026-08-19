@@ -1,20 +1,24 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import UTC, datetime
+from decimal import Decimal
 
 from sqlalchemy import select
 
 import app.services.workstation_bootstrap as bootstrap
 from app.config import settings
 from app.models.data_source import DataSource
-from app.models.etf_holdings import ETFProfile
+from app.models.etf_holdings import ETFHoldingsSnapshot, ETFProfile
 from app.models.instrument import Instrument
 from app.models.instrument_identity import InstrumentProviderSymbol
+from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.workstation import MarketGroup, MarketGroupMember
 from app.services.top_down_taxonomy import BENCHMARK_FAMILY_REGISTRY
 from app.services.workstation_bootstrap import (
     CORE_WORKSTATION_INSTRUMENTS,
     CORE_WORKSTATION_REGISTRY,
+    MIN_CORE_D1_BARS,
     ensure_core_workstation_identities,
     queue_core_family_member_history,
 )
@@ -152,6 +156,94 @@ def test_core_workstation_data_reloads_instrument_after_provider_rollback(db, mo
         "error",
     }
     assert result["history"][calls[0]]["status"] == "error"
+
+
+def test_core_bootstrap_retries_when_history_exists_but_is_below_technical_readiness(db, monkeypatch):
+    """A partial local history must not suppress the provider backfill retry."""
+
+    facade = _AsyncSessionFacade(db)
+    asyncio.run(ensure_core_workstation_identities(facade))
+    monkeypatch.setattr(settings, "E2E_SEED_MARKET_DATA", False)
+    monkeypatch.setattr(settings, "CORE_WORKSTATION_BOOTSTRAP_TIMEOUT_SECONDS", 1)
+
+    spy = db.execute(select(Instrument).where(Instrument.symbol == "SPY")).scalar_one()
+    db.add(
+        OHLCVBar(
+            instrument_id=spy.id,
+            timeframe=Timeframe.D1,
+            ts=datetime(2026, 1, 2, tzinfo=UTC),
+            open=Decimal("100"),
+            high=Decimal("101"),
+            low=Decimal("99"),
+            close=Decimal("100"),
+            is_adjusted=True,
+        )
+    )
+    db.flush()
+    calls: list[str] = []
+
+    async def fake_fetch(_session, instrument, _timeframe, _start):
+        calls.append(instrument.symbol)
+        return []
+
+    monkeypatch.setattr(bootstrap, "fetch_ohlcv", fake_fetch)
+    monkeypatch.setattr(
+        bootstrap,
+        "bootstrap_etf_holdings_profile",
+        lambda **kwargs: (_ for _ in ()).throw(RuntimeError("holdings unavailable")),
+    )
+
+    result = asyncio.run(bootstrap.bootstrap_core_workstation_data(facade))
+
+    assert calls[0] == "SPY"
+    assert result["history"]["SPY"]["status"] == "unavailable"
+    assert MIN_CORE_D1_BARS == 252
+
+
+def test_core_bootstrap_retries_partial_holdings_snapshot(db, monkeypatch):
+    """Unknown/partial holdings are coverage evidence, not a successful retry gate."""
+
+    facade = _AsyncSessionFacade(db)
+    asyncio.run(ensure_core_workstation_identities(facade))
+    monkeypatch.setattr(settings, "E2E_SEED_MARKET_DATA", False)
+    monkeypatch.setattr(settings, "CORE_WORKSTATION_BOOTSTRAP_TIMEOUT_SECONDS", 1)
+
+    spy = db.execute(select(Instrument).where(Instrument.symbol == "SPY")).scalar_one()
+    profile = db.execute(
+        select(ETFProfile).where(ETFProfile.instrument_id == spy.id)
+    ).scalar_one()
+    db.add(
+        ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=datetime(2026, 1, 2, tzinfo=UTC).date(),
+            known_at=datetime(2026, 1, 3, tzinfo=UTC),
+            provenance="issuer_public",
+            source_provider="test-provider",
+            source_quality="issuer",
+            completeness_status="partial",
+            row_count=1,
+            resolved_count=1,
+            unresolved_count=0,
+            snapshot_hash="partial-spy-snapshot",
+        )
+    )
+    db.flush()
+    holdings_calls: list[str] = []
+
+    async def fake_fetch(_session, _instrument, _timeframe, _start):
+        return []
+
+    async def fake_holdings(_session, *, symbol, name):
+        holdings_calls.append(symbol)
+        raise RuntimeError("holdings unavailable")
+
+    monkeypatch.setattr(bootstrap, "fetch_ohlcv", fake_fetch)
+    monkeypatch.setattr(bootstrap, "bootstrap_etf_holdings_profile", fake_holdings)
+
+    result = asyncio.run(bootstrap.bootstrap_core_workstation_data(facade))
+
+    assert "SPY" in holdings_calls
+    assert result["holdings"]["SPY"]["status"] == "error"
 
 
 def test_core_bootstrap_queues_deduplicated_family_member_history(monkeypatch):

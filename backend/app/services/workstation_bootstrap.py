@@ -43,6 +43,14 @@ from app.services.top_down_taxonomy import (
 
 CORE_WORKSTATION_REGISTRY = "curated_workstation_registry_v1"
 
+# The default workstation exposes 200-day and 52-week studies.  A single
+# persisted bar is therefore not a usable history result and must not prevent
+# a later provider retry from filling the source.  The lookback window remains
+# configurable, but this lower bound keeps readiness tied to the actual
+# technical contract rather than row existence.
+MIN_CORE_D1_BARS = 252
+USABLE_HOLDINGS_COMPLETENESS = frozenset({"complete", "filing_reconstructed"})
+
 _BENCHMARK_PROXY_NAMES = {
     str(mapping["symbol"]): f"{mapping.get('label') or symbol}"
     for family in BENCHMARK_FAMILY_REGISTRY
@@ -309,7 +317,7 @@ async def bootstrap_core_workstation_data(db: AsyncSession, redis=None) -> dict:
                 )
             )
         ).scalar_one()
-        if existing_bars:
+        if existing_bars >= MIN_CORE_D1_BARS:
             history[symbol] = {"status": "ready", "bars": int(existing_bars)}
             continue
         try:
@@ -334,7 +342,7 @@ async def bootstrap_core_workstation_data(db: AsyncSession, redis=None) -> dict:
         if instrument is None:
             holdings[symbol] = {"status": "error", "error_type": "missing_identity"}
             continue
-        snapshot_count = (
+        usable_snapshot_count = (
             await db.execute(
                 select(func.count(ETFHoldingsSnapshot.id))
                 .join(ETFProfile, ETFProfile.id == ETFHoldingsSnapshot.etf_profile_id)
@@ -342,11 +350,16 @@ async def bootstrap_core_workstation_data(db: AsyncSession, redis=None) -> dict:
                     ETFProfile.instrument_id == instrument.id,
                     ETFHoldingsSnapshot.provenance != "controlled_fixture",
                     ETFHoldingsSnapshot.source_provider != "e2e_reference",
+                    ETFHoldingsSnapshot.completeness_status.in_(USABLE_HOLDINGS_COMPLETENESS),
+                    ETFHoldingsSnapshot.resolved_count > 0,
                 )
             )
         ).scalar_one()
-        if snapshot_count:
-            holdings[symbol] = {"status": "ready", "snapshots": int(snapshot_count)}
+        if usable_snapshot_count:
+            holdings[symbol] = {
+                "status": "ready",
+                "snapshots": int(usable_snapshot_count),
+            }
             continue
         try:
             result = await asyncio.wait_for(
