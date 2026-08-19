@@ -12,6 +12,7 @@ from app.services.etf_holdings_refresh import (
     _apply_known_route_metadata,
     _issuer_product_identifier,
     bootstrap_etf_holdings_profile,
+    holdings_snapshot_is_bootstrap_ready,
 )
 from app.services.instrument_mastering import ensure_internal_identifier
 
@@ -142,6 +143,23 @@ def test_explicit_issuer_product_slug_precedes_sec_series_id():
         )
         == "semiconductor-etf-smh"
     )
+
+
+@pytest.mark.parametrize(
+    ("status", "resolved_count", "expected"),
+    [
+        ("partial", 1, False),
+        ("unknown", 10, False),
+        ("complete", 0, False),
+        ("complete", 10, True),
+        ("filing_reconstructed", 10, True),
+    ],
+)
+def test_holdings_snapshot_readiness_requires_resolved_complete_evidence(
+    status, resolved_count, expected
+):
+    snapshot = SimpleNamespace(completeness_status=status, resolved_count=resolved_count)
+    assert holdings_snapshot_is_bootstrap_ready(snapshot) is expected
 
 
 @pytest.mark.asyncio
@@ -354,7 +372,12 @@ async def test_bootstrap_accepts_existing_public_snapshot_schema(monkeypatch):
         assert include_controlled_fixture is False
         # This mirrors get_latest_snapshot's ETFHoldingsSnapshotOut contract;
         # it intentionally has no ORM ``rows`` collection.
-        return SimpleNamespace(id=501, etf_symbol="XLK")
+        return SimpleNamespace(
+            id=501,
+            etf_symbol="XLK",
+            completeness_status="complete",
+            resolved_count=10,
+        )
 
     async def fake_probe_etf_holdings_adapter_route(db, profile):
         return probe
@@ -383,6 +406,93 @@ async def test_bootstrap_accepts_existing_public_snapshot_schema(monkeypatch):
     assert result.refresh_attempted is False
     assert result.refresh_succeeded is True
     assert result.probe.status == "ready"
+
+
+@pytest.mark.asyncio
+async def test_bootstrap_retries_instead_of_short_circuiting_partial_snapshot(monkeypatch):
+    """The inner holdings bootstrap must actually retry an incomplete latest snapshot."""
+
+    db = FakeBootstrapDB()
+    instrument = SimpleNamespace(id=101, symbol="SPY", name="S&P 500 ETF")
+    profile = SimpleNamespace(
+        instrument=instrument,
+        issuer="State Street",
+        fund_family=None,
+        product_url=None,
+        provider_aliases={},
+        sec_cik="seeded",
+        sec_series_id=None,
+        sec_class_id=None,
+        adapter_key="spdr",
+        adapter_status="candidate",
+        adapter_confidence=0.9,
+    )
+    partial_snapshot = SimpleNamespace(
+        id=501,
+        completeness_status="partial",
+        resolved_count=2,
+    )
+    probe = SimpleNamespace(
+        adapter_key="spdr",
+        confidence=0.95,
+        status="ready",
+        reason="State Street's public workbook route is available.",
+    )
+    refreshed_snapshot = SimpleNamespace(id=502)
+    refresh_calls = []
+
+    async def fake_ensure_lightweight_etf_instrument(db, symbol, name=None):
+        return instrument
+
+    async def fake_ensure_etf_profile(db, instrument):
+        return profile
+
+    async def fake_get_latest_snapshot(
+        db, instrument_id, include_holdings=True, include_controlled_fixture=True
+    ):
+        assert include_controlled_fixture is False
+        return partial_snapshot
+
+    async def fake_probe_etf_holdings_adapter_route(db, profile):
+        return probe
+
+    async def fake_refresh_adapter_route(db, profile):
+        refresh_calls.append(profile.instrument.symbol)
+        return refreshed_snapshot
+
+    async def fake_record_success(db, profile, snapshot):
+        return None
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.ensure_lightweight_etf_instrument",
+        fake_ensure_lightweight_etf_instrument,
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.ensure_etf_profile", fake_ensure_etf_profile
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.known_etf_route_metadata", lambda symbol: None
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.get_latest_snapshot", fake_get_latest_snapshot
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.probe_etf_holdings_adapter_route",
+        fake_probe_etf_holdings_adapter_route,
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._refresh_adapter_route", fake_refresh_adapter_route
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._record_success", fake_record_success
+    )
+
+    result = await bootstrap_etf_holdings_profile(db, symbol="SPY", name=instrument.name)
+
+    assert result.refresh_attempted is True
+    assert result.refresh_succeeded is True
+    assert refresh_calls == ["SPY"]
+    assert db.nested_enters == 1
 
 
 @pytest.mark.asyncio

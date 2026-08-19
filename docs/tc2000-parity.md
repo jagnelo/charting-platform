@@ -1,5 +1,19 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Holdings bootstrap no longer short-circuits partial snapshots
+
+The holdings bootstrap now shares the core readiness rule instead of returning success merely
+because any latest snapshot exists. A stored snapshot suppresses provider work only when it has
+resolved members and `complete` or `filing_reconstructed` completeness. Partial/unknown snapshots
+remain useful coverage evidence but trigger a real issuer/SEC retry, so a locked index/ETF
+watchlist cannot become permanently under-populated after one incomplete response.
+
+Focused holdings/bootstrap/worker tests pass `34/34`; the complete ETF holdings integration suite
+passes `63/63`; the full backend unit suite passes `1247/1247`; and Ruff/compileall are green. This
+is a retry-boundary correction, not proof of provider route completeness, all-eight family
+population, historical rebalance continuity, canonical member bars, or exact Version 25
+maintenance/progress visuals. No acceptance flexibility was used.
+
 ## 2026-08-19 — Provider bootstrap distinguishes usable history from partial evidence
 
 The opt-in core workstation bootstrap no longer treats any persisted provider row as a successful

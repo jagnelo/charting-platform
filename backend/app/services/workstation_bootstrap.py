@@ -29,7 +29,10 @@ from app.models.instrument import Instrument
 from app.models.instrument_identity import InstrumentProviderSymbol
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.services.etf_holdings import ensure_etf_profile
-from app.services.etf_holdings_refresh import bootstrap_etf_holdings_profile
+from app.services.etf_holdings_refresh import (
+    USABLE_HOLDINGS_COMPLETENESS,
+    bootstrap_etf_holdings_profile,
+)
 from app.services.instrument_mastering import ensure_instrument_type, register_provider_symbol
 from app.services.market_data import fetch_ohlcv
 from app.services.top_down_taxonomy import (
@@ -49,7 +52,6 @@ CORE_WORKSTATION_REGISTRY = "curated_workstation_registry_v1"
 # configurable, but this lower bound keeps readiness tied to the actual
 # technical contract rather than row existence.
 MIN_CORE_D1_BARS = 252
-USABLE_HOLDINGS_COMPLETENESS = frozenset({"complete", "filing_reconstructed"})
 
 _BENCHMARK_PROXY_NAMES = {
     str(mapping["symbol"]): f"{mapping.get('label') or symbol}"

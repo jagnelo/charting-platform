@@ -1,5 +1,17 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Incomplete holdings evidence must trigger a real retry
+
+The backend contract now distinguishes a visible partial/unknown holdings state from a ready
+locked-watchlist source all the way through the inner provider bootstrap. A latest snapshot is not
+considered ready until it has resolved members and an explicit complete/reconstructed status, so
+the source remains eligible for maintenance rather than silently reusing incomplete membership.
+
+Gap status remains `required_missing` for the exact V25 retry/progress geometry and copy. Interim
+oracle: holdings/bootstrap/worker tests `34/34`, ETF holdings integration `63/63`, and backend
+unit suite `1247/1247`. Evidence needed to close the visual gap: reviewed V25 captures showing
+partial snapshot, retrying provider, successful refresh, and failed/unavailable states.
+
 ## 2026-08-19 — Partial provider data must remain visibly retryable
 
 The board-guided product contract now treats a short D1 history or `partial`/`unknown` holdings

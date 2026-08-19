@@ -61,6 +61,21 @@ class ETFHoldingsBootstrapResult:
 SEC_FUND_TICKERS_URL = "https://www.sec.gov/files/company_tickers_mf.json"
 
 _BENCHMARK_FAMILY_ROLES = ("cap_weight", "equal_weight", "value", "growth")
+USABLE_HOLDINGS_COMPLETENESS = frozenset({"complete", "filing_reconstructed"})
+
+
+def holdings_snapshot_is_bootstrap_ready(snapshot: ETFHoldingsSnapshot | None) -> bool:
+    """Return whether a stored snapshot can suppress another provider attempt.
+
+    Presence alone is insufficient: partial/unknown snapshots are useful
+    coverage evidence but cannot make a locked source retry-ineligible.
+    """
+
+    return bool(
+        snapshot is not None
+        and getattr(snapshot, "completeness_status", None) in USABLE_HOLDINGS_COMPLETENESS
+        and int(getattr(snapshot, "resolved_count", 0) or 0) > 0
+    )
 
 
 @asynccontextmanager
@@ -818,7 +833,7 @@ async def bootstrap_etf_holdings_profile(
         include_holdings=True,
         include_controlled_fixture=False,
     )
-    if latest_snapshot is not None:
+    if holdings_snapshot_is_bootstrap_ready(latest_snapshot):
         # The public snapshot schema is intentionally read-only. Re-load the
         # ORM record here so existing issuer snapshots can receive missing SEC
         # classifications through the same bounded reconciliation path used by

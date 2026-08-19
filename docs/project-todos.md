@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-08-19 — Holdings bootstrap retries incomplete latest snapshots
+
+- [x] Make `bootstrap_etf_holdings_profile` use the same readiness rule as the core workstation
+      caller. A latest snapshot only suppresses a provider attempt when it is non-fixture,
+      resolved, and explicitly `complete` or `filing_reconstructed`; `partial`/`unknown` snapshots
+      remain evidence and are retried.
+- [x] Add the pure readiness matrix and a direct partial-snapshot retry regression. Focused
+      holdings/bootstrap/worker tests pass `34/34`; complete ETF holdings integration passes
+      `63/63`; full backend unit suite passes `1247/1247`; Ruff and compileall pass. Acceptance
+      flexibility used: **None**.
+- [ ] Provider route availability, complete all-eight family population, historical rebalance
+      continuity, canonical member-bar coverage, and exact V25 maintenance/progress visuals remain
+      open; this closes only the inner retry short-circuit.
+
 ### 2026-08-19 — Provider bootstrap no longer treats partial data as ready
 
 - [x] Tighten the opt-in core workstation bootstrap readiness gate. A persisted D1 row count
