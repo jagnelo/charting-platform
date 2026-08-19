@@ -8,10 +8,10 @@ locked role with missing local profile/holdings data is `pending`, while an unve
 nonexistent, without inventing membership or contacting providers interactively.
 
 Gap status: `required_missing` for exact V25 maintenance/progress wording, badges, and transition
-geometry. Interim oracle: family/bootstrap/holdings tests `25/25`, backend unit `1248/1248`, Ruff,
-compileall, and repository checks. Evidence needed: a reviewed V25 capture of a mapped family leg
-before and after holdings hydration, including pending, unavailable, retrying, and ready states.
-No visual threshold or mask was relaxed.
+geometry. Interim oracle: family/bootstrap/holdings tests `25/25`, admin history-refresh API `1/1`,
+backend unit `1248/1248`, Ruff, compileall, and repository checks. Evidence needed: a reviewed V25
+capture of a mapped family leg before and after holdings hydration, including pending, unavailable,
+retrying, and ready states. No visual threshold or mask was relaxed.
 
 ## 2026-08-19 — Pending locked-source followability is a visual-reference gap
 

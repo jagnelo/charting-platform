@@ -8,7 +8,8 @@
       members or calls providers during planning.
 - [x] Add unit coverage for pending and genuinely unavailable roles, retain deterministic member
       deduplication, and validate family/bootstrap/holdings tests `25/25` plus the full backend unit
-      suite `1248/1248`, Ruff, compileall, and repository checks. Acceptance flexibility: **None**.
+      suite `1248/1248`, the admin history-refresh API regression `1/1`, Ruff, compileall, and
+      repository checks. Acceptance flexibility: **None**.
 - [ ] Provider-backed snapshot population, member-bar coverage, historical rebalance continuity,
       and exact V25 maintenance/progress visuals remain open; this closes status propagation only.
 

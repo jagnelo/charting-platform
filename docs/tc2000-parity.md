@@ -7,10 +7,11 @@ state. A mapped role whose profile or holdings snapshot is not hydrated is repor
 so bootstrap/admin progress can continue to represent an existing locked watchlist; an unverified
 role remains `unavailable`. The planner remains provider-free and never fabricates constituent IDs.
 
-Focused family/bootstrap/holdings tests pass `25/25`; the full backend unit suite passes `1248/1248`;
-Ruff, compileall, and repository checks are green. This is a state-propagation correction, not
-proof of provider-backed holdings/history, complete eight-family population, rebalance continuity,
-or exact V25 maintenance visuals. No acceptance flexibility was used.
+Focused family/bootstrap/holdings tests pass `25/25`; the admin history-refresh API regression passes
+`1/1`; the full backend unit suite passes `1248/1248`; and Ruff, compileall, and repository checks
+are green. This is a state-propagation correction, not proof of provider-backed holdings/history,
+complete eight-family population, rebalance continuity, or exact V25 maintenance visuals. No
+acceptance flexibility was used.
 
 ## 2026-08-19 — Locked sources exist before their membership snapshot is hydrated
 
