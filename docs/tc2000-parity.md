@@ -1,5 +1,22 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Benchmark list exposes interchangeable family roots
+
+The default benchmark list now has a family selector. With no family selected it retains the
+Major US benchmarks/SPY surface; selecting a registered S&P 500/400/600/1500, Russell 1000/2000/
+3000, or Nasdaq 100 root loads that family’s own locked proxy-leg group and its own cap-weighted
+snapshot using the active timeframe. The list keeps the same virtualized rows, columns, linked
+selection, conditions, and Market Map handoff, while displaying the family name, official index,
+tradable cap proxy, loading, and error state. User-defined indicator/condition columns use the
+currently selected family rows rather than silently retaining the SPY root.
+
+Focused family-entry coverage is `95/95` across Market Map/workspace-store slices; full frontend
+Vitest is `896/896`; type-check/build and diff checks pass. This is a functional entry-point
+mapping, not exact V25 visual approval: family-picker geometry, represented loading/error states,
+and the full browser drill-down are still open board gaps. Provider-backed family population,
+historical continuity, and constituent-role completeness remain open; no fallback or acceptance
+flexibility was used.
+
 ## 2026-08-19 — Market Map uses one source-polymorphic heatmap with explicit source kinds
 
 The Market Map universe selector now groups every canonical source by kind: index/managed

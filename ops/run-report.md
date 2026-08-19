@@ -1,5 +1,17 @@
 # Run Report
 
+## 2026-08-19 — Benchmark list becomes an interchangeable family entry point
+
+- Added a persisted family selector to the authenticated benchmark list. The empty selection keeps
+  Major US benchmarks/SPY; a registered family selection loads its own locked proxy-leg group and
+  cap-weighted snapshot using the active timeframe and never substitutes SPY or another family.
+- Kept the existing virtualized rows, columns, linked selection, conditions, and canonical Market Map
+  handoff. Active-family indicator/condition evaluation now uses the selected family rows.
+- Validation: focused Market Map/workspace-store slices `95/95`; full frontend Vitest `896/896`;
+  type-check; production build; `git diff --check`. No acceptance flexibility or provider fallback.
+- Remaining gap: exact V25 family-picker geometry/copy, browser family drill-down, provider-backed
+  holdings completeness/history, and unavailable-role treatment still require evidence.
+
 ## 2026-08-19 — Market Map makes source kinds explicit while keeping one heatmap
 
 - Grouped the universal Market Map selector into index/managed, ETF-holdings, market-group,

@@ -1,5 +1,19 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Interchangeable family entry-point states remain visually unrepresented
+
+The benchmark list now switches between the default Major US benchmarks/SPY surface and each
+registered US family root. A selected root loads its own cap proxy and locked proxy-leg rows at the
+active timeframe, preserves the same columns/links/Map handoff, and discloses the official index,
+tradable proxy, loading, and error state.
+
+Gap status: `required_missing` for exact V25 family-selector placement, option naming/order,
+selected-family identity strip, loading/error geometry, and family-to-list transition. Interim
+oracle: family-entry focused contracts `95/95`, full frontend Vitest `896/896`, type-check/build,
+and diff checks. No visual threshold or mask was relaxed. Close with a board-authoritative family
+entry capture and browser interaction evidence across at least one S&P, one Russell, and Nasdaq
+root, including unavailable-role treatment.
+
 ## 2026-08-19 — Source-kind grouping and locked constituent semantics remain visually unrepresented
 
 The universal Market Map now groups source choices into index/managed universes, ETF holdings,

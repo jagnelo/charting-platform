@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-08-19 — Benchmark list is now an interchangeable family entry point
+
+- [x] Add a family selector to the authenticated benchmark-list surface. The default remains the
+      Major US benchmarks/SPY workflow, while every registered S&P/Russell/Nasdaq family can be
+      selected without leaving the workstation.
+- [x] Load the selected family’s own locked proxy-leg group and its own cap-weighted benchmark
+      snapshot at the active timeframe. Preserve the family’s official-index identity, cap proxy,
+      coverage/errors, and the same virtualized rows, columns, linking, and Market Map handoff.
+- [x] Keep user-defined columns/conditions on the active family rows and add a store regression
+      proving family group and cap-proxy snapshot requests remain family-specific. Focused family
+      entry coverage is `95/95` across the Market Map/workspace-store slices; full frontend gates
+      remain required before checkpoint.
+- [ ] This closes the family selection/entry gap only. It does not claim provider-backed holdings
+      completeness, historical continuity, family constituent drill-down, exact V25 family-picker
+      geometry, or browser acceptance; those remain explicit open gaps.
+
 ### 2026-08-19 — Market Map makes source-kind parity explicit
 
 - [x] Keep one universal heatmap for every canonical universe. The Market Map selector now groups

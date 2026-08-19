@@ -1,4 +1,30 @@
 tasks:
+  - id: tc2000-family-entry-selector-20260819
+    title: Make benchmark-list roots interchangeable across the US family matrix
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Add a family selector to the authenticated benchmark-list entry point while retaining the
+      default SPY workflow. Each selected S&P/Russell/Nasdaq family loads its own locked proxy-leg
+      group and cap-weighted snapshot at the active timeframe through the existing virtualized list.
+    definition_of_done:
+      - Preserve the Major US benchmarks/SPY default when no family is selected
+      - Select any registered family root without leaving the workstation
+      - Request the selected family group and its own cap proxy, never substituting SPY/another family
+      - Keep active-family rows, columns, conditions, linking, and Market Map source semantics aligned
+      - Record exact V25 family-picker and transition imagery as a tracked visual gap
+    validation:
+      - frontend-market-map-workspace-family-slices-95-of-95
+      - frontend-vitest-896-of-896
+      - frontend-type-check
+      - frontend-build
+      - git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. Browser family drill-down, provider-backed holdings
+        completeness/history, and exact V25 family-picker visuals remain open requirements.
+
   - id: tc2000-market-map-source-kind-grouping-20260819
     title: Make universal Market Map source kinds explicit
     status: completed

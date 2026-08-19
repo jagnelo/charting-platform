@@ -1,5 +1,21 @@
 # Active Handoff
 
+## 2026-08-19 — Benchmark list now selects interchangeable US family roots
+
+- Added `benchmark_family_key` to the benchmark-list surface. Empty remains the default Major US
+  benchmarks/SPY view; selecting a registered S&P 500/400/600/1500, Russell 1000/2000/3000, or
+  Nasdaq 100 family loads that family’s own `market-group:<family>` proxy-leg group and its own
+  cap-weighted snapshot at the active timeframe.
+- The selected family keeps the same virtualized rows, columns, conditions, linking, and Map action;
+  the identity strip now shows the family, official index, cap proxy, and family loading/error state.
+  User-authored columns/conditions use the active family rows rather than the SPY root.
+- Validation: focused Market Map/workspace-store slices `95/95`; full frontend Vitest `896/896`;
+  type-check; production build; diff check. A test fixture initially returned a group payload for a
+  snapshot request; it was corrected at the mock boundary and the unchanged focused rerun passed.
+- Acceptance flexibility: **None**. Exact V25 family-picker/identity/transition visuals, browser
+  family drill-down, provider-backed family population, and historical continuity remain open and
+  are tracked in the parity/reference-board records.
+
 ## 2026-08-19 — Market Map source kinds are explicit without splitting the heatmap
 
 - Market Map now groups the canonical source catalog into index/managed universes, ETF holdings,
