@@ -1,5 +1,20 @@
 # Active Handoff
 
+## 2026-08-19 — GraniteShares NVD public exposure API is repaired
+
+- The current GraniteShares NVD product page no longer exposes the workbook the adapter expected.
+  It does expose an official signed holdings API plus a product snapshot date. The adapter now
+  resolves that route, posts `{ticker: NVD, dataDate: <snapshot date>}`, and canonicalizes the
+  complete disclosed exposure as cash plus `NVDA` with `holding_type=derivative_swap`.
+- The source is not relabelled as an ordinary equity workbook: provenance includes issuer API,
+  composition/as-of date, complete disclosed exposure, and a coverage warning describing the swap.
+- Validation: GraniteShares-focused `3/3`, SEC/parser/adapter units `506/506`, live NVD `1/1`,
+  Ruff, compileall, and `git diff --check` pass. Acceptance flexibility: **None**.
+- Implementation/docs commit `4cbd5b7406ae35eefb96ff354bee68e7d4a16680` is pushed and synchronized;
+  the separate ops checkpoint is now being committed. Next provider context remains Lazard JPY;
+  family-wide membership/bar history, historical continuity, entitlement review, and exact V25
+  maintenance/fallback visuals remain open.
+
 ## 2026-08-19 — Next context: GraniteShares NVD route repair
 
 - The preceding SEC identity/MAGA/Calvert context is closed and synchronized at implementation/docs

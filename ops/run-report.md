@@ -1,5 +1,17 @@
 # Run Report
 
+## 2026-08-19 — GraniteShares NVD route uses official derivative exposure API
+
+- Replaced the stale workbook-only assumption with the official product snapshot + holdings API.
+  The route returns the complete disclosed cash/NVDA-swap exposure and preserves derivative type,
+  source, date, and warning metadata for the locked watchlist/Market Map.
+- Evidence: GraniteShares-focused unit `3/3`, SEC/parser/adapter units `506/506`, live NVD `1/1`,
+  Ruff, compileall, and `git diff --check`. Acceptance flexibility: **None**.
+- Remaining work is Lazard JPY and other provider routes, family-wide membership/bar history,
+  historical continuity, entitlement/terms review, and exact V25 maintenance/fallback visuals.
+  Implementation/docs commit `4cbd5b7406ae35eefb96ff354bee68e7d4a16680` is pushed and synchronized;
+  this operational record is the separate checkpoint.
+
 ## 2026-08-19 — Context transition to GraniteShares NVD repair
 
 - Previous SEC identity/MAGA/Calvert context is closed at implementation/docs `20fccb9d`, ops

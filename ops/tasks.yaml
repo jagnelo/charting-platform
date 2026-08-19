@@ -1,7 +1,7 @@
 tasks:
   - id: tc2000-graniteshares-nvd-route-repair-20260819
     title: Repair or classify GraniteShares NVD holdings route
-    status: in_progress
+    status: completed
     priority: high
     branch: feat/tc2000-frontend-rework
     scope: >-
@@ -15,9 +15,15 @@ tasks:
       - Completeness, identity, freshness, source, and failure provenance remain honest
       - Focused unit/live tests, lint/compile/diff checks pass
       - Remaining provider, family-history, and exact V25 visual gaps remain explicit
-    validation: []
+    validation:
+      - graniteshares-focused-unit-3-of-3
+      - sec-parser-adapter-unit-506-of-506
+      - opt-in-live-nvd-probe-1-of-1
+      - ruff-compileall-and-git-diff-check
     notes:
-      - Acceptance flexibility used: None planned; any provider limitation must remain visible and tracked.
+      - >-
+        Acceptance flexibility used: None. The route changed from a missing workbook to the
+        issuer's public exposure API; derivative nature and coverage warning remain explicit.
 
   - id: tc2000-sec-identity-maga-calvert-20260819
     title: Reject wrong SEC ETF series and recover reorganized MAGA
