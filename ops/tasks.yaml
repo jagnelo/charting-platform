@@ -1,4 +1,33 @@
 tasks:
+  - id: tc2000-board-seeded-four-environment-baseline-refresh-20260819
+    title: Synchronize seeded visual baselines across all four required display environments
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Refresh stale local screenshot expectations caused by the current seeded workstation's
+      canonical constituent/industry hydration, then rerun every unchanged board state across
+      1920x1080 and 2560x1440 at 100% and 125% display scale.
+    definition_of_done:
+      - Eighty stale PNG baselines are regenerated across the four visual projects
+      - Each unchanged project passes 26/26, 104/104 combined
+      - Existing 0.5% threshold, masks, overlap checks, and test interactions remain unchanged
+      - Docs classify the images as interim seeded product-state evidence rather than TC2000 captures
+      - Snapshot and operational changes are committed and pushed before the next context
+    validation:
+      - visual-1080p-100-26-of-26
+      - visual-1080p-125-26-of-26
+      - visual-1440p-100-26-of-26
+      - visual-1440p-125-26-of-26
+      - complete-visual-matrix-104-of-104
+      - git-diff-check
+    acceptance_flexibility: >-
+      Seeded fixture product-state evidence only for represented states; no exact V25 approval,
+      provider/history/entitlement gap closure, mask expansion, or threshold relaxation.
+    implementation_commit: 59eafcb3ae60c3082b80807d4b068dadafb4ee4f
+    remaining_gaps: >-
+      Exact V25 reference coverage, canonical provider population/history, broader promotion fan-out,
+      unrepresented states, and final functional/security/performance acceptance remain open.
   - id: tc2000-board-seeded-1080p-baseline-refresh-20260819
     title: Refresh stale seeded 1080p TC2000 board baselines after canonical-pane hydration
     status: completed

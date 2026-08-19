@@ -1,5 +1,21 @@
 # Active Handoff
 
+## 2026-08-19 — Complete four-environment seeded visual matrix context
+
+- Refreshed the remaining 80 stale deterministic PNG baselines: 22 at 1080p/125%, 18 at
+  1440p/100%, and 18 at 1440p/125%, in addition to the earlier 22 at 1080p/100%.
+- Unchanged visual suites pass `26/26` in each environment (`104/104` total). Existing 0.5%
+  thresholds, masks, and overlap assertions remain unchanged. The seeded stack was rebuilt,
+  migrated, and remains available only for this browser validation; stop it before handoff.
+- Acceptance flexibility: **seeded fixture product-state evidence only**. The 80 PNGs are not
+  TC2000 V25 captures and do not close exact V25 visual, provider-backed population/history,
+  entitlement, or final acceptance gaps.
+- Implementation/docs commit `59eafcb3ae60c3082b80807d4b068dadafb4ee4f` is pushed and matches
+  origin. The 80 PNGs are under the four `*visual-*-darwin.png` snapshot groups; only this
+  separate operational checkpoint remains before the next context.
+- Next context: continue canonical provider/history and remaining functional/security/performance
+  gates while preserving source-polymorphic locked-watchlist Market Map behavior.
+
 ## 2026-08-19 — Seeded 1080p board-baseline refresh context
 
 - Refreshed 22 deterministic `visual-1080p-100` PNG baselines after the current seeded fixture

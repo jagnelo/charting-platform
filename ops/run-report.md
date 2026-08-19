@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-19 — Complete four-environment seeded visual matrix refresh
+
+- Refreshed 80 stale seeded baselines across the four required display environments: 22 at
+  1080p/125%, 18 at 1440p/100%, 18 at 1440p/125%, plus the earlier 22 at 1080p/100%.
+- Unchanged projects pass `26/26` each (`104/104` combined). No source code, mask, overlap rule,
+  or 0.5% screenshot threshold changed.
+- Flexibility used and tracked: deterministic seeded product-state evidence for represented states
+  only. Exact TC2000 V25 approval, canonical provider population/history, entitlements, and
+  unrepresented interactions remain open.
+- Implementation/docs commit `59eafcb3ae60c3082b80807d4b068dadafb4ee4f` is pushed and synchronized.
+  After this separate operational checkpoint, stop the seeded stack and continue the open
+  backend/data and whole-goal acceptance work.
+
 ## 2026-08-19 — Seeded 1080p visual baseline maintenance
 
 - Refreshed 22 stale local board snapshots after seeded Market Map/workstation hydration changed
