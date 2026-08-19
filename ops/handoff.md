@@ -12,9 +12,11 @@
 - Acceptance flexibility: **seeded fixture product-state evidence only**. These PNGs are not
   TC2000 V25 captures and do not close exact V25 geometry/typography, provider-backed family
   population, point-in-time history, or 125%/1440p visual gaps.
-- Modified implementation artifacts are the 22 files under
+- Implementation/docs commit `d21152433381c1462a295ee623b47710e72e2789` is pushed and matches
+  origin. The 22 modified implementation artifacts are the files under
   `frontend/tests/e2e/tc2000_visual.spec.ts-snapshots/*visual-1080p-100-darwin.png`; docs and
-  operational records must be committed and pushed before the next context.
+  operational records still need this separate operational checkpoint commit before the next
+  context.
 - Next context: run the remaining visual projects, then continue canonical provider/history and
   broader Python promotion gaps while preserving the arbitrary locked-watchlist Market Map model.
 

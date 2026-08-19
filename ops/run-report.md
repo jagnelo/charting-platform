@@ -11,8 +11,9 @@
 - Flexibility used and documented: seeded fixture evidence is accepted for represented current
   states only. It is not exact V25 visual approval. Exact reference gaps, canonical provider
   population/history, and the remaining three visual projects remain open.
-- Next: commit/push the snapshots and records, stop the seeded stack, then run 125%/1440p projects
-  and continue the open backend/data and promotion gates.
+- Implementation/docs commit `d21152433381c1462a295ee623b47710e72e2789` is pushed and synchronized.
+  Next: commit/push this separate operational checkpoint, stop the seeded stack, then run
+  125%/1440p projects and continue the open backend/data and promotion gates.
 
 ## 2026-08-19 — Recursive Market Map and cross-tab publication repair
 

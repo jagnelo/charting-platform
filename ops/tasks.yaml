@@ -25,7 +25,7 @@ tasks:
     acceptance_flexibility: >-
       Seeded fixture product-state evidence only; this does not approve exact TC2000 V25 captures,
       provider-backed family population, point-in-time history, or the unrun 125%/1440p projects.
-    implementation_commit: pending
+    implementation_commit: d21152433381c1462a295ee623b47710e72e2789
     remaining_gaps: >-
       Exact V25 visual reference coverage, canonical provider population/history, broader Python
       promotion fan-out, and the remaining visual projects remain open.
