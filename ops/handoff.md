@@ -1,5 +1,26 @@
 # Active Handoff
 
+## 2026-08-19 — Family member-bar readiness exposed and verified
+
+- Added a provider-free `member_bar_history` payload to benchmark-family coverage. For each
+  selected holdings snapshot it batches canonical adjusted OHLCV rows for D1/W1/MN and reports
+  any-bar coverage separately from technical readiness at 252/52/24 bars. No provider fan-out or
+  membership substitution was introduced.
+- The workstation family coverage row now shows D1 covered/ready counts. Missing snapshots,
+  unresolved holdings, and no bars remain explicit state labels. The regression uses two members,
+  253 D1 bars total, and proves 2/2 covered but only 1/2 analysis-ready.
+- Validation: Workspaces integration `52/52`, Watchlists/Market Map `47/47`, backend units
+  `1258/1258`, frontend Vitest `915/915`, rebuilt authenticated Chromium
+  `F8s-breadth-family-ratio` `1/1`, `vue-tsc`, production build, Ruff, compileall, YAML/JSON
+  parse, and `git diff --check` pass. Acceptance flexibility: **None**. The first browser run
+  exposed a stale frontend container; the branch stack was rebuilt with `make test-stack-up`
+  (`E2E_SEED_INSTRUMENTS=true E2E_SEED_MARKET_DATA=true`) and the unchanged oracle passed.
+- Implementation/docs commit `5da2c0cd` is pushed and matches `origin/feat/tc2000-frontend-rework`;
+  this operational record is the enclosing checkpoint, to be verified after push. Remaining gaps
+  are provider-backed all-family population, complete point-in-time holdings/weights, complete
+  member-bar history, and exact V25 coverage-row geometry. Next context:
+  `tc2000-family-provider-population-remaining-20260819`.
+
 ## 2026-08-19 — Historical Market Map known-at boundary enforced
 
 - The universal source-polymorphic contract remains unchanged: an index/index-ETF constituent

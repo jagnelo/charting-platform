@@ -1,5 +1,22 @@
 # Run Report
 
+## 2026-08-19 — Family member-bar readiness exposed
+
+- Extended benchmark-family coverage with a single local batch query per selected holdings
+  snapshot for adjusted D1/W1/MN member bars. Responses now distinguish any-bar coverage from
+  technical readiness floors of 252/52/24 bars; the workstation displays the D1 distinction.
+- Integration regression: two resolved members, 253 D1 bars total, both covered but only one ready
+  for the 252-bar floor. No provider calls, membership fallback, or acceptance flexibility.
+- Validation: Workspaces `52/52`, Watchlists/Market Map `47/47`, backend units `1258/1258`,
+  frontend Vitest `915/915`, rebuilt authenticated Chromium `F8s-breadth-family-ratio` `1/1`,
+  `vue-tsc`, production build, Ruff, compileall, YAML/JSON parse, and diff check. The first
+  browser attempt used a stale frontend container; `make test-stack-up` rebuilt/recreated the
+  branch stack and the unchanged oracle then passed.
+- Remaining gaps: provider-backed all-family population, point-in-time holdings/weights, complete
+  member-bar history, and exact V25 coverage-row geometry. Implementation/docs commit `5da2c0cd`
+  is pushed; the operational record is the enclosing checkpoint and will be verified by the
+  post-push HEAD/origin comparison.
+
 ## 2026-08-19 — Historical Market Map knowledge boundary repaired
 
 - The universal heatmap/watchlist abstraction remains source-polymorphic: a platform-controlled

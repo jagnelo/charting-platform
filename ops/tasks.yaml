@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-family-member-bar-readiness-20260819
+    title: Expose canonical member-bar readiness for benchmark-family roles
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Extend the provider-free family coverage contract so every selected holdings snapshot
+      reports D1/W1/MN adjusted member-bar coverage and explicit technical-history readiness,
+      while preserving locked-watchlist, snapshot, as-of, and no-provider-fanout semantics.
+    definition_of_done:
+      - Family coverage reports any-bar and analysis-ready member counts per D1/W1/MN role timeframe
+      - A one-bar member cannot be presented as ready for 252-day/52-week/24-month analysis
+      - Missing snapshots, unresolved rows, and absent bars remain explicit status states
+      - Workstation family coverage displays D1 covered-versus-ready counts
+      - Focused, full affected backend/frontend, browser, lint, compile, type/build, and diff checks pass
+      - Provider-backed population, complete point-in-time holdings, and full member-bar history remain tracked gaps
+    validation:
+      - Workspaces integration 52-of-52
+      - Watchlists/Market Map integration 47-of-47
+      - backend unit suite 1258-of-1258
+      - frontend Vitest 915-of-915
+      - rebuilt authenticated Chromium F8s-breadth-family-ratio 1-of-1
+      - frontend type-check and production build
+      - Ruff, compileall, YAML/JSON parse, and git diff check
+    acceptance_flexibility: none
   - id: tc2000-market-map-known-at-boundary-20260819
     title: Prevent future-fetched profile snapshots from leaking into historical Market Maps
     status: completed
