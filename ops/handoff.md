@@ -1,27 +1,28 @@
 # Active Handoff
 
-## 2026-08-19 — Bounded dated family snapshot maintenance completed
+## 2026-08-19 — Bounded dated family snapshot fan-out completed
 
 - The universal source-polymorphic Market Map contract remains unchanged: index/ETF constituents
   are locked system-owned watchlists, while personal, combo, managed, sector, industry, ETF, and
   explicit sources use the same heatmap and downstream actions. `locked` governs membership edits,
   not visualization or follow/pin behavior.
-- Added an opt-in scheduled worker for completed month-end maintenance candidates. It refreshes all
-  configured family roots/roles through the existing canonical adapters, preserves per-leg
-  refreshed/unavailable/failed evidence, and queues canonical member history for refreshed snapshot
-  IDs. It never fans out providers from an interactive source or Market Map read and does not claim
-  an issuer's official rebalance cadence.
+- Added an opt-in scheduled orchestrator for completed month-end maintenance candidates. It fans out
+  deterministic one-family/one-date jobs with stable IDs; each unit refreshes configured roles
+  through the existing canonical adapters, preserves per-leg refreshed/unavailable/failed evidence,
+  and queues canonical member history for exact refreshed snapshot IDs. It never fans out providers
+  from an interactive source or Market Map read and does not claim an issuer's official rebalance
+  cadence.
 - Settings: `BENCHMARK_FAMILY_HOLDINGS_REFRESH_ENABLED=false` and bounded
-  `BENCHMARK_FAMILY_HOLDINGS_REFRESH_LOOKBACK_DATES=1` by default. Added date-helper, task, queue,
-  worker-registration, and disabled/enabled regressions.
-- Validation: focused maintenance tests `23/23`, full backend unit suite `1265/1265`, Ruff,
+  `BENCHMARK_FAMILY_HOLDINGS_REFRESH_LOOKBACK_DATES=1` by default. Added date-helper, fan-out,
+  per-unit worker, queue, worker-registration, and disabled/enabled regressions.
+- Validation: focused maintenance tests `25/25`, full backend unit suite `1267/1267`, Ruff,
   compileall, Docker Compose config, and `git diff --check` pass. Acceptance flexibility: **None**.
   This closes a maintenance-path gap but does not prove deployment-level provider hydration,
   complete point-in-time/rebalance continuity, member-bar completeness, entitlements, or exact V25
   maintenance visuals.
-- Implementation/docs commit `04d2a690907a190bd353e01f11dcb94ab263412e` and operational checkpoint
-  `347ee745f39311288ff307f86f4be2ed789e1e81` are pushed. Post-push verification confirms a clean
-  worktree and matching local/remote hashes. This context is closed. Next context: continue
+- Implementation/docs commit `9175fb779bfc095d871a2c60c102d64d93ed6488` is pushed. The operational
+  files in this context are now the only dirty changes and must be committed/pushed as the separate
+  checkpoint before the next context. Next context: continue
   provider-backed snapshot continuity and exact board-guided V25 gaps while preserving the single
   arbitrary-watchlist heatmap.
 

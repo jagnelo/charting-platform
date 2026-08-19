@@ -10,14 +10,14 @@ tasks:
       per-leg provider evidence, and queues canonical member history for refreshed snapshots.
     definition_of_done:
       - Completed month-end candidates are deterministic, bounded, and strictly before the current month
-      - Scheduled maintenance uses existing canonical adapters and does not fan out from UI/source reads
+      - Scheduled maintenance fans out deterministic one-family/one-date jobs using existing canonical adapters and does not fan out from UI/source reads
       - Refreshed, unavailable, failed, and queue-unavailable states remain explicit
       - Canonical member history is queued from exact refreshed snapshot IDs
       - Focused, full backend, lint, compile, compose-config, and diff validation pass
       - Deployment population, full historical continuity, entitlements, and exact V25 visuals remain explicit gaps
     validation:
-      - focused-maintenance-tests-23-of-23
-      - backend-unit-suite-1265-of-1265
+      - focused-maintenance-tests-25-of-25
+      - backend-unit-suite-1267-of-1267
       - Ruff, compileall, docker-compose-config, and git-diff-check
     acceptance_flexibility: none
   - id: tc2000-family-sec-backfill-priority-20260819
