@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-08-19 — GraniteShares NVD now uses its public exposure API
+
+- [x] Reproduce the current GraniteShares NVD page shape: the old workbook link is absent, but the
+      official page exposes a signed public holdings API and product snapshot endpoint.
+- [x] Parse the API's complete disclosed exposure (cash plus `NVDA SWAP`) into canonical rows,
+      preserving `derivative_swap` holding type, issuer/source/date provenance, and an explicit
+      warning that this is not an ordinary equity workbook.
+- [x] Keep the locked-watchlist contract usable without inventing constituents; the live route now
+      returns the issuer's actual NVDA swap exposure and passes the NVD live oracle `1/1`.
+- [x] Add unit coverage and verify GraniteShares-focused `3/3`, SEC/parser/adapter units `506/506`,
+      Ruff, compileall, and diff checks.
+- [ ] Continue Lazard JPY and remaining provider-family, historical-bar, entitlement, and exact V25
+      maintenance/fallback visual work; no acceptance threshold was relaxed.
+
 ### 2026-08-19 — Reject wrong SEC fund series and recover reorganized MAGA
 
 - [x] Add a namespace/table-tolerant SEC N-PORT identity extractor and require curated series/class

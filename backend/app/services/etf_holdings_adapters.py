@@ -41848,7 +41848,7 @@ class PacerHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
 
 class GraniteSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """Fetch GraniteShares' declared complete XLS/XLSX holdings disclosure."""
+    """Fetch GraniteShares' workbook or issuer-reported derivative exposure."""
 
     _PRODUCT_HOST = "graniteshares.com"
     PRODUCT_PAGE_SLUGS: dict[str, str] = {
@@ -41891,6 +41891,13 @@ class GraniteSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 base_url=page_url,
                 symbol=normalized_symbol,
             )
+            if not holdings_url:
+                return await self._fetch_public_holdings_api(
+                    symbol=normalized_symbol,
+                    issuer_product_id=issuer_product_id,
+                    page_html=page_response.text,
+                    page_url=page_url,
+                )
         if not self._is_native_holdings_url(holdings_url):
             raise ValueError(
                 f"GraniteShares product page did not expose a complete native holdings workbook for {normalized_symbol}."
@@ -41901,6 +41908,100 @@ class GraniteSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
             source_url=holdings_url,
             identifiers=identifiers,
             route_resolution="graniteshares_product_page_declared_holdings_workbook",
+        )
+
+    async def _fetch_public_holdings_api(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None,
+        page_html: str,
+        page_url: str,
+    ) -> HoldingsFetchResult:
+        api_url = self._holdings_api_url_from_page(page_html)
+        product_id = self._product_id_from_page(page_html)
+        if not api_url or not product_id:
+            raise ValueError(
+                f"GraniteShares product page did not expose a native workbook or holdings API for {symbol}."
+            )
+        snapshot_url = f"https://graniteshares.com/product/{product_id}/en-us/"
+        async with httpx.AsyncClient(
+            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
+        ) as client:
+            snapshot_response = await client.get(
+                snapshot_url,
+                headers=_issuer_page_request_headers(accept="application/json,*/*"),
+                follow_redirects=True,
+            )
+            snapshot_response.raise_for_status()
+            snapshot_payload = snapshot_response.json()
+            snapshot_data = snapshot_payload.get("Data") if isinstance(snapshot_payload, dict) else None
+            if isinstance(snapshot_data, str):
+                snapshot_data = json.loads(snapshot_data)
+            data_date = _clean(snapshot_data.get("NavDate")) if isinstance(snapshot_data, dict) else None
+            if not data_date:
+                raise ValueError(f"GraniteShares snapshot did not expose a holdings date for {symbol}.")
+            holdings_response = await client.post(
+                api_url,
+                headers=_issuer_page_request_headers(accept="application/json,*/*"),
+                json={"ticker": symbol, "dataDate": data_date[:10]},
+                follow_redirects=True,
+            )
+            holdings_response.raise_for_status()
+            payload = holdings_response.json()
+        if not isinstance(payload, list) or not payload:
+            raise ValueError(f"GraniteShares holdings API returned no rows for {symbol}.")
+
+        rows: list[CanonicalHoldingRow] = []
+        for position, item in enumerate(payload, start=1):
+            if not isinstance(item, dict):
+                raise ValueError(f"GraniteShares holdings API returned an invalid row for {symbol}.")
+            security = _clean(item.get("security"))
+            if not security:
+                continue
+            upper_security = security.upper()
+            is_cash = "DOLLAR" in upper_security or "CASH" in upper_security
+            raw_symbol = None if is_cash else upper_security.split()[0]
+            holding_type = "cash" if is_cash else "derivative_swap"
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=raw_symbol,
+                    name=security,
+                    weight=_decimal(item.get("weight")),
+                    shares=_decimal(item.get("share")),
+                    market_value=_decimal(item.get("value")),
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"{symbol}:{data_date[:10]}:{position}",
+                    extra_data={"derivative_exposure": not is_cash},
+                )
+            )
+        if not rows:
+            raise ValueError(f"GraniteShares holdings API returned no usable rows for {symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=holdings_response.text,
+            source_url=str(holdings_response.url),
+            source_identifier=issuer_product_id or product_id,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "json",
+                "route_resolution": "graniteshares_product_page_public_holdings_api",
+                "product_page_url": page_url,
+                "composition_date": data_date[:10],
+                "as_of_date": data_date[:10],
+                "source_quality": "issuer_reported_derivative_exposure",
+                "snapshot_provenance": "issuer_public_holdings_api",
+                "completeness_status": "complete",
+                "coverage_warning": (
+                    "GraniteShares reports NVD as cash plus NVDA swap exposure; this is a complete "
+                    "issuer exposure snapshot, not an ordinary equity holdings workbook."
+                ),
+                "terms_note": self.config.terms_note,
+            },
         )
 
     @classmethod
@@ -41926,6 +42027,20 @@ class GraniteSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
             if "holding" in path and symbol.lower() in path:
                 candidates.append(candidate)
         return sorted(candidates)[0] if candidates else None
+
+    @staticmethod
+    def _product_id_from_page(raw_html: str) -> str | None:
+        match = re.search(r"\bvar\s+PRODUCT_ID\s*=\s*(\d+)", raw_html)
+        return match.group(1) if match else None
+
+    @staticmethod
+    def _holdings_api_url_from_page(raw_html: str) -> str | None:
+        match = re.search(
+            r'var\s+HOLDINGS_URL\s*=\s*"([^"]+)"\s*\+\s*"([^"]+)"',
+            raw_html,
+            re.IGNORECASE,
+        )
+        return "".join(match.groups()) if match else None
 
     def resolve_product_page_url(
         self,

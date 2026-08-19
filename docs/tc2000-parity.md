@@ -1,5 +1,20 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — GraniteShares NVD is a derivative-exposure source, not a workbook
+
+GraniteShares' current NVD product page no longer exposes the workbook expected by the original
+adapter. It does expose a public issuer holdings endpoint keyed by the product snapshot date. The
+adapter now consumes that route, validates the snapshot date, and represents the disclosed rows as
+cash plus `NVDA` with `holding_type=derivative_swap`; it does not invent an equity holding or silently
+substitute the underlying security.
+
+The result remains a complete issuer exposure snapshot for the route, with a warning that it is not
+an ordinary equity holdings workbook. GraniteShares-focused tests pass `3/3`, SEC/parser/adapter
+units pass `506/506`, the live NVD probe passes `1/1`, and Ruff/compileall/diff checks pass. No
+acceptance flexibility was used. Remaining gaps are Lazard/other provider routes, family-wide
+membership/bar history, historical continuity, entitlement review, and exact V25 maintenance/
+fallback visuals.
+
 ## 2026-08-19 — SEC fallback now verifies the selected ETF identity
 
 SEC registrant CIKs can contain many unrelated ETF series. The fallback now extracts series/class

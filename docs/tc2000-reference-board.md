@@ -1,5 +1,16 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Derivative-backed ETF exposure needs a V25 visual oracle
+
+The NVD source now has a real provider-backed state in which the issuer reports cash and an NVDA
+swap rather than a conventional equity workbook. The Market Map can therefore use the same locked
+watchlist surface while displaying the source's derivative nature and coverage warning.
+
+Gap status: `required_missing` for exact V25 rendering of derivative/cash rows, exposure-type badges,
+coverage-warning copy, source-quality details, and how those rows appear in heatmap sizing/colour and
+constituent drill-down. Interim oracle: GraniteShares-focused tests `3/3`, SEC/parser/adapter units
+`506/506`, live NVD `1/1`, Ruff, compileall, and diff checks. No visual threshold or mask was relaxed.
+
 ## 2026-08-19 — Wrong-series and reorganization recovery states need V25 captures
 
 The backend now rejects an SEC filing when its series/class identity does not match the selected

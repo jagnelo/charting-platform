@@ -14596,6 +14596,56 @@ async def test_graniteshares_adapter_discovers_legacy_xls_holdings(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_graniteshares_adapter_uses_public_derivative_exposure_api(monkeypatch):
+    adapter = get_holdings_adapter("graniteshares")
+    assert adapter is not None
+    api_url = (
+        "https://knockoutv2.azurewebsites.net/api/ProductHoldings/triggers/"
+        "When_a_HTTP_request_is_received/invoke?api-version=2022-05-01"
+    )
+    page_html = f"""
+      <script>
+        var PRODUCT_ID = 1101;
+        var HOLDINGS_URL = "{api_url}" + "&sig=test";
+      </script>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page_html, content_type="text/html"),
+        FakeResponse(
+            text=json.dumps({"Data": json.dumps({"NavDate": "2026-08-18T00:00:00"})}),
+            content_type="application/json",
+            url="https://graniteshares.com/product/1101/en-us/",
+        ),
+        FakeResponse(
+            text=json.dumps(
+                [
+                    {"security": "US Dollars", "share": "10", "value": "10", "weight": 1},
+                    {"security": "NVDA SWAP", "share": "-2", "value": "-20", "weight": -2},
+                ]
+            ),
+            content_type="application/json",
+            url=api_url + "&sig=test",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="NVD")
+
+    assert [row.symbol for row in result.rows] == [None, "NVDA"]
+    assert result.rows[1].holding_type == "derivative_swap"
+    assert result.rows[1].market_value == Decimal("-20")
+    assert result.legal_metadata["route_resolution"] == (
+        "graniteshares_product_page_public_holdings_api"
+    )
+    assert result.legal_metadata["completeness_status"] == "complete"
+    assert FakeAsyncClient.requested[2][1]["json"] == {
+        "ticker": "NVD",
+        "dataDate": "2026-08-18",
+    }
+
+
+@pytest.mark.asyncio
 async def test_schwab_adapter_discovers_only_its_fund_scoped_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("schwab")
     assert adapter is not None
