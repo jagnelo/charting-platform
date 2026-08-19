@@ -3339,6 +3339,19 @@ async def benchmark_family_coverage(
                     message=f"No canonical instrument is available for {family_key} {role}.",
                 )
             )
+        elif profile is None:
+            # The canonical identity can exist before the ETF profile/holdings
+            # route hydrates. Keep this role visible as pending, matching the
+            # universal WatchlistSource contract, instead of collapsing it into
+            # an apparently missing snapshot.
+            status = "profile_not_loaded"
+            exclusions.append(
+                AnalysisWarning(
+                    code="family_role_profile_unavailable",
+                    message=f"No ETF profile is loaded for {family_key} {role}; holdings remain pending.",
+                    instrument_id=instrument.id,
+                )
+            )
         else:
             statement = holdings_snapshot_source_filter(
                 select(ETFHoldingsSnapshot)

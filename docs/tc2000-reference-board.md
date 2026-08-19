@@ -1,5 +1,19 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Family coverage pending-profile state remains a visual gap
+
+The family coverage/maintenance contract now distinguishes three lifecycle states: missing
+canonical mapping (`mapping_unavailable`), canonical identity awaiting ETF profile hydration
+(`profile_not_loaded`), and a loaded profile awaiting dated holdings (`no_snapshot`). The same
+state is used by the locked universal source picker and Market Map, so an existing constituent
+watchlist is never presented as nonexistent.
+
+Gap status: `required_missing` for exact V25 coverage-panel status badges, warning copy, loading
+transitions, and relationship to the source picker. Interim oracle: focused coverage regression
+`2/2`, workspace integration `50/50`, backend unit `1248/1248`, and explicit source provenance.
+Evidence needed: reviewed V25 captures of mapped/unmapped, profile-pending, holdings-pending,
+ready, retrying, and failed family-role states. No visual threshold or mask was relaxed.
+
 ## 2026-08-19 — Arbitrary canonical ETF pending source remains a visual gap
 
 Canonical active ETFs without a hydrated ETF profile now appear in the same universal Market Map

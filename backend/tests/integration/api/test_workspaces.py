@@ -588,6 +588,40 @@ class TestWorkspaces:
         assert historical.json()["universe_provenance"]["point_in_time"] is True
         assert historical.json()["universe_provenance"]["continuity_policy"] == "observed_snapshot_intervals_gt_45_days"
 
+    def test_benchmark_family_coverage_marks_canonical_role_without_profile_as_pending(
+        self, client, auth_headers, db, instrument_type
+    ):
+        from app.models.instrument import Instrument
+
+        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
+        assert seeded.status_code == 200
+        db.add(
+            Instrument(
+                symbol="SPYV",
+                name="S&P 500 value proxy without profile",
+                currency="USD",
+                instrument_type_id=instrument_type.id,
+                is_active=True,
+                is_synthetic=False,
+            )
+        )
+        db.flush()
+
+        response = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/coverage",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200, response.text
+        value_role = next(role for role in response.json()["roles"] if role["role"] == "value")
+        assert value_role["symbol"] == "SPYV"
+        assert value_role["available"] is True
+        assert value_role["status"] == "profile_not_loaded"
+        assert value_role["snapshots"] == []
+        assert any(
+            warning["code"] == "family_role_profile_unavailable"
+            for warning in response.json()["exclusions"]
+        )
+
     def test_benchmark_family_constituent_route_preserves_leg_and_proxy_errors(
         self, client, auth_headers, db, instrument, instrument_type, ohlcv_bars
     ):

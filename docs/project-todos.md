@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-08-19 — Family coverage preserves pending canonical roles without profiles
+
+- [x] Align `/analysis/benchmark-families/{family_key}/coverage` with the universal locked-source
+      state model. A mapped canonical ETF identity with no `ETFProfile` is now `profile_not_loaded`
+      (pending), not `no_snapshot`; a missing canonical identity remains `mapping_unavailable`, and
+      a hydrated role with no dated holdings remains `no_snapshot`.
+- [x] Preserve role identity, availability, provenance, and exact warning semantics without provider
+      calls or proxy substitution. Add the pending-profile regression and run focused coverage `2/2`,
+      workspace integration `50/50`, backend unit `1248/1248`, Ruff, compileall, and repository
+      checks. Acceptance flexibility used: **None**.
+- [ ] Provider-backed profile/holdings population, member-bar coverage, historical continuity, full
+      family-role view/reuse acceptance, and exact V25 maintenance/source-state visuals remain open.
+
 ### 2026-08-19 — Every canonical ETF is a pending-capable locked heatmap/watchlist source
 
 - [x] Extend the universal `WatchlistSource` catalog beyond hydrated ETF profiles. Any active,

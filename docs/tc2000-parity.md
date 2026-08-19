@@ -1,5 +1,19 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Family coverage uses the same pending state as locked source selection
+
+The benchmark-family coverage endpoint now preserves the source lifecycle for mapped roles. A
+canonical role identity without an ETF profile is reported as `profile_not_loaded` with an explicit
+pending warning; a canonical role with a profile but no dated holdings remains `no_snapshot`; and a
+role with no canonical identity remains `mapping_unavailable`. This prevents the coverage panel,
+maintenance planner, and universal Market Map selector from disagreeing about whether a locked
+constituent watchlist exists.
+
+Focused coverage tests pass `2/2`, the complete workspace integration suite `50/50`, and backend
+unit suite `1248/1248`; Ruff and compileall pass. This closes state semantics only, not provider
+population, member-bar history, rebalance continuity, all-family view/reuse acceptance, or exact V25
+maintenance visuals. Acceptance flexibility used: **None**.
+
 ## 2026-08-19 — Arbitrary canonical ETFs share the locked universal heatmap contract
 
 The source catalog now exposes every active canonical ETF as a locked `etf-holdings:<SYMBOL>`
