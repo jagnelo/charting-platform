@@ -1,4 +1,31 @@
 tasks:
+  - id: tc2000-invesco-qqq-sec-fallback-20260819
+    title: Repair Invesco current-route fallback identity
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Repair the observed free-source provider failure where Invesco's current QQQ catalog/CUSIP
+      holdings route returned HTTP 500 and the SEC fallback could not run for legacy/direct callers
+      that omitted SEC identifiers. Reuse only verified canonical route metadata, preserve provenance,
+      and keep ticker/name text from becoming an identity source.
+    definition_of_done:
+      - Curated SEC identifiers are copied only when the caller omitted them
+      - Caller identifiers remain authoritative and unknown symbols receive no guessed CIK
+      - Issuer failure and SEC fallback are retained in legal provenance
+      - A regression covers a real HTTP 500 after catalog resolution
+      - Invesco adapter unit tests, lint/compile checks, and the opt-in live QQQ probe pass
+      - Remaining provider-family, historical, entitlement, and exact V25 visual gaps remain explicit
+    validation:
+      - invesco-adapter-unit-494-of-494
+      - opt-in-live-qqq-probe-1-of-1
+      - ruff-compileall-and-git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. This is a bounded provider repair. The live probe
+        confirmed the route failure and confirmed SEC EDGAR recovery; it does not establish
+        all-provider or all-family completeness.
+
   - id: tc2000-market-map-arbitrary-etf-bootstrap-20260819
     title: Add arbitrary ETF sources from the universal Market Map
     status: completed

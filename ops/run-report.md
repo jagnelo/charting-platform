@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-19 — Invesco current-route failure now falls back with curated SEC identity
+
+- Added a narrowly scoped Invesco fallback identity helper. When the current catalog/CUSIP route
+  fails, only canonical SEC aliases are copied into the fallback request; explicit caller values
+  remain authoritative and unknown symbols stay unresolved.
+- The regression simulates catalog resolution followed by HTTP 500 and asserts QQQ CIK
+  `0001067839` reaches SEC fallback. Invesco adapter unit suite: `494/494`; opt-in live QQQ probe:
+  `1/1` after the real Invesco route failed and SEC EDGAR recovered; Ruff, compileall, and diff
+  checks pass.
+- No acceptance flexibility, visual threshold, mask, provider substitution, or interactive fan-out
+  was introduced. Exact V25 maintenance/fallback visuals, broader provider coverage, all-family
+  population, canonical bars, and historical continuity remain open.
+- Implementation/docs commit `0e70b339` is pushed; operational state checkpoint follows.
+
 ## 2026-08-19 — Explicit arbitrary-ETF bootstrap enters the universal Market Map
 
 - Added a user-triggered `Load ETF` control. It invokes the existing canonical ETF bootstrap route,

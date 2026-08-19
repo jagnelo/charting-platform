@@ -1,5 +1,23 @@
 # Active Handoff
 
+## 2026-08-19 — Invesco QQQ fallback now recovers through SEC EDGAR
+
+- The observed live Invesco QQQ current CUSIP holdings route returned HTTP 500. The adapter now
+  completes SEC fallback identifiers from verified canonical QQQ metadata (`0001067839`, series,
+  class, and SEC fund ticker) when a legacy/direct caller omitted them. Caller-supplied identity is
+  preserved and unknown symbols are never inferred from ticker/name text.
+- Issuer-route failure and `sec_edgar_filing` fallback remain in legal provenance. The fix is
+  provider-neutral at the frontend boundary and keeps the locked ETF source usable through a free
+  fallback without adding ordinary-request provider fan-out.
+- Validation: Invesco adapter `494/494`, opt-in live QQQ probe `1/1`, Ruff, compileall, and
+  `git diff --check` pass. Acceptance flexibility: **None**.
+- Implementation/docs commit `0e70b339` is pushed and synchronized. Operational checkpoint is
+  pending. Remaining gaps: other provider routes, all-eight family population, canonical member
+  bars, historical rebalance continuity, entitlement/terms review, and exact V25 maintenance/
+  fallback-state visuals.
+- Next context: continue provider-family population and repair remaining adapter failures; do not
+  treat this single route repair as goal completion.
+
 ## 2026-08-19 — Market Map can explicitly add an arbitrary ETF source
 
 - Added an explicit `ETF universe` / `Load ETF` action beside the universal Market Map selector.
