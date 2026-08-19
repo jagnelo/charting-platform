@@ -13,9 +13,10 @@
 - Exact V25 group labels, gutters, density, text scaling, hover treatment, and arbitrary-watchlist
   root/drill-down composition remain reference-board gaps. Provider-backed membership/bar
   completeness remains open under the parent performance-map task.
-- Implementation/docs commit is pushed and synchronized; the operational checkpoint and final close
-  record are the next required writes. Next context remains provider-backed family/source population
-  and remaining V25 visual/reference gaps.
+- Implementation/docs commit `e9993c428c43b0a092def5a1075e8341e590c1d2` and operational checkpoint
+  `f0b8bd2e250bec790e4619518589726105008276` are pushed and synchronized. This context is closed;
+  next context remains provider-backed family/source population and remaining V25 visual/reference
+  gaps.
 
 ## 2026-08-19 — Arbitrary Market Maps now preserve group hierarchy
 
