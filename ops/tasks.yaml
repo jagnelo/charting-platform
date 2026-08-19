@@ -1,4 +1,35 @@
 tasks:
+  - id: tc2000-holdings-bootstrap-retry-20260819
+    title: Retry incomplete latest ETF holdings snapshots
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Ensure the inner ETF holdings bootstrap does not short-circuit on a partial or unknown
+      latest snapshot after the outer core-workstation readiness gate decides maintenance is still
+      required.
+    definition_of_done:
+      - A stored holdings snapshot suppresses provider work only with resolved members and complete/reconstructed status
+      - Partial/unknown/zero-resolved snapshots enter the issuer/SEC retry path
+      - Readiness helper and direct retry regressions pass with existing public snapshot compatibility
+      - Full ETF holdings integration, backend unit, lint, compile, docs, and diff checks pass
+      - Provider route, family population, rebalance, canonical bars, and V25 visual gaps remain explicit
+    validation:
+      - holdings-bootstrap-worker-unit-34-of-34
+      - etf-holdings-integration-63-of-63
+      - backend-unit-1247-of-1247
+      - backend-ruff-and-compileall
+      - docs-yaml-json-and-git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. This closes the inner retry short-circuit only and does
+        not claim live provider completeness, all-eight family population, historical rebalance
+        continuity, canonical member bars, or exact Version 25 maintenance visuals.
+      - >-
+        Implementation/docs commit `7374f4ab70abc07068ada30f0867a3e825c79bee` is pushed and the
+        branch is synchronized. The separate operational checkpoint must be committed and pushed
+        before the next implementation context.
+
   - id: tc2000-provider-bootstrap-readiness-20260819
     title: Keep partial provider data retryable during core workstation bootstrap
     status: completed

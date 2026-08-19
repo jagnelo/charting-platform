@@ -1,5 +1,22 @@
 # Active Handoff
 
+## 2026-08-19 — Incomplete holdings snapshots trigger a real provider retry
+
+- Closed the inner readiness defect found during the provider-population audit. The core bootstrap
+  already rejected partial snapshots, but `bootstrap_etf_holdings_profile` still returned success
+  for any latest snapshot. It now suppresses provider work only for resolved `complete` or
+  `filing_reconstructed` snapshots; partial/unknown/zero-resolved data enters the real issuer/SEC
+  retry path.
+- Validation: holdings/bootstrap/worker `34/34`; complete ETF holdings integration `63/63`;
+  full backend unit `1247/1247`; Ruff; compileall; docs parsing; and diff checks are green.
+- Acceptance flexibility: **None**. Provider route availability, all-eight family population,
+  historical rebalance continuity, canonical member-bar coverage, and exact V25 maintenance/
+  progress visuals remain open.
+- Implementation/docs commit `7374f4ab70abc07068ada30f0867a3e825c79bee` is pushed and synchronized.
+  Only the separate operational checkpoint remains before context closure.
+- Next context after closure: provider-backed saved-source/family population and continuity, then
+  the next parity gap, from a clean synchronized branch.
+
 ## 2026-08-19 — Provider bootstrap keeps partial data retryable
 
 - Fixed the opt-in core workstation provider bootstrap's false-ready gates. A symbol now needs at

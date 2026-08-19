@@ -1,5 +1,17 @@
 # Run Report
 
+## 2026-08-19 — Holdings bootstrap retries incomplete latest snapshots
+
+- Changed `bootstrap_etf_holdings_profile` so a latest snapshot is a successful reuse only when it
+  has resolved members and `complete`/`filing_reconstructed` completeness. Partial/unknown/empty
+  evidence now reaches the actual provider/SEC retry path instead of returning a false success.
+- Evidence: focused holdings/bootstrap/worker `34/34`; complete ETF holdings integration `63/63`
+  (Docker-backed, 127.95s); full backend unit `1247/1247`; Ruff; compileall; and `git diff --check`.
+  No acceptance flexibility or visual threshold/mask changed.
+- Implementation/docs commit `7374f4ab70abc07068ada30f0867a3e825c79bee` is pushed and synchronized.
+  The separate operational checkpoint is pending; no next context begins until it is pushed and
+  the worktree is clean.
+
 ## 2026-08-19 — Provider bootstrap does not suppress partial data retries
 
 - Changed `workstation_bootstrap` readiness: fewer than `252` adjusted D1 bars is retryable, and
