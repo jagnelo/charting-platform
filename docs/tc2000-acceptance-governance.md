@@ -5,14 +5,16 @@
 The functional oracle now includes authenticated Chromium coverage (`F8s-market-map-watchlist`,
 `1/1`) for a locked index/benchmark-style source and an editable personal source using one Market
 Map request/renderer. Public issuer/SEC route probes pass `32/32` for mapped issuer-direct legs and
-`10/10` for QQQE plus dated fallback cases. Frontend type-check, Vitest `900/900`, build, and
-diff-check pass.
+`10/10` for QQQE plus dated fallback cases. The complete 406-case adapter sweep is `398 passed,
+1 skipped, 7 failed` on isolated non-core external endpoints; these remain explicit adapter-quality
+gaps. Frontend type-check, Vitest `900/900`, build, and diff-check pass.
 
 This evidence does not approve exact V25 pixels and does not prove database ingestion or historical
 truth. Exact source-picker geometry, all-root population/member bars, point-in-time rebalance
 continuity, and family-role browser drill-down remain explicit open criteria. Acceptance
 flexibility used: **None**; no visual threshold, mask, provider requirement, or source semantics
-were relaxed.
+were relaxed. Mapped-family route evidence is positive but bounded; it does not make the full
+provider adapter suite green or prove all-root database population.
 
 ## 2026-08-19 — One heatmap oracle for arbitrary and locked watchlists
 

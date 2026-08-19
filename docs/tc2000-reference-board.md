@@ -5,7 +5,9 @@
 The new authenticated Chromium flow (`F8s-market-map-watchlist`, `1/1`) is now the functional
 interim oracle for the represented behavior: locked index/ETF-style constituent sources and
 editable personal lists share one heatmap, with source identity preserved on refresh. Public
-issuer/SEC route probes add `32/32` issuer-direct and `10/10` fallback evidence. These artifacts
+issuer/SEC route probes add `32/32` issuer-direct and `10/10` fallback evidence. The complete
+adapter sweep remains `398 passed, 1 skipped, 7 failed` on unrelated non-core issuer endpoints;
+that is recorded as provider evidence, not silently treated as a product pass. These artifacts
 help iterate the product but are not visual references and cannot approve pixel parity.
 
 The exact Version 25 source-picker composition, lock/follow/pin treatment, and list-to-map

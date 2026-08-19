@@ -17,15 +17,17 @@ tasks:
       - authenticated-chromium-F8s-market-map-watchlist-1-of-1
       - live-issuer-direct-holdings-routes-32-of-32
       - live-fallback-holdings-routes-10-of-10
+      - complete-live-etf-adapter-sweep-398-passed-1-skipped-7-failed
       - frontend-vitest-900-of-900
       - frontend-type-check
       - frontend-build
       - git-diff-check
     notes:
       - >-
-        Acceptance flexibility used: None. Live probes validate public route parsing only; they do
-        not claim full database population, canonical member bars, point-in-time rebalance continuity,
-        or exact Version 25 visual approval.
+        Acceptance flexibility used: None. Mapped-family probes validate public route parsing only;
+        the complete sweep's seven non-core endpoint failures remain explicit adapter-quality gaps.
+        None of this claims full database population, canonical member bars, point-in-time rebalance
+        continuity, or exact Version 25 visual approval.
 
   - id: tc2000-universal-market-map-watchlists-20260819
     title: Verify one Market Map contract for arbitrary and locked watchlists

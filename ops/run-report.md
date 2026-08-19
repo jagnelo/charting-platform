@@ -6,11 +6,13 @@
   index/benchmark-style constituent source and an editable personal source use one Market Map
   workflow and preserve the canonical source on refresh.
 - Opt-in live public holdings probes pass `32/32` issuer-direct mapped family routes and `10/10`
-  QQQE plus dated iShares/QQQ SEC fallback cases. Frontend Vitest `900/900`, type-check, build,
-  and diff-check pass. Browser coverage is committed in `0a7569f9`.
+  QQQE plus dated iShares/QQQ SEC fallback cases. The complete 406-case adapter sweep is
+  `398 passed, 1 skipped, 7 failed` on isolated non-core issuer endpoints (NVD, MAGA, JPY, SFY,
+  TSCV, CVLC, DFTT); these remain explicit adapter-quality gaps. Frontend Vitest `900/900`,
+  type-check, build, and diff-check pass. Browser coverage is committed in `0a7569f9`.
 - Acceptance flexibility: **None**. Exact V25 picker imagery, all-root database ingestion,
-  canonical member bars, point-in-time rebalance continuity, and family-role browser drill-down
-  remain open.
+  canonical member bars, point-in-time rebalance continuity, family-role browser drill-down, and
+  repair or explicit unavailable-state handling for the seven failed routes remain open.
 
 ## 2026-08-19 — Universal Market Map source contract
 

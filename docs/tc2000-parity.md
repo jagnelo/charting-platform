@@ -10,10 +10,13 @@ canonical source ID, and refresh renders the returned cells (`F8s-market-map-wat
 
 Opt-in public data probes also pass for the currently mapped role routes: issuer-direct SPDR/
 iShares/Invesco retrieval `32/32`, and QQQE plus historical SEC/iShares/QQQ fallback cases `10/10`.
-Frontend type-check, Vitest `900/900`, production build, and diff-check pass. Acceptance
-flexibility used: **None**. Remaining parity/data gaps are exact V25 source-picker geometry,
-all-root database population, canonical member-bar ingestion, point-in-time holdings/rebalance
-continuity, and browser family-role drill-down; these cannot be inferred from route probes.
+The complete 406-case adapter sweep is `398 passed, 1 skipped, 7 failed`; the seven failures are
+isolated non-core issuer endpoints (NVD, MAGA, JPY, SFY, TSCV, CVLC, and DFTT) and remain explicit
+adapter-quality/unavailable-source gaps. Frontend type-check, Vitest `900/900`, production build,
+and diff-check pass. Acceptance flexibility used: **None**. Remaining parity/data gaps are exact
+V25 source-picker geometry, all-root database population, canonical member-bar ingestion,
+point-in-time holdings/rebalance continuity, browser family-role drill-down, and resolution of
+those seven route failures; none can be inferred from route parsing alone.
 
 ## 2026-08-19 — Arbitrary watchlists and index/ETF constituents share one Map surface
 

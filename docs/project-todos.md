@@ -8,13 +8,18 @@
       rendered cells (`F8s-market-map-watchlist`, `1/1`).
 - [x] Run opt-in public issuer/SEC holdings probes for the mapped S&P/Russell/Nasdaq role legs:
       issuer-direct routes pass `32/32`; QQQE/current and historical SEC fallbacks plus dated
-      iShares/QQQ snapshots pass `10/10`.
+      iShares/QQQ snapshots pass `10/10`. A complete 406-case adapter sweep also produced
+      `398 passed, 1 skipped, 7 failed`; the failures are isolated non-core routes (GraniteShares
+      NVD, Point Bridge MAGA, Lazard JPY, SoFi SFY DNS, Thrivent TSCV 403, Calvert CVLC under-
+      disclosed rows, and Donoghue Forlines 503) and remain tracked adapter-quality gaps.
 - [x] Re-run frontend type-check, full Vitest (`900/900`), production build, and diff-check;
       commit `0a7569f9` contains the browser acceptance coverage.
 - [ ] The browser test is a functional oracle, not exact V25 visual approval. Exact source-picker
       geometry, provider-backed database population for every root, canonical member bars,
       point-in-time rebalance continuity, and family-role browser drill-down remain open and
-      must stay visible in parity/reference-board tracking. Acceptance flexibility used: **none**.
+      must stay visible in parity/reference-board tracking. The complete adapter sweep remains
+      non-green until those seven external route failures are repaired or explicitly represented
+      as unavailable-capability states. Acceptance flexibility used: **none**.
 
 ### 2026-08-19 — Universal Market Map treats every source as a TC2000-style watchlist
 
