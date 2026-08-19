@@ -1,5 +1,21 @@
 # Run Report
 
+## 2026-08-19 — Family bootstrap coverage guard and live route audit
+
+- The complete opt-in direct ETF holdings selection for the configured family proxy routes ran
+  with `342 passed, 1 skipped, 63 deselected`. This verifies concrete free issuer/SEC route
+  behavior for the family matrix, but is not a claim that every deployment has already hydrated
+  all dated snapshots or member bars.
+- Added a bootstrap regression deriving expected symbols from the canonical family registry and
+  asserting every configured family proxy is attempted by holdings hydration and represented in the
+  result. This protects the universal locked-watchlist source from silent registry omissions.
+- Validation: workstation bootstrap `7/7`, backend unit suite `1259/1259`, live family matrix
+  `342 passed / 1 skipped`, Ruff, compileall, and `git diff --check`. Acceptance flexibility:
+  **None**.
+- Remaining gaps: deployment-level snapshot population, point-in-time weights and rebalance
+  continuity, complete canonical member-bar history, entitlement/terms review, and exact V25
+  maintenance/partial-state visuals.
+
 ## 2026-08-19 — Family member-bar readiness exposed
 
 - Extended benchmark-family coverage with a single local batch query per selected holdings

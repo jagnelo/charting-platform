@@ -1,4 +1,25 @@
 tasks:
+  - id: tc2000-family-bootstrap-coverage-guard-20260819
+    title: Guard bootstrap coverage for every configured benchmark-family proxy
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Verify that the provider-backed core workstation bootstrap attempts every configured
+      S&P/Russell/Nasdaq family proxy role, while retaining the universal locked-watchlist/Market
+      Map contract and never fabricating a missing member universe.
+    definition_of_done:
+      - The bootstrap regression derives expected family symbols from the canonical registry
+      - Every configured family proxy is attempted by holdings hydration and represented in the result
+      - The direct free issuer/SEC family route matrix is exercised as opt-in live evidence
+      - No provider fan-out is added to ordinary Market Map or source-catalog reads
+      - Remaining point-in-time membership/weight, member-bar, entitlement, and exact V25 visual gaps remain explicit
+    validation:
+      - workstation-bootstrap-unit-7-of-7
+      - backend-unit-suite-1259-of-1259
+      - direct-family-provider-matrix-342-passed-1-skipped
+      - Ruff, compileall, and git diff check
+    acceptance_flexibility: none
   - id: tc2000-family-member-bar-readiness-20260819
     title: Expose canonical member-bar readiness for benchmark-family roles
     status: completed

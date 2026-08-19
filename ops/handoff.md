@@ -1,5 +1,26 @@
 # Active Handoff
 
+## 2026-08-19 — Family bootstrap coverage guard and live route audit
+
+- Audited the direct free-source family route matrix with the opt-in live holdings suite. The
+  configured family proxy legs (S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq-100
+  cap/equal/style mappings where configured) are covered by concrete issuer/SEC route tests:
+  `342 passed, 1 skipped, 63 unrelated deselected`.
+- Added `test_core_bootstrap_attempts_every_configured_family_proxy_role`. It derives expected
+  symbols from `benchmark_family_proxy_symbols()` and proves the provider bootstrap attempts and
+  returns a status for each configured family proxy, preventing a future registry/bootstrapping
+  omission. It uses controlled provider stubs and does not fabricate membership.
+- Validation: workstation bootstrap `7/7`, backend unit suite `1259/1259`, opt-in direct family
+  provider matrix `342/343` executed with one known skip, Ruff, compileall, and `git diff --check`.
+  Acceptance flexibility: **None**. The live route result does not prove that a deployment has
+  complete current or historical holdings snapshots, point-in-time weights, or member bars; those
+  remain tracked product gaps.
+- Implementation commit `82863eed` is pushed and matches `origin/feat/tc2000-frontend-rework`.
+  The operational files in this context are the only remaining dirty changes and must be committed
+  as a separate checkpoint before starting the next context. Next context: inspect/repair
+  deployment-level family snapshot population and historical rebalance continuity; do not add a
+  provider-specific heatmap path.
+
 ## 2026-08-19 — Family member-bar readiness exposed and verified
 
 - Added a provider-free `member_bar_history` payload to benchmark-family coverage. For each
