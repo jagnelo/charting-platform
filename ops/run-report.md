@@ -1,5 +1,17 @@
 # Run Report
 
+## 2026-08-19 — SoFi SFY primary route repaired and fallback coverage bounded
+
+- Corrected the stale SoFi CloudFront hostname to the current official linked `aqfv4` artifact.
+  The real SFY route now passes the `>=300` holdings oracle. Added canonical SEC identity and
+  fallback for issuer/WAF failure; a short SEC reconstruction is marked `partial` rather than
+  being treated as a complete universe.
+- Evidence: adapter/taxonomy units `507/507`; focused SoFi/Invesco `8/8`; opt-in live SFY `1/1`;
+  Ruff, compileall, and `git diff --check` pass. No acceptance flexibility, visual threshold,
+  mask, provider substitution, or interactive fan-out was introduced.
+- Remaining work: repair other provider failures, complete all-family membership/bar history and
+  continuity, review entitlements/terms, and implement exact V25 fallback/maintenance visuals.
+
 ## 2026-08-19 — Invesco current-route failure now falls back with curated SEC identity
 
 - Added a narrowly scoped Invesco fallback identity helper. When the current catalog/CUSIP route

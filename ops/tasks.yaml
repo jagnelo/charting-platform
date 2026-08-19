@@ -1,4 +1,30 @@
 tasks:
+  - id: tc2000-sofi-sfy-route-fallback-20260819
+    title: Repair SoFi SFY issuer route and partial SEC fallback
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Repair the observed SFY holdings failure caused by a stale CloudFront hostname, use the
+      current official issuer-linked artifact, and add a canonical SEC EDGAR fallback for genuine
+      issuer/WAF failures. Preserve explicit provenance and prevent a short SEC reconstruction from
+      being presented as a complete 500-member universe.
+    definition_of_done:
+      - The verified official SFY holdings hostname is corrected and live-tested
+      - Canonical SEC identity is available without ticker/name inference
+      - Issuer failure and fallback provenance are retained
+      - SEC fallback below the verified 300-row floor is marked partial with a coverage warning
+      - Adapter/taxonomy units, lint/compile checks, and the opt-in live SFY probe pass
+      - Remaining provider-family, historical, entitlement, and exact V25 visual gaps remain explicit
+    validation:
+      - sofi-adapter-and-taxonomy-unit-507-of-507
+      - opt-in-live-sfy-probe-1-of-1
+      - ruff-compileall-and-git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. The primary issuer route is restored; the SEC route is
+        an explicitly labelled emergency reconstruction and is not allowed to inflate completeness.
+
   - id: tc2000-invesco-qqq-sec-fallback-20260819
     title: Repair Invesco current-route fallback identity
     status: completed

@@ -1,5 +1,21 @@
 # Active Handoff
 
+## 2026-08-19 — SoFi SFY route is repaired with honest SEC fallback semantics
+
+- The live SFY failure was a repository defect: the configured SoFi CloudFront hostname used
+  `...aqfv7...`; the official linked artifact uses `...aqfv4...`. The adapter now reaches the
+  issuer PDF and the opt-in live SFY route returns at least 300 parseable rows.
+- Added canonical SFY SEC identity (`0001742912`, `C000210797`, `SFY`) for fallback. Genuine issuer
+  or WAF failures now try SEC EDGAR; if that reconstruction is below the verified 300-row floor,
+  it is marked `partial` with a coverage warning and retains route-failure/fallback provenance.
+- Validation: adapter/taxonomy units `507/507`, focused SoFi/Invesco `8/8`, live SFY `1/1`, Ruff,
+  compileall, and `git diff --check` pass. Acceptance flexibility: **None**.
+- Implementation/docs commit `1eebca95` is pushed and synchronized; operational checkpoint follows.
+  Remaining gaps: other provider routes, all-eight family population, canonical member bars, historical rebalance
+  continuity, entitlement/terms review, and exact V25 maintenance/fallback visuals.
+- Next context: continue remaining provider failures and family-wide population; do not treat SFY
+  route recovery as provider completeness.
+
 ## 2026-08-19 — Invesco QQQ fallback now recovers through SEC EDGAR
 
 - The observed live Invesco QQQ current CUSIP holdings route returned HTTP 500. The adapter now
