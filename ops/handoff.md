@@ -10,8 +10,8 @@
   type-check, production build, and diff checks pass. The first run caught only an assertion-label
   mismatch and was corrected before the unchanged passing rerun. Acceptance flexibility: **None**.
 - Combo definition/version reconstruction, provider-backed member history, exact V25 source-picker
-  visuals, and the wider family matrix remain open. This context is ready for separate commit and
-  operational closure.
+  visuals, and the wider family matrix remain open. Implementation/docs `d9b25e2a` and operational
+  closure `05478a32` are pushed and synchronized; this context is closed.
 
 ## 2026-08-19 — Universal arbitrary-watchlist Market Map and Study handoff completed
 
