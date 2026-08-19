@@ -1,4 +1,25 @@
 tasks:
+  - id: tc2000-study-single-boolean-column-promotion-20260819
+    title: Close single-output Boolean Study Lab column promotion
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Extend the typed Study Lab-to-watchlist-column contract from structured Boolean artifacts to
+      single-output Boolean studies, creating a dedicated column asset with immutable promotion
+      lineage instead of reusing the executable study asset.
+    definition_of_done:
+      - Single-output Boolean studies expose Save as Boolean column
+      - The target is persisted as kind=column and output_contract=boolean
+      - Source run/code lineage remains non-executable and independently addressable
+      - Existing filter, scan, gauge, alert, signal, and structured-artifact promotions remain intact
+      - Focused and full frontend gates plus type/build and diff validation pass
+      - Exact V25 promotion-row visuals remain explicitly tracked as required_missing
+    validation:
+      - Study-Lab-focused-24-of-24
+      - full-frontend-Vitest-915-of-915
+      - vue-tsc, Vite-build, and git-diff-check
+    acceptance_flexibility: none
   - id: tc2000-study-boolean-column-promotion-20260819
     title: Promote Study Lab Boolean results to typed watchlist columns
     status: completed

@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-19 — Single-output Boolean Study column promotion repaired
+
+- Closed the remaining Study Lab Boolean-column gap. Single-output Boolean studies now have a
+  `Save as Boolean column` action and create a separate typed `column` asset with source lineage;
+  the executable study asset is not reused for the target.
+- Existing structured-artifact promotion, filters, scans, gauges, alerts, and Strategy signals
+  remain unchanged. No backend change was needed because the Boolean-column contract was already
+  validated in the prior slice.
+- Validation: focused Study Lab `24/24`, full frontend `915/915`, `vue-tsc`, Vite production build,
+  and `git diff --check`. Acceptance flexibility: **None**.
+- Remaining gaps: exact V25 promotion visuals, broader compatible promotion fan-out, provider-backed
+  family continuity, and final whole-goal acceptance.
+
 ## 2026-08-19 — Study Lab Boolean results promoted to typed columns
 
 - Added a `Save column` action for completed Boolean Study Lab artifacts. The result is a typed

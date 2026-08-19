@@ -1,5 +1,19 @@
 # Active Handoff
 
+## 2026-08-19 — Single-output Boolean Study Lab column promotion completed
+
+- Repaired the remaining contract hole in the Boolean-column slice: a single-output Boolean Study
+  Lab run now exposes `Save as Boolean column`, creates a dedicated `kind=column` asset, and
+  preserves source run/code/reproducibility/dataset/run-configuration lineage. It no longer
+  reuses the executable `kind=study` asset for this target; filter, scan, gauge, alert, signal,
+  and structured-artifact promotions retain their existing behavior.
+- Validation: focused Study Lab `24/24`; full frontend Vitest `915/915`; `vue-tsc`; production
+  build; and `git diff --check` pass. Acceptance flexibility used: **None**. No backend change was
+  required because the previously validated Boolean-column API contract already accepts the target.
+- Exact V25 promotion action-row and confirmation visuals remain `required_missing`; this is an
+  implementation closure, not visual approval. Continue the broader family/provider, map visual,
+  and promotion fan-out work after checkpointing this context.
+
 ## 2026-08-19 — Study Lab Boolean column promotion completed
 
 - Closed one independent programmable-surface gap without changing the source-polymorphic Market
