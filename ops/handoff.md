@@ -1,5 +1,23 @@
 # Active Handoff
 
+## 2026-08-19 — Durable explicit source known-at semantics
+
+- Closed a historical-truth defect in the universal locked-watchlist model. Durable
+  `explicit-list:<stable-key>` descriptors now expose `effective_at`/`known_at` and point-in-time
+  provenance. Resolution before the saved version's `known_at` returns no members with explicit
+  `membership_not_known_at_as_of` exclusions; resolution after it returns the exact saved canonical
+  IDs. Ephemeral `explicit:<ids>` remains a non-point-in-time transport source.
+- Validation: Docker-backed saved-source known-at integration `1/1`; Market Map helper/component
+  `35/35`; full frontend Vitest `909/909`; frontend type-check and production build; backend
+  compileall/Ruff; `git diff --check`. Implementation commit
+  `67282040f05cc1f5ddd1aec26eddd98f4f8f2039` is pushed and origin is synchronized.
+- Acceptance flexibility: **None**. Remaining gaps are historical version retention across a
+  renamed/replaced library item, provider-backed bars/history, exact V25 historical-source
+  controls, all-eight family/provider continuity, and broader visual/reference-board coverage.
+  These remain tracked and are not silently treated as complete.
+- Next context: provider-backed saved-source coverage and family-role population/continuity, then
+  the next parity gap, from a clean synchronized branch.
+
 ## 2026-08-19 — Durable explicit sources cross Breadth and isolated Python
 
 - Closed two concrete owning-boundary gaps in the universal locked-watchlist model. Generic

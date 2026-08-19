@@ -1,5 +1,21 @@
 # Run Report
 
+## 2026-08-19 — Durable explicit sources enforce known-at boundaries
+
+- Durable `explicit-list:<stable-key>` sources are now fixed user-owned snapshots for point-in-time
+  resolution. Their descriptors expose effective/known timestamps and point-in-time provenance.
+  Pre-known-at requests return zero members with structured `membership_not_known_at_as_of`
+  exclusions; post-known-at requests return the exact canonical IDs. Ephemeral `explicit:<ids>`
+  remains non-point-in-time.
+- Added backend integration assertions for descriptor timestamps and both sides of the historical
+  boundary, plus the frontend declaration regression distinguishing durable and ephemeral sources.
+- Evidence: saved-source integration `1/1`; Market Map helper/component `35/35`; frontend Vitest
+  `909/909`; type-check; production build; backend compileall/Ruff; `git diff --check`. Implementation
+  commit `67282040f05cc1f5ddd1aec26eddd98f4f8f2039` pushed successfully.
+- Acceptance flexibility: **None**. Historical replacement retention, provider-backed bars/history,
+  exact V25 historical-source controls, family/provider continuity, and visual-board gaps remain
+  explicit open work.
+
 ## 2026-08-19 — Durable explicit sources are reusable in Breadth and isolated Python
 
 - Fixed the two follow-through gaps in the source-polymorphic Market Map design. Generic Breadth

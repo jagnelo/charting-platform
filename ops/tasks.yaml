@@ -1,4 +1,34 @@
 tasks:
+  - id: tc2000-saved-source-known-at-20260819
+    title: Enforce point-in-time known-at semantics for durable explicit sources
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Make each immutable durable explicit-list version behave as a truthful saved membership
+      snapshot: historical resolution before the version existed must exclude its members with
+      structured reasons, while later resolution must restore the exact canonical IDs. Keep the
+      ephemeral explicit transport source non-point-in-time.
+    definition_of_done:
+      - Durable descriptors expose effective_at, known_at, and point-in-time provenance
+      - Pre-known-at resolution returns no members with membership_not_known_at_as_of exclusions
+      - Post-known-at resolution returns the saved canonical IDs without provider fan-out
+      - Isolated Python declarations distinguish durable snapshots from ephemeral selections
+      - Focused backend/frontend regressions, full frontend gates, and docs pass
+    validation:
+      - backend-saved-source-known-at-integration-1-of-1
+      - market-map-publication-helper-and-component-35-of-35
+      - frontend-vitest-909-of-909
+      - frontend-type-check
+      - frontend-build
+      - backend-compileall-and-ruff
+      - git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. This closes the per-version known-at boundary only;
+        historical replacement retention, provider-backed bars/history, exact V25 historical-source
+        controls, and broader family/provider/visual gaps remain explicitly open.
+
   - id: tc2000-explicit-source-programmable-reuse-20260819
     title: Reuse durable explicit sources across Breadth and isolated Python
     status: completed
