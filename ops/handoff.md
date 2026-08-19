@@ -7,8 +7,9 @@
   series; provenance retains the issuer failure and `sec_edgar_filing_fallback` route.
 - Validation: Lazard-focused `3/3`, SEC/parser/adapter `507/507`, opt-in live JPY `1/1`, Ruff,
   compileall, and `git diff --check` pass. Acceptance flexibility: **None**.
-- Implementation/docs commit `546228e7` is pushed and synchronized. The remaining ops checkpoint and
-  final close are deliberately separate commits before starting the next provider.
+- Implementation/docs commit `546228e7` and ops checkpoint `b68d91d8` are pushed and synchronized.
+- This context is now closed. The next context may inspect remaining provider-family population,
+  canonical member-bar history, and the universal arbitrary-watchlist heatmap acceptance gaps.
 - Keep the universal locked-watchlist/Market Map contract unchanged: this provider repair only
   supplies a truthful source for the same generalized heatmap/watchlist surface.
 

@@ -8,9 +8,9 @@
   can populate the locked watchlist.
 - Evidence: Lazard-focused unit `3/3`, SEC/parser/adapter units `507/507`, opt-in live JPY `1/1`,
   Ruff, compileall, and `git diff --check`. Acceptance flexibility: **None**.
-- Implementation/docs commit `546228e7` is pushed and synchronized; remaining work is other provider routes, family-wide
+- Implementation/docs `546228e7` and ops checkpoint `b68d91d8` are pushed and synchronized; remaining work is other provider routes, family-wide
   membership/bar history, historical continuity, entitlement/terms review, and exact V25
-  maintenance/fallback visuals.
+  maintenance/fallback visuals. This provider context is closed.
 
 ## 2026-08-19 — Context transition to Lazard JPY repair
 
