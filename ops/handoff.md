@@ -1,5 +1,16 @@
 # Active Handoff
 
+## 2026-08-19 — All-eight benchmark-family browser matrix
+
+- Added `F8s-family-matrix` (`1/1`) covering independent entry for S&P 500/400/600/1500, Russell
+  1000/2000/3000, and Nasdaq 100. It verifies canonical official/proxy labels and opens
+  `benchmark-family:nasdaq100:cap_weight` in the shared Market Map.
+- The first run exposed guessed fixture identities; `SPSUPX` and `RTY` were corrected from the
+  repository taxonomy and the unchanged rerun passed. Full frontend `900/900`, type-check, build,
+  and diff-check remain green.
+- Acceptance flexibility: **None**. Provider population/history, style-role evidence, full
+  per-family view reuse, and exact V25 selector visuals remain open.
+
 ## 2026-08-19 — Universal Market Map browser acceptance and public route probes
 
 - Added authenticated Chromium coverage `F8s-market-map-watchlist` (`1/1`): a locked

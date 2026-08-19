@@ -1,5 +1,19 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — All-eight benchmark-family browser entry matrix
+
+Authenticated Chromium `F8s-family-matrix` passes `1/1`. It selects each first-class S&P 500,
+S&P 400, S&P 600, S&P Composite 1500, Russell 1000, Russell 2000, Russell 3000, and Nasdaq 100
+root, verifies the canonical official index and tradable proxy labels, then opens the Nasdaq 100
+locked cap constituent source `benchmark-family:nasdaq100:cap_weight`. The fixture uses the
+repository taxonomy’s authoritative identities, including `SPSUPX` and `RTY`; an initial guessed
+identity was corrected after the browser exposed the mismatch.
+
+This is functional family-entry evidence, not proof of all-root provider population or full view
+parity. Equal/value/growth role evidence, canonical member bars, historical rebalance continuity,
+all family-specific breadth/ratio/rotation/Study Lab/reuse surfaces, and exact V25 family-picker
+visuals remain open. Acceptance flexibility used: **None**.
+
 ## 2026-08-19 — Arbitrary-watchlist browser oracle and free-source route evidence
 
 The authenticated workstation now has an end-to-end browser regression proving that a locked

@@ -1,4 +1,28 @@
 tasks:
+  - id: tc2000-all-eight-family-browser-matrix-20260819
+    title: Validate all eight US benchmark-family browser entry points
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Exercise S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100 selection through
+      one authenticated benchmark surface and preserve independent canonical source identities.
+    definition_of_done:
+      - Verify each root's authoritative official index and tradable proxy labels
+      - Open Nasdaq 100's locked cap constituent source through the shared Market Map
+      - Reject guessed identity substitutions and retain provider/style/history gaps explicitly
+    validation:
+      - authenticated-chromium-F8s-family-matrix-1-of-1
+      - frontend-vitest-900-of-900
+      - frontend-type-check
+      - frontend-build
+      - git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. The first fixture used SP1500/RUT and failed against
+        canonical SPSUPX/RTY; the fixture was corrected and the unchanged rerun passed. This proves
+        browser entry/source identity only, not provider-backed family population or full view parity.
+
   - id: tc2000-market-map-browser-live-routes-20260819
     title: Validate universal Market Map in authenticated browser and probe free family routes
     status: completed

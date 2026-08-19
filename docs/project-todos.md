@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-08-19 — Authenticated all-eight US benchmark-family matrix
+
+- [x] Add `F8s-family-matrix`, an authenticated Chromium regression that selects every registered
+      S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100 family root, verifies its
+      canonical official index identity and tradable proxy, and opens the Nasdaq 100 locked
+      `benchmark-family:nasdaq100:cap_weight` source through the shared Market Map (`1/1`).
+- [x] Correct the fixture to authoritative taxonomy identities (`SPSUPX` for S&P Composite 1500
+      and `RTY` for Russell 2000) after the first run exposed guessed symbols; no product fallback
+      or assertion weakening was used. Full frontend gates remain `900/900`, type-check, build,
+      and diff-check green.
+- [ ] This proves browser entry/source identity only. It does not prove provider-backed members,
+      canonical bars, historical rebalance continuity, equal/value/growth evidence, or the full
+      eight-root view matrix (breadth, ratios, rotation, Study Lab, exports, and scans); those
+      remain explicit gaps and must not be inferred from the matrix fixture.
+
 ### 2026-08-19 — Universal Market Map browser and free-source route evidence
 
 - [x] Add authenticated Chromium acceptance for selecting a locked benchmark/index-style

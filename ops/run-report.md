@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-19 — All-eight benchmark-family browser matrix
+
+- Authenticated Chromium `F8s-family-matrix` passes `1/1` for all eight required US benchmark
+  roots and verifies the final Nasdaq 100 locked cap constituent source identity.
+- The first fixture failure identified guessed `SP1500`/`RUT` symbols; authoritative `SPSUPX`/`RTY`
+  taxonomy values were applied and the unchanged rerun passed. Frontend Vitest `900/900`,
+  type-check, production build, and diff-check pass.
+- Remaining: provider-backed family members/bars/history, style-role evidence, full per-family
+  view/reuse acceptance, and exact V25 family-selector visuals. Acceptance flexibility: none.
+
 ## 2026-08-19 — Universal Market Map browser and free-source route validation
 
 - Authenticated Chromium `F8s-market-map-watchlist` passes `1/1`, proving a locked

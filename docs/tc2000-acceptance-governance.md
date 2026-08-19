@@ -1,5 +1,17 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Eight-root family entry oracle
+
+Authenticated Chromium `F8s-family-matrix` passes `1/1` across all eight required US benchmark
+roots. It verifies each canonical official-index/tradable-proxy identity and opens the Nasdaq 100
+locked cap constituent source through the shared Market Map. The first fixture used guessed
+`SP1500`/`RUT` identities; the browser failure led to the authoritative `SPSUPX`/`RTY` correction
+before the unchanged rerun passed. This is a recorded fix, not acceptance flexibility.
+
+The oracle covers family entry and source identity only. It does not prove provider-backed member
+bars, historical continuity, style-role evidence, or every family-specific breadth/ratio/rotation/
+Study Lab/reuse surface. Those remain explicit acceptance gaps.
+
 ## 2026-08-19 — Browser and provider evidence for the one-watchlist heatmap oracle
 
 The functional oracle now includes authenticated Chromium coverage (`F8s-market-map-watchlist`,

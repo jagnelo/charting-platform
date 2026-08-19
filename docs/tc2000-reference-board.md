@@ -1,5 +1,13 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Eight-root family selector remains functionally covered, visually incomplete
+
+The authenticated `F8s-family-matrix` browser oracle now exercises all eight benchmark-family
+roots and opens the Nasdaq 100 locked constituent source. This supplies an interim interaction
+oracle for the family selector and source identity, but the board has no authoritative exact V25
+family-selector geometry, eight-root option density, unavailable-role treatment, or transition
+states. Those visual states remain `required_missing`; no visual threshold or mask was relaxed.
+
 ## 2026-08-19 — Functional browser/provider evidence does not replace missing V25 imagery
 
 The new authenticated Chromium flow (`F8s-market-map-watchlist`, `1/1`) is now the functional
