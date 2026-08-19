@@ -327,6 +327,7 @@ describe('MarketMapTool', () => {
         instrument_id: index + 1,
         symbol: `SYM${index + 1}`,
         name: `Synthetic ${index + 1}`,
+        group_path: ['Technology'],
         area_value: 1,
         color_value: index % 2 === 0 ? 0.01 : -0.01,
       })),
@@ -363,6 +364,7 @@ describe('MarketMapTool', () => {
     expect(wrapper.findAll('.market-map-tool__tile')).toHaveLength(0)
     expect(wrapper.find('.market-map-tool__canvas-hint').text()).toContain('canvas rendering')
     expect(context.fillRect).toHaveBeenCalled()
+    expect(Math.max(...context.strokeRect.mock.invocationCallOrder)).toBeGreaterThan(Math.max(...context.fillRect.mock.invocationCallOrder))
 
     const previousSetPointerCapture = HTMLElement.prototype.setPointerCapture
     const previousHasPointerCapture = HTMLElement.prototype.hasPointerCapture
