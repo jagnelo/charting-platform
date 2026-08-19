@@ -1,4 +1,24 @@
 tasks:
+  - id: tc2000-market-map-selection-handoffs-20260819
+    title: Complete Market Map selection handoffs to charts and relative-strength tools
+    status: in_progress
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Extend the universal source-polymorphic Market Map selection contract so selected members
+      can be sent directly to chart and relative-strength tools, while preserving canonical IDs,
+      source lineage, selection scope, and the existing watchlist/breadth/Study-Lab handoffs.
+      Do not add a provider-specific heatmap or rebuild a universe from ticker text.
+    definition_of_done:
+      - Full-source and selected-member actions expose chart and relative-strength destinations
+      - Selected canonical IDs and parent source lineage remain serializable in the target tool
+      - Single-symbol chart and two-symbol ratio workflows are explicit and reject invalid input
+      - Focused component/workstation regressions, frontend suite, type/build, and diff checks pass
+      - Exact V25 handoff geometry remains a documented visual gap if the board does not represent it
+    validation: []
+    notes:
+      - Acceptance flexibility used: None planned; any missing visual oracle remains tracked rather than waived.
+
   - id: tc2000-lazard-jpy-route-repair-20260819
     title: Repair or classify Lazard JPY holdings route
     status: completed

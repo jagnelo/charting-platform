@@ -1,5 +1,16 @@
 # Active Handoff
 
+## 2026-08-19 — Next context: Market Map selection handoffs
+
+- Lazard JPY implementation/docs `546228e7`, checkpoint `b68d91d8`, and final close `0fb99c29`
+  are pushed and synchronized; the branch is clean.
+- The next bounded implementation closes a remaining workstation contract gap: Market Map
+  selections already publish to watchlists, Breadth, and Study Lab, but do not expose direct
+  chart/relative-strength destinations. Preserve the canonical source/selection lineage and
+  reject invalid one/two-symbol inputs without provider fan-out.
+- The universal locked-watchlist/Market Map model remains unchanged; this is a downstream handoff
+  completion, not a provider-specific map.
+
 ## 2026-08-19 — Lazard JPY route repair completed
 
 - Lazard's directory 503 is now an explicit primary-route failure. Curated JPY SEC identity and a

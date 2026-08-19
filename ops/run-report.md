@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-19 — Context transition to Market Map selection handoffs
+
+- Lazard JPY route repair is closed at implementation/docs `546228e7`, ops checkpoint `b68d91d8`,
+  and final close `0fb99c29`; branch is clean and synchronized.
+- Next context: add direct chart and relative-strength actions for Market Map full-source and
+  selected-member handoffs while retaining canonical source lineage and the existing watchlist,
+  Breadth, and Study-Lab paths.
+
 ## 2026-08-19 — Lazard JPY route repaired with identity-safe SEC fallback
 
 - Lazard's current official ETF directory 503 is reproduced and retained as the primary-route
