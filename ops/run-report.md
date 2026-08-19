@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-19 — Context transition to GraniteShares NVD repair
+
+- Previous SEC identity/MAGA/Calvert context is closed at implementation/docs `20fccb9d`, ops
+  checkpoint `b280423b`, and final close `422e673a`; branch is clean and origin-synchronized.
+- Next action is to repair or explicitly classify the live GraniteShares NVD native holdings route,
+  with no provider-oracle or visual-acceptance relaxation.
+
 ## 2026-08-19 — SEC identity-safe fallback and MAGA reorganization recovery
 
 - Added a namespace/table-tolerant N-PORT identity extractor and fail-closed matching for curated

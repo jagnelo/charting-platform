@@ -1,5 +1,17 @@
 # Active Handoff
 
+## 2026-08-19 — Next context: GraniteShares NVD route repair
+
+- The preceding SEC identity/MAGA/Calvert context is closed and synchronized at implementation/docs
+  `20fccb9d`, checkpoint `b280423b`, and close `422e673a`.
+- Start from a clean branch. The next bounded provider context is the live GraniteShares NVD failure:
+  its product page does not expose the adapter's required complete native workbook. Inspect the
+  current official route and any permitted free SEC/issuer fallback, preserve explicit completeness
+  and provenance, and do not lower the provider oracle merely to make a wrong or partial universe
+  appear ready.
+- Goal scope remains the universal TC2000-style locked-watchlist/Market Map: provider repairs feed
+  that shared source contract; they do not create a provider-specific heatmap.
+
 ## 2026-08-19 — SEC fallback identity filtering and reorganized MAGA recovery
 
 - SEC N-PORT fallback now extracts series/class identity from raw XML or EDGAR-rendered XHTML and
