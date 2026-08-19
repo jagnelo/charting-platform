@@ -184,6 +184,35 @@ describe('MarketMapTool', () => {
     sourceState.sources = previousSources
   })
 
+  it('explicitly bootstraps an arbitrary ETF into the locked source catalog', async () => {
+    const previousSources = sourceState.sources
+    const pendingEtf = {
+      ...previousSources[0],
+      source_id: 'etf-holdings:QQQ',
+      source_kind: 'etf_holdings' as const,
+      name: 'QQQ holdings',
+      member_count: 0,
+      provenance: { availability: 'profile_not_loaded' },
+    }
+    sourceState.sources = [...previousSources, pendingEtf]
+    apiPost.mockImplementation((path: string) => path === '/etf-holdings/QQQ/bootstrap'
+      ? Promise.resolve({ profile: { symbol: 'QQQ' }, latest_snapshot: null, refresh_succeeded: false, message: 'No local holdings snapshot yet.' })
+      : Promise.resolve(response))
+
+    const wrapper = mount(MarketMapTool)
+    await flushPromises()
+    await wrapper.get('[aria-label="ETF universe symbol"]').setValue('qqq')
+    await wrapper.get('[aria-label="Load ETF constituent universe"]').trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/etf-holdings/QQQ/bootstrap', {})
+    expect(wrapper.get('[aria-label="Market Map universe"]').element.value).toBe('etf-holdings:QQQ')
+    expect(wrapper.find('[aria-label="Add ETF constituent universe"] [role="status"]').text()).toContain('membership is pending hydration')
+
+    wrapper.unmount()
+    sourceState.sources = previousSources
+  })
+
   it('shows source history readiness and queues an explicit refresh without changing membership', async () => {
     const historyStatus = {
       source_id: 'market-group:sp500',

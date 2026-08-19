@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-08-19 — Market Map can explicitly add any canonical ETF source
+
+- [x] Add an explicit `ETF universe` / `Load ETF` action to the shared Market Map. The action
+      calls the existing opt-in `/etf-holdings/{symbol}/bootstrap` route, refreshes the canonical
+      source catalog, and selects `etf-holdings:<SYMBOL>` rather than creating a second ETF-specific
+      heatmap implementation.
+- [x] Preserve the locked-watchlist contract after bootstrap: membership remains system-owned,
+      follow/pin/clone and downstream Market Map/Breadth/Study Lab paths remain available, and a
+      missing snapshot is labelled pending rather than fabricated as populated.
+- [x] Validate symbol normalization/rejection, explicit bootstrap request, source selection, focused
+      Market Map `31/31`, full frontend Vitest `913/913`, type-check, production build, and diff checks.
+- [ ] Exact V25 add-source/search geometry, bootstrap progress wording, and provider-backed holdings
+      completeness remain reference/data gaps; this action is explicitly user-triggered and does not
+      introduce provider fan-out into ordinary source reads.
+
 ### 2026-08-19 — Arbitrary watchlists now receive visible nested map frames
 
 - [x] Make the shared Market Map renderer use the source's top-level group paths when laying out

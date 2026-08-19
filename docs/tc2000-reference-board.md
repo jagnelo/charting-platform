@@ -1,5 +1,18 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Explicit arbitrary-ETF add-source state remains a visual gap
+
+The universal Market Map now lets the user enter a canonical ETF symbol and explicitly bootstrap
+its locked constituent source. The source catalog is refreshed and the same `etf-holdings:<SYMBOL>`
+map path is selected; pending membership remains honest when the provider/profile/snapshot is not yet
+available. This is the functional bridge needed for “any index ETF is just another locked watchlist.”
+
+Gap status: `required_missing` for exact V25 add-source/search placement, input affordance, loading/
+retry/error copy, and pending-to-ready transition. Interim oracle: focused Market Map component
+`31/31`, full frontend Vitest `913/913`, type-check, and production build. Evidence needed: a
+reviewed V25 capture showing an arbitrary ETF search/add action and its source entering the same
+heatmap as an existing managed universe. No visual threshold or mask was relaxed.
+
 ## 2026-08-19 — Nested arbitrary-watchlist map geometry is represented functionally and visibly
 
 The implementation now partitions grouped Market Map sources by their top-level `group_path` before

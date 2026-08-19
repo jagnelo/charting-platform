@@ -12,6 +12,14 @@
           </optgroup>
         </select>
       </label>
+      <div class="market-map-tool__source-bootstrap" aria-label="Add ETF constituent universe">
+        <label>ETF universe
+          <input v-model.trim="etfBootstrapSymbol" aria-label="ETF universe symbol" placeholder="e.g. QQQ" maxlength="20" @keydown.enter.prevent="bootstrapEtfSource" />
+        </label>
+        <button type="button" :disabled="etfBootstrapBusy || !etfBootstrapSymbol.trim()" aria-label="Load ETF constituent universe" @click="bootstrapEtfSource">{{ etfBootstrapBusy ? 'Loading…' : 'Load ETF' }}</button>
+        <span v-if="etfBootstrapMessage" role="status">{{ etfBootstrapMessage }}</span>
+        <span v-if="etfBootstrapError" class="market-map-tool__status--error" role="alert">{{ etfBootstrapError }}</span>
+      </div>
       <label>Explicit symbols
         <input v-model.trim="explicitSymbols" aria-label="Market Map explicit symbols" placeholder="SPY, NVDA, MSFT" @keydown.enter.prevent="run" />
       </label>
@@ -340,6 +348,10 @@ const sourceCloneError = ref('')
 const sourceCloneRetryIds = ref<number[]>([])
 const sourceCloneRetryTargetId = ref<number | null>(null)
 const sourceCloneRetryTotal = ref(0)
+const etfBootstrapSymbol = ref('')
+const etfBootstrapBusy = ref(false)
+const etfBootstrapMessage = ref('')
+const etfBootstrapError = ref('')
 const explicitWatchlistName = ref('')
 const explicitSaving = ref(false)
 const lockedSourceName = ref('')
@@ -560,6 +572,41 @@ async function refreshHistory() {
     historyRefreshError.value = cause instanceof Error ? cause.message : 'Unable to queue history refresh'
   } finally {
     historyRefreshing.value = false
+  }
+}
+
+async function bootstrapEtfSource() {
+  const symbol = etfBootstrapSymbol.value.trim().toUpperCase()
+  if (etfBootstrapBusy.value || !symbol) return
+  if (!/^[A-Z][A-Z0-9./-]{0,19}$/.test(symbol)) {
+    etfBootstrapError.value = 'Enter one canonical ETF symbol.'
+    etfBootstrapMessage.value = ''
+    return
+  }
+  etfBootstrapBusy.value = true
+  etfBootstrapMessage.value = ''
+  etfBootstrapError.value = ''
+  try {
+    const result = await api.post<{ latest_snapshot?: unknown; refresh_succeeded?: boolean; message?: string | null }>(
+      `/etf-holdings/${encodeURIComponent(symbol)}/bootstrap`,
+      {},
+    )
+    // This is an explicit, user-triggered bootstrap. It does not turn ordinary
+    // source reads into provider fan-out; the canonical source catalog remains
+    // the only map input after this action completes.
+    await watchlistStore.loadWatchlistSources()
+    const source = watchlistStore.watchlistSources.find(item => item.source_id === `etf-holdings:${symbol}`)
+    if (!source) throw new Error(`${symbol} was registered but is not available as a canonical ETF source.`)
+    sourceId.value = source.source_id
+    explicitSymbols.value = ''
+    etfBootstrapMessage.value = result.latest_snapshot
+      ? `${symbol} holdings source loaded.`
+      : `${symbol} source registered; membership is pending hydration.`
+    if (result.message && !result.latest_snapshot) etfBootstrapMessage.value += ` ${result.message}`
+  } catch (cause) {
+    etfBootstrapError.value = cause instanceof Error ? cause.message : 'Unable to load ETF constituent universe'
+  } finally {
+    etfBootstrapBusy.value = false
   }
 }
 
@@ -1236,6 +1283,10 @@ onUnmounted(() => {
 <style scoped>
 .market-map-tool { display: flex; flex-direction: column; gap: 8px; min-height: 100%; background: #11161d; color: #d4d9e2; font-size: 12px; }
 .market-map-tool__controls { display: flex; flex-wrap: wrap; gap: 6px; align-items: end; padding: 8px; background: #1b222c; border-bottom: 1px solid #303a48; }
+.market-map-tool__source-bootstrap { display: flex; flex-wrap: wrap; gap: 4px; align-items: end; padding: 2px 4px; border: 1px solid #34434e; background: #141b20; }
+.market-map-tool__source-bootstrap label { display: flex; flex-direction: column; gap: 3px; color: #8e9bad; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
+.market-map-tool__source-bootstrap input { width: 74px; }
+.market-map-tool__source-bootstrap span { max-width: 260px; }
 .market-map-tool__controls label { display: flex; flex-direction: column; gap: 3px; color: #8e9bad; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
 .market-map-tool__explicit-hint { align-self: end; max-width: 260px; padding-bottom: 6px; color: #f7d87b; font-size: 10px; }
 .market-map-tool select, .market-map-tool input, .market-map-tool button { border: 1px solid #3c4858; background: #151c25; color: #d4d9e2; border-radius: 2px; padding: 5px 7px; font: inherit; }

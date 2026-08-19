@@ -1,5 +1,19 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Arbitrary ETF universes can be added from the universal Market Map
+
+The workstation now provides an explicit `ETF universe` / `Load ETF` action beside the universal
+source selector. A canonical symbol is normalized and sent to the existing opt-in ETF bootstrap
+route; the refreshed catalog then selects the same locked `etf-holdings:<SYMBOL>` source used by
+pre-existing ETF, index-family, sector, industry, personal, managed, combo, and explicit sources.
+This closes the practical “only pre-populated ETFs are usable” gap without adding provider calls to
+ordinary Market Map reads or creating an ETF-specific renderer. If bootstrap cannot yet produce
+holdings, the source remains locked/followable and visibly pending.
+
+Focused Market Map coverage passes `31/31`, full frontend Vitest passes `913/913`, and type-check/
+production build pass. No acceptance flexibility was used. Exact V25 add-source/search geometry,
+progress/error copy, and provider-backed holdings completeness remain open.
+
 ## 2026-08-19 — Market Map visibly preserves nested hierarchy for every watchlist source
 
 The shared Market Map layout now consumes the backend's canonical `group_path` for every source.
