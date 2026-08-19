@@ -9,6 +9,9 @@ issuer/SEC route probes add `32/32` issuer-direct and `10/10` fallback evidence.
 adapter sweep remains `398 passed, 1 skipped, 7 failed` on unrelated non-core issuer endpoints;
 that is recorded as provider evidence, not silently treated as a product pass. These artifacts
 help iterate the product but are not visual references and cannot approve pixel parity.
+The family drill-down oracle (`F8s-family-map-drilldown`, `1/1`) additionally covers selecting
+S&P 500 and opening the locked cap-weight constituent source. It is behavior evidence only; it
+does not fill the missing exact-build V25 source-picker imagery.
 
 The exact Version 25 source-picker composition, lock/follow/pin treatment, and list-to-map
 transition remain `required_missing`; all-root provider population and historical continuity are

@@ -5,6 +5,9 @@
 - Added authenticated Chromium coverage `F8s-market-map-watchlist` (`1/1`): a locked
   benchmark/index-style constituent source and an editable personal watchlist share one heatmap;
   refresh preserves the selected canonical source and renders cells.
+- Added `F8s-family-map-drilldown` (`1/1`): selecting S&P 500 in the benchmark surface opens the
+  canonical locked `benchmark-family:sp500:cap_weight` source. The first fixture exposed a missing
+  `freshness` response field and a malformed-response UI crash; the corrected fixture rerun passed.
 - Opt-in public issuer/SEC holdings probes pass `32/32` issuer-direct mapped role routes and
   `10/10` QQQE plus dated iShares/QQQ fallback cases. The complete 406-case adapter sweep is
   `398 passed, 1 skipped, 7 failed` on isolated non-core endpoints (NVD, MAGA, JPY, SFY, TSCV,

@@ -7,6 +7,10 @@ benchmark/index-style constituent source and an editable personal list use the s
 the source picker discloses the locked state, switching to the personal source preserves the
 canonical source ID, and refresh renders the returned cells (`F8s-market-map-watchlist`, Chromium
 `1/1`). This is functional acceptance evidence, not a waiver of the exact V25 visual baseline.
+The companion family drill-down regression (`F8s-family-map-drilldown`, Chromium `1/1`) selects
+S&P 500 and opens `benchmark-family:sp500:cap_weight` without ticker-based reconstruction; the
+initial missing-`freshness` fixture was corrected after the browser exposed the malformed-response
+crash path.
 
 Opt-in public data probes also pass for the currently mapped role routes: issuer-direct SPDR/
 iShares/Invesco retrieval `32/32`, and QQQE plus historical SEC/iShares/QQQ fallback cases `10/10`.

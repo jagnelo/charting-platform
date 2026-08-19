@@ -6,6 +6,11 @@
       constituent source and an editable personal watchlist through the same Market Map flow;
       the test verifies canonical source switching, locked-source disclosure, map refresh, and
       rendered cells (`F8s-market-map-watchlist`, `1/1`).
+- [x] Add authenticated Chromium acceptance for selecting the S&P 500 family in the benchmark
+      surface and opening its canonical locked `benchmark-family:sp500:cap_weight` constituent
+      source in Market Map (`F8s-family-map-drilldown`, `1/1`). The first fixture omitted the
+      required `freshness` field and exposed a real malformed-response crash path; the fixture was
+      repaired and the unchanged rerun passed with no critical browser issues.
 - [x] Run opt-in public issuer/SEC holdings probes for the mapped S&P/Russell/Nasdaq role legs:
       issuer-direct routes pass `32/32`; QQQE/current and historical SEC fallbacks plus dated
       iShares/QQQ snapshots pass `10/10`. A complete 406-case adapter sweep also produced
@@ -17,7 +22,8 @@
 - [ ] The browser test is a functional oracle, not exact V25 visual approval. Exact source-picker
       geometry, provider-backed database population for every root, canonical member bars,
       point-in-time rebalance continuity, and family-role browser drill-down remain open and
-      must stay visible in parity/reference-board tracking. The complete adapter sweep remains
+      must stay visible in parity/reference-board tracking. Authenticated generic and family
+      browser transitions are now covered, while the complete adapter sweep remains
       non-green until those seven external route failures are repaired or explicitly represented
       as unavailable-capability states. Acceptance flexibility used: **none**.
 

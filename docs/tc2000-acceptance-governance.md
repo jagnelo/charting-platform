@@ -8,6 +8,10 @@ Map request/renderer. Public issuer/SEC route probes pass `32/32` for mapped iss
 `10/10` for QQQE plus dated fallback cases. The complete 406-case adapter sweep is `398 passed,
 1 skipped, 7 failed` on isolated non-core external endpoints; these remain explicit adapter-quality
 gaps. Frontend type-check, Vitest `900/900`, build, and diff-check pass.
+The companion authenticated family drill-down oracle also passes `1/1`, selecting S&P 500 and
+opening its canonical locked cap-weight constituent source. A missing `freshness` fixture field
+was fixed after the browser exposed the malformed-response crash path; no product fallback was
+used.
 
 This evidence does not approve exact V25 pixels and does not prove database ingestion or historical
 truth. Exact source-picker geometry, all-root population/member bars, point-in-time rebalance

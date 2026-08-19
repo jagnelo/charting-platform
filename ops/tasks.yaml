@@ -15,6 +15,7 @@ tasks:
       - Record exact V25 visual, all-root ingestion, and historical continuity gaps without relaxing acceptance
     validation:
       - authenticated-chromium-F8s-market-map-watchlist-1-of-1
+      - authenticated-chromium-F8s-family-map-drilldown-1-of-1
       - live-issuer-direct-holdings-routes-32-of-32
       - live-fallback-holdings-routes-10-of-10
       - complete-live-etf-adapter-sweep-398-passed-1-skipped-7-failed

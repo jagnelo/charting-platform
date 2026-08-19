@@ -5,6 +5,10 @@
 - Authenticated Chromium `F8s-market-map-watchlist` passes `1/1`, proving a locked
   index/benchmark-style constituent source and an editable personal source use one Market Map
   workflow and preserve the canonical source on refresh.
+- Authenticated Chromium `F8s-family-map-drilldown` passes `1/1`, proving benchmark-family
+  selection opens the canonical locked cap-weight constituent source. The initial fixture's
+  missing `freshness` field exposed a malformed-response crash path and was repaired before the
+  authoritative rerun.
 - Opt-in live public holdings probes pass `32/32` issuer-direct mapped family routes and `10/10`
   QQQE plus dated iShares/QQQ SEC fallback cases. The complete 406-case adapter sweep is
   `398 passed, 1 skipped, 7 failed` on isolated non-core issuer endpoints (NVD, MAGA, JPY, SFY,
