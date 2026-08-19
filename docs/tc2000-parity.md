@@ -10,7 +10,7 @@ This closes the practical “only pre-populated ETFs are usable” gap without a
 ordinary Market Map reads or creating an ETF-specific renderer. If bootstrap cannot yet produce
 holdings, the source remains locked/followable and visibly pending.
 
-Focused Market Map coverage passes `31/31`, full frontend Vitest passes `913/913`, and type-check/
+Focused Market Map coverage passes `32/32`, full frontend Vitest passes `914/914`, and type-check/
 production build pass. No acceptance flexibility was used. Exact V25 add-source/search geometry,
 progress/error copy, and provider-backed holdings completeness remain open.
 

@@ -10,7 +10,7 @@
       follow/pin/clone and downstream Market Map/Breadth/Study Lab paths remain available, and a
       missing snapshot is labelled pending rather than fabricated as populated.
 - [x] Validate symbol normalization/rejection, explicit bootstrap request, source selection, focused
-      Market Map `31/31`, full frontend Vitest `913/913`, type-check, production build, and diff checks.
+      Market Map `32/32`, full frontend Vitest `914/914`, type-check, production build, and diff checks.
 - [ ] Exact V25 add-source/search geometry, bootstrap progress wording, and provider-backed holdings
       completeness remain reference/data gaps; this action is explicitly user-triggered and does not
       introduce provider fan-out into ordinary source reads.

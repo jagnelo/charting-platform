@@ -213,6 +213,18 @@ describe('MarketMapTool', () => {
     sourceState.sources = previousSources
   })
 
+  it('rejects malformed ETF symbols before any bootstrap request', async () => {
+    const wrapper = mount(MarketMapTool)
+    await flushPromises()
+
+    await wrapper.get('[aria-label="ETF universe symbol"]').setValue('not a ticker')
+    await wrapper.get('[aria-label="Load ETF constituent universe"]').trigger('click')
+    await flushPromises()
+
+    expect(apiPost.mock.calls.some(([path]) => String(path).includes('/etf-holdings/'))).toBe(false)
+    expect(wrapper.get('[aria-label="Add ETF constituent universe"] [role="alert"]').text()).toContain('canonical ETF symbol')
+  })
+
   it('shows source history readiness and queues an explicit refresh without changing membership', async () => {
     const historyStatus = {
       source_id: 'market-group:sp500',

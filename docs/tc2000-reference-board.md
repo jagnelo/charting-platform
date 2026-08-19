@@ -9,7 +9,7 @@ available. This is the functional bridge needed for “any index ETF is just ano
 
 Gap status: `required_missing` for exact V25 add-source/search placement, input affordance, loading/
 retry/error copy, and pending-to-ready transition. Interim oracle: focused Market Map component
-`31/31`, full frontend Vitest `913/913`, type-check, and production build. Evidence needed: a
+`32/32`, full frontend Vitest `914/914`, type-check, and production build. Evidence needed: a
 reviewed V25 capture showing an arbitrary ETF search/add action and its source entering the same
 heatmap as an existing managed universe. No visual threshold or mask was relaxed.
 
