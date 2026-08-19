@@ -19,6 +19,10 @@ and failed after 369 passing tests at 47.78%. It now explicitly uses
 `--cov-fail-under=0`, matching the Makefile; the branch replay and full candidate
 gate must still be rerun.
 
+The replay then exposed an Actions cleanup-only failure from setup-python's
+unused `cache: pip` configuration after uv had installed dependencies. That cache
+configuration is removed; uv remains the sole dependency cache.
+
 Integration now requires a completed successful push-triggered GitHub replay for
 the exact source SHA before validation can publish, and for the published master
 SHA after push. A failed master replay records `.ai/master-degraded.json`, which
