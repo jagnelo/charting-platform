@@ -3511,12 +3511,14 @@ class TestWorkspaces:
                         "left_code_version_id": version_id,
                         "right_code_version_id": comparison_version_id,
                         "relation": "difference",
+                        "right_scope": "benchmark",
                         "scope": "cross_sectional",
                         "statistic": "median",
                         "operator": "gte",
                         "threshold": 0,
                     },
                 },
+                "benchmark": instrument.symbol,
             },
         )
         assert comparison_tree_queued.status_code == 202, comparison_tree_queued.text
@@ -3526,6 +3528,7 @@ class TestWorkspaces:
         comparison_leaf = comparison_tree_job["condition_tree"]["params"]
         assert comparison_leaf["left_code_version_id"] == version_id
         assert comparison_leaf["right_code_version_id"] == comparison_version_id
+        assert comparison_leaf["right_scope"] == "benchmark"
         assert comparison_leaf["scope"] == "cross_sectional"
         assert comparison_leaf["statistic"] == "median"
         assert comparison_leaf["left_source"] and comparison_leaf["right_source"]

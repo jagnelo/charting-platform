@@ -153,13 +153,14 @@
           </select>
         </label>
         <label><span class="field-label">Relation</span><select :value="stringParam('relation', 'difference')" :aria-label="`Breadth Python series relation ${path}`" @change="setParam('relation', ($event.target as HTMLSelectElement).value)"><option value="difference">Difference</option><option value="ratio">Ratio minus one</option></select></label>
+        <label><span class="field-label">Right dataset</span><select :value="stringParam('right_scope', 'member')" :aria-label="`Breadth Python right dataset ${path}`" @change="setParam('right_scope', ($event.target as HTMLSelectElement).value)"><option value="member">Same member</option><option value="benchmark">Selected benchmark</option></select></label>
         <label><span class="field-label">Scope</span><select :value="stringParam('scope', 'member')" :aria-label="`Breadth Python comparison scope ${path}`" @change="setParam('scope', ($event.target as HTMLSelectElement).value)"><option value="member">Member comparison</option><option value="cross_sectional">Cross-sectional group</option></select></label>
         <label v-if="stringParam('scope', 'member') === 'cross_sectional'"><span class="field-label">Statistic</span><select :value="stringParam('statistic', 'mean')" :aria-label="`Breadth Python comparison group statistic ${path}`" @change="setParam('statistic', ($event.target as HTMLSelectElement).value)"><option value="mean">Mean</option><option value="median">Median</option><option value="min">Minimum</option><option value="max">Maximum</option><option value="std">Standard deviation</option></select></label>
         <label><span class="field-label">Operator</span><select :value="stringParam('operator', 'gte')" :aria-label="`Breadth Python comparison operator ${path}`" @change="setParam('operator', ($event.target as HTMLSelectElement).value)"><option value="gte">At or above</option><option value="gt">Above</option><option value="lte">At or below</option><option value="lt">Below</option><option value="eq">Equal to</option><option value="ne">Not equal</option></select></label>
         <label><span class="field-label">Threshold</span><input :value="numberParam('threshold', 0)" :aria-label="`Breadth Python comparison threshold ${path}`" type="number" step="0.001" @change="setParam('threshold', numberValue($event, 0))" /></label>
         <small v-if="pythonSeriesAssetsLoading" role="status">Loading Python assets…</small>
         <small v-else-if="!pythonSeriesAssets.length" class="breadth-condition-tree__warning">No numeric-series condition assets available.</small>
-        <small class="breadth-condition-tree__hint">Both isolated series are evaluated on the same prepared member and timestamp; either series may use its declared benchmark dataset.</small>
+        <small class="breadth-condition-tree__hint">The left series uses each member; the right series uses that member or the selected benchmark at the same timestamp. Missing benchmark observations are excluded.</small>
       </template>
 
       <template v-else-if="leafKind === 'range'">
@@ -273,7 +274,7 @@ function defaultLeaf(kind: BreadthLeafKind = 'above_moving_average'): BreadthCon
     relative_strength: { lookback: 20, operator: 'gte', threshold: 1 },
     series_comparison: { field: 'return', target_field: 'return', relation: 'difference', operator: 'gte', threshold: 0 },
     python_series: { code_version_id: null, scope: 'member', statistic: 'mean', operator: 'gte', threshold: 0 },
-    python_series_comparison: { left_code_version_id: null, right_code_version_id: null, relation: 'difference', scope: 'member', statistic: 'mean', operator: 'gte', threshold: 0 },
+    python_series_comparison: { left_code_version_id: null, right_code_version_id: null, relation: 'difference', right_scope: 'member', scope: 'member', statistic: 'mean', operator: 'gte', threshold: 0 },
     event: { event_type: 'any', lookback_days: 0, include_estimates: false, operator: 'gte', threshold: 1 },
     comparison: { field: 'close', operator: 'gte', threshold: 0 },
     range: { field: 'close', lower: 0, upper: 1, inclusive: true },

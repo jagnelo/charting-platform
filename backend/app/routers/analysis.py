@@ -6186,6 +6186,20 @@ def _python_breadth_condition_metadata(
     }
 
 
+def _python_condition_tree_requires_benchmark(node: object) -> bool:
+    """Return whether a Python comparison leaf reads the prepared benchmark dataset."""
+    if not isinstance(node, Mapping):
+        return False
+    kind = str(node.get("kind") or "").lower()
+    params = node.get("params") if isinstance(node.get("params"), Mapping) else {}
+    if kind == "python_series_comparison" and str(params.get("right_scope", "member")).lower() == "benchmark":
+        return True
+    children = params.get("conditions")
+    return isinstance(children, list) and any(
+        _python_condition_tree_requires_benchmark(child) for child in children
+    )
+
+
 async def _resolve_python_condition_tree(
     raw: Mapping[str, object], db: AsyncSession, user_id: int
 ) -> tuple[dict[str, object], list[int]]:
@@ -6317,6 +6331,7 @@ async def _resolve_python_condition_tree(
             right_version = await resolve_series_version("right_code_version_id")
             relation = str(params.get("relation", "difference")).lower()
             scope = str(params.get("scope", "member")).lower()
+            right_scope = str(params.get("right_scope", "member")).lower()
             statistic = str(params.get("statistic", "mean")).lower()
             operator = str(params.get("operator", "gte")).lower()
             threshold = params.get("threshold", 0)
@@ -6326,6 +6341,8 @@ async def _resolve_python_condition_tree(
                 )
             if scope not in {"member", "cross_sectional"}:
                 raise HTTPException(422, detail={"code": "invalid_python_series_comparison_scope"})
+            if right_scope not in {"member", "benchmark"}:
+                raise HTTPException(422, detail={"code": "invalid_python_series_comparison_right_scope"})
             if scope == "cross_sectional" and statistic not in {
                 "mean",
                 "median",
@@ -6363,6 +6380,7 @@ async def _resolve_python_condition_tree(
                     else {},
                     "relation": relation,
                     "scope": scope,
+                    "right_scope": right_scope,
                     "statistic": statistic,
                     "operator": operator,
                     "threshold": float(threshold),
@@ -6636,6 +6654,14 @@ async def queue_python_breadth(
         resolved_condition_tree, _ = await _resolve_python_condition_tree(
             body.condition_tree, db, current_user.id
         )
+        if _python_condition_tree_requires_benchmark(resolved_condition_tree) and not body.benchmark:
+            raise HTTPException(
+                422,
+                detail={
+                    "code": "python_series_benchmark_required",
+                    "message": "A benchmark symbol is required when a Python series comparison targets the benchmark dataset.",
+                },
+            )
         if body.series_target is not None:
             raise HTTPException(
                 422,

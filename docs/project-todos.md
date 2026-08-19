@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-08-19 — Python breadth comparisons can target the prepared benchmark series
+
+- [x] Extend recursive `python_series_comparison` leaves with an explicit `right_scope` of
+      `member` or `benchmark`. A benchmark target is evaluated against the canonical prepared
+      benchmark dataset at the exact member observation timestamp; missing or misaligned
+      observations return `python_series_benchmark_unavailable` and are excluded rather than
+      forward-filled.
+- [x] Validate the scope in the authenticated API, require an explicit benchmark symbol when the
+      tree uses it, preserve `right_scope` in the resolved immutable condition tree, and keep all
+      execution inside the isolated runner. Cross-sectional Python comparisons apply the same
+      benchmark-target metric before the declared group statistic.
+- [x] Expose the target-dataset choice in the recursive Breadth condition editor and cover direct
+      benchmark-target runner evaluation, editor serialization, existing same-member behavior,
+      and cross-sectional compatibility. Focused runner coverage `3/3` and editor coverage `9/9`
+      pass; no acceptance flexibility used.
+- [ ] Continue richer multi-stage derived-series composition and promotion fan-out to every
+      compatible chart/list/filter/scan/gauge/alert/Study Lab/Strategy Lab surface. Exact V25
+      target-dataset control geometry remains a board gap and is tracked separately.
+
 ### 2026-08-19 — Study Lab Boolean outputs promote to typed watchlist columns
 
 - [x] Treat a completed Study Lab Boolean artifact as a valid `column` promotion target. The

@@ -9132,3 +9132,15 @@ strongest colour, or symbol A–Z. Null values sort last for metric modes, ties 
 changing order does not alter canonical source membership, selected IDs, or publication semantics.
 This is board-guided interaction evidence; no exact V25 capture for the specific ordering control is
 present and remains a named visual gap.
+
+## 2026-08-19 — Locked constituent watchlists use the same Market Map contract
+
+Index and index-ETF constituents are deliberately not a special heatmap product. They
+are platform-controlled, versioned `WatchlistSource` instances whose membership is locked
+for the user, while the downstream Market Map remains identical to the one used for
+personal, combo, sector, industry, managed, ETF, and explicit watchlists. The locked flag
+only prevents membership mutation; it does not restrict grouping, sizing, period, colour,
+selection, drill-down, breadth, Study Lab, chart, or relative-strength actions. The same
+source-polymorphic contract therefore supports an arbitrary user watchlist and a canonical
+SPY/RSP, Russell, S&P, or Nasdaq constituent population without a separate renderer or
+provider-specific frontend path.

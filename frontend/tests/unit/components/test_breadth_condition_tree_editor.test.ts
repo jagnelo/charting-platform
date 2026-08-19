@@ -146,6 +146,10 @@ describe('BreadthConditionTreeEditor', () => {
     await wrapper.get('[aria-label="Breadth Python series relation 1"]').setValue('ratio')
     const relationPayload = wrapper.emitted('update:modelValue')?.at(-1)?.[0] as { params: Record<string, unknown> }
     await wrapper.setProps({ modelValue: relationPayload })
+    await wrapper.get('[aria-label="Breadth Python right dataset 1"]').setValue('benchmark')
+    const datasetPayload = wrapper.emitted('update:modelValue')?.at(-1)?.[0] as { params: Record<string, unknown> }
+    expect(datasetPayload.params.right_scope).toBe('benchmark')
+    await wrapper.setProps({ modelValue: datasetPayload })
     await wrapper.get('[aria-label="Breadth Python comparison threshold 1"]').setValue('0.05')
     const payload = wrapper.emitted('update:modelValue')?.at(-1)?.[0] as { kind: string; params: Record<string, unknown> }
     expect(payload.kind).toBe('python_series_comparison')

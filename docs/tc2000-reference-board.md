@@ -1,5 +1,18 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Python breadth benchmark-target control is newly represented
+
+Recursive Breadth now lets a Python series comparison evaluate its right-hand series against the
+selected benchmark dataset, in addition to the same member. This is a functional extension of the
+source-polymorphic breadth surface and does not introduce another renderer or programming method.
+
+Gap status: `required_missing` for exact V25 placement, wording, focus/disabled states, benchmark
+target affordance, and missing-benchmark feedback for this control. Interim oracle: isolated runner
+benchmark-target regression `3/3`, Breadth condition editor `9/9`, type-check, and build. Evidence
+needed: a reviewed V25 capture showing a derived/custom condition comparing a member series with a
+benchmark-derived series. No visual threshold, mask, provider substitution, or acceptance rule was
+relaxed.
+
 ## 2026-08-19 — Boolean Study-to-column promotion is functional but visually unrepresented
 
 The workstation now offers `Save column` for both a completed structured Boolean artifact and a

@@ -449,12 +449,19 @@ def _prepare_condition_tree_context(
                     },
                     manage_timeout=False,
                 )
+                right_dataset = candidate
+                if str(params.get("right_scope", "member")).lower() == "benchmark":
+                    benchmark_dataset = candidate.get("benchmark_dataset")
+                    if not isinstance(benchmark_dataset, dict):
+                        errors[instrument_id] = "python_series_benchmark_unavailable"
+                        continue
+                    right_dataset = benchmark_dataset
                 right_result = _execute_single(
                     right_source,
-                    candidate,
+                    right_dataset,
                     {
                         "source": right_source,
-                        "dataset": candidate,
+                        "dataset": right_dataset,
                         "output_contract": "series",
                         "parameters": params.get("right_parameters", {})
                         if isinstance(params.get("right_parameters"), dict)
@@ -695,12 +702,18 @@ def _execute_condition_tree(
             },
             manage_timeout=False,
         )
+        right_dataset = dataset
+        if str(params.get("right_scope", "member")).lower() == "benchmark":
+            benchmark_dataset = dataset.get("benchmark_dataset")
+            if not isinstance(benchmark_dataset, dict):
+                return None, None, "python_series_benchmark_unavailable"
+            right_dataset = benchmark_dataset
         right_result = _execute_single(
             right_source,
-            dataset,
+            right_dataset,
             {
                 "source": right_source,
-                "dataset": dataset,
+                "dataset": right_dataset,
                 "output_contract": "series",
                 "parameters": params.get("right_parameters", {}) if isinstance(params.get("right_parameters"), dict) else {},
                 "timestamp": timestamp,

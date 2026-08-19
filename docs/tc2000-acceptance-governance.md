@@ -1,5 +1,17 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Python comparison targets may use the prepared benchmark dataset
+
+The recursive Python breadth condition editor now exposes an explicit right-side dataset choice:
+the same member or the selected benchmark. Acceptance requires `right_scope` to be persisted in
+the resolved immutable tree, a benchmark symbol to be declared when that scope is selected, and
+the isolated runner to evaluate both series at the exact observation timestamp. Missing benchmark
+bars must produce `python_series_benchmark_unavailable` and reduce eligibility; stale values must
+not be forward-filled. Cross-sectional scope applies its group statistic only after the member /
+benchmark comparison has been materialized. Focused runner coverage is `3/3` and editor coverage
+is `9/9`; no acceptance flexibility was used. Exact Version 25 control geometry for this newly
+represented state remains a `required_missing` board gap.
+
 ## 2026-08-19 — Boolean-column browser gate added
 
 The Boolean-column promotion gate now has an authenticated end-to-end oracle for the previously
