@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-19 — Selected Market Map subset handoff checkpoint
+
+- Added a source-scoped distinction to the universal Market Map workflow. Full source actions
+  retain the parent locked/index/ETF/personal/combo source; selected actions publish canonical
+  `explicit:` subsets with parent lineage into Breadth and Study Lab. The Breadth selector keeps
+  ephemeral subsets visible as `Selected members · N` and does not alter parent membership.
+- Evidence: Market Map component `29/29`, helper `3/3`, authenticated Chromium
+  `F8s-market-map-watchlist` `1/1`, frontend Vitest `905/905`, type-check, production build, and
+  diff-check all pass. Implementation commit `7f49fec7` is pushed.
+- No acceptance flexibility used. The first browser expectation hardcoded the wrong selected tile
+  ID; it was corrected to assert the canonical explicit-source contract. Exact V25 selected-action
+  visuals, durable explicit persistence, arbitrary-source provider history, and all-eight family
+  population remain open.
+
 ## 2026-08-19 — Recoverable partial source clone validation
 
 - Replaced all-or-nothing concurrent clone writes with sequential canonical membership writes and

@@ -1,5 +1,21 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Selected heatmap members publish as reusable analysis sources
+
+Market Map now distinguishes the full source from the currently selected member subset. Full
+source actions continue to hand off the locked index/ETF/personal/combo watchlist unchanged;
+selected actions publish a deduplicated canonical `explicit:` source and preserve parent-source
+lineage in Breadth and Study Lab. Breadth keeps a synthetic locked source descriptor labelled
+`Selected members · N`, so the ephemeral subset is visible, selectable, and can be cloned rather
+than being silently reduced to the parent universe. No provider-specific symbol lookup or parent
+membership mutation is involved.
+
+Focused Market Map coverage is `29/29`, the explicit-source helper is `3/3`, authenticated
+Chromium `F8s-market-map-watchlist` is `1/1`, and full frontend Vitest is `905/905` with
+type-check/build/diff-check green. Exact V25 selected-subset action geometry, durable explicit
+source persistence, and provider-backed arbitrary-source history remain open; no acceptance
+criterion was relaxed.
+
 ## 2026-08-19 — Source-clone recovery is explicit and source-polymorphic
 
 The shared Market Map treats an index/ETF constituent set as a locked watchlist and an optional

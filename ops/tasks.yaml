@@ -1,4 +1,34 @@
 tasks:
+  - id: tc2000-market-map-selected-subset-publication-20260819
+    title: Publish selected Market Map members as explicit reusable analysis sources
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Treat a selected subset of any locked/index/ETF/personal/combo heatmap source as a
+      canonical analysis source for Breadth and Study Lab while preserving the immutable parent
+      source and source lineage.
+    definition_of_done:
+      - Full-source actions preserve the parent source and selected actions publish deduplicated valid canonical IDs
+      - Breadth and Study Lab retain parent source, effective source, scope, selected IDs/symbols, and publication origin
+      - Ephemeral explicit subsets remain visible as a locked synthetic source and oversized selections fail without truncation
+      - Add focused helper/component and authenticated browser acceptance coverage
+    validation:
+      - market-map-component-29-of-29
+      - market-map-publication-helper-3-of-3
+      - authenticated-chromium-F8s-market-map-watchlist-1-of-1
+      - frontend-vitest-905-of-905
+      - frontend-type-check
+      - frontend-build
+      - git-diff-check
+    notes:
+      - >-
+        Implementation commit 7f49fec7 is pushed. Acceptance flexibility used: None. The first
+        browser assertion assumed explicit:1 although layout ordering selected canonical ID 2;
+        it was corrected to verify the explicit source contract and one-member descriptor. Exact
+        V25 selected-action visuals, durable explicit-source persistence, provider-backed subset
+        bars/history, and all-eight family population remain open.
+
   - id: tc2000-market-map-clone-retry-20260819
     title: Make locked Market Map source clones resumable after member conflicts
     status: completed

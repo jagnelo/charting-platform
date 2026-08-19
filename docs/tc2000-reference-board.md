@@ -1,5 +1,18 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Selected-subset Market Map handoff is functional but visually unreferenced
+
+The current product vision treats an arbitrary index/ETF/personal/combo watchlist and a selected
+subset of that watchlist as the same universal heatmap family. The selected action now publishes
+an explicit canonical subset, and Breadth exposes it as `Selected members · N` with locked/ephemeral
+semantics. The browser oracle proves a one-member selected handoff; this supplies interim behavior
+guidance only.
+
+The web-sourced board has no authoritative exact-build V25 capture for the selected-member action,
+subset-source badge, source-lineage disclosure, oversized-selection guard, or Breadth/Study Lab
+arrival state. These remain `required_missing` and must be tracked rather than inferred from the
+full-source or personal-list images. No mask, threshold, or visual acceptance rule was relaxed.
+
 ## 2026-08-19 — Clone retry state is a tracked visual gap
 
 The functional interim oracle now covers a locked source with one intentionally recoverable member

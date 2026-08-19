@@ -1,5 +1,20 @@
 # Active Handoff
 
+## 2026-08-19 — Selected Market Map members publish as explicit sources
+
+- Full-source Map actions preserve the parent canonical watchlist; selected-member actions now
+  publish a deduplicated `explicit:<instrument-id,...>` source into Breadth/Study Lab without
+  mutating locked membership. Parent source ID, analysis source/scope, selected IDs/symbols, and
+  publication origin are persisted in tool configuration; Breadth retains a synthetic locked
+  `Selected members · N` descriptor for ephemeral subsets.
+- Validation: Market Map component `29/29`, helper `3/3`, authenticated Chromium
+  `F8s-market-map-watchlist` `1/1`, full Vitest `905/905`, type-check, production build, and
+  diff-check. Implementation checkpoint `7f49fec7` is pushed.
+- Acceptance flexibility: **None**. A first assertion assumed `explicit:1`; the actual tile order
+  selected canonical ID `2`, so the assertion now checks canonical explicit shape plus one-member
+  label. Remaining: exact V25 selected-action visuals, durable explicit-source storage, provider
+  bars/history for arbitrary subsets, and all-eight family population.
+
 ## 2026-08-19 — Locked-source clone retry checkpoint
 
 - Clone membership writes are now sequential and recoverable. A conflict leaves the personal copy

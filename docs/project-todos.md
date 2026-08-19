@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-08-19 — Selected Market Map members are reusable explicit analysis sources
+
+- [x] Keep the universal heatmap watchlist model for full locked/index/ETF/personal/combo
+      sources, while making the selected members of any map a first-class analysis scope rather
+      than context-only metadata. Full-source actions preserve the parent source; selected-source
+      actions publish a deduplicated canonical `explicit:<instrument-id,...>` source without
+      mutating the locked parent membership.
+- [x] Retain source lineage (`source_id`, `analysis_source_id`, scope, selected canonical IDs and
+      symbols, and publication origin) when handing a selected subset into Market Breadth or Study
+      Lab. Keep a synthetic locked selector entry for ephemeral explicit sources so the user can
+      see and reuse the exact subset before deciding whether to save a personal copy.
+- [x] Validate focused Market Map component `29/29`, explicit-source helper `3/3`, authenticated
+      Chromium `F8s-market-map-watchlist` `1/1`, full frontend Vitest `905/905`, type-check,
+      production build, and diff-check. Implementation checkpoint: `7f49fec7`.
+- [ ] Exact V25 selected-source picker/action geometry, durable explicit-source persistence beyond
+      the current session, provider-backed bars/history for every arbitrary source, and all-eight
+      family population remain open. Acceptance flexibility used: **None**; the browser assertion
+      requires a one-member canonical explicit source and the product retains the parent source.
+
 ### 2026-08-19 — Partial locked-source clones are resumable
 
 - [x] Make canonical-source cloning sequential and observable. A failed membership write no

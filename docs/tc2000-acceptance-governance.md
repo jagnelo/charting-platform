@@ -1,5 +1,24 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Selected-source handoffs must retain canonical subset identity
+
+The universal-watchlist acceptance gate now covers both a source-wide and a selection-scoped
+Market Map handoff. Source-wide actions retain the locked/index/ETF/personal/combo source ID;
+selection actions must deduplicate valid canonical instrument IDs and publish an explicit source
+without changing the parent membership. Breadth and Study Lab must retain parent source lineage,
+scope, selected IDs/symbols, and publication origin, and Breadth must keep an observable synthetic
+locked selector entry for an ephemeral explicit source. If a subset is too large for the explicit
+identity bound, the UI must preserve the parent source and instruct the user to save a personal
+watchlist rather than silently truncating it.
+
+Focused component/helper gates are `29/29` and `3/3`; authenticated Chromium
+`F8s-market-map-watchlist` is `1/1`; full frontend Vitest is `905/905`; type-check/build/
+diff-check pass. A first browser assertion assumed the wrong tile ordering (`explicit:1`); the
+product correctly published the selected tile's canonical ID (`explicit:2`), and the assertion
+was corrected to verify the canonical explicit shape and one-member label. This is a localized
+test repair under the fix-first tie-break, not acceptance flexibility. Exact V25 selected-action
+geometry and durable explicit-source persistence remain `required_missing`/open.
+
 ## 2026-08-19 — Locked-source clone conflicts must be recoverable, not blocking
 
 The universal watchlist acceptance gate requires clone membership writes to be sequential and
