@@ -1416,7 +1416,16 @@ function updateStackedColumnKeys(windowKey: string, keys: string[]) {
   patchToolConfiguration(windowKey, { stacked_column_keys: keys })
 }
 function updateToolConfiguration(windowKey: string, configuration: Record<string, unknown>) {
-  const windowState = workspaceStore.activeTab?.windows.find(window => window.instance_key === windowKey)
+  // Publication/open actions may switch tabs immediately before applying a
+  // configuration. Golden Layout can update the active-tab pointer on the next
+  // reactive turn, so searching only activeTab can silently patch nothing (or
+  // leave the visible tool on its previous universe). Window instance keys are
+  // globally unique within a workspace; resolve the canonical record across
+  // all tabs and preserve its reactive configuration object for the mounted
+  // virtual tool.
+  const windowState = workspaceStore.workspace?.tabs
+    .flatMap(tab => tab.windows)
+    .find(window => window.instance_key === windowKey)
   if (!windowState) return
   // Golden Layout mounts virtual Vue tool components once. Preserve this reactive
   // configuration object so a template applies to the live tool immediately instead

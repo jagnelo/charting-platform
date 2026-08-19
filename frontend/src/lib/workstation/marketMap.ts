@@ -219,40 +219,72 @@ export function layoutMarketMapCells(cells: MarketMapCell[], width = 100, height
     }).filter((cell): cell is MarketMapLayoutCell => Boolean(cell))
   }
 
-  const groups = new Map<string, typeof weighted[number][]>()
-  for (const item of weighted) {
-    const key = item.cell.group_path[0] || 'All members'
-    const members = groups.get(key)
-    if (members) members.push(item)
-    else groups.set(key, [item])
+  type GroupTree = {
+    path: string[]
+    members: typeof weighted
+    children: Map<string, GroupTree>
   }
-  const groupRects = layoutRectangles(
-    [...groups.entries()].map(([key, members]) => ({
-      key,
-      area: members.reduce((sum, member) => sum + member.area, 0),
-    })),
-    0,
-    0,
-    width,
-    height,
-  )
-  const byGroup = new Map(groupRects.map(rect => [rect.key, rect]))
+  const root: GroupTree = { path: [], members: [], children: new Map() }
+  for (const item of weighted) {
+    let node = root
+    for (const label of item.cell.group_path) {
+      const childPath = [...node.path, label]
+      const child = node.children.get(label) ?? { path: childPath, members: [], children: new Map() }
+      node.children.set(label, child)
+      node = child
+    }
+    node.members.push(item)
+  }
+
+  /**
+   * Recursively partition the full group path before laying out its leaf cells.
+   * The previous implementation split only on group_path[0] and then painted
+   * industry frames around interleaved cells. That looked plausible for a small
+   * fixture but could not guarantee a real sector → industry treemap. Direct
+   * members at a mixed level are represented by a deterministic synthetic leaf
+   * and retain their source cells without inventing a visible group frame.
+   */
   const result: MarketMapLayoutCell[] = []
-  for (const [groupKey, members] of groups) {
-    const groupRect = byGroup.get(groupKey)
-    if (!groupRect) continue
-    const memberRects = layoutRectangles(
-      members.map(({ cell, area }) => ({ key: String(cell.instrument_id), area })),
-      groupRect.x,
-      groupRect.y,
-      groupRect.width,
-      groupRect.height,
-    )
-    for (const rect of memberRects) {
-      const cell = cellsById.get(rect.key)
-      if (cell) result.push({ ...cell, x: rect.x, y: rect.y, width: rect.width, height: rect.height })
+  const layoutNode = (node: GroupTree, x: number, y: number, nodeWidth: number, nodeHeight: number) => {
+    const childItems = [...node.children.entries()].map(([key, child]) => ({
+      key: `group:${key}`,
+      area: child.members.reduce((sum, item) => sum + item.area, 0)
+        + [...child.children.values()].reduce((sum, descendant) => sum + treeArea(descendant), 0),
+    }))
+    if (node.members.length) {
+      childItems.push({
+        key: '__direct_members__',
+        area: node.members.reduce((sum, item) => sum + item.area, 0),
+      })
+    }
+    if (!childItems.length) return
+    const rectangles = layoutRectangles(childItems, x, y, nodeWidth, nodeHeight)
+    for (const rectangle of rectangles) {
+      if (rectangle.key === '__direct_members__') {
+        layoutMembers(node.members, rectangle)
+        continue
+      }
+      const childKey = rectangle.key.slice('group:'.length)
+      const child = node.children.get(childKey)
+      if (child) layoutNode(child, rectangle.x, rectangle.y, rectangle.width, rectangle.height)
     }
   }
+  const treeArea = (node: GroupTree): number => node.members.reduce((sum, item) => sum + item.area, 0)
+    + [...node.children.values()].reduce((sum, child) => sum + treeArea(child), 0)
+  const layoutMembers = (members: typeof weighted, rectangle: LayoutRect) => {
+    const memberRects = layoutRectangles(
+      members.map(({ cell, area }) => ({ key: String(cell.instrument_id), area })),
+      rectangle.x,
+      rectangle.y,
+      rectangle.width,
+      rectangle.height,
+    )
+    for (const memberRect of memberRects) {
+      const cell = cellsById.get(memberRect.key)
+      if (cell) result.push({ ...cell, x: memberRect.x, y: memberRect.y, width: memberRect.width, height: memberRect.height })
+    }
+  }
+  layoutNode(root, 0, 0, width, height)
   return result
 }
 

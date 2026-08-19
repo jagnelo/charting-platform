@@ -45,6 +45,34 @@ describe('market map layout', () => {
     expect(sameColumn || sameRow).toBe(true)
   })
 
+  it('recursively partitions sibling industries so their tiles cannot interleave', () => {
+    const cells = [
+      { instrument_id: 1, symbol: 'A', name: 'A', group_path: ['Technology', 'Software'], area_value: 4, color_value: 0.1, coverage: 1, warnings: [] },
+      { instrument_id: 2, symbol: 'B', name: 'B', group_path: ['Technology', 'Software'], area_value: 2, color_value: 0.1, coverage: 1, warnings: [] },
+      { instrument_id: 3, symbol: 'C', name: 'C', group_path: ['Technology', 'Hardware'], area_value: 3, color_value: -0.1, coverage: 1, warnings: [] },
+      { instrument_id: 4, symbol: 'D', name: 'D', group_path: ['Technology', 'Hardware'], area_value: 1, color_value: -0.1, coverage: 1, warnings: [] },
+      { instrument_id: 5, symbol: 'E', name: 'E', group_path: ['Health Care', 'Devices'], area_value: 2, color_value: 0.2, coverage: 1, warnings: [] },
+    ]
+    const result = layoutMarketMapCells(cells)
+    const bounds = (group: string) => {
+      const members = result.filter(cell => cell.group_path[1] === group)
+      return {
+        left: Math.min(...members.map(cell => cell.x)),
+        top: Math.min(...members.map(cell => cell.y)),
+        right: Math.max(...members.map(cell => cell.x + cell.width)),
+        bottom: Math.max(...members.map(cell => cell.y + cell.height)),
+      }
+    }
+    const software = bounds('Software')
+    const hardware = bounds('Hardware')
+    const disjoint = software.right <= hardware.left + 0.000001
+      || hardware.right <= software.left + 0.000001
+      || software.bottom <= hardware.top + 0.000001
+      || hardware.bottom <= software.top + 0.000001
+    expect(disjoint).toBe(true)
+    expect(result.every(cell => cell.x >= 0 && cell.y >= 0 && cell.x + cell.width <= 100.000001 && cell.y + cell.height <= 100.000001)).toBe(true)
+  })
+
   it('exposes deterministic top-level group frames for grouped universes', () => {
     const cells = [
       { instrument_id: 1, symbol: 'A', name: 'A', group_path: ['Technology', 'Software'], area_value: 3, color_value: 0.1, coverage: 1, warnings: [] },

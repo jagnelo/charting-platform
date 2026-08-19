@@ -1,5 +1,26 @@
 # Project TODO Memory
 
+### 2026-08-19 — Hierarchical Market Map geometry and cross-tab analysis handoff repaired
+
+- [x] Replace first-level-only Market Map partitioning with recursive group geometry. Sector →
+      industry siblings now receive disjoint proportional rectangles before member tiles are
+      laid out, so industry cells cannot interleave inside a sector. Mixed-depth sources retain
+      direct members through a deterministic synthetic leaf without inventing a visible group.
+- [x] Add a regression proving sibling-industry bounds are disjoint and all recursive cells stay
+      within the viewport. Layout coverage is `6/6`; existing Market Map component coverage is
+      `32/32`.
+- [x] Repair cross-tab Market Map publication. Configuration updates now resolve the globally
+      unique tool instance across all persisted workspace tabs instead of depending on a possibly
+      stale `activeTab` pointer. The real authenticated Market Map → Breadth/Study handoff now
+      passes `1/1`; the family map/breadth/rotation matrix passes `4/4`.
+- [x] Validate full frontend Vitest `916/916`, `vue-tsc`, Vite production build, rebuilt seeded
+      stack migration, elevated browser execution, and clean stack shutdown. The first browser
+      invocation failed at the macOS Chromium Mach-port permission boundary; the elevated rerun
+      reached the product. No acceptance flexibility or visual threshold was used.
+- [ ] Exact Version 25 nested treemap typography/gutters/hover geometry remains a board gap; the
+      recursive layout is the functional interim oracle. Provider-backed all-root population,
+      point-in-time weights/history, and final visual acceptance remain open.
+
 ### 2026-08-19 — Top-down trader workflow browser acceptance is mode-explicit
 
 - [x] Rebuilt the branch stack with `E2E_SEED_MARKET_DATA=true` and exercised the real user flow:

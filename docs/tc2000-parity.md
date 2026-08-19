@@ -1,5 +1,25 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Recursive treemap partitioning and cross-tab publication
+
+Market Map geometry now recursively partitions the complete `group_path`: sector rectangles are
+partitioned into industry rectangles before member tiles are laid out, preventing sibling
+industries from interleaving while preserving proportional area. Mixed-depth and ungrouped cells
+remain source-visible without fabricated group frames. A six-case layout regression proves sibling
+disjointness and viewport bounds; the existing Market Map component suite remains `32/32`.
+
+The shared configuration updater now resolves a unique tool instance across every persisted
+workspace tab. This closes a real Market Map → Breadth/Study Lab handoff defect where a tab switch
+could leave the visible Breadth tool on its previous group universe. Elevated authenticated
+Chromium evidence passes the unchanged source-polymorphic handoff oracle (`1/1`) and the family
+map/breadth/rotation matrix (`4/4`). The initial unprivileged browser attempt failed before page
+creation at the macOS Mach-port permission boundary; it is recorded as environment evidence, not
+product behavior. Acceptance flexibility: **None**.
+
+The board still lacks authoritative Version 25 nested treemap geometry, typography, gutters, and
+hover treatment, so those exact visual states remain `required_missing`; the functional layout
+and handoff gates are not being presented as visual approval.
+
 ## 2026-08-19 — Top-down trader workflow and family matrix browser gates
 
 The authenticated browser acceptance now proves the real seeded workflow rather than only isolated

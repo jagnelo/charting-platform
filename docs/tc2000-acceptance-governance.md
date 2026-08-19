@@ -1,5 +1,18 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Recursive Market Map and cross-tab handoff gate
+
+The Market Map acceptance oracle now covers two repository-controlled correctness conditions:
+recursive sector/industry rectangles must not interleave sibling groups, and a publication from a
+map in one workspace tab must update the canonical Breadth/Study Lab window even when the active-tab
+pointer is still settling. Layout `6/6`, authenticated handoff `1/1`, family matrix `4/4`, full
+frontend `916/916`, type-check, and production build pass. The initial browser permission failure
+occurred before product startup and was rerun with elevated browser permissions.
+
+No acceptance flexibility was used. Exact Version 25 nested-map geometry and action-row visuals
+remain a specifically recorded `required_missing` board gap; functional acceptance is not being
+substituted for that visual track.
+
 ## 2026-08-19 — Top-down browser evidence uses explicit data modes
 
 The seeded acceptance path now covers the trader's full top-down interaction sequence and the

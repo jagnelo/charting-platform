@@ -1,5 +1,18 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Recursive map geometry and handoff evidence
+
+The source-polymorphic Market Map now lays out the full sector → industry hierarchy recursively,
+with disjoint proportional sibling rectangles and member tiles constrained to their leaf group.
+This is the current functional rendering reference for arbitrary locked index/ETF and user-owned
+watchlists. The cross-tab publication oracle also confirms that selecting map members updates the
+actual Breadth/Study Lab instance rather than a stale active-tab record.
+
+The browser evidence is interaction evidence, not an exact-build visual approval. The board still
+has no authoritative Version 25 capture for nested treemap gutters, group-label typography,
+large-universe canvas density, or this exact publication action row; those gaps remain tracked and
+must not be hidden by screenshot masks or inferred from the passing functional tests.
+
 ## 2026-08-19 — Top-down interaction evidence and data-mode gap
 
 The board-guided workstation flow is now exercised end to end in the deterministic fixture:
