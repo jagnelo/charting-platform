@@ -268,7 +268,7 @@ validate-integration:
 	@set -e; \
 	git diff --check; \
 	$(MAKE) branch-validate; \
-	(cd backend && uv lock --check && uv sync --frozen --dev && uv export --locked --format requirements-txt --output-file /tmp/charting-requirements.lock && cmp -s /tmp/charting-requirements.lock requirements.txt); \
+	(cd backend && uv lock --check && uv sync --frozen --dev && uv export --locked --format requirements-txt --output-file /tmp/charting-requirements.lock && sed '1,2d' requirements.txt > /tmp/charting-requirements.current && sed '1,2d' /tmp/charting-requirements.lock > /tmp/charting-requirements.generated && cmp -s /tmp/charting-requirements.generated /tmp/charting-requirements.current); \
 	(cd frontend && npm ci); \
 	$(MAKE) lint; \
 	$(MAKE) test-backend-coverage; \

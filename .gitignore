@@ -77,3 +77,5 @@ logs/
 .ai/validation/
 .ai/deploy/
 .ai/config/
+.ai/integration/
+.ai/*.lock
