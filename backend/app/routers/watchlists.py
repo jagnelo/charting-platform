@@ -14,6 +14,7 @@ from app.models.user import User
 from app.models.watchlist import Watchlist, WatchlistItem
 from app.models.watchlist_history import WatchlistHistoryRefreshRun
 from app.schemas.watchlist import (
+    SavedExplicitWatchlistSourceCreate,
     WatchlistCreate,
     WatchlistHistoryRefreshRunOut,
     WatchlistItemCreate,
@@ -32,7 +33,11 @@ from app.services.watchlist_history import (
     build_watchlist_source_history_status,
     plan_watchlist_source_history_refresh,
 )
-from app.services.watchlist_sources import list_watchlist_sources, resolve_watchlist_source
+from app.services.watchlist_sources import (
+    list_watchlist_sources,
+    resolve_watchlist_source,
+    save_explicit_watchlist_source,
+)
 
 router = APIRouter(prefix="/watchlists", tags=["watchlists"])
 
@@ -85,6 +90,28 @@ async def get_watchlist_sources(
     """List every selectable universe through one watchlist-source contract."""
 
     return await list_watchlist_sources(db, current_user)
+
+
+@router.post("/sources/explicit", response_model=WatchlistSourceRead)
+async def save_explicit_watchlist_source_route(
+    body: SavedExplicitWatchlistSourceCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Persist a user-owned locked canonical selection as a reusable source."""
+
+    try:
+        source = await save_explicit_watchlist_source(
+            db,
+            current_user.id,
+            name=body.name,
+            instrument_ids=body.instrument_ids,
+            parent_source_id=body.parent_source_id,
+            parent_membership_version=body.parent_membership_version,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return source
 
 
 @router.get(

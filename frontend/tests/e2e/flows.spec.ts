@@ -3323,6 +3323,27 @@ test.describe('TC2000 workstation', () => {
       }
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(sources) })
     })
+    await page.route('**/api/v1/watchlists/sources/explicit', async route => {
+      if (route.request().method() !== 'POST') return route.continue()
+      const body = route.request().postDataJSON() as { name?: string; instrument_ids?: number[]; parent_source_id?: string; parent_membership_version?: string }
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        source_id: 'explicit-list:selection-e2e',
+        source_kind: 'explicit',
+        name: body.name ?? 'Saved locked source',
+        locked: true,
+        can_follow: true,
+        can_clone: true,
+        can_edit_membership: false,
+        member_count: body.instrument_ids?.length ?? 0,
+        membership_version: 'explicit-list:e2e:v1',
+        provenance: {
+          durability: 'user_library',
+          instrument_ids: body.instrument_ids ?? [],
+          parent_source_id: body.parent_source_id,
+          parent_membership_version: body.parent_membership_version,
+        },
+      }) })
+    })
     await page.route('**/api/v1/watchlists', async route => {
       if (route.request().method() !== 'POST') return route.continue()
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 99, name: 'US benchmark constituents snapshot 2026-08-08', description: 'Cloned source', is_managed: false, is_locked: false, items: [] }) })
@@ -3365,6 +3386,15 @@ test.describe('TC2000 workstation', () => {
     await mapWindow.getByRole('button', { name: 'Refresh', exact: true }).click()
     await expect.poll(() => requestedSources.at(-1), { timeout: 15_000 }).toBe('watchlist:7')
     await expect(mapWindow).toContainText('Swing candidates')
+    await expect(mapWindow.locator('.market-map-tool__tile')).toHaveCount(2)
+    await mapWindow.locator('.market-map-tool__tile').first().click()
+    // Save the selection while the Market Map owns focus. Publishing the same
+    // selection into Breadth activates that tool, so the map is intentionally
+    // no longer a visible locator after the handoff.
+    await mapWindow.getByRole('textbox', { name: 'Market Map locked source name' }).fill('Saved benchmark member')
+    await mapWindow.getByRole('button', { name: 'Save selected members as locked source' }).click()
+    await expect(mapWindow).toContainText('saved as locked source Saved benchmark member', { timeout: 15_000 })
+    await expect.poll(() => requestedSources.at(-1), { timeout: 15_000 }).toBe('explicit-list:selection-e2e')
     await expect(mapWindow.locator('.market-map-tool__tile')).toHaveCount(2)
     await mapWindow.locator('.market-map-tool__tile').first().click()
     await mapWindow.getByRole('button', { name: 'Open selected members in Market Breadth' }).click()

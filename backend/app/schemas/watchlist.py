@@ -76,6 +76,13 @@ class WatchlistSourceRead(BaseModel):
     composition_date: str | None = None
 
 
+class SavedExplicitWatchlistSourceCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=160)
+    instrument_ids: list[int] = Field(min_length=1, max_length=500)
+    parent_source_id: str | None = Field(default=None, max_length=240)
+    parent_membership_version: str | None = Field(default=None, max_length=240)
+
+
 class WatchlistSourceMemberRead(BaseModel):
     instrument_id: int
     position: int

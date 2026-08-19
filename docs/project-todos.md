@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-08-19 — Durable explicit selections complete the universal heatmap source model
+
+- [x] Persist any selected canonical subset from an index, ETF, sector, industry, combo, personal,
+      or explicit Market Map as a user-owned locked `WatchlistSource`. The source is immutable in
+      membership but remains selectable, followable, pinnable, clonable, and reusable by the same
+      Market Map, Breadth, Study Lab, scan, gauge, and chart handoff contracts as every other list.
+- [x] Store canonical instrument IDs only, deduplicate them, reject missing security-master IDs,
+      retain optional parent source/membership lineage, expose the source after reload, and resolve
+      it without provider fan-out. Repeating the same canonical selection and parent version updates
+      its name/version instead of creating a duplicate source.
+- [x] Validate backend persistence/list/resolve and user isolation, Market Map component coverage,
+      authenticated Chromium `F8s-market-map-watchlist`, full frontend Vitest, type-check, build,
+      and diff-check. The browser test saves the source while the map is focused, then republishes
+      the same selection into Breadth after the map-to-tool focus transition.
+- [ ] Exact V25 source-library/action geometry, provider-backed bars/history for arbitrary saved
+      selections, point-in-time membership snapshots, and the remaining visual-reference gaps stay
+      open. Acceptance flexibility used: **None**; the hidden-map test interaction was corrected,
+      not waived.
+
 ### 2026-08-19 — Study Lab discloses selected-source lineage
 
 - [x] Show a selected Market Map subset as `Selected members · N · Locked explicit source` in

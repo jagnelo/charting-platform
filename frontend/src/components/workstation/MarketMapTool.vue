@@ -19,6 +19,7 @@
       <template v-if="explicitSymbols.trim()">
         <input v-model.trim="explicitWatchlistName" aria-label="Explicit source watchlist name" placeholder="Save watchlist as…" maxlength="80" />
         <button type="button" :disabled="explicitSaving || !explicitWatchlistName" @click="saveExplicitSource">{{ explicitSaving ? 'Saving…' : 'Save as watchlist' }}</button>
+        <button type="button" :disabled="explicitSaving || !explicitWatchlistName" aria-label="Save explicit symbols as locked source" @click="saveExplicitLockedSource">{{ explicitSaving ? 'Saving…' : 'Save as locked source' }}</button>
         <span v-if="publicationMessage" role="status">{{ publicationMessage }}</span>
         <span v-if="publicationError" class="market-map-tool__status--error" role="alert">{{ publicationError }}</span>
       </template>
@@ -144,6 +145,7 @@
     <p v-if="sourcesError" class="market-map-tool__status market-map-tool__status--error" role="alert">{{ sourcesError }}</p>
     <p v-if="error" class="market-map-tool__status market-map-tool__status--error" role="alert">{{ error }}</p>
     <p v-if="snapshotError" class="market-map-tool__status market-map-tool__status--error" role="alert">{{ snapshotError }}</p>
+    <p v-if="publicationMessage && !explicitSymbols.trim() && !selectedIds.length" class="market-map-tool__status" role="status">{{ publicationMessage }}</p>
     <p v-if="map?.warnings.length" class="market-map-tool__status" role="status">{{ map.warnings.map(item => item.message).join(' · ') }}</p>
     <div v-if="map" class="market-map-tool__summary">
       <span>{{ map.source.name }}</span><span>{{ map.evaluated_count }}/{{ map.requested_count }} combined covered</span><span>Colour {{ coveragePercent(map.color_coverage, map.coverage) }}%</span><span>Area {{ coveragePercent(map.area_coverage, map.coverage) }}%</span><span>{{ formatFreshness(map.freshness) }}</span><span v-if="activeSnapshotName">Snapshot · {{ activeSnapshotName }}</span><span v-else-if="map.cache_hit">Cached result · {{ map.cached_at ? new Date(map.cached_at).toLocaleTimeString() : 'saved' }}</span><span v-if="map.source.locked">Locked source · {{ map.source.membership_version }}</span>
@@ -209,6 +211,8 @@
       </select>
       <input v-if="!publicationTargetId" v-model="newPublicationName" aria-label="Market Map new watchlist name" placeholder="Watchlist name" maxlength="80" @keydown.enter.prevent="publishSelection" />
       <button type="button" :disabled="publishing || (!publicationTargetId && !newPublicationName.trim())" @click="publishSelection">{{ publishing ? 'Saving…' : 'Save selection' }}</button>
+      <input v-model.trim="lockedSourceName" aria-label="Market Map locked source name" placeholder="Locked source name" maxlength="160" />
+      <button type="button" :disabled="lockedSourceSaving || !lockedSourceName || !selectedIds.length" aria-label="Save selected members as locked source" @click="saveSelectedAsLockedSource">{{ lockedSourceSaving ? 'Saving…' : 'Save as locked source' }}</button>
       <button type="button" aria-label="Open selected members in Market Breadth" @click="publishAnalysis('breadth', 'selection')">Open selected members in Breadth</button>
       <button type="button" aria-label="Open selected members in Study Lab" @click="publishAnalysis('study_lab', 'selection')">Open selected members in Study Lab</button>
       <span v-if="publicationMessage" role="status">{{ publicationMessage }}</span>
@@ -333,6 +337,8 @@ const sourceCloneRetryTargetId = ref<number | null>(null)
 const sourceCloneRetryTotal = ref(0)
 const explicitWatchlistName = ref('')
 const explicitSaving = ref(false)
+const lockedSourceName = ref('')
+const lockedSourceSaving = ref(false)
 const snapshots = ref<MarketMapSnapshotSummary[]>([])
 const snapshotSelectionId = ref('')
 const snapshotName = ref('')
@@ -890,6 +896,45 @@ async function saveExplicitSource() {
   } finally {
     explicitSaving.value = false
   }
+}
+
+async function saveLockedSource(memberIds: number[], name: string) {
+  const normalizedIds = [...new Set(memberIds.filter(id => Number.isInteger(id) && id > 0))]
+  const normalizedName = name.trim()
+  if (!normalizedIds.length || !normalizedName || lockedSourceSaving.value) return
+  lockedSourceSaving.value = true
+  publicationMessage.value = ''
+  publicationError.value = ''
+  try {
+    const saved = await api.post<WatchlistSource>('/watchlists/sources/explicit', {
+      name: normalizedName,
+      instrument_ids: normalizedIds,
+      parent_source_id: sourceId.value || null,
+      parent_membership_version: map.value?.membership_version ?? map.value?.source.membership_version ?? activeSource.value?.membership_version ?? null,
+    })
+    await watchlistStore.loadWatchlistSources()
+    skipNextSourceRun.value = true
+    sourceId.value = saved.source_id
+    explicitSymbols.value = ''
+    selectedIds.value = []
+    lockedSourceName.value = ''
+    explicitWatchlistName.value = ''
+    publicationMessage.value = normalizedIds.length + ' canonical member' + (normalizedIds.length === 1 ? '' : 's') + ' saved as locked source ' + saved.name
+    await run()
+  } catch (cause) {
+    publicationError.value = cause instanceof Error ? cause.message : 'Unable to save locked explicit source'
+  } finally {
+    lockedSourceSaving.value = false
+  }
+}
+
+async function saveSelectedAsLockedSource() {
+  await saveLockedSource(selectedIds.value, lockedSourceName.value)
+}
+
+async function saveExplicitLockedSource() {
+  await run()
+  await saveLockedSource(explicitSourceMemberIds(), explicitWatchlistName.value)
 }
 
 function publishAnalysis(target: 'breadth' | 'study_lab', scope: 'full' | 'selection' = 'full') {

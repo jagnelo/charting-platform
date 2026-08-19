@@ -2253,6 +2253,68 @@ class TestWatchlistsCrud:
         )
         assert oversized.status_code == 400
 
+    def test_saved_explicit_selection_is_a_durable_locked_source(
+        self, client, auth_headers, instrument, instrument_b
+    ):
+        saved = client.post(
+            "/api/v1/watchlists/sources/explicit",
+            headers=auth_headers,
+            json={
+                "name": "Technology leaders",
+                "instrument_ids": [instrument.id, instrument_b.id, instrument.id],
+                "parent_source_id": "benchmark-family:sp500:cap_weight",
+                "parent_membership_version": "sp500:cap:2026-08-19",
+            },
+        )
+        assert saved.status_code == 200, saved.text
+        descriptor = saved.json()
+        assert descriptor["source_id"].startswith("explicit-list:selection-")
+        assert descriptor["source_kind"] == "explicit"
+        assert descriptor["locked"] is True
+        assert descriptor["can_edit_membership"] is False
+        assert descriptor["member_count"] == 2
+        assert descriptor["provenance"]["durability"] == "user_library"
+        assert descriptor["provenance"]["parent_source_id"] == "benchmark-family:sp500:cap_weight"
+
+        listed = client.get("/api/v1/watchlists/sources", headers=auth_headers)
+        assert listed.status_code == 200, listed.text
+        listed_source = next(item for item in listed.json() if item["source_id"] == descriptor["source_id"])
+        assert listed_source["name"] == "Technology leaders"
+
+        resolved = client.get(
+            f"/api/v1/watchlists/sources/{descriptor['source_id']}",
+            headers=auth_headers,
+        )
+        assert resolved.status_code == 200, resolved.text
+        assert [member["instrument_id"] for member in resolved.json()["members"]] == [
+            instrument.id,
+            instrument_b.id,
+        ]
+        assert resolved.json()["source"]["provenance"]["parent_membership_version"] == "sp500:cap:2026-08-19"
+
+        renamed = client.post(
+            "/api/v1/watchlists/sources/explicit",
+            headers=auth_headers,
+            json={
+                "name": "Technology leaders renamed",
+                "instrument_ids": [instrument.id, instrument_b.id],
+                "parent_source_id": "benchmark-family:sp500:cap_weight",
+                "parent_membership_version": "sp500:cap:2026-08-19",
+            },
+        )
+        assert renamed.status_code == 200, renamed.text
+        assert renamed.json()["source_id"] == descriptor["source_id"]
+        assert renamed.json()["name"] == "Technology leaders renamed"
+        assert renamed.json()["membership_version"] != descriptor["membership_version"]
+
+        missing = client.post(
+            "/api/v1/watchlists/sources/explicit",
+            headers=auth_headers,
+            json={"name": "Missing", "instrument_ids": [999999]},
+        )
+        assert missing.status_code == 400
+        assert "canonical_instrument_not_found" in missing.text
+
     def test_list_returns_existing_watchlists(self, client, auth_headers, watchlist):
         res = client.get("/api/v1/watchlists", headers=auth_headers)
         assert res.status_code == 200

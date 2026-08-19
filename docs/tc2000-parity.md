@@ -1,5 +1,28 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Saved arbitrary selections are first-class locked heatmap sources
+
+The universal Market Map now supports durable explicit selections in addition to ephemeral
+selection handoffs. Any canonical member subset selected from a locked index/ETF/sector/industry
+source, personal list, combo, or another explicit list can be saved to the authenticated user's
+library and reappears as `explicit-list:<stable-key>`. It is deliberately locked because the
+membership is a saved canonical selection: users can follow, pin, clone, publish, and analyze it,
+but not silently edit its membership. Parent source ID and membership version are retained as
+provenance, while the underlying source remains immutable and user-isolated.
+
+The same source descriptor and resolver feed Market Map, Breadth, Study Lab, scans, gauges, and
+linked chart workflows. The implementation rejects unknown canonical instrument IDs, deduplicates
+selection order, caps selections at 500 members, persists immutable library payloads, and updates a
+same-identity source's name/version on repeat save. Focused backend persistence integration,
+Market Map unit coverage, authenticated Chromium `F8s-market-map-watchlist`, full Vitest,
+type-check, production build, and diff-check are green. No acceptance flexibility was used; a
+browser assertion that attempted to operate on the now-hidden Market Map after a Breadth handoff
+was fixed by ordering the save before the focus transition.
+
+Exact Version 25 source-library controls and geometry remain `required_missing` on the composite
+visual board, as do complete provider-backed bars/history and point-in-time membership snapshots
+for arbitrary saved selections.
+
 ## 2026-08-19 — Study Lab makes selected-source lineage visible
 
 Study Lab now exposes the selected Market Map handoff as a compact lineage status: selected member

@@ -54,6 +54,35 @@ describe('MarketMapTool', () => {
     expect(wrapper.find('[aria-label="Market Map universe"]').element.value).toBe('market-group:sp500')
   })
 
+  it('persists a selected subset as a durable locked explicit source with parent lineage', async () => {
+    apiPost.mockImplementation((path: string) => path === '/watchlists/sources/explicit'
+      ? Promise.resolve({
+          ...sourceState.sources[0],
+          source_id: 'explicit-list:selection-test',
+          source_kind: 'explicit',
+          name: 'Saved technology leaders',
+          locked: true,
+          member_count: 1,
+        })
+      : Promise.resolve(response))
+    const wrapper = mount(MarketMapTool)
+    await flushPromises()
+
+    await wrapper.get('.market-map-tool__tile').trigger('click')
+    await wrapper.get('[aria-label="Market Map locked source name"]').setValue('Saved technology leaders')
+    await wrapper.get('[aria-label="Save selected members as locked source"]').trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/watchlists/sources/explicit', {
+      name: 'Saved technology leaders',
+      instrument_ids: [1],
+      parent_source_id: 'market-group:sp500',
+      parent_membership_version: 'market-group:sp500:current',
+    })
+    expect(loadWatchlistSources).toHaveBeenCalled()
+    expect(wrapper.text()).toContain('saved as locked source Saved technology leaders')
+  })
+
   it('clones the complete canonical locked source with membership provenance', async () => {
     resolveWatchlistSource.mockResolvedValue({
       source: { ...sourceState.sources[0], composition_date: '2026-08-07', membership_version: 'sp500:2026-08-07' },

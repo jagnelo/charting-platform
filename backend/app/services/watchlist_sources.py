@@ -201,6 +201,8 @@ def _holdings_route_provenance(
 
 
 _BENCHMARK_FAMILY_ROLES = ("cap_weight", "equal_weight", "value", "growth")
+_EXPLICIT_LIBRARY_KIND = "explicit_watchlist"
+_MAX_EXPLICIT_MEMBERS = 500
 
 
 def _benchmark_family_role_selection(
@@ -484,7 +486,7 @@ def _explicit_instrument_ids(source_id: str) -> list[int]:
 
     raw = source_id.split(":", 1)[1] if ":" in source_id else ""
     tokens = raw.split(",") if raw else []
-    if not tokens or len(tokens) > 500:
+    if not tokens or len(tokens) > _MAX_EXPLICIT_MEMBERS:
         raise ValueError("invalid_explicit_source_id")
     try:
         ids = [int(token) for token in tokens]
@@ -493,6 +495,18 @@ def _explicit_instrument_ids(source_id: str) -> list[int]:
     if any(instrument_id <= 0 for instrument_id in ids):
         raise ValueError("invalid_explicit_source_id")
     return list(dict.fromkeys(ids))
+
+
+def _saved_explicit_instrument_ids(item: WorkspaceLibraryItem) -> list[int]:
+    """Read a user-owned explicit source without accepting ticker text."""
+
+    payload = item.payload if isinstance(item.payload, Mapping) else {}
+    values = payload.get("instrument_ids", [])
+    if not isinstance(values, list) or not values or len(values) > _MAX_EXPLICIT_MEMBERS:
+        raise ValueError("invalid_saved_explicit_source")
+    if any(not isinstance(value, int) or isinstance(value, bool) or value <= 0 for value in values):
+        raise ValueError("invalid_saved_explicit_source")
+    return list(dict.fromkeys(values))
 
 
 def _explicit_descriptor(instrument_ids: list[int]) -> WatchlistSourceRead:
@@ -514,6 +528,113 @@ def _explicit_descriptor(instrument_ids: list[int]) -> WatchlistSourceRead:
             "durability": "ephemeral_until_saved_as_watchlist",
         },
     )
+
+
+def _saved_explicit_descriptor(
+    item: WorkspaceLibraryItem,
+    instrument_ids: list[int],
+) -> WatchlistSourceRead:
+    """Describe a durable, user-owned locked explicit selection."""
+
+    payload = item.payload if isinstance(item.payload, Mapping) else {}
+    membership = ",".join(str(instrument_id) for instrument_id in instrument_ids)
+    parent_source_id = payload.get("parent_source_id")
+    parent_membership_version = payload.get("parent_membership_version")
+    provenance = {
+        "membership_semantics": "saved_explicit_canonical_selection",
+        "point_in_time": False,
+        "instrument_ids": instrument_ids,
+        "durability": "user_library",
+        "library_item_id": item.id,
+        "library_item_version": item.version,
+    }
+    if isinstance(parent_source_id, str) and parent_source_id:
+        provenance["parent_source_id"] = parent_source_id
+    if isinstance(parent_membership_version, str) and parent_membership_version:
+        provenance["parent_membership_version"] = parent_membership_version
+    return WatchlistSourceRead(
+        source_id=f"explicit-list:{item.stable_key}",
+        source_kind="explicit",
+        name=item.name,
+        description="User-owned locked canonical selection",
+        locked=True,
+        stable_key=item.stable_key,
+        membership_version=_version("explicit-list", f"{item.stable_key}:{item.version}:{membership}"),
+        member_count=len(instrument_ids),
+        source="user_explicit_selection",
+        provenance=provenance,
+        known_at=item.updated_at,
+    )
+
+
+async def save_explicit_watchlist_source(
+    db: AsyncSession,
+    user_id: int,
+    *,
+    name: str,
+    instrument_ids: list[int],
+    parent_source_id: str | None = None,
+    parent_membership_version: str | None = None,
+) -> WatchlistSourceRead:
+    """Upsert a durable locked explicit source in the user's library."""
+
+    normalized_ids = list(dict.fromkeys(instrument_ids))
+    if not normalized_ids or len(normalized_ids) > _MAX_EXPLICIT_MEMBERS:
+        raise ValueError("invalid_saved_explicit_source")
+    instruments = (
+        await db.execute(select(Instrument).where(Instrument.id.in_(normalized_ids)))
+    ).scalars().all()
+    found_ids = {instrument.id for instrument in instruments}
+    missing = [instrument_id for instrument_id in normalized_ids if instrument_id not in found_ids]
+    if missing:
+        raise ValueError(f"canonical_instrument_not_found:{','.join(map(str, missing))}")
+    if not name.strip():
+        raise ValueError("invalid_saved_explicit_name")
+
+    identity = {
+        "instrument_ids": normalized_ids,
+        "parent_source_id": parent_source_id or None,
+        "parent_membership_version": parent_membership_version or None,
+    }
+    stable_key = f"selection-{hashlib.sha256(json.dumps(identity, sort_keys=True, separators=(',', ':')).encode()).hexdigest()[:24]}"
+    payload = {
+        "instrument_ids": normalized_ids,
+        "parent_source_id": parent_source_id,
+        "parent_membership_version": parent_membership_version,
+    }
+    item = (
+        await db.execute(
+            select(WorkspaceLibraryItem).where(
+                WorkspaceLibraryItem.user_id == user_id,
+                WorkspaceLibraryItem.kind == _EXPLICIT_LIBRARY_KIND,
+                WorkspaceLibraryItem.stable_key == stable_key,
+            )
+        )
+    ).scalar_one_or_none()
+    if item is None:
+        item = WorkspaceLibraryItem(
+            user_id=user_id,
+            kind=_EXPLICIT_LIBRARY_KIND,
+            stable_key=stable_key,
+            name=name.strip(),
+            payload=payload,
+            dependency_metadata={
+                "parent_source_id": parent_source_id,
+                "parent_membership_version": parent_membership_version,
+            },
+        )
+        db.add(item)
+    else:
+        item.name = name.strip()
+        item.payload = payload
+        item.dependency_metadata = {
+            "parent_source_id": parent_source_id,
+            "parent_membership_version": parent_membership_version,
+        }
+        item.version += 1
+    await db.flush()
+    await db.refresh(item)
+    return _saved_explicit_descriptor(item, normalized_ids)
 
 
 async def list_watchlist_sources(db: AsyncSession, user: User) -> list[WatchlistSourceRead]:
@@ -593,11 +714,32 @@ async def list_watchlist_sources(db: AsyncSession, user: User) -> list[Watchlist
         .scalars()
         .all()
     )
+    explicit_items = (
+        (
+            await db.execute(
+                select(WorkspaceLibraryItem).where(
+                    WorkspaceLibraryItem.user_id == user.id,
+                    WorkspaceLibraryItem.kind == _EXPLICIT_LIBRARY_KIND,
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
     user_watchlists = {
         watchlist.id: watchlist
         for watchlist in watchlists
     }
     profiles_by_symbol = {instrument.symbol.upper(): (profile, instrument) for profile, instrument in profiles}
+    explicit_sources: list[WatchlistSourceRead] = []
+    for item in explicit_items:
+        try:
+            explicit_sources.append(_saved_explicit_descriptor(item, _saved_explicit_instrument_ids(item)))
+        except ValueError:
+            # A corrupt library item remains isolated from the source catalog. The
+            # library API still exposes it for repair/export; it must never become
+            # a silently widened or partially reconstructed universe.
+            continue
     sources = [
         *(_watchlist_descriptor(item) for item in watchlists),
         *(_market_group_descriptor(item) for item in groups),
@@ -610,6 +752,7 @@ async def list_watchlist_sources(db: AsyncSession, user: User) -> list[Watchlist
             )
             for item in combo_items
         ),
+        *explicit_sources,
     ]
     # A family root remains visible as a locked group, but each evidenced leg
     # is also a first-class source.  This is what lets the generic Market Map,
@@ -678,6 +821,50 @@ async def resolve_watchlist_source(
                 for item in watchlist.items
                 if (exclusion := _watchlist_item_as_of_exclusion(item, as_of)) is not None
             ),
+        )
+
+    if source_id.startswith("explicit-list:"):
+        stable_key = source_id.split(":", 1)[1]
+        if not stable_key:
+            raise ValueError("invalid_saved_explicit_source_id")
+        item = (
+            await db.execute(
+                select(WorkspaceLibraryItem).where(
+                    WorkspaceLibraryItem.user_id == user_id,
+                    WorkspaceLibraryItem.kind == _EXPLICIT_LIBRARY_KIND,
+                    WorkspaceLibraryItem.stable_key == stable_key,
+                )
+            )
+        ).scalar_one_or_none()
+        if item is None:
+            raise LookupError("saved_explicit_source_not_found")
+        instrument_ids = _saved_explicit_instrument_ids(item)
+        instruments = (
+            await db.execute(select(Instrument).where(Instrument.id.in_(instrument_ids)))
+        ).scalars().all()
+        by_id = {instrument.id: instrument for instrument in instruments}
+        members = tuple(
+            ResolvedWatchlistMember(
+                instrument_id=instrument_id,
+                position=position,
+                weight=None,
+                relationship_type="saved_explicit_symbol",
+                source="user_explicit_selection",
+                effective_at=None,
+                known_at=item.updated_at,
+            )
+            for position, instrument_id in enumerate(instrument_ids)
+            if instrument_id in by_id
+        )
+        exclusions = tuple(
+            {"instrument_id": instrument_id, "reason": "canonical_instrument_not_found"}
+            for instrument_id in instrument_ids
+            if instrument_id not in by_id
+        )
+        return ResolvedWatchlistSource(
+            descriptor=_saved_explicit_descriptor(item, instrument_ids),
+            members=members,
+            exclusions=exclusions,
         )
 
     if source_id.startswith("explicit:"):
