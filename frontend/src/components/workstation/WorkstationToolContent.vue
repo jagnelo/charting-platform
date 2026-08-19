@@ -652,6 +652,12 @@
         <span v-if="genericBreadthLoading" role="status" aria-live="polite">Evaluating…</span>
         <span v-else-if="genericBreadthError" class="breadth-tool__status--error" role="alert">{{ genericBreadthError }}</span>
         <span v-else-if="genericBreadth" class="breadth-tool__custom-result"><b>{{ genericBreadthPercentage }}</b> · {{ genericBreadth.pass_count }}/{{ genericBreadth.eligible_count }} eligible · {{ genericBreadthCoverage }} coverage<span v-if="genericBreadth.group_value != null"> · group {{ genericBreadth.group_value.toFixed(4) }}</span></span>
+        <div v-if="genericBreadth && !breadthUsesPython" class="breadth-tool__definition-actions" aria-label="Reusable breadth definition">
+          <input v-model.trim="genericBreadthDefinitionName" aria-label="Breadth reusable definition name" placeholder="Definition name" maxlength="160" />
+          <button type="button" :disabled="genericBreadthDefinitionSaving || !genericBreadthDefinitionName" @click="saveGenericBreadthDefinition">{{ genericBreadthDefinitionSaving ? 'Saving…' : 'Save as Study Lab definition' }}</button>
+          <span v-if="genericBreadthDefinitionMessage" role="status">{{ genericBreadthDefinitionMessage }}</span>
+          <span v-if="genericBreadthDefinitionError" class="breadth-tool__status--error" role="alert">{{ genericBreadthDefinitionError }}</span>
+        </div>
       </div>
       <div v-if="isBenchmarkFamily" class="breadth-tool__family-ratios" aria-label="Benchmark family relative strength">
         <strong>Family relative strength</strong>
@@ -894,6 +900,7 @@ import { autoRatioBenchmarks, autoRatioExpression } from '@/lib/workstation/rati
 import { indicatorColumnFromPlot, pythonColumnFromPlot, type ChartAnalysisDragPayload, type ChartPlotDragPayload, type TechnicalConditionDragPayload } from '@/lib/workstation/plotDrag'
 import { formatWorkstationFreshness } from '@/lib/workstation/freshness'
 import { benchmarkFamilyConstituentSourceId } from '@/lib/workstation/benchmarkFamilySources'
+import { buildBreadthStudyAssetPayload, type BreadthDefinition } from '@/lib/workstation/breadthDefinitions'
 import { CHART_BAR_TYPES, type ChartBarType, type ChartComparisonSeries, type ChartPythonSeries, type IndicatorConfig, type OHLCVBar, type Timeframe } from '@/types'
 
 // Golden Layout can temporarily retain multiple virtual roots for one tool.
@@ -2425,6 +2432,10 @@ const genericBreadthError = computed(() => {
 const genericBreadthPercentage = computed(() => genericBreadth.value?.percentage == null ? 'Unavailable' : `${(genericBreadth.value.percentage * 100).toFixed(1)}%`)
 const genericBreadthCoverage = computed(() => genericBreadth.value == null ? 'Unavailable' : `${(genericBreadth.value.coverage * 100).toFixed(1)}%`)
 const genericBreadthMemberState = ref<'pass' | 'fail'>('pass')
+const genericBreadthDefinitionName = ref('')
+const genericBreadthDefinitionSaving = ref(false)
+const genericBreadthDefinitionMessage = ref('')
+const genericBreadthDefinitionError = ref('')
 const genericBreadthMembers = computed(() => (genericBreadth.value?.members ?? []).filter(member => member.value === (genericBreadthMemberState.value === 'pass')))
 const genericBreadthDiagnostics = computed(() => (genericBreadth.value?.members ?? []).flatMap(member => member.diagnostics ?? []).slice(0, 100))
 const genericBreadthHistoryOccurrences = computed(() => [...(genericBreadthHistory.value?.occurrences ?? [])].reverse().slice(0, 100))
@@ -2449,6 +2460,22 @@ async function runGenericBreadth() {
     workspaceStore.loadGenericBreadth(genericBreadthDefinition.value, genericBreadthKey.value),
     workspaceStore.loadGenericBreadthHistory(genericBreadthDefinition.value, genericBreadthKey.value),
   ])
+}
+async function saveGenericBreadthDefinition() {
+  if (genericBreadthDefinitionSaving.value || breadthUsesPython.value || !genericBreadthDefinitionName.value || !genericBreadthDefinition.value) return
+  genericBreadthDefinitionSaving.value = true
+  genericBreadthDefinitionMessage.value = ''
+  genericBreadthDefinitionError.value = ''
+  try {
+    const definition = genericBreadthDefinition.value as BreadthDefinition
+    await api.post('/code/assets', buildBreadthStudyAssetPayload(genericBreadthDefinitionName.value, definition))
+    await queryClient.invalidateQueries({ queryKey: ['workstation', 'library-items'] })
+    genericBreadthDefinitionMessage.value = 'Saved immutable Study Lab definition.'
+  } catch (cause) {
+    genericBreadthDefinitionError.value = cause instanceof Error ? cause.message : 'Unable to save reusable breadth definition'
+  } finally {
+    genericBreadthDefinitionSaving.value = false
+  }
 }
 const technical = computed(() => workspaceStore.technicals[activeSymbol.value])
 const selectedETF = computed(() => workspaceStore.constituentETF ?? '')

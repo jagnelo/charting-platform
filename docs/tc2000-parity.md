@@ -1,5 +1,18 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Breadth definitions retain locked-watchlist lineage when saved
+
+The Breadth tool now lets a completed generic predicate be saved directly as an immutable Study
+Lab definition. The generated Python asset uses the isolated `research.breadth_condition` SDK and
+retains the full predicate AST plus the selected `WatchlistSource` key, timeframe, adjustment, and
+as-of policy in default parameters. This applies equally to personal, combo, index-family,
+ETF-holdings, sector, industry, managed, and explicit sources; a locked source remains immutable
+only for membership edits, not for downstream research reuse.
+
+Focused serializer/payload coverage passes `2/2`; full frontend Vitest passes `918/918`; type-check
+and production build pass. Remaining parity gaps are target-specific promotion fan-out and exact
+Version 25 promotion-row visuals.
+
 ## 2026-08-19 — Four-environment seeded baseline matrix is synchronized
 
 The same stale pre-hydration expectation was present in the other three display-scale projects.

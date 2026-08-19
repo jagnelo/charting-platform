@@ -1,5 +1,17 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Generic breadth-to-Study-Lab reuse gate
+
+The generic breadth acceptance contract now includes a direct save action: after evaluating a
+user-authored predicate, the user can create an immutable Study Lab definition without converting
+the universe to ticker text. The persisted asset must retain the exact predicate AST, canonical
+source ID (including locked index/ETF sources), timeframe, adjustment, and as-of semantics. The
+Python source is only a sandboxed SDK wrapper; it is never executed in the browser or FastAPI.
+
+Focused payload tests pass `2/2`, full frontend Vitest passes `918/918`, and type/build checks pass.
+This is an incremental reuse gate, not a waiver of the remaining target-specific promotion fan-out
+or Version 25 promotion-visual gaps. No acceptance flexibility was used.
+
 ## 2026-08-19 — Full four-environment seeded visual matrix synchronized
 
 The remaining display-scale projects were refreshed for the same deterministic seeded hydration

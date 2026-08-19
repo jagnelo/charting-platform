@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-08-19 — Generic breadth predicates can be reused as Study Lab definitions
+
+- [x] Add a direct persistence action to the authenticated Breadth tool for a completed
+      user-authored generic predicate. The action saves one immutable Study Lab code asset whose
+      Python source delegates to the isolated `research.breadth_condition` contract.
+- [x] Preserve the exact breadth definition, locked or editable `WatchlistSource` key, timeframe,
+      adjustment, and as-of value in the asset's default parameters. Index and ETF constituent
+      sources therefore remain hard watchlists while the resulting study is reusable without
+      copying ticker strings or widening the universe.
+- [x] Extract the Python-literal serializer and payload builder into a pure frontend module and
+      cover nested conditions, the `within 1% of 52-week high` example, source lineage, and study
+      contract with focused tests. Full frontend Vitest passes `918/918`; `vue-tsc` and the Vite
+      production build pass.
+- [ ] Continue target-specific promotion adapters for columns, filters, scans, gauges, alerts,
+      plots, and Strategy Lab signals where the breadth output contract permits. This slice does
+      not claim complete promotion fan-out or exact Version 25 promotion-row visuals.
+
 ### 2026-08-19 — Complete four-environment seeded visual baseline refresh
 
 - [x] Refresh the remaining stale seeded baselines across `visual-1080p-125`,
