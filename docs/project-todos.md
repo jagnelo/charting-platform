@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-08-19 — Benchmark-family history refresh uses the shared historical queue contract
+
+- [x] Fix the administrative benchmark-family history route so it preserves `as_of` through the
+      same ARQ arguments, normalized provider end bound, and deterministic job identity used by
+      arbitrary watchlist refreshes. Historical family hydration no longer falls back to the
+      current-session range or a route-specific job namespace.
+- [x] Remove the route-specific queue divergence and add a regression for both unbounded backward
+      compatibility and historical job arguments/identity. Complete ETF holdings integration passes
+      `63/63`; Ruff and compileall pass. Acceptance flexibility used: **None**.
+- [ ] This closes the family-history queue contract, not provider-backed holdings availability,
+      complete eight-family population, rebalance continuity, or exact V25 maintenance visuals.
+
 ### 2026-08-19 — Historical hydration rejects future provider rows
 
 - [x] Defensively filter provider-returned OHLCV rows at the bulk-history persistence boundary so

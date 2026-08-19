@@ -1,5 +1,16 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Family history queue consistency is functional; exact maintenance visuals remain open
+
+Benchmark-family history refreshes now use the same historical-bound and job-identity contract as
+all other locked watchlist sources. The composite visual board still lacks authoritative V25
+captures for the admin maintenance controls, queued historical family progress, and failure/partial
+coverage states.
+
+Gap status remains `required_missing` for those exact controls and copy. The complete ETF holdings
+integration suite passes `63/63`; provider population and rebalance continuity are separate data
+gaps and are not inferred from queue correctness.
+
 ## 2026-08-19 — Future-bar rejection is a backend invariant, not a visible V25 state
 
 Historical source hydration now rejects provider rows after the requested evaluation end before

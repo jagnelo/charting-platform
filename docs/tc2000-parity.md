@@ -1,5 +1,17 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Benchmark-family history refreshes preserve historical bounds
+
+The administrative benchmark-family constituent-history route now shares the generic watchlist
+history queue contract. When `as_of` is supplied, it is passed to the worker/provider end bound and
+included in the canonical idempotence key; unbounded requests retain the legacy task argument shape.
+This makes historical family heatmaps and downstream studies consistent with arbitrary saved,
+index, ETF, sector, and industry watchlist refreshes.
+
+The complete ETF holdings integration suite passes `63/63`, with Ruff and compileall green. This
+closes queue consistency only; provider availability, complete family population, rebalance
+continuity, and exact V25 maintenance visuals remain open. No acceptance flexibility was used.
+
 ## 2026-08-19 — Historical hydration rejects future-dated provider rows
 
 The canonical bulk-history worker now applies a second, local timestamp guard after a provider

@@ -1,6 +1,6 @@
 import json
 import zipfile
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from io import BytesIO
 from xml.sax.saxutils import escape
@@ -111,12 +111,14 @@ def test_admin_can_refresh_ark_provider_route(client, admin_headers, auth_header
 def test_admin_family_history_refresh_queues_deduplicated_local_members(
     client, admin_headers, monkeypatch
 ):
+    as_of_value = None
+
     async def fake_plan(*_args, **_kwargs):
         return {
             "family_keys": ["sp500"],
             "roles": ["cap_weight"],
             "timeframes": ["MN", "W1", "D1"],
-            "as_of": None,
+            "as_of": as_of_value,
             "max_instruments": 5000,
             "available_instrument_count": 2,
             "selected_instrument_count": 2,
@@ -168,6 +170,24 @@ def test_admin_family_history_refresh_queues_deduplicated_local_members(
     assert [call[0][1] for call in redis.calls] == [10, 20]
     assert all(call[0][0] == "task_bulk_fetch_instrument" for call in redis.calls)
     assert all(call[0][2] == ["MN", "W1", "D1"] for call in redis.calls)
+
+    as_of_value = datetime(2024, 1, 2, tzinfo=UTC)
+    historical = client.post(
+        "/api/v1/etf-holdings/benchmark-families/history-refresh",
+        json={"as_of": "2024-01-02T00:00:00Z"},
+        headers=admin_headers,
+    )
+    assert historical.status_code == 200, historical.text
+    assert redis.calls[-1][0] == (
+        "task_bulk_fetch_instrument",
+        20,
+        ["MN", "W1", "D1"],
+        None,
+        "2024-01-02T00:00:00+00:00",
+    )
+    assert redis.calls[-1][1]["_job_id"] == (
+        "watchlist-source-history:20:MN,W1,D1:end=2024-01-02T00:00:00+00:00"
+    )
 
 
 def test_admin_family_holdings_refresh_run_persists_scope_and_cancellation(

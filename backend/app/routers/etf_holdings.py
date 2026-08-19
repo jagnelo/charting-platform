@@ -264,6 +264,7 @@ async def queue_benchmark_family_history_refresh(
     from arq.connections import RedisSettings, create_pool
 
     from app.config import settings
+    from app.services.benchmark_family_history import canonical_history_job_id
 
     try:
         plan = await plan_benchmark_family_history_refresh(
@@ -284,13 +285,15 @@ async def queue_benchmark_family_history_refresh(
         redis = await create_pool(RedisSettings.from_dsn(settings.REDIS_URL))
         try:
             for instrument_id in plan["instrument_ids"]:
+                job_args = ["task_bulk_fetch_instrument", instrument_id, plan["timeframes"]]
+                if plan["as_of"] is not None:
+                    job_args.extend([None, plan["as_of"].isoformat()])
                 job = await redis.enqueue_job(
-                    "task_bulk_fetch_instrument",
-                    instrument_id,
-                    plan["timeframes"],
-                    _job_id=(
-                        f"benchmark-family-history:{instrument_id}:"
-                        f"{','.join(plan['timeframes'])}"
+                    *job_args,
+                    _job_id=canonical_history_job_id(
+                        instrument_id,
+                        plan["timeframes"],
+                        plan["as_of"],
                     ),
                 )
                 if job is None:
