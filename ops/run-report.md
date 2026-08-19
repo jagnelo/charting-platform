@@ -1,5 +1,21 @@
 # Run Report
 
+## 2026-08-19 — SEC identity-safe fallback and MAGA reorganization recovery
+
+- Added a namespace/table-tolerant N-PORT identity extractor and fail-closed matching for curated
+  series/class identity. Wrong-series filings are recorded as rejected and never returned as the
+  requested ETF holdings.
+- Updated MAGA metadata for the Truth Social Funds successor and preserved curated predecessor
+  identity for fallback after the June 2026 reorganization. Live MAGA recovery passes through SEC
+  EDGAR; live TSCV continues to pass identity-filtered recovery. Corrected CVLC's stale live test
+  floor to the official route's observed 121-row payload.
+- Evidence: SEC/parser/adapter units `505/505`; live MAGA `1/1`; live TSCV `1/1`; Ruff, compileall,
+  and `git diff --check` pass. Acceptance flexibility: **None**.
+- Remaining: GraniteShares NVD and Lazard JPY provider repairs, complete provider-family/member-bar
+  history, historical continuity, entitlement/terms review, and exact V25 maintenance/fallback
+  visuals. Implementation/docs commit `20fccb9d1a22303cce27dc0a347bc145d939d26d` is pushed and
+  synchronized; this operational record is the separate checkpoint.
+
 ## 2026-08-19 — Thrivent TSCV 403 recovers through curated SEC identity
 
 - Preserved the official TSCV CSV path as primary and added a canonical SEC fallback for the live

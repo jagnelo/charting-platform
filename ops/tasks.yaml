@@ -1,4 +1,30 @@
 tasks:
+  - id: tc2000-sec-identity-maga-calvert-20260819
+    title: Reject wrong SEC ETF series and recover reorganized MAGA
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Make SEC N-PORT fallback identity-safe for the universal locked-watchlist/Market Map
+      contract, repair MAGA's June 2026 registrant reorganization fallback, and correct the stale
+      Calvert live row-count oracle without weakening provider or visual acceptance.
+    definition_of_done:
+      - SEC N-PORT XML/XHTML identity is extracted from series/class metadata, never holding rows
+      - Curated class/series mismatches are rejected and the next filing is attempted
+      - MAGA successor and predecessor identities are explicit and the live fallback is verified
+      - Calvert's working 121-row public route uses a documented 100-row conservative floor
+      - Wrong-series regression, SEC/parser/adapter units, live MAGA/TSCV probes, lint/compile/diff pass
+      - Remaining provider, family-history, entitlement, and exact V25 visual gaps remain explicit
+    validation:
+      - sec-parser-adapter-unit-505-of-505
+      - opt-in-live-maga-probe-1-of-1
+      - opt-in-live-tscv-probe-1-of-1
+      - ruff-compileall-and-git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. The implementation tightened correctness by rejecting
+        wrong-series filings; it did not lower provider or visual acceptance thresholds.
+
   - id: tc2000-thrivent-tscv-sec-fallback-20260819
     title: Recover Thrivent TSCV after issuer 403
     status: completed

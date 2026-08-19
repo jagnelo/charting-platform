@@ -1,5 +1,23 @@
 # Active Handoff
 
+## 2026-08-19 — SEC fallback identity filtering and reorganized MAGA recovery
+
+- SEC N-PORT fallback now extracts series/class identity from raw XML or EDGAR-rendered XHTML and
+  rejects a parseable filing whose curated class/series/ticker identity does not match. This
+  prevents a registrant CIK containing many ETFs from populating the wrong locked Market Map source.
+- MAGA's June 2026 reorganization is explicit: current Truth Social Funds identity is
+  `0001040674 / S000103953 / C000274551`; the former Point Bridge identity is retained as a curated
+  predecessor fallback and is used when the successor has no matching N-PORT. Calvert's live oracle
+  is corrected to its working 121-row payload floor of 100.
+- Validation: SEC/parser/adapter units `505/505`, live MAGA `1/1`, live TSCV `1/1`, Ruff, compileall,
+  and `git diff --check` pass. Acceptance flexibility: **None**. No visual threshold or provider
+  acceptance was relaxed; the wrong-series defect was fixed.
+- Implementation/docs commit `20fccb9d1a22303cce27dc0a347bc145d939d26d` is pushed and synchronized.
+  The separate operational checkpoint is now being committed. Next context: continue
+  GraniteShares/Lazard provider repairs, family-wide membership/bar history, historical continuity,
+  entitlement review, and exact V25 maintenance/fallback visuals. Do not call the universal heatmap
+  goal complete while those remain.
+
 ## 2026-08-19 — Thrivent TSCV fallback recovers the issuer-blocked route
 
 - The official TSCV CSV returned live HTTP 403 to backend clients. The adapter retains that route as
