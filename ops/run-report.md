@@ -10,7 +10,8 @@
   `git diff --check`. Acceptance flexibility: **None**.
 - Remaining gaps are explicit: exact V25 action-row visual evidence, provider-backed family
   population, point-in-time membership/weights, canonical member-bar history, and final visual/
-  broad acceptance. This functional context does not waive any of them.
+  broad acceptance. This functional context does not waive any of them. Implementation/docs
+  `05e7f291` and operational closure `072ad833` are pushed and synchronized; this context is closed.
 
 ## 2026-08-19 — DFTT identity-safe fallback completed
 

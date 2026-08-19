@@ -12,7 +12,8 @@
 - Validation: Market Map + Study Lab components `56/56`, full frontend Vitest `914/914`, rebuilt
   authenticated Chromium `F8s-market-map-watchlist` `1/1`, `vue-tsc`, production build, and
   `git diff --check` pass. Acceptance flexibility: **None**.
-- Implementation/docs and operational closure are pending as separate commits. Exact V25
+- Implementation/docs `05e7f291` and operational closure `072ad833` are pushed and synchronized.
+  This context is closed. Exact V25
   selection-action geometry/copy remains `required_missing` where the board lacks an authoritative
   capture; provider-backed family population, point-in-time weights, canonical member bars, and
   final visual acceptance remain open and tracked.
