@@ -1,5 +1,13 @@
 # Run Report
 
+## 2026-08-19 — Study Lab selected-source lineage validation
+
+- Added the downstream lineage status for Market Map selections: selected count, locked explicit
+  semantics, parent source, and exact explicit canonical source ID are visible in Study Lab.
+- Study Lab component `24/24`; full frontend Vitest `906/906`; type-check, production build, and
+  diff-check pass. No acceptance flexibility used.
+- Exact V25 lineage badge imagery and durable explicit-source catalog persistence remain open.
+
 ## 2026-08-19 — Selected Market Map subset handoff checkpoint
 
 - Added a source-scoped distinction to the universal Market Map workflow. Full source actions

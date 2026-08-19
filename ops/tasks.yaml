@@ -1,4 +1,27 @@
 tasks:
+  - id: tc2000-study-lab-selected-source-lineage-20260819
+    title: Disclose selected Market Map source lineage in Study Lab
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Make the arbitrary selected-watchlist subset understandable after Market Map publication by
+      showing selected count, locked explicit semantics, parent source, and exact canonical source.
+    definition_of_done:
+      - Study Lab shows selected-source lineage without replacing the explicit universe source
+      - Exact parent and explicit source IDs remain serialized and inspectable
+      - Component and full frontend validation pass with visual gaps recorded
+    validation:
+      - study-lab-component-24-of-24
+      - frontend-vitest-906-of-906
+      - frontend-type-check
+      - frontend-build
+      - git-diff-check
+    notes:
+      - >-
+        No acceptance flexibility used. Exact V25 lineage-badge visuals and durable standalone
+        explicit-source catalog persistence remain open.
+
   - id: tc2000-market-map-selected-subset-publication-20260819
     title: Publish selected Market Map members as explicit reusable analysis sources
     status: completed

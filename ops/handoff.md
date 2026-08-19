@@ -1,5 +1,16 @@
 # Active Handoff
 
+## 2026-08-19 — Study Lab selected-source lineage checkpoint
+
+- Study Lab now discloses selected Market Map lineage as `Selected members · N · Locked explicit
+  source`, retaining the parent source and exact explicit canonical source ID while leaving the
+  universe-source field unchanged.
+- Validation: Study Lab component `24/24`; full frontend Vitest `906/906`; type-check, production
+  build, and diff-check. No acceptance flexibility used.
+- Remaining: exact V25 lineage-badge visuals and durable standalone explicit-source catalog
+  persistence. The selected-source implementation remains active and provider/history gaps are
+  still tracked.
+
 ## 2026-08-19 — Selected Market Map members publish as explicit sources
 
 - Full-source Map actions preserve the parent canonical watchlist; selected-member actions now

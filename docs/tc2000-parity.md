@@ -1,5 +1,16 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Study Lab makes selected-source lineage visible
+
+Study Lab now exposes the selected Market Map handoff as a compact lineage status: selected member
+count, locked explicit-source semantics, parent source ID, and the exact explicit canonical source
+ID are visible while the editable universe-source field remains unchanged. This keeps arbitrary
+watchlist subset analysis understandable after leaving the heatmap.
+
+The Study Lab component passes `24/24`; full frontend Vitest is `906/906` with type-check,
+production build, and diff-check green. Exact V25 lineage-badge geometry and durable standalone
+explicit-source catalog persistence remain open; no acceptance criterion was relaxed.
+
 ## 2026-08-19 — Selected heatmap members publish as reusable analysis sources
 
 Market Map now distinguishes the full source from the currently selected member subset. Full

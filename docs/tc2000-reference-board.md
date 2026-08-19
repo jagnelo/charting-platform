@@ -1,5 +1,15 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Study Lab selected-source lineage imagery is missing
+
+The product now has an explicit downstream lineage state for arbitrary heatmap selections: a
+compact status identifies `Selected members · N`, locked explicit semantics, parent source, and
+canonical explicit source ID. This is functional guidance for the composite board.
+
+No authoritative exact-build V25 capture covers this badge's placement, typography, color, truncation,
+or arrival state in Study Lab. Those references remain `required_missing`; no visual threshold or
+mask was relaxed.
+
 ## 2026-08-19 — Selected-subset Market Map handoff is functional but visually unreferenced
 
 The current product vision treats an arbitrary index/ETF/personal/combo watchlist and a selected

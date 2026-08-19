@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-08-19 — Study Lab discloses selected-source lineage
+
+- [x] Show a selected Market Map subset as `Selected members · N · Locked explicit source` in
+      Study Lab, with the parent watchlist source and exact explicit canonical source ID retained.
+      The status is informational and does not rewrite the editable universe-source control.
+- [x] Validate the Study Lab component `24/24`, full frontend Vitest `906/906`, type-check,
+      production build, and diff-check. No acceptance flexibility used.
+- [ ] Exact V25 selected-source lineage badge geometry/copy and durable standalone explicit-source
+      catalog persistence remain open; the current session/workspace configuration remains the
+      canonical handoff state.
+
 ### 2026-08-19 — Selected Market Map members are reusable explicit analysis sources
 
 - [x] Keep the universal heatmap watchlist model for full locked/index/ETF/personal/combo

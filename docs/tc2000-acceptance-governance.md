@@ -1,5 +1,14 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Downstream tools must disclose selected-source lineage
+
+When a Market Map selection is handed into Study Lab, the receiving tool must show selected member
+count, locked explicit-source semantics, parent source ID, and exact canonical explicit source ID.
+The editable universe-source control must remain the explicit source and must not be replaced with
+the parent or active symbol. The current component gate is `24/24`, and the full frontend gate is
+`906/906` with type-check/build/diff-check green. No acceptance flexibility was used. Exact V25
+badge geometry and durable explicit-source catalog persistence remain tracked gaps.
+
 ## 2026-08-19 — Selected-source handoffs must retain canonical subset identity
 
 The universal-watchlist acceptance gate now covers both a source-wide and a selection-scoped
