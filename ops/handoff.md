@@ -1,5 +1,22 @@
 # Active Handoff
 
+## 2026-08-19 — Arbitrary canonical ETFs are pending-capable locked heatmap sources
+
+- Closed a universal-source gap: the authenticated source catalog now includes every active,
+  canonical, non-synthetic ETF even when no `ETFProfile` or holdings snapshot exists. It appears as
+  `etf-holdings:<SYMBOL>` with `locked=true`, membership editing disabled, and
+  `profile_not_loaded` pending provenance.
+- The same source resolves through Market Map without provider fan-out and returns an explicit empty
+  coverage-aware response until normal profile/holdings maintenance hydrates it. Hydrated ETF and
+  all other personal/managed/index/sector/industry/combo/explicit source paths are unchanged.
+- Validation: Docker-backed integration `1/1` after unchanged elevated rerun; Ruff; docs YAML/JSON
+  parsing; and `git diff --check`. Acceptance flexibility: **None**. The board still lacks exact V25
+  pending ETF source-picker/empty-map visuals; provider-backed holdings/history, rebalance continuity,
+  complete family population, and remaining board gaps are open.
+- Implementation/docs commit and operational checkpoint are pending for this context; next action is
+  to run the relevant broader backend gates, commit/push the implementation, then record/push the ops
+  checkpoint before continuing provider-backed family population.
+
 ## 2026-08-19 — Family maintenance preserves pending mapped roles
 
 - Closed the owning-boundary mismatch after the Market Map pending-source correction. The

@@ -1,4 +1,31 @@
 tasks:
+  - id: tc2000-canonical-etf-pending-source-20260819
+    title: Expose arbitrary canonical ETFs as pending locked heatmap sources
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Treat every active canonical ETF as a possible constituent/watchlist universe in the same
+      source-polymorphic Market Map contract. An ETF without a hydrated profile or holdings
+      snapshot remains visible, locked, followable, and explicitly pending rather than being
+      silently omitted or causing interactive provider fan-out.
+    definition_of_done:
+      - ETF source catalog includes active non-synthetic canonical ETFs without ETFProfile rows
+      - Pending ETF descriptors carry profile_not_loaded provenance and immutable membership semantics
+      - Pending ETF source resolution returns an empty coverage-aware Market Map without provider access
+      - Existing hydrated ETF, index-family, sector, industry, personal, managed, combo, and explicit paths remain unchanged
+      - Docker-backed regression, lint, docs parsing, and diff checks pass
+    validation:
+      - canonical-etf-pending-market-map-integration-1-of-1
+      - backend-ruff
+      - yaml-json-and-git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. The unprivileged integration attempt was denied at the
+        Docker socket; the unchanged elevated rerun passed. Provider-backed profile/holdings,
+        member-bar history, rebalance continuity, complete family views, and exact V25 pending
+        source visuals remain explicit gaps.
+
   - id: tc2000-family-history-pending-state-20260819
     title: Preserve pending versus unavailable benchmark-family roles
     status: completed

@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-19 — Arbitrary canonical ETFs become pending locked heatmap sources
+
+- Added all active canonical ETF instruments to the source catalog, including ETFs without an
+  `ETFProfile`. Such sources are locked and immutable in membership, but remain selectable,
+  followable, and pinnable while profile/holdings maintenance is pending.
+- Added resolver support that returns explicit `profile_not_loaded` provenance and an empty,
+  coverage-aware Market Map without provider fan-out. Once hydrated, the existing holdings path uses
+  the same source ID and downstream map/breadth/Study Lab/reuse contracts.
+- Evidence: Docker-backed integration `1/1` after unchanged elevated rerun; Ruff passes. The initial
+  unprivileged run failed only at Docker socket setup and was not treated as product flexibility.
+- Acceptance flexibility: **None**. Exact V25 pending-source geometry and copy remain a documented
+  reference-board gap; provider-backed holdings/history, all-family continuity, and final parity are
+  still open.
+
 ## 2026-08-19 — Family maintenance preserves pending mapped roles
 
 - Changed benchmark-family history planning to retain `pending` for mapped roles whose profile or
