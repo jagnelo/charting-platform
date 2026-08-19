@@ -63,6 +63,14 @@ class BrowserDiagnostics {
   // documented auth-boundary responses are expected during the redirect only.
   expectedUnauthorizedResponses = 0
   expectedAuthenticationPageErrors = 0
+  // A source snapshot clone may intentionally exercise the recoverable
+  // duplicate/conflict path. The store keeps the failed canonical ID visible
+  // for retry, while Chromium reports the handled 409 as a console error.
+  expectedWatchlistConflictResponses = 0
+
+  allowExpectedWatchlistConflictResponses(count = 1) {
+    this.expectedWatchlistConflictResponses += count
+  }
 
   allowExpectedUnauthorizedResponses(count = 20) {
     this.expectedUnauthorizedResponses += count
@@ -175,6 +183,7 @@ class BrowserDiagnostics {
     let expectedUnavailableApi404s = this.expectedUnavailableApi404s
     let expectedExpressionResolution400s = this.expectedExpressionResolution400s
     let expectedWorkspaceConflictResponses = this.expectedWorkspaceConflictResponses
+    let expectedWatchlistConflictResponses = this.expectedWatchlistConflictResponses
     let expectedWatchlistLoadErrors = this.expectedWatchlistLoadErrors
     return this.consoleErrors.filter(error => {
       if (error === 'Failed to load resource: the server responded with a status of 404 (Not Found)'
@@ -189,6 +198,11 @@ class BrowserDiagnostics {
       if (error === 'Failed to load resource: the server responded with a status of 409 (Conflict)'
         && expectedWorkspaceConflictResponses > 0) {
         expectedWorkspaceConflictResponses -= 1
+        return false
+      }
+      if (error === 'Failed to load resource: the server responded with a status of 409 (Conflict)'
+        && expectedWatchlistConflictResponses > 0) {
+        expectedWatchlistConflictResponses -= 1
         return false
       }
       if (error === 'Failed to load resource: the server responded with a status of 401 (Unauthorized)'

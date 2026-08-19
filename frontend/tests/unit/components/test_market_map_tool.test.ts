@@ -81,6 +81,35 @@ describe('MarketMapTool', () => {
     expect(wrapper.get('[aria-label="Market Map source preferences"] [role="status"]').text()).toContain('2/2 members cloned')
   })
 
+  it('keeps failed clone members retryable without hiding the partial copy', async () => {
+    resolveWatchlistSource.mockResolvedValue({
+      source: { ...sourceState.sources[0], membership_version: 'sp500:retry' },
+      members: [
+        { instrument_id: 1, position: 0, relationship_type: 'constituent' },
+        { instrument_id: 2, position: 1, relationship_type: 'constituent' },
+      ],
+      exclusions: [],
+    })
+    createWatchlist.mockResolvedValue({ id: 12, name: 'S&P 500 snapshot retry', is_managed: false, is_locked: false, items: [] })
+    addItem.mockResolvedValueOnce({ id: 121, instrument_id: 1 }).mockResolvedValueOnce(null)
+    const wrapper = mount(MarketMapTool)
+    await flushPromises()
+
+    await wrapper.get('[aria-label="Clone S&P 500 snapshot"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('[aria-label="Market Map source preferences"] [role="status"]').text()).toContain('1/2 members cloned')
+    expect(wrapper.get('[aria-label="Retry failed source clone members"]')).toBeTruthy()
+
+    addItem.mockResolvedValueOnce({ id: 122, instrument_id: 2 })
+    await wrapper.get('[aria-label="Retry failed source clone members"]').trigger('click')
+    await flushPromises()
+
+    expect(addItem).toHaveBeenCalledTimes(3)
+    expect(wrapper.get('[aria-label="Market Map source preferences"] [role="status"]').text()).toContain('2/2 members cloned')
+    expect(wrapper.find('[aria-label="Retry failed source clone members"]').exists()).toBe(false)
+  })
+
   it('groups index, ETF, and editable sources while using one locked-source map contract', async () => {
     const previousSources = sourceState.sources
     sourceState.sources = [

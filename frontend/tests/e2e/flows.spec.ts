@@ -3276,6 +3276,7 @@ test.describe('TC2000 workstation', () => {
   })
 
   test('F8s-market-map-watchlist — locked constituents and personal lists share one heatmap workflow', async ({ page, browserDiagnostics }) => {
+    browserDiagnostics.allowExpectedWatchlistConflictResponses()
     const sources = [
       {
         source_id: 'market-group:us-benchmarks', source_kind: 'index_membership', name: 'US benchmark constituents',
@@ -3326,8 +3327,17 @@ test.describe('TC2000 workstation', () => {
       if (route.request().method() !== 'POST') return route.continue()
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 99, name: 'US benchmark constituents snapshot 2026-08-08', description: 'Cloned source', is_managed: false, is_locked: false, items: [] }) })
     })
+    let failCloneMemberOnce = true
     await page.route('**/api/v1/watchlists/99/items', async route => {
       const body = route.request().postDataJSON() as { instrument_id?: number }
+      if (body.instrument_id === 2 && failCloneMemberOnce) {
+        failCloneMemberOnce = false
+        // A duplicate/conflict response is intentionally recoverable by the
+        // store and does not create a browser-console error; the clone tool
+        // still records the failed canonical ID and exposes its retry action.
+        await route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ detail: 'temporary clone conflict' }) })
+        return
+      }
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: Number(body.instrument_id ?? 0) + 900, instrument_id: body.instrument_id, position: 0 }) })
     })
     await page.route('**/api/v1/analysis/market-map', async route => {
@@ -3348,6 +3358,8 @@ test.describe('TC2000 workstation', () => {
     await expect(universe).toHaveValue('market-group:us-benchmarks')
     await expect(mapWindow).toContainText('Locked source')
     await mapWindow.getByRole('button', { name: 'Clone US benchmark constituents snapshot' }).click()
+    await expect(mapWindow.locator('[aria-label="Market Map source preferences"] [role="status"]')).toContainText('1/2 members cloned', { timeout: 15_000 })
+    await mapWindow.getByRole('button', { name: 'Retry failed source clone members' }).click()
     await expect(mapWindow.locator('[aria-label="Market Map source preferences"] [role="status"]')).toContainText('2/2 members cloned', { timeout: 15_000 })
     await universe.selectOption('watchlist:7')
     await mapWindow.getByRole('button', { name: 'Refresh', exact: true }).click()

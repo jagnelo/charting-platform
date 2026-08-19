@@ -27,6 +27,7 @@
         <button v-if="activeSource.can_follow" type="button" :aria-pressed="sourceFollowed" :aria-label="sourceFollowed ? `Unfollow ${activeSource.name}` : `Follow ${activeSource.name}`" @click="toggleSourceFollow">{{ sourceFollowed ? 'Following' : 'Follow' }}</button>
         <button v-if="activeSource.can_clone" type="button" :aria-pressed="sourcePinned" :aria-label="sourcePinned ? `Unpin ${activeSource.name}` : `Pin ${activeSource.name}`" @click="toggleSourcePin">{{ sourcePinned ? 'Pinned' : 'Pin' }}</button>
         <button v-if="map && activeSource.can_clone" type="button" :disabled="sourceCloneBusy" :aria-label="`Clone ${activeSource.name} snapshot`" @click="cloneActiveSource">{{ sourceCloneBusy ? 'Cloning…' : 'Clone snapshot' }}</button>
+        <button v-if="sourceCloneRetryIds.length" type="button" :disabled="sourceCloneBusy" aria-label="Retry failed source clone members" @click="retrySourceClone">{{ sourceCloneBusy ? 'Retrying…' : `Retry ${sourceCloneRetryIds.length} failed` }}</button>
         <span v-if="sourceCloneMessage" role="status">{{ sourceCloneMessage }}</span>
         <span v-if="sourceCloneError" class="market-map-tool__status--error" role="alert">{{ sourceCloneError }}</span>
       </div>
@@ -327,6 +328,9 @@ const publicationError = ref('')
 const sourceCloneBusy = ref(false)
 const sourceCloneMessage = ref('')
 const sourceCloneError = ref('')
+const sourceCloneRetryIds = ref<number[]>([])
+const sourceCloneRetryTargetId = ref<number | null>(null)
+const sourceCloneRetryTotal = ref(0)
 const explicitWatchlistName = ref('')
 const explicitSaving = ref(false)
 const snapshots = ref<MarketMapSnapshotSummary[]>([])
@@ -409,6 +413,9 @@ async function cloneActiveSource() {
   sourceCloneBusy.value = true
   sourceCloneMessage.value = ''
   sourceCloneError.value = ''
+  sourceCloneRetryIds.value = []
+  sourceCloneRetryTargetId.value = null
+  sourceCloneRetryTotal.value = 0
   try {
     const asOf = source.composition_date ? `${source.composition_date}T23:59:59Z` : null
     const resolved = await watchlistStore.resolveWatchlistSource(source.source_id, asOf)
@@ -417,11 +424,46 @@ async function cloneActiveSource() {
     const descriptor = resolved?.source ?? source
     const created = await watchlistStore.createWatchlist(sourceSnapshotName(descriptor), sourceSnapshotDescription(descriptor))
     if (!created) throw new Error('Unable to create the cloned watchlist.')
-    const results = await Promise.all(memberIds.map(instrumentId => watchlistStore.addItem(created.id, instrumentId)))
-    const added = results.filter(Boolean).length
-    sourceCloneMessage.value = `${added}/${memberIds.length} members cloned as ${created.name} · ${descriptor.membership_version ?? 'current snapshot'}`
+    const existingIds = new Set((created.items ?? []).map(item => item.instrument_id))
+    const pendingIds = memberIds.filter(instrumentId => !existingIds.has(instrumentId))
+    const result = await addCloneMembers(created.id, pendingIds)
+    sourceCloneRetryTargetId.value = result.failed.length ? created.id : null
+    sourceCloneRetryIds.value = result.failed
+    sourceCloneRetryTotal.value = memberIds.length
+    sourceCloneMessage.value = `${result.added + existingIds.size}/${memberIds.length} members cloned as ${created.name} · ${descriptor.membership_version ?? 'current snapshot'}${result.failed.length ? ` · ${result.failed.length} pending (${result.failed.join(', ')})` : ''}`
   } catch (cause) {
     sourceCloneError.value = cause instanceof Error ? cause.message : 'Unable to clone the selected source'
+  } finally {
+    sourceCloneBusy.value = false
+  }
+}
+
+async function addCloneMembers(targetId: number, memberIds: number[]) {
+  const failed: number[] = []
+  let added = 0
+  for (const instrumentId of memberIds) {
+    const result = await watchlistStore.addItem(targetId, instrumentId)
+    if (result) added += 1
+    else failed.push(instrumentId)
+  }
+  return { added, failed }
+}
+
+async function retrySourceClone() {
+  const targetId = sourceCloneRetryTargetId.value
+  const retryIds = [...sourceCloneRetryIds.value]
+  if (!targetId || !retryIds.length || sourceCloneBusy.value) return
+  sourceCloneBusy.value = true
+  sourceCloneMessage.value = ''
+  sourceCloneError.value = ''
+  try {
+    const result = await addCloneMembers(targetId, retryIds)
+    sourceCloneRetryIds.value = result.failed
+    sourceCloneRetryTargetId.value = result.failed.length ? targetId : null
+    const completed = sourceCloneRetryTotal.value - result.failed.length
+    sourceCloneMessage.value = `${completed}/${sourceCloneRetryTotal.value} members cloned${result.failed.length ? ` · ${result.failed.length} still pending (${result.failed.join(', ')})` : ' · retry complete'}`
+  } catch (cause) {
+    sourceCloneError.value = cause instanceof Error ? cause.message : 'Unable to retry failed source clone members'
   } finally {
     sourceCloneBusy.value = false
   }
