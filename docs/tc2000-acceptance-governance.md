@@ -1,5 +1,21 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Bounded SEC maintenance must not starve family roles
+
+The scheduled, unfiltered SEC holdings backfill must prioritize the canonical proxy symbols for all
+configured benchmark families before spending its bounded ETF-profile budget on unrelated funds.
+This priority is maintenance ordering only: explicit administrator symbol filters remain exact,
+filing identity checks remain authoritative, and no missing membership is fabricated or substituted.
+The source remains a locked, source-polymorphic watchlist and ordinary Market Map reads remain
+provider-free.
+
+The acceptance evidence is a bootstrap regression derived from `benchmark_family_proxy_symbols()`
+plus the direct provider route matrix. It proves attempted family population, not successful
+hydration: `5/5` focused SEC/task tests, `7/7` workstation-bootstrap tests, `1260/1260` backend
+unit tests, `63/63` ETF-holdings integration tests, Ruff, compileall, and diff checks pass.
+Acceptance flexibility used: **None**. Dated snapshot completeness, rebalance continuity,
+point-in-time weights, canonical member bars, and V25 maintenance visuals remain tracked gaps.
+
 ## 2026-08-19 — Family roles must disclose canonical member-bar readiness
 
 Family-role coverage acceptance has two separate evidence axes: dated holdings disclosure and

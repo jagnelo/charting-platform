@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-08-19 — Scheduled SEC backfill prioritizes benchmark-family universes
+
+- [x] Preserve explicit admin symbol filters and existing alphabetical behavior when a caller asks
+      for a bounded SEC backfill. The scheduled, unfiltered maintenance pass now supplies the
+      canonical family proxy symbols as a priority order only, so profile-count limits cannot
+      starve the S&P 500/400/600/1500, Russell 1000/2000/3000, or Nasdaq 100 roles.
+- [x] Keep the family symbols source-polymorphic: this changes maintenance ordering only. It does
+      not fabricate holdings, substitute another proxy, bypass SEC identity checks, or add provider
+      calls to ordinary Market Map/source reads. Add a bootstrap regression proving every configured
+      family proxy is attempted and represented in the result.
+- [x] Validate task/service regressions (`5/5` focused), workstation bootstrap (`7/7`), full
+      backend units (`1260/1260`), Docker-backed ETF holdings integration (`63/63`), Ruff,
+      compileall, and `git diff --check`. Acceptance flexibility used: **None**.
+- [ ] This improves bounded scheduled population but does not claim complete dated snapshots,
+      rebalance continuity, point-in-time weights, canonical member bars, provider entitlements,
+      or exact V25 maintenance visuals; those remain open and must be closed separately.
+
 ### 2026-08-19 — Family coverage exposes canonical member-bar readiness
 
 - [x] Extend the provider-free benchmark-family coverage contract so each selected cap/equal/value/

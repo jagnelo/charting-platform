@@ -1,5 +1,17 @@
 # Run Report
 
+## 2026-08-19 — Scheduled SEC family priority completed
+
+- The scheduled unfiltered SEC holdings pass now prioritizes canonical benchmark-family proxy
+  symbols under its bounded profile quota; explicit administrator symbol filters remain exact.
+  This reduces starvation risk for the eight-root locked-watchlist population without changing
+  filing identity, provenance, fallback, or ordinary read behavior.
+- Added a controlled bootstrap regression for every configured family proxy. Validation: focused
+  SEC/task tests `5/5`, workstation bootstrap `7/7`, backend units `1260/1260`, ETF holdings
+  integration `63/63`, Ruff, compileall, and `git diff --check`. Acceptance flexibility: **None**.
+- Remaining gaps: deployment-level dated snapshot completeness, rebalance continuity, point-in-time
+  weights, canonical member bars, entitlement review, and exact V25 maintenance visuals.
+
 ## 2026-08-19 — Family bootstrap coverage guard and live route audit
 
 - The complete opt-in direct ETF holdings selection for the configured family proxy routes ran

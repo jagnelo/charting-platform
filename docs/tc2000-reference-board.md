@@ -1,5 +1,18 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Scheduled family-population ordering has no new visual claim
+
+The scheduled SEC maintenance path now prioritizes configured benchmark-family proxy identities
+under a bounded profile quota. This is an internal provider-maintenance ordering change feeding the
+existing locked/source-polymorphic watchlist contract; it does not add a visible tool or invent a
+V25 maintenance panel.
+
+Gap status: no visual state is promoted by this change. Existing `required_missing` maintenance
+states for queued, partial, failed, retrying, and recovered family/ETF holdings remain open. Interim
+oracle: task/service tests `5/5`, workstation bootstrap `7/7`, backend units `1260/1260`, ETF
+holdings integration `63/63`, and direct family route audit `342 passed, 1 skipped`. No visual
+threshold, mask, provider requirement, or acceptance rule was relaxed.
+
 ## 2026-08-19 — Market Map selection handoff controls remain unrepresented
 
 The functional Market Map now offers `Open in Chart`, `Compare in Chart`, and `Relative

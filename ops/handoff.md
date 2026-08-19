@@ -1,5 +1,26 @@
 # Active Handoff
 
+## 2026-08-19 — Scheduled SEC family priority completed
+
+- The bounded scheduled SEC backfill now receives `benchmark_family_proxy_symbols()` as a
+  priority order. This prevents the profile quota from being consumed by unrelated ETFs before
+  the configured S&P 500/400/600/1500, Russell 1000/2000/3000, and Nasdaq 100 proxy roles are
+  attempted. Explicit admin `symbols` filters retain their exact requested scope and alphabetical
+  ordering; no identity, filing, provenance, or source-resolution rule changed.
+- Added a bootstrap/task regression proving every configured family proxy is attempted and returned
+  in the hydration result. The priority is maintenance-only and does not add provider fan-out to
+  Market Map/source reads or fabricate a member universe.
+- Validation: focused SEC/task tests `5/5`, workstation bootstrap `7/7`, backend unit suite
+  `1260/1260`, Docker-backed ETF holdings integration `63/63`, Ruff, compileall, and
+  `git diff --check`. Acceptance flexibility: **None**. This improves bounded population ordering
+  but does not prove dated snapshot completeness, point-in-time weights/rebalance continuity,
+  canonical member bars, entitlements, or exact V25 maintenance visuals.
+- Implementation/docs commit `fd7ac268` is pushed and matches `origin/feat/tc2000-frontend-rework`.
+  The operational files in this context are the only remaining dirty changes and must be committed
+  as a separate checkpoint before starting the next context. Next context:
+  implement or verify deployment-level dated family snapshot/rebalance continuity using the existing
+  durable refresh-run contract; preserve the single locked-watchlist/Market Map abstraction.
+
 ## 2026-08-19 — Family bootstrap coverage guard and live route audit
 
 - Audited the direct free-source family route matrix with the opt-in live holdings suite. The

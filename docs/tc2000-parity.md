@@ -1,5 +1,22 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Bounded SEC maintenance protects family-source population
+
+The canonical family proxy identities are now passed as a priority order to the scheduled SEC
+holdings backfill. This prevents a bounded profile quota from being consumed by unrelated ETFs
+before the eight required S&P/Russell/Nasdaq family roots are attempted. Explicit administrator
+symbol filters retain their requested scope and do not inherit the scheduled priority ordering.
+
+This is backend maintenance for the same locked `WatchlistSource` consumed by Market Map, Breadth,
+charts, ratios, scans, gauges, alerts, and Study Lab; it does not create a special heatmap path or
+claim an ETF has usable membership before identity/filing resolution succeeds. The bootstrap guard
+derives its expected set from the taxonomy and catches future registry omissions.
+
+Validation: focused SEC/task tests `5/5`, workstation bootstrap `7/7`, backend units `1260/1260`,
+ETF holdings integration `63/63`, Ruff, compileall, and diff checks. Acceptance flexibility used:
+**None**. Complete dated holdings snapshots, point-in-time weights/rebalance continuity, canonical
+member-bar history, and exact V25 maintenance visuals remain open.
+
 ## 2026-08-19 — Family coverage distinguishes member bars from technical readiness
 
 The family coverage surface now reports canonical adjusted OHLCV readiness for the selected

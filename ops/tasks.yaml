@@ -1,4 +1,25 @@
 tasks:
+  - id: tc2000-family-sec-backfill-priority-20260819
+    title: Prioritize benchmark-family roles in bounded SEC maintenance
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Prevent a bounded scheduled SEC ETF holdings backfill from exhausting its profile quota on
+      unrelated funds before attempting the canonical S&P/Russell/Nasdaq family proxy roles.
+    definition_of_done:
+      - Scheduled unfiltered SEC maintenance receives canonical family proxy priority symbols
+      - Explicit administrator symbol filters retain exact requested scope and ordering semantics
+      - Filing identity, provenance, locked-source, and no-interactive-provider-fanout contracts remain unchanged
+      - Bootstrap regression proves all configured family proxies are attempted and represented
+      - Focused, full backend, ETF integration, lint, compile, and diff checks pass
+    validation:
+      - SEC/task-focused-5-of-5
+      - workstation-bootstrap-7-of-7
+      - backend-unit-suite-1260-of-1260
+      - ETF-holdings-integration-63-of-63
+      - Ruff, compileall, and git diff check
+    acceptance_flexibility: none
   - id: tc2000-family-bootstrap-coverage-guard-20260819
     title: Guard bootstrap coverage for every configured benchmark-family proxy
     status: completed
