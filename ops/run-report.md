@@ -6,7 +6,8 @@
   immutable asset preserves the selected `WatchlistSource` (including locked index/ETF sources),
   predicate AST, timeframe, adjustment, and as-of semantics.
 - Focused serializer/payload tests pass `2/2`; full frontend Vitest passes `918/918`; type-check and
-  production build pass. No acceptance flexibility used.
+  production build pass. The authenticated family Breadth → Study Lab browser assertion passes
+  `1/1` against the rebuilt branch stack. No acceptance flexibility used.
 - Still open: target-specific promotion fan-out, canonical provider-backed family population and
   history, and exact Version 25 promotion visuals.
 

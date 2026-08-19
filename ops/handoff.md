@@ -9,12 +9,15 @@
 - Extracted the Python-literal serializer/payload builder to
   `frontend/src/lib/workstation/breadthDefinitions.ts` and added focused `2/2` tests. Full
   frontend Vitest passes `918/918`; `vue-tsc` and Vite production build pass.
+- The authenticated `F8s-breadth-family-ratio` browser flow now evaluates the role-aware family
+  predicate, saves it from Breadth, and asserts the immutable Study payload retains its source
+  lineage, study contract, timeframe, adjustment, and serialized AST (`1/1`).
 - Acceptance flexibility: **none**. The seeded visual evidence remains a separate interim basis;
   exact V25 visuals, provider-backed family population/history, and complete promotion fan-out are
   still open.
-- Implementation/docs commit is pending. Before moving contexts, stage implementation, tests, and
-  docs together, commit and push; then record the separate ops checkpoint and verify a clean,
-  synchronized worktree.
+- Implementation/docs/test commit `336fc6f3` is pushed and matches origin. Record the separate ops
+  checkpoint next, then perform the final state-hash correction and verify a clean synchronized
+  worktree.
 
 Next context: continue target-specific breadth promotion adapters and canonical family/data gates.
 

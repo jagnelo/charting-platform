@@ -16,12 +16,13 @@ tasks:
       - Documentation records remaining promotion and V25 visual gaps
     validation:
       - breadth-definition-focused-2-of-2
+      - authenticated-F8s-breadth-family-ratio-study-save-1-of-1
       - frontend-Vitest-918-of-918
       - vue-tsc
       - Vite-production-build
       - git-diff-check
     acceptance_flexibility: none
-    implementation_commit: pending
+    implementation_commit: 336fc6f3
     remaining_gaps: >-
       Complete promotion fan-out to every compatible target, provider-backed family population and
       history, and exact Version 25 promotion-row visuals remain open.
