@@ -588,6 +588,126 @@ class TestWorkspaces:
         assert historical.json()["universe_provenance"]["point_in_time"] is True
         assert historical.json()["universe_provenance"]["continuity_policy"] == "observed_snapshot_intervals_gt_45_days"
 
+    def test_benchmark_family_coverage_reports_member_bar_and_technical_readiness(
+        self, client, auth_headers, db, instrument_type, instrument, instrument_b
+    ):
+        from datetime import UTC, datetime, timedelta
+
+        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import Instrument
+        from app.models.ohlcv import OHLCVBar, Timeframe
+
+        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
+        assert seeded.status_code == 200
+        spy = Instrument(
+            symbol="SPY",
+            name="SPDR S&P 500 ETF Trust",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add(spy)
+        db.flush()
+        profile = ETFProfile(instrument_id=spy.id, adapter_key="spdr", adapter_status="resolved")
+        db.add(profile)
+        db.flush()
+        snapshot = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=datetime(2024, 1, 1, tzinfo=UTC).date(),
+            known_at=datetime(2024, 1, 2, tzinfo=UTC),
+            provenance="issuer_native",
+            source_provider="issuer",
+            source_quality="issuer_disclosed",
+            completeness_status="complete",
+            row_count=2,
+            resolved_count=2,
+            unresolved_count=0,
+            total_weight=1.0,
+            snapshot_hash="test-family-member-bars",
+        )
+        db.add(snapshot)
+        db.flush()
+        db.add_all(
+            [
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=instrument.id,
+                    position=0,
+                    reported_symbol=instrument.symbol,
+                    reported_name=instrument.name,
+                    weight=0.5,
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_hash="family-member-bars-a",
+                    is_resolved=True,
+                ),
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=instrument_b.id,
+                    position=1,
+                    reported_symbol=instrument_b.symbol,
+                    reported_name=instrument_b.name,
+                    weight=0.5,
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_hash="family-member-bars-b",
+                    is_resolved=True,
+                ),
+            ]
+        )
+        base = datetime(2024, 1, 2, 21, tzinfo=UTC)
+        db.add_all(
+            [
+                OHLCVBar(
+                    instrument_id=instrument.id,
+                    timeframe=Timeframe.D1,
+                    ts=base + timedelta(days=offset),
+                    open=100,
+                    high=101,
+                    low=99,
+                    close=100,
+                    volume=1_000,
+                    is_adjusted=True,
+                )
+                for offset in range(252)
+            ]
+            + [
+                OHLCVBar(
+                    instrument_id=instrument_b.id,
+                    timeframe=Timeframe.D1,
+                    ts=base,
+                    open=100,
+                    high=101,
+                    low=99,
+                    close=100,
+                    volume=1_000,
+                    is_adjusted=True,
+                )
+            ]
+        )
+        db.flush()
+
+        response = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/coverage",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200, response.text
+        cap = next(role for role in response.json()["roles"] if role["role"] == "cap_weight")
+        history = cap["member_bar_history"]
+        assert history["status"] == "partial"
+        assert history["snapshot_id"] == snapshot.id
+        daily = next(item for item in history["timeframes"] if item["timeframe"] == "D1")
+        assert daily["member_count"] == 2
+        assert daily["covered_member_count"] == 2
+        assert daily["coverage_percent"] == 100.0
+        assert daily["required_bar_count"] == 252
+        assert daily["analysis_ready_member_count"] == 1
+        assert daily["analysis_ready_percent"] == 50.0
+        assert daily["bar_count"] == 253
+        weekly = next(item for item in history["timeframes"] if item["timeframe"] == "W1")
+        assert weekly["covered_member_count"] == 0
+        assert weekly["analysis_ready_member_count"] == 0
+
     def test_benchmark_family_coverage_marks_canonical_role_without_profile_as_pending(
         self, client, auth_headers, db, instrument_type
     ):

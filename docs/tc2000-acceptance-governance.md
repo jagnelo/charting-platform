@@ -1,5 +1,21 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Family roles must disclose canonical member-bar readiness
+
+Family-role coverage acceptance has two separate evidence axes: dated holdings disclosure and
+canonical adjusted member-bar readiness. The backend must report D1/W1/MN member counts with both
+any-bar coverage and the analysis-ready floors (252/52/24 bars); the workstation must show the D1
+covered-versus-ready distinction. A locked source may remain followable and selectable while
+`pending` or `partial`, but it cannot be presented as technically complete. No provider calls are
+allowed in this coverage read; hydration remains an explicit maintenance operation.
+
+The regression uses a two-member snapshot where both members have bars but only one meets the D1
+floor, and the rebuilt browser oracle verifies the visible readiness label. Workspaces `52/52`,
+Watchlists `47/47`, backend units `1258/1258`, frontend Vitest `915/915`, focused Chromium `1/1`,
+type/build, Ruff, compileall, and diff checks pass. Acceptance flexibility used: **None**. Exact
+V25 coverage-row copy/geometry is still board-tracked where unrepresented; data population and
+complete historical member bars remain implementation gaps, not waived criteria.
+
 ## 2026-08-19 — Historical Market Map records require observation and knowledge cutoffs
 
 For a historical Market Map over any locked index/ETF watchlist or arbitrary source, a profile

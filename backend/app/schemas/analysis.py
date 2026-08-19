@@ -316,6 +316,30 @@ class BenchmarkFamilyCoverageGapOut(BaseModel):
     interval_days: int = Field(ge=1)
 
 
+class BenchmarkFamilyMemberBarHistoryTimeframeOut(BaseModel):
+    """Canonical member-bar coverage for one family role and timeframe."""
+
+    timeframe: str
+    required_bar_count: int = Field(default=1, ge=1)
+    member_count: int = 0
+    covered_member_count: int = 0
+    coverage_percent: float = Field(default=0.0, ge=0, le=100)
+    analysis_ready_member_count: int = 0
+    analysis_ready_percent: float = Field(default=0.0, ge=0, le=100)
+    bar_count: int = 0
+    oldest: datetime | None = None
+    newest: datetime | None = None
+
+
+class BenchmarkFamilyMemberBarHistoryOut(BaseModel):
+    """Provider-free local bar readiness for a selected holdings snapshot."""
+
+    status: str = "unavailable"
+    snapshot_id: int | None = None
+    composition_date: date | None = None
+    timeframes: list[BenchmarkFamilyMemberBarHistoryTimeframeOut] = Field(default_factory=list)
+
+
 class BenchmarkFamilyCoverageRoleOut(BaseModel):
     """Historical holdings coverage for one independently mapped family role."""
 
@@ -335,6 +359,9 @@ class BenchmarkFamilyCoverageRoleOut(BaseModel):
     continuity_max_interval_days: int | None = Field(default=None, ge=1)
     continuity_gaps: list[BenchmarkFamilyCoverageGapOut] = Field(default_factory=list)
     continuity_snapshot_limit_reached: bool = False
+    member_bar_history: BenchmarkFamilyMemberBarHistoryOut = Field(
+        default_factory=BenchmarkFamilyMemberBarHistoryOut
+    )
 
 
 class BenchmarkFamilyCoverageOut(AnalysisResponseMetadata):

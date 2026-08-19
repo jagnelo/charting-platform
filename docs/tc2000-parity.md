@@ -1,5 +1,20 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Family coverage distinguishes member bars from technical readiness
+
+The family coverage surface now reports canonical adjusted OHLCV readiness for the selected
+holdings snapshot of every mapped role. D1, W1, and MN are evaluated in one provider-free batch;
+each timeframe exposes member count, any-bar coverage, total bars, date range, and an explicit
+technical-history floor of 252, 52, or 24 bars. The D1 workstation row displays both covered and
+analysis-ready counts, so a locked universe can remain selectable without overstating readiness
+for a 200-day breadth or Study Lab calculation.
+
+Validation: Workspaces integration `52/52`, Watchlists/Market Map integration `47/47`, backend
+units `1258/1258`, frontend Vitest `915/915`, rebuilt authenticated Chromium `F8s-breadth-family-
+ratio` `1/1`, type-check, production build, Ruff, compileall, and diff checks pass. Acceptance
+flexibility used: **None**. Provider-backed family population, point-in-time holdings/weights,
+complete member-bar history, and exact V25 coverage-row geometry remain open gaps.
+
 ## 2026-08-19 — Historical Market Map selection is known-at safe
 
 The source-polymorphic Market Map continues to treat an index/ETF constituent population as a

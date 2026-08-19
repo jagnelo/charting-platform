@@ -523,6 +523,26 @@ export interface BenchmarkFamilyCoverageGapState {
   interval_days: number
 }
 
+export interface BenchmarkFamilyMemberBarHistoryTimeframeState {
+  timeframe: string
+  required_bar_count: number
+  member_count: number
+  covered_member_count: number
+  coverage_percent: number
+  analysis_ready_member_count: number
+  analysis_ready_percent: number
+  bar_count: number
+  oldest?: string | null
+  newest?: string | null
+}
+
+export interface BenchmarkFamilyMemberBarHistoryState {
+  status: string
+  snapshot_id?: number | null
+  composition_date?: string | null
+  timeframes: BenchmarkFamilyMemberBarHistoryTimeframeState[]
+}
+
 export interface BenchmarkFamilyCoverageRoleState {
   role: BenchmarkFamilyMappingState['role']
   symbol?: string | null
@@ -537,6 +557,7 @@ export interface BenchmarkFamilyCoverageRoleState {
   continuity_max_interval_days?: number | null
   continuity_gaps?: BenchmarkFamilyCoverageGapState[]
   continuity_snapshot_limit_reached?: boolean
+  member_bar_history?: BenchmarkFamilyMemberBarHistoryState
 }
 
 export interface BenchmarkFamilyCoverageState {

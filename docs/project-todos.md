@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-08-19 — Family coverage exposes canonical member-bar readiness
+
+- [x] Extend the provider-free benchmark-family coverage contract so each selected cap/equal/value/
+      growth holdings snapshot reports canonical adjusted-bar coverage for D1, W1, and MN in one
+      batched query. The response now distinguishes members with any bar from members meeting the
+      technical history floor (252/52/24 bars), and preserves snapshot/composition lineage.
+- [x] Surface the D1 covered-versus-analysis-ready counts in the workstation's family coverage
+      rows. A one-bar member or deterministic fixture can no longer be mistaken for a population
+      ready for 200-day breadth. Missing snapshots, unresolved holdings, and absent bars remain
+      explicit `no_snapshot`, `unavailable`, or `pending` states.
+- [x] Add integration coverage for a two-member family snapshot with 253 total bars, prove one
+      member is technically ready while both are merely covered, and update the authenticated
+      browser oracle. Full Workspaces integration `52/52`, Watchlists/Market Map `47/47`, backend
+      unit suite `1258/1258`, frontend Vitest `915/915`, focused rebuilt Chromium `1/1`, type/build,
+      Ruff, compileall, and diff checks pass. Acceptance flexibility used: **None**.
+- [ ] Provider-backed population, complete point-in-time holdings/weights, and complete member-bar
+      history across all eight roots remain open; this readiness payload reports those gaps rather
+      than claiming that a source is fully analysis-ready.
+
 ### 2026-08-19 — Historical Market Map snapshots respect the knowledge boundary
 
 - [x] Keep the universal heatmap/watchlist abstraction unchanged: platform-controlled index and

@@ -3844,8 +3844,8 @@ test.describe('TC2000 workstation', () => {
           universe_provenance: { coverage_semantics: 'role_independent_dated_holdings_snapshots' },
           coverage: 0.5,
           roles: [
-            { role: 'cap_weight', symbol: 'SPY', label: 'SPY', verification_state: 'verified', available: true, status: 'available', snapshots: [{ snapshot_id: 1, composition_date: '2026-06-27', as_of_date: '2026-06-30', known_at: '2026-06-28T20:00:00Z', provenance: 'issuer snapshot', source_provider: 'fixture', source_quality: 'issuer_disclosed', completeness_status: 'complete', row_count: 1, resolved_count: 1, unresolved_count: 0 }] },
-            { role: 'equal_weight', symbol: 'RSP', label: 'RSP', verification_state: 'verified', available: true, status: 'available', snapshots: [{ snapshot_id: 2, composition_date: '2026-06-27', as_of_date: '2026-06-30', known_at: '2026-06-28T20:00:00Z', provenance: 'issuer snapshot', source_provider: 'fixture', source_quality: 'issuer_disclosed', completeness_status: 'complete', row_count: 1, resolved_count: 1, unresolved_count: 0 }] },
+            { role: 'cap_weight', symbol: 'SPY', label: 'SPY', verification_state: 'verified', available: true, status: 'available', snapshots: [{ snapshot_id: 1, composition_date: '2026-06-27', as_of_date: '2026-06-30', known_at: '2026-06-28T20:00:00Z', provenance: 'issuer snapshot', source_provider: 'fixture', source_quality: 'issuer_disclosed', completeness_status: 'complete', row_count: 1, resolved_count: 1, unresolved_count: 0 }], member_bar_history: { status: 'ready', snapshot_id: 1, composition_date: '2026-06-27', timeframes: [{ timeframe: 'D1', required_bar_count: 252, member_count: 1, covered_member_count: 1, coverage_percent: 100, analysis_ready_member_count: 1, analysis_ready_percent: 100, bar_count: 252 }] } },
+            { role: 'equal_weight', symbol: 'RSP', label: 'RSP', verification_state: 'verified', available: true, status: 'available', snapshots: [{ snapshot_id: 2, composition_date: '2026-06-27', as_of_date: '2026-06-30', known_at: '2026-06-28T20:00:00Z', provenance: 'issuer snapshot', source_provider: 'fixture', source_quality: 'issuer_disclosed', completeness_status: 'complete', row_count: 1, resolved_count: 1, unresolved_count: 0 }], member_bar_history: { status: 'ready', snapshot_id: 2, composition_date: '2026-06-27', timeframes: [{ timeframe: 'D1', required_bar_count: 252, member_count: 1, covered_member_count: 1, coverage_percent: 100, analysis_ready_member_count: 1, analysis_ready_percent: 100, bar_count: 252 }] } },
             { role: 'value', symbol: 'SPYV', label: 'SPYV', verification_state: 'verified', available: true, status: 'no_snapshot', snapshots: [] },
             { role: 'growth', symbol: 'SPYG', label: 'SPYG', verification_state: 'verified', available: true, status: 'no_snapshot', snapshots: [] },
           ],
@@ -3899,6 +3899,7 @@ test.describe('TC2000 workstation', () => {
     await expect(familyOverview).toContainText('NVDA')
     await expect(familyOverview).toContainText('Dated holdings coverage')
     await expect(familyOverview).toContainText('Cap weight SPY · available · 1 date')
+    await expect(familyOverview).toContainText('bars ready 1/1 · ready 1/1')
     const familyAsOf = familyOverview.getByRole('combobox', { name: 'Family analysis as of' })
     await expect(familyAsOf).toHaveValue('')
     await familyAsOf.selectOption('2026-06-27T23:59:59Z')

@@ -56,6 +56,8 @@ from app.schemas.analysis import (
     BenchmarkFamilyCoverageSnapshotOut,
     BenchmarkFamilyDerivedEqualWeightOut,
     BenchmarkFamilyMappingOut,
+    BenchmarkFamilyMemberBarHistoryOut,
+    BenchmarkFamilyMemberBarHistoryTimeframeOut,
     BenchmarkFamilyOverviewOut,
     BenchmarkFamilyRankingOut,
     BenchmarkFamilyRankingRoleOut,
@@ -142,6 +144,11 @@ router = APIRouter(prefix="/analysis", tags=["analysis"])
 
 _PERIODS = {"1D": 1, "1W": 5, "1M": 21, "3M": 63, "6M": 126, "YTD": None, "1Y": 252}
 _CALENDAR_YEAR_LOOKBACK = 5
+_FAMILY_MEMBER_BAR_REQUIREMENTS = {
+    Timeframe.D1: 252,
+    Timeframe.W1: 52,
+    Timeframe.MN: 24,
+}
 
 _HOLDING_EXCLUSION_MESSAGES = {
     "cash_holding": "Cash, collateral, or currency exposure is excluded from equity analysis.",
@@ -149,6 +156,106 @@ _HOLDING_EXCLUSION_MESSAGES = {
     "unresolved_holding": "The holding has no resolved canonical equity instrument.",
     "non_equity_holding": "The holding is not a supported equity security.",
 }
+
+
+async def _family_member_bar_history(
+    db: AsyncSession,
+    snapshot: ETFHoldingsSnapshot | None,
+    *,
+    as_of: datetime | None,
+) -> BenchmarkFamilyMemberBarHistoryOut:
+    """Return one batched local-bar readiness report for a holdings snapshot.
+
+    This deliberately reads only the canonical database.  ``covered`` means a
+    member has at least one usable adjusted bar; ``analysis_ready`` applies the
+    minimum history required by the workstation's D1/W1/MN technical surfaces.
+    The two counts must remain distinct so a one-bar fixture cannot masquerade
+    as enough history for a 200-day breadth study.
+    """
+
+    if snapshot is None:
+        return BenchmarkFamilyMemberBarHistoryOut(status="no_snapshot")
+
+    member_rows = (
+        await db.execute(
+            select(ETFHolding.constituent_instrument_id)
+            .where(
+                ETFHolding.snapshot_id == snapshot.id,
+                ETFHolding.row_type == "security",
+                ETFHolding.holding_type.in_(("equity", "stock", "common_stock")),
+                ETFHolding.is_resolved.is_(True),
+                ETFHolding.constituent_instrument_id.is_not(None),
+            )
+            .distinct()
+        )
+    ).all()
+    member_ids = [int(row[0]) for row in member_rows if row[0] is not None]
+    if not member_ids:
+        return BenchmarkFamilyMemberBarHistoryOut(
+            status="unavailable",
+            snapshot_id=snapshot.id,
+            composition_date=snapshot.composition_date,
+        )
+
+    bars_query = (
+        select(
+            OHLCVBar.timeframe,
+            OHLCVBar.instrument_id,
+            func.count(OHLCVBar.id).label("bar_count"),
+            func.min(OHLCVBar.ts).label("oldest"),
+            func.max(OHLCVBar.ts).label("newest"),
+        )
+        .where(
+            OHLCVBar.instrument_id.in_(member_ids),
+            OHLCVBar.timeframe.in_(tuple(_FAMILY_MEMBER_BAR_REQUIREMENTS)),
+            OHLCVBar.is_adjusted.is_(True),
+        )
+        .group_by(OHLCVBar.timeframe, OHLCVBar.instrument_id)
+    )
+    if as_of is not None:
+        bars_query = bars_query.where(OHLCVBar.ts <= as_of)
+    bar_rows = (await db.execute(bars_query)).all()
+
+    by_timeframe: dict[Timeframe, list[tuple[int, int, datetime | None, datetime | None]]] = defaultdict(list)
+    for timeframe, instrument_id, bar_count, oldest, newest in bar_rows:
+        by_timeframe[timeframe].append(
+            (int(instrument_id), int(bar_count), oldest, newest)
+        )
+
+    timeframes: list[BenchmarkFamilyMemberBarHistoryTimeframeOut] = []
+    for timeframe, required_bar_count in _FAMILY_MEMBER_BAR_REQUIREMENTS.items():
+        rows = by_timeframe.get(timeframe, [])
+        covered_count = len(rows)
+        ready_count = sum(1 for _instrument_id, count, _oldest, _newest in rows if count >= required_bar_count)
+        oldest_values = [oldest for _instrument_id, _count, oldest, _newest in rows if oldest is not None]
+        newest_values = [newest for _instrument_id, _count, _oldest, newest in rows if newest is not None]
+        timeframes.append(
+            BenchmarkFamilyMemberBarHistoryTimeframeOut(
+                timeframe=timeframe.value,
+                required_bar_count=required_bar_count,
+                member_count=len(member_ids),
+                covered_member_count=covered_count,
+                coverage_percent=round((covered_count / len(member_ids)) * 100, 2),
+                analysis_ready_member_count=ready_count,
+                analysis_ready_percent=round((ready_count / len(member_ids)) * 100, 2),
+                bar_count=sum(count for _instrument_id, count, _oldest, _newest in rows),
+                oldest=min(oldest_values) if oldest_values else None,
+                newest=max(newest_values) if newest_values else None,
+            )
+        )
+
+    if all(item.analysis_ready_member_count == len(member_ids) for item in timeframes):
+        status = "ready"
+    elif any(item.covered_member_count for item in timeframes):
+        status = "partial"
+    else:
+        status = "pending"
+    return BenchmarkFamilyMemberBarHistoryOut(
+        status=status,
+        snapshot_id=snapshot.id,
+        composition_date=snapshot.composition_date,
+        timeframes=timeframes,
+    )
 
 
 @router.post("/market-map", response_model=MarketMapOut)
@@ -3328,6 +3435,7 @@ async def benchmark_family_coverage(
         instrument = instruments.get(symbol) if symbol else None
         profile = profiles.get(instrument.id) if instrument is not None else None
         snapshots: list[BenchmarkFamilyCoverageSnapshotOut] = []
+        member_bar_history = BenchmarkFamilyMemberBarHistoryOut(status="no_snapshot")
         continuity_status = "not_applicable"
         continuity_gaps: list[BenchmarkFamilyCoverageGapOut] = []
         continuity_snapshot_limit_reached = False
@@ -3359,7 +3467,7 @@ async def benchmark_family_coverage(
                 .where(ETFProfile.instrument_id == instrument.id)
             )
             statement = _holdings_snapshot_at(statement, as_of)
-            rows = (
+            snapshot_rows = (
                 (
                     await db.execute(
                         statement.order_by(
@@ -3372,7 +3480,7 @@ async def benchmark_family_coverage(
                 .scalars()
                 .all()
             )
-            continuity_snapshot_limit_reached = len(rows) >= limit
+            continuity_snapshot_limit_reached = len(snapshot_rows) >= limit
             snapshots = [
                 BenchmarkFamilyCoverageSnapshotOut(
                     snapshot_id=row.id,
@@ -3387,7 +3495,7 @@ async def benchmark_family_coverage(
                     resolved_count=row.resolved_count,
                     unresolved_count=row.unresolved_count,
                 )
-                for row in rows
+                for row in snapshot_rows
             ]
             continuity = assess_observed_holdings_continuity(
                 [snapshot.composition_date for snapshot in snapshots],
@@ -3402,6 +3510,15 @@ async def benchmark_family_coverage(
                 for gap in continuity.gaps
             ]
             resolved_snapshots = [snapshot for snapshot in snapshots if snapshot.resolved_count > 0]
+            selected_snapshot = next(
+                (row for row in snapshot_rows if row.resolved_count > 0),
+                None,
+            )
+            member_bar_history = await _family_member_bar_history(
+                db,
+                selected_snapshot,
+                as_of=as_of,
+            )
             status = (
                 "available"
                 if resolved_snapshots
@@ -3463,6 +3580,7 @@ async def benchmark_family_coverage(
                 ),
                 continuity_gaps=continuity_gaps,
                 continuity_snapshot_limit_reached=continuity_snapshot_limit_reached,
+                member_bar_history=member_bar_history,
             )
         )
 
