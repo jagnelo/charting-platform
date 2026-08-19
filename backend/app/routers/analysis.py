@@ -5661,6 +5661,7 @@ async def _resolve_user_watchlist_breadth_universe(
             "etf-holdings:",
             "combo:",
             "explicit:",
+            "explicit-list:",
         )
     ):
         raise HTTPException(422, detail={"code": "unsupported_watchlist_source", "source_id": key})

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolveMarketMapAnalysisSource } from '@/lib/workstation/marketMapPublication'
+import { marketMapPythonUniverse, resolveMarketMapAnalysisSource } from '@/lib/workstation/marketMapPublication'
 
 describe('Market Map analysis publication', () => {
   it('publishes a selected canonical subset as an explicit source', () => {
@@ -22,5 +22,22 @@ describe('Market Map analysis publication', () => {
     expect(result.error).toContain('too large')
     expect(result.sourceId).toBe('watchlist:7')
     expect(result.selectedIds).toHaveLength(2000)
+  })
+
+  it('declares durable explicit selections as provider-neutral Python watchlist universes', () => {
+    expect(marketMapPythonUniverse('explicit-list:selection-abc123')).toEqual({
+      kind: 'watchlist',
+      key: 'explicit-list:selection-abc123',
+      point_in_time: false,
+    })
+    expect(marketMapPythonUniverse('benchmark-family:sp500:cap_weight')).toEqual({
+      kind: 'watchlist',
+      key: 'benchmark-family:sp500:cap_weight',
+      point_in_time: true,
+    })
+  })
+
+  it('rejects non-canonical Python Market Map universe identifiers', () => {
+    expect(() => marketMapPythonUniverse('ticker-list:NVDA,MSFT')).toThrow(/canonical watchlist source/)
   })
 })

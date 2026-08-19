@@ -19,6 +19,19 @@
       open. Acceptance flexibility used: **None**; the hidden-map test interaction was corrected,
       not waived.
 
+### 2026-08-19 — Durable explicit sources work across breadth and isolated Python
+
+- [x] Accept `explicit-list:<stable-key>` wherever generic Breadth accepts a canonical watchlist
+      universe. Saved selections retain their source ID, locked membership semantics, parent
+      lineage, and point-in-time policy through current Breadth evaluation.
+- [x] Declare durable explicit selections as provider-neutral watchlist universes for isolated
+      Python Market Map colour/area runs, while keeping ephemeral `explicit:<ids>` for unsaved
+      selections. Both paths resolve through the canonical local source contract.
+- [x] Add focused helper/unit coverage and a Docker-backed saved-source → Breadth integration
+      regression. No acceptance flexibility used.
+- [ ] Historical saved-source materialization, provider-backed bars/history, and exact V25
+      Python-universe/source-library visuals remain tracked gaps.
+
 ### 2026-08-19 — Study Lab discloses selected-source lineage
 
 - [x] Show a selected Market Map subset as `Selected members · N · Locked explicit source` in

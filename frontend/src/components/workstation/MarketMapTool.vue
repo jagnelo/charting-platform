@@ -252,6 +252,7 @@ import { useUserSettingsStore } from '@/stores/userSettings'
 import { invalidateCodeAssets } from '@/lib/workstation/libraryQueries'
 import { resolveCanonicalSymbols } from '@/lib/instruments'
 import BreadthConditionTreeEditor, { type BreadthConditionNode } from './BreadthConditionTreeEditor.vue'
+import { marketMapPythonUniverse } from '@/lib/workstation/marketMapPublication'
 import { cancelWatchlistHistoryRefreshRun, deleteMarketMapSnapshot, fetchMarketMap, fetchMarketMapSnapshot, fetchMarketMapSnapshots, fetchWatchlistHistoryRefreshRun, fetchWatchlistSourceHistoryStatus, layoutMarketMapCells, refreshWatchlistSourceHistory, saveMarketMapSnapshot, type MarketMapLayoutCell, type WatchlistHistoryRefreshRun, type WatchlistSourceHistoryStatus } from '@/lib/workstation/marketMap'
 import type { MarketMap, MarketMapAreaMetric, MarketMapCell, MarketMapColorMetric, MarketMapGroupBy, MarketMapNumericAreaField, MarketMapSnapshotSummary, Timeframe, WatchlistSource, WatchlistSourceKind } from '@/types'
 
@@ -729,26 +730,7 @@ const colorLabel = computed(() => colorMetric.value.replace(/_/g, ' '))
 const canvasStyle = computed(() => ({ transform: `translate(${panX.value}%, ${panY.value}%) scale(${viewportZoom.value})` }))
 
 function pythonUniverse() {
-  const source = sourceId.value
-  if (source.startsWith('benchmark-family:') && source.length > 'benchmark-family:'.length) {
-    return { kind: 'watchlist', key: source, point_in_time: true }
-  }
-  if (source.startsWith('watchlist:') && source.length > 'watchlist:'.length) {
-    return { kind: 'watchlist', key: source, point_in_time: true }
-  }
-  if (source.startsWith('market-group:') && source.length > 'market-group:'.length) {
-    return { kind: 'watchlist', key: source, point_in_time: true }
-  }
-  if (source.startsWith('etf-holdings:') && source.length > 'etf-holdings:'.length) {
-    return { kind: 'watchlist', key: source, point_in_time: true }
-  }
-  if (source.startsWith('combo:') && source.length > 'combo:'.length) {
-    return { kind: 'watchlist', key: source, point_in_time: true }
-  }
-  if (source.startsWith('explicit:') && source.length > 'explicit:'.length) {
-    return { kind: 'watchlist', key: source, point_in_time: false }
-  }
-  throw new Error('Python Market Map colours require a canonical watchlist source.')
+  return marketMapPythonUniverse(sourceId.value)
 }
 
 async function loadPythonAssets() {

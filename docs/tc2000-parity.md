@@ -1,5 +1,17 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Durable explicit sources are reusable in Breadth and isolated Python
+
+Generic Breadth now accepts `explicit-list:<stable-key>` as a canonical watchlist universe, and
+Market Map's isolated Python colour/area declaration emits the same provider-neutral watchlist
+contract for durable explicit sources as it does for benchmark, ETF, personal, combo, and
+ephemeral explicit sources. Saved selections retain locked membership, parent lineage, and user
+isolation; the local canonical resolver remains the only membership path.
+
+Focused helper/unit coverage and a Docker-backed saved-source → Breadth integration pass. Exact V25
+Python-universe/source-library visuals, historical saved-source materialization, and provider-
+backed bars/history remain explicit reference/data gaps; no acceptance flexibility was used.
+
 ## 2026-08-19 — Saved arbitrary selections are first-class locked heatmap sources
 
 The universal Market Map now supports durable explicit selections in addition to ephemeral

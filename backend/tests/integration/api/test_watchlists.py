@@ -2292,6 +2292,26 @@ class TestWatchlistsCrud:
         ]
         assert resolved.json()["source"]["provenance"]["parent_membership_version"] == "sp500:cap:2026-08-19"
 
+        breadth = client.post(
+            "/api/v1/analysis/breadth",
+            headers=auth_headers,
+            json={
+                "universe": {
+                    "kind": "watchlist",
+                    "key": descriptor["source_id"],
+                    "point_in_time": False,
+                },
+                "condition": {
+                    "kind": "above_moving_average",
+                    "params": {"period": 2, "average": "sma", "comparator": "above"},
+                },
+                "timeframe": "D1",
+                "adjusted": True,
+            },
+        )
+        assert breadth.status_code == 200, breadth.text
+        assert breadth.json()["universe"]["source_id"] == descriptor["source_id"]
+
         renamed = client.post(
             "/api/v1/watchlists/sources/explicit",
             headers=auth_headers,
