@@ -15,8 +15,9 @@
   drill-down composition remain reference-board gaps. Provider-backed membership/bar completeness
   remains open under the parent performance-map task.
 - Implementation/docs commit `7da0eeff20c3b6f0f00ef65cde9532f5230cce27` is pushed and synchronized.
-  Operational checkpoint is pending; next context remains provider-backed family/source population
-  and the remaining V25 visual/reference gaps.
+  Operational checkpoint `3988ef3dc32726f0e8a82f74414626e7ff9b6229` is also pushed and synchronized.
+  Next context remains provider-backed family/source population and the remaining V25
+  visual/reference gaps.
 
 ## 2026-08-19 — Unresolved holdings remain pending, not ready
 
