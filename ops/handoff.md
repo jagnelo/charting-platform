@@ -10,8 +10,8 @@
   it is marked `partial` with a coverage warning and retains route-failure/fallback provenance.
 - Validation: adapter/taxonomy units `507/507`, focused SoFi/Invesco `8/8`, live SFY `1/1`, Ruff,
   compileall, and `git diff --check` pass. Acceptance flexibility: **None**.
-- Implementation/docs commit `1eebca95` is pushed and synchronized; operational checkpoint follows.
-  Remaining gaps: other provider routes, all-eight family population, canonical member bars, historical rebalance
+- Implementation/docs commit `1eebca95` and operational checkpoint `2477eec8` are pushed and
+  synchronized; this context is closed. Remaining gaps: other provider routes, all-eight family population, canonical member bars, historical rebalance
   continuity, entitlement/terms review, and exact V25 maintenance/fallback visuals.
 - Next context: continue remaining provider failures and family-wide population; do not treat SFY
   route recovery as provider completeness.
