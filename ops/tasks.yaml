@@ -1,4 +1,31 @@
 tasks:
+  - id: tc2000-market-map-study-handoff-20260819
+    title: Close universal arbitrary-watchlist Market Map and Study Lab handoffs
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Make index/ETF constituent sets and arbitrary personal/managed/combo/sector/industry/explicit
+      lists share one source-polymorphic TC2000-style Market Map. Membership locking must govern
+      edits only; selected canonical members must retain parent-source lineage into Breadth and
+      Study Lab without ticker-only reconstruction or provider-specific heatmap code.
+    definition_of_done:
+      - Factory breadth-summary and generic breadth destinations both accept Market Map publications
+      - New and restored Study Lab tools retain explicit selection and parent source lineage
+      - Authenticated browser coverage proves locked and personal sources share the map and downstream handoffs
+      - Focused, full frontend, type/build, and diff validation passes against a rebuilt stack
+      - Exact/unrepresented V25 visual gaps, provider population, point-in-time weights, and member-bar history remain explicit
+    validation:
+      - market-map-and-study-lab-components-56-of-56
+      - full-frontend-vitest-914-of-914
+      - rebuilt-authenticated-f8s-market-map-watchlist-1-of-1
+      - vue-tsc-production-build-and-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. The board's missing exact V25 selection-action geometry
+        remains required_missing; it is tracked as a visual gap and not treated as functional evidence.
+        Implementation/docs and operational closure are separate commits.
+
   - id: tc2000-donoghue-dftt-sec-fallback-20260819
     title: Repair or classify Donoghue Forlines DFTT holdings route
     status: completed

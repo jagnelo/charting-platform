@@ -1,5 +1,22 @@
 # Active Handoff
 
+## 2026-08-19 — Universal arbitrary-watchlist Market Map and Study handoff completed
+
+- Index/ETF constituent universes and arbitrary personal/managed/combo/sector/industry/explicit
+  lists now share one source-polymorphic Market Map. `locked` controls membership editing only;
+  downstream map, Breadth, chart, ratio, scan, gauge, and Study Lab actions remain shared.
+- Market Map selection now updates the factory `breadth-summary` destination reliably, and Study
+  Lab receives both `explicit:<canonical IDs>` and its parent `source_id`, displaying the lineage.
+  The resolver prefers the active layout and falls back across restored layouts for Golden Layout
+  recovery ordering.
+- Validation: Market Map + Study Lab components `56/56`, full frontend Vitest `914/914`, rebuilt
+  authenticated Chromium `F8s-market-map-watchlist` `1/1`, `vue-tsc`, production build, and
+  `git diff --check` pass. Acceptance flexibility: **None**.
+- Implementation/docs and operational closure are pending as separate commits. Exact V25
+  selection-action geometry/copy remains `required_missing` where the board lacks an authoritative
+  capture; provider-backed family population, point-in-time weights, canonical member bars, and
+  final visual acceptance remain open and tracked.
+
 ## 2026-08-19 — DFTT identity-safe fallback completed
 
 - DFTT curated SEC identity (`0001314414 / S000093518 / C000261806 / DFTT`) now feeds the

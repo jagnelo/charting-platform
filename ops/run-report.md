@@ -1,5 +1,17 @@
 # Run Report
 
+## 2026-08-19 — Universal arbitrary-watchlist Market Map and Study handoff completed
+
+- Fixed the factory Breadth identity/race and preserved parent-source lineage when a selected
+  arbitrary watchlist subset is published into Study Lab. Index/ETF locked constituent sources and
+  editable personal/managed/combo/sector/industry/explicit sources use the same map contract.
+- Evidence: Market Map + Study Lab components `56/56`, full frontend Vitest `914/914`, rebuilt
+  authenticated Chromium `F8s-market-map-watchlist` `1/1`, `vue-tsc`, production build, and
+  `git diff --check`. Acceptance flexibility: **None**.
+- Remaining gaps are explicit: exact V25 action-row visual evidence, provider-backed family
+  population, point-in-time membership/weights, canonical member-bar history, and final visual/
+  broad acceptance. This functional context does not waive any of them.
+
 ## 2026-08-19 — DFTT identity-safe fallback completed
 
 - DFTT now has curated SEC identity propagation for the existing issuer-error fallback; explicit
