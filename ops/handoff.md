@@ -15,6 +15,7 @@
 - Acceptance flexibility: **None**. Provider-backed re-resolution, complete family membership and
   bar coverage, historical continuity, and exact V25 unresolved/partial-state visuals remain open.
 - Implementation/docs commit `75e7eb83df5b068df473752b27b5c14ef87f5b6c` is pushed and synchronized.
+  Operational checkpoint `bbcfc379c9167d509ee09f87a83e049146625067` is also pushed and synchronized.
   Next context: provider-backed family/source population and remaining V25 visual/reference gaps.
 
 ## 2026-08-19 — Universal watchlist heatmap preserves pending history state

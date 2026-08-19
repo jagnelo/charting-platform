@@ -13,6 +13,7 @@
   build; Ruff; compileall; YAML/JSON parsing; and `git diff --check`. No acceptance flexibility,
   visual threshold, or mask relaxation.
 - Implementation/docs commit `75e7eb83df5b068df473752b27b5c14ef87f5b6c` is pushed and synchronized.
+  Operational checkpoint `bbcfc379c9167d509ee09f87a83e049146625067` is pushed and synchronized.
   Provider-backed re-resolution, complete family membership/bar history, historical continuity, and
   exact V25 unresolved/partial-state visuals remain explicit gaps.
 
