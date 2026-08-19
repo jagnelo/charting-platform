@@ -1,5 +1,28 @@
 # Active Handoff
 
+## 2026-08-19 — Python breadth benchmark-target changeset closed
+
+- Added explicit `right_scope=member|benchmark` to recursive Python numeric-series breadth
+  comparisons. Benchmark scope evaluates the right series against the selected canonical
+  benchmark dataset at the exact member timestamp; missing/misaligned benchmark observations
+  produce `python_series_benchmark_unavailable` and are excluded without forward-fill.
+- The API requires a benchmark symbol when any nested comparison targets the benchmark; the
+  isolated runner handles both member and cross-sectional scopes; the editor serializes the new
+  selector. Index/ETF constituents remain locked `WatchlistSource` populations and use the exact
+  same Market Map, breadth, Study Lab, chart, and relative-strength mechanics as arbitrary lists.
+- Validation: runner `3/3`, editor `9/9`, Market Map/breadth `41/41`, backend units `1268/1268`,
+  Docker-backed workspace integration `1/1` with `--no-cov`, frontend `915/915`, type-check,
+  production build, Ruff, compileall, manifest YAML parse, and diff-check. The first focused
+  integration invocation also passed the test but exited on the repository-wide coverage gate
+  after deselection; the no-cov rerun is the authoritative exit-code evidence. Stack was rebuilt,
+  migrated, and stopped. No acceptance flexibility used.
+- Implementation/docs commit `3274401d27c3eaf8c3434105b5924729b7f16b2b` is pushed and currently
+  matches origin with a clean worktree. This context is closed. Next context: continue the next
+  independent open goal gate, while preserving the source-polymorphic locked-watchlist model.
+- Remaining gaps: exact V25 target-dataset control geometry is `required_missing`; richer derived
+  series composition, complete promotion fan-out, provider-backed family continuity, and final
+  whole-goal functional/visual/security/performance audit remain open.
+
 ## 2026-08-19 — Boolean-column browser context closed
 
 - Implementation/docs commit `2a25837a` is pushed to `origin/feat/tc2000-frontend-rework`.

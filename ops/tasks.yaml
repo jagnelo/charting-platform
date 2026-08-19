@@ -1,4 +1,37 @@
 tasks:
+  - id: tc2000-python-breadth-benchmark-target-20260819
+    title: Allow Python breadth comparisons against the selected benchmark dataset
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Extend the universal condition-driven breadth contract so a Python numeric-series comparison
+      can explicitly use either the same member or the selected canonical benchmark as its right
+      dataset, while preserving one source-polymorphic Market Map/watchlist surface for locked
+      index/ETF constituents and arbitrary user-owned watchlists.
+    definition_of_done:
+      - right_scope is validated and persisted as member or benchmark in the immutable condition tree
+      - benchmark-target comparisons require an explicit benchmark symbol and use exact timestamps
+      - missing or misaligned benchmark observations are excluded with structured diagnostics; no forward-fill occurs
+      - isolated runner support covers member and cross-sectional comparison scopes
+      - Breadth editor exposes the target-dataset choice and regression coverage proves serialization
+      - parity, governance, visual-manifest, and reference-board gap records identify the new control as required_missing
+      - the implementation is committed and pushed before the next changeset context begins
+    validation:
+      - runner-python-series-comparison-3-of-3
+      - breadth-editor-9-of-9
+      - market-map-and-breadth-frontend-41-of-41
+      - backend-unit-suite-1268-of-1268
+      - Docker-backed-workspaces-integration-1-of-1-with-no-cov
+      - frontend-Vitest-915-of-915
+      - vue-tsc-and-Vite-production-build
+      - Ruff-compileall-manifest-YAML-and-git-diff-check
+      - branch-stack-rebuilt-migrated-and-stopped
+    acceptance_flexibility: none
+    implementation_commit: 3274401d27c3eaf8c3434105b5924729b7f16b2b
+    remaining_gaps: >-
+      Exact Version 25 target-dataset control geometry is not represented on the working board;
+      richer multi-stage derived-series composition and universal promotion fan-out remain open.
   - id: tc2000-study-single-boolean-column-browser-acceptance-20260819
     title: Verify single-output Boolean Study Lab column promotion in the authenticated browser
     status: completed

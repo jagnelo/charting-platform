@@ -1,5 +1,27 @@
 # Run Report
 
+## 2026-08-19 — Python breadth comparisons target the selected benchmark
+
+- Added `right_scope=member|benchmark` to recursive Python series comparisons. The benchmark
+  path reads the prepared canonical benchmark dataset at the exact member observation timestamp,
+  requires an explicit benchmark symbol at the API boundary, and records structured exclusion when
+  the benchmark bar is unavailable. Cross-sectional statistics are applied after the comparison.
+- The Breadth editor exposes the target-dataset selector. Index/ETF constituent populations remain
+  locked system-owned watchlists, but use the same source-polymorphic Market Map and downstream
+  breadth/Study/chart/relative-strength actions as personal, combo, sector, industry, managed, ETF,
+  and explicit sources.
+- Validation: isolated runner `3/3`; editor `9/9`; Market Map/breadth `41/41`; backend unit suite
+  `1268/1268`; Docker-backed workspace integration `1/1` with `--no-cov`; frontend `915/915`;
+  `vue-tsc`; production build; Ruff; compileall; manifest YAML parse; and `git diff --check`.
+  The rebuilt branch stack applied migrations and was stopped after the integration pass. No
+  acceptance flexibility was used. The initial focused pytest invocation passed its selected test
+  but reported the expected repository-wide coverage threshold because 51 tests were deselected;
+  the no-cov rerun is the recorded successful command.
+- Implementation/docs commit `3274401d27c3eaf8c3434105b5924729b7f16b2b` is pushed and synchronized.
+  Exact V25 target-dataset control geometry remains a documented `required_missing` board gap;
+  richer derived-series composition, promotion fan-out, family/provider continuity, and final
+  acceptance remain open.
+
 ## 2026-08-19 — Boolean-column browser context checkpointed
 
 - Implementation/docs commit `2a25837a` is pushed. The separate operational checkpoint records
