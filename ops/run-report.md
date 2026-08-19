@@ -1,5 +1,21 @@
 # Run Report
 
+## 2026-08-19 — Study Lab Boolean results promoted to typed columns
+
+- Added a `Save column` action for completed Boolean Study Lab artifacts. The result is a typed
+  Boolean watchlist column (`True`/`False`/missing), reusing the existing list mechanics rather
+  than introducing another DSL or renderer.
+- Extended the code-asset contract to accept `column + boolean` and persisted source run/code,
+  reproducibility, dataset, run-configuration, output-name, target, and semantics lineage as
+  non-executable immutable diagnostics. Incompatible aggregate/event/cross-sectional outputs stay
+  capability-gated.
+- Validation: Study Lab component `24/24`; full frontend `915/915`; `vue-tsc`; production build;
+  backend units `1267/1267`; full code API integration `24/24`; changed-file Ruff; compileall;
+  YAML/JSON parsing; and `git diff --check`. The first API attempt hit only the known Docker
+  socket permission boundary and the unchanged elevated run passed. Acceptance flexibility: **None**.
+- Remaining gaps: exact V25 promotion-row/confirmation visuals, broader compatible promotion fan-
+  out, provider-backed family population and continuity, and final whole-goal acceptance.
+
 ## 2026-08-19 — Bounded dated family snapshot fan-out
 
 - Refined the opt-in scheduled maintenance task to request completed month-end candidates and fan

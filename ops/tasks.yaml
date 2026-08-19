@@ -1,4 +1,27 @@
 tasks:
+  - id: tc2000-study-boolean-column-promotion-20260819
+    title: Promote Study Lab Boolean results to typed watchlist columns
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Make a completed Study Lab Boolean artifact reusable as a typed watchlist column through the
+      existing immutable Python code-asset path, preserving source-run, code-version, dataset, and
+      reproducibility lineage without creating a second programming surface.
+    definition_of_done:
+      - Study Lab renders Save column for Boolean artifacts and persists output_contract=boolean
+      - Boolean list values remain typed True/False/missing and use ordinary column mechanics
+      - Promotion lineage is retained as non-executable CodeVersion diagnostics
+      - Incompatible aggregate/event/cross-sectional outputs remain capability-gated
+      - Focused, full frontend, backend unit/API, lint, compile, and diff validation pass
+      - Exact V25 promotion-row visuals remain explicitly tracked as required_missing
+    validation:
+      - Study-Lab-focused-24-of-24
+      - full-frontend-Vitest-915-of-915
+      - full-backend-unit-suite-1267-of-1267
+      - full-code-API-integration-24-of-24
+      - vue-tsc, Vite-build, Ruff, compileall, and git-diff-check
+    acceptance_flexibility: none
   - id: tc2000-family-snapshot-population-continuity-20260819
     title: Add bounded scheduled dated population for family watchlists
     status: completed

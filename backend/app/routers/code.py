@@ -31,7 +31,11 @@ logger = logging.getLogger(__name__)
 
 _ASSET_CONTRACTS = {
     "plot": {"series"},
-    "column": {"scalar"},
+    # Boolean columns are first-class watchlist values: they render as typed
+    # True/False cells and can be pinned/sorted just like a saved condition.
+    # Keeping the contract here (rather than coercing booleans to 0/1) lets a
+    # Study Lab result retain its meaning when promoted into a list column.
+    "column": {"scalar", "boolean"},
     # A numeric series is also a valid condition source for the isolated
     # breadth target path; it is never accepted by the Boolean-only EasyScan
     # promotion path without an explicit target relation.
@@ -300,6 +304,9 @@ async def create_version(
 
 
 def _version_from_input(body: CodeVersionCreate, version_number: int, validation) -> CodeVersion:
+    diagnostics = [item.__dict__ for item in validation.diagnostics]
+    if body.lineage:
+        diagnostics.append({"code": "promotion_lineage", "lineage": body.lineage})
     return CodeVersion(
         version_number=version_number,
         source=body.source,
@@ -309,5 +316,5 @@ def _version_from_input(body: CodeVersionCreate, version_number: int, validation
         default_parameters=body.default_parameters,
         dependencies=list(validation.dependencies),
         lookback=validation.lookback_hint,
-        diagnostics=[item.__dict__ for item in validation.diagnostics],
+        diagnostics=diagnostics,
     )

@@ -1,5 +1,19 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Boolean Study-to-column promotion is functional but visually unrepresented
+
+The workstation now offers `Save column` for a completed Study Lab Boolean artifact and produces a
+typed, lineage-preserving watchlist column. This is deliberately treated as the same reusable
+column surface as a scalar study result; it is not a second heatmap or a separate programming
+language. No acceptance flexibility was used.
+
+Gap status: `required_missing` for the exact V25 promotion action-row geometry, label, enabled/
+disabled treatment, success confirmation, and any source-lineage detail shown in that state. The
+board may guide the surrounding Study Lab/list chrome, but it does not contain an authoritative
+capture of this exact Boolean-column promotion. Evidence needed: a reviewed V25 capture of a
+Boolean study result being saved into a list column, plus the resulting column state. Until then,
+functional tests are the interim oracle and the gap must remain visible in parity/governance docs.
+
 ## 2026-08-19 — Source-polymorphic heatmap reference note
 
 The working board treats the heatmap as one TC2000-style surface over arbitrary watchlists. Locked

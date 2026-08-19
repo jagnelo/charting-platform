@@ -356,7 +356,24 @@ describe('StudyLabTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
       initial_version: expect.objectContaining({ output_contract: 'series', output_name: 'trend' }),
     }))
+    await wrapper.findAll('button').find(button => button.text() === 'Save column: qualifies')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable watchlist column.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        output_contract: 'boolean',
+        output_name: 'qualifies',
+        lineage: expect.objectContaining({
+          source_run_id: 9,
+          source_code_version_id: 42,
+          source_reproducibility_hash: 'sha256:test',
+          target: 'column',
+          semantics: 'study_boolean_result_as_typed_watchlist_column',
+        }),
+      }),
+    }))
     expect(wrapper.findAll('button').some(button => button.text() === 'Save filter: qualifies')).toBe(true)
+    expect(wrapper.findAll('button').some(button => button.text() === 'Save column: qualifies')).toBe(true)
     expect(wrapper.findAll('button').some(button => button.text() === 'Promote scan: qualifies')).toBe(true)
     expect(wrapper.findAll('button').some(button => button.text() === 'Use Gauge: qualifies')).toBe(true)
     expect(wrapper.findAll('button').some(button => button.text() === 'Promote alert: qualifies')).toBe(true)

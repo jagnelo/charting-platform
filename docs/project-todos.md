@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-08-19 — Study Lab Boolean outputs promote to typed watchlist columns
+
+- [x] Treat a completed Study Lab Boolean artifact as a valid `column` promotion target. The
+      resulting watchlist column keeps Boolean semantics (`True`/`False`/missing), rather than
+      coercing the study result into numeric `0`/`1`; it therefore participates in the same
+      pinning, sorting, filtering, and saved-column mechanics as any other typed column.
+- [x] Extend the backend code-asset contract to accept `column + boolean`, add the trusted
+      promotion-lineage field to immutable code-version creation, and persist the lineage as
+      non-executable diagnostics. Preserve source run ID, source code version, reproducibility
+      hash, dataset manifest, run configuration, output name, target, and promotion semantics.
+- [x] Add focused frontend and Docker-backed API regressions proving the action is rendered,
+      creates a Boolean column asset, and retains source lineage (`24/24` Study Lab tests and
+      `2/2` targeted API tests; the elevated run passed). Acceptance flexibility used: **None**.
+- [ ] Continue the remaining promotion fan-out for cross-sectional/aggregate, event, and
+      derived-series outputs only where their output contract is compatible; preserve structured
+      capability errors rather than forcing incompatible studies into per-symbol columns. Exact
+      Version 25 promotion-row visuals remain a `required_missing` board state.
+
 ### 2026-08-19 — Scheduled dated family snapshot maintenance
 
 - [x] Keep index/ETF constituent populations as locked `WatchlistSource` values; Market Map,

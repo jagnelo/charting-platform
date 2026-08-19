@@ -1,5 +1,22 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Boolean Study results use a typed column promotion gate
+
+The shared programmable-surface contract now permits a completed Study Lab Boolean artifact to be
+promoted into a watchlist column. Acceptance requires all of the following: the source artifact is
+Boolean; the created asset declares `kind=column` and `output_contract=boolean`; the frontend keeps
+Boolean values typed rather than converting them to numeric flags; and immutable lineage records
+the source run, source code version, reproducibility hash, dataset manifest, run configuration,
+output name, target, and semantics. The column is then eligible for the ordinary list sorting,
+pinning, filtering, and saved-column behavior.
+
+The lineage is metadata only and cannot be executed as user code. An aggregate, event, or
+cross-sectional study that cannot provide a per-row Boolean contract must return a structured
+capability error instead of being silently coerced. Focused evidence is Study Lab `24/24` and
+Docker-backed API `2/2`; the unprivileged attempt was blocked only by the Docker socket boundary
+and the unchanged elevated run passed. Acceptance flexibility used: **None**. Exact V25 action-row
+visuals remain board-tracked as `required_missing`.
+
 ## 2026-08-19 — Scheduled family snapshots preserve the universal heatmap contract
 
 Benchmark-family constituent sets remain locked, system-owned watchlists consumed by the same

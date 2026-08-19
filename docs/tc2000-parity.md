@@ -1,5 +1,24 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Study Lab Boolean artifact column promotion
+
+Completed Study Lab Boolean artifacts now expose a reusable watchlist-column action. The action
+creates a typed Boolean column asset, so list cells remain `True`/`False` values and can use the
+shared Version 25-style list sorting, pinning, filtering, and saved-column paths. The immutable
+asset stores source run/code/dataset/run-configuration lineage and the output name, allowing a
+later user to audit which study result produced the column.
+
+Implementation mapping: `StudyLabTool` promotion actions, `/code/assets` Boolean-column contract,
+and `CodeVersion.diagnostics` promotion lineage. Validation: Study Lab component `24/24`; focused
+Docker-backed API regressions `2/2` after the required elevated Docker rerun; the focused command's
+repository-wide coverage threshold is not treated as a pass because it intentionally deselects
+the rest of the suite. Acceptance flexibility used: **None**.
+
+Visual status: `required_missing` for the exact V25 promotion-row label, placement, hover/disabled
+states, and post-save confirmation because the current reference board does not show this exact
+state. The functional parity is recorded without inventing a screenshot. Cross-sectional and
+aggregate outputs remain capability-gated until a compatible reusable column contract exists.
+
 ## 2026-08-19 — Scheduled family-source population
 
 The heatmap/watchlist parity surface is source-polymorphic: a benchmark/index/ETF constituent

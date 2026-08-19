@@ -62,7 +62,9 @@ def test_code_assets_are_immutable_versions(client, auth_headers):
     assert next_version.json()["version_number"] == 2
 
 
-def test_market_map_breadth_definition_preserves_condition_and_source_defaults(client, auth_headers):
+def test_market_map_breadth_definition_preserves_condition_and_source_defaults(
+    client, auth_headers
+):
     source = (
         "condition = parameters.get('condition', {'kind': 'within_52_week_high', "
         "'params': {'threshold_percent': 1.0}})\n"
@@ -240,6 +242,38 @@ def test_code_asset_kind_and_declared_output_contract_must_match(client, auth_he
     )
     assert invalid_selected.status_code == 422
     assert invalid_selected.json()["detail"]["code"] == "selected_output_contract_mismatch"
+
+
+def test_boolean_column_contract_preserves_study_promotion_lineage(client, auth_headers):
+    response = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "study-boolean-column-lineage",
+            "name": "Study qualifies column",
+            "kind": "column",
+            "initial_version": {
+                "source": "output.boolean('qualifies', True)",
+                "output_contract": "boolean",
+                "output_name": "qualifies",
+                "lineage": {
+                    "source_run_id": 90,
+                    "source_code_version_id": 42,
+                    "source_reproducibility_hash": "sha256:test",
+                    "target": "column",
+                    "semantics": "study_boolean_result_as_typed_watchlist_column",
+                },
+            },
+        },
+    )
+
+    assert response.status_code == 201, response.text
+    version = response.json()["versions"][0]
+    assert version["output_contract"] == "boolean"
+    assert version["output_name"] == "qualifies"
+    lineage = next(item for item in version["diagnostics"] if item["code"] == "promotion_lineage")
+    assert lineage["lineage"]["source_run_id"] == 90
+    assert lineage["lineage"]["target"] == "column"
 
 
 def test_code_asset_rejects_defaults_that_violate_its_parameter_schema(client, auth_headers):

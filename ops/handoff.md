@@ -1,5 +1,25 @@
 # Active Handoff
 
+## 2026-08-19 — Study Lab Boolean column promotion completed
+
+- Closed one independent programmable-surface gap without changing the source-polymorphic Market
+  Map invariant. Completed Study Lab Boolean artifacts now expose `Save column` and create a typed
+  Boolean watchlist column; the column uses the existing list sorting/pinning/filtering paths and
+  never coerces the result to `0`/`1`.
+- Backend `column` assets accept `boolean`; immutable code versions retain source run, source code
+  version, reproducibility hash, dataset manifest, run configuration, output name, target, and
+  promotion semantics as non-executable diagnostics. Incompatible aggregate/event/cross-sectional
+  outputs remain explicitly gated.
+- Validation: Study Lab `24/24`; full frontend Vitest `915/915`; `vue-tsc`; production build;
+  backend unit suite `1267/1267`; full code API integration `24/24` with the required elevated
+  Docker rerun; changed-file Ruff, compileall, YAML/JSON parsing, and diff-check pass. The initial
+  unprivileged API run failed only at the Docker socket boundary; no acceptance flexibility was
+  used. The focused API command's coverage-threshold exit is not counted as a test failure because
+  it intentionally deselected the rest of the repository.
+- Exact V25 Boolean-promotion action-row and confirmation visuals remain `required_missing` on the
+  reference board. Next context: continue provider-backed family population and board-guided V25
+  gaps; do not treat this slice as overall goal completion.
+
 ## 2026-08-19 — Bounded dated family snapshot fan-out completed
 
 - The universal source-polymorphic Market Map contract remains unchanged: index/ETF constituents

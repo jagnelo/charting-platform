@@ -376,6 +376,7 @@ const artifactPromotions = computed<ArtifactPromotion[]>(() => {
     else if (artifact.artifact_type === 'scalar') promotions.push({ artifact, target: 'column', label: 'Save column' })
     else if (artifact.artifact_type === 'boolean') {
       promotions.push(
+        { artifact, target: 'column', label: 'Save column' },
         { artifact, target: 'filter', label: 'Save filter' },
         { artifact, target: 'scan', label: 'Promote scan' },
         { artifact, target: 'gauge', label: 'Use Gauge' },
@@ -668,6 +669,8 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
     let versionId = canReuseRunVersion ? runCodeVersionId.value : null
     if (!versionId) {
       const kind = isBooleanTarget ? 'condition' : target
+      const sourceManifest = run.value?.dataset_manifest ?? {}
+      const sourceRunConfig = run.value?.run_config ?? {}
       const asset = await api.post<{ versions: Array<{ id: number }> }>('/code/assets', {
         stable_key: uniqueAssetKey(name.value, kind),
         name: `${name.value} ${kind}`,
@@ -678,6 +681,18 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
           ...(selectedOutputName ? { output_name: selectedOutputName } : {}),
           parameter_schema: parsedParameterSchema.value ?? {},
           default_parameters: buildParameters(),
+          lineage: {
+            source_run_id: run.value?.id ?? null,
+            source_code_version_id: run.value?.code_version_id ?? runCodeVersionId.value ?? null,
+            source_reproducibility_hash: run.value?.reproducibility_hash ?? null,
+            source_dataset_manifest: sourceManifest,
+            source_run_config: sourceRunConfig,
+            source_output_name: selectedOutputName ?? null,
+            target,
+            semantics: target === 'column' && requiredContract === 'boolean'
+              ? 'study_boolean_result_as_typed_watchlist_column'
+              : 'study_result_promotion',
+          },
         },
       })
       void invalidateCodeAssets(queryClient)

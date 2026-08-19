@@ -29,6 +29,9 @@ class CodeVersionCreate(BaseModel):
     output_name: str | None = Field(default=None, min_length=1, max_length=128)
     parameter_schema: dict = Field(default_factory=dict)
     default_parameters: dict = Field(default_factory=dict)
+    # Optional immutable lineage supplied by a trusted promotion path. It is
+    # persisted in CodeVersion diagnostics by the API and is never executable.
+    lineage: dict | None = None
 
 
 class CodeAssetCreate(BaseModel):
