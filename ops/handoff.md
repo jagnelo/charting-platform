@@ -8,8 +8,9 @@
   `912/912`; type-check, production build, and `git diff --check` pass. Acceptance flexibility:
   **None**.
 - Exact V25 canvas styling remains `required_missing`; this test protects the functional interim
-  oracle only. Regression commit `39f8f624dbec0da9d2e7b593ee8813fe10f947b3` is pushed and synchronized; the operational checkpoint
-  is the next required write.
+  oracle only. Regression commit `39f8f624dbec0da9d2e7b593ee8813fe10f947b3` and operational
+  checkpoint `654632a5d3ff9db39d950f94b064c4c36a733612` are pushed and synchronized. This context is
+  closed; next context remains provider-backed family/source population and remaining V25 visual gaps.
 
 ## 2026-08-19 — Canvas group labels remain visible after member paint
 
