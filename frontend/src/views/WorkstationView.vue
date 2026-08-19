@@ -1296,6 +1296,10 @@ type MapAnalysisPublication = {
 
 async function publishMapAnalysis(publication: MapAnalysisPublication) {
   if (!publication.sourceId) return
+  // Let the source tool's selection/layout event settle before switching the
+  // destination. This avoids applying the publication to a stale Golden Layout
+  // root when the handoff follows a selection click in the same turn.
+  await nextTick()
   const analysisSource = resolveMarketMapAnalysisSource({
     sourceId: publication.sourceId,
     scope: publication.scope,
@@ -1327,12 +1331,27 @@ async function publishMapAnalysis(publication: MapAnalysisPublication) {
     if (existing) {
       if (workspaceStore.activeTabKey !== existing.tab.stable_key) selectWorkspaceTab(existing.tab.stable_key)
       workspaceStore.setActiveWindow(existing.window.instance_key)
-      updateToolConfiguration(existing.window.instance_key, {
+      await nextTick()
+      const mountedConfiguration = existing.window.configuration
+      const publishedConfiguration = {
         ...existing.window.configuration,
         custom_universe_kind: 'watchlist',
         custom_universe_watchlist_id: analysisSourceId,
         ...selectedConfiguration,
-      })
+      }
+      updateToolConfiguration(existing.window.instance_key, publishedConfiguration)
+      await workspaceStore.saveSnapshot()
+      // saveSnapshot replaces the canonical workspace object with the server
+      // response. Golden Layout may still hold the pre-save tool object, so
+      // mirror the accepted configuration into that mounted object as well.
+      for (const key of Object.keys(mountedConfiguration)) delete mountedConfiguration[key]
+      Object.assign(mountedConfiguration, publishedConfiguration)
+      // A snapshot replacement can leave Golden Layout's virtual root bound
+      // to the pre-save object. Reinstall this completed layout from the
+      // server-confirmed workspace so the visible breadth controls and the
+      // persisted configuration cannot diverge.
+      workspaceReloadKey.value += 1
+      await nextTick()
       return
     }
     const definition = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'breadth')
@@ -1453,7 +1472,7 @@ function compareSymbols(symbols: string[]) {
   })
 }
 
-function openMarketMapRatio(symbols: string[]) {
+async function openMarketMapRatio(symbols: string[]) {
   const normalized = [...new Set(symbols.map(symbol => symbol.trim().toUpperCase()).filter(Boolean))].slice(0, 2)
   const numerator = normalized[0]
   const denominator = normalized[1] ?? activeSymbol.value.trim().toUpperCase()
@@ -1466,12 +1485,22 @@ function openMarketMapRatio(symbols: string[]) {
     workspaceStore.error = 'Open a Relative Strength tool to create a ratio.'
     return
   }
-  updateToolConfiguration(ratio.instance_key, {
+  // Activate the canonical ratio window before publishing its configuration.
+  // Golden Layout can emit a trailing layout snapshot during activation; doing
+  // this first prevents that observational snapshot from restoring the old
+  // expression over the user-requested ratio.
+  workspaceStore.setActiveWindow(ratio.instance_key)
+  await nextTick()
+  const mountedConfiguration = ratio.configuration
+  const publishedConfiguration = {
     ...ratio.configuration,
     expression: `=${numerator}/${denominator}`,
     auto_ratio: false,
-  })
-  workspaceStore.setActiveWindow(ratio.instance_key)
+  }
+  updateToolConfiguration(ratio.instance_key, publishedConfiguration)
+  await workspaceStore.saveSnapshot()
+  for (const key of Object.keys(mountedConfiguration)) delete mountedConfiguration[key]
+  Object.assign(mountedConfiguration, publishedConfiguration)
 }
 
 async function handleRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }) {
@@ -1500,12 +1529,18 @@ async function handleRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 
       workspaceStore.error = 'Open a Relative Strength tool to create a ratio.'
       return
     }
-    updateToolConfiguration(ratio.instance_key, {
+    workspaceStore.setActiveWindow(ratio.instance_key)
+    await nextTick()
+    const mountedConfiguration = ratio.configuration
+    const publishedConfiguration = {
       ...ratio.configuration,
       expression: `=${numerator}/${denominator}`,
       auto_ratio: false,
-    })
-    workspaceStore.setActiveWindow(ratio.instance_key)
+    }
+    updateToolConfiguration(ratio.instance_key, publishedConfiguration)
+    await workspaceStore.saveSnapshot()
+    for (const key of Object.keys(mountedConfiguration)) delete mountedConfiguration[key]
+    Object.assign(mountedConfiguration, publishedConfiguration)
     return
   }
   await selectSymbol(row.symbol, undefined, false, row.instrumentId)
