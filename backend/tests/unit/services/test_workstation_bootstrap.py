@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from datetime import UTC, datetime
 from decimal import Decimal
+from types import SimpleNamespace
 
 from sqlalchemy import select
 
@@ -14,7 +15,10 @@ from app.models.instrument import Instrument
 from app.models.instrument_identity import InstrumentProviderSymbol
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.workstation import MarketGroup, MarketGroupMember
-from app.services.top_down_taxonomy import BENCHMARK_FAMILY_REGISTRY
+from app.services.top_down_taxonomy import (
+    BENCHMARK_FAMILY_REGISTRY,
+    benchmark_family_proxy_symbols,
+)
 from app.services.workstation_bootstrap import (
     CORE_WORKSTATION_INSTRUMENTS,
     CORE_WORKSTATION_REGISTRY,
@@ -244,6 +248,40 @@ def test_core_bootstrap_retries_partial_holdings_snapshot(db, monkeypatch):
 
     assert "SPY" in holdings_calls
     assert result["holdings"]["SPY"]["status"] == "error"
+
+
+def test_core_bootstrap_attempts_every_configured_family_proxy_role(db, monkeypatch):
+    """The provider bootstrap must not omit a configured family leg."""
+
+    facade = _AsyncSessionFacade(db)
+    asyncio.run(ensure_core_workstation_identities(facade))
+    monkeypatch.setattr(settings, "E2E_SEED_MARKET_DATA", False)
+    monkeypatch.setattr(settings, "CORE_WORKSTATION_BOOTSTRAP_TIMEOUT_SECONDS", 1)
+
+    history_calls: list[str] = []
+    holdings_calls: list[str] = []
+
+    async def fake_fetch(_session, instrument, _timeframe, _start):
+        history_calls.append(instrument.symbol)
+        return []
+
+    async def fake_holdings(_session, *, symbol, name):
+        holdings_calls.append(symbol)
+        return SimpleNamespace(
+            refresh_succeeded=False,
+            refresh_attempted=True,
+            message="controlled provider test",
+        )
+
+    monkeypatch.setattr(bootstrap, "fetch_ohlcv", fake_fetch)
+    monkeypatch.setattr(bootstrap, "bootstrap_etf_holdings_profile", fake_holdings)
+
+    result = asyncio.run(bootstrap.bootstrap_core_workstation_data(facade))
+
+    family_symbols = set(benchmark_family_proxy_symbols())
+    assert family_symbols <= set(holdings_calls)
+    assert family_symbols <= set(result["holdings"])
+    assert set(history_calls) == {symbol for symbol, _, _ in CORE_WORKSTATION_INSTRUMENTS}
 
 
 def test_core_bootstrap_queues_deduplicated_family_member_history(monkeypatch):
