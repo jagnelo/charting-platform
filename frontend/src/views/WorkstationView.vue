@@ -1498,7 +1498,6 @@ async function openMarketMapRatio(symbols: string[]) {
     auto_ratio: false,
   }
   updateToolConfiguration(ratio.instance_key, publishedConfiguration)
-  await workspaceStore.saveSnapshot()
   for (const key of Object.keys(mountedConfiguration)) delete mountedConfiguration[key]
   Object.assign(mountedConfiguration, publishedConfiguration)
 }
@@ -1538,7 +1537,6 @@ async function handleRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 
       auto_ratio: false,
     }
     updateToolConfiguration(ratio.instance_key, publishedConfiguration)
-    await workspaceStore.saveSnapshot()
     for (const key of Object.keys(mountedConfiguration)) delete mountedConfiguration[key]
     Object.assign(mountedConfiguration, publishedConfiguration)
     return
