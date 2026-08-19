@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-19 — Bounded dated family snapshot maintenance
+
+- Added an opt-in scheduled maintenance task that requests completed month-end candidates for all
+  configured benchmark-family roots and roles, uses existing canonical holdings adapters, retains
+  per-leg refreshed/unavailable/failed evidence, and queues member-history jobs for refreshed
+  snapshot IDs. Month-end candidates are maintenance boundaries, not invented rebalance calendars.
+- The task is outside interactive Market Map/source reads, preserving one heatmap contract for
+  locked index/ETF sources and arbitrary personal/combo/managed/sector/industry/ETF/explicit lists.
+- Validation: focused maintenance tests `23/23`, full backend unit suite `1265/1265`, Ruff,
+  compileall, Docker Compose config, and `git diff --check` pass. Acceptance flexibility: **None**.
+- Remaining gaps: actual deployment hydration and route entitlements, complete point-in-time
+  rebalance continuity, canonical member-bar completeness, and exact V25 maintenance visuals.
+
 ## 2026-08-19 — Scheduled SEC family priority completed
 
 - The scheduled unfiltered SEC holdings pass now prioritizes canonical benchmark-family proxy

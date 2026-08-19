@@ -1,5 +1,29 @@
 # Active Handoff
 
+## 2026-08-19 — Bounded dated family snapshot maintenance completed
+
+- The universal source-polymorphic Market Map contract remains unchanged: index/ETF constituents
+  are locked system-owned watchlists, while personal, combo, managed, sector, industry, ETF, and
+  explicit sources use the same heatmap and downstream actions. `locked` governs membership edits,
+  not visualization or follow/pin behavior.
+- Added an opt-in scheduled worker for completed month-end maintenance candidates. It refreshes all
+  configured family roots/roles through the existing canonical adapters, preserves per-leg
+  refreshed/unavailable/failed evidence, and queues canonical member history for refreshed snapshot
+  IDs. It never fans out providers from an interactive source or Market Map read and does not claim
+  an issuer's official rebalance cadence.
+- Settings: `BENCHMARK_FAMILY_HOLDINGS_REFRESH_ENABLED=false` and bounded
+  `BENCHMARK_FAMILY_HOLDINGS_REFRESH_LOOKBACK_DATES=1` by default. Added date-helper, task, queue,
+  worker-registration, and disabled/enabled regressions.
+- Validation: focused maintenance tests `23/23`, full backend unit suite `1265/1265`, Ruff,
+  compileall, Docker Compose config, and `git diff --check` pass. Acceptance flexibility: **None**.
+  This closes a maintenance-path gap but does not prove deployment-level provider hydration,
+  complete point-in-time/rebalance continuity, member-bar completeness, entitlements, or exact V25
+  maintenance visuals.
+- Implementation/docs commit `04d2a690907a190bd353e01f11dcb94ab263412e` is pushed. The operational
+  files in this context are now the only dirty changes and must be committed/pushed as the separate
+  checkpoint before starting another context. Next context: continue provider-backed snapshot
+  continuity and exact board-guided V25 gaps while preserving the single arbitrary-watchlist heatmap.
+
 ## 2026-08-19 — Scheduled SEC family priority completed
 
 - The bounded scheduled SEC backfill now receives `benchmark_family_proxy_symbols()` as a

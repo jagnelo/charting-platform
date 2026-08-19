@@ -1,4 +1,25 @@
 tasks:
+  - id: tc2000-family-snapshot-population-continuity-20260819
+    title: Add bounded scheduled dated population for family watchlists
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Preserve the universal source-polymorphic Market Map while adding an opt-in worker that
+      requests completed month-end candidates for all configured benchmark-family roles, retains
+      per-leg provider evidence, and queues canonical member history for refreshed snapshots.
+    definition_of_done:
+      - Completed month-end candidates are deterministic, bounded, and strictly before the current month
+      - Scheduled maintenance uses existing canonical adapters and does not fan out from UI/source reads
+      - Refreshed, unavailable, failed, and queue-unavailable states remain explicit
+      - Canonical member history is queued from exact refreshed snapshot IDs
+      - Focused, full backend, lint, compile, compose-config, and diff validation pass
+      - Deployment population, full historical continuity, entitlements, and exact V25 visuals remain explicit gaps
+    validation:
+      - focused-maintenance-tests-23-of-23
+      - backend-unit-suite-1265-of-1265
+      - Ruff, compileall, docker-compose-config, and git-diff-check
+    acceptance_flexibility: none
   - id: tc2000-family-sec-backfill-priority-20260819
     title: Prioritize benchmark-family roles in bounded SEC maintenance
     status: completed
