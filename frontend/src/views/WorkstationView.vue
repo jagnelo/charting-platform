@@ -1332,12 +1332,26 @@ async function publishMapAnalysis(publication: MapAnalysisPublication) {
       if (workspaceStore.activeTabKey !== existing.tab.stable_key) selectWorkspaceTab(existing.tab.stable_key)
       workspaceStore.setActiveWindow(existing.window.instance_key)
       await nextTick()
-      updateToolConfiguration(existing.window.instance_key, {
+      const mountedConfiguration = existing.window.configuration
+      const publishedConfiguration = {
         ...existing.window.configuration,
         custom_universe_kind: 'watchlist',
         custom_universe_watchlist_id: analysisSourceId,
         ...selectedConfiguration,
-      })
+      }
+      updateToolConfiguration(existing.window.instance_key, publishedConfiguration)
+      await workspaceStore.saveSnapshot()
+      // saveSnapshot replaces the canonical workspace object with the server
+      // response. Golden Layout may still hold the pre-save tool object, so
+      // mirror the accepted configuration into that mounted object as well.
+      for (const key of Object.keys(mountedConfiguration)) delete mountedConfiguration[key]
+      Object.assign(mountedConfiguration, publishedConfiguration)
+      // A snapshot replacement can leave Golden Layout's virtual root bound
+      // to the pre-save object. Reinstall this completed layout from the
+      // server-confirmed workspace so the visible breadth controls and the
+      // persisted configuration cannot diverge.
+      workspaceReloadKey.value += 1
+      await nextTick()
       return
     }
     const definition = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'breadth')
@@ -1477,11 +1491,16 @@ async function openMarketMapRatio(symbols: string[]) {
   // expression over the user-requested ratio.
   workspaceStore.setActiveWindow(ratio.instance_key)
   await nextTick()
-  updateToolConfiguration(ratio.instance_key, {
+  const mountedConfiguration = ratio.configuration
+  const publishedConfiguration = {
     ...ratio.configuration,
     expression: `=${numerator}/${denominator}`,
     auto_ratio: false,
-  })
+  }
+  updateToolConfiguration(ratio.instance_key, publishedConfiguration)
+  await workspaceStore.saveSnapshot()
+  for (const key of Object.keys(mountedConfiguration)) delete mountedConfiguration[key]
+  Object.assign(mountedConfiguration, publishedConfiguration)
 }
 
 async function handleRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }) {
@@ -1512,11 +1531,16 @@ async function handleRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 
     }
     workspaceStore.setActiveWindow(ratio.instance_key)
     await nextTick()
-    updateToolConfiguration(ratio.instance_key, {
+    const mountedConfiguration = ratio.configuration
+    const publishedConfiguration = {
       ...ratio.configuration,
       expression: `=${numerator}/${denominator}`,
       auto_ratio: false,
-    })
+    }
+    updateToolConfiguration(ratio.instance_key, publishedConfiguration)
+    await workspaceStore.saveSnapshot()
+    for (const key of Object.keys(mountedConfiguration)) delete mountedConfiguration[key]
+    Object.assign(mountedConfiguration, publishedConfiguration)
     return
   }
   await selectSymbol(row.symbol, undefined, false, row.instrumentId)
