@@ -1,5 +1,16 @@
 # Run Report
 
+## 2026-08-19 — Family role evidence is explicit at the interchangeable entry point
+
+- Added the canonical benchmark-family overview request and a role strip for cap/equal/value/
+  growth. Verified mappings show their symbol/label; missing or unverified mappings show explicit
+  unavailable/`No verified mapped proxy` state without silent substitution.
+- Validation: focused Market Map/workspace-store `95/95`; full frontend Vitest `896/896`;
+  type-check; production build; `git diff --check`. Acceptance flexibility used: **None**.
+- Remaining: exact V25 role-strip geometry and unavailable-state references, browser drill-down,
+  provider-backed role population, and historical continuity.
+
+
 ## 2026-08-19 — Benchmark list becomes an interchangeable family entry point
 
 - Added a persisted family selector to the authenticated benchmark list. The empty selection keeps

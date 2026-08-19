@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-08-19 — Selected family exposes independent role evidence
+
+- [x] Load the existing benchmark-family overview alongside the selected family group and
+      cap-weighted snapshot, using the active timeframe and the canonical overview cache key.
+- [x] Show each registered role (cap, equal, value, growth) with its verified symbol/label and
+      explicit mapping state. Missing or unverified roles remain visible as `No verified mapped
+      proxy`/unavailable rather than silently disappearing or falling back to another family.
+- [x] Add store coverage for the family overview request and rerun the focused Market Map/
+      workspace-store slice (`95/95`), full frontend Vitest (`896/896`), type-check, production
+      build, and diff checks.
+- [ ] Exact V25 role-strip geometry, unavailable-role treatment, provider-backed role population,
+      historical continuity, and browser family drill-down remain open board/parity gaps.
+
+
 ### 2026-08-19 — Benchmark list is now an interchangeable family entry point
 
 - [x] Add a family selector to the authenticated benchmark-list surface. The default remains the

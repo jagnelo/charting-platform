@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-family-role-evidence-20260819
+    title: Disclose independent benchmark-family role evidence at the family entry point
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Load the canonical benchmark-family overview with the selected family group and cap
+      snapshot, and show cap/equal/value/growth role state without silently omitting missing or
+      unverified roles.
+    definition_of_done:
+      - Request the family overview using the selected family and active timeframe
+      - Show verified role symbols/labels and explicit unavailable or No verified mapped proxy states
+      - Never substitute SPY, another family, or a fictional role mapping
+      - Record exact V25 role-strip and unavailable-role imagery as a tracked visual gap
+    validation:
+      - frontend-market-map-workspace-family-slices-95-of-95
+      - frontend-vitest-896-of-896
+      - frontend-type-check
+      - frontend-build
+      - git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. Provider-backed role population, historical continuity,
+        family browser drill-down, and exact V25 role-strip visuals remain open.
+
   - id: tc2000-family-entry-selector-20260819
     title: Make benchmark-list roots interchangeable across the US family matrix
     status: completed

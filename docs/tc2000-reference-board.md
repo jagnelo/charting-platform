@@ -1,5 +1,21 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Family role evidence is functionally explicit but visually unrepresented
+
+The selected family entry point now shows a role strip for cap, equal, value, and growth. Each
+role carries the canonical verified symbol/label when available and an explicit mapping state when
+it is not; `No verified mapped proxy` and unavailable states are retained instead of being omitted
+or replaced by another family. This is the visual target for the implementation, but the composite
+board has no authoritative exact-build V25 capture of this family-specific strip or its unavailable
+states.
+
+Gap status: `required_missing` for role-strip placement, typography, separators, loading/error and
+unavailable-role treatment, and the family-selection transition. Interim oracle: focused
+family-entry contracts `95/95`, full frontend Vitest `896/896`, type-check, production build, and
+diff checks. No threshold, mask, provider substitution, or acceptance flexibility was used. Close
+with reviewed V25 role/family captures and browser interaction evidence; until then the gap stays
+tracked and does not count as visual parity.
+
 ## 2026-08-19 — Interchangeable family entry-point states remain visually unrepresented
 
 The benchmark list now switches between the default Major US benchmarks/SPY surface and each

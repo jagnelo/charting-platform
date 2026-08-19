@@ -1,5 +1,20 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Selected family discloses cap/equal/value/growth role evidence
+
+The interchangeable benchmark-family entry point now requests the canonical family overview in
+parallel with the selected family group and cap-weighted snapshot. A compact role strip reports
+cap, equal, value, and growth mapping symbols/labels plus the canonical mapping state. An absent
+or unverified role remains explicit (`No verified mapped proxy`/unavailable); the UI never silently
+substitutes SPY, another family, or a fictional ETF child. The overview follows the active
+timeframe and existing provider-neutral cache contract.
+
+Functional evidence: focused Market Map/workspace-store slices `95/95`; full frontend Vitest
+`896/896`; type-check; production build; and diff checks. This is not exact V25 visual approval:
+the composite board lacks authoritative role-strip geometry, unavailable-role copy/treatment, and
+family browser drill-down captures, so those states remain `required_missing`. Acceptance
+flexibility used: **None**. Provider-backed role population and historical continuity remain open.
+
 ## 2026-08-19 — Benchmark list exposes interchangeable family roots
 
 The default benchmark list now has a family selector. With no family selected it retains the

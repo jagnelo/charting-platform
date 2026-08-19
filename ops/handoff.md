@@ -1,5 +1,17 @@
 # Active Handoff
 
+## 2026-08-19 — Selected family exposes independent role evidence
+
+- The benchmark-family selector now loads the existing canonical family overview in addition to
+  the family group and cap-weighted snapshot. A role strip reports cap, equal, value, and growth
+  symbols/labels with their mapping state; absent or unverified roles remain explicit and never
+  fall back to SPY or another family.
+- Validation: focused Market Map/workspace-store `95/95`; full frontend Vitest `896/896`;
+  type-check; production build; `git diff --check`. Acceptance flexibility: **None**.
+- Exact V25 role-strip/unavailable-role visuals and browser family drill-down remain
+  `required_missing`; provider-backed role population and historical continuity remain open.
+
+
 ## 2026-08-19 — Benchmark list now selects interchangeable US family roots
 
 - Added `benchmark_family_key` to the benchmark-list surface. Empty remains the default Major US
