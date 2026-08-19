@@ -10,8 +10,9 @@
   explicit recovery messages.
 - Validation: Market Map component `32/32`, workstation pop-out bindings `23/23`, full frontend
   Vitest `914/914`, type-check/build, and diff checks pass. Acceptance flexibility: **None**.
-- Implementation/docs commit `242c9c35` is pushed and synchronized. The remaining ops checkpoint
-  and final close are deliberately separate commits before starting the next gap.
+- Implementation/docs commit `242c9c35` and ops checkpoint `92acae67` are pushed and synchronized.
+- This context is closed. The next context should continue provider-backed family population,
+  canonical historical reconciliation, and the remaining board-guided V25 visual gaps.
 - The universal locked-watchlist/Market Map model remains unchanged; this is a downstream handoff
   completion, not a provider-specific map.
 

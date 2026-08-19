@@ -8,8 +8,9 @@
   The existing watchlist, Breadth, and Study-Lab paths remain unchanged and source-polymorphic.
 - Evidence: Market Map component `32/32`, workstation pop-out bindings `23/23`, full frontend
   Vitest `914/914`, type-check/build, and `git diff --check`. Acceptance flexibility: **None**.
-- Implementation/docs commit `242c9c35` is pushed and synchronized; provider-backed family population, historical
-  reconciliation, and exact V25 selection-action visuals remain open.
+- Implementation/docs `242c9c35` and ops checkpoint `92acae67` are pushed and synchronized;
+  provider-backed family population, historical reconciliation, and exact V25 selection-action
+  visuals remain open. This context is closed.
 
 ## 2026-08-19 — Lazard JPY route repaired with identity-safe SEC fallback
 
