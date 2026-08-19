@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-08-19 — Universal Market Map browser and free-source route evidence
+
+- [x] Add authenticated Chromium acceptance for selecting a locked benchmark/index-style
+      constituent source and an editable personal watchlist through the same Market Map flow;
+      the test verifies canonical source switching, locked-source disclosure, map refresh, and
+      rendered cells (`F8s-market-map-watchlist`, `1/1`).
+- [x] Run opt-in public issuer/SEC holdings probes for the mapped S&P/Russell/Nasdaq role legs:
+      issuer-direct routes pass `32/32`; QQQE/current and historical SEC fallbacks plus dated
+      iShares/QQQ snapshots pass `10/10`.
+- [x] Re-run frontend type-check, full Vitest (`900/900`), production build, and diff-check;
+      commit `0a7569f9` contains the browser acceptance coverage.
+- [ ] The browser test is a functional oracle, not exact V25 visual approval. Exact source-picker
+      geometry, provider-backed database population for every root, canonical member bars,
+      point-in-time rebalance continuity, and family-role browser drill-down remain open and
+      must stay visible in parity/reference-board tracking. Acceptance flexibility used: **none**.
+
 ### 2026-08-19 — Universal Market Map treats every source as a TC2000-style watchlist
 
 - [x] Verify that personal watchlists, locked index/ETF constituent sources, derived combos, and

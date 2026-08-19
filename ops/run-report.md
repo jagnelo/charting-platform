@@ -1,5 +1,17 @@
 # Run Report
 
+## 2026-08-19 — Universal Market Map browser and free-source route validation
+
+- Authenticated Chromium `F8s-market-map-watchlist` passes `1/1`, proving a locked
+  index/benchmark-style constituent source and an editable personal source use one Market Map
+  workflow and preserve the canonical source on refresh.
+- Opt-in live public holdings probes pass `32/32` issuer-direct mapped family routes and `10/10`
+  QQQE plus dated iShares/QQQ SEC fallback cases. Frontend Vitest `900/900`, type-check, build,
+  and diff-check pass. Browser coverage is committed in `0a7569f9`.
+- Acceptance flexibility: **None**. Exact V25 picker imagery, all-root database ingestion,
+  canonical member bars, point-in-time rebalance continuity, and family-role browser drill-down
+  remain open.
+
 ## 2026-08-19 — Universal Market Map source contract
 
 - Validated the same Market Map contract for personal, locked market-group, ETF-holdings, and combo

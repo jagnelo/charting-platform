@@ -1,5 +1,18 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Functional browser/provider evidence does not replace missing V25 imagery
+
+The new authenticated Chromium flow (`F8s-market-map-watchlist`, `1/1`) is now the functional
+interim oracle for the represented behavior: locked index/ETF-style constituent sources and
+editable personal lists share one heatmap, with source identity preserved on refresh. Public
+issuer/SEC route probes add `32/32` issuer-direct and `10/10` fallback evidence. These artifacts
+help iterate the product but are not visual references and cannot approve pixel parity.
+
+The exact Version 25 source-picker composition, lock/follow/pin treatment, and list-to-map
+transition remain `required_missing`; all-root provider population and historical continuity are
+separate data gaps. No acceptance flexibility was used and no older-generation image is silently
+substituted.
+
 ## 2026-08-19 — Arbitrary-watchlist heatmap remains a reference gap
 
 The implementation now treats index/ETF constituents as locked watchlists and routes them through the

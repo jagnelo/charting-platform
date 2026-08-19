@@ -1,5 +1,20 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Arbitrary-watchlist browser oracle and free-source route evidence
+
+The authenticated workstation now has an end-to-end browser regression proving that a locked
+benchmark/index-style constituent source and an editable personal list use the same Market Map:
+the source picker discloses the locked state, switching to the personal source preserves the
+canonical source ID, and refresh renders the returned cells (`F8s-market-map-watchlist`, Chromium
+`1/1`). This is functional acceptance evidence, not a waiver of the exact V25 visual baseline.
+
+Opt-in public data probes also pass for the currently mapped role routes: issuer-direct SPDR/
+iShares/Invesco retrieval `32/32`, and QQQE plus historical SEC/iShares/QQQ fallback cases `10/10`.
+Frontend type-check, Vitest `900/900`, production build, and diff-check pass. Acceptance
+flexibility used: **None**. Remaining parity/data gaps are exact V25 source-picker geometry,
+all-root database population, canonical member-bar ingestion, point-in-time holdings/rebalance
+continuity, and browser family-role drill-down; these cannot be inferred from route probes.
+
 ## 2026-08-19 — Arbitrary watchlists and index/ETF constituents share one Map surface
 
 The universal Market Map is now explicitly validated as the TC2000-style heatmap for any canonical

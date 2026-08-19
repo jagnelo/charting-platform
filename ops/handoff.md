@@ -1,5 +1,17 @@
 # Active Handoff
 
+## 2026-08-19 — Universal Market Map browser acceptance and public route probes
+
+- Added authenticated Chromium coverage `F8s-market-map-watchlist` (`1/1`): a locked
+  benchmark/index-style constituent source and an editable personal watchlist share one heatmap;
+  refresh preserves the selected canonical source and renders cells.
+- Opt-in public issuer/SEC holdings probes pass `32/32` issuer-direct mapped role routes and
+  `10/10` QQQE plus dated iShares/QQQ fallback cases. Frontend Vitest `900/900`, type-check,
+  production build, and diff-check pass. Browser test commit: `0a7569f9`.
+- Acceptance flexibility: **None**. Continue with database population/member bars, point-in-time
+  rebalance continuity, family-role browser drill-down, and exact V25 source-picker visuals;
+  route probes are not a substitute for those criteria.
+
 ## 2026-08-19 — Universal Market Map source contract verified
 
 - Confirmed that personal, locked index/market-group, ETF-holdings, combo, and explicit sources use
