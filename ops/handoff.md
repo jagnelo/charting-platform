@@ -20,9 +20,9 @@
   This closes a maintenance-path gap but does not prove deployment-level provider hydration,
   complete point-in-time/rebalance continuity, member-bar completeness, entitlements, or exact V25
   maintenance visuals.
-- Implementation/docs commit `9175fb779bfc095d871a2c60c102d64d93ed6488` is pushed. The operational
-  files in this context are now the only dirty changes and must be committed/pushed as the separate
-  checkpoint before the next context. Next context: continue
+- Implementation/docs commit `9175fb779bfc095d871a2c60c102d64d93ed6488` and operational checkpoint
+  `2058471e6797fa3d2decc3ff07fb4dc2ff13156c` are pushed. Post-push verification confirms a clean
+  worktree and matching local/remote hashes. This context is closed. Next context: continue
   provider-backed snapshot continuity and exact board-guided V25 gaps while preserving the single
   arbitrary-watchlist heatmap.
 
