@@ -1,5 +1,17 @@
 # Active Handoff
 
+## 2026-08-19 — Lazard JPY route repair completed
+
+- Lazard's directory 503 is now an explicit primary-route failure. Curated JPY SEC identity and a
+  bounded 20-filing search provide identity-verified fallback rows while rejecting other Lazard
+  series; provenance retains the issuer failure and `sec_edgar_filing_fallback` route.
+- Validation: Lazard-focused `3/3`, SEC/parser/adapter `507/507`, opt-in live JPY `1/1`, Ruff,
+  compileall, and `git diff --check` pass. Acceptance flexibility: **None**.
+- Implementation/docs commit `546228e7` is pushed and synchronized. The remaining ops checkpoint and
+  final close are deliberately separate commits before starting the next provider.
+- Keep the universal locked-watchlist/Market Map contract unchanged: this provider repair only
+  supplies a truthful source for the same generalized heatmap/watchlist surface.
+
 ## 2026-08-19 — Next context: Lazard JPY route repair
 
 - GraniteShares NVD is closed and synchronized at implementation/docs `4cbd5b74`, checkpoint

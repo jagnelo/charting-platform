@@ -1,5 +1,17 @@
 # Run Report
 
+## 2026-08-19 — Lazard JPY route repaired with identity-safe SEC fallback
+
+- Lazard's current official ETF directory 503 is reproduced and retained as the primary-route
+  failure state. JPY now falls back through curated SEC identity (`0002051630 / S000091515 /
+  C000259183`) with a bounded wider filing search; wrong Lazard series are rejected before rows
+  can populate the locked watchlist.
+- Evidence: Lazard-focused unit `3/3`, SEC/parser/adapter units `507/507`, opt-in live JPY `1/1`,
+  Ruff, compileall, and `git diff --check`. Acceptance flexibility: **None**.
+- Implementation/docs commit `546228e7` is pushed and synchronized; remaining work is other provider routes, family-wide
+  membership/bar history, historical continuity, entitlement/terms review, and exact V25
+  maintenance/fallback visuals.
+
 ## 2026-08-19 — Context transition to Lazard JPY repair
 
 - GraniteShares implementation/docs `4cbd5b74`, ops checkpoint `6274c28f`, and final close `625b24b2`

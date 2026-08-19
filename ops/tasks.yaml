@@ -1,7 +1,7 @@
 tasks:
   - id: tc2000-lazard-jpy-route-repair-20260819
     title: Repair or classify Lazard JPY holdings route
-    status: in_progress
+    status: completed
     priority: high
     branch: feat/tc2000-frontend-rework
     scope: >-
@@ -14,9 +14,15 @@ tasks:
       - Completeness, freshness, identity, source, and failure provenance remain honest
       - Focused unit/live tests, lint/compile/diff checks pass
       - Remaining provider, family-history, and exact V25 visual gaps remain explicit
-    validation: []
+    validation:
+      - lazard-focused-unit-3-of-3
+      - sec-parser-adapter-unit-507-of-507
+      - opt-in-live-jpy-probe-1-of-1
+      - ruff-compileall-and-git-diff-check
     notes:
-      - Acceptance flexibility used: None planned; provider limitations remain tracked and visible.
+      - >-
+        Acceptance flexibility used: None. Lazard's observed directory 503 remains explicit; the
+        identity-safe SEC fallback is labelled as such and does not pretend to be the issuer export.
 
   - id: tc2000-graniteshares-nvd-route-repair-20260819
     title: Repair or classify GraniteShares NVD holdings route
