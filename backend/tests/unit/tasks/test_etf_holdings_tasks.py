@@ -52,61 +52,28 @@ def test_benchmark_family_dated_refresh_is_explicitly_disabled_by_default(monkey
     assert result == {"skipped": True, "reason": "benchmark family refresh disabled"}
 
 
-def test_benchmark_family_dated_refresh_queues_member_history(monkeypatch):
-    class Session:
-        async def __aenter__(self):
-            return self
+def test_benchmark_family_dated_refresh_fans_out_idempotent_units(monkeypatch):
+    calls: list[tuple[str, tuple[object, ...], dict]] = []
 
-        async def __aexit__(self, *_args):
-            return None
-
-        async def commit(self):
-            return None
-
-    calls: list[dict] = []
-    queue_calls: list[tuple[object, list[int]]] = []
-
-    async def fake_refresh(_db, **kwargs):
-        calls.append(kwargs)
-        return {
-            "requested_dates": [kwargs["requested_dates"][0]],
-            "family_keys": ["sp500"],
-            "roles": ["cap_weight"],
-            "refreshed": 1,
-            "unavailable": 0,
-            "failed": 0,
-            "runs": [
-                {
-                    "families": [
-                        {"legs": [{"status": "refreshed", "snapshot_id": 91}]}
-                    ]
-                }
-            ],
-        }
-
-    async def fake_queue(_db, redis, snapshot_ids):
-        queue_calls.append((redis, snapshot_ids))
-        return {"status": "queued", "queued": 2, "already_queued": 0}
+    class Redis:
+        async def enqueue_job(self, function, *args, **kwargs):
+            calls.append((function, args, kwargs))
+            return object()
 
     monkeypatch.setattr(settings, "BENCHMARK_FAMILY_HOLDINGS_REFRESH_ENABLED", True)
     monkeypatch.setattr(settings, "BENCHMARK_FAMILY_HOLDINGS_REFRESH_LOOKBACK_DATES", 1)
-    monkeypatch.setattr("app.database.AsyncSessionLocal", lambda: Session())
-    monkeypatch.setattr(
-        "app.services.etf_holdings_refresh.refresh_all_benchmark_family_holdings_for_dates",
-        fake_refresh,
-    )
-    monkeypatch.setattr(
-        "app.services.benchmark_family_history.queue_snapshot_member_history",
-        fake_queue,
-    )
     monkeypatch.setattr(
         "app.services.benchmark_family_holdings_runs.completed_month_end_dates",
         lambda *, count: [date(2026, 7, 31)],
     )
 
-    result = asyncio.run(etf_holdings_tasks.refresh_benchmark_family_holdings_task({"redis": "r"}))
+    result = asyncio.run(
+        etf_holdings_tasks.refresh_benchmark_family_holdings_task({"redis": Redis()})
+    )
 
-    assert calls == [{"requested_dates": [date(2026, 7, 31)]}]
-    assert queue_calls == [("r", [91])]
-    assert result["snapshot_ids"] == [91]
-    assert result["history_queue"]["queued"] == 2
+    assert result["queued"] == len(result["family_keys"])
+    assert result["already_queued"] == 0
+    assert all(call[0] == "task_refresh_scheduled_benchmark_family_holdings_unit" for call in calls)
+    assert all(call[1][1] == "2026-07-31" for call in calls)
+    assert all(call[1][2] == result["roles"] for call in calls)
+    assert all(call[2]["_expires"] == 86_400 for call in calls)

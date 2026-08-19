@@ -6,8 +6,10 @@
       breadth, charts, ratios, scans, gauges, and Study Lab use the same source-polymorphic
       contract as personal, combo, managed, sector, industry, ETF, and explicit lists.
 - [x] Add an opt-in bounded worker that requests completed month-end candidates for every configured
-      family role, records refreshed/unavailable/failed legs, and queues canonical member history for
-      refreshed snapshots. The task never fans out providers from interactive UI reads.
+      family role and fans them out as deterministic one-family/one-date jobs. Each unit records
+      refreshed/unavailable/failed legs and queues canonical member history for refreshed snapshots;
+      the task never fans out providers from interactive UI reads and cannot monopolize one worker
+      invocation with the entire family matrix.
 - [x] Treat month-end candidates as maintenance boundaries rather than invented official rebalance
       dates; preserve adapter evidence and known-at/effective-at semantics.
 - [ ] Close deployment population, complete point-in-time continuity, provider coverage, member-bar

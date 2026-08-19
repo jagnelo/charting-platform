@@ -5,7 +5,8 @@
 The heatmap/watchlist parity surface is source-polymorphic: a benchmark/index/ETF constituent
 universe is a locked watchlist, not a separate renderer. An opt-in bounded worker now refreshes
 completed month-end family snapshots and queues member history through the same canonical source
-contracts. It does not claim issuer rebalance cadence, does not run on interactive reads, and
+contracts. The scheduler fans out deterministic one-family/one-date jobs so free-provider latency
+cannot monopolize one worker invocation. It does not claim issuer rebalance cadence, does not run on interactive reads, and
 reports unavailable or failed roles without substitution. Exact Version 25 maintenance-state
 visuals and complete provider-backed historical continuity remain tracked as open states.
 

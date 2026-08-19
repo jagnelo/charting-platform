@@ -10,11 +10,16 @@ canonical member-bar history jobs for refreshed snapshots. These dates are maint
 not claims about an issuer's official rebalance calendar; adapters must preserve the latest evidenced
 composition on or before the request and expose unavailable/failed roles explicitly.
 
+The scheduler fans out deterministic one-family/one-date jobs (`_job_id` is stable and retries are
+idempotent) so a slow free provider route cannot make the whole matrix one long worker invocation.
+Each unit owns its provider transaction and exact snapshot-to-member-history queue handoff; a queue
+or unit failure remains local evidence rather than suppressing the other family roots.
+
 The scheduled path never runs from an interactive map/source read and does not add provider-specific
 heatmap behavior. Its settings are `BENCHMARK_FAMILY_HOLDINGS_REFRESH_ENABLED` and bounded
 `BENCHMARK_FAMILY_HOLDINGS_REFRESH_LOOKBACK_DATES`, both disabled/limited by default. Focused tests
 cover date selection, disabled/enabled task behavior, member-history queueing, and worker
-registration. Deployment population, complete point-in-time continuity, and exact V25 maintenance
+registration, one-unit fan-out, and queue handoff. Deployment population, complete point-in-time continuity, and exact V25 maintenance
 visuals remain open acceptance gaps; no flexibility was used.
 
 ## 2026-08-19 — Bounded SEC maintenance must not starve family roles

@@ -79,42 +79,47 @@ async def refresh_benchmark_family_holdings_task(ctx: dict) -> dict:
         logger.info("Benchmark family dated holdings refresh disabled; skipping")
         return {"skipped": True, "reason": "benchmark family refresh disabled"}
 
-    from app.database import AsyncSessionLocal
-    from app.services.benchmark_family_history import queue_snapshot_member_history
+    from app.services.benchmark_family_history import normalize_family_keys, normalize_family_roles
     from app.services.benchmark_family_holdings_runs import completed_month_end_dates
-    from app.services.etf_holdings_refresh import refresh_all_benchmark_family_holdings_for_dates
 
     requested_dates = completed_month_end_dates(
         count=settings.BENCHMARK_FAMILY_HOLDINGS_REFRESH_LOOKBACK_DATES
     )
-    async with AsyncSessionLocal() as db:
-        summary = await refresh_all_benchmark_family_holdings_for_dates(
-            db,
-            requested_dates=requested_dates,
-        )
-        snapshot_ids = [
-            int(leg["snapshot_id"])
-            for run in summary.get("runs", [])
-            for family in run.get("families", [])
-            for leg in family.get("legs", [])
-            if isinstance(leg, dict)
-            and leg.get("status") == "refreshed"
-            and leg.get("snapshot_id") is not None
-        ]
-        history_queue = await queue_snapshot_member_history(
-            db,
-            ctx.get("redis"),
-            snapshot_ids,
-        )
-        await db.commit()
+    family_keys = normalize_family_keys(None)
+    roles = normalize_family_roles(None)
+    redis = ctx.get("redis")
+    if redis is None:
         return {
             "requested_dates": [value.isoformat() for value in requested_dates],
-            "family_keys": summary.get("family_keys", []),
-            "roles": summary.get("roles", []),
-            "refreshed": summary.get("refreshed", 0),
-            "unavailable": summary.get("unavailable", 0),
-            "failed": summary.get("failed", 0),
-            "snapshot_ids": snapshot_ids,
-            "history_queue": history_queue,
-            "runs": summary.get("runs", []),
+            "family_keys": family_keys,
+            "roles": roles,
+            "queued": 0,
+            "already_queued": 0,
+            "queue_unavailable": True,
         }
+
+    queued = already_queued = 0
+    for requested_date in requested_dates:
+        for family_key in family_keys:
+            job = await redis.enqueue_job(
+                "task_refresh_scheduled_benchmark_family_holdings_unit",
+                family_key,
+                requested_date.isoformat(),
+                roles,
+                _job_id=(
+                    f"benchmark-family-scheduled:{family_key}:{requested_date.isoformat()}"
+                ),
+                _expires=86_400,
+            )
+            if job is None:
+                already_queued += 1
+            else:
+                queued += 1
+    return {
+        "requested_dates": [value.isoformat() for value in requested_dates],
+        "family_keys": family_keys,
+        "roles": roles,
+        "queued": queued,
+        "already_queued": already_queued,
+        "queue_unavailable": False,
+    }

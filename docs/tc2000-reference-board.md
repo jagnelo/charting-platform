@@ -7,6 +7,9 @@ index/ETF constituent lists differ in membership governance and provenance, not 
 or downstream actions. The bounded dated family maintenance worker supports population of those
 locked sources but does not create a distinct visual mode. Missing exact V25 maintenance, loading,
 unavailable, and provenance captures remain `required_missing` rather than being inferred silently.
+The scheduler's one-family/one-date fan-out is an operational backend state and does not promote a
+new visual reference; queued, partial, failed, retrying, and recovered states remain separately
+tracked board gaps.
 
 ## 2026-08-19 — Scheduled family-population ordering has no new visual claim
 

@@ -92,6 +92,68 @@ def test_worker_registers_benchmark_family_dated_refresh_function():
 
 
 @pytest.mark.asyncio
+async def test_scheduled_family_unit_refreshes_one_family_and_queues_history(monkeypatch):
+    class Session:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        def begin_nested(self):
+            return _AsyncNested()
+
+        async def commit(self):
+            return None
+
+    refresh_calls = []
+    queue_calls = []
+
+    async def fake_refresh(_db, *, family_key, requested_date, roles):
+        refresh_calls.append((family_key, requested_date.isoformat(), roles))
+        return {
+            "family_key": family_key,
+            "requested_date": requested_date,
+            "roles": roles,
+            "refreshed": 1,
+            "unavailable": 0,
+            "failed": 0,
+            "legs": [{"status": "refreshed", "snapshot_id": 12}],
+        }
+
+    async def fake_queue(_db, redis, snapshot_ids):
+        queue_calls.append((redis, snapshot_ids))
+        return {"status": "queued", "queued": 4, "already_queued": 0}
+
+    monkeypatch.setattr("app.database.AsyncSessionLocal", lambda: Session())
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.refresh_benchmark_family_holdings_for_date",
+        fake_refresh,
+    )
+    monkeypatch.setattr(
+        "app.services.benchmark_family_history.queue_snapshot_member_history",
+        fake_queue,
+    )
+
+    result = await arq_worker.task_refresh_scheduled_benchmark_family_holdings_unit(
+        {"redis": "redis"}, "sp500", "2026-07-31", ["cap_weight", "equal_weight"]
+    )
+
+    assert refresh_calls == [("sp500", "2026-07-31", ["cap_weight", "equal_weight"])]
+    assert queue_calls == [("redis", [12])]
+    assert result["requested_date"] == "2026-07-31"
+    assert result["snapshot_ids"] == [12]
+    assert result["history_queue"]["queued"] == 4
+
+
+def test_worker_registers_scheduled_family_unit_function():
+    assert (
+        arq_worker.task_refresh_scheduled_benchmark_family_holdings_unit
+        in arq_worker.WorkerSettings.functions
+    )
+
+
+@pytest.mark.asyncio
 async def test_family_holdings_refresh_worker_persists_each_unit_and_aggregates_results(monkeypatch):
     from types import SimpleNamespace
 

@@ -221,6 +221,63 @@ async def task_refresh_benchmark_family_holdings_run(ctx: dict, run_id: int):
         }
 
 
+async def task_refresh_scheduled_benchmark_family_holdings_unit(
+    ctx: dict,
+    family_key: str,
+    requested_date_text: str,
+    roles: list[str] | None = None,
+):
+    """Run one scheduled family/date unit and queue its canonical member history."""
+
+    from datetime import date, datetime
+
+    from app.database import AsyncSessionLocal
+    from app.services.benchmark_family_history import queue_snapshot_member_history
+    from app.services.etf_holdings_refresh import refresh_benchmark_family_holdings_for_date
+
+    requested_date = date.fromisoformat(str(requested_date_text))
+    async with AsyncSessionLocal() as db:
+        try:
+            async with db.begin_nested():
+                summary = await refresh_benchmark_family_holdings_for_date(
+                    db,
+                    family_key=family_key,
+                    requested_date=requested_date,
+                    roles=roles,
+                )
+        except Exception as exc:  # noqa: BLE001 - retain bounded unit failure evidence.
+            summary = {
+                "family_key": family_key,
+                "requested_date": requested_date,
+                "roles": roles or [],
+                "refreshed": 0,
+                "unavailable": 0,
+                "failed": 1,
+                "legs": [],
+                "error": str(exc) or "Scheduled benchmark family refresh failed.",
+            }
+        snapshot_ids = [
+            int(leg["snapshot_id"])
+            for leg in summary.get("legs", [])
+            if isinstance(leg, dict)
+            and leg.get("status") == "refreshed"
+            and leg.get("snapshot_id") is not None
+        ]
+        history_queue = await queue_snapshot_member_history(
+            db,
+            ctx.get("redis"),
+            snapshot_ids,
+        )
+        await db.commit()
+        return {
+            **summary,
+            "requested_date": requested_date.isoformat(),
+            "snapshot_ids": snapshot_ids,
+            "history_queue": history_queue,
+            "completed_at": datetime.now(UTC).isoformat(),
+        }
+
+
 async def task_run_screener(ctx: dict, screener_id: int):
     """ARQ task: run a screener by ID and persist results."""
     from app.database import AsyncSessionLocal
@@ -399,6 +456,7 @@ class WorkerSettings:
         task_bulk_fetch_instrument,
         task_refresh_benchmark_family_history,
         task_refresh_benchmark_family_holdings_run,
+        task_refresh_scheduled_benchmark_family_holdings_unit,
         task_run_screener,
         task_refresh_instrument_data,
         task_bootstrap_core_workstation,
