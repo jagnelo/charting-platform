@@ -165,8 +165,8 @@
     </div>
     <div v-if="map" class="market-map-tool__source-analysis-actions" aria-label="Market Map source analysis actions">
       <span v-if="selectedIds.length">{{ selectedIds.length }} selected members will be included as context</span>
-      <button type="button" aria-label="Open full source in Market Breadth" @click="publishAnalysis('breadth')">Open full source in Breadth</button>
-      <button type="button" aria-label="Open full source in Study Lab" @click="publishAnalysis('study_lab')">Open full source in Study Lab</button>
+      <button type="button" aria-label="Open full source in Market Breadth" @click="publishAnalysis('breadth', 'full')">Open full source in Breadth</button>
+      <button type="button" aria-label="Open full source in Study Lab" @click="publishAnalysis('study_lab', 'full')">Open full source in Study Lab</button>
     </div>
     <div v-if="map && colorMetric === 'breadth'" class="market-map-tool__definition-actions" aria-label="Market Map reusable definition actions">
       <input v-model.trim="definitionName" aria-label="Market Map breadth definition name" placeholder="Reusable breadth definition name" maxlength="160" />
@@ -209,8 +209,8 @@
       </select>
       <input v-if="!publicationTargetId" v-model="newPublicationName" aria-label="Market Map new watchlist name" placeholder="Watchlist name" maxlength="80" @keydown.enter.prevent="publishSelection" />
       <button type="button" :disabled="publishing || (!publicationTargetId && !newPublicationName.trim())" @click="publishSelection">{{ publishing ? 'Saving…' : 'Save selection' }}</button>
-      <button type="button" aria-label="Open source in Market Breadth" @click="publishAnalysis('breadth')">Open source in Breadth</button>
-      <button type="button" aria-label="Open source in Study Lab" @click="publishAnalysis('study_lab')">Open source in Study Lab</button>
+      <button type="button" aria-label="Open selected members in Market Breadth" @click="publishAnalysis('breadth', 'selection')">Open selected members in Breadth</button>
+      <button type="button" aria-label="Open selected members in Study Lab" @click="publishAnalysis('study_lab', 'selection')">Open selected members in Study Lab</button>
       <span v-if="publicationMessage" role="status">{{ publicationMessage }}</span>
       <span v-if="publicationError" class="market-map-tool__status--error" role="alert">{{ publicationError }}</span>
     </div>
@@ -258,7 +258,7 @@ const props = withDefaults(defineProps<{ configuration?: Record<string, unknown>
 const emit = defineEmits<{
   configuration: [value: Record<string, unknown>]
   select: [symbol: string, instrumentId: number]
-  publishAnalysis: [payload: { target: 'breadth' | 'study_lab'; sourceId: string; selectedIds: number[]; selectedSymbols: string[] }]
+  publishAnalysis: [payload: { target: 'breadth' | 'study_lab'; sourceId: string; selectedIds: number[]; selectedSymbols: string[]; scope: 'full' | 'selection' }]
 }>()
 const watchlistStore = useWatchlistStore()
 const userSettingsStore = useUserSettingsStore()
@@ -892,7 +892,7 @@ async function saveExplicitSource() {
   }
 }
 
-function publishAnalysis(target: 'breadth' | 'study_lab') {
+function publishAnalysis(target: 'breadth' | 'study_lab', scope: 'full' | 'selection' = 'full') {
   if (!sourceId.value) return
   const selectedSymbols = selectedIds.value
     .map(instrumentId => map.value?.cells.find(cell => cell.instrument_id === instrumentId)?.symbol)
@@ -902,6 +902,7 @@ function publishAnalysis(target: 'breadth' | 'study_lab') {
     sourceId: sourceId.value,
     selectedIds: [...selectedIds.value],
     selectedSymbols,
+    scope,
   })
 }
 

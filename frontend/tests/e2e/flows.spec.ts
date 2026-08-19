@@ -3366,6 +3366,13 @@ test.describe('TC2000 workstation', () => {
     await expect.poll(() => requestedSources.at(-1), { timeout: 15_000 }).toBe('watchlist:7')
     await expect(mapWindow).toContainText('Swing candidates')
     await expect(mapWindow.locator('.market-map-tool__tile')).toHaveCount(2)
+    await mapWindow.locator('.market-map-tool__tile').first().click()
+    await mapWindow.getByRole('button', { name: 'Open selected members in Market Breadth' }).click()
+    const breadthTool = page.locator('.breadth-tool:visible').last()
+    await expect(breadthTool).toBeVisible({ timeout: 15_000 })
+    await expect(breadthTool.getByRole('combobox', { name: 'Custom breadth universe' })).toHaveValue('watchlist')
+    await expect(breadthTool.getByRole('combobox', { name: 'Custom breadth watchlist source' })).toHaveValue(/^explicit:\d+$/)
+    await expect(breadthTool.getByRole('combobox', { name: 'Custom breadth watchlist source' }).locator('option:checked')).toContainText('Selected members · 1')
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

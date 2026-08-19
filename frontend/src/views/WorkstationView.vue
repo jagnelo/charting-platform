@@ -226,6 +226,7 @@ import { useWatchlistStore } from '@/stores/watchlist'
 import { useRecentInstrumentsStore } from '@/stores/recentInstruments'
 import { workstationFreshness } from '@/lib/workstation/freshness'
 import { capturePopoutGeometry, popoutWindowFeatures, readPopoutGeometry, recoverPopoutGeometry, type PopoutScreen } from '@/lib/workstation/popoutGeometry'
+import { resolveMarketMapAnalysisSource } from '@/lib/workstation/marketMapPublication'
 
 const route = useRoute()
 const router = useRouter()
@@ -1289,12 +1290,25 @@ type MapAnalysisPublication = {
   sourceId: string
   selectedIds: number[]
   selectedSymbols: string[]
+  scope: 'full' | 'selection'
 }
 
 async function publishMapAnalysis(publication: MapAnalysisPublication) {
   if (!publication.sourceId) return
+  const analysisSource = resolveMarketMapAnalysisSource({
+    sourceId: publication.sourceId,
+    scope: publication.scope,
+    selectedIds: publication.selectedIds,
+  })
+  if (analysisSource.error) {
+    workspaceStore.error = analysisSource.error
+    return
+  }
+  const analysisSourceId = analysisSource.sourceId
   const selectedConfiguration = {
     source_id: publication.sourceId,
+    analysis_source_id: analysisSourceId,
+    analysis_scope: analysisSource.scope,
     selected_member_ids: [...publication.selectedIds],
     selected_member_symbols: [...publication.selectedSymbols],
     publication_origin: 'market_map',
@@ -1306,7 +1320,7 @@ async function publishMapAnalysis(publication: MapAnalysisPublication) {
       updateToolConfiguration(existing.instance_key, {
         ...existing.configuration,
         custom_universe_kind: 'watchlist',
-        custom_universe_watchlist_id: publication.sourceId,
+        custom_universe_watchlist_id: analysisSourceId,
         ...selectedConfiguration,
       })
       return
@@ -1318,7 +1332,7 @@ async function publishMapAnalysis(publication: MapAnalysisPublication) {
     updateToolConfiguration(opened.instance_key, {
       ...opened.configuration,
       custom_universe_kind: 'watchlist',
-      custom_universe_watchlist_id: publication.sourceId,
+      custom_universe_watchlist_id: analysisSourceId,
       ...selectedConfiguration,
     })
     return
@@ -1329,9 +1343,11 @@ async function publishMapAnalysis(publication: MapAnalysisPublication) {
     workspaceStore.setActiveWindow(existing.instance_key)
     updateToolConfiguration(existing.instance_key, {
       ...existing.configuration,
-      universe_source_id: publication.sourceId,
+      universe_source_id: analysisSourceId,
       selected_member_ids: [...publication.selectedIds],
       selected_member_symbols: [...publication.selectedSymbols],
+      analysis_source_id: analysisSourceId,
+      analysis_scope: analysisSource.scope,
       publication_origin: 'market_map',
     })
     return
@@ -1342,9 +1358,11 @@ async function publishMapAnalysis(publication: MapAnalysisPublication) {
   if (!opened) return
   updateToolConfiguration(opened.instance_key, {
     ...opened.configuration,
-    universe_source_id: publication.sourceId,
+    universe_source_id: analysisSourceId,
     selected_member_ids: [...publication.selectedIds],
     selected_member_symbols: [...publication.selectedSymbols],
+    analysis_source_id: analysisSourceId,
+    analysis_scope: analysisSource.scope,
     publication_origin: 'market_map',
   })
 }

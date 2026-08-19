@@ -863,7 +863,7 @@ import { useDrawingsStore } from '@/stores/drawings'
 import { useAlertsStore } from '@/stores/alerts'
 import { useWorkspaceStore, type GenericBreadthHistoryState, type GenericBreadthState, type GroupSnapshotRow, type LinkGroup, type WorkspaceWindowState } from '@/stores/workspace'
 import { useWatchlistStore } from '@/stores/watchlist'
-import type { Instrument, Watchlist } from '@/types'
+import type { Instrument, Watchlist, WatchlistSource } from '@/types'
 import ToolWindow from './ToolWindow.vue'
 import VirtualWatchlistTool, { type WatchlistColumn, type WatchlistRow } from './VirtualWatchlistTool.vue'
 import RatioUPlot from './RatioUPlot.vue'
@@ -919,7 +919,7 @@ const props = defineProps<{
   activeWindowKey?: string | null
   factoryLayout?: string | null
 }>()
-const emit = defineEmits<{ select: [symbol: string, instrumentId?: number | null]; compare: [symbols: string[]]; marketMap: [sourceId: string]; reorder: [watchlistId: number, itemIds: number[]]; rowAction: [action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }]; occurrence: [symbol: string, timestamp: string, instrumentId?: number | null]; selectIndustry: [industry: string, etf: string]; selectProxy: [symbol: string, instrumentId?: number | null]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; stackedColumnKeys: [windowKey: string, keys: string[]]; configuration: [windowKey: string, configuration: Record<string, unknown>]; publishAnalysis: [payload: { target: 'breadth' | 'study_lab'; sourceId: string; selectedIds: number[]; selectedSymbols: string[] }]; timeframe: [value: string, group: LinkGroup]; float: [windowKey: string]; maximize: [windowKey: string]; close: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup, displayedSymbol?: string] }>()
+const emit = defineEmits<{ select: [symbol: string, instrumentId?: number | null]; compare: [symbols: string[]]; marketMap: [sourceId: string]; reorder: [watchlistId: number, itemIds: number[]]; rowAction: [action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }]; occurrence: [symbol: string, timestamp: string, instrumentId?: number | null]; selectIndustry: [industry: string, etf: string]; selectProxy: [symbol: string, instrumentId?: number | null]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; stackedColumnKeys: [windowKey: string, keys: string[]]; configuration: [windowKey: string, configuration: Record<string, unknown>]; publishAnalysis: [payload: { target: 'breadth' | 'study_lab'; sourceId: string; selectedIds: number[]; selectedSymbols: string[]; scope: 'full' | 'selection' }]; timeframe: [value: string, group: LinkGroup]; float: [windowKey: string]; maximize: [windowKey: string]; close: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup, displayedSymbol?: string] }>()
 // Inputs in dense breadth authoring can emit several configuration updates before
 // Golden Layout delivers the parent prop patch. Keep a local draft so a rapid
 // select/edit/evaluate sequence cannot serialize a stale sibling value.
@@ -1979,7 +1979,27 @@ const breadthCustomUniverseKind = computed(() => {
   const candidate = breadthConfigurationValue('custom_universe_kind')
   return candidate === 'etf_holdings' || candidate === 'benchmark_family' || candidate === 'watchlist' ? candidate : 'group'
 })
-const breadthWatchlistSources = computed(() => watchlistStore.watchlistSources)
+const breadthWatchlistSources = computed<WatchlistSource[]>(() => {
+  const sources = [...watchlistStore.watchlistSources]
+  const configured = String(breadthConfigurationValue('custom_universe_watchlist_id', ''))
+  if (configured.startsWith('explicit:') && !sources.some(source => source.source_id === configured)) {
+    const ids = configured.slice('explicit:'.length).split(',').map(Number).filter(id => Number.isInteger(id) && id > 0)
+    sources.unshift({
+      source_id: configured,
+      source_kind: 'explicit',
+      name: `Selected members · ${ids.length}`,
+      description: 'Ephemeral canonical selection published from Market Map',
+      locked: true,
+      can_follow: false,
+      can_clone: true,
+      can_edit_membership: false,
+      member_count: ids.length,
+      membership_version: `explicit:${ids.join(',')}`,
+      provenance: { availability: 'available', membership_semantics: 'explicit_canonical_selection', instrument_ids: ids },
+    })
+  }
+  return sources
+})
 const breadthWatchlistSourceId = computed(() => {
   const configured = String(breadthConfigurationValue('custom_universe_watchlist_id', ''))
   if (configured && breadthWatchlistSources.value.some(source => source.source_id === configured)) return configured
