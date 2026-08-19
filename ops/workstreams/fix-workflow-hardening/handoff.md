@@ -18,3 +18,9 @@ defect: the integration-only job applied the repository-wide coverage threshold
 and failed after 369 passing tests at 47.78%. It now explicitly uses
 `--cov-fail-under=0`, matching the Makefile; the branch replay and full candidate
 gate must still be rerun.
+
+Integration now requires a completed successful push-triggered GitHub replay for
+the exact source SHA before validation can publish, and for the published master
+SHA after push. A failed master replay records `.ai/master-degraded.json`, which
+blocks later integration until the replay is repaired and a successful publish
+clears the marker.

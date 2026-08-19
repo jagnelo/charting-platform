@@ -9,9 +9,10 @@ import fcntl
 import hashlib
 import json
 import os
+import shutil
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 
@@ -39,6 +40,10 @@ def common_root(repo: Path) -> Path:
     if not common.is_absolute():
         common = repo / common
     return common.resolve().parent
+
+
+def degraded_marker(repo: Path) -> Path:
+    return common_root(repo) / ".ai" / "master-degraded.json"
 
 
 @contextlib.contextmanager
@@ -70,10 +75,13 @@ def assert_clean_synchronized(repo: Path, branch: str) -> Path:
         raise SystemExit("integration must run from the root master checkout")
     if out(["git", "status", "--porcelain"], repo):
         raise SystemExit("root master is dirty")
-    if out(["git", "rev-parse", "HEAD"], repo) != out(
-        ["git", "rev-parse", "origin/master"], repo
-    ):
+    if out(["git", "rev-parse", "HEAD"], repo) != out(["git", "rev-parse", "origin/master"], repo):
         raise SystemExit("root master is not synchronized with origin/master")
+    if degraded_marker(repo).exists():
+        raise SystemExit(
+            "master is degraded because its independent GitHub replay failed; inspect "
+            f"{degraded_marker(repo)} before integrating another branch"
+        )
     source = branch_worktree(repo, branch)
     if out(["git", "status", "--porcelain"], source):
         raise SystemExit(f"source worktree is dirty: {source}")
@@ -82,12 +90,7 @@ def assert_clean_synchronized(repo: Path, branch: str) -> Path:
 
 def candidate_path(repo: Path, branch: str, source_sha: str) -> Path:
     token = hashlib.sha256(f"{branch}:{source_sha}".encode()).hexdigest()[:12]
-    return (
-        common_root(repo)
-        / ".ai"
-        / "integration"
-        / f"{branch.replace('/', '-')}-{token}"
-    )
+    return common_root(repo) / ".ai" / "integration" / f"{branch.replace('/', '-')}-{token}"
 
 
 def make_candidate(repo: Path, branch: str, source_sha: str) -> tuple[Path, str]:
@@ -137,8 +140,7 @@ def continue_candidate(repo: Path, branch: str, source_sha: str) -> tuple[Path, 
     conflicts = out(["git", "diff", "--name-only", "--diff-filter=U"], candidate)
     if conflicts:
         raise SystemExit(
-            "candidate still has unresolved paths; resolve and stage every conflict:\n"
-            + conflicts
+            "candidate still has unresolved paths; resolve and stage every conflict:\n" + conflicts
         )
     merge_head = Path(out(["git", "rev-parse", "--git-path", "MERGE_HEAD"], candidate))
     if not merge_head.is_absolute():
@@ -165,22 +167,80 @@ def continue_candidate(repo: Path, branch: str, source_sha: str) -> tuple[Path, 
 
 
 def validate(repo: Path, candidate: Path, branch: str, source_sha: str) -> None:
-    if out(["git", "rev-parse", "HEAD"], repo) != out(
-        ["git", "rev-parse", "origin/master"], repo
-    ):
+    if out(["git", "rev-parse", "HEAD"], repo) != out(["git", "rev-parse", "origin/master"], repo):
         raise SystemExit("master advanced while the candidate was being validated")
     if out(["git", "rev-parse", "HEAD"], branch_worktree(repo, branch)) != source_sha:
-        raise SystemExit(
-            "source branch no longer resolves to the captured candidate SHA"
-        )
+        raise SystemExit("source branch no longer resolves to the captured candidate SHA")
     run(["make", "validate-integration"], candidate)
+    if out(["git", "rev-parse", "HEAD"], branch_worktree(repo, branch)) != source_sha:
+        raise SystemExit("source branch advanced while the candidate was being validated")
+    github_replay(repo, source_sha)
     if out(["git", "status", "--porcelain"], candidate):
         raise SystemExit(
             "integration gate changed the candidate; generated changes must be reviewed explicitly"
         )
 
 
-def publish(repo: Path, candidate: Path, candidate_sha: str) -> None:
+def github_replay(repo: Path, commit: str) -> dict[str, str]:
+    """Require the independent push-triggered GitHub workflow to pass."""
+    if shutil.which("gh") is None:
+        raise SystemExit("gh CLI is required to verify the independent GitHub replay")
+    listed = run(
+        [
+            "gh",
+            "run",
+            "list",
+            "--workflow",
+            "ci.yml",
+            "--commit",
+            commit,
+            "--event",
+            "push",
+            "--limit",
+            "20",
+            "--json",
+            "databaseId,headSha,status,conclusion,createdAt,url",
+        ],
+        repo,
+        check=False,
+    )
+    if listed.returncode:
+        raise SystemExit(listed.stderr.strip() or "could not query GitHub Actions replay")
+    try:
+        runs = json.loads(listed.stdout)
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"GitHub Actions returned invalid replay data: {exc}") from exc
+    matching = [item for item in runs if item.get("headSha") == commit]
+    if not matching:
+        raise SystemExit(f"no push-triggered GitHub Actions replay exists for {commit}")
+    replay = matching[0]
+    if replay.get("status") != "completed":
+        watched = run(
+            ["gh", "run", "watch", str(replay["databaseId"]), "--exit-status"],
+            repo,
+            check=False,
+        )
+        if watched.returncode:
+            raise SystemExit(
+                f"GitHub Actions replay failed for {commit}: {replay.get('url', replay['databaseId'])}"
+            )
+        refreshed = run(
+            ["gh", "run", "view", str(replay["databaseId"]), "--json", "status,conclusion"],
+            repo,
+        )
+        replay.update(json.loads(refreshed.stdout))
+    if replay.get("status") != "completed" or replay.get("conclusion") != "success":
+        raise SystemExit(
+            f"GitHub Actions replay is not green for {commit}: {replay.get('url', replay['databaseId'])}"
+        )
+    return {
+        "run_id": str(replay["databaseId"]),
+        "url": str(replay.get("url", "")),
+        "conclusion": "success",
+    }
+
+
+def publish(repo: Path, candidate: Path, candidate_sha: str, source_sha: str) -> None:
     before = out(["git", "rev-parse", "HEAD"], repo)
     run(["git", "merge", "--ff-only", candidate_sha], repo)
     if out(["git", "rev-parse", "HEAD"], repo) != candidate_sha:
@@ -188,6 +248,24 @@ def publish(repo: Path, candidate: Path, candidate_sha: str) -> None:
     run(["git", "push", "origin", "master"], repo)
     if out(["git", "rev-parse", "origin/master"], repo) != candidate_sha:
         raise SystemExit("origin/master does not match the tested candidate")
+    try:
+        replay = github_replay(repo, candidate_sha)
+    except SystemExit as exc:
+        marker = degraded_marker(repo)
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.write_text(
+            json.dumps(
+                {
+                    "master": candidate_sha,
+                    "source_sha": source_sha,
+                    "reason": str(exc),
+                    "recorded_at": datetime.now(UTC).isoformat(),
+                },
+                indent=2,
+            )
+            + "\n"
+        )
+        raise
     receipt = common_root(repo) / ".ai" / "validation" / f"{candidate_sha}.json"
     receipt.parent.mkdir(parents=True, exist_ok=True)
     receipt.write_text(
@@ -195,17 +273,19 @@ def publish(repo: Path, candidate: Path, candidate_sha: str) -> None:
             {
                 "source_sha": candidate_sha,
                 "candidate_sha": candidate_sha,
-                "tree": out(
-                    ["git", "rev-parse", "{0}^{{tree}}".format(candidate_sha)], repo
-                ),
+                "tree": out(["git", "rev-parse", f"{candidate_sha}^{{tree}}"], repo),
                 "published_from": before,
                 "master": candidate_sha,
-                "validated_at": datetime.now(timezone.utc).isoformat(),
+                "github_replay": "pass",
+                "github_run_id": replay["run_id"],
+                "github_run_url": replay["url"],
+                "validated_at": datetime.now(UTC).isoformat(),
             },
             indent=2,
         )
         + "\n"
     )
+    degraded_marker(repo).unlink(missing_ok=True)
 
 
 def main() -> int:
@@ -237,7 +317,7 @@ def main() -> int:
             )
         )
         if args.publish:
-            publish(repo, candidate, candidate_sha)
+            publish(repo, candidate, candidate_sha, source_sha)
             run(["git", "worktree", "remove", str(candidate)], repo)
             print(f"published master at {candidate_sha}")
     return 0
