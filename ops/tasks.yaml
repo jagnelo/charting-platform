@@ -1,4 +1,29 @@
 tasks:
+  - id: tc2000-family-history-pending-state-20260819
+    title: Preserve pending versus unavailable benchmark-family roles
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Keep benchmark-family history maintenance aligned with the universal WatchlistSource
+      availability contract. A mapped role awaiting local profile/holdings hydration is pending,
+      while an unverified role is unavailable; planning remains provider-free and deterministic.
+    definition_of_done:
+      - Family history planning preserves pending mapped roles instead of collapsing them to unavailable
+      - Genuinely unverified roles remain unavailable with their exact exclusion reason
+      - Existing member deduplication, limits, and queue planning remain unchanged
+      - Focused family/bootstrap/holdings tests, full backend unit, lint, compile, docs, and diff checks pass
+    validation:
+      - family-bootstrap-holdings-unit-25-of-25
+      - backend-unit-1248-of-1248
+      - backend-ruff-and-compileall
+      - yaml-json-and-git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. This closes status propagation only; provider-backed
+        snapshot population, canonical member bars, rebalance continuity, complete family views,
+        and exact V25 maintenance/progress visuals remain explicit gaps.
+
   - id: tc2000-pending-locked-source-followability-20260819
     title: Keep mapped locked sources followable before membership hydration
     status: completed

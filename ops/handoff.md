@@ -1,5 +1,21 @@
 # Active Handoff
 
+## 2026-08-19 — Family maintenance preserves pending mapped roles
+
+- Closed the owning-boundary mismatch after the Market Map pending-source correction. The
+  benchmark-family history planner now reports a mapped role with missing local profile/holdings
+  data as `pending`, while a role with no verified mapping remains `unavailable`; planning stays
+  provider-free and never fabricates members.
+- Validation: family/bootstrap/holdings unit `25/25`; full backend unit `1248/1248`; Ruff;
+  compileall; YAML/JSON parsing; and `git diff --check` pass. The first generic `uv` invocation
+  selected Python 3.9 and failed before collection on `datetime.UTC`; the unchanged rerun through
+  `backend/.venv` passed. This is an environment command correction, not acceptance flexibility.
+- Acceptance flexibility: **None**. Provider-backed snapshot population, canonical member bars,
+  historical rebalance continuity, complete family views, and exact V25 maintenance/progress
+  visuals remain open.
+- Implementation/docs commit `799c27a3423349bb7ffc187e8f517ed27d0d6579` is pushed. The operational
+  checkpoint for this context is being recorded now.
+
 ## 2026-08-19 — Mapped locked sources remain followable while membership hydrates
 
 - Closed a universal-watchlist interaction gap. A verified index/ETF/benchmark-family source whose

@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-19 — Family maintenance preserves pending mapped roles
+
+- Changed benchmark-family history planning to retain `pending` for mapped roles whose profile or
+  holdings snapshot is not hydrated, while explicit no-mapping roles remain `unavailable` with
+  their exclusion reason. No provider calls or synthetic members were introduced.
+- Evidence: family/bootstrap/holdings unit `25/25`; backend unit `1248/1248`; Ruff; compileall;
+  YAML/JSON parsing; and `git diff --check`. The generic uv/Python 3.9 collection failure was
+  immediately rerun unchanged through `backend/.venv` (Python 3.12.4) and passed; no product
+  criterion was relaxed.
+- Acceptance flexibility: **None**. Provider population/history, complete eight-family role views,
+  rebalance continuity, and exact V25 maintenance visuals remain tracked gaps.
+- Implementation/docs commit `799c27a3423349bb7ffc187e8f517ed27d0d6579` is pushed; the operational
+  checkpoint follows as a separate commit.
+
 ## 2026-08-19 — Mapped locked sources remain followable while membership hydrates
 
 - Changed the Market Map source picker so a verified system-managed index/ETF/benchmark-family
