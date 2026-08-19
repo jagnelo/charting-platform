@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-19 — Boolean-column browser context checkpointed
+
+- Implementation/docs commit `2a25837a` is pushed. The separate operational checkpoint records
+  the successful rebuilt-stack browser rerun (`1/1`) and clean-context handoff.
+- No acceptance flexibility used; exact V25 promotion imagery, broader promotion fan-out,
+  provider-backed family continuity, and the final whole-goal audit remain open.
+
 ## 2026-08-19 — Single-output Boolean column browser oracle passed
 
 - Added authenticated `F8g-boolean-column` coverage from Boolean Study Lab authoring through

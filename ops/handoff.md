@@ -1,5 +1,14 @@
 # Active Handoff
 
+## 2026-08-19 — Boolean-column browser context closed
+
+- Implementation/docs commit `2a25837a` is pushed to `origin/feat/tc2000-frontend-rework`.
+- The focused authenticated browser oracle passed `1/1` after the branch-scoped stack rebuild and
+  migration. Unit/full frontend, type-check, build, and diff checks remain green.
+- This context is closed with no acceptance flexibility. Next context remains the provider-backed
+  family population and remaining V25/map/promotion gaps; do not treat this slice as goal
+  completion.
+
 ## 2026-08-19 — Boolean-column browser oracle passed
 
 - Added `F8g-boolean-column` to the authenticated E2E suite. It authors a single-output Boolean
