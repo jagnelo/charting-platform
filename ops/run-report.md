@@ -1,5 +1,12 @@
 # Run Report
 
+## 2026-08-19 — Context transition to Lazard JPY repair
+
+- GraniteShares implementation/docs `4cbd5b74`, ops checkpoint `6274c28f`, and final close `625b24b2`
+  are pushed and synchronized; the branch is clean.
+- Next action is to repair or explicitly classify Lazard JPY's current holdings route with no
+  provider-oracle or visual-acceptance relaxation.
+
 ## 2026-08-19 — GraniteShares NVD route uses official derivative exposure API
 
 - Replaced the stale workbook-only assumption with the official product snapshot + holdings API.

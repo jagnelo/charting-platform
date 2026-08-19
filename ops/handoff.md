@@ -1,5 +1,15 @@
 # Active Handoff
 
+## 2026-08-19 — Next context: Lazard JPY route repair
+
+- GraniteShares NVD is closed and synchronized at implementation/docs `4cbd5b74`, checkpoint
+  `6274c28f`, and final close `625b24b2`.
+- The next bounded provider context is live Lazard JPY: the configured ETF directory route currently
+  returns 404. Inspect the current official product/API surface and any independently verifiable free
+  fallback; preserve source identity, dates, completeness, and explicit failure state.
+- Keep the universal locked-watchlist/Market Map contract unchanged; provider-specific work only
+  supplies a truthful constituent source.
+
 ## 2026-08-19 — GraniteShares NVD public exposure API is repaired
 
 - The current GraniteShares NVD product page no longer exposes the workbook the adapter expected.

@@ -1,4 +1,23 @@
 tasks:
+  - id: tc2000-lazard-jpy-route-repair-20260819
+    title: Repair or classify Lazard JPY holdings route
+    status: in_progress
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Investigate the live Lazard JPY route failure, find a verified free native/API/SEC fallback
+      where available, and preserve explicit identity, date, completeness, and provenance semantics.
+      Feed the universal locked-watchlist contract without adding a provider-specific heatmap.
+    definition_of_done:
+      - Current official route failure is reproduced and its actual product/data shape is inspected
+      - A verified fallback is implemented or the capability is explicitly classified unavailable
+      - Completeness, freshness, identity, source, and failure provenance remain honest
+      - Focused unit/live tests, lint/compile/diff checks pass
+      - Remaining provider, family-history, and exact V25 visual gaps remain explicit
+    validation: []
+    notes:
+      - Acceptance flexibility used: None planned; provider limitations remain tracked and visible.
+
   - id: tc2000-graniteshares-nvd-route-repair-20260819
     title: Repair or classify GraniteShares NVD holdings route
     status: completed
