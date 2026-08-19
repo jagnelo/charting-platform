@@ -37,6 +37,26 @@ describe('StudyLabTool', () => {
     expect(wrapper.find('[aria-label="Study as of"]').element).toHaveProperty('value', '2024-02-01T15:30')
   })
 
+  it('discloses selected Market Map source lineage without replacing the canonical source ID', () => {
+    const wrapper = mountTool({
+      activeSymbol: 'SPY',
+      configuration: {
+        source_id: 'watchlist:7',
+        analysis_source_id: 'explicit:4,2,4',
+        analysis_scope: 'selection',
+        selected_member_ids: [4, 2, 4],
+        universe_source_id: 'explicit:4,2',
+      },
+    })
+
+    const lineage = wrapper.find('[aria-label="Study source lineage"]')
+    expect(lineage.exists()).toBe(true)
+    expect(lineage.text()).toContain('Selected members · 2 · Locked explicit source')
+    expect(lineage.text()).toContain('Parent source watchlist:7')
+    expect(lineage.attributes('data-source-id')).toBe('explicit:4,2,4')
+    expect(wrapper.find('[aria-label="Study universe source"]').element).toHaveProperty('value', 'explicit:4,2')
+  })
+
   it('hydrates a persisted run after a virtual-tool remount', async () => {
     apiGet.mockImplementation((path: string) => path === '/research/runs/77'
       ? Promise.resolve({ id: 77, status: 'completed', artifacts: [{ id: 1, name: 'event_count', artifact_type: 'scalar', payload: { value: 4 } }] })

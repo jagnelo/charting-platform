@@ -19,6 +19,13 @@
         <label>To <input v-model.trim="endDate" aria-label="Study end date" type="date" /></label>
         <label>As of <input v-model.trim="asOf" aria-label="Study as of" type="datetime-local" /></label>
       </div>
+      <p
+        v-if="selectedSourceLineage"
+        class="study-lab-tool__source-lineage"
+        role="status"
+        aria-label="Study source lineage"
+        :data-source-id="selectedSourceLineage.analysisSourceId"
+      >{{ selectedSourceLineage.label }} · Parent source {{ selectedSourceLineage.parentSourceId }}</p>
       <p v-if="requiresDeclaredUniverse" class="study-lab-tool__universe-warning" role="status" aria-live="polite" aria-atomic="true">This factory study needs a declared comma-separated universe; it will not fall back to the active symbol.</p>
       <section class="study-lab-tool__parameters" aria-label="Study parameter controls">
         <label>Parameter schema <textarea v-model="parameterSchemaText" aria-label="Study parameter schema" spellcheck="false" placeholder='{"properties":{"lookback":{"type":"integer","default":20}}}' /></label>
@@ -189,6 +196,19 @@ const timeframe = ref(normaliseTimeframe(configString('timeframe', 'D1')))
 const benchmark = ref(configString('benchmark', 'SPY'))
 const universeSourceId = ref(configString('universe_source_id', ''))
 const universeSymbols = ref(configString('symbols', ''))
+const selectedSourceLineage = computed(() => {
+  const configuration = props.configuration ?? {}
+  if (configuration.analysis_scope !== 'selection' || typeof configuration.analysis_source_id !== 'string' || !configuration.analysis_source_id.startsWith('explicit:')) return null
+  const selectedIds = Array.isArray(configuration.selected_member_ids)
+    ? configuration.selected_member_ids.filter((value): value is number => Number.isInteger(value) && value > 0)
+    : configuration.analysis_source_id.slice('explicit:'.length).split(',').map(Number).filter(value => Number.isInteger(value) && value > 0)
+  const parentSourceId = typeof configuration.source_id === 'string' && configuration.source_id ? configuration.source_id : 'unknown'
+  return {
+    analysisSourceId: configuration.analysis_source_id,
+    parentSourceId,
+    label: `Selected members · ${new Set(selectedIds).size} · Locked explicit source`,
+  }
+})
 const adjustment = ref<'split_adjusted' | 'raw'>(configString('adjustment', 'split_adjusted') === 'raw' ? 'raw' : 'split_adjusted')
 const session = ref<'regular' | 'all'>(configString('session', 'regular') === 'all' ? 'all' : 'regular')
 const startDate = ref(configString('start_date', ''))
@@ -816,6 +836,7 @@ onBeforeUnmount(() => {
 .study-lab-tool__parameter-grid label { display:grid; gap:2px; min-width:78px; color:#9db0bc; }
 .study-lab-tool__parameter-error { color:#ed9696; grid-column:1 / -1; }
 .study-lab-tool__header { display:grid; gap:4px; } .study-lab-tool__header-main { display:grid; grid-template-columns:minmax(120px,1fr) 56px minmax(150px,1fr) 48px 38px; gap:4px; } .study-lab-tool__dataset { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:4px; color:#8ea3b0; } .study-lab-tool__dataset label { display:grid; grid-template-columns:auto minmax(0,1fr); align-items:center; gap:3px; white-space:nowrap; } .study-lab-tool__dataset input,.study-lab-tool__dataset select { width:100%; min-width:0; }
+.study-lab-tool__source-lineage { margin:0; padding:3px 4px; border:1px solid #49667a; background:#17232b; color:#b9d9eb; font-size:9px; }
 input,textarea,button,select { min-width:0; border:1px solid #3a4954; background:#172027; color:#dce6ed; font:inherit; } input,select { padding:2px 4px; } textarea { width:100%; resize:none; padding:5px; font:11px/1.35 ui-monospace,SFMono-Regular,monospace; } button { cursor:pointer; } button:disabled { cursor:default; opacity:.5; }
 .study-lab-tool__validation,.study-lab-tool__run { padding:5px; border:1px solid #34424c; background:#151b20; } .study-lab-tool__validation--bad,.study-lab-tool__error { border-color:#9e5757; color:#f0a2a2; } pre { max-height:100px; overflow:auto; margin:3px 0 0; color:#b8c6d0; white-space:pre-wrap; } .study-lab-tool__run > div { display:flex; align-items:center; gap:6px; } .study-lab-tool__run > div button { margin-left:auto; } .study-lab-tool__run p,.study-lab-tool__notice,.study-lab-tool__error { margin:0; color:#8195a3; } .study-lab-tool__universe-warning { margin:0; color:#e0b47d; } .study-lab-tool__dataset-summary { font-size:9px; } .study-lab-tool__run article { margin-top:5px; padding-top:4px; border-top:1px solid #29343c; } .study-lab-tool__run small { margin-left:5px; color:#779ab0; }.study-lab-tool__metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(70px,1fr)); gap:4px; margin-top:5px; }.study-lab-tool__metrics article { display:grid; gap:2px; margin:0; padding:4px; border:1px solid #29343c; background:#11161b; }.study-lab-tool__metrics strong { color:#b9e0f9; font-size:14px; }.study-lab-tool__metric--true { border-color:#3f8263!important; }.study-lab-tool__metric--true strong { color:#80d5a5!important; }.study-lab-tool__metric--false { border-color:#875454!important; }.study-lab-tool__metric--false strong { color:#f0a0a0!important; }.study-lab-tool__run table { width:100%; margin-top:4px; border-collapse:collapse; font-size:9px; }.study-lab-tool__run th,.study-lab-tool__run td { padding:2px 4px; border:1px solid #2c3943; text-align:left; white-space:nowrap; }.study-lab-tool__run th { color:#91a8b8; background:#1b252d; }.study-lab-tool__events { display:grid; gap:2px; margin-top:4px; }.study-lab-tool__events button { display:grid; grid-template-columns:50px 1fr auto; gap:5px; padding:3px 4px; border:1px solid #2d3c46; background:#11161b; color:#cddbe5; text-align:left; }.study-lab-tool__events button:hover { background:#1d3543; }.study-lab-tool__events span,.study-lab-tool__events small { color:#91a8b4; }.study-lab-tool__run-status--completed { color:#82c49b; }.study-lab-tool__run-status--failed { color:#ed9696; }.study-lab-tool__run-status--queued,.study-lab-tool__run-status--running { color:#80bce8; }
 .study-lab-tool__promotions { display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; }.study-lab-tool__promotions button { margin-left:0!important; }.study-lab-tool__promotion-status { color:#9fd3a9!important; }.study-lab-tool__run-guidance { margin:3px 0 0!important; color:#9ab1bf!important; }.study-lab-tool__run-status--failed + .study-lab-tool__run-guidance { color:#f0a2a2!important; }.study-lab-tool__run-status--canceled + .study-lab-tool__run-guidance { color:#e0b47d!important; }
