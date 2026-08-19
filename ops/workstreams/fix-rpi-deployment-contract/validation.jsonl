@@ -1,2 +1,3 @@
 {"command":"python3 -m py_compile scripts/rpi.py; cd backend && uv run ruff check ../scripts/rpi.py && uv run ruff format --check ../scripts/rpi.py; cd ..; git diff --check","result":"pass","evidence":"RPi helper syntax and configured style checks pass"}
 {"command":"branch CI workflow replay corrections","result":"implemented","evidence":"RPi branch carries normalized uv export comparison, uv-run pytest, and --cov-fail-under=0 for integration-only tests"}
+{"command":"GitHub Actions setup-python cache cleanup","result":"corrected","evidence":"uv is the dependency cache owner; unused setup-python pip cache configuration removed to avoid cleanup-only job failures"}
