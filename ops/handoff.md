@@ -12,8 +12,9 @@
 - Validation: SEC/parser/adapter units `505/505`, live MAGA `1/1`, live TSCV `1/1`, Ruff, compileall,
   and `git diff --check` pass. Acceptance flexibility: **None**. No visual threshold or provider
   acceptance was relaxed; the wrong-series defect was fixed.
-- Implementation/docs commit `20fccb9d1a22303cce27dc0a347bc145d939d26d` is pushed and synchronized.
-  The separate operational checkpoint is now being committed. Next context: continue
+- Implementation/docs commit `20fccb9d1a22303cce27dc0a347bc145d939d26d` and operational checkpoint
+  `b280423b9d70753e3235683e8025411e1b5b9964` are pushed and synchronized; this context is closed.
+  Next context: continue
   GraniteShares/Lazard provider repairs, family-wide membership/bar history, historical continuity,
   entitlement review, and exact V25 maintenance/fallback visuals. Do not call the universal heatmap
   goal complete while those remain.

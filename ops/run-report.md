@@ -13,8 +13,9 @@
   and `git diff --check` pass. Acceptance flexibility: **None**.
 - Remaining: GraniteShares NVD and Lazard JPY provider repairs, complete provider-family/member-bar
   history, historical continuity, entitlement/terms review, and exact V25 maintenance/fallback
-  visuals. Implementation/docs commit `20fccb9d1a22303cce27dc0a347bc145d939d26d` is pushed and
-  synchronized; this operational record is the separate checkpoint.
+  visuals. Implementation/docs commit `20fccb9d1a22303cce27dc0a347bc145d939d26d` and operational
+  checkpoint `b280423b9d70753e3235683e8025411e1b5b9964` are pushed and synchronized; this context
+  is closed.
 
 ## 2026-08-19 — Thrivent TSCV 403 recovers through curated SEC identity
 
