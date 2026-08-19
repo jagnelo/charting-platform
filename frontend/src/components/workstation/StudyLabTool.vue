@@ -67,6 +67,7 @@
         <button v-if="promotableKind === 'scalar'" type="button" :disabled="promotionBusy" @click="promote('column')">{{ promotionBusy ? 'Promoting…' : 'Save as column' }}</button>
         <button v-if="promotableKind === 'series'" type="button" :disabled="promotionBusy" @click="promote('plot')">{{ promotionBusy ? 'Promoting…' : 'Save as chart plot' }}</button>
         <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('filter')">{{ promotionBusy ? 'Promoting…' : 'Save as watchlist filter' }}</button>
+        <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('column')">{{ promotionBusy ? 'Promoting…' : 'Save as Boolean column' }}</button>
         <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('scan')">{{ promotionBusy ? 'Promoting…' : 'Promote to scan' }}</button>
         <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('gauge')">{{ promotionBusy ? 'Promoting…' : 'Use as Market Gauge' }}</button>
         <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('alert')">{{ promotionBusy ? 'Promoting…' : 'Promote to alert' }}</button>
@@ -664,7 +665,11 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
   try {
     const isBooleanTarget = target === 'filter' || target === 'scan' || target === 'gauge' || target === 'alert'
     const requiredContract = isBooleanTarget ? 'boolean' : contract
-    const canReuseRunVersion = !selectedOutputName && runCodeVersionId.value != null
+    // A column is a separately typed library asset even when the study has a
+    // compatible scalar/Boolean output. This keeps the target kind explicit
+    // and lets its immutable promotion lineage survive independently of the
+    // executable study asset.
+    const canReuseRunVersion = target !== 'column' && !selectedOutputName && runCodeVersionId.value != null
       && (requiredContract === runContract.value || (target === 'signal' && (runContract.value === 'boolean' || runContract.value === 'events')))
     let versionId = canReuseRunVersion ? runCodeVersionId.value : null
     if (!versionId) {

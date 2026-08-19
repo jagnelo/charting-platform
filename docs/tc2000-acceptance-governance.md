@@ -10,7 +10,9 @@ the source run, source code version, reproducibility hash, dataset manifest, run
 output name, target, and semantics. The column is then eligible for the ordinary list sorting,
 pinning, filtering, and saved-column behavior.
 
-The lineage is metadata only and cannot be executed as user code. An aggregate, event, or
+This gate applies to both structured Boolean artifacts and single-output Boolean studies; the
+latter receive a dedicated `kind=column` asset instead of reusing the executable study asset. The
+lineage is metadata only and cannot be executed as user code. An aggregate, event, or
 cross-sectional study that cannot provide a per-row Boolean contract must return a structured
 capability error instead of being silently coerced. Focused evidence is Study Lab `24/24` and
 Docker-backed API `2/2`; the unprivileged attempt was blocked only by the Docker socket boundary

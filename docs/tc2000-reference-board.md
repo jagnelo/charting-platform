@@ -2,8 +2,8 @@
 
 ## 2026-08-19 — Boolean Study-to-column promotion is functional but visually unrepresented
 
-The workstation now offers `Save column` for a completed Study Lab Boolean artifact and produces a
-typed, lineage-preserving watchlist column. This is deliberately treated as the same reusable
+The workstation now offers `Save column` for both a completed structured Boolean artifact and a
+single-output Boolean study, producing a typed, lineage-preserving watchlist column. This is deliberately treated as the same reusable
 column surface as a scalar study result; it is not a second heatmap or a separate programming
 language. No acceptance flexibility was used.
 

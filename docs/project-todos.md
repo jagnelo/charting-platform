@@ -10,8 +10,11 @@
       promotion-lineage field to immutable code-version creation, and persist the lineage as
       non-executable diagnostics. Preserve source run ID, source code version, reproducibility
       hash, dataset manifest, run configuration, output name, target, and promotion semantics.
-- [x] Add focused frontend and Docker-backed API regressions proving the action is rendered,
-      creates a Boolean column asset, and retains source lineage (`24/24` Study Lab tests and
+- [x] Cover both structured Boolean artifacts and single-output Boolean studies. The latter now
+      receive a dedicated `kind=column` asset rather than reusing the executable study asset, so
+      the target contract and promotion lineage remain independently addressable.
+- [x] Add focused frontend and Docker-backed API regressions proving both actions are rendered,
+      create a Boolean column asset, and retain source lineage (`24/24` Study Lab tests and
       `2/2` targeted API tests; the elevated run passed). Acceptance flexibility used: **None**.
 - [ ] Continue the remaining promotion fan-out for cross-sectional/aggregate, event, and
       derived-series outputs only where their output contract is compatible; preserve structured

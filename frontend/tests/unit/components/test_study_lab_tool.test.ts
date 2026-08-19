@@ -549,6 +549,21 @@ describe('StudyLabTool', () => {
 
     expect(wrapper.find('[aria-label="Promote study result"]').text()).toContain('Save as watchlist filter')
     expect(wrapper.find('[aria-label="Promote study result"]').text()).toContain('Use as Market Gauge')
+    expect(wrapper.find('[aria-label="Promote study result"]').text()).toContain('Save as Boolean column')
+    await wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Save as Boolean column')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable watchlist column.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        output_contract: 'boolean',
+        lineage: expect.objectContaining({
+          source_run_id: 90,
+          source_code_version_id: 42,
+          target: 'column',
+          semantics: 'study_boolean_result_as_typed_watchlist_column',
+        }),
+      }),
+    }))
     await wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Save as watchlist filter')!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable watchlist filter through EasyScan.'))
     expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/42', expect.objectContaining({ name: 'Consecutive Positive Closes Scan', universe_type: 'custom', universe_instrument_ids: [7], timeframe: 'D1', provenance: expect.objectContaining({ source_run_id: 90, source_universe_source_id: 'market-group:sp500', source_membership_version: 'market-group:sp500:v1', point_in_time_source_preserved: false }) }))
