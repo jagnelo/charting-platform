@@ -1,5 +1,17 @@
 # Active Handoff
 
+## 2026-08-19 — Family benchmark Map now opens locked constituents
+
+- Fixed the selected-family benchmark-list Map handoff. It now emits
+  `benchmark-family:<family>:cap_weight`, the canonical locked constituent source, instead of
+  `market-group:<family>` (the proxy-leg comparison group). Equal/value/growth role source IDs are
+  centralized for explicit future role actions; no unavailable role is substituted.
+- Validation: focused source/list/map slices `164/164`; full frontend Vitest `899/899`;
+  type-check; production build; `git diff --check`. Acceptance flexibility: **None**.
+- Exact V25 handoff geometry, role-specific Map actions, provider-backed holdings/history, and
+  browser family drill-down remain `required_missing`/open.
+
+
 ## 2026-08-19 — Selected family exposes independent role evidence
 
 - The benchmark-family selector now loads the existing canonical family overview in addition to

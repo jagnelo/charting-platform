@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-08-19 — Family benchmark Map opens the constituent watchlist, not the role-leg group
+
+- [x] Correct the selected-family benchmark-list Map handoff to use the canonical locked
+      `benchmark-family:<family>:cap_weight` source. The family proxy-leg group remains useful for
+      role comparison, but it is not a constituent universe and must not be presented as one.
+- [x] Centralize family/role source construction and cover cap, equal, value, growth, case
+      normalization, and empty-family rejection. The same source identity remains compatible with
+      the universal Market Map, breadth, history, and linked-analysis contracts.
+- [x] Validate the focused source/list/map slices (`164/164`), full frontend Vitest (`899/899`),
+      type-check, production build, and diff checks.
+- [ ] Row-level selection for switching the benchmark-list Map directly between equal/value/growth
+      constituent sources, exact V25 Map-button geometry, provider-backed holdings, and browser
+      drill-down remain open. No role is silently substituted when its holdings source is absent.
+
 ### 2026-08-19 — Selected family exposes independent role evidence
 
 - [x] Load the existing benchmark-family overview alongside the selected family group and

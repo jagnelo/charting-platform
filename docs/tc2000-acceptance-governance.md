@@ -1,5 +1,20 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Benchmark-family Map handoff must preserve constituent semantics
+
+When the authenticated benchmark-list is switched to a family root, its Map action must open a
+locked constituent WatchlistSource, not the family group containing the cap/equal/value/growth
+proxy instruments. The accepted source identity is `benchmark-family:<family>:cap_weight` for the
+default root action; role-specific equal/value/growth identities are reserved for explicit role
+actions and must remain unavailable when their holdings evidence is absent. The source resolver,
+Market Map, breadth, history, and linked-analysis contracts remain shared with arbitrary
+watchlists. No ticker-only reconstruction or silent fallback is permitted.
+
+Focused source/list/map validation is `164/164`; full frontend Vitest is `899/899`; type-check,
+production build, and diff checks pass. Acceptance flexibility used: **None**. Exact V25 handoff
+geometry, role-specific actions, provider-backed holdings, historical continuity, and browser
+drill-down remain open acceptance gaps.
+
 ## 2026-08-19 — Study Lab promotion cannot widen its declared universe
 
 Generic Study Lab Boolean promotion is accepted only when the completed run contains canonical

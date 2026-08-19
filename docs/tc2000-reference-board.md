@@ -1,5 +1,20 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Family benchmark Map handoff has no exact V25 reference
+
+The selected family benchmark list now opens the locked cap-weight constituent source
+(`benchmark-family:<family>:cap_weight`) rather than mapping the four role ETFs as if they were
+constituents. This is the functional interpretation of the family-as-managed-watchlist model and
+uses the same universal heatmap surface. Equal/value/growth source identities are centralized for
+future role-level actions, but no unavailable role is substituted.
+
+Gap status: `required_missing` for exact V25 Map-button placement/copy, the transition into the
+constituent map, and role-specific equal/value/growth Map affordances. Interim oracle: focused
+source/list/map tests `164/164`, full frontend Vitest `899/899`, type-check, production build, and
+diff checks. No threshold, mask, provider substitution, or acceptance flexibility was used. Close
+with reviewed V25 list-to-constituent-map captures and browser evidence across a mapped and an
+unavailable family role.
+
 ## 2026-08-19 — Family role evidence is functionally explicit but visually unrepresented
 
 The selected family entry point now shows a role strip for cap, equal, value, and growth. Each

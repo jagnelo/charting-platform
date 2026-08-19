@@ -1,4 +1,28 @@
 tasks:
+  - id: tc2000-family-map-constituent-handoff-20260819
+    title: Route selected family benchmark maps to locked constituent sources
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Correct the selected-family benchmark-list Map action so it opens the canonical locked
+      cap-weight constituent WatchlistSource instead of the family proxy-leg group.
+    definition_of_done:
+      - Construct benchmark-family:<family>:cap_weight for the selected family root
+      - Keep equal/value/growth role source identities explicit for later role actions
+      - Reject empty family keys and never reconstruct source IDs from ticker text
+      - Record exact V25 list-to-constituent-map imagery as a tracked visual gap
+    validation:
+      - frontend-source-list-map-slices-164-of-164
+      - frontend-vitest-899-of-899
+      - frontend-type-check
+      - frontend-build
+      - git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. Exact V25 handoff geometry, provider-backed holdings,
+        role-specific Map actions, historical continuity, and browser drill-down remain open.
+
   - id: tc2000-family-role-evidence-20260819
     title: Disclose independent benchmark-family role evidence at the family entry point
     status: completed

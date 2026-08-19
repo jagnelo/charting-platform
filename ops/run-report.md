@@ -1,5 +1,18 @@
 # Run Report
 
+## 2026-08-19 — Selected family Map handoff preserves constituent semantics
+
+- Corrected the selected-family benchmark-list Map source from the family proxy-leg group to the
+  locked cap-weight constituent source `benchmark-family:<family>:cap_weight`. This makes the
+  family-as-managed-watchlist model true at the primary entry point while preserving the shared
+  Market Map/breadth/history contracts.
+- Added centralized family/role source construction with case normalization and empty-key guard;
+  equal/value/growth identities are explicit for later role-specific actions.
+- Validation: focused source/list/map `164/164`; full frontend Vitest `899/899`; type-check;
+  production build; diff checks. Acceptance flexibility used: **None**.
+- Remaining: exact V25 handoff visuals, role-specific Map affordances, provider-backed holdings
+  and history, and browser family drill-down.
+
 ## 2026-08-19 — Family role evidence is explicit at the interchangeable entry point
 
 - Added the canonical benchmark-family overview request and a role strip for cap/equal/value/

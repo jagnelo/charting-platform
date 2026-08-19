@@ -1,5 +1,19 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Selected family benchmark Map now targets locked constituents
+
+The selected-family benchmark list no longer hands its `Map` action the family proxy-leg group.
+That group contains cap/equal/value/growth ETF legs and is not the constituent universe. The
+handoff now constructs `benchmark-family:<family>:cap_weight`, a canonical locked source consumed
+by the same Market Map/breadth/history/linked-analysis path as any other watchlist. The default
+Major US benchmark list retains its existing root source. Source construction is centralized and
+explicitly supports equal/value/growth role identities for subsequent role-level actions.
+
+Functional evidence: focused source/list/map slices `164/164`; full frontend Vitest `899/899`;
+type-check; production build; and diff checks. Acceptance flexibility used: **None**. The board
+still lacks exact V25 handoff geometry and role-specific equal/value/growth Map actions; provider
+holdings population, historical continuity, and browser drill-down remain open.
+
 ## 2026-08-19 — Selected family discloses cap/equal/value/growth role evidence
 
 The interchangeable benchmark-family entry point now requests the canonical family overview in
