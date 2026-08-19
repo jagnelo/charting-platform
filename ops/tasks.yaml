@@ -1,4 +1,37 @@
 tasks:
+  - id: tc2000-market-map-recursive-handoff-20260819
+    title: Repair recursive Market Map hierarchy and cross-tab analysis publication
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Make the source-polymorphic Market Map a real hierarchical treemap by recursively
+      partitioning every group-path level, and repair publication/configuration updates when the
+      target Breadth or Study Lab window lives on a different persisted workspace tab.
+    definition_of_done:
+      - Sector and industry sibling rectangles are recursively partitioned and cannot interleave
+      - Mixed-depth and ungrouped source members remain represented without fabricated visual groups
+      - Layout regression proves disjoint sibling bounds and viewport containment
+      - Cross-tab Market Map publication updates the unique target tool instance
+      - Unchanged authenticated Market Map handoff and family matrix browser oracles pass
+      - Exact Version 25 nested geometry remains explicitly recorded as a visual gap
+    validation:
+      - market-map-layout-6-of-6
+      - market-map-component-32-of-32
+      - workstation-popout-bindings-23-of-23
+      - authenticated-market-map-handoff-1-of-1
+      - authenticated-family-map-breadth-rotation-4-of-4
+      - frontend-Vitest-916-of-916
+      - vue-tsc-and-Vite-production-build
+      - rebuilt-seeded-stack-migrated-and-stopped
+      - git-diff-check
+    acceptance_flexibility: none
+    implementation_commit: 69cfa40625c29ae89503df542bcfd40d3548e4b5
+    remaining_gaps: >-
+      Exact V25 nested treemap gutters, typography, hover/action geometry, provider-backed family
+      population, point-in-time weights/history, and final visual acceptance remain open. The
+      initial unprivileged browser failure was a macOS Mach-port permission boundary and the
+      elevated rerun is the authoritative browser evidence.
   - id: tc2000-top-down-trader-family-browser-acceptance-20260819
     title: Validate the seeded top-down trader flow and make E2E data modes explicit
     status: completed

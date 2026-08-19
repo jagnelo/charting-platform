@@ -1,5 +1,23 @@
 # Run Report
 
+## 2026-08-19 — Recursive Market Map and cross-tab publication repair
+
+- Corrected the Market Map renderer's hierarchy. It now builds a deterministic group tree and
+  recursively allocates proportional rectangles for every sector/industry level before laying out
+  member tiles. Added a sibling-industry non-overlap/viewport regression (`6/6`).
+- Corrected cross-tab configuration publication: workspace tool updates resolve the globally unique
+  window across persisted tabs, so Market Map → Breadth/Study Lab publication cannot silently patch
+  nothing after a tab switch. The failed screenshot showed the old S&P-sector Breadth universe;
+  the unchanged authenticated handoff rerun passed `1/1`.
+- Broader family map/breadth/rotation browser matrix passed `4/4`. Full frontend Vitest passed
+  `916/916`; Market Map component `32/32`; pop-out bindings `23/23`; `vue-tsc`; Vite build; and
+  `git diff --check` passed. Seeded stack was rebuilt, migrated, and stopped.
+- The first browser invocation failed before Chromium page creation at the macOS Mach-port
+  permission boundary. Elevated rerun reached the product; this is recorded as environment
+  evidence, not acceptance flexibility or a product pass.
+- Exact Version 25 nested treemap geometry, provider-backed family population, historical weights/
+  bars, and final visual acceptance remain open.
+
 ## 2026-08-19 — Top-down trader flow and family matrix browser acceptance
 
 - Rebuilt the branch-scoped stack with `E2E_SEED_MARKET_DATA=true` and passed the authenticated

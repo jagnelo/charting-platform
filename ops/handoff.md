@@ -1,5 +1,29 @@
 # Active Handoff
 
+## 2026-08-19 — Recursive Market Map and cross-tab handoff context
+
+- Replaced first-level-only Market Map geometry with recursive full-path partitioning. Sector
+  groups are partitioned into industry groups before member tiles are laid out; sibling industries
+  cannot interleave. Mixed-depth/direct members remain represented through an internal synthetic
+  leaf without a fabricated visible group.
+- Repaired `updateToolConfiguration` to resolve the unique tool instance across all persisted tabs.
+  The old active-tab-only lookup caused Market Map publication to leave the visible Breadth tool on
+  its prior `S&P 500 sectors` universe after a cross-tab handoff. The screenshot from the failed
+  run showed the wrong state; the code fix was followed by the unchanged browser oracle passing.
+- Validation: layout `6/6`; Market Map component `32/32`; workstation pop-out bindings `23/23`;
+  authenticated Market Map → Breadth/Study Lab handoff `1/1`; family map/breadth/rotation matrix
+  `4/4`; full frontend `916/916`; `vue-tsc`; Vite production build; rebuilt seeded stack,
+  migration, and shutdown. The first browser run failed before page creation at the macOS
+  Chromium Mach-port boundary; the elevated rerun is authoritative. No acceptance flexibility
+  used.
+- Owned implementation files: `frontend/src/lib/workstation/marketMap.ts`,
+  `frontend/src/views/WorkstationView.vue`, and `frontend/tests/unit/lib/test_market_map.test.ts`.
+  Documentation and implementation commit `69cfa40625c29ae89503df542bcfd40d3548e4b5` are pushed
+  and match origin. Only the separate operational checkpoint is now dirty; stage only those ops
+  files, commit/push them, then perform the final state-hash correction.
+- Remaining gaps: exact Version 25 nested treemap geometry/action row, provider-backed family
+  population, point-in-time weights/history, and final whole-goal acceptance.
+
 ## 2026-08-19 — Top-down trader browser acceptance context closed
 
 - Rebuilt the branch-scoped stack with `E2E_SEED_MARKET_DATA=true` and exercised the real
