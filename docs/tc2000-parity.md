@@ -1,5 +1,24 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — SEC fallback now verifies the selected ETF identity
+
+SEC registrant CIKs can contain many unrelated ETF series. The fallback now extracts series/class
+identity from both raw N-PORT XML and EDGAR-rendered XHTML, rejects mismatches before parsing rows,
+and records the observed identity and verification status in provenance. This directly protects the
+universal Market Map contract: a locked index/ETF watchlist cannot be populated from a different fund
+that happens to share its registrant.
+
+MAGA's June 2026 reorganization is represented explicitly: current Truth Social Funds identity is
+`0001040674 / S000103953 / C000274551`, with the former Point Bridge identity retained as a curated
+predecessor fallback. The live MAGA route now recovers through the predecessor when the successor has
+not yet filed a matching N-PORT; TSCV also passes the identity-filtered SEC fallback. Calvert's live
+oracle now reflects its working 121-row public payload rather than an unsupported 500-row assumption.
+
+Validation: SEC/parser/adapter units `505/505`, live MAGA `1/1`, live TSCV `1/1`, Ruff, compileall,
+and diff checks. No acceptance flexibility was used. Remaining gaps are GraniteShares/Lazard route
+repairs, family-wide membership/bar history, historical continuity, entitlement review, and exact
+V25 maintenance/fallback visuals.
+
 ## 2026-08-19 — Thrivent TSCV issuer 403 now recovers through SEC EDGAR
 
 The Thrivent TSCV CSV endpoint remains the primary issuer route, but the live endpoint returned

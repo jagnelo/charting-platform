@@ -288,6 +288,54 @@ def _identifier(identifiers: dict[str, str], *keys: str) -> str | None:
     return None
 
 
+def _sec_nport_identity_match(
+    raw_document: str,
+    *,
+    identifiers: dict[str, str],
+) -> tuple[bool, dict[str, str], str]:
+    """Verify a SEC N-PORT filing belongs to the requested fund class.
+
+    A registrant CIK can contain many unrelated ETF series.  Never accept the
+    first parseable filing when a canonical class/series/ticker identity is
+    available; doing so silently turns another fund into the requested source.
+    """
+
+    from app.services.etf_holdings_sec import (  # noqa: PLC0415
+        extract_sec_nport_filing_identity,
+    )
+
+    observed = extract_sec_nport_filing_identity(raw_document)
+    targets = {
+        "series_id": _identifier(identifiers, "sec_series_id", "series_id"),
+        "class_id": _identifier(identifiers, "sec_class_id", "class_id"),
+        "class_ticker": _identifier(
+            identifiers, "sec_fund_tickers_symbol", "class_ticker", "ticker"
+        ),
+    }
+    normalized_observed = {
+        key: value.strip().upper() for key, value in observed.items() if value.strip()
+    }
+    normalized_targets = {
+        key: value.strip().upper() for key, value in targets.items() if value
+    }
+    if not normalized_targets:
+        return True, observed, "registrant_only_unverified"
+
+    matched = False
+    for key, target in normalized_targets.items():
+        value = normalized_observed.get(key)
+        if value is None:
+            # A class ticker is not consistently present in N-PORT documents;
+            # class/series IDs still provide authoritative identity.
+            if key == "class_ticker" and matched:
+                continue
+            return False, observed, f"missing_{key}"
+        if value != target:
+            return False, observed, f"mismatch_{key}:{value}!={target}"
+        matched = True
+    return True, observed, "verified"
+
+
 def _looks_like_cusip(value: str | None) -> bool:
     text = _clean(value)
     if text is None:
@@ -2898,6 +2946,7 @@ class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
         issuer_product_id: str | None,
         identifiers: dict[str, str],
         end_date: date | None = None,
+        max_filings: int = 5,
     ) -> HoldingsFetchResult | None:
         sec_cik = _identifier(identifiers, "sec_cik")
         if not sec_cik:
@@ -2930,7 +2979,7 @@ class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
                     cik=sec_cik,
                     forms=forms,
                     end_date=end_date,
-                    max_filings=5,
+                    max_filings=max_filings,
                 )
             except Exception as exc:  # noqa: BLE001 - collect all fallback attempts.
                 failures.append(f"{label} discovery failed: {exc}")
@@ -2947,6 +2996,21 @@ class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
                             follow_redirects=True,
                         )
                         response.raise_for_status()
+                        filing_identity: dict[str, str] = {}
+                        identity_status = "not_applicable"
+                        if source_format == "nport_xml":
+                            identity_matches, filing_identity, identity_status = (
+                                _sec_nport_identity_match(
+                                    response.text,
+                                    identifiers=identifiers,
+                                )
+                            )
+                            if not identity_matches:
+                                failures.append(
+                                    f"{label} {filing.accession_number} identity rejected: "
+                                    f"{identity_status} ({filing_identity})"
+                                )
+                                continue
                         composition_date, rows = parser(response.text)
                     except Exception as exc:  # noqa: BLE001 - try the next filing.
                         failures.append(f"{label} {filing.accession_number} failed: {exc}")
@@ -2984,6 +3048,8 @@ class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
                             ),
                             "source_quality": "filing_reconstructed_holdings",
                             "completeness_status": "filing_reconstructed",
+                            "filing_identity": filing_identity,
+                            "filing_identity_status": identity_status,
                             "terms_note": "Reconstructed from SEC EDGAR public holdings filings.",
                         },
                     )
@@ -3146,8 +3212,26 @@ KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
         "provider_aliases": {
             "holdings_adapter": "thrivent",
             "sec_cik": "0001896670",
+            "sec_series_id": "S000095017",
             "sec_class_id": "C000263596",
             "sec_fund_tickers_symbol": "TSCV",
+        },
+    },
+    "MAGA": {
+        "issuer": "Truth Social Funds / Point Bridge Capital",
+        "provider_aliases": {
+            "holdings_adapter": "point_bridge",
+            # The June 2026 reorganisation moved MAGA from ETF Series
+            # Solutions (0001540305 / S000058757 / C000192803) into Truth
+            # Social Funds.  Current filings therefore use the successor
+            # registrant and class identity below.
+            "sec_cik": "0001040674",
+            "sec_series_id": "S000103953",
+            "sec_class_id": "C000274551",
+            "sec_fund_tickers_symbol": "MAGA",
+            "sec_predecessor_cik": "0001540305",
+            "sec_predecessor_series_id": "S000058757",
+            "sec_predecessor_class_id": "C000192803",
         },
     },
     # Direxion publishes QQQE's daily holdings as a public symbol-scoped CSV.
@@ -49993,6 +50077,7 @@ class PointBridgeHoldingsAdapter(IssuerCsvHoldingsAdapter):
         source_url: str | None = None,
         identifiers: dict[str, str] | None = None,
     ) -> HoldingsFetchResult:
+        identifiers = identifiers or {}
         page_url = source_url or self.resolve_product_page_url(
             symbol=symbol,
             issuer_product_id=issuer_product_id,
@@ -50001,16 +50086,92 @@ class PointBridgeHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if not page_url:
             raise ValueError(f"Point Bridge holdings route is unavailable for {symbol}.")
 
-        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
-            response = await client.get(
-                page_url,
-                headers=_issuer_page_request_headers(accept="text/html,*/*"),
-                follow_redirects=True,
+        route_resolution = "issuer_holdings_page_tablepress_table"
+        try:
+            async with httpx.AsyncClient(
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
+            ) as client:
+                response = await client.get(
+                    page_url,
+                    headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                    follow_redirects=True,
+                )
+            response.raise_for_status()
+            rows, composition_date = self._parse_holdings_page(
+                response.text, fund_symbol=symbol
             )
-        response.raise_for_status()
-        rows, composition_date = self._parse_holdings_page(response.text, fund_symbol=symbol)
-        if not rows:
-            raise ValueError(f"Point Bridge holdings page did not expose rows for {symbol}.")
+            if not rows:
+                raise ValueError(f"Point Bridge holdings page did not expose rows for {symbol}.")
+        except (httpx.HTTPError, requests.RequestException, ValueError) as route_error:
+            fallback_identifiers = dict(identifiers)
+            route_metadata = known_etf_route_metadata(symbol)
+            provider_aliases = route_metadata.get("provider_aliases")
+            if not _identifier(fallback_identifiers, "sec_cik") and isinstance(
+                provider_aliases, dict
+            ):
+                for key in (
+                    "sec_cik",
+                    "sec_series_id",
+                    "sec_class_id",
+                    "sec_fund_tickers_symbol",
+                    "sec_predecessor_cik",
+                    "sec_predecessor_series_id",
+                    "sec_predecessor_class_id",
+                ):
+                    value = _identifier(provider_aliases, key)
+                    if value and not _identifier(fallback_identifiers, key):
+                        fallback_identifiers[key] = value
+            sec_error: Exception | None = None
+            try:
+                sec_result = await self._fetch_latest_sec_filing_holdings(
+                    symbol=symbol,
+                    issuer_product_id=issuer_product_id,
+                    identifiers=fallback_identifiers,
+                )
+            except ValueError as error:
+                sec_result = None
+                sec_error = error
+
+            # MAGA moved registrants in June 2026.  If the successor has not
+            # published an N-PORT yet, use the curated predecessor identity to
+            # recover the latest predecessor snapshot rather than accepting a
+            # different Truth Social series.
+            predecessor_cik = _identifier(fallback_identifiers, "sec_predecessor_cik")
+            predecessor_series = _identifier(
+                fallback_identifiers, "sec_predecessor_series_id"
+            )
+            predecessor_class = _identifier(
+                fallback_identifiers, "sec_predecessor_class_id"
+            )
+            if sec_result is None and predecessor_cik and (predecessor_series or predecessor_class):
+                predecessor_identifiers = dict(fallback_identifiers)
+                predecessor_identifiers.update(
+                    {
+                        "sec_cik": predecessor_cik,
+                        "sec_series_id": predecessor_series or "",
+                        "sec_class_id": predecessor_class or "",
+                    }
+                )
+                try:
+                    sec_result = await self._fetch_latest_sec_filing_holdings(
+                        symbol=symbol,
+                        issuer_product_id=issuer_product_id,
+                        identifiers=predecessor_identifiers,
+                        max_filings=100,
+                    )
+                except ValueError as error:
+                    sec_error = error
+            if sec_result is None:
+                raise sec_error or route_error
+            sec_result.legal_metadata = {
+                **(sec_result.legal_metadata or {}),
+                "issuer_route_failure": str(route_error),
+                "issuer_route_fallback": "sec_edgar_filing",
+                "product_page_url": page_url,
+                "terms_note": self.config.terms_note,
+            }
+            sec_result.legal_metadata["route_resolution"] = "sec_edgar_filing_fallback"
+            return sec_result
 
         return HoldingsFetchResult(
             rows=rows,
@@ -50022,7 +50183,7 @@ class PointBridgeHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "source_provider": self.source_provider,
                 "adapter_key": self.adapter_key,
                 "source_format": "html",
-                "route_resolution": "issuer_holdings_page_tablepress_table",
+                "route_resolution": route_resolution,
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
                 "terms_note": self.config.terms_note,

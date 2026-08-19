@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-08-19 — Reject wrong SEC fund series and recover reorganized MAGA
+
+- [x] Add a namespace/table-tolerant SEC N-PORT identity extractor and require curated series/class
+      identity to match before accepting parseable filing rows; a registrant CIK alone must not
+      turn another ETF's filing into the selected locked watchlist.
+- [x] Add MAGA's successor Truth Social Funds identity (`CIK 0001040674`, `S000103953`,
+      `C000274551`) plus curated predecessor identity for the June 2026 reorganization. If the
+      successor has not published a matching N-PORT, retry the predecessor with a bounded wider
+      filing search and preserve the filing identity/provenance.
+- [x] Correct the Calvert CVLC live oracle to its actual public payload floor (100; current route
+      discloses 121 rows) rather than treating a working identity/date-valid route as broken for
+      failing an invented 500-row floor.
+- [x] Add wrong-series regression coverage and verify SEC/parser/adapter units `505/505`, live
+      MAGA `1/1`, live TSCV `1/1`, Ruff, compileall, and diff checks.
+- [ ] Continue GraniteShares/Lazard route repairs, provider-family population, canonical member-bar
+      history, and exact V25 maintenance/fallback visuals; no acceptance threshold was relaxed.
+
 ### 2026-08-19 — Repair Thrivent TSCV WAF route with SEC fallback provenance
 
 - [x] Preserve the official symbol-scoped Thrivent CSV route as the primary path, but catch its

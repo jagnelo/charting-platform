@@ -4,9 +4,30 @@ from decimal import Decimal
 from app.services.etf_holdings_sec import (
     _first_date_like_text,
     _parse_date,
+    extract_sec_nport_filing_identity,
     parse_sec_legacy_holdings_xml,
     parse_sec_nport_xml,
 )
+
+
+def test_extract_sec_nport_filing_identity_reads_rendered_identity_tables():
+    raw_xhtml = """
+    <html><body>
+      <table>
+        <tr><td>Series ID</td><td><div>S000058757</div></td></tr>
+        <tr><td>Class (Contract) ID</td><td><div>C000192803</div></td></tr>
+      </table>
+      <table>
+        <tr><td>a. Name of Series.</td><td><div>Point Bridge America First ETF</div></td></tr>
+      </table>
+    </body></html>
+    """
+
+    assert extract_sec_nport_filing_identity(raw_xhtml) == {
+        "series_id": "S000058757",
+        "class_id": "C000192803",
+        "series_name": "Point Bridge America First ETF",
+    }
 
 
 def test_parse_sec_nport_xml_parses_security_rows_and_report_date():

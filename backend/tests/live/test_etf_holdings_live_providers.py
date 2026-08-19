@@ -2088,7 +2088,10 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ("range", "COAL", None, {}, 10),
         ("sofi", "SFY", None, {}, 300),
         ("thrivent", "TSCV", None, {}, 40),
-        ("calvert", "CVLC", None, {}, 500),
+        # Calvert's current public JSON is identity/date-valid but discloses 121
+        # rows for CVLC; keep a conservative floor rather than asserting the
+        # stale 500-row expectation from an older universe snapshot.
+        ("calvert", "CVLC", None, {}, 100),
         ("alerian", "ENFR", None, {}, 20),
     ],
 )

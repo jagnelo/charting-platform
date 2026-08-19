@@ -1,5 +1,18 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Wrong-series and reorganization recovery states need V25 captures
+
+The backend now rejects an SEC filing when its series/class identity does not match the selected
+locked ETF source, and MAGA can move from successor Truth Social identity to curated predecessor
+identity after its 2026 reorganization. These are functional correctness states for the universal
+watchlist/heatmap pipeline, not reasons to accept an unverified visual approximation.
+
+Gap status: `required_missing` for exact V25 source-maintenance visuals covering identity mismatch,
+candidate-filing rejection, predecessor fallback, filing provenance, retry progress, and the final
+ready/partial state. Interim oracle: wrong-series unit regression, SEC/parser/adapter units `505/505`,
+live MAGA `1/1`, live TSCV `1/1`, Ruff, compileall, and diff checks. No visual threshold or mask was
+relaxed; the missing capture remains tracked until the browsable V25 reference board supplies it.
+
 ## 2026-08-19 — Thrivent issuer-blocked fallback has no exact V25 visual oracle
 
 The TSCV issuer CSV can return 403 to backend clients even though the official product page exposes

@@ -419,6 +419,7 @@ async def test_thrivent_route_failure_uses_curated_sec_identity(monkeypatch):
         "issuer_product_id": None,
         "identifiers": {
             "sec_cik": "0001896670",
+            "sec_series_id": "S000095017",
             "sec_class_id": "C000263596",
             "sec_fund_tickers_symbol": "TSCV",
         },
@@ -14090,6 +14091,57 @@ async def test_point_bridge_adapter_parses_maga_holdings_table(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_point_bridge_route_failure_uses_curated_sec_identity(monkeypatch):
+    adapter = get_holdings_adapter("point_bridge")
+    assert adapter is not None
+    observed: dict[str, object] = {}
+
+    async def fake_sec_fallback(*, symbol, issuer_product_id, identifiers):
+        observed.update(
+            {
+                "symbol": symbol,
+                "issuer_product_id": issuer_product_id,
+                "identifiers": identifiers,
+            }
+        )
+        return HoldingsFetchResult(
+            rows=[CanonicalHoldingRow(symbol="DVN", name="Devon Energy Corp")],
+            source_url="https://www.sec.gov/Archives/edgar/data/1540305/fixture.xml",
+            source_identifier="0001540305-26-000001",
+            legal_metadata={"route_resolution": "sec_edgar_filing_fallback"},
+        )
+
+    monkeypatch.setattr(adapter, "_fetch_latest_sec_filing_holdings", fake_sec_fallback)
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        httpx.Response(
+            status_code=404,
+            request=httpx.Request("GET", adapter.HOLDINGS_PAGE_URLS["MAGA"]),
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="MAGA", identifiers={})
+
+    assert observed == {
+        "symbol": "MAGA",
+        "issuer_product_id": None,
+        "identifiers": {
+            "sec_cik": "0001040674",
+            "sec_series_id": "S000103953",
+            "sec_class_id": "C000274551",
+            "sec_fund_tickers_symbol": "MAGA",
+            "sec_predecessor_cik": "0001540305",
+            "sec_predecessor_series_id": "S000058757",
+            "sec_predecessor_class_id": "C000192803",
+        },
+    }
+    assert result.legal_metadata["route_resolution"] == "sec_edgar_filing_fallback"
+    assert result.legal_metadata["issuer_route_fallback"] == "sec_edgar_filing"
+    assert "404" in result.legal_metadata["issuer_route_failure"]
+
+
+@pytest.mark.asyncio
 async def test_aptus_adapter_fetches_product_page_holdings_table(monkeypatch):
     adapter = get_holdings_adapter("aptus")
     assert adapter is not None
@@ -20772,6 +20824,71 @@ async def test_recognition_only_adapter_fetches_holdings_through_sec_fallback(mo
     assert result.legal_metadata["source_provider"] == "sec"
     assert result.legal_metadata["route_resolution"] == "sec_edgar_filing_fallback"
     assert result.legal_metadata["snapshot_provenance"] == "sec_nport_reconstructed_holdings"
+
+
+@pytest.mark.asyncio
+async def test_sec_fallback_skips_parseable_nport_for_wrong_series(monkeypatch):
+    adapter = get_holdings_adapter("point_bridge")
+    assert adapter is not None
+
+    async def fake_discover_holdings_filings(**kwargs):
+        assert kwargs["cik"] == "0001540305"
+        return [
+            SimpleNamespace(
+                accession_number="wrong",
+                filing_url="https://www.sec.gov/Archives/wrong.xml",
+                form="NPORT-P",
+                report_date=date(2026, 6, 30),
+            ),
+            SimpleNamespace(
+                accession_number="right",
+                filing_url="https://www.sec.gov/Archives/right.xml",
+                form="NPORT-P",
+                report_date=date(2026, 6, 30),
+            ),
+        ]
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_edgar.discover_holdings_filings",
+        fake_discover_holdings_filings,
+    )
+
+    def fixture(series_id: str, class_id: str, symbol: str) -> str:
+        return f"""<!DOCTYPE html><html><body>&nbsp;
+          <table><tr><td>Series ID</td><td>{series_id}</td></tr>
+          <tr><td>Class (Contract) ID</td><td>{class_id}</td></tr></table>
+          <h4>Item C.1. Identification of investment.</h4>
+          <table><tr><td>a. Name of issuer (if any).</td><td>Issuer</td></tr>
+          <tr><td>d. CUSIP (if any).</td><td>037833100</td></tr></table>
+          <table><tr><td>Ticker</td><td>{symbol}</td></tr>
+          <tr><td>Balance</td><td>10</td></tr>
+          <tr><td>Value. Report values in U.S. dollars.</td><td>1000</td></tr>
+          <tr><td>Percentage value compared to net assets of the Fund.</td><td>1</td></tr></table>
+        </body></html>"""
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=fixture("S000057712", "C000186111", "WRONG")),
+        FakeResponse(text=fixture("S000058757", "C000192803", "RIGHT")),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter._fetch_latest_sec_filing_holdings(
+        symbol="MAGA",
+        issuer_product_id=None,
+        identifiers={
+            "sec_cik": "0001540305",
+            "sec_series_id": "S000058757",
+            "sec_class_id": "C000192803",
+            "sec_fund_tickers_symbol": "MAGA",
+        },
+    )
+
+    assert result is not None
+    assert result.source_identifier == "right"
+    assert result.legal_metadata["filing_identity_status"] == "verified"
+    assert result.legal_metadata["filing_identity"]["class_id"] == "C000192803"
+    assert len(FakeAsyncClient.requested) == 2
 
 
 def test_registered_holdings_adapters_are_provider_specific():

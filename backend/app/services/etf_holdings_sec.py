@@ -83,6 +83,57 @@ def parse_sec_nport_xml(raw_xml: str) -> tuple[date | None, list[CanonicalHoldin
     return report_date, rows
 
 
+def extract_sec_nport_filing_identity(raw_document: str) -> dict[str, str]:
+    """Extract the fund identity block from SEC N-PORT XML or rendered XHTML.
+
+    EDGAR commonly serves ``primary_doc.xml`` as rendered XHTML.  The identity
+    values are then table labels rather than XML elements, so this helper handles
+    both representations.  It intentionally reads only the filing's series/class
+    metadata block; ticker text in holding rows is never treated as fund identity.
+    """
+
+    try:
+        root = ElementTree.fromstring(raw_document)
+    except ElementTree.ParseError:
+        root = None
+    if root is not None:
+        values = {
+            key: value
+            for key, aliases in {
+                "series_id": ["seriesId", "seriesIdentifier"],
+                "series_name": ["seriesName", "nameOfSeries"],
+                "class_id": ["classId", "classContractId", "classContractIdentifier"],
+                "class_ticker": ["classTicker", "classContractTickerSymbol"],
+            }.items()
+            if (value := _first_text(root, aliases))
+        }
+        if values:
+            return values
+
+    parser = _HTMLTableParser()
+    parser.feed(raw_document)
+    identity: dict[str, str] = {}
+    for table in parser.tables:
+        for row in table:
+            if len(row) < 2:
+                continue
+            label = re.sub(r"\s+", " ", unescape(row[0])).strip().lower()
+            value = re.sub(r"\s+", " ", unescape(row[1])).strip()
+            if not value:
+                continue
+            if "class (contract) id" in label:
+                identity.setdefault("class_id", value)
+            elif label == "series id":
+                identity.setdefault("series_id", value)
+            elif "edgar series identifier" in label:
+                identity.setdefault("series_id", value)
+            elif "name of series" in label:
+                identity.setdefault("series_name", value)
+            elif "class (contract) ticker" in label or "class ticker" in label:
+                identity.setdefault("class_ticker", value)
+    return identity
+
+
 def _parse_sec_nport_xhtml(raw_html: str) -> tuple[date | None, list[CanonicalHoldingRow]]:
     report_date = None
     sections = re.split(
