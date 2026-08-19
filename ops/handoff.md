@@ -1,5 +1,22 @@
 # Active Handoff
 
+## 2026-08-19 — Arbitrary Market Maps now expose visible group frames
+
+- Extended the source-polymorphic heatmap renderer beyond group-first geometry. Ordinary HTML tile
+  maps now show non-interactive top-level group frames and member counts; the 1,500+ member canvas
+  path draws equivalent boundaries/labels directly without adding proportional DOM.
+- The grouped accumulator was also changed from spread-based array rebuilding to push-based updates;
+  the existing 10,000-member path remains bounded. Member clicks, additive selection, and canvas
+  search remain authoritative because overlays cannot receive pointer events.
+- Validation: focused layout/frame and Market Map component `35/35`; full frontend Vitest `912/912`;
+  type-check; production build; and `git diff --check`. Acceptance flexibility: **None**.
+- Exact V25 group labels, gutters, density, text scaling, hover treatment, and arbitrary-watchlist
+  root/drill-down composition remain reference-board gaps. Provider-backed membership/bar
+  completeness remains open under the parent performance-map task.
+- Implementation/docs commit is pushed and synchronized; the operational checkpoint and final close
+  record are the next required writes. Next context remains provider-backed family/source population
+  and remaining V25 visual/reference gaps.
+
 ## 2026-08-19 — Arbitrary Market Maps now preserve group hierarchy
 
 - Closed the renderer-side gap in the source-polymorphic heatmap contract. The frontend now uses

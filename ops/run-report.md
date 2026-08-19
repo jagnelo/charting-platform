@@ -1,5 +1,19 @@
 # Run Report
 
+## 2026-08-19 — Arbitrary Market Maps expose group frames without DOM or selection regression
+
+- Added one shared `layoutMarketMapGroups` geometry contract. Grouped index/ETF/sector/industry,
+  managed, combo, and classified personal sources now expose top-level frames and member counts;
+  explicit/unclassified sources remain flat.
+- HTML maps render non-interactive frame overlays; large maps draw the same boundaries/labels on the
+  existing canvas. The grouped member accumulator now uses push-based indexing, preserving the
+  10,000-member performance path.
+- Evidence: focused layout/frame and Market Map `35/35`; full frontend Vitest `912/912`;
+  type-check; production build; and `git diff --check`. No acceptance flexibility, visual threshold,
+  or mask relaxation.
+- Exact V25 hierarchy visuals and provider-backed membership/bar completeness remain explicit gaps.
+  Implementation/docs commit is pushed and synchronized.
+
 ## 2026-08-19 — Arbitrary Market Maps preserve hierarchy without large-list regression
 
 - The shared renderer now partitions grouped sources by canonical top-level `group_path` and then

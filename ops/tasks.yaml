@@ -1,4 +1,31 @@
 tasks:
+  - id: tc2000-universe-performance-map-group-frames-20260819
+    title: Expose grouped Market Map frames for arbitrary watchlists
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Extend the source-polymorphic Market Map geometry with visible top-level group frames and
+      member counts. Render lightweight non-interactive overlays for ordinary tile maps and draw
+      the same boundaries/labels directly in the large-universe canvas path without proportional
+      DOM or selection regressions. Keep exact V25 styling as a tracked reference gap.
+    definition_of_done:
+      - Grouped and mixed grouped/ungrouped sources expose deterministic top-level group frames
+      - HTML overlays remain non-interactive and preserve member click, shift-selection, and keyboard behavior
+      - Canvas maps draw group boundaries/labels without creating per-member DOM
+      - Focused layout/component, full frontend, type-check, build, docs, and diff checks pass
+      - Exact V25 group label/gutter/typography/hover treatment remains explicit when unrepresented
+    validation:
+      - market-map-layout-and-frames-5-of-5
+      - market-map-component-30-of-30
+      - frontend-vitest-912-of-912
+      - frontend-type-check-and-production-build
+      - git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. Group frames are an explicitly documented interim
+        visual oracle; exact V25 geometry and provider-backed membership/bar completeness remain open.
+
   - id: tc2000-universe-performance-map-hierarchical-layout-20260819
     title: Preserve hierarchical geometry for arbitrary watchlist Market Maps
     status: completed
