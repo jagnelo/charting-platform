@@ -1,4 +1,35 @@
 tasks:
+  - id: tc2000-durable-explicit-watchlist-sources-20260819
+    title: Persist arbitrary Market Map selections as locked reusable sources
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Extend the universal TC2000-style heatmap/watchlist model so a user-selected subset of any
+      locked or editable source can be saved as a user-owned canonical locked source, then reused
+      after reload by Market Map, Breadth, Study Lab, scans, gauges, and linked chart workflows.
+    definition_of_done:
+      - Save canonical instrument IDs only, in stable order, with a 500-member bound and missing-ID rejection
+      - Keep saved membership immutable while allowing selection, follow, pin, clone, and analysis reuse
+      - Retain optional parent source and membership-version lineage in provenance
+      - List and resolve saved sources through the local database without provider fan-out or ticker reconstruction
+      - Preserve the ephemeral explicit selection handoff for quick analysis before a durable save
+      - Verify the map-to-breadth focus transition and durable-save interaction in authenticated Chromium
+    validation:
+      - backend-watchlists-durable-explicit-source-2-of-2
+      - market-map-component-durable-explicit-source
+      - authenticated-chromium-F8s-market-map-watchlist-1-of-1
+      - frontend-vitest-907-of-907
+      - frontend-type-check
+      - frontend-build
+      - git-diff-check
+    notes:
+      - >-
+        The implementation is complete for the source contract. Exact V25 library/action geometry,
+        provider-backed saved-source bars/history, point-in-time saved memberships, and visual-board
+        gaps remain tracked. Acceptance flexibility used: None. The initial browser failure was a
+        hidden-locator test-order defect and was repaired by saving before the map-to-breadth handoff.
+
   - id: tc2000-hard-watchlist-heatmap-audit-20260819
     title: Confirm locked constituent universes use the universal watchlist heatmap
     status: completed

@@ -1,5 +1,30 @@
 # Active Handoff
 
+## 2026-08-19 — Durable explicit Market Map sources
+
+- Completed the next changeset context: arbitrary canonical members selected from any Market Map
+  source can be saved through `POST /api/v1/watchlists/sources/explicit` as a user-owned locked
+  `WorkspaceLibraryItem` and reappear as `explicit-list:<stable-key>` in the source catalog.
+- The backend deduplicates and validates canonical IDs, rejects missing instruments, retains
+  optional parent source/membership-version lineage, increments the library version on same-source
+  rename/update, and resolves saved members locally. Locked membership is intentional; follow/pin,
+  clone, selection, and downstream analysis remain available.
+- Market Map now offers Save as locked source for explicit symbols and selected map members. The
+  authenticated browser flow saves while the map is focused, then republishes the same selection
+  into Breadth after the map-to-tool focus transition. The previous failure was a hidden-map
+  locator in the test, not a product defect; it was corrected and the unchanged flow passes.
+- Validation: backend focused persistence integration `2/2`; Market Map unit `30/30`; full
+  frontend Vitest `907/907`; type-check; production build; authenticated Chromium
+  `F8s-market-map-watchlist` `1/1`; `git diff --check`. The seeded branch stack was rebuilt and
+  healthy before browser validation.
+- Acceptance flexibility: **None**. Remaining gaps are exact V25 source-library/action visuals,
+  provider-backed bars/history for arbitrary saved selections, point-in-time membership snapshots,
+  all-eight provider population/continuity, and the broader visual-board gaps. Do not infer those
+  from this source-contract completion.
+- Context files: backend watchlist source service/schema/router/test; Market Map component; focused
+  Market Map unit; authenticated flows test. Next context after commit closure: provider-backed
+  saved-source coverage and/or the next parity gap, beginning from a clean synchronized branch.
+
 ## 2026-08-19 — Hard constituent-watchlist heatmap audit
 
 - Confirmed the requested product model is already the implemented architecture: an index or

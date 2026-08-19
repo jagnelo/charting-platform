@@ -1,5 +1,25 @@
 # Run Report
 
+## 2026-08-19 — Durable explicit selections become reusable locked sources
+
+- Implemented a user-isolated durable source catalog for arbitrary canonical Market Map selections.
+  `POST /watchlists/sources/explicit` validates the security master, deduplicates up to 500 IDs,
+  stores parent lineage in a versioned library item, and exposes a locked `explicit-list:` source
+  through list and resolve APIs. Corrupt library payloads are isolated from the catalog rather than
+  widened or silently reconstructed.
+- Added Market Map save actions for explicit symbol entry and selected map members. The save clears
+  the transient selection, reloads the catalog, switches to the durable source, and reruns the map;
+  linked Breadth/Study Lab still receive the ephemeral explicit source when the user wants a quick
+  subset handoff without saving.
+- Evidence: backend durable-source integration `2/2`; Market Map unit `30/30`; full frontend
+  Vitest `907/907`; type-check; production build; authenticated Chromium
+  `F8s-market-map-watchlist` `1/1`; `git diff --check`. A first browser attempt tried to fill a
+  map control after the map had correctly ceded focus to Breadth; the test was reordered to save
+  before the handoff and passed unchanged. Acceptance flexibility: **None**.
+- Open gaps remain explicit: exact V25 source-library visuals, provider-backed saved-source bars/
+  history, point-in-time saved membership, all-eight family provider continuity, and remaining
+  visual-board states.
+
 ## 2026-08-19 — Locked constituent sources confirmed as universal heatmap watchlists
 
 - Audited the requested TC2000-style interpretation. Index/index-ETF constituents already enter
