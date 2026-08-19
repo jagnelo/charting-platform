@@ -350,7 +350,14 @@ function copyPythonPlot(index: number, target: string) {
     if (target === 'linked' ? window.tool_type !== 'chart' || window.link_group !== props.linkGroup : window.instance_key !== target) continue
     if (window.tool_type === 'watchlist') {
       const columns = Array.isArray(window.configuration.python_columns) ? window.configuration.python_columns : []
-      if (!columns.some((column: any) => column?.code_version_id === plot.code_version_id)) window.configuration.python_columns = [...columns, { code_version_id: plot.code_version_id, name: plot.name, timeframe: plot.timeframe ?? chartStore.timeframe }]
+      const column = { code_version_id: plot.code_version_id, name: plot.name, timeframe: plot.timeframe ?? chartStore.timeframe }
+      if (!columns.some((candidate: any) => candidate?.code_version_id === plot.code_version_id)) window.configuration.python_columns = [...columns, column]
+      // Customized watchlists use column_keys as an explicit visibility list.
+      // Register the copied Python column there as well, otherwise the
+      // definition is persisted but remains invisible in the target header.
+      const columnKey = `python:${plot.code_version_id}`
+      const columnKeys = Array.isArray(window.configuration.column_keys) ? window.configuration.column_keys : []
+      if (!columnKeys.includes(columnKey)) window.configuration.column_keys = [...columnKeys, columnKey]
     } else {
       const plots = Array.isArray(window.configuration.python_plots) ? window.configuration.python_plots : []
       if (!plots.some((candidate: any) => candidate?.code_version_id === plot.code_version_id && candidate?.instance_key === plot.instance_key)) window.configuration.python_plots = [...plots, { ...plot, hidden: false, instance_key: `${plot.code_version_id}-${Date.now().toString(36)}` }]

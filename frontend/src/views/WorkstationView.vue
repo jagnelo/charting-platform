@@ -1296,6 +1296,10 @@ type MapAnalysisPublication = {
 
 async function publishMapAnalysis(publication: MapAnalysisPublication) {
   if (!publication.sourceId) return
+  // Let the source tool's selection/layout event settle before switching the
+  // destination. This avoids applying the publication to a stale Golden Layout
+  // root when the handoff follows a selection click in the same turn.
+  await nextTick()
   const analysisSource = resolveMarketMapAnalysisSource({
     sourceId: publication.sourceId,
     scope: publication.scope,
@@ -1327,6 +1331,7 @@ async function publishMapAnalysis(publication: MapAnalysisPublication) {
     if (existing) {
       if (workspaceStore.activeTabKey !== existing.tab.stable_key) selectWorkspaceTab(existing.tab.stable_key)
       workspaceStore.setActiveWindow(existing.window.instance_key)
+      await nextTick()
       updateToolConfiguration(existing.window.instance_key, {
         ...existing.window.configuration,
         custom_universe_kind: 'watchlist',
@@ -1453,7 +1458,7 @@ function compareSymbols(symbols: string[]) {
   })
 }
 
-function openMarketMapRatio(symbols: string[]) {
+async function openMarketMapRatio(symbols: string[]) {
   const normalized = [...new Set(symbols.map(symbol => symbol.trim().toUpperCase()).filter(Boolean))].slice(0, 2)
   const numerator = normalized[0]
   const denominator = normalized[1] ?? activeSymbol.value.trim().toUpperCase()
@@ -1466,12 +1471,17 @@ function openMarketMapRatio(symbols: string[]) {
     workspaceStore.error = 'Open a Relative Strength tool to create a ratio.'
     return
   }
+  // Activate the canonical ratio window before publishing its configuration.
+  // Golden Layout can emit a trailing layout snapshot during activation; doing
+  // this first prevents that observational snapshot from restoring the old
+  // expression over the user-requested ratio.
+  workspaceStore.setActiveWindow(ratio.instance_key)
+  await nextTick()
   updateToolConfiguration(ratio.instance_key, {
     ...ratio.configuration,
     expression: `=${numerator}/${denominator}`,
     auto_ratio: false,
   })
-  workspaceStore.setActiveWindow(ratio.instance_key)
 }
 
 async function handleRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }) {
@@ -1500,12 +1510,13 @@ async function handleRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 
       workspaceStore.error = 'Open a Relative Strength tool to create a ratio.'
       return
     }
+    workspaceStore.setActiveWindow(ratio.instance_key)
+    await nextTick()
     updateToolConfiguration(ratio.instance_key, {
       ...ratio.configuration,
       expression: `=${numerator}/${denominator}`,
       auto_ratio: false,
     })
-    workspaceStore.setActiveWindow(ratio.instance_key)
     return
   }
   await selectSymbol(row.symbol, undefined, false, row.instrumentId)

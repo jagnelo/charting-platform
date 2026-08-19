@@ -369,7 +369,9 @@ test.describe('Chart', () => {
     const canvas = chart.locator('.uplot-wrapper').first()
     const box = await canvas.boundingBox()
     expect(box).not.toBeNull()
-    const over = await chart.locator('.u-over').first().boundingBox()
+    const overLayer = chart.locator('.u-over').first()
+    await expect(overLayer).toBeVisible({ timeout: 15_000 })
+    const over = await overLayer.boundingBox()
     expect(over).not.toBeNull()
     // The product handler defines the price-scale gutter relative to uPlot's
     // rendered interaction layer, not the outer wrapper. Use that same edge so
@@ -2593,7 +2595,7 @@ test.describe('TC2000 workstation', () => {
     await expect(study).toBeVisible({ timeout: 10_000 })
     await study.getByRole('combobox', { name: 'Factory study' }).selectOption('breadth_thrust_90_90')
     await expect(study.getByRole('textbox', { name: 'Study Python source' })).toHaveValue(/research\.breadth_thrust\(dataset, 90\)/)
-    await study.getByRole('textbox', { name: 'Study universe' }).fill('SPY, XLK, XLE')
+    await study.getByRole('textbox', { name: 'Study universe', exact: true }).fill('SPY, XLK, XLE')
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
     await study.getByRole('button', { name: 'Run', exact: true }).click()
@@ -2615,7 +2617,7 @@ test.describe('TC2000 workstation', () => {
     await expect(study).toBeVisible({ timeout: 10_000 })
     await study.getByRole('combobox', { name: 'Factory study' }).selectOption('breadth_thrust_history_90_90')
     await expect(study.getByRole('textbox', { name: 'Study Python source' })).toHaveValue(/research\.breadth_thrust_history\(dataset, 90\)/)
-    await study.getByRole('textbox', { name: 'Study universe' }).fill('SPY, XLK, XLE')
+    await study.getByRole('textbox', { name: 'Study universe', exact: true }).fill('SPY, XLK, XLE')
     await study.getByRole('button', { name: 'Validate' }).click()
     await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
     await study.getByRole('button', { name: 'Run', exact: true }).click()
