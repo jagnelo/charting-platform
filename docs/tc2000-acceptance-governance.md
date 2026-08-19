@@ -1,5 +1,20 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Source-polymorphic Market Map and historical classification gate
+
+The acceptance model treats an index/index-ETF constituent universe as a locked, platform-owned
+watchlist, not as a separate heatmap product. Arbitrary personal, combo, explicit, sector,
+industry, managed, ETF, and index sources must use the same Market Map contract; only membership
+mutation permissions differ. This is a functional invariant and is covered separately from exact
+Version 25 visual parity.
+
+For historical system-managed maps, current classification metadata is not an acceptable hidden
+fallback. The backend must use a profile snapshot observed at or before the requested evaluation
+time, return its provenance, and mark absent evidence as `Unclassified` with a structured warning.
+The frontend must expose that provenance in the member detail. No acceptance flexibility was used
+for this gate. The reference board does not yet contain an authoritative exact-build capture of
+the provenance detail, so its geometry/copy remains a tracked `required_missing` visual state.
+
 ## 2026-08-19 — Repeated Market Map close/reopen must preserve the workstation
 
 The family acceptance gate now opens and closes the universal Market Map for every configured US

@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-08-19 — Historical Market Map grouping is classification-safe
+
+- [x] Treat a platform-controlled index/ETF constituent set and an arbitrary user watchlist as
+      the same Market Map source contract. The source's lock state controls membership editing only;
+      the same heatmap, breadth, chart, ratio, scan, gauge, and Study Lab actions remain available
+      for personal, combo, explicit, sector, industry, index, and ETF sources.
+- [x] Prevent historical maps from leaking today's `Instrument.equity_detail` sector/industry into
+      an earlier evaluation. When `end`/`as_of` selects a historical system-managed source, grouping
+      now uses the latest local profile snapshot observed at or before that timestamp and exposes
+      its snapshot/provider provenance on each cell. If no dated classification exists, the member
+      is explicitly `Unclassified` with `historical_classification_unavailable`; it is never placed
+      into a current classification by fallback.
+- [x] Render the classification-snapshot provenance in the Market Map hover detail and cover both
+      the dated and missing-snapshot branches with Docker-backed integration assertions. Focused
+      unit/integration/frontend checks pass (`5`, `47`, and `32` respectively), plus Ruff,
+      compileall, type-check, build, and diff checks. Acceptance flexibility used: **None**.
+- [ ] Exact V25 provenance/hover geometry remains a board gap; provider-backed family population,
+      point-in-time holdings/weights, canonical member bars, and remaining visual acceptance are
+      still open and are not waived by this correctness fix.
+
 ### 2026-08-19 — Repeated family Map open/close is Golden Layout-safe
 
 - [x] Keep the universal Market Map action usable while drilling through all eight configured US

@@ -370,7 +370,10 @@ class TestWatchlistsCrud:
                     observed_at=now + timedelta(days=5),
                     fetched_at=now + timedelta(days=6),
                     profile_hash="market-cap-map-a",
-                    payload={"market_cap": 900},
+                    payload={
+                        "market_cap": 900,
+                        "extra": {"sector": "Technology", "industry": "Hardware"},
+                    },
                 ),
                 InstrumentProfileSnapshot(
                     instrument_id=instrument_b.id,
@@ -379,7 +382,13 @@ class TestWatchlistsCrud:
                     observed_at=now + timedelta(days=5),
                     fetched_at=now + timedelta(days=6),
                     profile_hash="market-cap-map-b",
-                    payload={"extra": {"market_cap": 600}},
+                    payload={
+                        "extra": {
+                            "market_cap": 600,
+                            "sector": "Industrials",
+                            "industry": "Machinery",
+                        }
+                    },
                 ),
             ]
         )
@@ -430,6 +439,35 @@ class TestWatchlistsCrud:
         assert not any(item["code"] == "current_area_not_point_in_time" for item in body["warnings"])
         assert any(item["code"] == "profile_snapshot_unranked_source" for item in body["warnings"])
         assert {node["label"] for node in body["nodes"]} >= {"Technology", "Hardware", "Industrials", "Machinery"}
+        cells = {cell["symbol"]: cell for cell in body["cells"]}
+        assert cells["AAPL"]["classification_provenance"]["kind"] == "point_in_time_profile_snapshot"
+        assert cells["AAPL"]["classification_provenance"]["snapshot_id"] > 0
+        assert cells["AAPL"]["sector"] == "Technology"
+        assert cells["MSFT"]["industry"] == "Machinery"
+
+        before_classification = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": "market-group:locked-sp500-fixture",
+                "group_by": "sector_industry",
+                "period": "CUSTOM",
+                "start": "2024-01-02T00:00:00Z",
+                "end": "2024-01-04T00:00:00Z",
+                "area_metric": "equal",
+                "color_metric": "return",
+            },
+        )
+        assert before_classification.status_code == 200, before_classification.text
+        before_body = before_classification.json()
+        assert {node["label"] for node in before_body["nodes"]} >= {"Unclassified"}
+        assert not {"Technology", "Hardware", "Industrials", "Machinery"}.intersection(
+            node["label"] for node in before_body["nodes"]
+        )
+        assert all(
+            any(item["code"] == "historical_classification_unavailable" for item in cell["warnings"])
+            for cell in before_body["cells"]
+        )
 
         weighted = client.post(
             "/api/v1/analysis/market-map",

@@ -887,6 +887,7 @@ export interface MarketMapCell {
   name: string
   sector?: string | null
   industry?: string | null
+  classification_provenance?: Record<string, unknown> | null
   group_path: string[]
   area_value?: number | null
   area_provenance?: Record<string, unknown> | null

@@ -167,10 +167,34 @@ def _colour(
     return latest / min(window) - 1 if min(window) else None, None, None, None
 
 
-def _group_path(request: MarketMapRequest, instrument: Instrument) -> list[str]:
+def _group_path(
+    request: MarketMapRequest,
+    instrument: Instrument,
+    *,
+    classification: dict[str, object] | None = None,
+    historical: bool = False,
+) -> list[str]:
+    """Build a map group path without leaking current labels into as-of maps.
+
+    Current maps use the canonical equity detail read model.  Historical
+    system-managed sources may only use a profile snapshot observed on or before
+    the evaluation end; callers pass ``classification`` in that case.  Missing
+    historical evidence intentionally remains ``Unclassified`` instead of
+    silently falling back to today's sector/industry.
+    """
+
     detail = instrument.equity_detail
-    sector = (detail.sector if detail else None) or "Unclassified"
-    industry = (detail.industry if detail else None) or "Unclassified"
+    point_in_time = classification or {}
+    sector = (
+        point_in_time.get("sector")
+        if historical
+        else (detail.sector if detail else None)
+    ) or "Unclassified"
+    industry = (
+        point_in_time.get("industry")
+        if historical
+        else (detail.industry if detail else None)
+    ) or "Unclassified"
     if request.group_by == "none":
         return []
     if request.group_by == "sector":
@@ -387,6 +411,33 @@ def _snapshot_numeric_value(
     except (TypeError, ValueError):
         return None
     return numeric if math.isfinite(numeric) and numeric > 0 else None
+
+
+def _snapshot_classification(snapshot: InstrumentProfileSnapshot) -> dict[str, object] | None:
+    """Extract source-labelled sector/industry fields from a profile snapshot."""
+
+    payload = snapshot.payload if isinstance(snapshot.payload, dict) else {}
+    extra = payload.get("extra")
+    extra = extra if isinstance(extra, dict) else {}
+    values: dict[str, object] = {}
+    for field in ("sector", "industry"):
+        value = payload.get(field)
+        if value in (None, ""):
+            value = extra.get(field)
+        if isinstance(value, str) and value.strip():
+            values[field] = " ".join(value.split())
+    if not values:
+        return None
+    return {
+        **values,
+        "kind": "point_in_time_profile_snapshot",
+        "snapshot_id": snapshot.id,
+        "data_source_id": snapshot.data_source_id,
+        "provider_name": snapshot.data_source.name if snapshot.data_source is not None else None,
+        "observed_at": snapshot.observed_at.isoformat(),
+        "fetched_at": snapshot.fetched_at.isoformat(),
+        "point_in_time": True,
+    }
 
 
 def _as_utc(value: datetime) -> datetime:
@@ -676,6 +727,7 @@ def _cache_key(
     profile_snapshot_watermark: datetime | None = None,
     profile_snapshot_ids: list[int] | None = None,
     profile_snapshot_policy_fingerprint: str | None = None,
+    classification_snapshot_ids: list[int] | None = None,
 ) -> str:
     """Build a deterministic identity for one source/data snapshot.
 
@@ -700,6 +752,7 @@ def _cache_key(
         ),
         "profile_snapshot_ids": sorted(profile_snapshot_ids or []),
         "profile_snapshot_policy_fingerprint": profile_snapshot_policy_fingerprint,
+        "classification_snapshot_ids": sorted(classification_snapshot_ids or []),
     }
     return hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
 
@@ -799,6 +852,9 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
     profile_snapshot_revision_missing_ids: set[int] = set()
     profile_snapshot_conflicts_by_id: dict[int, dict[str, object]] = {}
     profile_snapshot_candidate_ids: set[int] = set()
+    profile_snapshot_rows_by_instrument: dict[int, list[InstrumentProfileSnapshot]] = defaultdict(list)
+    classification_by_id: dict[int, dict[str, object]] = {}
+    classification_snapshot_ids: list[int] = []
     profile_snapshot_area = request.area_metric in {"market_cap", "field"}
     profile_snapshot_field = request.area_field if request.area_metric == "field" else "market_cap"
     if profile_snapshot_area and member_ids:
@@ -824,10 +880,9 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
                 )
             )
         ).scalars().all()
-        snapshots_by_instrument: dict[int, list[InstrumentProfileSnapshot]] = defaultdict(list)
         for snapshot in profile_snapshot_rows:
-            snapshots_by_instrument[snapshot.instrument_id].append(snapshot)
-        for instrument_id, candidates in snapshots_by_instrument.items():
+            profile_snapshot_rows_by_instrument[snapshot.instrument_id].append(snapshot)
+        for instrument_id, candidates in profile_snapshot_rows_by_instrument.items():
             profile_snapshot_candidate_ids.update(snapshot.id for snapshot in candidates)
             conflict = _profile_field_conflict(candidates, profile_snapshot_field)
             value_candidates = [
@@ -865,6 +920,45 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         # Include competing candidates, not only the selected row, so a newly ingested
         # disagreement cannot reuse a cache entry whose provenance was computed before it.
         profile_snapshot_ids = sorted(profile_snapshot_candidate_ids)
+    historical_grouping = _membership_evaluation_timestamp(request) is not None
+    if historical_grouping and member_ids:
+        # Historical system-managed maps must not use today's classification. Reuse the
+        # profile rows already loaded for point-in-time area fields, or load the same bounded
+        # local snapshot set when the map is equal/weight/volume sized.
+        if not profile_snapshot_rows_by_instrument:
+            classification_rows = (
+                await db.execute(
+                    select(InstrumentProfileSnapshot)
+                    .options(selectinload(InstrumentProfileSnapshot.data_source))
+                    .where(
+                        InstrumentProfileSnapshot.instrument_id.in_(member_ids),
+                        InstrumentProfileSnapshot.observed_at <= end_hint,
+                    )
+                    .order_by(
+                        InstrumentProfileSnapshot.instrument_id,
+                        InstrumentProfileSnapshot.observed_at.desc(),
+                        InstrumentProfileSnapshot.id.desc(),
+                    )
+                )
+            ).scalars().all()
+            for snapshot in classification_rows:
+                profile_snapshot_rows_by_instrument[snapshot.instrument_id].append(snapshot)
+        for instrument_id, candidates in profile_snapshot_rows_by_instrument.items():
+            selected: tuple[InstrumentProfileSnapshot, dict[str, object]] | None = None
+            for candidate in sorted(
+                candidates,
+                key=lambda item: (item.observed_at, item.id),
+                reverse=True,
+            ):
+                classification = _snapshot_classification(candidate)
+                if classification is not None:
+                    selected = (candidate, classification)
+                    break
+            if selected is None:
+                continue
+            snapshot, classification = selected
+            classification_by_id[instrument_id] = classification
+            classification_snapshot_ids.append(snapshot.id)
     reference_bars: list[object] = []
     reference = None
     reference_source = None
@@ -999,6 +1093,7 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         profile_snapshot_watermark,
         profile_snapshot_ids,
         profile_snapshot_policy_fingerprint,
+        classification_snapshot_ids,
     )
     python_values, python_output_contract = ({}, "")
     if (
@@ -1244,9 +1339,28 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
                     warnings.append(_warning("missing_market_cap", "No market-cap value is available.", instrument_id=instrument_id))
                 else:
                     warnings.append(_warning("current_market_cap", "Market-cap area uses the latest stored value and is not point-in-time.", instrument_id=instrument_id))
-        path = _group_path(request, instrument)
+        classification = classification_by_id.get(instrument_id) if historical_grouping else None
+        path = _group_path(
+            request,
+            instrument,
+            classification=classification,
+            historical=historical_grouping,
+        )
         if path and "Unclassified" in path:
-            warnings.append(_warning("missing_classification", "Sector or industry classification is unavailable; grouped under Unclassified.", instrument_id=instrument_id))
+            warnings.append(
+                _warning(
+                    "historical_classification_unavailable"
+                    if historical_grouping
+                    else "missing_classification",
+                    (
+                        "No sector or industry profile snapshot is known at the map evaluation time; "
+                        "grouped under Unclassified."
+                        if historical_grouping
+                        else "Sector or industry classification is unavailable; grouped under Unclassified."
+                    ),
+                    instrument_id=instrument_id,
+                )
+            )
         color_coverage = 1.0 if colour is not None else 0.0
         area_coverage = 1.0 if area is not None and math.isfinite(area) and area > 0 else 0.0
         coverage = min(color_coverage, area_coverage)
@@ -1254,8 +1368,9 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
             instrument_id=instrument_id,
             symbol=instrument.symbol,
             name=instrument.name,
-            sector=instrument.equity_detail.sector if instrument.equity_detail else None,
-            industry=instrument.equity_detail.industry if instrument.equity_detail else None,
+            sector=(classification or {}).get("sector") if historical_grouping else (instrument.equity_detail.sector if instrument.equity_detail else None),
+            industry=(classification or {}).get("industry") if historical_grouping else (instrument.equity_detail.industry if instrument.equity_detail else None),
+            classification_provenance=(classification if historical_grouping else None),
             group_path=path,
             area_value=area,
             area_provenance=area_provenance,
@@ -1281,8 +1396,26 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
         parent = None if not path else ("root" if len(path) == 1 else "group:" + "/".join(path[:-1]))
         metric, method = _node_metric(bucket, request.area_metric)
         node_warnings = []
-        if any(any(item.code == "missing_classification" for item in cell.warnings) for cell in bucket):
-            node_warnings.append(_warning("missing_classification", "At least one member lacks a verified classification.", node_id=node_id))
+        if any(
+            any(
+                item.code in {"missing_classification", "historical_classification_unavailable"}
+                for item in cell.warnings
+            )
+            for cell in bucket
+        ):
+            node_warnings.append(
+                _warning(
+                    "historical_classification_unavailable"
+                    if historical_grouping
+                    else "missing_classification",
+                    (
+                        "At least one member lacks a classification snapshot at the map evaluation time."
+                        if historical_grouping
+                        else "At least one member lacks a verified classification."
+                    ),
+                    node_id=node_id,
+                )
+            )
         nodes.append(MarketMapNode(
             node_id=node_id,
             parent_id=parent,

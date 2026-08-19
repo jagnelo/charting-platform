@@ -253,7 +253,7 @@
         <p v-else-if="visibleLayoutCells.length < visibleCells.length" class="market-map-tool__status">{{ visibleCells.length - visibleLayoutCells.length }} member(s) have no valid area value and are excluded from tile geometry.</p>
       </div>
     </div>
-    <aside v-if="hoveredCell" class="market-map-tool__hover" role="status"><strong>{{ hoveredCell.symbol }}</strong><span>{{ hoveredCell.name }}</span><span>{{ hoveredCell.group_path.join(' · ') || 'All members' }}</span><span>Combined {{ coveragePercent(hoveredCell.coverage, 0) }}% · Colour {{ coveragePercent(hoveredCell.color_coverage, hoveredCell.coverage) }}% · Area {{ coveragePercent(hoveredCell.area_coverage, hoveredCell.coverage) }}%</span><span v-if="hoveredCell.warnings.length">{{ hoveredCell.warnings.map(item => item.message).join(' · ') }}</span></aside>
+    <aside v-if="hoveredCell" class="market-map-tool__hover" role="status"><strong>{{ hoveredCell.symbol }}</strong><span>{{ hoveredCell.name }}</span><span>{{ hoveredCell.group_path.join(' · ') || 'All members' }}</span><span>Combined {{ coveragePercent(hoveredCell.coverage, 0) }}% · Colour {{ coveragePercent(hoveredCell.color_coverage, hoveredCell.coverage) }}% · Area {{ coveragePercent(hoveredCell.area_coverage, hoveredCell.coverage) }}%</span><span v-if="hoveredCell.classification_provenance">Classification snapshot · {{ formatClassificationProvenance(hoveredCell.classification_provenance) }}</span><span v-if="hoveredCell.warnings.length">{{ hoveredCell.warnings.map(item => item.message).join(' · ') }}</span></aside>
     <p v-if="!map && !loading" class="market-map-tool__status">Choose a canonical universe, personal watchlist, or explicit symbols to build a map.</p>
   </section>
 </template>
@@ -640,6 +640,13 @@ function formatMetric(value: number | null | undefined) {
   if (value == null || !Number.isFinite(value)) return '—'
   if (colorMetric.value === 'rsi_14') return value.toFixed(1)
   return `${(value * 100).toFixed(2)}%`
+}
+function formatClassificationProvenance(value: Record<string, unknown>) {
+  const provider = typeof value.provider_name === 'string' && value.provider_name.trim()
+    ? value.provider_name
+    : 'local snapshot'
+  const observed = typeof value.observed_at === 'string' ? value.observed_at.slice(0, 10) : null
+  return observed ? `${provider} · observed ${observed}` : provider
 }
 function tileClass(value: number | null | undefined) {
   if (value == null) return 'market-map-tool__tile--unknown'

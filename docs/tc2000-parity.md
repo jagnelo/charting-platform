@@ -1,5 +1,26 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Universal watchlist maps preserve historical classification provenance
+
+The heatmap remains one source-polymorphic Market Map: a platform-controlled index or ETF
+constituent set is simply a locked watchlist, while personal, combo, explicit, sector, industry,
+and managed lists use the same renderer and downstream actions. Locking changes membership
+permissions only; it does not remove follow, pin, breadth, chart, ratio, scan, gauge, or Study Lab
+operations.
+
+Historical system-managed requests no longer group members using the current canonical sector or
+industry row. They select the latest local profile snapshot observed at or before the map's
+`end`/`as_of`, retain the snapshot/provider metadata in `classification_provenance`, and render
+members with no dated classification as `Unclassified` plus an explicit
+`historical_classification_unavailable` warning. Market Map hover detail exposes the snapshot
+provider/date so users can distinguish dated classification from current metadata.
+
+Validation: focused Market Map unit `5/5`, Docker-backed watchlist integration `47/47`, frontend
+Market Map component `32/32`, Ruff, compileall, type-check, production build, and diff checks
+pass. Acceptance flexibility used: **None**. Exact V25 hover/provenance geometry is still a
+`required_missing` board reference; provider-backed family population, point-in-time holdings and
+weights, canonical member-bar history, and final visual acceptance remain open.
+
 ## 2026-08-19 — Family Market Map traversal is safe across repeated close/reopen cycles
 
 The source-polymorphic Map now survives the full family traversal, not only the final selected

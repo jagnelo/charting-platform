@@ -93,6 +93,7 @@ class MarketMapCell(BaseModel):
     name: str
     sector: str | None = None
     industry: str | None = None
+    classification_provenance: dict[str, object] | None = None
     group_path: list[str] = Field(default_factory=list)
     area_value: float | None = None
     area_provenance: dict[str, object] | None = None
