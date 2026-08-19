@@ -1,4 +1,32 @@
 tasks:
+  - id: tc2000-market-map-arbitrary-etf-bootstrap-20260819
+    title: Add arbitrary ETF sources from the universal Market Map
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Close the practical source-catalog gap for the source-polymorphic TC2000-style heatmap by
+      adding an explicit user-triggered ETF bootstrap action. Reuse the existing canonical
+      ETF/profile/holdings route, refresh the source catalog, and select the resulting locked
+      `etf-holdings:<SYMBOL>` source without introducing provider fan-out into ordinary map reads.
+    definition_of_done:
+      - Canonical ETF symbols are normalized and invalid input is rejected before a request
+      - Explicit bootstrap calls the existing ETF route and refreshes the canonical source catalog
+      - The resulting ETF source is locked/system-owned and pending when holdings are not hydrated
+      - The same Market Map, history, breadth, Study Lab, and downstream source contract is used
+      - Focused/full frontend tests, type-check, build, docs, and diff checks pass
+      - Exact V25 add-source/search geometry and provider completeness remain explicit gaps
+    validation:
+      - market-map-component-31-of-31
+      - frontend-vitest-913-of-913
+      - frontend-type-check-and-production-build
+      - git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. This is an explicit user-triggered bootstrap action;
+        ordinary Market Map/source reads remain provider-free. Exact V25 add-source visuals and
+        provider-backed holdings completeness remain open.
+
   - id: tc2000-universe-performance-map-nested-frames-20260819
     title: Expose nested sector and industry Market Map frames
     status: completed

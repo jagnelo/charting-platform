@@ -1,5 +1,20 @@
 # Active Handoff
 
+## 2026-08-19 — Market Map can explicitly add an arbitrary ETF source
+
+- Added an explicit `ETF universe` / `Load ETF` action beside the universal Market Map selector.
+  It normalizes a canonical symbol, calls the existing opt-in ETF bootstrap endpoint, refreshes the
+  canonical source catalog, and selects `etf-holdings:<SYMBOL>` through the existing locked-source
+  contract.
+- Pending bootstrap remains honest: if no usable holdings snapshot exists, the source is still
+  locked/followable and reports pending membership; ordinary Market Map reads remain provider-free.
+- Validation: focused Market Map `31/31`, full frontend Vitest `913/913`, type-check, production
+  build, docs parsing, and `git diff --check`. Acceptance flexibility: **None**.
+- Implementation/docs commit `f2b56591` is pushed and synchronized. The separate operational
+  checkpoint is pending. Remaining gaps: exact V25 add-source/search visuals, provider-backed
+  holdings completeness, historical continuity, all-family view/reuse acceptance, and final audit.
+- Next context: provider-backed saved-source/family population and remaining V25 visual/reference gaps.
+
 ## 2026-08-19 — Arbitrary Market Maps now expose nested sector/industry frames
 
 - Extended `MarketMapLayoutGroup` with stable hierarchy level and parent key. Nested frames are

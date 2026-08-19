@@ -1,5 +1,16 @@
 # Run Report
 
+## 2026-08-19 — Explicit arbitrary-ETF bootstrap enters the universal Market Map
+
+- Added a user-triggered `Load ETF` control. It invokes the existing canonical ETF bootstrap route,
+  reloads the source catalog, and selects the resulting locked `etf-holdings:<SYMBOL>` source.
+- Pending profile/holdings remains visible as pending; no provider fan-out was added to ordinary map
+  reads and no membership is fabricated.
+- Focused Market Map component `31/31`, full frontend Vitest `913/913`, type-check, production
+  build, docs parsing, and `git diff --check` passed. Acceptance flexibility: **None**.
+- Exact V25 add-source/search geometry, progress/error copy, provider-backed holdings, historical
+  continuity, and final acceptance remain open.
+
 ## 2026-08-19 — Nested sector/industry frames share the Market Map geometry pass
 
 - Added stable nested group-frame metadata (`level`, `parent_key`) and derived child rectangles from
