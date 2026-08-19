@@ -1,4 +1,30 @@
 tasks:
+  - id: tc2000-market-map-clone-retry-20260819
+    title: Make locked Market Map source clones resumable after member conflicts
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Preserve successful writes from a canonical locked index/ETF/watchlist snapshot clone,
+      disclose failed canonical IDs, and retry only the unfinished membership writes.
+    definition_of_done:
+      - Sequential clone writes leave a visible completed/total status and never hide partial state
+      - Retry targets only failed canonical instrument IDs and never mutates the locked source
+      - Source/date/membership provenance remains unchanged across retry
+      - Add focused unit, browser, and full frontend regression evidence
+    validation:
+      - market-map-component-29-of-29
+      - authenticated-chromium-F8s-market-map-watchlist-1-of-1-with-retry
+      - frontend-vitest-902-of-902
+      - frontend-type-check
+      - frontend-build
+      - git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. The browser harness allows only the one intentionally
+        injected handled 409 conflict; unrelated browser errors remain fatal. Exact V25 retry
+        visuals and provider-backed member history remain open.
+
   - id: tc2000-market-map-clone-dated-source-20260819
     title: Clone locked Market Map sources into dated personal watchlists
     status: completed

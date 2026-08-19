@@ -1,5 +1,16 @@
 # Run Report
 
+## 2026-08-19 — Recoverable partial source clone validation
+
+- Replaced all-or-nothing concurrent clone writes with sequential canonical membership writes and
+  an explicit retry of only failed IDs. The Market Map retains a visible partial copy rather than
+  silently losing the failure.
+- Focused Market Map unit `29/29`; rebuilt authenticated Chromium
+  `F8s-market-map-watchlist` `1/1` with a handled 409/conflict followed by retry; full Vitest
+  `902/902`; type-check; production build; and diff-check pass.
+- The browser harness whitelists only the declared handled 409. No product acceptance flexibility
+  was used. Exact V25 retry imagery and provider-backed member-history gaps remain open.
+
 ## 2026-08-19 — Canonical locked-source clone validation
 
 - Added and validated a durable clone operation for any selectable Market Map source. A locked

@@ -1,5 +1,17 @@
 # Active Handoff
 
+## 2026-08-19 — Locked-source clone retry checkpoint
+
+- Clone membership writes are now sequential and recoverable. A conflict leaves the personal copy
+  visible with completed/total and failed canonical IDs; `Retry failed` targets only those IDs and
+  preserves source/date/membership provenance.
+- Validation: focused Market Map unit `29/29`; authenticated Chromium
+  `F8s-market-map-watchlist` `1/1` with an injected 409 then successful retry; full frontend
+  Vitest `902/902`; type-check; production build; diff-check.
+- Implementation checkpoint pushed as `feat(market-map): retry partial source clones`. Acceptance
+  flexibility: **None**. Remaining: exact V25 retry visuals, provider member bars/history, and
+  all-eight family population.
+
 ## 2026-08-19 — Locked Market Map source cloning
 
 - Added `Clone snapshot` to the universal Market Map source controls. It resolves the complete

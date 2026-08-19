@@ -1,5 +1,16 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Source-clone recovery is explicit and source-polymorphic
+
+The shared Market Map treats an index/ETF constituent set as a locked watchlist and an optional
+personal clone as an editable watchlist; both remain in the same heatmap workflow. Clone writes
+are now sequential and observable. If a canonical member write conflicts, the partial copy reports
+the exact completed/total count and failed canonical IDs, and `Retry failed` retries only those IDs
+without changing the locked source or its dated provenance. Focused unit coverage is `29/29`, the
+authenticated Chromium clone/personal-list oracle is `1/1`, and full frontend Vitest is `902/902`
+with type-check/build/diff-check green. Exact V25 retry visuals and provider-backed member history
+remain open; no visual or data acceptance criterion was relaxed.
+
 ## 2026-08-19 — Locked source cloning is a shared watchlist operation
 
 Market Map now treats cloning as a source operation shared by locked index/ETF/managed sources

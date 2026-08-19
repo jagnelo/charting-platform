@@ -1,5 +1,18 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Locked-source clone conflicts must be recoverable, not blocking
+
+The universal watchlist acceptance gate requires clone membership writes to be sequential and
+observable. A recoverable conflict may leave a personal snapshot partially populated, but the UI
+must disclose `completed/total`, retain failed canonical IDs, and expose a retry that writes only
+those IDs. Successful writes must not be duplicated; the immutable source, membership version,
+composition/effective/known-at lineage, and source selection must remain unchanged. The focused
+unit gate is `29/29`; authenticated Chromium `F8s-market-map-watchlist` is `1/1`, including a
+conflict followed by retry; full frontend Vitest is `902/902`. The browser diagnostic whitelist is
+limited to the one intentionally injected handled 409; unrelated console/request failures remain
+fatal. Exact V25 retry geometry/copy and provider-backed source history are still open. Acceptance
+flexibility used: **None**.
+
 ## 2026-08-19 — Clone locked sources only from canonical resolved membership
 
 The universal watchlist contract now includes a durable `Clone snapshot` operation. The source

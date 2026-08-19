@@ -1,5 +1,15 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Clone retry state is a tracked visual gap
+
+The functional interim oracle now covers a locked source with one intentionally recoverable member
+conflict: the shared Market Map leaves a visible partial personal copy, identifies failed canonical
+IDs, and completes it through a retry action. The composite web-sourced board has no sufficiently
+authoritative exact-build V25 capture for partial counts, failed-ID disclosure, retry placement,
+busy/disabled treatment, retry success, or retry failure. These states remain `required_missing`;
+the functional test cannot approve pixel parity. No threshold, mask, or acceptance requirement was
+relaxed.
+
 ## 2026-08-19 — Clone snapshot behavior covered; V25 action visuals missing
 
 The working board now includes a shared `Clone snapshot` source action for locked and editable

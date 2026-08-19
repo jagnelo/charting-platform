@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-08-19 — Partial locked-source clones are resumable
+
+- [x] Make canonical-source cloning sequential and observable. A failed membership write no
+      longer aborts the whole operation or hides a partially created personal copy; successful
+      writes remain visible and failed canonical instrument IDs are retained for retry.
+- [x] Add a retry action that targets only the failed IDs, preserves the clone's source/date/
+      membership provenance, and reports `completed/total` plus pending IDs until the copy is
+      complete. This keeps locked index/ETF constituent sets immutable while making their optional
+      personal snapshot usable like any other editable watchlist.
+- [x] Validate focused Market Map unit coverage `29/29`, authenticated Chromium
+      `F8s-market-map-watchlist` `1/1` (including a recoverable 409 and retry), full frontend
+      Vitest `902/902`, type-check, production build, and diff-check.
+- [ ] Exact V25 partial/retry action geometry, copy, busy/error treatment, provider-backed member
+      bars/history, and all-eight family population remain open. Acceptance flexibility used:
+      **None**; the browser harness permits only the explicitly declared handled 409 response.
+
 ### 2026-08-19 — Locked Market Map sources can be cloned as dated watchlists
 
 - [x] Add `Clone snapshot` to the shared Market Map source controls. It resolves the complete
