@@ -1,5 +1,31 @@
 # Active Handoff
 
+## 2026-08-19 — DFTT identity-safe fallback completed
+
+- DFTT curated SEC identity (`0001314414 / S000093518 / C000261806 / DFTT`) now feeds the
+  existing fallback only when explicit caller identifiers are absent. Issuer failures remain in
+  provenance and the source stays a locked universal `WatchlistSource`.
+- Validation: focused DFTT `3/3`, complete adapter units `501/501`, Ruff, compileall, and diff
+  checks pass. The opt-in live probe could not resolve the issuer host in restricted DNS; this is
+  recorded as an external reachability gap. Acceptance flexibility: **None**.
+- Implementation/docs commit `66451b28` is pushed and synchronized. This context is closed.
+- Next context: continue remaining free-source family population, canonical member-bar history,
+  and board-guided V25 gaps; preserve the same source-polymorphic Market Map contract.
+
+## 2026-08-19 — DFTT identity-safe fallback in progress
+
+- Current context: `tc2000-donoghue-dftt-sec-fallback-20260819`; implementation files are
+  `backend/app/services/etf_holdings_adapters.py`, `backend/tests/unit/services/test_etf_holdings_adapters.py`,
+  and the live-oracle assertion in `backend/tests/live/test_etf_holdings_live_providers.py`.
+- DFTT now carries curated SEC identity (`0001314414 / S000093518 / C000261806 / DFTT`) into the
+  existing fallback only when explicit caller identifiers are absent. The universal locked
+  WatchlistSource/Market Map contract is unchanged.
+- Focused DFTT unit `3/3`, complete adapter unit `501/501`, Ruff, compileall, and diff checks pass.
+  The opt-in live probe could not resolve the issuer host in this restricted DNS environment;
+  live reachability is recorded as an external gap, not a waiver.
+- Next action: inspect the final diff, commit and push implementation/docs, then commit and push
+  the operational checkpoint and close context. No acceptance flexibility used.
+
 ## 2026-08-19 — Market Map selection handoffs completed
 
 - Lazard JPY implementation/docs `546228e7`, checkpoint `b68d91d8`, and final close `0fb99c29`

@@ -1,4 +1,30 @@
 tasks:
+  - id: tc2000-donoghue-dftt-sec-fallback-20260819
+    title: Repair or classify Donoghue Forlines DFTT holdings route
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Preserve the official DFTT issuer route as primary, add only verified SEC identity for a
+      bounded fallback, and feed the same locked WatchlistSource/Market Map contract without
+      creating a provider-specific heatmap or widening a registrant into another fund series.
+    definition_of_done:
+      - Curated CIK, series, class, and fund ticker identity are explicit and caller overrides remain authoritative
+      - Issuer failure and SEC fallback provenance remain visible with source format and filing identity
+      - Focused regression, adapter suite, Ruff, compileall, and diff checks pass
+      - Opt-in live route is either verified or explicitly recorded as externally unreachable
+      - Remaining provider, family-history, and exact V25 visual gaps remain explicit
+    validation:
+      - dftt-focused-unit-3-of-3
+      - etf-holdings-adapter-unit-501-of-501
+      - ruff-compileall-and-diff-check
+      - opt-in-live-dftt-network-probe
+    notes:
+      - >-
+        Acceptance flexibility used: None. The live probe may remain environment-blocked by DNS;
+        that does not waive identity, provenance, provider, or visual acceptance. Implementation/
+        docs commit 66451b28 is pushed; operational closure follows.
+
   - id: tc2000-market-map-selection-handoffs-20260819
     title: Complete Market Map selection handoffs to charts and relative-strength tools
     status: completed

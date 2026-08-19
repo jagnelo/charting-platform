@@ -1,5 +1,25 @@
 # Run Report
 
+## 2026-08-19 — DFTT identity-safe fallback completed
+
+- DFTT now has curated SEC identity propagation for the existing issuer-error fallback; explicit
+  caller identity remains authoritative and provenance remains truthful.
+- Evidence: focused DFTT `3/3`, adapter units `501/501`, Ruff, compileall, and diff checks.
+  Opt-in live probe was attempted but DNS could not resolve the issuer host in this environment.
+  Acceptance flexibility: **None**.
+- Implementation/docs `66451b28` is pushed and synchronized. Operational closure is the next
+  separate commit; next work remains family/provider population, canonical bars, and V25 gaps.
+
+## 2026-08-19 — DFTT identity-safe fallback in progress
+
+- Added curated SEC identity for DFTT and identity-safe fallback propagation after issuer-route
+  failure; explicit caller identifiers remain authoritative.
+- Updated the live oracle to accept either native issuer CSV or labelled SEC reconstruction.
+- Evidence so far: DFTT-focused `3/3`, adapter units `501/501`, Ruff, compileall, and diff checks.
+- Live DFTT probe attempted but DNS could not resolve the issuer host in the restricted environment;
+  this remains an external reachability gap. Acceptance flexibility: **None**.
+- Implementation/docs commit and operational checkpoint are pending closure of this context.
+
 ## 2026-08-19 — Market Map selection handoffs completed
 
 - Lazard JPY route repair is closed at implementation/docs `546228e7`, ops checkpoint `b68d91d8`,
