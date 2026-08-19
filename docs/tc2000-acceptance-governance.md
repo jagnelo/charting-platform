@@ -1,5 +1,21 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Role-aware locked-watchlist Map handoff
+
+The benchmark-family Map control is now governed as a role-aware locked-watchlist handoff. The
+selected family role is part of the canonical source identity, so equal/value/growth cannot be
+collapsed into the cap-weight source or reconstructed from a ticker. A role may be selected only
+when the overview reports an available symbol and verified holdings evidence; otherwise it remains
+visible as unavailable and the action is rejected. This is the tie-break for ambiguous role data:
+preserve the explicit unavailable state and fix the owning data/contract boundary before adding a
+fallback.
+
+The rebuilt authenticated equal-weight flow passes `F8s-family-map-drilldown` `1/1`, with full
+frontend Vitest `900/900`, type-check, build, and diff-check green. This does not waive provider,
+point-in-time, historical, or exact V25 visual criteria. Required follow-up remains role-member
+population and the missing selector/disabled-state visual references. Acceptance flexibility used:
+**None**.
+
 ## 2026-08-19 — Eight-root family entry oracle
 
 Authenticated Chromium `F8s-family-matrix` passes `1/1` across all eight required US benchmark

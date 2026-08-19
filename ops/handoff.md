@@ -1,5 +1,18 @@
 # Active Handoff
 
+## 2026-08-19 — Benchmark-family Map role selector
+
+- Added the persisted `Map role` selector to the selected-family benchmark surface. It supports
+  cap-weight/equal-weight/value/growth and emits the exact locked
+  `benchmark-family:<family>:<role>` source; unavailable or unverified roles remain visible but
+  disabled rather than falling back.
+- Rebuilt the authenticated stack before validation. `F8s-family-map-drilldown` selected S&P 500
+  → equal-weight and passed `1/1`; full frontend Vitest `900/900`, type-check, production build,
+  and diff-check passed.
+- Code checkpoint pushed as `feat(workstation): select benchmark family map role`. Acceptance
+  flexibility: **None**. Remaining: role member/bar population, point-in-time continuity,
+  all-family role reuse, and exact V25 selector/disabled-state visual references.
+
 ## 2026-08-19 — All-eight benchmark-family browser matrix
 
 - Added `F8s-family-matrix` (`1/1`) covering independent entry for S&P 500/400/600/1500, Russell

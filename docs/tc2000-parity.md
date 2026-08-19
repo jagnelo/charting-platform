@@ -1,5 +1,20 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Benchmark-family Market Map role selection
+
+The selected benchmark-family surface now has one explicit `Map role` control for cap-weight,
+equal-weight, value, and growth. It resolves the selected role to the canonical locked source
+`benchmark-family:<family>:<role>` and passes that identity into the same universal Market Map
+used by personal, ETF, combo, and other locked watchlists. Role options are disabled, not hidden,
+when the overview lacks a verified holdings-backed mapping; no proxy fallback is permitted.
+
+Authenticated Chromium `F8s-family-map-drilldown` passes `1/1` after selecting S&P 500 and
+equal-weight; the map requests `benchmark-family:sp500:equal_weight`. Full Vitest `900/900`,
+type-check, production build, and diff-check pass. This is functional parity evidence only:
+provider-backed role member rows/bars, point-in-time continuity, and all-eight role population
+remain open. Exact V25 selector geometry, option density, disabled treatment, and keyboard/focus
+states are `required_missing` on the composite board. Acceptance flexibility used: **None**.
+
 ## 2026-08-19 — All-eight benchmark-family browser entry matrix
 
 Authenticated Chromium `F8s-family-matrix` passes `1/1`. It selects each first-class S&P 500,

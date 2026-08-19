@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-08-19 — Benchmark-family Market Map role selector
+
+- [x] Add a persisted `Map role` selector to the selected benchmark-family surface. It exposes
+      cap-weight, equal-weight, value, and growth as one source-polymorphic Market Map choice,
+      while preserving the canonical `benchmark-family:<family>:<role>` identity.
+- [x] Keep role choices explicit and honest: a role is enabled only when the family overview
+      contains a symbol, `available !== false`, and verified holdings evidence. Unmapped or
+      unavailable roles stay visible but disabled; no role is silently substituted.
+- [x] Validate the rebuilt authenticated flow by selecting S&P 500 → equal-weight and proving
+      the Market Map opens `benchmark-family:sp500:equal_weight` (`F8s-family-map-drilldown`,
+      Chromium `1/1`). Full frontend Vitest `900/900`, type-check, production build, and
+      diff-check are green.
+- [ ] This is a role-aware handoff, not proof that all role constituent rows, provider-backed
+      bars, point-in-time holdings, historical rebalance continuity, or eight-family role data
+      are populated. Those remain open implementation gaps. The board also lacks exact V25
+      role-selector geometry and disabled-option imagery; no visual criterion was relaxed.
+
 ### 2026-08-19 — Authenticated all-eight US benchmark-family matrix
 
 - [x] Add `F8s-family-matrix`, an authenticated Chromium regression that selects every registered

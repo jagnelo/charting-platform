@@ -1,4 +1,30 @@
 tasks:
+  - id: tc2000-family-map-role-selector-20260819
+    title: Add role-aware benchmark-family Market Map selection
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Let the selected benchmark family choose a cap-weight/equal-weight/value/growth locked
+      constituent watchlist while retaining canonical family/role source identity and explicit
+      unavailable states.
+    definition_of_done:
+      - Enable a role only when the overview has a symbol and verified holdings evidence
+      - Keep unavailable roles visible and disabled with no silent proxy substitution
+      - Prove an authenticated S&P 500 equal-weight selection opens the equal-weight Market Map source
+      - Record provider, historical, all-family, and exact V25 visual gaps explicitly
+    validation:
+      - authenticated-chromium-F8s-family-map-drilldown-1-of-1-equal-weight
+      - frontend-vitest-900-of-900
+      - frontend-type-check
+      - frontend-build
+      - git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. This closes role-aware source selection only; it does
+        not claim provider-backed role rows/bars, point-in-time continuity, or exact V25 selector
+        imagery.
+
   - id: tc2000-all-eight-family-browser-matrix-20260819
     title: Validate all eight US benchmark-family browser entry points
     status: completed

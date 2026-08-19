@@ -1,5 +1,15 @@
 # Run Report
 
+## 2026-08-19 — Role-aware benchmark-family Market Map validation
+
+- Rebuilt the local authenticated stack from current source and ran the focused Chromium flow.
+  Selecting S&P 500 then `equal_weight` opens `benchmark-family:sp500:equal_weight` and renders
+  the locked map source (`F8s-family-map-drilldown`, `1/1`).
+- Frontend gates pass: Vitest `900/900`, type-check, production build, and `git diff --check`.
+- The changeset is pushed. No acceptance flexibility was used. Open gaps remain provider-backed
+  role rows/bars, historical membership continuity, all-eight role population, and exact V25
+  selector/disabled-option visual evidence.
+
 ## 2026-08-19 — All-eight benchmark-family browser matrix
 
 - Authenticated Chromium `F8s-family-matrix` passes `1/1` for all eight required US benchmark

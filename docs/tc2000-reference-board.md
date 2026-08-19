@@ -1,5 +1,18 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Role selector behavior covered; exact V25 imagery still missing
+
+The working product vision now includes a benchmark-family `Map role` control. The accepted
+behavior is a single selector for cap-weight/equal-weight/value/growth that opens a locked source
+with the exact family/role identity; unavailable roles remain visible and disabled. The rebuilt
+browser oracle covers the available equal-weight transition (`F8s-family-map-drilldown`, `1/1`).
+
+The composite web-sourced board has no authoritative exact-build V25 capture for this selector:
+its geometry, labels, disabled options, focus/keyboard treatment, loading/error state, and
+transition into the map are `required_missing`. Until those references are acquired, the browser
+oracle is the functional interim authority only; it cannot approve pixel parity. No threshold,
+mask, or acceptance requirement was relaxed.
+
 ## 2026-08-19 — Eight-root family selector remains functionally covered, visually incomplete
 
 The authenticated `F8s-family-matrix` browser oracle now exercises all eight benchmark-family
