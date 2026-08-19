@@ -3336,6 +3336,51 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8s-family-map-drilldown — selected benchmark family opens its locked constituent watchlist', async ({ page, browserDiagnostics }) => {
+    const requestedSources: string[] = []
+    await page.route('**/api/v1/market-groups/us-benchmarks*', async route => {
+      const response = await route.fetch()
+      const payload = await response.json() as Record<string, unknown>
+      const provenance = payload.provenance && typeof payload.provenance === 'object' ? payload.provenance as Record<string, unknown> : {}
+      await route.fulfill({ response, body: JSON.stringify({ ...payload, provenance: { ...provenance, benchmark_families: [{ logical_key: 'sp500', name: 'S&P 500', official_index_symbol: 'SPX', cap_weight: { symbol: 'SPY' } }] } }) })
+    })
+    await page.route('**/api/v1/market-groups/sp500*', async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ stable_key: 'sp500', name: 'S&P 500', members: [{ instrument: { id: 1, symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust' } }], provenance: { benchmark_family: 'sp500' } }) })
+    })
+    await page.route('**/api/v1/analysis/groups/sp500/snapshot*', async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ group_key: 'sp500', rows: [{ instrument_id: 1, symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', performance: {}, technical: {}, warnings: [] }], exclusions: [] }) })
+    })
+    await page.route('**/api/v1/analysis/benchmark-families/sp500/overview*', async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ family_key: 'sp500', name: 'S&P 500', official_index_symbol: 'SPX', mappings: [{ role: 'cap_weight', symbol: 'SPY', label: 'SPY', verification_state: 'verified', available: true, holdings_available: true, holdings_completeness_status: 'complete' }], rows: [], exclusions: [] }) })
+    })
+    await page.route('**/api/v1/watchlists/sources**', async route => {
+      const pathname = new URL(route.request().url()).pathname
+      if (pathname.includes('/history-status/')) {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ overall_status: 'ready', available_instrument_count: 1, selected_instrument_count: 1, timeframes: [{ timeframe: 'D1', member_count: 1, covered_member_count: 1, coverage_percent: 100 }] }) })
+        return
+      }
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ source_id: 'benchmark-family:sp500:cap_weight', source_kind: 'index_membership', name: 'S&P 500 constituents', locked: true, can_follow: true, can_clone: true, can_edit_membership: false, member_count: 1, membership_version: 'sp500:v1', provenance: { availability: 'available', membership_semantics: 'etf_proxy_holdings' } }]) })
+    })
+    await page.route('**/api/v1/analysis/market-map', async route => {
+      const body = route.request().postDataJSON() as { source_id?: string }
+      requestedSources.push(String(body.source_id ?? ''))
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ source: { source_id: body.source_id, source_kind: 'index_membership', name: 'S&P 500 constituents', locked: true, member_count: 1, membership_version: 'sp500:v1' }, group_by: 'sector_industry', period: '1D', timeframe: 'D1', adjustment: 'split_adjusted', area_metric: 'equal', color_metric: 'return', membership_version: 'sp500:v1', freshness: 'current', requested_count: 1, evaluated_count: 1, coverage: 1, color_coverage: 1, area_coverage: 1, warnings: [], exclusions: [], nodes: [{ node_id: 'root', level: 'root', label: 'All members', group_path: [], member_count: 1, covered_count: 1, area_total: 1, color_value: 0.01, coverage: 1, color_coverage: 1, area_coverage: 1, aggregation_method: 'equal_member_mean', warnings: [] }], cells: [{ instrument_id: 1, symbol: 'SPY', name: 'SPY', sector: 'Index', industry: 'ETF', group_path: ['Index', 'ETF'], area_value: 1, color_value: 0.01, return_value: 0.01, coverage: 1, color_coverage: 1, area_coverage: 1, warnings: [] }] }) })
+    })
+    await page.goto('/chart/SPY')
+    const benchmarkSurface = page.locator('.benchmark-surface').first()
+    await expect(benchmarkSurface).toBeVisible({ timeout: 15_000 })
+    await benchmarkSurface.getByRole('combobox', { name: 'Benchmark family' }).selectOption('sp500')
+    await expect(benchmarkSurface).toContainText('S&P 500 legs')
+    await benchmarkSurface.getByRole('button', { name: 'Open Market Map' }).click()
+    const mapWindow = page.locator('.tool-window:visible').filter({ has: page.locator('.market-map-tool') }).last()
+    await expect(mapWindow).toBeVisible({ timeout: 15_000 })
+    await expect(mapWindow.getByRole('combobox', { name: 'Market Map universe' })).toHaveValue('benchmark-family:sp500:cap_weight')
+    await expect.poll(() => requestedSources.at(-1), { timeout: 15_000 }).toBe('benchmark-family:sp500:cap_weight')
+    await expect(mapWindow).toContainText('Locked source')
+    await expect(mapWindow.locator('.market-map-tool__tile')).toHaveCount(1)
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8s-breadth — Market Breadth exposes universe-scoped loading and failure semantics', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart/SPY')
     await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 10_000 })
