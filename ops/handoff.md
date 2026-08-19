@@ -1,5 +1,24 @@
 # Active Handoff
 
+## 2026-08-19 — Saved-source known-at boundary reaches historical Market Map
+
+- Closed the next owning-boundary defect in the universal locked-watchlist model. Historical
+  Market Map requests now treat durable `explicit-list:<stable-key>` sources as point-in-time
+  snapshots and evaluate membership at the request `end`, matching direct source resolution and
+  Breadth/Python reuse. Before the saved version's `known_at`, the map returns zero members with
+  structured `membership_not_known_at_as_of` exclusions; after it, the exact saved canonical IDs
+  remain available. Ephemeral `explicit:<ids>` selections remain non-point-in-time transport
+  sources.
+- Validation: complete watchlists integration `45/45`; full frontend Vitest `909/909`; frontend
+  type-check and production build; backend compileall/Ruff; `git diff --check`. Implementation
+  commit `15811836b72cda4d471aeef5b801b091b57ea070` is pushed and origin is synchronized.
+- Acceptance flexibility: **None**. Remaining gaps are historical replacement retention across
+  renamed library items, provider-backed saved-source bars/history, all-eight family/provider
+  population and rebalance continuity, exact V25 source/action visuals, and broader visual-board
+  coverage. These remain tracked and are not silently treated as complete.
+- Next context: provider-backed saved-source coverage and family-role population/continuity, then
+  the next parity gap, from a clean synchronized branch.
+
 ## 2026-08-19 — Durable explicit source known-at semantics
 
 - Closed a historical-truth defect in the universal locked-watchlist model. Durable

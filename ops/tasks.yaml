@@ -1,4 +1,33 @@
 tasks:
+  - id: tc2000-market-map-saved-source-end-boundary-20260819
+    title: Apply saved-source known-at semantics to historical Market Map evaluation
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Treat durable explicit-list sources as point-in-time locked watchlists everywhere the
+      canonical source contract evaluates membership, including Market Map requests with an
+      historical end timestamp. Do not alter ephemeral explicit selections, which remain current
+      transport sources.
+    definition_of_done:
+      - Market Map uses the saved explicit source known_at boundary when request.end is supplied
+      - Pre-known-at historical maps return no members with membership_not_known_at_as_of exclusions
+      - Post-known-at maps retain the exact saved canonical membership
+      - Ephemeral explicit sources remain non-point-in-time
+      - Regression, full frontend, type/build, backend lint/compile, and diff checks pass
+    validation:
+      - backend-watchlists-integration-45-of-45
+      - frontend-vitest-909-of-909
+      - frontend-type-check
+      - frontend-build
+      - backend-compileall-and-ruff
+      - git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. This closes the Market Map evaluation-time boundary;
+        provider-backed bars/history, historical replacement retention, all-eight family/provider
+        continuity, exact V25 visuals, and remaining visual-board gaps remain open.
+
   - id: tc2000-saved-source-known-at-20260819
     title: Enforce point-in-time known-at semantics for durable explicit sources
     status: completed

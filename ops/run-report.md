@@ -1,5 +1,20 @@
 # Run Report
 
+## 2026-08-19 — Historical Market Map honors saved-source known-at boundaries
+
+- Durable `explicit-list:<stable-key>` sources now participate in Market Map's evaluation-time
+  membership policy. A historical `end` before `known_at` produces zero members plus structured
+  `membership_not_known_at_as_of` exclusions; a post-`known_at` request retains the exact locked
+  canonical snapshot. Ephemeral `explicit:<ids>` remains current/non-point-in-time.
+- Added the regression at the Market Map API boundary and documented the rule in the TODO, parity,
+  and reference-board records.
+- Evidence: complete watchlists integration `45/45`; frontend Vitest `909/909`; type-check;
+  production build; backend compileall/Ruff; `git diff --check`. Implementation/docs commit
+  `15811836b72cda4d471aeef5b801b091b57ea070` pushed successfully.
+- Acceptance flexibility: **None**. Provider-backed bars/history, historical replacement retention,
+  family/provider continuity, exact V25 source/action visuals, and remaining visual-board gaps are
+  explicit open work.
+
 ## 2026-08-19 — Durable explicit sources enforce known-at boundaries
 
 - Durable `explicit-list:<stable-key>` sources are now fixed user-owned snapshots for point-in-time
