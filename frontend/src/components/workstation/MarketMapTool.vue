@@ -664,27 +664,6 @@ function drawCanvas() {
   if (!context) return
   context.setTransform(dpr, 0, 0, dpr, 0, 0)
   context.clearRect(0, 0, width, height)
-  // Group boundaries keep the source hierarchy visible even when all members
-  // are painted through one canvas. The exact V25 treatment remains a visual
-  // reference gap; this is a low-cost, deterministic interim oracle.
-  for (const group of visibleLayoutGroups.value) {
-    const x = (group.x / 100) * width
-    const y = (group.y / 100) * height
-    const groupWidth = (group.width / 100) * width
-    const groupHeight = (group.height / 100) * height
-    context.strokeStyle = '#90a2b5'
-    context.lineWidth = 1
-    context.strokeRect(x + 0.5, y + 0.5, Math.max(0, groupWidth - 1), Math.max(0, groupHeight - 1))
-    if (groupWidth >= 92 && groupHeight >= 24) {
-      context.fillStyle = '#d4d9e2'
-      context.font = '600 11px Segoe UI, Arial, sans-serif'
-      context.textAlign = 'left'
-      context.textBaseline = 'top'
-      context.fillText(`${group.label} · ${group.member_count}`, x + 5, y + 4, Math.max(20, groupWidth - 10))
-      context.textAlign = 'center'
-      context.textBaseline = 'middle'
-    }
-  }
   context.font = '600 11px Segoe UI, Arial, sans-serif'
   context.textAlign = 'center'
   context.textBaseline = 'middle'
@@ -709,6 +688,27 @@ function drawCanvas() {
     if (tileWidth >= 54 && tileHeight >= 34) {
       context.font = '10px Segoe UI, Arial, sans-serif'
       context.fillText(formatMetric(cell.color_value), x + tileWidth / 2, y + tileHeight / 2 + 8, Math.max(10, tileWidth - 4))
+    }
+  }
+  // Paint hierarchy after member fills/text so group boundaries and labels
+  // remain visible in the large-universe canvas. The exact V25 treatment
+  // remains a visual reference gap; this is a low-cost, deterministic oracle.
+  for (const group of visibleLayoutGroups.value) {
+    const x = (group.x / 100) * width
+    const y = (group.y / 100) * height
+    const groupWidth = (group.width / 100) * width
+    const groupHeight = (group.height / 100) * height
+    context.strokeStyle = '#90a2b5'
+    context.lineWidth = 1
+    context.strokeRect(x + 0.5, y + 0.5, Math.max(0, groupWidth - 1), Math.max(0, groupHeight - 1))
+    if (groupWidth >= 92 && groupHeight >= 24) {
+      context.fillStyle = '#d4d9e2'
+      context.font = '600 11px Segoe UI, Arial, sans-serif'
+      context.textAlign = 'left'
+      context.textBaseline = 'top'
+      context.fillText(`${group.label} · ${group.member_count}`, x + 5, y + 4, Math.max(20, groupWidth - 10))
+      context.textAlign = 'center'
+      context.textBaseline = 'middle'
     }
   }
 }
