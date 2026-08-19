@@ -390,6 +390,21 @@ class TestWatchlistsCrud:
                         }
                     },
                 ),
+                # The provider claims this observation was valid on Jan 6, but
+                # it was not fetched until Jan 10.  It is future knowledge for
+                # the Jan 7 map and must not replace the snapshot known then.
+                InstrumentProfileSnapshot(
+                    instrument_id=instrument.id,
+                    data_source_id=profile_source.id,
+                    provider_symbol=instrument.symbol,
+                    observed_at=now + timedelta(days=5),
+                    fetched_at=now + timedelta(days=9),
+                    profile_hash="market-cap-map-future-known-at",
+                    payload={
+                        "market_cap": 9_999,
+                        "extra": {"sector": "Future Technology", "industry": "Leak"},
+                    },
+                ),
             ]
         )
         for offset, price in enumerate((100, 101, 102, 103, 104, 105, 106)):
@@ -432,6 +447,9 @@ class TestWatchlistsCrud:
         assert {cell["symbol"] for cell in body["cells"]} == {"AAPL", "MSFT"}
         cells = {cell["symbol"]: cell for cell in body["cells"]}
         assert cells["AAPL"]["area_value"] == 900
+        assert cells["AAPL"]["sector"] == "Technology"
+        assert cells["AAPL"]["industry"] == "Hardware"
+        assert cells["AAPL"]["area_value"] != 9_999
         assert cells["AAPL"]["area_provenance"]["kind"] == "point_in_time_profile_snapshot"
         assert cells["AAPL"]["area_provenance"]["entitlement_verified"] is False
         assert cells["AAPL"]["area_provenance"]["selection"] == "unranked_snapshot_fallback"

@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-08-19 — Historical Market Map snapshots respect the knowledge boundary
+
+- [x] Keep the universal heatmap/watchlist abstraction unchanged: platform-controlled index and
+      ETF constituent populations are locked `WatchlistSource` lists, while personal, combo,
+      sector, industry, managed, and explicit sources use the same Market Map and downstream
+      analysis contract.
+- [x] Exclude a profile snapshot from historical market-cap/classification selection when its
+      `fetched_at` is after the requested `end`/`as_of`. An old `observed_at` alone is not enough:
+      using a record that was only learned later would leak future knowledge into an as-of map.
+- [x] Add a Docker-backed regression with an observation dated before the map end but fetched after
+      it; the earlier known snapshot remains selected and the future snapshot cannot alter area,
+      sector, or industry output. Focused Market Map unit `5/5`, watchlist integration `47/47`,
+      full backend unit suite `1258/1258`, Ruff, compileall, and diff checks pass. Acceptance
+      flexibility used: **None**.
+- [ ] Provider-backed family population, canonical member-bar history, point-in-time holdings
+      completeness across all roots, exact V25 source/hover geometry, and final visual acceptance
+      remain open and separately tracked.
+
 ### 2026-08-19 — Historical Market Map grouping is classification-safe
 
 - [x] Treat a platform-controlled index/ETF constituent set and an arbitrary user watchlist as

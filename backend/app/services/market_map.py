@@ -873,6 +873,14 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
                 .where(
                     InstrumentProfileSnapshot.instrument_id.in_(member_ids),
                     InstrumentProfileSnapshot.observed_at <= end_hint,
+                    # ``observed_at`` describes when the provider says the
+                    # value was true; ``fetched_at`` is the knowledge boundary
+                    # for a reproducible as-of calculation.  A snapshot that
+                    # was only fetched after the requested evaluation time is
+                    # future information even when its observation date is in
+                    # the past, so it must not enter historical area or
+                    # classification selection.
+                    InstrumentProfileSnapshot.fetched_at <= end_hint,
                 )
                 .order_by(
                     InstrumentProfileSnapshot.instrument_id,
@@ -933,6 +941,7 @@ async def build_market_map(db: AsyncSession, user_id: int, request: MarketMapReq
                     .where(
                         InstrumentProfileSnapshot.instrument_id.in_(member_ids),
                         InstrumentProfileSnapshot.observed_at <= end_hint,
+                        InstrumentProfileSnapshot.fetched_at <= end_hint,
                     )
                     .order_by(
                         InstrumentProfileSnapshot.instrument_id,

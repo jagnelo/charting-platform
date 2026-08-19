@@ -1,5 +1,19 @@
 # TC2000 Workstation Acceptance Governance
 
+## 2026-08-19 — Historical Market Map records require observation and knowledge cutoffs
+
+For a historical Market Map over any locked index/ETF watchlist or arbitrary source, a profile
+snapshot is eligible only when both its provider observation date and its local `fetched_at` date
+are on or before the requested `end`/`as_of`. This prevents an observation backfilled later from
+changing an earlier heatmap's area, sector, or industry grouping. The rule is enforced in the
+shared backend source contract and is independent of whether the source is editable or locked.
+
+The regression intentionally includes an old observation fetched after the evaluation date; it is
+excluded and the earlier known snapshot remains visible. Focused Market Map unit `5/5`, Docker-
+backed watchlist integration `47/47`, full backend units `1258/1258`, Ruff, compileall, and diff
+checks pass. Acceptance flexibility used: **None**. The exact V25 warning/hover presentation is
+still `required_missing` where the reference board has no authoritative capture.
+
 ## 2026-08-19 — Source-polymorphic Market Map and historical classification gate
 
 The acceptance model treats an index/index-ETF constituent universe as a locked, platform-owned

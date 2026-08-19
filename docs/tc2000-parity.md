@@ -1,5 +1,20 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Historical Market Map selection is known-at safe
+
+The source-polymorphic Market Map continues to treat an index/ETF constituent population as a
+locked watchlist and personal, combo, sector, industry, managed, and explicit lists as the same
+heatmap contract with different membership permissions. Historical area and classification
+selection now requires both `observed_at <= end/as_of` and `fetched_at <= end/as_of`. A provider
+record that describes an earlier observation but was only learned later is future knowledge and is
+excluded rather than allowed to rewrite historical tiles or group labels.
+
+Validation: the Docker-backed watchlist regression includes a future-fetched snapshot and passes
+`47/47`; Market Map unit `5/5`; full backend unit suite `1258/1258`; Ruff, compileall, and diff
+checks pass. Acceptance flexibility used: **None**. The exact V25 knowledge-boundary warning and
+hover geometry remain a board gap; provider-backed family population, canonical member bars,
+point-in-time holdings completeness, and final visual acceptance remain open.
+
 ## 2026-08-19 — Universal watchlist maps preserve historical classification provenance
 
 The heatmap remains one source-polymorphic Market Map: a platform-controlled index or ETF
