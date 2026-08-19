@@ -13,9 +13,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY pyproject.toml uv.lock requirements.txt ./
 RUN uv export --locked --format requirements-txt --output-file /tmp/requirements.lock \
-    && cmp -s /tmp/requirements.lock requirements.txt \
+    && tail -n +3 /tmp/requirements.lock > /tmp/requirements.generated \
+    && tail -n +3 requirements.txt > /tmp/requirements.current \
+    && cmp -s /tmp/requirements.generated /tmp/requirements.current \
     && pip install --no-cache-dir -r /tmp/requirements.lock \
-    && rm -f /tmp/requirements.lock
+    && rm -f /tmp/requirements.lock /tmp/requirements.generated /tmp/requirements.current
 
 COPY . .
 
