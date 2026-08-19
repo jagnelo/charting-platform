@@ -1,4 +1,30 @@
 tasks:
+  - id: tc2000-universe-performance-map-nested-frames-20260819
+    title: Expose nested sector and industry Market Map frames
+    status: completed
+    priority: high
+    branch: feat/tc2000-frontend-rework
+    scope: >-
+      Extend source-polymorphic Market Map geometry from top-level group frames to nested group
+      frames derived from the existing member rectangles. Preserve parent keys, levels, member
+      counts, HTML non-interactive overlays, canvas rendering, and one member-geometry pass.
+    definition_of_done:
+      - Grouped sources expose top-level and nested group frames with stable parent keys and levels
+      - Sector → industry frames are visible for arbitrary classified watchlists
+      - HTML overlays remain non-interactive and canvas maps avoid proportional tile DOM
+      - Existing member selection, hover, zoom, pan, and keyboard paths remain unchanged
+      - Focused/full frontend tests, type-check, build, docs, and diff checks pass
+      - Exact V25 nested labels, borders, density, and hover treatment remain explicit gaps
+    validation:
+      - market-map-layout-and-component-35-of-35
+      - frontend-vitest-912-of-912
+      - frontend-type-check-and-production-build
+      - git-diff-check
+    notes:
+      - >-
+        Acceptance flexibility used: None. Nested frames are an interim functional oracle; exact
+        V25 visual treatment and provider-backed family membership/bar completeness remain open.
+
   - id: tc2000-universe-performance-map-canvas-label-regression-20260819
     title: Assert large-universe Market Map group paint ordering
     status: completed

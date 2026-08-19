@@ -1,5 +1,20 @@
 # Active Handoff
 
+## 2026-08-19 — Arbitrary Market Maps now expose nested sector/industry frames
+
+- Extended `MarketMapLayoutGroup` with stable hierarchy level and parent key. Nested frames are
+  derived from the already-computed member rectangles, so HTML and canvas paths share one geometry
+  pass and remain source-polymorphic for index, ETF, sector, industry, managed, combo, and personal
+  watchlists.
+- Child frames use a lighter border/typography treatment and remain pointer-transparent; canvas
+  maps retain one-canvas rendering and existing hit-testing/selection behavior.
+- Validation: focused layout/component `35/35`; full frontend Vitest `912/912`; type-check;
+  production build; and `git diff --check`. Acceptance flexibility: **None**.
+- Exact V25 nested group labels, gutters, density, hover treatment, and root/drill-down composition
+  remain reference-board gaps. Provider-backed family/source population remains open.
+- Implementation/docs commit and operational checkpoint are the next required writes. Next context
+  remains provider-backed family/source population and remaining V25 visual/reference gaps.
+
 ## 2026-08-19 — Canvas paint-order regression is now asserted directly
 
 - Strengthened the existing 10,000-member grouped canvas test with a grouped fixture and an

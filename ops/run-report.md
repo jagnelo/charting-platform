@@ -1,5 +1,16 @@
 # Run Report
 
+## 2026-08-19 — Nested sector/industry frames share the Market Map geometry pass
+
+- Added stable nested group-frame metadata (`level`, `parent_key`) and derived child rectangles from
+  the existing member layout. Arbitrary classified watchlists can now show sector → industry
+  hierarchy in the same heatmap contract as locked index/ETF sources.
+- HTML frames remain pointer-transparent; canvas maps draw the hierarchy without proportional tile
+  DOM. Focused layout/component `35/35`, full frontend Vitest `912/912`, type-check/build, and
+  `git diff --check` pass.
+- No acceptance flexibility, visual threshold, or mask relaxation. Exact V25 nested visuals and
+  provider-backed family/source completeness remain explicit gaps.
+
 ## 2026-08-19 — Large-universe canvas ordering is regression-tested
 
 - The 10,000-member grouped fixture now asserts that the final group boundary stroke is invoked
