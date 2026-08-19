@@ -8,8 +8,8 @@
   as a daily Thrivent export.
 - Validation: adapter/taxonomy `508/508`, focused provider regressions `11/11`, opt-in live TSCV
   `1/1`, Ruff, compileall, and `git diff --check` pass. Acceptance flexibility: **None**.
-- Implementation/docs commit `2e74bdb5` is pushed and synchronized; operational checkpoint follows.
-  Remaining gaps: other provider routes, all-eight family population, canonical member bars, historical continuity, entitlement/terms review, and exact
+- Implementation/docs commit `2e74bdb5` and operational checkpoint `f905183c` are pushed and
+  synchronized; this context is closed. Remaining gaps: other provider routes, all-eight family population, canonical member bars, historical continuity, entitlement/terms review, and exact
   V25 maintenance/fallback visuals.
 - Next context: continue the remaining provider failures and family-wide population.
 
