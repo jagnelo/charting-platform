@@ -1,5 +1,16 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-08-19 — Lazard issuer outage/fallback needs a V25 visual oracle
+
+The JPY locked source now has a functional outage path: Lazard directory 503, bounded SEC candidate
+search, wrong-series rejection, and identity-verified recovery. This is visible behavior required
+by the universal Market Map source lifecycle, but it is not a reason to invent a V25 screenshot.
+
+Gap status: `required_missing` for exact V25 provider outage, candidate rejection, fallback progress,
+stale/partial badges, retry, and recovery-complete visuals. Interim oracle: Lazard-focused tests `3/3`,
+SEC/parser/adapter units `507/507`, live JPY `1/1`, Ruff, compileall, and diff checks. No visual
+threshold or mask was relaxed.
+
 ## 2026-08-19 — Derivative-backed ETF exposure needs a V25 visual oracle
 
 The NVD source now has a real provider-backed state in which the issuer reports cash and an NVDA

@@ -325,7 +325,8 @@ async def test_sofi_archive_failure_uses_curated_sec_identity(monkeypatch):
     assert adapter is not None
     observed: dict[str, object] = {}
 
-    async def fake_sec_fallback(*, symbol, issuer_product_id, identifiers):
+    async def fake_sec_fallback(*, symbol, issuer_product_id, identifiers, max_filings=5):
+        del max_filings
         observed.update(
             {
                 "symbol": symbol,
@@ -15639,6 +15640,56 @@ async def test_lazard_adapter_discovers_product_id_and_parses_full_holdings(monk
     assert result.rows[2].holding_type == "forex"
     assert result.legal_metadata["composition_date"] == "2026-07-09"
     assert result.legal_metadata["route_resolution"] == "lazard_etf_directory_product_api"
+
+
+@pytest.mark.asyncio
+async def test_lazard_route_failure_uses_curated_sec_identity(monkeypatch):
+    adapter = get_holdings_adapter("lazard")
+    assert adapter is not None
+    observed: dict[str, object] = {}
+
+    async def fake_sec_fallback(*, symbol, issuer_product_id, identifiers, max_filings=5):
+        del max_filings
+        observed.update(
+            {
+                "symbol": symbol,
+                "issuer_product_id": issuer_product_id,
+                "identifiers": identifiers,
+            }
+        )
+        return HoldingsFetchResult(
+            rows=[CanonicalHoldingRow(symbol="8306", name="Mitsubishi UFJ")],
+            source_url="https://www.sec.gov/Archives/edgar/data/2051630/fixture.xml",
+            source_identifier="fixture",
+            legal_metadata={"route_resolution": "sec_edgar_filing_fallback"},
+        )
+
+    monkeypatch.setattr(adapter, "_fetch_latest_sec_filing_holdings", fake_sec_fallback)
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        httpx.Response(
+            status_code=503,
+            request=httpx.Request("GET", adapter.ETF_DIRECTORY_URL),
+        )
+        for _ in range(3)
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="JPY")
+
+    assert observed == {
+        "symbol": "JPY",
+        "issuer_product_id": None,
+        "identifiers": {
+            "sec_cik": "0002051630",
+            "sec_series_id": "S000091515",
+            "sec_class_id": "C000259183",
+            "sec_fund_tickers_symbol": "JPY",
+        },
+    }
+    assert result.legal_metadata["route_resolution"] == "sec_edgar_filing_fallback"
+    assert result.legal_metadata["issuer_route_fallback"] == "sec_edgar_filing"
+    assert "503" in result.legal_metadata["issuer_route_failure"]
 
 
 @pytest.mark.asyncio

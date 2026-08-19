@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-08-19 — Lazard JPY now recovers through identity-safe SEC fallback
+
+- [x] Reproduce Lazard's current ETF directory 503 and retain the directory/product API as the
+      primary route when available.
+- [x] Add curated JPY SEC identity (`CIK 0002051630`, series `S000091515`, class `C000259183`,
+      ticker `JPY`) and bounded SEC N-PORT fallback with issuer failure/provenance metadata.
+- [x] Search a wider but bounded set of registrant filings so JPY is not confused with Lazard's
+      other ETF series; the identity filter rejects wrong series before rows are accepted.
+- [x] Verify Lazard-focused tests `3/3`, SEC/parser/adapter units `507/507`, live JPY `1/1`, Ruff,
+      compileall, and diff checks.
+- [ ] Continue remaining provider-family, historical-bar, entitlement, and exact V25 maintenance/
+      fallback visual work; no acceptance threshold was relaxed.
+
 ### 2026-08-19 — GraniteShares NVD now uses its public exposure API
 
 - [x] Reproduce the current GraniteShares NVD page shape: the old workbook link is absent, but the

@@ -1,5 +1,18 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-08-19 — Lazard JPY route now has an identity-safe fallback
+
+Lazard's configured ETF directory currently returns 503. The adapter keeps that route as primary,
+then uses curated SEC identity for JPY (`0002051630 / S000091515 / C000259183`) and a bounded wider
+filing search. SEC N-PORT identity filtering rejects the other Lazard series before their holdings
+can populate the JPY locked watchlist, and the response retains issuer failure and fallback
+provenance.
+
+Lazard-focused tests pass `3/3`, SEC/parser/adapter units pass `507/507`, the opt-in live JPY probe
+passes `1/1`, and Ruff/compileall/diff checks pass. No acceptance flexibility was used. Remaining
+gaps are other provider routes, family-wide membership/bar history, historical continuity,
+entitlement review, and exact V25 maintenance/fallback visuals.
+
 ## 2026-08-19 — GraniteShares NVD is a derivative-exposure source, not a workbook
 
 GraniteShares' current NVD product page no longer exposes the workbook expected by the original

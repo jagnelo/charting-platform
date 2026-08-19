@@ -3234,6 +3234,16 @@ KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
             "sec_predecessor_class_id": "C000192803",
         },
     },
+    "JPY": {
+        "issuer": "Lazard Asset Management",
+        "provider_aliases": {
+            "holdings_adapter": "lazard",
+            "sec_cik": "0002051630",
+            "sec_series_id": "S000091515",
+            "sec_class_id": "C000259183",
+            "sec_fund_tickers_symbol": "JPY",
+        },
+    },
     # Direxion publishes QQQE's daily holdings as a public symbol-scoped CSV.
     # Keep the official product page beside the adapter identity so canonical
     # refresh can select the native route without issuer/name inference.
@@ -5659,19 +5669,53 @@ class LazardHoldingsAdapter(IssuerCsvHoldingsAdapter):
             normalized_identifiers, "issuer_product_id", "fund_id", "product_id"
         )
 
-        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
-            if not product_id:
-                product_id = await self._discover_product_id(client, symbol=normalized_symbol)
-            if not product_id:
-                raise ValueError(f"Lazard ETF product id not found for {normalized_symbol}.")
+        try:
+            async with httpx.AsyncClient(
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
+            ) as client:
+                if not product_id:
+                    product_id = await self._discover_product_id(client, symbol=normalized_symbol)
+                if not product_id:
+                    raise ValueError(f"Lazard ETF product id not found for {normalized_symbol}.")
 
-            resolved_url = source_url or self._product_api_url(product_id)
-            response = await self._get_with_timeout_retry(
-                client,
-                resolved_url,
-                headers=self.source_request_headers(source_url=resolved_url),
+                resolved_url = source_url or self._product_api_url(product_id)
+                response = await self._get_with_timeout_retry(
+                    client,
+                    resolved_url,
+                    headers=self.source_request_headers(source_url=resolved_url),
+                )
+                response.raise_for_status()
+        except (httpx.HTTPError, requests.RequestException, ValueError) as route_error:
+            fallback_identifiers = dict(normalized_identifiers)
+            route_metadata = known_etf_route_metadata(normalized_symbol)
+            provider_aliases = route_metadata.get("provider_aliases")
+            if isinstance(provider_aliases, dict):
+                for key in (
+                    "sec_cik",
+                    "sec_series_id",
+                    "sec_class_id",
+                    "sec_fund_tickers_symbol",
+                ):
+                    value = _identifier(provider_aliases, key)
+                    if value and not _identifier(fallback_identifiers, key):
+                        fallback_identifiers[key] = value
+            sec_result = await self._fetch_latest_sec_filing_holdings(
+                symbol=normalized_symbol,
+                issuer_product_id=product_id,
+                identifiers=fallback_identifiers,
+                max_filings=20,
             )
-            response.raise_for_status()
+            if sec_result is None:
+                raise route_error
+            sec_result.legal_metadata = {
+                **(sec_result.legal_metadata or {}),
+                "issuer_route_failure": str(route_error),
+                "issuer_route_fallback": "sec_edgar_filing",
+                "product_page_url": self.ETF_DIRECTORY_URL,
+                "route_resolution": "sec_edgar_filing_fallback",
+                "terms_note": self.config.terms_note,
+            }
+            return sec_result
 
         payload = self._unwrap_payload(response.json(), product_id=product_id)
         rows, composition_date, source_symbol = self._parse_payload(
