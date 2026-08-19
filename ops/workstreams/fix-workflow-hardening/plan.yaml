@@ -6,6 +6,7 @@ scope:
   - "Observe Git and exact Compose ownership before reclaiming stale runtime records."
   - "Make worktree closure inspect merge-base exit status correctly."
   - "Implement the documented integration --continue flow for semantic conflict resolution."
+  - "Make the backend CI lock/export check path-independent and run tests through the frozen uv environment."
 owned_paths:
   - scripts/worktree.py
   - scripts/worktree-runtime.py
@@ -13,12 +14,14 @@ owned_paths:
   - docs/development.md
   - frontend/src/views/WorkstationView.vue
   - frontend/tests/e2e/flows.spec.ts
+  - .github/workflows/ci.yml
 dependencies: []
 acceptance_criteria:
   - "Dirty, unmerged, or running worktrees remain non-removable."
   - "Stale allocation records are reclaimed only with Git and Docker proof."
   - "A paused conflict candidate can resume only after all conflicts are resolved and the captured source SHA remains present."
   - "Ratio row actions remount the dock after snapshot replacement so persisted and visible configurations remain aligned."
+  - "The GitHub backend job accepts the tracked compatibility export when only uv's generated output path differs and invokes the repository environment for pytest."
 branch_tests:
   - "backend/.venv/bin/python -m pytest backend/tests/unit/test_worktree_runtime.py -q --no-cov"
   - "uv run ruff check scripts backend/tests/unit/test_worktree_runtime.py"
@@ -30,3 +33,4 @@ deployment_impact: none
 status: in_progress
 remaining_gaps:
   - "Conflict continuation still requires an agent to perform semantic edits and stage source files."
+  - "The full GitHub replay and exact integration gate remain to be rerun after the CI workflow correction."

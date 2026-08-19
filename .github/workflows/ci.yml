@@ -41,19 +41,23 @@ jobs:
         run: |
           cd backend
           uv export --locked --format requirements-txt --output-file /tmp/requirements.lock
-          cmp -s /tmp/requirements.lock requirements.txt
+          # uv embeds the output path in its two-line generated header.  Compare
+          # the dependency body so the compatibility export is path-independent.
+          sed '1,2d' /tmp/requirements.lock > /tmp/requirements.generated
+          sed '1,2d' requirements.txt > /tmp/requirements.current
+          cmp -s /tmp/requirements.generated /tmp/requirements.current
 
       - name: Run unit tests
         run: |
           cd backend
-          ENV_FILE=.env.dev python -m pytest tests/unit \
+          ENV_FILE=.env.dev uv run pytest tests/unit \
             --cov=app --cov-report=xml --cov-report=term-missing \
             --no-header -q
 
       - name: Run integration tests (with testcontainers)
         run: |
           cd backend
-          ENV_FILE=.env.dev python -m pytest tests/integration \
+          ENV_FILE=.env.dev uv run pytest tests/integration \
             --cov=app --cov-report=xml:coverage-integration.xml \
             --no-header -q
 

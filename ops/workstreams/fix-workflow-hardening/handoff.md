@@ -10,3 +10,8 @@ ratio in step with the persisted `=XLK/SPY` configuration. Focused runtime tests
 pass 2/2; the deterministic F8e.2/F8e.2a browser pair passes; Ruff,
 formatting, and diff-check pass. Remaining gap: semantic conflict edits still
 require explicit agent review and staging before continuation.
+
+The backend GitHub job now strips uv's path-dependent generated header before
+comparing the compatibility export, and invokes pytest through `uv run` after the
+frozen environment is installed. This addresses the repeated pre-test CI failure;
+the branch replay and full candidate gate must still be rerun.
