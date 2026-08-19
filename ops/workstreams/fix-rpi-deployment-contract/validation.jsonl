@@ -1,0 +1,1 @@
+{"command":"python3 -m py_compile scripts/rpi.py; cd backend && uv run ruff check ../scripts/rpi.py && uv run ruff format --check ../scripts/rpi.py; cd ..; git diff --check","result":"pass","evidence":"RPi helper syntax and configured style checks pass"}
