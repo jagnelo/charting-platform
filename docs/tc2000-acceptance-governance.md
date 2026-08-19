@@ -1878,3 +1878,16 @@ scan, Gauge, and alert actions for each Boolean artifact, creates a condition ve
 artifact output name, and reuses one EasyScan across those targets. Scalar/series/event artifacts
 retain their compatible column/plot/signal actions. Full fan-out across every artifact type and
 target, including direct map-created definitions, remains open; no acceptance flexibility was used.
+## 2026-08-19 — Derived combo watchlists share the universal heatmap oracle
+
+The authenticated universal-watchlist oracle now exercises three source classes in one flow:
+locked canonical constituents, editable personal watchlists, and a user-owned derived combo source.
+The combo source is selected as `combo:analysis-combo`, retains `source_kind=combo`, remains locked
+for direct membership editing, and reaches the same Market Map batch request, tile renderer,
+coverage/history status, and downstream publication contract. The test does not create a second
+heatmap implementation or derive membership from ticker text.
+
+`F8s-market-map-watchlist` passes `1/1`; full frontend Vitest remains `914/914`; type-check,
+production build, and diff checks pass. No acceptance flexibility was used. Combo definition/version
+reconstruction, provider-backed member-bar history, exact V25 source-picker/action visuals, and the
+broader eight-root family matrix remain open and explicitly tracked.

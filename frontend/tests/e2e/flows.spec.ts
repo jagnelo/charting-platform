@@ -3288,6 +3288,11 @@ test.describe('TC2000 workstation', () => {
         locked: false, can_follow: true, can_clone: true, can_edit_membership: true, member_count: 2,
         membership_version: 'watchlist:7:v3', provenance: { availability: 'available' },
       },
+      {
+        source_id: 'combo:analysis-combo', source_kind: 'combo', name: 'Tech union minus laggards',
+        locked: true, can_follow: true, can_clone: true, can_edit_membership: false, member_count: 2,
+        membership_version: 'combo:analysis-combo:v4', provenance: { availability: 'available', membership_semantics: 'derived_combo_watchlists' },
+      },
     ]
     const requestedSources: string[] = []
     const mapResponse = (sourceId: string) => {
@@ -3317,9 +3322,13 @@ test.describe('TC2000 workstation', () => {
         }) })
         return
       }
-      if (pathname.endsWith('/history-status/market-group:us-benchmarks') || pathname.endsWith('/history-status/watchlist:7')) {
-        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ source_id: pathname.endsWith('watchlist:7') ? 'watchlist:7' : 'market-group:us-benchmarks', source_kind: 'personal', name: 'Map source', locked: false, membership_version: 'v1', max_instruments: 5000, available_instrument_count: 2, selected_instrument_count: 2, limited: false, excluded_count: 0, overall_status: 'ready', timeframes: [{ timeframe: 'D1', member_count: 2, covered_member_count: 2, coverage_percent: 100, bar_count: 4, in_progress_count: 0, complete_count: 2, failed_count: 0, pending_count: 0 }] }) })
-        return
+      if (pathname.includes('/history-status/')) {
+        const historySourceId = decodeURIComponent(pathname.split('/history-status/').pop() ?? '')
+        if (['market-group:us-benchmarks', 'watchlist:7', 'combo:analysis-combo'].includes(historySourceId)) {
+          const historySource = sources.find(item => item.source_id === historySourceId) ?? sources[0]
+          await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ source_id: historySource.source_id, source_kind: historySource.source_kind, name: historySource.name, locked: historySource.locked, membership_version: historySource.membership_version, max_instruments: 5000, available_instrument_count: 2, selected_instrument_count: 2, limited: false, excluded_count: 0, overall_status: 'ready', timeframes: [{ timeframe: 'D1', member_count: 2, covered_member_count: 2, coverage_percent: 100, bar_count: 4, in_progress_count: 0, complete_count: 2, failed_count: 0, pending_count: 0 }] }) })
+          return
+        }
       }
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(sources) })
     })
@@ -3420,6 +3429,19 @@ test.describe('TC2000 workstation', () => {
     await expect(studyLab).toBeVisible({ timeout: 15_000 })
     await expect(studyLab.getByRole('textbox', { name: 'Study universe source' })).toHaveValue(/^explicit:\d+$/)
     await expect(studyLab.getByRole('status', { name: 'Study source lineage' })).toContainText('Parent source watchlist:7')
+
+    // Derived combo watchlists are another locked source kind, not a separate map
+    // implementation. They must use the same tile/coverage workflow and retain their
+    // canonical combo identity when selected from the source picker.
+    await page.getByRole('button', { name: 'Add tool' }).click()
+    await page.getByRole('menuitem', { name: 'Market Map' }).click()
+    const comboMapWindow = page.locator('.tool-window:visible').filter({ has: page.locator('.market-map-tool') }).last()
+    await expect(comboMapWindow).toBeVisible({ timeout: 15_000 })
+    await comboMapWindow.getByRole('combobox', { name: 'Market Map universe' }).selectOption('combo:analysis-combo')
+    await comboMapWindow.getByRole('button', { name: 'Refresh', exact: true }).click()
+    await expect.poll(() => requestedSources.at(-1), { timeout: 15_000 }).toBe('combo:analysis-combo')
+    await expect(comboMapWindow).toContainText('Combo watchlists')
+    await expect(comboMapWindow.locator('.market-map-tool__tile')).toHaveCount(2)
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

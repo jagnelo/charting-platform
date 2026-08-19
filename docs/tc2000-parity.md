@@ -22,6 +22,12 @@ action-row geometry/copy remains `required_missing` where the board lacks an aut
 provider-backed family population, point-in-time membership/weights, canonical member-bar history,
 and final visual acceptance remain open rather than silently downgraded.
 
+The same authenticated oracle also selects a user-owned derived combo source (`combo:analysis-combo`)
+after the personal and locked-source flows. It receives the identical batch map response, tile
+geometry, coverage summary, history readiness, and locked-membership treatment. This is functional
+source-kind evidence only; combo definition version history, provider-backed member bars, and exact
+V25 source-picker visuals remain separate open gates.
+
 ## 2026-08-19 — DFTT keeps the universal locked-watchlist route identity-safe
 
 Donoghue Forlines DFTT now carries curated SEC identity (`CIK 0001314414`, series

@@ -15,7 +15,9 @@
       visible tool while the active-tab pointer is transiently elsewhere.
 - [x] Add authenticated browser acceptance proving a personal source and locked source share one
       heatmap, locked clone/follow semantics, Breadth selection handoff, and Study Lab selection
-      handoff with `Parent source watchlist:7` lineage. Focused component tests pass `56/56`, full
+      handoff with `Parent source watchlist:7` lineage. The same browser path now also selects a
+      user-owned derived combo source and proves the same tiles, coverage, locked semantics, and
+      canonical `combo:analysis-combo` request. Focused component tests pass `56/56`, full
       frontend Vitest passes `914/914`, the rebuilt stack passes the focused browser test `1/1`,
       `vue-tsc`, production build, and `git diff --check` pass. Acceptance flexibility used:
       **None**.
