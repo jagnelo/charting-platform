@@ -298,8 +298,11 @@ def publish(repo: Path, candidate: Path, candidate_sha: str, source_sha: str) ->
     receipt.write_text(
         json.dumps(
             {
-                "source_sha": candidate_sha,
+                "source_sha": source_sha,
                 "candidate_sha": candidate_sha,
+                "source_tree": out(
+                    ["git", "rev-parse", f"{source_sha}^{{tree}}"], repo
+                ),
                 "tree": out(["git", "rev-parse", f"{candidate_sha}^{{tree}}"], repo),
                 "published_from": before,
                 "master": candidate_sha,
