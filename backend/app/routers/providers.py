@@ -22,7 +22,11 @@ from app.services.instrument_reconciliation import (
     list_reconciliation_issues,
     resolve_reconciliation_issue,
 )
-from app.services.provider_availability import latest_availability, run_availability_probes
+from app.services.provider_availability import (
+    latest_availability,
+    recent_availability_runs,
+    run_availability_probes,
+)
 from app.services.provider_maintenance import (
     list_stale_dataset_states,
     prune_provider_observations,
@@ -280,6 +284,16 @@ async def get_provider_availability(
 ):
     """Latest durable daily/weekly probe result for Settings and operators."""
     return await latest_availability(db)
+
+
+@router.get("/availability/runs")
+async def get_provider_availability_runs(
+    limit: int = 10,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return recent sweep status for the authenticated Settings operator view."""
+    return await recent_availability_runs(db, limit=limit)
 
 
 @router.post("/availability/run")

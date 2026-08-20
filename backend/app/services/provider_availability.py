@@ -252,7 +252,10 @@ async def run_availability_probes(
             try:
                 lock = provider_locks.setdefault(source.name, asyncio.Lock())
                 async with lock:
-                    value = await (probe or default_probe)(source.name, policy.capability, request)
+                    value = await asyncio.wait_for(
+                        (probe or default_probe)(source.name, policy.capability, request),
+                        timeout=max(0.1, settings.PROVIDER_AVAILABILITY_PROBE_TIMEOUT_SECONDS),
+                    )
                 classification = classify_response(value)
                 success = classification == "success"
             except Exception as exc:  # noqa: BLE001 - classification is the durable contract.
@@ -389,3 +392,27 @@ async def latest_availability(db: AsyncSession) -> list[dict[str, Any]]:
             }
         )
     return result
+
+
+async def recent_availability_runs(db: AsyncSession, limit: int = 10) -> list[dict[str, Any]]:
+    """Return bounded sweep history for operators without exposing probe payloads."""
+    rows = (
+        await db.execute(
+            select(ProviderAvailabilityRun)
+            .order_by(desc(ProviderAvailabilityRun.started_at))
+            .limit(max(1, min(limit, 50)))
+        )
+    ).scalars()
+    return [
+        {
+            "id": run.id,
+            "mode": run.mode,
+            "status": run.status,
+            "application_version": run.application_version,
+            "probe_contract_version": run.probe_contract_version,
+            "started_at": run.started_at,
+            "finished_at": run.finished_at,
+            "error": run.error,
+        }
+        for run in rows
+    ]
