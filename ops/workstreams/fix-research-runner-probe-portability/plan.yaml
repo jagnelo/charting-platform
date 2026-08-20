@@ -1,0 +1,24 @@
+schema: "1"
+branch: fix/research-runner-probe-portability
+base_sha: 4fc20898d33d0ecaef503728484779d852cf7933
+goal: Make the research-runner memory-pressure probe force resident pages on Linux hosted Docker runners.
+scope:
+  - ops/probe-research-runner-resources.sh
+owned_paths:
+  - ops/probe-research-runner-resources.sh
+dependencies:
+  - Docker Engine with Compose v2
+acceptance_criteria:
+  - The bounded memory probe writes each page and observes the configured cgroup kill on ARM64 and Linux amd64 Docker.
+  - The concurrent pressure probe writes each page and preserves process containment and restart-count assertions.
+  - The branch deterministic CI replay and exact integrated master replay are green.
+branch_tests:
+  - make branch-validate
+  - make test-stack-up
+  - make test-research-runner-probes
+live_test_impact: The gate probe becomes portable; application runtime behaviour is unchanged.
+migration_impact: none
+deployment_impact: none
+status: in_progress
+remaining_gaps:
+  - Await branch and exact master GitHub replay evidence.
