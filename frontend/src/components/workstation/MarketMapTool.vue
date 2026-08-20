@@ -380,6 +380,7 @@ let historyPollTimer: ReturnType<typeof setTimeout> | null = null
 // Market Map tools.  Fence each request so a slower response from the prior
 // universe cannot clear or replace the currently selected map.
 let runGeneration = 0
+let componentMounted = false
 const definitionName = ref(String(props.configuration.definition_name ?? ''))
 const definitionSaving = ref(false)
 const definitionMessage = ref('')
@@ -1228,7 +1229,7 @@ function exportCsv() {
 }
 
 async function run() {
-  if (!sourceId.value && !explicitSymbols.value.trim()) return
+  if (!componentMounted || (!sourceId.value && !explicitSymbols.value.trim())) return
   const generation = ++runGeneration
   loading.value = true
   error.value = ''
@@ -1247,10 +1248,10 @@ async function run() {
         sourceId.value = requestSourceId
       }
     }
-    if (generation !== runGeneration) return
+    if (!componentMounted || generation !== runGeneration) return
     if (colorMetric.value === 'python' || areaMetric.value === 'python') await resolvePythonRun()
     const nextMap = await fetchMarketMap({ source_id: requestSourceId, group_by: groupBy.value, period: period.value, start: period.value === 'CUSTOM' && startDate.value ? startDate.value : null, end: period.value === 'CUSTOM' && endDate.value ? `${endDate.value}T23:59:59Z` : null, area_metric: areaMetric.value, area_field: areaMetric.value === 'field' ? areaField.value : null, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, python_run_id: colorMetric.value === 'python' || areaMetric.value === 'python' ? pythonRunId.value : null, reference_symbol: (colorMetric.value === 'relative_return' || referenceNeeded.value) && !referenceSourceId.value ? referenceSymbol.value.toUpperCase() : null, reference_source_id: (colorMetric.value === 'relative_return' || referenceNeeded.value) && referenceSourceId.value ? referenceSourceId.value : null, timeframe: timeframe.value, adjusted: true })
-    if (generation !== runGeneration) return
+    if (!componentMounted || generation !== runGeneration) return
     map.value = nextMap
     snapshotSelectionId.value = ''
     activeSnapshotName.value = ''
@@ -1258,13 +1259,14 @@ async function run() {
     selectedIds.value = []
     resetViewport()
   } catch (cause) {
-    if (generation !== runGeneration) return
+    if (!componentMounted || generation !== runGeneration) return
     error.value = cause instanceof Error ? cause.message : 'Unable to load Market Map'
   } finally {
     if (generation === runGeneration) loading.value = false
   }
 }
 function persist() {
+  if (!componentMounted) return
   emit('configuration', { ...props.configuration, source_id: sourceId.value, explicit_symbols: explicitSymbols.value || null, group_by: groupBy.value, sort_by: sortBy.value, period: period.value, timeframe: timeframe.value, start_date: period.value === 'CUSTOM' ? startDate.value : null, end_date: period.value === 'CUSTOM' ? endDate.value : null, area_metric: areaMetric.value, area_field: areaMetric.value === 'field' ? areaField.value : null, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, advanced_breadth_editor: advancedBreadthEditor.value, python_code_version_id: pythonCodeVersionId.value, python_run_id: pythonRunId.value, breadth_condition_kind: breadthConditionKind.value, breadth_condition_period: breadthConditionPeriod.value, breadth_condition_threshold: breadthConditionThreshold.value, breadth_event_type: breadthEventType.value, breadth_event_lookback: breadthEventLookback.value, reference_symbol: referenceSymbol.value, reference_source_id: referenceSourceId.value, definition_name: definitionName.value })
 }
 watch([sourceId, explicitSymbols, groupBy, sortBy, period, timeframe, startDate, endDate, areaMetric, areaField, colorMetric, referenceSymbol, referenceSourceId, pythonCodeVersionId, pythonRunId, breadthConditionKind, breadthConditionPeriod, breadthConditionThreshold, breadthEventType, breadthEventLookback, advancedBreadthEditor, breadthConditionTree, definitionName], persist, { deep: true })
@@ -1294,25 +1296,36 @@ watch(sourceId, () => {
 })
 watch(snapshotSelectionId, () => { void loadSnapshot() })
 onMounted(async () => {
+  componentMounted = true
   window.addEventListener('resize', scheduleCanvasDraw)
   await userSettingsStore.loadSettings()
+  if (!componentMounted) return
   if (!sources.value.length) await watchlistStore.loadWatchlistSources()
+  if (!componentMounted) return
   if (!watchlistStore.watchlists.length) await watchlistStore.loadWatchlists()
+  if (!componentMounted) return
   await loadPythonAssets()
+  if (!componentMounted) return
   try {
     snapshots.value = await fetchMarketMapSnapshots()
   } catch (cause) {
+    if (!componentMounted) return
     snapshotError.value = cause instanceof Error ? cause.message : 'Unable to load Market Map snapshots'
   }
+  if (!componentMounted) return
   if (!sourceId.value && !explicitSymbols.value.trim()) {
     const preferred = sources.value.find((item: WatchlistSource) => isSourceSelectable(item) && (item.source_kind === 'index_membership' || item.source_kind === 'etf_holdings'))
       ?? sources.value.find((item: WatchlistSource) => isSourceSelectable(item))
     if (preferred) sourceId.value = preferred.source_id
   }
+  if (!componentMounted) return
   if (sourceId.value || explicitSymbols.value.trim()) await run()
+  if (!componentMounted) return
   if (sourceId.value) await loadHistoryStatus()
 })
 onUnmounted(() => {
+  componentMounted = false
+  runGeneration += 1
   clearHistoryPoll()
   window.removeEventListener('resize', scheduleCanvasDraw)
   if (canvasDrawFrame != null) window.cancelAnimationFrame(canvasDrawFrame)
