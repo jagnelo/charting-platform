@@ -243,3 +243,15 @@ unmount and preserves local breadth-editor drafts until canonical props catch up
 The seeded family/breadth sequence passed 10/10 and repeated popup churn passed
 10/10 locally after rebuilding the isolated stack; fresh CI replay for the new
 boundary is required.
+
+Replay `32366018869` for `3874eaf9` passed backend and frontend jobs but the
+exhaustive browser job remained red after 18m06s. Its preserved first failures
+were a transient F8s family-matrix loss of the rendered summary, an F8j popup
+close race after the popup page had already closed, and workstation-performance
+starting from a workspace snapshot with missing persisted factory tools (and
+therefore no Float control). The report is preserved under
+`/private/tmp/ci-32366018869-report`; no visual oracle, threshold, retry policy,
+or assertion was relaxed. The full serialized local `flows.spec.ts` replay
+against the rebuilt seeded stack then completed with 151 passed and 2 skipped
+of 153 tests in 7m, so the missing-tool state has not reproduced locally and
+fresh CI evidence remains required before integration.
