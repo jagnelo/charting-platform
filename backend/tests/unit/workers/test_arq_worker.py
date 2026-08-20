@@ -422,3 +422,46 @@ async def test_worker_startup_does_not_fail_when_redis_is_unavailable(monkeypatc
 def test_worker_registers_core_bootstrap_and_startup_hook():
     assert arq_worker.task_bootstrap_core_workstation in arq_worker.WorkerSettings.functions
     assert arq_worker.WorkerSettings.on_startup is arq_worker.worker_startup
+
+
+@pytest.mark.asyncio
+async def test_provider_availability_schedules_are_disabled_without_explicit_live_flags(
+    monkeypatch,
+):
+    monkeypatch.setattr(settings, "PROVIDER_AVAILABILITY_MONITOR_ENABLED", False)
+    monkeypatch.setattr(settings, "PROVIDER_AVAILABILITY_LIVE_ENABLED", False)
+
+    assert await arq_worker.scheduled_daily_provider_availability({}) == {"status": "disabled"}
+    assert await arq_worker.scheduled_weekly_provider_availability({}) == {"status": "disabled"}
+
+
+@pytest.mark.asyncio
+async def test_provider_availability_schedules_delegate_to_the_expected_mode(monkeypatch):
+    monkeypatch.setattr(settings, "PROVIDER_AVAILABILITY_MONITOR_ENABLED", True)
+    monkeypatch.setattr(settings, "PROVIDER_AVAILABILITY_LIVE_ENABLED", True)
+    calls = []
+
+    class SessionContext:
+        async def __aenter__(self):
+            return "db"
+
+        async def __aexit__(self, *_args):
+            return None
+
+    async def fake_run(db, mode, *, application_version):
+        calls.append((db, mode, application_version))
+        return {"mode": mode}
+
+    from app.services import provider_availability
+
+    monkeypatch.setattr("app.database.AsyncSessionLocal", lambda: SessionContext())
+    monkeypatch.setattr(provider_availability, "run_availability_probes", fake_run)
+
+    assert await arq_worker.scheduled_daily_provider_availability({}) == {"mode": "daily_core"}
+    assert await arq_worker.scheduled_weekly_provider_availability({}) == {
+        "mode": "weekly_supported_sweep"
+    }
+    assert calls == [
+        ("db", "daily_core", settings.APP_ENV),
+        ("db", "weekly_supported_sweep", settings.APP_ENV),
+    ]

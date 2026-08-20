@@ -1,3 +1,4 @@
 {"command":"provider availability notification policy tests","result":"implemented","evidence":"pure policy covers first failure, second failure, cooldown suppression, weekly schema regression, and recovery; focused test pending"}
 {"command":"branch CI workflow replay corrections","result":"implemented","evidence":"provider branch carries normalized uv export comparison, uv-run pytest, and --cov-fail-under=0 for integration-only tests"}
 {"command":"GitHub Actions setup-python cache cleanup","result":"corrected","evidence":"uv is the dependency cache owner; unused setup-python pip cache configuration removed to avoid cleanup-only job failures"}
+{"command":"provider availability and worker schedule tests","result":"pass","evidence":"25 focused tests passed; classification, notification transitions, disabled flags, and daily/weekly delegation are covered"}

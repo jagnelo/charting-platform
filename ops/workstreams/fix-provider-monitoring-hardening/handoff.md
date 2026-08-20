@@ -11,3 +11,8 @@ tests and the migration gate remain to be run.
 The branch also carries the corrected independent CI replay contract: generated
 uv headers are normalized, pytest runs through `uv run`, and integration-only
 coverage does not apply the combined threshold.
+
+Worker coverage now verifies both scheduled availability jobs are disabled unless
+monitoring and live-probe flags are explicitly enabled, and that enabled jobs
+delegate `daily_core` and `weekly_supported_sweep` respectively. Provider and
+worker focused tests pass 25/25.

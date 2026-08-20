@@ -13,6 +13,7 @@ owned_paths:
   - backend/alembic/versions/fe4f5a6b7c8d_add_provider_availability_notification_state.py
   - backend/tests/unit/services/test_provider_availability.py
   - frontend/src/views/SettingsView.vue
+  - backend/tests/unit/workers/test_arq_worker.py
   - .github/workflows/ci.yml
 dependencies: []
 acceptance_criteria:
@@ -22,6 +23,7 @@ acceptance_criteria:
   - "Settings displays classification, latency, consecutive failures, last success, and last failure."
   - "The new migration leaves one Alembic head."
   - "The branch replay uses the path-independent lock export check, repository uv environment, and integration-only coverage threshold."
+  - "Daily and weekly worker schedules remain disabled unless both monitoring and live-probe settings are enabled, and delegate the correct persisted probe mode when enabled."
 branch_tests:
   - "uv run pytest backend/tests/unit/services/test_provider_availability.py -q --no-cov"
   - "uv run ruff check backend/app/services/provider_availability.py backend/app/models/provider_runtime.py backend/tests/unit/services/test_provider_availability.py"
@@ -31,4 +33,6 @@ live_test_impact: none
 migration_impact: none
 deployment_impact: none
 status: in_progress
-remaining_gaps: []
+remaining_gaps:
+  - "The fresh provider replay and exact candidate integration must run after the scheduling coverage change."
+  - "Real provider probes remain opt-in and require configured free/entitled credentials; deterministic tests cover classification and transition policy without paid calls."
