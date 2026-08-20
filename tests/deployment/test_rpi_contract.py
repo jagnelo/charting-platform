@@ -31,3 +31,4 @@ def test_release_compose_passes_provider_monitoring_configuration():
     assert "PROVIDER_AVAILABILITY_MONITOR_ENABLED" in compose
     assert "PROVIDER_AVAILABILITY_LIVE_ENABLED" in compose
     assert "PROVIDER_AVAILABILITY_NOTIFICATION_COOLDOWN_SECONDS" in compose
+    assert '"http://127.0.0.1/health"' in compose
