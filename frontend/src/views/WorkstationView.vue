@@ -5,7 +5,7 @@
       <nav aria-label="Application menu">
         <div class="workstation__workspace-menu">
           <button ref="workspaceMenuTrigger" type="button" title="Manage workspace layouts" aria-haspopup="menu" :aria-expanded="workspaceMenuOpen" @click="toggleWorkspaceMenu" @keydown="handleShellTriggerKeydown('workspace', $event)">Workspace</button>
-          <div v-if="workspaceMenuOpen" ref="workspaceMenuRoot" class="workstation__workspace-popover" role="menu" tabindex="-1" aria-label="Workspace layouts" :style="workspaceMenuStyle" @click.stop @keydown="handleShellMenuKeydown('workspace', $event)">
+          <div v-if="workspaceMenuOpen" ref="workspaceMenuRoot" class="workstation__workspace-popover" role="menu" tabindex="-1" aria-label="Workspace layouts" :style="workspaceMenuStyle" @click.stop @keydown.capture="handleShellMenuKeydown('workspace', $event)">
             <header><strong>Workspaces</strong><small>{{ workspaceStore.workspace?.name ?? 'Workspace' }}</small></header>
             <div class="workstation__workspace-list" role="listbox" aria-label="Saved workspaces" tabindex="0" :aria-activedescendant="workspaceStore.workspaces[workspaceOptionIndex] ? `saved-workspace-${workspaceStore.workspaces[workspaceOptionIndex].id}` : undefined" @keydown.stop="handleWorkspaceListKeydown" @focus="syncWorkspaceOptionIndex">
               <span v-if="!workspaceStore.workspaces.length" role="status">Loading workspaces…</span>
@@ -149,16 +149,17 @@
     </div>
 
     <WorkspaceLayoutHost
-      v-if="!isPopout && goldenLayoutConfig && !workspaceReplacementPending"
+      v-if="!isPopout && goldenLayoutConfig && !workspaceDockPending"
       class="workstation__dock"
       :layout="goldenLayoutConfig"
+      :tab-key="workspaceStore.activeTabKey"
       :active-window-key="workspaceStore.activeTab?.active_window_key"
       :reload-key="workspaceReloadKey"
       :render-tool="renderDockTool"
       @changed="persistGoldenLayout"
-      @active-window-changed="workspaceStore.setActiveWindow"
+      @active-window-changed="(windowKey, sourceTabKey) => { if (!sourceTabKey || sourceTabKey === workspaceStore.activeTabKey) workspaceStore.setActiveWindow(windowKey) }"
     />
-    <main v-else-if="!isPopout && workspaceReplacementPending" class="workstation__layout-state" role="status">
+    <main v-else-if="!isPopout && workspaceDockPending" class="workstation__layout-state" role="status">
       Reloading workspace…
     </main>
     <main v-if="isPopout" class="workstation__popout">
@@ -270,6 +271,8 @@ const workspaceFileInput = ref<HTMLInputElement | null>(null)
 // so those roots are recreated from the new serializable tool state.
 const workspaceReloadKey = ref(0)
 const workspaceReplacementPending = ref(false)
+const workspaceTabSwitchPending = ref(false)
+const workspaceDockPending = computed(() => workspaceReplacementPending.value || workspaceTabSwitchPending.value)
 // Shell controls render before the async workspace snapshot has necessarily
 // hydrated. Keep tool-opening commands queued behind that first load instead
 // of allowing an early click to mutate a stale/null tab and then be overwritten
@@ -577,6 +580,13 @@ function handleShellMenuKeydown(menu: ShellMenuRoot, event: KeyboardEvent) {
     closeShellMenuToTrigger(menu)
     return
   }
+  // The workspace menu owns a nested listbox.  Its handler deliberately stops
+  // bubbling so End/Home change the active descendant instead of moving focus
+  // to an action.  When Playwright (or an assistive technology) addresses the
+  // menu root directly, capture the event at the root; otherwise a browser can
+  // leave focus on the listbox and silently ignore the root-level command.
+  if (menu === 'workspace' && event.target instanceof Element
+    && event.target.closest('[role="listbox"]')) return
   const items = shellMenuItems(menu)
   if (!items.length) return
   const current = items.indexOf(document.activeElement as HTMLButtonElement)
@@ -587,6 +597,7 @@ function handleShellMenuKeydown(menu: ShellMenuRoot, event: KeyboardEvent) {
   else if (event.key === 'End') next = items.length - 1
   if (next === null) return
   event.preventDefault()
+  event.stopPropagation()
   items[next].focus()
 }
 
@@ -723,11 +734,19 @@ const popoutTool = computed(() => {
 
 function selectWorkspaceTab(stableKey: string) {
   if (workspaceStore.activeTabKey === stableKey) return
+  // Remove the old Golden Layout host before exposing the new tab. Its final
+  // bootstrap/stateChanged event can otherwise remain visible for one turn and
+  // make a caller observe the previous tab as if it were the newly selected
+  // layout. Mount the replacement host on the following Vue turn.
+  workspaceTabSwitchPending.value = true
   // A layout switch can occur while the previous layout's trailing snapshot is
   // still in flight. Advance the snapshot generation so that stale server
   // responses cannot reinstall the previous layout over the newly selected tab.
   workspaceStore.activeTabKey = stableKey
   workspaceStore.scheduleSnapshot()
+  void nextTick(() => {
+    workspaceTabSwitchPending.value = false
+  })
 }
 
 async function replaceDockAfterWorkspaceChange() {
@@ -1299,6 +1318,20 @@ async function saveWorkspaceSnapshotIfSupported() {
   if (typeof saveSnapshot === 'function') await saveSnapshot.call(workspaceStore)
 }
 
+async function remountDockAfterSnapshot(
+  mountedConfiguration: Record<string, unknown>,
+  publishedConfiguration: Record<string, unknown>,
+) {
+  // saveSnapshot replaces the canonical workspace object with the server
+  // response. Golden Layout may still hold the pre-save tool object, so mirror
+  // the accepted configuration into that mounted object and then reinstall the
+  // completed layout from the server-confirmed workspace.
+  for (const key of Object.keys(mountedConfiguration)) delete mountedConfiguration[key]
+  Object.assign(mountedConfiguration, publishedConfiguration)
+  workspaceReloadKey.value += 1
+  await nextTick()
+}
+
 async function publishMapAnalysis(publication: MapAnalysisPublication) {
   if (!publication.sourceId) return
   // Let the source tool's selection/layout event settle before switching the
@@ -1504,8 +1537,7 @@ async function openMarketMapRatio(symbols: string[]) {
   }
   updateToolConfiguration(ratio.instance_key, publishedConfiguration)
   await saveWorkspaceSnapshotIfSupported()
-  for (const key of Object.keys(mountedConfiguration)) delete mountedConfiguration[key]
-  Object.assign(mountedConfiguration, publishedConfiguration)
+  await remountDockAfterSnapshot(mountedConfiguration, publishedConfiguration)
 }
 
 async function handleRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }) {
@@ -1544,8 +1576,7 @@ async function handleRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 
     }
     updateToolConfiguration(ratio.instance_key, publishedConfiguration)
     await saveWorkspaceSnapshotIfSupported()
-    for (const key of Object.keys(mountedConfiguration)) delete mountedConfiguration[key]
-    Object.assign(mountedConfiguration, publishedConfiguration)
+    await remountDockAfterSnapshot(mountedConfiguration, publishedConfiguration)
     return
   }
   await selectSymbol(row.symbol, undefined, false, row.instrumentId)
@@ -1692,7 +1723,12 @@ function closePopoutTool(windowKey: string) {
   window.close()
 }
 
-function persistGoldenLayout(layout: Record<string, unknown>, visibleToolKeys: string[]) {
+function persistGoldenLayout(layout: Record<string, unknown>, visibleToolKeys: string[], sourceTabKey?: string | null) {
+  // Golden Layout may report one last state change from the previous tab while
+  // Vue is switching the active tab. Never write that old tree into the newly
+  // selected tab; the host will emit a fresh snapshot after its replacement
+  // install completes.
+  if (sourceTabKey && sourceTabKey !== workspaceStore.activeTabKey) return
   workspaceStore.applyActiveLayout(layout, visibleToolKeys)
 }
 

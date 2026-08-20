@@ -57,7 +57,10 @@ volumes, networks, URLs, and databases.
 
 When you switch branches and run `make dev-infra`, the tooling starts only the
 current worktree's exact project. It never stops another worktree or reclaims a
-port by shutting down an unrelated process.
+port by shutting down an unrelated process. Stale registry entries are removed
+only after Git no longer lists the worktree and Docker confirms that both exact
+managed Compose projects have no running containers; if Docker cannot be
+inspected, the entry is left untouched.
 
 That means Alembic history and DB data stay separated by branch, while the local backend/frontend config stays simple.
 
@@ -82,6 +85,13 @@ make worktree-status BRANCH=feat/provider-health
 make branch-validate
 make integrate BRANCH=feat/provider-health
 make worktree-close BRANCH=feat/provider-health
+```
+
+If integration pauses on merge conflicts, resolve and stage the candidate's
+semantic edits, update `ops/integration-conflicts.md`, then resume it with:
+
+```bash
+python3 scripts/integrate.py feat/provider-health --continue --publish
 ```
 
 Each worktree gets an `ops/workstreams/<branch-slug>/` record with a plan,

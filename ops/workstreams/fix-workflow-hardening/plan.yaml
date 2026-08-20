@@ -1,0 +1,52 @@
+schema: 1
+branch: fix/workflow-hardening
+base_sha: aecea059fa39ee43fdae36ad935c401a6b5a607e
+goal: "Harden worktree allocation and conflict-candidate continuation safety."
+scope:
+  - "Observe Git and exact Compose ownership before reclaiming stale runtime records."
+  - "Make worktree closure inspect merge-base exit status correctly."
+  - "Implement the documented integration --continue flow for semantic conflict resolution."
+  - "Make the backend CI lock/export check path-independent and run tests through the frozen uv environment."
+owned_paths:
+  - scripts/worktree.py
+  - scripts/worktree-runtime.py
+  - scripts/integrate.py
+  - docs/development.md
+  - frontend/src/views/WorkstationView.vue
+  - frontend/src/components/workstation/MarketMapTool.vue
+  - frontend/src/components/workstation/WorkstationToolContent.vue
+  - frontend/tests/e2e/flows.spec.ts
+  - .github/workflows/ci.yml
+  - scripts/validate-arm64-images.py
+  - Makefile
+dependencies: []
+acceptance_criteria:
+  - "Dirty, unmerged, or running worktrees remain non-removable."
+  - "Stale allocation records are reclaimed only with Git and Docker proof."
+  - "A paused conflict candidate can resume only after all conflicts are resolved and the captured source SHA remains present."
+  - "Ratio row actions remount the dock after snapshot replacement so persisted and visible configurations remain aligned."
+  - "The GitHub backend job accepts the tracked compatibility export when only uv's generated output path differs, invokes the repository environment for pytest, does not apply the combined coverage threshold to the integration-only slice, and does not run an unused pip cache cleanup."
+  - "Integration requires a successful push-triggered GitHub replay for the exact source and published master SHA; a failed master replay creates a durable degraded marker that blocks subsequent integration and deployment."
+  - "The authoritative gate builds and inspects backend, research-runner, and frontend production images for linux/arm64, and master replays the complete gate independently in GitHub Actions."
+  - "The authoritative gate renders both development and RPi Compose contracts and runs the frontend production build after type-checking and coverage."
+  - "The authoritative candidate gate executes the source workstream's declared branch_tests after the seeded browser stack is healthy."
+  - "The authoritative gate rejects multiple Alembic heads before running application tests."
+branch_tests:
+  - "backend/.venv/bin/python -m pytest backend/tests/unit/test_worktree_runtime.py -q --no-cov"
+  - "backend/.venv/bin/ruff check scripts backend/tests/unit/test_worktree_runtime.py"
+  - "backend/.venv/bin/ruff format --check scripts backend/tests/unit/test_worktree_runtime.py"
+  - 'cd frontend && E2E_SEED_MARKET_DATA=true npx playwright test tests/e2e/flows.spec.ts -g "F8e\.2" --project=chromium'
+  - 'cd frontend && E2E_SEED_MARKET_DATA=true npx playwright test tests/e2e/flows.spec.ts -g "F8s-family-matrix|F8s-breadth-family-ratio" --project=chromium'
+live_test_impact: none
+migration_impact: none
+deployment_impact: none
+status: in_progress
+remaining_gaps:
+  - "Conflict continuation still requires an agent to perform semantic edits and stage source files."
+  - "The full GitHub replay and exact integration gate must be rerun after the integration coverage correction, replay-gating change, and frontend proxy healthcheck."
+  - "The new ARM64 image gate passed locally on this source tree; the exact candidate and master replay still need to record it in their receipts."
+  - "The first exact candidate after the ARM64 addition exposed a visual-target environment omission: the TC2000 visual command used localhost:80 instead of the path-derived STACK_URL; the command now exports the allocator environment and requires a fresh candidate."
+  - "A branch replay also exposed a debounced user-settings PATCH racing logout; the store now skips the write when the access token has been cleared, with a focused regression test."
+  - "Branch E2E workflows now enable deterministic instrument and market-data fixtures so exhaustive browser checks exercise the intended seeded contract."
+  - "The gate now includes frontend production build and Compose/deployment-contract rendering; the fresh source replay must verify the new target."
+  - "The first seeded provider/RPi replays reported five browser failures; the Linux-only Meta+A canonical-search failure is corrected to ControlOrMeta+A. The later long-suite disposed-response failures in benchmark-family fixtures (including matrix and breadth-ratio routes) are now covered by deterministic responses; the corrected source replay must still complete."

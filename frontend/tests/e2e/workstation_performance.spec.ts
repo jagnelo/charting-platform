@@ -1,4 +1,21 @@
+import { type Page } from '@playwright/test'
 import { test, expect } from './helpers'
+
+async function closePopupWhenOpen(popup: Page) {
+  if (popup.isClosed()) return
+  const closed = popup.waitForEvent('close', { timeout: 10_000 }).catch((error: unknown) => {
+    if (!popup.isClosed()) throw error
+  })
+  try {
+    await popup.locator('button[title="Close"]').click()
+  } catch (error) {
+    // Golden Layout can close a sibling popup while it reconciles the source
+    // workspace. Treat that narrow teardown race as already closed; the caller
+    // still asserts that the browser context converges to one page.
+    if (!popup.isClosed()) throw error
+  }
+  await closed
+}
 
 test.describe('TC2000 workstation performance guards', () => {
   test('initializes multiple chart windows and recovers without canvas or tool growth', async ({ page, context, loggedIn, browserDiagnostics }) => {
@@ -21,6 +38,19 @@ test.describe('TC2000 workstation performance guards', () => {
       return previous
     }
     await page.waitForTimeout(1_000)
+    // The factory mounts ratio and relative-rotation surfaces even when they
+    // are hidden behind another Golden Layout tab. Their local data requests
+    // can finish after the primary chart's first canvas appears; wait for
+    // those explicit readiness states before recording the exact canvas
+    // baseline, otherwise a legitimate late renderer looks like a leak.
+    const ratioTools = page.locator('.ratio-chart')
+    if (await ratioTools.count()) {
+      await expect.poll(() => page.locator('.ratio-chart[aria-busy="false"]').count(), { timeout: 30_000 }).toBe(await ratioTools.count())
+    }
+    const rotationTools = page.locator('.rotation-tool')
+    if (await rotationTools.count()) {
+      await expect.poll(() => page.locator('.rotation-tool[aria-busy="false"]').count(), { timeout: 30_000 }).toBe(await rotationTools.count())
+    }
     const sourceToolCount = await page.locator('.tool-window').count()
     const sourceCanvasCount = await settledCanvasCount()
     const started = await page.evaluate(() => performance.now())
@@ -52,13 +82,17 @@ test.describe('TC2000 workstation performance guards', () => {
     await expect.poll(() => page.locator('.tool-window').count()).toBe(sourceToolCount)
 
     for (const popup of popups) {
-      const closed = popup.waitForEvent('close')
-      await popup.locator('button[title="Close"]').click()
-      await closed
+      await closePopupWhenOpen(popup)
     }
     await expect.poll(() => context.pages().length).toBe(1)
     await expect(page.locator('.tool-window')).toHaveCount(sourceToolCount)
-    await expect.poll(() => settledCanvasCount()).toBe(sourceCanvasCount)
+    // Popup teardown can dispose chart panes asynchronously. Give the browser
+    // a bounded cleanup window, while retaining the exact baseline assertion so
+    // a genuine canvas leak still fails the performance gate.
+    await expect.poll(() => page.locator('canvas').count(), {
+      timeout: 15_000,
+      intervals: [250, 500, 1_000],
+    }).toBe(sourceCanvasCount)
     const elapsed = await page.evaluate((start) => performance.now() - start, started)
     expect(elapsed).toBeLessThan(20_000)
     await browserDiagnostics.expectNoCriticalIssues()
@@ -90,6 +124,14 @@ test.describe('TC2000 workstation performance guards', () => {
       return previous
     }
     await page.waitForTimeout(1_000)
+    const ratioTools = page.locator('.ratio-chart')
+    if (await ratioTools.count()) {
+      await expect.poll(() => page.locator('.ratio-chart[aria-busy="false"]').count(), { timeout: 30_000 }).toBe(await ratioTools.count())
+    }
+    const rotationTools = page.locator('.rotation-tool')
+    if (await rotationTools.count()) {
+      await expect.poll(() => page.locator('.rotation-tool[aria-busy="false"]').count(), { timeout: 30_000 }).toBe(await rotationTools.count())
+    }
     const sourceToolCount = await page.locator('.tool-window').count()
     const sourceCanvasCount = await settledCanvasCount()
     const sourceChartCount = await page.locator('.chart-tool').count()
@@ -122,13 +164,16 @@ test.describe('TC2000 workstation performance guards', () => {
 
       await expect.poll(() => context.pages().length).toBe(3)
       for (const popup of popups) {
-        const closed = popup.waitForEvent('close')
-        await popup.locator('button[title="Close"]').click()
-        await closed
+        await closePopupWhenOpen(popup)
       }
       await expect.poll(() => context.pages().length).toBe(1)
       await expect(page.locator('.tool-window')).toHaveCount(sourceToolCount)
-      await expect.poll(() => settledCanvasCount()).toBe(sourceCanvasCount)
+      // Cleanup is asynchronous, but must converge back to the original
+      // canvas count within a bounded interval after every churn round.
+      await expect.poll(() => page.locator('canvas').count(), {
+        timeout: 15_000,
+        intervals: [250, 500, 1_000],
+      }).toBe(sourceCanvasCount)
       await expect(page.locator('.chart-tool')).toHaveCount(sourceChartCount)
       const currentMemory = await readHeap()
       if (currentMemory != null) memorySamples.push(currentMemory)

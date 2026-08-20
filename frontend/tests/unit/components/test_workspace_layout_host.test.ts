@@ -103,6 +103,7 @@ describe('WorkspaceLayoutHost', () => {
 
     await wrapper.setProps({ layout: { root: { type: 'column', content: [] } } as any })
     await nextTick()
+    await new Promise(resolve => setTimeout(resolve, 0))
     expect(gl.destroyed).toBe(true)
     expect(goldenLayouts).toHaveLength(2)
     wrapper.unmount()
@@ -161,9 +162,36 @@ describe('WorkspaceLayoutHost', () => {
 
     await wrapper.setProps({ reloadKey: 1 })
     await nextTick()
+    await new Promise(resolve => setTimeout(resolve, 0))
 
     expect(goldenLayouts).toHaveLength(2)
     expect(goldenLayouts[0].destroyed).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('ignores late state and activation events from a superseded layout generation', async () => {
+    const wrapper = mount(WorkspaceLayoutHost, {
+      props: {
+        layout: { root: { type: 'row', content: [] } } as any,
+        reloadKey: 0,
+        tabKey: 'tab-a',
+        renderTool: () => h('div'),
+      },
+    })
+    const previous = goldenLayouts[0]
+
+    await wrapper.setProps({ reloadKey: 1 })
+    await nextTick()
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(goldenLayouts).toHaveLength(2)
+
+    wrapper.find('.workspace-layout-host').element.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }))
+    previous.saved = { root: { componentState: { instance_key: 'stale' } } }
+    previous.callbacks.get('stateChanged')!()
+    previous.callbacks.get('activeContentItemChanged')!({ config: { componentState: { instance_key: 'stale' } } })
+
+    expect(wrapper.emitted('changed')).toBeUndefined()
+    expect(wrapper.emitted('active-window-changed')).toBeUndefined()
     wrapper.unmount()
   })
 

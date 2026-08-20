@@ -4,7 +4,21 @@
  *
  * Run: make test-stack-up && npx playwright test
  */
+import { type Page } from '@playwright/test'
 import { test, expect, LoginPage, ChartPage, ScreenerPage, DashboardPage, RadarPage } from './helpers'
+
+async function closePopupWhenOpen(popup: Page) {
+  if (popup.isClosed()) return
+  const closed = popup.waitForEvent('close', { timeout: 10_000 }).catch((error: unknown) => {
+    if (!popup.isClosed()) throw error
+  })
+  try {
+    await popup.locator('button[title="Close"]').click()
+  } catch (error) {
+    if (!popup.isClosed()) throw error
+  }
+  await closed
+}
 
 
 // ── Auth flows ─────────────────────────────────────────────────────────────────
@@ -1081,9 +1095,7 @@ test.describe('TC2000 workstation', () => {
       await popup.waitForLoadState('domcontentloaded')
       await expect(popup.locator('.workstation__popout .tool-window')).toBeVisible({ timeout: 10_000 })
 
-      const closed = popup.waitForEvent('close')
-      await popup.locator('button[title="Close"]').click()
-      await closed
+      await closePopupWhenOpen(popup)
       await expect(page.locator('.tool-window')).toHaveCount(sourceToolCount)
       await expect.poll(() => context.pages().length).toBe(1)
     }
@@ -1303,7 +1315,10 @@ test.describe('TC2000 workstation', () => {
     const input = page.getByRole('combobox', { name: 'Active symbol' })
     await expect(input).toHaveValue('SPY', { timeout: 15_000 })
     await input.click()
-    await input.press('Meta+A')
+    // Playwright's `ControlOrMeta` maps to Ctrl on Linux CI and Cmd locally.
+    // Using Meta explicitly leaves the draft text selected only on macOS and
+    // makes this otherwise deterministic canonical-search test fail on CI.
+    await input.press('ControlOrMeta+A')
     await input.press('Backspace')
     await expect(input).toHaveValue('', { timeout: 5_000 })
     await input.pressSequentially('XLK', { delay: 30 })
@@ -1528,9 +1543,7 @@ test.describe('TC2000 workstation', () => {
     const reopened = await reopenedPromise
     await reopened.waitForLoadState('domcontentloaded')
     await expect(reopened.locator('.workstation__popout .tool-window')).toBeVisible({ timeout: 25_000 })
-    const reopenedClosed = reopened.waitForEvent('close')
-    await reopened.locator('button[title="Close"]').click()
-    await reopenedClosed
+    await closePopupWhenOpen(reopened)
     await expect(page.locator('.tool-window').first().locator('button[title="Float"]')).toBeVisible()
     await browserDiagnostics.expectNoCriticalIssues()
   })
@@ -2101,9 +2114,11 @@ test.describe('TC2000 workstation', () => {
     // workspace before mounting this page. Do not reset again here: a second
     // Golden Layout replacement can leave the row-action handler attached to
     // a detached tool root while the visible workspace has already hydrated.
-    const sectorList = page.locator('.watchlist[aria-label="Relative to SPY"]:visible').filter({ has: page.locator('.watchlist__row') }).last()
+    const sectorWindow = page.locator('[data-window-key="sector-list"]:visible').filter({ has: page.locator('.watchlist__row') }).last()
+    const sectorList = sectorWindow.locator('.watchlist[aria-label="Relative to SPY"]')
     const xlk = sectorList.getByRole('option', { name: /XLK/ }).first()
     await expect(xlk).toBeVisible({ timeout: 20_000 })
+    await expect(sectorList).toHaveAttribute('aria-busy', 'false')
     await xlk.click({ button: 'right', position: { x: 8, y: 14 } })
     // Scope the action to the originating watchlist. Golden Layout can retain
     // detached tool roots while a workspace is hydrating, so a page-global
@@ -3435,7 +3450,7 @@ test.describe('TC2000 workstation', () => {
     await expect(mapWindow).toBeVisible({ timeout: 15_000 })
     const universe = mapWindow.getByRole('combobox', { name: 'Market Map universe' })
     await expect(universe).toHaveValue('market-group:us-benchmarks')
-    await expect(mapWindow).toContainText('Locked source')
+    await expect(mapWindow.locator('.market-map-tool__summary')).toContainText('Locked source', { timeout: 15_000 })
     await mapWindow.getByRole('button', { name: 'Clone US benchmark constituents snapshot' }).click()
     await expect(mapWindow.locator('[aria-label="Market Map source preferences"] [role="status"]')).toContainText('1/2 members cloned', { timeout: 15_000 })
     await mapWindow.getByRole('button', { name: 'Retry failed source clone members' }).click()
@@ -3497,10 +3512,21 @@ test.describe('TC2000 workstation', () => {
   test('F8s-family-map-drilldown — selected benchmark family opens its locked constituent watchlist', async ({ page, browserDiagnostics }) => {
     const requestedSources: string[] = []
     await page.route('**/api/v1/market-groups/us-benchmarks*', async route => {
-      const response = await route.fetch()
-      const payload = await response.json() as Record<string, unknown>
-      const provenance = payload.provenance && typeof payload.provenance === 'object' ? payload.provenance as Record<string, unknown> : {}
-      await route.fulfill({ response, body: JSON.stringify({ ...payload, provenance: { ...provenance, benchmark_families: [{ logical_key: 'sp500', name: 'S&P 500', official_index_symbol: 'SPX', cap_weight: { symbol: 'SPY' } }] } }) })
+      // Keep this fixture self-contained. Mutating a fetched APIResponse after
+      // `route.fetch()` can race response disposal when the long browser suite
+      // is under load, which then tears down the worker and masks later tests.
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        stable_key: 'us-benchmarks',
+        group_type: 'benchmark',
+        name: 'US Benchmarks',
+        members: [{ instrument: { id: 1, symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust' } }],
+        provenance: {
+          classification: 'product_taxonomy',
+          official_index_constituents: false,
+          benchmark_families: [{ logical_key: 'sp500', name: 'S&P 500', official_index_symbol: 'SPX', cap_weight: { symbol: 'SPY' } }],
+          benchmark_identities: { sp500: { official_index_symbol: 'SPX', cap_weight_symbol: 'SPY' } },
+        },
+      }) })
     })
     await page.route('**/api/v1/market-groups/sp500*', async route => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ stable_key: 'sp500', name: 'S&P 500', members: [{ instrument: { id: 1, symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust' } }], provenance: { benchmark_family: 'sp500' } }) })
@@ -3559,7 +3585,7 @@ test.describe('TC2000 workstation', () => {
     await expect(mapWindow).toBeVisible({ timeout: 15_000 })
     await expect(mapWindow.getByRole('combobox', { name: 'Market Map universe' })).toHaveValue('benchmark-family:sp500:equal_weight')
     await expect.poll(() => requestedSources.at(-1), { timeout: 15_000 }).toBe('benchmark-family:sp500:equal_weight')
-    await expect(mapWindow).toContainText('Locked source')
+    await expect(mapWindow.locator('.market-map-tool__summary')).toContainText('Locked source', { timeout: 15_000 })
     await expect(mapWindow.locator('.market-map-tool__tile')).toHaveCount(1)
     await browserDiagnostics.expectNoCriticalIssues()
   })
@@ -3578,10 +3604,26 @@ test.describe('TC2000 workstation', () => {
     const familyByKey = new Map(families.map(family => [family.key, family]))
     const selectedSources: string[] = []
     await page.route('**/api/v1/market-groups/us-benchmarks*', async route => {
-      const response = await route.fetch()
-      const payload = await response.json() as Record<string, unknown>
-      const provenance = payload.provenance && typeof payload.provenance === 'object' ? payload.provenance as Record<string, unknown> : {}
-      await route.fulfill({ response, body: JSON.stringify({ ...payload, provenance: { ...provenance, benchmark_families: families.map(family => ({ logical_key: family.key, name: family.name, official_index_symbol: family.official, cap_weight: { symbol: family.proxy } })) } }) })
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        stable_key: 'us-benchmarks',
+        group_type: 'benchmark',
+        name: 'US Benchmarks',
+        members: [{ instrument: { id: 1, symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust' } }],
+        provenance: {
+          classification: 'product_taxonomy',
+          official_index_constituents: false,
+          benchmark_families: families.map(family => ({
+            logical_key: family.key,
+            name: family.name,
+            official_index_symbol: family.official,
+            cap_weight: { symbol: family.proxy },
+          })),
+          benchmark_identities: Object.fromEntries(families.map(family => [family.key, {
+            official_index_symbol: family.official,
+            cap_weight_symbol: family.proxy,
+          }])),
+        },
+      }) })
     })
     await page.route('**/api/v1/market-groups/*', async route => {
       const pathname = new URL(route.request().url()).pathname
@@ -3644,7 +3686,7 @@ test.describe('TC2000 workstation', () => {
       await expect(mapWindow).toBeVisible({ timeout: 15_000 })
       await expect(mapWindow.getByRole('combobox', { name: 'Market Map universe' })).toHaveValue(`benchmark-family:${family.key}:cap_weight`)
       await expect.poll(() => selectedSources.at(-1), { timeout: 15_000 }).toBe(`benchmark-family:${family.key}:cap_weight`)
-      await expect(mapWindow).toContainText('Locked source')
+      await expect(mapWindow.locator('.market-map-tool__summary')).toContainText('Locked source', { timeout: 15_000 })
       await expect(mapWindow.locator('.market-map-tool__tile')).toHaveCount(1)
       await mapWindow.getByRole('button', { name: 'Close tool' }).click()
       await expect(mapWindow).toBeHidden()
@@ -3706,21 +3748,18 @@ test.describe('TC2000 workstation', () => {
       })
     })
     await page.route('**/market-groups/us-benchmarks*', async route => {
-      const response = await route.fetch()
-      const payload = await response.json() as Record<string, unknown>
-      const provenance = payload.provenance && typeof payload.provenance === 'object'
-        ? payload.provenance as Record<string, unknown>
-        : {}
-      await route.fulfill({
-        response,
-        body: JSON.stringify({
-          ...payload,
-          provenance: {
-            ...provenance,
-            benchmark_families: [{ logical_key: 'sp500', name: 'S&P 500' }],
-          },
-        }),
-      })
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        stable_key: 'us-benchmarks',
+        group_type: 'benchmark',
+        name: 'US Benchmarks',
+        members: [{ instrument: { id: 1, symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust' } }],
+        provenance: {
+          classification: 'product_taxonomy',
+          official_index_constituents: false,
+          benchmark_families: [{ logical_key: 'sp500', name: 'S&P 500' }],
+          benchmark_identities: { sp500: { official_index_symbol: 'SPX', cap_weight_symbol: 'SPY' } },
+        },
+      }) })
     })
     await page.route('**/api/v1/analysis/benchmark-families/sp500/ratios*', async route => {
       await route.fulfill({

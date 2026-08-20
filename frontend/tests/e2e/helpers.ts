@@ -105,7 +105,7 @@ class BrowserDiagnostics {
       }
       if (response.status() !== 404) return
       const path = new URL(response.url()).pathname
-      if (/^\/api\/v1\/(?:analysis\/(?:relative-strength|groups\/[^/]+\/(?:snapshot|relative-rotation)|instruments\/[^/]+\/technical)|coverage\/instruments\/[^/]+|etf-holdings\/[^/]+\/(?:holdings|latest)|market-groups\/etf\/[^/]+\/industries|instruments\/[^/]+|ohlcv(?:\/local)?\/[^/]+\/[^/]+|watchlists(?:\/.*)?)$/.test(path)) {
+      if (/^\/api\/v1\/(?:analysis\/(?:relative-strength|groups\/[^/]+\/(?:snapshot|relative-rotation)|instruments\/[^/]+\/technical|etf\/[^/]+\/constituents\/snapshot)|coverage\/instruments\/[^/]+|etf-holdings\/[^/]+\/(?:holdings|latest)|market-groups\/etf\/[^/]+\/industries|instruments\/[^/]+|ohlcv(?:\/local)?\/[^/]+\/[^/]+|watchlists(?:\/.*)?)$/.test(path)) {
         this.expectedUnavailableApi404s += 1
         if (path === '/api/v1/watchlists') this.expectedWatchlistLoadErrors += 1
       } else {

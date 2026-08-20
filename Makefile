@@ -27,6 +27,9 @@
   test-stack-up test-stack-down test-platform test-all test-backend-coverage \
   test-uplot-contract \
   test-visual-policy \
+  test-compose-contract \
+  branch-tests \
+  validate-arm64-images \
   validate-integration branch-validate \
   worktree-create worktree-list worktree-status worktree-close integrate \
   rpi-preflight rpi-bundle deploy-rpi rpi-status \
@@ -77,7 +80,7 @@ dev-infra:
 	done
 	@echo "▶  Applying migrations..."
 	$(RUNTIME_ENV) cd backend && $(BACKEND_ENV) uv run alembic upgrade head
-	@echo "✅  Infrastructure ready — Postgres :$$(sed -n 's/^POSTGRES_HOST_PORT=//p' $(RUNTIME_ENV_FILE)), Redis :$$(sed -n 's/^REDIS_HOST_PORT=//p' $(RUNTIME_ENV_FILE))"
+	@echo "✅  Infrastructure ready — Postgres :$$(sed -n 's/^DEV_POSTGRES_HOST_PORT=//p' $(RUNTIME_ENV_FILE)), Redis :$$(sed -n 's/^DEV_REDIS_HOST_PORT=//p' $(RUNTIME_ENV_FILE))"
 	@echo "   Data is isolated under Docker project $(DEV_COMPOSE_PROJECT)"
 
 dev-infra-stop:
@@ -157,6 +160,19 @@ test-uplot-contract:
 test-visual-policy:
 	@echo "▶  Deterministic TC2000 visual acceptance policy..."
 	cd backend && .venv/bin/python ../tests/visual/validate-visual-acceptance-policy.py
+
+test-compose-contract:
+	@echo "▶  Compose and deployment contract validation..."
+	SECRET_KEY=ci-contract-secret POSTGRES_PASSWORD=postgres CORS_ORIGINS='["http://localhost"]' BACKEND_IMAGE=charting-platform/backend:contract RESEARCH_RUNNER_IMAGE=charting-platform/research-runner:contract FRONTEND_IMAGE=charting-platform/frontend:contract POSTGRES_IMAGE=postgres:16-alpine REDIS_IMAGE=redis:7-alpine RPI_HTTP_PORT=8080 docker compose -f docker-compose.yml config >/dev/null
+	SECRET_KEY=ci-contract-secret POSTGRES_PASSWORD=postgres CORS_ORIGINS='["http://localhost"]' BACKEND_IMAGE=charting-platform/backend:contract RESEARCH_RUNNER_IMAGE=charting-platform/research-runner:contract FRONTEND_IMAGE=charting-platform/frontend:contract POSTGRES_IMAGE=postgres:16-alpine REDIS_IMAGE=redis:7-alpine RPI_HTTP_PORT=8080 docker compose -f deploy/rpi/compose.yml config >/dev/null
+
+branch-tests:
+	@test -n "$(INTEGRATION_BRANCH)" || (echo "INTEGRATION_BRANCH is required for branch-declared tests" >&2; exit 2)
+	@$(RUNTIME_ENV) INTEGRATION_BRANCH="$(INTEGRATION_BRANCH)" python3 scripts/run-branch-tests.py "$(INTEGRATION_BRANCH)"
+
+validate-arm64-images:
+	@echo "▶  Production application image build (linux/arm64)..."
+	python3 scripts/validate-arm64-images.py
 
 test-e2e-install:
 	@echo "▶  Ensuring Playwright Chromium is installed..."
@@ -269,14 +285,19 @@ validate-integration:
 	git diff --check; \
 	$(MAKE) branch-validate; \
 	(cd backend && uv lock --check && uv sync --frozen --dev && uv export --locked --format requirements-txt --output-file /tmp/charting-requirements.lock && sed '1,2d' requirements.txt > /tmp/charting-requirements.current && sed '1,2d' /tmp/charting-requirements.lock > /tmp/charting-requirements.generated && cmp -s /tmp/charting-requirements.generated /tmp/charting-requirements.current); \
+	(heads=$$(cd backend && uv run alembic heads | awk '/\(head\)/ { count += 1 } END { print count + 0 }'); test "$$heads" = 1); \
 	(cd frontend && npm ci); \
 	$(MAKE) lint; \
 	$(MAKE) test-backend-coverage; \
 	$(MAKE) test-fe; \
+	(cd frontend && npm run build); \
+	$(MAKE) test-compose-contract; \
 	trap '$(MAKE) test-stack-down' EXIT; \
 	E2E_SEED_MARKET_DATA=true $(MAKE) test-stack-up; \
 	E2E_SEED_MARKET_DATA=true $(MAKE) test-e2e; \
-	(cd frontend && E2E_SEED_MARKET_DATA=true RUN_BOARD_VISUAL_PARITY=1 npx playwright test tests/e2e/tc2000_visual.spec.ts)
+	($(RUNTIME_ENV) cd frontend && STACK_URL=$${STACK_URL:-$$STACK_URL} E2E_SEED_MARKET_DATA=true RUN_BOARD_VISUAL_PARITY=1 npx playwright test tests/e2e/tc2000_visual.spec.ts); \
+	if test -n "$(INTEGRATION_BRANCH)"; then $(MAKE) branch-tests INTEGRATION_BRANCH="$(INTEGRATION_BRANCH)"; fi; \
+	$(MAKE) validate-arm64-images
 
 rpi-preflight:
 	python3 scripts/rpi.py preflight

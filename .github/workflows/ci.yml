@@ -24,8 +24,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: pip
-          cache-dependency-path: backend/uv.lock
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
@@ -41,20 +39,25 @@ jobs:
         run: |
           cd backend
           uv export --locked --format requirements-txt --output-file /tmp/requirements.lock
-          cmp -s /tmp/requirements.lock requirements.txt
+          # uv embeds the output path in its two-line generated header.  Compare
+          # the dependency body so the compatibility export is path-independent.
+          sed '1,2d' /tmp/requirements.lock > /tmp/requirements.generated
+          sed '1,2d' requirements.txt > /tmp/requirements.current
+          cmp -s /tmp/requirements.generated /tmp/requirements.current
 
       - name: Run unit tests
         run: |
           cd backend
-          ENV_FILE=.env.dev python -m pytest tests/unit \
+          ENV_FILE=.env.dev uv run pytest tests/unit \
             --cov=app --cov-report=xml --cov-report=term-missing \
             --no-header -q
 
       - name: Run integration tests (with testcontainers)
         run: |
           cd backend
-          ENV_FILE=.env.dev python -m pytest tests/integration \
+          ENV_FILE=.env.dev uv run pytest tests/integration \
             --cov=app --cov-report=xml:coverage-integration.xml \
+            --cov-fail-under=0 \
             --no-header -q
 
       - name: Upload coverage to Codecov
@@ -124,6 +127,8 @@ jobs:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: chartingdb
           CORS_ORIGINS: '["http://localhost"]'
+          E2E_SEED_INSTRUMENTS: "true"
+          E2E_SEED_MARKET_DATA: "true"
 
       - name: Wait for backend health
         run: |
@@ -149,3 +154,60 @@ jobs:
       - name: Tear down
         if: always()
         run: docker compose -p charting-platform-ci down -v
+
+  # Master receives the independent replay of the complete local integration
+  # gate.  Branch pushes keep the faster deterministic jobs above; promotion
+  # cannot be considered healthy until this exhaustive replay is green.
+  platform-gate:
+    name: Exhaustive Integration Gate (master)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    needs: [backend, frontend-unit]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.7.15"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies and browsers
+        run: |
+          cd frontend
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run exhaustive integration gate
+        run: make validate-integration
+        env:
+          SECRET_KEY: ci-exhaustive-gate-secret
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: chartingdb
+          CORS_ORIGINS: '["http://localhost"]'
+
+      - name: Preserve browser diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exhaustive-playwright-diagnostics
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+            backend/coverage-combined.xml
+          retention-days: 7

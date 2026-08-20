@@ -12,6 +12,7 @@ describe('user settings market-map source preferences', () => {
     setActivePinia(createPinia())
     vi.useFakeTimers()
     vi.resetAllMocks()
+    localStorage.setItem('access_token', 'test-access-token')
     ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValue({
       marketMap: {
         followedSourceIds: ['market-group:sp500', 'market-group:sp500', 42, ''],
@@ -48,5 +49,15 @@ describe('user settings market-map source preferences', () => {
         },
       }),
     })
+  })
+
+  it('does not persist a debounced change after logout clears the access token', async () => {
+    const store = useUserSettingsStore()
+    await store.loadSettings()
+    localStorage.removeItem('access_token')
+    store.toggleFollowedSource('market-group:russell-2000')
+    await vi.advanceTimersByTimeAsync(350)
+
+    expect(api.patch).not.toHaveBeenCalled()
   })
 })

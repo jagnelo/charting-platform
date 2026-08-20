@@ -49,6 +49,10 @@ export const useUserSettingsStore = defineStore('userSettings', () => {
   }
 
   async function saveSettings() {
+    // A debounced watcher can fire after logout. Do not issue a background
+    // authenticated write with cleared credentials (and do not turn the
+    // expected 401 into a browser-console failure during logout tests).
+    if (!localStorage.getItem('access_token')) return
     await api.patch('/auth/settings', {
       settings: {
         chart: {

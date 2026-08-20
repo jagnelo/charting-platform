@@ -1,5 +1,5 @@
 <template>
-  <div ref="root" class="ratio-chart" :data-linked-timestamp="props.linkedTimestamp || undefined">
+  <div ref="root" class="ratio-chart" :aria-busy="loading" :data-linked-timestamp="props.linkedTimestamp || undefined">
     <div class="ratio-chart__legend">
       <strong>{{ ratioLabels }}</strong>
       <template v-if="editableBenchmarks">
@@ -45,6 +45,7 @@ const series = ref<Array<{ benchmark: string; points: Array<{ timestamp: string;
 const error = ref<string | null>(null)
 const warning = ref<string | null>(null)
 const status = ref('Local adjusted')
+const loading = ref(false)
 const asOfDraft = ref(props.asOf ? props.asOf.slice(0, 10) : '')
 let chart: uPlot | null = null
 let resizeObserver: ResizeObserver | null = null
@@ -103,6 +104,7 @@ async function load() {
   const benchmarks = localBenchmarks.value
   if (!props.symbol || !benchmarks.length) return
   const generation = ++loadGeneration
+  loading.value = true
   error.value = null
   try {
     const payloads = await Promise.all(benchmarks.map(async benchmark => ({
@@ -133,6 +135,8 @@ async function load() {
     if (generation !== loadGeneration) return
     series.value = []
     error.value = cause?.message ?? 'Unable to calculate ratio'
+  } finally {
+    if (generation === loadGeneration) loading.value = false
   }
 }
 

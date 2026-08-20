@@ -1026,6 +1026,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   let lastLocalWorkspaceMutationAt = 0
   const recentLinkGroupOverrides = new Map<string, { group: LinkGroup; symbol: string; at: number }>()
   const recentActiveWindowOverrides = new Map<string, { windowKey: string; at: number }>()
+  // Explicit closes are destructive by design, but a stale snapshot from the
+  // same workstation can still contain the just-closed window when a revision
+  // conflict is reconciled. Keep the short-lived intent separate from the
+  // persisted state so the merge can preserve an intentional close without
+  // treating an unrelated remote deletion as safe to guess through.
+  const recentClosedWindowOverrides = new Map<string, number>()
   // A PUT may resolve after a newer local edit has already been made.  Never let
   // that older response replace the live reactive workspace with stale layout or
   // tool configuration.
@@ -1374,6 +1380,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     error.value = null
     try {
       workspace.value = await api.get<WorkspaceState>('/workspaces/default')
+      recentClosedWindowOverrides.clear()
       workspaces.value = [{
         id: workspace.value.id,
         name: workspace.value.name,
@@ -1603,10 +1610,27 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         const remoteWindow = remoteTab.windows.find(window => window.instance_key === baseWindow.instance_key)
         const mergedWindow = mergedTab.windows.find(window => window.instance_key === baseWindow.instance_key)
         // A local tool-open and a remote layout snapshot can legitimately race.
-        // Additive windows are safe to merge by stable instance key; destructive
-        // removal remains a recovery-worthy conflict so an older snapshot cannot
-        // silently resurrect a user's explicit close.
-        if (!localWindow || !remoteWindow || !mergedWindow) return null
+        // Additive windows are safe to merge by stable instance key. An explicit
+        // local close is handled below using its short-lived intent marker; an
+        // unaccounted-for removal remains a recovery-worthy conflict so an older
+        // snapshot cannot silently resurrect a user's explicit close.
+        // Both writers can legitimately remove the same base window: the local
+        // close is explicit, while the remote snapshot may have won the same
+        // close before this retry. Treat that converged deletion as safe so a
+        // newly opened local window can still be merged below. A remote-only
+        // deletion while the local copy remains is still a real structural
+        // conflict and must go through recovery rather than silently choosing
+        // one side.
+        if (!remoteWindow) {
+          if (!localWindow) continue
+          return null
+        }
+        if (!mergedWindow) return null
+        if (!localWindow) {
+          const closedAt = recentClosedWindowOverrides.get(baseWindow.instance_key)
+          if (closedAt == null || Date.now() - closedAt >= 30_000) return null
+          continue
+        }
         const localChanged = !sameJson(localWindow, baseWindow)
         const remoteChanged = !sameJson(remoteWindow, baseWindow)
         // A single workstation window can publish several legitimate local
@@ -1621,6 +1645,23 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       const localExtra = localTab.windows.filter(window => !baseKeys.has(window.instance_key))
       const remoteExtra = remoteTab.windows.filter(window => !baseKeys.has(window.instance_key))
       const mergedKeys = new Set(mergedTab.windows.map(window => window.instance_key))
+      const now = Date.now()
+      for (const baseWindow of baseTab.windows) {
+        const localWindow = localTab.windows.find(window => window.instance_key === baseWindow.instance_key)
+        const remoteWindow = remoteTab.windows.find(window => window.instance_key === baseWindow.instance_key)
+        if (localWindow || !remoteWindow) continue
+        const closedAt = recentClosedWindowOverrides.get(baseWindow.instance_key)
+        if (closedAt == null || now - closedAt >= 30_000) {
+          if (closedAt != null) recentClosedWindowOverrides.delete(baseWindow.instance_key)
+          return null
+        }
+        // The current window explicitly removed this tool after the baseline
+        // snapshot. Keep that user intent and let the local layout (assigned
+        // above) remove its component as well; remote changes to other windows
+        // remain merged below.
+        mergedTab.windows = mergedTab.windows.filter(window => window.instance_key !== baseWindow.instance_key)
+        mergedKeys.delete(baseWindow.instance_key)
+      }
       // Keep remote additions, then append local-only additions in their local
       // order. This is deterministic and preserves both users' newly opened
       // tools without treating normal Add tool activity as an unrecoverable
@@ -2544,6 +2585,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         if (generation !== snapshotGeneration) return
         workspace.value = saved
         persistedWorkspace = cloneSerializable(workspace.value)
+        recentClosedWindowOverrides.clear()
         announceWorkspaceSnapshot(workspace.value)
       } catch (cause: any) {
         if (String(cause?.message ?? '').includes(' 409:')) {
@@ -2564,6 +2606,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
               if (generation !== snapshotGeneration) return
               workspace.value = saved
               persistedWorkspace = cloneSerializable(saved)
+              recentClosedWindowOverrides.clear()
               announceWorkspaceSnapshot(saved)
               error.value = null
               return
@@ -2844,6 +2887,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       error.value = 'A workspace tab must retain at least one tool.'
       return false
     }
+    recentClosedWindowOverrides.set(windowKey, Date.now())
     tab.windows = tab.windows.filter(window => window.instance_key !== windowKey)
     if (tab.active_window_key === windowKey) tab.active_window_key = tab.windows[0]?.instance_key ?? null
     scheduleSnapshot()
