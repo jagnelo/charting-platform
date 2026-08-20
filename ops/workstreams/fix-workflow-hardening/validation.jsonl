@@ -11,3 +11,5 @@
 {"command":"make validate-integration ARM64 gate","result":"implemented","evidence":"authoritative candidate gate now invokes the exact ARM64 build check after the exhaustive browser and visual suites; master-only CI replays the complete gate"}
 {"command":"exact candidate visual replay","result":"failed","evidence":"4 TC2000 visual setup probes attempted http://localhost/health (::1:80) because the standalone visual Make command did not export the allocated STACK_URL; 100 remaining visual cases skipped; candidate stack remained healthy and was torn down exactly"}
 {"command":"visual replay runtime environment","result":"corrected","evidence":"Make validate-integration now sources the path-derived runtime env and exports STACK_URL for the TC2000 visual command; fresh source replay and exact candidate required"}
+{"command":"debounced user-settings logout guard","result":"pass","evidence":"frontend user-settings unit suite passes 3/3, including no PATCH after access token removal"}
+{"command":"branch E2E fixture configuration","result":"corrected","evidence":"workflow starts Compose with deterministic instrument and market-data fixture flags"}

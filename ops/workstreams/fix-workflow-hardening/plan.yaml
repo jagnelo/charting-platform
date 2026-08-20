@@ -40,3 +40,5 @@ remaining_gaps:
   - "The full GitHub replay and exact integration gate must be rerun after the integration coverage correction, replay-gating change, and frontend proxy healthcheck."
   - "The new ARM64 image gate passed locally on this source tree; the exact candidate and master replay still need to record it in their receipts."
   - "The first exact candidate after the ARM64 addition exposed a visual-target environment omission: the TC2000 visual command used localhost:80 instead of the path-derived STACK_URL; the command now exports the allocator environment and requires a fresh candidate."
+  - "A branch replay also exposed a debounced user-settings PATCH racing logout; the store now skips the write when the access token has been cleared, with a focused regression test."
+  - "Branch E2E workflows now enable deterministic instrument and market-data fixtures so exhaustive browser checks exercise the intended seeded contract."

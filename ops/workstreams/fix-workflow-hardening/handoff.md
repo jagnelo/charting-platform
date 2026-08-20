@@ -48,3 +48,8 @@ instead of the allocated candidate `STACK_URL`, producing four `ECONNREFUSED
 ::1:80` failures and skipping the remaining 100 visual cases. The candidate
 stack was healthy throughout. The Make target now exports the runtime file for
 that visual command as well; the candidate must be rebuilt and rerun.
+
+The branch workflow also now starts E2E Compose with deterministic instrument and
+market-data fixtures. A debounced user-settings watcher is guarded by the access
+token so logout cannot issue a post-logout PATCH/401; its focused unit regression
+passes alongside the existing frontend suite.

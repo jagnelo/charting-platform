@@ -127,6 +127,8 @@ jobs:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: chartingdb
           CORS_ORIGINS: '["http://localhost"]'
+          E2E_SEED_INSTRUMENTS: "true"
+          E2E_SEED_MARKET_DATA: "true"
 
       - name: Wait for backend health
         run: |
