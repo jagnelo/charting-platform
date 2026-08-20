@@ -36,3 +36,8 @@ candidate stack was stopped by the exact project-scoped trap and its clean
 worktree was removed. The source now adds an nginx frontend healthcheck so stack
 startup waits for the browser proxy, and a fresh GitHub replay plus exact
 candidate gate is required before promotion.
+
+The authoritative gate now also builds all three production application images
+for `linux/arm64`, inspects their platform metadata, and removes only its
+temporary validation tags. The local hardening worktree passed that check at
+`12a98620df34`; the source replay and exact candidate must still record it.

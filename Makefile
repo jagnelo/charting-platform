@@ -27,6 +27,7 @@
   test-stack-up test-stack-down test-platform test-all test-backend-coverage \
   test-uplot-contract \
   test-visual-policy \
+  validate-arm64-images \
   validate-integration branch-validate \
   worktree-create worktree-list worktree-status worktree-close integrate \
   rpi-preflight rpi-bundle deploy-rpi rpi-status \
@@ -158,6 +159,10 @@ test-visual-policy:
 	@echo "▶  Deterministic TC2000 visual acceptance policy..."
 	cd backend && .venv/bin/python ../tests/visual/validate-visual-acceptance-policy.py
 
+validate-arm64-images:
+	@echo "▶  Production application image build (linux/arm64)..."
+	python3 scripts/validate-arm64-images.py
+
 test-e2e-install:
 	@echo "▶  Ensuring Playwright Chromium is installed..."
 	cd frontend && npx playwright install chromium
@@ -276,7 +281,8 @@ validate-integration:
 	trap '$(MAKE) test-stack-down' EXIT; \
 	E2E_SEED_MARKET_DATA=true $(MAKE) test-stack-up; \
 	E2E_SEED_MARKET_DATA=true $(MAKE) test-e2e; \
-	(cd frontend && E2E_SEED_MARKET_DATA=true RUN_BOARD_VISUAL_PARITY=1 npx playwright test tests/e2e/tc2000_visual.spec.ts)
+	(cd frontend && E2E_SEED_MARKET_DATA=true RUN_BOARD_VISUAL_PARITY=1 npx playwright test tests/e2e/tc2000_visual.spec.ts); \
+	$(MAKE) validate-arm64-images
 
 rpi-preflight:
 	python3 scripts/rpi.py preflight

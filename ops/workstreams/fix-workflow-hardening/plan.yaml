@@ -15,6 +15,8 @@ owned_paths:
   - frontend/src/views/WorkstationView.vue
   - frontend/tests/e2e/flows.spec.ts
   - .github/workflows/ci.yml
+  - scripts/validate-arm64-images.py
+  - Makefile
 dependencies: []
 acceptance_criteria:
   - "Dirty, unmerged, or running worktrees remain non-removable."
@@ -23,6 +25,7 @@ acceptance_criteria:
   - "Ratio row actions remount the dock after snapshot replacement so persisted and visible configurations remain aligned."
   - "The GitHub backend job accepts the tracked compatibility export when only uv's generated output path differs, invokes the repository environment for pytest, does not apply the combined coverage threshold to the integration-only slice, and does not run an unused pip cache cleanup."
   - "Integration requires a successful push-triggered GitHub replay for the exact source and published master SHA; a failed master replay creates a durable degraded marker that blocks subsequent integration and deployment."
+  - "The authoritative gate builds and inspects backend, research-runner, and frontend production images for linux/arm64, and master replays the complete gate independently in GitHub Actions."
 branch_tests:
   - "backend/.venv/bin/python -m pytest backend/tests/unit/test_worktree_runtime.py -q --no-cov"
   - "uv run ruff check scripts backend/tests/unit/test_worktree_runtime.py"
@@ -35,3 +38,4 @@ status: in_progress
 remaining_gaps:
   - "Conflict continuation still requires an agent to perform semantic edits and stage source files."
   - "The full GitHub replay and exact integration gate must be rerun after the integration coverage correction, replay-gating change, and frontend proxy healthcheck."
+  - "The new ARM64 image gate passed locally on this source tree; the exact candidate and master replay still need to record it in their receipts."
