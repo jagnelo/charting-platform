@@ -36,3 +36,4 @@ status: in_progress
 remaining_gaps:
   - "The fresh provider replay and exact candidate integration must run after the scheduling coverage change."
   - "Real provider probes remain opt-in and require configured free/entitled credentials; deterministic tests cover classification and transition policy without paid calls."
+  - "The first complete provider replay passed backend and frontend unit/integration jobs but failed 16 Playwright cases because CI omitted deterministic instrument and market-data fixtures; branch CI now enables both and requires a fresh replay."

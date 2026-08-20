@@ -16,3 +16,10 @@ Worker coverage now verifies both scheduled availability jobs are disabled unles
 monitoring and live-probe flags are explicitly enabled, and that enabled jobs
 delegate `daily_core` and `weekly_supported_sweep` respectively. Provider and
 worker focused tests pass 25/25.
+
+The first complete provider replay passed backend and frontend unit/integration
+jobs but failed 16 Playwright cases because the branch CI stack did not enable
+the deterministic instrument and market-data fixtures. The failures clustered
+in transform, chart, workstation, and Study Lab flows rather than provider
+monitoring. The E2E job now enables both fixture flags; a fresh replay is
+required.
