@@ -183,3 +183,17 @@ long-suite layout/opening turn cannot fence a valid response with a redundant
 same-source run. The three focused regressions pass together against the seeded
 stack; independent replay `32348730473` is required before candidate
 integration.
+
+Replay `32351389163` for `73d03682298ce246d5c5bbe8f4caf9e7646daeaa` passed the
+backend and frontend jobs but the exhaustive browser job remained red after
+17m36s. Its preserved first failures were the full-suite F8s family matrix
+losing the rendered `Locked source` summary after the correct family response,
+and F8s Market Map watchlist timing out on a button that detached during the
+Golden Layout lifecycle churn. The focused reproductions remained green. The
+duplicate in-flight request fence did not resolve the full-suite race and is
+being reverted; no browser oracle, baseline, retry budget, or threshold is being
+relaxed. The same source boundary also fixed a real integration-gate shell
+scope defect: frontend build/visual commands now run in subshells so later root
+Make targets remain available. The next boundary will retain that Makefile fix
+while investigating workspace layout installation/reconciliation as the likely
+cause of the remaining lifecycle race.
