@@ -52,6 +52,22 @@ const mountedToolRoots: HTMLElement[] = []
 // activation remains reliable even when tabs overflow into the dropdown.
 const componentItems = new Map<string, any>()
 let resizeObserver: ResizeObserver | null = null
+let installTimer: number | null = null
+
+function scheduleInstall(layout: LayoutConfig, windowKey: string | null | undefined, reloadKey: number | undefined) {
+  // A workspace action can be emitted from a Golden Layout component's click
+  // handler. Rebuilding the entire layout in the same event turn detaches the
+  // clicked DOM node before Playwright (and assistive technology) can observe
+  // the completed interaction. Defer the destructive reinstall to the next
+  // macrotask while retaining the latest serializable layout/activation pair.
+  const nextLayout = JSON.parse(JSON.stringify(layout)) as LayoutConfig
+  if (installTimer !== null) window.clearTimeout(installTimer)
+  installTimer = window.setTimeout(() => {
+    installTimer = null
+    install(nextLayout)
+    void nextTick(() => activateWindow(windowKey))
+  }, 0)
+}
 
 function changeSuppressed() {
   return initialEventsSuppressed || suppressChange || Date.now() < suppressChangeUntil
@@ -422,8 +438,7 @@ watch(
     // reload token refreshes virtual roots in that case without making normal
     // tool-configuration edits recreate the dock or its uPlot instances.
     if (reloadKey !== previousReloadKey || layoutFingerprint(layout) !== lastLayoutFingerprint) {
-      install(layout)
-      void nextTick(() => activateWindow(windowKey))
+      scheduleInstall(layout, windowKey, reloadKey)
     } else {
       activateWindow(windowKey)
       void nextTick(() => activateWindow(windowKey))
@@ -447,6 +462,7 @@ onMounted(() => {
   }
 })
 onBeforeUnmount(() => {
+  if (installTimer !== null) window.clearTimeout(installTimer)
   host.value?.removeEventListener('pointerdown', releaseInitialSuppression, true)
   host.value?.removeEventListener('keydown', releaseInitialSuppression, true)
   teardown()

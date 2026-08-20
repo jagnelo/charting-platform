@@ -175,14 +175,13 @@ that left the reset action unfocused. The focused reproductions were green; the
 red evidence is retained and no browser oracle, visual baseline, retry budget,
 or threshold was changed.
 
-The next source boundary adds two product-side guards. Workspace menu key
-navigation handles root-targeted Home/End events during capture while leaving
-the nested saved-workspace listbox's own roving focus semantics intact. Market
-Map request execution deduplicates identical in-flight configurations so a
-long-suite layout/opening turn cannot fence a valid response with a redundant
-same-source run. The three focused regressions pass together against the seeded
-stack; independent replay `32348730473` is required before candidate
-integration.
+The next source boundary added the workspace-menu product guard: root-targeted
+Home/End events are handled during capture while the nested saved-workspace
+listbox keeps its own roving-focus semantics. An attempted Market Map duplicate
+in-flight request fence was also evaluated, but it did not address the
+full-suite lifecycle race and is not retained. The three focused regressions
+passed together against the seeded stack; independent replay `32348730473`
+covered that earlier boundary.
 
 Replay `32351389163` for `73d03682298ce246d5c5bbe8f4caf9e7646daeaa` passed the
 backend and frontend jobs but the exhaustive browser job remained red after
@@ -197,3 +196,12 @@ scope defect: frontend build/visual commands now run in subshells so later root
 Make targets remain available. The next boundary will retain that Makefile fix
 while investigating workspace layout installation/reconciliation as the likely
 cause of the remaining lifecycle race.
+
+The current source boundary defers destructive Golden Layout reinstalls to the
+next macrotask while retaining the latest serializable layout and active-window
+pair. This lets a tool action finish before adding or publishing a destination
+tool tears down the old virtual component. Frontend type-check passes, the
+family matrix passes three consecutive focused runs (8.8s, 8.6s, 8.7s), and the
+Market Map watchlist flow reaches its final assertion without the former
+detached-control timeout; its local unseeded stack reports only the known
+unseeded ETF snapshot 404. A fresh independent source replay is required.
