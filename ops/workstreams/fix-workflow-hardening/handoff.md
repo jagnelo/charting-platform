@@ -164,3 +164,22 @@ multi-window canvas cleanup (received five canvases instead of the exact three).
 The focused branch-declared matrix and performance checks remain green; the
 failure is recorded as a diagnostic red replay and requires a fresh source
 replay before integration.
+
+Replay `32345906663` for `c82231731725fad96f5b3017fcb0870bb27a0f82` passed the
+backend and frontend jobs and executed all four visual projects, but the browser
+job remained red after 17 minutes. Its preserved first failures were the same
+full-suite Market Map lifecycle race (the correct family request completed but
+the visible map lost its rendered summary/tile), the popup soak retaining five
+canvases instead of the exact three baseline, and a workspace-menu `End` event
+that left the reset action unfocused. The focused reproductions were green; the
+red evidence is retained and no browser oracle, visual baseline, retry budget,
+or threshold was changed.
+
+The next source boundary adds two product-side guards. Workspace menu key
+navigation handles root-targeted Home/End events during capture while leaving
+the nested saved-workspace listbox's own roving focus semantics intact. Market
+Map request execution deduplicates identical in-flight configurations so a
+long-suite layout/opening turn cannot fence a valid response with a redundant
+same-source run. The three focused regressions pass together against the seeded
+stack; independent replay `32348730473` is required before candidate
+integration.
