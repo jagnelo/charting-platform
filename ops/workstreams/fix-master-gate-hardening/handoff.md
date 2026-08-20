@@ -31,6 +31,11 @@ were green.
   generation fix.
 - No visual baselines, masks, thresholds, or retries were changed.
 
+Integration safety note: `scripts/integrate.py` now has an explicit
+`--remediate-degraded` path for this repair branch. It remains restricted to a source
+branch whose merge-base is the exact degraded `master` SHA; ordinary integrations stay
+blocked while the marker exists.
+
 Next boundary: commit, push, run branch CI, then integrate this exact SHA into
 the degraded master candidate and require a new green master replay before
 clearing `.ai/master-degraded.json`.

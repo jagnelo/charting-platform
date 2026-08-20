@@ -70,7 +70,9 @@ def branch_worktree(repo: Path, branch: str) -> Path:
     raise SystemExit(f"source branch is not checked out in a worktree: {branch}")
 
 
-def assert_clean_synchronized(repo: Path, branch: str) -> Path:
+def assert_clean_synchronized(
+    repo: Path, branch: str, *, remediate_degraded: bool = False
+) -> Path:
     if out(["git", "branch", "--show-current"], repo) != "master":
         raise SystemExit("integration must run from the root master checkout")
     if out(["git", "status", "--porcelain"], repo):
@@ -79,14 +81,35 @@ def assert_clean_synchronized(repo: Path, branch: str) -> Path:
         ["git", "rev-parse", "origin/master"], repo
     ):
         raise SystemExit("root master is not synchronized with origin/master")
-    if degraded_marker(repo).exists():
-        raise SystemExit(
-            "master is degraded because its independent GitHub replay failed; inspect "
-            f"{degraded_marker(repo)} before integrating another branch"
-        )
+    marker = degraded_marker(repo)
+    if marker.exists():
+        if not remediate_degraded:
+            raise SystemExit(
+                "master is degraded because its independent GitHub replay failed; inspect "
+                f"{marker} before integrating another branch, or use "
+                "--remediate-degraded only for a repair branch based on this exact master SHA"
+            )
+        try:
+            degraded = json.loads(marker.read_text())
+        except (OSError, json.JSONDecodeError) as exc:
+            raise SystemExit(f"cannot read degraded master marker: {marker}: {exc}") from exc
+        current = out(["git", "rev-parse", "HEAD"], repo)
+        if degraded.get("master") != current:
+            raise SystemExit(
+                "degraded master marker does not describe the current synchronized master; "
+                "refresh the marker through the publish/replay workflow"
+            )
     source = branch_worktree(repo, branch)
     if out(["git", "status", "--porcelain"], source):
         raise SystemExit(f"source worktree is dirty: {source}")
+    if marker.exists() and remediate_degraded:
+        current = out(["git", "rev-parse", "HEAD"], repo)
+        merge_base = out(["git", "merge-base", "master", branch], repo)
+        if merge_base != current:
+            raise SystemExit(
+                "degraded-master remediation branch must be based directly on the "
+                "current degraded master SHA"
+            )
     return source
 
 
@@ -325,10 +348,17 @@ def main() -> int:
     parser.add_argument(
         "--publish", action="store_true", help="publish only after the full gate passes"
     )
+    parser.add_argument(
+        "--remediate-degraded",
+        action="store_true",
+        help="allow only a repair branch based directly on the current degraded master SHA",
+    )
     args = parser.parse_args()
     repo = root()
     with integration_lock(repo):
-        source = assert_clean_synchronized(repo, args.branch)
+        source = assert_clean_synchronized(
+            repo, args.branch, remediate_degraded=args.remediate_degraded
+        )
         source_sha = out(["git", "rev-parse", "HEAD"], source)
         if args.continue_candidate:
             candidate, candidate_sha = continue_candidate(repo, args.branch, source_sha)

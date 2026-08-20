@@ -94,6 +94,15 @@ semantic edits, update `ops/integration-conflicts.md`, then resume it with:
 python3 scripts/integrate.py feat/provider-health --continue --publish
 ```
 
+If `master` is marked degraded after an independent GitHub replay failure, ordinary
+integration remains blocked. A repair branch created directly from that exact degraded
+`master` SHA may use the explicit remediation flag; the helper rejects branches with any
+other base:
+
+```bash
+make integrate BRANCH=fix/master-gate-hardening REMEDIATE_DEGRADED=1
+```
+
 Each worktree gets an `ops/workstreams/<branch-slug>/` record with a plan,
 handoff, and append-only validation evidence. Closing refuses dirty, unmerged,
 or running worktrees.
