@@ -24,9 +24,9 @@ acceptance_criteria:
   - "Preflight rejects stopped as well as running collisions for the reserved Compose project, requires reliable ss and flock probes, and uses a kernel file lock that releases after interrupted SSH sessions."
 branch_tests:
   - "python3 -m py_compile scripts/rpi.py"
-  - "uv run ruff check scripts/rpi.py"
-  - "uv run ruff format --check scripts/rpi.py"
-  - "uv run pytest tests/deployment/test_rpi_contract.py -q --no-cov"
+  - "cd backend && uv run ruff check ../scripts/rpi.py"
+  - "cd backend && uv run ruff format --check ../scripts/rpi.py"
+  - "cd backend && uv run pytest ../tests/deployment/test_rpi_contract.py -q --no-cov"
   - "git diff --check"
 live_test_impact: none
 migration_impact: none
