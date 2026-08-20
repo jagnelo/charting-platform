@@ -430,7 +430,7 @@
         <span>Timeframe</span>
         <select :value="breadthTimeframe" aria-label="Breadth timeframe" @change="setBreadthConfiguration({ timeframe: ($event.target as HTMLSelectElement).value })"><option value="D1">Daily</option><option value="W1">Weekly</option><option value="MN">Monthly</option></select>
         <span>Lookback</span>
-        <input :value="breadthLookback" aria-label="Breadth new high low lookback" type="number" min="2" max="252" @change="setBreadthConfiguration({ new_high_lookback: Number(($event.target as HTMLInputElement).value) })" />
+        <input :value="breadthLookback" aria-label="Breadth new high low lookback" type="number" min="2" max="252" @input="setBreadthNumber('new_high_lookback', $event)" @change="setBreadthNumber('new_high_lookback', $event)" />
         <label><input type="checkbox" :checked="breadthAdjusted" aria-label="Breadth split adjusted" @change="setBreadthConfiguration({ adjusted: ($event.target as HTMLInputElement).checked })" /> Adjusted</label>
       </div>
       <div class="breadth-tool__custom" aria-label="Condition-driven breadth study">
@@ -502,48 +502,48 @@
           </select>
           <select :value="breadthPythonSeriesScope" aria-label="Breadth Python series target scope" @change="setBreadthConfiguration({ breadth_python_series_scope: ($event.target as HTMLSelectElement).value })"><option value="member">Member value</option><option value="cross_sectional">Cross-sectional group</option></select>
           <select v-if="breadthPythonSeriesScope === 'cross_sectional'" :value="breadthPythonSeriesStatistic" aria-label="Breadth Python series group statistic" @change="setBreadthConfiguration({ breadth_python_series_statistic: ($event.target as HTMLSelectElement).value })"><option value="mean">Mean</option><option value="median">Median</option><option value="min">Minimum</option><option value="max">Maximum</option><option value="std">Standard deviation</option></select>
-          <label>Threshold <input :value="breadthPythonSeriesThreshold" aria-label="Breadth Python series threshold" type="number" step="0.001" @change="setBreadthConfiguration({ breadth_python_series_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <label>Threshold <input :value="breadthPythonSeriesThreshold" aria-label="Breadth Python series threshold" type="number" step="0.001" @input="setBreadthNumber('breadth_python_series_threshold', $event)" @change="setBreadthNumber('breadth_python_series_threshold', $event)" /></label>
           <small v-if="breadthPythonSeriesAssetsLoading" role="status">Loading Python assets…</small>
           <small v-else-if="!breadthPythonSeriesAssets.length" class="breadth-tool__status--error">No numeric-series condition assets available.</small>
         </template>
         <template v-if="breadthConditionKind === 'above_moving_average'">
-          <label>Period <input :value="breadthConditionPeriod" aria-label="Breadth condition moving average period" type="number" min="2" max="252" @change="setBreadthConfiguration({ breadth_condition_period: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <label>Period <input :value="breadthConditionPeriod" aria-label="Breadth condition moving average period" type="number" min="2" max="252" @input="setBreadthNumber('breadth_condition_period', $event)" @change="setBreadthNumber('breadth_condition_period', $event)" /></label>
           <select :value="breadthConditionAverage" aria-label="Breadth condition average" @change="setBreadthConfiguration({ breadth_condition_average: ($event.target as HTMLSelectElement).value })"><option value="sma">SMA</option><option value="ema">EMA</option></select>
         </template>
         <template v-else-if="breadthConditionKind === 'within_52_week_high'">
           <select :value="breadthHighLowDirection" aria-label="Breadth 52-week direction" @change="setBreadthConfiguration({ breadth_condition_high_low_direction: ($event.target as HTMLSelectElement).value })"><option value="high">Near 52-week high</option><option value="low">Near 52-week low</option></select>
-          <label>Threshold <input :value="breadthConditionThreshold" aria-label="Breadth condition high threshold" type="number" min="0.001" max="0.5" step="0.001" @change="setBreadthConfiguration({ breadth_condition_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
-          <label>Lookback <input :value="breadthConditionLookback" aria-label="Breadth condition high lookback" type="number" min="2" max="504" @change="setBreadthConfiguration({ breadth_condition_lookback: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <label>Threshold <input :value="breadthConditionThreshold" aria-label="Breadth condition high threshold" type="number" min="0.001" max="0.5" step="0.001" @input="setBreadthNumber('breadth_condition_threshold', $event)" @change="setBreadthNumber('breadth_condition_threshold', $event)" /></label>
+          <label>Lookback <input :value="breadthConditionLookback" aria-label="Breadth condition high lookback" type="number" min="2" max="504" @input="setBreadthNumber('breadth_condition_lookback', $event)" @change="setBreadthNumber('breadth_condition_lookback', $event)" /></label>
         </template>
         <template v-else-if="breadthConditionKind === 'new_high_low'">
           <select :value="breadthHighLowDirection" aria-label="Breadth new high low direction" @change="setBreadthConfiguration({ breadth_condition_high_low_direction: ($event.target as HTMLSelectElement).value })"><option value="high">New high</option><option value="low">New low</option></select>
-          <label>Lookback <input :value="breadthConditionLookback" aria-label="Breadth condition new high low lookback" type="number" min="2" max="252" @change="setBreadthConfiguration({ breadth_condition_lookback: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <label>Lookback <input :value="breadthConditionLookback" aria-label="Breadth condition new high low lookback" type="number" min="2" max="252" @input="setBreadthNumber('breadth_condition_lookback', $event)" @change="setBreadthNumber('breadth_condition_lookback', $event)" /></label>
         </template>
         <template v-else-if="breadthConditionKind === 'prior_high_low'">
           <select :value="breadthHighLowDirection" aria-label="Breadth prior high low direction" @change="setBreadthConfiguration({ breadth_condition_high_low_direction: ($event.target as HTMLSelectElement).value })"><option value="high">Prior high</option><option value="low">Prior low</option></select>
-          <label>Lookback <input :value="breadthConditionLookback" aria-label="Breadth prior high low lookback" type="number" min="2" max="5000" @change="setBreadthConfiguration({ breadth_condition_lookback: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <label>Lookback <input :value="breadthConditionLookback" aria-label="Breadth prior high low lookback" type="number" min="2" max="5000" @input="setBreadthNumber('breadth_condition_lookback', $event)" @change="setBreadthNumber('breadth_condition_lookback', $event)" /></label>
           <select :value="breadthComparisonOperator" aria-label="Breadth prior high low operator" @change="setBreadthConfiguration({ breadth_comparison_operator: ($event.target as HTMLSelectElement).value })"><option value="gte">At or above</option><option value="lte">At or below</option><option value="gt">Above</option><option value="lt">Below</option><option value="eq">Equal</option></select>
-          <label>Distance <input :value="breadthComparisonThreshold" aria-label="Breadth prior high low threshold" type="number" step="0.001" @change="setBreadthConfiguration({ breadth_comparison_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <label>Distance <input :value="breadthComparisonThreshold" aria-label="Breadth prior high low threshold" type="number" step="0.001" @input="setBreadthNumber('breadth_comparison_threshold', $event)" @change="setBreadthNumber('breadth_comparison_threshold', $event)" /></label>
         </template>
         <template v-else-if="breadthConditionKind === 'trend'">
-          <label>Fast <input :value="breadthConditionFastPeriod" aria-label="Breadth trend fast period" type="number" min="2" max="100" @change="setBreadthConfiguration({ breadth_condition_fast_period: Number(($event.target as HTMLInputElement).value) })" /></label>
-          <label>Slow <input :value="breadthConditionSlowPeriod" aria-label="Breadth trend slow period" type="number" min="3" max="252" @change="setBreadthConfiguration({ breadth_condition_slow_period: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <label>Fast <input :value="breadthConditionFastPeriod" aria-label="Breadth trend fast period" type="number" min="2" max="100" @input="setBreadthNumber('breadth_condition_fast_period', $event)" @change="setBreadthNumber('breadth_condition_fast_period', $event)" /></label>
+          <label>Slow <input :value="breadthConditionSlowPeriod" aria-label="Breadth trend slow period" type="number" min="3" max="252" @input="setBreadthNumber('breadth_condition_slow_period', $event)" @change="setBreadthNumber('breadth_condition_slow_period', $event)" /></label>
           <select :value="breadthConditionDirection" aria-label="Breadth trend direction" @change="setBreadthConfiguration({ breadth_condition_direction: ($event.target as HTMLSelectElement).value })"><option value="up">Uptrend</option><option value="down">Downtrend</option></select>
         </template>
         <template v-else-if="breadthConditionKind === 'rsi'">
-          <label>Period <input :value="breadthConditionRsiPeriod" aria-label="Breadth RSI period" type="number" min="2" max="252" @change="setBreadthConfiguration({ breadth_condition_rsi_period: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <label>Period <input :value="breadthConditionRsiPeriod" aria-label="Breadth RSI period" type="number" min="2" max="252" @input="setBreadthNumber('breadth_condition_rsi_period', $event)" @change="setBreadthNumber('breadth_condition_rsi_period', $event)" /></label>
           <select :value="breadthComparisonOperator" aria-label="Breadth RSI operator" @change="setBreadthConfiguration({ breadth_comparison_operator: ($event.target as HTMLSelectElement).value })"><option value="gte">At or above</option><option value="lte">At or below</option><option value="gt">Above</option><option value="lt">Below</option></select>
-          <label>Target <input :value="breadthComparisonThreshold" aria-label="Breadth RSI target" type="number" min="0" max="100" step="0.1" @change="setBreadthConfiguration({ breadth_comparison_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <label>Target <input :value="breadthComparisonThreshold" aria-label="Breadth RSI target" type="number" min="0" max="100" step="0.1" @input="setBreadthNumber('breadth_comparison_threshold', $event)" @change="setBreadthNumber('breadth_comparison_threshold', $event)" /></label>
         </template>
         <template v-else-if="breadthConditionKind === 'volume_ratio'">
-          <label>Period <input :value="breadthConditionVolumePeriod" aria-label="Breadth volume ratio period" type="number" min="2" max="252" @change="setBreadthConfiguration({ breadth_condition_volume_period: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <label>Period <input :value="breadthConditionVolumePeriod" aria-label="Breadth volume ratio period" type="number" min="2" max="252" @input="setBreadthNumber('breadth_condition_volume_period', $event)" @change="setBreadthNumber('breadth_condition_volume_period', $event)" /></label>
           <select :value="breadthComparisonOperator" aria-label="Breadth volume ratio operator" @change="setBreadthConfiguration({ breadth_comparison_operator: ($event.target as HTMLSelectElement).value })"><option value="gte">At or above</option><option value="lte">At or below</option><option value="gt">Above</option><option value="lt">Below</option></select>
-          <label>Target <input :value="breadthComparisonThreshold" aria-label="Breadth volume ratio target" type="number" min="0" step="0.1" @change="setBreadthConfiguration({ breadth_comparison_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <label>Target <input :value="breadthComparisonThreshold" aria-label="Breadth volume ratio target" type="number" min="0" step="0.1" @input="setBreadthNumber('breadth_comparison_threshold', $event)" @change="setBreadthNumber('breadth_comparison_threshold', $event)" /></label>
         </template>
         <template v-else-if="breadthConditionKind === 'relative_strength'">
-          <label>Lookback <input :value="breadthConditionLookback" aria-label="Breadth relative strength lookback" type="number" min="2" max="252" @change="setBreadthConfiguration({ breadth_condition_lookback: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <label>Lookback <input :value="breadthConditionLookback" aria-label="Breadth relative strength lookback" type="number" min="2" max="252" @input="setBreadthNumber('breadth_condition_lookback', $event)" @change="setBreadthNumber('breadth_condition_lookback', $event)" /></label>
           <select :value="breadthComparisonOperator" aria-label="Breadth relative strength operator" @change="setBreadthConfiguration({ breadth_comparison_operator: ($event.target as HTMLSelectElement).value })"><option value="gte">At or above</option><option value="lte">At or below</option><option value="gt">Above</option><option value="lt">Below</option></select>
-          <label>Target <input :value="breadthComparisonThreshold" aria-label="Breadth relative strength target" type="number" step="0.001" @change="setBreadthConfiguration({ breadth_comparison_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <label>Target <input :value="breadthComparisonThreshold" aria-label="Breadth relative strength target" type="number" step="0.001" @input="setBreadthNumber('breadth_comparison_threshold', $event)" @change="setBreadthNumber('breadth_comparison_threshold', $event)" /></label>
         </template>
         <template v-if="breadthConditionKind === 'comparison'">
           <select :value="breadthComparisonField" aria-label="Breadth measured field" @change="setBreadthConfiguration({ breadth_comparison_field: ($event.target as HTMLSelectElement).value })">
@@ -562,7 +562,7 @@
             <option value="lt">Below</option>
             <option value="eq">Equal to</option>
           </select>
-          <label>Target <input :value="breadthComparisonThreshold" aria-label="Breadth target threshold" type="number" step="0.001" @change="setBreadthConfiguration({ breadth_comparison_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <label>Target <input :value="breadthComparisonThreshold" aria-label="Breadth target threshold" type="number" step="0.001" @input="setBreadthNumber('breadth_comparison_threshold', $event)" @change="setBreadthNumber('breadth_comparison_threshold', $event)" /></label>
         </template>
         <template v-else-if="breadthConditionKind === 'series_comparison'">
           <select :value="breadthSeriesMemberField" aria-label="Breadth series member field" @change="setBreadthConfiguration({ breadth_series_member_field: ($event.target as HTMLSelectElement).value })">
@@ -583,7 +583,7 @@
           </select>
           <select :value="breadthSeriesRelation" aria-label="Breadth series relation" @change="setBreadthConfiguration({ breadth_series_relation: ($event.target as HTMLSelectElement).value })"><option value="difference">Difference</option><option value="ratio">Ratio minus one</option></select>
           <select :value="breadthComparisonOperator" aria-label="Breadth series operator" @change="setBreadthConfiguration({ breadth_comparison_operator: ($event.target as HTMLSelectElement).value })"><option value="gte">At or above</option><option value="lte">At or below</option><option value="gt">Above</option><option value="lt">Below</option><option value="eq">Equal to</option></select>
-          <label>Threshold <input :value="breadthComparisonThreshold" aria-label="Breadth series threshold" type="number" step="0.001" @change="setBreadthConfiguration({ breadth_comparison_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <label>Threshold <input :value="breadthComparisonThreshold" aria-label="Breadth series threshold" type="number" step="0.001" @input="setBreadthNumber('breadth_comparison_threshold', $event)" @change="setBreadthNumber('breadth_comparison_threshold', $event)" /></label>
         </template>
         <template v-else-if="breadthConditionKind === 'event'">
           <select :value="breadthEventType" aria-label="Breadth event type" @change="setBreadthConfiguration({ breadth_event_type: ($event.target as HTMLSelectElement).value })">
@@ -593,7 +593,7 @@
             <option value="ex_dividend">Ex-dividend</option>
             <option value="split">Split</option>
           </select>
-          <label>Lookback days <input :value="breadthEventLookbackDays" aria-label="Breadth event lookback days" type="number" min="0" max="3660" @change="setBreadthConfiguration({ breadth_event_lookback_days: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <label>Lookback days <input :value="breadthEventLookbackDays" aria-label="Breadth event lookback days" type="number" min="0" max="3660" @input="setBreadthNumber('breadth_event_lookback_days', $event)" @change="setBreadthNumber('breadth_event_lookback_days', $event)" /></label>
           <label><input type="checkbox" :checked="breadthEventIncludeEstimates" aria-label="Breadth include event estimates" @change="setBreadthConfiguration({ breadth_event_include_estimates: ($event.target as HTMLInputElement).checked })" /> Include estimates</label>
           <select :value="breadthComparisonOperator" aria-label="Breadth event operator" @change="setBreadthConfiguration({ breadth_comparison_operator: ($event.target as HTMLSelectElement).value })"><option value="gte">Occurred</option><option value="lt">Did not occur</option></select>
         </template>
@@ -604,8 +604,8 @@
             <option value="volume">Volume</option>
             <option value="distance_to_52w_high">Distance to 52-week high</option>
           </select>
-          <label>Min <input :value="breadthRangeLower" aria-label="Breadth range lower bound" type="number" step="0.001" @change="setBreadthConfiguration({ breadth_range_lower: Number(($event.target as HTMLInputElement).value) })" /></label>
-          <label>Max <input :value="breadthRangeUpper" aria-label="Breadth range upper bound" type="number" step="0.001" @change="setBreadthConfiguration({ breadth_range_upper: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <label>Min <input :value="breadthRangeLower" aria-label="Breadth range lower bound" type="number" step="0.001" @input="setBreadthNumber('breadth_range_lower', $event)" @change="setBreadthNumber('breadth_range_lower', $event)" /></label>
+          <label>Max <input :value="breadthRangeUpper" aria-label="Breadth range upper bound" type="number" step="0.001" @input="setBreadthNumber('breadth_range_upper', $event)" @change="setBreadthNumber('breadth_range_upper', $event)" /></label>
         </template>
         <template v-else-if="breadthConditionKind === 'percentile'">
           <select :value="breadthPercentileScope" aria-label="Breadth percentile target scope" @change="setBreadthConfiguration({ breadth_percentile_scope: ($event.target as HTMLSelectElement).value })">
@@ -618,9 +618,9 @@
             <option value="volume">Volume</option>
             <option value="moving_average_distance">Moving-average distance</option>
           </select>
-          <label>Window <input :value="breadthPercentilePeriod" aria-label="Breadth percentile rolling window" type="number" min="2" max="5000" @change="setBreadthConfiguration({ breadth_percentile_period: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <label>Window <input :value="breadthPercentilePeriod" aria-label="Breadth percentile rolling window" type="number" min="2" max="5000" @input="setBreadthNumber('breadth_percentile_period', $event)" @change="setBreadthNumber('breadth_percentile_period', $event)" /></label>
           <select :value="breadthComparisonOperator" aria-label="Breadth percentile operator" @change="setBreadthConfiguration({ breadth_comparison_operator: ($event.target as HTMLSelectElement).value })"><option value="gte">At or above</option><option value="lte">At or below</option><option value="gt">Above</option><option value="lt">Below</option></select>
-          <label>Percentile <input :value="breadthPercentileTarget" aria-label="Breadth percentile target" type="number" min="0" max="1" step="0.01" @change="setBreadthConfiguration({ breadth_percentile_target: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <label>Percentile <input :value="breadthPercentileTarget" aria-label="Breadth percentile target" type="number" min="0" max="1" step="0.01" @input="setBreadthNumber('breadth_percentile_target', $event)" @change="setBreadthNumber('breadth_percentile_target', $event)" /></label>
         </template>
         <template v-else-if="breadthConditionKind === 'cross_sectional_statistic'">
           <select value="cross_sectional" aria-label="Breadth group statistic target scope" disabled><option value="cross_sectional">Cross-sectional group</option></select>
@@ -632,7 +632,7 @@
           </select>
           <select :value="String(breadthConfigurationValue('breadth_cross_sectional_statistic', 'mean'))" aria-label="Breadth group statistic function" @change="setBreadthConfiguration({ breadth_cross_sectional_statistic: ($event.target as HTMLSelectElement).value })"><option value="mean">Mean</option><option value="median">Median</option><option value="min">Minimum</option><option value="max">Maximum</option><option value="std">Standard deviation</option></select>
           <select :value="breadthComparisonOperator" aria-label="Breadth group statistic operator" @change="setBreadthConfiguration({ breadth_comparison_operator: ($event.target as HTMLSelectElement).value })"><option value="gte">At or above</option><option value="lte">At or below</option><option value="gt">Above</option><option value="lt">Below</option><option value="eq">Equal</option></select>
-          <label>Difference <input :value="breadthComparisonThreshold" aria-label="Breadth group statistic difference" type="number" step="0.001" @change="setBreadthConfiguration({ breadth_comparison_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
+          <label>Difference <input :value="breadthComparisonThreshold" aria-label="Breadth group statistic difference" type="number" step="0.001" @input="setBreadthNumber('breadth_comparison_threshold', $event)" @change="setBreadthNumber('breadth_comparison_threshold', $event)" /></label>
         </template>
         <template v-if="breadthComposition === 'all' || breadthComposition === 'any'">
           <span class="breadth-tool__composition-note">+ measured-field target</span>
@@ -931,21 +931,29 @@ const emit = defineEmits<{ select: [symbol: string, instrumentId?: number | null
 // Golden Layout delivers the parent prop patch. Keep a local draft so a rapid
 // select/edit/evaluate sequence cannot serialize a stale sibling value.
 const breadthDraftConfiguration = ref<Record<string, unknown>>({})
+// Configuration edits are emitted through a debounced, revisioned workspace
+// snapshot. Keep the local draft authoritative while the mounted virtual tool
+// is still backed by the same configuration object: an older snapshot response
+// must not restore a shared-control default (for example percentile period
+// 252) over a value the user just entered. A factory reset/workspace reload
+// replaces the configuration object, which is the safe boundary for clearing
+// this draft.
+let breadthDraftOwner = props.tool.configuration
 function breadthConfigurationValue(key: string, fallback?: unknown) {
   if (Object.prototype.hasOwnProperty.call(breadthDraftConfiguration.value, key)) {
     return breadthDraftConfiguration.value[key]
   }
   return props.tool.configuration[key] ?? fallback
 }
-watch(() => props.tool.configuration, () => {
-  // Parent snapshots can arrive while a dense breadth editor is still applying
-  // the next input event. Drop draft keys only once the canonical prop has
-  // caught up; a stale snapshot must not restore a previous default (for
-  // example percentile period 252) over the user's freshly entered value.
-  const nextConfiguration = props.tool.configuration
-  const pending = Object.fromEntries(Object.entries(breadthDraftConfiguration.value)
-    .filter(([key, value]) => JSON.stringify(nextConfiguration[key]) !== JSON.stringify(value)))
-  breadthDraftConfiguration.value = pending
+watch(() => props.tool.configuration, nextConfiguration => {
+  // WorkstationToolContent mutates the live configuration object for normal
+  // edits. Remote hydration/reset replaces that object; discard a draft only
+  // at that explicit identity boundary, never merely because one snapshot
+  // happened to echo a value back.
+  if (nextConfiguration !== breadthDraftOwner) {
+    breadthDraftOwner = nextConfiguration
+    breadthDraftConfiguration.value = {}
+  }
 }, { deep: true })
 // uPlot already consumes a panel-scoped store through injection. Give every persisted
 // workstation chart its own stable store identity so red/grey/yellow charts cannot
@@ -3291,6 +3299,15 @@ function setBreadthConfiguration(configuration: Record<string, unknown>) {
   }
   breadthDraftConfiguration.value = { ...breadthDraftConfiguration.value, ...nextConfiguration }
   emit('configuration', props.tool.instance_key, { ...props.tool.configuration, ...breadthDraftConfiguration.value })
+}
+function setBreadthNumber(key: string, event: Event) {
+  const raw = (event.target as HTMLInputElement | null)?.value ?? ''
+  const value = Number(raw)
+  // Keep the last valid draft while a user is midway through typing a numeric
+  // value (for example the transient '-' in a negative range). The blur/change
+  // event still validates the final value through the same handler.
+  if (!Number.isFinite(value)) return
+  setBreadthConfiguration({ [key]: value })
 }
 async function loadBreadthPythonSeriesAssets() {
   if (props.tool.instance_key !== 'breadth-summary' && props.tool.tool_type !== 'breadth') return

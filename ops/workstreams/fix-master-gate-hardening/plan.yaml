@@ -1,0 +1,31 @@
+schema: 1
+branch: fix/master-gate-hardening
+base_sha: 82699837d80e84a573798c328b24ecd305ecf244
+goal: "Make the exhaustive browser gate deterministic under asynchronous workstation lifecycle and dense breadth editing."
+scope:
+  - "Serialize uPlot rebuild generations and cancel stale sub-pane construction."
+  - "Preserve breadth numeric drafts through reactive snapshot echoes and update them on input."
+  - "Preserve explicit historical occurrence timestamps after chart hydration."
+  - "Make the F8e plot-library assertion wait for the documented close/reopen contract."
+owned_paths:
+  - frontend/src/components/chart/UPlotChart.vue
+  - frontend/src/components/workstation/WorkstationToolContent.vue
+  - frontend/src/views/WorkstationView.vue
+  - frontend/tests/e2e/flows.spec.ts
+dependencies:
+  - "Promoted master 82699837d80e84a573798c328b24ecd305ecf244"
+acceptance_criteria:
+  - "F8e swing-analysis passes without relying on retries or changed visual oracles."
+  - "F8s breadth family ratio preserves every edited numeric condition value."
+  - "Historical occurrence selection retains its linked timestamp after chart reload."
+  - "Repeated multi-window churn returns to the exact source canvas/tool baseline."
+branch_tests:
+  - "npx tsc --noEmit"
+  - "F8e.swing-analysis and F8s-breadth-family-ratio repeated 10 times each"
+  - "workstation performance churn repeated 10 times"
+live_test_impact: "Browser chart lifecycle and historical-link behavior; no provider calls."
+migration_impact: none
+deployment_impact: none
+status: ready_for_integration
+remaining_gaps:
+  - "The full exact-candidate gate and independent master replay remain required."
