@@ -255,3 +255,25 @@ or assertion was relaxed. The full serialized local `flows.spec.ts` replay
 against the rebuilt seeded stack then completed with 151 passed and 2 skipped
 of 153 tests in 7m, so the missing-tool state has not reproduced locally and
 fresh CI evidence remains required before integration.
+
+Replay `32370618720` for `f647539e` passed the independent backend and frontend
+jobs and executed the full browser matrix, but retained two exhaustive browser
+failures. The F8s family matrix lost its mounted Market Map after the final
+family close/reopen cycle: the persisted remote snapshot had removed the old
+map while the local newer generation had reopened a new map, and the merge
+helper treated the shared deletion as an unresolved conflict, replacing the
+local reopen with the remote deletion. The workstation-performance retry
+started with five canvases instead of the expected three; trace inspection
+showed the additional ratio and relative-rotation uPlot canvases were legitimate
+hidden factory tools whose asynchronous loads completed after the baseline,
+not leaked pop-outs. The report and traces are preserved under
+`/private/tmp/ci-32370618720-report` and `/private/tmp/ci-32370618720.log`.
+
+The follow-up fixes preserve a local reopen when both writers removed the same
+base window, while still producing a recovery copy for a remote-only deletion;
+the new store regression and combined workspace/ratio unit run pass 81/81.
+RatioUPlot now exposes an explicit `aria-busy` readiness state, and the exact
+canvas baseline waits for hidden ratio/rotation tools to finish loading without
+changing the count oracle. Focused seeded acceptance passes the performance
+churn test 5/5 and the family matrix 3/3; frontend type-check and diff-check
+are green. A fresh source replay for the resulting commit is required.

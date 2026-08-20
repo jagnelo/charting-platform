@@ -1614,7 +1614,18 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         // local close is handled below using its short-lived intent marker; an
         // unaccounted-for removal remains a recovery-worthy conflict so an older
         // snapshot cannot silently resurrect a user's explicit close.
-        if (!remoteWindow || !mergedWindow) return null
+        // Both writers can legitimately remove the same base window: the local
+        // close is explicit, while the remote snapshot may have won the same
+        // close before this retry. Treat that converged deletion as safe so a
+        // newly opened local window can still be merged below. A remote-only
+        // deletion while the local copy remains is still a real structural
+        // conflict and must go through recovery rather than silently choosing
+        // one side.
+        if (!remoteWindow) {
+          if (!localWindow) continue
+          return null
+        }
+        if (!mergedWindow) return null
         if (!localWindow) {
           const closedAt = recentClosedWindowOverrides.get(baseWindow.instance_key)
           if (closedAt == null || Date.now() - closedAt >= 30_000) return null

@@ -38,6 +38,19 @@ test.describe('TC2000 workstation performance guards', () => {
       return previous
     }
     await page.waitForTimeout(1_000)
+    // The factory mounts ratio and relative-rotation surfaces even when they
+    // are hidden behind another Golden Layout tab. Their local data requests
+    // can finish after the primary chart's first canvas appears; wait for
+    // those explicit readiness states before recording the exact canvas
+    // baseline, otherwise a legitimate late renderer looks like a leak.
+    const ratioTools = page.locator('.ratio-chart')
+    if (await ratioTools.count()) {
+      await expect.poll(() => page.locator('.ratio-chart[aria-busy="false"]').count(), { timeout: 30_000 }).toBe(await ratioTools.count())
+    }
+    const rotationTools = page.locator('.rotation-tool')
+    if (await rotationTools.count()) {
+      await expect.poll(() => page.locator('.rotation-tool[aria-busy="false"]').count(), { timeout: 30_000 }).toBe(await rotationTools.count())
+    }
     const sourceToolCount = await page.locator('.tool-window').count()
     const sourceCanvasCount = await settledCanvasCount()
     const started = await page.evaluate(() => performance.now())
@@ -111,6 +124,14 @@ test.describe('TC2000 workstation performance guards', () => {
       return previous
     }
     await page.waitForTimeout(1_000)
+    const ratioTools = page.locator('.ratio-chart')
+    if (await ratioTools.count()) {
+      await expect.poll(() => page.locator('.ratio-chart[aria-busy="false"]').count(), { timeout: 30_000 }).toBe(await ratioTools.count())
+    }
+    const rotationTools = page.locator('.rotation-tool')
+    if (await rotationTools.count()) {
+      await expect.poll(() => page.locator('.rotation-tool[aria-busy="false"]').count(), { timeout: 30_000 }).toBe(await rotationTools.count())
+    }
     const sourceToolCount = await page.locator('.tool-window').count()
     const sourceCanvasCount = await settledCanvasCount()
     const sourceChartCount = await page.locator('.chart-tool').count()
