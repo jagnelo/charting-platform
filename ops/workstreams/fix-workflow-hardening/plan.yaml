@@ -35,8 +35,8 @@ branch_tests:
   - "backend/.venv/bin/python -m pytest backend/tests/unit/test_worktree_runtime.py -q --no-cov"
   - "backend/.venv/bin/ruff check scripts backend/tests/unit/test_worktree_runtime.py"
   - "backend/.venv/bin/ruff format --check scripts backend/tests/unit/test_worktree_runtime.py"
-  - "cd frontend && E2E_SEED_MARKET_DATA=true npx playwright test tests/e2e/flows.spec.ts -g 'F8e\\.2' --project=chromium"
-  - "cd frontend && E2E_SEED_MARKET_DATA=true npx playwright test tests/e2e/flows.spec.ts -g 'F8s-family-matrix|F8s-breadth-family-ratio' --project=chromium"
+  - 'cd frontend && E2E_SEED_MARKET_DATA=true npx playwright test tests/e2e/flows.spec.ts -g "F8e\.2" --project=chromium'
+  - 'cd frontend && E2E_SEED_MARKET_DATA=true npx playwright test tests/e2e/flows.spec.ts -g "F8s-family-matrix|F8s-breadth-family-ratio" --project=chromium'
 live_test_impact: none
 migration_impact: none
 deployment_impact: none

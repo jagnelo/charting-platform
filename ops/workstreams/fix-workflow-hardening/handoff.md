@@ -149,3 +149,9 @@ image gates. Its branch-declared E2E commands initially failed because the
 workstream listed Playwright invocations without changing into `frontend`;
 the commands now use the repository-root-safe `cd frontend &&` form and must
 be included in the next exact source replay.
+
+The corrected branch-declared suite now passes directly: the runtime unit and
+Ruff checks are green, the ratio-editor pair is 2/2, and the benchmark-family
+matrix/breadth pair is 2/2. The first correction used an over-escaped YAML
+regex; the workstream now uses single-quoted YAML commands with one escaped
+dot, and this exact source boundary requires one more independent replay.
