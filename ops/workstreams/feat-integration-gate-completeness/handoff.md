@@ -16,10 +16,19 @@ screenshots. The exact 104 Linux actuals from that deterministic replay are
 now checked in as `*-linux.png` references. This adds the missing platform
 oracle only; masks, thresholds, and test cases are unchanged.
 
+The first post-baseline branch replay (`32404914546`, source
+`3a83fdd00c342820523db58fcd173eb9703fc1bc`) passed backend and frontend
+checks but its Playwright job failed with exit code 1. The job had no public
+failure detail beyond that annotation; authenticated log retrieval was
+temporarily blocked by the GitHub API rate limit. The red run is retained as
+first-failure evidence, and this branch must receive a fresh green replay
+before integration.
+
 ## Remaining validation
 
 - Run the branch-declared syntax, provider-policy, and Darwin/Linux reference
   parity checks.
+- Obtain a fresh green push replay after the recorded E2E failure.
 - Exercise the migration script on a migration-changing candidate before
   integrating this branch.
 - Preserve the RPi deployment and provider-monitoring branches as separate
