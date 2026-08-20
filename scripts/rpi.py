@@ -275,9 +275,23 @@ def _deploy(config: dict[str, str], commit: str, confirm: str) -> None:
         commit=commit,
         bundle_sha256=hashlib.sha256(bundle.read_bytes()).hexdigest(),
     )
+
+    def phase_run(args: list[str], phase: str) -> None:
+        try:
+            subprocess.run(args, check=True)
+        except Exception as exc:
+            _write_deployment_attempt(
+                attempt,
+                status="failed",
+                phase=phase,
+                commit=commit,
+                error_type=type(exc).__name__,
+            )
+            raise
+
     root = config["RPI_DEPLOY_ROOT"]
     remote_path = f"{root}/incoming/{commit}.docker.tar.gz.part"
-    subprocess.run(
+    phase_run(
         ssh_args(config)
         + [
             "--",
@@ -288,9 +302,9 @@ def _deploy(config: dict[str, str], commit: str, confirm: str) -> None:
             f"{root}/backups",
             f"{root}/locks",
         ],
-        check=True,
+        "remote_prepare",
     )
-    subprocess.run(
+    phase_run(
         [
             "scp",
             "-o",
@@ -302,13 +316,13 @@ def _deploy(config: dict[str, str], commit: str, confirm: str) -> None:
             str(bundle),
             f"{config['RPI_SSH_TARGET']}:{remote_path}",
         ],
-        check=True,
+        "bundle_upload",
     )
     _write_deployment_attempt(attempt, status="bundle_uploaded", commit=commit)
     checksum = hashlib.sha256(bundle.read_bytes()).hexdigest()
     checksum_path = bundle.with_suffix(bundle.suffix + ".sha256")
     checksum_path.write_text(f"{checksum}  {commit}.docker.tar.gz.part\n")
-    subprocess.run(
+    phase_run(
         [
             "scp",
             "-o",
@@ -318,7 +332,7 @@ def _deploy(config: dict[str, str], commit: str, confirm: str) -> None:
             str(checksum_path),
             f"{config['RPI_SSH_TARGET']}:{root}/incoming/{commit}.docker.tar.gz.part.sha256",
         ],
-        check=True,
+        "checksum_upload",
     )
     remote_script = f"""set -eu
 root={shlex.quote(root)}; sha={shlex.quote(commit)}
@@ -357,7 +371,7 @@ printf '{{"commit":"%s","status":"started","prior_release":"%s","schema_revision
         (manifest, f"{root}/incoming/{commit}.manifest.json"),
         (COMPOSE, f"{root}/incoming/{commit}.compose.yml"),
     ):
-        subprocess.run(
+        phase_run(
             [
                 "scp",
                 "-o",
@@ -369,7 +383,7 @@ printf '{{"commit":"%s","status":"started","prior_release":"%s","schema_revision
                 str(local),
                 f"{config['RPI_SSH_TARGET']}:{remote_name}",
             ],
-            check=True,
+            "metadata_upload",
         )
     _write_deployment_attempt(attempt, status="remote_transaction", commit=commit)
     try:
