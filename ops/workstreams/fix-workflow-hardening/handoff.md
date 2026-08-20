@@ -86,3 +86,10 @@ now returns a complete deterministic response instead of mutating a fetched
 response. The drilldown and both workstation performance guards pass together
 against the isolated seeded stack (3 tests, 21.1 seconds); no visual baseline,
 retry budget, or assertion threshold was changed.
+
+The subsequent full replay reached the benchmark-family matrix and breadth-ratio
+tests but exposed the same response-disposal race in two additional route mocks,
+then the expected context teardown cascaded into one performance test. All three
+remaining `route.fetch()` mutations in these family fixtures are now replaced by
+complete deterministic payloads; the focused drilldown, matrix, breadth-ratio,
+and performance scenarios must pass in the next full replay.

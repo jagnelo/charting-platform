@@ -3594,10 +3594,26 @@ test.describe('TC2000 workstation', () => {
     const familyByKey = new Map(families.map(family => [family.key, family]))
     const selectedSources: string[] = []
     await page.route('**/api/v1/market-groups/us-benchmarks*', async route => {
-      const response = await route.fetch()
-      const payload = await response.json() as Record<string, unknown>
-      const provenance = payload.provenance && typeof payload.provenance === 'object' ? payload.provenance as Record<string, unknown> : {}
-      await route.fulfill({ response, body: JSON.stringify({ ...payload, provenance: { ...provenance, benchmark_families: families.map(family => ({ logical_key: family.key, name: family.name, official_index_symbol: family.official, cap_weight: { symbol: family.proxy } })) } }) })
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        stable_key: 'us-benchmarks',
+        group_type: 'benchmark',
+        name: 'US Benchmarks',
+        members: [{ instrument: { id: 1, symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust' } }],
+        provenance: {
+          classification: 'product_taxonomy',
+          official_index_constituents: false,
+          benchmark_families: families.map(family => ({
+            logical_key: family.key,
+            name: family.name,
+            official_index_symbol: family.official,
+            cap_weight: { symbol: family.proxy },
+          })),
+          benchmark_identities: Object.fromEntries(families.map(family => [family.key, {
+            official_index_symbol: family.official,
+            cap_weight_symbol: family.proxy,
+          }])),
+        },
+      }) })
     })
     await page.route('**/api/v1/market-groups/*', async route => {
       const pathname = new URL(route.request().url()).pathname
@@ -3722,21 +3738,18 @@ test.describe('TC2000 workstation', () => {
       })
     })
     await page.route('**/market-groups/us-benchmarks*', async route => {
-      const response = await route.fetch()
-      const payload = await response.json() as Record<string, unknown>
-      const provenance = payload.provenance && typeof payload.provenance === 'object'
-        ? payload.provenance as Record<string, unknown>
-        : {}
-      await route.fulfill({
-        response,
-        body: JSON.stringify({
-          ...payload,
-          provenance: {
-            ...provenance,
-            benchmark_families: [{ logical_key: 'sp500', name: 'S&P 500' }],
-          },
-        }),
-      })
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        stable_key: 'us-benchmarks',
+        group_type: 'benchmark',
+        name: 'US Benchmarks',
+        members: [{ instrument: { id: 1, symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust' } }],
+        provenance: {
+          classification: 'product_taxonomy',
+          official_index_constituents: false,
+          benchmark_families: [{ logical_key: 'sp500', name: 'S&P 500' }],
+          benchmark_identities: { sp500: { official_index_symbol: 'SPX', cap_weight_symbol: 'SPY' } },
+        },
+      }) })
     })
     await page.route('**/api/v1/analysis/benchmark-families/sp500/ratios*', async route => {
       await route.fulfill({
