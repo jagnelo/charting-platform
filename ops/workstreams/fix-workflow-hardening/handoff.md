@@ -102,3 +102,11 @@ teardown instead of the three-canvas baseline. The assertions now wait for the
 scoped summary and allow a bounded 15-second cleanup window while retaining exact
 canvas-count equality. Focused matrix and complete performance runs pass against
 the seeded isolated stack; a fresh replay of the new source SHA is required.
+
+Replay `32328718771` passed backend/frontend and 150 browser tests; the only
+remaining failure was a popup teardown race where a sibling popup closed before
+the test's close click (`Target page, context or browser has been closed`). The
+teardown helper now treats an already-closed popup as converged cleanup while
+still requiring exactly one context page and the original canvas/tool counts.
+The complete performance spec passes locally after this change; another exact
+source replay is required.

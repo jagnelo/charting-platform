@@ -1,4 +1,21 @@
+import { type Page } from '@playwright/test'
 import { test, expect } from './helpers'
+
+async function closePopupWhenOpen(popup: Page) {
+  if (popup.isClosed()) return
+  const closed = popup.waitForEvent('close', { timeout: 10_000 }).catch((error: unknown) => {
+    if (!popup.isClosed()) throw error
+  })
+  try {
+    await popup.locator('button[title="Close"]').click()
+  } catch (error) {
+    // Golden Layout can close a sibling popup while it reconciles the source
+    // workspace. Treat that narrow teardown race as already closed; the caller
+    // still asserts that the browser context converges to one page.
+    if (!popup.isClosed()) throw error
+  }
+  await closed
+}
 
 test.describe('TC2000 workstation performance guards', () => {
   test('initializes multiple chart windows and recovers without canvas or tool growth', async ({ page, context, loggedIn, browserDiagnostics }) => {
@@ -52,9 +69,7 @@ test.describe('TC2000 workstation performance guards', () => {
     await expect.poll(() => page.locator('.tool-window').count()).toBe(sourceToolCount)
 
     for (const popup of popups) {
-      const closed = popup.waitForEvent('close')
-      await popup.locator('button[title="Close"]').click()
-      await closed
+      await closePopupWhenOpen(popup)
     }
     await expect.poll(() => context.pages().length).toBe(1)
     await expect(page.locator('.tool-window')).toHaveCount(sourceToolCount)
@@ -128,9 +143,7 @@ test.describe('TC2000 workstation performance guards', () => {
 
       await expect.poll(() => context.pages().length).toBe(3)
       for (const popup of popups) {
-        const closed = popup.waitForEvent('close')
-        await popup.locator('button[title="Close"]').click()
-        await closed
+        await closePopupWhenOpen(popup)
       }
       await expect.poll(() => context.pages().length).toBe(1)
       await expect(page.locator('.tool-window')).toHaveCount(sourceToolCount)
