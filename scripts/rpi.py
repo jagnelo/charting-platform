@@ -8,14 +8,19 @@ name the fixed charting-platform project and release Compose file.
 from __future__ import annotations
 
 import argparse
+import base64
 import contextlib
 import fcntl
 import hashlib
 import json
 import os
 import shlex
+import socket
+import struct
 import subprocess
+import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import UTC, datetime
 from pathlib import Path
@@ -418,7 +423,9 @@ def smoke(config: dict[str, str], commit: str) -> dict[str, str]:
         raise RuntimeError(
             "RPI_SMOKE_USERNAME and RPI_SMOKE_PASSWORD are required for authenticated deployment smoke"
         )
-    base = f"http://{config['RPI_SSH_TARGET']}:{config['RPI_HTTP_PORT']}"
+    host = config.get("RPI_HTTP_HOST") or config["RPI_SSH_TARGET"].rsplit("@", 1)[-1]
+    host = host.strip("[]")
+    base = f"http://{host}:{config['RPI_HTTP_PORT']}"
     result: dict[str, str] = {}
     try:
         with urllib.request.urlopen(f"{base}/health", timeout=10) as response:
@@ -454,10 +461,126 @@ def smoke(config: dict[str, str], commit: str) -> dict[str, str]:
         with urllib.request.urlopen(request, timeout=10) as response:
             if response.status != 200:
                 raise RuntimeError(f"authenticated availability returned HTTP {response.status}")
-            result["authenticated_provider_read"] = "pass"
+        result["authenticated_provider_read"] = "pass"
+
+        websocket_ping(host, int(config["RPI_HTTP_PORT"]), token)
+        result["websocket"] = "pass"
+
+        research_smoke(base, headers, commit, result)
     except (urllib.error.URLError, TimeoutError, ValueError, RuntimeError) as exc:
         raise RuntimeError(f"authenticated LAN smoke failed for {commit}: {exc}") from exc
     return result
+
+
+def _recv_exact(sock: socket.socket, size: int) -> bytes:
+    chunks: list[bytes] = []
+    while sum(map(len, chunks)) < size:
+        chunk = sock.recv(size - sum(map(len, chunks)))
+        if not chunk:
+            raise RuntimeError("WebSocket closed before a complete frame")
+        chunks.append(chunk)
+    return b"".join(chunks)
+
+
+def websocket_ping(host: str, port: int, token: str) -> None:
+    """Exercise the authenticated alert WebSocket without adding a runtime dependency."""
+    key = base64.b64encode(os.urandom(16)).decode("ascii")
+    path = "/api/v1/alerts/ws?" + urllib.parse.urlencode({"token": token})
+    with socket.create_connection((host, port), timeout=10) as sock:
+        sock.sendall(
+            (
+                f"GET {path} HTTP/1.1\r\nHost: {host}:{port}\r\n"
+                "Upgrade: websocket\r\nConnection: Upgrade\r\n"
+                f"Sec-WebSocket-Key: {key}\r\nSec-WebSocket-Version: 13\r\n\r\n"
+            ).encode()
+        )
+        response = b""
+        while b"\r\n\r\n" not in response:
+            response += _recv_exact(sock, 1)
+            if len(response) > 16_384:
+                raise RuntimeError("WebSocket handshake response is too large")
+        if not response.startswith(b"HTTP/1.1 101"):
+            raise RuntimeError(f"WebSocket handshake failed: {response.splitlines()[0]!r}")
+        payload = b"ping"
+        mask = os.urandom(4)
+        masked = bytes(value ^ mask[index % 4] for index, value in enumerate(payload))
+        sock.sendall(bytes((0x81, 0x80 | len(payload))) + mask + masked)
+        first, second = _recv_exact(sock, 2)
+        length = second & 0x7F
+        if length == 126:
+            length = struct.unpack("!H", _recv_exact(sock, 2))[0]
+        elif length == 127:
+            length = struct.unpack("!Q", _recv_exact(sock, 8))[0]
+        frame = _recv_exact(sock, length)
+        if first & 0x0F != 0x1 or json.loads(frame.decode()).get("type") != "pong":
+            raise RuntimeError("authenticated WebSocket did not return pong")
+
+
+def research_smoke(base: str, headers: dict[str, str], commit: str, result: dict[str, str]) -> None:
+    """Queue one tiny study and wait briefly for the isolated runner to consume it."""
+
+    def request(path: str, *, method: str = "GET", body: object | None = None) -> object:
+        data = json.dumps(body).encode() if body is not None else None
+        req = urllib.request.Request(
+            f"{base}{path}",
+            data=data,
+            headers={**headers, "Content-Type": "application/json"},
+            method=method,
+        )
+        with urllib.request.urlopen(req, timeout=10) as response:
+            return json.loads(response.read())
+
+    assets = request("/api/v1/code/assets")
+    asset_id: int | None = None
+    version_id: int | None = None
+    created_asset = False
+    if isinstance(assets, list):
+        for asset in assets:
+            if asset.get("is_archived"):
+                continue
+            versions = asset.get("versions") or []
+            if versions:
+                asset_id = int(asset["id"])
+                version_id = int(versions[-1]["id"])
+                break
+    if version_id is None:
+        key = f"rpi-smoke-{commit[:12]}"
+        created = request(
+            "/api/v1/code/assets",
+            method="POST",
+            body={
+                "stable_key": key,
+                "name": "RPi deployment smoke",
+                "kind": "study",
+                "initial_version": {
+                    "source": "output.scalar('rpi_smoke', 1)",
+                    "output_contract": "study",
+                },
+            },
+        )
+        asset_id = int(created["id"])
+        version_id = int(created["versions"][0]["id"])
+        created_asset = True
+    run = request(
+        "/api/v1/research/runs",
+        method="POST",
+        body={"code_version_id": version_id, "run_config": {}, "dataset_manifest": {}},
+    )
+    run_id = int(run["id"])
+    deadline = time.monotonic() + 30
+    terminal = str(run.get("status"))
+    while terminal not in {"completed", "failed", "canceled"} and time.monotonic() < deadline:
+        time.sleep(2)
+        current = request(f"/api/v1/research/runs/{run_id}")
+        terminal = str(current.get("status"))
+    if created_asset and asset_id is not None:
+        # Keep the audit record but prevent the smoke asset from appearing in normal Settings lists.
+        request(
+            f"/api/v1/code/assets/{asset_id}/archive", method="POST", body={"is_archived": True}
+        )
+    if terminal != "completed":
+        raise RuntimeError(f"bounded research smoke did not complete: {terminal}")
+    result["research_runner"] = "pass"
 
 
 def status(config: dict[str, str]) -> None:
