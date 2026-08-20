@@ -21,3 +21,7 @@ collision cannot be silently missed. Focused deployment contract tests pass 4/4.
 The remote deployment lock now uses `flock` on a file rather than a directory,
 so an interrupted SSH process releases the lock automatically. Preflight fails
 closed if `flock` is unavailable.
+
+The branch E2E workflow now enables both deterministic instrument and market-data
+fixtures. This matches the exact local gate and prevents chart/workstation
+failures caused by accidentally starting the stack in its default unseeded mode.

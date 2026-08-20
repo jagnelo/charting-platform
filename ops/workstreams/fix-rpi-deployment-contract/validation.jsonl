@@ -3,3 +3,4 @@
 {"command":"GitHub Actions setup-python cache cleanup","result":"corrected","evidence":"uv is the dependency cache owner; unused setup-python pip cache configuration removed to avoid cleanup-only job failures"}
 {"command":"RPi preflight collision and port checks","result":"pass","evidence":"4 focused deployment contract tests; stopped charting Compose projects are inspected and missing ss fails closed"}
 {"command":"RPi recoverable remote lock","result":"pass","evidence":"focused contract tests assert flock preflight and nonblocking kernel file lock; interrupted SSH cannot leave a permanent mkdir lock"}
+{"command":"RPi branch E2E fixture configuration","result":"corrected","evidence":"workflow now enables deterministic instrument and market-data fixtures for its exhaustive Playwright job; fresh replay pending"}
