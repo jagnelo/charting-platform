@@ -61,3 +61,13 @@ gate before exact integration.
 
 The branch-owned helper scripts have now also been normalized with Ruff format;
 the focused runtime tests and script lint/format checks pass at this boundary.
+
+The first seeded provider/RPi replays completed backend and frontend jobs
+successfully but exposed five browser failures. The canonical-search failure was
+deterministic on Linux because the test used `Meta+A`; it now uses Playwright's
+cross-platform `ControlOrMeta+A`. The pop-out, benchmark-family, and performance
+failures reproduced as passing in focused runs against the isolated seeded stack
+and are retained as full-suite replay evidence rather than hidden with changed
+baselines or thresholds. The focused canonical-search, pop-out, benchmark-family,
+and performance runs all pass locally after this correction; a fresh replay is
+required.

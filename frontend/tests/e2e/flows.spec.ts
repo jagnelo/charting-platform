@@ -1303,7 +1303,10 @@ test.describe('TC2000 workstation', () => {
     const input = page.getByRole('combobox', { name: 'Active symbol' })
     await expect(input).toHaveValue('SPY', { timeout: 15_000 })
     await input.click()
-    await input.press('Meta+A')
+    // Playwright's `ControlOrMeta` maps to Ctrl on Linux CI and Cmd locally.
+    // Using Meta explicitly leaves the draft text selected only on macOS and
+    // makes this otherwise deterministic canonical-search test fail on CI.
+    await input.press('ControlOrMeta+A')
     await input.press('Backspace')
     await expect(input).toHaveValue('', { timeout: 5_000 })
     await input.pressSequentially('XLK', { delay: 30 })
