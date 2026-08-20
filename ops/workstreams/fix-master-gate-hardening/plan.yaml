@@ -20,7 +20,7 @@ acceptance_criteria:
   - "Historical occurrence selection retains its linked timestamp after chart reload."
   - "Repeated multi-window churn returns to the exact source canvas/tool baseline."
 branch_tests:
-  - "npx tsc --noEmit"
+  - "cd frontend && npx tsc --noEmit"
   - "F8e.swing-analysis and F8s-breadth-family-ratio repeated 10 times each"
   - "workstation performance churn repeated 10 times"
 live_test_impact: "Browser chart lifecycle and historical-link behavior; no provider calls."
