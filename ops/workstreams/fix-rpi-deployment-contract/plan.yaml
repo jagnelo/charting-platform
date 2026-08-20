@@ -21,6 +21,7 @@ acceptance_criteria:
   - "Checksum, free-space, no-pull, backup, prior-release, schema, and smoke metadata are retained under the charting release root."
   - "Authenticated LAN smoke validates health, login, stable persisted workspace reads, and provider availability."
   - "The branch replay uses the path-independent lock export check, repository uv environment, and integration-only coverage threshold."
+  - "Preflight rejects stopped as well as running collisions for the reserved Compose project and requires a reliable ss-based port probe."
 branch_tests:
   - "python3 -m py_compile scripts/rpi.py"
   - "uv run ruff check scripts/rpi.py"
@@ -31,4 +32,6 @@ live_test_impact: none
 migration_impact: none
 deployment_impact: none
 status: in_progress
-remaining_gaps: []
+remaining_gaps:
+  - "The fresh branch replay and exact candidate integration must run after the preflight hardening."
+  - "Real RPi preflight/deployment rehearsal remains blocked until the developer supplies .ai/deploy/rpi.env, SSH trust, shared/app.env, and a direct exact-SHA deployment request."

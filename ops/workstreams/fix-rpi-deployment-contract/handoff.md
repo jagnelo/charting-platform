@@ -13,3 +13,7 @@ preflight/deployment rehearsal still requires the developer's RPi target and
 The branch also carries the corrected independent CI replay contract: generated
 uv headers are normalized, pytest runs through `uv run`, and integration-only
 coverage does not apply the combined threshold.
+
+Preflight now checks stopped Compose containers (`docker ps -a`) as well as
+running ones and fails closed when `ss` is unavailable, so a reserved-port
+collision cannot be silently missed. Focused deployment contract tests pass 4/4.
