@@ -25,3 +25,8 @@ closed if `flock` is unavailable.
 The branch E2E workflow now enables both deterministic instrument and market-data
 fixtures. This matches the exact local gate and prevents chart/workstation
 failures caused by accidentally starting the stack in its default unseeded mode.
+
+The transaction now uploads the manifest and release Compose file as `.part`
+metadata, verifies their source/tree, bundle, and Compose checksums remotely, and
+only then moves the incoming files into place. The release Compose passes the
+bounded provider-probe timeout to backend and worker services.

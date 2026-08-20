@@ -31,6 +31,7 @@ def test_release_compose_passes_provider_monitoring_configuration():
     assert "PROVIDER_AVAILABILITY_MONITOR_ENABLED" in compose
     assert "PROVIDER_AVAILABILITY_LIVE_ENABLED" in compose
     assert "PROVIDER_AVAILABILITY_NOTIFICATION_COOLDOWN_SECONDS" in compose
+    assert "PROVIDER_AVAILABILITY_PROBE_TIMEOUT_SECONDS" in compose
     assert '"http://127.0.0.1/health"' in compose
 
 
@@ -41,3 +42,11 @@ def test_preflight_checks_stopped_project_collisions_and_requires_port_probe():
     assert "reserved-port preflight" in source
     assert "command -v flock" in source
     assert 'flock -n 9' in source
+
+
+def test_release_metadata_is_uploaded_and_verified_as_temporary_parts():
+    source = (ROOT / "scripts" / "rpi.py").read_text()
+    assert "manifest_bundle_sha" in source
+    assert "manifest_compose_sha" in source
+    assert "remote_name}.part" in source
+    assert 'mv "$root/incoming/$sha.manifest.json.part"' in source

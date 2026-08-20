@@ -4,3 +4,4 @@
 {"command":"RPi preflight collision and port checks","result":"pass","evidence":"4 focused deployment contract tests; stopped charting Compose projects are inspected and missing ss fails closed"}
 {"command":"RPi recoverable remote lock","result":"pass","evidence":"focused contract tests assert flock preflight and nonblocking kernel file lock; interrupted SSH cannot leave a permanent mkdir lock"}
 {"command":"RPi branch E2E fixture configuration","result":"corrected","evidence":"workflow now enables deterministic instrument and market-data fixtures for its exhaustive Playwright job; fresh replay pending"}
+{"command":"RPi temporary release metadata verification","result":"pass","evidence":"focused contract suite: 5 passed; manifest source/bundle/Compose checksums are verified before .part files are moved into the incoming set; provider probe timeout is wired into release Compose"}

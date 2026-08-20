@@ -125,9 +125,13 @@ def ssh_args(config: dict[str, str]) -> list[str]:
 
 
 def remote(config: dict[str, str], command: str, *, stdin: bytes | None = None) -> str:
-    result = subprocess.run(ssh_args(config) + ["--", "sh", "-s"], input=stdin, capture_output=True)
+    result = subprocess.run(
+        ssh_args(config) + ["--", "sh", "-s"], input=stdin, capture_output=True
+    )
     if result.returncode:
-        raise SystemExit(result.stderr.decode(errors="replace") or "remote command failed")
+        raise SystemExit(
+            result.stderr.decode(errors="replace") or "remote command failed"
+        )
     return result.stdout.decode()
 
 
@@ -227,7 +231,9 @@ def build_bundle(commit: str) -> Path:
         "created_at": datetime.now(UTC).isoformat(),
     }
     for tag in tags:
-        inspect = subprocess.check_output(["docker", "image", "inspect", tag], text=True)
+        inspect = subprocess.check_output(
+            ["docker", "image", "inspect", tag], text=True
+        )
         item = json.loads(inspect)[0]
         manifest["images"].append(
             {
@@ -343,9 +349,18 @@ exec 9>"$lock"
 flock -n 9 || {{ echo 'deployment lock already held' >&2; exit 30; }}
 test -f "$root/shared/app.env"
 test "$(sha256sum "$root/incoming/$sha.docker.tar.gz.part" | awk '{{print $1}}')" = "$(awk '{{print $1}}' "$root/incoming/$sha.docker.tar.gz.part.sha256")"
+test -f "$root/incoming/$sha.manifest.json.part" && test -f "$root/incoming/$sha.compose.yml.part"
+manifest_bundle_sha="$(grep -Eo '"bundle_sha256"[[:space:]]*:[[:space:]]*"[0-9a-f]{{64}}"' "$root/incoming/$sha.manifest.json.part" | cut -d '"' -f4)"
+manifest_source_sha="$(grep -Eo '"source_sha"[[:space:]]*:[[:space:]]*"[0-9a-f]{{40}}"' "$root/incoming/$sha.manifest.json.part" | cut -d '"' -f4)"
+manifest_compose_sha="$(grep -Eo '"compose_sha256"[[:space:]]*:[[:space:]]*"[0-9a-f]{{64}}"' "$root/incoming/$sha.manifest.json.part" | cut -d '"' -f4)"
+test "$manifest_bundle_sha" = "$(sha256sum "$root/incoming/$sha.docker.tar.gz.part" | awk '{{print $1}}')"
+test "$manifest_source_sha" = "$sha"
+test "$manifest_compose_sha" = "$(sha256sum "$root/incoming/$sha.compose.yml.part" | awk '{{print $1}}')"
 bundle_kib="$(du -k "$root/incoming/$sha.docker.tar.gz.part" | awk '{{print $1}}')"
 test "$(df -Pk "$root" | awk 'NR==2 {{print $4}}')" -gt "$((bundle_kib * 2 + 2097152))"
 mv "$root/incoming/$sha.docker.tar.gz.part" "$root/incoming/$sha.docker.tar.gz"
+mv "$root/incoming/$sha.manifest.json.part" "$root/incoming/$sha.manifest.json"
+mv "$root/incoming/$sha.compose.yml.part" "$root/incoming/$sha.compose.yml"
 mkdir "$root/releases/$sha"
 cp "$root/incoming/$sha.docker.tar.gz" "$root/releases/$sha/"
 cp "$root/incoming/$sha.manifest.json" "$root/releases/$sha/"
@@ -383,7 +398,7 @@ printf '{{"commit":"%s","status":"started","prior_release":"%s","schema_revision
                 "-o",
                 f"ConnectTimeout={config.get('RPI_SSH_CONNECT_TIMEOUT', '10')}",
                 str(local),
-                f"{config['RPI_SSH_TARGET']}:{remote_name}",
+                f"{config['RPI_SSH_TARGET']}:{remote_name}.part",
             ],
             "metadata_upload",
         )
@@ -432,7 +447,9 @@ ln -s "$root/releases/$sha" "$root/current.$sha.tmp"
 mv -Tf "$root/current.$sha.tmp" "$root/current"
 """
         remote(config, finalize.encode())
-        _write_deployment_attempt(attempt, status="complete", commit=commit, smoke=smoke_result)
+        _write_deployment_attempt(
+            attempt, status="complete", commit=commit, smoke=smoke_result
+        )
     except Exception as exc:
         _write_deployment_attempt(
             attempt,
@@ -449,7 +466,9 @@ if test -L "$root/current"; then docker compose -p charting-platform -f "$root/c
         raise SystemExit(str(exc)) from exc
     finally:
         checksum_path.unlink(missing_ok=True)
-    print(f"deployed charting-platform at {commit}; no unrelated Docker resources were touched")
+    print(
+        f"deployed charting-platform at {commit}; no unrelated Docker resources were touched"
+    )
 
 
 def deploy(config: dict[str, str], commit: str, confirm: str) -> None:
@@ -508,7 +527,9 @@ def smoke(config: dict[str, str], commit: str) -> dict[str, str]:
         )
         with urllib.request.urlopen(request, timeout=10) as response:
             if response.status != 200:
-                raise RuntimeError(f"authenticated availability returned HTTP {response.status}")
+                raise RuntimeError(
+                    f"authenticated availability returned HTTP {response.status}"
+                )
         result["authenticated_provider_read"] = "pass"
 
         websocket_ping(host, int(config["RPI_HTTP_PORT"]), token)
@@ -516,7 +537,9 @@ def smoke(config: dict[str, str], commit: str) -> dict[str, str]:
 
         research_smoke(base, headers, commit, result)
     except (urllib.error.URLError, TimeoutError, ValueError, RuntimeError) as exc:
-        raise RuntimeError(f"authenticated LAN smoke failed for {commit}: {exc}") from exc
+        raise RuntimeError(
+            f"authenticated LAN smoke failed for {commit}: {exc}"
+        ) from exc
     return result
 
 
@@ -548,7 +571,9 @@ def websocket_ping(host: str, port: int, token: str) -> None:
             if len(response) > 16_384:
                 raise RuntimeError("WebSocket handshake response is too large")
         if not response.startswith(b"HTTP/1.1 101"):
-            raise RuntimeError(f"WebSocket handshake failed: {response.splitlines()[0]!r}")
+            raise RuntimeError(
+                f"WebSocket handshake failed: {response.splitlines()[0]!r}"
+            )
         payload = b"ping"
         mask = os.urandom(4)
         masked = bytes(value ^ mask[index % 4] for index, value in enumerate(payload))
@@ -564,10 +589,14 @@ def websocket_ping(host: str, port: int, token: str) -> None:
             raise RuntimeError("authenticated WebSocket did not return pong")
 
 
-def research_smoke(base: str, headers: dict[str, str], commit: str, result: dict[str, str]) -> None:
+def research_smoke(
+    base: str, headers: dict[str, str], commit: str, result: dict[str, str]
+) -> None:
     """Queue one tiny study and wait briefly for the isolated runner to consume it."""
 
-    def request(path: str, *, method: str = "GET", body: object | None = None) -> object:
+    def request(
+        path: str, *, method: str = "GET", body: object | None = None
+    ) -> object:
         data = json.dumps(body).encode() if body is not None else None
         req = urllib.request.Request(
             f"{base}{path}",
@@ -608,7 +637,10 @@ def research_smoke(base: str, headers: dict[str, str], commit: str, result: dict
         run_id = int(run["id"])
         deadline = time.monotonic() + 30
         terminal = str(run.get("status"))
-        while terminal not in {"completed", "failed", "canceled"} and time.monotonic() < deadline:
+        while (
+            terminal not in {"completed", "failed", "canceled"}
+            and time.monotonic() < deadline
+        ):
             time.sleep(2)
             current = request(f"/api/v1/research/runs/{run_id}")
             terminal = str(current.get("status"))
@@ -617,7 +649,9 @@ def research_smoke(base: str, headers: dict[str, str], commit: str, result: dict
     finally:
         # Keep the audit record but prevent the smoke asset from appearing in normal Settings lists.
         request(
-            f"/api/v1/code/assets/{asset_id}/archive", method="POST", body={"is_archived": True}
+            f"/api/v1/code/assets/{asset_id}/archive",
+            method="POST",
+            body={"is_archived": True},
         )
     result["research_runner"] = "pass"
 
