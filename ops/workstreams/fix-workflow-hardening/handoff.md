@@ -110,3 +110,15 @@ teardown helper now treats an already-closed popup as converged cleanup while
 still requiring exactly one context page and the original canvas/tool counts.
 The complete performance spec passes locally after this change; another exact
 source replay is required.
+
+Replay `32330338005` passed backend/frontend and 150 browser tests but still
+failed once in the full-suite benchmark-family matrix. The `sp400` market-map
+request returned the correct locked-source payload, while stale `sp500` source
+observations and Golden Layout lifecycle churn left the visible map instance
+without its rendered summary. The focused matrix remained green, so this was
+recorded as a full-suite lifecycle race rather than hidden with a longer retry
+or changed oracle. A complete local flow replay also exposed a separate
+condition-editor defect: the shared breadth threshold carried a previous
+volume-ratio value into `prior_high_low`. Condition changes now seed the
+documented default for the new condition; focused matrix and breadth-ratio
+checks pass after this correction. A fresh source replay is required.

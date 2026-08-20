@@ -13,6 +13,8 @@ owned_paths:
   - scripts/integrate.py
   - docs/development.md
   - frontend/src/views/WorkstationView.vue
+  - frontend/src/components/workstation/MarketMapTool.vue
+  - frontend/src/components/workstation/WorkstationToolContent.vue
   - frontend/tests/e2e/flows.spec.ts
   - .github/workflows/ci.yml
   - scripts/validate-arm64-images.py
@@ -34,6 +36,7 @@ branch_tests:
   - "backend/.venv/bin/ruff check scripts backend/tests/unit/test_worktree_runtime.py"
   - "backend/.venv/bin/ruff format --check scripts backend/tests/unit/test_worktree_runtime.py"
   - "E2E_SEED_MARKET_DATA=true npx playwright test tests/e2e/flows.spec.ts -g 'F8e\\.2' --project=chromium"
+  - "E2E_SEED_MARKET_DATA=true npx playwright test tests/e2e/flows.spec.ts -g 'F8s-family-matrix|F8s-breadth-family-ratio' --project=chromium"
 live_test_impact: none
 migration_impact: none
 deployment_impact: none

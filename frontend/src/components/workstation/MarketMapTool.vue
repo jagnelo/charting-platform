@@ -376,6 +376,10 @@ const historyRefreshError = ref('')
 const historyRun = ref<WatchlistHistoryRefreshRun | null>(null)
 const historyRunLoading = ref(false)
 let historyPollTimer: ReturnType<typeof setTimeout> | null = null
+// Source changes can overlap while Golden Layout is opening/closing repeated
+// Market Map tools.  Fence each request so a slower response from the prior
+// universe cannot clear or replace the currently selected map.
+let runGeneration = 0
 const definitionName = ref(String(props.configuration.definition_name ?? ''))
 const definitionSaving = ref(false)
 const definitionMessage = ref('')
@@ -1225,8 +1229,10 @@ function exportCsv() {
 
 async function run() {
   if (!sourceId.value && !explicitSymbols.value.trim()) return
+  const generation = ++runGeneration
   loading.value = true
   error.value = ''
+  map.value = null
   try {
     let requestSourceId = sourceId.value
     if (explicitSymbols.value.trim()) {
@@ -1241,17 +1247,21 @@ async function run() {
         sourceId.value = requestSourceId
       }
     }
+    if (generation !== runGeneration) return
     if (colorMetric.value === 'python' || areaMetric.value === 'python') await resolvePythonRun()
-    map.value = await fetchMarketMap({ source_id: requestSourceId, group_by: groupBy.value, period: period.value, start: period.value === 'CUSTOM' && startDate.value ? startDate.value : null, end: period.value === 'CUSTOM' && endDate.value ? `${endDate.value}T23:59:59Z` : null, area_metric: areaMetric.value, area_field: areaMetric.value === 'field' ? areaField.value : null, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, python_run_id: colorMetric.value === 'python' || areaMetric.value === 'python' ? pythonRunId.value : null, reference_symbol: (colorMetric.value === 'relative_return' || referenceNeeded.value) && !referenceSourceId.value ? referenceSymbol.value.toUpperCase() : null, reference_source_id: (colorMetric.value === 'relative_return' || referenceNeeded.value) && referenceSourceId.value ? referenceSourceId.value : null, timeframe: timeframe.value, adjusted: true })
+    const nextMap = await fetchMarketMap({ source_id: requestSourceId, group_by: groupBy.value, period: period.value, start: period.value === 'CUSTOM' && startDate.value ? startDate.value : null, end: period.value === 'CUSTOM' && endDate.value ? `${endDate.value}T23:59:59Z` : null, area_metric: areaMetric.value, area_field: areaMetric.value === 'field' ? areaField.value : null, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, python_run_id: colorMetric.value === 'python' || areaMetric.value === 'python' ? pythonRunId.value : null, reference_symbol: (colorMetric.value === 'relative_return' || referenceNeeded.value) && !referenceSourceId.value ? referenceSymbol.value.toUpperCase() : null, reference_source_id: (colorMetric.value === 'relative_return' || referenceNeeded.value) && referenceSourceId.value ? referenceSourceId.value : null, timeframe: timeframe.value, adjusted: true })
+    if (generation !== runGeneration) return
+    map.value = nextMap
     snapshotSelectionId.value = ''
     activeSnapshotName.value = ''
     selectedNode.value = null
     selectedIds.value = []
     resetViewport()
   } catch (cause) {
+    if (generation !== runGeneration) return
     error.value = cause instanceof Error ? cause.message : 'Unable to load Market Map'
   } finally {
-    loading.value = false
+    if (generation === runGeneration) loading.value = false
   }
 }
 function persist() {

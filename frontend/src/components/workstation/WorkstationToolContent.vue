@@ -3259,7 +3259,30 @@ function setBenchmarkFamilyMapRole(role: string) {
   emit('configuration', props.tool.instance_key, { ...props.tool.configuration, benchmark_family_map_role: normalized })
 }
 function setBreadthConfiguration(configuration: Record<string, unknown>) {
-  breadthDraftConfiguration.value = { ...breadthDraftConfiguration.value, ...configuration }
+  let nextConfiguration = configuration
+  // The compact breadth editor reuses a small set of controls across several
+  // condition kinds.  A value entered for one kind must not silently become
+  // the default for the next kind (for example, a volume-ratio target of 1.5
+  // becoming a prior-high distance).  Seed the shared control with the
+  // documented default whenever the condition selector changes; the user can
+  // then explicitly edit the new field.
+  if (typeof configuration.breadth_condition === 'string') {
+    const defaults: Record<string, number> = {
+      rsi: 50,
+      volume_ratio: 1,
+      prior_high_low: 0.01,
+      relative_strength: 0,
+      comparison: 0,
+      series_comparison: 0,
+      cross_sectional_statistic: 0,
+      event: 1,
+    }
+    const defaultThreshold = defaults[configuration.breadth_condition]
+    if (defaultThreshold !== undefined) {
+      nextConfiguration = { ...configuration, breadth_comparison_threshold: defaultThreshold }
+    }
+  }
+  breadthDraftConfiguration.value = { ...breadthDraftConfiguration.value, ...nextConfiguration }
   emit('configuration', props.tool.instance_key, { ...props.tool.configuration, ...breadthDraftConfiguration.value })
 }
 async function loadBreadthPythonSeriesAssets() {
