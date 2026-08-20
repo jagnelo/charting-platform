@@ -53,3 +53,8 @@ The branch workflow also now starts E2E Compose with deterministic instrument an
 market-data fixtures. A debounced user-settings watcher is guarded by the access
 token so logout cannot issue a post-logout PATCH/401; its focused unit regression
 passes alongside the existing frontend suite.
+
+The authoritative gate now also renders the development and RPi Compose files
+with explicit contract values and runs the frontend production build after the
+type-check/unit coverage stage. The new source replay must verify this expanded
+gate before exact integration.

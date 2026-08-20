@@ -26,6 +26,7 @@ acceptance_criteria:
   - "The GitHub backend job accepts the tracked compatibility export when only uv's generated output path differs, invokes the repository environment for pytest, does not apply the combined coverage threshold to the integration-only slice, and does not run an unused pip cache cleanup."
   - "Integration requires a successful push-triggered GitHub replay for the exact source and published master SHA; a failed master replay creates a durable degraded marker that blocks subsequent integration and deployment."
   - "The authoritative gate builds and inspects backend, research-runner, and frontend production images for linux/arm64, and master replays the complete gate independently in GitHub Actions."
+  - "The authoritative gate renders both development and RPi Compose contracts and runs the frontend production build after type-checking and coverage."
 branch_tests:
   - "backend/.venv/bin/python -m pytest backend/tests/unit/test_worktree_runtime.py -q --no-cov"
   - "uv run ruff check scripts backend/tests/unit/test_worktree_runtime.py"
@@ -42,3 +43,4 @@ remaining_gaps:
   - "The first exact candidate after the ARM64 addition exposed a visual-target environment omission: the TC2000 visual command used localhost:80 instead of the path-derived STACK_URL; the command now exports the allocator environment and requires a fresh candidate."
   - "A branch replay also exposed a debounced user-settings PATCH racing logout; the store now skips the write when the access token has been cleared, with a focused regression test."
   - "Branch E2E workflows now enable deterministic instrument and market-data fixtures so exhaustive browser checks exercise the intended seeded contract."
+  - "The gate now includes frontend production build and Compose/deployment-contract rendering; the fresh source replay must verify the new target."

@@ -27,6 +27,7 @@
   test-stack-up test-stack-down test-platform test-all test-backend-coverage \
   test-uplot-contract \
   test-visual-policy \
+  test-compose-contract \
   validate-arm64-images \
   validate-integration branch-validate \
   worktree-create worktree-list worktree-status worktree-close integrate \
@@ -159,6 +160,11 @@ test-visual-policy:
 	@echo "▶  Deterministic TC2000 visual acceptance policy..."
 	cd backend && .venv/bin/python ../tests/visual/validate-visual-acceptance-policy.py
 
+test-compose-contract:
+	@echo "▶  Compose and deployment contract validation..."
+	SECRET_KEY=ci-contract-secret POSTGRES_PASSWORD=postgres CORS_ORIGINS='["http://localhost"]' BACKEND_IMAGE=charting-platform/backend:contract RESEARCH_RUNNER_IMAGE=charting-platform/research-runner:contract FRONTEND_IMAGE=charting-platform/frontend:contract POSTGRES_IMAGE=postgres:16-alpine REDIS_IMAGE=redis:7-alpine RPI_HTTP_PORT=8080 docker compose -f docker-compose.yml config >/dev/null
+	SECRET_KEY=ci-contract-secret POSTGRES_PASSWORD=postgres CORS_ORIGINS='["http://localhost"]' BACKEND_IMAGE=charting-platform/backend:contract RESEARCH_RUNNER_IMAGE=charting-platform/research-runner:contract FRONTEND_IMAGE=charting-platform/frontend:contract POSTGRES_IMAGE=postgres:16-alpine REDIS_IMAGE=redis:7-alpine RPI_HTTP_PORT=8080 docker compose -f deploy/rpi/compose.yml config >/dev/null
+
 validate-arm64-images:
 	@echo "▶  Production application image build (linux/arm64)..."
 	python3 scripts/validate-arm64-images.py
@@ -278,6 +284,8 @@ validate-integration:
 	$(MAKE) lint; \
 	$(MAKE) test-backend-coverage; \
 	$(MAKE) test-fe; \
+	cd frontend && npm run build; \
+	$(MAKE) test-compose-contract; \
 	trap '$(MAKE) test-stack-down' EXIT; \
 	E2E_SEED_MARKET_DATA=true $(MAKE) test-stack-up; \
 	E2E_SEED_MARKET_DATA=true $(MAKE) test-e2e; \
