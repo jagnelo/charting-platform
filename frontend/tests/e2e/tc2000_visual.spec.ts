@@ -22,6 +22,11 @@ async function waitForShellReady(page: Page) {
   if (process.env.E2E_SEED_MARKET_DATA === 'true') {
     await expect(page.locator('.ratio-chart__legend strong').first()).toHaveText('SPY/RSP', { timeout: 15_000 })
     await expect(page.locator('.workstation__refresh')).toHaveText('Refresh', { timeout: 15_000 })
+    // The shell freshness label can settle before the adjacent chart finishes
+    // its canonical OHLCV request.  All board baselines include that chart, so
+    // require its terminal state explicitly instead of allowing a loading
+    // frame to race the screenshot oracle.
+    await expect(page.locator('.chart-tool .tool-state')).toHaveCount(0, { timeout: 15_000 })
     await page.waitForTimeout(750)
     await expect(page.locator('.workstation__refresh')).toHaveText('Refresh', { timeout: 15_000 })
   }
