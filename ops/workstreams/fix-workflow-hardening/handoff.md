@@ -142,3 +142,10 @@ four visual projects. This independently validates the popup lifecycle and
 explicit-close workspace reconciliation fixes without changing visual
 baselines, masks, retry budgets, or assertion thresholds. The branch is clean
 and synchronized and is ready for exact-SHA candidate integration.
+
+The first explicit candidate run also passed the complete backend coverage,
+frontend unit/contract, seeded 260-test browser, 104-case visual, and ARM64
+image gates. Its branch-declared E2E commands initially failed because the
+workstream listed Playwright invocations without changing into `frontend`;
+the commands now use the repository-root-safe `cd frontend &&` form and must
+be included in the next exact source replay.
