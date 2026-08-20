@@ -14,3 +14,4 @@
 {"command":"debounced user-settings logout guard","result":"pass","evidence":"frontend user-settings unit suite passes 3/3, including no PATCH after access token removal"}
 {"command":"branch E2E fixture configuration","result":"corrected","evidence":"workflow starts Compose with deterministic instrument and market-data fixture flags"}
 {"command":"frontend build and Compose contract gate","result":"pass","evidence":"make test-compose-contract rendered development and RPi Compose successfully; frontend npm run build passed (vue-tsc plus Vite production build); fresh source GitHub replay pending"}
+{"command":"hardening helper script format gate","result":"pass","evidence":"backend/.venv/bin/python -m pytest backend/tests/unit/test_worktree_runtime.py -q --no-cov: 2 passed; ruff check and ruff format --check scripts backend/tests/unit/test_worktree_runtime.py pass"}

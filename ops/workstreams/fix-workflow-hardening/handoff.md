@@ -58,3 +58,6 @@ The authoritative gate now also renders the development and RPi Compose files
 with explicit contract values and runs the frontend production build after the
 type-check/unit coverage stage. The new source replay must verify this expanded
 gate before exact integration.
+
+The branch-owned helper scripts have now also been normalized with Ruff format;
+the focused runtime tests and script lint/format checks pass at this boundary.

@@ -75,7 +75,9 @@ def assert_clean_synchronized(repo: Path, branch: str) -> Path:
         raise SystemExit("integration must run from the root master checkout")
     if out(["git", "status", "--porcelain"], repo):
         raise SystemExit("root master is dirty")
-    if out(["git", "rev-parse", "HEAD"], repo) != out(["git", "rev-parse", "origin/master"], repo):
+    if out(["git", "rev-parse", "HEAD"], repo) != out(
+        ["git", "rev-parse", "origin/master"], repo
+    ):
         raise SystemExit("root master is not synchronized with origin/master")
     if degraded_marker(repo).exists():
         raise SystemExit(
@@ -90,7 +92,12 @@ def assert_clean_synchronized(repo: Path, branch: str) -> Path:
 
 def candidate_path(repo: Path, branch: str, source_sha: str) -> Path:
     token = hashlib.sha256(f"{branch}:{source_sha}".encode()).hexdigest()[:12]
-    return common_root(repo) / ".ai" / "integration" / f"{branch.replace('/', '-')}-{token}"
+    return (
+        common_root(repo)
+        / ".ai"
+        / "integration"
+        / f"{branch.replace('/', '-')}-{token}"
+    )
 
 
 def make_candidate(repo: Path, branch: str, source_sha: str) -> tuple[Path, str]:
@@ -140,7 +147,8 @@ def continue_candidate(repo: Path, branch: str, source_sha: str) -> tuple[Path, 
     conflicts = out(["git", "diff", "--name-only", "--diff-filter=U"], candidate)
     if conflicts:
         raise SystemExit(
-            "candidate still has unresolved paths; resolve and stage every conflict:\n" + conflicts
+            "candidate still has unresolved paths; resolve and stage every conflict:\n"
+            + conflicts
         )
     merge_head = Path(out(["git", "rev-parse", "--git-path", "MERGE_HEAD"], candidate))
     if not merge_head.is_absolute():
@@ -167,13 +175,19 @@ def continue_candidate(repo: Path, branch: str, source_sha: str) -> tuple[Path, 
 
 
 def validate(repo: Path, candidate: Path, branch: str, source_sha: str) -> None:
-    if out(["git", "rev-parse", "HEAD"], repo) != out(["git", "rev-parse", "origin/master"], repo):
+    if out(["git", "rev-parse", "HEAD"], repo) != out(
+        ["git", "rev-parse", "origin/master"], repo
+    ):
         raise SystemExit("master advanced while the candidate was being validated")
     if out(["git", "rev-parse", "HEAD"], branch_worktree(repo, branch)) != source_sha:
-        raise SystemExit("source branch no longer resolves to the captured candidate SHA")
+        raise SystemExit(
+            "source branch no longer resolves to the captured candidate SHA"
+        )
     run(["make", "validate-integration"], candidate)
     if out(["git", "rev-parse", "HEAD"], branch_worktree(repo, branch)) != source_sha:
-        raise SystemExit("source branch advanced while the candidate was being validated")
+        raise SystemExit(
+            "source branch advanced while the candidate was being validated"
+        )
     github_replay(repo, source_sha)
     if out(["git", "status", "--porcelain"], candidate):
         raise SystemExit(
@@ -205,7 +219,9 @@ def github_replay(repo: Path, commit: str) -> dict[str, str]:
         check=False,
     )
     if listed.returncode:
-        raise SystemExit(listed.stderr.strip() or "could not query GitHub Actions replay")
+        raise SystemExit(
+            listed.stderr.strip() or "could not query GitHub Actions replay"
+        )
     try:
         runs = json.loads(listed.stdout)
     except json.JSONDecodeError as exc:
@@ -225,7 +241,14 @@ def github_replay(repo: Path, commit: str) -> dict[str, str]:
                 f"GitHub Actions replay failed for {commit}: {replay.get('url', replay['databaseId'])}"
             )
         refreshed = run(
-            ["gh", "run", "view", str(replay["databaseId"]), "--json", "status,conclusion"],
+            [
+                "gh",
+                "run",
+                "view",
+                str(replay["databaseId"]),
+                "--json",
+                "status,conclusion",
+            ],
             repo,
         )
         replay.update(json.loads(refreshed.stdout))

@@ -81,8 +81,12 @@ def locked_registry() -> Any:
                     ) from exc
             else:
                 data = {"version": 1, "allocations": {}}
-            if not isinstance(data, dict) or not isinstance(data.get("allocations"), dict):
-                raise SystemExit(f"runtime registry has an invalid shape: {registry_path}")
+            if not isinstance(data, dict) or not isinstance(
+                data.get("allocations"), dict
+            ):
+                raise SystemExit(
+                    f"runtime registry has an invalid shape: {registry_path}"
+                )
             yield data
             registry_path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
         finally:
@@ -183,7 +187,9 @@ def allocate(data: dict[str, Any]) -> dict[str, Any]:
     ports: dict[str, int] = {}
     for key in PORT_KEYS:
         candidate = PORT_BASES[key]
-        while candidate <= 65535 and (candidate in used or not port_available(candidate)):
+        while candidate <= 65535 and (
+            candidate in used or not port_available(candidate)
+        ):
             candidate += 1
         if candidate > 65535:
             raise SystemExit(f"no available port found for {key}")
@@ -251,7 +257,9 @@ def ensure() -> tuple[dict[str, Any], dict[str, str], Path]:
         env = environment(allocation)
         path = env_file_path()
         path.write_text(
-            "".join(f"{key}={shlex.quote(value)}\n" for key, value in sorted(env.items()))
+            "".join(
+                f"{key}={shlex.quote(value)}\n" for key, value in sorted(env.items())
+            )
         )
         path.chmod(0o600)
         return allocation, env, path
@@ -265,7 +273,11 @@ def main() -> int:
     if args.command == "env-file":
         print(path)
     elif args.command == "shell":
-        print(" ".join(f"{key}={shlex.quote(value)}" for key, value in sorted(env.items())))
+        print(
+            " ".join(
+                f"{key}={shlex.quote(value)}" for key, value in sorted(env.items())
+            )
+        )
     elif args.command == "json":
         print(
             json.dumps(

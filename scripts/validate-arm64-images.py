@@ -14,9 +14,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SHA = subprocess.check_output(
-    ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
-).strip()
+SHA = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
 TAG_SUFFIX = SHA[:12]
 
 BUILDS = (
@@ -31,7 +29,10 @@ BUILDS = (
 
 
 def main() -> int:
-    tags = [f"charting-platform/arm64-validation-{name}:{TAG_SUFFIX}" for name, _, _ in BUILDS]
+    tags = [
+        f"charting-platform/arm64-validation-{name}:{TAG_SUFFIX}"
+        for name, _, _ in BUILDS
+    ]
     try:
         for (name, dockerfile, context), tag in zip(BUILDS, tags, strict=True):
             subprocess.run(
