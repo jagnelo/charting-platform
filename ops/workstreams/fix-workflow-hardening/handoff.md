@@ -212,3 +212,11 @@ host intentionally waits one macrotask before a destructive reinstall). Those
 tests now await the documented timer boundary; the focused WorkspaceLayoutHost
 unit contract passes 8/8. The replay is retained as red first-failure evidence,
 and a fresh source replay is required.
+
+The local seeded acceptance stack was rebuilt from the current source boundary.
+F8h simultaneous pop-outs and F8s-family-matrix both pass together (2/2 in
+13.8s), including the exact popup-page count and locked-source summary/tile
+assertions. The unseeded-stack diagnostic classifier also now treats the
+documented ETF constituent snapshot 404 as an expected unavailable-data path;
+it does not alter the assertions or retry policy. Fresh independent CI replay
+remains the required final source evidence.
