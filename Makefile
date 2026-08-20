@@ -285,7 +285,7 @@ validate-integration:
 	git diff --check; \
 	$(MAKE) branch-validate; \
 	(cd backend && uv lock --check && uv sync --frozen --dev && uv export --locked --format requirements-txt --output-file /tmp/charting-requirements.lock && sed '1,2d' requirements.txt > /tmp/charting-requirements.current && sed '1,2d' /tmp/charting-requirements.lock > /tmp/charting-requirements.generated && cmp -s /tmp/charting-requirements.generated /tmp/charting-requirements.current); \
-	(heads=$$(cd backend && uv run alembic heads | awk '/\\(head\\)/ { count += 1 } END { print count + 0 }'); test "$$heads" = 1); \
+	(heads=$$(cd backend && uv run alembic heads | awk '/\(head\)/ { count += 1 } END { print count + 0 }'); test "$$heads" = 1); \
 	(cd frontend && npm ci); \
 	$(MAKE) lint; \
 	$(MAKE) test-backend-coverage; \
