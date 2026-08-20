@@ -21,8 +21,8 @@ acceptance_criteria:
   - "Repeated multi-window churn returns to the exact source canvas/tool baseline."
 branch_tests:
   - "cd frontend && npx tsc --noEmit"
-  - "F8e.swing-analysis and F8s-breadth-family-ratio repeated 10 times each"
-  - "workstation performance churn repeated 10 times"
+  - "cd frontend && npx playwright test tests/e2e/flows.spec.ts -g 'F8e.swing-analysis|F8s-breadth-family-ratio' --repeat-each=10"
+  - "cd frontend && npx playwright test tests/e2e/workstation_performance.spec.ts -g 'repeated multi-window churn' --repeat-each=10"
 live_test_impact: "Browser chart lifecycle and historical-link behavior; no provider calls."
 migration_impact: none
 deployment_impact: none
