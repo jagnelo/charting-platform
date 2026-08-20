@@ -1,0 +1,14 @@
+schema: "1"
+branch: fix/master-gate-observability
+base_sha: f3a32223ae347e9f99a6da4536c9ebabca83bb34
+goal: Make exhaustive integration-gate failures observable in independent CI replays.
+scope: Add durable stage labels and GitHub error annotations without changing test coverage or acceptance criteria.
+owned_paths: [Makefile, ops/workstreams/fix-master-gate-observability]
+dependencies: [master at f3a32223ae347e9f99a6da4536c9ebabca83bb34]
+acceptance_criteria: [A failing gate identifies its last named stage and exit code in CI annotations; a passing gate remains unchanged.]
+branch_tests: [make validate-integration, git diff --check]
+live_test_impact: none
+migration_impact: none
+deployment_impact: none
+status: ready
+remaining_gaps: [The underlying degraded-master failure must be diagnosed from the next replay and fixed if it is not transient.]

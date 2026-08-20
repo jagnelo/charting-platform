@@ -299,25 +299,28 @@ integrate:
 
 validate-integration:
 	@set -e; \
-	git diff --check; \
-	$(MAKE) branch-validate; \
-	(cd backend && uv lock --check && uv sync --frozen --dev && uv export --locked --format requirements-txt --output-file /tmp/charting-requirements.lock && sed '1,2d' requirements.txt > /tmp/charting-requirements.current && sed '1,2d' /tmp/charting-requirements.lock > /tmp/charting-requirements.generated && cmp -s /tmp/charting-requirements.generated /tmp/charting-requirements.current); \
-	(heads=$$(cd backend && uv run alembic heads | awk '/\(head\)/ { count += 1 } END { print count + 0 }'); test "$$heads" = 1); \
-	$(MAKE) test-migration-compatibility; \
-	(cd frontend && npm ci); \
-	$(MAKE) lint; \
-	$(MAKE) test-backend-coverage; \
-	$(MAKE) test-fe; \
-	(cd frontend && npm run build); \
-	$(MAKE) test-compose-contract; \
-	$(MAKE) test-live-provider-probes; \
-	trap '$(MAKE) test-stack-down' EXIT; \
-	E2E_SEED_MARKET_DATA=true $(MAKE) test-stack-up; \
-	$(MAKE) test-research-runner-probes; \
-	E2E_SEED_MARKET_DATA=true $(MAKE) test-e2e; \
-	($(RUNTIME_ENV) cd frontend && STACK_URL=$${STACK_URL:-$$STACK_URL} E2E_SEED_MARKET_DATA=true RUN_BOARD_VISUAL_PARITY=1 npx playwright test tests/e2e/tc2000_visual.spec.ts); \
-	if test -n "$(INTEGRATION_BRANCH)"; then $(MAKE) branch-tests INTEGRATION_BRANCH="$(INTEGRATION_BRANCH)"; fi; \
-	$(MAKE) validate-arm64-images
+	stage=initialization; \
+	trap 'status=$$?; if test "$$status" -ne 0; then printf "::error title=Integration gate failed::stage=%s exit=%s\n" "$$stage" "$$status" >&2; fi' EXIT; \
+	stage=git-diff; printf '▶ integration gate stage: %s\n' "$$stage"; git diff --check; \
+	stage=workstream; printf '▶ integration gate stage: %s\n' "$$stage"; $(MAKE) branch-validate; \
+	stage=backend-dependencies; printf '▶ integration gate stage: %s\n' "$$stage"; (cd backend && uv lock --check && uv sync --frozen --dev && uv export --locked --format requirements-txt --output-file /tmp/charting-requirements.lock && sed '1,2d' requirements.txt > /tmp/charting-requirements.current && sed '1,2d' /tmp/charting-requirements.lock > /tmp/charting-requirements.generated && cmp -s /tmp/charting-requirements.generated /tmp/charting-requirements.current); \
+	stage=migration-head; printf '▶ integration gate stage: %s\n' "$$stage"; (heads=$$(cd backend && uv run alembic heads | awk '/\(head\)/ { count += 1 } END { print count + 0 }'); test "$$heads" = 1); \
+	stage=migration-compatibility; printf '▶ integration gate stage: %s\n' "$$stage"; $(MAKE) test-migration-compatibility; \
+	stage=frontend-dependencies; printf '▶ integration gate stage: %s\n' "$$stage"; (cd frontend && npm ci); \
+	stage=lint; printf '▶ integration gate stage: %s\n' "$$stage"; $(MAKE) lint; \
+	stage=backend-coverage; printf '▶ integration gate stage: %s\n' "$$stage"; $(MAKE) test-backend-coverage; \
+	stage=frontend-tests; printf '▶ integration gate stage: %s\n' "$$stage"; $(MAKE) test-fe; \
+	stage=frontend-build; printf '▶ integration gate stage: %s\n' "$$stage"; (cd frontend && npm run build); \
+	stage=compose-contract; printf '▶ integration gate stage: %s\n' "$$stage"; $(MAKE) test-compose-contract; \
+	stage=provider-probes; printf '▶ integration gate stage: %s\n' "$$stage"; $(MAKE) test-live-provider-probes; \
+	cleanup_stack() { $(MAKE) test-stack-down || true; }; \
+	trap 'status=$$?; cleanup_stack; if test "$$status" -ne 0; then printf "::error title=Integration gate failed::stage=%s exit=%s\n" "$$stage" "$$status" >&2; fi' EXIT; \
+	stage=stack-up; printf '▶ integration gate stage: %s\n' "$$stage"; E2E_SEED_MARKET_DATA=true $(MAKE) test-stack-up; \
+	stage=research-runner-probes; printf '▶ integration gate stage: %s\n' "$$stage"; $(MAKE) test-research-runner-probes; \
+	stage=e2e-functional; printf '▶ integration gate stage: %s\n' "$$stage"; E2E_SEED_MARKET_DATA=true $(MAKE) test-e2e; \
+	stage=e2e-visual; printf '▶ integration gate stage: %s\\n' "$$stage"; ($(RUNTIME_ENV) cd frontend && STACK_URL=$${STACK_URL:-$$STACK_URL} E2E_SEED_MARKET_DATA=true RUN_BOARD_VISUAL_PARITY=1 npx playwright test tests/e2e/tc2000_visual.spec.ts); \
+	if test -n "$(INTEGRATION_BRANCH)"; then stage=branch-tests; printf '▶ integration gate stage: %s\n' "$$stage"; $(MAKE) branch-tests INTEGRATION_BRANCH="$(INTEGRATION_BRANCH)"; fi; \
+	stage=arm64-images; printf '▶ integration gate stage: %s\n' "$$stage"; $(MAKE) validate-arm64-images
 
 rpi-preflight:
 	python3 scripts/rpi.py preflight
