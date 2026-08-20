@@ -530,56 +530,47 @@ def research_smoke(base: str, headers: dict[str, str], commit: str, result: dict
         with urllib.request.urlopen(req, timeout=10) as response:
             return json.loads(response.read())
 
-    assets = request("/api/v1/code/assets")
-    asset_id: int | None = None
-    version_id: int | None = None
-    created_asset = False
-    if isinstance(assets, list):
-        for asset in assets:
-            if asset.get("is_archived"):
-                continue
-            versions = asset.get("versions") or []
-            if versions:
-                asset_id = int(asset["id"])
-                version_id = int(versions[-1]["id"])
-                break
-    if version_id is None:
-        key = f"rpi-smoke-{commit[:12]}"
-        created = request(
-            "/api/v1/code/assets",
+    # Always use a tiny known-safe source. Reusing a user's asset could invoke
+    # provider-backed work or an unbounded study during deployment validation.
+    key = f"rpi-smoke-{commit[:8]}-{int(time.time())}"
+    created = request(
+        "/api/v1/code/assets",
+        method="POST",
+        body={
+            "stable_key": key,
+            "name": "RPi deployment smoke",
+            "kind": "study",
+            "initial_version": {
+                "source": "output.scalar('rpi_smoke', 1)",
+                "output_contract": "study",
+            },
+        },
+    )
+    asset_id = int(created["id"])
+    try:
+        run = request(
+            "/api/v1/research/runs",
             method="POST",
             body={
-                "stable_key": key,
-                "name": "RPi deployment smoke",
-                "kind": "study",
-                "initial_version": {
-                    "source": "output.scalar('rpi_smoke', 1)",
-                    "output_contract": "study",
-                },
+                "code_version_id": int(created["versions"][0]["id"]),
+                "run_config": {},
+                "dataset_manifest": {},
             },
         )
-        asset_id = int(created["id"])
-        version_id = int(created["versions"][0]["id"])
-        created_asset = True
-    run = request(
-        "/api/v1/research/runs",
-        method="POST",
-        body={"code_version_id": version_id, "run_config": {}, "dataset_manifest": {}},
-    )
-    run_id = int(run["id"])
-    deadline = time.monotonic() + 30
-    terminal = str(run.get("status"))
-    while terminal not in {"completed", "failed", "canceled"} and time.monotonic() < deadline:
-        time.sleep(2)
-        current = request(f"/api/v1/research/runs/{run_id}")
-        terminal = str(current.get("status"))
-    if created_asset and asset_id is not None:
+        run_id = int(run["id"])
+        deadline = time.monotonic() + 30
+        terminal = str(run.get("status"))
+        while terminal not in {"completed", "failed", "canceled"} and time.monotonic() < deadline:
+            time.sleep(2)
+            current = request(f"/api/v1/research/runs/{run_id}")
+            terminal = str(current.get("status"))
+        if terminal != "completed":
+            raise RuntimeError(f"bounded research smoke did not complete: {terminal}")
+    finally:
         # Keep the audit record but prevent the smoke asset from appearing in normal Settings lists.
         request(
             f"/api/v1/code/assets/{asset_id}/archive", method="POST", body={"is_archived": True}
         )
-    if terminal != "completed":
-        raise RuntimeError(f"bounded research smoke did not complete: {terminal}")
     result["research_runner"] = "pass"
 
 
