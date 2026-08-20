@@ -318,7 +318,9 @@ async def run_availability_probes(
             latency_ms=round((time.perf_counter() - started_probe) * 1000),
             success=success,
             classification=classification,
-            response_shape=response_shape(value) if success else None,
+            # Preserve shape evidence for empty/partial responses as well as
+            # successes; exceptions still record an explicit null shape.
+            response_shape=response_shape(value),
             consecutive_failures=streak,
             recovered=recovered,
             error_message=error_message,

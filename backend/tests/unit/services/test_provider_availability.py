@@ -8,6 +8,7 @@ from app.services.provider_availability import (
     classify_response,
     notification_due,
     representative_request,
+    response_shape,
 )
 
 
@@ -20,6 +21,7 @@ def test_representative_contract_covers_each_capability():
 
 def test_classification_is_deterministic_for_empty_and_transport_failures():
     assert classify_response([]) == "empty_partial_response"
+    assert response_shape([]) == {"type": "array", "items": 0, "item_type": "NoneType"}
     assert classify_response({"rows": [1]}) == "success"
     assert classify_exception(TimeoutError()) == "timeout"
     assert classify_exception(ConnectionError("DNS lookup failed")) == "dns_transport"
