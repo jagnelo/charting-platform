@@ -22,16 +22,24 @@ from pathlib import Path
 from typing import Any
 
 PORT_KEYS = (
+    "DEV_POSTGRES_HOST_PORT",
+    "DEV_REDIS_HOST_PORT",
+    "DEV_BACKEND_PORT",
+    "VITE_PORT",
     "POSTGRES_HOST_PORT",
     "REDIS_HOST_PORT",
     "BACKEND_HOST_PORT",
     "FRONTEND_HOST_PORT",
 )
 PORT_BASES = {
-    "POSTGRES_HOST_PORT": 15432,
-    "REDIS_HOST_PORT": 16379,
-    "BACKEND_HOST_PORT": 18000,
-    "FRONTEND_HOST_PORT": 18080,
+    "DEV_POSTGRES_HOST_PORT": 15432,
+    "DEV_REDIS_HOST_PORT": 16379,
+    "DEV_BACKEND_PORT": 18000,
+    "VITE_PORT": 19000,
+    "POSTGRES_HOST_PORT": 25432,
+    "REDIS_HOST_PORT": 26379,
+    "BACKEND_HOST_PORT": 28000,
+    "FRONTEND_HOST_PORT": 28080,
 }
 
 
@@ -114,8 +122,10 @@ def managed_ports(data: dict[str, Any], current_id: str) -> set[int]:
     for allocation_id, item in data["allocations"].items():
         if allocation_id == current_id:
             continue
-        for key in PORT_KEYS:
-            value = item.get("ports", {}).get(key)
+        # Retain compatibility with pre-isolation registry entries: every
+        # numeric port in an older allocation remains reserved until its
+        # worktree/process proof allows reclamation.
+        for value in (item.get("ports") or {}).values():
             if isinstance(value, int):
                 used.add(value)
     return used
@@ -179,9 +189,17 @@ def allocate(data: dict[str, Any]) -> dict[str, Any]:
     identifier = worktree_id(path)
     reclaim_stale_allocations(data, identifier)
     existing = data["allocations"].get(identifier)
-    if existing and Path(existing.get("worktree", "")).resolve() == path:
+    if (
+        existing
+        and Path(existing.get("worktree", "")).resolve() == path
+        and set(PORT_KEYS).issubset((existing.get("ports") or {}).keys())
+    ):
         existing["branch"] = branch
         return existing
+    # Upgrade an older allocation for this same worktree in place.  Its old
+    # ports are excluded from the managed set by identifier, while all other
+    # allocations retain every numeric reservation until proven stale.
+    data["allocations"].pop(identifier, None)
 
     used = managed_ports(data, identifier)
     ports: dict[str, int] = {}
@@ -215,8 +233,8 @@ def allocate(data: dict[str, Any]) -> dict[str, Any]:
 
 def environment(allocation: dict[str, Any]) -> dict[str, str]:
     ports = allocation["ports"]
-    backend = str(ports["BACKEND_HOST_PORT"])
-    vite = str(ports["FRONTEND_HOST_PORT"] + 93)
+    backend = str(ports["DEV_BACKEND_PORT"])
+    vite = str(ports["VITE_PORT"])
     stack_url = f"http://127.0.0.1:{ports['FRONTEND_HOST_PORT']}"
     cors = json.dumps(
         [
@@ -240,9 +258,9 @@ def environment(allocation: dict[str, Any]) -> dict[str, str]:
         "VITE_API_PROXY_TARGET": f"http://127.0.0.1:{backend}",
         "STACK_URL": stack_url,
         "APP_PORT": backend,
-        "DATABASE_URL": f"postgresql+asyncpg://postgres:postgres@127.0.0.1:{ports['POSTGRES_HOST_PORT']}/chartingdb",
-        "DATABASE_URL_SYNC": f"postgresql+psycopg2://postgres:postgres@127.0.0.1:{ports['POSTGRES_HOST_PORT']}/chartingdb",
-        "REDIS_URL": f"redis://127.0.0.1:{ports['REDIS_HOST_PORT']}/0",
+        "DATABASE_URL": f"postgresql+asyncpg://postgres:postgres@127.0.0.1:{ports['DEV_POSTGRES_HOST_PORT']}/chartingdb",
+        "DATABASE_URL_SYNC": f"postgresql+psycopg2://postgres:postgres@127.0.0.1:{ports['DEV_POSTGRES_HOST_PORT']}/chartingdb",
+        "REDIS_URL": f"redis://127.0.0.1:{ports['DEV_REDIS_HOST_PORT']}/0",
         "CORS_ORIGINS": cors,
     }
 

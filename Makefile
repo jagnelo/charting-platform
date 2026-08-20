@@ -80,7 +80,7 @@ dev-infra:
 	done
 	@echo "▶  Applying migrations..."
 	$(RUNTIME_ENV) cd backend && $(BACKEND_ENV) uv run alembic upgrade head
-	@echo "✅  Infrastructure ready — Postgres :$$(sed -n 's/^POSTGRES_HOST_PORT=//p' $(RUNTIME_ENV_FILE)), Redis :$$(sed -n 's/^REDIS_HOST_PORT=//p' $(RUNTIME_ENV_FILE))"
+	@echo "✅  Infrastructure ready — Postgres :$$(sed -n 's/^DEV_POSTGRES_HOST_PORT=//p' $(RUNTIME_ENV_FILE)), Redis :$$(sed -n 's/^DEV_REDIS_HOST_PORT=//p' $(RUNTIME_ENV_FILE))"
 	@echo "   Data is isolated under Docker project $(DEV_COMPOSE_PROJECT)"
 
 dev-infra-stop:

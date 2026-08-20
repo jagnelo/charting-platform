@@ -20,17 +20,22 @@ def test_runtime_environment_is_path_scoped_and_explicit():
         "slug": "feat-a",
         "projects": {"dev": "charting-dev-feat-a-x", "stack": "charting-stack-feat-a-x"},
         "ports": {
-            "POSTGRES_HOST_PORT": 15432,
-            "REDIS_HOST_PORT": 16379,
-            "BACKEND_HOST_PORT": 18000,
-            "FRONTEND_HOST_PORT": 18080,
+            "DEV_POSTGRES_HOST_PORT": 15432,
+            "DEV_REDIS_HOST_PORT": 16379,
+            "DEV_BACKEND_PORT": 18000,
+            "VITE_PORT": 19000,
+            "POSTGRES_HOST_PORT": 25432,
+            "REDIS_HOST_PORT": 26379,
+            "BACKEND_HOST_PORT": 28000,
+            "FRONTEND_HOST_PORT": 28080,
         },
     }
     env = runtime.environment(allocation)
     assert env["STACK_COMPOSE_PROJECT"].startswith("charting-stack-")
     assert env["DATABASE_URL"].endswith("@127.0.0.1:15432/chartingdb")
     assert env["VITE_API_PROXY_TARGET"] == "http://127.0.0.1:18000"
-    assert "18080" in env["STACK_URL"]
+    assert env["VITE_PORT"] == "19000"
+    assert "28080" in env["STACK_URL"]
 
 
 def test_stale_runtime_allocation_requires_git_and_docker_proof(monkeypatch):

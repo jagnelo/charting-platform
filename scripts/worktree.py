@@ -125,6 +125,8 @@ def create(branch: str) -> None:
     ensure_master_ready()
     if git("show-ref", "--verify", f"refs/heads/{branch}", check=False):
         raise SystemExit(f"local branch already exists: {branch}")
+    if git("ls-remote", "--exit-code", "--heads", "origin", branch, check=False):
+        raise SystemExit(f"remote branch already exists: {branch}")
     target = common_root() / ".ai" / "worktrees" / branch_slug(branch)
     if target.exists():
         raise SystemExit(f"worktree path already exists: {target}")
