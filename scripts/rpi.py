@@ -268,6 +268,13 @@ def _deploy(config: dict[str, str], commit: str, confirm: str) -> None:
     manifest = ROOT / ".ai" / "deploy" / "bundles" / f"{commit}.manifest.json"
     if not bundle.exists() or not manifest.exists():
         raise SystemExit("build the exact COMMIT bundle first with make rpi-bundle")
+    attempt = ROOT / ".ai" / "deploy" / "attempts" / f"{commit}.json"
+    _write_deployment_attempt(
+        attempt,
+        status="uploading",
+        commit=commit,
+        bundle_sha256=hashlib.sha256(bundle.read_bytes()).hexdigest(),
+    )
     root = config["RPI_DEPLOY_ROOT"]
     remote_path = f"{root}/incoming/{commit}.docker.tar.gz.part"
     subprocess.run(
@@ -297,6 +304,7 @@ def _deploy(config: dict[str, str], commit: str, confirm: str) -> None:
         ],
         check=True,
     )
+    _write_deployment_attempt(attempt, status="bundle_uploaded", commit=commit)
     checksum = hashlib.sha256(bundle.read_bytes()).hexdigest()
     checksum_path = bundle.with_suffix(bundle.suffix + ".sha256")
     checksum_path.write_text(f"{checksum}  {commit}.docker.tar.gz.part\n")
@@ -363,9 +371,17 @@ printf '{{"commit":"%s","status":"started","prior_release":"%s","schema_revision
             ],
             check=True,
         )
+    _write_deployment_attempt(attempt, status="remote_transaction", commit=commit)
     try:
         remote(config, remote_script.encode())
     except Exception as exc:
+        _write_deployment_attempt(
+            attempt,
+            status="failed",
+            phase="remote_transaction",
+            commit=commit,
+            error_type=type(exc).__name__,
+        )
         rollback = f"""set -eu
 root={shlex.quote(root)}
 if test -L "$root/current"; then docker compose -p charting-platform -f "$root/current/compose.yml" --env-file "$root/shared/app.env" --env-file "$root/current/release.env" up -d --no-build --pull never --wait; fi
@@ -375,6 +391,7 @@ if test -L "$root/current"; then docker compose -p charting-platform -f "$root/c
         except Exception:
             pass
         raise SystemExit(str(exc)) from exc
+    _write_deployment_attempt(attempt, status="services_started", commit=commit)
     try:
         smoke_result = smoke(config, commit)
         smoke_metadata = json.dumps(
@@ -399,7 +416,15 @@ ln -s "$root/releases/$sha" "$root/current.$sha.tmp"
 mv -Tf "$root/current.$sha.tmp" "$root/current"
 """
         remote(config, finalize.encode())
+        _write_deployment_attempt(attempt, status="complete", commit=commit, smoke=smoke_result)
     except Exception as exc:
+        _write_deployment_attempt(
+            attempt,
+            status="failed",
+            phase="smoke_or_finalize",
+            commit=commit,
+            error_type=type(exc).__name__,
+        )
         rollback = f"""set -eu
 root={shlex.quote(root)}
 if test -L "$root/current"; then docker compose -p charting-platform -f "$root/current/compose.yml" --env-file "$root/shared/app.env" --env-file "$root/current/release.env" up -d --no-build --pull never --wait; fi
@@ -414,6 +439,13 @@ if test -L "$root/current"; then docker compose -p charting-platform -f "$root/c
 def deploy(config: dict[str, str], commit: str, confirm: str) -> None:
     with deployment_lock():
         _deploy(config, commit, confirm)
+
+
+def _write_deployment_attempt(path: Path, *, status: str, **fields: object) -> None:
+    """Persist non-secret local phase evidence even if SSH is interrupted."""
+    data = {"status": status, "updated_at": datetime.now(UTC).isoformat(), **fields}
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2) + "\n")
 
 
 def smoke(config: dict[str, str], commit: str) -> dict[str, str]:

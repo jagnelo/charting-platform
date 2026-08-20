@@ -22,6 +22,8 @@ def test_deployment_script_is_project_scoped_and_no_pull_or_build_on_pi():
     assert "docker build" not in source.split("def _deploy", 1)[1]
     assert "websocket_ping(host" in source
     assert "research_smoke(base, headers" in source
+    assert "_write_deployment_attempt" in source
+    assert 'status="failed"' in source
 
 
 def test_release_compose_passes_provider_monitoring_configuration():
