@@ -1234,6 +1234,38 @@ describe('workspace store layout tabs', () => {
     }))
   })
 
+  it('keeps an explicit local tool close when a stale remote snapshot still contains it', async () => {
+    const baseline = {
+      id: 10, user_id: 3, name: 'Personal', is_default: false, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{ id: 20, stable_key: 'personal', name: 'Personal', position: 0, active_window_key: 'map', layout_config: { root: { type: 'row', content: [] } }, windows: [
+        { id: 30, instance_key: 'chart', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0 },
+        { id: 31, instance_key: 'map', tool_type: 'market_map', title: 'Market Map', link_group: 'blue', configuration: { source_id: 'benchmark-family:sp400:cap_weight' }, style: {}, state_schema_version: 1, position: 1 },
+      ] }],
+    }
+    apiGet.mockResolvedValueOnce(JSON.parse(JSON.stringify(baseline)))
+    const store = useWorkspaceStore()
+    await store.loadDefault()
+    expect(store.closeTool('map')).toBe(true)
+    const remote = JSON.parse(JSON.stringify(baseline))
+    remote.revision = 5
+    remote.tabs[0].windows[0].configuration = { symbol: 'SPY' }
+    const saved = JSON.parse(JSON.stringify(remote))
+    saved.revision = 6
+    saved.tabs[0].windows = saved.tabs[0].windows.filter((window: { instance_key: string }) => window.instance_key !== 'map')
+    apiPut.mockRejectedValueOnce(new Error('API PUT /workspaces/10/snapshot → 409: conflict')).mockResolvedValueOnce(saved)
+    apiGet.mockResolvedValueOnce(remote)
+
+    await store.saveSnapshot()
+
+    expect(apiPost).not.toHaveBeenCalled()
+    expect(apiPut).toHaveBeenCalledTimes(2)
+    expect(apiPut.mock.calls[1][1]).toEqual(expect.objectContaining({
+      base_revision: 5,
+      tabs: [expect.objectContaining({ windows: [expect.objectContaining({ instance_key: 'chart' })] })],
+    }))
+    expect(store.workspace?.tabs[0].windows.map(window => window.instance_key)).toEqual(['chart'])
+  })
+
   it('hydrates the persisted blue-link symbol before the workstation mounts', async () => {
     apiGet.mockResolvedValue({
       id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1,

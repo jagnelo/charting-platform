@@ -4,7 +4,21 @@
  *
  * Run: make test-stack-up && npx playwright test
  */
+import { type Page } from '@playwright/test'
 import { test, expect, LoginPage, ChartPage, ScreenerPage, DashboardPage, RadarPage } from './helpers'
+
+async function closePopupWhenOpen(popup: Page) {
+  if (popup.isClosed()) return
+  const closed = popup.waitForEvent('close', { timeout: 10_000 }).catch((error: unknown) => {
+    if (!popup.isClosed()) throw error
+  })
+  try {
+    await popup.locator('button[title="Close"]').click()
+  } catch (error) {
+    if (!popup.isClosed()) throw error
+  }
+  await closed
+}
 
 
 // ── Auth flows ─────────────────────────────────────────────────────────────────
@@ -1081,9 +1095,7 @@ test.describe('TC2000 workstation', () => {
       await popup.waitForLoadState('domcontentloaded')
       await expect(popup.locator('.workstation__popout .tool-window')).toBeVisible({ timeout: 10_000 })
 
-      const closed = popup.waitForEvent('close')
-      await popup.locator('button[title="Close"]').click()
-      await closed
+      await closePopupWhenOpen(popup)
       await expect(page.locator('.tool-window')).toHaveCount(sourceToolCount)
       await expect.poll(() => context.pages().length).toBe(1)
     }
@@ -1531,9 +1543,7 @@ test.describe('TC2000 workstation', () => {
     const reopened = await reopenedPromise
     await reopened.waitForLoadState('domcontentloaded')
     await expect(reopened.locator('.workstation__popout .tool-window')).toBeVisible({ timeout: 25_000 })
-    const reopenedClosed = reopened.waitForEvent('close')
-    await reopened.locator('button[title="Close"]').click()
-    await reopenedClosed
+    await closePopupWhenOpen(reopened)
     await expect(page.locator('.tool-window').first().locator('button[title="Float"]')).toBeVisible()
     await browserDiagnostics.expectNoCriticalIssues()
   })

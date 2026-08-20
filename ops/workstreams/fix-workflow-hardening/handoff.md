@@ -122,3 +122,15 @@ condition-editor defect: the shared breadth threshold carried a previous
 volume-ratio value into `prior_high_low`. Condition changes now seed the
 documented default for the new condition; focused matrix and breadth-ratio
 checks pass after this correction. A fresh source replay is required.
+
+Replay `32332726711` passed backend/frontend and 147 browser tests, with the
+four visual projects executing, but retained two hard failures (popup close
+teardown and the benchmark-family matrix) plus two flaky diagnostics. The
+matrix trace showed correct `sp1500` API data followed by a revision-conflict
+recovery workspace that restored the earlier `sp400` layout. Popup close paths
+now share the bounded already-closed helper. Snapshot reconciliation records
+explicit local closes and preserves them when a stale remote snapshot still
+contains the closed tool; unaccounted removals still create recovery copies.
+The new store regression passes, the full frontend suite is 108 files/920
+tests, and the complete seeded local flow replay is 148 passed/5 skipped. A
+fresh source replay is required before exact integration.
