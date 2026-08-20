@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 
 from app.config import settings
 from app.models.provider_runtime import ProviderCapability
@@ -23,6 +24,40 @@ def test_classification_is_deterministic_for_empty_and_transport_failures():
     assert classify_exception(TimeoutError()) == "timeout"
     assert classify_exception(ConnectionError("DNS lookup failed")) == "dns_transport"
     assert classify_exception(KeyError("new_field")) == "schema_content_incompatibility"
+
+
+def test_classification_covers_http_auth_quota_schema_and_parser_boundaries():
+    def error(status: int, message: str = "upstream") -> Exception:
+        exc = RuntimeError(message)
+        exc.response = SimpleNamespace(status_code=status)
+        return exc
+
+    assert classify_exception(error(401)) == "authentication"
+    assert classify_exception(error(403, "forbidden")) == "authentication"
+    assert classify_exception(error(408)) == "quota_rate_limit"
+    assert classify_exception(error(429, "too many requests")) == "quota_rate_limit"
+    assert classify_exception(error(500)) == "upstream_http"
+    assert classify_exception(ValueError("malformed number")) == "internal_parser_failure"
+    assert (
+        classify_exception(RuntimeError("response schema changed"))
+        == "schema_content_incompatibility"
+    )
+
+
+def test_weekly_notification_only_escalates_confirmed_schema_regressions():
+    now = datetime.now(UTC)
+    assert (
+        notification_due(
+            mode="weekly_supported_sweep",
+            classification="upstream_http",
+            success=False,
+            consecutive_failures=1,
+            last_notification_kind=None,
+            last_notification_at=None,
+            now=now,
+        )
+        is None
+    )
 
 
 def test_notification_policy_covers_first_failure_cooldown_and_recovery(monkeypatch):
