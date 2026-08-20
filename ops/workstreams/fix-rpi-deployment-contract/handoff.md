@@ -17,3 +17,7 @@ coverage does not apply the combined threshold.
 Preflight now checks stopped Compose containers (`docker ps -a`) as well as
 running ones and fails closed when `ss` is unavailable, so a reserved-port
 collision cannot be silently missed. Focused deployment contract tests pass 4/4.
+
+The remote deployment lock now uses `flock` on a file rather than a directory,
+so an interrupted SSH process releases the lock automatically. Preflight fails
+closed if `flock` is unavailable.

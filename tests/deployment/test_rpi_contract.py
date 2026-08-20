@@ -39,3 +39,5 @@ def test_preflight_checks_stopped_project_collisions_and_requires_port_probe():
     assert 'docker ps -a --format' in source
     assert "command -v ss" in source
     assert "reserved-port preflight" in source
+    assert "command -v flock" in source
+    assert 'flock -n 9' in source

@@ -144,6 +144,7 @@ test -f {root}/shared/app.env && test "$(stat -c '%a' {root}/shared/app.env 2>/d
 test "$(df -Pk {root} | awk 'NR==2 {{print $4}}')" -gt 2097152
 command -v ss >/dev/null 2>&1 || {{ echo 'ss is required for a reliable reserved-port preflight' >&2; exit 23; }}
 ! ss -ltnH | awk '{{print $4}}' | grep -E '[:.]'"{port}"'$' >/dev/null
+command -v flock >/dev/null 2>&1 || {{ echo 'flock is required for recoverable deployment locking' >&2; exit 24; }}
 foreign="$(docker ps -a --format '{{{{.Label \"com.docker.compose.project\"}}}}' | awk '$1 == \"charting-platform\" {{print}}')"
 if test -n "$foreign" && test ! -L {root}/current; then
   echo 'reserved Compose project charting-platform is occupied without a managed release' >&2
@@ -338,8 +339,8 @@ def _deploy(config: dict[str, str], commit: str, confirm: str) -> None:
     remote_script = f"""set -eu
 root={shlex.quote(root)}; sha={shlex.quote(commit)}
 lock="$root/locks/deploy.lock"
-mkdir "$lock" 2>/dev/null || {{ echo 'deployment lock already held' >&2; exit 30; }}
-trap 'rmdir "$lock"' EXIT
+exec 9>"$lock"
+flock -n 9 || {{ echo 'deployment lock already held' >&2; exit 30; }}
 test -f "$root/shared/app.env"
 test "$(sha256sum "$root/incoming/$sha.docker.tar.gz.part" | awk '{{print $1}}')" = "$(awk '{{print $1}}' "$root/incoming/$sha.docker.tar.gz.part.sha256")"
 bundle_kib="$(du -k "$root/incoming/$sha.docker.tar.gz.part" | awk '{{print $1}}')"
