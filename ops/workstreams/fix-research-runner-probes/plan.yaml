@@ -1,0 +1,27 @@
+schema: "1"
+branch: fix/research-runner-probes
+base_sha: e2f67d6c1c9e08a23ba4004fc3a0a87cf15dc844
+goal: Make the exhaustive research-runner security/resource gate portable and diagnosable on GitHub Linux amd64 as well as local ARM64 Docker.
+scope:
+  - Makefile
+  - ops/probe-research-runner-sandbox.sh
+  - ops/probe-research-runner-resources.sh
+owned_paths:
+  - Makefile
+  - ops/probe-research-runner-sandbox.sh
+  - ops/probe-research-runner-resources.sh
+dependencies:
+  - Docker Engine with Compose v2
+acceptance_criteria:
+  - The gate reports container discovery, sandbox, and resource failures as distinct annotated stages.
+  - All security and resource invariants remain enforced without accepting a green result from a failed probe.
+  - The branch CI deterministic jobs are green and the exact integrated master replay is green.
+branch_tests:
+  - make test-research-runner-probes
+  - backend/.venv/bin/pytest -o addopts='' backend/tests/unit/test_research_runner_deployment.py -q
+live_test_impact: The exhaustive platform gate exercises the real constrained runner; no application runtime behaviour changes.
+migration_impact: none
+deployment_impact: none
+status: in_progress
+remaining_gaps:
+  - Await exact GitHub Linux amd64 replay evidence before closing.

@@ -1,0 +1,4 @@
+{"command":"make test-stack-up && make test-research-runner-probes","result":"passed","details":"ARM64 Docker sandbox and resource probes passed, including memory cgroup, tmpfs capacity, and concurrent pressure checks."}
+{"command":"make branch-validate","result":"pending","details":"Re-run after branch record repair."}
+{"command":"pytest -o addopts='' backend/tests/unit/test_research_runner_deployment.py -q","result":"passed","details":"9 deployment contract tests passed."}
+{"command":"GitHub master replay 32420995421","result":"failed","details":"Platform gate reached research-runner-probes and reported GNU Make exit 2; nested probe stage was not yet recorded."}
