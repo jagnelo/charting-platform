@@ -26,6 +26,6 @@ branch_tests:
 live_test_impact: "Browser chart lifecycle and historical-link behavior; no provider calls."
 migration_impact: none
 deployment_impact: none
-status: ready_for_integration
+status: ready
 remaining_gaps:
   - "The full exact-candidate gate and independent master replay remain required."
