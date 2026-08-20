@@ -41,3 +41,10 @@ The authoritative gate now also builds all three production application images
 for `linux/arm64`, inspects their platform metadata, and removes only its
 temporary validation tags. The local hardening worktree passed that check at
 `12a98620df34`; the source replay and exact candidate must still record it.
+
+The first ARM64-enabled exact candidate failed only in the separate visual
+replay command: its four setup probes used the Playwright default `localhost:80`
+instead of the allocated candidate `STACK_URL`, producing four `ECONNREFUSED
+::1:80` failures and skipping the remaining 100 visual cases. The candidate
+stack was healthy throughout. The Make target now exports the runtime file for
+that visual command as well; the candidate must be rebuilt and rerun.

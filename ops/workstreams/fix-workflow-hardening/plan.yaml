@@ -39,3 +39,4 @@ remaining_gaps:
   - "Conflict continuation still requires an agent to perform semantic edits and stage source files."
   - "The full GitHub replay and exact integration gate must be rerun after the integration coverage correction, replay-gating change, and frontend proxy healthcheck."
   - "The new ARM64 image gate passed locally on this source tree; the exact candidate and master replay still need to record it in their receipts."
+  - "The first exact candidate after the ARM64 addition exposed a visual-target environment omission: the TC2000 visual command used localhost:80 instead of the path-derived STACK_URL; the command now exports the allocator environment and requires a fresh candidate."
