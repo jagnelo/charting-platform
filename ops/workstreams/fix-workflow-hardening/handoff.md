@@ -79,3 +79,10 @@ and returns the first failing command without converting retries into success.
 The same gate now asserts exactly one Alembic head before dependency installation
 and application suites, so competing migration heads cannot reach the browser or
 deployment stages.
+
+The next source replay exposed a long-suite-only `apiResponse.json: Response has
+been disposed` failure in the benchmark-family drilldown fixture. The fixture
+now returns a complete deterministic response instead of mutating a fetched
+response. The drilldown and both workstation performance guards pass together
+against the isolated seeded stack (3 tests, 21.1 seconds); no visual baseline,
+retry budget, or assertion threshold was changed.

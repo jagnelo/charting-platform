@@ -3502,10 +3502,21 @@ test.describe('TC2000 workstation', () => {
   test('F8s-family-map-drilldown — selected benchmark family opens its locked constituent watchlist', async ({ page, browserDiagnostics }) => {
     const requestedSources: string[] = []
     await page.route('**/api/v1/market-groups/us-benchmarks*', async route => {
-      const response = await route.fetch()
-      const payload = await response.json() as Record<string, unknown>
-      const provenance = payload.provenance && typeof payload.provenance === 'object' ? payload.provenance as Record<string, unknown> : {}
-      await route.fulfill({ response, body: JSON.stringify({ ...payload, provenance: { ...provenance, benchmark_families: [{ logical_key: 'sp500', name: 'S&P 500', official_index_symbol: 'SPX', cap_weight: { symbol: 'SPY' } }] } }) })
+      // Keep this fixture self-contained. Mutating a fetched APIResponse after
+      // `route.fetch()` can race response disposal when the long browser suite
+      // is under load, which then tears down the worker and masks later tests.
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        stable_key: 'us-benchmarks',
+        group_type: 'benchmark',
+        name: 'US Benchmarks',
+        members: [{ instrument: { id: 1, symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust' } }],
+        provenance: {
+          classification: 'product_taxonomy',
+          official_index_constituents: false,
+          benchmark_families: [{ logical_key: 'sp500', name: 'S&P 500', official_index_symbol: 'SPX', cap_weight: { symbol: 'SPY' } }],
+          benchmark_identities: { sp500: { official_index_symbol: 'SPX', cap_weight_symbol: 'SPY' } },
+        },
+      }) })
     })
     await page.route('**/api/v1/market-groups/sp500*', async route => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ stable_key: 'sp500', name: 'S&P 500', members: [{ instrument: { id: 1, symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust' } }], provenance: { benchmark_family: 'sp500' } }) })

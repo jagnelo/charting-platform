@@ -46,4 +46,4 @@ remaining_gaps:
   - "A branch replay also exposed a debounced user-settings PATCH racing logout; the store now skips the write when the access token has been cleared, with a focused regression test."
   - "Branch E2E workflows now enable deterministic instrument and market-data fixtures so exhaustive browser checks exercise the intended seeded contract."
   - "The gate now includes frontend production build and Compose/deployment-contract rendering; the fresh source replay must verify the new target."
-  - "The first seeded provider/RPi replays reported five browser failures; four pass in focused isolated-stack runs, while the Linux-only Meta+A canonical-search failure is corrected to ControlOrMeta+A and requires a fresh full replay."
+  - "The first seeded provider/RPi replays reported five browser failures; the Linux-only Meta+A canonical-search failure is corrected to ControlOrMeta+A, and the later disposed-response fixture race is replaced with a deterministic benchmark fixture. The corrected source replay must still complete."
