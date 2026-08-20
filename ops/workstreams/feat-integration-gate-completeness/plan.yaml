@@ -11,6 +11,7 @@ owned_paths:
   - Makefile
   - scripts/validate-migration-compatibility.py
   - scripts/run-live-provider-probes.py
+  - frontend/tests/e2e/tc2000_visual.spec.ts-snapshots/*-linux.png
   - ops/workstreams/feat-integration-gate-completeness/
 dependencies:
   - "Docker daemon with postgres:16-alpine available for migration and stack probes."
@@ -20,9 +21,11 @@ acceptance_criteria:
   - "Previous-release /health succeeds against the upgraded schema or the gate fails with captured output."
   - "Research-runner seccomp, network, filesystem, cgroup, tmpfs, and concurrency probes pass without restarting the service."
   - "Provider-related changes record either the allow-listed live probe result or an explicit not-configured result."
+  - "The four-environment visual suite has checked-in Linux references for every existing visual case without changing masks or thresholds."
 branch_tests:
   - "python3 -m py_compile scripts/validate-migration-compatibility.py scripts/run-live-provider-probes.py"
   - "python3 scripts/run-live-provider-probes.py"
+  - "python3 -c 'from pathlib import Path; p=Path(\"frontend/tests/e2e/tc2000_visual.spec.ts-snapshots\"); assert len(list(p.glob(\"*-darwin.png\"))) == len(list(p.glob(\"*-linux.png\")))'"
 live_test_impact: "Only the reviewed OpenFIGI route is eligible, and only with RUN_LIVE_PROVIDER_TESTS=1."
 migration_impact: "Adds disposable fresh/previous-master upgrade and previous-application smoke coverage; no schema changes."
 deployment_impact: "None; these checks run locally/CI and never deploy or alter RPi state."
