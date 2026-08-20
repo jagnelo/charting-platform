@@ -25,3 +25,9 @@ the deterministic instrument and market-data fixtures. The failures clustered
 in transform, chart, workstation, and Study Lab flows rather than provider
 monitoring. The E2E job now enables both fixture flags; a fresh replay is
 required.
+
+The focused provider/worker command still exits non-zero when invoked alone
+because the repository's combined coverage gate is 55% and the two focused
+modules exercise only 16.07% of the backend. All 25 focused tests passed; this
+is expected evidence for the branch slice, not a green substitute for the full
+backend coverage gate. The full gate must be used for acceptance.
