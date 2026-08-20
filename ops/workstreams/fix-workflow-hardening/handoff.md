@@ -155,3 +155,12 @@ Ruff checks are green, the ratio-editor pair is 2/2, and the benchmark-family
 matrix/breadth pair is 2/2. The first correction used an over-escaped YAML
 regex; the workstream now uses single-quoted YAML commands with one escaped
 dot, and this exact source boundary requires one more independent replay.
+
+Replay `32340786778` retained the first-failure evidence for the exact
+`b3df2edee060b7fe20ab5ff06f145eef685745ce` source: backend and frontend unit
+jobs passed, 149 browser tests passed, all four visual projects executed, and
+the two retried failures were the full-suite benchmark-family summary race and
+multi-window canvas cleanup (received five canvases instead of the exact three).
+The focused branch-declared matrix and performance checks remain green; the
+failure is recorded as a diagnostic red replay and requires a fresh source
+replay before integration.
