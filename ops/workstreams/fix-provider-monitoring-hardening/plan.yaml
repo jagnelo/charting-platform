@@ -27,12 +27,12 @@ acceptance_criteria:
   - "The branch replay uses the path-independent lock export check, repository uv environment, and integration-only coverage threshold."
   - "Daily and weekly worker schedules remain disabled unless both monitoring and live-probe settings are enabled, and delegate the correct persisted probe mode when enabled."
 branch_tests:
-  - "uv run pytest backend/tests/unit/services/test_provider_availability.py -q --no-cov"
-  - "uv run ruff check backend/app/services/provider_availability.py backend/app/models/provider_runtime.py backend/tests/unit/services/test_provider_availability.py"
-  - "uv run ruff format --check backend/app/services/provider_availability.py backend/app/models/provider_runtime.py backend/tests/unit/services/test_provider_availability.py"
+  - "cd backend && uv run pytest tests/unit/services/test_provider_availability.py -q --no-cov"
+  - "cd backend && uv run ruff check app/services/provider_availability.py app/models/provider_runtime.py tests/unit/services/test_provider_availability.py"
+  - "cd backend && uv run ruff format --check app/services/provider_availability.py app/models/provider_runtime.py tests/unit/services/test_provider_availability.py"
   - "git diff --check"
 live_test_impact: none
-migration_impact: none
+migration_impact: "Adds fe4f5a6b7c8d provider notification state; requires fresh and previous-master migration compatibility plus previous-release smoke."
 deployment_impact: none
 status: in_progress
 remaining_gaps:
