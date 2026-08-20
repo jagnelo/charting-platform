@@ -220,3 +220,14 @@ assertions. The unseeded-stack diagnostic classifier also now treats the
 documented ETF constituent snapshot 404 as an expected unavailable-data path;
 it does not alter the assertions or retry policy. Fresh independent CI replay
 remains the required final source evidence.
+
+The follow-up lifecycle hardening fences callbacks by Golden Layout generation and
+workstation-tab identity, rejects state/activation callbacks while a deferred
+replacement is pending, and hides the old dock during tab replacement. This
+prevents a destroyed layout from writing its previous tree into the selected
+Market Map tab and prevents stale drawing-tool instances from remaining visible
+during a tab switch. The focused seeded matrix passed 5/5 and the drawing
+instance-scope test passed 5/5; the WorkspaceLayoutHost contract now passes 9/9,
+frontend type-check passes, and the branch is pushed at `a421ebc7`. A fresh
+independent GitHub replay for this exact SHA remains required before candidate
+integration.
