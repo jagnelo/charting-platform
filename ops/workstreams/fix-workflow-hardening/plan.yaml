@@ -28,6 +28,7 @@ acceptance_criteria:
   - "The authoritative gate builds and inspects backend, research-runner, and frontend production images for linux/arm64, and master replays the complete gate independently in GitHub Actions."
   - "The authoritative gate renders both development and RPi Compose contracts and runs the frontend production build after type-checking and coverage."
   - "The authoritative candidate gate executes the source workstream's declared branch_tests after the seeded browser stack is healthy."
+  - "The authoritative gate rejects multiple Alembic heads before running application tests."
 branch_tests:
   - "backend/.venv/bin/python -m pytest backend/tests/unit/test_worktree_runtime.py -q --no-cov"
   - "backend/.venv/bin/ruff check scripts backend/tests/unit/test_worktree_runtime.py"

@@ -76,3 +76,6 @@ The integration gate now executes the captured source workstream's `branch_tests
 through `scripts/run-branch-tests.py` after the seeded stack and visual checks.
 The helper parses only the branch-local list, supports a listing mode for audit,
 and returns the first failing command without converting retries into success.
+The same gate now asserts exactly one Alembic head before dependency installation
+and application suites, so competing migration heads cannot reach the browser or
+deployment stages.
