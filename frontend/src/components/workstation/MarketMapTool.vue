@@ -380,6 +380,7 @@ let historyPollTimer: ReturnType<typeof setTimeout> | null = null
 // Market Map tools.  Fence each request so a slower response from the prior
 // universe cannot clear or replace the currently selected map.
 let runGeneration = 0
+let activeRun: { key: string; promise: Promise<void> } | null = null
 const definitionName = ref(String(props.configuration.definition_name ?? ''))
 const definitionSaving = ref(false)
 const definitionMessage = ref('')
@@ -1229,39 +1230,65 @@ function exportCsv() {
 
 async function run() {
   if (!sourceId.value && !explicitSymbols.value.trim()) return
+  const requestKey = JSON.stringify({
+    sourceId: sourceId.value,
+    explicitSymbols: explicitSymbols.value.trim().toUpperCase(),
+    groupBy: groupBy.value,
+    sortBy: sortBy.value,
+    period: period.value,
+    startDate: period.value === 'CUSTOM' ? startDate.value : null,
+    endDate: period.value === 'CUSTOM' ? endDate.value : null,
+    areaMetric: areaMetric.value,
+    areaField: areaMetric.value === 'field' ? areaField.value : null,
+    colorMetric: colorMetric.value,
+    condition: colorMetric.value === 'breadth' ? breadthCondition.value : null,
+    pythonRunId: colorMetric.value === 'python' || areaMetric.value === 'python' ? pythonRunId.value : null,
+    referenceSymbol: referenceNeeded.value ? referenceSymbol.value.toUpperCase() : null,
+    referenceSourceId: referenceNeeded.value ? referenceSourceId.value : null,
+    timeframe: timeframe.value,
+  })
+  if (activeRun?.key === requestKey) return activeRun.promise
   const generation = ++runGeneration
-  loading.value = true
-  error.value = ''
-  map.value = null
-  try {
-    let requestSourceId = sourceId.value
-    if (explicitSymbols.value.trim()) {
-      const symbols = [...new Set(explicitSymbols.value.split(/[\s,]+/).map(item => item.trim().toUpperCase()).filter(Boolean))]
-      if (symbols.length > 500) throw new Error('Explicit Market Map selections are limited to 500 symbols; save a larger universe as a watchlist.')
-      const resolved = await resolveCanonicalSymbols(symbols, 'Explicit symbol')
-      const ids = resolved.map(item => item.id)
-      if (ids.some(id => id == null)) throw new Error('Every explicit symbol must resolve to a canonical instrument.')
-      requestSourceId = `explicit:${ids.join(',')}`
-      if (sourceId.value !== requestSourceId) {
-        skipNextSourceRun.value = true
-        sourceId.value = requestSourceId
+  const promise = (async () => {
+    loading.value = true
+    error.value = ''
+    map.value = null
+    try {
+      let requestSourceId = sourceId.value
+      if (explicitSymbols.value.trim()) {
+        const symbols = [...new Set(explicitSymbols.value.split(/[\s,]+/).map(item => item.trim().toUpperCase()).filter(Boolean))]
+        if (symbols.length > 500) throw new Error('Explicit Market Map selections are limited to 500 symbols; save a larger universe as a watchlist.')
+        const resolved = await resolveCanonicalSymbols(symbols, 'Explicit symbol')
+        const ids = resolved.map(item => item.id)
+        if (ids.some(id => id == null)) throw new Error('Every explicit symbol must resolve to a canonical instrument.')
+        requestSourceId = `explicit:${ids.join(',')}`
+        if (sourceId.value !== requestSourceId) {
+          skipNextSourceRun.value = true
+          sourceId.value = requestSourceId
+        }
       }
+      if (generation !== runGeneration) return
+      if (colorMetric.value === 'python' || areaMetric.value === 'python') await resolvePythonRun()
+      const nextMap = await fetchMarketMap({ source_id: requestSourceId, group_by: groupBy.value, period: period.value, start: period.value === 'CUSTOM' && startDate.value ? startDate.value : null, end: period.value === 'CUSTOM' && endDate.value ? `${endDate.value}T23:59:59Z` : null, area_metric: areaMetric.value, area_field: areaMetric.value === 'field' ? areaField.value : null, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, python_run_id: colorMetric.value === 'python' || areaMetric.value === 'python' ? pythonRunId.value : null, reference_symbol: (colorMetric.value === 'relative_return' || referenceNeeded.value) && !referenceSourceId.value ? referenceSymbol.value.toUpperCase() : null, reference_source_id: (colorMetric.value === 'relative_return' || referenceNeeded.value) && referenceSourceId.value ? referenceSourceId.value : null, timeframe: timeframe.value, adjusted: true })
+      if (generation !== runGeneration) return
+      map.value = nextMap
+      snapshotSelectionId.value = ''
+      activeSnapshotName.value = ''
+      selectedNode.value = null
+      selectedIds.value = []
+      resetViewport()
+    } catch (cause) {
+      if (generation !== runGeneration) return
+      error.value = cause instanceof Error ? cause.message : 'Unable to load Market Map'
+    } finally {
+      if (generation === runGeneration) loading.value = false
     }
-    if (generation !== runGeneration) return
-    if (colorMetric.value === 'python' || areaMetric.value === 'python') await resolvePythonRun()
-    const nextMap = await fetchMarketMap({ source_id: requestSourceId, group_by: groupBy.value, period: period.value, start: period.value === 'CUSTOM' && startDate.value ? startDate.value : null, end: period.value === 'CUSTOM' && endDate.value ? `${endDate.value}T23:59:59Z` : null, area_metric: areaMetric.value, area_field: areaMetric.value === 'field' ? areaField.value : null, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, python_run_id: colorMetric.value === 'python' || areaMetric.value === 'python' ? pythonRunId.value : null, reference_symbol: (colorMetric.value === 'relative_return' || referenceNeeded.value) && !referenceSourceId.value ? referenceSymbol.value.toUpperCase() : null, reference_source_id: (colorMetric.value === 'relative_return' || referenceNeeded.value) && referenceSourceId.value ? referenceSourceId.value : null, timeframe: timeframe.value, adjusted: true })
-    if (generation !== runGeneration) return
-    map.value = nextMap
-    snapshotSelectionId.value = ''
-    activeSnapshotName.value = ''
-    selectedNode.value = null
-    selectedIds.value = []
-    resetViewport()
-  } catch (cause) {
-    if (generation !== runGeneration) return
-    error.value = cause instanceof Error ? cause.message : 'Unable to load Market Map'
+  })()
+  activeRun = { key: requestKey, promise }
+  try {
+    await promise
   } finally {
-    if (generation === runGeneration) loading.value = false
+    if (activeRun?.promise === promise) activeRun = null
   }
 }
 function persist() {

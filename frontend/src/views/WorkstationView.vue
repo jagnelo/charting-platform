@@ -5,7 +5,7 @@
       <nav aria-label="Application menu">
         <div class="workstation__workspace-menu">
           <button ref="workspaceMenuTrigger" type="button" title="Manage workspace layouts" aria-haspopup="menu" :aria-expanded="workspaceMenuOpen" @click="toggleWorkspaceMenu" @keydown="handleShellTriggerKeydown('workspace', $event)">Workspace</button>
-          <div v-if="workspaceMenuOpen" ref="workspaceMenuRoot" class="workstation__workspace-popover" role="menu" tabindex="-1" aria-label="Workspace layouts" :style="workspaceMenuStyle" @click.stop @keydown="handleShellMenuKeydown('workspace', $event)">
+          <div v-if="workspaceMenuOpen" ref="workspaceMenuRoot" class="workstation__workspace-popover" role="menu" tabindex="-1" aria-label="Workspace layouts" :style="workspaceMenuStyle" @click.stop @keydown.capture="handleShellMenuKeydown('workspace', $event)">
             <header><strong>Workspaces</strong><small>{{ workspaceStore.workspace?.name ?? 'Workspace' }}</small></header>
             <div class="workstation__workspace-list" role="listbox" aria-label="Saved workspaces" tabindex="0" :aria-activedescendant="workspaceStore.workspaces[workspaceOptionIndex] ? `saved-workspace-${workspaceStore.workspaces[workspaceOptionIndex].id}` : undefined" @keydown.stop="handleWorkspaceListKeydown" @focus="syncWorkspaceOptionIndex">
               <span v-if="!workspaceStore.workspaces.length" role="status">Loading workspaces…</span>
@@ -577,6 +577,13 @@ function handleShellMenuKeydown(menu: ShellMenuRoot, event: KeyboardEvent) {
     closeShellMenuToTrigger(menu)
     return
   }
+  // The workspace menu owns a nested listbox.  Its handler deliberately stops
+  // bubbling so End/Home change the active descendant instead of moving focus
+  // to an action.  When Playwright (or an assistive technology) addresses the
+  // menu root directly, capture the event at the root; otherwise a browser can
+  // leave focus on the listbox and silently ignore the root-level command.
+  if (menu === 'workspace' && event.target instanceof Element
+    && event.target.closest('[role="listbox"]')) return
   const items = shellMenuItems(menu)
   if (!items.length) return
   const current = items.indexOf(document.activeElement as HTMLButtonElement)
@@ -587,6 +594,7 @@ function handleShellMenuKeydown(menu: ShellMenuRoot, event: KeyboardEvent) {
   else if (event.key === 'End') next = items.length - 1
   if (next === null) return
   event.preventDefault()
+  event.stopPropagation()
   items[next].focus()
 }
 
