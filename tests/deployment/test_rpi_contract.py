@@ -32,3 +32,10 @@ def test_release_compose_passes_provider_monitoring_configuration():
     assert "PROVIDER_AVAILABILITY_LIVE_ENABLED" in compose
     assert "PROVIDER_AVAILABILITY_NOTIFICATION_COOLDOWN_SECONDS" in compose
     assert '"http://127.0.0.1/health"' in compose
+
+
+def test_preflight_checks_stopped_project_collisions_and_requires_port_probe():
+    source = (ROOT / "scripts" / "rpi.py").read_text()
+    assert 'docker ps -a --format' in source
+    assert "command -v ss" in source
+    assert "reserved-port preflight" in source

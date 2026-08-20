@@ -142,8 +142,9 @@ test -d {root} && test -w {root}
 test -d {root}/shared && test -w {root}/shared
 test -f {root}/shared/app.env && test "$(stat -c '%a' {root}/shared/app.env 2>/dev/null || stat -f '%Lp' {root}/shared/app.env)" = 600
 test "$(df -Pk {root} | awk 'NR==2 {{print $4}}')" -gt 2097152
-if command -v ss >/dev/null 2>&1; then ! ss -ltnH | awk '{{print $4}}' | grep -E '[:.]'"{port}"'$' >/dev/null; fi
-foreign="$(docker ps --format '{{{{.Label \"com.docker.compose.project\"}}}}' | awk '$1 == \"charting-platform\" {{print}}')"
+command -v ss >/dev/null 2>&1 || {{ echo 'ss is required for a reliable reserved-port preflight' >&2; exit 23; }}
+! ss -ltnH | awk '{{print $4}}' | grep -E '[:.]'"{port}"'$' >/dev/null
+foreign="$(docker ps -a --format '{{{{.Label \"com.docker.compose.project\"}}}}' | awk '$1 == \"charting-platform\" {{print}}')"
 if test -n "$foreign" && test ! -L {root}/current; then
   echo 'reserved Compose project charting-platform is occupied without a managed release' >&2
   exit 22
