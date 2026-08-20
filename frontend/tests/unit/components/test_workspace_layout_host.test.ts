@@ -169,6 +169,32 @@ describe('WorkspaceLayoutHost', () => {
     wrapper.unmount()
   })
 
+  it('ignores late state and activation events from a superseded layout generation', async () => {
+    const wrapper = mount(WorkspaceLayoutHost, {
+      props: {
+        layout: { root: { type: 'row', content: [] } } as any,
+        reloadKey: 0,
+        tabKey: 'tab-a',
+        renderTool: () => h('div'),
+      },
+    })
+    const previous = goldenLayouts[0]
+
+    await wrapper.setProps({ reloadKey: 1 })
+    await nextTick()
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(goldenLayouts).toHaveLength(2)
+
+    wrapper.find('.workspace-layout-host').element.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }))
+    previous.saved = { root: { componentState: { instance_key: 'stale' } } }
+    previous.callbacks.get('stateChanged')!()
+    previous.callbacks.get('activeContentItemChanged')!({ config: { componentState: { instance_key: 'stale' } } })
+
+    expect(wrapper.emitted('changed')).toBeUndefined()
+    expect(wrapper.emitted('active-window-changed')).toBeUndefined()
+    wrapper.unmount()
+  })
+
   it('fully tears down virtual roots and resize observation through the exposed destroy action', () => {
     const wrapper = mount(WorkspaceLayoutHost, { props: { layout: { root: { type: 'row', content: [] } } as any, renderTool: () => h('div') } })
     const layout = goldenLayouts[0]

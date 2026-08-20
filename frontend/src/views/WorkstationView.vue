@@ -149,16 +149,17 @@
     </div>
 
     <WorkspaceLayoutHost
-      v-if="!isPopout && goldenLayoutConfig && !workspaceReplacementPending"
+      v-if="!isPopout && goldenLayoutConfig && !workspaceDockPending"
       class="workstation__dock"
       :layout="goldenLayoutConfig"
+      :tab-key="workspaceStore.activeTabKey"
       :active-window-key="workspaceStore.activeTab?.active_window_key"
       :reload-key="workspaceReloadKey"
       :render-tool="renderDockTool"
       @changed="persistGoldenLayout"
-      @active-window-changed="workspaceStore.setActiveWindow"
+      @active-window-changed="(windowKey, sourceTabKey) => { if (!sourceTabKey || sourceTabKey === workspaceStore.activeTabKey) workspaceStore.setActiveWindow(windowKey) }"
     />
-    <main v-else-if="!isPopout && workspaceReplacementPending" class="workstation__layout-state" role="status">
+    <main v-else-if="!isPopout && workspaceDockPending" class="workstation__layout-state" role="status">
       Reloading workspace…
     </main>
     <main v-if="isPopout" class="workstation__popout">
@@ -270,6 +271,8 @@ const workspaceFileInput = ref<HTMLInputElement | null>(null)
 // so those roots are recreated from the new serializable tool state.
 const workspaceReloadKey = ref(0)
 const workspaceReplacementPending = ref(false)
+const workspaceTabSwitchPending = ref(false)
+const workspaceDockPending = computed(() => workspaceReplacementPending.value || workspaceTabSwitchPending.value)
 // Shell controls render before the async workspace snapshot has necessarily
 // hydrated. Keep tool-opening commands queued behind that first load instead
 // of allowing an early click to mutate a stale/null tab and then be overwritten
@@ -731,11 +734,19 @@ const popoutTool = computed(() => {
 
 function selectWorkspaceTab(stableKey: string) {
   if (workspaceStore.activeTabKey === stableKey) return
+  // Remove the old Golden Layout host before exposing the new tab. Its final
+  // bootstrap/stateChanged event can otherwise remain visible for one turn and
+  // make a caller observe the previous tab as if it were the newly selected
+  // layout. Mount the replacement host on the following Vue turn.
+  workspaceTabSwitchPending.value = true
   // A layout switch can occur while the previous layout's trailing snapshot is
   // still in flight. Advance the snapshot generation so that stale server
   // responses cannot reinstall the previous layout over the newly selected tab.
   workspaceStore.activeTabKey = stableKey
   workspaceStore.scheduleSnapshot()
+  void nextTick(() => {
+    workspaceTabSwitchPending.value = false
+  })
 }
 
 async function replaceDockAfterWorkspaceChange() {
@@ -1712,7 +1723,12 @@ function closePopoutTool(windowKey: string) {
   window.close()
 }
 
-function persistGoldenLayout(layout: Record<string, unknown>, visibleToolKeys: string[]) {
+function persistGoldenLayout(layout: Record<string, unknown>, visibleToolKeys: string[], sourceTabKey?: string | null) {
+  // Golden Layout may report one last state change from the previous tab while
+  // Vue is switching the active tab. Never write that old tree into the newly
+  // selected tab; the host will emit a fresh snapshot after its replacement
+  // install completes.
+  if (sourceTabKey && sourceTabKey !== workspaceStore.activeTabKey) return
   workspaceStore.applyActiveLayout(layout, visibleToolKeys)
 }
 

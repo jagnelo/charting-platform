@@ -21,14 +21,16 @@ export interface DockToolActions {
 
 const props = defineProps<{
   layout: LayoutConfig
+  /** Stable parent tab identity for rejecting late events from a previous layout. */
+  tabKey?: string | null
   activeWindowKey?: string | null
   /** Increment only when the parent replaces the complete workspace snapshot. */
   reloadKey?: number
   renderTool: (tool: DockToolState, actions: DockToolActions) => VNode
 }>()
 const emit = defineEmits<{
-  changed: [layout: Record<string, unknown>, visibleToolKeys: string[]]
-  'active-window-changed': [windowKey: string]
+  (event: 'changed', layout: Record<string, unknown>, visibleToolKeys: string[], tabKey?: string | null): void
+  (event: 'active-window-changed', windowKey: string, tabKey?: string | null): void
 }>()
 const host = ref<HTMLElement | null>(null)
 const appContext = getCurrentInstance()?.appContext
@@ -45,6 +47,7 @@ let activationGuardKey: string | null = null
 let activationRetryTimer: number | null = null
 let activationGuardTimer: number | null = null
 let lastLayoutFingerprint: string | null = null
+let installedTabKey: string | null | undefined = null
 let layoutGeneration = 0
 const mountedToolRoots: HTMLElement[] = []
 // Golden Layout's virtual component root is intentionally detached from the
@@ -316,13 +319,15 @@ function closeComponent(windowKey: string) {
   // turn; leaving the host empty until that round trip makes the remaining
   // workstation controls disappear during rapid drill-down.
   install(nextLayout as LayoutConfig)
-  emit('changed', nextLayout, extractToolKeys(nextLayout))
+  if (installedTabKey === undefined) emit('changed', nextLayout, extractToolKeys(nextLayout))
+  else emit('changed', nextLayout, extractToolKeys(nextLayout), installedTabKey)
 }
 
 function install(layout: LayoutConfig) {
   if (!host.value) return
   initialEventsSuppressed = true
   layoutGeneration += 1
+  const installGeneration = layoutGeneration
   const stackNormalised = normaliseComponentStacks(layout as unknown as Record<string, unknown>)
   const normalised = normaliseGoldenLayoutConfig(
     withRequestedActiveIndex(stackNormalised, props.activeWindowKey ?? null),
@@ -330,6 +335,7 @@ function install(layout: LayoutConfig) {
   // Keep the fingerprint tied to the serializable parent prop. The explicit
   // activeItemIndex below is a load-time hint and must not cause an install loop.
   lastLayoutFingerprint = layoutFingerprint(layout)
+  installedTabKey = props.tabKey
   goldenLayout?.destroy()
   goldenLayout = null
   clearMountedTools()
@@ -367,6 +373,10 @@ function install(layout: LayoutConfig) {
     return { rootHtmlElement }
   }, true)
   goldenLayout.on('stateChanged', () => {
+    // Golden Layout can deliver one final callback from a destroyed instance
+    // after a replacement tree has already been installed. Never let that stale
+    // callback serialize the previous tree into the current workspace tab.
+    if (installGeneration !== layoutGeneration || installTimer !== null) return
     if (!changeSuppressed() && goldenLayout) {
       const saved = normaliseGoldenLayoutConfig(
         goldenLayout.saveLayout() as unknown as Record<string, unknown>,
@@ -377,10 +387,16 @@ function install(layout: LayoutConfig) {
       // it before emitting so the watcher does not destroy/recreate every virtual
       // tool in response to Golden Layout's own stateChanged notification.
       lastLayoutFingerprint = fingerprint
-      emit('changed', saved, extractToolKeys(saved))
+      // A tab switch can leave one final stateChanged event queued by the old
+      // Golden Layout instance. Carry the tab identity captured at install so
+      // the parent can discard that stale snapshot instead of applying the old
+      // tab's tree to the newly selected tab.
+      if (installedTabKey === undefined) emit('changed', saved, extractToolKeys(saved))
+      else emit('changed', saved, extractToolKeys(saved), installedTabKey)
     }
   })
   goldenLayout.on('activeContentItemChanged', (item: any) => {
+    if (installGeneration !== layoutGeneration || installTimer !== null) return
     const windowKey = item?.config?.componentState?.instance_key
     // Golden Layout can emit a late bootstrap activation for the first tab
     // after the requested component has been installed. Do not let that
@@ -392,7 +408,10 @@ function install(layout: LayoutConfig) {
     // Loading a persisted layout briefly activates its first component before
     // the requested active window is restored. Do not let that bootstrap event
     // overwrite the persisted active-window key.
-    if (!changeSuppressed() && typeof windowKey === 'string' && windowKey) emit('active-window-changed', windowKey)
+    if (!changeSuppressed() && typeof windowKey === 'string' && windowKey) {
+      if (installedTabKey === undefined) emit('active-window-changed', windowKey)
+      else emit('active-window-changed', windowKey, installedTabKey)
+    }
   })
   suppressChange = true
   // Keep bootstrap normalization/activation events out of persistence for the
