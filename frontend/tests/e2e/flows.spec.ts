@@ -2339,7 +2339,12 @@ test.describe('TC2000 workstation', () => {
     const indicatorSaveRequest = await indicatorSave
     const savedIndicatorPayload = indicatorSaveRequest.postDataJSON() as { indicators?: Array<{ type?: string }> }
     expect(savedIndicatorPayload.indicators?.some(indicator => indicator.type === 'rsi')).toBe(true)
+    // Adding a plot is an insertion action and closes the fixed library menu.
+    // Wait for that terminal state before reopening it; otherwise a fast save
+    // response can race the toggle click and leave the menu closed in CI.
+    await expect(plots).toHaveAttribute('aria-expanded', 'false', { timeout: 15_000 })
     await plots.click()
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
     await expect(chart.getByRole('button', { name: /Delete RSI/ })).toBeVisible({ timeout: 15_000 })
     await plots.click()
     const drawingGroup = chart.getByRole('button', { name: 'Lines' })
@@ -4104,6 +4109,7 @@ test.describe('TC2000 workstation', () => {
     await condition.selectOption('percentile')
     await breadth.getByLabel('Breadth percentile rolling window').fill('20')
     await breadth.getByLabel('Breadth percentile rolling window').press('Tab')
+    await expect(breadth.getByLabel('Breadth percentile rolling window')).toHaveValue('20')
     await breadth.getByLabel('Breadth percentile target', { exact: true }).fill('0.8')
     await breadth.getByLabel('Breadth percentile target', { exact: true }).press('Tab')
     const percentileRequest = await evaluateCustomBreadth()

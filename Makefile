@@ -278,7 +278,7 @@ branch-validate:
 
 integrate:
 	@test -n "$(BRANCH)" || (echo "usage: make integrate BRANCH=feat/name" >&2; exit 2)
-	python3 scripts/integrate.py "$(BRANCH)" --publish
+	python3 scripts/integrate.py "$(BRANCH)" --publish $(if $(REMEDIATE_DEGRADED),--remediate-degraded,)
 
 validate-integration:
 	@set -e; \

@@ -926,6 +926,17 @@ async function selectSymbol(raw: string, timestamp?: string, allowNavigationFall
   updateAutoRatioExpression(symbol, comparisonETF)
   await loadSymbolData(symbol, comparisonETF, false)
   if (generation !== symbolSelectionGeneration) return
+  if (timestamp) {
+    // A historical occurrence is an explicit user intent. The chart renderer
+    // may rebuild asynchronously after bars arrive and publish its initial
+    // cursor in the meantime; republish the requested point after two paint
+    // turns so that late renderer setup cannot replace it with the latest bar.
+    await nextTick()
+    await new Promise<void>(resolve => window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve())))
+    if (generation === symbolSelectionGeneration) {
+      workspaceStore.publishTimestamp(timestamp, 'blue', 'workstation')
+    }
+  }
 }
 
 async function loadSymbolData(symbol: string, comparisonETF = workspaceStore.constituentETF, updateRatio = true) {

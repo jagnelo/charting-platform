@@ -385,6 +385,10 @@ let activeDrawingPaneKey: string | null = null  // null = main chart; indicator 
 let resizeObserver: ResizeObserver | null = null
 let lastSeriesCount = 0
 let firstRenderedBarTs: string | null = null
+// Reactive bars, indicators, overlays, and visibility can request overlapping
+// async rebuilds. Older generations must not add sub-panels after a newer
+// renderer has replaced them.
+let initGeneration = 0
 
 interface MeasurementPoint {
   index: number
@@ -1659,13 +1663,16 @@ function getDrawingProjection(drawing: AnyDrawing): boolean {
 // ── Init chart ────────────────────────────────────────────────────────────────
 async function initChart() {
   if (!chartRef.value || !wrapperRef.value) return
+  const generation = ++initGeneration
 
   // Snapshot the current viewport before destroying so we can restore it after
   // a rebuild (e.g. adding/modifying an indicator). Only falls back to
   // setInitialView on the very first render when uplot doesn't exist yet.
   const savedView = captureView()
 
-  destroyAll()
+  // Keep the generation assigned above valid for this rebuild. Other callers
+  // use destroyAll()'s default invalidating form to cancel in-flight work.
+  destroyAll(false)
   drawingPoints = []
   drawingPreviewPoint = null
   // Do NOT reset manualYMin/Max or autoY here — they survive rebuilds
@@ -1852,7 +1859,8 @@ async function initChart() {
     setInitialView(uplot)
   }
   syncCanvasSize(w, h)
-  await buildSubPanes()
+  await buildSubPanes(generation)
+  if (generation !== initGeneration) return
   applyLinkedTimestamp(props.linkedTimestamp)
   chartReady.value = true
 }
@@ -2290,8 +2298,9 @@ function computeSubPaneOutputs(
   }
 }
 
-async function buildSubPanes() {
+async function buildSubPanes(generation = initGeneration) {
   await nextTick()
+  if (generation !== initGeneration) return
   const x = chartStore.bars.map((_, i) => i)
   const ts = barTimestamps.value
   if (!x?.length) return
@@ -2301,6 +2310,7 @@ async function buildSubPanes() {
   const vols   = chartStore.bars.map(b => b.volume ?? 0)
 
   for (const pane of subPanes.value) {
+    if (generation !== initGeneration) return
     const el = subPaneRefs[pane.key]
     if (!el) continue
 
@@ -2363,6 +2373,7 @@ async function buildSubPanes() {
 
     if (overlayInteractionsEnabled.value) {
       await nextTick()
+      if (generation !== initGeneration) return
       const canvas = subPaneCanvasRefs[pane.key]
       if (canvas) {
         const renderer = new DrawingRenderer(canvas)
@@ -3183,7 +3194,8 @@ function handleResize() {
 }
 
 // ── Lifecycle ──────────────────────────────────────────────────────────────────
-function destroyAll() {
+function destroyAll(invalidate = true) {
+  if (invalidate) initGeneration += 1
   chartReady.value = false
   if (interactionCleanup) { interactionCleanup(); interactionCleanup = null }
   uplot?.destroy(); uplot = null
