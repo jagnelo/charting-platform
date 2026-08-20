@@ -1,6 +1,6 @@
 schema: 1
 branch: fix/rpi-deployment-contract
-base_sha: 15b4a77d1f5a06e625f4849c58c67a27748139bd
+base_sha: 4fc20898d33d0ecaef503728484779d852cf7933
 goal: "Harden manual ARM64 RPi bundle and deployment transactions without Pi-side application builds."
 scope:
   - "Bundle application and pinned runtime ARM64 images with manifest and checksums."
