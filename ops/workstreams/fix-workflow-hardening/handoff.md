@@ -231,3 +231,15 @@ instance-scope test passed 5/5; the WorkspaceLayoutHost contract now passes 9/9,
 frontend type-check passes, and the branch is pushed at `a421ebc7`. A fresh
 independent GitHub replay for this exact SHA remains required before candidate
 integration.
+
+Replay `32362915161` passed frontend/backend jobs but retained three exhaustive
+browser failures: the full-suite family matrix could lose the mounted Market Map
+summary, a breadth percentile edit could be overwritten back to the default
+252-window, and popup churn could transiently retain five canvases instead of the
+exact three baseline. The report is preserved under
+`/private/tmp/ci-32362915161-report`; no visual oracle, threshold, or retry policy
+was changed. The follow-up hardening cancels asynchronous Market Map work after
+unmount and preserves local breadth-editor drafts until canonical props catch up.
+The seeded family/breadth sequence passed 10/10 and repeated popup churn passed
+10/10 locally after rebuilding the isolated stack; fresh CI replay for the new
+boundary is required.
