@@ -27,10 +27,11 @@ acceptance_criteria:
   - "Integration requires a successful push-triggered GitHub replay for the exact source and published master SHA; a failed master replay creates a durable degraded marker that blocks subsequent integration and deployment."
   - "The authoritative gate builds and inspects backend, research-runner, and frontend production images for linux/arm64, and master replays the complete gate independently in GitHub Actions."
   - "The authoritative gate renders both development and RPi Compose contracts and runs the frontend production build after type-checking and coverage."
+  - "The authoritative candidate gate executes the source workstream's declared branch_tests after the seeded browser stack is healthy."
 branch_tests:
   - "backend/.venv/bin/python -m pytest backend/tests/unit/test_worktree_runtime.py -q --no-cov"
-  - "uv run ruff check scripts backend/tests/unit/test_worktree_runtime.py"
-  - "uv run ruff format --check scripts backend/tests/unit/test_worktree_runtime.py"
+  - "backend/.venv/bin/ruff check scripts backend/tests/unit/test_worktree_runtime.py"
+  - "backend/.venv/bin/ruff format --check scripts backend/tests/unit/test_worktree_runtime.py"
   - "E2E_SEED_MARKET_DATA=true npx playwright test tests/e2e/flows.spec.ts -g 'F8e\\.2' --project=chromium"
 live_test_impact: none
 migration_impact: none

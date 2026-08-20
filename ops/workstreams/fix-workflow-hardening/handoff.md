@@ -71,3 +71,8 @@ and are retained as full-suite replay evidence rather than hidden with changed
 baselines or thresholds. The focused canonical-search, pop-out, benchmark-family,
 and performance runs all pass locally after this correction; a fresh replay is
 required.
+
+The integration gate now executes the captured source workstream's `branch_tests`
+through `scripts/run-branch-tests.py` after the seeded stack and visual checks.
+The helper parses only the branch-local list, supports a listing mode for audit,
+and returns the first failing command without converting retries into success.

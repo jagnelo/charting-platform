@@ -183,7 +183,11 @@ def validate(repo: Path, candidate: Path, branch: str, source_sha: str) -> None:
         raise SystemExit(
             "source branch no longer resolves to the captured candidate SHA"
         )
-    run(["make", "validate-integration"], candidate)
+    run(
+        ["make", "validate-integration"],
+        candidate,
+        env={**os.environ, "INTEGRATION_BRANCH": branch},
+    )
     if out(["git", "rev-parse", "HEAD"], branch_worktree(repo, branch)) != source_sha:
         raise SystemExit(
             "source branch advanced while the candidate was being validated"

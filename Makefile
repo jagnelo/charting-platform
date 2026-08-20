@@ -28,6 +28,7 @@
   test-uplot-contract \
   test-visual-policy \
   test-compose-contract \
+  branch-tests \
   validate-arm64-images \
   validate-integration branch-validate \
   worktree-create worktree-list worktree-status worktree-close integrate \
@@ -165,6 +166,10 @@ test-compose-contract:
 	SECRET_KEY=ci-contract-secret POSTGRES_PASSWORD=postgres CORS_ORIGINS='["http://localhost"]' BACKEND_IMAGE=charting-platform/backend:contract RESEARCH_RUNNER_IMAGE=charting-platform/research-runner:contract FRONTEND_IMAGE=charting-platform/frontend:contract POSTGRES_IMAGE=postgres:16-alpine REDIS_IMAGE=redis:7-alpine RPI_HTTP_PORT=8080 docker compose -f docker-compose.yml config >/dev/null
 	SECRET_KEY=ci-contract-secret POSTGRES_PASSWORD=postgres CORS_ORIGINS='["http://localhost"]' BACKEND_IMAGE=charting-platform/backend:contract RESEARCH_RUNNER_IMAGE=charting-platform/research-runner:contract FRONTEND_IMAGE=charting-platform/frontend:contract POSTGRES_IMAGE=postgres:16-alpine REDIS_IMAGE=redis:7-alpine RPI_HTTP_PORT=8080 docker compose -f deploy/rpi/compose.yml config >/dev/null
 
+branch-tests:
+	@test -n "$(INTEGRATION_BRANCH)" || (echo "INTEGRATION_BRANCH is required for branch-declared tests" >&2; exit 2)
+	@$(RUNTIME_ENV) INTEGRATION_BRANCH="$(INTEGRATION_BRANCH)" python3 scripts/run-branch-tests.py "$(INTEGRATION_BRANCH)"
+
 validate-arm64-images:
 	@echo "▶  Production application image build (linux/arm64)..."
 	python3 scripts/validate-arm64-images.py
@@ -290,6 +295,7 @@ validate-integration:
 	E2E_SEED_MARKET_DATA=true $(MAKE) test-stack-up; \
 	E2E_SEED_MARKET_DATA=true $(MAKE) test-e2e; \
 	$(RUNTIME_ENV) cd frontend && STACK_URL=$${STACK_URL:-$$STACK_URL} E2E_SEED_MARKET_DATA=true RUN_BOARD_VISUAL_PARITY=1 npx playwright test tests/e2e/tc2000_visual.spec.ts; \
+	if test -n "$(INTEGRATION_BRANCH)"; then $(MAKE) branch-tests INTEGRATION_BRANCH="$(INTEGRATION_BRANCH)"; fi; \
 	$(MAKE) validate-arm64-images
 
 rpi-preflight:
