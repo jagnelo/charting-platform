@@ -30,3 +30,10 @@ The transaction now uploads the manifest and release Compose file as `.part`
 metadata, verifies their source/tree, bundle, and Compose checksums remotely, and
 only then moves the incoming files into place. The release Compose passes the
 bounded provider-probe timeout to backend and worker services.
+
+The backup verification path now invokes `pg_restore --list` inside the
+already-running charting Postgres container instead of executing the incoming
+runtime image before `docker load`. This preserves the backup-before-load
+transaction ordering and avoids an implicit Pi-side image pull. The focused
+deployment contract suite remains green at 5/5; an actual preflight and
+authenticated LAN rehearsal still require the developer-supplied RPi config.
