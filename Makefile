@@ -174,10 +174,13 @@ test-migration-compatibility:
 test-research-runner-probes:
 	@echo "▶  Isolated research-runner sandbox/resource probes..."
 	@$(RUNTIME_ENV) \
+	  set -e; \
+	  stage=container-discovery; \
+	  trap 'status=$$?; if test "$$status" -ne 0; then printf "::error title=Research-runner probe failed::stage=%s exit=%s\\n" "$$stage" "$$status" >&2; fi' EXIT; \
 	  container=$$(COMPOSE_PROJECT_NAME=$$STACK_COMPOSE_PROJECT docker compose ps -q research-runner); \
 	  test -n "$$container" || (echo "research-runner container is missing" >&2; exit 1); \
-	  ./ops/probe-research-runner-sandbox.sh "$$container"; \
-	  ./ops/probe-research-runner-resources.sh "$$container"
+	  stage=sandbox; printf '▶ research-runner probe stage: %s\n' "$$stage"; ./ops/probe-research-runner-sandbox.sh "$$container"; \
+	  stage=resources; printf '▶ research-runner probe stage: %s\n' "$$stage"; ./ops/probe-research-runner-resources.sh "$$container"
 
 test-live-provider-probes:
 	@echo "▶  Risk-based reviewed live provider probes..."
