@@ -290,12 +290,12 @@ validate-integration:
 	$(MAKE) lint; \
 	$(MAKE) test-backend-coverage; \
 	$(MAKE) test-fe; \
-	cd frontend && npm run build; \
+	(cd frontend && npm run build); \
 	$(MAKE) test-compose-contract; \
 	trap '$(MAKE) test-stack-down' EXIT; \
 	E2E_SEED_MARKET_DATA=true $(MAKE) test-stack-up; \
 	E2E_SEED_MARKET_DATA=true $(MAKE) test-e2e; \
-	$(RUNTIME_ENV) cd frontend && STACK_URL=$${STACK_URL:-$$STACK_URL} E2E_SEED_MARKET_DATA=true RUN_BOARD_VISUAL_PARITY=1 npx playwright test tests/e2e/tc2000_visual.spec.ts; \
+	($(RUNTIME_ENV) cd frontend && STACK_URL=$${STACK_URL:-$$STACK_URL} E2E_SEED_MARKET_DATA=true RUN_BOARD_VISUAL_PARITY=1 npx playwright test tests/e2e/tc2000_visual.spec.ts); \
 	if test -n "$(INTEGRATION_BRANCH)"; then $(MAKE) branch-tests INTEGRATION_BRANCH="$(INTEGRATION_BRANCH)"; fi; \
 	$(MAKE) validate-arm64-images
 
