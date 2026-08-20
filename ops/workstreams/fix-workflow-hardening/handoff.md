@@ -28,3 +28,11 @@ the exact source SHA before validation can publish, and for the published master
 SHA after push. A failed master replay records `.ai/master-degraded.json`, which
 blocks later integration until the replay is repaired and a successful publish
 clears the marker.
+
+The first exact detached candidate reached the full browser gate but failed after
+37/260 Playwright tests when the frontend proxy became unreachable at its
+allocated port (`ECONNREFUSED 127.0.0.1:18081`), cascading to 119 failures; the
+candidate stack was stopped by the exact project-scoped trap and its clean
+worktree was removed. The source now adds an nginx frontend healthcheck so stack
+startup waits for the browser proxy, and a fresh GitHub replay plus exact
+candidate gate is required before promotion.

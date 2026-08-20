@@ -34,4 +34,4 @@ deployment_impact: none
 status: in_progress
 remaining_gaps:
   - "Conflict continuation still requires an agent to perform semantic edits and stage source files."
-  - "The full GitHub replay and exact integration gate must be rerun after the integration coverage correction and replay-gating change."
+  - "The full GitHub replay and exact integration gate must be rerun after the integration coverage correction, replay-gating change, and frontend proxy healthcheck."
