@@ -1,6 +1,6 @@
 # fix/provider-monitoring-hardening
 
-Created from `master` at `15b4a77d1f5a06e625f4849c58c67a27748139bd`; rebased after the master promotion. Update this handoff at each coherent boundary.
+Created from the validated `master` baseline at `4fc20898d33d0ecaef503728484779d852cf7933`; rebased after the diagnostic master promotion. Update this handoff at each coherent boundary.
 
 Implemented durable notification transition state and a cooldown-aware policy:
 daily core probes notify only from the second consecutive failure, weekly sweeps
