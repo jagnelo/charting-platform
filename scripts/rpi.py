@@ -372,7 +372,11 @@ backup=""
 if test -L "$root/current" && docker compose -p charting-platform -f "$root/current/compose.yml" --env-file "$root/shared/app.env" --env-file "$root/current/release.env" ps postgres --format '{{{{.State}}}}' 2>/dev/null | grep -q running; then
   backup="$root/backups/$sha.sql.part"
   docker compose -p charting-platform -f "$root/current/compose.yml" --env-file "$root/shared/app.env" --env-file "$root/current/release.env" exec -T postgres pg_dump -Fc -U "${{POSTGRES_USER:-postgres}}" "${{POSTGRES_DB:-chartingdb}}" > "$backup"
-  docker run --rm -i {shlex.quote(runtime_images(config)[0])} pg_restore --list < "$backup" >/dev/null
+  # Verify the custom-format dump with the already-running charting Postgres
+  # image. The incoming runtime image is intentionally loaded only after the
+  # backup is durable, so verification must not pull or execute an untrusted
+  # image before the deployment transaction has loaded its named bundle.
+  docker compose -p charting-platform -f "$root/current/compose.yml" --env-file "$root/shared/app.env" --env-file "$root/current/release.env" exec -T postgres pg_restore --list < "$backup" >/dev/null
   mv "$backup" "$root/backups/$sha.sql"
   backup="$root/backups/$sha.sql"
 fi
