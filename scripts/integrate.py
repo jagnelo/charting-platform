@@ -31,6 +31,14 @@ def out(args: list[str], cwd: Path) -> str:
     return run(args, cwd).stdout.strip()
 
 
+def has_source_changes(repo: Path) -> bool:
+    """Ignore only the generated degraded marker when checking source cleanliness."""
+    status = run(
+        ["git", "status", "--porcelain", "--untracked-files=all"], repo
+    ).stdout.splitlines()
+    return any(line and line[3:] != ".ai/master-degraded.json" for line in status)
+
+
 def root() -> Path:
     return Path(out(["git", "rev-parse", "--show-toplevel"], Path.cwd())).resolve()
 
@@ -75,7 +83,7 @@ def assert_clean_synchronized(
 ) -> Path:
     if out(["git", "branch", "--show-current"], repo) != "master":
         raise SystemExit("integration must run from the root master checkout")
-    if out(["git", "status", "--porcelain"], repo):
+    if has_source_changes(repo):
         raise SystemExit("root master is dirty")
     if out(["git", "rev-parse", "HEAD"], repo) != out(
         ["git", "rev-parse", "origin/master"], repo
@@ -100,7 +108,7 @@ def assert_clean_synchronized(
                 "refresh the marker through the publish/replay workflow"
             )
     source = branch_worktree(repo, branch)
-    if out(["git", "status", "--porcelain"], source):
+    if has_source_changes(source):
         raise SystemExit(f"source worktree is dirty: {source}")
     if marker.exists() and remediate_degraded:
         current = out(["git", "rev-parse", "HEAD"], repo)
