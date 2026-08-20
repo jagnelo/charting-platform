@@ -28,6 +28,7 @@
   test-uplot-contract \
   test-visual-policy \
   test-compose-contract \
+  test-migration-compatibility test-research-runner-probes test-live-provider-probes \
   branch-tests \
   validate-arm64-images \
   validate-integration branch-validate \
@@ -166,6 +167,22 @@ test-compose-contract:
 	SECRET_KEY=ci-contract-secret POSTGRES_PASSWORD=postgres CORS_ORIGINS='["http://localhost"]' BACKEND_IMAGE=charting-platform/backend:contract RESEARCH_RUNNER_IMAGE=charting-platform/research-runner:contract FRONTEND_IMAGE=charting-platform/frontend:contract POSTGRES_IMAGE=postgres:16-alpine REDIS_IMAGE=redis:7-alpine RPI_HTTP_PORT=8080 docker compose -f docker-compose.yml config >/dev/null
 	SECRET_KEY=ci-contract-secret POSTGRES_PASSWORD=postgres CORS_ORIGINS='["http://localhost"]' BACKEND_IMAGE=charting-platform/backend:contract RESEARCH_RUNNER_IMAGE=charting-platform/research-runner:contract FRONTEND_IMAGE=charting-platform/frontend:contract POSTGRES_IMAGE=postgres:16-alpine REDIS_IMAGE=redis:7-alpine RPI_HTTP_PORT=8080 docker compose -f deploy/rpi/compose.yml config >/dev/null
 
+test-migration-compatibility:
+	@echo "▶  Fresh and previous-master migration compatibility gate..."
+	python3 scripts/validate-migration-compatibility.py
+
+test-research-runner-probes:
+	@echo "▶  Isolated research-runner sandbox/resource probes..."
+	@$(RUNTIME_ENV) \
+	  container=$$(COMPOSE_PROJECT_NAME=$$STACK_COMPOSE_PROJECT docker compose ps -q research-runner); \
+	  test -n "$$container" || (echo "research-runner container is missing" >&2; exit 1); \
+	  ./ops/probe-research-runner-sandbox.sh "$$container"; \
+	  ./ops/probe-research-runner-resources.sh "$$container"
+
+test-live-provider-probes:
+	@echo "▶  Risk-based reviewed live provider probes..."
+	python3 scripts/run-live-provider-probes.py
+
 branch-tests:
 	@test -n "$(INTEGRATION_BRANCH)" || (echo "INTEGRATION_BRANCH is required for branch-declared tests" >&2; exit 2)
 	@$(RUNTIME_ENV) INTEGRATION_BRANCH="$(INTEGRATION_BRANCH)" python3 scripts/run-branch-tests.py "$(INTEGRATION_BRANCH)"
@@ -286,14 +303,17 @@ validate-integration:
 	$(MAKE) branch-validate; \
 	(cd backend && uv lock --check && uv sync --frozen --dev && uv export --locked --format requirements-txt --output-file /tmp/charting-requirements.lock && sed '1,2d' requirements.txt > /tmp/charting-requirements.current && sed '1,2d' /tmp/charting-requirements.lock > /tmp/charting-requirements.generated && cmp -s /tmp/charting-requirements.generated /tmp/charting-requirements.current); \
 	(heads=$$(cd backend && uv run alembic heads | awk '/\(head\)/ { count += 1 } END { print count + 0 }'); test "$$heads" = 1); \
+	$(MAKE) test-migration-compatibility; \
 	(cd frontend && npm ci); \
 	$(MAKE) lint; \
 	$(MAKE) test-backend-coverage; \
 	$(MAKE) test-fe; \
 	(cd frontend && npm run build); \
 	$(MAKE) test-compose-contract; \
+	$(MAKE) test-live-provider-probes; \
 	trap '$(MAKE) test-stack-down' EXIT; \
 	E2E_SEED_MARKET_DATA=true $(MAKE) test-stack-up; \
+	$(MAKE) test-research-runner-probes; \
 	E2E_SEED_MARKET_DATA=true $(MAKE) test-e2e; \
 	($(RUNTIME_ENV) cd frontend && STACK_URL=$${STACK_URL:-$$STACK_URL} E2E_SEED_MARKET_DATA=true RUN_BOARD_VISUAL_PARITY=1 npx playwright test tests/e2e/tc2000_visual.spec.ts); \
 	if test -n "$(INTEGRATION_BRANCH)"; then $(MAKE) branch-tests INTEGRATION_BRANCH="$(INTEGRATION_BRANCH)"; fi; \

@@ -1,0 +1,31 @@
+schema: 1
+branch: feat/integration-gate-completeness
+base_sha: 15b4a77d1f5a06e625f4849c58c67a27748139bd
+goal: "Complete the authoritative integration gate with migration compatibility, sandbox/resource probes, and explicit live-provider policy."
+scope:
+  - "Run fresh PostgreSQL and previous-master migration upgrades for candidates that change Alembic files."
+  - "Smoke the previous application against the upgraded candidate schema."
+  - "Run the existing isolated research-runner sandbox/resource probes while the seeded stack is healthy."
+  - "Run only reviewed live provider routes when explicitly enabled; never call paid or unreviewed providers implicitly."
+owned_paths:
+  - Makefile
+  - scripts/validate-migration-compatibility.py
+  - scripts/run-live-provider-probes.py
+  - ops/workstreams/feat-integration-gate-completeness/
+dependencies:
+  - "Docker daemon with postgres:16-alpine available for migration and stack probes."
+  - "backend/.venv populated by the frozen dependency gate."
+acceptance_criteria:
+  - "A candidate with no migration changes records a deterministic skip; a candidate with migration changes exercises fresh and previous-master upgrades."
+  - "Previous-release /health succeeds against the upgraded schema or the gate fails with captured output."
+  - "Research-runner seccomp, network, filesystem, cgroup, tmpfs, and concurrency probes pass without restarting the service."
+  - "Provider-related changes record either the allow-listed live probe result or an explicit not-configured result."
+branch_tests:
+  - "python3 -m py_compile scripts/validate-migration-compatibility.py scripts/run-live-provider-probes.py"
+  - "python3 scripts/run-live-provider-probes.py"
+live_test_impact: "Only the reviewed OpenFIGI route is eligible, and only with RUN_LIVE_PROVIDER_TESTS=1."
+migration_impact: "Adds disposable fresh/previous-master upgrade and previous-application smoke coverage; no schema changes."
+deployment_impact: "None; these checks run locally/CI and never deploy or alter RPi state."
+status: ready
+remaining_gaps:
+  - "Credentialed provider routes remain not_configured unless explicitly supplied in the live-probe environment."
