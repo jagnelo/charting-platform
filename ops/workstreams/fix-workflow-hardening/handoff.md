@@ -134,3 +134,11 @@ contains the closed tool; unaccounted removals still create recovery copies.
 The new store regression passes, the full frontend suite is 108 files/920
 tests, and the complete seeded local flow replay is 148 passed/5 skipped. A
 fresh source replay is required before exact integration.
+
+Source replay `32335614592` is green at `abca0c1f88d7fcfacbabdd7ea776dc6753b8bd7a`.
+Backend dependency/export, unit, and integration jobs passed; frontend Vitest
+passed; and the full Playwright job completed successfully after running all
+four visual projects. This independently validates the popup lifecycle and
+explicit-close workspace reconciliation fixes without changing visual
+baselines, masks, retry budgets, or assertion thresholds. The branch is clean
+and synchronized and is ready for exact-SHA candidate integration.
