@@ -205,3 +205,10 @@ family matrix passes three consecutive focused runs (8.8s, 8.6s, 8.7s), and the
 Market Map watchlist flow reaches its final assertion without the former
 detached-control timeout; its local unseeded stack reports only the known
 unseeded ETF snapshot 404. A fresh independent source replay is required.
+
+Replay `32354479150` did not reach browser execution: the new deferred host
+contract initially failed its two existing synchronous Vitest assertions (the
+host intentionally waits one macrotask before a destructive reinstall). Those
+tests now await the documented timer boundary; the focused WorkspaceLayoutHost
+unit contract passes 8/8. The replay is retained as red first-failure evidence,
+and a fresh source replay is required.

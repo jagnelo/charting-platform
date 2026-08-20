@@ -103,6 +103,7 @@ describe('WorkspaceLayoutHost', () => {
 
     await wrapper.setProps({ layout: { root: { type: 'column', content: [] } } as any })
     await nextTick()
+    await new Promise(resolve => setTimeout(resolve, 0))
     expect(gl.destroyed).toBe(true)
     expect(goldenLayouts).toHaveLength(2)
     wrapper.unmount()
@@ -161,6 +162,7 @@ describe('WorkspaceLayoutHost', () => {
 
     await wrapper.setProps({ reloadKey: 1 })
     await nextTick()
+    await new Promise(resolve => setTimeout(resolve, 0))
 
     expect(goldenLayouts).toHaveLength(2)
     expect(goldenLayouts[0].destroyed).toBe(true)
