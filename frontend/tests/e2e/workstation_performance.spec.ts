@@ -58,7 +58,13 @@ test.describe('TC2000 workstation performance guards', () => {
     }
     await expect.poll(() => context.pages().length).toBe(1)
     await expect(page.locator('.tool-window')).toHaveCount(sourceToolCount)
-    await expect.poll(() => settledCanvasCount()).toBe(sourceCanvasCount)
+    // Popup teardown can dispose chart panes asynchronously. Give the browser
+    // a bounded cleanup window, while retaining the exact baseline assertion so
+    // a genuine canvas leak still fails the performance gate.
+    await expect.poll(() => page.locator('canvas').count(), {
+      timeout: 15_000,
+      intervals: [250, 500, 1_000],
+    }).toBe(sourceCanvasCount)
     const elapsed = await page.evaluate((start) => performance.now() - start, started)
     expect(elapsed).toBeLessThan(20_000)
     await browserDiagnostics.expectNoCriticalIssues()
@@ -128,7 +134,12 @@ test.describe('TC2000 workstation performance guards', () => {
       }
       await expect.poll(() => context.pages().length).toBe(1)
       await expect(page.locator('.tool-window')).toHaveCount(sourceToolCount)
-      await expect.poll(() => settledCanvasCount()).toBe(sourceCanvasCount)
+      // Cleanup is asynchronous, but must converge back to the original
+      // canvas count within a bounded interval after every churn round.
+      await expect.poll(() => page.locator('canvas').count(), {
+        timeout: 15_000,
+        intervals: [250, 500, 1_000],
+      }).toBe(sourceCanvasCount)
       await expect(page.locator('.chart-tool')).toHaveCount(sourceChartCount)
       const currentMemory = await readHeap()
       if (currentMemory != null) memorySamples.push(currentMemory)

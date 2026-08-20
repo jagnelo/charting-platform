@@ -93,3 +93,12 @@ then the expected context teardown cascaded into one performance test. All three
 remaining `route.fetch()` mutations in these family fixtures are now replaced by
 complete deterministic payloads; the focused drilldown, matrix, breadth-ratio,
 and performance scenarios must pass in the next full replay.
+
+Replay `32326840415` confirmed the response-disposal fixes: 149/149 executed
+browser tests passed outside two remaining long-suite races. The family matrix
+occasionally asserted before the rendered Market Map summary exposed its locked
+source, and the repeated popup soak observed five canvases during asynchronous
+teardown instead of the three-canvas baseline. The assertions now wait for the
+scoped summary and allow a bounded 15-second cleanup window while retaining exact
+canvas-count equality. Focused matrix and complete performance runs pass against
+the seeded isolated stack; a fresh replay of the new source SHA is required.
