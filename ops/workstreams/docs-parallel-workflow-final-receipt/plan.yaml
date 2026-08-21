@@ -1,0 +1,23 @@
+schema: 1
+branch: docs/parallel-workflow-final-receipt
+base_sha: 49228b5ea118f76e992eb034626cff8fa615ba57
+goal: "Reconcile shared workflow evidence with the final validated master SHA and replay."
+scope:
+  - update shared handoff and validation evidence
+  - preserve the explicit external RPi rehearsal blocker
+owned_paths:
+  - ops/workstreams/chore-parallel-workflow/handoff.md
+  - ops/workstreams/chore-parallel-workflow/validation.jsonl
+dependencies:
+  - synchronized master
+acceptance_criteria:
+  - shared handoff identifies master 49228b5ea118f76e992eb034626cff8fa615ba57 and replay 32484097102
+  - historical receipts remain distinguishable from the final receipt
+  - RPi rehearsal remains explicitly blocked without external configuration and authorization
+branch_tests: []
+live_test_impact: none
+migration_impact: none
+deployment_impact: none
+status: in_progress
+remaining_gaps:
+  - "Diagnostic replay required after source CI run 32490466281 failed the existing multi-window canvas convergence assertion; first-failure evidence is retained."
