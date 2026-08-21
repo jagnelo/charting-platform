@@ -120,9 +120,20 @@ def smoke_previous_app(worktree: Path, port: int) -> None:
         text=True,
     )
     try:
-        deadline = time.monotonic() + 30
+        # Cold imports and database startup can exceed the old 30-second
+        # window when the exhaustive gate is sharing a busy Docker host. Keep
+        # the probe bounded, but allow a realistic previous-release startup
+        # budget and report early process exits instead of masking them as a
+        # generic timeout.
+        deadline = time.monotonic() + 90
         url = f"http://127.0.0.1:{app_port}/health"
         while time.monotonic() < deadline:
+            if process.poll() is not None:
+                output, _ = process.communicate()
+                raise SystemExit(
+                    "previous-release application exited before /health became "
+                    f"ready (exit={process.returncode}):\n{output}"
+                )
             try:
                 with urllib.request.urlopen(url, timeout=2) as response:
                     if response.status == 200:
@@ -136,7 +147,9 @@ def smoke_previous_app(worktree: Path, port: int) -> None:
         except subprocess.TimeoutExpired:
             process.kill()
             output, _ = process.communicate()
-        raise SystemExit(f"previous-release application smoke failed:\n{output}")
+        raise SystemExit(
+            f"previous-release application smoke failed after 90s:\n{output}"
+        )
     finally:
         process.terminate()
         try:

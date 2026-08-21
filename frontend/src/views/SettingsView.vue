@@ -47,8 +47,14 @@
           <span><strong>{{ row.provider }}</strong> · {{ humanizeKey(row.capability) }}</span>
           <span :class="row.success ? 'availability-ok' : 'availability-fail'">{{ humanizeKey(row.classification) }}</span>
           <span>{{ row.latency_ms == null ? 'n/a' : `${row.latency_ms}ms` }} · {{ row.consecutive_failures }} failures</span>
-          <small>{{ formatDateTime(row.observed_at) }}</small>
+          <small>{{ formatDateTime(row.observed_at) }} · success {{ formatDateTime(row.last_success_at) }} · failure {{ formatDateTime(row.last_failure_at) }}</small>
         </div>
+      </div>
+      <div v-if="availabilityRuns.length" class="availability-runs" aria-label="Recent provider availability runs">
+        <strong>Recent sweeps</strong>
+        <span v-for="run in availabilityRuns" :key="run.id" class="availability-run">
+          {{ humanizeKey(run.mode) }} · {{ run.status }} · {{ formatDateTime(run.started_at) }}<template v-if="run.finished_at"> – {{ formatDateTime(run.finished_at) }}</template>
+        </span>
       </div>
       <div v-if="providersLoading" class="empty-hint">Loading provider policies...</div>
       <div v-else-if="providerError" class="push-status err">{{ providerError }}</div>
@@ -320,7 +326,8 @@ const pushStatus = ref<{ ok: boolean; msg: string } | null>(null)
 const connStatus = ref<{ ok: boolean; msg: string } | null>(null)
 const providerPolicies = ref<ProviderPolicyStatus[]>([])
 const providerUsage = ref<ProviderUsageSummary[]>([])
-const availabilityRows = ref<Array<{ provider: string; capability: string; classification: string; success: boolean; latency_ms: number | null; consecutive_failures: number; observed_at: string }>>([])
+const availabilityRows = ref<Array<{ provider: string; capability: string; classification: string; success: boolean; latency_ms: number | null; consecutive_failures: number; observed_at: string; last_success_at: string | null; last_failure_at: string | null }>>([])
+const availabilityRuns = ref<Array<{ id: number; mode: string; status: string; started_at: string; finished_at: string | null }>>([])
 const providersLoading = ref(false)
 const providerError = ref<string | null>(null)
 const providerPanels = ref<Record<string, { usage: boolean; config: boolean }>>({})
@@ -507,14 +514,16 @@ async function loadProviderPolicies() {
   providersLoading.value = true
   providerError.value = null
   try {
-    const [policies, usage, availability] = await Promise.all([
+    const [policies, usage, availability, runs] = await Promise.all([
       api.get<ProviderPolicyStatus[]>('/providers/policies'),
       api.get<ProviderUsageSummary[]>('/providers/usage'),
       api.get<typeof availabilityRows.value>('/providers/availability'),
+      api.get<typeof availabilityRuns.value>('/providers/availability/runs?limit=8'),
     ])
     providerPolicies.value = policies
     providerUsage.value = usage
     availabilityRows.value = availability
+    availabilityRuns.value = runs
   } catch (e: any) {
     providerError.value = e?.message ?? 'Failed to load providers'
   } finally {
@@ -629,6 +638,8 @@ onMounted(async () => {
 .availability-row { border-top: 1px solid #202020; color: #bbb; }
 .availability-ok { color: #66bb6a; }
 .availability-fail { color: #ef9a9a; }
+.availability-runs { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; margin: 8px 0 16px; color: #888; font-size: 11px; }
+.availability-run { padding: 3px 6px; border: 1px solid #252525; border-radius: 4px; }
 
 .provider-list {
   display: flex;

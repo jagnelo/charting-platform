@@ -208,6 +208,11 @@ class ProviderHealthState(Base, TimestampMixin):
     )
     last_error_type: Mapped[str | None] = mapped_column(String(80), nullable=True)
     last_error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    last_notification_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_notification_kind: Mapped[str | None] = mapped_column(String(24), nullable=True)
+    notified_failure_streak: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     data_source: Mapped["DataSource"] = relationship(back_populates="provider_health_states")
 

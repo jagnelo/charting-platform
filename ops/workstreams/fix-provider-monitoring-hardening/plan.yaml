@@ -1,0 +1,43 @@
+schema: 1
+branch: fix/provider-monitoring-hardening
+base_sha: 740d9f0cf50ef5f02a2e39baffe6f97bd95ad696
+goal: "Complete persisted provider availability transitions, cooldown notifications, and Settings evidence."
+scope:
+  - "Persist availability health and notification transition state per provider and capability."
+  - "Classify schema/content regressions and exercise option-quote-history representative probes."
+  - "Expose last-success and last-failure timestamps in the authenticated Settings availability surface."
+owned_paths:
+  - backend/app/models/provider_runtime.py
+  - backend/app/services/provider_availability.py
+  - backend/app/services/onesignal.py
+  - backend/app/config.py
+  - backend/app/routers/providers.py
+  - backend/alembic/versions/fe4f5a6b7c8d_add_provider_availability_notification_state.py
+  - backend/tests/unit/services/test_provider_availability.py
+  - frontend/src/views/SettingsView.vue
+  - backend/tests/unit/workers/test_arq_worker.py
+  - scripts/validate-migration-compatibility.py
+  - .github/workflows/ci.yml
+dependencies: []
+acceptance_criteria:
+  - "First failures remain visible in durable observations without sending a notification; the second daily core failure may notify."
+  - "Repeated failures are suppressed during the configured cooldown, weekly schema regressions may notify, and recovery notifies only after a previously notified failure."
+  - "Missing credentials and entitlement exclusions are classified without live provider calls."
+  - "Settings displays classification, latency, consecutive failures, last success, last failure, and recent sweep runs."
+  - "The new migration leaves one Alembic head."
+  - "The branch replay uses the path-independent lock export check, repository uv environment, and integration-only coverage threshold."
+  - "Daily and weekly worker schedules remain disabled unless both monitoring and live-probe settings are enabled, and delegate the correct persisted probe mode when enabled."
+branch_tests:
+  - "cd backend && uv run pytest tests/unit/services/test_provider_availability.py -q --no-cov"
+  - "cd backend && uv run ruff check app/services/provider_availability.py app/models/provider_runtime.py tests/unit/services/test_provider_availability.py"
+  - "cd backend && uv run ruff format --check app/services/provider_availability.py app/models/provider_runtime.py tests/unit/services/test_provider_availability.py"
+  - "git diff --check"
+live_test_impact: none
+migration_impact: "Adds fe4f5a6b7c8d provider notification state; requires fresh and previous-master migration compatibility plus previous-release smoke."
+deployment_impact: none
+status: in_progress
+remaining_gaps:
+  - "The fresh provider replay and exact candidate integration must run after the scheduling coverage change and ARM64 CI emulation repair."
+  - "Real provider probes remain opt-in and require configured free/entitled credentials; deterministic tests cover classification and transition policy without paid calls."
+  - "The first complete provider replay passed backend and frontend unit/integration jobs but failed 16 Playwright cases because CI omitted deterministic instrument and market-data fixtures; branch CI now enables both and requires a fresh replay."
+  - "Live probes are bounded by the configured per-request timeout; recent sweep metadata is available to the authenticated Settings view."
