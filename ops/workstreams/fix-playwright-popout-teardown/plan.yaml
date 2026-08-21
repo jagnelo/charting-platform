@@ -19,6 +19,6 @@ branch_tests: []
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
-status: in_progress
+status: ready
 remaining_gaps:
-  - "Run focused and full branch validation, then integrate with degraded-master remediation if the exact replay is green."
+  - "Integrate through the degraded-master remediation path and await the exact new master replay."
