@@ -1,6 +1,6 @@
 # fix/rpi-deployment-contract
 
-Created from the current provider-updated `master` candidate baseline at `0ecc62f15ad6e78359cab7a7e4336a661043ae84`; rebased after provider monitoring promotion. Update this handoff at each coherent boundary.
+Created from the accepted `master` baseline at `ad39700aa0eb109fc9a3dbc7f684a099cb2e9e51`; rebased after provider monitoring and CI timeout-hardening promotion. Update this handoff at each coherent boundary.
 
 The RPi helper now bundles the exact application images plus pinned ARM64
 Postgres/Redis images, uses a local file lock and the fixed remote Compose lock,
