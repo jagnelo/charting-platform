@@ -2,6 +2,10 @@
 
 Reconciles the shared workflow handoff and validation history with the final
 published master `49228b5ea118f76e992eb034626cff8fa615ba57` and green GitHub
-replay `32484097102`. The real RPi rehearsal remains externally blocked until
+replay `32484097102`. A later source replay `32490466281` failed an existing
+Playwright performance assertion (expected 3 source canvases, observed 5 after
+multi-window churn) and also recorded one flaky pop-out test; that first-failure
+evidence is retained while a fresh diagnostic replay is requested. The real RPi
+rehearsal remains externally blocked until
 the developer supplies ignored deployment configuration, SSH trust, the remote
 0600 environment file, and a direct exact-SHA deployment request.

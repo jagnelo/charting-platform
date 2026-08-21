@@ -18,5 +18,6 @@ branch_tests: []
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
-status: ready
-remaining_gaps: []
+status: in_progress
+remaining_gaps:
+  - "Diagnostic replay required after source CI run 32490466281 failed the existing multi-window canvas convergence assertion; first-failure evidence is retained."
