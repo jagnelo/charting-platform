@@ -1,0 +1,25 @@
+schema: 1
+branch: docs/parallel-workflow-closeout
+base_sha: 64a1ea0695573a89adfcb044b6d37f459954c6ee
+goal: "Reconcile the shared workflow workstream record after provider monitoring, exact integration, worktree isolation, CI replay, and RPi tooling have been accepted into master."
+scope:
+  - "Update the shared chore/parallel-workflow plan and handoff to the accepted master boundary."
+  - "Record the remaining external RPi rehearsal prerequisites without claiming deployment completion."
+owned_paths:
+  - ops/workstreams/chore-parallel-workflow/plan.yaml
+  - ops/workstreams/chore-parallel-workflow/handoff.md
+  - ops/workstreams/chore-parallel-workflow/validation.jsonl
+  - ops/workstreams/docs-parallel-workflow-closeout/
+dependencies:
+  - "Accepted master exact replay and validation receipt"
+acceptance_criteria:
+  - "Shared plan records master 64a1ea0695573a89adfcb044b6d37f459954c6ee as the validated boundary."
+  - "Provider and exact-candidate integration gaps are removed from remaining_gaps."
+  - "RPi rehearsal remains explicitly blocked only on external target/configuration and direct human authorization."
+branch_tests:
+  - "python3 scripts/validate-workstream.py ops/workstreams"
+live_test_impact: none
+migration_impact: none
+deployment_impact: none
+status: in_progress
+remaining_gaps: []

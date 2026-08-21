@@ -1,17 +1,14 @@
 # Parallel worktree and RPi deployment workflow
 
-Implementation starts from the locally promoted TC2000 boundary
-`8a9c26a872ce02e69817b119885a0dfe0aedcb0d`. The TC2000 browser gate currently
-has documented failures; this workstream must not describe that baseline as
-fully green until the independent replay is clean.
+The implementation is accepted on master `64a1ea0695573a89adfcb044b6d37f459954c6ee`.
+The exact master replay `32477129793` is green, with a receipt under
+`.ai/validation/64a1ea0695573a89adfcb044b6d37f459954c6ee.json`. Provider
+availability persistence/Settings coverage, isolated worktree/runtime
+allocation, exact-candidate integration, CI replay, ARM64 image validation, and
+manual RPi bundle tooling are integrated and independently replayed.
 
-The deployment path is deliberately manual. No target, credential, image
-bundle, or secret belongs in this branch or in a validation receipt.
-
-Implementation commit: `b23f8a110af05646b9132d1839fb5d38695c20eb` (pushed to
-`origin/chore/parallel-workflow`). Focused validation passed: Python compile,
-Ruff on changed Python, locked dependency check, RPi Compose config, workstream
-validation, provider/runtime tests (3/3 with the repository-wide coverage
-threshold disabled for the focused invocation), frontend type-check, and
-production build. Full integration remains intentionally red until the TC2000
-browser baseline gaps are resolved.
+The deployment path remains deliberately manual. No target, credential, image
+bundle, or secret belongs in this branch or in a validation receipt. The only
+remaining gap is the real Pi rehearsal, which is blocked until the developer
+supplies `.ai/deploy/rpi.env`, SSH key/strict host-key trust, the remote 0600
+`shared/app.env`, and a direct exact validated-SHA deployment request.

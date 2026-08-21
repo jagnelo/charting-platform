@@ -1,0 +1,1 @@
+{"command":"python3 scripts/validate-workstream.py ops/workstreams","result":"pass","evidence":"Closeout workstream schema and all branch-local records validate from accepted master 64a1ea0695573a89adfcb044b6d37f459954c6ee."}
