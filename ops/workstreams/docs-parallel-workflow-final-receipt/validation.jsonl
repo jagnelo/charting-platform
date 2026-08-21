@@ -1,0 +1,2 @@
+{"command":"make branch-validate","result":"pass","evidence":"Branch-local workstream records validate before integration."}
+{"command":"git diff --check","result":"pass","evidence":"Documentation reconciliation has no whitespace errors."}
