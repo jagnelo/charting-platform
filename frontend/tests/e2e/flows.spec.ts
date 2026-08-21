@@ -1121,15 +1121,11 @@ test.describe('TC2000 workstation', () => {
     await expect(secondPopup.locator('.workstation__popout .tool-window')).toBeVisible({ timeout: 25_000 })
     await expect.poll(() => context.pages().length).toBe(3)
 
-    const firstClosed = firstPopup.waitForEvent('close')
-    await firstPopup.locator('button[title="Close"]').click()
-    await firstClosed
+    await closePopupWhenOpen(firstPopup)
     await expect(secondPopup.locator('.workstation__popout .tool-window')).toBeVisible()
     await expect.poll(() => context.pages().length).toBe(2)
 
-    const secondClosed = secondPopup.waitForEvent('close')
-    await secondPopup.locator('button[title="Close"]').click()
-    await secondClosed
+    await closePopupWhenOpen(secondPopup)
     await expect.poll(() => page.locator('button[title="Float"]').count()).toBeGreaterThan(1)
     await browserDiagnostics.expectNoCriticalIssues()
   })

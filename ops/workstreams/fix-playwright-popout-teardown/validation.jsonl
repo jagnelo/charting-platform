@@ -1,0 +1,1 @@
+{"command":"focused F8h Playwright test","result":"pending","evidence":"Run after the helper-only teardown change; no oracle or threshold is weakened."}
