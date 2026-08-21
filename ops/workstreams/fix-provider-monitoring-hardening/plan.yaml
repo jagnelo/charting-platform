@@ -1,6 +1,6 @@
 schema: 1
 branch: fix/provider-monitoring-hardening
-base_sha: 4fc20898d33d0ecaef503728484779d852cf7933
+base_sha: 740d9f0cf50ef5f02a2e39baffe6f97bd95ad696
 goal: "Complete persisted provider availability transitions, cooldown notifications, and Settings evidence."
 scope:
   - "Persist availability health and notification transition state per provider and capability."
@@ -36,7 +36,7 @@ migration_impact: "Adds fe4f5a6b7c8d provider notification state; requires fresh
 deployment_impact: none
 status: in_progress
 remaining_gaps:
-  - "The fresh provider replay and exact candidate integration must run after the scheduling coverage change."
+  - "The fresh provider replay and exact candidate integration must run after the scheduling coverage change and ARM64 CI emulation repair."
   - "Real provider probes remain opt-in and require configured free/entitled credentials; deterministic tests cover classification and transition policy without paid calls."
   - "The first complete provider replay passed backend and frontend unit/integration jobs but failed 16 Playwright cases because CI omitted deterministic instrument and market-data fixtures; branch CI now enables both and requires a fresh replay."
   - "Live probes are bounded by the configured per-request timeout; recent sweep metadata is available to the authenticated Settings view."

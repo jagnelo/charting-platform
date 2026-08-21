@@ -1,6 +1,6 @@
 # fix/provider-monitoring-hardening
 
-Created from the validated `master` baseline at `4fc20898d33d0ecaef503728484779d852cf7933`; rebased after the diagnostic master promotion. Update this handoff at each coherent boundary.
+Created from the validated `master` baseline at `740d9f0cf50ef5f02a2e39baffe6f97bd95ad696`; rebased after the ARM64 CI emulation repair. Update this handoff at each coherent boundary.
 
 Implemented durable notification transition state and a cooldown-aware policy:
 daily core probes notify only from the second consecutive failure, weekly sweeps
@@ -31,3 +31,7 @@ because the repository's combined coverage gate is 55% and the two focused
 modules exercise only 16.07% of the backend. All 25 focused tests passed; this
 is expected evidence for the branch slice, not a green substitute for the full
 backend coverage gate. The full gate must be used for acceptance.
+
+This branch is now based on the exact promoted master SHA above. Its source
+replay and exact-candidate integration remain required before publication is
+considered accepted.
