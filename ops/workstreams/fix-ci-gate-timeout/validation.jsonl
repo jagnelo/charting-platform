@@ -1,0 +1,1 @@
+{"timestamp":"2026-08-21T08:40:00Z","command":"gh run view 32446304260 and gh run cancel 32446304260","result":"diagnostic: exhaustive gate remained in_progress for over four hours; cancellation returned HTTP 403 because repository admin rights are unavailable; added timeout-minutes: 180 to the master-only platform gate and will rerun the full exact-candidate replay"}

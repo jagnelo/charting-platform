@@ -168,6 +168,11 @@ jobs:
     name: Exhaustive Integration Gate (master)
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
+    # Keep the exhaustive gate authoritative while preventing a hung
+    # container build or browser process from occupying the integration lane
+    # indefinitely. This is above the previously observed green replay time;
+    # timeout failure remains red and preserves the diagnostics step.
+    timeout-minutes: 180
     needs: [backend, frontend-unit]
 
     steps:

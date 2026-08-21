@@ -1,0 +1,23 @@
+schema: 1
+branch: fix/ci-gate-timeout
+base_sha: 0ecc62f15ad6e78359cab7a7e4336a661043ae84
+goal: "Bound the authoritative master CI replay so a hung exhaustive gate fails explicitly and can be retried without bypassing any required test stage."
+scope:
+  - "Set an explicit three-hour timeout on the master exhaustive integration job."
+  - "Retain all existing exhaustive stages and failure diagnostics."
+owned_paths:
+  - .github/workflows/ci.yml
+  - ops/workstreams/fix-ci-gate-timeout/
+dependencies:
+  - "Existing make validate-integration gate"
+acceptance_criteria:
+  - "Master platform gate has timeout-minutes: 180."
+  - "Timeout does not skip, weaken, or retry any gate stage."
+  - "Branch deterministic replay remains unchanged."
+branch_tests:
+  - "YAML parse and workflow contract checks"
+live_test_impact: none
+migration_impact: none
+deployment_impact: none
+status: in_progress
+remaining_gaps: []
