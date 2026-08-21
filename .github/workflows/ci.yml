@@ -16,6 +16,7 @@ jobs:
   backend:
     name: Backend Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
@@ -73,6 +74,7 @@ jobs:
   frontend-unit:
     name: Frontend Unit Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
@@ -103,6 +105,7 @@ jobs:
   e2e:
     name: E2E Tests (Playwright)
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     needs: [backend, frontend-unit]
 
     steps:
@@ -168,6 +171,11 @@ jobs:
     name: Exhaustive Integration Gate (master)
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
+    # Keep the exhaustive gate authoritative while preventing a hung
+    # container build or browser process from occupying the integration lane
+    # indefinitely. This is above the previously observed green replay time;
+    # timeout failure remains red and preserves the diagnostics step.
+    timeout-minutes: 180
     needs: [backend, frontend-unit]
 
     steps:
