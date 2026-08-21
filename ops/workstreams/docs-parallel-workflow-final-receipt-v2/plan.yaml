@@ -1,0 +1,24 @@
+schema: 1
+branch: docs/parallel-workflow-final-receipt-v2
+base_sha: 40b86a496512b767200f65a91e35529845342ab0
+goal: "Reconcile the shared workflow handoff with the final validated master receipt."
+scope:
+  - update shared workflow handoff to final master and replay
+  - record final candidate and Docker recovery evidence
+owned_paths:
+  - ops/workstreams/chore-parallel-workflow/handoff.md
+  - ops/workstreams/chore-parallel-workflow/validation.jsonl
+dependencies:
+  - final master receipt 40b86a496512b767200f65a91e35529845342ab0
+  - exact GitHub replay 32514372931
+acceptance_criteria:
+  - shared handoff names the exact validated master SHA and receipt
+  - prior failure and recovery evidence remains durable
+  - no deployment secrets or target configuration are added
+branch_tests: []
+live_test_impact: none
+migration_impact: none
+deployment_impact: none
+status: ready
+remaining_gaps:
+  - "The real RPi rehearsal remains externally blocked by missing target configuration and direct human authorization."
