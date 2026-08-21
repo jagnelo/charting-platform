@@ -3,3 +3,6 @@
 {"command":"uv lock --check; npm ci; npm run build","result":"pass","evidence":"frozen dependency inputs and frontend production build"}
 {"command":"pytest tests/unit/services/test_provider_availability.py tests/unit/test_worktree_runtime.py","result":"pass","evidence":"3 focused tests; repository coverage threshold disabled for focused run"}
 {"command":"docker compose -f deploy/rpi/compose.yml config --quiet","result":"pass","evidence":"image-only ARM deployment Compose contract renders"}
+{"command":"exact master replay 32469872153","result":"pass","evidence":"Timeout-hardening master  ad39700aa0eb109fc9a3dbc7f684a099cb2e9e51 passed backend, frontend, E2E, and exhaustive integration replay."}
+{"command":"exact master replay 32477129793","result":"pass","evidence":"RPi deployment integration master 64a1ea0695573a89adfcb044b6d37f459954c6ee passed backend, frontend, E2E, and exhaustive integration replay."}
+{"command":"RPi rehearsal prerequisites","result":"blocked","evidence":"No .ai/deploy/rpi.env, SSH target/trust, remote shared/app.env, or direct human deployment authorization supplied; no Pi deployment was attempted."}
