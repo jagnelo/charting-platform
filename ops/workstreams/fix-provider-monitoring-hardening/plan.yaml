@@ -16,6 +16,7 @@ owned_paths:
   - backend/tests/unit/services/test_provider_availability.py
   - frontend/src/views/SettingsView.vue
   - backend/tests/unit/workers/test_arq_worker.py
+  - scripts/validate-migration-compatibility.py
   - .github/workflows/ci.yml
 dependencies: []
 acceptance_criteria:

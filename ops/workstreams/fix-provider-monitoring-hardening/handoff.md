@@ -36,8 +36,9 @@ This branch is now based on the exact promoted master SHA above. Its source
 replay and exact-candidate integration remain required before publication is
 considered accepted.
 
-The first exact candidate stopped at previous-release migration smoke because
-the old application did not answer `/health` within the one-shot readiness
-window. An immediate isolated rerun against the same candidate passed with
-`/health 200`; the red evidence is retained in `validation.jsonl`, and both
-source replay and the complete exact gate are being rerun.
+Two exact candidates stopped at previous-release migration smoke because the
+old application did not answer `/health` within the one-shot readiness window;
+isolated reruns against both candidates passed with `/health 200`. The red
+evidence is retained in `validation.jsonl`. The migration smoke helper now uses
+a 90-second bounded startup budget and reports early process exits, and a fresh
+source replay plus complete exact gate are required before publication.
