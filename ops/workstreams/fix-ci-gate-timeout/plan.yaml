@@ -7,6 +7,7 @@ scope:
   - "Retain all existing exhaustive stages and failure diagnostics."
 owned_paths:
   - .github/workflows/ci.yml
+  - scripts/validate-ci-timeouts.py
   - ops/workstreams/fix-ci-gate-timeout/
 dependencies:
   - "Existing make validate-integration gate"
@@ -15,7 +16,7 @@ acceptance_criteria:
   - "Timeout does not skip, weaken, or retry any gate stage."
   - "Branch deterministic replay remains unchanged."
 branch_tests:
-  - "YAML parse and workflow contract checks"
+  - "python3 scripts/validate-ci-timeouts.py"
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
