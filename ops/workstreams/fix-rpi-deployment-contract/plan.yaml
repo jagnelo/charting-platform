@@ -1,0 +1,39 @@
+schema: 1
+branch: fix/rpi-deployment-contract
+base_sha: ad39700aa0eb109fc9a3dbc7f684a099cb2e9e51
+goal: "Harden manual ARM64 RPi bundle and deployment transactions without Pi-side application builds."
+scope:
+  - "Bundle application and pinned runtime ARM64 images with manifest and checksums."
+  - "Use local and remote deployment locks, no-pull exact Compose updates, and recoverable release metadata."
+  - "Keep deployment secrets in the shared remote environment rather than release metadata or bundles."
+  - "Expand authenticated LAN smoke to health, login, persisted workspace reads, and provider surface."
+owned_paths:
+  - scripts/rpi.py
+  - deploy/rpi/compose.yml
+  - deploy/rpi/rpi.env.example
+  - tests/deployment/test_rpi_contract.py
+  - .github/workflows/ci.yml
+dependencies: []
+acceptance_criteria:
+  - "rpi-bundle includes the three SHA-tagged application images and pinned ARM64 Postgres/Redis images."
+  - "Deployment acquires both local and RPi application-specific locks and never performs global Docker cleanup or pull/build operations on the Pi."
+  - "Release env files contain image/runtime values only; shared app secrets remain in the 0600 remote shared/app.env."
+  - "Checksum-verified bundle and temporary metadata uploads, free-space, no-pull, backup, prior-release, schema, and smoke metadata are retained under the charting release root."
+  - "Authenticated LAN smoke validates health, login, stable persisted workspace reads, and provider availability."
+  - "The branch replay uses the path-independent lock export check, repository uv environment, and integration-only coverage threshold."
+  - "Preflight rejects stopped as well as running collisions for the reserved Compose project, requires reliable ss and flock probes, and uses a kernel file lock that releases after interrupted SSH sessions."
+branch_tests:
+  - "python3 -m py_compile scripts/rpi.py"
+  - "cd backend && uv run ruff check ../scripts/rpi.py"
+  - "cd backend && uv run ruff format --check ../scripts/rpi.py"
+  - "cd backend && uv run pytest ../tests/deployment/test_rpi_contract.py -q --no-cov"
+  - "git diff --check"
+live_test_impact: none
+migration_impact: none
+deployment_impact: none
+status: in_progress
+remaining_gaps:
+  - "The fresh branch replay and exact candidate integration must run after the preflight and recoverable-lock hardening, ARM64 CI emulation repair, provider monitoring promotion, and CI timeout hardening."
+  - "Real RPi preflight/deployment rehearsal remains blocked until the developer supplies .ai/deploy/rpi.env, SSH trust, shared/app.env, and a direct exact-SHA deployment request."
+  - "The earlier branch replay was superseded while its unseeded E2E job was running; the current workflow explicitly enables deterministic instrument and market-data fixtures and must complete a fresh replay."
+  - "Release manifest and Compose metadata are uploaded as .part files and verified against source, bundle, and Compose checksums before atomically moving into the incoming set."
