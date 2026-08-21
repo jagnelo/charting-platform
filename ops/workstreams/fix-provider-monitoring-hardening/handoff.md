@@ -35,3 +35,9 @@ backend coverage gate. The full gate must be used for acceptance.
 This branch is now based on the exact promoted master SHA above. Its source
 replay and exact-candidate integration remain required before publication is
 considered accepted.
+
+The first exact candidate stopped at previous-release migration smoke because
+the old application did not answer `/health` within the one-shot readiness
+window. An immediate isolated rerun against the same candidate passed with
+`/health 200`; the red evidence is retained in `validation.jsonl`, and both
+source replay and the complete exact gate are being rerun.
