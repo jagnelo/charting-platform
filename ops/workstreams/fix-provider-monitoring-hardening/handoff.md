@@ -42,3 +42,9 @@ isolated reruns against both candidates passed with `/health 200`. The red
 evidence is retained in `validation.jsonl`. The migration smoke helper now uses
 a 90-second bounded startup budget and reports early process exits, and a fresh
 source replay plus complete exact gate are required before publication.
+
+That fresh source replay passed backend/frontend checks but had one Playwright
+failure in the existing F8h simultaneous-pop-outs flow after retry (150 passed,
+109 skipped). The failure is retained as first-failure evidence; a diagnostic
+rerun is required before deciding whether the existing UI test needs a targeted
+stability fix.
