@@ -1,9 +1,10 @@
 schema: 1
 branch: fix/playwright-popout-teardown
 base_sha: 2d71422874e4b4b05aa233ce6318cbcd7ec3d159
-goal: "Harden simultaneous-popout teardown against the observed browser-close race without weakening lifecycle assertions."
+goal: "Harden flaky workstation lifecycle oracles without weakening their lifecycle or recovery assertions."
 scope:
   - use the existing race-safe popup close helper in F8h
+  - make F8j target the visible Notes mutation deterministically
   - retain independent popup visibility and page-count assertions
 owned_paths:
   - frontend/tests/e2e/flows.spec.ts
@@ -12,6 +13,7 @@ dependencies:
 acceptance_criteria:
   - F8h closes each popup through the bounded race-safe helper
   - F8h still asserts the second popup remains visible and the source regains its float controls
+  - F8j still asserts recovery copy and preservation wording after an injected 409
   - focused F8h and branch CI replay are green
 branch_tests: []
 live_test_impact: none

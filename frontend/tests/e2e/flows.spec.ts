@@ -1483,9 +1483,15 @@ test.describe('TC2000 workstation', () => {
       // mutation under test: the newly added Notes window. Otherwise the
       // setup races a bootstrap/cleanup write and the actual user mutation
       // never exercises the recovery branch.
-      const payload = route.request().postDataJSON() as { tabs?: Array<{ windows?: Array<{ instance_key?: string }> }> }
+      const payload = route.request().postDataJSON() as {
+        tabs?: Array<{ windows?: Array<{ instance_key?: string; tool_type?: string; title?: string }> }>
+      }
       const hasLocalWindowAddition = (payload.tabs ?? []).some(tab =>
-        (tab.windows ?? []).some(window => typeof window.instance_key === 'string' && !baselineWindowKeys.has(window.instance_key)),
+        (tab.windows ?? []).some(window => {
+          const notesWindow = window.tool_type === 'notes' || /notes/i.test(window.title ?? '')
+          const newWindow = typeof window.instance_key !== 'string' || !baselineWindowKeys.has(window.instance_key)
+          return notesWindow && newWindow
+        }),
       )
       if (!hasLocalWindowAddition) return route.continue()
       conflictPending = false
@@ -1506,6 +1512,8 @@ test.describe('TC2000 workstation', () => {
 
     await page.getByRole('button', { name: 'Add tool', exact: true }).click()
     await page.getByRole('menuitem', { name: 'Notes', exact: true }).click()
+    const notes = page.locator('.tool-window:visible').filter({ has: page.locator('.note-tool') })
+    await expect(notes.last()).toBeVisible({ timeout: 10_000 })
     await expect(page.locator('.workstation__footer')).toContainText(/recovery/i, { timeout: 15_000 })
     await expect(page.locator('.workstation__footer')).toContainText('local changes were preserved', { timeout: 15_000 })
     await browserDiagnostics.expectNoCriticalIssues()

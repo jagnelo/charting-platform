@@ -1,1 +1,2 @@
 {"command":"focused F8h Playwright test","result":"pending","evidence":"Run after the helper-only teardown change; no oracle or threshold is weakened."}
+{"command":"repair branch CI 32503666509","result":"fail","evidence":"F8h passed after helper hardening; F8j-conflict failed because the injected 409 did not target the Notes mutation and the recovery footer stayed canonical. Preserve this first failure while tightening deterministic Notes setup."}
