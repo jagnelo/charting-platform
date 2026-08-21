@@ -125,9 +125,13 @@ def ssh_args(config: dict[str, str]) -> list[str]:
 
 
 def remote(config: dict[str, str], command: str, *, stdin: bytes | None = None) -> str:
-    result = subprocess.run(ssh_args(config) + ["--", "sh", "-s"], input=stdin, capture_output=True)
+    result = subprocess.run(
+        ssh_args(config) + ["--", "sh", "-s"], input=stdin, capture_output=True
+    )
     if result.returncode:
-        raise SystemExit(result.stderr.decode(errors="replace") or "remote command failed")
+        raise SystemExit(
+            result.stderr.decode(errors="replace") or "remote command failed"
+        )
     return result.stdout.decode()
 
 
@@ -227,7 +231,9 @@ def build_bundle(commit: str) -> Path:
         "created_at": datetime.now(UTC).isoformat(),
     }
     for tag in tags:
-        inspect = subprocess.check_output(["docker", "image", "inspect", tag], text=True)
+        inspect = subprocess.check_output(
+            ["docker", "image", "inspect", tag], text=True
+        )
         item = json.loads(inspect)[0]
         manifest["images"].append(
             {
@@ -359,7 +365,7 @@ mkdir "$root/releases/$sha"
 cp "$root/incoming/$sha.docker.tar.gz" "$root/releases/$sha/"
 cp "$root/incoming/$sha.manifest.json" "$root/releases/$sha/"
 cp "$root/incoming/$sha.compose.yml" "$root/releases/$sha/compose.yml"
-printf 'BACKEND_IMAGE=charting-platform/backend:%s\\nRESEARCH_RUNNER_IMAGE=charting-platform/research-runner:%s\\nFRONTEND_IMAGE=charting-platform/frontend:%s\\nPOSTGRES_IMAGE={shlex.quote(runtime_images(config)[0])}\\nREDIS_IMAGE={shlex.quote(runtime_images(config)[1])}\\nRPI_HTTP_PORT={shlex.quote(config['RPI_HTTP_PORT'])}\\n' "$sha" "$sha" "$sha" > "$root/releases/$sha/release.env"
+printf 'BACKEND_IMAGE=charting-platform/backend:%s\\nRESEARCH_RUNNER_IMAGE=charting-platform/research-runner:%s\\nFRONTEND_IMAGE=charting-platform/frontend:%s\\nPOSTGRES_IMAGE={shlex.quote(runtime_images(config)[0])}\\nREDIS_IMAGE={shlex.quote(runtime_images(config)[1])}\\nRPI_HTTP_PORT={shlex.quote(config["RPI_HTTP_PORT"])}\\n' "$sha" "$sha" "$sha" > "$root/releases/$sha/release.env"
 prior_release=""
 if test -L "$root/current"; then prior_release="$(readlink "$root/current")"; fi
 backup=""
@@ -445,7 +451,9 @@ ln -s "$root/releases/$sha" "$root/current.$sha.tmp"
 mv -Tf "$root/current.$sha.tmp" "$root/current"
 """
         remote(config, finalize.encode())
-        _write_deployment_attempt(attempt, status="complete", commit=commit, smoke=smoke_result)
+        _write_deployment_attempt(
+            attempt, status="complete", commit=commit, smoke=smoke_result
+        )
     except Exception as exc:
         _write_deployment_attempt(
             attempt,
@@ -462,7 +470,9 @@ if test -L "$root/current"; then docker compose -p charting-platform -f "$root/c
         raise SystemExit(str(exc)) from exc
     finally:
         checksum_path.unlink(missing_ok=True)
-    print(f"deployed charting-platform at {commit}; no unrelated Docker resources were touched")
+    print(
+        f"deployed charting-platform at {commit}; no unrelated Docker resources were touched"
+    )
 
 
 def deploy(config: dict[str, str], commit: str, confirm: str) -> None:
@@ -521,7 +531,9 @@ def smoke(config: dict[str, str], commit: str) -> dict[str, str]:
         )
         with urllib.request.urlopen(request, timeout=10) as response:
             if response.status != 200:
-                raise RuntimeError(f"authenticated availability returned HTTP {response.status}")
+                raise RuntimeError(
+                    f"authenticated availability returned HTTP {response.status}"
+                )
         result["authenticated_provider_read"] = "pass"
 
         websocket_ping(host, int(config["RPI_HTTP_PORT"]), token)
@@ -529,7 +541,9 @@ def smoke(config: dict[str, str], commit: str) -> dict[str, str]:
 
         research_smoke(base, headers, commit, result)
     except (urllib.error.URLError, TimeoutError, ValueError, RuntimeError) as exc:
-        raise RuntimeError(f"authenticated LAN smoke failed for {commit}: {exc}") from exc
+        raise RuntimeError(
+            f"authenticated LAN smoke failed for {commit}: {exc}"
+        ) from exc
     return result
 
 
@@ -561,7 +575,9 @@ def websocket_ping(host: str, port: int, token: str) -> None:
             if len(response) > 16_384:
                 raise RuntimeError("WebSocket handshake response is too large")
         if not response.startswith(b"HTTP/1.1 101"):
-            raise RuntimeError(f"WebSocket handshake failed: {response.splitlines()[0]!r}")
+            raise RuntimeError(
+                f"WebSocket handshake failed: {response.splitlines()[0]!r}"
+            )
         payload = b"ping"
         mask = os.urandom(4)
         masked = bytes(value ^ mask[index % 4] for index, value in enumerate(payload))
@@ -577,10 +593,14 @@ def websocket_ping(host: str, port: int, token: str) -> None:
             raise RuntimeError("authenticated WebSocket did not return pong")
 
 
-def research_smoke(base: str, headers: dict[str, str], commit: str, result: dict[str, str]) -> None:
+def research_smoke(
+    base: str, headers: dict[str, str], commit: str, result: dict[str, str]
+) -> None:
     """Queue one tiny study and wait briefly for the isolated runner to consume it."""
 
-    def request(path: str, *, method: str = "GET", body: object | None = None) -> object:
+    def request(
+        path: str, *, method: str = "GET", body: object | None = None
+    ) -> object:
         data = json.dumps(body).encode() if body is not None else None
         req = urllib.request.Request(
             f"{base}{path}",
@@ -621,7 +641,10 @@ def research_smoke(base: str, headers: dict[str, str], commit: str, result: dict
         run_id = int(run["id"])
         deadline = time.monotonic() + 30
         terminal = str(run.get("status"))
-        while terminal not in {"completed", "failed", "canceled"} and time.monotonic() < deadline:
+        while (
+            terminal not in {"completed", "failed", "canceled"}
+            and time.monotonic() < deadline
+        ):
             time.sleep(2)
             current = request(f"/api/v1/research/runs/{run_id}")
             terminal = str(current.get("status"))
