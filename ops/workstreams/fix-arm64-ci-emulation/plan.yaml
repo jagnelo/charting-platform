@@ -1,0 +1,26 @@
+schema: "1"
+branch: fix/arm64-ci-emulation
+base_sha: 5124146980b37f6d6b5080d737f801933700b0c5
+goal: Make the independent GitHub ARM64 image gate executable on hosted amd64 runners while preserving native ARM64 validation.
+scope:
+  - .github/workflows/ci.yml
+  - ops/workstreams/fix-arm64-ci-emulation/
+owned_paths:
+  - .github/workflows/ci.yml
+  - ops/workstreams/fix-arm64-ci-emulation/
+dependencies:
+  - Docker Buildx
+  - GitHub Actions QEMU/binfmt support
+acceptance_criteria:
+  - The master platform gate registers ARM64 emulation before invoking validate-integration.
+  - Native ARM64 development and RPi bundle builds remain unchanged.
+  - The exact branch replay and exact integrated master replay complete green through the ARM64 image stage.
+branch_tests:
+  - make branch-validate
+  - git diff --check
+live_test_impact: No application runtime behaviour changes; CI can execute the existing Linux ARM64 image contract on amd64 hosted runners.
+migration_impact: none
+deployment_impact: none
+status: in_progress
+remaining_gaps:
+  - Await branch replay and exact candidate/master gate evidence.

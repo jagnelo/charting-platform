@@ -1,0 +1,3 @@
+{"command":"git diff --check","result":"pending","details":"Run after workflow and workstream records are added."}
+{"command":"make branch-validate","result":"pending","details":"Run after workflow and workstream records are added."}
+{"command":"exact branch and master CI replay","result":"pending","details":"The previous exact master replay failed only at ARM64 image execution because hosted amd64 runners lacked QEMU/binfmt."}
