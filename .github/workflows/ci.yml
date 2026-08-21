@@ -200,6 +200,11 @@ jobs:
           npm ci
           npx playwright install --with-deps chromium
 
+      - name: Set up ARM64 emulation
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
       - name: Run exhaustive integration gate
         run: make validate-integration
         env:
