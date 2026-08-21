@@ -4,10 +4,10 @@ Created from `master` at `0ecc62f15ad6e78359cab7a7e4336a661043ae84`.
 
 ## Goal
 
-Bound the master-only exhaustive CI replay at three hours. The timeout is a
-failure boundary, not a test skip: every existing `make validate-integration`
-stage remains required, and the diagnostics step still runs when the gate
-fails or times out.
+Bound every CI job, with the master-only exhaustive CI replay at three hours.
+The timeouts are failure boundaries, not test skips: every existing
+`make validate-integration` stage remains required, and the diagnostics step
+still runs when the gate fails or times out.
 
 ## Evidence
 
@@ -15,8 +15,9 @@ fails or times out.
   exceeded four hours with the gate step still in progress. The prior green
   replay completed in about 58 minutes. GitHub did not expose live logs and
   cancellation was rejected for lack of repository-admin permission.
-- This branch adds `timeout-minutes: 180`, above the prior green duration while
-  preventing an unbounded integration lane.
+- This branch adds `timeout-minutes: 30` to backend tests, `15` to frontend
+  unit tests, `45` to Playwright E2E, and `180` to the master gate. These are
+  above the observed green durations while preventing unbounded CI lanes.
 
 ## Remaining
 
