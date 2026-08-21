@@ -52,3 +52,9 @@ def test_release_metadata_is_uploaded_and_verified_as_temporary_parts():
     assert "manifest_compose_sha" in source
     assert "remote_name}.part" in source
     assert 'mv "$root/incoming/$sha.manifest.json.part"' in source
+
+
+def test_frontend_arm64_image_builds_static_assets_on_native_builder():
+    dockerfile = (ROOT / "frontend" / "Dockerfile").read_text()
+    assert "FROM --platform=$BUILDPLATFORM node:20-alpine AS build" in dockerfile
+    assert "FROM --platform=$TARGETPLATFORM nginx:alpine" in dockerfile

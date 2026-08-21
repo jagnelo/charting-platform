@@ -1,0 +1,2 @@
+{"kind":"ci_failure","sha":"ca27acbf6ee09e543d57dbec4a7ffdf64c4c3b52","run_id":"32524824692","command":"GitHub master replay / make validate-integration","result":"cancelled_timeout","evidence":"backend/frontend/e2e green; ARM64 frontend image npm ci emitted qemu illegal instruction and gate timed out at 180m","recorded_at":"2026-08-22T00:00:00Z"}
+{"kind":"targeted","command":"backend/.venv/bin/pytest -q tests/deployment/test_rpi_contract.py","result":"pass","evidence":"6 passed","recorded_at":"2026-08-22T00:00:00Z"}
