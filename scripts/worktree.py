@@ -156,7 +156,7 @@ def running_projects(prefix: str) -> list[str]:
     if not shutil.which("docker"):
         raise SystemExit("docker is required to prove that the worktree is not running")
     result = subprocess.run(
-        ["docker", "ps", "--format", '{{{{.Label "com.docker.compose.project"}}}}'],
+        ["docker", "ps", "--format", '{{.Label "com.docker.compose.project"}}'],
         text=True,
         capture_output=True,
     )
