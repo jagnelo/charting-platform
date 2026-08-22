@@ -1,0 +1,19 @@
+schema: 1
+branch: fix/worktree-close-docker-label
+base_sha: 946cd5308fe0a80cb9c01da4d0fbcc4053e615a9
+goal: "Repair safe worktree closure Docker project inspection"
+scope:
+  - "Use a valid Docker label format template when proving managed projects are stopped."
+owned_paths:
+  - scripts/worktree.py
+dependencies: []
+acceptance_criteria:
+  - "Safe close detects Docker projects without a template parse error."
+  - "Safe close still refuses when this worktree has a running managed project."
+branch_tests:
+  - "python3 -m py_compile scripts/worktree.py"
+live_test_impact: none
+migration_impact: none
+deployment_impact: none
+status: ready
+remaining_gaps: []
