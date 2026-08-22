@@ -29,7 +29,11 @@ Linux ARM64 image builds. Branch CI run `32538510336` is green. During exact
 candidate validation, one Playwright performance test flaked (`canvas` count 5
 vs expected 3); its screenshot/video/error context was retained under the
 candidate worktree, and the exact test passed on an immediate isolated rerun
-(7.5s). The branch is ready for exact-SHA candidate integration; the degraded
-marker must remain until the resulting master SHA receives a green
-push-triggered replay. This is recorded rather than treated as an invisible
-retry. No RPi deployment is authorized by this branch.
+(7.5s). A subsequent candidate run also saw three chart-surface readiness
+failures (F9c-transform, F9c-template-transform, F9c3-keyboard); with the exact
+integration fixture setting (`E2E_SEED_MARKET_DATA=true`), all three passed on
+an isolated retry in 31.7s. Both first failures and retries are recorded rather
+than treated as invisible retries. The branch is ready for exact-SHA candidate
+integration; the degraded marker must remain until the resulting master SHA
+receives a green push-triggered replay. No RPi deployment is authorized by
+this branch.
