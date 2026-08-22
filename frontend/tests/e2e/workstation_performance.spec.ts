@@ -32,7 +32,10 @@ test.describe('TC2000 workstation performance guards', () => {
         const current = await page.locator('canvas').count()
         stableSamples = current === previous ? stableSamples + 1 : 0
         previous = current
-        if (stableSamples >= 3) return current
+        // Hidden analysis panes can finish their first uPlot render shortly after
+        // their explicit aria-busy state clears. Require a longer quiet window so
+        // the exact leak baseline includes those legitimate late canvases.
+        if (stableSamples >= 8) return current
         await page.waitForTimeout(250)
       }
       return previous
@@ -118,7 +121,10 @@ test.describe('TC2000 workstation performance guards', () => {
         const current = await page.locator('canvas').count()
         stableSamples = current === previous ? stableSamples + 1 : 0
         previous = current
-        if (stableSamples >= 3) return current
+        // Hidden analysis panes can finish their first uPlot render shortly after
+        // their explicit aria-busy state clears. Require a longer quiet window so
+        // the exact leak baseline includes those legitimate late canvases.
+        if (stableSamples >= 8) return current
         await page.waitForTimeout(250)
       }
       return previous
