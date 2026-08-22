@@ -25,7 +25,11 @@ Targeted deployment contract tests, the full local integration gate, and the
 branch CI replay all pass. The local gate completed 1,646 backend tests,
 frontend coverage/type/build checks, 260 functional Playwright tests (154
 passed/106 skipped), 104 visual tests, research-runner probes, and all three
-Linux ARM64 image builds. Branch CI run `32538510336` is green. The branch is
-ready for exact-SHA candidate integration; the degraded marker must remain
-until the resulting master SHA receives a green push-triggered replay. No RPi
-deployment is authorized by this branch.
+Linux ARM64 image builds. Branch CI run `32538510336` is green. During exact
+candidate validation, one Playwright performance test flaked (`canvas` count 5
+vs expected 3); its screenshot/video/error context was retained under the
+candidate worktree, and the exact test passed on an immediate isolated rerun
+(7.5s). The branch is ready for exact-SHA candidate integration; the degraded
+marker must remain until the resulting master SHA receives a green
+push-triggered replay. This is recorded rather than treated as an invisible
+retry. No RPi deployment is authorized by this branch.
