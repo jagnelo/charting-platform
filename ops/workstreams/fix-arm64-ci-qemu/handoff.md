@@ -21,6 +21,11 @@ test locks this split in place.
 
 ## Validation boundary
 
-Targeted deployment contract tests pass locally. The branch must still pass the
-full integration gate and an exact push-triggered master replay before the
-degraded marker may be cleared. No RPi deployment is authorized by this branch.
+Targeted deployment contract tests, the full local integration gate, and the
+branch CI replay all pass. The local gate completed 1,646 backend tests,
+frontend coverage/type/build checks, 260 functional Playwright tests (154
+passed/106 skipped), 104 visual tests, research-runner probes, and all three
+Linux ARM64 image builds. Branch CI run `32538510336` is green. The branch is
+ready for exact-SHA candidate integration; the degraded marker must remain
+until the resulting master SHA receives a green push-triggered replay. No RPi
+deployment is authorized by this branch.

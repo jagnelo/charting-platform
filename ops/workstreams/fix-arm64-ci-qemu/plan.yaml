@@ -24,6 +24,6 @@ branch_tests:
 live_test_impact: none
 migration_impact: none
 deployment_impact: "Restores the ARM64 image prerequisite for a future human-authorized RPi bundle; no deployment is automatic."
-status: in_progress
+status: ready
 remaining_gaps:
   - "The physical RPi rehearsal remains blocked until deployment configuration, SSH trust, and direct human authorization are provided."
