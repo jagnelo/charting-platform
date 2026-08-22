@@ -20,7 +20,6 @@ acceptance_criteria:
   - "The exact merged master SHA receives a green independent GitHub replay."
 branch_tests:
   - "backend/.venv/bin/pytest -q tests/deployment/test_rpi_contract.py"
-  - "make validate-integration"
 live_test_impact: none
 migration_impact: none
 deployment_impact: "Restores the ARM64 image prerequisite for a future human-authorized RPi bundle; no deployment is automatic."

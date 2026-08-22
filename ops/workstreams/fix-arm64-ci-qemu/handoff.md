@@ -46,3 +46,9 @@ exact test was rerun against the same isolated candidate stack with the required
 market-data fixture and passed (1, 1, 5, and 1 tests respectively). These are
 retained as flaky evidence; they do not justify silently converting the full
 gate to green.
+
+The candidate reached branch-declared tests, which exposed a workflow-record
+error: this workstream had listed `make validate-integration` as one of its own
+tests, causing recursive re-entry into the authoritative gate. The candidate
+was stopped before recursion. The plan now declares only the targeted RPi
+contract test; the outer integration gate remains the sole full-gate invocation.
