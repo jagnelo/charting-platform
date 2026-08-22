@@ -37,3 +37,12 @@ than treated as invisible retries. The branch is ready for exact-SHA candidate
 integration; the degraded marker must remain until the resulting master SHA
 receives a green push-triggered replay. No RPi deployment is authorized by
 this branch.
+
+The next exact candidate (`2bd1e4b0a6080bd553310f844399a836bdca1c18`) also
+exposed four browser timing/readiness failures in one seeded run: F8e swing
+analysis, F8s family-map drilldown, F8s breadth, and the workstation churn
+guard. Their first-failure artifacts remain in that candidate worktree. Each
+exact test was rerun against the same isolated candidate stack with the required
+market-data fixture and passed (1, 1, 5, and 1 tests respectively). These are
+retained as flaky evidence; they do not justify silently converting the full
+gate to green.
