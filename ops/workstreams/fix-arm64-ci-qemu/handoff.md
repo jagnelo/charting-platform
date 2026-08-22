@@ -63,3 +63,15 @@ The exact test was rerun on the same candidate/runtime and passed in 13.4s;
 this is diagnostic evidence only and does not turn the red exhaustive gate
 green. The candidate stack was stopped with its exact project command. A fresh
 full candidate gate remains required before publication.
+
+The next exact candidate (`6c786de0d818b1000ab12c50b9e7bb890c475740`, source
+`268b660f62d3798331b8df5115a45a4eff37ba8d`) passed the full functional suite,
+but the four-environment board visual suite failed one readiness assertion:
+`visual-1080p-125`, `tc2000_visual.spec.ts:472`, where
+`.workstation__layout-state` was still present before the Study Lab original
+surface. The run produced 103 passed and 1 failed visual scenarios; the first
+failure screenshot/video/error context is retained under
+`.ai/integration/fix-arm64-ci-qemu-ee975ed49839/frontend/test-results`. The
+same exact scenario passed in 19.2s after an isolated stack restart, recorded
+as diagnostic only. The candidate stack was stopped exactly. A fresh full gate
+is still required; no master publication or RPi deployment is authorized.
