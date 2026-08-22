@@ -1,0 +1,27 @@
+schema: 1
+branch: fix/integration-replay-registration
+base_sha: b0d0e7fd1c9ad00ab2f8eecbeef8a69a0e4c40e7
+goal: "Make exact integration publication wait for the push-triggered master replay to register before declaring master degraded."
+scope:
+  - "Poll the GitHub Actions run list after a publish until the exact commit replay appears or a bounded timeout expires."
+  - "Keep failed, missing, and non-green replay outcomes explicit."
+owned_paths:
+  - scripts/integrate.py
+  - ops/workstreams/fix-integration-replay-registration/
+dependencies:
+  - "master at b0d0e7fd1c9ad00ab2f8eecbeef8a69a0e4c40e7"
+  - "GitHub Actions CI workflow and gh CLI authentication"
+acceptance_criteria:
+  - "A newly published commit whose run is not immediately listed is polled rather than falsely marked degraded."
+  - "The poll has a bounded configurable timeout and preserves an explicit failure when no run appears."
+  - "Existing completed, failed, and in-progress replay handling remains unchanged."
+  - "Python syntax and the complete integration gate pass on the exact candidate."
+branch_tests:
+  - "python3 -m py_compile scripts/integrate.py"
+  - "git diff --check"
+live_test_impact: none
+migration_impact: none
+deployment_impact: "Prevents false degraded markers after manual master publication; no deployment is automatic."
+status: ready
+remaining_gaps:
+  - "The physical RPi rehearsal remains blocked until deployment configuration, SSH trust, and direct human authorization are provided."

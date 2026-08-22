@@ -1,0 +1,1 @@
+{"kind":"static_validation","command":"python3 -m py_compile scripts/integrate.py && git diff --check","result":"pass","evidence":"Integration replay registration repair compiles and has no whitespace errors.","recorded_at":"2026-08-22T20:08:00Z"}
