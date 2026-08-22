@@ -52,3 +52,14 @@ error: this workstream had listed `make validate-integration` as one of its own
 tests, causing recursive re-entry into the authoritative gate. The candidate
 was stopped before recursion. The plan now declares only the targeted RPi
 contract test; the outer integration gate remains the sole full-gate invocation.
+
+The following exact candidate (`1cf2f0226f6c2c90f37a2c5a8009fc6f32b6c9ab`,
+source `0a11b152c23ef7aa4d4caf00dce094742510a30b`) reached the full functional
+Playwright suite with 153 passed and 106 skipped, but the workstation
+performance guard (`workstation_performance.spec.ts:101`, repeated
+multi-window churn) failed again. Its first-failure report and browser
+artifacts remain under `.ai/integration/fix-arm64-ci-qemu-d5e955c60508/frontend/test-results`.
+The exact test was rerun on the same candidate/runtime and passed in 13.4s;
+this is diagnostic evidence only and does not turn the red exhaustive gate
+green. The candidate stack was stopped with its exact project command. A fresh
+full candidate gate remains required before publication.
