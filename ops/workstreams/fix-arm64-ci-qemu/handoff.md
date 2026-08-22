@@ -75,3 +75,16 @@ failure screenshot/video/error context is retained under
 same exact scenario passed in 19.2s after an isolated stack restart, recorded
 as diagnostic only. The candidate stack was stopped exactly. A fresh full gate
 is still required; no master publication or RPi deployment is authorized.
+
+The next exact candidate (`f4f7f0853c90a922b67f7d112e90e7d5e43e479b0`, source
+`065c761ee0c6cd158bc1481e5a6650a3cee3c5bc`) passed backend, frontend, stack
+health, research-runner probes, and deterministic checks, but the functional
+Playwright suite failed only the workstation churn guard at
+`workstation_performance.spec.ts:101`: expected canvas count 3, received 5
+after the bounded 15-second cleanup poll. First-failure screenshot/video/error
+context is retained under
+`.ai/integration/fix-arm64-ci-qemu-fd0b1f40bd21/frontend/test-results`. The
+candidate stack was stopped exactly. This is recorded as a red exhaustive
+candidate; no publication or RPi deployment is authorized. Docker cleanup was
+run after teardown and reclaimed 5.609 GB, leaving 4.55 GB of images and no
+build cache; unrelated running worktree stacks remained running.
