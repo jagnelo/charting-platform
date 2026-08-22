@@ -12,6 +12,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -234,36 +235,46 @@ def github_replay(repo: Path, commit: str) -> dict[str, str]:
     """Require the independent push-triggered GitHub workflow to pass."""
     if shutil.which("gh") is None:
         raise SystemExit("gh CLI is required to verify the independent GitHub replay")
-    listed = run(
-        [
-            "gh",
-            "run",
-            "list",
-            "--workflow",
-            "ci.yml",
-            "--commit",
-            commit,
-            "--event",
-            "push",
-            "--limit",
-            "20",
-            "--json",
-            "databaseId,headSha,status,conclusion,createdAt,url",
-        ],
-        repo,
-        check=False,
-    )
-    if listed.returncode:
-        raise SystemExit(
-            listed.stderr.strip() or "could not query GitHub Actions replay"
+    wait_seconds = max(0.0, float(os.environ.get("INTEGRATION_GITHUB_REPLAY_WAIT_SECONDS", "120")))
+    deadline = time.monotonic() + wait_seconds
+    matching: list[dict[str, object]] = []
+    while True:
+        listed = run(
+            [
+                "gh",
+                "run",
+                "list",
+                "--workflow",
+                "ci.yml",
+                "--commit",
+                commit,
+                "--event",
+                "push",
+                "--limit",
+                "20",
+                "--json",
+                "databaseId,headSha,status,conclusion,createdAt,url",
+            ],
+            repo,
+            check=False,
         )
-    try:
-        runs = json.loads(listed.stdout)
-    except json.JSONDecodeError as exc:
-        raise SystemExit(f"GitHub Actions returned invalid replay data: {exc}") from exc
-    matching = [item for item in runs if item.get("headSha") == commit]
+        if listed.returncode:
+            raise SystemExit(
+                listed.stderr.strip() or "could not query GitHub Actions replay"
+            )
+        try:
+            runs = json.loads(listed.stdout)
+        except json.JSONDecodeError as exc:
+            raise SystemExit(f"GitHub Actions returned invalid replay data: {exc}") from exc
+        matching = [item for item in runs if item.get("headSha") == commit]
+        if matching or time.monotonic() >= deadline:
+            break
+        time.sleep(min(2.0, max(0.1, deadline - time.monotonic())))
     if not matching:
-        raise SystemExit(f"no push-triggered GitHub Actions replay exists for {commit}")
+        raise SystemExit(
+            f"no push-triggered GitHub Actions replay exists for {commit} "
+            f"after waiting {wait_seconds:.0f}s"
+        )
     replay = matching[0]
     if replay.get("status") != "completed":
         watched = run(
