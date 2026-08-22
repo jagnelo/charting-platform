@@ -88,3 +88,20 @@ candidate stack was stopped exactly. This is recorded as a red exhaustive
 candidate; no publication or RPi deployment is authorized. Docker cleanup was
 run after teardown and reclaimed 5.609 GB, leaving 4.55 GB of images and no
 build cache; unrelated running worktree stacks remained running.
+
+The next exact candidate (`e1e90a030b200802a2757486d28b26386f6a1bd0`, source
+`e94e24332fca598be4ebe6755b6e06dc389a05a2`) passed the initial dependency,
+workstream, migration, and deterministic gate stages, but the frontend Vitest
+stage failed with worker RPC and dev-server fetch timeouts:
+`[vitest-worker]: Timeout calling onTaskUpdate` and `Timeout calling fetch`
+for `/@vite/env` while running `tests/unit/components/test_market_map_tool.ts`.
+No test assertion failure was reported. This is retained as a red resource
+failure, the candidate stack was stopped exactly, and no retry is being treated
+as green. A fresh candidate gate is required after the failure evidence is
+preserved.
+
+After exact teardown, the same candidate's isolated `make test-fe` retry passed
+all 108 frontend files and 922 tests in 13.18s, including the uPlot and visual
+policy contracts. This confirms the earlier failure was resource/timing related,
+but remains diagnostic evidence only; the red full candidate gate still needs a
+fresh rerun.
