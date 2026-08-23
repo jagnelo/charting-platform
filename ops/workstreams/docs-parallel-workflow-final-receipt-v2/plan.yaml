@@ -9,8 +9,8 @@ owned_paths:
   - ops/workstreams/chore-parallel-workflow/handoff.md
   - ops/workstreams/chore-parallel-workflow/validation.jsonl
 dependencies:
-  - final master receipt 40b86a496512b767200f65a91e35529845342ab0
-  - exact GitHub replay 32514372931
+  - final master receipt 27cac6d3132ec29bdbdb6d339ed0d04ca52bd7b3
+  - exact GitHub replay 32606866786
 acceptance_criteria:
   - shared handoff names the exact validated master SHA and receipt
   - prior failure and recovery evidence remains durable
