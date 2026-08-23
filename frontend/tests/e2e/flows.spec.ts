@@ -2378,16 +2378,12 @@ test.describe('TC2000 workstation', () => {
     // Indicator and drawing state is persisted per instrument. Return to the
     // sector we annotated and verify that the chart reconstructs the user's
     // analysis state rather than leaking it to the constituent.
-    const sectorIndicatorReload = page.waitForResponse(async response => {
-      if (response.request().method() !== 'GET' || !response.url().includes('/api/v1/instrument-indicators/')) return false
-      try {
-        const body = await response.json() as { indicators?: Array<{ type?: string }> }
-        return body.indicators?.some(indicator => indicator.type === 'rsi') ?? false
-      } catch { return false }
-    })
     await sectorList.getByRole('option', { name: new RegExp(`\\b${sectorSymbol}\\b`) }).first().click()
     await expect(page.getByRole('combobox', { name: 'Active symbol' })).toHaveValue(sectorSymbol)
-    await sectorIndicatorReload
+    // The chart may restore this instrument from the client cache and issue no
+    // GET at all. Assert the user-visible restored state instead of requiring a
+    // particular transport event; the control's visibility also waits for a
+    // slower persisted-state reload when one is needed.
     await plots.click()
     await expect(chart.getByRole('button', { name: /Delete RSI/ })).toBeVisible({ timeout: 20_000 })
     await expect.poll(() => chart.locator('.uplot-wrapper').getAttribute('data-drawing-count'), { timeout: 15_000 }).toBe('1')

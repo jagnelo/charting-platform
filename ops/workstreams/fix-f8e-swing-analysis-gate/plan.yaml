@@ -1,0 +1,25 @@
+schema: 1
+branch: fix/f8e-swing-analysis-gate
+base_sha: 01e8a63f901e033d6fe82c30689091ee93641174
+goal: "Harden the F8e swing-analysis browser gate against cached indicator restoration."
+scope:
+  - remove the transport-specific wait that times out when the chart restores cached instrument indicators
+  - retain the user-visible RSI and drawing restoration assertions
+owned_paths:
+  - frontend/tests/e2e/flows.spec.ts
+  - ops/workstreams/fix-f8e-swing-analysis-gate/
+dependencies:
+  - degraded master 01e8a63f901e033d6fe82c30689091ee93641174
+  - failed exhaustive replay 32610660180
+acceptance_criteria:
+  - F8e swing-analysis asserts restored RSI state without requiring a GET response
+  - focused F8e Playwright test passes with seeded stack data
+  - full integration gate and independent master replay pass
+branch_tests:
+  - 'cd frontend && E2E_SEED_MARKET_DATA=true npx playwright test tests/e2e/flows.spec.ts --grep "F8e.swing-analysis"'
+live_test_impact: none
+migration_impact: none
+deployment_impact: none
+status: in_progress
+remaining_gaps:
+  - "The real RPi rehearsal remains externally blocked by missing target configuration and direct human authorization."
