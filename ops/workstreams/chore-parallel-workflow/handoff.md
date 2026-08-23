@@ -1,9 +1,9 @@
 # Parallel worktree and RPi deployment workflow
 
-The implementation is accepted on master `e8b0f1ff960c7e7c3f3c2c2bef2b9024d35a7dc4`.
-The exact master replay `32613559588` is green across backend, frontend,
+The implementation is accepted on master `901234b524dbdade2892a888d5a502381c354597`.
+The exact master replay `32617321277` is green across backend, frontend,
 Playwright, and the exhaustive integration gate, with a receipt under
-`.ai/validation/e8b0f1ff960c7e7c3f3c2c2bef2b9024d35a7dc4.json`. The repair
+`.ai/validation/901234b524dbdade2892a888d5a502381c354597.json`. The repair
 addressed the exhaustive `F8e.swing-analysis` transport assumption: cached
 indicator restoration is now asserted through the user-visible UI rather than
 requiring a GET response. Earlier accepted replays remain historical evidence.
@@ -23,6 +23,6 @@ supplies `.ai/deploy/rpi.env`, SSH key/strict host-key trust, the remote 0600
 `shared/app.env`, and a direct exact validated-SHA deployment request. The
 current `make rpi-preflight` safely refuses to mutate anything while that
 configuration is absent. After the final gate, Docker storage exceeded the
-local 10 GiB housekeeping threshold; the requested `docker system prune -af
---volumes` reclaimed 6.703 GiB, reducing images to 7.041 GiB, and all 18 active
+local 10 GiB housekeeping threshold; the final requested `docker system prune -af
+--volumes` reclaimed 5.05 GiB, reducing images to 7.041 GiB, and all 18 active
 containers and their worktree stacks remained running.

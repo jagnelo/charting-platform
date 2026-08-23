@@ -1,0 +1,26 @@
+schema: 1
+branch: docs/parallel-workflow-final-receipt-v4
+base_sha: 901234b524dbdade2892a888d5a502381c354597
+goal: "Reconcile the shared handoff with the current published master receipt."
+scope:
+  - update the shared handoff to the published master SHA and replay receipt
+  - record final local Docker housekeeping evidence
+owned_paths:
+  - ops/workstreams/chore-parallel-workflow/handoff.md
+  - ops/workstreams/chore-parallel-workflow/validation.jsonl
+  - ops/workstreams/docs-parallel-workflow-final-receipt-v4/
+dependencies:
+  - master 901234b524dbdade2892a888d5a502381c354597
+  - validation receipt .ai/validation/901234b524dbdade2892a888d5a502381c354597.json
+acceptance_criteria:
+  - shared handoff names the current master and independent replay
+  - final Docker housekeeping evidence is recorded
+  - workstream records validate
+branch_tests:
+  - python3 scripts/validate-workstream.py ops/workstreams
+live_test_impact: none
+migration_impact: none
+deployment_impact: "Documentation only; no deployment is triggered."
+status: ready
+remaining_gaps:
+  - "The real RPi rehearsal still requires developer-supplied target configuration, SSH trust, remote app.env, and direct authorization."
