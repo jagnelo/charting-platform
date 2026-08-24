@@ -1,0 +1,2 @@
+{"command":"make validate-focused-integration INTEGRATION_BRANCH=feat/workflow-unification","result":"pass","tier":"focused_only","evidence":"25 workstream records validated; helper syntax and cleanup report passed without mutation"}
+{"command":"git diff --check","result":"pass","tier":"focused_only"}

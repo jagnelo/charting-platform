@@ -1,0 +1,21 @@
+schema: 2
+branch: feat/workflow-unification
+base_sha: cb475db01d412c201c2be2b1bfaeea3387bc3860
+human_intent_authorization: "Proceed with unifying the completed workflow branches into one coherent master workflow."
+human_closure_authorization: pending
+closure_summary: pending
+validation_tier: focused_only
+human_validation_authorization: "The human authorized workflow/helper implementation to use focused verification before later master exhaustive replay."
+goal: "Unify authorization, overview, batching, archive, and integration cleanup workflow tooling."
+scope: ["merge completed workflow branches", "resolve shared command/docs conflicts", "validate coherent lifecycle"]
+owned_paths: ["Makefile", "docs/agent-orchestration.md", "docs/development.md", "docs/worktree-lifecycle.md", "scripts/worktree.py", "scripts/integrate.py", "scripts/integrate-set.py", "scripts/worktree-cleanup.py", "ops/workstreams/feat-workflow-unification"]
+dependencies: ["feat/human-intent-guard", "feat/worktree-operations-overview", "chore/worktree-cleanup-audit"]
+acceptance_criteria: ["all lifecycle commands coexist", "new worktree schema records human intent", "cleanup remains confirmation-gated", "batch integration is explicit"]
+branch_tests:
+  - PYTHONPYCACHEPREFIX=/tmp/charting-platform-pycache python3 -m py_compile scripts/worktree.py scripts/integrate.py scripts/integrate-set.py scripts/worktree-cleanup.py scripts/validate-workstream.py
+  - python3 scripts/worktree-cleanup.py report > /tmp/charting-worktree-cleanup-report.json
+live_test_impact: none
+migration_impact: none
+deployment_impact: none
+status: ready_for_human_review
+remaining_gaps: []
