@@ -129,11 +129,28 @@ truth. The named source branch/workstream and the resulting merge commit on
    investigation.
 6. Run `make worktree-cleanup-report` before storage cleanup. It flags old
    copies that predate the lifecycle rule as `unaccounted_legacy_candidate`.
-   Do not delete those automatically: first reconcile them to a named source,
-   a published merge, or an explicitly documented discard decision.
+   Run `make worktree-cleanup-reconcile` to make each one an explicit local
+   `legacy_needs_reconciliation` record. Do not delete those automatically:
+   first reconcile them to a named source, a published merge, or an explicitly
+   documented discard decision.
 
 This rule prevents a pile of unnamed historical test copies while retaining
 enough failure evidence to diagnose a real integration problem.
+
+## Workflow Python runtime
+
+Workflow helpers are part of the application toolchain. They must run through
+the backend's UV-managed interpreter, whose declared requirement is Python
+3.12 or newer; macOS's system `python3` is never the supported runtime. Use
+the Make targets, or explicitly use:
+
+```bash
+uv run --project backend python scripts/<helper>.py
+```
+
+When adding a branch test, use that same command form. Do not make a helper
+silently compatible with an older system Python instead of enforcing the
+repository's declared runtime.
 
 ## Install / setup order
 

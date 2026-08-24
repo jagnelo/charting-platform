@@ -32,7 +32,7 @@
   branch-tests \
   validate-arm64-images \
   validate-integration validate-focused-integration branch-validate \
-  worktree-create worktree-list worktree-status worktree-overview worktree-close worktree-archive worktree-cleanup-report worktree-cleanup integrate integrate-set \
+  worktree-create worktree-list worktree-status worktree-overview worktree-close worktree-archive worktree-cleanup-report worktree-cleanup-reconcile worktree-cleanup integrate integrate-set \
   rpi-preflight rpi-bundle deploy-rpi rpi-status \
   lint lint-backend lint-frontend format \
   migrate migrate-new migrate-down \
@@ -41,7 +41,8 @@
 # ENV_FILE is passed to every local backend command so pydantic-settings
 # loads backend/.env.dev instead of looking for a .env file.
 BACKEND_ENV := ENV_FILE=.env.dev
-RUNTIME_HELPER := python3 scripts/worktree-runtime.py
+WORKFLOW_PYTHON := uv run --project backend python
+RUNTIME_HELPER := $(WORKFLOW_PYTHON) scripts/worktree-runtime.py
 RUNTIME_ENV_FILE := $(shell $(RUNTIME_HELPER) env-file)
 RUNTIME_ENV = set -a; . "$(RUNTIME_ENV_FILE)"; set +a;
 # Read LOG_LEVEL from the dev env file so uvicorn's --log-level matches it.
@@ -156,7 +157,7 @@ test-fe:
 
 test-uplot-contract:
 	@echo "▶  Primary workstation uPlot numerical-renderer contract..."
-	python3 tests/visual/validate-uplot-renderer-contract.py
+	$(WORKFLOW_PYTHON) tests/visual/validate-uplot-renderer-contract.py
 
 test-visual-policy:
 	@echo "▶  Deterministic TC2000 visual acceptance policy..."
@@ -169,7 +170,7 @@ test-compose-contract:
 
 test-migration-compatibility:
 	@echo "▶  Fresh and previous-master migration compatibility gate..."
-	python3 scripts/validate-migration-compatibility.py
+	$(WORKFLOW_PYTHON) scripts/validate-migration-compatibility.py
 
 test-research-runner-probes:
 	@echo "▶  Isolated research-runner sandbox/resource probes..."
@@ -184,15 +185,15 @@ test-research-runner-probes:
 
 test-live-provider-probes:
 	@echo "▶  Risk-based reviewed live provider probes..."
-	python3 scripts/run-live-provider-probes.py
+	$(WORKFLOW_PYTHON) scripts/run-live-provider-probes.py
 
 branch-tests:
 	@test -n "$(INTEGRATION_BRANCH)" || (echo "INTEGRATION_BRANCH is required for branch-declared tests" >&2; exit 2)
-	@$(RUNTIME_ENV) INTEGRATION_BRANCH="$(INTEGRATION_BRANCH)" python3 scripts/run-branch-tests.py "$(INTEGRATION_BRANCH)"
+	@$(RUNTIME_ENV) INTEGRATION_BRANCH="$(INTEGRATION_BRANCH)" $(WORKFLOW_PYTHON) scripts/run-branch-tests.py "$(INTEGRATION_BRANCH)"
 
 validate-arm64-images:
 	@echo "▶  Production application image build (linux/arm64)..."
-	python3 scripts/validate-arm64-images.py
+	$(WORKFLOW_PYTHON) scripts/validate-arm64-images.py
 
 test-e2e-install:
 	@echo "▶  Ensuring Playwright Chromium is installed..."
@@ -281,43 +282,46 @@ clean:
 worktree-create:
 	@test -n "$(BRANCH)" || (echo "usage: make worktree-create BRANCH=feat/name" >&2; exit 2)
 	@test -n "$(REQUEST)" || (echo "usage: make worktree-create BRANCH=feat/name REQUEST='exact human request'" >&2; exit 2)
-	python3 scripts/worktree.py create "$(BRANCH)" --request "$(REQUEST)"
+	$(WORKFLOW_PYTHON) scripts/worktree.py create "$(BRANCH)" --request "$(REQUEST)"
 
 worktree-list:
-	python3 scripts/worktree.py list
+	$(WORKFLOW_PYTHON) scripts/worktree.py list
 
 worktree-status:
 	@test -n "$(BRANCH)" || (echo "usage: make worktree-status BRANCH=feat/name" >&2; exit 2)
-	python3 scripts/worktree.py status "$(BRANCH)"
+	$(WORKFLOW_PYTHON) scripts/worktree.py status "$(BRANCH)"
 
 worktree-overview:
-	python3 scripts/worktree.py overview
+	$(WORKFLOW_PYTHON) scripts/worktree.py overview
 
 worktree-close:
 	@test -n "$(BRANCH)" || (echo "usage: make worktree-close BRANCH=feat/name" >&2; exit 2)
-	python3 scripts/worktree.py close "$(BRANCH)"
+	$(WORKFLOW_PYTHON) scripts/worktree.py close "$(BRANCH)"
 
 worktree-archive:
 	@test -n "$(BRANCH)" -a -n "$(CONFIRM)" || (echo "usage: make worktree-archive BRANCH=feat/name CONFIRM=feat/name" >&2; exit 2)
-	python3 scripts/worktree.py archive "$(BRANCH)" --confirm "$(CONFIRM)"
+	$(WORKFLOW_PYTHON) scripts/worktree.py archive "$(BRANCH)" --confirm "$(CONFIRM)"
 
 worktree-cleanup-report:
-	python3 scripts/worktree-cleanup.py report
+	@$(WORKFLOW_PYTHON) scripts/worktree-cleanup.py report
+
+worktree-cleanup-reconcile:
+	@$(WORKFLOW_PYTHON) scripts/worktree-cleanup.py reconcile
 
 worktree-cleanup:
 	@test "$(CONFIRM)" = "published-integration-candidates" || (echo "usage: make worktree-cleanup CONFIRM=published-integration-candidates" >&2; exit 2)
-	python3 scripts/worktree-cleanup.py cleanup --confirm "$(CONFIRM)"
+	$(WORKFLOW_PYTHON) scripts/worktree-cleanup.py cleanup --confirm "$(CONFIRM)"
 
 branch-validate:
-	python3 scripts/validate-workstream.py ops/workstreams
+	$(WORKFLOW_PYTHON) scripts/validate-workstream.py ops/workstreams
 
 integrate:
 	@test -n "$(BRANCH)" || (echo "usage: make integrate BRANCH=feat/name" >&2; exit 2)
-	python3 scripts/integrate.py "$(BRANCH)" --publish $(if $(REMEDIATE_DEGRADED),--remediate-degraded,) $(if $(KEEP_PAUSED),--keep-paused,)
+	$(WORKFLOW_PYTHON) scripts/integrate.py "$(BRANCH)" --publish $(if $(REMEDIATE_DEGRADED),--remediate-degraded,) $(if $(KEEP_PAUSED),--keep-paused,)
 
 integrate-set:
 	@test -n "$(BRANCHES)" || (echo "usage: make integrate-set BRANCHES='feat/a feat/b'" >&2; exit 2)
-	python3 scripts/integrate-set.py $(BRANCHES) --publish
+	$(WORKFLOW_PYTHON) scripts/integrate-set.py $(BRANCHES) --publish
 
 validate-integration:
 	@set -e; \
@@ -350,19 +354,19 @@ validate-focused-integration:
 	@set -e; \
 	stage=git-diff; printf '▶ focused integration gate stage: %s\n' "$$stage"; git diff --check; \
 	stage=workstream; printf '▶ focused integration gate stage: %s\n' "$$stage"; $(MAKE) branch-validate; \
-	stage=workflow-syntax; printf '▶ focused integration gate stage: %s\n' "$$stage"; PYTHONPYCACHEPREFIX=/tmp/charting-platform-pycache python3 -m py_compile scripts/worktree.py scripts/validate-workstream.py scripts/integrate.py; \
+	stage=workflow-syntax; printf '▶ focused integration gate stage: %s\n' "$$stage"; PYTHONPYCACHEPREFIX=/tmp/charting-platform-pycache $(WORKFLOW_PYTHON) -m py_compile scripts/worktree.py scripts/validate-workstream.py scripts/integrate.py; \
 	stage=branch-tests; printf '▶ focused integration gate stage: %s\n' "$$stage"; $(MAKE) branch-tests INTEGRATION_BRANCH="$(INTEGRATION_BRANCH)"
 
 rpi-preflight:
-	python3 scripts/rpi.py preflight
+	$(WORKFLOW_PYTHON) scripts/rpi.py preflight
 
 rpi-bundle:
 	@test -n "$(COMMIT)" || (echo "usage: make rpi-bundle COMMIT=<full-master-sha>" >&2; exit 2)
-	python3 scripts/rpi.py bundle "$(COMMIT)"
+	$(WORKFLOW_PYTHON) scripts/rpi.py bundle "$(COMMIT)"
 
 deploy-rpi:
 	@test -n "$(COMMIT)" -a -n "$(CONFIRM)" || (echo "usage: make deploy-rpi COMMIT=<sha> CONFIRM=<same-sha>" >&2; exit 2)
-	python3 scripts/rpi.py deploy "$(COMMIT)" "$(CONFIRM)"
+	$(WORKFLOW_PYTHON) scripts/rpi.py deploy "$(COMMIT)" "$(CONFIRM)"
 
 rpi-status:
-	python3 scripts/rpi.py status
+	$(WORKFLOW_PYTHON) scripts/rpi.py status

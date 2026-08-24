@@ -96,7 +96,7 @@ candidate and first record the intended combined behaviour and affected tests in
 source workstream. Then resolve and stage the candidate's semantic edits and resume it with:
 
 ```bash
-python3 scripts/integrate.py feat/provider-health --keep-paused --continue --publish
+uv run --project backend python scripts/integrate.py feat/provider-health --keep-paused --continue --publish
 ```
 
 For the ordinary one-shot path use `make integrate BRANCH=feat/provider-health`.

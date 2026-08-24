@@ -15,9 +15,9 @@ owned_paths: ["scripts/integrate.py", "scripts/integrate-set.py", "scripts/workt
 dependencies: ["feat/workflow-unification"]
 acceptance_criteria: ["candidate identity includes exact master and source inputs", "every new candidate writes a lifecycle record", "ordinary failures are recorded then removed", "only explicit active conflict resolution can retain a candidate", "cleanup report flags unaccounted historical candidates"]
 branch_tests:
-  - PYTHONPYCACHEPREFIX=/tmp/charting-platform-pycache python3 -m py_compile scripts/integrate.py scripts/integrate-set.py scripts/worktree-cleanup.py
-  - python3 scripts/worktree-cleanup.py report > /tmp/charting-candidate-lifecycle-report.json
-  - python3 scripts/integrate.py --help
+  - PYTHONPYCACHEPREFIX=/tmp/charting-platform-pycache uv run --project backend python -m py_compile scripts/integrate.py scripts/integrate-set.py scripts/worktree-cleanup.py
+  - uv run --project backend python scripts/worktree-cleanup.py report > /tmp/charting-candidate-lifecycle-report.json
+  - uv run --project backend python scripts/integrate.py --help
 live_test_impact: none
 migration_impact: none
 deployment_impact: none

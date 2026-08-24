@@ -14,7 +14,7 @@ import shutil
 import subprocess
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 
@@ -103,7 +103,9 @@ def require_human_closure(source: Path, branch: str) -> str:
             "integration requires a schema-2 workstream with recorded human intent and closure authorization"
         )
     if not values.get("human_intent_authorization"):
-        raise SystemExit("workstream does not record the human request that authorized this work")
+        raise SystemExit(
+            "workstream does not record the human request that authorized this work"
+        )
     closure = values.get("human_closure_authorization", "").strip().lower()
     if not closure or closure in {"pending", "none", "false", "no"}:
         raise SystemExit(
@@ -164,7 +166,9 @@ def assert_clean_synchronized(
         try:
             degraded = json.loads(marker.read_text())
         except (OSError, json.JSONDecodeError) as exc:
-            raise SystemExit(f"cannot read degraded master marker: {marker}: {exc}") from exc
+            raise SystemExit(
+                f"cannot read degraded master marker: {marker}: {exc}"
+            ) from exc
         current = out(["git", "rev-parse", "HEAD"], repo)
         if degraded.get("master") != current:
             raise SystemExit(
@@ -187,7 +191,9 @@ def assert_clean_synchronized(
 
 def candidate_identity(branch: str, master_sha: str, source_sha: str) -> str:
     """Return the sole candidate identity for one immutable merge input pair."""
-    return hashlib.sha256(f"{branch}:{master_sha}:{source_sha}".encode()).hexdigest()[:16]
+    return hashlib.sha256(f"{branch}:{master_sha}:{source_sha}".encode()).hexdigest()[
+        :16
+    ]
 
 
 def candidate_path(repo: Path, branch: str, master_sha: str, source_sha: str) -> Path:
@@ -215,14 +221,16 @@ def write_ledger(repo: Path, identity: str, **values: object) -> Path:
         except json.JSONDecodeError:
             existing = {"ledger_parse_error": True}
     existing.update(values)
-    existing["updated_at"] = datetime.now(timezone.utc).isoformat()
+    existing["updated_at"] = datetime.now(UTC).isoformat()
     path.write_text(json.dumps(existing, indent=2, sort_keys=True) + "\n")
     return path
 
 
 def discard_candidate(repo: Path, candidate: Path) -> None:
     """Remove only this integration candidate after its evidence is in the ledger."""
-    merge_head = run(["git", "rev-parse", "--verify", "MERGE_HEAD"], candidate, check=False)
+    merge_head = run(
+        ["git", "rev-parse", "--verify", "MERGE_HEAD"], candidate, check=False
+    )
     if merge_head.returncode == 0:
         run(["git", "merge", "--abort"], candidate, check=False)
     status = run(["git", "status", "--porcelain"], candidate, check=False)
@@ -253,7 +261,7 @@ def make_candidate(
         source_sha=source_sha,
         candidate=str(candidate),
         state="created",
-        created_at=datetime.now(timezone.utc).isoformat(),
+        created_at=datetime.now(UTC).isoformat(),
     )
     run(["git", "worktree", "add", "--detach", str(candidate), master_sha], repo)
     merge = run(
@@ -292,11 +300,18 @@ def make_candidate(
         raise SystemExit(
             f"candidate has merge conflicts; resolve them only if --keep-paused was requested: {candidate}"
         )
-    write_ledger(repo, identity, state="merged", candidate_sha=out(["git", "rev-parse", "HEAD"], candidate))
+    write_ledger(
+        repo,
+        identity,
+        state="merged",
+        candidate_sha=out(["git", "rev-parse", "HEAD"], candidate),
+    )
     return candidate, out(["git", "rev-parse", "HEAD"], candidate)
 
 
-def continue_candidate(repo: Path, branch: str, master_sha: str, source_sha: str) -> tuple[Path, str]:
+def continue_candidate(
+    repo: Path, branch: str, master_sha: str, source_sha: str
+) -> tuple[Path, str]:
     """Resume a conflict candidate after semantic edits were made in place."""
     identity = candidate_identity(branch, master_sha, source_sha)
     candidate = candidate_path(repo, branch, master_sha, source_sha)
@@ -324,11 +339,18 @@ def continue_candidate(repo: Path, branch: str, master_sha: str, source_sha: str
     ):
         raise SystemExit("paused candidate does not contain the captured source SHA")
     candidate_sha = out(["git", "rev-parse", "HEAD"], candidate)
-    write_ledger(repo, identity, state="merged_after_recorded_resolution", candidate_sha=candidate_sha)
+    write_ledger(
+        repo,
+        identity,
+        state="merged_after_recorded_resolution",
+        candidate_sha=candidate_sha,
+    )
     return candidate, candidate_sha
 
 
-def validate(repo: Path, candidate: Path, branch: str, source_sha: str, tier: str) -> None:
+def validate(
+    repo: Path, candidate: Path, branch: str, source_sha: str, tier: str
+) -> None:
     if out(["git", "rev-parse", "HEAD"], repo) != out(
         ["git", "rev-parse", "origin/master"], repo
     ):
@@ -338,7 +360,12 @@ def validate(repo: Path, candidate: Path, branch: str, source_sha: str, tier: st
             "source branch no longer resolves to the captured candidate SHA"
         )
     run(
-        ["make", "validate-integration" if tier == "full_integration" else "validate-focused-integration"],
+        [
+            "make",
+            "validate-integration"
+            if tier == "full_integration"
+            else "validate-focused-integration",
+        ],
         candidate,
         env={**os.environ, "INTEGRATION_BRANCH": branch},
     )
@@ -357,7 +384,9 @@ def github_replay(repo: Path, commit: str) -> dict[str, str]:
     """Require the independent push-triggered GitHub workflow to pass."""
     if shutil.which("gh") is None:
         raise SystemExit("gh CLI is required to verify the independent GitHub replay")
-    wait_seconds = max(0.0, float(os.environ.get("INTEGRATION_GITHUB_REPLAY_WAIT_SECONDS", "120")))
+    wait_seconds = max(
+        0.0, float(os.environ.get("INTEGRATION_GITHUB_REPLAY_WAIT_SECONDS", "120"))
+    )
     deadline = time.monotonic() + wait_seconds
     matching: list[dict[str, object]] = []
     while True:
@@ -387,7 +416,9 @@ def github_replay(repo: Path, commit: str) -> dict[str, str]:
         try:
             runs = json.loads(listed.stdout)
         except json.JSONDecodeError as exc:
-            raise SystemExit(f"GitHub Actions returned invalid replay data: {exc}") from exc
+            raise SystemExit(
+                f"GitHub Actions returned invalid replay data: {exc}"
+            ) from exc
         matching = [item for item in runs if item.get("headSha") == commit]
         if matching or time.monotonic() >= deadline:
             break
@@ -450,7 +481,7 @@ def publish(repo: Path, candidate: Path, candidate_sha: str, source_sha: str) ->
                     "master": candidate_sha,
                     "source_sha": source_sha,
                     "reason": str(exc),
-                    "recorded_at": datetime.now(timezone.utc).isoformat(),
+                    "recorded_at": datetime.now(UTC).isoformat(),
                 },
                 indent=2,
             )
@@ -473,7 +504,7 @@ def publish(repo: Path, candidate: Path, candidate_sha: str, source_sha: str) ->
                 "github_replay": "pass",
                 "github_run_id": replay["run_id"],
                 "github_run_url": replay["url"],
-                "validated_at": datetime.now(timezone.utc).isoformat(),
+                "validated_at": datetime.now(UTC).isoformat(),
             },
             indent=2,
         )
@@ -501,7 +532,9 @@ def main() -> int:
     )
     args = parser.parse_args()
     if not args.publish:
-        raise SystemExit("integration candidates are not preview artifacts; rerun with --publish")
+        raise SystemExit(
+            "integration candidates are not preview artifacts; rerun with --publish"
+        )
     repo = root()
     with integration_lock(repo):
         source = assert_clean_synchronized(
@@ -515,13 +548,19 @@ def main() -> int:
         try:
             if args.continue_candidate:
                 if not args.keep_paused:
-                    raise SystemExit("--continue requires --keep-paused; ordinary failed attempts are discarded")
+                    raise SystemExit(
+                        "--continue requires --keep-paused; ordinary failed attempts are discarded"
+                    )
                 candidate, candidate_sha = continue_candidate(
                     repo, args.branch, master_sha, source_sha
                 )
             else:
                 candidate, candidate_sha = make_candidate(
-                    repo, args.branch, master_sha, source_sha, keep_paused=args.keep_paused
+                    repo,
+                    args.branch,
+                    master_sha,
+                    source_sha,
+                    keep_paused=args.keep_paused,
                 )
             validate(repo, candidate, args.branch, source_sha, tier)
             write_ledger(repo, identity, state="validated", candidate_sha=candidate_sha)
