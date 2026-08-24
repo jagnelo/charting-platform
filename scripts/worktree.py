@@ -90,14 +90,17 @@ def branch_path(branch: str) -> Path:
     raise SystemExit(f"branch is not checked out in a worktree: {branch}")
 
 
-def initialise_docs(path: Path, branch: str, request: str) -> None:
+def initialise_docs(path: Path, branch: str, request: str, base: str, dependency_authorization: str) -> None:
     directory = path / "ops" / "workstreams" / branch_slug(branch)
     directory.mkdir(parents=True, exist_ok=False)
-    base_sha = git("rev-parse", "master", cwd=path)
+    base_sha = git("rev-parse", base, cwd=path)
     (directory / "plan.yaml").write_text(
         "schema: 2\n"
         f"branch: {branch}\n"
         f"base_sha: {base_sha}\n"
+        f"parent_branch: {base}\n"
+        f"parent_sha: {base_sha}\n"
+        f"dependency_authorization: {json.dumps(dependency_authorization or 'not applicable: independent master-based topic')}\n"
         f"human_intent_authorization: {json.dumps(request)}\n"
         "human_closure_authorization: pending\n"
         "closure_summary: pending\n"
@@ -126,7 +129,7 @@ def initialise_docs(path: Path, branch: str, request: str) -> None:
     (directory / "validation.jsonl").write_text("")
 
 
-def create(branch: str, request: str) -> None:
+def create(branch: str, request: str, base: str, dependency_authorization: str) -> None:
     if not branch.startswith(PREFIXES) or branch.endswith("/"):
         raise SystemExit(
             "branch must use feat/, fix/, chore/, docs/, or test/ and include a name"
@@ -138,6 +141,14 @@ def create(branch: str, request: str) -> None:
             "a recorded human request is required; pass --request with the approved intent"
         )
     ensure_master_ready()
+    if base != "master":
+        if not dependency_authorization.strip():
+            raise SystemExit("dependent branch creation requires explicit human dependency authorization")
+        parent = branch_path(base)
+        if git("status", "--porcelain", cwd=parent):
+            raise SystemExit(f"parent branch worktree is dirty: {parent}")
+    elif dependency_authorization.strip():
+        raise SystemExit("dependency authorization is valid only with a non-master base")
     if git("show-ref", "--verify", f"refs/heads/{branch}", check=False):
         raise SystemExit(f"local branch already exists: {branch}")
     if git("ls-remote", "--exit-code", "--heads", "origin", branch, check=False):
@@ -146,8 +157,8 @@ def create(branch: str, request: str) -> None:
     if target.exists():
         raise SystemExit(f"worktree path already exists: {target}")
     target.parent.mkdir(parents=True, exist_ok=True)
-    git("worktree", "add", "-b", branch, str(target), "master")
-    initialise_docs(target, branch, request.strip())
+    git("worktree", "add", "-b", branch, str(target), base)
+    initialise_docs(target, branch, request.strip(), base, dependency_authorization.strip())
     print(target)
 
 
@@ -279,6 +290,8 @@ def main() -> int:
     p = sub.add_parser("create")
     p.add_argument("branch")
     p.add_argument("--request", required=True)
+    p.add_argument("--base", default="master")
+    p.add_argument("--dependency-authorization", default="")
     p = sub.add_parser("status")
     p.add_argument("branch")
     p = sub.add_parser("close")
@@ -290,7 +303,7 @@ def main() -> int:
     sub.add_parser("overview")
     args = parser.parse_args()
     if args.command == "create":
-        create(args.branch, args.request)
+        create(args.branch, args.request, args.base, args.dependency_authorization)
     elif args.command == "status":
         status(args.branch)
     elif args.command == "close":

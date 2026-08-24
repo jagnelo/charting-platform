@@ -1,0 +1,1 @@
+{"command":"python3 -m py_compile scripts/worktree.py","result":"pass","tier":"focused_only"}
