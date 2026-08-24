@@ -195,7 +195,7 @@ def overview() -> None:
         if branch in {"master", "(detached)"}:
             rows.append({"branch": branch, "path": str(path), "kind": "integration-artifact" if branch == "(detached)" else "master", "size_bytes": size_bytes(path)})
             continue
-        ahead, behind = git("rev-list", "--left-right", "--count", f"master...{branch}", cwd=path).split()
+        behind, ahead = git("rev-list", "--left-right", "--count", f"master...{branch}", cwd=path).split()
         plan = plan_values(path, branch)
         reasons = closure_reasons(branch, path)
         rows.append({"branch": branch, "path": str(path), "goal": plan.get("goal", "unrecorded"), "workstream_status": plan.get("status", "missing"), "ahead": int(ahead), "behind": int(behind), "dirty": bool(git("status", "--porcelain", cwd=path)), "size_bytes": size_bytes(path), "close": "safe" if not reasons else "blocked: " + "; ".join(reasons)})
