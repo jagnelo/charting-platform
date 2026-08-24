@@ -32,7 +32,7 @@
   branch-tests \
   validate-arm64-images \
   validate-integration validate-focused-integration branch-validate \
-  worktree-create worktree-list worktree-status worktree-close integrate \
+  worktree-create worktree-list worktree-status worktree-overview worktree-close worktree-archive integrate integrate-set \
   rpi-preflight rpi-bundle deploy-rpi rpi-status \
   lint lint-backend lint-frontend format \
   migrate migrate-new migrate-down \
@@ -290,9 +290,16 @@ worktree-status:
 	@test -n "$(BRANCH)" || (echo "usage: make worktree-status BRANCH=feat/name" >&2; exit 2)
 	python3 scripts/worktree.py status "$(BRANCH)"
 
+worktree-overview:
+	python3 scripts/worktree.py overview
+
 worktree-close:
 	@test -n "$(BRANCH)" || (echo "usage: make worktree-close BRANCH=feat/name" >&2; exit 2)
 	python3 scripts/worktree.py close "$(BRANCH)"
+
+worktree-archive:
+	@test -n "$(BRANCH)" -a -n "$(CONFIRM)" || (echo "usage: make worktree-archive BRANCH=feat/name CONFIRM=feat/name" >&2; exit 2)
+	python3 scripts/worktree.py archive "$(BRANCH)" --confirm "$(CONFIRM)"
 
 branch-validate:
 	python3 scripts/validate-workstream.py ops/workstreams
@@ -300,6 +307,10 @@ branch-validate:
 integrate:
 	@test -n "$(BRANCH)" || (echo "usage: make integrate BRANCH=feat/name" >&2; exit 2)
 	python3 scripts/integrate.py "$(BRANCH)" --publish $(if $(REMEDIATE_DEGRADED),--remediate-degraded,)
+
+integrate-set:
+	@test -n "$(BRANCHES)" || (echo "usage: make integrate-set BRANCHES='feat/a feat/b'" >&2; exit 2)
+	python3 scripts/integrate-set.py $(BRANCHES) --publish
 
 validate-integration:
 	@set -e; \
