@@ -37,6 +37,21 @@ def registered(repo: Path) -> set[Path]:
 
 def candidate(repo: Path, path: Path, known: set[Path]) -> dict[str, object]:
     row: dict[str, object] = {"path": str(path), "action": "retain"}
+    ledger_root = common(repo) / ".ai" / "integration" / "ledger"
+    ledgers = []
+    if ledger_root.exists():
+        for ledger in ledger_root.glob("*.json"):
+            try:
+                data = json.loads(ledger.read_text())
+            except json.JSONDecodeError:
+                continue
+            if data.get("candidate") == str(path):
+                ledgers.append({"path": str(ledger), "state": data.get("state"), "updated_at": data.get("updated_at")})
+    if ledgers:
+        row["lifecycle_records"] = ledgers
+    else:
+        row["lifecycle_records"] = []
+        row["historical_state"] = "unaccounted_legacy_candidate"
     if path.resolve() not in known or not (path / ".git").exists():
         row["reason"] = "not a registered usable Git worktree"
         return row
@@ -54,6 +69,9 @@ def candidate(repo: Path, path: Path, known: set[Path]) -> dict[str, object]:
     reachable = git("merge-base", "--is-ancestor", sha, "master", cwd=repo)
     if reachable.returncode:
         row["reason"] = "candidate HEAD is not published on master"
+        return row
+    if not ledgers:
+        row["reason"] = "legacy candidate has no lifecycle record; reconcile before removal"
         return row
     row["action"] = "eligible_remove"
     row["reason"] = "clean detached candidate already reachable from master"

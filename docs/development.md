@@ -90,12 +90,19 @@ make worktree-archive BRANCH=fix/abandoned CONFIRM=fix/abandoned
 make integrate-set BRANCHES='docs/a feat/b'
 ```
 
-If integration pauses on merge conflicts, resolve and stage the candidate's
-semantic edits, update `ops/integration-conflicts.md`, then resume it with:
+By default a failed integration is recorded and its temporary test copy is removed.
+When semantic conflict investigation is genuinely needed, explicitly retain the one
+candidate and first record the intended combined behaviour and affected tests in the
+source workstream. Then resolve and stage the candidate's semantic edits and resume it with:
 
 ```bash
-python3 scripts/integrate.py feat/provider-health --continue --publish
+python3 scripts/integrate.py feat/provider-health --keep-paused --continue --publish
 ```
+
+For the ordinary one-shot path use `make integrate BRANCH=feat/provider-health`.
+Only an active semantic conflict may use `KEEP_PAUSED=1`; batch integrations
+record and discard conflicts, then require the named sources to be reconciled
+before a fresh batch is created.
 
 If `master` is marked degraded after an independent GitHub replay failure, ordinary
 integration remains blocked. A repair branch created directly from that exact degraded

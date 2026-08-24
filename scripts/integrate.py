@@ -14,7 +14,7 @@ import shutil
 import subprocess
 import sys
 import time
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -185,24 +185,77 @@ def assert_clean_synchronized(
     return source
 
 
-def candidate_path(repo: Path, branch: str, source_sha: str) -> Path:
-    token = hashlib.sha256(f"{branch}:{source_sha}".encode()).hexdigest()[:12]
+def candidate_identity(branch: str, master_sha: str, source_sha: str) -> str:
+    """Return the sole candidate identity for one immutable merge input pair."""
+    return hashlib.sha256(f"{branch}:{master_sha}:{source_sha}".encode()).hexdigest()[:16]
+
+
+def candidate_path(repo: Path, branch: str, master_sha: str, source_sha: str) -> Path:
+    token = candidate_identity(branch, master_sha, source_sha)
     return (
         common_root(repo)
         / ".ai"
         / "integration"
-        / f"{branch.replace('/', '-')}-{token}"
+        / f"{branch.replace('/', '-')}-{master_sha[:12]}-{source_sha[:12]}-{token}"
     )
 
 
-def make_candidate(repo: Path, branch: str, source_sha: str) -> tuple[Path, str]:
-    candidate = candidate_path(repo, branch, source_sha)
+def ledger_path(repo: Path, identity: str) -> Path:
+    return common_root(repo) / ".ai" / "integration" / "ledger" / f"{identity}.json"
+
+
+def write_ledger(repo: Path, identity: str, **values: object) -> Path:
+    """Persist the lifecycle result outside the disposable candidate checkout."""
+    path = ledger_path(repo, identity)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    existing: dict[str, object] = {}
+    if path.exists():
+        try:
+            existing = json.loads(path.read_text())
+        except json.JSONDecodeError:
+            existing = {"ledger_parse_error": True}
+    existing.update(values)
+    existing["updated_at"] = datetime.now(timezone.utc).isoformat()
+    path.write_text(json.dumps(existing, indent=2, sort_keys=True) + "\n")
+    return path
+
+
+def discard_candidate(repo: Path, candidate: Path) -> None:
+    """Remove only this integration candidate after its evidence is in the ledger."""
+    merge_head = run(["git", "rev-parse", "--verify", "MERGE_HEAD"], candidate, check=False)
+    if merge_head.returncode == 0:
+        run(["git", "merge", "--abort"], candidate, check=False)
+    status = run(["git", "status", "--porcelain"], candidate, check=False)
+    if status.returncode or status.stdout.strip():
+        raise SystemExit(
+            "candidate has local changes and cannot be discarded automatically; "
+            f"inspect {candidate} and its ledger entry before removal"
+        )
+    run(["git", "worktree", "remove", str(candidate)], repo)
+
+
+def make_candidate(
+    repo: Path, branch: str, master_sha: str, source_sha: str, *, keep_paused: bool
+) -> tuple[Path, str]:
+    identity = candidate_identity(branch, master_sha, source_sha)
+    candidate = candidate_path(repo, branch, master_sha, source_sha)
     if candidate.exists():
         raise SystemExit(
             f"candidate path already exists; inspect or remove it explicitly: {candidate}"
         )
     candidate.parent.mkdir(parents=True, exist_ok=True)
-    run(["git", "worktree", "add", "--detach", str(candidate), "master"], repo)
+    write_ledger(
+        repo,
+        identity,
+        schema=1,
+        branch=branch,
+        master_sha=master_sha,
+        source_sha=source_sha,
+        candidate=str(candidate),
+        state="created",
+        created_at=datetime.now(timezone.utc).isoformat(),
+    )
+    run(["git", "worktree", "add", "--detach", str(candidate), master_sha], repo)
     merge = run(
         [
             "git",
@@ -217,26 +270,36 @@ def make_candidate(repo: Path, branch: str, source_sha: str) -> tuple[Path, str]
     )
     if merge.returncode:
         conflicts = out(["git", "diff", "--name-only", "--diff-filter=U"], candidate)
-        report = candidate / "ops" / "integration-conflicts.md"
-        report.parent.mkdir(parents=True, exist_ok=True)
-        report.write_text(
-            f"# Integration conflicts\n\nSource: `{branch}` at `{source_sha}`\n\n"
-            "Resolve semantically; preserve both behaviours unless the workstream documents a superseding decision.\n\n"
-            "Conflicted paths:\n"
-            + "\n".join(f"- `{path}`" for path in conflicts.splitlines())
-            + "\n"
+        write_ledger(
+            repo,
+            identity,
+            state="conflict",
+            conflict_paths=conflicts.splitlines(),
+            disposition="discard_after_recording_unless_keep_paused",
+            merge_stdout=merge.stdout,
+            merge_stderr=merge.stderr,
         )
+        if not keep_paused:
+            write_ledger(
+                repo,
+                identity,
+                state="failed_discarded",
+                disposition="removed_after_recording",
+            )
+            discard_candidate(repo, candidate)
         print(merge.stdout, end="")
         print(merge.stderr, end="", file=sys.stderr)
         raise SystemExit(
-            f"candidate has merge conflicts; resolve them in {candidate} and rerun with --continue"
+            f"candidate has merge conflicts; resolve them only if --keep-paused was requested: {candidate}"
         )
+    write_ledger(repo, identity, state="merged", candidate_sha=out(["git", "rev-parse", "HEAD"], candidate))
     return candidate, out(["git", "rev-parse", "HEAD"], candidate)
 
 
-def continue_candidate(repo: Path, branch: str, source_sha: str) -> tuple[Path, str]:
+def continue_candidate(repo: Path, branch: str, master_sha: str, source_sha: str) -> tuple[Path, str]:
     """Resume a conflict candidate after semantic edits were made in place."""
-    candidate = candidate_path(repo, branch, source_sha)
+    identity = candidate_identity(branch, master_sha, source_sha)
+    candidate = candidate_path(repo, branch, master_sha, source_sha)
     if not candidate.exists():
         raise SystemExit(f"no paused candidate exists at {candidate}")
     conflicts = out(["git", "diff", "--name-only", "--diff-filter=U"], candidate)
@@ -248,13 +311,7 @@ def continue_candidate(repo: Path, branch: str, source_sha: str) -> tuple[Path, 
     merge_head = Path(out(["git", "rev-parse", "--git-path", "MERGE_HEAD"], candidate))
     if not merge_head.is_absolute():
         merge_head = candidate / merge_head
-    report = candidate / "ops" / "integration-conflicts.md"
     if merge_head.exists():
-        # The report is part of the durable conflict record. Only that known
-        # generated path is staged automatically; semantic source changes must
-        # have been reviewed and staged by the resolving agent.
-        if report.exists():
-            run(["git", "add", str(report)], candidate)
         env = {**os.environ, "GIT_EDITOR": ":"}
         run(["git", "merge", "--continue"], candidate, env=env)
     if (
@@ -266,7 +323,9 @@ def continue_candidate(repo: Path, branch: str, source_sha: str) -> tuple[Path, 
         != 0
     ):
         raise SystemExit("paused candidate does not contain the captured source SHA")
-    return candidate, out(["git", "rev-parse", "HEAD"], candidate)
+    candidate_sha = out(["git", "rev-parse", "HEAD"], candidate)
+    write_ledger(repo, identity, state="merged_after_recorded_resolution", candidate_sha=candidate_sha)
+    return candidate, candidate_sha
 
 
 def validate(repo: Path, candidate: Path, branch: str, source_sha: str, tier: str) -> None:
@@ -391,7 +450,7 @@ def publish(repo: Path, candidate: Path, candidate_sha: str, source_sha: str) ->
                     "master": candidate_sha,
                     "source_sha": source_sha,
                     "reason": str(exc),
-                    "recorded_at": datetime.now(UTC).isoformat(),
+                    "recorded_at": datetime.now(timezone.utc).isoformat(),
                 },
                 indent=2,
             )
@@ -414,7 +473,7 @@ def publish(repo: Path, candidate: Path, candidate_sha: str, source_sha: str) ->
                 "github_replay": "pass",
                 "github_run_id": replay["run_id"],
                 "github_run_url": replay["url"],
-                "validated_at": datetime.now(UTC).isoformat(),
+                "validated_at": datetime.now(timezone.utc).isoformat(),
             },
             indent=2,
         )
@@ -428,6 +487,11 @@ def main() -> int:
     parser.add_argument("branch")
     parser.add_argument("--continue", dest="continue_candidate", action="store_true")
     parser.add_argument(
+        "--keep-paused",
+        action="store_true",
+        help="retain one conflict candidate for active semantic resolution; otherwise record and discard it",
+    )
+    parser.add_argument(
         "--publish", action="store_true", help="publish only after the full gate passes"
     )
     parser.add_argument(
@@ -436,18 +500,51 @@ def main() -> int:
         help="allow only a repair branch based directly on the current degraded master SHA",
     )
     args = parser.parse_args()
+    if not args.publish:
+        raise SystemExit("integration candidates are not preview artifacts; rerun with --publish")
     repo = root()
     with integration_lock(repo):
         source = assert_clean_synchronized(
             repo, args.branch, remediate_degraded=args.remediate_degraded
         )
         tier = require_human_closure(source, args.branch)
+        master_sha = out(["git", "rev-parse", "HEAD"], repo)
         source_sha = out(["git", "rev-parse", "HEAD"], source)
-        if args.continue_candidate:
-            candidate, candidate_sha = continue_candidate(repo, args.branch, source_sha)
-        else:
-            candidate, candidate_sha = make_candidate(repo, args.branch, source_sha)
-        validate(repo, candidate, args.branch, source_sha, tier)
+        identity = candidate_identity(args.branch, master_sha, source_sha)
+        candidate: Path | None = None
+        try:
+            if args.continue_candidate:
+                if not args.keep_paused:
+                    raise SystemExit("--continue requires --keep-paused; ordinary failed attempts are discarded")
+                candidate, candidate_sha = continue_candidate(
+                    repo, args.branch, master_sha, source_sha
+                )
+            else:
+                candidate, candidate_sha = make_candidate(
+                    repo, args.branch, master_sha, source_sha, keep_paused=args.keep_paused
+                )
+            validate(repo, candidate, args.branch, source_sha, tier)
+            write_ledger(repo, identity, state="validated", candidate_sha=candidate_sha)
+        except SystemExit as exc:
+            if candidate is not None and candidate.exists():
+                if args.keep_paused:
+                    write_ledger(
+                        repo,
+                        identity,
+                        state="paused",
+                        reason=str(exc),
+                        disposition="active_resolution_required",
+                    )
+                else:
+                    write_ledger(
+                        repo,
+                        identity,
+                        state="failed_discarded",
+                        reason=str(exc),
+                        disposition="removed_after_recording",
+                    )
+                    discard_candidate(repo, candidate)
+            raise
         print(
             json.dumps(
                 {
@@ -459,10 +556,27 @@ def main() -> int:
                 indent=2,
             )
         )
-        if args.publish:
+        try:
             publish(repo, candidate, candidate_sha, source_sha)
+            write_ledger(
+                repo,
+                identity,
+                state="published",
+                candidate_sha=candidate_sha,
+                disposition="removed_after_publication",
+            )
             run(["git", "worktree", "remove", str(candidate)], repo)
             print(f"published master at {candidate_sha}")
+        except SystemExit as exc:
+            write_ledger(
+                repo,
+                identity,
+                state="publication_incomplete",
+                candidate_sha=candidate_sha,
+                reason=str(exc),
+                disposition="manual_reconciliation_required",
+            )
+            raise
     return 0
 
 

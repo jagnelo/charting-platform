@@ -313,7 +313,7 @@ branch-validate:
 
 integrate:
 	@test -n "$(BRANCH)" || (echo "usage: make integrate BRANCH=feat/name" >&2; exit 2)
-	python3 scripts/integrate.py "$(BRANCH)" --publish $(if $(REMEDIATE_DEGRADED),--remediate-degraded,)
+	python3 scripts/integrate.py "$(BRANCH)" --publish $(if $(REMEDIATE_DEGRADED),--remediate-degraded,) $(if $(KEEP_PAUSED),--keep-paused,)
 
 integrate-set:
 	@test -n "$(BRANCHES)" || (echo "usage: make integrate-set BRANCHES='feat/a feat/b'" >&2; exit 2)

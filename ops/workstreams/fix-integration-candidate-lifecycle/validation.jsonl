@@ -1,0 +1,2 @@
+{"command":"make validate-focused-integration INTEGRATION_BRANCH=fix/integration-candidate-lifecycle","result":"passed","scope":"workstream schema, workflow helper syntax, branch tests"}
+{"command":"python3 scripts/integrate-set.py --help","result":"passed","scope":"batch integration CLI"}

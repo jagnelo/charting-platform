@@ -102,6 +102,39 @@ global `ops/handoff.md`, `ops/state.json`, or `ops/run-report.md` updates for
 feature workers. Those files are historical integration evidence. The current
 branch's workstream is the durable coordination record.
 
+## Integration-candidate lifecycle (non-negotiable)
+
+An integration candidate is one **temporary combined test copy** made from one
+exact `master` commit and one exact source-branch commit. It is not a second
+branch, not an alternate version of `master`, and never a durable source of
+truth. The named source branch/workstream and the resulting merge commit on
+`master` are the only source changes an agent may rely on.
+
+1. Use only `make integrate` or `make integrate-set`; never create ad-hoc
+   candidates. The helper identity includes the frozen master SHA and every
+   frozen source SHA, so superseded inputs cannot reuse a previous test copy.
+2. The helper writes a generated local lifecycle record in
+   `.ai/integration/ledger/` before it creates the copy. It records inputs,
+   state, error/conflict paths, and the final disposition.
+3. On success, publish the tested merge commit, write `published` to the
+   lifecycle record, and immediately remove the copy.
+4. On an ordinary merge or validation failure, write
+   `failed_discarded`, keep the error evidence in the lifecycle record, and
+   immediately remove the copy. A later retry starts fresh from the then-exact
+   inputs; it never reuses a failed copy.
+5. Retention is exceptional: pass `--keep-paused` only for an active semantic
+   conflict resolution. Before continuing it, record the intended combined
+   behaviour and affected tests in the source workstream. A paused candidate
+   must either publish or be discarded; it cannot become a forgotten local
+   investigation.
+6. Run `make worktree-cleanup-report` before storage cleanup. It flags old
+   copies that predate the lifecycle rule as `unaccounted_legacy_candidate`.
+   Do not delete those automatically: first reconcile them to a named source,
+   a published merge, or an explicitly documented discard decision.
+
+This rule prevents a pile of unnamed historical test copies while retaining
+enough failure evidence to diagnose a real integration problem.
+
 ## Install / setup order
 
 1. Install and verify **Codex CLI**
