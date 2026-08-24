@@ -21,5 +21,5 @@ branch_tests:
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
-status: in_progress
+status: ready_for_human_review
 remaining_gaps: ["Existing historical candidates require a separate reconciliation decision before removal because their exact merge resolution may be locally unique."]

@@ -1,2 +1,3 @@
 {"command":"make validate-focused-integration INTEGRATION_BRANCH=fix/integration-candidate-lifecycle","result":"passed","scope":"workstream schema, workflow helper syntax, branch tests"}
 {"command":"python3 scripts/integrate-set.py --help","result":"passed","scope":"batch integration CLI"}
+{"command":"git push --set-upstream origin HEAD:refs/heads/fix/integration-candidate-lifecycle","result":"passed","commit":"2d813d7b0c980d97d1b477a6e407d421b8c5ead3"}

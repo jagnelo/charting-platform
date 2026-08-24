@@ -15,3 +15,9 @@ Implement the candidate ledger and automatic disposal rules, then run focused he
 - `make validate-focused-integration INTEGRATION_BRANCH=fix/integration-candidate-lifecycle` passed after repairing the inherited Python 3.9 incompatibility in `scripts/integrate.py`.
 - `python3 scripts/integrate-set.py --help` passed.
 - `make worktree-cleanup-report` now classifies the fourteen historical temporary copies as `unaccounted_legacy_candidate`; none is eligible for automatic removal.
+
+## Published implementation boundary
+
+- Implementation commit `2d813d7b0c980d97d1b477a6e407d421b8c5ead3` is pushed to `origin/fix/integration-candidate-lifecycle` and the worktree was clean immediately afterwards.
+- This branch is ready for human review only. It depends on `feat/workflow-unification`, which must reach `master` first; integration remains prohibited until a human explicitly closes this topic.
+- The fourteen pre-policy temporary copies remain deliberately retained and explicitly reported as legacy/unaccounted. They require a separate reconciliation decision; this branch prevents new copies from becoming the same kind of orphaned residue.
