@@ -32,7 +32,7 @@
   branch-tests \
   validate-arm64-images \
   validate-integration branch-validate \
-  worktree-create worktree-list worktree-status worktree-close integrate \
+  worktree-create worktree-list worktree-status worktree-close worktree-cleanup-report worktree-cleanup integrate \
   rpi-preflight rpi-bundle deploy-rpi rpi-status \
   lint lint-backend lint-frontend format \
   migrate migrate-new migrate-down \
@@ -292,6 +292,13 @@ worktree-status:
 worktree-close:
 	@test -n "$(BRANCH)" || (echo "usage: make worktree-close BRANCH=feat/name" >&2; exit 2)
 	python3 scripts/worktree.py close "$(BRANCH)"
+
+worktree-cleanup-report:
+	python3 scripts/worktree-cleanup.py report
+
+worktree-cleanup:
+	@test "$(CONFIRM)" = "published-integration-candidates" || (echo "usage: make worktree-cleanup CONFIRM=published-integration-candidates" >&2; exit 2)
+	python3 scripts/worktree-cleanup.py cleanup --confirm "$(CONFIRM)"
 
 branch-validate:
 	python3 scripts/validate-workstream.py ops/workstreams
