@@ -58,3 +58,12 @@ focused workflow regressions and Ruff checks pass after this hardening. The subs
 exhaustive replay also completed with exit code `0`, including the full browser and four-environment
 visual suites, then removed only the branch-scoped Compose resources. This is the final validated
 tree for the implementation commit.
+
+GitHub Actions independently replayed implementation commit
+`d845653e34bacc9dfafc1eb75d4a7f7d9b28604c` in run
+`32786834842`. Backend Tests, Frontend Unit Tests, Branch-declared Tests, and E2E Tests
+(Playwright) all passed. The Exhaustive Integration Gate was correctly skipped because this is a
+feature branch; the workflow requires that gate on `staging` and `master`. The Node 20 action-runtime
+deprecation messages are warnings from upstream action versions, not test failures. This evidence
+checkpoint intentionally does not claim its own follow-up commit as the tested implementation SHA,
+avoiding an infinite metadata-only validation loop.
