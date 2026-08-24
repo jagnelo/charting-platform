@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Run the migration compatibility gate against disposable PostgreSQL.
 
-The integration candidate is a merge commit.  Its first parent is the exact
-master baseline, so the gate can build the old schema with the previous
-application and then upgrade that same database with the candidate migrations.
-The database and the temporary previous-release worktree are always removed.
+INTEGRATION_BASE_SHA identifies the prior runnable release. The gate builds
+that schema with the previous application, upgrades it with the checked-out
+staging or master commit, and then exercises the previous application against
+the expanded schema. The temporary database/worktree are always removed.
 """
 
 from __future__ import annotations
@@ -200,9 +200,9 @@ def main() -> int:
         wait_for_postgres(port)
         old_env = migration_env(port)
         run([str(ALEMBIC), "upgrade", "head"], cwd=previous / "backend", env=old_env)
-        print(f"previous-master schema: {old_head(previous)}")
+        print(f"previous-release schema: {old_head(previous)}")
         run([str(ALEMBIC), "upgrade", "head"], cwd=BACKEND, env=env)
-        print(f"candidate schema: {git('rev-parse', 'HEAD')}")
+        print(f"checked-out schema: {git('rev-parse', 'HEAD')}")
         smoke_previous_app(previous, port)
         print(
             f"migration compatibility: passed ({len(migrations)} changed migration file(s))"

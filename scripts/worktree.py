@@ -45,7 +45,7 @@ def common_root() -> Path:
     return common.resolve().parent
 
 
-def ensure_master_ready() -> None:
+def ensure_operator_ready(*, allow_degraded: bool = False) -> None:
     if git("branch", "--show-current") != "master":
         raise SystemExit(
             "worktree creation must run from the clean root master checkout"
@@ -56,6 +56,11 @@ def ensure_master_ready() -> None:
         )
     if git("diff", "--check"):
         raise SystemExit("master has whitespace errors")
+    git(
+        "fetch",
+        "origin",
+        "+refs/heads/master:refs/remotes/origin/master",
+    )
     remote = git("rev-parse", "--verify", "origin/master", check=False)
     if not remote:
         raise SystemExit(
@@ -63,6 +68,11 @@ def ensure_master_ready() -> None:
         )
     if git("rev-parse", "HEAD") != remote:
         raise SystemExit("master is not synchronized with origin/master")
+    degraded = common_root() / ".ai" / "staging-degraded.json"
+    if degraded.exists() and not allow_degraded:
+        raise SystemExit(
+            "staging is degraded; create only an explicitly authorized remediation branch"
+        )
 
 
 def worktree_records() -> list[dict[str, str]]:
@@ -90,7 +100,9 @@ def branch_path(branch: str) -> Path:
     raise SystemExit(f"branch is not checked out in a worktree: {branch}")
 
 
-def initialise_docs(path: Path, branch: str, request: str, base: str, dependency_authorization: str) -> None:
+def initialise_docs(
+    path: Path, branch: str, request: str, base: str, dependency_authorization: str
+) -> None:
     directory = path / "ops" / "workstreams" / branch_slug(branch)
     directory.mkdir(parents=True, exist_ok=False)
     base_sha = git("rev-parse", base, cwd=path)
@@ -100,7 +112,7 @@ def initialise_docs(path: Path, branch: str, request: str, base: str, dependency
         f"base_sha: {base_sha}\n"
         f"parent_branch: {base}\n"
         f"parent_sha: {base_sha}\n"
-        f"dependency_authorization: {json.dumps(dependency_authorization or 'not applicable: independent master-based topic')}\n"
+        f"dependency_authorization: {json.dumps(dependency_authorization or 'not applicable: independent staging-based topic')}\n"
         f"human_intent_authorization: {json.dumps(request)}\n"
         "human_closure_authorization: pending\n"
         "closure_summary: pending\n"
@@ -119,7 +131,7 @@ def initialise_docs(path: Path, branch: str, request: str, base: str, dependency
         "remaining_gaps: []\n"
     )
     (directory / "handoff.md").write_text(
-        f"# {branch}\n\nCreated from `master` at `{base_sha}`.\n\n"
+        f"# {branch}\n\nCreated from `{base}` at `{base_sha}`.\n\n"
         "## Human authorization\n\n"
         f"- Recorded at: {datetime.now(UTC).isoformat()}\n"
         f"- Request: {request}\n"
@@ -129,7 +141,13 @@ def initialise_docs(path: Path, branch: str, request: str, base: str, dependency
     (directory / "validation.jsonl").write_text("")
 
 
-def create(branch: str, request: str, base: str, dependency_authorization: str) -> None:
+def create(
+    branch: str,
+    request: str,
+    base: str,
+    dependency_authorization: str,
+    remediation: bool,
+) -> None:
     if not branch.startswith(PREFIXES) or branch.endswith("/"):
         raise SystemExit(
             "branch must use feat/, fix/, chore/, docs/, or test/ and include a name"
@@ -140,15 +158,70 @@ def create(branch: str, request: str, base: str, dependency_authorization: str) 
         raise SystemExit(
             "a recorded human request is required; pass --request with the approved intent"
         )
-    ensure_master_ready()
-    if base != "master":
+    ensure_operator_ready(allow_degraded=remediation)
+    degraded = common_root() / ".ai" / "staging-degraded.json"
+    if remediation:
+        if not degraded.exists() or base != "staging":
+            raise SystemExit(
+                "remediation creation requires the current degraded staging base"
+            )
         if not dependency_authorization.strip():
-            raise SystemExit("dependent branch creation requires explicit human dependency authorization")
+            raise SystemExit(
+                "remediation creation requires explicit human authorization"
+            )
+        staging = branch_path("staging")
+        git(
+            "fetch",
+            "origin",
+            "+refs/heads/staging:refs/remotes/origin/staging",
+            cwd=staging,
+        )
+        if git("status", "--porcelain", cwd=staging):
+            raise SystemExit("staging is dirty")
+        staging_sha = git("rev-parse", "HEAD", cwd=staging)
+        remote_staging = git("rev-parse", "origin/staging", cwd=staging, check=False)
+        marker_sha = json.loads(degraded.read_text()).get("staging_sha")
+        if staging_sha != remote_staging or staging_sha != marker_sha:
+            raise SystemExit(
+                "remediation must start from the exact synchronized degraded staging SHA"
+            )
+    elif base != "staging":
+        if not dependency_authorization.strip():
+            raise SystemExit(
+                "dependent branch creation requires explicit human dependency authorization"
+            )
         parent = branch_path(base)
+        git(
+            "fetch",
+            "origin",
+            f"+refs/heads/{base}:refs/remotes/origin/{base}",
+            cwd=parent,
+        )
         if git("status", "--porcelain", cwd=parent):
             raise SystemExit(f"parent branch worktree is dirty: {parent}")
+        remote_parent = git("rev-parse", f"origin/{base}", cwd=parent, check=False)
+        if not remote_parent or git("rev-parse", "HEAD", cwd=parent) != remote_parent:
+            raise SystemExit(f"parent branch is not synchronized with origin/{base}")
     elif dependency_authorization.strip():
-        raise SystemExit("dependency authorization is valid only with a non-master base")
+        raise SystemExit(
+            "dependency authorization is valid only with a non-staging base"
+        )
+    else:
+        staging = branch_path("staging")
+        git(
+            "fetch",
+            "origin",
+            "+refs/heads/staging:refs/remotes/origin/staging",
+            cwd=staging,
+        )
+        if git("status", "--porcelain", cwd=staging):
+            raise SystemExit("staging is dirty")
+        remote_staging = git("rev-parse", "origin/staging", cwd=staging, check=False)
+        if (
+            not remote_staging
+            or git("rev-parse", "HEAD", cwd=staging) != remote_staging
+        ):
+            raise SystemExit("staging is not synchronized with origin/staging")
     if git("show-ref", "--verify", f"refs/heads/{branch}", check=False):
         raise SystemExit(f"local branch already exists: {branch}")
     if git("ls-remote", "--exit-code", "--heads", "origin", branch, check=False):
@@ -158,12 +231,15 @@ def create(branch: str, request: str, base: str, dependency_authorization: str) 
         raise SystemExit(f"worktree path already exists: {target}")
     target.parent.mkdir(parents=True, exist_ok=True)
     git("worktree", "add", "-b", branch, str(target), base)
-    initialise_docs(target, branch, request.strip(), base, dependency_authorization.strip())
+    initialise_docs(
+        target, branch, request.strip(), base, dependency_authorization.strip()
+    )
     print(target)
 
 
 def status(branch: str) -> None:
     path = branch_path(branch)
+    git("fetch", "origin")
     print(
         json.dumps(
             {
@@ -171,7 +247,8 @@ def status(branch: str) -> None:
                 "path": str(path),
                 "status": git("status", "--short", "--branch", cwd=path),
                 "head": git("rev-parse", "HEAD", cwd=path),
-                "master": git("rev-parse", "master", cwd=path),
+                "remote": git("rev-parse", f"origin/{branch}", cwd=path, check=False),
+                "staging": git("rev-parse", "staging", cwd=path),
             },
             indent=2,
         )
@@ -180,7 +257,11 @@ def status(branch: str) -> None:
 
 def size_bytes(path: Path) -> int:
     result = subprocess.run(["du", "-sk", str(path)], text=True, capture_output=True)
-    return int(result.stdout.split()[0]) * 1024 if result.returncode == 0 and result.stdout else 0
+    return (
+        int(result.stdout.split()[0]) * 1024
+        if result.returncode == 0 and result.stdout
+        else 0
+    )
 
 
 def plan_values(path: Path, branch: str) -> dict[str, str]:
@@ -198,11 +279,13 @@ def closure_reasons(branch: str, path: Path) -> list[str]:
     reasons: list[str] = []
     if git("status", "--porcelain", cwd=path):
         reasons.append("dirty")
-    if not git_succeeds("merge-base", "--is-ancestor", branch, "master", cwd=path):
+    if not git_succeeds("merge-base", "--is-ancestor", branch, "staging", cwd=path):
         reasons.append("unmerged")
     try:
         slug = branch_slug(branch)
-        projects = running_projects(f"charting-dev-{slug}") + running_projects(f"charting-stack-{slug}")
+        projects = running_projects(f"charting-dev-{slug}") + running_projects(
+            f"charting-stack-{slug}"
+        )
         if projects:
             reasons.append("running:" + ",".join(projects))
     except SystemExit:
@@ -211,20 +294,53 @@ def closure_reasons(branch: str, path: Path) -> list[str]:
 
 
 def overview() -> None:
+    git("fetch", "origin")
     rows: list[dict[str, object]] = []
     for record in worktree_records():
         branch = record.get("branch", "(unknown)")
         path = Path(record["path"])
         if not path.exists() or not (path / ".git").exists():
-            rows.append({"branch": branch, "path": str(path), "kind": "stale-git-worktree-record", "close": "remove with git worktree prune after inspection", "size_bytes": 0})
+            rows.append(
+                {
+                    "branch": branch,
+                    "path": str(path),
+                    "kind": "stale-git-worktree-record",
+                    "close": "remove with git worktree prune after inspection",
+                    "size_bytes": 0,
+                }
+            )
             continue
-        if branch in {"master", "(detached)"}:
-            rows.append({"branch": branch, "path": str(path), "kind": "integration-artifact" if branch == "(detached)" else "master", "size_bytes": size_bytes(path)})
+        if branch in {"master", "staging", "(detached)"}:
+            kind = "legacy-integration-artifact" if branch == "(detached)" else branch
+            rows.append(
+                {
+                    "branch": branch,
+                    "path": str(path),
+                    "kind": kind,
+                    "size_bytes": size_bytes(path),
+                }
+            )
             continue
-        behind, ahead = git("rev-list", "--left-right", "--count", f"master...{branch}", cwd=path).split()
+        behind, ahead = git(
+            "rev-list", "--left-right", "--count", f"staging...{branch}", cwd=path
+        ).split()
         plan = plan_values(path, branch)
         reasons = closure_reasons(branch, path)
-        rows.append({"branch": branch, "path": str(path), "goal": plan.get("goal", "unrecorded"), "workstream_status": plan.get("status", "missing"), "ahead": int(ahead), "behind": int(behind), "dirty": bool(git("status", "--porcelain", cwd=path)), "size_bytes": size_bytes(path), "close": "safe" if not reasons else "blocked: " + "; ".join(reasons)})
+        rows.append(
+            {
+                "branch": branch,
+                "path": str(path),
+                "goal": plan.get("goal", "unrecorded"),
+                "workstream_status": plan.get("status", "missing"),
+                "ahead": int(ahead),
+                "behind": int(behind),
+                "dirty": bool(git("status", "--porcelain", cwd=path)),
+                "remote_synchronized": git("rev-parse", "HEAD", cwd=path)
+                == git("rev-parse", f"origin/{branch}", cwd=path, check=False),
+                "size_bytes": size_bytes(path),
+                "close": "safe" if not reasons else "blocked: " + "; ".join(reasons),
+            }
+        )
     print(json.dumps(rows, indent=2))
 
 
@@ -239,10 +355,14 @@ def archive(branch: str, confirm: str) -> None:
         raise SystemExit("refusing to archive: " + "; ".join(reasons))
     values = plan_values(path, branch)
     if values.get("status") not in {"blocked", "closed"}:
-        raise SystemExit("archive requires workstream status blocked or closed with its reason recorded")
+        raise SystemExit(
+            "archive requires workstream status blocked or closed with its reason recorded"
+        )
     git("worktree", "remove", str(path))
     git("branch", "-D", branch)
-    print(f"archived local worktree and branch {branch}; remote audit branch was retained")
+    print(
+        f"archived local worktree and branch {branch}; remote audit branch was retained"
+    )
 
 
 def running_projects(prefix: str) -> list[str]:
@@ -270,8 +390,8 @@ def close(branch: str) -> None:
         raise SystemExit(
             "worktree is dirty; commit or account for changes before closing"
         )
-    if not git_succeeds("merge-base", "--is-ancestor", branch, "master", cwd=path):
-        raise SystemExit("worktree is not merged into master")
+    if not git_succeeds("merge-base", "--is-ancestor", branch, "staging", cwd=path):
+        raise SystemExit("worktree is not merged into staging")
     slug = branch_slug(branch)
     projects = running_projects(f"charting-dev-{slug}") + running_projects(
         f"charting-stack-{slug}"
@@ -290,8 +410,9 @@ def main() -> int:
     p = sub.add_parser("create")
     p.add_argument("branch")
     p.add_argument("--request", required=True)
-    p.add_argument("--base", default="master")
+    p.add_argument("--base", default="staging")
     p.add_argument("--dependency-authorization", default="")
+    p.add_argument("--remediation", action="store_true")
     p = sub.add_parser("status")
     p.add_argument("branch")
     p = sub.add_parser("close")
@@ -303,7 +424,13 @@ def main() -> int:
     sub.add_parser("overview")
     args = parser.parse_args()
     if args.command == "create":
-        create(args.branch, args.request, args.base, args.dependency_authorization)
+        create(
+            args.branch,
+            args.request,
+            args.base,
+            args.dependency_authorization,
+            args.remediation,
+        )
     elif args.command == "status":
         status(args.branch)
     elif args.command == "close":

@@ -1,33 +1,58 @@
-# Worktree lifecycle and cleanup policy
+# Worktree, staging, and cleanup lifecycle
 
-## Human controls
+## Human authority
 
-- A human authorizes work, chooses validation scope where required, and explicitly closes a topic.
-- Agents may plan, implement, test, and report readiness only within that authorization.
-- Integration/deployment never follows from green tests alone.
+- A human explicitly authorizes a topic before an agent creates a branch/worktree or edits it.
+- The human explicitly chooses `full_integration` or the restricted `focused_only` path.
+- Green validation means ready for review, not permission to close.
+- The human explicitly closes a topic before it may enter staging. Deployment is a separate request.
 
-## Local storage lifecycle
+## Branch lifecycle
 
-- A merged, clean, stopped branch worktree is closed with `make worktree-close`.
-- An unmerged abandoned branch is never force-removed automatically; archive it only after explicit human approval and a recorded reason.
-- An integration candidate is a **temporary combined test copy**, never a source of truth. Its identity includes the exact `master` SHA, source branch, and source SHA. There can be only one candidate for that immutable input set.
-- Every candidate receives a generated lifecycle record under `.ai/integration/ledger/`. The record names its inputs, state, conflict paths or failure reason, and final disposition. This is the durable local audit trail for a disposable copy.
-- `make worktree-cleanup-report` is read-only. It classifies every candidate individually and flags historical copies with no lifecycle record as `unaccounted_legacy_candidate`; those copies cannot be removed automatically.
-- `make worktree-cleanup-reconcile` is safe and non-destructive: it creates a local `legacy_needs_reconciliation` lifecycle record for each previously unaccounted copy. It does not approve deletion; it ensures no old copy is invisible while a named-source or explicit-discard decision is still pending.
-- `make worktree-cleanup CONFIRM=published-integration-candidates` removes only clean, registered candidates whose exact HEAD is already reachable from `master` **and** which have a lifecycle record.
-- A successful publication records `published`, then removes the temporary copy immediately.
-- Integration has no preview mode: a candidate is created only by a close-and-publish operation. If publication becomes uncertain after master may have advanced, it is marked `publication_incomplete` for explicit reconciliation rather than silently removed.
-- An ordinary merge or validation failure records `failed_discarded`, preserves the error in the lifecycle record, and removes the temporary copy immediately. A retry always starts a fresh candidate from the exact current inputs.
-- A semantic conflict may remain only when the integrator explicitly passes `--keep-paused`. Its lifecycle record is `paused`, and the resolving agent must write the intended combined behaviour and affected tests into the source workstream before `--continue --keep-paused`. The candidate must then publish or be discarded; it may not be left as a dormant investigation.
-- Active branch worktrees, remote branches, Docker resources, runtime allocations, validation receipts, and deployment bundles are outside candidate cleanup and remain protected by their own lifecycle rules.
+1. Independent work starts from synchronized, green `staging` with
+   `make worktree-create BRANCH=<prefix/topic> REQUEST='<human request>'`.
+2. Feedback continues on the same unmerged branch. A dependent branch requires explicit human
+   authorization naming its parent and records that decision in its workstream.
+3. The agent maintains `ops/workstreams/<branch-slug>/`, commits and pushes coherent changes,
+   and reports `ready_for_human_review` after the authorized validation tier passes.
+4. Human closure changes the record to `ready_for_integration` and adds a PR-equivalent closure
+   summary. `make integrate` then merges the exact pushed SHA into staging.
+5. After staging contains the branch, `make worktree-close` may remove only its clean, stopped
+   local worktree/branch. The remote branch and merge boundary preserve its history and record.
+6. An abandoned, unmerged topic is never removed automatically. Explicit archive confirmation
+   requires a recorded `blocked` or `closed` reason and retains the remote branch.
 
-## Integration batches
+## Staging and master lifecycle
 
-An integration batch must name every source branch explicitly, freeze each source SHA, preserve a merge boundary per branch, run every branch's declared tests and the complete candidate gate, then publish one tested master update. Batch membership is never inferred from readiness alone.
+- `staging` is one persistent branch/worktree, not a disposable clone. All accepted branch merges
+  go there through `make integrate` or an explicitly named `make integrate-set` batch.
+- Source SHAs are frozen before merging. Each source keeps a non-fast-forward merge boundary.
+- A conflict aborts the merge and restores the exact starting staging SHA. The conflict is resolved
+  once on the source branch with documented combined behaviour and affected tests, then retested.
+- GitHub runs the exhaustive gate on the exact pushed staging SHA. A red gate marks staging
+  degraded and blocks ordinary integration/promotion; an exact-base remediation is required.
+- `make promote-staging COMMIT=<sha> CONFIRM=<sha>` fast-forwards master only to the current green
+  staging SHA. Master independently replays the exhaustive gate and remains the deployable line.
+- No normal workflow creates `.ai/integration` candidates or retains alternate merge results.
 
-## Remaining guardrails to retain
+## Storage and cleanup
 
-- Recheck source/master synchronization after validation and before publication.
-- Record semantic conflict decisions and affected tests.
-- Keep database migration compatibility and ARM64 validation in the exhaustive gate.
-- Do not delete Docker resources through worktree cleanup; use separately scoped tooling.
+- `make worktree-overview` reports active worktrees relative to staging, including dirtiness,
+  ahead/behind counts, goal/status, running services, and whether closure is safe.
+- Closing a worktree never uses force and never removes Docker resources belonging to another
+  worktree. Stop only the exact current worktree project before closure.
+- `.ai/staging-attempts/` contains small ignored JSON diagnostics, not repository copies.
+- Existing `.ai/integration/` directories are historical artifacts from the retired candidate
+  workflow. `worktree-cleanup-report`, `worktree-cleanup-reconcile`, and the explicit cleanup
+  confirmation exist only to account for those old copies before removal. New integration must
+  never write there.
+- Runtime allocations, validation receipts, deployment bundles, active branch worktrees, remote
+  branches, and Docker data have separate lifecycles and are never swept by integration cleanup.
+
+## CI and deployment architecture
+
+- Work branches run deterministic application checks plus their declared tests.
+- Staging and master run the exhaustive architecture-neutral gate on GitHub Linux runners.
+- Normal CI must not install QEMU or build ARM images.
+- Target architecture belongs to the explicit deployment workflow. RPi operations require
+  `RPI_DOCKER_PLATFORM=linux/arm/v7` or `linux/arm64`, verified by preflight against the actual Pi.

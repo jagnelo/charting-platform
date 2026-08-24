@@ -71,11 +71,11 @@ or an opportunity noticed during other work.
   explicit human request to address that named topic. Create the worktree with
   `make worktree-create BRANCH=<prefix/topic> REQUEST='<human request>'`; this
   records the request in its schema-2 workstream plan and handoff.
-- Independent topics start from synchronized `master`. Continue feedback in the
+- Independent topics start from synchronized, green `staging`. Continue feedback in the
   same unmerged topic branch. A separate dependent branch is exceptional: it
   requires an explicit human authorization naming the parent/dependency and
   uses `BASE=<parent> PARENT_AUTHORIZATION='<human decision>'`. Never choose a
-  non-master parent at agent discretion.
+  non-staging parent at agent discretion.
 - Work autonomously inside that authorized branch: plan, implement, test,
   document, commit, push, and make the result available for human review.
 - Before deciding the final verification path, ask the human whether to use the
@@ -92,7 +92,7 @@ or an opportunity noticed during other work.
   delivered scope, exact source SHA, validation evidence, migration/deployment
   impact, conflict decisions, and remaining gaps. That committed branch record
   is the PR-equivalent narrative preserved by the non-fast-forward merge. Only
-  then may it invoke `make integrate`.
+  then may it invoke `make integrate`, which targets `staging`.
 - Only after a separate explicit human deployment request may an agent invoke
   deployment tooling. A closure request does not authorize deployment.
 
@@ -107,40 +107,51 @@ global `ops/handoff.md`, `ops/state.json`, or `ops/run-report.md` updates for
 feature workers. Those files are historical integration evidence. The current
 branch's workstream is the durable coordination record.
 
-## Integration-candidate lifecycle (non-negotiable)
+## Staging integration and promotion (non-negotiable)
 
-An integration candidate is one **temporary combined test copy** made from one
-exact `master` commit and one exact source-branch commit. It is not a second
-branch, not an alternate version of `master`, and never a durable source of
-truth. The named source branch/workstream and the resulting merge commit on
-`master` are the only source changes an agent may rely on.
+`staging` is the one persistent integration branch. Local disposable integration
+copies are forbidden. `.ai/integration/` contains only historical artifacts from
+the retired workflow and must never receive a new candidate.
 
-1. Use only `make integrate` or `make integrate-set`; never create ad-hoc
-   candidates. The helper identity includes the frozen master SHA and every
-   frozen source SHA, so superseded inputs cannot reuse a previous test copy.
-2. The helper writes a generated local lifecycle record in
-   `.ai/integration/ledger/` before it creates the copy. It records inputs,
-   state, error/conflict paths, and the final disposition.
-3. On success, publish the tested merge commit, write `published` to the
-   lifecycle record, and immediately remove the copy.
-4. On an ordinary merge or validation failure, write
-   `failed_discarded`, keep the error evidence in the lifecycle record, and
-   immediately remove the copy. A later retry starts fresh from the then-exact
-   inputs; it never reuses a failed copy.
-5. Retention is exceptional: pass `--keep-paused` only for an active semantic
-   conflict resolution. Before continuing it, record the intended combined
-   behaviour and affected tests in the source workstream. A paused candidate
-   must either publish or be discarded; it cannot become a forgotten local
-   investigation.
-6. Run `make worktree-cleanup-report` before storage cleanup. It flags old
-   copies that predate the lifecycle rule as `unaccounted_legacy_candidate`.
-   Run `make worktree-cleanup-reconcile` to make each one an explicit local
-   `legacy_needs_reconciliation` record. Do not delete those automatically:
-   first reconcile them to a named source, a published merge, or an explicitly
-   documented discard decision.
+1. `make integrate BRANCH=<name>` or an explicitly named `integrate-set` freezes
+   each clean, pushed source SHA, verifies its human closure record and exact
+   branch CI, and creates a non-fast-forward merge boundary on `staging`.
+2. A merge conflict aborts and restores `staging` to its exact starting SHA. The
+   agent records the conflict paths under ignored `.ai/staging-attempts/`, then
+   resolves the intended combined behaviour on the source branch, updates its
+   tests/workstream, pushes it, and starts a new attempt. It never experiments
+   with several alternative merge commits or leaves a combined repository copy.
+3. The exact pushed `staging` SHA must pass the GitHub job named `Exhaustive
+   Integration Gate`. Failure writes `.ai/staging-degraded.json`; ordinary
+   integration and promotion stop. Only an explicitly authorized repair branch
+   based directly on that exact degraded SHA may use `REMEDIATE_DEGRADED=1`.
+4. `make promote-staging COMMIT=<sha> CONFIRM=<sha>` accepts only the current,
+   synchronized, green staging SHA and fast-forwards `master`. `master` then
+   independently replays the exhaustive gate. A failed replay marks master
+   degraded and blocks deployment/new integration until repaired.
+5. `master` is the runnable/deployable release line, not the branch from which
+   ordinary work starts. Promotion never rewrites history and never publishes an
+   untested source advance. Source branches and their PR-equivalent workstream
+   records remain the audit trail after their local worktrees are closed.
+6. `make staging-bootstrap CONFIRM=<current-master-sha>` is a one-time,
+   human-confirmed operation after this workflow itself reaches `master`.
 
-This rule prevents a pile of unnamed historical test copies while retaining
-enough failure evidence to diagnose a real integration problem.
+The historical cleanup commands remain available only to account for and remove
+pre-staging `.ai/integration` artifacts. They are not part of current integration.
+
+## Architecture-neutral CI and target-specific deployment
+
+Normal branch, staging, and master CI validates application behaviour on the
+ordinary GitHub Linux runner. It must not install QEMU, emulate ARM, or build an
+architecture-specific deployment bundle.
+
+Deployment architecture is selected only inside an explicit human-requested
+target workflow. For the RPi helper, `.ai/deploy/rpi.env` must set
+`RPI_DOCKER_PLATFORM=linux/arm/v7` or `linux/arm64` after inspecting the actual
+Pi OS. `make rpi-preflight` verifies that choice and `make rpi-bundle` performs
+the target build. Supporting an RPi does not make it the repository's universal
+deployment architecture; future x86-64 local/cloud targets get their own
+target configuration without changing the architecture-neutral CI gate.
 
 ## Workflow Python runtime
 
@@ -175,9 +186,9 @@ repository's declared runtime.
 After being pointed to this file, every worker must do the following before making any code changes:
 
 1. Read `docs/agent-orchestration.md`
-2. Determine whether the checkout is the root `master` integration checkout or a feature worktree
+2. Determine whether the checkout is root `master`, persistent `staging`, or a feature worktree
 3. In a feature worktree, read its `ops/workstreams/<branch-slug>/plan.yaml`, `handoff.md`, and `validation.jsonl`; confirm the recorded human request before acting
-4. In the root `master` checkout, read the relevant global `ops/*` integration evidence before integration or deployment work
+4. In root `master`, read relevant global `ops/*` evidence before staging control, promotion, or deployment work
 5. Optionally consult global `ops/*` legacy history when it materially helps a feature worker, but do not edit it as routine branch coordination
 6. Only then begin authorized implementation/validation work
 

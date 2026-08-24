@@ -88,29 +88,23 @@ make integrate BRANCH=feat/provider-health
 make worktree-close BRANCH=feat/provider-health
 make worktree-archive BRANCH=fix/abandoned CONFIRM=fix/abandoned
 make integrate-set BRANCHES='docs/a feat/b'
+make staging-status
+make promote-staging COMMIT=<full-green-staging-sha> CONFIRM=<same-sha>
 ```
 
-By default a failed integration is recorded and its temporary test copy is removed.
-When semantic conflict investigation is genuinely needed, explicitly retain the one
-candidate and first record the intended combined behaviour and affected tests in the
-source workstream. Then resolve and stage the candidate's semantic edits and resume it with:
+Ordinary work starts from green `staging`. Integration merges the exact pushed source
+SHA into the persistent staging branch and waits for its exhaustive GitHub gate. No
+disposable repository copy is created. On conflict, staging is restored unchanged; record
+the intended combined behaviour and affected tests in the source workstream, resolve the
+conflict on that source branch, push, and retry.
 
-```bash
-uv run --project backend python scripts/integrate.py feat/provider-health --keep-paused --continue --publish
-```
-
-For the ordinary one-shot path use `make integrate BRANCH=feat/provider-health`.
-Only an active semantic conflict may use `KEEP_PAUSED=1`; batch integrations
-record and discard conflicts, then require the named sources to be reconciled
-before a fresh batch is created.
-
-If `master` is marked degraded after an independent GitHub replay failure, ordinary
-integration remains blocked. A repair branch created directly from that exact degraded
-`master` SHA may use the explicit remediation flag; the helper rejects branches with any
+If `staging` is marked degraded after its exhaustive replay fails, ordinary integration
+and promotion remain blocked. A repair branch created directly from that exact degraded
+staging SHA may use the explicit remediation flag; the helper rejects branches with any
 other base:
 
 ```bash
-make integrate BRANCH=fix/master-gate-hardening REMEDIATE_DEGRADED=1
+make integrate BRANCH=fix/staging-gate REMEDIATE_DEGRADED=1
 ```
 
 Each worktree gets an `ops/workstreams/<branch-slug>/` record with a plan,
@@ -145,9 +139,15 @@ ahead/behind counts, dirty state, local size, and the exact reason a worktree is
 not removable. `worktree-archive` is intentionally explicit and only accepts a clean,
 stopped, documented blocked/closed branch; it preserves the remote audit branch.
 
-`integrate-set` creates one exact candidate for explicitly named branches, merges each
-with a non-fast-forward boundary, runs declared branch tests plus the complete gate, and
-publishes one master update. It never adds a branch merely because it is ready.
+`integrate-set` merges only explicitly named, human-closed branches into staging with a
+non-fast-forward boundary for each. Branch CI includes its declared tests; the resulting
+staging SHA receives the exhaustive remote gate. It never infers batch membership.
+
+After the exact staging SHA is green, `promote-staging` fast-forwards master to it and
+waits for master's independent exhaustive replay. Normal CI is architecture-neutral and
+contains no emulation. RPi architecture validation/building occurs only through an
+explicitly requested `rpi-preflight`/`rpi-bundle`/`deploy-rpi` flow using the configured
+`RPI_DOCKER_PLATFORM`.
 
 `make test-stack-up` preserves the normal unseeded market-data default, but accepts
 `E2E_SEED_INSTRUMENTS` and `E2E_SEED_MARKET_DATA` from the caller. For deterministic visual

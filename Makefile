@@ -30,9 +30,8 @@
   test-compose-contract \
   test-migration-compatibility test-research-runner-probes test-live-provider-probes \
   branch-tests \
-  validate-arm64-images \
   validate-integration validate-focused-integration branch-validate \
-  worktree-create worktree-list worktree-status worktree-overview worktree-close worktree-archive worktree-cleanup-report worktree-cleanup-reconcile worktree-cleanup integrate integrate-set \
+  worktree-create worktree-list worktree-status worktree-overview worktree-close worktree-archive worktree-cleanup-report worktree-cleanup-reconcile worktree-cleanup integrate integrate-set staging-bootstrap staging-status promote-staging \
   rpi-preflight rpi-bundle deploy-rpi rpi-status \
   lint lint-backend lint-frontend format \
   migrate migrate-new migrate-down \
@@ -169,7 +168,7 @@ test-compose-contract:
 	SECRET_KEY=ci-contract-secret POSTGRES_PASSWORD=postgres CORS_ORIGINS='["http://localhost"]' BACKEND_IMAGE=charting-platform/backend:contract RESEARCH_RUNNER_IMAGE=charting-platform/research-runner:contract FRONTEND_IMAGE=charting-platform/frontend:contract POSTGRES_IMAGE=postgres:16-alpine REDIS_IMAGE=redis:7-alpine RPI_HTTP_PORT=8080 docker compose -f deploy/rpi/compose.yml config >/dev/null
 
 test-migration-compatibility:
-	@echo "▶  Fresh and previous-master migration compatibility gate..."
+	@echo "▶  Fresh and previous-release migration compatibility gate..."
 	$(WORKFLOW_PYTHON) scripts/validate-migration-compatibility.py
 
 test-research-runner-probes:
@@ -190,10 +189,6 @@ test-live-provider-probes:
 branch-tests:
 	@test -n "$(INTEGRATION_BRANCH)" || (echo "INTEGRATION_BRANCH is required for branch-declared tests" >&2; exit 2)
 	@$(RUNTIME_ENV) INTEGRATION_BRANCH="$(INTEGRATION_BRANCH)" $(WORKFLOW_PYTHON) scripts/run-branch-tests.py "$(INTEGRATION_BRANCH)"
-
-validate-arm64-images:
-	@echo "▶  Production application image build (linux/arm64)..."
-	$(WORKFLOW_PYTHON) scripts/validate-arm64-images.py
 
 test-e2e-install:
 	@echo "▶  Ensuring Playwright Chromium is installed..."
@@ -282,7 +277,7 @@ clean:
 worktree-create:
 	@test -n "$(BRANCH)" || (echo "usage: make worktree-create BRANCH=feat/name" >&2; exit 2)
 	@test -n "$(REQUEST)" || (echo "usage: make worktree-create BRANCH=feat/name REQUEST='exact human request'" >&2; exit 2)
-	$(WORKFLOW_PYTHON) scripts/worktree.py create "$(BRANCH)" --request "$(REQUEST)" --base "$(if $(BASE),$(BASE),staging)" $(if $(PARENT_AUTHORIZATION),--dependency-authorization "$(PARENT_AUTHORIZATION)",)
+	$(WORKFLOW_PYTHON) scripts/worktree.py create "$(BRANCH)" --request "$(REQUEST)" --base "$(if $(BASE),$(BASE),staging)" $(if $(PARENT_AUTHORIZATION),--dependency-authorization "$(PARENT_AUTHORIZATION)",) $(if $(REMEDIATE_DEGRADED),--remediation,)
 
 worktree-list:
 	$(WORKFLOW_PYTHON) scripts/worktree.py list
@@ -317,11 +312,22 @@ branch-validate:
 
 integrate:
 	@test -n "$(BRANCH)" || (echo "usage: make integrate BRANCH=feat/name" >&2; exit 2)
-	$(WORKFLOW_PYTHON) scripts/integrate.py "$(BRANCH)" --publish $(if $(REMEDIATE_DEGRADED),--remediate-degraded,) $(if $(KEEP_PAUSED),--keep-paused,)
+	$(WORKFLOW_PYTHON) scripts/staging.py integrate "$(BRANCH)" $(if $(REMEDIATE_DEGRADED),--remediate,)
 
 integrate-set:
 	@test -n "$(BRANCHES)" || (echo "usage: make integrate-set BRANCHES='feat/a feat/b'" >&2; exit 2)
-	$(WORKFLOW_PYTHON) scripts/integrate-set.py $(BRANCHES) --publish
+	$(WORKFLOW_PYTHON) scripts/staging.py integrate $(BRANCHES) $(if $(REMEDIATE_DEGRADED),--remediate,)
+
+staging-bootstrap:
+	@test -n "$(CONFIRM)" || (echo "usage: make staging-bootstrap CONFIRM=<full-current-master-sha>" >&2; exit 2)
+	$(WORKFLOW_PYTHON) scripts/staging.py bootstrap --confirm "$(CONFIRM)"
+
+staging-status:
+	$(WORKFLOW_PYTHON) scripts/staging.py status
+
+promote-staging:
+	@test -n "$(COMMIT)" -a -n "$(CONFIRM)" || (echo "usage: make promote-staging COMMIT=<full-green-staging-sha> CONFIRM=<same-sha>" >&2; exit 2)
+	$(WORKFLOW_PYTHON) scripts/staging.py promote --commit "$(COMMIT)" --confirm "$(CONFIRM)"
 
 validate-integration:
 	@set -e; \
@@ -345,8 +351,7 @@ validate-integration:
 	stage=research-runner-probes; printf '▶ integration gate stage: %s\n' "$$stage"; $(MAKE) test-research-runner-probes; \
 	stage=e2e-functional; printf '▶ integration gate stage: %s\n' "$$stage"; E2E_SEED_MARKET_DATA=true $(MAKE) test-e2e; \
 	stage=e2e-visual; printf '▶ integration gate stage: %s\\n' "$$stage"; ($(RUNTIME_ENV) cd frontend && STACK_URL=$${STACK_URL:-$$STACK_URL} E2E_SEED_MARKET_DATA=true RUN_BOARD_VISUAL_PARITY=1 npx playwright test tests/e2e/tc2000_visual.spec.ts); \
-	if test -n "$(INTEGRATION_BRANCH)"; then stage=branch-tests; printf '▶ integration gate stage: %s\n' "$$stage"; $(MAKE) branch-tests INTEGRATION_BRANCH="$(INTEGRATION_BRANCH)"; fi; \
-	stage=arm64-images; printf '▶ integration gate stage: %s\n' "$$stage"; $(MAKE) validate-arm64-images
+	if test -n "$(INTEGRATION_BRANCH)"; then stage=branch-tests; printf '▶ integration gate stage: %s\n' "$$stage"; $(MAKE) branch-tests INTEGRATION_BRANCH="$(INTEGRATION_BRANCH)"; fi
 
 # Narrow gate available only when the workstream contains the human-approved
 # focused_only decision. Integration enforces that decision and its path scope.

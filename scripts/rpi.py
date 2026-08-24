@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Manual, scope-safe ARM64 bundle and RPi deployment helper.
+"""Manual, scope-safe target-specific bundle and RPi deployment helper.
 
 This module deliberately has no cleanup path.  Remote Docker commands always
 name the fixed charting-platform project and release Compose file.
@@ -49,12 +49,21 @@ def load_config() -> dict[str, str]:
         if not sep or not key.replace("_", "").isalnum():
             raise SystemExit(f"invalid deployment config line: {line!r}")
         values[key] = value.strip().strip("'\"")
-    required = {"RPI_SSH_TARGET", "RPI_DEPLOY_ROOT", "RPI_HTTP_PORT"}
+    required = {
+        "RPI_SSH_TARGET",
+        "RPI_DEPLOY_ROOT",
+        "RPI_HTTP_PORT",
+        "RPI_DOCKER_PLATFORM",
+    }
     missing = sorted(required - values.keys())
     if missing:
         raise SystemExit(f"deployment config is missing: {', '.join(missing)}")
     if values["RPI_DEPLOY_ROOT"] != "/opt/charting-platform":
         raise SystemExit("RPI_DEPLOY_ROOT must remain /opt/charting-platform")
+    if values["RPI_DOCKER_PLATFORM"] not in {"linux/arm/v7", "linux/arm64"}:
+        raise SystemExit(
+            "RPI_DOCKER_PLATFORM must be linux/arm/v7 or linux/arm64 after checking the Pi OS"
+        )
     int(values["RPI_HTTP_PORT"])
     return values
 
@@ -125,18 +134,27 @@ def ssh_args(config: dict[str, str]) -> list[str]:
 
 
 def remote(config: dict[str, str], command: str, *, stdin: bytes | None = None) -> str:
-    result = subprocess.run(ssh_args(config) + ["--", "sh", "-s"], input=stdin, capture_output=True)
+    result = subprocess.run(
+        ssh_args(config) + ["--", "sh", "-s"], input=stdin, capture_output=True
+    )
     if result.returncode:
-        raise SystemExit(result.stderr.decode(errors="replace") or "remote command failed")
+        raise SystemExit(
+            result.stderr.decode(errors="replace") or "remote command failed"
+        )
     return result.stdout.decode()
 
 
 def preflight(config: dict[str, str]) -> None:
     root = shlex.quote(config["RPI_DEPLOY_ROOT"])
     port = shlex.quote(config["RPI_HTTP_PORT"])
+    platform = config["RPI_DOCKER_PLATFORM"]
+    if platform == "linux/arm/v7":
+        uname_pattern, docker_pattern = "^armv7", "^(arm|armv7l)$"
+    else:
+        uname_pattern, docker_pattern = "^(aarch64|arm64)$", "^(aarch64|arm64)$"
     script = f"""set -eu
-test "$(uname -m)" = aarch64 || {{ echo 'RPi must run a 64-bit aarch64 OS' >&2; exit 20; }}
-test "$(docker info --format '{{{{.Architecture}}}}')" = aarch64 || {{ echo 'Docker architecture is not linux/arm64' >&2; exit 21; }}
+printf '%s' "$(uname -m)" | grep -Eq '{uname_pattern}' || {{ echo 'RPi OS architecture does not match {platform}' >&2; exit 20; }}
+printf '%s' "$(docker info --format '{{{{.Architecture}}}}')" | grep -Eq '{docker_pattern}' || {{ echo 'Docker architecture does not match {platform}' >&2; exit 21; }}
 docker compose version >/dev/null
 test -d {root} && test -w {root}
 test -d {root}/shared && test -w {root}/shared
@@ -164,6 +182,7 @@ def image_tag(name: str, commit: str) -> str:
 def build_bundle(commit: str) -> Path:
     exact_commit(commit)
     config = load_config()
+    platform = config["RPI_DOCKER_PLATFORM"]
     output = ROOT / ".ai" / "deploy" / "bundles"
     output.mkdir(parents=True, exist_ok=True)
     application_tags = [
@@ -187,14 +206,14 @@ def build_bundle(commit: str) -> Path:
                 "buildx",
                 "build",
                 "--platform",
-                "linux/arm64",
+                platform,
                 "--load",
                 "--label",
                 "org.opencontainers.image.repository=charting-platform",
                 "--label",
                 f"org.opencontainers.image.revision={commit}",
                 "--label",
-                "org.opencontainers.image.architecture=linux/arm64",
+                f"org.opencontainers.image.architecture={platform}",
                 "--label",
                 f"org.opencontainers.image.created={datetime.now(UTC).isoformat()}",
                 "-f",
@@ -208,26 +227,24 @@ def build_bundle(commit: str) -> Path:
         )
     runtime_tags = list(runtime_images(config))
     for tag in runtime_tags:
-        inspected = subprocess.run(
-            ["docker", "image", "inspect", tag], cwd=ROOT, capture_output=True
+        subprocess.run(
+            ["docker", "pull", "--platform", platform, tag],
+            cwd=ROOT,
+            check=True,
         )
-        if inspected.returncode:
-            subprocess.run(
-                ["docker", "pull", "--platform", "linux/arm64", tag],
-                cwd=ROOT,
-                check=True,
-            )
     tags = [*application_tags, *runtime_tags]
     manifest = {
         "source_sha": commit,
         "tree": git("rev-parse", f"{commit}^{{tree}}"),
-        "architecture": "linux/arm64",
+        "architecture": platform,
         "compose_sha256": hashlib.sha256(COMPOSE.read_bytes()).hexdigest(),
         "images": [],
         "created_at": datetime.now(UTC).isoformat(),
     }
     for tag in tags:
-        inspect = subprocess.check_output(["docker", "image", "inspect", tag], text=True)
+        inspect = subprocess.check_output(
+            ["docker", "image", "inspect", tag], text=True
+        )
         item = json.loads(inspect)[0]
         manifest["images"].append(
             {
@@ -445,7 +462,9 @@ ln -s "$root/releases/$sha" "$root/current.$sha.tmp"
 mv -Tf "$root/current.$sha.tmp" "$root/current"
 """
         remote(config, finalize.encode())
-        _write_deployment_attempt(attempt, status="complete", commit=commit, smoke=smoke_result)
+        _write_deployment_attempt(
+            attempt, status="complete", commit=commit, smoke=smoke_result
+        )
     except Exception as exc:
         _write_deployment_attempt(
             attempt,
@@ -462,7 +481,9 @@ if test -L "$root/current"; then docker compose -p charting-platform -f "$root/c
         raise SystemExit(str(exc)) from exc
     finally:
         checksum_path.unlink(missing_ok=True)
-    print(f"deployed charting-platform at {commit}; no unrelated Docker resources were touched")
+    print(
+        f"deployed charting-platform at {commit}; no unrelated Docker resources were touched"
+    )
 
 
 def deploy(config: dict[str, str], commit: str, confirm: str) -> None:
@@ -521,7 +542,9 @@ def smoke(config: dict[str, str], commit: str) -> dict[str, str]:
         )
         with urllib.request.urlopen(request, timeout=10) as response:
             if response.status != 200:
-                raise RuntimeError(f"authenticated availability returned HTTP {response.status}")
+                raise RuntimeError(
+                    f"authenticated availability returned HTTP {response.status}"
+                )
         result["authenticated_provider_read"] = "pass"
 
         websocket_ping(host, int(config["RPI_HTTP_PORT"]), token)
@@ -529,7 +552,9 @@ def smoke(config: dict[str, str], commit: str) -> dict[str, str]:
 
         research_smoke(base, headers, commit, result)
     except (urllib.error.URLError, TimeoutError, ValueError, RuntimeError) as exc:
-        raise RuntimeError(f"authenticated LAN smoke failed for {commit}: {exc}") from exc
+        raise RuntimeError(
+            f"authenticated LAN smoke failed for {commit}: {exc}"
+        ) from exc
     return result
 
 
@@ -561,7 +586,9 @@ def websocket_ping(host: str, port: int, token: str) -> None:
             if len(response) > 16_384:
                 raise RuntimeError("WebSocket handshake response is too large")
         if not response.startswith(b"HTTP/1.1 101"):
-            raise RuntimeError(f"WebSocket handshake failed: {response.splitlines()[0]!r}")
+            raise RuntimeError(
+                f"WebSocket handshake failed: {response.splitlines()[0]!r}"
+            )
         payload = b"ping"
         mask = os.urandom(4)
         masked = bytes(value ^ mask[index % 4] for index, value in enumerate(payload))
@@ -577,10 +604,14 @@ def websocket_ping(host: str, port: int, token: str) -> None:
             raise RuntimeError("authenticated WebSocket did not return pong")
 
 
-def research_smoke(base: str, headers: dict[str, str], commit: str, result: dict[str, str]) -> None:
+def research_smoke(
+    base: str, headers: dict[str, str], commit: str, result: dict[str, str]
+) -> None:
     """Queue one tiny study and wait briefly for the isolated runner to consume it."""
 
-    def request(path: str, *, method: str = "GET", body: object | None = None) -> object:
+    def request(
+        path: str, *, method: str = "GET", body: object | None = None
+    ) -> object:
         data = json.dumps(body).encode() if body is not None else None
         req = urllib.request.Request(
             f"{base}{path}",
@@ -621,7 +652,10 @@ def research_smoke(base: str, headers: dict[str, str], commit: str, result: dict
         run_id = int(run["id"])
         deadline = time.monotonic() + 30
         terminal = str(run.get("status"))
-        while terminal not in {"completed", "failed", "canceled"} and time.monotonic() < deadline:
+        while (
+            terminal not in {"completed", "failed", "canceled"}
+            and time.monotonic() < deadline
+        ):
             time.sleep(2)
             current = request(f"/api/v1/research/runs/{run_id}")
             terminal = str(current.get("status"))
