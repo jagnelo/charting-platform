@@ -152,6 +152,73 @@ def status(branch: str) -> None:
     )
 
 
+def size_bytes(path: Path) -> int:
+    result = subprocess.run(["du", "-sk", str(path)], text=True, capture_output=True)
+    return int(result.stdout.split()[0]) * 1024 if result.returncode == 0 and result.stdout else 0
+
+
+def plan_values(path: Path, branch: str) -> dict[str, str]:
+    plan = path / "ops" / "workstreams" / branch_slug(branch) / "plan.yaml"
+    values: dict[str, str] = {}
+    if plan.exists():
+        for line in plan.read_text().splitlines():
+            match = re.match(r"^([A-Za-z_][A-Za-z0-9_]*):\s*(.*)$", line)
+            if match:
+                values[match.group(1)] = match.group(2).strip().strip("'\"")
+    return values
+
+
+def closure_reasons(branch: str, path: Path) -> list[str]:
+    reasons: list[str] = []
+    if git("status", "--porcelain", cwd=path):
+        reasons.append("dirty")
+    if not git_succeeds("merge-base", "--is-ancestor", branch, "master", cwd=path):
+        reasons.append("unmerged")
+    try:
+        slug = branch_slug(branch)
+        projects = running_projects(f"charting-dev-{slug}") + running_projects(f"charting-stack-{slug}")
+        if projects:
+            reasons.append("running:" + ",".join(projects))
+    except SystemExit:
+        reasons.append("Docker status unavailable")
+    return reasons
+
+
+def overview() -> None:
+    rows: list[dict[str, object]] = []
+    for record in worktree_records():
+        branch = record.get("branch", "(unknown)")
+        path = Path(record["path"])
+        if not path.exists() or not (path / ".git").exists():
+            rows.append({"branch": branch, "path": str(path), "kind": "stale-git-worktree-record", "close": "remove with git worktree prune after inspection", "size_bytes": 0})
+            continue
+        if branch in {"master", "(detached)"}:
+            rows.append({"branch": branch, "path": str(path), "kind": "integration-artifact" if branch == "(detached)" else "master", "size_bytes": size_bytes(path)})
+            continue
+        ahead, behind = git("rev-list", "--left-right", "--count", f"master...{branch}", cwd=path).split()
+        plan = plan_values(path, branch)
+        reasons = closure_reasons(branch, path)
+        rows.append({"branch": branch, "path": str(path), "goal": plan.get("goal", "unrecorded"), "workstream_status": plan.get("status", "missing"), "ahead": int(ahead), "behind": int(behind), "dirty": bool(git("status", "--porcelain", cwd=path)), "size_bytes": size_bytes(path), "close": "safe" if not reasons else "blocked: " + "; ".join(reasons)})
+    print(json.dumps(rows, indent=2))
+
+
+def archive(branch: str, confirm: str) -> None:
+    if confirm != branch:
+        raise SystemExit("archive confirmation must exactly match BRANCH")
+    path = branch_path(branch)
+    if path == repo_root():
+        raise SystemExit("refusing to archive the root integration checkout")
+    reasons = closure_reasons(branch, path)
+    if reasons:
+        raise SystemExit("refusing to archive: " + "; ".join(reasons))
+    values = plan_values(path, branch)
+    if values.get("status") not in {"blocked", "closed"}:
+        raise SystemExit("archive requires workstream status blocked or closed with its reason recorded")
+    git("worktree", "remove", str(path))
+    git("branch", "-D", branch)
+    print(f"archived local worktree and branch {branch}; remote audit branch was retained")
+
+
 def running_projects(prefix: str) -> list[str]:
     if not shutil.which("docker"):
         raise SystemExit("docker is required to prove that the worktree is not running")
@@ -200,7 +267,11 @@ def main() -> int:
     p.add_argument("branch")
     p = sub.add_parser("close")
     p.add_argument("branch")
+    p = sub.add_parser("archive")
+    p.add_argument("branch")
+    p.add_argument("--confirm", required=True)
     sub.add_parser("list")
+    sub.add_parser("overview")
     args = parser.parse_args()
     if args.command == "create":
         create(args.branch)
@@ -208,6 +279,10 @@ def main() -> int:
         status(args.branch)
     elif args.command == "close":
         close(args.branch)
+    elif args.command == "archive":
+        archive(args.branch, args.confirm)
+    elif args.command == "overview":
+        overview()
     else:
         print(json.dumps(worktree_records(), indent=2))
     return 0

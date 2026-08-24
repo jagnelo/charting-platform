@@ -1,0 +1,3 @@
+{"command":"python3 scripts/worktree.py overview","result":"pass","evidence":"reported 49 registered worktrees without mutation"}
+{"command":"python3 -m py_compile scripts/worktree.py scripts/integrate-set.py scripts/integrate.py","result":"pass"}
+{"command":"make branch-validate && git diff --check","result":"pass"}

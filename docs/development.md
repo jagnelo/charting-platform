@@ -81,10 +81,13 @@ Use the supported lifecycle interface from the clean root `master` checkout:
 ```bash
 make worktree-create BRANCH=feat/provider-health
 make worktree-list
+make worktree-overview
 make worktree-status BRANCH=feat/provider-health
 make branch-validate
 make integrate BRANCH=feat/provider-health
 make worktree-close BRANCH=feat/provider-health
+make worktree-archive BRANCH=fix/abandoned CONFIRM=fix/abandoned
+make integrate-set BRANCHES='docs/a feat/b'
 ```
 
 If integration pauses on merge conflicts, resolve and stage the candidate's
@@ -106,6 +109,15 @@ make integrate BRANCH=fix/master-gate-hardening REMEDIATE_DEGRADED=1
 Each worktree gets an `ops/workstreams/<branch-slug>/` record with a plan,
 handoff, and append-only validation evidence. Closing refuses dirty, unmerged,
 or running worktrees.
+
+`make worktree-overview` is the human-facing inventory: it reports branch goal/status,
+ahead/behind counts, dirty state, local size, and the exact reason a worktree is or is
+not removable. `worktree-archive` is intentionally explicit and only accepts a clean,
+stopped, documented blocked/closed branch; it preserves the remote audit branch.
+
+`integrate-set` creates one exact candidate for explicitly named branches, merges each
+with a non-fast-forward boundary, runs declared branch tests plus the complete gate, and
+publishes one master update. It never adds a branch merely because it is ready.
 
 `make test-stack-up` preserves the normal unseeded market-data default, but accepts
 `E2E_SEED_INSTRUMENTS` and `E2E_SEED_MARKET_DATA` from the caller. For deterministic visual

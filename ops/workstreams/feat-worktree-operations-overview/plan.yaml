@@ -1,0 +1,14 @@
+schema: 1
+branch: feat/worktree-operations-overview
+base_sha: cb475db01d412c201c2be2b1bfaeea3387bc3860
+goal: "Provide human-readable worktree operations, safe local archive, and explicit batch integration."
+scope: ["worktree overview", "safe archive", "integration batch candidate", "development guidance"]
+owned_paths: ["scripts/worktree.py", "scripts/integrate-set.py", "Makefile", "docs/development.md", "ops/workstreams/feat-worktree-operations-overview"]
+dependencies: ["explicit human request recorded in handoff"]
+acceptance_criteria: ["overview reports branch state and removability", "archive never removes dirty/running/undocumented work", "batch only uses explicitly named branches and one candidate"]
+branch_tests: ["python3 -m py_compile scripts/worktree.py scripts/integrate-set.py", "python3 scripts/worktree.py overview"]
+live_test_impact: none
+migration_impact: none
+deployment_impact: none
+status: ready
+remaining_gaps: []
