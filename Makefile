@@ -282,7 +282,7 @@ clean:
 worktree-create:
 	@test -n "$(BRANCH)" || (echo "usage: make worktree-create BRANCH=feat/name" >&2; exit 2)
 	@test -n "$(REQUEST)" || (echo "usage: make worktree-create BRANCH=feat/name REQUEST='exact human request'" >&2; exit 2)
-	$(WORKFLOW_PYTHON) scripts/worktree.py create "$(BRANCH)" --request "$(REQUEST)"
+	$(WORKFLOW_PYTHON) scripts/worktree.py create "$(BRANCH)" --request "$(REQUEST)" --base "$(if $(BASE),$(BASE),staging)" $(if $(PARENT_AUTHORIZATION),--dependency-authorization "$(PARENT_AUTHORIZATION)",)
 
 worktree-list:
 	$(WORKFLOW_PYTHON) scripts/worktree.py list

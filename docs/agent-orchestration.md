@@ -71,6 +71,11 @@ or an opportunity noticed during other work.
   explicit human request to address that named topic. Create the worktree with
   `make worktree-create BRANCH=<prefix/topic> REQUEST='<human request>'`; this
   records the request in its schema-2 workstream plan and handoff.
+- Independent topics start from synchronized `master`. Continue feedback in the
+  same unmerged topic branch. A separate dependent branch is exceptional: it
+  requires an explicit human authorization naming the parent/dependency and
+  uses `BASE=<parent> PARENT_AUTHORIZATION='<human decision>'`. Never choose a
+  non-master parent at agent discretion.
 - Work autonomously inside that authorized branch: plan, implement, test,
   document, commit, push, and make the result available for human review.
 - Before deciding the final verification path, ask the human whether to use the
