@@ -1,0 +1,21 @@
+schema: 2
+branch: feat/human-intent-guard
+base_sha: cb475db01d412c201c2be2b1bfaeea3387bc3860
+human_intent_authorization: "Yes, all of this, but always with the hard condition that the AI agent will NOT start working on anything without the explicit request or confirmation from the human developer."
+human_closure_authorization: pending
+closure_summary: pending
+validation_tier: focused_only
+human_validation_authorization: "The human explicitly stated on 2026-08-24 that workflow changes consisting mostly of documentation/guidelines and helper commands do not require the full comprehensive testing gate."
+goal: "Enforce explicit human authorization before development starts and before integration/deployment proceeds."
+scope: ["worktree creation interface", "workstream validation", "integration guard", "agent and development documentation"]
+owned_paths: ["scripts/worktree.py", "scripts/validate-workstream.py", "scripts/integrate.py", "Makefile", "docs/agent-orchestration.md", "docs/development.md", "ops/workstreams/feat-human-intent-guard"]
+dependencies: ["clean synchronized master", "explicit human request recorded in this plan"]
+acceptance_criteria: ["new worktree creation requires a human request", "integration rejects branches without explicit recorded closure authorization", "green validation alone cannot authorize merge or deploy", "legacy schema-1 workstreams remain valid evidence"]
+branch_tests:
+  - python3 scripts/validate-workstream.py ops/workstreams/feat-human-intent-guard/plan.yaml
+  - PYTHONPYCACHEPREFIX=/tmp/charting-platform-pycache python3 -m py_compile scripts/worktree.py scripts/validate-workstream.py scripts/integrate.py
+live_test_impact: none
+migration_impact: none
+deployment_impact: none
+status: ready_for_human_review
+remaining_gaps: []

@@ -79,7 +79,7 @@ The defaults are replaced by generated values in `.ai/runtime/*.env`.
 Use the supported lifecycle interface from the clean root `master` checkout:
 
 ```bash
-make worktree-create BRANCH=feat/provider-health
+make worktree-create BRANCH=feat/provider-health REQUEST='Add provider-health monitoring'
 make worktree-list
 make worktree-status BRANCH=feat/provider-health
 make branch-validate
@@ -106,6 +106,29 @@ make integrate BRANCH=fix/master-gate-hardening REMEDIATE_DEGRADED=1
 Each worktree gets an `ops/workstreams/<branch-slug>/` record with a plan,
 handoff, and append-only validation evidence. Closing refuses dirty, unmerged,
 or running worktrees.
+
+`REQUEST` is a durable record of the human request that authorized the work, not
+boilerplate. An agent must not create a worktree, modify product code, integrate,
+or deploy merely because it found a potential improvement. It first needs an
+explicit human request for that topic.
+
+Before selecting validation, the agent must ask the human whether this topic
+needs the default `full_integration` gate or is explicitly approved as
+`focused_only` documentation/workflow-helper work. A missing decision blocks
+integration. `focused_only` is allowed only for changes limited to `docs/`,
+`scripts/`, `Makefile`, `AGENTS.md`, and the branch's own workstream record;
+it runs diff/workstream validation, Python syntax checks, and declared focused
+tests. Any application, dependency, migration, Compose, CI, or test-product
+change requires `full_integration`.
+
+When development is complete, green tests mean `ready_for_human_review`, not
+permission to merge. Keep the branch/worktree available while the human tries
+the feature and supplies feedback. Only an explicit human instruction to close
+the topic permits an agent to record that instruction in
+`human_closure_authorization`, change the workstream status to
+`ready_for_integration`, complete the PR-equivalent `closure_summary`, and run
+`make integrate`. The integration helper
+enforces those fields. Deployment remains a separate explicit human request.
 
 `make test-stack-up` preserves the normal unseeded market-data default, but accepts
 `E2E_SEED_INSTRUMENTS` and `E2E_SEED_MARKET_DATA` from the caller. For deterministic visual
