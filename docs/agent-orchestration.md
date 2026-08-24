@@ -60,6 +60,48 @@ So the correct model is:
 
 This avoids making the orchestrator juggle multiple peer instruction files.
 
+## Human intent boundary (non-negotiable)
+
+The human developer owns **whether a topic may start, whether it is accepted,
+and whether it may be deployed**. Agents own the mechanics once that intent is
+explicit. Do not infer authorization from an old task, a TODO, a failing test,
+or an opportunity noticed during other work.
+
+- Before creating a worktree or changing any product/workflow code, obtain an
+  explicit human request to address that named topic. Create the worktree with
+  `make worktree-create BRANCH=<prefix/topic> REQUEST='<human request>'`; this
+  records the request in its schema-2 workstream plan and handoff.
+- Work autonomously inside that authorized branch: plan, implement, test,
+  document, commit, push, and make the result available for human review.
+- Before deciding the final verification path, ask the human whether to use the
+  default `full_integration` gate or an explicitly approved `focused_only`
+  documentation/workflow-helper gate. Record the exact answer in
+  `human_validation_authorization`. Do not infer that a change is “small”.
+  `focused_only` is mechanically limited to documentation/workflow-helper paths
+  and runs its own focused gate; all other changes require the full gate.
+- Green validation means `ready_for_human_review`; it is never implicit merge,
+  close, or deployment permission. Preserve the branch for feedback iterations.
+- Only after an explicit human statement such as “close this topic” may an
+  agent record the exact closure instruction in `human_closure_authorization`,
+  set `status: ready_for_integration`, and write `closure_summary` with the
+  delivered scope, exact source SHA, validation evidence, migration/deployment
+  impact, conflict decisions, and remaining gaps. That committed branch record
+  is the PR-equivalent narrative preserved by the non-fast-forward merge. Only
+  then may it invoke `make integrate`.
+- Only after a separate explicit human deployment request may an agent invoke
+  deployment tooling. A closure request does not authorize deployment.
+
+This is a written contract, not a suggestion. Tooling rejects new worktrees
+without a recorded request and rejects integration unless the recorded closure
+authorization, validation decision, and status are present. It cannot prove who
+typed prose, so an agent must quote or faithfully record the human instruction
+and never invent it.
+
+This section supersedes older text in this document that refers to mandatory
+global `ops/handoff.md`, `ops/state.json`, or `ops/run-report.md` updates for
+feature workers. Those files are historical integration evidence. The current
+branch's workstream is the durable coordination record.
+
 ## Install / setup order
 
 1. Install and verify **Codex CLI**
@@ -78,13 +120,11 @@ This avoids making the orchestrator juggle multiple peer instruction files.
 After being pointed to this file, every worker must do the following before making any code changes:
 
 1. Read `docs/agent-orchestration.md`
-2. Read `ops/tasks.yaml`
-3. Read `ops/handoff.md`
-4. Read `ops/state.json`
-5. Optionally read `ops/run-report.md` if more historical context is needed
-6. Determine the active task and current handoff state
-7. If the current branch is not `master`, read its `ops/workstreams/<branch-slug>/plan.yaml`, `handoff.md`, and `validation.jsonl`
-8. Only then begin implementation/validation work
+2. Determine whether the checkout is the root `master` integration checkout or a feature worktree
+3. In a feature worktree, read its `ops/workstreams/<branch-slug>/plan.yaml`, `handoff.md`, and `validation.jsonl`; confirm the recorded human request before acting
+4. In the root `master` checkout, read the relevant global `ops/*` integration evidence before integration or deployment work
+5. Optionally consult global `ops/*` legacy history when it materially helps a feature worker, but do not edit it as routine branch coordination
+6. Only then begin authorized implementation/validation work
 
 This means the orchestrator only needs to say:
 
@@ -106,16 +146,14 @@ This means:
 
 If a worker waits until the final moments of its remaining budget to externalize context, that worker has failed the contract.
 
-Every worker must read:
-- `docs/agent-orchestration.md`
-- `ops/tasks.yaml`
-- `ops/handoff.md`
-- `ops/state.json`
+Every worker must read `docs/agent-orchestration.md`. A feature worker must
+read and maintain only its branch-owned workstream record; the `master`
+integration worker reads the relevant global `ops/*` integration evidence.
 
-Every worker must update:
-- `ops/handoff.md`
-- `ops/state.json`
-- `ops/run-report.md`
+Every feature/fix/chore/docs/test worker must update its own
+`ops/workstreams/<branch-slug>/handoff.md` and append its own
+`validation.jsonl`. The old global files are legacy integration evidence and
+must not become a cross-branch coordination hotspot.
 
 If a worker stops without updating those files, it has failed the handoff contract.
 

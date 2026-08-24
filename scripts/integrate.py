@@ -9,6 +9,7 @@ import fcntl
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -77,6 +78,68 @@ def branch_worktree(repo: Path, branch: str) -> Path:
                 return current
             current = None
     raise SystemExit(f"source branch is not checked out in a worktree: {branch}")
+
+
+def branch_slug(branch: str) -> str:
+    return re.sub(r"[^a-zA-Z0-9]+", "-", branch).strip("-").lower()
+
+
+def workstream_values(source: Path, branch: str) -> dict[str, str]:
+    plan = source / "ops" / "workstreams" / branch_slug(branch) / "plan.yaml"
+    if not plan.exists():
+        raise SystemExit(f"source branch has no workstream plan: {plan}")
+    values: dict[str, str] = {}
+    for line in plan.read_text().splitlines():
+        match = re.match(r"^([A-Za-z_][A-Za-z0-9_]*):(?:\s*)(.*)$", line)
+        if match:
+            values[match.group(1)] = match.group(2).strip().strip("'\"")
+    return values
+
+
+def require_human_closure(source: Path, branch: str) -> str:
+    values = workstream_values(source, branch)
+    if values.get("schema") != "2":
+        raise SystemExit(
+            "integration requires a schema-2 workstream with recorded human intent and closure authorization"
+        )
+    if not values.get("human_intent_authorization"):
+        raise SystemExit("workstream does not record the human request that authorized this work")
+    closure = values.get("human_closure_authorization", "").strip().lower()
+    if not closure or closure in {"pending", "none", "false", "no"}:
+        raise SystemExit(
+            "integration requires explicit human closure authorization recorded in "
+            "ops/workstreams/<branch>/plan.yaml"
+        )
+    summary = values.get("closure_summary", "").strip().lower()
+    if not summary or summary in {"pending", "none", "n/a"}:
+        raise SystemExit(
+            "integration requires a completed PR-equivalent closure_summary in the workstream"
+        )
+    if values.get("status") != "ready_for_integration":
+        raise SystemExit(
+            "integration requires workstream status ready_for_integration; green tests alone are only ready for human review"
+        )
+    tier = values.get("validation_tier", "")
+    if tier == "full_integration":
+        return tier
+    if tier != "focused_only":
+        raise SystemExit(
+            "integration requires an explicit human validation decision: full_integration or focused_only"
+        )
+    validation = values.get("human_validation_authorization", "").strip().lower()
+    if not validation or validation in {"pending", "none", "false", "no"}:
+        raise SystemExit(
+            "focused-only integration requires explicit human validation authorization recorded in the workstream"
+        )
+    changed = out(["git", "diff", "--name-only", "master...HEAD"], source).splitlines()
+    allowed = ("docs/", "scripts/", "ops/workstreams/", "AGENTS.md", "Makefile")
+    disallowed = [path for path in changed if not path.startswith(allowed)]
+    if disallowed:
+        raise SystemExit(
+            "focused-only validation is limited to documentation/workflow helpers; "
+            f"full integration is required for: {', '.join(disallowed)}"
+        )
+    return tier
 
 
 def assert_clean_synchronized(
@@ -206,7 +269,7 @@ def continue_candidate(repo: Path, branch: str, source_sha: str) -> tuple[Path, 
     return candidate, out(["git", "rev-parse", "HEAD"], candidate)
 
 
-def validate(repo: Path, candidate: Path, branch: str, source_sha: str) -> None:
+def validate(repo: Path, candidate: Path, branch: str, source_sha: str, tier: str) -> None:
     if out(["git", "rev-parse", "HEAD"], repo) != out(
         ["git", "rev-parse", "origin/master"], repo
     ):
@@ -216,7 +279,7 @@ def validate(repo: Path, candidate: Path, branch: str, source_sha: str) -> None:
             "source branch no longer resolves to the captured candidate SHA"
         )
     run(
-        ["make", "validate-integration"],
+        ["make", "validate-integration" if tier == "full_integration" else "validate-focused-integration"],
         candidate,
         env={**os.environ, "INTEGRATION_BRANCH": branch},
     )
@@ -378,12 +441,13 @@ def main() -> int:
         source = assert_clean_synchronized(
             repo, args.branch, remediate_degraded=args.remediate_degraded
         )
+        tier = require_human_closure(source, args.branch)
         source_sha = out(["git", "rev-parse", "HEAD"], source)
         if args.continue_candidate:
             candidate, candidate_sha = continue_candidate(repo, args.branch, source_sha)
         else:
             candidate, candidate_sha = make_candidate(repo, args.branch, source_sha)
-        validate(repo, candidate, args.branch, source_sha)
+        validate(repo, candidate, args.branch, source_sha, tier)
         print(
             json.dumps(
                 {

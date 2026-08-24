@@ -9,6 +9,7 @@ import re
 import shutil
 import subprocess
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 
@@ -89,15 +90,20 @@ def branch_path(branch: str) -> Path:
     raise SystemExit(f"branch is not checked out in a worktree: {branch}")
 
 
-def initialise_docs(path: Path, branch: str) -> None:
+def initialise_docs(path: Path, branch: str, request: str) -> None:
     directory = path / "ops" / "workstreams" / branch_slug(branch)
     directory.mkdir(parents=True, exist_ok=False)
     base_sha = git("rev-parse", "master", cwd=path)
     (directory / "plan.yaml").write_text(
-        "schema: 1\n"
+        "schema: 2\n"
         f"branch: {branch}\n"
         f"base_sha: {base_sha}\n"
-        'goal: "replace me"\n'
+        f"human_intent_authorization: {json.dumps(request)}\n"
+        "human_closure_authorization: pending\n"
+        "closure_summary: pending\n"
+        "validation_tier: pending_human_decision\n"
+        "human_validation_authorization: pending\n"
+        'goal: "replace me with the human-requested outcome"\n'
         "scope: []\n"
         "owned_paths: []\n"
         "dependencies: []\n"
@@ -106,22 +112,31 @@ def initialise_docs(path: Path, branch: str) -> None:
         "live_test_impact: none\n"
         "migration_impact: none\n"
         "deployment_impact: none\n"
-        "status: planned\n"
+        "status: authorized\n"
         "remaining_gaps: []\n"
     )
     (directory / "handoff.md").write_text(
-        f"# {branch}\n\nCreated from `master` at `{base_sha}`. Update this handoff at each coherent boundary.\n"
+        f"# {branch}\n\nCreated from `master` at `{base_sha}`.\n\n"
+        "## Human authorization\n\n"
+        f"- Recorded at: {datetime.now(UTC).isoformat()}\n"
+        f"- Request: {request}\n"
+        "- Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.\n\n"
+        "Update this handoff at each coherent boundary.\n"
     )
     (directory / "validation.jsonl").write_text("")
 
 
-def create(branch: str) -> None:
+def create(branch: str, request: str) -> None:
     if not branch.startswith(PREFIXES) or branch.endswith("/"):
         raise SystemExit(
             "branch must use feat/, fix/, chore/, docs/, or test/ and include a name"
         )
     if ":" in branch or ".." in branch:
         raise SystemExit("branch name contains an unsafe path component")
+    if not request.strip():
+        raise SystemExit(
+            "a recorded human request is required; pass --request with the approved intent"
+        )
     ensure_master_ready()
     if git("show-ref", "--verify", f"refs/heads/{branch}", check=False):
         raise SystemExit(f"local branch already exists: {branch}")
@@ -132,7 +147,7 @@ def create(branch: str) -> None:
         raise SystemExit(f"worktree path already exists: {target}")
     target.parent.mkdir(parents=True, exist_ok=True)
     git("worktree", "add", "-b", branch, str(target), "master")
-    initialise_docs(target, branch)
+    initialise_docs(target, branch, request.strip())
     print(target)
 
 
@@ -196,6 +211,7 @@ def main() -> int:
     sub = parser.add_subparsers(dest="command", required=True)
     p = sub.add_parser("create")
     p.add_argument("branch")
+    p.add_argument("--request", required=True)
     p = sub.add_parser("status")
     p.add_argument("branch")
     p = sub.add_parser("close")
@@ -203,7 +219,7 @@ def main() -> int:
     sub.add_parser("list")
     args = parser.parse_args()
     if args.command == "create":
-        create(args.branch)
+        create(args.branch, args.request)
     elif args.command == "status":
         status(args.branch)
     elif args.command == "close":

@@ -31,7 +31,7 @@
   test-migration-compatibility test-research-runner-probes test-live-provider-probes \
   branch-tests \
   validate-arm64-images \
-  validate-integration branch-validate \
+  validate-integration validate-focused-integration branch-validate \
   worktree-create worktree-list worktree-status worktree-close integrate \
   rpi-preflight rpi-bundle deploy-rpi rpi-status \
   lint lint-backend lint-frontend format \
@@ -280,7 +280,8 @@ clean:
 
 worktree-create:
 	@test -n "$(BRANCH)" || (echo "usage: make worktree-create BRANCH=feat/name" >&2; exit 2)
-	python3 scripts/worktree.py create "$(BRANCH)"
+	@test -n "$(REQUEST)" || (echo "usage: make worktree-create BRANCH=feat/name REQUEST='exact human request'" >&2; exit 2)
+	python3 scripts/worktree.py create "$(BRANCH)" --request "$(REQUEST)"
 
 worktree-list:
 	python3 scripts/worktree.py list
@@ -324,6 +325,15 @@ validate-integration:
 	stage=e2e-visual; printf '▶ integration gate stage: %s\\n' "$$stage"; ($(RUNTIME_ENV) cd frontend && STACK_URL=$${STACK_URL:-$$STACK_URL} E2E_SEED_MARKET_DATA=true RUN_BOARD_VISUAL_PARITY=1 npx playwright test tests/e2e/tc2000_visual.spec.ts); \
 	if test -n "$(INTEGRATION_BRANCH)"; then stage=branch-tests; printf '▶ integration gate stage: %s\n' "$$stage"; $(MAKE) branch-tests INTEGRATION_BRANCH="$(INTEGRATION_BRANCH)"; fi; \
 	stage=arm64-images; printf '▶ integration gate stage: %s\n' "$$stage"; $(MAKE) validate-arm64-images
+
+# Narrow gate available only when the workstream contains the human-approved
+# focused_only decision. Integration enforces that decision and its path scope.
+validate-focused-integration:
+	@set -e; \
+	stage=git-diff; printf '▶ focused integration gate stage: %s\n' "$$stage"; git diff --check; \
+	stage=workstream; printf '▶ focused integration gate stage: %s\n' "$$stage"; $(MAKE) branch-validate; \
+	stage=workflow-syntax; printf '▶ focused integration gate stage: %s\n' "$$stage"; PYTHONPYCACHEPREFIX=/tmp/charting-platform-pycache python3 -m py_compile scripts/worktree.py scripts/validate-workstream.py scripts/integrate.py; \
+	stage=branch-tests; printf '▶ focused integration gate stage: %s\n' "$$stage"; $(MAKE) branch-tests INTEGRATION_BRANCH="$(INTEGRATION_BRANCH)"
 
 rpi-preflight:
 	python3 scripts/rpi.py preflight
