@@ -295,6 +295,15 @@ def closure_reasons(branch: str, path: Path) -> list[str]:
 
 def overview() -> None:
     git("fetch", "origin")
+    # During the one-time staging migration there is no staging ref yet. The
+    # overview must remain usable so the human can see the worktree inventory
+    # and what cannot be closed before bootstrapping. Once staging exists it is
+    # the sole comparison line.
+    comparison_base = (
+        "staging"
+        if git_succeeds("rev-parse", "--verify", "refs/heads/staging")
+        else "master"
+    )
     rows: list[dict[str, object]] = []
     for record in worktree_records():
         branch = record.get("branch", "(unknown)")
@@ -322,7 +331,11 @@ def overview() -> None:
             )
             continue
         behind, ahead = git(
-            "rev-list", "--left-right", "--count", f"staging...{branch}", cwd=path
+            "rev-list",
+            "--left-right",
+            "--count",
+            f"{comparison_base}...{branch}",
+            cwd=path,
         ).split()
         plan = plan_values(path, branch)
         reasons = closure_reasons(branch, path)
@@ -332,6 +345,7 @@ def overview() -> None:
                 "path": str(path),
                 "goal": plan.get("goal", "unrecorded"),
                 "workstream_status": plan.get("status", "missing"),
+                "comparison_base": comparison_base,
                 "ahead": int(ahead),
                 "behind": int(behind),
                 "dirty": bool(git("status", "--porcelain", cwd=path)),

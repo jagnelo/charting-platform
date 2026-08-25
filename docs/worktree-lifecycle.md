@@ -38,7 +38,9 @@
 ## Storage and cleanup
 
 - `make worktree-overview` reports active worktrees relative to staging, including dirtiness,
-  ahead/behind counts, goal/status, running services, and whether closure is safe.
+  ahead/behind counts, goal/status, running services, and whether closure is safe. During the
+  one-time bootstrap, before `staging` exists, it explicitly reports relative to `master` instead;
+  it does not pretend the branches are already staging-integrated.
 - Closing a worktree never uses force and never removes Docker resources belonging to another
   worktree. Stop only the exact current worktree project before closure.
 - `.ai/staging-attempts/` contains small ignored JSON diagnostics, not repository copies.

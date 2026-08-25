@@ -83,7 +83,9 @@ def test_worktree_defaults_and_closure_follow_staging() -> None:
     helper = text("scripts/worktree.py")
     assert 'p.add_argument("--base", default="staging")' in helper
     assert '"--is-ancestor", branch, "staging"' in helper
-    assert 'f"staging...{branch}"' in helper
+    assert 'comparison_base = (' in helper
+    assert 'f"{comparison_base}...{branch}"' in helper
+    assert '"comparison_base": comparison_base' in helper
     assert "staging-degraded.json" in helper
     assert "+refs/heads/staging:refs/remotes/origin/staging" in helper
 

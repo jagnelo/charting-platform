@@ -67,3 +67,12 @@ feature branch; the workflow requires that gate on `staging` and `master`. The N
 deprecation messages are warnings from upstream action versions, not test failures. This evidence
 checkpoint intentionally does not claim its own follow-up commit as the tested implementation SHA,
 avoiding an infinite metadata-only validation loop.
+
+During the human-facing `.ai` inventory, `make worktree-overview` exposed a first-bootstrap gap:
+it assumed that the new persistent `staging` branch already existed, so it could not report the
+pre-bootstrap worktree state. It now explicitly compares branches with `master` until `staging`
+exists, includes `comparison_base` in its JSON, and automatically reverts to staging comparison
+after bootstrap. This does not permit closure before staging integration; it makes that blocked
+state visible. The focused workflow suite passes (`14/14`) and the complete integration gate passed
+again, including backend/frontend coverage, functional Playwright (`154` passed), all four visual
+environments (`104` passed), and cleanup of only this branch's full-stack resources.
