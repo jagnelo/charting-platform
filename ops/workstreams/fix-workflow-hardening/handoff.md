@@ -284,3 +284,14 @@ The clean branch rerun passed `backend/.venv/bin/python -m pytest backend/tests/
 (`2/2`), Ruff check/format for `scripts` and the runtime test, and frontend `vue-tsc --noEmit`.
 The existing seeded focused browser evidence remains `151 passed, 2 skipped`; a fresh exhaustive
 source replay is still required before this mixed workflow/product branch can be accepted.
+
+## 2026-08-27 — Superseded branch closure
+
+The workflow and workstation behavior changes from this topic are already present in `master`
+through merge boundary `82699837` (source `cdd1f07f00dbd0856d973c23f7faa8ccd71696f5`). The
+current branch tip contained only this branch's own operational evidence refresh; no product or
+deployment file remains unique to this branch. With the human's standing authorization for CI/CD-
+only housekeeping, the branch is marked `superseded` as an active development line. The
+historical failures and focused evidence above remain preserved, the remote branch remains
+available, and only the redundant local checkout will be removed. This does not claim a fresh
+exhaustive replay for the old branch tip.
