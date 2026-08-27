@@ -277,3 +277,10 @@ canvas baseline waits for hidden ratio/rotation tools to finish loading without
 changing the count oracle. Focused seeded acceptance passes the performance
 churn test 5/5 and the family matrix 3/3; frontend type-check and diff-check
 are green. A fresh source replay for the resulting commit is required.
+
+## 2026-08-27 — Focused evidence refresh
+
+The clean branch rerun passed `backend/.venv/bin/python -m pytest backend/tests/unit/test_worktree_runtime.py -q --no-cov`
+(`2/2`), Ruff check/format for `scripts` and the runtime test, and frontend `vue-tsc --noEmit`.
+The existing seeded focused browser evidence remains `151 passed, 2 skipped`; a fresh exhaustive
+source replay is still required before this mixed workflow/product branch can be accepted.
