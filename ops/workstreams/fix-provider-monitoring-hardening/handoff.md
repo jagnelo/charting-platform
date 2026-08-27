@@ -59,3 +59,14 @@ The targeted frontend Settings test could not start because this isolated worktr
 `frontend/node_modules`. `npx vitest` attempted to fetch Vitest from the npm registry and failed
 with `ENOTFOUND`; no test result was produced and the test oracle was not changed. The full gate
 still requires a reproducible frozen frontend install before this branch can be accepted.
+
+## 2026-08-27 — Superseded branch closure
+
+The provider implementation, migration, Settings behavior, and worker scheduling changes from
+this topic are already present in `master` through merge boundary `0ecc62f1` (source
+`ff8a5608193905d2035c00352402c1a094507794`). The current branch tip contained only this branch's
+own operational evidence refresh; no product or deployment file remains unique to this branch.
+With the human's standing authorization for CI/CD-only housekeeping, the branch is marked
+`superseded` as an active development line. The historical gaps and first-failure evidence above
+remain intentionally preserved, the remote branch remains available, and only the redundant local
+checkout will be removed. This does not claim that optional live-provider probes were performed.

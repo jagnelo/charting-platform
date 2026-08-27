@@ -35,7 +35,9 @@ branch_tests:
 live_test_impact: none
 migration_impact: "Adds fe4f5a6b7c8d provider notification state; requires fresh and previous-master migration compatibility plus previous-release smoke."
 deployment_impact: none
-status: in_progress
+status: closed
+closure_summary: "Implementation is already present in master via the non-fast-forward boundary 0ecc62f1 (source ff8a5608193905d2035c00352402c1a094507794). The only unmerged tail before this closure record was this branch's own ops/workstreams/fix-provider-monitoring-hardening evidence (prior tip 486c3292aa84af47e821bf7e0cea0b72b663e389). The topic is superseded as an active branch; historical gaps remain recorded above and the remote branch is retained."
+closure_authorization: "Standing human authorization for CI/CD-only lifecycle housekeeping; no product source is being changed or discarded by this closure."
 remaining_gaps:
   - "The fresh provider replay and exact candidate integration must run after the scheduling coverage change and ARM64 CI emulation repair."
   - "Real provider probes remain opt-in and require configured free/entitled credentials; deterministic tests cover classification and transition policy without paid calls."
