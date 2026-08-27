@@ -39,3 +39,10 @@ blocked while the marker exists.
 Next boundary: commit, push, run branch CI, then integrate this exact SHA into
 the degraded master candidate and require a new green master replay before
 clearing `.ai/master-degraded.json`.
+
+## 2026-08-27 — Static evidence refresh
+
+`frontend/node_modules/.bin/vue-tsc --noEmit` passed on the clean branch. The previously recorded
+focused F8e/F8s repetitions remain green (`20/20`) and multi-window churn remains green (`10/10`),
+but the full exact-candidate gate and independent replay are still required. No product oracle or
+visual threshold was changed.
