@@ -62,3 +62,17 @@ def test_stale_runtime_allocation_requires_git_and_docker_proof(monkeypatch):
     data["allocations"]["stale"] = {"worktree": "/stale", "projects": {}}
     runtime.reclaim_stale_allocations(data, "current")
     assert "stale" in data["allocations"]
+
+
+def test_unregistered_generated_env_files_are_removed(tmp_path, monkeypatch):
+    runtime = _load_runtime()
+    runtime_dir = tmp_path / ".ai" / "runtime"
+    runtime_dir.mkdir(parents=True)
+    (runtime_dir / "active-id.env").write_text("ACTIVE=1\n")
+    (runtime_dir / "stale-id.env").write_text("STALE=1\n")
+    monkeypatch.setattr(runtime, "common_root", lambda: tmp_path)
+    runtime.remove_unregistered_env_files(
+        {"allocations": {"active": {"id": "active-id"}}}
+    )
+    assert (runtime_dir / "active-id.env").exists()
+    assert not (runtime_dir / "stale-id.env").exists()

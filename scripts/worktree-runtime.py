@@ -183,6 +183,20 @@ def reclaim_stale_allocations(data: dict[str, Any], current_id: str) -> None:
         del data["allocations"][allocation_id]
 
 
+def remove_unregistered_env_files(data: dict[str, Any]) -> None:
+    """Remove only generated env files with no live allocator registration."""
+    runtime_dir = common_root() / ".ai" / "runtime"
+    if not runtime_dir.exists():
+        return
+    active_ids = {
+        str(item.get("id", allocation_id))
+        for allocation_id, item in data["allocations"].items()
+    }
+    for env_file in runtime_dir.glob("*.env"):
+        if env_file.stem not in active_ids:
+            env_file.unlink()
+
+
 def allocate(data: dict[str, Any]) -> dict[str, Any]:
     path = root()
     branch = run_git("branch", "--show-current") or "detached-head"
@@ -272,6 +286,7 @@ def env_file_path() -> Path:
 def ensure() -> tuple[dict[str, Any], dict[str, str], Path]:
     with locked_registry() as data:
         allocation = allocate(data)
+        remove_unregistered_env_files(data)
         env = environment(allocation)
         path = env_file_path()
         path.write_text(
