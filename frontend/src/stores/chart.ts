@@ -356,7 +356,12 @@ function createChartStore(storeId: string) {
     }
 
     watch(indicators, () => {
-      if (!instrument.value) return
+      // Loading an instrument clears and then hydrates this ref. Those are
+      // programmatic state transitions, not user edits; persisting them while
+      // the indicator GET is still in flight can overwrite a saved stack with
+      // an empty array. Only the explicit mutation helpers mark the stack
+      // dirty, so automatic persistence must require that marker.
+      if (!instrument.value || !indicatorsDirty) return
       if (_saveTimer) clearTimeout(_saveTimer)
       _saveTimer = setTimeout(saveIndicatorsForInstrument, 1000)
     }, { deep: true })

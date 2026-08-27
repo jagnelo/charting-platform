@@ -243,6 +243,33 @@ describe('useChartStore', () => {
     expect(store.indicators[0].type).toBe('rsi')
   })
 
+  it('does not persist programmatic indicator hydration while the load is pending', async () => {
+    vi.useFakeTimers()
+    try {
+      const store = useChartStore()
+      let releaseIndicators!: (value: { indicators: any[] }) => void
+      ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+        if (path === '/instruments/SPY') return Promise.resolve({ id: 42, symbol: 'SPY' }) as any
+        if (path === '/instrument-indicators/42') return new Promise(resolve => { releaseIndicators = resolve }) as any
+        if (path.startsWith('/ohlcv/')) return Promise.resolve([{ ts: '2026-01-01T00:00:00Z', open: 1, high: 2, low: 1, close: 2, volume: 10 }]) as any
+        return Promise.resolve([]) as any
+      })
+
+      const loading = store.loadBars('SPY', 'D1')
+      await vi.waitFor(() => expect(releaseIndicators).toBeTypeOf('function'))
+      await vi.advanceTimersByTimeAsync(1_100)
+      expect(api.put).not.toHaveBeenCalled()
+
+      releaseIndicators({ indicators: [{ type: 'rsi', params: { period: 14 } }] })
+      await loading
+      await vi.advanceTimersByTimeAsync(1_100)
+      expect(store.indicators).toEqual([{ type: 'rsi', params: { period: 14 } }])
+      expect(api.put).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('cancels a debounced indicator write when navigation changes the instrument', async () => {
     vi.useFakeTimers()
     try {

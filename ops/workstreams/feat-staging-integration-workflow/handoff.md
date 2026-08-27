@@ -227,3 +227,21 @@ this verification. The remote `origin/feat/staging-integration-workflow` ref rem
 closure tip, preserving its branch history and workstream record. The record is now marked
 `integrated`; its remaining work is only the future normal staging integration/promotion rehearsal.
 RPi deployment remains intentionally standby and was not attempted.
+
+## 2026-08-27 — Post-bootstrap staging replay remediation
+
+The first corrective documentation push to staging exposed one inherited product race in the
+exhaustive browser suite (`F8e.swing-analysis`). The browser trace showed one successful RSI save
+followed by three delayed `PUT /instrument-indicators/{id}` requests with an empty indicator list
+while chart state was being hydrated during navigation. Those programmatic clear/hydrate updates
+were incorrectly treated as user edits and could overwrite the saved stack; this was not a reason
+to weaken the browser oracle or merely extend its timeout.
+
+`frontend/src/stores/chart.ts` now schedules automatic persistence only after an explicit indicator
+mutation marks the stack dirty. Hydration remains visible to the user but cannot write an empty
+intermediate state. `frontend/tests/unit/stores/test_stores.test.ts` holds the indicator GET open and
+asserts that no write occurs during that interval. The focused store suite passed 38/38, the complete
+frontend Vitest coverage suite passed 923/923, and the rebuilt staging stack passed ten consecutive
+`F8e.swing-analysis` repetitions. The complete workstation flow file passed 151 tests with two
+documented skips. The exact staging SHA remains blocked from promotion until its independent GitHub
+exhaustive replay is green.
