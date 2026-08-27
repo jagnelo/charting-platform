@@ -94,3 +94,18 @@ separately from ordinary close.
 
 Focused validation: workflow tests passed (`16/16`), workstream validation passed (`28` records),
 Python syntax and `git diff --check` passed. No application or deployment behaviour was changed.
+
+## Local archive disposition
+
+With the standing CI/CD housekeeping authorization, the following redundant local checkouts were
+archived after the guarded pre-staging checks passed: `docs/parallel-workflow-final-receipt`,
+`docs/parallel-workflow-final-receipt-v2`, `feat/integration-gate-completeness`,
+`fix/arm64-ci-emulation`, `fix/ci-gate-timeout`, `fix/integration-replay-registration`,
+`fix/master-gate-observability`, `fix/playwright-popout-teardown`,
+`fix/research-runner-probe-portability`, and `fix/research-runner-probes`.
+
+For each branch, the exact local tip matched `origin/<branch>`, the tip was already reachable from
+the synchronized `master`, the checkout was clean and outside the root integration checkout, no
+merge was in progress, Docker reported no running managed project, and only the local worktree and
+local branch were removed. Every remote branch and tracked workstream record remains available;
+this is not semantic topic closure. No provider, product, staging, or RPi worktree was removed.
