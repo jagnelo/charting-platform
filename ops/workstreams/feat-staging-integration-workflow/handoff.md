@@ -129,6 +129,13 @@ was removed. The cumulative `feat/staging-integration-workflow` checkout remains
 remote child branch plus its tracked workstream record remains available for the eventual staging
 integration audit.
 
+Final focused rerun after the archive-tool changes passed: `make validate-focused-integration
+INTEGRATION_BRANCH=feat/staging-integration-workflow` completed with the workstream validator,
+workflow syntax checks, the 17 workflow tests, and all declared branch tests green. The first
+unprivileged invocation failed only because the sandbox could not read the UV cache; the unchanged
+command passed through the approved execution boundary. No application or deployment gate was
+waived.
+
 The completed archival run removed all six child checkouts; the first retry message about the first
 child being absent was only because the shell had already completed that child before its output
 stream closed. A follow-up inventory confirmed none of the six local worktree registrations or
