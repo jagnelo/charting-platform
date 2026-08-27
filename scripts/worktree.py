@@ -475,7 +475,8 @@ def archive_subsumed(
         raise SystemExit("subsumed archive requires a non-empty reason")
     path = branch_path(branch)
     parent_path = branch_path(parent)
-    if path == repo_root() or parent_path == repo_root():
+    integration_path = branch_path("master")
+    if path == integration_path or parent_path == integration_path:
         raise SystemExit("refusing to archive the root integration checkout")
     expected_root = common_root() / ".ai" / "worktrees"
     if path.parent != expected_root:

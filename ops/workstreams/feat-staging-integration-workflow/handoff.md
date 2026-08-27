@@ -115,3 +115,8 @@ contained in a named cumulative parent worktree. It removes only that redundant 
 after proving both branches are clean and remote-synchronized, the child is an ancestor of the
 parent, no child Compose project is running, and both worktrees are under `.ai/worktrees`. Remote
 branches and tracked records remain; this is explicitly not a second merge mechanism.
+
+The first invocation exposed and corrected an implementation detail: the current caller can itself
+be the cumulative parent worktree, so the root-integration guard must compare against the actual
+`master` worktree path rather than the caller's checkout path. The corrected helper is validated
+before any predecessor is removed.
