@@ -142,6 +142,11 @@ unprivileged invocation failed only because the sandbox could not read the UV ca
 command passed through the approved execution boundary. No application or deployment gate was
 waived.
 
+The local `fix/arm64-ci-qemu` checkout was also archived with the pre-staging guard. Its exact tip
+is already published on synchronized `master`; its remaining physical-Pi rehearsal is externally
+blocked. The remote branch and deployment workstream record remain available, and no other
+deployment or product checkout was removed.
+
 The completed archival run removed all six child checkouts; the first retry message about the first
 child being absent was only because the shell had already completed that child before its output
 stream closed. A follow-up inventory confirmed none of the six local worktree registrations or
