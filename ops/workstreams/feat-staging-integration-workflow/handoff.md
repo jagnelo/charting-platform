@@ -208,3 +208,22 @@ From the clean root `master` checkout, recheck that `master` is still synchroniz
 degraded, merge this exact branch tip once with a non-fast-forward boundary, push and verify the
 result, then run `make staging-bootstrap CONFIRM=<new-master-sha>`. If master is dirty, advanced,
 or marked degraded, stop without modifying it and repair/replay that exact master revision first.
+
+## 2026-08-27 — Integration and staging bootstrap completed
+
+The explicitly authorized one-time lifecycle is complete. The final synchronized source tip
+`289b2acdfbe939f85b2a5cf42ce198cb2877f069` was merged once into `master` as merge boundary
+`540621d7cdd88ebe4ef9ef11b0675a867ea252b9` and pushed to `origin/master`. GitHub's independent
+master replay passed Backend Tests, Frontend Unit Tests, Playwright, and the exhaustive integration
+gate.
+
+`staging` was then created from that exact green master SHA, pushed to `origin/staging`, and its
+independent CI replay also passed Backend Tests, Frontend Unit Tests, Playwright, and the exhaustive
+integration gate. Both branches and the persistent staging worktree are clean and synchronized;
+neither is marked degraded.
+
+The local `feat/staging-integration-workflow` worktree and local branch were removed only after
+this verification. The remote `origin/feat/staging-integration-workflow` ref remains at the exact
+closure tip, preserving its branch history and workstream record. The record is now marked
+`integrated`; its remaining work is only the future normal staging integration/promotion rehearsal.
+RPi deployment remains intentionally standby and was not attempted.
