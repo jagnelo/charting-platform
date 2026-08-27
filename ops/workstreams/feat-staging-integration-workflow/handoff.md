@@ -156,3 +156,28 @@ The allocator reclamation pass was then run. It removed only runtime registry en
 env files whose worktree paths were no longer registered and whose exact managed Compose projects
 were confirmed stopped. The registry now contains only `master` and the five retained active
 worktrees; no active allocation, port, volume, network, or configuration was reclaimed.
+
+## 2026-08-27 — Operational-tail lifecycle and allocator residue cleanup
+
+The normal branch comparison remains `staging` after bootstrap. The new
+`worktree-archive-operational-tail` command is explicitly pre-staging-only and refuses once a
+local or remote `staging` ref exists. Before bootstrap it can remove a closed local branch whose
+implementation is already in synchronized `master` only when the branch is clean and remote-
+synchronized, Docker proves its managed projects are stopped, and every unmerged path is under
+that branch's own workstream record. It retains the remote branch and record; it cannot remove
+product, deployment, or unrelated documentation changes.
+
+Using that guard, `fix/provider-monitoring-hardening`, `fix/workflow-hardening`, and
+`fix/master-gate-hardening` were marked `closed` as superseded active lines and their local
+checkouts/local refs were removed. Their implementation boundaries are already in `master`; the
+remote branches and closure/evidence records remain. The cumulative staging branch and the RPi
+deployment worktree were not removed.
+
+The runtime allocator now removes only generated `.ai/runtime/*.env` files whose allocation IDs
+are no longer registered. After the archive, the registry and env directory contain only the
+`master`, `feat/staging-integration-workflow`, and `fix/rpi-deployment-contract` allocations.
+
+Validation: `backend/tests/unit/test_worktree_runtime.py` plus
+`tests/workflow/test_staging_workflow.py` passed `21/21` with `--no-cov`; Python syntax and
+`git diff --check` passed. The implementation checkpoint was pushed and synchronized; the
+enclosing commit is verified by `git rev-parse`.
