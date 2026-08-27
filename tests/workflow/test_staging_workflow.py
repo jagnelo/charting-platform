@@ -113,6 +113,18 @@ def test_pre_staging_archive_does_not_weaken_normal_staging_close() -> None:
     assert "archive_pre_staging" not in close_body
 
 
+def test_subsumed_archive_requires_named_parent_and_retains_remote_history() -> None:
+    helper = text("scripts/worktree.py")
+    makefile = text("Makefile")
+    lifecycle = text("docs/worktree-lifecycle.md")
+    assert "def archive_subsumed" in helper
+    assert '"merge-base", "--is-ancestor", branch, parent' in helper
+    assert 'git("branch", "-d", branch, cwd=parent_path)' in helper
+    assert "archive-subsumed" in helper
+    assert "worktree-archive-subsumed" in makefile
+    assert "cumulative parent" in lifecycle
+
+
 @pytest.mark.parametrize("platform", ["linux/arm/v7", "linux/arm64"])
 def test_rpi_config_accepts_supported_target_platforms(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, platform: str

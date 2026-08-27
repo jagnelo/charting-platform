@@ -457,6 +457,64 @@ def archive_pre_staging(branch: str, confirm: str, reason: str) -> None:
     )
 
 
+def archive_subsumed(
+    branch: str, parent: str, confirm: str, reason: str
+) -> None:
+    """Remove a local branch already contained in one cumulative parent branch.
+
+    This is the counterpart to pre-staging archive for a dependency chain.  It
+    proves containment in the named parent (not in master), requires both local
+    branches to match their remotes, and deletes neither remote history nor the
+    parent checkout.  It is not a merge or a semantic closure operation.
+    """
+    if confirm != branch:
+        raise SystemExit("subsumed archive confirmation must exactly match BRANCH")
+    if branch == parent:
+        raise SystemExit("a branch cannot be subsumed by itself")
+    if not reason.strip():
+        raise SystemExit("subsumed archive requires a non-empty reason")
+    path = branch_path(branch)
+    parent_path = branch_path(parent)
+    if path == repo_root() or parent_path == repo_root():
+        raise SystemExit("refusing to archive the root integration checkout")
+    expected_root = common_root() / ".ai" / "worktrees"
+    if path.parent != expected_root:
+        raise SystemExit("worktree is outside .ai/worktrees")
+    for label, checkout, ref in (
+        ("branch", path, branch),
+        ("parent", parent_path, parent),
+    ):
+        if git("status", "--porcelain", cwd=checkout):
+            raise SystemExit(f"{label} worktree is dirty")
+        if git_succeeds("rev-parse", "--verify", "MERGE_HEAD", cwd=checkout):
+            raise SystemExit(f"{label} worktree has a merge in progress")
+        local_sha = git("rev-parse", "HEAD", cwd=checkout, check=False)
+        remote_sha = git("rev-parse", f"origin/{ref}", cwd=checkout, check=False)
+        if not local_sha or not remote_sha or local_sha != remote_sha:
+            raise SystemExit(f"{label} branch is not synchronized with its remote")
+    if not git_succeeds(
+        "merge-base", "--is-ancestor", branch, parent, cwd=parent_path
+    ):
+        raise SystemExit("branch is not fully contained in the named parent")
+    try:
+        slug = branch_slug(branch)
+        projects = running_projects(f"charting-dev-{slug}") + running_projects(
+            f"charting-stack-{slug}"
+        )
+        if projects:
+            raise SystemExit(
+                "branch has running managed Compose projects: " + ", ".join(projects)
+            )
+    except SystemExit:
+        raise
+    git("worktree", "remove", str(path))
+    git("branch", "-d", branch, cwd=parent_path)
+    print(
+        f"archived local checkout for {branch} as subsumed by {parent} "
+        f"({reason.strip()}); remote branch and tracked workstream record were retained"
+    )
+
+
 def running_projects(prefix: str) -> list[str]:
     if not shutil.which("docker"):
         raise SystemExit("docker is required to prove that the worktree is not running")
@@ -522,6 +580,15 @@ def main() -> int:
         default="",
         help="human-readable local-storage disposition for pre-staging archive",
     )
+    p = sub.add_parser("archive-subsumed")
+    p.add_argument("branch")
+    p.add_argument("--parent", required=True)
+    p.add_argument("--confirm", required=True)
+    p.add_argument(
+        "--reason",
+        required=True,
+        help="why this local checkout is redundant under the named parent",
+    )
     sub.add_parser("list")
     sub.add_parser("overview")
     args = parser.parse_args()
@@ -542,6 +609,8 @@ def main() -> int:
             archive_pre_staging(args.branch, args.confirm, args.reason)
         else:
             archive(args.branch, args.confirm)
+    elif args.command == "archive-subsumed":
+        archive_subsumed(args.branch, args.parent, args.confirm, args.reason)
     elif args.command == "overview":
         overview()
     else:

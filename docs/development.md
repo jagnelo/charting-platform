@@ -88,6 +88,7 @@ make integrate BRANCH=feat/provider-health
 make worktree-close BRANCH=feat/provider-health
 make worktree-archive BRANCH=fix/abandoned CONFIRM=fix/abandoned
 make worktree-archive-pre-staging BRANCH=fix/old-ci CONFIRM=fix/old-ci REASON='published local duplicate'
+make worktree-archive-subsumed BRANCH=feat/workflow-unification PARENT=feat/staging-integration-workflow CONFIRM=feat/workflow-unification REASON='subsumed by cumulative workflow branch'
 make integrate-set BRANCHES='docs/a feat/b'
 make staging-status
 make promote-staging COMMIT=<full-green-staging-sha> CONFIRM=<same-sha>

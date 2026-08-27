@@ -54,6 +54,12 @@
   synchronized branch whose exact tip is already reachable from synchronized `master`, and it
   retains the remote branch and tracked workstream record. It is not evidence that the topic was
   accepted into staging. Dirty, unpushed, unmerged, root, or out-of-scope worktrees are refused.
+- For a dependency chain whose cumulative parent worktree is still active, use
+  `make worktree-archive-subsumed BRANCH=<name> PARENT=<parent> CONFIRM=<name> REASON='subsumed by cumulative branch'`.
+  This proves the child tip is contained in the named synchronized parent, removes only the child
+  checkout/local branch, and retains both the remote child branch and its tracked workstream
+  record. It is not an alternative merge path and refuses dirty, running, unpushed, or out-of-scope
+  worktrees.
 - `.ai/staging-attempts/` contains small ignored JSON diagnostics, not repository copies.
 - Existing `.ai/integration/` directories are historical artifacts from the retired candidate
   workflow. `worktree-cleanup-report`, `worktree-cleanup-reconcile`, and the explicit cleanup

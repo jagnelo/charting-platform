@@ -109,3 +109,9 @@ the synchronized `master`, the checkout was clean and outside the root integrati
 merge was in progress, Docker reported no running managed project, and only the local worktree and
 local branch were removed. Every remote branch and tracked workstream record remains available;
 this is not semantic topic closure. No provider, product, staging, or RPi worktree was removed.
+
+The workflow now also exposes `worktree-archive-subsumed` for a child branch whose exact tip is
+contained in a named cumulative parent worktree. It removes only that redundant local checkout
+after proving both branches are clean and remote-synchronized, the child is an ancestor of the
+parent, no child Compose project is running, and both worktrees are under `.ai/worktrees`. Remote
+branches and tracked records remain; this is explicitly not a second merge mechanism.
