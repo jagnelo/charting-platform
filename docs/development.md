@@ -87,6 +87,7 @@ make branch-validate
 make integrate BRANCH=feat/provider-health
 make worktree-close BRANCH=feat/provider-health
 make worktree-archive BRANCH=fix/abandoned CONFIRM=fix/abandoned
+make worktree-archive-pre-staging BRANCH=fix/old-ci CONFIRM=fix/old-ci REASON='published local duplicate'
 make integrate-set BRANCHES='docs/a feat/b'
 make staging-status
 make promote-staging COMMIT=<full-green-staging-sha> CONFIRM=<same-sha>
@@ -126,18 +127,23 @@ tests. Any application, dependency, migration, Compose, CI, or test-product
 change requires `full_integration`.
 
 When development is complete, green tests mean `ready_for_human_review`, not
-permission to merge. Keep the branch/worktree available while the human tries
-the feature and supplies feedback. Only an explicit human instruction to close
-the topic permits an agent to record that instruction in
-`human_closure_authorization`, change the workstream status to
-`ready_for_integration`, complete the PR-equivalent `closure_summary`, and run
-`make integrate`. The integration helper
-enforces those fields. Deployment remains a separate explicit human request.
+permission to merge for product or deployment work. Keep those branches/worktrees available
+while the human tries the result and supplies feedback. A standing human authorization may,
+however, let agents finish and close CI/CD-only housekeeping end-to-end once its declared
+focused checks are green. That exception never covers application behaviour, provider
+monitoring, deployment code/target configuration, live-provider calls, or a red/flaky gate.
+Product and deployment topics still require an explicit human closure instruction before an
+agent records `human_closure_authorization`, changes the workstream status to
+`ready_for_integration`, completes the PR-equivalent `closure_summary`, and runs `make integrate`.
+Deployment remains a separate explicit human request.
 
 `make worktree-overview` is the human-facing inventory: it reports branch goal/status,
 ahead/behind counts, dirty state, local size, and the exact reason a worktree is or is
 not removable. `worktree-archive` is intentionally explicit and only accepts a clean,
-stopped, documented blocked/closed branch; it preserves the remote audit branch.
+stopped, documented blocked/closed branch already in staging; it preserves the remote audit
+branch. Before staging is bootstrapped, `worktree-archive-pre-staging` is the separate storage
+housekeeping path for a clean local duplicate whose exact branch tip is already published on
+master. It never deletes the remote branch or changes the workstream's semantic status.
 
 `integrate-set` merges only explicitly named, human-closed branches into staging with a
 non-fast-forward boundary for each. Branch CI includes its declared tests; the resulting

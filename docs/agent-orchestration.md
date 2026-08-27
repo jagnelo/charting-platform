@@ -102,6 +102,35 @@ authorization, validation decision, and status are present. It cannot prove who
 typed prose, so an agent must quote or faithfully record the human instruction
 and never invent it.
 
+### Scoped standing automation authorization
+
+The human may explicitly delegate the mechanics of CI/CD-only housekeeping to
+agents. When that delegation is recorded, an agent may, without asking again:
+
+- finish and validate documentation, test, CI, workflow, and local worktree
+  housekeeping changes;
+- reconcile their workstream records with the evidence already present in the
+  repository;
+- mark a branch as superseded or historically complete when a later published
+  commit contains its work and its remaining gaps are either closed or clearly
+  documented; and
+- remove a redundant local checkout with the guarded pre-staging archive command.
+
+This standing authorization does not cover product behaviour, provider
+availability behaviour, deployment code, target configuration, live-provider
+requests, or any action while a required gate is red, flaky, or inconclusive.
+Those topics remain open and must not be relabelled complete merely because
+their tip is reachable from `master`. A clean local archive is permitted for
+such a branch only when its published source is preserved remotely and the
+workstream record continues to describe the outstanding work.
+
+The authorization also does not waive validation. CI/CD-only work must still
+pass its declared focused checks; any change that touches application code,
+dependencies, migrations, Compose runtime behaviour, or deployment contracts
+uses the full integration gate. Agents must stop and report a human decision
+when a proposed cleanup would delete a remote branch, discard uncommitted or
+unpushed work, or change the meaning of a product/deployment requirement.
+
 This section supersedes older text in this document that refers to mandatory
 global `ops/handoff.md`, `ops/state.json`, or `ops/run-report.md` updates for
 feature workers. Those files are historical integration evidence. The current

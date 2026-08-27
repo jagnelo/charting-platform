@@ -6,6 +6,11 @@
 - The human explicitly chooses `full_integration` or the restricted `focused_only` path.
 - Green validation means ready for review, not permission to close.
 - The human explicitly closes a topic before it may enter staging. Deployment is a separate request.
+- A human may grant standing authorization for CI/CD-only housekeeping. That lets agents finish
+  and validate workflow/documentation/test tooling, reconcile stale records, and archive local
+  duplicates without asking for each mechanical step. It does not authorize product changes,
+  provider behaviour, deployment changes, live-provider calls, remote branch deletion, or any
+  action while a required gate is red, flaky, or inconclusive.
 
 ## Branch lifecycle
 
@@ -43,6 +48,12 @@
   it does not pretend the branches are already staging-integrated.
 - Closing a worktree never uses force and never removes Docker resources belonging to another
   worktree. Stop only the exact current worktree project before closure.
+- Before `staging` exists, a published local duplicate can be removed with
+  `make worktree-archive-pre-staging BRANCH=<name> CONFIRM=<name> REASON='published local duplicate'`.
+  The command is deliberately separate from normal close: it requires a clean, stopped,
+  synchronized branch whose exact tip is already reachable from synchronized `master`, and it
+  retains the remote branch and tracked workstream record. It is not evidence that the topic was
+  accepted into staging. Dirty, unpushed, unmerged, root, or out-of-scope worktrees are refused.
 - `.ai/staging-attempts/` contains small ignored JSON diagnostics, not repository copies.
 - Existing `.ai/integration/` directories are historical artifacts from the retired candidate
   workflow. `worktree-cleanup-report`, `worktree-cleanup-reconcile`, and the explicit cleanup

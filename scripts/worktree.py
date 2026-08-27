@@ -293,6 +293,55 @@ def closure_reasons(branch: str, path: Path) -> list[str]:
     return reasons
 
 
+def pre_staging_archive_reasons(branch: str, path: Path) -> list[str]:
+    """Return blockers for removing a published local checkout before staging exists.
+
+    This is deliberately separate from normal ``close``.  It does not claim that a
+    topic was accepted into staging; it only proves that the local checkout has no
+    source that is missing from the synchronized master branch.  The remote branch
+    and its tracked workstream record are retained as the durable audit trail.
+    """
+    reasons: list[str] = []
+    if path == repo_root():
+        reasons.append("root integration checkout")
+    expected_root = common_root() / ".ai" / "worktrees"
+    if path.parent != expected_root:
+        reasons.append("worktree is outside .ai/worktrees")
+    if git("status", "--porcelain", cwd=path):
+        reasons.append("dirty")
+    if git_succeeds("rev-parse", "--verify", "MERGE_HEAD", cwd=path):
+        reasons.append("merge in progress")
+    if not git_succeeds("merge-base", "--is-ancestor", branch, "master", cwd=path):
+        reasons.append("branch contains commits not published on master")
+    local_sha = git("rev-parse", "HEAD", cwd=path, check=False)
+    remote_sha = git("rev-parse", f"origin/{branch}", cwd=path, check=False)
+    if not local_sha or not remote_sha:
+        reasons.append("remote branch is unavailable")
+    elif local_sha != remote_sha:
+        reasons.append("local branch is not synchronized with its remote")
+    master_path = branch_path("master")
+    if git("status", "--porcelain", cwd=master_path):
+        reasons.append("master is dirty")
+    if git("diff", "--check", cwd=master_path):
+        reasons.append("master has whitespace errors")
+    local_master = git("rev-parse", "refs/heads/master", cwd=master_path, check=False)
+    remote_master = git(
+        "rev-parse", "refs/remotes/origin/master", cwd=master_path, check=False
+    )
+    if not local_master or not remote_master or local_master != remote_master:
+        reasons.append("master is not synchronized with origin/master")
+    try:
+        slug = branch_slug(branch)
+        projects = running_projects(f"charting-dev-{slug}") + running_projects(
+            f"charting-stack-{slug}"
+        )
+        if projects:
+            reasons.append("running:" + ",".join(projects))
+    except SystemExit as exc:
+        reasons.append(str(exc))
+    return reasons
+
+
 def overview() -> None:
     git("fetch", "origin")
     # During the one-time staging migration there is no staging ref yet. The
@@ -339,6 +388,7 @@ def overview() -> None:
         ).split()
         plan = plan_values(path, branch)
         reasons = closure_reasons(branch, path)
+        pre_staging_reasons = pre_staging_archive_reasons(branch, path)
         rows.append(
             {
                 "branch": branch,
@@ -353,6 +403,11 @@ def overview() -> None:
                 == git("rev-parse", f"origin/{branch}", cwd=path, check=False),
                 "size_bytes": size_bytes(path),
                 "close": "safe" if not reasons else "blocked: " + "; ".join(reasons),
+                "pre_staging_archive": (
+                    "eligible"
+                    if not pre_staging_reasons
+                    else "blocked: " + "; ".join(pre_staging_reasons)
+                ),
             }
         )
     print(json.dumps(rows, indent=2))
@@ -376,6 +431,29 @@ def archive(branch: str, confirm: str) -> None:
     git("branch", "-D", branch)
     print(
         f"archived local worktree and branch {branch}; remote audit branch was retained"
+    )
+
+
+def archive_pre_staging(branch: str, confirm: str, reason: str) -> None:
+    """Remove only a published local duplicate while staging is not bootstrapped.
+
+    This command is for local storage housekeeping, not semantic branch closure.
+    It therefore accepts an explicit operator reason but intentionally leaves both
+    the remote branch and its tracked workstream record untouched.
+    """
+    if confirm != branch:
+        raise SystemExit("pre-staging archive confirmation must exactly match BRANCH")
+    if not reason.strip():
+        raise SystemExit("pre-staging archive requires a non-empty reason")
+    path = branch_path(branch)
+    reasons = pre_staging_archive_reasons(branch, path)
+    if reasons:
+        raise SystemExit("refusing pre-staging archive: " + "; ".join(reasons))
+    git("worktree", "remove", str(path))
+    git("branch", "-d", branch)
+    print(
+        f"archived local checkout for {branch} ({reason.strip()}); "
+        "remote branch and tracked workstream record were retained"
     )
 
 
@@ -434,6 +512,16 @@ def main() -> int:
     p = sub.add_parser("archive")
     p.add_argument("branch")
     p.add_argument("--confirm", required=True)
+    p.add_argument(
+        "--pre-staging",
+        action="store_true",
+        help="archive a clean branch already published on master before staging exists",
+    )
+    p.add_argument(
+        "--reason",
+        default="",
+        help="human-readable local-storage disposition for pre-staging archive",
+    )
     sub.add_parser("list")
     sub.add_parser("overview")
     args = parser.parse_args()
@@ -450,7 +538,10 @@ def main() -> int:
     elif args.command == "close":
         close(args.branch)
     elif args.command == "archive":
-        archive(args.branch, args.confirm)
+        if args.pre_staging:
+            archive_pre_staging(args.branch, args.confirm, args.reason)
+        else:
+            archive(args.branch, args.confirm)
     elif args.command == "overview":
         overview()
     else:

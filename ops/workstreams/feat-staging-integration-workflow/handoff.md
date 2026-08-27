@@ -76,3 +76,21 @@ after bootstrap. This does not permit closure before staging integration; it mak
 state visible. The focused workflow suite passes (`14/14`) and the complete integration gate passed
 again, including backend/frontend coverage, functional Playwright (`154` passed), all four visual
 environments (`104` passed), and cleanup of only this branch's full-stack resources.
+
+## 2026-08-27 — Scoped CI/CD housekeeping authorization and pre-staging archive
+
+The human explicitly authorized agents to complete CI/CD-only housekeeping end-to-end when its
+declared validation remains green, while retaining human closure for product behaviour,
+provider-monitoring behaviour, deployment implementation/target configuration, live-provider
+probes, and any red/flaky/inconclusive gate. The workflow documentation now records this scope.
+
+Added the separate `worktree-archive-pre-staging` path. It is storage housekeeping only: before
+the persistent `staging` branch exists, it removes a local checkout only when the worktree is
+clean, outside the root checkout, not in a merge, stopped, synchronized with its remote, and its
+exact tip is already reachable from synchronized `master`. It keeps the remote branch and tracked
+workstream record; it never claims staging acceptance and never deletes remote history. Normal
+`worktree-close` remains staging-only. The human-facing overview reports this eligibility
+separately from ordinary close.
+
+Focused validation: workflow tests passed (`16/16`), workstream validation passed (`28` records),
+Python syntax and `git diff --check` passed. No application or deployment behaviour was changed.

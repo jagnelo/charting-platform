@@ -31,7 +31,7 @@
   test-migration-compatibility test-research-runner-probes test-live-provider-probes \
   branch-tests \
   validate-integration validate-focused-integration branch-validate \
-  worktree-create worktree-list worktree-status worktree-overview worktree-close worktree-archive worktree-cleanup-report worktree-cleanup-reconcile worktree-cleanup integrate integrate-set staging-bootstrap staging-status promote-staging \
+  worktree-create worktree-list worktree-status worktree-overview worktree-close worktree-archive worktree-archive-pre-staging worktree-cleanup-report worktree-cleanup-reconcile worktree-cleanup integrate integrate-set staging-bootstrap staging-status promote-staging \
   rpi-preflight rpi-bundle deploy-rpi rpi-status \
   lint lint-backend lint-frontend format \
   migrate migrate-new migrate-down \
@@ -296,6 +296,10 @@ worktree-close:
 worktree-archive:
 	@test -n "$(BRANCH)" -a -n "$(CONFIRM)" || (echo "usage: make worktree-archive BRANCH=feat/name CONFIRM=feat/name" >&2; exit 2)
 	$(WORKFLOW_PYTHON) scripts/worktree.py archive "$(BRANCH)" --confirm "$(CONFIRM)"
+
+worktree-archive-pre-staging:
+	@test -n "$(BRANCH)" -a -n "$(CONFIRM)" -a -n "$(REASON)" || (echo "usage: make worktree-archive-pre-staging BRANCH=feat/name CONFIRM=feat/name REASON='published local duplicate'" >&2; exit 2)
+	$(WORKFLOW_PYTHON) scripts/worktree.py archive "$(BRANCH)" --confirm "$(CONFIRM)" --pre-staging --reason "$(REASON)"
 
 worktree-cleanup-report:
 	@$(WORKFLOW_PYTHON) scripts/worktree-cleanup.py report

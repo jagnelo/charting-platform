@@ -90,6 +90,29 @@ def test_worktree_defaults_and_closure_follow_staging() -> None:
     assert "+refs/heads/staging:refs/remotes/origin/staging" in helper
 
 
+def test_pre_staging_archive_is_explicit_and_preserves_remote_history() -> None:
+    helper = text("scripts/worktree.py")
+    makefile = text("Makefile")
+    lifecycle = text("docs/worktree-lifecycle.md")
+    assert "def pre_staging_archive_reasons" in helper
+    assert '"merge-base", "--is-ancestor", branch, "master"' in helper
+    assert '"origin/{branch}"' in helper
+    assert '"branch", "-d", branch' in helper
+    assert "--pre-staging" in helper
+    assert "--reason" in helper
+    assert "worktree-archive-pre-staging" in makefile
+    assert "remote branch and tracked workstream record" in lifecycle
+
+
+def test_pre_staging_archive_does_not_weaken_normal_staging_close() -> None:
+    helper = text("scripts/worktree.py")
+    close_body = helper.split("def close(branch: str)", 1)[1].split(
+        "def main() -> int:", 1
+    )[0]
+    assert '"--is-ancestor", branch, "staging"' in close_body
+    assert "archive_pre_staging" not in close_body
+
+
 @pytest.mark.parametrize("platform", ["linux/arm/v7", "linux/arm64"])
 def test_rpi_config_accepts_supported_target_platforms(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, platform: str
