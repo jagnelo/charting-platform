@@ -60,6 +60,15 @@
   checkout/local branch, and retains both the remote child branch and its tracked workstream
   record. It is not an alternative merge path and refuses dirty, running, unpushed, or out-of-scope
   worktrees.
+- When a branch's implementation is already present in synchronized `master` but its final
+  commit is only its own closure/evidence record, use
+  `make worktree-archive-operational-tail BRANCH=<name> CONFIRM=<name> REASON='implementation already integrated; closure record retained remotely'`.
+  This is not a merge. It requires a clean, synchronized branch, a clean synchronized `master`,
+  stopped managed Compose projects, a `closed` or `superseded` workstream, and proves that every
+  unmerged path is under that branch's own `ops/workstreams/<slug>/` directory. It removes only
+  the local checkout and local branch with a guarded local-ref deletion; the remote branch and
+  tracked record remain the audit trail. Any product, deployment, or unrelated documentation path
+  makes the command refuse.
 - `.ai/staging-attempts/` contains small ignored JSON diagnostics, not repository copies.
 - Existing `.ai/integration/` directories are historical artifacts from the retired candidate
   workflow. `worktree-cleanup-report`, `worktree-cleanup-reconcile`, and the explicit cleanup

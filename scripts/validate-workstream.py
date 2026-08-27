@@ -34,7 +34,7 @@ REQUIRED_V2 = REQUIRED_V1 | {
 }
 STATUSES = {
     "planned", "authorized", "in_progress", "ready", "ready_for_human_review",
-    "ready_for_integration", "integrated", "closed", "blocked",
+    "ready_for_integration", "integrated", "closed", "superseded", "blocked",
 }
 
 

@@ -89,6 +89,7 @@ make worktree-close BRANCH=feat/provider-health
 make worktree-archive BRANCH=fix/abandoned CONFIRM=fix/abandoned
 make worktree-archive-pre-staging BRANCH=fix/old-ci CONFIRM=fix/old-ci REASON='published local duplicate'
 make worktree-archive-subsumed BRANCH=feat/workflow-unification PARENT=feat/staging-integration-workflow CONFIRM=feat/workflow-unification REASON='subsumed by cumulative workflow branch'
+make worktree-archive-operational-tail BRANCH=fix/provider-monitoring-hardening CONFIRM=fix/provider-monitoring-hardening REASON='implementation already integrated; closure record retained remotely'
 make integrate-set BRANCHES='docs/a feat/b'
 make staging-status
 make promote-staging COMMIT=<full-green-staging-sha> CONFIRM=<same-sha>
@@ -149,6 +150,13 @@ master. It never deletes the remote branch or changes the workstream's semantic 
 `integrate-set` merges only explicitly named, human-closed branches into staging with a
 non-fast-forward boundary for each. Branch CI includes its declared tests; the resulting
 staging SHA receives the exhaustive remote gate. It never infers batch membership.
+
+If a branch's implementation is already in `master` and its only unmerged tail is its own
+closed workstream record, `worktree-archive-operational-tail` may remove the redundant local
+checkout before staging bootstrap. This is a storage/record-lifecycle action, not a merge: it
+proves the tail contains only `ops/workstreams/<branch-slug>/`, removes the local branch/ref, and
+retains the remote branch and record. It refuses any product, deployment, dirty, running, or
+unsynchronized branch.
 
 After the exact staging SHA is green, `promote-staging` fast-forwards master to it and
 waits for master's independent exhaustive replay. Normal CI is architecture-neutral and

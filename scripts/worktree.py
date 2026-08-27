@@ -517,6 +517,102 @@ def archive_subsumed(
     )
 
 
+def operational_tail_reasons(branch: str, path: Path) -> list[str]:
+    """Return blockers for archiving a closed, record-only branch tail.
+
+    This is intentionally narrower than the pre-staging duplicate path. It is
+    for a branch whose implementation has already been integrated into master,
+    while a later commit only refreshed that branch's own operational record.
+    The remote branch remains the audit trail; no product or deployment source
+    may be discarded by this command.
+    """
+    reasons: list[str] = []
+    if git_succeeds("rev-parse", "--verify", "refs/heads/staging") or git_succeeds(
+        "rev-parse", "--verify", "refs/remotes/origin/staging"
+    ):
+        reasons.append(
+            "staging is bootstrapped; use normal staging integration and close instead"
+        )
+    integration_path = branch_path("master")
+    expected_root = common_root() / ".ai" / "worktrees"
+    if path == integration_path:
+        reasons.append("root integration checkout")
+    if path.parent != expected_root:
+        reasons.append("worktree is outside .ai/worktrees")
+    if git("status", "--porcelain", cwd=path):
+        reasons.append("dirty")
+    if git_succeeds("rev-parse", "--verify", "MERGE_HEAD", cwd=path):
+        reasons.append("merge in progress")
+    local_sha = git("rev-parse", "HEAD", cwd=path, check=False)
+    remote_sha = git("rev-parse", f"origin/{branch}", cwd=path, check=False)
+    if not local_sha or not remote_sha:
+        reasons.append("remote branch is unavailable")
+    elif local_sha != remote_sha:
+        reasons.append("local branch is not synchronized with its remote")
+    master_path = branch_path("master")
+    if git("status", "--porcelain", cwd=master_path):
+        reasons.append("master is dirty")
+    if git("diff", "--check", cwd=master_path):
+        reasons.append("master has whitespace errors")
+    local_master = git("rev-parse", "refs/heads/master", cwd=master_path, check=False)
+    remote_master = git(
+        "rev-parse", "refs/remotes/origin/master", cwd=master_path, check=False
+    )
+    if not local_master or not remote_master or local_master != remote_master:
+        reasons.append("master is not synchronized with origin/master")
+    if not git_succeeds("merge-base", "--is-ancestor", branch, "master", cwd=path):
+        base = git("merge-base", "master", branch, cwd=path, check=False)
+        changed = (
+            git("diff", "--name-only", f"{base}..{branch}", cwd=path, check=False)
+            .splitlines()
+            if base
+            else []
+        )
+        expected_prefix = f"ops/workstreams/{branch_slug(branch)}/"
+        if not changed or any(
+            not item.startswith(expected_prefix) for item in changed
+        ):
+            reasons.append(
+                "branch contains unmerged files outside its own workstream record"
+            )
+    values = plan_values(path, branch)
+    if values.get("status") not in {"closed", "superseded"}:
+        reasons.append("workstream status is not closed or superseded")
+    if not values.get("closure_summary"):
+        reasons.append("workstream closure_summary is missing")
+    try:
+        slug = branch_slug(branch)
+        projects = running_projects(f"charting-dev-{slug}") + running_projects(
+            f"charting-stack-{slug}"
+        )
+        if projects:
+            reasons.append("running:" + ",".join(projects))
+    except SystemExit as exc:
+        reasons.append(str(exc))
+    return reasons
+
+
+def archive_operational_tail(branch: str, confirm: str, reason: str) -> None:
+    """Remove only a closed, record-only local branch tail before staging bootstrap."""
+    if confirm != branch:
+        raise SystemExit("operational-tail confirmation must exactly match BRANCH")
+    if not reason.strip():
+        raise SystemExit("operational-tail archive requires a non-empty reason")
+    path = branch_path(branch)
+    reasons = operational_tail_reasons(branch, path)
+    if reasons:
+        raise SystemExit("refusing operational-tail archive: " + "; ".join(reasons))
+    git("worktree", "remove", str(path))
+    # The branch is intentionally not an ancestor of master because its final
+    # commit is the durable closure record. The guarded checks above prove that
+    # the remote branch is the preserved source of that record.
+    git("branch", "-D", branch)
+    print(
+        f"archived local operational tail for {branch} ({reason.strip()}); "
+        "remote branch and tracked workstream record were retained"
+    )
+
+
 def running_projects(prefix: str) -> list[str]:
     if not shutil.which("docker"):
         raise SystemExit("docker is required to prove that the worktree is not running")
@@ -591,6 +687,14 @@ def main() -> int:
         required=True,
         help="why this local checkout is redundant under the named parent",
     )
+    p = sub.add_parser("archive-operational-tail")
+    p.add_argument("branch")
+    p.add_argument("--confirm", required=True)
+    p.add_argument(
+        "--reason",
+        required=True,
+        help="why this closed record-only tail is locally redundant",
+    )
     sub.add_parser("list")
     sub.add_parser("overview")
     args = parser.parse_args()
@@ -613,6 +717,8 @@ def main() -> int:
             archive(args.branch, args.confirm)
     elif args.command == "archive-subsumed":
         archive_subsumed(args.branch, args.parent, args.confirm, args.reason)
+    elif args.command == "archive-operational-tail":
+        archive_operational_tail(args.branch, args.confirm, args.reason)
     elif args.command == "overview":
         overview()
     else:

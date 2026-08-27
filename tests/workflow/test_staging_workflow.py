@@ -126,6 +126,23 @@ def test_subsumed_archive_requires_named_parent_and_retains_remote_history() -> 
     assert "cumulative parent" in lifecycle
 
 
+def test_operational_tail_archive_is_record_only_and_guarded() -> None:
+    helper = text("scripts/worktree.py")
+    makefile = text("Makefile")
+    lifecycle = text("docs/worktree-lifecycle.md")
+    validator = text("scripts/validate-workstream.py")
+    assert "def operational_tail_reasons" in helper
+    assert "staging is bootstrapped; use normal staging integration and close instead" in helper
+    assert "branch contains unmerged files outside its own workstream record" in helper
+    assert 'values.get("status") not in {"closed", "superseded"}' in helper
+    assert 'git("branch", "-D", branch)' in helper
+    assert "archive-operational-tail" in helper
+    assert "worktree-archive-operational-tail" in makefile
+    assert "remote branch and" in lifecycle
+    assert "tracked record remain the audit trail" in lifecycle
+    assert '"superseded"' in validator
+
+
 @pytest.mark.parametrize("platform", ["linux/arm/v7", "linux/arm64"])
 def test_rpi_config_accepts_supported_target_platforms(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, platform: str

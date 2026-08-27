@@ -31,7 +31,7 @@
   test-migration-compatibility test-research-runner-probes test-live-provider-probes \
   branch-tests \
   validate-integration validate-focused-integration branch-validate \
-  worktree-create worktree-list worktree-status worktree-overview worktree-close worktree-archive worktree-archive-pre-staging worktree-archive-subsumed worktree-cleanup-report worktree-cleanup-reconcile worktree-cleanup integrate integrate-set staging-bootstrap staging-status promote-staging \
+  worktree-create worktree-list worktree-status worktree-overview worktree-close worktree-archive worktree-archive-pre-staging worktree-archive-subsumed worktree-archive-operational-tail worktree-cleanup-report worktree-cleanup-reconcile worktree-cleanup integrate integrate-set staging-bootstrap staging-status promote-staging \
   rpi-preflight rpi-bundle deploy-rpi rpi-status \
   lint lint-backend lint-frontend format \
   migrate migrate-new migrate-down \
@@ -304,6 +304,10 @@ worktree-archive-pre-staging:
 worktree-archive-subsumed:
 	@test -n "$(BRANCH)" -a -n "$(PARENT)" -a -n "$(CONFIRM)" -a -n "$(REASON)" || (echo "usage: make worktree-archive-subsumed BRANCH=feat/name PARENT=feat/staging-integration-workflow CONFIRM=feat/name REASON='subsumed by cumulative workflow branch'" >&2; exit 2)
 	$(WORKFLOW_PYTHON) scripts/worktree.py archive-subsumed "$(BRANCH)" --parent "$(PARENT)" --confirm "$(CONFIRM)" --reason "$(REASON)"
+
+worktree-archive-operational-tail:
+	@test -n "$(BRANCH)" -a -n "$(CONFIRM)" -a -n "$(REASON)" || (echo "usage: make worktree-archive-operational-tail BRANCH=fix/name CONFIRM=fix/name REASON='implementation already integrated; closure record retained remotely'" >&2; exit 2)
+	$(WORKFLOW_PYTHON) scripts/worktree.py archive-operational-tail "$(BRANCH)" --confirm "$(CONFIRM)" --reason "$(REASON)"
 
 worktree-cleanup-report:
 	@$(WORKFLOW_PYTHON) scripts/worktree-cleanup.py report
