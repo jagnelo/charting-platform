@@ -424,7 +424,11 @@ function toggleWorkspaceMenu() {
     // some Chromium/GLayout combinations. One bounded retry covers that DOM
     // attachment boundary without introducing polling or stealing later focus.
     window.setTimeout(() => {
-      if (workspaceMenuOpen.value) void focusShellMenu('workspace')
+      const menuRoot = workspaceMenuRoot.value
+      const active = document.activeElement
+      if (workspaceMenuOpen.value && menuRoot && !menuRoot.contains(active)) {
+        void focusShellMenu('workspace')
+      }
     }, 50)
     // Startup hydration already supplies the current workspace. Only fetch the
     // list on a genuinely cold menu; refreshing a warm list would replace the

@@ -60,6 +60,147 @@ So the correct model is:
 
 This avoids making the orchestrator juggle multiple peer instruction files.
 
+## Human intent boundary (non-negotiable)
+
+The human developer owns **whether a topic may start, whether it is accepted,
+and whether it may be deployed**. Agents own the mechanics once that intent is
+explicit. Do not infer authorization from an old task, a TODO, a failing test,
+or an opportunity noticed during other work.
+
+- Before creating a worktree or changing any product/workflow code, obtain an
+  explicit human request to address that named topic. Create the worktree with
+  `make worktree-create BRANCH=<prefix/topic> REQUEST='<human request>'`; this
+  records the request in its schema-2 workstream plan and handoff.
+- Independent topics start from synchronized, green `staging`. Continue feedback in the
+  same unmerged topic branch. A separate dependent branch is exceptional: it
+  requires an explicit human authorization naming the parent/dependency and
+  uses `BASE=<parent> PARENT_AUTHORIZATION='<human decision>'`. Never choose a
+  non-staging parent at agent discretion.
+- Work autonomously inside that authorized branch: plan, implement, test,
+  document, commit, push, and make the result available for human review.
+- Before deciding the final verification path, ask the human whether to use the
+  default `full_integration` gate or an explicitly approved `focused_only`
+  documentation/workflow-helper gate. Record the exact answer in
+  `human_validation_authorization`. Do not infer that a change is “small”.
+  `focused_only` is mechanically limited to documentation/workflow-helper paths
+  and runs its own focused gate; all other changes require the full gate.
+- Green validation means `ready_for_human_review`; it is never implicit merge,
+  close, or deployment permission. Preserve the branch for feedback iterations.
+- Only after an explicit human statement such as “close this topic” may an
+  agent record the exact closure instruction in `human_closure_authorization`,
+  set `status: ready_for_integration`, and write `closure_summary` with the
+  delivered scope, validated implementation SHA, validation evidence,
+  migration/deployment impact, conflict decisions, and remaining gaps. The
+  final closure checkpoint cannot contain its own Git hash without creating a
+  self-referential commit loop, so it must explicitly say
+  `integration_capture: exact branch HEAD`; `make integrate` records the exact
+  final source SHA in its attempt/validation receipt. That committed branch
+  record is the PR-equivalent narrative preserved by the non-fast-forward
+  merge. Only then may it invoke `make integrate`, which targets `staging`.
+- Only after a separate explicit human deployment request may an agent invoke
+  deployment tooling. A closure request does not authorize deployment.
+
+This is a written contract, not a suggestion. Tooling rejects new worktrees
+without a recorded request and rejects integration unless the recorded closure
+authorization, validation decision, and status are present. It cannot prove who
+typed prose, so an agent must quote or faithfully record the human instruction
+and never invent it.
+
+### Scoped standing automation authorization
+
+The human may explicitly delegate the mechanics of CI/CD-only housekeeping to
+agents. When that delegation is recorded, an agent may, without asking again:
+
+- finish and validate documentation, test, CI, workflow, and local worktree
+  housekeeping changes;
+- reconcile their workstream records with the evidence already present in the
+  repository;
+- mark a branch as superseded or historically complete when a later published
+  commit contains its work and its remaining gaps are either closed or clearly
+  documented; and
+- remove a redundant local checkout with the guarded pre-staging archive command.
+
+This standing authorization does not cover product behaviour, provider
+availability behaviour, deployment code, target configuration, live-provider
+requests, or any action while a required gate is red, flaky, or inconclusive.
+Those topics remain open and must not be relabelled complete merely because
+their tip is reachable from `master`. A clean local archive is permitted for
+such a branch only when its published source is preserved remotely and the
+workstream record continues to describe the outstanding work.
+
+The authorization also does not waive validation. CI/CD-only work must still
+pass its declared focused checks; any change that touches application code,
+dependencies, migrations, Compose runtime behaviour, or deployment contracts
+uses the full integration gate. Agents must stop and report a human decision
+when a proposed cleanup would delete a remote branch, discard uncommitted or
+unpushed work, or change the meaning of a product/deployment requirement.
+
+This section supersedes older text in this document that refers to mandatory
+global `ops/handoff.md`, `ops/state.json`, or `ops/run-report.md` updates for
+feature workers. Those files are historical integration evidence. The current
+branch's workstream is the durable coordination record.
+
+## Staging integration and promotion (non-negotiable)
+
+`staging` is the one persistent integration branch. Local disposable integration
+copies are forbidden. `.ai/integration/` contains only historical artifacts from
+the retired workflow and must never receive a new candidate.
+
+1. `make integrate BRANCH=<name>` or an explicitly named `integrate-set` freezes
+   each clean, pushed source SHA, verifies its human closure record and exact
+   branch CI, and creates a non-fast-forward merge boundary on `staging`.
+2. A merge conflict aborts and restores `staging` to its exact starting SHA. The
+   agent records the conflict paths under ignored `.ai/staging-attempts/`, then
+   resolves the intended combined behaviour on the source branch, updates its
+   tests/workstream, pushes it, and starts a new attempt. It never experiments
+   with several alternative merge commits or leaves a combined repository copy.
+3. The exact pushed `staging` SHA must pass the GitHub job named `Exhaustive
+   Integration Gate`. Failure writes `.ai/staging-degraded.json`; ordinary
+   integration and promotion stop. Only an explicitly authorized repair branch
+   based directly on that exact degraded SHA may use `REMEDIATE_DEGRADED=1`.
+4. `make promote-staging COMMIT=<sha> CONFIRM=<sha>` accepts only the current,
+   synchronized, green staging SHA and fast-forwards `master`. `master` then
+   independently replays the exhaustive gate. A failed replay marks master
+   degraded and blocks deployment/new integration until repaired.
+5. `master` is the runnable/deployable release line, not the branch from which
+   ordinary work starts. Promotion never rewrites history and never publishes an
+   untested source advance. Source branches and their PR-equivalent workstream
+   records remain the audit trail after their local worktrees are closed.
+6. `make staging-bootstrap CONFIRM=<current-master-sha>` is a one-time,
+   human-confirmed operation after this workflow itself reaches `master`.
+
+The historical cleanup commands remain available only to account for and remove
+pre-staging `.ai/integration` artifacts. They are not part of current integration.
+
+## Architecture-neutral CI and target-specific deployment
+
+Normal branch, staging, and master CI validates application behaviour on the
+ordinary GitHub Linux runner. It must not install QEMU, emulate ARM, or build an
+architecture-specific deployment bundle.
+
+Deployment architecture is selected only inside an explicit human-requested
+target workflow. For the RPi helper, `.ai/deploy/rpi.env` must set
+`RPI_DOCKER_PLATFORM=linux/arm/v7` or `linux/arm64` after inspecting the actual
+Pi OS. `make rpi-preflight` verifies that choice and `make rpi-bundle` performs
+the target build. Supporting an RPi does not make it the repository's universal
+deployment architecture; future x86-64 local/cloud targets get their own
+target configuration without changing the architecture-neutral CI gate.
+
+## Workflow Python runtime
+
+Workflow helpers are part of the application toolchain. They must run through
+the backend's UV-managed interpreter, whose declared requirement is Python
+3.12 or newer; macOS's system `python3` is never the supported runtime. Use
+the Make targets, or explicitly use:
+
+```bash
+uv run --project backend python scripts/<helper>.py
+```
+
+When adding a branch test, use that same command form. Do not make a helper
+silently compatible with an older system Python instead of enforcing the
+repository's declared runtime.
+
 ## Install / setup order
 
 1. Install and verify **Codex CLI**
@@ -78,13 +219,11 @@ This avoids making the orchestrator juggle multiple peer instruction files.
 After being pointed to this file, every worker must do the following before making any code changes:
 
 1. Read `docs/agent-orchestration.md`
-2. Read `ops/tasks.yaml`
-3. Read `ops/handoff.md`
-4. Read `ops/state.json`
-5. Optionally read `ops/run-report.md` if more historical context is needed
-6. Determine the active task and current handoff state
-7. If the current branch is not `master`, read its `ops/workstreams/<branch-slug>/plan.yaml`, `handoff.md`, and `validation.jsonl`
-8. Only then begin implementation/validation work
+2. Determine whether the checkout is root `master`, persistent `staging`, or a feature worktree
+3. In a feature worktree, read its `ops/workstreams/<branch-slug>/plan.yaml`, `handoff.md`, and `validation.jsonl`; confirm the recorded human request before acting
+4. In root `master`, read relevant global `ops/*` evidence before staging control, promotion, or deployment work
+5. Optionally consult global `ops/*` legacy history when it materially helps a feature worker, but do not edit it as routine branch coordination
+6. Only then begin authorized implementation/validation work
 
 This means the orchestrator only needs to say:
 
@@ -106,16 +245,14 @@ This means:
 
 If a worker waits until the final moments of its remaining budget to externalize context, that worker has failed the contract.
 
-Every worker must read:
-- `docs/agent-orchestration.md`
-- `ops/tasks.yaml`
-- `ops/handoff.md`
-- `ops/state.json`
+Every worker must read `docs/agent-orchestration.md`. A feature worker must
+read and maintain only its branch-owned workstream record; the `master`
+integration worker reads the relevant global `ops/*` integration evidence.
 
-Every worker must update:
-- `ops/handoff.md`
-- `ops/state.json`
-- `ops/run-report.md`
+Every feature/fix/chore/docs/test worker must update its own
+`ops/workstreams/<branch-slug>/handoff.md` and append its own
+`validation.jsonl`. The old global files are legacy integration evidence and
+must not become a cross-branch coordination hotspot.
 
 If a worker stops without updating those files, it has failed the handoff contract.
 

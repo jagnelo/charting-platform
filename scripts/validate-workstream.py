@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 
-REQUIRED = {
+REQUIRED_V1 = {
     "schema",
     "branch",
     "base_sha",
@@ -25,7 +25,17 @@ REQUIRED = {
     "status",
     "remaining_gaps",
 }
-STATUSES = {"planned", "in_progress", "ready", "integrated", "closed", "blocked"}
+REQUIRED_V2 = REQUIRED_V1 | {
+    "human_intent_authorization",
+    "human_closure_authorization",
+    "closure_summary",
+    "validation_tier",
+    "human_validation_authorization",
+}
+STATUSES = {
+    "planned", "authorized", "in_progress", "ready", "ready_for_human_review",
+    "ready_for_integration", "integrated", "closed", "superseded", "blocked",
+}
 
 
 def parse_keys(path: Path) -> dict[str, str]:
@@ -43,7 +53,7 @@ def main() -> int:
     directory = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("ops/workstreams")
     directories = (
         [directory]
-        if (directory / "plan.yaml").exists()
+        if directory.is_file() or (directory / "plan.yaml").exists()
         else sorted(directory.glob("*/plan.yaml"))
     )
     if not directories:
@@ -53,13 +63,23 @@ def main() -> int:
     for plan_path in directories:
         stream = plan_path.parent
         values = parse_keys(plan_path)
-        missing = sorted(REQUIRED - values.keys())
+        schema = values.get("schema")
+        required = REQUIRED_V2 if schema == "2" else REQUIRED_V1
+        missing = sorted(required - values.keys())
         if missing:
             errors.append(f"{plan_path}: missing keys: {', '.join(missing)}")
-        if values.get("schema") != "1":
-            errors.append(f"{plan_path}: schema must be 1")
+        if schema not in {"1", "2"}:
+            errors.append(f"{plan_path}: schema must be 1 or 2")
         if values.get("status") not in STATUSES:
             errors.append(f"{plan_path}: unsupported status {values.get('status')!r}")
+        if schema == "2" and not values.get("human_intent_authorization"):
+            errors.append(f"{plan_path}: human_intent_authorization must not be empty")
+        if schema == "2" and values.get("validation_tier") not in {
+            "pending_human_decision", "full_integration", "focused_only"
+        }:
+            errors.append(
+                f"{plan_path}: unsupported validation_tier {values.get('validation_tier')!r}"
+            )
         if not re.fullmatch(r"[0-9a-f]{40}", values.get("base_sha", "")):
             errors.append(f"{plan_path}: base_sha must be a full lowercase Git SHA")
         if (

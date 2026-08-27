@@ -1,0 +1,3 @@
+{"command":"python3 scripts/worktree-cleanup.py report","result":"pass","evidence":"29 candidates inspected; 15 clean published candidates eligible; no mutation"}
+{"command":"python3 -m py_compile scripts/worktree-cleanup.py","result":"pass"}
+{"command":"make branch-validate && git diff --check","result":"pass"}

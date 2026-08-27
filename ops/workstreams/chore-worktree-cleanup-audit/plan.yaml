@@ -1,0 +1,14 @@
+schema: 1
+branch: chore/worktree-cleanup-audit
+base_sha: cb475db01d412c201c2be2b1bfaeea3387bc3860
+goal: "Add evidence-led integration-candidate cleanup and audit worktree lifecycle gaps."
+scope: ["integration cleanup report", "confirmed cleanup", "workflow policy audit"]
+owned_paths: ["scripts/worktree-cleanup.py", "Makefile", "docs/worktree-lifecycle.md", "ops/workstreams/chore-worktree-cleanup-audit"]
+dependencies: ["explicit human authorization in handoff"]
+acceptance_criteria: ["report never mutates", "cleanup removes only published clean candidates", "policy names retained and forbidden categories"]
+branch_tests: ["python3 scripts/worktree-cleanup.py report", "python3 -m py_compile scripts/worktree-cleanup.py"]
+live_test_impact: none
+migration_impact: none
+deployment_impact: none
+status: ready
+remaining_gaps: []

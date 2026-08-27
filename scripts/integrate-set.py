@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compatibility entry point for the persistent staging integration workflow."""
+"""Compatibility entry point for an explicitly named staging integration batch."""
 
 from __future__ import annotations
 
@@ -10,11 +10,11 @@ import staging
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("branch")
+    parser.add_argument("branches", nargs="+")
     parser.add_argument("--publish", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--remediate-degraded", action="store_true")
     args = parser.parse_args()
-    staging.integrate([args.branch], remediate=args.remediate_degraded)
+    staging.integrate(args.branches, remediate=args.remediate_degraded)
     return 0
 
 

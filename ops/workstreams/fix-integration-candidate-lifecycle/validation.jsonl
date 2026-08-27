@@ -1,0 +1,7 @@
+{"command":"make validate-focused-integration INTEGRATION_BRANCH=fix/integration-candidate-lifecycle","result":"passed","scope":"workstream schema, workflow helper syntax, branch tests"}
+{"command":"make validate-focused-integration INTEGRATION_BRANCH=fix/integration-candidate-lifecycle","result":"passed","scope":"UV-managed Python 3.12 workstream schema, helper syntax, and branch tests"}
+{"command":"uv run --project backend python scripts/integrate-set.py --help && uv run --project backend ruff check scripts/integrate.py scripts/integrate-set.py scripts/worktree-cleanup.py && uv run --project backend ruff format --check scripts/integrate.py scripts/integrate-set.py scripts/worktree-cleanup.py","result":"passed","scope":"UV-managed CLI and formatting"}
+{"command":"make worktree-cleanup-reconcile","result":"passed","scope":"created 14 non-destructive legacy lifecycle records"}
+{"command":"make validate-focused-integration INTEGRATION_BRANCH=fix/integration-candidate-lifecycle && make worktree-cleanup-report | JSON parse assertion","result":"passed","scope":"UV-managed Python 3.12 helper gate and exactly 14 legacy lifecycle records"}
+{"command":"git push origin fix/integration-candidate-lifecycle","result":"passed","commit":"3665a529274417f8edfc3bc6023da5d0307ddba0"}
+{"command":"git push --set-upstream origin HEAD:refs/heads/fix/integration-candidate-lifecycle","result":"passed","commit":"2d813d7b0c980d97d1b477a6e407d421b8c5ead3"}

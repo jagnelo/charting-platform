@@ -79,33 +79,95 @@ The defaults are replaced by generated values in `.ai/runtime/*.env`.
 Use the supported lifecycle interface from the clean root `master` checkout:
 
 ```bash
-make worktree-create BRANCH=feat/provider-health
+make worktree-create BRANCH=feat/provider-health REQUEST='Add provider-health monitoring'
 make worktree-list
+make worktree-overview
 make worktree-status BRANCH=feat/provider-health
 make branch-validate
 make integrate BRANCH=feat/provider-health
 make worktree-close BRANCH=feat/provider-health
+make worktree-archive BRANCH=fix/abandoned CONFIRM=fix/abandoned
+make worktree-archive-pre-staging BRANCH=fix/old-ci CONFIRM=fix/old-ci REASON='published local duplicate'
+make worktree-archive-subsumed BRANCH=feat/workflow-unification PARENT=feat/staging-integration-workflow CONFIRM=feat/workflow-unification REASON='subsumed by cumulative workflow branch'
+make worktree-archive-operational-tail BRANCH=fix/provider-monitoring-hardening CONFIRM=fix/provider-monitoring-hardening REASON='implementation already integrated; closure record retained remotely'
+make integrate-set BRANCHES='docs/a feat/b'
+make staging-status
+make promote-staging COMMIT=<full-green-staging-sha> CONFIRM=<same-sha>
 ```
 
-If integration pauses on merge conflicts, resolve and stage the candidate's
-semantic edits, update `ops/integration-conflicts.md`, then resume it with:
+Ordinary work starts from green `staging`. Integration merges the exact pushed source
+SHA into the persistent staging branch and waits for its exhaustive GitHub gate. No
+disposable repository copy is created. On conflict, staging is restored unchanged; record
+the intended combined behaviour and affected tests in the source workstream, resolve the
+conflict on that source branch, push, and retry.
 
-```bash
-python3 scripts/integrate.py feat/provider-health --continue --publish
-```
-
-If `master` is marked degraded after an independent GitHub replay failure, ordinary
-integration remains blocked. A repair branch created directly from that exact degraded
-`master` SHA may use the explicit remediation flag; the helper rejects branches with any
+If `staging` is marked degraded after its exhaustive replay fails, ordinary integration
+and promotion remain blocked. A repair branch created directly from that exact degraded
+staging SHA may use the explicit remediation flag; the helper rejects branches with any
 other base:
 
 ```bash
-make integrate BRANCH=fix/master-gate-hardening REMEDIATE_DEGRADED=1
+make integrate BRANCH=fix/staging-gate REMEDIATE_DEGRADED=1
 ```
+
+If the independent replay of `master` fails, the workflow records
+`.ai/master-degraded.json`. While that marker exists, staging cannot be bootstrapped and
+new ordinary worktrees cannot be created. The exact master revision must be repaired or
+replayed successfully first; a red master is never used as the starting point for staging.
 
 Each worktree gets an `ops/workstreams/<branch-slug>/` record with a plan,
 handoff, and append-only validation evidence. Closing refuses dirty, unmerged,
 or running worktrees.
+
+`REQUEST` is a durable record of the human request that authorized the work, not
+boilerplate. An agent must not create a worktree, modify product code, integrate,
+or deploy merely because it found a potential improvement. It first needs an
+explicit human request for that topic.
+
+Before selecting validation, the agent must ask the human whether this topic
+needs the default `full_integration` gate or is explicitly approved as
+`focused_only` documentation/workflow-helper work. A missing decision blocks
+integration. `focused_only` is allowed only for changes limited to `docs/`,
+`scripts/`, `Makefile`, `AGENTS.md`, and the branch's own workstream record;
+it runs diff/workstream validation, Python syntax checks, and declared focused
+tests. Any application, dependency, migration, Compose, CI, or test-product
+change requires `full_integration`.
+
+When development is complete, green tests mean `ready_for_human_review`, not
+permission to merge for product or deployment work. Keep those branches/worktrees available
+while the human tries the result and supplies feedback. A standing human authorization may,
+however, let agents finish and close CI/CD-only housekeeping end-to-end once its declared
+focused checks are green. That exception never covers application behaviour, provider
+monitoring, deployment code/target configuration, live-provider calls, or a red/flaky gate.
+Product and deployment topics still require an explicit human closure instruction before an
+agent records `human_closure_authorization`, changes the workstream status to
+`ready_for_integration`, completes the PR-equivalent `closure_summary`, and runs `make integrate`.
+Deployment remains a separate explicit human request.
+
+`make worktree-overview` is the human-facing inventory: it reports branch goal/status,
+ahead/behind counts, dirty state, local size, and the exact reason a worktree is or is
+not removable. `worktree-archive` is intentionally explicit and only accepts a clean,
+stopped, documented blocked/closed branch already in staging; it preserves the remote audit
+branch. Before staging is bootstrapped, `worktree-archive-pre-staging` is the separate storage
+housekeeping path for a clean local duplicate whose exact branch tip is already published on
+master. It never deletes the remote branch or changes the workstream's semantic status.
+
+`integrate-set` merges only explicitly named, human-closed branches into staging with a
+non-fast-forward boundary for each. Branch CI includes its declared tests; the resulting
+staging SHA receives the exhaustive remote gate. It never infers batch membership.
+
+If a branch's implementation is already in `master` and its only unmerged tail is its own
+closed workstream record, `worktree-archive-operational-tail` may remove the redundant local
+checkout before staging bootstrap. This is a storage/record-lifecycle action, not a merge: it
+proves the tail contains only `ops/workstreams/<branch-slug>/`, removes the local branch/ref, and
+retains the remote branch and record. It refuses any product, deployment, dirty, running, or
+unsynchronized branch.
+
+After the exact staging SHA is green, `promote-staging` fast-forwards master to it and
+waits for master's independent exhaustive replay. Normal CI is architecture-neutral and
+contains no emulation. RPi architecture validation/building occurs only through an
+explicitly requested `rpi-preflight`/`rpi-bundle`/`deploy-rpi` flow using the configured
+`RPI_DOCKER_PLATFORM`.
 
 `make test-stack-up` preserves the normal unseeded market-data default, but accepts
 `E2E_SEED_INSTRUMENTS` and `E2E_SEED_MARKET_DATA` from the caller. For deterministic visual

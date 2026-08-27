@@ -2332,15 +2332,17 @@ test.describe('TC2000 workstation', () => {
     const plots = chart.getByRole('button', { name: 'Chart plot library', exact: true })
     await expect(plots).toBeVisible({ timeout: 15_000 })
     await plots.click()
-    const indicatorSave = page.waitForRequest(request => {
+    const indicatorSave = page.waitForResponse(response => {
+      const request = response.request()
       if (request.method() !== 'PUT' || !request.url().includes('/api/v1/instrument-indicators/')) return false
       try {
         const payload = request.postDataJSON() as { indicators?: Array<{ type?: string }> }
-        return payload.indicators?.some(indicator => indicator.type === 'rsi') ?? false
+        return response.ok() && (payload.indicators?.some(indicator => indicator.type === 'rsi') ?? false)
       } catch { return false }
     })
     await chart.getByRole('combobox', { name: 'Add indicator plot' }).selectOption('rsi')
-    const indicatorSaveRequest = await indicatorSave
+    const indicatorSaveResponse = await indicatorSave
+    const indicatorSaveRequest = indicatorSaveResponse.request()
     const savedIndicatorPayload = indicatorSaveRequest.postDataJSON() as { indicators?: Array<{ type?: string }> }
     expect(savedIndicatorPayload.indicators?.some(indicator => indicator.type === 'rsi')).toBe(true)
     // Adding a plot is an insertion action and closes the fixed library menu.
@@ -5084,8 +5086,15 @@ test.describe('Dashboard', () => {
       await route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ detail: 'watchlists unavailable' }) })
     })
     await page.goto('/chart/SPY')
+    await expect(page.getByRole('region', { name: 'Major US benchmarks' })).toBeVisible({ timeout: 10_000 })
     await page.getByRole('button', { name: 'Add tool' }).click()
-    await page.getByRole('menuitem', { name: 'WatchList', exact: true }).click()
+    const toolMenu = page.locator('.workstation__tool-library-menu')
+    await expect(toolMenu).toBeVisible({ timeout: 10_000 })
+    await toolMenu.getByRole('menuitem', { name: 'WatchList', exact: true }).click()
+    const watchlistTab = page.locator('.lm_tab').filter({ hasText: 'WatchList' }).last()
+    await expect(watchlistTab).toBeVisible({ timeout: 10_000 })
+    if (!(await watchlistTab.evaluate(node => node.classList.contains('lm_active')))) await watchlistTab.click()
+    await expect(watchlistTab).toHaveClass(/lm_active/)
     const personal = page.locator('.tool-window--active .personal-watchlist-tool').last()
     await expect(personal).toBeVisible({ timeout: 10_000 })
     await expect(personal).toHaveAttribute('role', 'region')

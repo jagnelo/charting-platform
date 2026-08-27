@@ -1,5 +1,30 @@
 # Deployment
 
+## Manual Raspberry Pi deployment
+
+The RPi path is an explicit target workflow; it is not part of normal branch,
+staging, or master CI. GitHub CI remains architecture-neutral and does not use
+QEMU. A human must request deployment of one exact, validated master SHA.
+
+Copy `deploy/rpi/rpi.env.example` to ignored `.ai/deploy/rpi.env`, protect it
+with mode `0600`, and set `RPI_DOCKER_PLATFORM` after checking `uname -m` on the
+Pi. A 32-bit Pi OS normally needs `linux/arm/v7`; a 64-bit Pi OS needs
+`linux/arm64`. The preflight rejects a mismatch rather than guessing.
+
+```bash
+make rpi-preflight
+make rpi-bundle COMMIT=<full-validated-master-sha>
+make deploy-rpi COMMIT=<full-validated-master-sha> CONFIRM=<same-sha>
+make rpi-status
+```
+
+The bundle command builds/pulls the configured target architecture on the
+developer machine and transfers image-only artifacts; the Pi does not build the
+application. If a dependency image does not support the selected Pi platform,
+the explicit bundle step fails without changing the Pi. Other future local or
+cloud targets may use Linux x86-64 without changing normal CI or pretending the
+RPi platform is universal.
+
 ## Standard deployment — Docker Compose on a NAS/home server
 
 This is the intended production setup: five containers, all managed by Docker Compose, data persisted in named volumes.
