@@ -128,3 +128,8 @@ remote-synchronized, and contained in this cumulative parent; only its local che
 was removed. The cumulative `feat/staging-integration-workflow` checkout remains active, and every
 remote child branch plus its tracked workstream record remains available for the eventual staging
 integration audit.
+
+The completed archival run removed all six child checkouts; the first retry message about the first
+child being absent was only because the shell had already completed that child before its output
+stream closed. A follow-up inventory confirmed none of the six local worktree registrations or
+local branches remain, while every corresponding `origin/<branch>` ref is still present.
