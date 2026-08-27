@@ -120,3 +120,11 @@ The first invocation exposed and corrected an implementation detail: the current
 be the cumulative parent worktree, so the root-integration guard must compare against the actual
 `master` worktree path rather than the caller's checkout path. The corrected helper is validated
 before any predecessor is removed.
+
+The six predecessor checkouts (`chore/worktree-cleanup-audit`, `feat/dependent-branch-policy`,
+`feat/human-intent-guard`, `feat/workflow-unification`, `feat/worktree-operations-overview`, and
+`fix/integration-candidate-lifecycle`) were then archived with that guard. Each child was clean,
+remote-synchronized, and contained in this cumulative parent; only its local checkout/local branch
+was removed. The cumulative `feat/staging-integration-workflow` checkout remains active, and every
+remote child branch plus its tracked workstream record remains available for the eventual staging
+integration audit.
