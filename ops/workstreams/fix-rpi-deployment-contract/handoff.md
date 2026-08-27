@@ -37,3 +37,11 @@ runtime image before `docker load`. This preserves the backup-before-load
 transaction ordering and avoids an implicit Pi-side image pull. The focused
 deployment contract suite remains green at 5/5; an actual preflight and
 authenticated LAN rehearsal still require the developer-supplied RPi config.
+
+## 2026-08-27 — Focused deployment-contract refresh
+
+The declared deployment checks were rerun on the clean branch: `tests/deployment/test_rpi_contract.py`
+passed `5/5`; Ruff check/format and Python syntax checks for `scripts/rpi.py` passed; and
+`git diff --check` passed. No Pi was contacted and no deployment was attempted. The remaining
+blocker is intentionally external: target configuration, SSH trust, shared environment secrets,
+and a direct human-requested deployment are still required for real preflight and LAN rehearsal.
