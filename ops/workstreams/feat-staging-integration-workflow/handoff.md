@@ -129,6 +129,12 @@ was removed. The cumulative `feat/staging-integration-workflow` checkout remains
 remote child branch plus its tracked workstream record remains available for the eventual staging
 integration audit.
 
+The post-correction overview now identifies the actual `master` checkout correctly. The cumulative
+staging worktree is reported as blocked only because it is not yet published on `master` (and while
+this checkpoint is being recorded, its own correction files are temporarily dirty); it is never
+eligible for local archival. The five retained active worktrees are clean, synchronized, and
+eligible for storage-only pre-staging archive if their local checkouts are later no longer useful.
+
 Final focused rerun after the archive-tool changes passed: `make validate-focused-integration
 INTEGRATION_BRANCH=feat/staging-integration-workflow` completed with the workstream validator,
 workflow syntax checks, the 17 workflow tests, and all declared branch tests green. The first

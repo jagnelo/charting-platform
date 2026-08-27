@@ -95,6 +95,7 @@ def test_pre_staging_archive_is_explicit_and_preserves_remote_history() -> None:
     makefile = text("Makefile")
     lifecycle = text("docs/worktree-lifecycle.md")
     assert "def pre_staging_archive_reasons" in helper
+    assert 'integration_path = branch_path("master")' in helper
     assert '"merge-base", "--is-ancestor", branch, "master"' in helper
     assert '"origin/{branch}"' in helper
     assert '"branch", "-d", branch' in helper

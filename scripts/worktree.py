@@ -302,7 +302,8 @@ def pre_staging_archive_reasons(branch: str, path: Path) -> list[str]:
     and its tracked workstream record are retained as the durable audit trail.
     """
     reasons: list[str] = []
-    if path == repo_root():
+    integration_path = branch_path("master")
+    if path == integration_path:
         reasons.append("root integration checkout")
     expected_root = common_root() / ".ai" / "worktrees"
     if path.parent != expected_root:
