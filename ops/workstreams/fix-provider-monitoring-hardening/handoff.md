@@ -48,3 +48,14 @@ failure in the existing F8h simultaneous-pop-outs flow after retry (150 passed,
 109 skipped). The failure is retained as first-failure evidence; a diagnostic
 rerun is required before deciding whether the existing UI test needs a targeted
 stability fix.
+
+## 2026-08-27 — Focused evidence refresh
+
+The declared provider slice was rerun from the frozen branch environment:
+`backend/.venv/bin/pytest tests/unit/services/test_provider_availability.py -q --no-cov`
+passed `5/5`; Ruff check and format check passed for the provider model/service and tests.
+
+The targeted frontend Settings test could not start because this isolated worktree has no
+`frontend/node_modules`. `npx vitest` attempted to fetch Vitest from the npm registry and failed
+with `ENOTFOUND`; no test result was produced and the test oracle was not changed. The full gate
+still requires a reproducible frozen frontend install before this branch can be accepted.
