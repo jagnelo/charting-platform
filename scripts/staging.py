@@ -85,6 +85,21 @@ def root_master_ready() -> None:
         raise SystemExit("local master is not synchronized with origin/master")
 
 
+def require_healthy_master() -> None:
+    """Refuse staging bootstrap while the last master replay is unresolved."""
+    if MASTER_DEGRADED.exists():
+        try:
+            data = json.loads(MASTER_DEGRADED.read_text())
+        except json.JSONDecodeError:
+            data = {}
+        sha = data.get("master_sha", "unknown")
+        reason = data.get("reason", "the independent master CI replay did not pass")
+        raise SystemExit(
+            f"master is marked degraded at {sha}: {reason}; "
+            "repair or rerun the exact master replay before bootstrapping staging"
+        )
+
+
 def synchronized(path: Path, branch: str) -> str:
     if git("branch", "--show-current", cwd=path) != branch:
         raise SystemExit(f"{path} is not the {branch} worktree")
@@ -231,6 +246,7 @@ def record_attempt(payload: dict[str, object]) -> None:
 
 def bootstrap(confirm: str) -> None:
     root_master_ready()
+    require_healthy_master()
     current = git("rev-parse", "HEAD")
     if full_sha(confirm, "CONFIRM") != current:
         raise SystemExit(

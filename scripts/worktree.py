@@ -73,6 +73,18 @@ def ensure_operator_ready(*, allow_degraded: bool = False) -> None:
         raise SystemExit(
             "staging is degraded; create only an explicitly authorized remediation branch"
         )
+    master_degraded = common_root() / ".ai" / "master-degraded.json"
+    if master_degraded.exists():
+        try:
+            data = json.loads(master_degraded.read_text())
+        except json.JSONDecodeError:
+            data = {}
+        sha = data.get("master_sha", "unknown")
+        reason = data.get("reason", "the independent master CI replay did not pass")
+        raise SystemExit(
+            f"master is marked degraded at {sha}: {reason}; "
+            "repair or rerun the exact master replay before creating new work"
+        )
 
 
 def worktree_records() -> list[dict[str, str]]:

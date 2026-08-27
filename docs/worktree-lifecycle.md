@@ -36,6 +36,9 @@
   once on the source branch with documented combined behaviour and affected tests, then retested.
 - GitHub runs the exhaustive gate on the exact pushed staging SHA. A red gate marks staging
   degraded and blocks ordinary integration/promotion; an exact-base remediation is required.
+- If master's independent replay is red or unresolved, the recorded `master-degraded.json`
+  marker blocks staging bootstrap and new ordinary work. The exact master revision must first
+  be repaired or replayed green; agents must never create staging from a known-broken master.
 - `make promote-staging COMMIT=<sha> CONFIRM=<sha>` fast-forwards master only to the current green
   staging SHA. Master independently replays the exhaustive gate and remains the deployable line.
 - No normal workflow creates `.ai/integration` candidates or retains alternate merge results.

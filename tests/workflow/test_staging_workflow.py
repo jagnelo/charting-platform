@@ -70,6 +70,25 @@ def test_staging_helper_refetches_remote_heads_after_github_gates() -> None:
     assert 'git("rev-parse", "origin/master") != commit' in post_master_gate
 
 
+def test_staging_bootstrap_refuses_degraded_master(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    staging = load_script("staging")
+    marker = tmp_path / "master-degraded.json"
+    marker.write_text(
+        '{"master_sha": "' + "a" * 40 + '", "reason": "master replay failed"}\n'
+    )
+    monkeypatch.setattr(staging, "MASTER_DEGRADED", marker)
+    with pytest.raises(SystemExit, match="master is marked degraded"):
+        staging.require_healthy_master()
+
+
+def test_new_worktree_creation_refuses_degraded_master() -> None:
+    helper = text("scripts/worktree.py")
+    assert '"master-degraded.json"' in helper
+    assert "before creating new work" in helper
+
+
 def test_staging_status_resolves_the_real_master_worktree() -> None:
     helper = text("scripts/staging.py")
     status_body = helper.split("def status() -> None:", 1)[1].split(

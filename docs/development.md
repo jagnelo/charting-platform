@@ -110,6 +110,11 @@ other base:
 make integrate BRANCH=fix/staging-gate REMEDIATE_DEGRADED=1
 ```
 
+If the independent replay of `master` fails, the workflow records
+`.ai/master-degraded.json`. While that marker exists, staging cannot be bootstrapped and
+new ordinary worktrees cannot be created. The exact master revision must be repaired or
+replayed successfully first; a red master is never used as the starting point for staging.
+
 Each worktree gets an `ops/workstreams/<branch-slug>/` record with a plan,
 handoff, and append-only validation evidence. Closing refuses dirty, unmerged,
 or running worktrees.

@@ -71,8 +71,6 @@ def test_unregistered_generated_env_files_are_removed(tmp_path, monkeypatch):
     (runtime_dir / "active-id.env").write_text("ACTIVE=1\n")
     (runtime_dir / "stale-id.env").write_text("STALE=1\n")
     monkeypatch.setattr(runtime, "common_root", lambda: tmp_path)
-    runtime.remove_unregistered_env_files(
-        {"allocations": {"active": {"id": "active-id"}}}
-    )
+    runtime.remove_unregistered_env_files({"allocations": {"active": {"id": "active-id"}}})
     assert (runtime_dir / "active-id.env").exists()
     assert not (runtime_dir / "stale-id.env").exists()
