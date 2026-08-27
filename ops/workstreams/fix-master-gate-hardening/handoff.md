@@ -46,3 +46,14 @@ clearing `.ai/master-degraded.json`.
 focused F8e/F8s repetitions remain green (`20/20`) and multi-window churn remains green (`10/10`),
 but the full exact-candidate gate and independent replay are still required. No product oracle or
 visual threshold was changed.
+
+## 2026-08-27 — Superseded branch closure
+
+The workstation hardening changes from this topic are already present in `master` through merge
+boundary `15b4a77d` (source `fe47e3668bf914be78c115649667ceaa9392bf95`). The current branch tip
+contained only this branch's own operational evidence refresh; no product or deployment file
+remains unique to this branch. With the human's standing authorization for CI/CD-only housekeeping,
+the branch is marked `superseded` as an active development line. The historical focused evidence
+and remaining full-replay gap remain preserved, the remote branch remains available, and only the
+redundant local checkout will be removed. This does not claim a fresh exhaustive replay for the old
+branch tip.
