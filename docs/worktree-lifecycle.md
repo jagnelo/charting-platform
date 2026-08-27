@@ -21,7 +21,9 @@
 3. The agent maintains `ops/workstreams/<branch-slug>/`, commits and pushes coherent changes,
    and reports `ready_for_human_review` after the authorized validation tier passes.
 4. Human closure changes the record to `ready_for_integration` and adds a PR-equivalent closure
-   summary. `make integrate` then merges the exact pushed SHA into staging.
+   summary. The summary records the validated implementation SHA; if the final closure checkpoint
+   is a docs-only commit, it uses `integration_capture: exact branch HEAD` because a commit cannot
+   contain its own hash. `make integrate` then captures and merges that exact pushed SHA into staging.
 5. After staging contains the branch, `make worktree-close` may remove only its clean, stopped
    local worktree/branch. The remote branch and merge boundary preserve its history and record.
 6. An abandoned, unmerged topic is never removed automatically. Explicit archive confirmation

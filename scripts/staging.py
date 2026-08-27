@@ -156,8 +156,14 @@ def require_closed_workstream(path: Path, branch: str) -> None:
     if values.get("validation_tier") not in {"focused_only", "full_integration"}:
         failures.append("validation_tier must record the human-approved decision")
     source_sha = git("rev-parse", "HEAD", cwd=path)
-    if source_sha not in values.get("closure_summary", ""):
-        failures.append("closure_summary must contain the exact source SHA")
+    closure_summary = values.get("closure_summary", "")
+    if (
+        source_sha not in closure_summary
+        and "integration_capture: exact branch head" not in closure_summary.lower()
+    ):
+        failures.append(
+            "closure_summary must contain the exact source SHA or explicitly require integration_capture: exact branch HEAD"
+        )
     if failures:
         raise SystemExit(f"{branch} cannot enter staging: " + "; ".join(failures))
 

@@ -89,10 +89,14 @@ or an opportunity noticed during other work.
 - Only after an explicit human statement such as “close this topic” may an
   agent record the exact closure instruction in `human_closure_authorization`,
   set `status: ready_for_integration`, and write `closure_summary` with the
-  delivered scope, exact source SHA, validation evidence, migration/deployment
-  impact, conflict decisions, and remaining gaps. That committed branch record
-  is the PR-equivalent narrative preserved by the non-fast-forward merge. Only
-  then may it invoke `make integrate`, which targets `staging`.
+  delivered scope, validated implementation SHA, validation evidence,
+  migration/deployment impact, conflict decisions, and remaining gaps. The
+  final closure checkpoint cannot contain its own Git hash without creating a
+  self-referential commit loop, so it must explicitly say
+  `integration_capture: exact branch HEAD`; `make integrate` records the exact
+  final source SHA in its attempt/validation receipt. That committed branch
+  record is the PR-equivalent narrative preserved by the non-fast-forward
+  merge. Only then may it invoke `make integrate`, which targets `staging`.
 - Only after a separate explicit human deployment request may an agent invoke
   deployment tooling. A closure request does not authorize deployment.
 

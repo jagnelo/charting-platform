@@ -5,8 +5,8 @@ parent_branch: fix/integration-candidate-lifecycle
 parent_sha: b54ccb5eb193aa2b0f8cc76f67dcc26e863951f9
 dependency_authorization: "The human explicitly authorized replacing local integration candidates with a staging branch and asked that all dependent workflows and tooling be updated. The dependent-branch policy was merged into this branch before implementation."
 human_intent_authorization: "Keep RPi support but make its target-specific architecture checks explicitly deployment-triggered; replace local integration candidates with persistent staging and update all workflows, rules, policies, scripts, and commands thoroughly."
-human_closure_authorization: pending
-closure_summary: pending
+human_closure_authorization: "The human explicitly authorized this branch to proceed through its normal lifecycle: finalize, validate, integrate once into master as the staging bootstrap boundary, and create staging from the resulting green master."
+closure_summary: "Delivered persistent staging integration, exact-SHA promotion guards, architecture-neutral normal CI, target-specific RPi configuration, lifecycle/cleanup tooling, and the documented focus/activation test fixes. Validated implementation SHA: 2f97d7dc02e61d8cb088f969df08b86080499024. Final closure checkpoint is documentation-only and requires integration_capture: exact branch HEAD; the integration attempt record will capture the exact final source SHA. No database migration was introduced; deployment architecture remains explicit and unexecuted."
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly requested thorough final validation and verification; CI and deployment-contract changes require the full integration tier."
 goal: "Make staging the single tested integration line, preserve green master, remove normal-CI architecture emulation, and select RPi architecture only in explicit deployment flows."
@@ -20,5 +20,5 @@ branch_tests:
 live_test_impact: "No provider calls; GitHub-run lookup/promotion paths require remote integration rehearsal after this workflow reaches master and staging is bootstrapped."
 migration_impact: "No schema change; compatibility gate baseline changes from merge-parent inference to explicit previous release SHA."
 deployment_impact: "RPi remains supported as linux/arm/v7 or linux/arm64, selected in ignored target config and built only by an explicit deployment request."
-status: ready_for_human_review
-remaining_gaps: ["Human review and explicit topic-closure authorization remain pending; this implementation request does not authorize integration.", "One-time human-confirmed staging bootstrap can occur only after this workflow reaches master.", "A live integration/promotion rehearsal requires human closure of a real source topic and a bootstrapped remote staging branch.", "The exhaustive gate exposed inherited F8e persistence, F9e delayed-focus, and F8s dock-activation races; their unchanged behavioural oracles now pass focused repetition and the final complete gate."]
+status: ready_for_integration
+remaining_gaps: ["The one-time master merge and staging bootstrap are still pending this final exact source tip.", "A live staging integration/promotion rehearsal remains after staging is bootstrapped; RPi deployment remains explicitly standby.", "The exhaustive gate exposed inherited F8e persistence, F9e delayed-focus, and F8s dock-activation races; their unchanged behavioural oracles now pass focused repetition and the final complete gate."]

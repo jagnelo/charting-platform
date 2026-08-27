@@ -83,6 +83,13 @@ def test_staging_bootstrap_refuses_degraded_master(
         staging.require_healthy_master()
 
 
+def test_closed_workstream_may_use_integration_capture_for_its_own_closure_tip() -> (
+    None
+):
+    helper = text("scripts/staging.py")
+    assert "integration_capture: exact branch head" in helper.lower()
+
+
 def test_new_worktree_creation_refuses_degraded_master() -> None:
     helper = text("scripts/worktree.py")
     assert '"master-degraded.json"' in helper
@@ -102,7 +109,7 @@ def test_worktree_defaults_and_closure_follow_staging() -> None:
     helper = text("scripts/worktree.py")
     assert 'p.add_argument("--base", default="staging")' in helper
     assert '"--is-ancestor", branch, "staging"' in helper
-    assert 'comparison_base = (' in helper
+    assert "comparison_base = (" in helper
     assert 'f"{comparison_base}...{branch}"' in helper
     assert '"comparison_base": comparison_base' in helper
     assert "staging-degraded.json" in helper
@@ -151,7 +158,10 @@ def test_operational_tail_archive_is_record_only_and_guarded() -> None:
     lifecycle = text("docs/worktree-lifecycle.md")
     validator = text("scripts/validate-workstream.py")
     assert "def operational_tail_reasons" in helper
-    assert "staging is bootstrapped; use normal staging integration and close instead" in helper
+    assert (
+        "staging is bootstrapped; use normal staging integration and close instead"
+        in helper
+    )
     assert "branch contains unmerged files outside its own workstream record" in helper
     assert 'values.get("status") not in {"closed", "superseded"}' in helper
     assert 'git("branch", "-D", branch)' in helper

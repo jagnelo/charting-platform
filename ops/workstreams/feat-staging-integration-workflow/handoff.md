@@ -16,7 +16,11 @@ authorized by this implementation request alone.
 
 ## Current state
 
-Implementation is in progress. Human closure authorization remains pending.
+The human exceptionally authorized this branch to complete its normal lifecycle, including the
+one-time integration into `master` and bootstrap of `staging` after the exact gate is green.
+The branch is now `ready_for_integration`; the final closure checkpoint records the validated
+implementation SHA and uses `integration_capture: exact branch HEAD` so the integration command
+captures the final docs-only checkpoint without an impossible self-referential hash.
 
 The first exhaustive gate passed backend coverage (`1646` tests) and frontend Vitest (`922`),
 then failed `F8e.swing-analysis` after `153` browser tests passed and `106` skipped. The screenshot
@@ -181,3 +185,26 @@ Validation: `backend/tests/unit/test_worktree_runtime.py` plus
 `tests/workflow/test_staging_workflow.py` passed `21/21` with `--no-cov`; Python syntax and
 `git diff --check` passed. The implementation checkpoint was pushed and synchronized; the
 enclosing commit is verified by `git rev-parse`.
+
+## 2026-08-27 — Exceptional closure and exact final gate
+
+The human explicitly authorized this branch to proceed through closure, integration, and the
+one-time staging bootstrap. The final implementation checkpoint `2f97d7dc02e61d8cb088f969df08b86080499024`
+passed the complete local integration gate: frozen dependencies/export consistency, migrations,
+Ruff, backend coverage, frontend type-check/unit coverage/build, Compose/deployment contracts,
+research-runner probes, seeded functional Playwright (`154 passed, 106 skipped`), four-environment
+visual Playwright (`104 passed`), and the branch-declared tests. The branch's exact GitHub Actions
+run `33106269877` also passed Backend Tests, Frontend Unit Tests, Branch-declared Tests, and E2E
+Tests; its exhaustive job was correctly skipped because the branch is not yet `staging` or `master`.
+
+The final closure record is documentation-only. It therefore uses
+`integration_capture: exact branch HEAD`: the staging integration command must capture and record
+the final synchronized branch SHA rather than attempting an impossible self-referential commit
+hash. No migration or deployment action is included in this closure.
+
+## Next exact action
+
+From the clean root `master` checkout, recheck that `master` is still synchronized and not marked
+degraded, merge this exact branch tip once with a non-fast-forward boundary, push and verify the
+result, then run `make staging-bootstrap CONFIRM=<new-master-sha>`. If master is dirty, advanced,
+or marked degraded, stop without modifying it and repair/replay that exact master revision first.
