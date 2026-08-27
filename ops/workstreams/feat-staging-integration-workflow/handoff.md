@@ -245,3 +245,12 @@ frontend Vitest coverage suite passed 923/923, and the rebuilt staging stack pas
 `F8e.swing-analysis` repetitions. The complete workstation flow file passed 151 tests with two
 documented skips. The exact staging SHA remains blocked from promotion until its independent GitHub
 exhaustive replay is green.
+
+The independent staging replay `33123178424` then recorded one additional visual failure at
+`visual-1080p-125`, `workspace floating state has a deterministic board baseline`. The run passed
+103 of 104 visual cases; the failing attempt reached the pop-out cleanup click and then reported
+`Target page, context or browser has been closed` before the close-button action completed. This
+is a retained first-failure diagnostic, not an accepted oracle change or a reason to weaken the
+visual threshold. Repeating that exact scenario five times against the local staging stack passed
+5/5. The full gate must be retried for the exact staging SHA; a green retry will be recorded as
+diagnostic confirmation alongside this red first attempt rather than silently replacing it.
