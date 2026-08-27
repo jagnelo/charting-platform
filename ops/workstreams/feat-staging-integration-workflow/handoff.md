@@ -151,3 +151,8 @@ The completed archival run removed all six child checkouts; the first retry mess
 child being absent was only because the shell had already completed that child before its output
 stream closed. A follow-up inventory confirmed none of the six local worktree registrations or
 local branches remain, while every corresponding `origin/<branch>` ref is still present.
+
+The allocator reclamation pass was then run. It removed only runtime registry entries and generated
+env files whose worktree paths were no longer registered and whose exact managed Compose projects
+were confirmed stopped. The registry now contains only `master` and the five retained active
+worktrees; no active allocation, port, volume, network, or configuration was reclaimed.
