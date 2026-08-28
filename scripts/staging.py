@@ -10,6 +10,7 @@ import json
 import re
 import subprocess
 import sys
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -29,6 +30,8 @@ AI = COMMON_ROOT / ".ai"
 STAGING_PATH = AI / "worktrees" / "staging"
 DEGRADED = AI / "staging-degraded.json"
 MASTER_DEGRADED = AI / "master-degraded.json"
+CI_DISCOVERY_ATTEMPTS = 12
+CI_DISCOVERY_DELAY_SECONDS = 5.0
 
 
 def run(
@@ -173,28 +176,37 @@ def github_run(branch: str, commit: str, *, exhaustive: bool) -> dict[str, objec
         raise SystemExit(
             "GitHub CLI (gh) is required to verify the exact remote CI run"
         )
-    result = run(
-        "gh",
-        "run",
-        "list",
-        "--workflow",
-        "ci.yml",
-        "--branch",
-        branch,
-        "--commit",
-        commit,
-        "--event",
-        "push",
-        "--limit",
-        "10",
-        "--json",
-        "databaseId,headSha,headBranch,status,conclusion,url",
-    )
-    runs = [
-        item
-        for item in json.loads(result.stdout or "[]")
-        if item.get("headSha") == commit and item.get("headBranch") == branch
-    ]
+    runs: list[dict[str, object]] = []
+    for attempt in range(CI_DISCOVERY_ATTEMPTS):
+        result = run(
+            "gh",
+            "run",
+            "list",
+            "--workflow",
+            "ci.yml",
+            "--branch",
+            branch,
+            "--commit",
+            commit,
+            "--event",
+            "push",
+            "--limit",
+            "10",
+            "--json",
+            "databaseId,headSha,headBranch,status,conclusion,url",
+        )
+        runs = [
+            item
+            for item in json.loads(result.stdout or "[]")
+            if item.get("headSha") == commit and item.get("headBranch") == branch
+        ]
+        if runs:
+            break
+        if attempt + 1 < CI_DISCOVERY_ATTEMPTS:
+            # GitHub registers a push-triggered workflow asynchronously. A just-
+            # pushed master commit must not be marked degraded merely because the
+            # run has not appeared in the API response yet.
+            time.sleep(CI_DISCOVERY_DELAY_SECONDS)
     if not runs:
         raise SystemExit(
             f"no GitHub CI push run exists for exact {branch} commit {commit}"
