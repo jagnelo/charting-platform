@@ -1813,9 +1813,11 @@ test.describe('TC2000 workstation', () => {
     await expect.poll(() => targetCursor.evaluate(element => ({ transform: (element as HTMLElement).style.transform, off: element.classList.contains('u-off') })), { timeout: 10_000 }).not.toEqual(before)
     await expect(targetCursor).not.toHaveClass(/u-off/)
 
-    const closed = popup.waitForEvent('close')
-    await popup.locator('button[title="Close"]').click()
-    await closed
+    // A persisted-layout refresh can close a disposable browser pop-out between
+    // the cross-window assertion and cleanup. Treat that already-closed state as
+    // completed cleanup, while still using the user-facing close control when
+    // the page remains open.
+    await closePopupWhenOpen(popup)
     await expect.poll(() => context.pages().length).toBe(1)
     await browserDiagnostics.expectNoCriticalIssues()
   })

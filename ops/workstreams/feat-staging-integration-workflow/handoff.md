@@ -254,3 +254,20 @@ is a retained first-failure diagnostic, not an accepted oracle change or a reaso
 visual threshold. Repeating that exact scenario five times against the local staging stack passed
 5/5. The full gate must be retried for the exact staging SHA; a green retry will be recorded as
 diagnostic confirmation alongside this red first attempt rather than silently replacing it.
+
+## 2026-08-28 — Master replay pop-out cleanup diagnostic
+
+The first independent master replay (`33131521172`) kept Backend Tests, Frontend Unit Tests,
+and standalone Playwright green, but its exhaustive gate failed one inherited `F8n-cross-window`
+case. Cross-window timestamp propagation passed; the failure occurred only when the test tried to
+click the disposable pop-out's Close control after the browser page had already closed. The run
+passed 153 tests and retained the failure screenshot/video/trace. Repeating the exact scenario five
+times against the isolated staging stack passed 5/5, so this is recorded as a lifecycle race rather
+than an application-oracle failure.
+
+The test now uses the existing `closePopupWhenOpen` lifecycle helper. That helper still clicks the
+user-facing control when the page exists, but accepts an already-closed disposable pop-out as
+completed cleanup, matching the established F8b/F8j/F8k lifecycle contract. No product behavior,
+assertion coverage, visual threshold, or failure evidence was removed. The updated exact staging
+SHA must receive a fresh exhaustive staging replay before it can be promoted again; the failed
+master replay remains preserved as first-failure evidence.
