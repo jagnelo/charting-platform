@@ -3,3 +3,4 @@
 {"command":"uv lock --check; npm ci; npm run build","result":"pass","evidence":"frozen dependency inputs and frontend production build"}
 {"command":"pytest tests/unit/services/test_provider_availability.py tests/unit/test_worktree_runtime.py","result":"pass","evidence":"3 focused tests; repository coverage threshold disabled for focused run"}
 {"command":"docker compose -f deploy/rpi/compose.yml config --quiet","result":"pass","evidence":"image-only ARM deployment Compose contract renders"}
+{"timestamp":"2026-08-29T01:58:34.426825+00:00","command":"human-authorized workflow branch closure","result":"closed","evidence":"Its source changes are reachable from master.","disposition":"Remote branch retained as audit history; future work starts from green staging."}
