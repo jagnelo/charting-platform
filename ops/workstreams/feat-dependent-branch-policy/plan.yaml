@@ -5,8 +5,8 @@ parent_branch: feat/workflow-unification
 parent_sha: 803d05acda9af22255f6c4ae7c020829e02e0f8a
 dependency_authorization: "Human explicitly authorized implementing the controlled dependent-parent policy from feat/workflow-unification."
 human_intent_authorization: "Let's do that: implement the documented dependency-aware branch policy."
-human_closure_authorization: pending
-closure_summary: pending
+human_closure_authorization: "The human explicitly authorized closure of workflow-only branches; the implementation is already published in green master and any remaining gaps stay documented for future work."
+closure_summary: "Workflow-only branch feat/dependent-branch-policy is closed as superseded: its implementation is already included in the published master line, and no product or deployment behavior remains active on this branch. Its source changes are reachable from master. The remote ref is retained as audit history; any future work must start from green staging."
 validation_tier: focused_only
 human_validation_authorization: "Workflow/helper policy change approved for focused validation before later master exhaustive replay."
 goal: "Require explicit human authorization for non-master branch parents."
@@ -19,5 +19,5 @@ branch_tests:
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
-status: ready_for_human_review
+status: closed
 remaining_gaps: []
