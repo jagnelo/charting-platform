@@ -11,3 +11,7 @@ annotation so the next exact replay preserves the first failing probe stage.
 Local ARM64 Docker validation currently passes all sandbox and resource checks.
 The remaining acceptance boundary is a green Linux/amd64 GitHub replay followed
 by the exact-candidate integration receipt.
+
+## 2026-08-29 — Workflow branch closure
+
+The human authorized closure of this workflow-only branch. Its source changes are reachable from master. The branch is no longer an active development line; its remote ref and workstream record remain as audit history. Any future work starts from green `staging`, and product/deployment gaps are not claimed complete merely because the implementation is reachable from `master`.
