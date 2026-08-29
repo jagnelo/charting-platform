@@ -45,3 +45,12 @@ passed `5/5`; Ruff check/format and Python syntax checks for `scripts/rpi.py` pa
 `git diff --check` passed. No Pi was contacted and no deployment was attempted. The remaining
 blocker is intentionally external: target configuration, SSH trust, shared environment secrets,
 and a direct human-requested deployment are still required for real preflight and LAN rehearsal.
+
+## 2026-08-29 — Branch superseded by explicit human decision
+
+The human explicitly requested that this `fix/` branch be closed because RPi deployment is not
+currently in scope and should later be treated as a separately planned feature. The deployment
+implementation is already present in the green staging/master history; this branch's remaining
+tail is operational evidence only. The branch is therefore marked `superseded`, no Pi was contacted,
+and the remote branch remains available as an audit record. Any future deployment work must start
+from a fresh branch based on green `staging` with a new request and target-specific validation.

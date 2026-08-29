@@ -31,9 +31,9 @@ branch_tests:
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
-status: in_progress
+human_closure_authorization: "The human explicitly requested that this fix branch be closed and deferred; RPi deployment is not being pursued in the current development cycle. Any future deployment work must begin as a new staging-based feature branch."
+closure_summary: "The deployment-contract implementation is already present in staging/master, and the remaining branch-specific commits are deployment evidence only. This fix branch is superseded and deferred; no RPi was contacted or deployed. A future deployment feature may reuse the implementation from staging, but must begin from a fresh staging-based branch and obtain a new human deployment request."
+status: closed
 remaining_gaps:
-  - "The fresh branch replay and exact candidate integration must run after the preflight and recoverable-lock hardening, ARM64 CI emulation repair, provider monitoring promotion, and CI timeout hardening."
-  - "Real RPi preflight/deployment rehearsal remains blocked until the developer supplies .ai/deploy/rpi.env, SSH trust, shared/app.env, and a direct exact-SHA deployment request."
-  - "The earlier branch replay was superseded while its unseeded E2E job was running; the current workflow explicitly enables deterministic instrument and market-data fixtures and must complete a fresh replay."
-  - "Release manifest and Compose metadata are uploaded as .part files and verified against source, bundle, and Compose checksums before atomically moving into the incoming set."
+  - "A future deployment feature must perform the real target preflight and LAN rehearsal only after the developer supplies target configuration, SSH trust, shared/app.env, and a direct exact-SHA deployment request."
+  - "This branch is not the active place for that future work; its implementation and evidence remain available on the preserved remote branch and in staging/master."
