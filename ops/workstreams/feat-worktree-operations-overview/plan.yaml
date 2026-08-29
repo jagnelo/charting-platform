@@ -10,5 +10,7 @@ branch_tests: ["python3 -m py_compile scripts/worktree.py scripts/integrate-set.
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
-status: ready
+human_closure_authorization: "The human explicitly authorized closure of workflow-only branches; the implementation is already published in green master and any remaining gaps stay documented for future work."
+closure_summary: "Workflow-only branch feat/worktree-operations-overview is closed as superseded: its implementation is already included in the published master line, and no product or deployment behavior remains active on this branch. Its source changes are reachable from master. The remote ref is retained as audit history; any future work must start from green staging."
+status: closed
 remaining_gaps: []
