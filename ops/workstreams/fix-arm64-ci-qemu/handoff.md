@@ -105,3 +105,7 @@ all 108 frontend files and 922 tests in 13.18s, including the uPlot and visual
 policy contracts. This confirms the earlier failure was resource/timing related,
 but remains diagnostic evidence only; the red full candidate gate still needs a
 fresh rerun.
+
+## 2026-08-29 — Workflow branch closure
+
+The human authorized closure of this workflow-only branch. Its source changes are reachable from master. The branch is no longer an active development line; its remote ref and workstream record remain as audit history. Any future work starts from green `staging`, and product/deployment gaps are not claimed complete merely because the implementation is reachable from `master`.
