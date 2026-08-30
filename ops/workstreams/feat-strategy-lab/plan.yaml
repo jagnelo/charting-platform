@@ -1,0 +1,44 @@
+schema: 2
+branch: feat/strategy-lab
+base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
+parent_branch: staging
+parent_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
+dependency_authorization: "not applicable: independent staging-based topic"
+human_intent_authorization: "Continue the existing Strategy Lab roadmap gaps from current green staging."
+human_closure_authorization: pending
+closure_summary: pending
+validation_tier: pending_human_decision
+human_validation_authorization: pending
+previous_branch: feat/strategy-lab (old master-based history, fully merged into staging)
+previous_tip: a2b5294f797add0052a756a17a1cd4956ceedfa5
+goal: "Continue the Strategy Lab roadmap from the current green staging baseline."
+scope:
+  - "Replace remaining text-first result panels with structured, decision-useful visualizations and comparisons."
+  - "Add data-coverage preflight/acquisition behavior so multi-year requests are guaranteed or clearly blocked."
+  - "Continue broader condition families, portfolio realism, forward/paper state, and execution robustness."
+  - "Preserve persisted draft/profile state, realized versus unrealized accounting, and lineage in results."
+owned_paths:
+  - frontend/src/views/StrategyLabView.vue
+  - frontend/src/components/strategy-lab
+  - backend/app/routers/strategy_lab.py
+  - backend/app/services/strategy_lab
+  - frontend/tests
+  - backend/tests
+  - docs/project-todos.md
+  - ops/handoff.md
+dependencies: [existing Strategy Lab execution engine, coverage contracts, and research-runner safeguards]
+acceptance_criteria:
+  - "Structured result views preserve exact run lineage, realized/unrealized semantics, and open-position behavior."
+  - "Coverage limitations are actionable and never silently treated as complete data."
+  - "Changed backend/frontend tests, type-check, build, and the exhaustive integration gate pass."
+branch_tests:
+  - "cd frontend && npm run type-check"
+  - "cd frontend && npm run test:coverage"
+  - "cd frontend && npm run build"
+  - "cd backend && uv run pytest -q"
+live_test_impact: "No live provider calls by default; any reviewed live evidence must remain opt-in."
+migration_impact: "Any schema change requires fresh and previous-release migration compatibility checks."
+deployment_impact: none
+status: authorized
+remaining_gaps:
+  - "The inherited Strategy Lab handoff identifies remaining text-first result panels, coverage acquisition/preflight, broader conditions, and deeper execution/portfolio realism."
