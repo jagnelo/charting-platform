@@ -7,8 +7,8 @@ dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "Continue the existing Strategy Lab roadmap gaps from current green staging."
 human_closure_authorization: pending
 closure_summary: pending
-validation_tier: pending_human_decision
-human_validation_authorization: pending
+validation_tier: full_integration
+human_validation_authorization: "The human requested continued product development from staging; all application/research changes use the complete integration gate."
 previous_branch: feat/strategy-lab (old master-based history, fully merged into staging)
 previous_tip: a2b5294f797add0052a756a17a1cd4956ceedfa5
 goal: "Continue the Strategy Lab roadmap from the current green staging baseline."
@@ -39,6 +39,6 @@ branch_tests:
 live_test_impact: "No live provider calls by default; any reviewed live evidence must remain opt-in."
 migration_impact: "Any schema change requires fresh and previous-release migration compatibility checks."
 deployment_impact: none
-status: authorized
+status: in_progress
 remaining_gaps:
   - "The inherited Strategy Lab handoff identifies remaining text-first result panels, coverage acquisition/preflight, broader conditions, and deeper execution/portfolio realism."
