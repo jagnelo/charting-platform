@@ -1,0 +1,41 @@
+schema: 2
+branch: feat/tc2000-frontend-rework
+base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
+parent_branch: staging
+parent_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
+dependency_authorization: "not applicable: independent staging-based topic"
+human_intent_authorization: "Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging."
+human_closure_authorization: pending
+closure_summary: pending
+validation_tier: pending_human_decision
+human_validation_authorization: pending
+previous_branch: feat/tc2000-frontend-rework (old master-based history, fully merged into staging)
+previous_tip: 8a9c26a872ce02e69817b119885a0dfe0aedcb0d
+goal: "Continue the TC2000-style workstation toward the documented V25 parity and canonical-data goals."
+scope:
+  - "Close the remaining exact V25 workstation behavior and visual gaps without weakening existing oracles."
+  - "Continue canonical provider-backed family population, history, entitlement, and provenance work."
+  - "Preserve authenticated workstation, cross-window, linked-tool, and persisted-state behavior."
+owned_paths:
+  - frontend/src/views/WorkstationView.vue
+  - frontend/src/components/workstation
+  - frontend/tests/e2e/flows.spec.ts
+  - frontend/tests/e2e/tc2000_visual.spec.ts
+  - docs/tc2000-acceptance-governance.md
+  - docs/tc2000-visual-parity.md
+  - ops/state.json
+dependencies: [canonical provider/data evidence and existing workstation acceptance governance]
+acceptance_criteria:
+  - "Every change preserves the existing functional and visual assertions; no baseline, mask, threshold, or skip is changed to hide a regression."
+  - "Canonical data, provider, entitlement, history, and provenance limitations remain visible and accurately documented."
+  - "Changed frontend tests, full frontend checks, and the exhaustive integration gate pass."
+branch_tests:
+  - "cd frontend && npm run type-check"
+  - "cd frontend && npm run test:coverage"
+  - "cd frontend && npm run build"
+live_test_impact: "Authenticated workstation and opt-in canonical-data evidence may be required; no unreviewed provider calls."
+migration_impact: none
+deployment_impact: none
+status: authorized
+remaining_gaps:
+  - "Exact/unrepresented V25 visuals, canonical provider-backed family population/history, entitlement evidence, and final audit remain open in the inherited TC2000 records."
