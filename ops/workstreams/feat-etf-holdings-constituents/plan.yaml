@@ -7,8 +7,8 @@ dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "Continue the existing ETF holdings provider coverage goal from current green staging; carry forward the remaining native-provider work."
 human_closure_authorization: pending
 closure_summary: pending
-validation_tier: pending_human_decision
-human_validation_authorization: pending
+validation_tier: full_integration
+human_validation_authorization: "The human requested continued product development from staging; all application/provider changes use the complete integration gate."
 previous_branch: feat/etf-holdings-constituents (old master-based history, fully merged into staging)
 previous_tip: a8d618995fbd928c66117271bb7ac9152a935ab5
 goal: "Continue native ETF holdings provider coverage from the current green staging baseline."
@@ -35,6 +35,6 @@ branch_tests:
 live_test_impact: "Live calls are opt-in, bounded, and limited to reviewed free/entitled provider routes."
 migration_impact: none
 deployment_impact: none
-status: authorized
+status: in_progress
 remaining_gaps:
   - "The prior branch evidence records 157 audited fallback-only providers still requiring native-route discovery or an explicit blocked/non-executable disposition."
