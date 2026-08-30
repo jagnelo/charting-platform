@@ -1,0 +1,40 @@
+schema: 2
+branch: feat/etf-holdings-constituents
+base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
+parent_branch: staging
+parent_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
+dependency_authorization: "not applicable: independent staging-based topic"
+human_intent_authorization: "Continue the existing ETF holdings provider coverage goal from current green staging; carry forward the remaining native-provider work."
+human_closure_authorization: pending
+closure_summary: pending
+validation_tier: pending_human_decision
+human_validation_authorization: pending
+previous_branch: feat/etf-holdings-constituents (old master-based history, fully merged into staging)
+previous_tip: a8d618995fbd928c66117271bb7ac9152a935ab5
+goal: "Continue native ETF holdings provider coverage from the current green staging baseline."
+scope:
+  - "Promote audited fallback-only issuers to provider-specific native/live-backed routes when a complete first-party source is proven."
+  - "Preserve explicit fallback audits, source provenance, and the strict registered/native/fallback provider matrix."
+  - "Add deterministic parser coverage and opt-in live-route tests for every promoted provider."
+owned_paths:
+  - backend/app/services/etf_holdings_adapters.py
+  - backend/tests/unit/services/test_etf_holdings_adapters.py
+  - backend/tests/live/test_etf_holdings_live_providers.py
+  - docs/etf-provider-universe.md
+  - ops/state.json
+  - ops/handoff.md
+dependencies: [reviewed free/entitled first-party provider routes]
+acceptance_criteria:
+  - "No provider is counted as native without a concrete provider-owned route and deterministic tests."
+  - "Fallback-only issuers remain explicitly audited and are never silently promoted through SEC fallback."
+  - "The full deterministic adapter suite and the opt-in live matrix remain green for the changed scope."
+branch_tests:
+  - "backend/.venv/bin/pytest backend/tests/unit/services/test_etf_holdings_adapters.py -q --no-cov"
+  - "backend/.venv/bin/pytest backend/tests/live/test_etf_holdings_live_providers.py -q --no-cov"
+  - "backend/.venv/bin/ruff check backend/app/services/etf_holdings_adapters.py backend/tests/unit/services/test_etf_holdings_adapters.py backend/tests/live/test_etf_holdings_live_providers.py"
+live_test_impact: "Live calls are opt-in, bounded, and limited to reviewed free/entitled provider routes."
+migration_impact: none
+deployment_impact: none
+status: authorized
+remaining_gaps:
+  - "The prior branch evidence records 157 audited fallback-only providers still requiring native-route discovery or an explicit blocked/non-executable disposition."
