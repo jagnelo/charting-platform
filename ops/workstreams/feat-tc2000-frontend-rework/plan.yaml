@@ -7,8 +7,8 @@ dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging."
 human_closure_authorization: pending
 closure_summary: pending
-validation_tier: pending_human_decision
-human_validation_authorization: pending
+validation_tier: full_integration
+human_validation_authorization: "The human requested continued product development from staging; all application/workstation changes use the complete integration gate."
 previous_branch: feat/tc2000-frontend-rework (old master-based history, fully merged into staging)
 previous_tip: 8a9c26a872ce02e69817b119885a0dfe0aedcb0d
 goal: "Continue the TC2000-style workstation toward the documented V25 parity and canonical-data goals."
@@ -36,6 +36,6 @@ branch_tests:
 live_test_impact: "Authenticated workstation and opt-in canonical-data evidence may be required; no unreviewed provider calls."
 migration_impact: none
 deployment_impact: none
-status: authorized
+status: in_progress
 remaining_gaps:
   - "Exact/unrepresented V25 visuals, canonical provider-backed family population/history, entitlement evidence, and final audit remain open in the inherited TC2000 records."
