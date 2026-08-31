@@ -12,7 +12,7 @@ default. The branch workstream is durable truth; stop at `ready_for_human_review
 Do not integrate, promote, deploy, or mutate another worktree without separate
 authorization.
 
-That file is the single canonical behavior document for multi-agent/orchestrated work and tells the worker which `ops/*` files to read and update.
+That file is the single canonical behavior document for multi-agent/orchestrated work and tells the worker which durable branch workstream files to read and update.
 
 Important boundary: discussing a request in a control session is read-only. Do
 not create goals, branches, worktrees, commits, integrations, deployments, or

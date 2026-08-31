@@ -40,6 +40,7 @@ branch_tests:
   - "uv run --project backend python -m py_compile scripts/agent-session.py scripts/integration_queue.py scripts/worktree.py scripts/staging.py"
   - "uv run --project backend ruff check scripts/agent-session.py scripts/integration_queue.py scripts/worktree.py tests/workflow/test_agent_session.py"
   - "uv run --project backend ruff format --check scripts/agent-session.py scripts/integration_queue.py scripts/worktree.py tests/workflow/test_agent_session.py"
+  - "uv run --project backend python -m pytest tests/workflow -q"
   - "git diff --check"
 live_test_impact: "two disposable worktrees with isolated Docker resources and one explicitly retained volume"
 migration_impact: none
