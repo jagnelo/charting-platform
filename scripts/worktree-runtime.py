@@ -271,7 +271,10 @@ def environment(allocation: dict[str, Any]) -> dict[str, str]:
         "WORKTREE_SLUG": allocation["slug"],
         "DEV_COMPOSE_PROJECT": allocation["projects"]["dev"],
         "STACK_COMPOSE_PROJECT": allocation["projects"]["stack"],
-        "WORKTREE_BUILDER": allocation["builder"],
+        "WORKTREE_BUILDER": allocation.get(
+            "builder",
+            f"charting-builder-{allocation['slug']}-{hashlib.sha256(allocation['worktree'].encode()).hexdigest()[:8]}",
+        ),
         **{key: str(value) for key, value in ports.items()},
         "DEV_BACKEND_PORT": backend,
         "VITE_PORT": vite,
