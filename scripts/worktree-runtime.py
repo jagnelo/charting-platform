@@ -209,6 +209,10 @@ def allocate(data: dict[str, Any]) -> dict[str, Any]:
         and set(PORT_KEYS).issubset((existing.get("ports") or {}).keys())
     ):
         existing["branch"] = branch
+        existing.setdefault(
+            "builder",
+            f"charting-builder-{slug(branch)}-{hashlib.sha256(str(path).encode()).hexdigest()[:8]}",
+        )
         return existing
     # Upgrade an older allocation for this same worktree in place.  Its old
     # ports are excluded from the managed set by identifier, while all other
@@ -239,6 +243,7 @@ def allocate(data: dict[str, Any]) -> dict[str, Any]:
             "dev": f"charting-dev-{branch_slug}-{suffix}",
             "stack": f"charting-stack-{branch_slug}-{suffix}",
         },
+        "builder": f"charting-builder-{branch_slug}-{suffix}",
         "ports": ports,
     }
     data["allocations"][identifier] = allocation
@@ -266,6 +271,14 @@ def environment(allocation: dict[str, Any]) -> dict[str, str]:
         "WORKTREE_SLUG": allocation["slug"],
         "DEV_COMPOSE_PROJECT": allocation["projects"]["dev"],
         "STACK_COMPOSE_PROJECT": allocation["projects"]["stack"],
+        "WORKTREE_BUILDER": allocation.get(
+            "builder",
+            f"charting-builder-{allocation['slug']}-{hashlib.sha256(allocation['worktree'].encode()).hexdigest()[:8]}",
+        ),
+        # Ignored, path-scoped state used by Testcontainers/session cleanup.
+        "WORKTREE_RUNTIME_STATE": str(
+            common_root() / ".ai" / "runtime" / allocation["id"]
+        ),
         **{key: str(value) for key, value in ports.items()},
         "DEV_BACKEND_PORT": backend,
         "VITE_PORT": vite,
@@ -289,6 +302,7 @@ def ensure() -> tuple[dict[str, Any], dict[str, str], Path]:
         remove_unregistered_env_files(data)
         env = environment(allocation)
         path = env_file_path()
+        Path(env["WORKTREE_RUNTIME_STATE"]).mkdir(parents=True, exist_ok=True)
         path.write_text(
             "".join(
                 f"{key}={shlex.quote(value)}\n" for key, value in sorted(env.items())

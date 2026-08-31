@@ -6,6 +6,8 @@
 # ── Persistent volumes ────────────────────────────────────────────────────────
 volumes:
   postgres_data:
+    labels:
+      charting.worktree.id: ${WORKTREE_ID:-unscoped}
     # To bind-mount to a specific NAS path instead, replace with:
     # driver: local
     # driver_opts:
@@ -14,17 +16,27 @@ volumes:
     #   device: /volume1/docker/charting/pgdata   # Synology example
     #   device: /mnt/pool/charting/pgdata         # TrueNAS example
   redis_data:
+    labels:
+      charting.worktree.id: ${WORKTREE_ID:-unscoped}
   research_jobs:
+    labels:
+      charting.worktree.id: ${WORKTREE_ID:-unscoped}
   research_results:
+    labels:
+      charting.worktree.id: ${WORKTREE_ID:-unscoped}
 
 networks:
   charting:
     driver: bridge
+    labels:
+      charting.worktree.id: ${WORKTREE_ID:-unscoped}
 
 services:
 
   # ── PostgreSQL ──────────────────────────────────────────────────────────────
   postgres:
+    labels:
+      charting.worktree.id: ${WORKTREE_ID:-unscoped}
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
@@ -44,6 +56,8 @@ services:
 
   # ── Redis (ARQ task queue) ──────────────────────────────────────────────────
   redis:
+    labels:
+      charting.worktree.id: ${WORKTREE_ID:-unscoped}
     image: redis:7-alpine
     restart: unless-stopped
     volumes:
@@ -61,6 +75,10 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      labels:
+        charting.worktree.id: ${WORKTREE_ID:-unscoped}
+    labels:
+      charting.worktree.id: ${WORKTREE_ID:-unscoped}
     restart: unless-stopped
     ports:
       - "${BACKEND_HOST_PORT:-8000}:8000"
@@ -136,6 +154,10 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      labels:
+        charting.worktree.id: ${WORKTREE_ID:-unscoped}
+    labels:
+      charting.worktree.id: ${WORKTREE_ID:-unscoped}
     restart: unless-stopped
     command: python -m app.workers.arq_worker
     environment:
@@ -196,6 +218,10 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.research-runner
+      labels:
+        charting.worktree.id: ${WORKTREE_ID:-unscoped}
+    labels:
+      charting.worktree.id: ${WORKTREE_ID:-unscoped}
     restart: unless-stopped
     network_mode: "none"
     read_only: true
@@ -228,6 +254,10 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      labels:
+        charting.worktree.id: ${WORKTREE_ID:-unscoped}
+    labels:
+      charting.worktree.id: ${WORKTREE_ID:-unscoped}
     restart: unless-stopped
     ports:
       - "${FRONTEND_HOST_PORT:-80}:80"

@@ -11,6 +11,8 @@
 
 services:
   postgres:
+    labels:
+      charting.worktree.id: ${WORKTREE_ID:-unscoped}
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: postgres
@@ -27,6 +29,8 @@ services:
       retries: 10
 
   redis:
+    labels:
+      charting.worktree.id: ${WORKTREE_ID:-unscoped}
     image: redis:7-alpine
     ports:
       - "${DEV_REDIS_HOST_PORT:-6379}:6379"
@@ -41,4 +45,8 @@ services:
 
 volumes:
   postgres_dev_data:
+    labels:
+      charting.worktree.id: ${WORKTREE_ID:-unscoped}
   redis_dev_data:
+    labels:
+      charting.worktree.id: ${WORKTREE_ID:-unscoped}
