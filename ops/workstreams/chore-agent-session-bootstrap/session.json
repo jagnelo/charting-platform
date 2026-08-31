@@ -2,12 +2,12 @@
   "schema": 1,
   "branch": "chore/agent-session-bootstrap",
   "parent_branch": "staging",
-  "implementation_sha": "89bb5c05ad1635156285d392b7c39b3c341ad8f1",
-  "remote_sha": null,
+  "implementation_sha": "ebfecc87bbc56f119d7939fd5f76f7e6c995dbcc",
+  "remote_sha": "ebfecc87bbc56f119d7939fd5f76f7e6c995dbcc",
   "active_session_id": null,
   "previous_session_ids": [],
   "goal_state": "not_started",
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "next_action": "continue implementation in this worktree",
+  "next_action": "await human review; do not integrate, promote, or deploy",
   "retained_docker_resources": []
 }
