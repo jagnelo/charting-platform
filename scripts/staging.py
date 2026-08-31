@@ -144,8 +144,12 @@ def plan_values(path: Path, branch: str) -> dict[str, str]:
 def require_closed_workstream(path: Path, branch: str) -> None:
     values = plan_values(path, branch)
     failures: list[str] = []
-    if values.get("schema") != "2":
-        failures.append("schema must be 2")
+    if values.get("schema") not in {"2", "3"}:
+        failures.append("schema must be 2 or 3")
+    if values.get("schema") == "3" and values.get("goal_budget_policy") not in {
+        "unbounded_unless_human_authorized",
+    }:
+        failures.append("schema-3 goal_budget_policy must be explicit")
     if values.get("status") != "ready_for_integration":
         failures.append("status must be ready_for_integration")
     for key in (

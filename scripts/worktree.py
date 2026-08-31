@@ -712,6 +712,33 @@ def close(branch: str) -> None:
         raise SystemExit(
             "worktree is dirty; commit or account for changes before closing"
         )
+    plan = plan_values(path, branch)
+    if plan.get("status") not in {"ready_for_integration", "integrated", "closed"}:
+        raise SystemExit(
+            "workstream is not closure-authorized; finish human review and record ready_for_integration"
+        )
+    source_sha = git("rev-parse", "HEAD", cwd=path)
+    attempts = common_root() / ".ai" / "staging-attempts"
+    green = False
+    for receipt in attempts.glob("*.json") if attempts.exists() else []:
+        try:
+            data = json.loads(receipt.read_text())
+        except (OSError, json.JSONDecodeError):
+            continue
+        if data.get("state") != "green":
+            continue
+        sources = data.get("sources") or []
+        if any(
+            item.get("branch") == branch and item.get("sha") == source_sha
+            for item in sources
+            if isinstance(item, dict)
+        ):
+            green = True
+            break
+    if not green:
+        raise SystemExit(
+            "no green staging receipt covers this exact source SHA; keep the worktree until staging CI passes"
+        )
     if not git_succeeds("merge-base", "--is-ancestor", branch, "staging", cwd=path):
         raise SystemExit("worktree is not merged into staging")
     slug = branch_slug(branch)

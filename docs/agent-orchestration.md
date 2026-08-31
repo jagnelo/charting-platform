@@ -199,6 +199,9 @@ the retired workflow and must never receive a new candidate.
    Integration Gate`. Failure writes `.ai/staging-degraded.json`; ordinary
    integration and promotion stop. Only an explicitly authorized repair branch
    based directly on that exact degraded SHA may use `REMEDIATE_DEGRADED=1`.
+   A source worktree can be removed only after a green staging receipt names
+   that exact source SHA; the guarded close command keeps the remote source ref
+   as an audit reference.
 4. `make promote-staging COMMIT=<sha> CONFIRM=<sha>` accepts only the current,
    synchronized, green staging SHA and fast-forwards `master`. `master` then
    independently replays the exhaustive gate. A failed replay marks master
@@ -592,8 +595,8 @@ worker must resume that context rather than selecting a different one.
 
 The active changeset context is a ledger item, not merely a label in chat. At
 the moment a context is selected, the worker must record its name, intent, and
-owned paths in the branch-owned handoff (and, when it is a substantial unit, in
-`ops/tasks.yaml`). Every subsequent edit must belong to that ledger item. A
+owned paths in the branch-owned handoff and plan. Every subsequent edit must
+belong to that ledger item. A
 file that is shared by two contexts must be finished and committed in the
 first context, or the work must be split into independently reviewable files;
 it must not be carried forward implicitly.

@@ -72,9 +72,7 @@ def test_staging_helper_refetches_remote_heads_after_github_gates() -> None:
 
 def test_github_gate_waits_for_asynchronous_push_run_registration() -> None:
     helper = text("scripts/staging.py")
-    github_body = helper.split("def github_run", 1)[1].split(
-        "def shutil_which", 1
-    )[0]
+    github_body = helper.split("def github_run", 1)[1].split("def shutil_which", 1)[0]
     assert "CI_DISCOVERY_ATTEMPTS" in github_body
     assert "CI_DISCOVERY_DELAY_SECONDS" in github_body
     assert "time.sleep(CI_DISCOVERY_DELAY_SECONDS)" in github_body

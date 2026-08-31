@@ -11,7 +11,8 @@ def test_schema_three_and_unbounded_goal_are_recorded() -> None:
     assert '"schema: 3\\n"' in helper
     assert "goal_budget_policy: unbounded_unless_human_authorized" in helper
     assert '"goal_request"' in session
-    assert "token_budget" not in session
+    assert '"token_budget"] = budget' in session
+    assert "authorized_goal_budget" in session
 
 
 def test_claims_are_locked_and_written_atomically() -> None:

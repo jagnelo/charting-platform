@@ -5,9 +5,12 @@ from __future__ import annotations
 
 import argparse
 import fcntl
+import hashlib
 import json
 import re
+import shutil
 import subprocess
+from datetime import UTC, datetime
 from pathlib import Path
 
 
@@ -44,6 +47,50 @@ def values(path: Path) -> dict[str, str]:
     return result
 
 
+def exact_ci(branch: str, sha: str) -> tuple[str, str]:
+    """Return exact push CI state without treating an API error as green."""
+    if not shutil.which("gh"):
+        return "unknown", "GitHub CLI unavailable"
+    result = subprocess.run(
+        [
+            "gh",
+            "run",
+            "list",
+            "--workflow",
+            "ci.yml",
+            "--branch",
+            branch,
+            "--commit",
+            sha,
+            "--event",
+            "push",
+            "--limit",
+            "10",
+            "--json",
+            "headSha,status,conclusion",
+        ],
+        text=True,
+        capture_output=True,
+    )
+    if result.returncode:
+        return "unknown", result.stderr.strip() or "GitHub CI lookup failed"
+    try:
+        runs = json.loads(result.stdout or "[]")
+    except json.JSONDecodeError:
+        return "unknown", "GitHub CI returned invalid JSON"
+    matching = [item for item in runs if item.get("headSha") == sha]
+    if not matching:
+        return "missing", "no exact push CI run exists"
+    run = matching[0]
+    if run.get("status") != "completed":
+        return "pending", "exact push CI run is still running"
+    return (
+        ("green", "exact push CI is green")
+        if run.get("conclusion") == "success"
+        else ("red", "exact push CI is not green")
+    )
+
+
 def records() -> list[dict[str, str]]:
     result: list[dict[str, str]] = []
     current: dict[str, str] = {}
@@ -74,7 +121,7 @@ def queue() -> list[dict[str, object]]:
         tier = plan.get("validation_tier", "pending")
         if not plan:
             state = "missing-workstream"
-            reason = "create a schema-2 branch-owned workstream"
+            reason = "create a schema-3 branch-owned workstream"
         elif status == "ready_for_integration" and head and head == remote:
             state = "ready"
             reason = "closure authorization and synchronized source are present"
@@ -87,6 +134,55 @@ def queue() -> list[dict[str, object]]:
         else:
             state = "in-progress"
             reason = "implementation or validation remains open"
+        ci_state, ci_reason = (
+            exact_ci(branch, remote)
+            if remote
+            else ("missing", "remote SHA is unavailable")
+        )
+        worktree_identifier = (
+            f"{slug(branch)}-{hashlib.sha256(str(path).encode()).hexdigest()[:10]}"
+        )
+        claim_path = (
+            common_root() / ".ai" / "session-claims" / f"{worktree_identifier}.json"
+        )
+        claim = None
+        if claim_path.exists():
+            try:
+                claim = json.loads(claim_path.read_text())
+            except json.JSONDecodeError:
+                claim = {"invalid": True}
+        ahead_behind = None
+        if remote:
+            counts = git(
+                "rev-list",
+                "--left-right",
+                "--count",
+                f"staging...{remote}",
+                check=False,
+            )
+            if counts:
+                left, right = counts.split()[:2]
+                ahead_behind = {
+                    "behind_staging": int(left),
+                    "ahead_of_staging": int(right),
+                }
+        retained = []
+        retained_path = common_root() / ".ai" / "runtime" / "retained-volumes.json"
+        if retained_path.exists():
+            try:
+                retained = [
+                    name
+                    for name, item in json.loads(retained_path.read_text()).items()
+                    if item.get("worktree_id") == worktree_identifier
+                ]
+            except (OSError, json.JSONDecodeError):
+                retained = ["unknown"]
+        if state == "ready" and ci_state != "green":
+            state = "blocked"
+            reason = f"exact branch CI: {ci_reason}"
+        elif claim:
+            state = "in-progress"
+            reason = f"active writer session {claim.get('session_id', 'unknown')}"
         output.append(
             {
                 "branch": branch,
@@ -98,6 +194,16 @@ def queue() -> list[dict[str, object]]:
                 "validation_tier": tier,
                 "state": state,
                 "reason": reason,
+                "ci_state": ci_state,
+                "ci_reason": ci_reason,
+                "ahead_behind_staging": ahead_behind,
+                "active_claim": claim,
+                "retained_docker_resources": retained,
+                "worktree_mtime": datetime.fromtimestamp(
+                    path.stat().st_mtime, UTC
+                ).isoformat()
+                if path.exists()
+                else None,
                 "batch_policy": "focused_only_with_next_full_integration"
                 if tier == "focused_only"
                 else "individual_full_integration",
@@ -115,6 +221,11 @@ def integrate_ready() -> int:
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     with lock_path.open("a+") as handle:
         fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        degraded = common_root() / ".ai" / "staging-degraded.json"
+        if degraded.exists():
+            raise SystemExit(
+                "staging is marked degraded; repair it before integrating ready branches"
+            )
         items = queue()
         full = sorted(
             (
@@ -123,18 +234,51 @@ def integrate_ready() -> int:
                 if item["state"] == "ready"
                 and item["validation_tier"] != "focused_only"
             ),
-            key=lambda item: str(item["branch"]),
+            key=lambda item: (
+                str(item.get("worktree_mtime") or "9999"),
+                str(item["branch"]),
+            ),
         )
         if not full:
             print(
                 "no closure-ready full_integration branch is available; focused-only branches wait"
             )
             return 0
-        selected = [full[0]] + [
-            item
-            for item in items
-            if item["state"] == "ready" and item["validation_tier"] == "focused_only"
-        ]
+        focused = sorted(
+            (
+                item
+                for item in items
+                if item["state"] == "ready"
+                and item["validation_tier"] == "focused_only"
+            ),
+            key=lambda item: str(item["branch"]),
+        )
+        selected = [full[0]] + focused
+        if any(item.get("active_claim") for item in selected):
+            raise SystemExit("a selected branch has an active writer claim")
+        if any(item.get("retained_docker_resources") for item in selected):
+            raise SystemExit(
+                "a selected branch retains Docker resources; account for them before integration"
+            )
+        if any(item.get("ci_state") != "green" for item in selected):
+            raise SystemExit("every selected branch must have exact green branch CI")
+        receipt_dir = common_root() / ".ai" / "staging-attempts"
+        receipt_dir.mkdir(parents=True, exist_ok=True)
+        receipt = (
+            receipt_dir / f"queue-{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}.json"
+        )
+        receipt.write_text(
+            json.dumps(
+                {
+                    "selected": [
+                        {"branch": item["branch"], "sha": item["remote"]}
+                        for item in selected
+                    ]
+                },
+                indent=2,
+            )
+            + "\n"
+        )
         print(
             json.dumps(
                 {

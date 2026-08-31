@@ -275,6 +275,10 @@ def environment(allocation: dict[str, Any]) -> dict[str, str]:
             "builder",
             f"charting-builder-{allocation['slug']}-{hashlib.sha256(allocation['worktree'].encode()).hexdigest()[:8]}",
         ),
+        # Ignored, path-scoped state used by Testcontainers/session cleanup.
+        "WORKTREE_RUNTIME_STATE": str(
+            common_root() / ".ai" / "runtime" / allocation["id"]
+        ),
         **{key: str(value) for key, value in ports.items()},
         "DEV_BACKEND_PORT": backend,
         "VITE_PORT": vite,
@@ -298,6 +302,7 @@ def ensure() -> tuple[dict[str, Any], dict[str, str], Path]:
         remove_unregistered_env_files(data)
         env = environment(allocation)
         path = env_file_path()
+        Path(env["WORKTREE_RUNTIME_STATE"]).mkdir(parents=True, exist_ok=True)
         path.write_text(
             "".join(
                 f"{key}={shlex.quote(value)}\n" for key, value in sorted(env.items())
