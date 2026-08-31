@@ -34,7 +34,8 @@ Update this handoff at every coherent boundary.
 ## Closure checkpoint — 2026-08-31
 
 - Human review/approval received for the implementation and branch closure.
-- Captured branch HEAD: `5cbcd2878eedff80013b8079b279b307072dfd06`.
+- The coordinator must capture the exact synchronized branch HEAD at staging-integration
+  invocation; the implementation and prior closure commits remain reachable in this branch.
 - Local and remote branch heads agree; the worktree is clean.
 - Delivered scope: control/implementation separation, explicit activation, unbounded
   session goals by default, exclusive writer claims and takeover, durable session state,
