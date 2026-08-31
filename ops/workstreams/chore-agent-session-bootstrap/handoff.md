@@ -6,7 +6,9 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 - Request: Implement the approved Branch-Agent Workflow Unification plan.
 - Validation: focused workflow validation plus live two-worktree Docker rehearsal.
-- Closure authorization: pending; do not integrate, promote, or deploy.
+- Closure authorization: approved by the human developer on 2026-08-31. The exact
+  branch head is ready for staging integration; promotion to `master` and deployment
+  remain separately unauthorized.
 
 ## Current context
 
@@ -28,3 +30,20 @@ Update this handoff at every coherent boundary.
 - A subsequent exact-SHA replay (run `33421223460`) had backend, frontend unit, and branch-declared jobs green but failed one existing F8j Playwright popup-close interaction after 150 tests passed. It is recorded as red evidence; no green status is inferred from retries.
 - Fresh exact-SHA replay for `7fe162aebea4df430b16f2cf37a24288a322e0ad` is green in [run 33423563806](https://github.com/jagnelo/charting-platform/actions/runs/33423563806): backend, frontend unit, branch-declared, and Playwright E2E all passed; the exhaustive gate was skipped as required for focused-only workflow work.
 - Next action: await human review. Do not integrate, promote, or deploy.
+
+## Closure checkpoint — 2026-08-31
+
+- Human review/approval received for the implementation and branch closure.
+- Captured branch HEAD: `5cbcd2878eedff80013b8079b279b307072dfd06`.
+- Local and remote branch heads agree; the worktree is clean.
+- Delivered scope: control/implementation separation, explicit activation, unbounded
+  session goals by default, exclusive writer claims and takeover, durable session state,
+  scoped per-worktree Docker accounting/cleanup, deterministic staging queue selection,
+  and lifecycle documentation.
+- Validation: focused workflow suite, Python compilation, Ruff, formatting,
+  workstream validation, and `git diff --check` passed; the recorded live rehearsal
+  passed, while a new rehearsal was not run because Docker was unavailable.
+- State: `ready_for_integration`.
+- Next action: staging coordinator may integrate this exact SHA after its normal
+  coordinator checks. No promotion to `master` or deployment is authorized by this
+  closure.

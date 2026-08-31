@@ -6,8 +6,8 @@
   "remote_sha": "8f2636f3d1513087324bf364095bbb584050226a",
   "active_session_id": null,
   "previous_session_ids": [],
-  "goal_state": "not_started",
+  "goal_state": "completed",
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "next_action": "await human review; do not integrate, promote, or deploy",
+  "next_action": "ready for staging integration; promotion and deployment require separate human authorization",
   "retained_docker_resources": []
 }
