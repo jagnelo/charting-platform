@@ -25,4 +25,5 @@ Update this handoff at every coherent boundary.
 - Live rehearsal: two disposable staging-based worktrees ran isolated Postgres/Redis stacks concurrently; second-writer rejection and retained-volume cleanup were verified. Evidence is in `validation.jsonl`.
 - Recheck note: the Docker daemon is currently unavailable in this environment, so the enhanced ownership/accounting code was validated with deterministic helper tests but no second live rehearsal was claimed.
 - Branch CI for implementation SHA `df1fdadde6bf8dbac6fe6f3bc2e2d283e4d3f6a` is green: backend, frontend unit, branch-declared tests, and Playwright E2E all passed in [run 33418997435](https://github.com/jagnelo/charting-platform/actions/runs/33418997435). The exhaustive staging/master gate was correctly skipped for this focused-only branch.
+- A subsequent exact-SHA replay (run `33421223460`) had backend, frontend unit, and branch-declared jobs green but failed one existing F8j Playwright popup-close interaction after 150 tests passed. It is recorded as red evidence; no green status is inferred from retries.
 - Next action: await human review. Do not integrate, promote, or deploy.
