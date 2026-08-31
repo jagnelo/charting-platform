@@ -33,6 +33,8 @@
   validate-integration validate-focused-integration branch-validate \
   worktree-create worktree-list worktree-status worktree-overview worktree-close worktree-archive worktree-archive-pre-staging worktree-archive-subsumed worktree-archive-operational-tail worktree-cleanup-report worktree-cleanup-reconcile worktree-cleanup integrate integrate-set staging-bootstrap staging-status promote-staging \
   rpi-preflight rpi-bundle deploy-rpi rpi-status \
+  agent-session-start agent-session-status agent-session-checkpoint agent-session-finish agent-session-takeover \
+  agent-resource-status agent-resource-cleanup agent-resource-retain-volume integration-queue integrate-ready \
   lint lint-backend lint-frontend format \
   migrate migrate-new migrate-down \
   coverage clean ci
@@ -208,7 +210,9 @@ test-stack-up:
 	@echo "   Branch  →  $(DEV_BRANCH_NAME)"
 	@echo "   Project →  $(STACK_COMPOSE_PROJECT)"
 	@echo "   Fixtures → instruments=$${E2E_SEED_INSTRUMENTS:-true}, market-data=$${E2E_SEED_MARKET_DATA:-false}"
-	$(RUNTIME_ENV) E2E_SEED_INSTRUMENTS=$${E2E_SEED_INSTRUMENTS:-true} E2E_SEED_MARKET_DATA=$${E2E_SEED_MARKET_DATA:-false} COMPOSE_BAKE=$${COMPOSE_BAKE:-false} COMPOSE_PROJECT_NAME=$$STACK_COMPOSE_PROJECT POSTGRES_HOST_PORT=$$POSTGRES_HOST_PORT BACKEND_HOST_PORT=$$BACKEND_HOST_PORT FRONTEND_HOST_PORT=$$FRONTEND_HOST_PORT docker compose up -d --build --force-recreate --wait
+	$(RUNTIME_ENV) docker buildx inspect $$WORKTREE_BUILDER >/dev/null 2>&1 || $(RUNTIME_ENV) docker buildx create --name $$WORKTREE_BUILDER --use
+	$(RUNTIME_ENV) docker compose -p $$STACK_COMPOSE_PROJECT build --builder $$WORKTREE_BUILDER
+	$(RUNTIME_ENV) E2E_SEED_INSTRUMENTS=$${E2E_SEED_INSTRUMENTS:-true} E2E_SEED_MARKET_DATA=$${E2E_SEED_MARKET_DATA:-false} COMPOSE_PROJECT_NAME=$$STACK_COMPOSE_PROJECT POSTGRES_HOST_PORT=$$POSTGRES_HOST_PORT BACKEND_HOST_PORT=$$BACKEND_HOST_PORT FRONTEND_HOST_PORT=$$FRONTEND_HOST_PORT docker compose up -d --no-build --force-recreate --wait
 
 test-stack-down:
 	@echo "▶  Stopping branch-scoped full application stack $(STACK_COMPOSE_PROJECT)..."
@@ -260,7 +264,8 @@ ci:
 	cd frontend && npm ci
 	$(MAKE) test
 	cd frontend && npx playwright install --with-deps chromium
-	COMPOSE_BAKE=true COMPOSE_PROJECT_NAME=$(STACK_COMPOSE_PROJECT) docker compose up -d --build --wait
+	$(RUNTIME_ENV) docker compose -p $(STACK_COMPOSE_PROJECT) build --builder $$WORKTREE_BUILDER
+	$(RUNTIME_ENV) COMPOSE_PROJECT_NAME=$(STACK_COMPOSE_PROJECT) docker compose up -d --no-build --wait
 	$(MAKE) test-e2e
 	COMPOSE_PROJECT_NAME=$(STACK_COMPOSE_PROJECT) docker compose down -v
 
@@ -340,6 +345,41 @@ staging-status:
 promote-staging:
 	@test -n "$(COMMIT)" -a -n "$(CONFIRM)" || (echo "usage: make promote-staging COMMIT=<full-green-staging-sha> CONFIRM=<same-sha>" >&2; exit 2)
 	$(WORKFLOW_PYTHON) scripts/staging.py promote --commit "$(COMMIT)" --confirm "$(CONFIRM)"
+
+agent-session-start:
+	$(WORKFLOW_PYTHON) scripts/agent-session.py start $(if $(BRANCH),--branch "$(BRANCH)",)
+
+agent-session-status:
+	$(WORKFLOW_PYTHON) scripts/agent-session.py status
+
+agent-session-checkpoint:
+	@test -n "$(SESSION_ID)" || (echo "usage: make agent-session-checkpoint SESSION_ID=<session-id>" >&2; exit 2)
+	$(WORKFLOW_PYTHON) scripts/agent-session.py checkpoint --session-id "$(SESSION_ID)"
+
+agent-session-finish:
+	@test -n "$(SESSION_ID)" || (echo "usage: make agent-session-finish SESSION_ID=<session-id>" >&2; exit 2)
+	$(WORKFLOW_PYTHON) scripts/agent-session.py finish --session-id "$(SESSION_ID)" $(if $(INTERRUPTED),--interrupted --next-action "$(NEXT_ACTION)",)
+
+agent-session-takeover:
+	@test -n "$(CONFIRM)" -a -n "$(REQUEST)" || (echo "usage: make agent-session-takeover CONFIRM=<existing-session-id> REQUEST='human authorization'" >&2; exit 2)
+	$(WORKFLOW_PYTHON) scripts/agent-session.py takeover --confirm "$(CONFIRM)" --request "$(REQUEST)"
+
+agent-resource-status:
+	$(WORKFLOW_PYTHON) scripts/agent-session.py resources
+
+agent-resource-cleanup:
+	$(WORKFLOW_PYTHON) scripts/agent-session.py cleanup
+
+agent-resource-retain-volume:
+	@test -n "$(VOLUME)" -a -n "$(REASON)" -a -n "$(NEXT_USE)" -a -n "$(RECREATE)" -a -n "$(REVIEW)" || (echo "usage: make agent-resource-retain-volume VOLUME=<name> REASON='<reason>' NEXT_USE='<next use>' RECREATE='<impact>' REVIEW='<condition>'" >&2; exit 2)
+	$(WORKFLOW_PYTHON) scripts/agent-session.py retain-volume "$(VOLUME)" --reason "$(REASON)" --next-use "$(NEXT_USE)" --recreate "$(RECREATE)" --review "$(REVIEW)"
+
+integration-queue:
+	$(WORKFLOW_PYTHON) scripts/integration_queue.py
+
+integrate-ready:
+	@test "$$(git branch --show-current)" = "master" || (echo "integrate-ready must run from root master coordinator checkout" >&2; exit 2)
+	$(WORKFLOW_PYTHON) scripts/integration_queue.py --integrate-ready
 
 validate-integration:
 	@set -e; \

@@ -209,6 +209,10 @@ def allocate(data: dict[str, Any]) -> dict[str, Any]:
         and set(PORT_KEYS).issubset((existing.get("ports") or {}).keys())
     ):
         existing["branch"] = branch
+        existing.setdefault(
+            "builder",
+            f"charting-builder-{slug(branch)}-{hashlib.sha256(str(path).encode()).hexdigest()[:8]}",
+        )
         return existing
     # Upgrade an older allocation for this same worktree in place.  Its old
     # ports are excluded from the managed set by identifier, while all other
@@ -239,6 +243,7 @@ def allocate(data: dict[str, Any]) -> dict[str, Any]:
             "dev": f"charting-dev-{branch_slug}-{suffix}",
             "stack": f"charting-stack-{branch_slug}-{suffix}",
         },
+        "builder": f"charting-builder-{branch_slug}-{suffix}",
         "ports": ports,
     }
     data["allocations"][identifier] = allocation
@@ -266,6 +271,7 @@ def environment(allocation: dict[str, Any]) -> dict[str, str]:
         "WORKTREE_SLUG": allocation["slug"],
         "DEV_COMPOSE_PROJECT": allocation["projects"]["dev"],
         "STACK_COMPOSE_PROJECT": allocation["projects"]["stack"],
+        "WORKTREE_BUILDER": allocation["builder"],
         **{key: str(value) for key, value in ports.items()},
         "DEV_BACKEND_PORT": backend,
         "VITE_PORT": vite,

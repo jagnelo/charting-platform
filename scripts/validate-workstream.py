@@ -32,6 +32,7 @@ REQUIRED_V2 = REQUIRED_V1 | {
     "validation_tier",
     "human_validation_authorization",
 }
+REQUIRED_V3 = REQUIRED_V2 | {"goal_budget_policy", "human_goal_budget_authorization"}
 STATUSES = {
     "planned", "authorized", "in_progress", "ready", "ready_for_human_review",
     "ready_for_integration", "integrated", "closed", "superseded", "blocked",
@@ -64,17 +65,17 @@ def main() -> int:
         stream = plan_path.parent
         values = parse_keys(plan_path)
         schema = values.get("schema")
-        required = REQUIRED_V2 if schema == "2" else REQUIRED_V1
+        required = REQUIRED_V3 if schema == "3" else REQUIRED_V2 if schema == "2" else REQUIRED_V1
         missing = sorted(required - values.keys())
         if missing:
             errors.append(f"{plan_path}: missing keys: {', '.join(missing)}")
-        if schema not in {"1", "2"}:
-            errors.append(f"{plan_path}: schema must be 1 or 2")
+        if schema not in {"1", "2", "3"}:
+            errors.append(f"{plan_path}: schema must be 1, 2, or 3")
         if values.get("status") not in STATUSES:
             errors.append(f"{plan_path}: unsupported status {values.get('status')!r}")
-        if schema == "2" and not values.get("human_intent_authorization"):
+        if schema in {"2", "3"} and not values.get("human_intent_authorization"):
             errors.append(f"{plan_path}: human_intent_authorization must not be empty")
-        if schema == "2" and values.get("validation_tier") not in {
+        if schema in {"2", "3"} and values.get("validation_tier") not in {
             "pending_human_decision", "full_integration", "focused_only"
         }:
             errors.append(
@@ -91,6 +92,8 @@ def main() -> int:
         for file_name in ("handoff.md", "validation.jsonl"):
             if not (stream / file_name).exists():
                 errors.append(f"{stream}: missing {file_name}")
+        if schema == "3" and not (stream / "session.json").exists():
+            errors.append(f"{stream}: missing session.json")
         validation = stream / "validation.jsonl"
         if validation.exists():
             for number, line in enumerate(validation.read_text().splitlines(), 1):

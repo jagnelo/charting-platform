@@ -1,0 +1,48 @@
+schema: 3
+branch: chore/agent-session-bootstrap
+base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
+parent_branch: staging
+parent_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
+dependency_authorization: "not applicable: independent staging-based topic"
+human_intent_authorization: "Implement the approved Branch-Agent Workflow Unification plan."
+human_closure_authorization: pending
+closure_summary: pending
+validation_tier: focused_only
+human_validation_authorization: "Focused workflow validation plus a live two-worktree Docker ownership rehearsal is explicitly approved."
+goal_budget_policy: unbounded_unless_human_authorized
+human_goal_budget_authorization: none
+goal: "Make authorized VS Code branch sessions self-bootstrap from durable policy, enforce exclusive worktree ownership, safely account for per-worktree Docker resources, and provide reliable staging integration queue tooling."
+scope:
+  - "Durable control-versus-implementation session policy"
+  - "Exclusive writer claims and session checkpoints"
+  - "Per-worktree Docker accounting and cleanup"
+  - "Human-facing integration queue and lifecycle status"
+owned_paths:
+  - AGENTS.md
+  - Makefile
+  - docs/agent-orchestration.md
+  - docs/development.md
+  - docs/worktree-lifecycle.md
+  - scripts/agent-session.py
+  - scripts/worktree.py
+  - scripts/integration_queue.py
+  - tests/workflow/test_agent_session.py
+  - tests/workflow/test_staging_workflow.py
+  - ops/workstreams/chore-agent-session-bootstrap
+dependencies: [Git worktrees, Docker CLI when available, backend UV environment]
+acceptance_criteria:
+  - "A branch session can prove its exact worktree, authorization, claim, goal objective, and resource ownership."
+  - "A second writer is refused and takeover is explicit."
+  - "Docker cleanup is scoped to the current path-derived worktree and triggers above 5 GB attributable usage."
+  - "Integration queue and staging coordinator rules are documented and testable."
+branch_tests:
+  - "uv run --project backend python -m pytest tests/workflow/test_agent_session.py tests/workflow/test_staging_workflow.py -q"
+  - "uv run --project backend python -m py_compile scripts/agent-session.py scripts/integration_queue.py scripts/worktree.py scripts/staging.py"
+  - "uv run --project backend ruff check scripts/agent-session.py scripts/integration_queue.py scripts/worktree.py tests/workflow/test_agent_session.py"
+  - "uv run --project backend ruff format --check scripts/agent-session.py scripts/integration_queue.py scripts/worktree.py tests/workflow/test_agent_session.py"
+  - "git diff --check"
+live_test_impact: "two disposable worktrees with isolated Docker resources and one explicitly retained volume"
+migration_impact: none
+deployment_impact: none
+status: in_progress
+remaining_gaps: []
