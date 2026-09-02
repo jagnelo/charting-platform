@@ -1682,6 +1682,7 @@ ETF_COM_BRAND_RECONCILIATION_NATIVE_ADAPTERS: frozenset[str] = frozenset(
         "alerian",
         "american_beacon",
         "avantis",
+        "bridgeway",
         "calvert",
         "congress",
         "day_hagan",
