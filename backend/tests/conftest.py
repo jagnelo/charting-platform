@@ -39,7 +39,9 @@ def _record_testcontainer(container) -> None:
             return
         path = Path(target) / "testcontainers-sessions.json"
         values = json.loads(path.read_text()) if path.exists() else {}
-        values.setdefault(identifier, []).append(session_id)
+        sessions = values.setdefault(identifier, [])
+        if session_id not in sessions:
+            sessions.append(session_id)
         path.write_text(json.dumps(values, indent=2, sort_keys=True) + "\n")
     except (OSError, TypeError, ValueError):
         # Resource cleanup remains conservative if Docker metadata is unavailable.

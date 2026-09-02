@@ -11,6 +11,9 @@ import subprocess
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
+
+import yaml
 
 
 PREFIXES = ("feat/", "fix/", "chore/", "docs/", "test/")
@@ -141,17 +144,20 @@ def initialise_docs(
     directory.mkdir(parents=True, exist_ok=False)
     base_sha = git("rev-parse", base, cwd=path)
     (directory / "plan.yaml").write_text(
-        "schema: 3\n"
+        "schema: 4\n"
         f"branch: {branch}\n"
         f"base_sha: {base_sha}\n"
         f"parent_branch: {base}\n"
         f"parent_sha: {base_sha}\n"
         f"dependency_authorization: {json.dumps(dependency_authorization or 'not applicable: independent staging-based topic')}\n"
         f"human_intent_authorization: {json.dumps(request)}\n"
+        "planning_state: draft\n"
         "human_closure_authorization: pending\n"
         "closure_summary: pending\n"
-        "validation_tier: pending_human_decision\n"
-        "human_validation_authorization: pending\n"
+        "validation_tier: full_integration\n"
+        "human_validation_authorization: agent_default_full_integration\n"
+        "local_validation_profile: pending_agent_assessment\n"
+        "local_validation_reason: pending agent assessment from changed paths and runtime impact\n"
         "goal_budget_policy: unbounded_unless_human_authorized\n"
         "human_goal_budget_authorization: none\n"
         f"goal: {json.dumps(request)}\n"
@@ -160,25 +166,33 @@ def initialise_docs(
         "dependencies: []\n"
         "acceptance_criteria: []\n"
         "branch_tests: []\n"
+        "branch_tests_reason: pending agent assessment\n"
         "live_test_impact: none\n"
         "migration_impact: none\n"
         "deployment_impact: none\n"
         "status: authorized\n"
         "remaining_gaps: []\n"
+        "progress:\n"
+        "  completed: []\n"
+        "  total: 0\n"
+        "  current_phase: plan\n"
+        "  current_blocker: none\n"
+        "  next_action: complete the branch-owned plan before creating a goal\n"
     )
     (directory / "handoff.md").write_text(
         f"# {branch}\n\nCreated from `{base}` at `{base_sha}`.\n\n"
         "## Human authorization\n\n"
         f"- Recorded at: {datetime.now(UTC).isoformat()}\n"
         f"- Request: {request}\n"
-        "- Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.\n\n"
+        "- Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.\n"
+        "- Planning state: draft; the implementation agent must complete scope, acceptance criteria, tests, and local validation profile before creating a goal.\n\n"
         "Update this handoff at each coherent boundary.\n"
     )
     (directory / "validation.jsonl").write_text("")
     (directory / "session.json").write_text(
         json.dumps(
             {
-                "schema": 1,
+                "schema": 2,
                 "branch": branch,
                 "parent_branch": base,
                 "implementation_sha": base_sha,
@@ -187,6 +201,13 @@ def initialise_docs(
                 "previous_session_ids": [],
                 "goal_state": "not_started",
                 "goal_budget_policy": "unbounded_unless_human_authorized",
+                "planning_state": "draft",
+                "progress": {
+                    "completed": [],
+                    "total": 0,
+                    "current_phase": "plan",
+                    "current_blocker": "none",
+                },
                 "next_action": "run make agent-session-start",
                 "retained_docker_resources": [],
             },
@@ -343,15 +364,15 @@ def size_bytes(path: Path) -> int:
     )
 
 
-def plan_values(path: Path, branch: str) -> dict[str, str]:
+def plan_values(path: Path, branch: str) -> dict[str, Any]:
     plan = path / "ops" / "workstreams" / branch_slug(branch) / "plan.yaml"
-    values: dict[str, str] = {}
-    if plan.exists():
-        for line in plan.read_text().splitlines():
-            match = re.match(r"^([A-Za-z_][A-Za-z0-9_]*):\s*(.*)$", line)
-            if match:
-                values[match.group(1)] = match.group(2).strip().strip("'\"")
-    return values
+    if not plan.exists():
+        return {}
+    try:
+        values = yaml.safe_load(plan.read_text())
+    except yaml.YAMLError as exc:
+        raise SystemExit(f"invalid workstream YAML: {plan}: {exc}") from exc
+    return values if isinstance(values, dict) else {}
 
 
 def closure_reasons(branch: str, path: Path) -> list[str]:
