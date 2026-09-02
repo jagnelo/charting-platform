@@ -2320,6 +2320,7 @@ ISSUER_DOMAIN_HINTS.update(
         "teucrium": ["teucrium.com"],
         "tidal": ["tidalfinancialgroup.com"],
         "beehive": ["thebeehiveetf.com"],
+        "blueprint": ["blueprintip.com"],
         "volatility_shares": ["volatilityshares.com"],
         "wahed": ["wahed.com"],
         "yieldmax": ["yieldmaxetfs.com"],
@@ -23129,6 +23130,114 @@ class BeeHiveHoldingsAdapter(TidalHoldingsAdapter):
             "adapter_key": self.adapter_key,
             "route_resolution": "beehive_product_page_declared_tidal_daily_holdings_csv",
             "snapshot_provenance": "beehive_native_current_holdings_csv",
+        }
+        return result
+
+
+class BlueprintHoldingsAdapter(TidalHoldingsAdapter):
+    """Fetch Blueprint's TFPN portfolio from its issuer-declared daily CSV."""
+
+    _PRODUCTS: dict[str, tuple[str, str]] = {
+        "TFPN": (
+            "https://blueprintip.com/systematic-investing-strategies/exchange-traded-funds/"
+            "next-generation-liquid-alt-blueprint-chesapeake-multi-asset-trend-etf/",
+            "https://blueprintip.com/wp-content/fund_files/files/wp-content/fund_files/files/"
+            "BlueprintInvWeb.40T2.T2_ETF_Holdings.csv",
+        ),
+    }
+    _ISSUER_HOST = "blueprintip.com"
+
+    def probe(
+        self,
+        *,
+        symbol: str,
+        name: str,
+        identifiers: dict[str, str],
+    ) -> HoldingsAdapterProbe:
+        probe = super().probe(symbol=symbol, name=name, identifiers=identifiers)
+        return replace(
+            probe,
+            reason=(
+                "Blueprint publishes TFPN's complete current portfolio from its official product page."
+                if symbol.strip().upper() == "TFPN"
+                else "Blueprint currently has a verified public holdings route only for TFPN."
+            ),
+        )
+
+    @staticmethod
+    def _parse_holdings_csv(
+        raw_csv: str, *, symbol: str
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        rows, composition_date = TidalHoldingsAdapter._parse_holdings_csv(
+            raw_csv, symbol=symbol
+        )
+        for row in rows:
+            if row.row_type == "cash":
+                continue
+            source_values = row.extra_data or {}
+            source_text = " ".join(
+                value.upper()
+                for value in (
+                    source_values.get("StockTicker"),
+                    source_values.get("SecurityName"),
+                    source_values.get("CUSIP"),
+                )
+                if isinstance(value, str) and value.strip()
+            )
+            is_derivative = any(
+                token in source_text
+                for token in (" FUT", "FUTURE", " OPTION", " SWAP", " FORWARD")
+            ) or any(
+                token in source_text
+                for token in (" CURNCY", " COMDTY", " INDEX")
+            )
+            if is_derivative:
+                row.symbol = None
+                row.holding_type = "derivative"
+                continue
+            if any(token in source_text for token in ("TREASURY", " BOND", " NOTE")):
+                row.holding_type = "fixed_income"
+        return rows, composition_date
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        product = self._PRODUCTS.get(normalized_symbol)
+        if product is None:
+            raise ValueError(
+                "Blueprint's verified issuer route currently supports TFPN only."
+            )
+        if source_url and source_url.rstrip("/") != product[1].rstrip("/"):
+            raise ValueError("Blueprint holdings must use its official declared holdings CSV.")
+
+        result = await super().fetch_latest(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        page_url = (result.raw_json or {}).get("product_page_url")
+        if not page_url or not _domain_matches(_url_host(page_url), self._ISSUER_HOST):
+            raise ValueError("Blueprint holdings response left the issuer product domain.")
+        if not _domain_matches(_url_host(result.source_url), self._ISSUER_HOST):
+            raise ValueError("Blueprint holdings CSV response left the issuer domain.")
+        result.raw_json = {
+            **(result.raw_json or {}),
+            "source_format": "issuer_product_page_declared_tidal_daily_holdings_csv",
+        }
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "source_access": self.config.source_access,
+            "source_provider": self.source_provider,
+            "adapter_key": self.adapter_key,
+            "route_resolution": "blueprint_product_page_declared_tidal_daily_holdings_csv",
+            "snapshot_provenance": "blueprint_native_current_holdings_csv",
         }
         return result
 
@@ -63415,6 +63524,24 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "product page and declared daily Tidal holdings CSV; data may be subject to issuer terms."
         ),
     ),
+    "blueprint": IssuerCsvAdapterConfig(
+        adapter_key="blueprint",
+        source_provider="blueprint_investment_partners",
+        source_access="blueprint_issuer_product_page_declared_tidal_daily_holdings_csv",
+        url_templates=(
+            "https://blueprintip.com/wp-content/fund_files/files/wp-content/fund_files/files/"
+            "BlueprintInvWeb.40T2.T2_ETF_Holdings.csv",
+        ),
+        product_page_templates=(
+            "https://blueprintip.com/systematic-investing-strategies/exchange-traded-funds/"
+            "next-generation-liquid-alt-blueprint-chesapeake-multi-asset-trend-etf/",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "Blueprint Investment Partners publishes TFPN's complete current portfolio through "
+            "its public product page and declared daily Tidal holdings CSV; data may be subject to issuer terms."
+        ),
+    ),
     "concourse": IssuerCsvAdapterConfig(
         adapter_key="concourse",
         source_provider="concourse_capital",
@@ -63807,7 +63934,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "baillie_gifford",
         "bridgeway",
         "brookstone",
-        "blueprint",
         "bufferlabs",
         "bushido",
         "capforce",
@@ -65866,7 +65992,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "bancreek": BancreekHoldingsAdapter,
         "beehive": BeeHiveHoldingsAdapter,
         "bluemonte": BluemonteHoldingsAdapter,
-        "blueprint": BlueprintReconciledFallbackHoldingsAdapter,
+        "blueprint": BlueprintHoldingsAdapter,
         "brookstone": BrookstoneReconciledFallbackHoldingsAdapter,
         "bridgeway": BridgewayReconciledFallbackHoldingsAdapter,
         "bufferlabs": BufferLabsReconciledFallbackHoldingsAdapter,

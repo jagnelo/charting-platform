@@ -5,9 +5,9 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 362
-current_fallback_count: 134
-generated_at: 2026-09-02T16:50:00Z
+current_native_count: 363
+current_fallback_count: 133
+generated_at: 2026-09-02T17:03:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -965,35 +965,46 @@ providers:
     display_name: blueprint
     queue_rank: 25
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-02
+    source_access_declared: blueprint_issuer_product_page_declared_tidal_daily_holdings_csv
+    representative_symbols:
+      - TFPN
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    source_freshness: daily
+    first_party_domains:
+      - blueprintip.com
+    candidate_routes:
+      - "https://blueprintip.com/systematic-investing-strategies/exchange-traded-funds/next-generation-liquid-alt-blueprint-chesapeake-multi-asset-trend-etf/"
+      - "https://blueprintip.com/wp-content/fund_files/files/wp-content/fund_files/files/BlueprintInvWeb.40T2.T2_ETF_Holdings.csv"
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_blueprint_adapter_fetches_and_classifies_official_tfpn_holdings_csv
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows[blueprint-TFPN-None-identifiers307-20]
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.blueprint"
       - "runtime:ISSUER_ADAPTER_CONFIGS.blueprint"
+      - "web:blueprint-tfpn-holdings-2026-09-02"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.blueprint"
-    disposition_reason: "blueprint: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate blueprint first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-02
+        source: "https://blueprintip.com/systematic-investing-strategies/exchange-traded-funds/next-generation-liquid-alt-blueprint-chesapeake-multi-asset-trend-etf/"
+        result: "Blueprint's official TFPN product page declares a Download holdings link to a complete daily CSV; the issuer-hosted export returned HTTP 200 with a 2026-09-02 snapshot, 107 account-scoped rows, and fields for ticker, CUSIP, security name, shares, market value, weightings, and cash/derivative instruments."
+        evidence_ref: "web:blueprint-tfpn-holdings-2026-09-02"
+    disposition_reason: "blueprint: The official TFPN product page and declared daily CSV provide a complete current portfolio; the provider-specific adapter validates the product and response domains, maps account-scoped rows with derivative, fixed-income, and cash classification, preserves the issuer date, and has deterministic plus opt-in live coverage."
+    next_action: "blueprint: Monitor the TFPN product page and declared CSV; retain native status while the route remains complete, executable, and identity-valid, and add any new Blueprint ETF only after equivalent evidence."
     implementation_sha: null
-    validation_refs: []
+    validation_refs:
+      - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_blueprint_adapter_fetches_and_classifies_official_tfpn_holdings_csv"
+      - "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows[blueprint-TFPN-None-identifiers307-20]"
   - adapter_key: bridgeway
     display_name: bridgeway
     queue_rank: 26

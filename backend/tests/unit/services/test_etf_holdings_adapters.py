@@ -18060,6 +18060,69 @@ async def test_beehive_adapter_fetches_official_declared_daily_holdings_csv(monk
     )
 
 
+@pytest.mark.asyncio
+async def test_blueprint_adapter_fetches_and_classifies_official_tfpn_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("blueprint")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "BlueprintHoldingsAdapter"
+    product_page_url = (
+        "https://blueprintip.com/systematic-investing-strategies/exchange-traded-funds/"
+        "next-generation-liquid-alt-blueprint-chesapeake-multi-asset-trend-etf/"
+    )
+    holdings_url = (
+        "https://blueprintip.com/wp-content/fund_files/files/wp-content/fund_files/files/"
+        "BlueprintInvWeb.40T2.T2_ETF_Holdings.csv"
+    )
+    probe = adapter.probe(symbol="TFPN", name="Blueprint Chesapeake Multi-Asset Trend ETF", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url == holdings_url
+
+    with pytest.raises(ValueError, match="official declared holdings CSV"):
+        await adapter.fetch_latest(symbol="TFPN", source_url="https://example.invalid/holdings.csv")
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<html><h1>Blueprint Chesapeake Multi-Asset Trend ETF (TFPN)</h1></html>",
+            content_type="text/html",
+            url=product_page_url,
+        ),
+        FakeResponse(
+            text=(
+                "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets\n"
+                "09/02/2026,TFPN,AAPL,037833100,Apple Inc,8206,325.13,2668016.78,1.66%,161133440.00\n"
+                "09/02/2026,TFPN,ADU6 Curncy,ADU6 CURNCY,AUDUSD Crncy Fut Sep26,101,71.46,7217460.00,4.48%,161133440.00\n"
+                "09/02/2026,TFPN,912797SU2,912797SU2,United States Treasury Bill 11/27/2026,3000000,99.10,2973160.83,1.85%,161133440.00\n"
+                "09/02/2026,TFPN,Cash&Other,Cash&Other,Cash & Other,12594959.51,1,12594959.51,7.82%,161133440.00\n"
+            ),
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="TFPN")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        product_page_url,
+        holdings_url,
+    ]
+    assert result.rows[0].symbol == "AAPL"
+    assert result.rows[0].weight == Decimal("0.0166")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].holding_type == "derivative"
+    assert result.rows[2].holding_type == "fixed_income"
+    assert result.rows[3].symbol is None
+    assert result.rows[3].row_type == "cash"
+    assert result.legal_metadata["source_provider"] == "blueprint_investment_partners"
+    assert result.legal_metadata["route_resolution"] == (
+        "blueprint_product_page_declared_tidal_daily_holdings_csv"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+    assert result.raw_json["source_format"] == (
+        "issuer_product_page_declared_tidal_daily_holdings_csv"
+    )
+
+
 def test_colliers_harrison_street_adapter_discovers_and_parses_nfrx_holdings_csv():
     adapter = get_holdings_adapter("colliers")
     assert adapter is not None
@@ -20583,6 +20646,7 @@ def test_stockanalysis_provider_fourth_continuation_batch_is_registered_and_audi
     expected = set(STOCKANALYSIS_PROVIDER_FOURTH_CONTINUATION_ISSUER_HINTS) - {
         "impact_shares",
         "ballast",
+        "blueprint",
     }
 
     assert expected
@@ -24594,8 +24658,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 362
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 134
+    assert ledger["current_native_count"] == 363
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 133
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -24609,6 +24673,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "ballast",
         "bancreek",
         "beehive",
+        "blueprint",
         "guggenheim",
     }
     assert set(record_keys) == fallback_keys | native_promoted
