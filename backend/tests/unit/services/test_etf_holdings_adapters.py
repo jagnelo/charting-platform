@@ -20737,7 +20737,10 @@ def test_stockanalysis_provider_second_continuation_batch_is_registered_and_audi
 
 
 def test_stockanalysis_provider_third_continuation_batch_is_registered_and_audited():
-    expected = set(STOCKANALYSIS_PROVIDER_THIRD_CONTINUATION_ISSUER_HINTS) - {"beehive"}
+    expected = set(STOCKANALYSIS_PROVIDER_THIRD_CONTINUATION_ISSUER_HINTS) - {
+        "beehive",
+        "brookstone",
+    }
 
     assert expected
     assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
@@ -24775,8 +24778,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 364
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 132
+    assert ledger["current_native_count"] == 365
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 131
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -24792,6 +24795,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "beehive",
         "blueprint",
         "bridgeway",
+        "brookstone",
         "guggenheim",
     }
     assert set(record_keys) == fallback_keys | native_promoted
