@@ -23307,6 +23307,217 @@ class BlueprintHoldingsAdapter(TidalHoldingsAdapter):
         return result
 
 
+class FitzgeraldHoldingsAdapter(TidalHoldingsAdapter):
+    """Fetch XFUNDS FITZ/FIZY holdings from Nicholas Wealth's declared CSV route."""
+
+    _PRODUCT_PAGES: dict[str, str] = {
+        "FITZ": "https://nicholasx.com/fitz/",
+        "FIZY": "https://nicholasx.com/fizy/",
+    }
+    _ISSUER_HOST = "nicholasx.com"
+
+    def probe(
+        self,
+        *,
+        symbol: str,
+        name: str,
+        identifiers: dict[str, str],
+    ) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self._PRODUCT_PAGES.get(normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if product_page_url else Decimal("0.5000"),
+            status=("ready" if product_page_url or has_sec_fallback else "needs_issuer_route"),
+            reason=(
+                "Nicholas Wealth's official XFUNDS page declares a complete current holdings CSV."
+                if product_page_url
+                else "No verified Fitzgerald product page is configured for this ETF; SEC EDGAR remains available as fallback."
+                if has_sec_fallback
+                else "No verified Fitzgerald product page is configured for this ETF."
+            ),
+            source_url=product_page_url,
+            issuer_product_id=_identifier(identifiers, "issuer_product_id", "product_id")
+            or normalized_symbol
+            or None,
+        )
+
+    @classmethod
+    def _discover_holdings_url(cls, page_text: str, *, symbol: str) -> str:
+        page = html.unescape(page_text).replace("\\/", "/").replace("\\u0026", "&")
+        match = re.search(
+            r"holdingsUrl\s*=\s*[\"'](?P<url>[^\"']+)[\"']",
+            page,
+            flags=re.IGNORECASE,
+        )
+        if match is None:
+            raise ValueError(f"Nicholas Wealth page did not declare a holdings CSV for {symbol}.")
+        holdings_url = urljoin("https://nicholasx.com/", match.group("url"))
+        parsed = urlparse(holdings_url)
+        query = parse_qs(parsed.query)
+        if not _domain_matches(_url_host(holdings_url) or "", cls._ISSUER_HOST):
+            raise ValueError("Nicholas Wealth exposed a holdings URL outside its issuer domain.")
+        if query.get("ticker", [""])[0].upper() != symbol.upper():
+            raise ValueError(
+                f"Nicholas Wealth holdings URL was not scoped to requested ETF {symbol}."
+            )
+        if query.get("twm_download", [""])[0].lower() != "holdings":
+            raise ValueError("Nicholas Wealth exposed a non-holdings download URL.")
+        return holdings_url
+
+    @staticmethod
+    def _classify_rows(
+        rows: list[CanonicalHoldingRow],
+    ) -> list[CanonicalHoldingRow]:
+        for row in rows:
+            if row.row_type == "cash":
+                continue
+            source_values = row.extra_data or {}
+            source_text = " ".join(
+                value.upper()
+                for value in (
+                    source_values.get("StockTicker"),
+                    source_values.get("SecurityName"),
+                    source_values.get("CUSIP"),
+                )
+                if isinstance(value, str) and value.strip()
+            )
+            is_derivative = (
+                any(
+                    token in source_text
+                    for token in (" FUT", "FUTURE", " OPTION", " SWAP", " FORWARD")
+                )
+                or bool(re.search(r"\b[A-Z]{1,6}\s+\d{6}[CP]\d{8}\b", source_text))
+                or bool(re.search(r"\b\d{2}/\d{2}/\d{2}\s+[CP]\b", source_text))
+            )
+            if is_derivative:
+                row.symbol = None
+                row.holding_type = "derivative"
+        return rows
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self._PRODUCT_PAGES.get(normalized_symbol)
+        if product_page_url is None:
+            raise ValueError(
+                "No verified Fitzgerald holdings route is configured for "
+                f"{normalized_symbol or 'an empty symbol'}."
+            )
+        if source_url and not _domain_matches(_url_host(source_url) or "", self._ISSUER_HOST):
+            raise ValueError("Fitzgerald holdings must use its official Nicholas Wealth domain.")
+
+        page_headers = _issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*")
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            try:
+                page_response = await client.get(
+                    product_page_url,
+                    headers=page_headers,
+                    follow_redirects=True,
+                )
+                page_response.raise_for_status()
+                resolved_page_url = str(page_response.url)
+                page_text = page_response.text
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code != 403:
+                    raise
+                fallback_response = await asyncio.to_thread(
+                    requests.get,
+                    product_page_url,
+                    headers=page_headers,
+                    timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                    allow_redirects=True,
+                )
+                fallback_response.raise_for_status()
+                resolved_page_url = str(fallback_response.url)
+                page_text = fallback_response.text
+            if normalized_symbol not in page_text.upper() or "NICHOLAS" not in page_text.upper():
+                raise ValueError(
+                    f"Nicholas Wealth product page identity did not match requested ETF {normalized_symbol}."
+                )
+            holdings_url = self._discover_holdings_url(page_text, symbol=normalized_symbol)
+            csv_headers = {
+                **_holdings_request_headers(accept="text/csv,application/octet-stream,*/*"),
+                "Referer": resolved_page_url,
+            }
+            try:
+                csv_response = await client.get(
+                    holdings_url,
+                    headers=csv_headers,
+                    follow_redirects=True,
+                )
+                csv_response.raise_for_status()
+                resolved_csv_url = str(csv_response.url)
+                csv_text = csv_response.text
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code != 403:
+                    raise
+                fallback_response = await asyncio.to_thread(
+                    requests.get,
+                    holdings_url,
+                    headers=csv_headers,
+                    timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                    allow_redirects=True,
+                )
+                fallback_response.raise_for_status()
+                resolved_csv_url = str(fallback_response.url)
+                csv_text = fallback_response.text
+
+        rows, composition_date = self._parse_holdings_csv(csv_text, symbol=normalized_symbol)
+        if len(rows) < 10:
+            raise ValueError(
+                f"Nicholas Wealth holdings CSV returned too few rows for {normalized_symbol}."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=csv_text,
+            raw_json={
+                "source_format": "issuer_product_page_declared_tidal_daily_holdings_csv",
+                "product_page_url": resolved_page_url,
+                "row_count": len(rows),
+            },
+            source_url=resolved_csv_url,
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "nicholas_wealth_product_page_declared_tidal_daily_holdings_csv",
+                "snapshot_provenance": "fitzgerald_native_current_holdings_csv",
+                "product_page_url": resolved_page_url,
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "publisher": "nicholas_wealth",
+                "parent_issuer": "nicholas_wealth",
+                "issuer_relationship": "Fitz-Gerald branded XFUNDS products published by Nicholas Wealth",
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_holdings_csv(
+        cls,
+        raw_csv: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        rows, composition_date = TidalHoldingsAdapter._parse_holdings_csv(
+            raw_csv,
+            symbol=symbol,
+        )
+        return cls._classify_rows(rows), composition_date
+
+
 class ColliersHarrisonStreetHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Harrison Street NFRX holdings from its first-party fund page.
 
@@ -64960,6 +65171,20 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "issuer terms and the disclosed holdings date govern freshness."
         ),
     ),
+    "fitzgerald": IssuerCsvAdapterConfig(
+        adapter_key="fitzgerald",
+        source_provider="nicholas_wealth",
+        source_access="issuer_product_page_declared_complete_current_holdings_csv",
+        product_page_templates=(
+            "https://nicholasx.com/fitz/",
+            "https://nicholasx.com/fizy/",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "Nicholas Wealth's XFUNDS product pages declare complete current FITZ/FIZY holdings CSVs; "
+            "data may be subject to issuer terms."
+        ),
+    ),
     "alerian": IssuerCsvAdapterConfig(
         adapter_key="alerian",
         source_provider="alerian",
@@ -65036,7 +65261,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "fcf_advisors",
         "formula_folio",
         "first_manhattan",
-        "fitzgerald",
         "framework_digital_advisors",
         "freedom",
         "fpa",
@@ -68021,10 +68245,6 @@ class TowleReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """StockAnalysis provider-table fallback adapter pending Towle discovery."""
 
 
-class FitzgeraldReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """StockAnalysis provider-table fallback adapter pending Fitzgerald discovery."""
-
-
 class EaSeriesTrustReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """StockAnalysis provider-table fallback adapter pending EA Series Trust discovery."""
 
@@ -68124,7 +68344,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "framework_digital_advisors": FrameworkDigitalAdvisorsReconciledFallbackHoldingsAdapter,
         "freedom": FreedomReconciledFallbackHoldingsAdapter,
         "first_manhattan": FirstManhattanReconciledFallbackHoldingsAdapter,
-        "fitzgerald": FitzgeraldReconciledFallbackHoldingsAdapter,
+        "fitzgerald": FitzgeraldHoldingsAdapter,
         "fpa": FpaReconciledFallbackHoldingsAdapter,
         "fundstrat": FundstratReconciledFallbackHoldingsAdapter,
         "genter_capital": GenterCapitalReconciledFallbackHoldingsAdapter,

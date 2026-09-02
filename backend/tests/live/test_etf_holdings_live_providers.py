@@ -13,6 +13,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "arlington",
     "21shares",
     "falconx",
+    "fitzgerald",
     "amun",
     "1251_capital",
     "3fourteen",
@@ -2335,6 +2336,32 @@ async def test_live_falconx_parent_21shares_routes_cover_current_us_products():
         )
         assert metadata["route_resolution"] == "falconx_21shares_public_product_details_api"
         assert metadata["valuation_date"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("fitzgerald")
+async def test_live_fitzgerald_nicholas_wealth_routes_cover_current_xfunds_products():
+    adapter = get_holdings_adapter("fitzgerald")
+    assert adapter is not None
+
+    for symbol, minimum_rows in (("FITZ", 20), ("FIZY", 100)):
+        result = await adapter.fetch_latest(symbol=symbol)
+        _assert_live_holdings_result(result, adapter_key="fitzgerald", min_rows=minimum_rows)
+        metadata = result.legal_metadata or {}
+        assert metadata["source_provider"] == "nicholas_wealth"
+        assert metadata["publisher"] == "nicholas_wealth"
+        assert metadata["parent_issuer"] == "nicholas_wealth"
+        assert metadata["issuer_relationship"] == (
+            "Fitz-Gerald branded XFUNDS products published by Nicholas Wealth"
+        )
+        assert metadata["route_resolution"] == (
+            "nicholas_wealth_product_page_declared_tidal_daily_holdings_csv"
+        )
+        assert metadata["snapshot_provenance"] == "fitzgerald_native_current_holdings_csv"
+        assert metadata["composition_date"]
+        if symbol == "FIZY":
+            assert any(row.holding_type == "derivative" for row in result.rows)
 
 
 @pytest.mark.asyncio

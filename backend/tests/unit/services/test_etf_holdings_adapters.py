@@ -18671,6 +18671,68 @@ def test_tidal_adapter_parses_verified_sponsor_fund_scoped_holdings_csv():
 
 
 @pytest.mark.asyncio
+async def test_fitzgerald_adapter_discovers_and_parses_nicholas_wealth_csv(monkeypatch):
+    adapter = get_holdings_adapter("fitzgerald")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "FitzgeraldHoldingsAdapter"
+    probe = adapter.probe(symbol="FITZ", name="Fitz-Gerald Must Have Portfolio ETF", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url == "https://nicholasx.com/fitz/"
+    assert adapter.probe(symbol="UNKNOWN", name="", identifiers={}).status == "needs_issuer_route"
+
+    with pytest.raises(ValueError, match="official Nicholas Wealth domain"):
+        await adapter.fetch_latest(symbol="FITZ", source_url="https://example.invalid/holdings.csv")
+
+    holdings_url = "https://nicholasx.com/?twm_download=holdings&ticker=FITZ&nonce=testnonce"
+    page_text = (
+        "<h1>FITZ - XFUNDS by Nicholas Wealth</h1>"
+        '<script>var holdingsUrl = "https:\\/\\/nicholasx.com\\/?twm_download=holdings'
+        '\\u0026ticker=FITZ\\u0026nonce=testnonce";</script>'
+    )
+    csv_text = "\n".join(
+        [
+            "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets",
+            *(
+                f"09/02/2026,FITZ,TKR{index},037833100,Security {index},10,100,1000,{index}%,10000"
+                for index in range(1, 11)
+            ),
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page_text, content_type="text/html", url="https://nicholasx.com/fitz/"),
+        FakeResponse(text=csv_text, url=holdings_url),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="FITZ")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        "https://nicholasx.com/fitz/",
+        holdings_url,
+    ]
+    assert len(result.rows) == 10
+    assert result.rows[0].symbol == "TKR1"
+    assert result.rows[0].weight == Decimal("0.01")
+    assert result.legal_metadata["source_provider"] == "nicholas_wealth"
+    assert result.legal_metadata["publisher"] == "nicholas_wealth"
+    assert result.legal_metadata["parent_issuer"] == "nicholas_wealth"
+    assert result.legal_metadata["route_resolution"] == (
+        "nicholas_wealth_product_page_declared_tidal_daily_holdings_csv"
+    )
+    assert result.legal_metadata["snapshot_provenance"] == "fitzgerald_native_current_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+
+    option_rows, _ = adapter._parse_holdings_csv(
+        "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings\n"
+        "09/02/2026,FIZY,LMT   260904P00562500,LMT   260904P00562500,LMT US 09/04/26 P562.5,-6,20.1,-12060,-0.12%\n",
+        symbol="FIZY",
+    )
+    assert option_rows[0].symbol is None
+    assert option_rows[0].holding_type == "derivative"
+
+
+@pytest.mark.asyncio
 async def test_beehive_adapter_fetches_official_declared_daily_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("beehive")
     assert adapter is not None
@@ -21598,6 +21660,7 @@ def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audit
         "castellan",
         "even_herd",
         "everence",
+        "fitzgerald",
     }
 
     assert expected
@@ -21627,6 +21690,7 @@ def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audit
     assert "castellan" not in FALLBACK_ISSUER_AUDITS
     assert "even_herd" not in FALLBACK_ISSUER_AUDITS
     assert "everence" not in FALLBACK_ISSUER_AUDITS
+    assert "fitzgerald" not in FALLBACK_ISSUER_AUDITS
     assert ISSUER_ADAPTER_CONFIGS["bufferlabs"].live_tested_default_route is True
     assert type(get_holdings_adapter("bufferlabs")).__name__ == "BufferLabsHoldingsAdapter"
     assert ISSUER_ADAPTER_CONFIGS["bushido"].live_tested_default_route is True
@@ -21639,6 +21703,8 @@ def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audit
     assert type(get_holdings_adapter("even_herd")).__name__ == "EvenHerdHoldingsAdapter"
     assert ISSUER_ADAPTER_CONFIGS["everence"].live_tested_default_route is True
     assert type(get_holdings_adapter("everence")).__name__ == "EverenceHoldingsAdapter"
+    assert ISSUER_ADAPTER_CONFIGS["fitzgerald"].live_tested_default_route is True
+    assert type(get_holdings_adapter("fitzgerald")).__name__ == "FitzgeraldHoldingsAdapter"
 
 
 def test_stockanalysis_provider_alias_dispositions_resolve_existing_adapters():
@@ -25545,8 +25611,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 376
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 120
+    assert ledger["current_native_count"] == 377
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 119
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -25573,6 +25639,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "even_herd",
         "everence",
         "falconx",
+        "fitzgerald",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))
