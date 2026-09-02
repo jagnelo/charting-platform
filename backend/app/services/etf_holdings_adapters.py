@@ -23618,7 +23618,9 @@ class FrameworkDigitalAdvisorsHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 else None
             )
             if not isinstance(product_information, dict):
-                raise ValueError("Framework/GSR details response omitted product identity metadata.")
+                raise ValueError(
+                    "Framework/GSR details response omitted product identity metadata."
+                )
             if (_clean(product_information.get("fundTicker")) or "").upper() != normalized_symbol:
                 raise ValueError(
                     "Framework/GSR details response did not match requested ETF "
@@ -23665,9 +23667,7 @@ class FrameworkDigitalAdvisorsHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "refresh_frequency": "daily_issuer_api",
                 "publisher": "gsr_etps",
                 "parent_issuer": "framework_digital_advisors",
-                "issuer_relationship": (
-                    "Framework Digital Advisors adviser / GSR ETFs publisher"
-                ),
+                "issuer_relationship": ("Framework Digital Advisors adviser / GSR ETFs publisher"),
                 "terms_note": self.config.terms_note,
             },
         )
@@ -23776,9 +23776,7 @@ class FreedomHoldingsAdapter(IssuerCsvHoldingsAdapter):
         del issuer_product_id, identifiers
         normalized_symbol = symbol.strip().upper()
         if normalized_symbol != self.SUPPORTED_SYMBOL:
-            raise ValueError(
-                "Freedom ETFs' verified issuer route currently supports FRDM only."
-            )
+            raise ValueError("Freedom ETFs' verified issuer route currently supports FRDM only.")
         if source_url and source_url.rstrip("/") != self.PRODUCT_PAGE_URL.rstrip("/"):
             raise ValueError("Freedom holdings must use the verified FRDM product page.")
 

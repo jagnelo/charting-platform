@@ -2383,9 +2383,7 @@ async def test_live_framework_gsr_route_covers_current_beso_holdings():
     assert metadata["issuer_relationship"] == (
         "Framework Digital Advisors adviser / GSR ETFs publisher"
     )
-    assert metadata["route_resolution"] == (
-        "framework_gsr_public_product_declared_holdings_api"
-    )
+    assert metadata["route_resolution"] == ("framework_gsr_public_product_declared_holdings_api")
     assert metadata["snapshot_provenance"] == "framework_gsr_native_current_holdings_api"
     assert metadata["composition_date"]
     assert any(row.row_type == "cash" for row in result.rows)
@@ -2405,9 +2403,7 @@ async def test_live_freedom_product_page_covers_current_frdm_holdings():
     assert metadata["source_provider"] == "freedom_etfs"
     assert metadata["publisher"] == "freedom_etfs"
     assert metadata["parent_issuer"] == "freedom"
-    assert metadata["route_resolution"] == (
-        "freedom_product_page_embedded_complete_holdings_table"
-    )
+    assert metadata["route_resolution"] == ("freedom_product_page_embedded_complete_holdings_table")
     assert metadata["snapshot_provenance"] == "freedom_native_current_holdings_table"
     assert metadata["composition_date"]
     assert any(row.row_type == "cash" for row in result.rows)

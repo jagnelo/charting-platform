@@ -18884,9 +18884,7 @@ async def test_freedom_adapter_fetches_complete_frdm_product_page_holdings(monke
     assert result.legal_metadata["route_resolution"] == (
         "freedom_product_page_embedded_complete_holdings_table"
     )
-    assert result.legal_metadata["snapshot_provenance"] == (
-        "freedom_native_current_holdings_table"
-    )
+    assert result.legal_metadata["snapshot_provenance"] == ("freedom_native_current_holdings_table")
     assert result.legal_metadata["composition_date"] == "2026-09-02"
     assert result.legal_metadata["parent_issuer"] == "freedom"
 
