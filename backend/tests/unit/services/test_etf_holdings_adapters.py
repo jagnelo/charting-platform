@@ -14294,6 +14294,70 @@ async def test_capforce_adapter_parses_complete_current_holdings_tables(monkeypa
 
 
 @pytest.mark.asyncio
+async def test_castellan_adapter_parses_complete_current_holdings_tables(monkeypatch):
+    adapter = get_holdings_adapter("castellan")
+    assert adapter is not None
+    assert type(adapter).__name__ == "CastellanHoldingsAdapter"
+    assert "castellan" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["castellan"].live_tested_default_route is True
+    assert adapter.probe(symbol="CTEF", name="Castellan Targeted Equity ETF", identifiers={}).status == (
+        "ready"
+    )
+    assert adapter.probe(symbol="CTIF", name="Castellan Targeted Income ETF", identifiers={}).status == (
+        "ready"
+    )
+    assert adapter.probe(symbol="UNKNOWN", name="Unknown ETF", identifiers={}).status == (
+        "needs_issuer_route"
+    )
+
+    page_template = """
+    <h1>{identity}</h1><h2>Fund Holdings</h2>
+    <table>
+      <tr><th>Ticker</th><th>Name</th><th>CUSIP</th><th>Shares</th><th>Price</th>
+          <th>Market Value ($mm)</th><th>% of Net Assets</th><th>EFFECTIVE_DATE</th></tr>
+      <tr><td>AMG</td><td>Affiliated Managers Group Inc</td><td>008252108</td>
+          <td>76,472</td><td>360.75</td><td>27.59</td><td>4.32</td><td>09/02/2026</td></tr>
+      <tr><td>FGXXX</td><td>First American Government Obligations Fund 12/01/2031</td>
+          <td>31846V336</td><td>26,925,570</td><td>100.00</td><td>26.93</td><td>4.22</td><td>09/02/2026</td></tr>
+      <tr><td>Cash&amp;Other</td><td>Cash &amp; Other</td><td></td><td>308,629</td>
+          <td>1.00</td><td>0.31</td><td>0.05</td><td>09/02/2026</td></tr>
+    </table>
+    """
+    for symbol, page_url, identity in (
+        ("CTEF", "https://castellanetf.com/ctef/", "Castellan Targeted Equity ETF (CTEF)"),
+        ("CTIF", "https://castellanetf.com/ctif/", "Castellan Targeted Income ETF (CTIF)"),
+    ):
+        FakeAsyncClient.requested = []
+        FakeAsyncClient.queue = [
+            FakeResponse(
+                text=page_template.format(identity=identity),
+                content_type="text/html",
+                url=page_url,
+            )
+        ]
+        monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+        result = await adapter.fetch_latest(symbol=symbol)
+
+        assert FakeAsyncClient.requested[0][0] == page_url
+        assert len(result.rows) == 3
+        assert result.rows[0].symbol == "AMG"
+        assert result.rows[0].weight == Decimal("0.0432")
+        assert result.rows[1].symbol is None
+        assert result.rows[1].holding_type == "cash"
+        assert result.rows[2].symbol is None
+        assert result.rows[2].row_type == "cash"
+        assert result.legal_metadata["source_provider"] == "castellan"
+        assert result.legal_metadata["route_resolution"] == (
+            "castellan_public_complete_current_holdings_table"
+        )
+        assert result.legal_metadata["product_page_url"] == page_url
+        assert result.legal_metadata["composition_date"] == "2026-09-02"
+
+    with pytest.raises(ValueError, match="matching verified official product page"):
+        await adapter.fetch_latest(symbol="CTEF", source_url="https://example.invalid/holdings")
+
+
+@pytest.mark.asyncio
 async def test_madison_adapter_filters_account_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("madison")
     assert adapter is not None
@@ -20474,6 +20538,22 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
             "sec_cik": "0002104659",
         },
     }
+    assert known_etf_route_metadata("CTEF") == {
+        "issuer": "Castellan",
+        "provider_aliases": {
+            "holdings_adapter": "castellan",
+            "issuer_product_url": "https://castellanetf.com/ctef/",
+            "sec_cik": "0001592900",
+        },
+    }
+    assert known_etf_route_metadata("CTIF") == {
+        "issuer": "Castellan",
+        "provider_aliases": {
+            "holdings_adapter": "castellan",
+            "issuer_product_url": "https://castellanetf.com/ctif/",
+            "sec_cik": "0001592900",
+        },
+    }
     invesco = holdings_adapter_catalog()
     invesco_entry = next(item for item in invesco if item["adapter_key"] == "invesco")
     assert invesco_entry["source_access"] == "issuer_public_json_catalog_cusip"
@@ -21139,6 +21219,7 @@ def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audit
         "bufferlabs",
         "bushido",
         "capforce",
+        "castellan",
     }
 
     assert expected
@@ -21165,12 +21246,15 @@ def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audit
     assert "bufferlabs" not in FALLBACK_ISSUER_AUDITS
     assert "bushido" not in FALLBACK_ISSUER_AUDITS
     assert "capforce" not in FALLBACK_ISSUER_AUDITS
+    assert "castellan" not in FALLBACK_ISSUER_AUDITS
     assert ISSUER_ADAPTER_CONFIGS["bufferlabs"].live_tested_default_route is True
     assert type(get_holdings_adapter("bufferlabs")).__name__ == "BufferLabsHoldingsAdapter"
     assert ISSUER_ADAPTER_CONFIGS["bushido"].live_tested_default_route is True
     assert type(get_holdings_adapter("bushido")).__name__ == "BushidoHoldingsAdapter"
     assert ISSUER_ADAPTER_CONFIGS["capforce"].live_tested_default_route is True
     assert type(get_holdings_adapter("capforce")).__name__ == "CapForceHoldingsAdapter"
+    assert ISSUER_ADAPTER_CONFIGS["castellan"].live_tested_default_route is True
+    assert type(get_holdings_adapter("castellan")).__name__ == "CastellanHoldingsAdapter"
 
 
 def test_stockanalysis_provider_alias_dispositions_resolve_existing_adapters():
@@ -25039,8 +25123,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 368
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 128
+    assert ledger["current_native_count"] == 369
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 127
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -25059,6 +25143,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "bufferlabs",
         "bushido",
         "capforce",
+        "castellan",
         "brookstone",
         "guggenheim",
     }

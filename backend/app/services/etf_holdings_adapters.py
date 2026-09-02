@@ -3307,6 +3307,22 @@ KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
             "sec_cik": "0002104659",
         },
     },
+    "CTEF": {
+        "issuer": "Castellan",
+        "provider_aliases": {
+            "holdings_adapter": "castellan",
+            "issuer_product_url": "https://castellanetf.com/ctef/",
+            "sec_cik": "0001592900",
+        },
+    },
+    "CTIF": {
+        "issuer": "Castellan",
+        "provider_aliases": {
+            "holdings_adapter": "castellan",
+            "issuer_product_url": "https://castellanetf.com/ctif/",
+            "sec_cik": "0001592900",
+        },
+    },
     "SMRI": {
         "issuer": "Bushido Capital",
         "provider_aliases": {
@@ -62874,6 +62890,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="CapForce publishes complete current FFTY and BOUT holdings tables on its public product pages.",
     ),
+    "castellan": IssuerCsvAdapterConfig(
+        adapter_key="castellan",
+        source_provider="castellan",
+        source_access="issuer_public_product_page_complete_current_holdings_table",
+        product_page_templates=(
+            "https://castellanetf.com/ctef/",
+            "https://castellanetf.com/ctif/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Castellan publishes complete current CTEF and CTIF holdings tables on its public product pages.",
+    ),
     "burney": IssuerCsvAdapterConfig(
         adapter_key="burney",
         source_provider="burney",
@@ -64323,7 +64350,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "avos",
         "azimut",
         "baillie_gifford",
-        "castellan",
         "conductor_fund",
         "credit_suisse",
         "cresalta",
@@ -65870,6 +65896,10 @@ class CastellanReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
 class BushidoHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Bushido's complete current SMRI/RNIN holdings tables."""
 
+    PROVIDER_DISPLAY_NAME = "Bushido"
+    SOURCE_TAG = "bushido"
+    ROUTE_RESOLUTION = "bushido_public_complete_current_holdings_table"
+    SNAPSHOT_PROVENANCE = "bushido_native_holdings_table"
     PRODUCT_PAGE_URLS = {
         "SMRI": "https://bushidoetf.com/smri/",
         "RNIN": "https://bushidoetf.com/rnin/",
@@ -65890,7 +65920,7 @@ class BushidoHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 confidence=Decimal("0.9600"),
                 status="ready",
                 reason=(
-                    "Bushido publishes the complete current SMRI/RNIN holdings table "
+                    f"{self.PROVIDER_DISPLAY_NAME} publishes the complete current SMRI/RNIN holdings table "
                     "on the matching official product page."
                 ),
                 source_url=source_url,
@@ -65901,7 +65931,10 @@ class BushidoHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 adapter_key=self.adapter_key,
                 confidence=Decimal("0.7800"),
                 status="ready",
-                reason="SEC filing fallback is available when no Bushido product route matches the symbol.",
+                reason=(
+                    f"SEC filing fallback is available when no {self.PROVIDER_DISPLAY_NAME} "
+                    "product route matches the symbol."
+                ),
                 source_url=f"https://data.sec.gov/submissions/CIK{sec_cik.zfill(10)}.json",
                 issuer_product_id=normalized_symbol or None,
             )
@@ -65909,7 +65942,7 @@ class BushidoHoldingsAdapter(IssuerCsvHoldingsAdapter):
             adapter_key=self.adapter_key,
             confidence=Decimal("0.3000"),
             status="needs_issuer_route",
-            reason=f"No verified Bushido native holdings route is configured for {normalized_symbol}.",
+            reason=f"No verified {self.PROVIDER_DISPLAY_NAME} native holdings route is configured for {normalized_symbol}.",
             issuer_product_id=normalized_symbol or None,
         )
 
@@ -65926,10 +65959,12 @@ class BushidoHoldingsAdapter(IssuerCsvHoldingsAdapter):
         resolved_source_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
         if not resolved_source_url:
             raise ValueError(
-                f"No verified Bushido current-holdings route is configured for {normalized_symbol or 'an empty symbol'}."
+                f"No verified {self.PROVIDER_DISPLAY_NAME} current-holdings route is configured for {normalized_symbol or 'an empty symbol'}."
             )
         if source_url and source_url.rstrip("/") != resolved_source_url.rstrip("/"):
-            raise ValueError("Bushido holdings must use the matching verified official product page.")
+            raise ValueError(
+                f"{self.PROVIDER_DISPLAY_NAME} holdings must use the matching verified official product page."
+            )
 
         headers = _issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*")
         try:
@@ -65945,7 +65980,7 @@ class BushidoHoldingsAdapter(IssuerCsvHoldingsAdapter):
         except httpx.HTTPStatusError as exc:
             if exc.response.status_code != 403:
                 raise
-            # Bushido's WAF may reject httpx's TLS fingerprint while serving the
+            # The issuer's WAF may reject httpx's TLS fingerprint while serving the
             # same public page to requests. Keep this bounded to the verified
             # product URL; it is transport resilience, not a second data source.
             response = await asyncio.to_thread(
@@ -65961,11 +65996,11 @@ class BushidoHoldingsAdapter(IssuerCsvHoldingsAdapter):
         expected_identity = self.EXPECTED_IDENTITIES[normalized_symbol]
         if not re.search(re.escape(expected_identity), page_text, re.IGNORECASE):
             raise ValueError(
-                f"Bushido product page identity did not match {normalized_symbol}."
+                f"{self.PROVIDER_DISPLAY_NAME} product page identity did not match {normalized_symbol}."
             )
         if normalized_symbol not in page_text.upper() or "FUND HOLDINGS" not in page_text.upper():
             raise ValueError(
-                f"Bushido product page did not expose {normalized_symbol}'s complete holdings table."
+                f"{self.PROVIDER_DISPLAY_NAME} product page did not expose {normalized_symbol}'s complete holdings table."
             )
 
         rows = parse_html_holdings_table_by_headers(
@@ -65982,7 +66017,7 @@ class BushidoHoldingsAdapter(IssuerCsvHoldingsAdapter):
         )
         if not rows:
             raise ValueError(
-                f"Bushido product page did not contain complete holdings rows for {normalized_symbol}."
+                f"{self.PROVIDER_DISPLAY_NAME} product page did not contain complete holdings rows for {normalized_symbol}."
             )
 
         composition_date = self._composition_date(rows)
@@ -66007,7 +66042,7 @@ class BushidoHoldingsAdapter(IssuerCsvHoldingsAdapter):
             )
             row.extra_data = {
                 **row.extra_data,
-                "source": "bushido_public_product_page_holdings_table",
+                "source": f"{self.SOURCE_TAG}_public_product_page_holdings_table",
             }
 
         return HoldingsFetchResult(
@@ -66021,13 +66056,13 @@ class BushidoHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "source_provider": self.source_provider,
                 "adapter_key": self.adapter_key,
                 "source_format": "html_table",
-                "route_resolution": "bushido_public_complete_current_holdings_table",
+                "route_resolution": self.ROUTE_RESOLUTION,
                 "product_page_url": resolved_source_url,
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
                 "terms_note": self.config.terms_note,
                 "source_quality": "issuer_reported_current_holdings",
-                "snapshot_provenance": "bushido_native_holdings_table",
+                "snapshot_provenance": self.SNAPSHOT_PROVENANCE,
             },
         )
 
@@ -66055,6 +66090,23 @@ class BushidoHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if " ETF" in text or "FUND" in text or "TRUST" in text:
             return "security", "fund"
         return "security", "equity"
+
+
+class CastellanHoldingsAdapter(BushidoHoldingsAdapter):
+    """Fetch Castellan's complete current CTEF/CTIF holdings tables."""
+
+    PROVIDER_DISPLAY_NAME = "Castellan"
+    SOURCE_TAG = "castellan"
+    ROUTE_RESOLUTION = "castellan_public_complete_current_holdings_table"
+    SNAPSHOT_PROVENANCE = "castellan_native_holdings_table"
+    PRODUCT_PAGE_URLS = {
+        "CTEF": "https://castellanetf.com/ctef/",
+        "CTIF": "https://castellanetf.com/ctif/",
+    }
+    EXPECTED_IDENTITIES = {
+        "CTEF": "Castellan Targeted Equity ETF (CTEF)",
+        "CTIF": "Castellan Targeted Income ETF (CTIF)",
+    }
 
 
 class OpusCapitalManagementReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -67015,7 +67067,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "bushido": BushidoHoldingsAdapter,
         "calvert": CalvertHoldingsAdapter,
         "capforce": CapForceHoldingsAdapter,
-        "castellan": CastellanReconciledFallbackHoldingsAdapter,
+        "castellan": CastellanHoldingsAdapter,
         "columbia_threadneedle": ColumbiaThreadneedleHoldingsAdapter,
         "conductor_fund": ConductorFundReconciledFallbackHoldingsAdapter,
         "congress": CongressHoldingsAdapter,
