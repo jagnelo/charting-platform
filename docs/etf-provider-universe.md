@@ -28,8 +28,8 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `370`
-- Audited fallback-only providers: `126`
+- Native/live-backed providers: `371`
+- Audited fallback-only providers: `125`
 
 The current checkpoint promotes `guggenheim` through its public issuer-hosted
 ETF holdings table, reconciles `ars` to the existing ARS Investment Partners
@@ -44,18 +44,18 @@ complete current holdings table, and Bushido's SMRI/RNIN product-page complete
 current holdings tables, CapForce's FFTY/BOUT product-page complete current
 holdings tables, and Castellan's CTEF/CTIF product-page complete current
 holdings tables, and Conductor's CGV product-page-declared complete current
-holdings CSV.
+holdings CSV, and CresAlta's CVGD/CVSM full-holdings tables.
 The historical starting snapshot for this
 workstream was 356 native and 140 fallback; the provider-audit ledger retains
-that baseline record while tracking the current 370/126 split.
+that baseline record while tracking the current 371/125 split.
 
 The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
 `FALLBACK_ISSUER_AUDITS` at the current ETF-branch implementation checkpoint
-`fd07b17f`.
+`9cc5be81`.
 The fallback audit statuses are:
 
 - `issuer_access_blocked`: `8`
-- `needs_first_party_route_discovery`: `109`
+- `needs_first_party_route_discovery`: `108`
 - `non_executable_public_source`: `3`
 - `provider_not_a_portfolio_publisher`: `6`
 
@@ -96,6 +96,8 @@ official FFTY and BOUT product pages.
 official CTEF and CTIF product pages.
 `conductor_fund` is native-promoted through its official CGV product page's
 declared complete current holdings CSV.
+`cresalta` is native-promoted through its official CVGD and CVSM full-holdings
+pages, each exposing a complete dated holdings table.
 `credit_suisse` remains fallback-only with an inactive/successor disposition:
 UBS's official acquisition and fund-migration notices show the former issuer
 identity is being absorbed into UBS, with no current independent U.S. ETF
@@ -593,11 +595,11 @@ Added adapter keys:
 The StockAnalysis table still contains unresolved names after the arithmetic
 gap closes. Those rows require alias, product-line, inactive, or source-taxonomy
 disposition before they should affect registry accounting. BufferLABS, Bushido,
-CapForce, Castellan, and Conductor are the exceptions in this batch: their official product pages now
+CapForce, Castellan, Conductor, and CresAlta are the exceptions in this batch: their official product pages now
 provide complete current holdings tables and are tracked as native routes in
 the current split. Bushido covers SMRI and RNIN, CapForce covers FFTY and BOUT,
-Castellan covers CTEF and CTIF, and Conductor covers CGV through its declared
-CSV; each route has dated current evidence.
+Castellan covers CTEF and CTIF, Conductor covers CGV through its declared
+CSV, and CresAlta covers CVGD and CVSM; each route has dated current evidence.
 
 ## Implementation Rule
 

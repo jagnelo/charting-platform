@@ -5,9 +5,9 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 370
-current_fallback_count: 126
-generated_at: 2026-09-02T20:40:00Z
+current_native_count: 371
+current_fallback_count: 125
+generated_at: 2026-09-02T19:05:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -1389,35 +1389,49 @@ providers:
     display_name: cresalta
     queue_rank: 34
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-02
+    source_access_declared: issuer_public_product_page_complete_current_holdings_table
+    representative_symbols:
+      - CVGD
+      - CVSM
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    source_freshness: daily
+    first_party_domains:
+      - cresalta.com
+    candidate_routes:
+      - https://cresalta.com/strategies/cvgd/
+      - https://cresalta.com/strategies/cvsm/
+      - https://cresalta.com/full-holdings/?ticker=cvgd
+      - https://cresalta.com/full-holdings/?ticker=cvsm
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_cresalta_adapter_parses_complete_current_holdings_table
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows[cresalta-CVGD-None-identifiers172-20]
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.cresalta"
       - "runtime:ISSUER_ADAPTER_CONFIGS.cresalta"
+      - "web:cresalta-cvgd-cvsm-holdings-2026-09-02"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.cresalta"
-    disposition_reason: "cresalta: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate cresalta first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
-    implementation_sha: null
-    validation_refs: []
+      - date: 2026-09-02
+        source: "https://cresalta.com/full-holdings/?ticker=cvgd and https://cresalta.com/full-holdings/?ticker=cvsm"
+        result: "CresAlta's official full-holdings pages expose complete server-rendered Name/CUSIP/Shares/Par/Weight/Market Value tables dated September 2, 2026; the bounded live fetches returned 45 CVGD rows and 47 CVSM rows, including MSILF Government Portfolio classified as cash."
+        evidence_ref: "web:cresalta-cvgd-cvsm-holdings-2026-09-02"
+    disposition_reason: "cresalta: CresAlta's official CVGD and CVSM full-holdings pages publish complete current tables dated 2026-09-02. The provider-specific adapter restricts each symbol to its verified page, validates fund identity and table schema/date, parses all rows by CUSIP, classifies government-portfolio cash, and has deterministic plus opt-in live coverage."
+    next_action: "cresalta: Monitor the CVGD and CVSM full-holdings pages and retain native status while their complete dated tables remain executable and identity-valid; add any future CresAlta ETF only after equivalent route, parser, and live evidence."
+    implementation_sha: 9cc5be81a1de6f1d2458d68cb1057c33a88056fe
+    validation_refs:
+      - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_cresalta_adapter_parses_complete_current_holdings_table"
+      - "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows[cresalta-CVGD-None-identifiers172-20]"
   - adapter_key: desjardins
     display_name: desjardins
     queue_rank: 35
