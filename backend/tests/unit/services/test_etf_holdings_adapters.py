@@ -3690,6 +3690,60 @@ async def test_praxis_adapter_fetches_its_verified_symbol_scoped_daily_csv(monke
 
 
 @pytest.mark.asyncio
+async def test_everence_adapter_reuses_praxis_routes_with_parent_provenance(monkeypatch):
+    adapter = get_holdings_adapter("everence")
+    assert adapter is not None
+    assert type(adapter).__name__ == "EverenceHoldingsAdapter"
+    assert "everence" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["everence"].live_tested_default_route is True
+
+    for symbol in ("PRXG", "PRXV", "PRXI"):
+        probe = adapter.probe(symbol=symbol, name="", identifiers={})
+        assert probe.status == "ready"
+        assert probe.source_url == adapter._PRODUCT_PAGE_URLS[symbol]
+
+    unsupported = adapter.probe(symbol="OTHER", name="", identifiers={})
+    assert unsupported.status == "needs_issuer_route"
+
+    holdings_url = "https://azr1webprodcdnst.blob.core.windows.net/praxisetf/PRXI_Holdings.csv"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,MoneyMarketFlag",
+                    "09/02/2026,PRXI,ASML NA,B929F46,ASML Holding NV,97,1435.4,161454.83,3.14%,",
+                    "09/02/2026,PRXI,FGXXX,31846V336,First American Government Obligations Fund,101588.56,100,101588.56,1.98%,Y",
+                    "09/02/2026,OTHER,MSFT,594918104,Wrong fund,1,1,1,100%,",
+                ]
+            ),
+            url=holdings_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="PRXI")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [holdings_url]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "ASML"
+    assert result.rows[0].exchange == "NA"
+    assert result.rows[0].sedol == "B929F46"
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].symbol is None
+    assert result.rows[0].source_row_id == "everence-PRXI-1"
+    assert result.legal_metadata["source_provider"] == "praxis_investment_management"
+    assert result.legal_metadata["adapter_key"] == "everence"
+    assert result.legal_metadata["snapshot_provenance"] == (
+        "praxis_everence_native_daily_holdings_csv"
+    )
+    assert result.legal_metadata["route_resolution"] == (
+        "everence_praxis_product_page_declared_holdings_csv"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+
+
+@pytest.mark.asyncio
 async def test_baird_adapter_filters_strategas_csv_and_preserves_currency_rows(monkeypatch):
     adapter = get_holdings_adapter("baird")
     assert adapter is not None
@@ -21145,7 +21199,7 @@ def test_etfdb_issuer_league_reconciliation_batch_is_registered_and_audited():
 
 
 def test_etfdb_issuer_league_continuation_batch_is_registered_and_audited():
-    expected = set(ETFDB_ISSUER_LEAGUE_CONTINUATION_ISSUER_HINTS)
+    expected = set(ETFDB_ISSUER_LEAGUE_CONTINUATION_ISSUER_HINTS) - {"everence"}
 
     assert expected
     assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
@@ -21470,6 +21524,7 @@ def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audit
         "capforce",
         "castellan",
         "even_herd",
+        "everence",
     }
 
     assert expected
@@ -21498,6 +21553,7 @@ def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audit
     assert "capforce" not in FALLBACK_ISSUER_AUDITS
     assert "castellan" not in FALLBACK_ISSUER_AUDITS
     assert "even_herd" not in FALLBACK_ISSUER_AUDITS
+    assert "everence" not in FALLBACK_ISSUER_AUDITS
     assert ISSUER_ADAPTER_CONFIGS["bufferlabs"].live_tested_default_route is True
     assert type(get_holdings_adapter("bufferlabs")).__name__ == "BufferLabsHoldingsAdapter"
     assert ISSUER_ADAPTER_CONFIGS["bushido"].live_tested_default_route is True
@@ -21508,6 +21564,8 @@ def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audit
     assert type(get_holdings_adapter("castellan")).__name__ == "CastellanHoldingsAdapter"
     assert ISSUER_ADAPTER_CONFIGS["even_herd"].live_tested_default_route is True
     assert type(get_holdings_adapter("even_herd")).__name__ == "EvenHerdHoldingsAdapter"
+    assert ISSUER_ADAPTER_CONFIGS["everence"].live_tested_default_route is True
+    assert type(get_holdings_adapter("everence")).__name__ == "EverenceHoldingsAdapter"
 
 
 def test_stockanalysis_provider_alias_dispositions_resolve_existing_adapters():
@@ -25414,8 +25472,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 374
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 122
+    assert ledger["current_native_count"] == 375
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 121
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -25440,6 +25498,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "elm",
         "esoterica",
         "even_herd",
+        "everence",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))

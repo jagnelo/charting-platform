@@ -29933,6 +29933,7 @@ class PraxisHoldingsAdapter(IssuerCsvHoldingsAdapter):
             "Weightings",
         }
     )
+    SOURCE_ROW_PREFIX = "praxis"
 
     def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
         normalized_symbol = symbol.strip().upper()
@@ -30026,21 +30027,27 @@ class PraxisHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 name=name,
                 money_market=_clean(raw.get("MoneyMarketFlag")),
             )
-            parsed_symbol = cls._tradable_symbol(source_ticker) if row_type == "security" else None
+            parsed_symbol, exchange = (
+                cls._split_tradable_symbol(source_ticker)
+                if row_type == "security"
+                else (None, None)
+            )
             if not any((parsed_symbol, name, cusip, _clean(raw.get("MarketValue")))):
                 continue
             rows.append(
                 CanonicalHoldingRow(
                     symbol=parsed_symbol,
                     name=name,
-                    cusip=cusip if _looks_like_cusip(cusip) and row_type == "security" else None,
+                    cusip=(cusip if _looks_like_cusip(cusip) and row_type == "security" else None),
+                    sedol=(cusip if _looks_like_sedol(cusip) and row_type == "security" else None),
                     weight=_decimal(raw.get("Weightings")),
                     shares=_decimal(raw.get("Shares")),
                     market_value=_decimal(raw.get("MarketValue")),
                     currency="USD",
+                    exchange=exchange,
                     holding_type=holding_type,
                     row_type=row_type,
-                    source_row_id=f"praxis-{symbol}-{position}",
+                    source_row_id=f"{cls.SOURCE_ROW_PREFIX}-{symbol}-{position}",
                     extra_data={
                         key: value for key, value in raw.items() if _clean(value) is not None
                     },
@@ -30060,11 +30067,24 @@ class PraxisHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
     @staticmethod
     def _tradable_symbol(value: str | None) -> str | None:
+        symbol, _exchange = PraxisHoldingsAdapter._split_tradable_symbol(value)
+        return symbol
+
+    @staticmethod
+    def _split_tradable_symbol(value: str | None) -> tuple[str | None, str | None]:
         candidate = _clean(value)
         if candidate is None:
-            return None
+            return None, None
         normalized = candidate.upper().strip()
-        return normalized if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", normalized) else None
+        match = re.fullmatch(
+            r"(?P<symbol>[A-Z][A-Z0-9./=-]{0,11})\s+(?P<exchange>[A-Z]{2,3})",
+            normalized,
+        )
+        if match:
+            return match.group("symbol"), match.group("exchange")
+        if re.fullmatch(r"[A-Z][A-Z0-9./=-]{0,11}", normalized):
+            return normalized, None
+        return None, None
 
     @staticmethod
     def _classify_holding(
@@ -30081,6 +30101,77 @@ class PraxisHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if " ETF" in text or " FUND" in text or "TRUST" in text:
             return "fund", "security"
         return "equity", "security"
+
+
+class EverenceHoldingsAdapter(PraxisHoldingsAdapter):
+    """Expose Praxis's verified ETF route under the Everence identity.
+
+    Everence is the parent financial-services identity associated with Praxis
+    Investment Management.  The ETF publisher remains Praxis, so this adapter
+    deliberately reuses the same exact, symbol-scoped issuer files while
+    preserving an explicit Everence adapter key and relationship provenance.
+    """
+
+    SNAPSHOT_PROVENANCE = "praxis_everence_native_daily_holdings_csv"
+    SOURCE_ROW_PREFIX = "everence"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self._PRODUCT_PAGE_URLS.get(normalized_symbol)
+        if product_page_url is not None:
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.9500"),
+                status="ready",
+                reason=(
+                    "Praxis Investment Management, an Everence company, publishes this ETF's "
+                    "complete daily holdings CSV through its verified issuer route."
+                ),
+                source_url=product_page_url,
+                issuer_product_id=normalized_symbol,
+            )
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.5000") if has_sec_fallback else Decimal("0.2500"),
+            status="ready" if has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "Everence/Praxis has no verified native route for this symbol; SEC EDGAR "
+                "fallback remains available."
+                if has_sec_fallback
+                else "The verified Everence/Praxis native holdings route currently supports PRXG, PRXV, and PRXI only."
+            ),
+            source_url=None,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        result = await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "source_access": self.config.source_access,
+            "source_provider": self.source_provider,
+            "adapter_key": self.adapter_key,
+            "route_resolution": "everence_praxis_product_page_declared_holdings_csv",
+            "snapshot_provenance": self.SNAPSHOT_PROVENANCE,
+            "issuer_relationship": (
+                "Praxis Investment Management, Inc., a company of Everence Financial"
+            ),
+        }
+        return result
 
 
 class BairdHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -63550,6 +63641,24 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Praxis public daily ETF holdings files may be subject to issuer terms.",
     ),
+    "everence": IssuerCsvAdapterConfig(
+        adapter_key="everence",
+        source_provider="praxis_investment_management",
+        source_access="issuer_product_page_declared_complete_current_holdings_csv",
+        url_templates=(
+            "https://azr1webprodcdnst.blob.core.windows.net/praxisetf/{symbol_upper}_Holdings.csv",
+        ),
+        product_page_templates=(
+            "https://www.praxisinvests.com/products/etfs/prxg-impact-large-cap-growth-etf/holdings",
+            "https://www.praxisinvests.com/products/etfs/prxv-impact-large-cap-value-etf/holdings",
+            "https://www.praxisinvests.com/products/etfs/prxi-impact-international-etf/holdings",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "Praxis Investment Management, an Everence company, publishes complete daily "
+            "ETF holdings CSV files subject to issuer terms."
+        ),
+    ),
     "baird": IssuerCsvAdapterConfig(
         adapter_key="baird",
         source_provider="baird",
@@ -64802,7 +64911,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "elements",
         "emirate_abu_dhabi",
         "etf_managers_group",
-        "everence",
         "falconx",
         "fcf_advisors",
         "formula_folio",
@@ -66201,10 +66309,6 @@ class DvxVenturesReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
 class EmirateAbuDhabiReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """ETFDB issuer-league fallback adapter pending Abu Dhabi route discovery."""
-
-
-class EverenceReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """ETFDB issuer-league fallback adapter pending Everence route discovery."""
 
 
 class FalconXReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -67895,7 +67999,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "etf_managers_group": EtfManagersGroupReconciledFallbackHoldingsAdapter,
         "eurazeo": EurazeoAuditedFallbackHoldingsAdapter,
         "even_herd": EvenHerdHoldingsAdapter,
-        "everence": EverenceReconciledFallbackHoldingsAdapter,
+        "everence": EverenceHoldingsAdapter,
         "fairlead": CaryStreetHoldingsAdapter,
         "falconx": FalconXReconciledFallbackHoldingsAdapter,
         "fcf_advisors": FcfAdvisorsReconciledFallbackHoldingsAdapter,
