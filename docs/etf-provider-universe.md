@@ -28,8 +28,8 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `363`
-- Audited fallback-only providers: `133`
+- Native/live-backed providers: `364`
+- Audited fallback-only providers: `132`
 
 The current checkpoint promotes `guggenheim` through its public issuer-hosted
 ETF holdings table, reconciles `ars` to the existing ARS Investment Partners
@@ -37,18 +37,19 @@ ACEP/AFOS product-page adapter, adds Avory's complete AVRY product-page
 holdings route, reconciles Ballast to the complete MGMT FilePoint feed, adds
 Bancreek's issuer-rendered BCUS/BCIL/BCGS holdings components, and adds
 BeeHive's BEEX product-page-declared daily holdings CSV and Blueprint's TFPN
-product-page-declared daily holdings CSV.
+product-page-declared daily holdings CSV, and Bridgeway's BBLU/BAGX/BRSV/BSVO/BUSM
+product-page complete holdings tables.
 The historical starting snapshot for this
 workstream was 356 native and 140 fallback; the provider-audit ledger retains
-that baseline record while tracking the current 363/133 split.
+that baseline record while tracking the current 364/132 split.
 
 The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
 `FALLBACK_ISSUER_AUDITS` at the current ETF-branch implementation checkpoint
-`ba4b80ea423798a3fef073e5c37286edf6e90edf`.
+`c1caf5554ad5b385506c892adf25f30319e54b7b`.
 The fallback audit statuses are:
 
 - `issuer_access_blocked`: `8`
-- `needs_first_party_route_discovery`: `116`
+- `needs_first_party_route_discovery`: `115`
 - `non_executable_public_source`: `3`
 - `provider_not_a_portfolio_publisher`: `6`
 
@@ -77,6 +78,8 @@ until a complete executable issuer route is proven.
 `azimut` is classified as a non-portfolio publisher because its official
 catalogue contains mutual-fund/UCITS products rather than a U.S. ETF holdings
 route.
+`bridgeway` is native-promoted through complete, dated holdings tables on its
+official BBLU, BAGX, BRSV, BSVO, and BUSM product pages.
 
 Current gap to the broad LSEG promoter target:
 
