@@ -24,6 +24,7 @@
 .PHONY: \
   dev dev-install dev-infra dev-infra-stop dev-backend dev-worker dev-frontend \
   test test-unit test-int test-backend test-fe test-e2e-install test-e2e test-e2e-headed \
+  test-workflow \
   test-stack-up test-stack-down test-platform test-all test-backend-coverage \
   test-uplot-contract \
   test-visual-policy \
@@ -33,8 +34,9 @@
   validate-integration validate-focused-integration branch-validate \
   worktree-create worktree-list worktree-status worktree-overview worktree-close worktree-archive worktree-archive-pre-staging worktree-archive-subsumed worktree-archive-operational-tail worktree-cleanup-report worktree-cleanup-reconcile worktree-cleanup integrate integrate-set staging-bootstrap staging-status promote-staging \
   rpi-preflight rpi-bundle deploy-rpi rpi-status \
-  agent-session-start agent-session-status agent-session-checkpoint agent-session-finish agent-session-takeover \
-  agent-resource-status agent-resource-cleanup agent-resource-retain-volume integration-queue integrate-ready \
+  agent-context agent-session-start agent-session-status agent-session-plan-ready agent-session-goal-state agent-session-progress agent-session-checkpoint agent-session-finish agent-session-takeover agent-docker-ready \
+  agent-resource-status agent-resource-cleanup agent-resource-retain-volume agent-resource-release-volume integration-queue integrate-ready \
+  validation-profile \
   lint lint-backend lint-frontend format \
   migrate migrate-new migrate-down \
   coverage clean ci
@@ -71,6 +73,7 @@ dev-install:
 	@echo "    make dev         # start everything with hot-reload"
 
 dev-infra:
+	@$(MAKE) agent-docker-ready
 	@$(RUNTIME_ENV)
 	@echo "▶  Starting branch-scoped Postgres + Redis..."
 	@echo "   Branch  →  $(DEV_BRANCH_NAME)"
@@ -95,7 +98,7 @@ dev-backend:
 	  --host 0.0.0.0 --port $$DEV_BACKEND_PORT --reload --reload-dir app --log-level $(BACKEND_LOG_LEVEL)
 
 dev-worker:
-	cd backend && $(BACKEND_ENV) uv run watchfiles "arq app.tasks.worker.WorkerSettings" app
+	$(RUNTIME_ENV) cd backend && $(BACKEND_ENV) uv run watchfiles "arq app.tasks.worker.WorkerSettings" app
 
 dev-frontend:
 	$(RUNTIME_ENV) cd frontend && VITE_PORT=$$VITE_PORT VITE_API_PROXY_TARGET=$$VITE_API_PROXY_TARGET npm run dev
@@ -130,13 +133,18 @@ test-unit:
 
 test-int:
 	@echo "▶  Backend integration tests (testcontainers)..."
+	@$(MAKE) agent-docker-ready
 	# Integration-only coverage is intentionally reported but cannot satisfy the
 	# repository-wide threshold by itself. The combined test-backend-coverage
 	# target remains the authoritative 75% unit+integration coverage gate.
-	cd backend && $(BACKEND_ENV) uv run pytest tests/integration \
+	@set -e; \
+	status=0; \
+	trap 'status=$$?; $(MAKE) agent-resource-cleanup || true; exit $$status' EXIT INT TERM; \
+	($(RUNTIME_ENV) cd backend && $(BACKEND_ENV) uv run pytest tests/integration \
+	  --override-ini addopts= \
 	  --cov=app --cov-report=term-missing --cov-report=html:coverage_html \
 	  --cov-fail-under=0 \
-	  --no-header -q
+	  --no-header -q)
 
 test-backend: test-unit test-int
 
@@ -145,16 +153,25 @@ test-backend: test-unit test-int
 # that are intentionally exercised only against PostgreSQL/Redis.
 test-backend-coverage:
 	@echo "▶  Combined backend unit + integration coverage (Docker required)..."
-	cd backend && $(BACKEND_ENV) uv run pytest tests/unit tests/integration \
+	@$(MAKE) agent-docker-ready
+	@set -e; \
+	status=0; \
+	trap 'status=$$?; $(MAKE) agent-resource-cleanup || true; exit $$status' EXIT INT TERM; \
+	($(RUNTIME_ENV) cd backend && $(BACKEND_ENV) uv run pytest tests/unit tests/integration \
+	  --override-ini addopts= \
 	  --cov=app --cov-report=term-missing --cov-report=html:coverage_html \
 	  --cov-report=xml:coverage-combined.xml --cov-fail-under=75 \
-	  --no-header -q
+	  --no-header -q)
 
 test-fe:
 	@echo "▶  Frontend unit tests (Vitest)..."
 	cd frontend && npx vitest run --coverage
 	@$(MAKE) test-uplot-contract
 	@$(MAKE) test-visual-policy
+
+test-workflow:
+	@echo "▶  Workflow helper tests..."
+	$(WORKFLOW_PYTHON) -m pytest tests/workflow -q
 
 test-uplot-contract:
 	@echo "▶  Primary workstation uPlot numerical-renderer contract..."
@@ -206,17 +223,22 @@ test-e2e-headed: test-e2e-install
 
 test-stack-up:
 	@$(RUNTIME_ENV)
+	@$(MAKE) agent-docker-ready
 	@echo "▶  Starting branch-scoped full application stack for browser validation..."
 	@echo "   Branch  →  $(DEV_BRANCH_NAME)"
 	@echo "   Project →  $(STACK_COMPOSE_PROJECT)"
 	@echo "   Fixtures → instruments=$${E2E_SEED_INSTRUMENTS:-true}, market-data=$${E2E_SEED_MARKET_DATA:-false}"
-	$(RUNTIME_ENV) docker buildx inspect $$WORKTREE_BUILDER >/dev/null 2>&1 || $(RUNTIME_ENV) docker buildx create --name $$WORKTREE_BUILDER --use
-	$(RUNTIME_ENV) docker compose -p $$STACK_COMPOSE_PROJECT build --builder $$WORKTREE_BUILDER
+	@set -e; \
+	status=0; \
+	trap 'status=$$?; if test "$$status" -ne 0; then $(MAKE) test-stack-down || true; fi; exit $$status' EXIT INT TERM; \
+	$(RUNTIME_ENV) docker buildx inspect $$WORKTREE_BUILDER >/dev/null 2>&1 || $(RUNTIME_ENV) docker buildx create --name $$WORKTREE_BUILDER --use; \
+	$(RUNTIME_ENV) docker compose -p $$STACK_COMPOSE_PROJECT build --builder $$WORKTREE_BUILDER; \
 	$(RUNTIME_ENV) E2E_SEED_INSTRUMENTS=$${E2E_SEED_INSTRUMENTS:-true} E2E_SEED_MARKET_DATA=$${E2E_SEED_MARKET_DATA:-false} COMPOSE_PROJECT_NAME=$$STACK_COMPOSE_PROJECT POSTGRES_HOST_PORT=$$POSTGRES_HOST_PORT BACKEND_HOST_PORT=$$BACKEND_HOST_PORT FRONTEND_HOST_PORT=$$FRONTEND_HOST_PORT docker compose up -d --no-build --force-recreate --wait
 
 test-stack-down:
 	@echo "▶  Stopping branch-scoped full application stack $(STACK_COMPOSE_PROJECT)..."
 	$(RUNTIME_ENV) COMPOSE_PROJECT_NAME=$$STACK_COMPOSE_PROJECT docker compose down -v
+	@$(MAKE) agent-resource-cleanup
 
 test: test-unit test-int test-fe
 	@echo ""
@@ -225,7 +247,7 @@ test: test-unit test-int test-fe
 test-platform:
 	@echo "▶  Full platform validation (backend + frontend + headless E2E)..."
 	@set -e; \
-	trap '$(MAKE) test-stack-down' EXIT; \
+	trap 'status=$$?; $(MAKE) test-stack-down || true; $(MAKE) agent-resource-cleanup || true; exit $$status' EXIT; \
 	$(MAKE) test; \
 	$(MAKE) test-stack-up; \
 	$(MAKE) test-e2e
@@ -260,14 +282,16 @@ coverage:
 # ── CI ─────────────────────────────────────────────────────────────────────────
 
 ci:
-	cd backend && uv sync --dev
-	cd frontend && npm ci
-	$(MAKE) test
-	cd frontend && npx playwright install --with-deps chromium
-	$(RUNTIME_ENV) docker compose -p $(STACK_COMPOSE_PROJECT) build --builder $$WORKTREE_BUILDER
-	$(RUNTIME_ENV) COMPOSE_PROJECT_NAME=$(STACK_COMPOSE_PROJECT) docker compose up -d --no-build --wait
+	@$(MAKE) agent-docker-ready
+	@set -e; \
+	status=0; \
+	trap 'status=$$?; $(MAKE) test-stack-down || true; $(MAKE) agent-resource-cleanup || true; exit $$status' EXIT INT TERM; \
+	bash scripts/ci-retry.sh -- bash -c 'cd backend && uv sync --frozen --dev'; \
+	bash scripts/ci-retry.sh -- bash -c 'cd frontend && npm ci'; \
+	$(MAKE) test; \
+	bash scripts/ci-retry.sh -- bash -c 'cd frontend && npx playwright install --with-deps chromium'; \
+	$(MAKE) test-stack-up; \
 	$(MAKE) test-e2e
-	COMPOSE_PROJECT_NAME=$(STACK_COMPOSE_PROJECT) docker compose down -v
 
 # ── Cleanup ────────────────────────────────────────────────────────────────────
 
@@ -327,6 +351,10 @@ worktree-cleanup:
 branch-validate:
 	$(WORKFLOW_PYTHON) scripts/validate-workstream.py ops/workstreams
 
+validation-profile:
+	@test -n "$(PATHS)" || (echo "usage: make validation-profile PATHS='path1 path2'" >&2; exit 2)
+	$(WORKFLOW_PYTHON) scripts/validation-profile.py $(PATHS)
+
 integrate:
 	@test -n "$(BRANCH)" || (echo "usage: make integrate BRANCH=feat/name" >&2; exit 2)
 	$(WORKFLOW_PYTHON) scripts/staging.py integrate "$(BRANCH)" $(if $(REMEDIATE_DEGRADED),--remediate,)
@@ -346,11 +374,26 @@ promote-staging:
 	@test -n "$(COMMIT)" -a -n "$(CONFIRM)" || (echo "usage: make promote-staging COMMIT=<full-green-staging-sha> CONFIRM=<same-sha>" >&2; exit 2)
 	$(WORKFLOW_PYTHON) scripts/staging.py promote --commit "$(COMMIT)" --confirm "$(CONFIRM)"
 
+agent-context:
+	$(WORKFLOW_PYTHON) scripts/agent-context.py
+
 agent-session-start:
 	$(WORKFLOW_PYTHON) scripts/agent-session.py start $(if $(BRANCH),--branch "$(BRANCH)",)
 
 agent-session-status:
 	$(WORKFLOW_PYTHON) scripts/agent-session.py status
+
+agent-session-plan-ready:
+	@test -n "$(SESSION_ID)" || (echo "usage: make agent-session-plan-ready SESSION_ID=<session-id>" >&2; exit 2)
+	$(WORKFLOW_PYTHON) scripts/agent-session.py plan-ready --session-id "$(SESSION_ID)"
+
+agent-session-goal-state:
+	@test -n "$(SESSION_ID)" -a -n "$(STATE)" || (echo "usage: make agent-session-goal-state SESSION_ID=<session-id> STATE=active|unavailable [REASON='...']" >&2; exit 2)
+	$(WORKFLOW_PYTHON) scripts/agent-session.py goal-state --session-id "$(SESSION_ID)" --state "$(STATE)" --reason "$(REASON)"
+
+agent-session-progress:
+	@test -n "$(SESSION_ID)" -a -n "$(PHASE)" -a -n "$(NEXT_ACTION)" || (echo "usage: make agent-session-progress SESSION_ID=<session-id> PHASE='<phase>' NEXT_ACTION='<next action>' [COMPLETED=AC1,AC2] [BLOCKER='<blocker>']" >&2; exit 2)
+	$(WORKFLOW_PYTHON) scripts/agent-session.py progress --session-id "$(SESSION_ID)" --completed "$(COMPLETED)" --phase "$(PHASE)" --blocker "$(BLOCKER)" --next-action "$(NEXT_ACTION)"
 
 agent-session-checkpoint:
 	@test -n "$(SESSION_ID)" || (echo "usage: make agent-session-checkpoint SESSION_ID=<session-id>" >&2; exit 2)
@@ -364,6 +407,9 @@ agent-session-takeover:
 	@test -n "$(CONFIRM)" -a -n "$(REQUEST)" || (echo "usage: make agent-session-takeover CONFIRM=<existing-session-id> REQUEST='human authorization'" >&2; exit 2)
 	$(WORKFLOW_PYTHON) scripts/agent-session.py takeover --confirm "$(CONFIRM)" --request "$(REQUEST)"
 
+agent-docker-ready:
+	$(WORKFLOW_PYTHON) scripts/agent-session.py docker-ready
+
 agent-resource-status:
 	$(WORKFLOW_PYTHON) scripts/agent-session.py resources
 
@@ -373,6 +419,10 @@ agent-resource-cleanup:
 agent-resource-retain-volume:
 	@test -n "$(VOLUME)" -a -n "$(REASON)" -a -n "$(NEXT_USE)" -a -n "$(RECREATE)" -a -n "$(REVIEW)" || (echo "usage: make agent-resource-retain-volume VOLUME=<name> REASON='<reason>' NEXT_USE='<next use>' RECREATE='<impact>' REVIEW='<condition>'" >&2; exit 2)
 	$(WORKFLOW_PYTHON) scripts/agent-session.py retain-volume "$(VOLUME)" --reason "$(REASON)" --next-use "$(NEXT_USE)" --recreate "$(RECREATE)" --review "$(REVIEW)"
+
+agent-resource-release-volume:
+	@test -n "$(VOLUME)" -a "$(CONFIRM)" = "$(VOLUME)" || (echo "usage: make agent-resource-release-volume VOLUME=<exact-name> CONFIRM=<same-name>" >&2; exit 2)
+	$(WORKFLOW_PYTHON) scripts/agent-session.py release-volume "$(VOLUME)" --confirm "$(CONFIRM)"
 
 integration-queue:
 	$(WORKFLOW_PYTHON) scripts/integration_queue.py
@@ -411,7 +461,8 @@ validate-focused-integration:
 	@set -e; \
 	stage=git-diff; printf '▶ focused integration gate stage: %s\n' "$$stage"; git diff --check; \
 	stage=workstream; printf '▶ focused integration gate stage: %s\n' "$$stage"; $(MAKE) branch-validate; \
-	stage=workflow-syntax; printf '▶ focused integration gate stage: %s\n' "$$stage"; PYTHONPYCACHEPREFIX=/tmp/charting-platform-pycache $(WORKFLOW_PYTHON) -m py_compile scripts/worktree.py scripts/validate-workstream.py scripts/integrate.py; \
+	stage=workflow-syntax; printf '▶ focused integration gate stage: %s\n' "$$stage"; PYTHONPYCACHEPREFIX=/tmp/charting-platform-pycache $(WORKFLOW_PYTHON) -m py_compile scripts/worktree.py scripts/validate-workstream.py scripts/validation_profile.py scripts/validation-profile.py scripts/agent-session.py scripts/agent-context.py scripts/ci-retry-coordinator.py scripts/integrate.py; \
+	stage=workflow-tests; printf '▶ focused integration gate stage: %s\n' "$$stage"; $(MAKE) test-workflow; \
 	stage=branch-tests; printf '▶ focused integration gate stage: %s\n' "$$stage"; $(MAKE) branch-tests INTEGRATION_BRANCH="$(INTEGRATION_BRANCH)"
 
 rpi-preflight:

@@ -10,6 +10,9 @@ concurrency:
   group: charting-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
 
   # ── Backend tests ─────────────────────────────────────────────────────────────
@@ -36,7 +39,7 @@ jobs:
           cache-dependency-glob: backend/uv.lock
 
       - name: Install dependencies
-        run: cd backend && uv sync --frozen --dev
+        run: bash scripts/ci-retry.sh -- bash -c 'cd backend && uv sync --frozen --dev'
 
       - name: Verify compatibility export
         run: |
@@ -59,6 +62,7 @@ jobs:
         run: |
           cd backend
           ENV_FILE=.env.dev uv run pytest tests/integration \
+            --override-ini addopts= \
             --cov=app --cov-report=xml:coverage-integration.xml \
             --cov-fail-under=0 \
             --no-header -q
@@ -89,7 +93,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        run: cd frontend && npm ci
+        run: bash scripts/ci-retry.sh -- bash -c 'cd frontend && npm ci'
 
       - name: Run Vitest
         run: cd frontend && npx vitest run --coverage
@@ -130,8 +134,8 @@ jobs:
 
       - name: Install locked dependencies
         run: |
-          cd backend && uv sync --frozen --dev
-          cd ../frontend && npm ci
+          bash scripts/ci-retry.sh -- bash -c 'cd backend && uv sync --frozen --dev'
+          bash scripts/ci-retry.sh -- bash -c 'cd frontend && npm ci'
 
       - name: Run tests declared by this branch
         run: make branch-tests INTEGRATION_BRANCH="$GITHUB_REF_NAME"
@@ -156,10 +160,10 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install frontend deps
-        run: cd frontend && npm ci
+        run: bash scripts/ci-retry.sh -- bash -c 'cd frontend && npm ci'
 
       - name: Install Playwright browsers
-        run: cd frontend && npx playwright install --with-deps chromium
+        run: bash scripts/ci-retry.sh -- bash -c 'cd frontend && npx playwright install --with-deps chromium'
 
       - name: Start stack
         # Vars are provided inline — no .env file needed
@@ -238,9 +242,8 @@ jobs:
 
       - name: Install frontend dependencies and browsers
         run: |
-          cd frontend
-          npm ci
-          npx playwright install --with-deps chromium
+          bash scripts/ci-retry.sh -- bash -c 'cd frontend && npm ci'
+          bash scripts/ci-retry.sh -- bash -c 'cd frontend && npx playwright install --with-deps chromium'
 
       - name: Run exhaustive integration gate
         run: make validate-integration

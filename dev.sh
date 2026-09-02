@@ -22,7 +22,8 @@ BACKEND="$ROOT/backend"
 FRONTEND="$ROOT/frontend"
 DEV_STACK_HELPER="$ROOT/scripts/dev-stack.sh"
 RUNTIME_HELPER="$ROOT/scripts/worktree-runtime.py"
-RUNTIME_ENV_FILE="$(python3 "$RUNTIME_HELPER" env-file)"
+WORKFLOW_PYTHON=(uv run --project "$BACKEND" python)
+RUNTIME_ENV_FILE="$("${WORKFLOW_PYTHON[@]}" "$RUNTIME_HELPER" env-file)"
 set -a
 # shellcheck disable=SC1090
 . "$RUNTIME_ENV_FILE"
@@ -57,6 +58,8 @@ check_prerequisites() {
 
 # ── Infrastructure ─────────────────────────────────────────────────────────────
 start_infra() {
+    log "Checking Docker readiness through the repository's managed Python..."
+    "${WORKFLOW_PYTHON[@]}" "$ROOT/scripts/agent-session.py" docker-ready >/dev/null
     log "Starting branch-scoped Postgres + Redis..."
     log "Branch: $DEV_BRANCH_NAME"
     log "Docker project: $DEV_COMPOSE_PROJECT"

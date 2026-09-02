@@ -7,11 +7,17 @@ import argparse
 import fcntl
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
+import urllib.error
+import urllib.parse
+import urllib.request
 from datetime import UTC, datetime
 from pathlib import Path
+
+import yaml
 
 
 def git(*args: str, cwd: Path | None = None, check: bool = True) -> str:
@@ -36,52 +42,103 @@ def slug(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9]+", "-", value).strip("-").lower()
 
 
-def values(path: Path) -> dict[str, str]:
-    result: dict[str, str] = {}
+def values(path: Path) -> dict[str, object]:
     if not path.exists():
-        return result
-    for line in path.read_text().splitlines():
-        match = re.match(r"^([A-Za-z_][A-Za-z0-9_]*):\s*(.*)$", line)
-        if match:
-            result[match.group(1)] = match.group(2).strip().strip("'\"")
-    return result
+        return {}
+    try:
+        result = yaml.safe_load(path.read_text())
+    except yaml.YAMLError:
+        return {}
+    return result if isinstance(result, dict) else {}
 
 
 def exact_ci(branch: str, sha: str) -> tuple[str, str]:
     """Return exact push CI state without treating an API error as green."""
-    if not shutil.which("gh"):
-        return "unknown", "GitHub CLI unavailable"
-    result = subprocess.run(
-        [
-            "gh",
-            "run",
-            "list",
-            "--workflow",
-            "ci.yml",
-            "--branch",
-            branch,
-            "--commit",
-            sha,
-            "--event",
-            "push",
-            "--limit",
-            "10",
-            "--json",
-            "headSha,status,conclusion",
-        ],
-        text=True,
-        capture_output=True,
-    )
-    if result.returncode:
-        return "unknown", result.stderr.strip() or "GitHub CI lookup failed"
-    try:
-        runs = json.loads(result.stdout or "[]")
-    except json.JSONDecodeError:
-        return "unknown", "GitHub CI returned invalid JSON"
-    matching = [item for item in runs if item.get("headSha") == sha]
+    gh_error = ""
+    runs: list[dict[str, object]] = []
+    gh_lookup_succeeded = False
+    if shutil.which("gh"):
+        result = subprocess.run(
+            [
+                "gh",
+                "run",
+                "list",
+                "--workflow",
+                "ci.yml",
+                "--branch",
+                branch,
+                "--commit",
+                sha,
+                "--event",
+                "push",
+                "--limit",
+                "10",
+                "--json",
+                "headSha,headBranch,status,conclusion,runAttempt",
+            ],
+            text=True,
+            capture_output=True,
+        )
+        if result.returncode == 0:
+            try:
+                payload = json.loads(result.stdout or "[]")
+                runs = payload if isinstance(payload, list) else []
+                gh_lookup_succeeded = isinstance(payload, list)
+            except json.JSONDecodeError:
+                gh_error = "GitHub CLI returned invalid JSON"
+        else:
+            gh_error = result.stderr.strip() or "GitHub CLI lookup failed"
+    else:
+        gh_error = "GitHub CLI unavailable"
+    if not runs and not gh_lookup_succeeded:
+        remote = git("remote", "get-url", "origin", check=False)
+        match = re.search(
+            r"(?:github\.com|github-[^/:]+)[:/]([^/]+)/([^/]+?)(?:\.git)?$", remote
+        )
+        if not match:
+            return "unknown", gh_error or "origin is not a GitHub repository"
+        repository = f"{match.group(1)}/{match.group(2)}"
+        query = urllib.parse.urlencode(
+            {"branch": branch, "event": "push", "head_sha": sha, "per_page": 10}
+        )
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "User-Agent": "charting-platform-workflow",
+        }
+        token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        request = urllib.request.Request(
+            f"https://api.github.com/repos/{repository}/actions/runs?{query}",
+            headers=headers,
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=20) as response:
+                payload = json.loads(response.read())
+            runs = [
+                {
+                    "headSha": item.get("head_sha"),
+                    "headBranch": item.get("head_branch"),
+                    "status": item.get("status"),
+                    "conclusion": item.get("conclusion"),
+                    "runAttempt": item.get("run_attempt") or 1,
+                }
+                for item in payload.get("workflow_runs", [])
+            ]
+        except (
+            urllib.error.HTTPError,
+            urllib.error.URLError,
+            json.JSONDecodeError,
+        ) as exc:
+            return "unknown", f"{gh_error}; read-only public API unavailable: {exc}"
+    matching = [
+        item
+        for item in runs
+        if item.get("headSha") == sha and item.get("headBranch", branch) == branch
+    ]
     if not matching:
         return "missing", "no exact push CI run exists"
-    run = matching[0]
+    run = max(matching, key=lambda item: int(item.get("runAttempt") or 1))
     if run.get("status") != "completed":
         return "pending", "exact push CI run is still running"
     return (
@@ -106,6 +163,39 @@ def records() -> list[dict[str, str]]:
     return result
 
 
+def docker_disposition(identifier: str, projects: set[str]) -> tuple[str, str]:
+    if not shutil.which("docker"):
+        return "unknown", "Docker CLI unavailable"
+    result = subprocess.run(
+        ["docker", "ps", "-aq", "--filter", f"label=charting.worktree.id={identifier}"],
+        text=True,
+        capture_output=True,
+    )
+    if result.returncode:
+        return "unknown", result.stderr.strip() or "Docker daemon unavailable"
+    owned = {line for line in result.stdout.splitlines() if line}
+    for project in projects:
+        result = subprocess.run(
+            [
+                "docker",
+                "ps",
+                "-aq",
+                "--filter",
+                f"label=com.docker.compose.project={project}",
+            ],
+            text=True,
+            capture_output=True,
+        )
+        if result.returncode:
+            return "unknown", result.stderr.strip() or "Docker daemon unavailable"
+        owned.update(line for line in result.stdout.splitlines() if line)
+    return (
+        ("clean", "no owned containers")
+        if not owned
+        else ("present", f"{len(owned)} owned container(s)")
+    )
+
+
 def queue() -> list[dict[str, object]]:
     output: list[dict[str, object]] = []
     for record in records():
@@ -121,7 +211,7 @@ def queue() -> list[dict[str, object]]:
         tier = plan.get("validation_tier", "pending")
         if not plan:
             state = "missing-workstream"
-            reason = "create a schema-3 branch-owned workstream"
+            reason = "create a schema-4 branch-owned workstream"
         elif status == "ready_for_integration" and head and head == remote:
             state = "ready"
             reason = "closure authorization and synchronized source are present"
@@ -141,6 +231,14 @@ def queue() -> list[dict[str, object]]:
         )
         worktree_identifier = (
             f"{slug(branch)}-{hashlib.sha256(str(path).encode()).hexdigest()[:10]}"
+        )
+        dirty = bool(git("status", "--porcelain", cwd=path)) if path.exists() else True
+        docker_state, docker_reason = docker_disposition(
+            worktree_identifier,
+            {
+                f"charting-dev-{slug(branch)}-{hashlib.sha256(str(path).encode()).hexdigest()[:8]}",
+                f"charting-stack-{slug(branch)}-{hashlib.sha256(str(path).encode()).hexdigest()[:8]}",
+            },
         )
         claim_path = (
             common_root() / ".ai" / "session-claims" / f"{worktree_identifier}.json"
@@ -177,9 +275,13 @@ def queue() -> list[dict[str, object]]:
                 ]
             except (OSError, json.JSONDecodeError):
                 retained = ["unknown"]
-        if state == "ready" and ci_state != "green":
+        if state == "ready" and (ci_state != "green" or dirty):
             state = "blocked"
-            reason = f"exact branch CI: {ci_reason}"
+            reason = (
+                f"exact branch CI: {ci_reason}"
+                if ci_state != "green"
+                else "source worktree is dirty"
+            )
         elif claim:
             state = "in-progress"
             reason = f"active writer session {claim.get('session_id', 'unknown')}"
@@ -190,6 +292,7 @@ def queue() -> list[dict[str, object]]:
                 "head": head or None,
                 "remote": remote or None,
                 "synchronized": bool(head and head == remote),
+                "dirty": dirty,
                 "status": status,
                 "validation_tier": tier,
                 "state": state,
@@ -199,6 +302,8 @@ def queue() -> list[dict[str, object]]:
                 "ahead_behind_staging": ahead_behind,
                 "active_claim": claim,
                 "retained_docker_resources": retained,
+                "docker_state": docker_state,
+                "docker_reason": docker_reason,
                 "worktree_mtime": datetime.fromtimestamp(
                     path.stat().st_mtime, UTC
                 ).isoformat()
@@ -259,6 +364,10 @@ def integrate_ready() -> int:
         if any(item.get("retained_docker_resources") for item in selected):
             raise SystemExit(
                 "a selected branch retains Docker resources; account for them before integration"
+            )
+        if any(item.get("docker_state") != "clean" for item in selected):
+            raise SystemExit(
+                "every selected branch must have a clean, inspectable Docker disposition"
             )
         if any(item.get("ci_state") != "green" for item in selected):
             raise SystemExit("every selected branch must have exact green branch CI")

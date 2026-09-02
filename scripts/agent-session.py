@@ -14,15 +14,20 @@ import shutil
 import socket
 import subprocess
 import sys
+import time
 import uuid
 import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 PREFIXES = ("feat/", "fix/", "chore/", "docs/", "test/")
 TERMINAL = {"integrated", "closed", "superseded", "blocked"}
 DOCKER_LIMIT_BYTES = 5_000_000_000
+DOCKER_READY_TIMEOUT_SECONDS = 180
+DOCKER_READY_POLL_SECONDS = 3
 
 
 def run(
@@ -38,6 +43,14 @@ def run(
 
 def git(*args: str, cwd: Path | None = None, check: bool = True) -> str:
     return run("git", *args, cwd=cwd, check=check).stdout.strip()
+
+
+def dirty_paths(path: Path) -> list[str]:
+    """Return porcelain paths without the two-column status prefix."""
+    return [
+        line[3:] if len(line) >= 3 else line
+        for line in git("status", "--porcelain", cwd=path).splitlines()
+    ]
 
 
 def root() -> Path:
@@ -69,6 +82,18 @@ def authorized_goal_budget(plan: dict[str, str]) -> int | None:
     return int(match.group(1)) if match else None
 
 
+def make_goal_request(
+    objective: str, plan: dict[str, Any], *, ready: bool = True
+) -> dict[str, Any]:
+    """Build the actual Codex request; metadata stays in durable session state."""
+    request: dict[str, Any] = {"objective": objective}
+    if ready:
+        budget = authorized_goal_budget(plan)
+        if budget is not None:
+            request["token_budget"] = budget
+    return request
+
+
 def worktree_id(path: Path, branch: str) -> str:
     digest = hashlib.sha256(str(path).encode()).hexdigest()[:10]
     return f"{slug(branch)}-{digest}"
@@ -91,16 +116,18 @@ def worktree_records() -> list[dict[str, str]]:
     return records
 
 
-def branch_and_path() -> tuple[str, Path]:
+def branch_and_path(*, allow_protected: bool = False) -> tuple[str, Path]:
     path = root()
     branch = git("branch", "--show-current", cwd=path)
     if not branch:
         raise SystemExit("agent sessions cannot start from detached HEAD")
-    if branch in {"master", "staging"}:
+    if branch in {"master", "staging"} and not allow_protected:
         raise SystemExit(
             f"agent implementation sessions cannot run on protected branch {branch}"
         )
-    if not branch.startswith(PREFIXES):
+    if not branch.startswith(PREFIXES) and not (
+        allow_protected and branch in {"master", "staging"}
+    ):
         raise SystemExit(f"unsupported work branch: {branch}")
     expected = (common_root() / ".ai" / "worktrees" / slug(branch)).resolve()
     if path != expected:
@@ -115,16 +142,54 @@ def branch_and_path() -> tuple[str, Path]:
     return branch, path
 
 
-def parse_plan(path: Path) -> dict[str, str]:
-    values: dict[str, str] = {}
-    for line in path.read_text().splitlines():
-        match = re.match(r"^([A-Za-z_][A-Za-z0-9_]*):\s*(.*)$", line)
-        if match:
-            values[match.group(1)] = match.group(2).strip().strip("'\"")
+def parse_plan(path: Path) -> dict[str, Any]:
+    try:
+        values = yaml.safe_load(path.read_text())
+    except yaml.YAMLError as exc:
+        raise SystemExit(f"invalid workstream YAML: {path}: {exc}") from exc
+    if not isinstance(values, dict):
+        raise SystemExit(f"invalid workstream plan: {path} must contain a mapping")
     return values
 
 
-def workstream(branch: str, path: Path) -> tuple[Path, dict[str, str]]:
+def plan_ready(plan: dict[str, Any]) -> bool:
+    if str(plan.get("schema")) != "4":
+        return True
+    if plan.get("planning_state") != "ready":
+        return False
+    if not all(
+        isinstance(plan.get(key), list) and plan.get(key)
+        for key in ("scope", "owned_paths", "acceptance_criteria")
+    ):
+        return False
+    profile = plan.get("local_validation_profile")
+    if profile not in {"none", "unit", "docker_integration", "full_stack_browser"}:
+        return False
+    tests = plan.get("branch_tests")
+    return bool(tests) or bool(str(plan.get("branch_tests_reason", "")).strip())
+
+
+def acceptance_criteria(plan: dict[str, Any]) -> list[dict[str, str]]:
+    values = plan.get("acceptance_criteria") or []
+    result: list[dict[str, str]] = []
+    for index, item in enumerate(values, 1):
+        if isinstance(item, dict):
+            result.append(
+                {
+                    "id": str(item.get("id", f"AC{index}")),
+                    "text": str(item.get("text", "")),
+                }
+            )
+        else:
+            result.append({"id": f"AC{index}", "text": str(item)})
+    return result
+
+
+def plan_hash(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def workstream(branch: str, path: Path) -> tuple[Path, dict[str, Any]]:
     stream = path / "ops" / "workstreams" / slug(branch)
     files = [stream / "plan.yaml", stream / "handoff.md", stream / "validation.jsonl"]
     missing = [str(item) for item in files if not item.exists()]
@@ -133,7 +198,7 @@ def workstream(branch: str, path: Path) -> tuple[Path, dict[str, str]]:
             "missing branch-owned workstream file(s): " + ", ".join(missing)
         )
     plan = parse_plan(files[0])
-    if plan.get("schema") not in {"2", "3"} or plan.get("branch") != branch:
+    if str(plan.get("schema")) not in {"2", "3", "4"} or plan.get("branch") != branch:
         raise SystemExit("workstream does not match a supported schema or branch")
     if not plan.get("human_intent_authorization") or plan[
         "human_intent_authorization"
@@ -143,6 +208,10 @@ def workstream(branch: str, path: Path) -> tuple[Path, dict[str, str]]:
         raise SystemExit(f"workstream status {plan.get('status')} is terminal")
     if not plan.get("goal") or "replace me" in plan["goal"].lower():
         raise SystemExit("workstream goal must be derived from the human request")
+    if str(plan.get("schema")) in {"3", "4"} and not (stream / "session.json").exists():
+        raise SystemExit(
+            f"missing branch-owned session state: {stream / 'session.json'}"
+        )
     return stream, plan
 
 
@@ -201,7 +270,13 @@ def validate_retained(identifier: str) -> list[str]:
     """Validate retained-volume records and return the current worktree's names."""
     retained = retained_records()
     names: list[str] = []
-    required = ("reason", "next_use", "recreate_impact", "review")
+    required = (
+        "reason",
+        "next_use",
+        "recreate_impact",
+        "review",
+        "approximate_size_bytes",
+    )
     for name, item in retained.items():
         if item.get("worktree_id") != identifier:
             continue
@@ -228,23 +303,68 @@ def docker_json(*args: str) -> list[dict[str, Any]] | None:
 
 
 def docker_system_df() -> dict[str, Any] | None:
-    """Return Docker's detailed disk report, preserving unknown values."""
+    """Return Docker's detailed disk report, preserving unknown values.
+
+    Docker emits one JSON object per resource class when ``--format`` is used;
+    older versions may emit a single object containing Images/Volumes arrays.
+    Normalize both forms so accounting never silently treats an unreported
+    component as zero.
+    """
     if shutil.which("docker") is None:
         return None
     result = run("docker", "system", "df", "-v", "--format", "{{json .}}", check=False)
     if result.returncode:
         return None
+    records: list[dict[str, Any]] = []
     for line in result.stdout.splitlines():
         try:
             value = json.loads(line)
         except json.JSONDecodeError:
             continue
         if isinstance(value, dict):
-            return value
-    return None
+            records.append(value)
+    if not records:
+        return None
+    if any(key in records[0] for key in ("Images", "Volumes", "Containers")):
+        return records[0]
+    normalized: dict[str, Any] = {}
+    for value in records:
+        kind = str(value.get("Type", "")).lower()
+        if kind == "images":
+            normalized.setdefault("Images", []).append(value)
+        elif kind == "containers":
+            normalized.setdefault("Containers", []).append(value)
+        elif kind in {"local volumes", "volumes"}:
+            normalized.setdefault("Volumes", []).append(value)
+        elif kind == "build cache":
+            normalized.setdefault("BuildCache", []).append(value)
+    return normalized
 
 
 def numeric_size(value: Any) -> int:
+    if isinstance(value, (int, float)):
+        return int(value)
+    if isinstance(value, str):
+        match = re.fullmatch(
+            r"\s*([0-9]+(?:\.[0-9]+)?)\s*([KMGTPE]?i?B)?\s*", value, re.I
+        )
+        if match:
+            number = float(match.group(1))
+            unit = (match.group(2) or "B").upper()
+            factors = {
+                "B": 1,
+                "KB": 1000,
+                "MB": 1000**2,
+                "GB": 1000**3,
+                "TB": 1000**4,
+                "PB": 1000**5,
+                "KIB": 1024,
+                "MIB": 1024**2,
+                "GIB": 1024**3,
+                "TIB": 1024**4,
+                "PIB": 1024**5,
+            }
+            return int(number * factors.get(unit, 1))
     try:
         return int(value or 0)
     except (TypeError, ValueError):
@@ -319,9 +439,11 @@ def docker_status(identifier: str, projects: set[str]) -> dict[str, Any]:
             "reason": info.stderr.strip() or "Docker daemon unavailable",
         }
     sessions = recorded_testcontainer_sessions(identifier)
-    containers = owned_containers(identifier, projects, sessions) or []
+    container_inventory = owned_containers(identifier, projects, sessions)
+    containers = container_inventory or []
     bytes_known = sum(numeric_size(item.get("SizeRw")) for item in containers)
-    image_rows = docker_json("image", "ls", "--format", "{{json .}}") or []
+    image_inventory = docker_json("image", "ls", "--format", "{{json .}}")
+    image_rows = image_inventory or []
     image_ids: set[str] = set()
     for row in image_rows:
         image_id = str(row.get("ID") or row.get("Id") or "")
@@ -378,6 +500,8 @@ def docker_status(identifier: str, projects: set[str]) -> dict[str, Any]:
             if str(item.get("Name")) in owned_names
         )
     builder = builder_name_from_projects(projects)
+    if builder and run("docker", "buildx", "inspect", builder, check=False).returncode:
+        builder = ""
     builder_result = (
         run("docker", "buildx", "du", "--builder", builder, "--verbose", check=False)
         if builder
@@ -406,6 +530,19 @@ def docker_status(identifier: str, projects: set[str]) -> dict[str, Any]:
     if build_cache_bytes is not None:
         components.append(build_cache_bytes)
     known_total = sum(components)
+    unknown_components: list[str] = []
+    if container_inventory is None:
+        unknown_components.append("container-inventory")
+    if volume_result.returncode:
+        unknown_components.append("volume-inventory")
+    if image_inventory is None:
+        unknown_components.append("image-inventory")
+    if disk is None:
+        unknown_components.append("docker-system-df")
+    if volumes and volume_bytes is None:
+        unknown_components.append("volume-usage")
+    if builder and build_cache_bytes is None:
+        unknown_components.append("build-cache")
     return {
         "available": True,
         "worktree_id": identifier,
@@ -419,10 +556,83 @@ def docker_status(identifier: str, projects: set[str]) -> dict[str, Any]:
         "volume_bytes": volume_bytes,
         "build_cache_bytes": build_cache_bytes,
         "threshold_bytes": DOCKER_LIMIT_BYTES,
-        "accounting_complete": disk is not None and build_cache_bytes is not None,
+        "accounting_complete": disk is not None
+        and (not builder or build_cache_bytes is not None),
+        "unknown_components": unknown_components,
         "over_budget": known_total > DOCKER_LIMIT_BYTES,
         "unattributed_shared_layers_excluded": True,
     }
+
+
+def profile_requires_docker(profile: str | None) -> bool:
+    return profile in {"docker_integration", "full_stack_browser"}
+
+
+def docker_ready(timeout: float = DOCKER_READY_TIMEOUT_SECONDS) -> dict[str, Any]:
+    """Ensure the existing Docker daemon is usable without installing/restarting it."""
+    if shutil.which("docker") is None:
+        raise SystemExit(
+            "Docker CLI is unavailable; cannot run the required local validation"
+        )
+    initial = run("docker", "info", check=False)
+    if initial.returncode == 0:
+        return {"ready": True, "started_desktop": False, "wait_seconds": 0}
+    started_desktop = False
+    if sys.platform == "darwin" and Path("/Applications/Docker.app").exists():
+        opener = shutil.which("open")
+        if opener:
+            launch = run(opener, "-a", "Docker", check=False)
+            if launch.returncode == 0:
+                started_desktop = True
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        time.sleep(min(DOCKER_READY_POLL_SECONDS, max(0, deadline - time.monotonic())))
+        probe = run("docker", "info", check=False)
+        if probe.returncode == 0:
+            return {
+                "ready": True,
+                "started_desktop": started_desktop,
+                "wait_seconds": round(timeout - max(0, deadline - time.monotonic()), 1),
+            }
+    reason = initial.stderr.strip() or "Docker daemon did not become ready"
+    raise SystemExit(
+        f"Docker local validation is blocked after {int(timeout)} seconds: {reason}"
+    )
+
+
+def record_validation(stream: Path, payload: dict[str, Any]) -> None:
+    journal = stream / "validation.jsonl"
+    with journal.open("a") as handle:
+        handle.write(json.dumps(payload, sort_keys=True) + "\n")
+
+
+def validation_evidence_current(
+    stream: Path, head: str, profile: str | None = None
+) -> bool:
+    journal = stream / "validation.jsonl"
+    if not journal.exists():
+        return False
+    for line in journal.read_text().splitlines():
+        try:
+            value = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(value, dict):
+            continue
+        evidence_sha = (
+            value.get("sha") or value.get("head_sha") or value.get("implementation_sha")
+        )
+        result = str(value.get("result", "")).lower()
+        evidence_profile = str(value.get("profile", ""))
+        if profile and evidence_profile and evidence_profile != profile:
+            continue
+        if (
+            evidence_sha == head
+            and result in {"pass", "passed", "green", "success"}
+            and (not profile or evidence_profile == profile)
+        ):
+            return True
+    return False
 
 
 def project_names(branch: str) -> set[str]:
@@ -459,10 +669,22 @@ def builder_name(branch: str) -> str:
 
 
 def session_record(
-    branch: str, path: Path, plan: dict[str, str], identifier: str, session_id: str
+    branch: str, path: Path, plan: dict[str, Any], identifier: str, session_id: str
 ) -> dict[str, Any]:
     head = git("rev-parse", "HEAD", cwd=path)
     remote = git("rev-parse", f"origin/{branch}", cwd=path, check=False)
+    criteria = acceptance_criteria(plan)
+    criteria_text = "; ".join(
+        f"{item['id']}: {item['text']}" for item in criteria if item["text"]
+    )
+    profile = str(plan.get("local_validation_profile", "pending_agent_assessment"))
+    objective = (
+        f"Advance {branch}: {plan['goal']}. "
+        f"Acceptance criteria: {criteria_text or 'complete the durable branch plan first'}. "
+        f"Required local profile: {profile}. "
+        "Stop at ready_for_human_review; do not integrate, promote, deploy, "
+        "or modify another worktree."
+    )
     return {
         "session_id": session_id,
         "branch": branch,
@@ -471,10 +693,16 @@ def session_record(
         "head": head,
         "remote": remote,
         "remote_synchronized": bool(remote and remote == head),
-        "dirty_paths": git("status", "--porcelain", cwd=path).splitlines(),
+        "dirty_paths": dirty_paths(path),
         "workstream": str(path / "ops" / "workstreams" / slug(branch)),
         "validation_tier": plan.get("validation_tier"),
-        "goal_objective": f"Advance {branch}: {plan['goal']} Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+        "planning_state": plan.get("planning_state", "legacy_ready"),
+        "local_validation_profile": profile,
+        "acceptance_criteria": criteria,
+        "plan_hash": plan_hash(
+            path / "ops" / "workstreams" / slug(branch) / "plan.yaml"
+        ),
+        "goal_objective": objective,
         "docker": docker_status(identifier, project_names(branch)),
     }
 
@@ -486,10 +714,27 @@ def start(expected_branch: str | None) -> None:
             f"assigned branch mismatch: expected {expected_branch}, found {branch}"
         )
     stream, plan = workstream(branch, path)
-    if git("status", "--porcelain", cwd=path):
+    if dirty_paths(path):
         raise SystemExit(
             "implementation session requires a clean bootstrap boundary; use explicit takeover for interrupted dirty work"
         )
+    profile = str(plan.get("local_validation_profile", ""))
+    if profile_requires_docker(profile):
+        try:
+            docker_ready()
+        except SystemExit as exc:
+            record_validation(
+                stream,
+                {
+                    "at": datetime.now(UTC).isoformat(),
+                    "command": "make agent-docker-ready",
+                    "profile": profile,
+                    "result": "blocked_local_runtime",
+                    "reason": str(exc),
+                    "sha": git("rev-parse", "HEAD", cwd=path),
+                },
+            )
+            raise
     identifier = worktree_id(path, branch)
     with claim_lock():
         existing = read_claim(identifier)
@@ -510,24 +755,203 @@ def start(expected_branch: str | None) -> None:
             },
         )
     record = session_record(branch, path, plan, identifier, session_id)
-    record["workstream_files"] = [
-        str(stream / name) for name in ("plan.yaml", "handoff.md", "validation.jsonl")
-    ]
-    record["goal_request"] = {
-        "objective": record["goal_objective"],
-        "budget_policy": plan.get(
-            "goal_budget_policy", "unbounded_unless_human_authorized"
-        ),
-    }
-    budget = authorized_goal_budget(plan)
-    if budget is not None:
-        record["goal_request"]["token_budget"] = budget
     state = stream / "session.json"
-    atomic_json(state, {"schema": 1, **record, "active_session_id": session_id})
+    previous_state: dict[str, Any] = {}
+    if state.exists():
+        try:
+            loaded = json.loads(state.read_text())
+            if isinstance(loaded, dict):
+                previous_state = loaded
+        except (OSError, json.JSONDecodeError):
+            previous_state = {}
+    previous_ids = list(previous_state.get("previous_session_ids") or [])
+    previous_active = previous_state.get("active_session_id")
+    if previous_active and previous_active not in previous_ids:
+        previous_ids.append(previous_active)
+    ready = plan_ready(plan)
+    record["workstream_files"] = [
+        str(stream / name)
+        for name in ("plan.yaml", "handoff.md", "validation.jsonl", "session.json")
+    ]
+    record["planning_required"] = not ready
+    record["goal_state"] = "planning_required" if not ready else "requested"
+    record["goal_request"] = make_goal_request(
+        record["goal_objective"], plan, ready=ready
+    )
+    record["goal_request_state"] = "planning_required" if not ready else "ready"
+    record["goal_budget_policy"] = plan.get(
+        "goal_budget_policy", "unbounded_unless_human_authorized"
+    )
+    progress = (
+        previous_state.get("progress")
+        or plan.get("progress")
+        or {
+            "completed": [],
+            "total": len(record["acceptance_criteria"]),
+            "current_phase": "plan" if not ready else "implementation",
+            "current_blocker": "complete the branch-owned plan before creating a goal"
+            if not ready
+            else "none",
+        }
+    )
+    atomic_json(
+        state,
+        {
+            "schema": 2,
+            **previous_state,
+            **record,
+            "previous_session_ids": previous_ids,
+            "active_session_id": session_id,
+            "progress": progress,
+        },
+    )
     print(json.dumps(record, indent=2))
 
 
-def current() -> tuple[str, Path, Path, dict[str, str], str, dict[str, Any]]:
+def session_state(stream: Path) -> dict[str, Any]:
+    path = stream / "session.json"
+    if not path.exists():
+        return {}
+    try:
+        value = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
+def plan_ready_command(session_id: str) -> None:
+    branch, path, stream, plan, identifier, _ = current()
+    with claim_lock():
+        verify_claim(identifier, session_id)
+    if not plan_ready(plan):
+        raise SystemExit(
+            "workstream plan is incomplete; fill scope, owned paths, acceptance criteria, "
+            "tests, and local validation profile before creating a goal"
+        )
+    if dirty_paths(path):
+        raise SystemExit("plan-ready requires the planning checkpoint to be committed")
+    head = git("rev-parse", "HEAD", cwd=path)
+    remote = git("rev-parse", f"origin/{branch}", cwd=path, check=False)
+    if not remote or head != remote:
+        raise SystemExit("plan-ready requires local and remote branch heads to match")
+    validator = run(
+        "uv",
+        "run",
+        "--project",
+        "backend",
+        "python",
+        "scripts/validate-workstream.py",
+        str(stream),
+        cwd=path,
+        check=False,
+    )
+    if validator.returncode:
+        raise SystemExit(validator.stderr.strip() or "workstream validation failed")
+    docker = None
+    profile = str(plan.get("local_validation_profile", ""))
+    if profile_requires_docker(profile):
+        docker = docker_ready()
+    state = session_state(stream)
+    objective = session_record(branch, path, plan, identifier, session_id)[
+        "goal_objective"
+    ]
+    request = make_goal_request(objective, plan)
+    state.update(
+        {
+            "schema": 2,
+            "branch": branch,
+            "worktree": str(path),
+            "active_session_id": session_id,
+            "planning_state": "ready",
+            "goal_state": "requested",
+            "goal_request": request,
+            "goal_budget_policy": plan.get(
+                "goal_budget_policy", "unbounded_unless_human_authorized"
+            ),
+            "goal_objective": objective,
+            "plan_hash": plan_hash(stream / "plan.yaml"),
+            "implementation_sha": head,
+            "remote_sha": remote,
+            "docker_ready": docker,
+            "next_action": "create the session-local Codex goal from goal_request, then record it as active",
+        }
+    )
+    atomic_json(stream / "session.json", state)
+    print(json.dumps(request, indent=2))
+
+
+def goal_state(session_id: str, state_name: str, reason: str) -> None:
+    branch, path, stream, plan, identifier, _ = current()
+    with claim_lock():
+        verify_claim(identifier, session_id)
+    if state_name not in {"active", "unavailable"}:
+        raise SystemExit("goal state must be active or unavailable")
+    if state_name == "unavailable" and not reason.strip():
+        raise SystemExit("an unavailable goal requires a reason")
+    if not plan_ready(plan):
+        raise SystemExit("complete the branch-owned plan before recording goal state")
+    state = session_state(stream)
+    state.update(
+        {
+            "schema": 2,
+            "branch": branch,
+            "worktree": str(path),
+            "active_session_id": session_id,
+            "goal_state": state_name,
+            "goal_unavailable_reason": reason.strip()
+            if state_name == "unavailable"
+            else None,
+            "goal_recorded_at": datetime.now(UTC).isoformat(),
+            "next_action": "continue implementation from the branch workstream",
+        }
+    )
+    atomic_json(stream / "session.json", state)
+    print(json.dumps({"goal_state": state_name, "reason": reason.strip()}, indent=2))
+
+
+def progress(
+    session_id: str,
+    completed: str,
+    phase: str,
+    blocker: str,
+    next_action: str,
+) -> None:
+    branch, path, stream, plan, identifier, _ = current()
+    with claim_lock():
+        verify_claim(identifier, session_id)
+    if not phase.strip() or not next_action.strip():
+        raise SystemExit("progress requires a phase and next action")
+    criteria = acceptance_criteria(plan)
+    known = {item["id"] for item in criteria}
+    completed_ids = [item.strip() for item in completed.split(",") if item.strip()]
+    unknown = sorted(set(completed_ids) - known)
+    if unknown:
+        raise SystemExit("unknown acceptance criterion(s): " + ", ".join(unknown))
+    state = session_state(stream)
+    state["progress"] = {
+        "completed": completed_ids,
+        "total": len(criteria),
+        "current_phase": phase.strip(),
+        "current_blocker": blocker.strip() or "none",
+        "next_action": next_action.strip(),
+        "updated_at": datetime.now(UTC).isoformat(),
+    }
+    state["last_human_progress_update"] = datetime.now(UTC).isoformat()
+    atomic_json(stream / "session.json", state)
+    total = len(criteria)
+    print(
+        json.dumps(
+            {
+                "completed": len(completed_ids),
+                "total": total,
+                "progress": state["progress"],
+            },
+            indent=2,
+        )
+    )
+
+
+def current() -> tuple[str, Path, Path, dict[str, Any], str, dict[str, Any]]:
     branch, path = branch_and_path()
     stream, plan = workstream(branch, path)
     identifier = worktree_id(path, branch)
@@ -541,15 +965,18 @@ def status() -> None:
     branch, path, stream, plan, identifier, claim = current()
     record = session_record(branch, path, plan, identifier, str(claim["session_id"]))
     record["claim"] = claim
+    state = session_state(stream)
+    record["goal_state"] = state.get("goal_state", "not_started")
+    record["progress"] = state.get("progress", plan.get("progress", {}))
     atomic_json(
         stream / "session.json",
-        {"schema": 1, **record, "active_session_id": claim["session_id"]},
+        {**state, "schema": 2, **record, "active_session_id": claim["session_id"]},
     )
     print(json.dumps(record, indent=2))
 
 
 def resources() -> None:
-    branch, _ = branch_and_path()
+    branch, _ = branch_and_path(allow_protected=True)
     identifier = worktree_id(root(), branch)
     print(json.dumps(docker_status(identifier, project_names(branch)), indent=2))
 
@@ -559,6 +986,20 @@ def checkpoint(session_id: str) -> None:
     with claim_lock():
         claim = verify_claim(identifier, session_id)
     record = session_record(branch, path, plan, identifier, session_id)
+    state = session_state(stream)
+    current_plan_hash = plan_hash(stream / "plan.yaml")
+    recorded_plan_hash = state.get("plan_hash")
+    if recorded_plan_hash and recorded_plan_hash != current_plan_hash:
+        raise SystemExit(
+            "workstream plan changed since the last session boundary; run plan-ready after committing the updated plan"
+        )
+    if str(plan.get("schema")) == "4" and state.get("goal_state") not in {
+        "active",
+        "unavailable",
+    }:
+        raise SystemExit(
+            "schema-4 checkpoint requires an active goal or an explicit goal-unavailable record"
+        )
     handoff = stream / "handoff.md"
     started = claim.get("started_at", "")
     if (
@@ -568,20 +1009,44 @@ def checkpoint(session_id: str) -> None:
         raise SystemExit(
             "handoff is stale; update the branch-owned handoff before checkpoint"
         )
+    dirty = dirty_paths(path)
+    if dirty:
+        handoff_text = handoff.read_text()
+        missing_paths = [path for path in dirty if path not in handoff_text]
+        if missing_paths:
+            raise SystemExit(
+                "checkpoint requires every dirty path in handoff.md: "
+                + ", ".join(missing_paths)
+            )
     validate_retained(identifier)
     if record["docker"].get("over_budget"):
         raise SystemExit(
             "worktree exceeds 5 GB attributable Docker threshold; clean at a safe boundary"
         )
+    if record["docker"].get("unknown_components") and record["docker"].get(
+        "container_count", 0
+    ) + record["docker"].get("volume_count", 0):
+        raise SystemExit(
+            "Docker ownership accounting is incomplete for active resources: "
+            + ", ".join(record["docker"]["unknown_components"])
+        )
+    if profile_requires_docker(str(plan.get("local_validation_profile"))):
+        if not record["docker"].get("available"):
+            raise SystemExit(
+                "Docker-backed validation is required but the daemon is unavailable; run agent-docker-ready"
+            )
     with claim_lock():
         verify_claim(identifier, session_id)
         atomic_json(
             stream / "session.json",
             {
-                "schema": 1,
+                **state,
+                "schema": 2,
                 **record,
                 "state": "checkpointed",
                 "active_session_id": session_id,
+                "progress": state.get("progress", plan.get("progress", {})),
+                "last_checkpoint": datetime.now(UTC).isoformat(),
             },
         )
     print(json.dumps(record, indent=2))
@@ -589,8 +1054,29 @@ def checkpoint(session_id: str) -> None:
 
 def finish(session_id: str, interrupted: bool, next_action: str) -> None:
     branch, path, stream, plan, identifier, _ = current()
-    verify_claim(identifier, session_id)
-    dirty = git("status", "--porcelain", cwd=path).splitlines()
+    with claim_lock():
+        verify_claim(identifier, session_id)
+    state = session_state(stream)
+    if str(plan.get("schema")) == "4":
+        if not plan_ready(plan):
+            raise SystemExit("cannot finish before the branch-owned plan is ready")
+        if state.get("goal_state") not in {"active", "unavailable"}:
+            raise SystemExit(
+                "cannot finish before recording the goal as active or unavailable"
+            )
+        if not interrupted and plan.get("status") != "ready_for_human_review":
+            raise SystemExit(
+                "normal finish requires workstream status ready_for_human_review; use interrupted finish for a handoff"
+            )
+        if not interrupted:
+            head = git("rev-parse", "HEAD", cwd=path)
+            if not validation_evidence_current(
+                stream, head, str(plan.get("local_validation_profile"))
+            ):
+                raise SystemExit(
+                    "normal finish requires passing validation evidence for the current HEAD"
+                )
+    dirty = dirty_paths(path)
     if dirty and not interrupted:
         raise SystemExit(
             "worktree is dirty; use --interrupted with --next-action to record an explicit handoff"
@@ -626,10 +1112,13 @@ def finish(session_id: str, interrupted: bool, next_action: str) -> None:
     atomic_json(
         stream / "session.json",
         {
-            "schema": 1,
+            **state,
+            "schema": 2,
             **result,
             "state": "interrupted" if interrupted else "finished",
             "active_session_id": None,
+            "goal_state": "finished" if not interrupted else state.get("goal_state"),
+            "finished_at": datetime.now(UTC).isoformat(),
         },
     )
     with claim_lock():
@@ -689,11 +1178,20 @@ def takeover(confirm: str, request: str) -> None:
         state,
         {
             **prior,
-            "schema": 1,
+            "schema": 2,
             "branch": branch,
             "active_session_id": session_id,
             "previous_session_ids": previous,
             "goal_state": "resumed_after_takeover",
+            "takeover_history": [
+                *(prior.get("takeover_history") or []),
+                {
+                    "displaced_session_id": old.get("session_id"),
+                    "new_session_id": session_id,
+                    "reason": request.strip(),
+                    "at": now,
+                },
+            ],
             "next_action": "resume from the durable handoff and inspect displaced session state",
         },
     )
@@ -715,12 +1213,13 @@ def retain_volume(
 ) -> None:
     if not all(item.strip() for item in (volume, reason, next_use, recreate, review)):
         raise SystemExit("VOLUME, REASON, NEXT_USE, RECREATE, and REVIEW are required")
-    branch, path = branch_and_path()
-    _, _, _, _, identifier, _ = current()
+    branch, path = branch_and_path(allow_protected=True)
+    identifier = worktree_id(path, branch)
     inspected = run("docker", "volume", "inspect", volume, check=False)
     if inspected.returncode:
         raise SystemExit("volume does not exist or Docker is unavailable")
-    labels = json.loads(inspected.stdout)[0].get("Labels") or {}
+    details = json.loads(inspected.stdout)[0]
+    labels = details.get("Labels") or {}
     if labels.get("charting.worktree.id") != identifier:
         raise SystemExit("volume is not labelled as owned by this worktree")
     record_path = common_root() / ".ai" / "runtime" / "retained-volumes.json"
@@ -734,15 +1233,42 @@ def retain_volume(
         "next_use": next_use.strip(),
         "recreate_impact": recreate.strip(),
         "review": review.strip(),
+        "approximate_size_bytes": numeric_size(
+            (details.get("UsageData") or {}).get("Size")
+        ),
         "recorded_at": datetime.now(UTC).isoformat(),
     }
     record_path.write_text(json.dumps(records, indent=2, sort_keys=True) + "\n")
     print(json.dumps(records[volume], indent=2))
 
 
+def release_volume(volume: str, confirm: str) -> None:
+    """Delete one retained volume after its recorded review condition is met."""
+    if not volume or confirm != volume:
+        raise SystemExit("release requires VOLUME and an exact matching CONFIRM")
+    branch, path = branch_and_path(allow_protected=True)
+    identifier = worktree_id(path, branch)
+    record_path = common_root() / ".ai" / "runtime" / "retained-volumes.json"
+    records = json.loads(record_path.read_text()) if record_path.exists() else {}
+    record = records.get(volume)
+    if not isinstance(record, dict) or record.get("worktree_id") != identifier:
+        raise SystemExit("volume has no retained record owned by this worktree")
+    result = run("docker", "volume", "rm", volume, check=False)
+    if result.returncode:
+        raise SystemExit(
+            result.stderr.strip() or "retained volume could not be removed"
+        )
+    records.pop(volume, None)
+    if records:
+        atomic_json(record_path, records)
+    else:
+        record_path.unlink(missing_ok=True)
+    print(json.dumps({"released": volume, "worktree_id": identifier}, indent=2))
+
+
 def cleanup() -> dict[str, Any]:
-    branch, path = branch_and_path()
-    _, _, _, _, identifier, _ = current()
+    branch, path = branch_and_path(allow_protected=True)
+    identifier = worktree_id(path, branch)
     projects = project_names(branch)
     if shutil.which("docker") is None:
         raise SystemExit("Docker is unavailable; refusing resource cleanup")
@@ -882,6 +1408,19 @@ def main() -> int:
     sub = parser.add_subparsers(dest="command", required=True)
     p = sub.add_parser("start")
     p.add_argument("--branch")
+    p = sub.add_parser("plan-ready")
+    p.add_argument("--session-id", required=True)
+    p = sub.add_parser("goal-state")
+    p.add_argument("--session-id", required=True)
+    p.add_argument("--state", required=True)
+    p.add_argument("--reason", default="")
+    p = sub.add_parser("progress")
+    p.add_argument("--session-id", required=True)
+    p.add_argument("--completed", default="")
+    p.add_argument("--phase", required=True)
+    p.add_argument("--blocker", default="none")
+    p.add_argument("--next-action", required=True)
+    sub.add_parser("docker-ready")
     sub.add_parser("status")
     sub.add_parser("resources")
     p = sub.add_parser("checkpoint")
@@ -900,9 +1439,22 @@ def main() -> int:
     p.add_argument("--recreate", required=True)
     p.add_argument("--review", required=True)
     sub.add_parser("cleanup")
+    p = sub.add_parser("release-volume")
+    p.add_argument("volume")
+    p.add_argument("--confirm", required=True)
     args = parser.parse_args()
     if args.command == "start":
         start(args.branch)
+    elif args.command == "plan-ready":
+        plan_ready_command(args.session_id)
+    elif args.command == "goal-state":
+        goal_state(args.session_id, args.state, args.reason)
+    elif args.command == "progress":
+        progress(
+            args.session_id, args.completed, args.phase, args.blocker, args.next_action
+        )
+    elif args.command == "docker-ready":
+        print(json.dumps(docker_ready(), indent=2))
     elif args.command == "status":
         status()
     elif args.command == "resources":
@@ -919,6 +1471,8 @@ def main() -> int:
         )
     elif args.command == "cleanup":
         cleanup()
+    elif args.command == "release-volume":
+        release_volume(args.volume, args.confirm)
     return 0
 
 

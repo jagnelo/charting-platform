@@ -88,3 +88,4 @@ logs/
 # inspected by the guarded remediation path; it is never a source change.
 .ai/master-degraded.json
 .ai/staging-degraded.json
+ci-retry-decision.json
