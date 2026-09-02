@@ -20840,7 +20840,11 @@ def test_stockanalysis_provider_reconciliation_batch_is_registered_and_audited()
 def test_stockanalysis_provider_continuation_batch_is_registered_and_audited():
     # ARS was reconciled to the existing ARS product-page adapter; the other
     # continuation identities remain explicit fallback-only records.
-    expected = set(STOCKANALYSIS_PROVIDER_CONTINUATION_ISSUER_HINTS) - {"ars", "avory"}
+    expected = set(STOCKANALYSIS_PROVIDER_CONTINUATION_ISSUER_HINTS) - {
+        "ars",
+        "avory",
+        "bushido",
+    }
     expected -= {"fairlead"}
 
     assert expected
@@ -20864,6 +20868,9 @@ def test_stockanalysis_provider_continuation_batch_is_registered_and_audited():
     assert "avory" not in FALLBACK_ISSUER_AUDITS
     assert ISSUER_ADAPTER_CONFIGS["avory"].live_tested_default_route is True
     assert type(get_holdings_adapter("avory")).__name__ == "AvoryHoldingsAdapter"
+    assert "bushido" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["bushido"].live_tested_default_route is True
+    assert type(get_holdings_adapter("bushido")).__name__ == "BushidoHoldingsAdapter"
     assert ISSUER_ADAPTER_CONFIGS["fairlead"].live_tested_default_route is True
     assert type(get_holdings_adapter("fairlead")).__name__ == "CaryStreetHoldingsAdapter"
     assert "fairlead" not in FALLBACK_ISSUER_AUDITS
