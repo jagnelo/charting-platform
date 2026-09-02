@@ -82,4 +82,4 @@ progress:
   total: 8
   current_phase: issuer_audit_queue
   current_blocker: "Docker daemon access is currently unavailable for the required docker_integration gate; issuer audit continues."
-  next_action: "Continue the ranked provider-audit queue after the Emirate Abu Dhabi disposition, starting with esoterica; keep the ledger and runtime audit synchronized at each changeset and promote only complete executable first-party routes."
+  next_action: "Continue the ranked provider-audit queue after the Esoterica promotion, starting with etf_managers_group; keep the ledger and runtime audit synchronized at each changeset and promote only complete executable first-party routes."

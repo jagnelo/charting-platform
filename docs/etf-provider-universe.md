@@ -54,7 +54,7 @@ that baseline record while tracking the current 373/123 split.
 
 The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
 `FALLBACK_ISSUER_AUDITS` at the current ETF-branch implementation checkpoint
-`30fef93e` (Elm native ELM route; the Discipline Funds, DVx Ventures, EA Series Trust, and Elements audits
+`915282cd` (Esoterica WUGI native route; the Discipline Funds, DVx Ventures, EA Series Trust, and Elements audits
 remain fallback-only; Elm is now native-promoted through the same declared route
 as the existing Cygnet parent identity).
 The fallback audit statuses are:
