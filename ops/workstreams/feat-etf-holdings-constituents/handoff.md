@@ -80,18 +80,22 @@ exhaustive invariant test proves its key/count/rank alignment with runtime code.
 issuer-access-blocked; `alphamark_advisors` is classified as an
 inactive/successor disposition; `amg_national` is a non-portfolio publisher;
 and `anydrus`, `baillie_gifford`, and `discipline_funds` are non-executable public sources;
-`alphaclone` is an inactive/successor disposition; `argent` and `arin` are
+`alphaclone` and `elements` are inactive/successor dispositions; `argent` and `arin` are
 issuer-access-blocked; `azimut`, `desjardins`, `dvx_ventures`, and `ea_series_trust` are dated
 non-portfolio-publisher dispositions. The DVx record resolves the source identity
 to the separately tracked VistaShares ETF publisher: DVx's own site is a
 venture/company-creation platform, not an ETF portfolio publisher. The EA Series
 Trust record resolves the trust/platform identity to each fund's actual sponsor
-or sub-adviser rather than a duplicate trust-wide route. The audit ledger
-currently has 93 queued fallback records still requiring issuer-specific
+or sub-adviser rather than a duplicate trust-wide route. The Elements record
+maps the historical Element Funds/Element ETFs identity to
+CHRG, whose official SEC supplement records closure and liquidation in December
+2023; the current EMG Advisors successor domain exposes no replacement ETF
+holdings route. The audit ledger currently has 92 queued fallback records still
+requiring issuer-specific
 evidence and final dispositions; existing terminal/blocked records must remain
 evidence-backed. Continue replacing baseline placeholders with first-party route
-evidence, starting with the ranked queue after the EA Series Trust
-non-portfolio-publisher disposition at `elements`, and checkpoint
+evidence, starting with the ranked queue after the Elements inactive/successor
+disposition at `elm`, and checkpoint
 each coherent provider changeset before moving to the next.
 
 Update this handoff at every coherent implementation and operations boundary.

@@ -117,6 +117,10 @@ funds with distinct sponsor names, and the trust's filings assign investment
 selection to each fund's adviser/sub-adviser. Holdings routes therefore belong
 to the actual sponsor or sub-adviser identity, not to a duplicate trust-wide
 adapter.
+`elements` remains fallback-only with an inactive/successor disposition: the
+historical Element Funds/Element ETFs identity maps to CHRG, whose official SEC
+supplement records closure and liquidation in December 2023; the current EMG
+Advisors successor domain exposes no replacement ETF holdings route.
 `credit_suisse` remains fallback-only with an inactive/successor disposition:
 UBS's official acquisition and fund-migration notices show the former issuer
 identity is being absorbed into UBS, with no current independent U.S. ETF

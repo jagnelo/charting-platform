@@ -1623,17 +1623,23 @@ providers:
     display_name: elements
     queue_rank: 39
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: inactive_or_successor_disposition
+    disposition: inactive_or_successor_disposition
+    last_checked: 2026-09-02
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols:
+      - CHRG
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains:
+      - elementfunds.com
+      - emgadvisors.com
+    candidate_routes:
+      - https://www.elementfunds.com/chrg-a-battery-etf
+      - https://emgadvisors.com/
+      - https://www.sec.gov/Archives/edgar/data/1618627/000139834423020960/fp0086061-1_497.htm
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -1643,13 +1649,23 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.elements"
       - "runtime:ISSUER_ADAPTER_CONFIGS.elements"
+      - "web:elements-chrg-liquidation-2026-09-02"
+      - "web:elements-successor-no-etf-route-2026-09-02"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.elements"
-    disposition_reason: "elements: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate elements first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-02
+        source: "https://www.sec.gov/Archives/edgar/data/1618627/000139834423020960/fp0086061-1_497.htm"
+        result: "The SEC-hosted official supplement states that the Energy & Minerals Group EV, Solar & Battery Materials Futures Strategy ETF (CHRG), formerly launched as Element, would close and liquidate as a series of The RBB Fund Trust effective on or about December 15, 2023."
+        evidence_ref: "web:elements-chrg-liquidation-2026-09-02"
+      - date: 2026-09-02
+        source: "https://emgadvisors.com/"
+        result: "The current successor adviser domain is reachable but exposes no ETF catalogue, CHRG page, or complete holdings artifact; the historical elementfunds.com route is not an executable current source."
+        evidence_ref: "web:elements-successor-no-etf-route-2026-09-02"
+    disposition_reason: "elements: The historical Element Funds/Element ETFs identity maps to CHRG, whose official SEC supplement records closure and liquidation in December 2023. The successor Energy & Minerals Group Advisors domain does not publish a current CHRG or replacement ETF holdings route, so the identity is inactive rather than eligible for native promotion."
+    next_action: "elements: Keep fallback-only as an inactive_or_successor_disposition; resolve any historical CHRG references to the Energy & Minerals Group successor only if a current U.S.-listed ETF is re-established with a complete executable first-party holdings route."
     implementation_sha: null
     validation_refs: []
   - adapter_key: elm
