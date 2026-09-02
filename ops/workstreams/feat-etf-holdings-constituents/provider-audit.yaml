@@ -2253,7 +2253,8 @@ providers:
     disposition_reason: "formula_folio: The official SEC liquidation supplement records the four FormulaFolios ETFs as terminated after their October 2023 liquidation. Brookstone's official combination notice establishes the successor relationship, while current Brookstone ETFs are already covered by the distinct native brookstone identity. FormulaFolios therefore has no current executable holdings portfolio to promote and must remain an inactive/successor historical identity rather than a duplicate Brookstone route."
     next_action: "formula_folio: Keep fallback-only as inactive_or_successor_disposition; resolve historical FFHG, FFSG, FFTG, and FFTI references to their October 2023 liquidation and the current Brookstone successor context, and reopen only if a distinct current FormulaFolios U.S.-listed ETF portfolio is re-established with a complete executable first-party route."
     implementation_sha: null
-    validation_refs: []
+    validation_refs:
+      - "validation:2026-09-02T23:12:46Z"
   - adapter_key: fpa
     display_name: fpa
     queue_rank: 51
