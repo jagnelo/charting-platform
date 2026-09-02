@@ -133,6 +133,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "bushido",
     "capforce",
     "castellan",
+    "conductor_fund",
     "burney",
     "cambria",
     "cambiar",
@@ -1103,6 +1104,7 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ("capforce", "BOUT", None, {}, 20),
         ("castellan", "CTEF", None, {}, 20),
         ("castellan", "CTIF", None, {}, 20),
+        ("conductor_fund", "CGV", None, {}, 20),
         (
             "baron",
             "RONB",
@@ -2187,6 +2189,12 @@ async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
     if adapter_key == "castellan":
         assert result.legal_metadata["route_resolution"] == (
             "castellan_public_complete_current_holdings_table"
+        )
+        assert result.legal_metadata["composition_date"]
+        assert any(row.holding_type == "cash" for row in result.rows)
+    if adapter_key == "conductor_fund":
+        assert result.legal_metadata["route_resolution"] == (
+            "conductor_product_page_declared_complete_holdings_csv"
         )
         assert result.legal_metadata["composition_date"]
         assert any(row.holding_type == "cash" for row in result.rows)

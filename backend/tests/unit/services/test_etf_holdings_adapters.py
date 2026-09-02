@@ -14358,6 +14358,56 @@ async def test_castellan_adapter_parses_complete_current_holdings_tables(monkeyp
 
 
 @pytest.mark.asyncio
+async def test_conductor_adapter_parses_page_declared_complete_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("conductor_fund")
+    assert adapter is not None
+    assert type(adapter).__name__ == "ConductorFundHoldingsAdapter"
+    assert "conductor_fund" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["conductor_fund"].live_tested_default_route is True
+    assert adapter.probe(
+        symbol="CGV", name="Conductor Global Equity Value ETF", identifiers={}
+    ).status == "ready"
+    assert adapter.probe(symbol="UNKNOWN", name="Unknown ETF", identifiers={}).status == (
+        "needs_issuer_route"
+    )
+
+    page_url = "https://conductoretfs.com/global-equity-etf/"
+    holdings_url = "https://conductoretfs.com/wp-content/themes/bb-theme-child/data/download.php?id=1532"
+    page_html = (
+        "<h1>Conductor Global Equity Value ETF</h1><h2>Holdings</h2>"
+        f'<a class="dwnld-hlds" href="{holdings_url}">Download All Holdings (.CSV)</a>'
+    )
+    raw_csv = """Conductor Global Equity Value ETF\nFund Holdings Data as of 09/01/2026\nName, Security Identifier, Symbol, Net Assets %, Market Price, Shares Held, Market Value, Market Value %\nAUSTRALIAN DOLLAR, AUD, AUD, 0.000000010600, 1.399700000000, 0.0200000, 0.01, 0.000000010600\nBBH SWEEP VEHICLE, BBHETFMM, 9BBH, 2.894351632300, 100.000000000000, 3905188.9200000, 3905188.92, 2.894493529900\nDHT HOLDINGS INC, Y2065G121, DHT US, 1.466631544100, 19.690000000000, 100500.0000000, 1978845.00, 1.466703446700\nReceivables/Payables, RECPAY, RECPAY, 0.897069738900, 1.000000000000, 1210366.6900000, 1210366.69, 0.897113718400\n"""
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page_html, content_type="text/html", url=page_url),
+        FakeResponse(text=raw_csv, content_type="text/csv", url=holdings_url),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="CGV")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [page_url, holdings_url]
+    assert len(result.rows) == 4
+    assert result.rows[0].symbol is None
+    assert result.rows[0].holding_type == "cash"
+    assert result.rows[1].symbol is None
+    assert result.rows[1].holding_type == "cash"
+    assert result.rows[2].symbol == "DHT US"
+    assert result.rows[2].weight == Decimal("0.014666315441")
+    assert result.rows[3].symbol is None
+    assert result.rows[3].row_type == "cash"
+    assert result.legal_metadata["source_provider"] == "conductor_fund"
+    assert result.legal_metadata["route_resolution"] == (
+        "conductor_product_page_declared_complete_holdings_csv"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+
+    with pytest.raises(ValueError, match="official product page or its declared CSV"):
+        await adapter.fetch_latest(symbol="CGV", source_url="https://example.invalid/holdings.csv")
+
+
+@pytest.mark.asyncio
 async def test_madison_adapter_filters_account_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("madison")
     assert adapter is not None
@@ -20554,6 +20604,14 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
             "sec_cik": "0001592900",
         },
     }
+    assert known_etf_route_metadata("CGV") == {
+        "issuer": "Conductor Fund",
+        "provider_aliases": {
+            "holdings_adapter": "conductor_fund",
+            "issuer_product_url": "https://conductoretfs.com/global-equity-etf/",
+            "sec_cik": "0001592900",
+        },
+    }
     invesco = holdings_adapter_catalog()
     invesco_entry = next(item for item in invesco if item["adapter_key"] == "invesco")
     assert invesco_entry["source_access"] == "issuer_public_json_catalog_cusip"
@@ -21182,6 +21240,7 @@ def test_stockanalysis_provider_fifth_continuation_batch_is_registered_and_audit
         "altshares",
         "keating",
         "truth_social",
+        "conductor_fund",
     }
 
     assert expected
@@ -21207,10 +21266,13 @@ def test_stockanalysis_provider_fifth_continuation_batch_is_registered_and_audit
     assert "altshares" not in FALLBACK_ISSUER_AUDITS
     assert "truth_social" not in FALLBACK_ISSUER_AUDITS
     assert "keating" not in FALLBACK_ISSUER_AUDITS
+    assert "conductor_fund" not in FALLBACK_ISSUER_AUDITS
     assert ISSUER_ADAPTER_CONFIGS["academy"].live_tested_default_route is True
     assert ISSUER_ADAPTER_CONFIGS["altshares"].live_tested_default_route is True
     assert ISSUER_ADAPTER_CONFIGS["truth_social"].live_tested_default_route is True
     assert ISSUER_ADAPTER_CONFIGS["keating"].live_tested_default_route is True
+    assert ISSUER_ADAPTER_CONFIGS["conductor_fund"].live_tested_default_route is True
+    assert type(get_holdings_adapter("conductor_fund")).__name__ == "ConductorFundHoldingsAdapter"
 
 
 def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audited():
@@ -25123,8 +25185,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 369
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 127
+    assert ledger["current_native_count"] == 370
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 126
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -25144,6 +25206,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "bushido",
         "capforce",
         "castellan",
+        "conductor_fund",
         "brookstone",
         "guggenheim",
     }

@@ -3323,6 +3323,14 @@ KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
             "sec_cik": "0001592900",
         },
     },
+    "CGV": {
+        "issuer": "Conductor Fund",
+        "provider_aliases": {
+            "holdings_adapter": "conductor_fund",
+            "issuer_product_url": "https://conductoretfs.com/global-equity-etf/",
+            "sec_cik": "0001592900",
+        },
+    },
     "SMRI": {
         "issuer": "Bushido Capital",
         "provider_aliases": {
@@ -62901,6 +62909,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Castellan publishes complete current CTEF and CTIF holdings tables on its public product pages.",
     ),
+    "conductor_fund": IssuerCsvAdapterConfig(
+        adapter_key="conductor_fund",
+        source_provider="conductor_fund",
+        source_access="issuer_product_page_declared_complete_current_holdings_csv",
+        product_page_templates=("https://conductoretfs.com/global-equity-etf/",),
+        live_tested_default_route=True,
+        terms_note="Conductor Fund publishes CGV's complete current holdings CSV from its public product page.",
+    ),
     "burney": IssuerCsvAdapterConfig(
         adapter_key="burney",
         source_provider="burney",
@@ -64350,7 +64366,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "avos",
         "azimut",
         "baillie_gifford",
-        "conductor_fund",
         "credit_suisse",
         "cresalta",
         "desjardins",
@@ -66261,8 +66276,184 @@ class ImpactSharesReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """StockAnalysis provider-table fallback adapter pending Impact Shares discovery."""
 
 
-class ConductorFundReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """StockAnalysis provider-table fallback adapter pending Conductor Fund discovery."""
+class ConductorFundHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch CGV's complete current holdings CSV declared by Conductor's fund page."""
+
+    PRODUCT_PAGE_URL = "https://conductoretfs.com/global-equity-etf/"
+    HOLDINGS_URL = "https://conductoretfs.com/wp-content/themes/bb-theme-child/data/download.php?id=1532"
+    SUPPORTED_SYMBOL = "CGV"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        sec_cik = _identifier(identifiers, "sec_cik", "cik")
+        if normalized_symbol == self.SUPPORTED_SYMBOL:
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.9600"),
+                status="ready",
+                reason="Conductor publishes CGV's complete current holdings CSV from its official fund page.",
+                source_url=self.PRODUCT_PAGE_URL,
+                issuer_product_id=normalized_symbol,
+            )
+        if sec_cik:
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.7800"),
+                status="ready",
+                reason="SEC filing fallback is available when no Conductor product route matches the symbol.",
+                source_url=f"https://data.sec.gov/submissions/CIK{sec_cik.zfill(10)}.json",
+                issuer_product_id=normalized_symbol or None,
+            )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.3000"),
+            status="needs_issuer_route",
+            reason=f"No verified Conductor native holdings route is configured for {normalized_symbol}.",
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol != self.SUPPORTED_SYMBOL:
+            raise ValueError(
+                f"No verified Conductor current-holdings route is configured for {normalized_symbol or 'an empty symbol'}."
+            )
+        if source_url and source_url.rstrip("/") not in {
+            self.PRODUCT_PAGE_URL.rstrip("/"),
+            self.HOLDINGS_URL.rstrip("/"),
+        }:
+            raise ValueError("Conductor holdings must use the verified official product page or its declared CSV.")
+
+        headers = _issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*")
+        async with httpx.AsyncClient(
+            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
+        ) as client:
+            page_response = await client.get(
+                self.PRODUCT_PAGE_URL,
+                headers=headers,
+                follow_redirects=True,
+            )
+        if page_response.status_code == 403:
+            page_response = await asyncio.to_thread(
+                requests.get,
+                self.PRODUCT_PAGE_URL,
+                headers=headers,
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                allow_redirects=True,
+            )
+        page_response.raise_for_status()
+        page_text = html.unescape(page_response.text)
+        if not re.search(r"Conductor\s+Global\s+Equity\s+Value\s+ETF", page_text, re.IGNORECASE):
+            raise ValueError("Conductor product page identity did not match CGV.")
+        if "HOLDINGS" not in page_text.upper() or self.HOLDINGS_URL not in page_text:
+            raise ValueError("Conductor product page did not declare CGV's complete holdings CSV.")
+
+        async with httpx.AsyncClient(
+            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
+        ) as client:
+            csv_response = await client.get(
+                self.HOLDINGS_URL,
+                headers=_holdings_request_headers(accept="text/csv,text/plain,*/*"),
+                follow_redirects=True,
+            )
+        if csv_response.status_code == 403:
+            csv_response = await asyncio.to_thread(
+                requests.get,
+                self.HOLDINGS_URL,
+                headers=_holdings_request_headers(accept="text/csv,text/plain,*/*"),
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                allow_redirects=True,
+            )
+        csv_response.raise_for_status()
+        table_rows = list(csv.reader(StringIO(csv_response.text.strip())))
+        if len(table_rows) < 3:
+            raise ValueError("Conductor's declared CGV holdings CSV contained no complete rows.")
+        rows = parse_holdings_table(table_rows[2:])
+        if not rows:
+            raise ValueError("Conductor's declared CGV holdings CSV contained no parseable rows.")
+
+        composition_date = self._composition_date(table_rows[1][0] if table_rows[1] else "")
+        for index, row in enumerate(rows, start=1):
+            raw_symbol = _clean(_first(row.extra_data, ["symbol"]))
+            raw_name = _clean(_first(row.extra_data, ["name"])) or row.name
+            weight_value = _first(row.extra_data, ["net assets %"])
+            row.weight = _decimal_percent_points(weight_value)
+            row_type, holding_type = self._classify_row(raw_symbol=raw_symbol, name=raw_name)
+            row.row_type = row_type
+            row.holding_type = holding_type
+            if row_type == "cash":
+                row.symbol = None
+                row.cusip = None
+            row.currency = row.currency or "USD"
+            row.source_row_id = (
+                f"{self.SUPPORTED_SYMBOL}:{composition_date.isoformat() if composition_date else 'current'}:{index}"
+            )
+            row.extra_data = {
+                **row.extra_data,
+                "source": "conductor_public_product_page_declared_holdings_csv",
+            }
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=csv_response.text,
+            raw_json={"source_format": "csv", "row_count": len(rows)},
+            source_url=str(getattr(csv_response, "url", self.HOLDINGS_URL)),
+            source_identifier=self.SUPPORTED_SYMBOL,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "conductor_product_page_declared_complete_holdings_csv",
+                "product_page_url": self.PRODUCT_PAGE_URL,
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_current_holdings",
+                "snapshot_provenance": "conductor_native_declared_holdings_csv",
+            },
+        )
+
+    @staticmethod
+    def _composition_date(header_line: str) -> date | None:
+        match = re.search(r"as\s+of\s+(\d{1,2}/\d{1,2}/\d{4})", header_line, re.IGNORECASE)
+        return _parse_issuer_date(match.group(1)) if match else None
+
+    @staticmethod
+    def _classify_row(*, raw_symbol: str | None, name: str | None) -> tuple[str, str]:
+        text = " ".join(value.upper() for value in (raw_symbol, name) if value)
+        currency_markers = (
+            "DOLLAR",
+            "REAL",
+            "KRONE",
+            "ZLOTY",
+            "EURO",
+            "YEN",
+            "RIAL",
+            "BAHT",
+            "FRANC",
+            "POUND",
+        )
+        if any(marker in text for marker in ("CASH", "MONEY MARKET", "SWEEP VEHICLE", "RECEIVABLES/PAYABLES")) or any(
+            marker in text for marker in currency_markers
+        ):
+            return "cash", "cash"
+        if re.search(r"\b[A-Z0-9]{4}\s+\d{6}[CP]\d{8}\b", text) or re.search(
+            r"\b[A-Z]{1,6}\s+\d{2}/\d{2}/\d{4}\s+[\d.]+\s+[CP]\b", text
+        ):
+            return "other", "derivative"
+        if " ETF" in text or "FUND" in text or "TRUST" in text:
+            return "security", "fund"
+        return "security", "equity"
 
 
 class AcsiFundsHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -67069,7 +67260,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "capforce": CapForceHoldingsAdapter,
         "castellan": CastellanHoldingsAdapter,
         "columbia_threadneedle": ColumbiaThreadneedleHoldingsAdapter,
-        "conductor_fund": ConductorFundReconciledFallbackHoldingsAdapter,
+        "conductor_fund": ConductorFundHoldingsAdapter,
         "congress": CongressHoldingsAdapter,
         "credit_suisse": CreditSuisseReconciledFallbackHoldingsAdapter,
         "cresalta": CresAltaReconciledFallbackHoldingsAdapter,
