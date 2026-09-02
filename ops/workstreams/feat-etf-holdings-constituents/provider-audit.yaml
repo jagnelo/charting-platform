@@ -7,7 +7,7 @@ baseline_fallback_count: 140
 current_registered_count: 496
 current_native_count: 376
 current_fallback_count: 120
-generated_at: 2026-09-02T20:57:01Z
+generated_at: 2026-09-02T22:44:44Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -2095,17 +2095,25 @@ providers:
     display_name: first_manhattan
     queue_rank: 48
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: non_executable_public_source
+    disposition: non_executable_public_source
+    last_checked: 2026-09-02
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
-    estimated_us_etf_count: null
+    representative_symbols:
+      - FMCX
+      - FMCE
+    estimated_us_etf_count: 2
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    source_freshness: quarterly_sixty_day_delayed
+    first_party_domains:
+      - fmexcelsioretfs.com
+      - firstmanhattan.com
+    candidate_routes:
+      - https://fmexcelsioretfs.com/
+      - https://fmexcelsioretfs.com/fmcx/
+      - https://fmexcelsioretfs.com/fmce/
+      - https://fmexcelsioretfs.com/download/1827/?tmstv=1751928122
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -2115,13 +2123,28 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.first_manhattan"
       - "runtime:ISSUER_ADAPTER_CONFIGS.first_manhattan"
+      - "web:first-manhattan-official-etf-catalogue-2026-09-02"
+      - "web:first-manhattan-daily-holdings-disclosure-2026-09-02"
+      - "web:first-manhattan-fmcx-prospectus-2026-09-02"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.first_manhattan"
-    disposition_reason: "first_manhattan: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate first_manhattan first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-02
+        source: "https://fmexcelsioretfs.com/, https://fmexcelsioretfs.com/fmcx/, and https://fmexcelsioretfs.com/fmce/"
+        result: "The official First Manhattan Excelsior ETF catalogue identifies the two current U.S. products FMCX and FMCE, but their product pages state that holdings are not made public daily and are disclosed only sixty days after each quarter-end; no complete current holdings file or executable endpoint is declared."
+        evidence_ref: "web:first-manhattan-official-etf-catalogue-2026-09-02"
+      - date: 2026-09-02
+        source: "https://fmexcelsioretfs.com/fmcx/ and https://fmexcelsioretfs.com/fmce/"
+        result: "Both official product pages repeat the non-transparent ETF disclosure cadence: unlike traditional ETFs, each fund does not make its assets public daily and instead discloses them sixty days after the end of each quarter."
+        evidence_ref: "web:first-manhattan-daily-holdings-disclosure-2026-09-02"
+      - date: 2026-09-02
+        source: "https://fmexcelsioretfs.com/download/1827/?tmstv=1751928122"
+        result: "The official FMCX prospectus confirms that FMCX is a non-transparent ETF and does not tell the public its assets each day; the disclosed quarterly report path cannot satisfy the current holdings freshness and executable-route contract."
+        evidence_ref: "web:first-manhattan-fmcx-prospectus-2026-09-02"
+    disposition_reason: "first_manhattan: First Manhattan's official FMCX and FMCE pages identify two active U.S. ETFs but explicitly withhold daily holdings, providing positions only sixty days after each quarter-end. No complete current first-party holdings artifact or executable route is available for native ingestion, so this provider remains fallback-only as a non-executable public source."
+    next_action: "first_manhattan: Re-test only if First Manhattan publishes a complete executable current holdings artifact (preferably daily) for FMCX and FMCE; then prove symbol mapping, current-date provenance, parser fixtures, and bounded live coverage before any native promotion."
     implementation_sha: null
     validation_refs: []
   - adapter_key: fitzgerald

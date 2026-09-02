@@ -927,3 +927,38 @@ runtime code. The focused ledger/reconciliation tests, workstream validator,
 and whitespace checks pass. The existing full deterministic/live evidence at
 the FalconX checkpoint remains valid; Docker integration still has the
 unrelated F8p-current-history Study Lab gap.
+
+## 20. Current execution checkpoint — First Manhattan — 2026-09-02
+
+The ranked `first_manhattan` audit is resolved as a dated
+`non_executable_public_source` disposition. First Manhattan's official
+Excelsior ETF site identifies two current U.S. products, FMCX and FMCE, through
+the home catalogue and their product pages. The official pages explicitly state
+that, unlike traditional ETFs, the funds do not make their assets public daily
+and instead disclose holdings sixty days after the end of each quarter. The
+official FMCX prospectus independently confirms the non-transparent disclosure
+model. No complete current holdings file or reproducible machine-readable
+endpoint is declared by the issuer.
+
+This evidence does not satisfy the feature's current holdings contract, which
+requires a complete executable first-party artifact with current-date
+provenance. No `FirstManhattanHoldingsAdapter` is added, and the identity is
+not promoted through SEC filings or a third-party table. The ledger retains the
+runtime fallback key for discovery compatibility while recording FMCX/FMCE,
+the official domains and product routes, quarterly-sixty-day freshness, the
+dated evidence refs, and the explicit non-executable disposition.
+
+The code-derived split remains 496 registered, 376 native/live-backed, and 120
+fallback-only providers. Runtime fallback status counts remain 8
+issuer-access-blocked, 103 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher; the First Manhattan
+ledger disposition does not alter the runtime audit manifest. The exhaustive
+ledger retains all 140 historical records exactly once, and 83 queued fallback
+records remain. The next ranked queue item is `fitzgerald`.
+
+This checkpoint changes the provider-audit evidence and queue state but no
+runtime code. The focused ledger/reconciliation tests, workstream validator,
+and whitespace checks must be recorded against the resulting durable SHA. The
+existing full deterministic/live evidence at the FalconX checkpoint remains
+valid; the current Docker-backed gate still has the unrelated reproducible
+F8p-current-history Study Lab histogram timeout.

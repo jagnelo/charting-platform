@@ -58,6 +58,9 @@ The former `fcf_advisors` identity is recorded as an inactive/successor
 disposition because Abacus Life acquired and rebranded it as Abacus FCF Advisors;
 current ABFL, ABLG, ABLD, ABOT, ABLS, and ABXB holdings are covered by the
 existing `abacus_global` successor adapter rather than a duplicate FCF route.
+First Manhattan's official Excelsior ETF pages identify FMCX and FMCE but state
+that holdings are disclosed only sixty days after each quarter-end, so it
+remains an audited `non_executable_public_source` rather than a native route.
 The historical starting snapshot for this
 workstream was 356 native and 140 fallback; the provider-audit ledger retains
 that baseline record while tracking the current 376/120 split.
@@ -74,7 +77,7 @@ as the existing Cygnet parent identity).
 The fallback audit statuses are:
 
 - `issuer_access_blocked`: `8`
-- `needs_first_party_route_discovery`: `104`
+- `needs_first_party_route_discovery`: `103`
 - `non_executable_public_source`: `3`
 - `provider_not_a_portfolio_publisher`: `6`
 

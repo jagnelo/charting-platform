@@ -126,7 +126,7 @@ routes are current and executable through the official product-page-declared
 Azure CSV convention. FalconX's ten current U.S. products are now covered through
 the independently managed 21Shares publisher's page-declared primary and
 secondary product-details APIs, with explicit parent/publisher provenance. The
-audit ledger currently has 84 queued fallback records still
+audit ledger currently has 83 queued fallback records still
 requiring issuer-specific
 evidence and final dispositions; existing terminal/blocked records must remain
 evidence-backed. ETF Managers Group is now recorded as an inactive/successor
@@ -138,9 +138,12 @@ provenance and exchange-aware parsing. FalconX is resolved through 21Shares'
 current U.S. product catalogue, with current route and parent/publisher
 provenance. FCF Advisors is resolved as an inactive/successor identity because
 Abacus Life acquired and rebranded it; current ABFL, ABLG, ABLD, ABOT, ABLS, and
-ABXB routes belong to the existing `abacus_global` adapter. Continue replacing
+ABXB routes belong to the existing `abacus_global` adapter. First Manhattan's
+official FMCX and FMCE pages identify two active products but disclose holdings
+only sixty days after each quarter-end, so the ledger records it as a dated
+`non_executable_public_source` rather than a native route. Continue replacing
 baseline placeholders with first-party route evidence, continuing with
-`first_manhattan`, and checkpoint
+`fitzgerald`, and checkpoint
 each coherent provider changeset before moving to the next.
 
 Update this handoff at every coherent implementation and operations boundary.
