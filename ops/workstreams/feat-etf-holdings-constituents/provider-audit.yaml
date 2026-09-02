@@ -656,7 +656,7 @@ providers:
         evidence_ref: "web:ars-afos-holdings-2026-09-02"
     disposition_reason: "ars: First-party ARS product pages provide complete current ACEP and AFOS holdings tables, and the provider-specific adapter validates fund identity, parses issuer rows, preserves effective-date provenance, and has deterministic plus opt-in live coverage."
     next_action: "ars: Monitor the ARS ACEP/AFOS product pages and retain native status while the routes remain complete, executable, and identity-valid; add any newly published ARS ETF symbol only after equivalent parser and live evidence."
-    implementation_sha: null
+    implementation_sha: f33224ab94bba5a9f0b7d93c5b82e5578e3a191b
     validation_refs:
       - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_ars_provider_alias_uses_verified_ars_product_page_route"
       - "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows[ars-ACEP-None-identifiers15-20]"
