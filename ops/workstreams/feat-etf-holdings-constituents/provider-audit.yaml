@@ -7,7 +7,7 @@ baseline_fallback_count: 140
 current_registered_count: 496
 current_native_count: 371
 current_fallback_count: 125
-generated_at: 2026-09-02T19:05:00Z
+generated_at: 2026-09-02T19:30:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -1485,17 +1485,21 @@ providers:
     display_name: discipline_funds
     queue_rank: 36
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: non_executable_public_source
+    disposition: non_executable_public_source
+    last_checked: 2026-09-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols: []
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains:
+      - disciplinefunds.com
+    candidate_routes:
+      - https://disciplinefunds.com/ddv-data/
+      - https://disciplinefunds.com/ddx-data/
+      - https://disciplinefunds.com/ddxx-data/
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -1505,13 +1509,23 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.discipline_funds"
       - "runtime:ISSUER_ADAPTER_CONFIGS.discipline_funds"
+      - "web:discipline-funds-wpdatatables-loader-2026-09-02"
+      - "live:discipline-funds-incomplete-holdings-route-2026-09-02"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.discipline_funds"
-    disposition_reason: "discipline_funds: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate discipline_funds first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-02
+        source: "https://disciplinefunds.com/ddv-data/, https://disciplinefunds.com/ddx-data/, and https://disciplinefunds.com/ddxx-data/"
+        result: "The official pages expose a wpDataTables holdings component and schema labels, but the HTML contains a loader rather than a complete row set. The bounded live attempts did not establish an executable complete artifact: DDV returned no parseable holdings rows, while DDX and DDXX yielded only ten rows each, below the complete-route acceptance floor, with no independently callable full export proven."
+        evidence_ref: "web:discipline-funds-wpdatatables-loader-2026-09-02"
+      - date: 2026-09-02
+        source: "https://disciplinefunds.com/wp-admin/admin-ajax.php?action=get_wdtable&table_id=143"
+        result: "The public wpDataTables AJAX probe returned an empty response even with the page nonce, session cookies, referrer, and complete DataTables payload; this does not provide a reproducible complete holdings route for the adapter."
+        evidence_ref: "live:discipline-funds-incomplete-holdings-route-2026-09-02"
+    disposition_reason: "discipline_funds: The issuer's DDV, DDX, and DDXX pages are first-party candidates but currently expose a nonce-backed wpDataTables loader without a proven complete machine-readable artifact. Bounded fetches failed the complete-route contract (no DDV rows and only ten DDX/DDXX rows), so the provider remains fallback-only and is not promoted from an incomplete or potentially paginated view."
+    next_action: "discipline_funds: Re-test only after the issuer exposes a stable complete holdings export or a reproducible public data endpoint; then prove DDV/DDX/DDXX identity, current date, all rows, parser fixture, and bounded live coverage before native promotion."
     implementation_sha: null
     validation_refs: []
   - adapter_key: dvx_ventures

@@ -51,7 +51,7 @@ that baseline record while tracking the current 371/125 split.
 
 The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
 `FALLBACK_ISSUER_AUDITS` at the current ETF-branch implementation checkpoint
-`9cc5be81`.
+`9cc5be81` (the subsequent Discipline Funds audit remains fallback-only).
 The fallback audit statuses are:
 
 - `issuer_access_blocked`: `8`
@@ -98,6 +98,12 @@ official CTEF and CTIF product pages.
 declared complete current holdings CSV.
 `cresalta` is native-promoted through its official CVGD and CVSM full-holdings
 pages, each exposing a complete dated holdings table.
+`discipline_funds` remains fallback-only as a non-executable public source:
+its official DDV, DDX, and DDXX pages expose a nonce-backed wpDataTables
+component, but the current route does not provide a reproducible complete
+machine-readable holdings artifact. Bounded attempts returned no DDV rows and
+only ten DDX/DDXX rows, so the potentially paginated/incomplete view is not
+counted as native support.
 `credit_suisse` remains fallback-only with an inactive/successor disposition:
 UBS's official acquisition and fund-migration notices show the former issuer
 identity is being absorbed into UBS, with no current independent U.S. ETF
