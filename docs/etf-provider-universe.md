@@ -65,6 +65,9 @@ requests with Cloudflare; `anydrus` shows placeholder holdings; and
 serves unrelated content, while `argent` and `arin` expose holdings pages that
 are likewise blocked to backend requests. These records remain fallback-only
 until a complete executable issuer route is proven.
+`azimut` is classified as a non-portfolio publisher because its official
+catalogue contains mutual-fund/UCITS products rather than a U.S. ETF holdings
+route.
 
 Current gap to the broad LSEG promoter target:
 

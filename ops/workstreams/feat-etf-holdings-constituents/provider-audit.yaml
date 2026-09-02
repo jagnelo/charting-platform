@@ -738,17 +738,22 @@ providers:
     display_name: azimut
     queue_rank: 20
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: provider_not_a_portfolio_publisher
+    disposition: provider_not_a_portfolio_publisher
+    last_checked: 2026-09-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols: []
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains:
+      - azimutinvestments.com
+      - azfund.com
+    candidate_routes:
+      - "https://www.azimutinvestments.com/home/-/fund/"
+      - "https://www.azfund.com/en/funds/"
+      - "https://stockanalysis.com/etf/provider/azimut/"
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -758,13 +763,23 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.azimut"
       - "runtime:ISSUER_ADAPTER_CONFIGS.azimut"
+      - "web:azimut-official-fund-catalogue-2026-09-02"
+      - "web:azimut-provider-page-404-2026-09-02"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.azimut"
-    disposition_reason: "azimut: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate azimut first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-02
+        source: "https://www.azimutinvestments.com/home/-/fund/"
+        result: "Azimut's official product catalogue presents mutual-fund/UCITS asset-class categories and fund research, but no U.S. ETF product page or complete ETF holdings route."
+        evidence_ref: "web:azimut-official-fund-catalogue-2026-09-02"
+      - date: 2026-09-02
+        source: "https://stockanalysis.com/etf/provider/azimut/"
+        result: "The expected public U.S. ETF provider endpoint returns HTTP 404, corroborating that no active U.S. ETF provider holdings catalogue is available for this identity."
+        evidence_ref: "web:azimut-provider-page-404-2026-09-02"
+    disposition_reason: "azimut: First-party Azimut catalogues expose mutual-fund/UCITS products rather than a U.S. ETF portfolio publisher, and the public U.S. ETF provider endpoint is 404; retain explicit SEC fallback eligibility without native promotion."
+    next_action: "azimut: Keep fallback-only unless Azimut launches a U.S. ETF and publishes a complete executable first-party holdings route with symbol mapping and current-date provenance."
     implementation_sha: null
     validation_refs: []
   - adapter_key: baillie_gifford

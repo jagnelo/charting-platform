@@ -58,7 +58,8 @@ issuer-access-blocked; `alphamark_advisors` is classified as an
 inactive/successor disposition; `amg_national` is a non-portfolio publisher;
 and `anydrus` plus `baillie_gifford` are non-executable public sources;
 `alphaclone` is an inactive/successor disposition; `argent` and `arin` are
-issuer-access-blocked. The remaining 128 current fallbacks still require
+issuer-access-blocked; `azimut` is a dated non-portfolio-publisher disposition.
+The remaining 128 current fallbacks still require
 issuer-specific evidence and
 final dispositions. Continue replacing baseline placeholders with first-party
 route evidence, starting with the ranked queue, and checkpoint each coherent
