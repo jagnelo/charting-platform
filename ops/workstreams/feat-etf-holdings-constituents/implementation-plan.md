@@ -1052,6 +1052,53 @@ opt-in provider matrix and Docker-backed integration gate remain pending at the
 377-native baseline, with the known unrelated reproducible F8p-current-history
 Study Lab histogram timeout still an AC7 gap.
 
+## 25. Current execution checkpoint — Freedom ETFs / FRDM — 2026-09-03
+
+The ranked `freedom` audit found a complete, executable first-party route for
+the Freedom 100 Emerging Markets ETF (`FRDM`). Freedom ETFs' official product
+page at `https://freedometfs.com/frdm/` identifies the requested ticker and fund
+name, declares a Fund Holdings table with the headers Ticker, Name, CUSIP,
+SEDOL, Shares, Price, Market Value ($mm), and % of Net Assets, and publishes a
+separate Effective Date table. The live page returned an effective date of
+September 2, 2026 and 136 embedded holding rows, including a Cash & Other row.
+The table is server-rendered in the issuer page HTML; no undocumented or paid
+endpoint was required.
+
+The new explicit `FreedomHoldingsAdapter` is scoped strictly to FRDM and the
+verified product-page URL. It validates the page identity, rejects an
+unapproved source URL, selects the table by its complete holdings schema,
+requires a bounded complete result, parses the separate effective-date table,
+converts Market Value ($mm) into dollar market values, converts percentage-point
+weights into canonical decimals, preserves CUSIP/SEDOL/shares, assigns USD, and
+classifies Cash & Other as cash. Metadata records the issuer page, effective-date
+freshness, Freedom ETFs as publisher/parent, and the native snapshot
+provenance. Long-form month-name dates are now accepted by the shared issuer
+date parser because the official page uses `September 2, 2026`.
+
+The deterministic unit test covers FRDM probing, unsupported-symbol routing,
+source URL rejection, page identity, table parsing, effective-date parsing,
+million-dollar conversion, weight conversion, identifiers, cash semantics, and
+publisher/provenance metadata. The opt-in live test fetches the official page,
+requires at least 100 rows and a cash row, and verifies the native metadata
+contract. The ETFDB issuer-league reconciliation invariant now treats
+`freedom` as native-promoted, the fallback manifest no longer lists it, and the
+live-provider manifest owns the bespoke FRDM test.
+
+The code-derived split after this promotion is 496 registered, 379
+native/live-backed, and 117 fallback-only providers. Runtime fallback status
+counts are 8 issuer-access-blocked, 100 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The exhaustive
+ledger retains all 140 historical records exactly once, with `freedom` marked
+`native_promoted`; 78 queued fallback records remain and the next ranked item
+is `fundstrat`.
+
+Implementation checkpoint SHA: `3acd95f07d378de162baa4c59ba941de22cf4f06`.
+The provider-audit ledger and documentation checkpoint must reference this SHA
+and the dated Freedom page/live evidence. The complete opt-in provider matrix
+and Docker-backed integration gate remain pending at the 379-native baseline;
+the known unrelated reproducible F8p-current-history Study Lab histogram timeout
+remains an AC7 gap.
+
 ## 24. Current execution checkpoint — Framework Digital Advisors / GSR BESO — 2026-09-03
 
 The ranked `framework_digital_advisors` audit found one current executable

@@ -5,9 +5,9 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 378
-current_fallback_count: 118
-generated_at: 2026-09-03T00:05:00Z
+current_native_count: 379
+current_fallback_count: 117
+generated_at: 2026-09-03T00:20:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -2360,42 +2360,56 @@ providers:
         evidence_ref: "live:framework-gsr-beso-holdings-api-2026-09-03"
     disposition_reason: "framework_digital_advisors: Framework Digital Advisors is the adviser for the current GSR ETFs, and the official GSR product page publishes BESO's complete daily holdings through a provider-owned details/holdings API. The native adapter is deliberately scoped to the only currently executable product route (BESO); the SEC-listed DATZ product currently has no GSR product page or API data and is not silently promoted through EDGAR."
     next_action: "framework_digital_advisors: Monitor the official GSR catalogue and API for DATZ or additional Framework-advised products; add each only after an issuer-declared complete route, strict symbol mapping, deterministic fixture, and bounded live proof are available."
-    implementation_sha: a1caaa0c6da2ded19891795b58e6e6ffe9ae09fd
+    implementation_sha: 8d9ad334fdbf02c166c4d67819f3fa119c866757
     validation_refs:
       - "validation:2026-09-03T00:05:00Z"
   - adapter_key: freedom
     display_name: freedom
     queue_rank: 53
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
-    estimated_us_etf_count: null
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-03
+    source_access_declared: issuer_product_page_embedded_complete_current_holdings_table
+    representative_symbols:
+      - FRDM
+    estimated_us_etf_count: 1
     estimated_us_etf_aum: null
-    us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    us_equity_breadth: 1
+    source_freshness: current_page_effective_date
+    first_party_domains:
+      - freedometfs.com
+    candidate_routes:
+      - "https://freedometfs.com/frdm/"
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_freedom_adapter_fetches_complete_frdm_product_page_holdings
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_freedom_product_page_covers_current_frdm_holdings
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.freedom"
       - "runtime:ISSUER_ADAPTER_CONFIGS.freedom"
+      - "web:freedom-frdm-product-page-2026-09-03"
+      - "live:freedom-frdm-holdings-table-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.freedom"
-    disposition_reason: "freedom: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate freedom first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
-    implementation_sha: null
-    validation_refs: []
+      - date: 2026-09-03
+        source: "https://freedometfs.com/frdm/"
+        result: "The official Freedom ETFs FRDM page identifies Freedom 100 Emerging Markets ETF, declares a Fund Holdings table with Ticker, Name, CUSIP, SEDOL, Shares, Price, Market Value ($mm), and % of Net Assets, and publishes Effective Date September 2, 2026. The embedded table contains 136 rows including Cash & Other."
+        evidence_ref: "web:freedom-frdm-product-page-2026-09-03"
+      - date: 2026-09-03
+        source: "https://freedometfs.com/frdm/"
+        result: "The bounded live adapter test fetched the issuer page, parsed 136 complete rows, converted Market Value ($mm) to dollars, preserved CUSIP/SEDOL/shares/weights, classified Cash & Other as cash, and attached the effective date."
+        evidence_ref: "live:freedom-frdm-holdings-table-2026-09-03"
+    disposition_reason: "freedom: Freedom ETFs' official FRDM product page publishes a complete current holdings table with a disclosed effective date. The native adapter strictly validates the FRDM identity, parses the embedded schema, converts million-dollar values, preserves identifiers and weights, and records issuer-page freshness with deterministic and opt-in live coverage."
+    next_action: "freedom: Monitor the official FRDM product page and effective-date table; retain native status while the complete current route remains identity-valid and executable, and add any future Freedom ETF only after equivalent first-party evidence."
+    implementation_sha: 3acd95f07d378de162baa4c59ba941de22cf4f06
+    validation_refs:
+      - "validation:2026-09-03T00:20:00Z"
   - adapter_key: fundstrat
     display_name: fundstrat
     queue_rank: 54
