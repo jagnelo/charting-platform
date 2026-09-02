@@ -2259,17 +2259,29 @@ providers:
     display_name: fpa
     queue_rank: 51
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: inactive_or_successor_disposition
+    disposition: inactive_or_successor_disposition
+    last_checked: 2026-09-02
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
-    estimated_us_etf_count: null
+    representative_symbols:
+      - FPAG
+      - FPAS
+      - FPAA
+    estimated_us_etf_count: 3
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    source_freshness: daily
+    first_party_domains:
+      - fpa.com
+      - fpag.fpa.com
+      - fpas.fpa.com
+      - fpaa.fpa.com
+    candidate_routes:
+      - https://fpa.com/fund/
+      - https://fpag.fpa.com/
+      - https://fpas.fpa.com/
+      - https://fpaa.fpa.com/
+      - https://fpag.fpa.com/assets/data/BBH_FPA_ETF_PVAL_WEB.{report_date}.csv
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -2279,13 +2291,24 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.fpa"
       - "runtime:ISSUER_ADAPTER_CONFIGS.fpa"
+      - "runtime:ISSUER_ADAPTER_CONFIGS.first_pacific"
+      - "web:fpa-official-etf-catalogue-2026-09-02"
+      - "live:fpa-first-pacific-fpag-daily-route-2026-09-02"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.fpa"
-    disposition_reason: "fpa: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate fpa first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-02
+        source: "https://fpa.com/fund/"
+        result: "First Pacific Advisors' official fund catalogue identifies the current FPA Global Equity ETF (FPAG), FPA Short Duration Government ETF (FPAS), and FPA Global Allocation ETF (FPAA), all advised by First Pacific Advisors, LP; this is the same issuer identity already represented by the native first_pacific adapter rather than a distinct FPA publisher."
+        evidence_ref: "web:fpa-official-etf-catalogue-2026-09-02"
+      - date: 2026-09-02
+        source: "https://fpag.fpa.com/assets/data/BBH_FPA_ETF_PVAL_WEB.20260902.csv"
+        result: "The existing first_pacific route returned the official FPAG daily multi-fund CSV dated September 2, 2026; the bounded opt-in first_pacific live test passed. The FPAS and FPAA product pages currently render X/X/XX holdings dates and no complete current rows in the same bounded check, so no duplicate FPA adapter or broader native promotion is justified."
+        evidence_ref: "live:fpa-first-pacific-fpag-daily-route-2026-09-02"
+    disposition_reason: "fpa: The official FPA catalogue identifies First Pacific Advisors, LP and its FPAG, FPAS, and FPAA ETFs. The repository already has the native first_pacific identity and adapter for this same issuer, with current FPAG daily CSV coverage and live validation. The queued fpa key is therefore an abbreviated duplicate identity, not an independent portfolio publisher; it remains fallback-only as an inactive/successor disposition to avoid duplicate native ownership while FPAS/FPAA route completeness is monitored under first_pacific."
+    next_action: "fpa: Resolve the abbreviated FPA identity to the existing native first_pacific adapter; monitor the official FPAG/FPAS/FPAA pages and extend that adapter only after each product exposes a complete executable current holdings route and bounded live proof. Do not create a duplicate fpa adapter."
     implementation_sha: null
     validation_refs: []
   - adapter_key: framework_digital_advisors

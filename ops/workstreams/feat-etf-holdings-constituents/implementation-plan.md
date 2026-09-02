@@ -1051,3 +1051,45 @@ receipt must be recorded against the resulting documentation SHA. The complete
 opt-in provider matrix and Docker-backed integration gate remain pending at the
 377-native baseline, with the known unrelated reproducible F8p-current-history
 Study Lab histogram timeout still an AC7 gap.
+
+## 23. Current execution checkpoint — FPA alias to First Pacific Advisors — 2026-09-02
+
+The ranked `fpa` audit resolved an identity duplicate rather than adding a
+second native adapter. First Pacific Advisors' official fund catalogue lists
+the FPA Global Equity ETF (FPAG), FPA Short Duration Government ETF (FPAS), and
+FPA Global Allocation ETF (FPAA), all advised by First Pacific Advisors, LP.
+The repository already represents that same issuer as `first_pacific`, with a
+provider-specific dated multi-fund CSV adapter, deterministic parser coverage,
+and an opt-in live test for the verified FPAG route.
+
+The official FPAG page-declared daily export returned a September 2, 2026 CSV
+and the bounded opt-in `first_pacific` live test passed. The FPAS and FPAA
+product pages currently render placeholder `X/X/XX` holdings dates and no
+complete current rows in the bounded check; their current holdings routes are
+therefore not independently proven. Because `fpa` is an abbreviation for the
+same First Pacific Advisors identity, creating a duplicate native FPA adapter
+would violate provider ownership and could double-count the issuer.
+
+The ledger record now preserves FPAG, FPAS, and FPAA, the official FPA catalogue
+and product domains, the verified FPAG daily route, the runtime
+`first_pacific` configuration reference, and the explicit
+`inactive_or_successor_disposition`. Route completeness and symbol mapping for
+the duplicate key remain false; the existing `first_pacific` adapter remains
+the sole native owner and should be extended to FPAS/FPAA only after each
+product exposes a complete executable current holdings artifact and live proof.
+
+The code-derived split remains 496 registered, 377 native/live-backed, and 119
+fallback-only providers. Runtime fallback status counts remain 8
+issuer-access-blocked, 102 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The exhaustive
+ledger retains all 140 historical records exactly once, with `fpa` recorded as
+an inactive/successor alias; 80 queued fallback records remain and the next
+ranked item is `framework_digital_advisors`.
+
+This checkpoint changes only issuer-audit evidence, queue state, and durable
+documentation; no runtime code changes are required. The focused
+ledger/reconciliation tests, workstream validator, whitespace checks, and live
+receipt must be recorded against the resulting documentation SHA. The complete
+opt-in provider matrix and Docker-backed integration gate remain pending at the
+377-native baseline, with the known unrelated reproducible F8p-current-history
+Study Lab histogram timeout still an AC7 gap.

@@ -163,6 +163,10 @@ Advisors successor domain exposes no replacement ETF holdings route.
 the official SEC supplement records the October 2023 liquidation of FFHG, FFSG,
 FFTG, and FFTI, and Brookstone's official combination notice establishes the
 successor context; no distinct current FormulaFolios holdings route exists.
+`fpa` is recorded as an inactive/successor alias of the existing native
+`first_pacific` identity: First Pacific Advisors' official catalogue lists FPAG,
+FPAS, and FPAA, while the verified current FPAG daily route and live coverage
+already belong to `first_pacific`; no duplicate FPA adapter is warranted.
 `elm` is native-promoted through Elm Partners Management's official ELM product
 page and its explicitly declared complete full-holdings CSV. The adapter keeps
 the ELM provider identity distinct while preserving the previously validated

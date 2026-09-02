@@ -126,7 +126,7 @@ routes are current and executable through the official product-page-declared
 Azure CSV convention. FalconX's ten current U.S. products are now covered through
 the independently managed 21Shares publisher's page-declared primary and
 secondary product-details APIs, with explicit parent/publisher provenance. The
-audit ledger currently has 81 queued fallback records still
+audit ledger currently has 80 queued fallback records still
 requiring issuer-specific
 evidence and final dispositions; existing terminal/blocked records must remain
 evidence-backed. ETF Managers Group is now recorded as an inactive/successor
@@ -148,8 +148,10 @@ classified as derivatives and the adapter records publisher provenance.
 FormulaFolios is now recorded as an inactive/successor identity after its
 official October 2023 liquidation; current Brookstone ETF routes are covered by
 the distinct `brookstone` adapter. Continue replacing baseline placeholders
-with first-party route evidence, continuing with
-`fpa`, and checkpoint
+with first-party route evidence. The abbreviated `fpa` key is now recorded as
+an inactive/successor alias of the existing native `first_pacific` identity;
+continue with
+`framework_digital_advisors`, and checkpoint
 each coherent provider changeset before moving to the next.
 
 Update this handoff at every coherent implementation and operations boundary.
