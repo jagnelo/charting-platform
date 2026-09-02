@@ -16,18 +16,19 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 - Latest staging merge: `9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4`
 - Incorporated staging SHA: `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`
-- Current code-derived state: 496 registered, 358 native/live-backed, 138
+- Current code-derived state: 496 registered, 359 native/live-backed, 137
   fallback-only.
-- Current fallback status split: 8 access-blocked, 121 discovery, 3
+- Current fallback status split: 8 access-blocked, 120 discovery, 3
   non-executable public source, 6 non-portfolio-publisher.
 - `docs/etf-provider-universe.md` has been reconciled from code to the current
-  496/358/138 snapshot; future updates must remain code-derived.
+  496/359/137 snapshot; future updates must remain code-derived.
 - Validation tier: `full_integration`.
 - Local validation profile: `docker_integration`.
 - Planning session: `197b239d-3322-4fc6-bf4b-0d0aecebf5e0`.
 - Latest implementation checkpoint: `f33224ab` (ARS provider reconciliation);
   the prior Guggenheim audit receipt remains `c4bef2ec`.
-- Product implementation is underway; current changes add Guggenheim and ARS
+- Product implementation is underway; current changes add Guggenheim, ARS, and
+  Avory
   native coverage and issuer-specific audit dispositions for the ranked fallback
   records reviewed so far.
 
@@ -44,19 +45,19 @@ only in this branch's registered local worktree.
 The former master-based branch was fully represented in staging before its
 remote ref was removed. Its prior checkpoint `a8d6189` recorded 496 registered,
 339 native/live-backed, and 157 fallback-only providers. Current code has
-advanced to 358/138, including the Guggenheim and ARS promotions. Continue current gaps; do not recreate completed work or
+advanced to 359/137, including the Guggenheim, ARS, and Avory promotions. Continue current gaps; do not recreate completed work or
 restore a dead route merely to reproduce historical counts.
 
 ## Next action
 
 The baseline provider-audit ledger now accounts for all 140 fallback keys and an
 exhaustive invariant test proves its key/count/rank alignment with runtime code.
-`guggenheim` and `ars` are native-promoted; `advisors_asset_management` and `amplius` are
+`guggenheim`, `ars`, and `avory` are native-promoted; `advisors_asset_management` and `amplius` are
 issuer-access-blocked; `alphamark_advisors` is classified as an
 inactive/successor disposition; `amg_national` is a non-portfolio publisher;
 and `anydrus` plus `baillie_gifford` are non-executable public sources;
 `alphaclone` is an inactive/successor disposition; `argent` and `arin` are
-issuer-access-blocked. The remaining 129 current fallbacks still require
+issuer-access-blocked. The remaining 128 current fallbacks still require
 issuer-specific evidence and
 final dispositions. Continue replacing baseline placeholders with first-party
 route evidence, starting with the ranked queue, and checkpoint each coherent

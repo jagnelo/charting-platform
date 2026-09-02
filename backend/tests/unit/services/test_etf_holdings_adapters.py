@@ -13655,6 +13655,41 @@ async def test_ars_provider_alias_uses_verified_ars_product_page_route(monkeypat
 
 
 @pytest.mark.asyncio
+async def test_avory_adapter_parses_complete_product_page_holdings(monkeypatch):
+    adapter = get_holdings_adapter("avory")
+    assert adapter is not None
+    product_page_url = "https://avoryfunds.com/"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<h1>Avory Foundational ETF</h1><h2>FUND HOLDINGS</h2>"
+                "<table><tr><th>TICKER</th><th>NAME</th><th>CUSIP</th>"
+                "<th>SHARES</th><th>PRICE</th><th>Market Value ($mm)</th>"
+                "<th>% of NET ASSETS</th><th>EFFECTIVE_DATE</th></tr>"
+                "<tr><td>OMCL</td><td>Omnicell Inc</td><td>68213N109</td>"
+                "<td>87.011</td><td>34,51</td><td>3,00</td><td>4.42</td>"
+                "<td>09/02/2026</td></tr></table>"
+            ),
+            content_type="text/html",
+            url=product_page_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="AVRY")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_page_url]
+    assert result.rows[0].symbol == "OMCL"
+    assert result.rows[0].weight == Decimal("0.0442")
+    assert result.legal_metadata["adapter_key"] == "avory"
+    assert result.legal_metadata["source_provider"] == "avory"
+    assert result.legal_metadata["route_resolution"] == (
+        "avory_product_page_embedded_complete_holdings_table"
+    )
+
+
+@pytest.mark.asyncio
 async def test_x_square_adapter_verifies_product_page_and_parses_declared_complete_holdings_api(
     monkeypatch,
 ):
@@ -20351,7 +20386,7 @@ def test_stockanalysis_provider_reconciliation_batch_is_registered_and_audited()
 def test_stockanalysis_provider_continuation_batch_is_registered_and_audited():
     # ARS was reconciled to the existing ARS product-page adapter; the other
     # continuation identities remain explicit fallback-only records.
-    expected = set(STOCKANALYSIS_PROVIDER_CONTINUATION_ISSUER_HINTS) - {"ars"}
+    expected = set(STOCKANALYSIS_PROVIDER_CONTINUATION_ISSUER_HINTS) - {"ars", "avory"}
     expected -= {"fairlead"}
 
     assert expected
@@ -20372,6 +20407,9 @@ def test_stockanalysis_provider_continuation_batch_is_registered_and_audited():
     assert "ars" not in FALLBACK_ISSUER_AUDITS
     assert ISSUER_ADAPTER_CONFIGS["ars"].live_tested_default_route is True
     assert type(get_holdings_adapter("ars")).__name__ == "ArtemisHoldingsAdapter"
+    assert "avory" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["avory"].live_tested_default_route is True
+    assert type(get_holdings_adapter("avory")).__name__ == "AvoryHoldingsAdapter"
     assert ISSUER_ADAPTER_CONFIGS["fairlead"].live_tested_default_route is True
     assert type(get_holdings_adapter("fairlead")).__name__ == "CaryStreetHoldingsAdapter"
     assert "fairlead" not in FALLBACK_ISSUER_AUDITS
@@ -24431,8 +24469,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 358
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 138
+    assert ledger["current_native_count"] == 359
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 137
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -24440,7 +24478,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         for record in records
         if record["disposition"] == "native_promoted"
     }
-    assert native_promoted == {"ars", "guggenheim"}
+    assert native_promoted == {"ars", "avory", "guggenheim"}
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(
         range(1, len(records) + 1)

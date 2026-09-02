@@ -8881,6 +8881,51 @@ class ArtemisHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return normalized if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", normalized) else None
 
 
+class AvoryHoldingsAdapter(ArtemisHoldingsAdapter):
+    """Fetch Avory's AVRY portfolio from its complete issuer product page."""
+
+    _PRODUCT_PAGES = {
+        "AVRY": (
+            "https://avoryfunds.com/",
+            "Avory Foundational ETF",
+        ),
+    }
+    _REQUIRED_HEADERS = (
+        "TICKER",
+        "NAME",
+        "CUSIP",
+        "SHARES",
+        "PRICE",
+        "Market Value ($mm)",
+        "% of NET ASSETS",
+        "EFFECTIVE_DATE",
+    )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        result = await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "source_access": "avory_issuer_product_page_complete_holdings_table",
+            "source_provider": "avory",
+            "adapter_key": self.adapter_key,
+            "route_resolution": "avory_product_page_embedded_complete_holdings_table",
+            "snapshot_provenance": "avory_native_current_holdings_table",
+        }
+        return result
+
+
 class XSquareHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch X-Square's complete ZTAX portfolio from its public fund page API."""
 
@@ -63034,6 +63079,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "for its public ETF product pages; data may be subject to issuer terms."
         ),
     ),
+    "avory": IssuerCsvAdapterConfig(
+        adapter_key="avory",
+        source_provider="avory",
+        source_access="avory_issuer_product_page_complete_holdings_table",
+        product_page_templates=("https://avoryfunds.com/",),
+        live_tested_default_route=True,
+        terms_note=(
+            "Avory publishes the complete current AVRY holdings table on its public ETF "
+            "product page; data may be subject to issuer terms."
+        ),
+    ),
     "myriad": IssuerCsvAdapterConfig(
         adapter_key="myriad",
         source_provider="myriad_asset_management",
@@ -63490,7 +63546,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "argent",
         "arin",
         "avos",
-        "avory",
         "azimut",
         "baillie_gifford",
         "ballast",
@@ -65549,7 +65604,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "ars": ArtemisHoldingsAdapter,
         "argent": ArgentReconciledFallbackHoldingsAdapter,
         "avantis": AvantisHoldingsAdapter,
-        "avory": AvoryReconciledFallbackHoldingsAdapter,
+        "avory": AvoryHoldingsAdapter,
         "avos": AvosReconciledFallbackHoldingsAdapter,
         "azimut": AzimutReconciledFallbackHoldingsAdapter,
         "baillie_gifford": BaillieGiffordReconciledFallbackHoldingsAdapter,
