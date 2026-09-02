@@ -2319,6 +2319,7 @@ ISSUER_DOMAIN_HINTS.update(
         "strive": ["strivefunds.com"],
         "teucrium": ["teucrium.com"],
         "tidal": ["tidalfinancialgroup.com"],
+        "beehive": ["thebeehiveetf.com"],
         "volatility_shares": ["volatilityshares.com"],
         "wahed": ["wahed.com"],
         "yieldmax": ["yieldmaxetfs.com"],
@@ -23059,6 +23060,77 @@ class TidalHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 )
             )
         return rows, composition_date
+
+
+class BeeHiveHoldingsAdapter(TidalHoldingsAdapter):
+    """Fetch BeeHive's BEEX portfolio from its issuer-declared daily CSV."""
+
+    _PRODUCTS: dict[str, tuple[str, str]] = {
+        "BEEX": (
+            "https://thebeehiveetf.com/",
+            "https://thebeehiveetf.com/wp-content/uploads/data/TidalFG_Holdings_BEEX.csv",
+        ),
+    }
+    _ISSUER_HOST = "thebeehiveetf.com"
+
+    def probe(
+        self,
+        *,
+        symbol: str,
+        name: str,
+        identifiers: dict[str, str],
+    ) -> HoldingsAdapterProbe:
+        probe = super().probe(symbol=symbol, name=name, identifiers=identifiers)
+        return replace(
+            probe,
+            reason=(
+                "BeeHive publishes BEEX's complete current portfolio from its official product page."
+                if symbol.strip().upper() == "BEEX"
+                else "BeeHive currently has a verified public holdings route only for BEEX."
+            ),
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        product = self._PRODUCTS.get(normalized_symbol)
+        if product is None:
+            raise ValueError(
+                "BeeHive's verified issuer route currently supports BEEX only."
+            )
+        if source_url and source_url.rstrip("/") != product[1].rstrip("/"):
+            raise ValueError("BeeHive holdings must use its official declared holdings CSV.")
+
+        result = await super().fetch_latest(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        page_url = (result.raw_json or {}).get("product_page_url")
+        if not page_url or not _domain_matches(_url_host(page_url), self._ISSUER_HOST):
+            raise ValueError("BeeHive holdings response left the issuer product domain.")
+        if not _domain_matches(_url_host(result.source_url), self._ISSUER_HOST):
+            raise ValueError("BeeHive holdings CSV response left the issuer domain.")
+        result.raw_json = {
+            **(result.raw_json or {}),
+            "source_format": "issuer_product_page_declared_tidal_daily_holdings_csv",
+        }
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "source_access": self.config.source_access,
+            "source_provider": self.source_provider,
+            "adapter_key": self.adapter_key,
+            "route_resolution": "beehive_product_page_declared_tidal_daily_holdings_csv",
+            "snapshot_provenance": "beehive_native_current_holdings_csv",
+        }
+        return result
 
 
 class ColliersHarrisonStreetHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -63300,6 +63372,20 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "the native route is intentionally limited to verified sponsor-published fund CSVs."
         ),
     ),
+    "beehive": IssuerCsvAdapterConfig(
+        adapter_key="beehive",
+        source_provider="beehive",
+        source_access="beehive_issuer_product_page_declared_tidal_daily_holdings_csv",
+        url_templates=(
+            "https://thebeehiveetf.com/wp-content/uploads/data/TidalFG_Holdings_BEEX.csv",
+        ),
+        product_page_templates=("https://thebeehiveetf.com/",),
+        live_tested_default_route=True,
+        terms_note=(
+            "The BeeHive ETF publishes BEEX's complete current portfolio through its public "
+            "product page and declared daily Tidal holdings CSV; data may be subject to issuer terms."
+        ),
+    ),
     "concourse": IssuerCsvAdapterConfig(
         adapter_key="concourse",
         source_provider="concourse_capital",
@@ -63690,7 +63776,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "avos",
         "azimut",
         "baillie_gifford",
-        "beehive",
         "bridgeway",
         "brookstone",
         "blueprint",
@@ -65750,7 +65835,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "baillie_gifford": BaillieGiffordReconciledFallbackHoldingsAdapter,
         "ballast": BallastHoldingsAdapter,
         "bancreek": BancreekHoldingsAdapter,
-        "beehive": BeeHiveReconciledFallbackHoldingsAdapter,
+        "beehive": BeeHiveHoldingsAdapter,
         "bluemonte": BluemonteHoldingsAdapter,
         "blueprint": BlueprintReconciledFallbackHoldingsAdapter,
         "brookstone": BrookstoneReconciledFallbackHoldingsAdapter,

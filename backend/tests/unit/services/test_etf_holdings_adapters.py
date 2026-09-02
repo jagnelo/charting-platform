@@ -18005,6 +18005,61 @@ def test_tidal_adapter_parses_verified_sponsor_fund_scoped_holdings_csv():
     assert composition_date == date(2026, 7, 17)
 
 
+@pytest.mark.asyncio
+async def test_beehive_adapter_fetches_official_declared_daily_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("beehive")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "BeeHiveHoldingsAdapter"
+    probe = adapter.probe(symbol="BEEX", name="The BeeHive ETF", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url == (
+        "https://thebeehiveetf.com/wp-content/uploads/data/TidalFG_Holdings_BEEX.csv"
+    )
+
+    with pytest.raises(ValueError, match="official declared holdings CSV"):
+        await adapter.fetch_latest(
+            symbol="BEEX",
+            source_url="https://example.invalid/holdings.csv",
+        )
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<html><h1>The BeeHive ETF (BEEX)</h1></html>",
+            content_type="text/html",
+            url="https://thebeehiveetf.com/",
+        ),
+        FakeResponse(
+            text=(
+                "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets\n"
+                "09/02/2026,BEEX,AMZN,023135106,Amazon.com Inc,52800,254.92,13459776.0,6.70%,201023097.38\n"
+                "09/02/2026,BEEX,Cash&Other,Cash&Other,Cash & Other,-25041,1,-25040.89,-0.01%,201023097.38\n"
+            ),
+            url="https://thebeehiveetf.com/wp-content/uploads/data/TidalFG_Holdings_BEEX.csv",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="BEEX")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        "https://thebeehiveetf.com/",
+        "https://thebeehiveetf.com/wp-content/uploads/data/TidalFG_Holdings_BEEX.csv",
+    ]
+    assert result.rows[0].symbol == "AMZN"
+    assert result.rows[0].weight == Decimal("0.0670")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["source_provider"] == "beehive"
+    assert result.legal_metadata["route_resolution"] == (
+        "beehive_product_page_declared_tidal_daily_holdings_csv"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+    assert result.raw_json["source_format"] == (
+        "issuer_product_page_declared_tidal_daily_holdings_csv"
+    )
+
+
 def test_colliers_harrison_street_adapter_discovers_and_parses_nfrx_holdings_csv():
     adapter = get_holdings_adapter("colliers")
     assert adapter is not None
@@ -24536,8 +24591,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 361
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 135
+    assert ledger["current_native_count"] == 362
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 134
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -24545,7 +24600,14 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         for record in records
         if record["disposition"] == "native_promoted"
     }
-    assert native_promoted == {"ars", "avory", "ballast", "bancreek", "guggenheim"}
+    assert native_promoted == {
+        "ars",
+        "avory",
+        "ballast",
+        "bancreek",
+        "beehive",
+        "guggenheim",
+    }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(
         range(1, len(records) + 1)

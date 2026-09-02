@@ -45,25 +45,8 @@
   },
   "dirty_paths": [],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-etf-holdings-constituents-45bdf9bd",
-      "charting-stack-feat-etf-holdings-constituents-45bdf9bd"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
-    "worktree_id": "feat-etf-holdings-constituents-45bdf9bd8d"
+    "available": false,
+    "reason": "WARNING: Plugin \"/Users/jagnelo/.docker/cli-plugins/docker-dev\" is not valid: failed to fetch metadata: fork/exec /Users/jagnelo/.docker/cli-plugins/docker-dev: no such file or directory\nWARNING: Plugin \"/Users/jagnelo/.docker/cli-plugins/docker-feedback\" is not valid: failed to fetch metadata: fork/exec /Users/jagnelo/.docker/cli-plugins/docker-feedback: no such file or directory\nWARNING: Plugin \"/Users/jagnelo/.docker/cli-plugins/docker-sbom\" is not valid: failed to fetch metadata: fork/exec /Users/jagnelo/.docker/cli-plugins/docker-sbom: no such file or directory\npermission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
   },
   "docker_ready": {
     "ready": true,
@@ -79,12 +62,12 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "89c5e2da8098cf0605cafdaf053bd72ea505e962",
+  "head": "37182d93354f6ea434fd197f02a2879231035245",
   "implementation_sha": "9d977a886e9788383037ea6ab7641befff136fe3",
   "last_human_progress_update": "2026-09-02T16:39:23.922799+00:00",
   "local_validation_profile": "docker_integration",
   "next_action": "continue implementation from the branch workstream",
-  "plan_hash": "9319b164f38cf77007e6e6ceb54c9162b77bdc7ee250b518d7927dd3d82f4eb4",
+  "plan_hash": "2e0af08b351c3cfb14624486a8519e636b418588ed43740b0b5ecdc299a7c8b2",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [],
@@ -96,7 +79,7 @@
     "total": 8,
     "updated_at": "2026-09-02T16:39:23.922688+00:00"
   },
-  "remote": "89c5e2da8098cf0605cafdaf053bd72ea505e962",
+  "remote": "37182d93354f6ea434fd197f02a2879231035245",
   "remote_sha": "9d977a886e9788383037ea6ab7641befff136fe3",
   "remote_synchronized": true,
   "schema": 2,
