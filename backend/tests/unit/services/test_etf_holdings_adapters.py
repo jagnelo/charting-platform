@@ -3150,6 +3150,68 @@ async def test_esoterica_adapter_parses_wugi_slice_from_filepoint_aggregate_csv(
 
 
 @pytest.mark.asyncio
+async def test_even_herd_adapter_fetches_declared_complete_ehls_csv(monkeypatch):
+    adapter = get_holdings_adapter("even_herd")
+    assert adapter is not None
+    assert type(adapter).__name__ == "EvenHerdHoldingsAdapter"
+    assert "even_herd" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["even_herd"].live_tested_default_route is True
+
+    ready = adapter.probe(symbol="EHLS", name="Even Herd Long/Short ETF", identifiers={})
+    unsupported = adapter.probe(symbol="OTHER", name="", identifiers={})
+    assert ready.status == "ready"
+    assert ready.source_url == adapter.PRODUCT_PAGE_URL
+    assert unsupported.status == "needs_issuer_route"
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<h1>EVEN HERD LONG/SHORT ETF (EHLS)</h1>'
+                '<a href="https://evenherd-wix.s3.us-east-2.amazonaws.com/holdings.csv">'
+                "Download Holdings CSV</a>"
+            ),
+            content_type="text/html",
+            url=adapter.PRODUCT_PAGE_URL,
+        ),
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag",
+                    "09/02/2026,EHLS,FGXXX,31846V336,First American Government Obligations Fund 12/01/2031,12195814.13,100.0,12195814.13,21.05%,57936542.0,2290000,229.0,Y",
+                    "09/02/2026,EHLS,Cash&Other,Cash&Other,Cash & Other,2159338.46,1.0,2159338.46,3.73%,57936542.0,2290000,229.0,Y",
+                    "09/02/2026,EHLS,GH,40131M109,Guardant Health Inc,7046.0,164.41,1158432.86,2.00%,57936542.0,2290000,229.0,",
+                    "09/02/2026,EHLS,KMX,488360107,Kemper Corp,-1000.0,50.0,-50000.0,-0.09%,57936542.0,2290000,229.0,",
+                    "09/02/2026,OTHER,AAA,123456789,Other Fund,1,1,1,100%,1,1,1,",
+                ]
+            ),
+            url=adapter.HOLDINGS_URL,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="EHLS")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        adapter.PRODUCT_PAGE_URL,
+        adapter.HOLDINGS_URL,
+    ]
+    assert len(result.rows) == 4
+    assert result.rows[0].row_type == "cash"
+    assert result.rows[0].symbol is None
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].symbol is None
+    assert result.rows[2].symbol == "GH"
+    assert result.rows[3].shares == Decimal("-1000.0")
+    assert result.rows[3].weight == Decimal("-0.0009")
+    assert result.legal_metadata["source_provider"] == "even_herd"
+    assert result.legal_metadata["snapshot_provenance"] == (
+        "even_herd_ehls_issuer_native_holdings_csv"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+
+
+@pytest.mark.asyncio
 async def test_indexperts_adapter_validates_fund_identity_and_parses_complete_holdings(monkeypatch):
     adapter = get_holdings_adapter("indexperts")
     assert adapter is not None
@@ -21386,6 +21448,7 @@ def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audit
         "bushido",
         "capforce",
         "castellan",
+        "even_herd",
     }
 
     assert expected
@@ -21413,6 +21476,7 @@ def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audit
     assert "bushido" not in FALLBACK_ISSUER_AUDITS
     assert "capforce" not in FALLBACK_ISSUER_AUDITS
     assert "castellan" not in FALLBACK_ISSUER_AUDITS
+    assert "even_herd" not in FALLBACK_ISSUER_AUDITS
     assert ISSUER_ADAPTER_CONFIGS["bufferlabs"].live_tested_default_route is True
     assert type(get_holdings_adapter("bufferlabs")).__name__ == "BufferLabsHoldingsAdapter"
     assert ISSUER_ADAPTER_CONFIGS["bushido"].live_tested_default_route is True
@@ -21421,6 +21485,8 @@ def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audit
     assert type(get_holdings_adapter("capforce")).__name__ == "CapForceHoldingsAdapter"
     assert ISSUER_ADAPTER_CONFIGS["castellan"].live_tested_default_route is True
     assert type(get_holdings_adapter("castellan")).__name__ == "CastellanHoldingsAdapter"
+    assert ISSUER_ADAPTER_CONFIGS["even_herd"].live_tested_default_route is True
+    assert type(get_holdings_adapter("even_herd")).__name__ == "EvenHerdHoldingsAdapter"
 
 
 def test_stockanalysis_provider_alias_dispositions_resolve_existing_adapters():
@@ -25327,8 +25393,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 373
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 123
+    assert ledger["current_native_count"] == 374
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 122
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -25354,6 +25420,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "guggenheim",
         "elm",
         "esoterica",
+        "even_herd",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(

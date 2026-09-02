@@ -215,6 +215,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "cygnet",
     "elm",
     "esoterica",
+    "even_herd",
     "oneascent",
     "first_eagle",
     "fm_investments",
@@ -899,6 +900,7 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ("cygnet", "ELM", None, {}, 10),
         ("elm", "ELM", None, {}, 10),
         ("esoterica", "WUGI", None, {}, 10),
+        ("even_herd", "EHLS", None, {}, 20),
         (
             "applied_finance",
             "VSLU",

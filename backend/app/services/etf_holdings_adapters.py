@@ -24221,6 +24221,215 @@ class ElmHoldingsAdapter(CygnetHoldingsAdapter):
         return result
 
 
+class EvenHerdHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Even Herd's complete EHLS holdings CSV from its official Wix page."""
+
+    FUND_SYMBOL = "EHLS"
+    PRODUCT_PAGE_URL = "https://www.evenherd.com/ehls"
+    HOLDINGS_URL = "https://evenherd-wix.s3.us-east-2.amazonaws.com/holdings.csv"
+    SNAPSHOT_PROVENANCE = "even_herd_ehls_issuer_native_holdings_csv"
+    _HOLDINGS_LINK_PATTERN = re.compile(
+        r"href=[\"'](?P<href>[^\"']*holdings\.csv(?:\?[^\"']*)?)[\"']",
+        re.IGNORECASE,
+    )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        is_supported = normalized_symbol == self.FUND_SYMBOL
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if is_supported else Decimal("0.2500"),
+            status="ready" if is_supported or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "Even Herd publishes EHLS's complete current holdings CSV on its official product page."
+                if is_supported
+                else (
+                    "Even Herd's verified native holdings route currently supports EHLS only; "
+                    "SEC EDGAR fallback remains available for this unmatched symbol."
+                    if has_sec_fallback
+                    else "Even Herd's verified native holdings route currently supports EHLS only."
+                )
+            ),
+            source_url=self.PRODUCT_PAGE_URL if is_supported else None,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, source_url, identifiers
+        normalized_symbol = symbol.strip().upper()
+        self._ensure_supported_symbol(normalized_symbol)
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_response = await client.get(
+                self.PRODUCT_PAGE_URL,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+            product_response.raise_for_status()
+            holdings_url = self._holdings_url(
+                product_response.text,
+                product_page_url=str(product_response.url),
+            )
+            holdings_response = await client.get(
+                holdings_url,
+                headers={
+                    **_holdings_request_headers(accept="text/csv,application/octet-stream,*/*"),
+                    "Referer": self.PRODUCT_PAGE_URL,
+                },
+                follow_redirects=True,
+            )
+            holdings_response.raise_for_status()
+        rows, composition_date = self._parse_holdings_csv(
+            holdings_response.text,
+            symbol=normalized_symbol,
+        )
+        if not rows:
+            raise ValueError(
+                f"Even Herd's official holdings CSV returned no rows for {normalized_symbol}."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=holdings_response.text,
+            source_url=str(getattr(holdings_response, "url", holdings_url)),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "even_herd_product_page_declared_complete_holdings_csv",
+                "snapshot_provenance": self.SNAPSHOT_PROVENANCE,
+                "source_quality": "issuer_reported_daily_holdings",
+                "freshness_semantics": "issuer_disclosed_holdings_date",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "product_page_url": str(product_response.url),
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    async def fetch_for_date(
+        self,
+        *,
+        symbol: str,
+        requested_date: date,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, source_url, identifiers
+        result = await self.fetch_latest(symbol=symbol)
+        composition_date = self._parse_date(
+            (result.legal_metadata or {}).get("composition_date")
+        )
+        if composition_date != requested_date:
+            raise ValueError(
+                "Even Herd publishes a current-only holdings CSV; no exact EHLS snapshot "
+                f"was available for {requested_date.isoformat()}."
+            )
+        return result
+
+    @classmethod
+    def _holdings_url(cls, raw_html: str, *, product_page_url: str) -> str:
+        normalized_html = html.unescape(raw_html)
+        identity_text = normalized_html.upper()
+        if "EVEN HERD" not in identity_text or "EHLS" not in identity_text:
+            raise ValueError("Even Herd product page identity did not match EHLS.")
+        for match in cls._HOLDINGS_LINK_PATTERN.finditer(normalized_html):
+            resolved = urljoin(product_page_url, match.group("href"))
+            if resolved.rstrip("/") == cls.HOLDINGS_URL:
+                return resolved
+        raise ValueError("Even Herd product page did not declare its complete holdings CSV.")
+
+    @classmethod
+    def _parse_holdings_csv(
+        cls,
+        raw_csv: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for position, raw in enumerate(csv.DictReader(StringIO(raw_csv.strip())), start=1):
+            account = (_clean(raw.get("Account")) or "").upper()
+            if account != symbol:
+                continue
+            row_date = cls._parse_date(raw.get("Date"))
+            if row_date and (composition_date is None or row_date > composition_date):
+                composition_date = row_date
+            raw_symbol = _clean(raw.get("StockTicker"))
+            name = _clean(raw.get("SecurityName"))
+            is_cash = (
+                "CASH" in " ".join(part.upper() for part in (raw_symbol, name) if part)
+                or raw_symbol == "FGXXX"
+            )
+            cusip_value = _clean(raw.get("CUSIP"))
+            cusip = cusip_value if _looks_like_cusip(cusip_value) else None
+            parsed_symbol = cls._clean_symbol(raw_symbol) if not is_cash else None
+            if not any(
+                [parsed_symbol, name, cusip, raw.get("MarketValue"), raw.get("Weightings")]
+            ):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=parsed_symbol,
+                    name=name,
+                    cusip=cusip,
+                    weight=_decimal(raw.get("Weightings")),
+                    shares=_decimal(raw.get("Shares")),
+                    market_value=_decimal(raw.get("MarketValue")),
+                    currency="USD",
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"even-herd-{symbol}-{position}",
+                    extra_data={
+                        **{
+                            key: value
+                            for key, value in raw.items()
+                            if key is not None and _clean(value) is not None
+                        },
+                        "source": "even_herd_daily_holdings_csv",
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _parse_date(value: Any) -> date | None:
+        text = _clean(value)
+        if not text:
+            return None
+        for pattern in ("%m/%d/%Y", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(text, pattern).date()
+            except ValueError:
+                continue
+        return None
+
+    @staticmethod
+    def _clean_symbol(value: Any) -> str | None:
+        candidate = _clean(value)
+        if not candidate or _looks_like_cusip(candidate.upper()):
+            return None
+        normalized = candidate.upper().strip()
+        return normalized if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", normalized) else None
+
+    @classmethod
+    def _ensure_supported_symbol(cls, symbol: str) -> None:
+        if symbol != cls.FUND_SYMBOL:
+            raise ValueError(
+                f"Even Herd's verified holdings route supports {cls.FUND_SYMBOL} only."
+            )
+
+
 class LionSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch LionShares ETF holdings from its issuer-declared FilePoint CSV."""
 
@@ -60942,6 +61151,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "be subject to issuer terms."
         ),
     ),
+    "even_herd": IssuerCsvAdapterConfig(
+        adapter_key="even_herd",
+        source_provider="even_herd",
+        source_access="issuer_product_page_declared_complete_holdings_csv",
+        product_page_templates=("https://www.evenherd.com/ehls",),
+        live_tested_default_route=True,
+        terms_note="Even Herd's public EHLS holdings CSV may be subject to issuer terms.",
+    ),
     "aot": IssuerCsvAdapterConfig(
         adapter_key="aot",
         source_provider="aot",
@@ -64601,7 +64818,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "elements",
         "emirate_abu_dhabi",
         "etf_managers_group",
-        "even_herd",
         "everence",
         "falconx",
         "fcf_advisors",
@@ -67644,10 +67860,6 @@ class SuncoastReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """StockAnalysis provider-table fallback adapter pending Suncoast discovery."""
 
 
-class EvenHerdReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """StockAnalysis provider-table fallback adapter pending Even Herd discovery."""
-
-
 class LogiqReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """StockAnalysis provider-table fallback adapter pending LOGIQ discovery."""
 
@@ -67706,7 +67918,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "esoterica": EsotericaHoldingsAdapter,
         "etf_managers_group": EtfManagersGroupReconciledFallbackHoldingsAdapter,
         "eurazeo": EurazeoAuditedFallbackHoldingsAdapter,
-        "even_herd": EvenHerdReconciledFallbackHoldingsAdapter,
+        "even_herd": EvenHerdHoldingsAdapter,
         "everence": EverenceReconciledFallbackHoldingsAdapter,
         "fairlead": CaryStreetHoldingsAdapter,
         "falconx": FalconXReconciledFallbackHoldingsAdapter,
