@@ -1052,6 +1052,49 @@ opt-in provider matrix and Docker-backed integration gate remain pending at the
 377-native baseline, with the known unrelated reproducible F8p-current-history
 Study Lab histogram timeout still an AC7 gap.
 
+## 24. Current execution checkpoint — Framework Digital Advisors / GSR BESO — 2026-09-03
+
+The ranked `framework_digital_advisors` audit found one current executable
+first-party route. The official Framework/GSR product page at
+`https://gsretps.io/etf/beso` identifies BESO as the GSR Crypto Core3 ETF and
+declares the `gsr-transformer.gsr.io` API client. Its details endpoint returns
+the matching BESO product identity and `updateAt: 2026-09-01T00:00:00.000Z`;
+its holdings endpoint returns nine rows, including the underlying ETF/fund
+positions and a Cash & Other row.
+
+The new explicit `FrameworkDigitalAdvisorsHoldingsAdapter` validates the
+official product-page identity, uses only the issuer-declared details and
+holdings hosts, verifies the returned ticker, parses the JSON schema with
+strict symbol/name requirements, converts percentage-point weights, classifies
+underlying ETFs/funds and cash, and records the details `updateAt` date as
+composition/as-of freshness. Metadata preserves GSR ETFs as the publisher and
+Framework Digital Advisors as adviser/parent identity. The adapter is
+deliberately scoped to BESO: SEC-listed DATZ and other candidate GSR symbols
+currently return no product page or API data, so they are not silently
+reconstructed through EDGAR.
+
+The deterministic unit test covers product identity, official-domain rejection,
+details/holdings request ordering, symbol mapping, fund/cash classification,
+weight conversion, freshness, and parent/publisher provenance. The bounded
+opt-in live test covers the current BESO API route and requires a cash row. The
+ETFDB issuer-league reconciliation invariant now treats
+`framework_digital_advisors` as native-promoted, and the live-provider manifest
+owns a bespoke route test for the new adapter.
+
+The code-derived split after this promotion is 496 registered, 378
+native/live-backed, and 118 fallback-only providers. Runtime fallback status
+counts are 8 issuer-access-blocked, 101 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The exhaustive
+ledger retains all 140 historical records exactly once, with
+`framework_digital_advisors` marked `native_promoted`; 79 queued fallback
+records remain and the next ranked item is `freedom`.
+
+Implementation and validation records for this checkpoint must reference the
+resulting adapter/config/test SHA and the dated Framework/GSR evidence. The
+complete opt-in provider matrix and Docker-backed integration gate remain
+pending at the 378-native baseline; the known unrelated reproducible
+F8p-current-history Study Lab histogram timeout remains an AC7 gap.
+
 ## 23. Current execution checkpoint — FPA alias to First Pacific Advisors — 2026-09-02
 
 The ranked `fpa` audit resolved an identity duplicate rather than adding a

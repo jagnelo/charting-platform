@@ -28,8 +28,8 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `377`
-- Audited fallback-only providers: `119`
+- Native/live-backed providers: `378`
+- Audited fallback-only providers: `118`
 
 The current checkpoint promotes `guggenheim` through its public issuer-hosted
 ETF holdings table, reconciles `ars` to the existing ARS Investment Partners
@@ -65,6 +65,12 @@ Fitzgerald is now covered through the official XFUNDS by Nicholas Wealth pages:
 the FITZ and FIZY product pages declare nonce-scoped current holdings CSVs, and
 the native adapter preserves daily dates, cash, CUSIPs, and FIZY option
 positions as derivatives.
+Framework Digital Advisors is now covered through the official GSR ETF site and
+its declared transformer API for BESO, with the details `updateAt` date carried
+through as holdings freshness and the GSR publisher/adviser relationship kept in
+provenance. The SEC-listed DATZ product currently has no GSR product page or API
+data, so it remains outside this narrowly scoped promotion rather than being
+silently reconstructed from EDGAR.
 FormulaFolios is recorded as an inactive/successor identity: the official SEC
 liquidation supplement names FFHG, FFSG, FFTG, and FFTI and schedules their
 October 2023 termination, while Brookstone's official combination notice
@@ -72,13 +78,14 @@ establishes the successor context; current Brookstone ETF routes remain under
 the distinct native `brookstone` identity.
 The historical starting snapshot for this
 workstream was 356 native and 140 fallback; the provider-audit ledger retains
-that baseline record while tracking the current 377/119 split.
+that baseline record while tracking the current 378/118 split.
 
 The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
 `FALLBACK_ISSUER_AUDITS` at the current ETF-branch implementation checkpoint
-`a1caaa0c` (Fitzgerald/Nicholas Wealth FITZ and FIZY routes; FalconX/21Shares ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN,
+`8d9ad334` (Framework/GSR BESO route; Fitzgerald/Nicholas Wealth FITZ and FIZY routes; FalconX/21Shares ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN,
 THYP, and TKNS native routes; Esoterica WUGI, Even Herd EHLS, and Everence/Praxis
-PRXG/PRXV/PRXI native routes; ETF Managers Group is recorded as an
+PRXG/PRXV/PRXI native routes; Framework/GSR BESO is now native through its
+declared details/holdings API; ETF Managers Group is recorded as an
 inactive/successor identity after Amplify's documented acquisition; the Discipline
 Funds, DVx Ventures, EA Series Trust, and Elements audits
 remain fallback-only; Elm is now native-promoted through the same declared route
@@ -86,7 +93,7 @@ as the existing Cygnet parent identity).
 The fallback audit statuses are:
 
 - `issuer_access_blocked`: `8`
-- `needs_first_party_route_discovery`: `102`
+- `needs_first_party_route_discovery`: `101`
 - `non_executable_public_source`: `3`
 - `provider_not_a_portfolio_publisher`: `6`
 
