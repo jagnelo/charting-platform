@@ -73,13 +73,13 @@ migration_impact: none
 deployment_impact: "none; feature implementation stops before integration or deployment"
 status: in_progress
 remaining_gaps:
-  - "Starting baseline was 496 registered providers, 356 native/live-backed providers, and 140 fallback-only providers; after the Guggenheim, ARS, Avory, and Ballast promotions, current code and provider-universe documentation report 496/360/136 and future counts must remain derived."
-  - "The 140 starting fallback providers have a baseline ledger snapshot; Guggenheim, ARS, Avory, and Ballast are now recorded as native_promoted, Advisors Asset Management, Amplius, Argent, and Arin are issuer-access-blocked, AlphaMark and AlphaClone have inactive/successor dispositions, AMG National and Azimut are non-portfolio publishers, and Anydrus plus Baillie Gifford are non-executable public sources. The remaining 127 current fallbacks require issuer-specific first-party route evidence and final native or defensible dispositions."
-  - "The full current opt-in live provider matrix and final Docker-backed integration gate have not yet been rerun at the current 360-native baseline."
+  - "Starting baseline was 496 registered providers, 356 native/live-backed providers, and 140 fallback-only providers; after the Guggenheim, ARS, Avory, Ballast, and Bancreek promotions, current code and provider-universe documentation report 496/361/135 and future counts must remain derived."
+  - "The 140 starting fallback providers have a baseline ledger snapshot; Guggenheim, ARS, Avory, Ballast, and Bancreek are now recorded as native_promoted, Advisors Asset Management, Amplius, Argent, and Arin are issuer-access-blocked, AlphaMark and AlphaClone have inactive/successor dispositions, AMG National and Azimut are non-portfolio publishers, and Anydrus plus Baillie Gifford are non-executable public sources. The remaining 126 current fallbacks require issuer-specific first-party route evidence and final native or defensible dispositions."
+  - "The full current opt-in live provider matrix and final Docker-backed integration gate have not yet been rerun at the current 361-native baseline."
   - "Human closure authorization remains pending."
 progress:
   completed: []
   total: 8
   current_phase: issuer_audit_queue
   current_blocker: none
-  next_action: "Continue the ranked provider-audit queue after the Ballast promotion; keep the ledger and runtime audit synchronized at each changeset and promote only complete executable first-party routes."
+  next_action: "Continue the ranked provider-audit queue after the Bancreek promotion; keep the ledger and runtime audit synchronized at each changeset and promote only complete executable first-party routes."

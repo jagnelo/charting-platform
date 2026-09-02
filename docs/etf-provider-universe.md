@@ -28,23 +28,24 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `360`
-- Audited fallback-only providers: `136`
+- Native/live-backed providers: `361`
+- Audited fallback-only providers: `135`
 
 The current checkpoint promotes `guggenheim` through its public issuer-hosted
 ETF holdings table, reconciles `ars` to the existing ARS Investment Partners
 ACEP/AFOS product-page adapter, adds Avory's complete AVRY product-page
-holdings route, and reconciles Ballast to the complete MGMT FilePoint feed.
+holdings route, reconciles Ballast to the complete MGMT FilePoint feed, and adds
+Bancreek's issuer-rendered BCUS/BCIL/BCGS holdings components.
 The historical starting snapshot for this
 workstream was 356 native and 140 fallback; the provider-audit ledger retains
-that baseline record while tracking the current 360/136 split.
+that baseline record while tracking the current 361/135 split.
 
 The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
 `FALLBACK_ISSUER_AUDITS` at the approved ETF-branch checkpoint
 `f33224ab94bba5a9f0b7d93c5b82e5578e3a191b`. The fallback audit statuses are:
 
 - `issuer_access_blocked`: `8`
-- `needs_first_party_route_discovery`: `119`
+- `needs_first_party_route_discovery`: `118`
 - `non_executable_public_source`: `3`
 - `provider_not_a_portfolio_publisher`: `6`
 
@@ -57,7 +58,8 @@ before promotion or terminal closure.
 The current audit checkpoint has issuer-specific evidence for the highest-ranked
 records reviewed so far: `ars` is native-promoted through complete ACEP/AFOS
 first-party holdings tables, `avory` through a complete AVRY product page, and
-`ballast` through the MGMT FilePoint feed;
+`ballast` through the MGMT FilePoint feed, and `bancreek` through its issuer
+Nuxt holdings components;
 `advisors_asset_management` is blocked before a stable
 backend export can be captured; `alphamark_advisors` now redirects to an EP
 Wealth successor page; `amg_national` is a bank/wealth manager rather than an

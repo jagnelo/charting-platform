@@ -8880,6 +8880,61 @@ def test_ballast_provider_alias_uses_verified_inverdale_route():
 
 
 @pytest.mark.asyncio
+async def test_bancreek_adapter_parses_issuer_nuxt_holdings_component(monkeypatch):
+    adapter = get_holdings_adapter("bancreek")
+    assert adapter is not None
+    product_page_url = "https://www.bancreeketfs.com/bcus"
+    payload = [
+        {
+            "componentId": "bancreeketfs-bcus-holdings-1",
+            "date": "07/23/2026",
+            "finData": [1, 2],
+        },
+        {
+            "ticker": "AMRX",
+            "description": "AMNEAL PHARMACEUTICALS INC",
+            "figi": "BBG00462PGG0",
+            "quantity": 349859,
+            "market_value": "6,286,966.23",
+            "percent_of_nav": "4.04%",
+        },
+        {
+            "ticker": "CASH & OTHER",
+            "description": "CASH & OTHER",
+            "quantity": 261741,
+            "market_value": "261,741.24",
+            "percent_of_nav": "0.17%",
+        },
+    ]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<html><h1>BCUS Bancreek U.S. Large Cap ETF</h1>"
+                '<script type="application/json" data-nuxt-data="nuxt-app" '
+                'data-ssr="true" id="__NUXT_DATA__">'
+                f"{json.dumps(payload)}</script></html>"
+            ),
+            content_type="text/html",
+            url=product_page_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="BCUS")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_page_url]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "AMRX"
+    assert result.rows[0].weight == Decimal("0.0404")
+    assert result.rows[0].extra_data["figi"] == "BBG00462PGG0"
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].symbol is None
+    assert result.legal_metadata["adapter_key"] == "bancreek"
+    assert result.legal_metadata["composition_date"] == "2026-07-23"
+
+
+@pytest.mark.asyncio
 async def test_inverdale_adapter_retries_transient_post_timeout(monkeypatch):
     adapter = get_holdings_adapter("inverdale")
     assert adapter is not None
@@ -24481,8 +24536,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 360
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 136
+    assert ledger["current_native_count"] == 361
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 135
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -24490,7 +24545,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         for record in records
         if record["disposition"] == "native_promoted"
     }
-    assert native_promoted == {"ars", "avory", "ballast", "guggenheim"}
+    assert native_promoted == {"ars", "avory", "ballast", "bancreek", "guggenheim"}
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(
         range(1, len(records) + 1)

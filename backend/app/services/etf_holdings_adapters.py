@@ -41125,6 +41125,107 @@ class BallastHoldingsAdapter(InverdaleHoldingsAdapter):
         )
 
 
+class BancreekHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Bancreek ETF portfolios from issuer-rendered Nuxt holdings data."""
+
+    _PRODUCT_PAGE_URLS = {
+        "BCUS": "https://www.bancreeketfs.com/bcus",
+        "BCIL": "https://www.bancreeketfs.com/bcil",
+        "BCGS": "https://www.bancreeketfs.com/bcgs",
+    }
+    _ISSUER_HOST = "www.bancreeketfs.com"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        source_url = self._PRODUCT_PAGE_URLS.get(normalized_symbol)
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if source_url else Decimal("0"),
+            status="ready" if source_url else "needs_issuer_route",
+            reason=(
+                "Bancreek publishes this ETF's complete current holdings in its issuer-rendered product page."
+                if source_url
+                else "Bancreek's verified issuer route currently supports BCUS, BCIL, and BCGS only."
+            ),
+            source_url=source_url,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_url = self._PRODUCT_PAGE_URLS.get(normalized_symbol)
+        if product_url is None:
+            raise ValueError(
+                f"Bancreek's verified issuer route currently supports BCUS, BCIL, and BCGS only, not {normalized_symbol}."
+            )
+        resolved_url = source_url or product_url
+        parsed_url = urlparse(resolved_url)
+        expected_path = urlparse(product_url).path
+        if (
+            parsed_url.scheme != "https"
+            or parsed_url.netloc.lower() != self._ISSUER_HOST
+            or parsed_url.path.rstrip("/").lower() != expected_path.rstrip("/").lower()
+            or parsed_url.query
+            or parsed_url.fragment
+        ):
+            raise ValueError("Bancreek holdings must use the verified symbol-scoped issuer product page.")
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_url,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        response_url = urlparse(str(response.url))
+        if (
+            response_url.scheme != "https"
+            or response_url.netloc.lower() != self._ISSUER_HOST
+            or response_url.path.rstrip("/").lower() != expected_path.rstrip("/").lower()
+        ):
+            raise ValueError("Bancreek holdings response left the verified issuer product page.")
+        hydrated_rows, composition_date = _extract_nuxt_hydration_holdings(
+            response.text,
+            component_id=f"bancreeketfs-{normalized_symbol.lower()}-holdings-1",
+        )
+        rows = _canonical_nuxt_holdings_rows(
+            hydrated_rows,
+            source_row_prefix=f"bancreek-{normalized_symbol.lower()}",
+        )
+        if not rows:
+            raise ValueError(
+                f"Bancreek product page did not expose complete holdings rows for {normalized_symbol}."
+            )
+        composition_value = composition_date.isoformat() if composition_date else None
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "nuxt_hydration_json", "row_count": len(rows)},
+            source_url=str(response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "nuxt_hydration_json",
+                "route_resolution": "bancreek_issuer_nuxt_complete_holdings_component",
+                "product_page_url": str(response.url),
+                "composition_date": composition_value,
+                "as_of_date": composition_value,
+                "snapshot_provenance": "bancreek_native_current_holdings_table",
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+
 class HypatiaHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Hypatia ETF holdings from its public fund-scoped FilePoint API."""
 
@@ -63269,6 +63370,21 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "through its public ETF product page and declared holdings feed."
         ),
     ),
+    "bancreek": IssuerCsvAdapterConfig(
+        adapter_key="bancreek",
+        source_provider="bancreek_capital_advisors",
+        source_access="bancreek_issuer_nuxt_complete_holdings_component",
+        product_page_templates=(
+            "https://www.bancreeketfs.com/bcus",
+            "https://www.bancreeketfs.com/bcil",
+            "https://www.bancreeketfs.com/bcgs",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "Bancreek publishes complete current ETF holdings in issuer-rendered product-page "
+            "components; data may be subject to issuer terms."
+        ),
+    ),
     "vontobel": IssuerCsvAdapterConfig(
         adapter_key="vontobel",
         source_provider="vontobel",
@@ -63574,7 +63690,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "avos",
         "azimut",
         "baillie_gifford",
-        "bancreek",
         "beehive",
         "bridgeway",
         "brookstone",
@@ -65634,7 +65749,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "azimut": AzimutReconciledFallbackHoldingsAdapter,
         "baillie_gifford": BaillieGiffordReconciledFallbackHoldingsAdapter,
         "ballast": BallastHoldingsAdapter,
-        "bancreek": BancreekReconciledFallbackHoldingsAdapter,
+        "bancreek": BancreekHoldingsAdapter,
         "beehive": BeeHiveReconciledFallbackHoldingsAdapter,
         "bluemonte": BluemonteHoldingsAdapter,
         "blueprint": BlueprintReconciledFallbackHoldingsAdapter,
