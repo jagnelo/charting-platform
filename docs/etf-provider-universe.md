@@ -28,8 +28,8 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `375`
-- Audited fallback-only providers: `121`
+- Native/live-backed providers: `376`
+- Audited fallback-only providers: `120`
 
 The current checkpoint promotes `guggenheim` through its public issuer-hosted
 ETF holdings table, reconciles `ars` to the existing ARS Investment Partners
@@ -50,13 +50,18 @@ existing Cygnet parent identity), and Esoterica's WUGI product/data-page-declare
 FilePoint dated aggregate holdings CSV, and Even Herd's EHLS product-page-declared
 complete daily holdings CSV, and Everence/Praxis's PRXG, PRXV, and PRXI
 product-page-declared complete daily holdings CSVs.
+FalconX is now covered through its independently managed 21Shares subsidiary,
+whose official U.S. catalogue and page-declared primary/secondary product-details
+APIs provide current holdings for ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN,
+THYP, and TKNS.
 The historical starting snapshot for this
 workstream was 356 native and 140 fallback; the provider-audit ledger retains
-that baseline record while tracking the current 375/121 split.
+that baseline record while tracking the current 376/120 split.
 
 The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
 `FALLBACK_ISSUER_AUDITS` at the current ETF-branch implementation checkpoint
-`1b29a6fb` (Esoterica WUGI, Even Herd EHLS, and Everence/Praxis
+`2ffa2796` (FalconX/21Shares ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN,
+THYP, and TKNS native routes; Esoterica WUGI, Even Herd EHLS, and Everence/Praxis
 PRXG/PRXV/PRXI native routes; ETF Managers Group is recorded as an
 inactive/successor identity after Amplify's documented acquisition; the Discipline
 Funds, DVx Ventures, EA Series Trust, and Elements audits

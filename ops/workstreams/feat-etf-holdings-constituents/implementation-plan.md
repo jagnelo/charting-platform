@@ -839,3 +839,50 @@ cases (the fourth is the live-route matrix contract). Ruff, workstream
 validation, and whitespace checks pass. The Docker-backed gate's existing
 unrelated F8p-current-history Study Lab failure remains a separate AC7 gap and
 must not be fixed from this ETF workstream.
+
+## 18. Current execution checkpoint — FalconX/21Shares — 2026-09-02
+
+The ranked `falconx` audit is now resolved as a parent-company promotion through
+FalconX's independently managed 21Shares ETF/ETP subsidiary. FalconX's official
+acquisition announcement establishes the parent/publisher relationship, while
+the official 21Shares U.S. product catalogue currently lists ARKB, TETH, TOXR,
+TSOL, TDOG, TDOT, TSUI, TCAN, THYP, and TKNS.
+
+The catalogue's ARKB product page declares the primary and secondary API hosts
+and the `/api/product_details/{ticker}` route. As of September 2, 2026, both
+official hosts returned current September 1 product-detail payloads for all ten
+symbols. The payloads contain complete parseable constituent data: one crypto
+asset row for each single-asset product, four rows for TCAN, and nine rows for
+TKNS, including cash or money-market entries where disclosed.
+
+The implementation adds an explicit `FalconXHoldingsAdapter` that subclasses
+the existing 21Shares transport, switches the parent route to the page-declared
+primary and secondary hosts, restricts native readiness/fetching to the ten
+verified U.S. symbols, and records FalconX as `parent_issuer` with 21Shares as
+the publisher. The 21Shares parser's crypto classification now includes the
+verified XRP, DOT, SUI, HYPE, and Canton Coin tickers in addition to its prior
+asset set. Unsupported symbols remain `needs_issuer_route` unless SEC
+identifiers enable the universal filing fallback.
+
+The code-derived split after this promotion is 496 registered, 376
+native/live-backed, and 120 fallback-only providers. Fallback status counts are
+8 issuer-access-blocked, 103 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The ledger still
+retains all 140 historical records exactly once, with `falconx` now marked
+`native_promoted`; 85 queued fallback records remain for the next audit pass.
+
+Implementation checkpoint `2ffa2796a00391b482b03f1cb2a5be12a1a1be61` contains
+the adapter, registry/config, deterministic parser/provenance test, and
+ten-product opt-in live coverage. The focused FalconX/21Shares unit slice
+passes 4 tests; the opt-in FalconX live route passes 1 test while exercising all
+ten symbols; Ruff and whitespace checks pass. The full deterministic adapter
+module and default live contract matrix must be rerun after the durable ledger
+checkpoint. The Docker-backed gate's existing unrelated F8p-current-history
+Study Lab failure remains a separate AC7 gap and must not be fixed from this ETF
+workstream.
+
+The next ranked queue item is `fcf_advisors`. Continue the same evidence loop:
+inspect official product and holdings routes, promote only a complete executable
+first-party source with strict identity and parser tests, otherwise record a
+dated issuer-specific disposition. Do not integrate, promote, deploy, or push
+the feature branch without the separately required authorization.
