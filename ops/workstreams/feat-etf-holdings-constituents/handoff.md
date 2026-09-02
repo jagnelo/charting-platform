@@ -27,8 +27,8 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Validation tier: `full_integration`.
 - Local validation profile: `docker_integration`.
 - Planning session: `197b239d-3322-4fc6-bf4b-0d0aecebf5e0`.
-- Latest implementation checkpoint: pending Elm changeset (Elm native ELM route;
-  the existing Cygnet parent route remains intact); prior `a4571ff3` (Elements inactive/successor
+- Latest implementation checkpoint: `30fef93e` (Elm native ELM route; the existing
+  Cygnet parent route remains intact); prior `a4571ff3` (Elements inactive/successor
   disposition; prior EA Series Trust dated non-portfolio-publisher disposition;
   prior DVx Ventures dated
   non-portfolio-publisher disposition; prior Discipline Funds dated

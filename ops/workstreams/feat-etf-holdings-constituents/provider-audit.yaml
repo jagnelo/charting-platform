@@ -1711,7 +1711,7 @@ providers:
         evidence_ref: "web:elm-sec-adviser-cygnet-relationship-2026-09-02"
     disposition_reason: "elm: Elm Partners Management's official ELM product page declares a complete current holdings CSV, and the provider-specific Elm adapter validates the fund identity, isolates the ELM account, preserves identifiers/quantities/values/weights/date and cash semantics, and has deterministic plus opt-in live coverage. The existing Cygnet route is retained as the parent-identity equivalent rather than used as a generic fallback."
     next_action: "elm: Monitor the ELM product page and declared full-holdings CSV; retain native status while the route remains complete, current, executable, and identity-valid."
-    implementation_sha: null
+    implementation_sha: 30fef93e2c9a18a31567b60f6e66ca1a2e27dded
     validation_refs: []
   - adapter_key: emirate_abu_dhabi
     display_name: emirate_abu_dhabi
