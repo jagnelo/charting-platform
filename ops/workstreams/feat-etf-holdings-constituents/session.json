@@ -1,0 +1,73 @@
+{
+  "acceptance_criteria": [
+    {
+      "id": "AC1",
+      "text": "No provider is counted as native without a concrete provider-owned route and deterministic tests."
+    },
+    {
+      "id": "AC2",
+      "text": "Fallback-only issuers remain explicitly audited and are never silently promoted through SEC fallback."
+    },
+    {
+      "id": "AC3",
+      "text": "The full deterministic adapter suite and the opt-in live matrix remain green for the changed scope."
+    }
+  ],
+  "active_session_id": "197b239d-3322-4fc6-bf4b-0d0aecebf5e0",
+  "branch": "feat/etf-holdings-constituents",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-etf-holdings-constituents-45bdf9bd",
+      "charting-stack-feat-etf-holdings-constituents-45bdf9bd"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "feat-etf-holdings-constituents-45bdf9bd8d"
+  },
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance feat/etf-holdings-constituents: Continue native ETF holdings provider coverage from the current green staging baseline.. Acceptance criteria: AC1: No provider is counted as native without a concrete provider-owned route and deterministic tests.; AC2: Fallback-only issuers remain explicitly audited and are never silently promoted through SEC fallback.; AC3: The full deterministic adapter suite and the opt-in live matrix remain green for the changed scope.. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Advance feat/etf-holdings-constituents: Continue native ETF holdings provider coverage from the current green staging baseline.. Acceptance criteria: AC1: No provider is counted as native without a concrete provider-owned route and deterministic tests.; AC2: Fallback-only issuers remain explicitly audited and are never silently promoted through SEC fallback.; AC3: The full deterministic adapter suite and the opt-in live matrix remain green for the changed scope.. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "ready",
+  "goal_state": "requested",
+  "head": "9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4",
+  "local_validation_profile": "pending_agent_assessment",
+  "plan_hash": "ede7cd7188ea16c7cc71588c4059fc03a20aa483d3e58ecb1a18bc5c86fbb5cd",
+  "planning_required": false,
+  "planning_state": "legacy_ready",
+  "previous_session_ids": [],
+  "progress": {
+    "completed": [],
+    "current_blocker": "none",
+    "current_phase": "implementation",
+    "total": 3
+  },
+  "remote": "9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4",
+  "remote_synchronized": true,
+  "schema": 2,
+  "session_id": "197b239d-3322-4fc6-bf4b-0d0aecebf5e0",
+  "validation_tier": "full_integration",
+  "workstream": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents",
+  "workstream_files": [
+    "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
+    "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/handoff.md",
+    "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/validation.jsonl",
+    "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/session.json"
+  ],
+  "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
+  "worktree_id": "feat-etf-holdings-constituents-45bdf9bd8d"
+}

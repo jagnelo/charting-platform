@@ -1,40 +1,85 @@
-schema: 2
+schema: 4
 branch: feat/etf-holdings-constituents
 base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 parent_branch: staging
 parent_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
+latest_staging_merge_sha: 9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4
+latest_staging_parent_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 dependency_authorization: "not applicable: independent staging-based topic"
-human_intent_authorization: "Continue the existing ETF holdings provider coverage goal from current green staging; carry forward the remaining native-provider work."
+human_intent_authorization: "Continue the existing ETF holdings provider coverage goal from current green staging; carry forward the remaining native-provider work. The human approved the exhaustive implementation plan and explicitly authorized persisting it for a later Codex implementation session."
+planning_state: ready
 human_closure_authorization: pending
 closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human requested continued product development from staging; all application/provider changes use the complete integration gate."
-previous_branch: feat/etf-holdings-constituents (old master-based history, fully merged into staging)
+local_validation_profile: docker_integration
+local_validation_reason: "The owned scope changes external ETF provider adapters, live HTTP contracts, provider freshness/provenance behavior, and backend runtime integration; repository classification therefore requires Docker-backed integration evidence in addition to deterministic and opt-in live provider tests."
+goal_budget_policy: unbounded_unless_human_authorized
+human_goal_budget_authorization: none
+previous_branch: feat/etf-holdings-constituents
 previous_tip: a8d618995fbd928c66117271bb7ac9152a935ab5
-goal: "Continue native ETF holdings provider coverage from the current green staging baseline."
+goal: "Exhaustively audit the remaining ETF holdings issuers, promote every proven first-party executable holdings source to a truthful native adapter, preserve explicit evidence-backed fallback dispositions for all others, and bring code, tests, live coverage, documentation, and durable workstream records into exact agreement."
 scope:
-  - "Promote audited fallback-only issuers to provider-specific native/live-backed routes when a complete first-party source is proven."
-  - "Preserve explicit fallback audits, source provenance, and the strict registered/native/fallback provider matrix."
-  - "Add deterministic parser coverage and opt-in live-route tests for every promoted provider."
+  - "Repair stale branch-owned ETF workstream and provider-universe documentation so they report the current 496 registered, 356 native/live-backed, and 140 fallback-only provider baseline."
+  - "Create and maintain a branch-owned exhaustive provider audit ledger covering all 140 current fallback-only adapter keys, with deterministic prioritization, source evidence, attempt dates, route disposition, and next action."
+  - "Investigate every current fallback issuer against first-party public or already-entitled holdings sources; promote only complete, executable, provider-owned routes and retain evidence-backed fallback classifications otherwise."
+  - "Implement provider-specific adapters with strict symbol mapping, parsing, provenance, freshness, error behavior, and no silent SEC-fallback promotion."
+  - "Add deterministic unit/parser/registry coverage and bounded opt-in live-route coverage for every native promotion, including matrix assertions that prevent false native classification."
+  - "Keep ISSUER_ADAPTER_CONFIGS, FALLBACK_ISSUER_AUDITS, provider tests, live-provider manifest, provider-universe documentation, and the audit ledger mutually consistent."
+  - "Run focused checks throughout, then the complete deterministic adapter suite, full opt-in live provider matrix, Ruff, repository full-integration gate, and exact-SHA CI before human review."
+  - "Stop at ready_for_human_review with a clean, synchronized feature branch; do not integrate, promote, deploy, or modify another worktree."
 owned_paths:
   - backend/app/services/etf_holdings_adapters.py
   - backend/tests/unit/services/test_etf_holdings_adapters.py
   - backend/tests/live/test_etf_holdings_live_providers.py
   - docs/etf-provider-universe.md
-  - ops/state.json
-  - ops/handoff.md
-dependencies: [reviewed free/entitled first-party provider routes]
+  - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
+  - ops/workstreams/feat-etf-holdings-constituents/implementation-plan.md
+  - ops/workstreams/feat-etf-holdings-constituents/provider-audit.yaml
+  - ops/workstreams/feat-etf-holdings-constituents/handoff.md
+  - ops/workstreams/feat-etf-holdings-constituents/validation.jsonl
+  - ops/workstreams/feat-etf-holdings-constituents/session.json
+dependencies:
+  - "Reviewed public, free, or already-entitled first-party issuer routes; no new paid entitlement is implied."
+  - "External provider availability is evidence for route disposition, not permission to weaken deterministic contracts."
+  - "Docker must be available for the required local docker_integration profile and final full-integration gate."
 acceptance_criteria:
-  - "No provider is counted as native without a concrete provider-owned route and deterministic tests."
-  - "Fallback-only issuers remain explicitly audited and are never silently promoted through SEC fallback."
-  - "The full deterministic adapter suite and the opt-in live matrix remain green for the changed scope."
+  - id: AC1
+    text: "Durable ETF workstream state is current and internally consistent: the plan, handoff, provider-universe document, registry counts, audit counts, and next action agree at every checkpoint."
+  - id: AC2
+    text: "A complete provider-audit ledger accounts for every current fallback-only adapter key exactly once, uses the approved deterministic ranking, and records issuer-specific dated source evidence, disposition, and next action."
+  - id: AC3
+    text: "Every provider counted as native has a concrete provider-owned holdings route, provider-specific fetch entry point, strict parsing/mapping, truthful provenance and freshness, deterministic tests, and concrete opt-in live coverage."
+  - id: AC4
+    text: "Every provider remaining fallback-only has a current issuer-specific audit disposition; no fallback is silently promoted through SEC data and no generic unattempted discovery note is accepted as final evidence."
+  - id: AC5
+    text: "All 140 providers in the starting fallback population have been processed to either a verified native promotion or a defensible dated terminal/blocked disposition, with no missing, duplicate, or stale ledger entries."
+  - id: AC6
+    text: "ISSUER_ADAPTER_CONFIGS, FALLBACK_ISSUER_AUDITS, native/fallback counts, native adapter ownership, deterministic tests, live-provider coverage, documentation, and the provider-audit ledger satisfy exhaustive matrix invariants."
+  - id: AC7
+    text: "Focused checks, the complete deterministic adapter suite, default live contracts, the complete opt-in live provider matrix, Ruff, the Docker-backed full-integration gate, and exact-SHA CI are green or any genuine external outage is narrowly evidenced without misrepresenting validation."
+  - id: AC8
+    text: "The feature branch is clean and synchronized at an exact reviewed SHA, durable handoff and validation records are complete, and the workstream stops at ready_for_human_review without integration, promotion, deployment, or cross-worktree mutation."
 branch_tests:
-  - "backend/.venv/bin/pytest backend/tests/unit/services/test_etf_holdings_adapters.py -q --no-cov"
-  - "backend/.venv/bin/pytest backend/tests/live/test_etf_holdings_live_providers.py -q --no-cov"
-  - "backend/.venv/bin/ruff check backend/app/services/etf_holdings_adapters.py backend/tests/unit/services/test_etf_holdings_adapters.py backend/tests/live/test_etf_holdings_live_providers.py"
-live_test_impact: "Live calls are opt-in, bounded, and limited to reviewed free/entitled provider routes."
+  - "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_adapters.py -q --no-cov"
+  - "uv run --project backend pytest backend/tests/live/test_etf_holdings_live_providers.py -q --no-cov"
+  - "RUN_LIVE_ETF_HOLDINGS_TESTS=1 uv run --project backend pytest backend/tests/live/test_etf_holdings_live_providers.py -q --no-cov"
+  - "uv run --project backend ruff check backend/app/services/etf_holdings_adapters.py backend/tests/unit/services/test_etf_holdings_adapters.py backend/tests/live/test_etf_holdings_live_providers.py"
+  - "uv run --project backend python scripts/validate-workstream.py ops/workstreams/feat-etf-holdings-constituents"
+  - "make agent-session-validate SESSION_ID=<active-session-id>"
+branch_tests_reason: "Provider adapters require deterministic parser/registry contracts, opt-in real-route probes, static analysis, durable workstream validation, and the repository-selected Docker integration gate."
+live_test_impact: "Live calls are opt-in, bounded, rate-conscious, and restricted to reviewed public/free or already-entitled provider routes. Live failures must distinguish route drift, issuer blocking, entitlement, network, parser, and source-data failures."
 migration_impact: none
-deployment_impact: none
+deployment_impact: "none; feature implementation stops before integration or deployment"
 status: in_progress
 remaining_gaps:
-  - "The prior branch evidence records 157 audited fallback-only providers still requiring native-route discovery or an explicit blocked/non-executable disposition."
+  - "Starting baseline is 496 registered providers, 356 native/live-backed providers, and 140 fallback-only providers; docs/etf-provider-universe.md still reports the stale 339/157 checkpoint and must be reconciled from code-derived counts."
+  - "The 140 starting fallback providers require exhaustive ledger coverage: 8 issuer_access_blocked, 3 non_executable_public_source, 6 provider_not_a_portfolio_publisher, and 123 needs_first_party_route_discovery."
+  - "The full current opt-in live provider matrix and final Docker-backed integration gate have not yet been rerun at the current 356-native baseline."
+  - "Human closure authorization remains pending."
+progress:
+  completed: []
+  total: 8
+  current_phase: plan
+  current_blocker: none
+  next_action: "Create the unbudgeted session-local Codex goal, then begin AC1 by deriving current registry truth and materializing the exhaustive provider-audit ledger before changing any provider implementation."
