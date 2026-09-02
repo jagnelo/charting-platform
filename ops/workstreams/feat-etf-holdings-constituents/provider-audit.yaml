@@ -2200,7 +2200,8 @@ providers:
     disposition_reason: "fitzgerald: Nicholas Wealth's official XFUNDS pages provide complete current FITZ and FIZY CSV holdings through page-declared nonce-scoped endpoints. The explicit Fitzgerald adapter validates the issuer page and ticker-scoped download, parses daily rows and FIZY option derivatives, and records Nicholas Wealth publisher provenance with deterministic and opt-in live coverage."
     next_action: "fitzgerald: Monitor the official Nicholas Wealth FITZ/FIZY pages and declared holdings endpoints; retain native status while both products remain complete, current, executable, and identity-valid, and add future Fitz-Gerald products only after equivalent evidence."
     implementation_sha: a1caaa0c6da2ded19891795b58e6e6ffe9ae09fd
-    validation_refs: []
+    validation_refs:
+      - "validation:2026-09-02T23:05:05Z"
   - adapter_key: formula_folio
     display_name: formula_folio
     queue_rank: 50
