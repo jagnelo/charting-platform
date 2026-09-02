@@ -15,6 +15,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "falconx",
     "fitzgerald",
     "framework_digital_advisors",
+    "freedom",
     "amun",
     "1251_capital",
     "3fourteen",
@@ -2386,6 +2387,28 @@ async def test_live_framework_gsr_route_covers_current_beso_holdings():
         "framework_gsr_public_product_declared_holdings_api"
     )
     assert metadata["snapshot_provenance"] == "framework_gsr_native_current_holdings_api"
+    assert metadata["composition_date"]
+    assert any(row.row_type == "cash" for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("freedom")
+async def test_live_freedom_product_page_covers_current_frdm_holdings():
+    adapter = get_holdings_adapter("freedom")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="FRDM")
+
+    _assert_live_holdings_result(result, adapter_key="freedom", min_rows=100)
+    metadata = result.legal_metadata or {}
+    assert metadata["source_provider"] == "freedom_etfs"
+    assert metadata["publisher"] == "freedom_etfs"
+    assert metadata["parent_issuer"] == "freedom"
+    assert metadata["route_resolution"] == (
+        "freedom_product_page_embedded_complete_holdings_table"
+    )
+    assert metadata["snapshot_provenance"] == "freedom_native_current_holdings_table"
     assert metadata["composition_date"]
     assert any(row.row_type == "cash" for row in result.rows)
 

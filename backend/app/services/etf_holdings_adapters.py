@@ -159,7 +159,14 @@ def _parse_issuer_date(value: Any) -> date | None:
     text = _clean(value)
     if text is None:
         return None
-    for pattern in ("%m/%d/%Y", "%m/%d/%y", "%Y-%m-%d", "%m-%d-%Y"):
+    for pattern in (
+        "%m/%d/%Y",
+        "%m/%d/%y",
+        "%Y-%m-%d",
+        "%m-%d-%Y",
+        "%B %d, %Y",
+        "%b %d, %Y",
+    ):
         try:
             return datetime.strptime(text, pattern).date()
         except ValueError:
@@ -23713,6 +23720,156 @@ class FrameworkDigitalAdvisorsHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 )
             )
         return rows
+
+
+class FreedomHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch FRDM holdings from Freedom ETFs' complete product-page table."""
+
+    PRODUCT_PAGE_URL = "https://freedometfs.com/frdm/"
+    SUPPORTED_SYMBOL = "FRDM"
+    _ISSUER_HOST = "freedometfs.com"
+    _REQUIRED_HEADERS = frozenset(
+        {
+            "ticker",
+            "name",
+            "cusip",
+            "shares",
+            "% of net assets",
+        }
+    )
+
+    def probe(
+        self,
+        *,
+        symbol: str,
+        name: str,
+        identifiers: dict[str, str],
+    ) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        supported = normalized_symbol == self.SUPPORTED_SYMBOL
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if supported else Decimal("0.5000"),
+            status="ready" if supported or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "Freedom ETFs publishes FRDM's complete current holdings table on its official product page."
+                if supported
+                else "No verified Freedom ETFs product page is configured for this ETF; SEC EDGAR remains available as fallback."
+                if has_sec_fallback
+                else "No verified Freedom ETFs product page is configured for this ETF."
+            ),
+            source_url=self.PRODUCT_PAGE_URL if supported else None,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol != self.SUPPORTED_SYMBOL:
+            raise ValueError(
+                "Freedom ETFs' verified issuer route currently supports FRDM only."
+            )
+        if source_url and source_url.rstrip("/") != self.PRODUCT_PAGE_URL.rstrip("/"):
+            raise ValueError("Freedom holdings must use the verified FRDM product page.")
+
+        response = await self._fetch_product_page(self.PRODUCT_PAGE_URL)
+        raw_html = response.text
+        page = html.unescape(raw_html)
+        if not re.search(r"\bFRDM\b", page, re.IGNORECASE) or not re.search(
+            r"Freedom\s+100\s+Emerging\s+Markets", page, re.IGNORECASE
+        ):
+            raise ValueError("Freedom product page identity did not match requested ETF FRDM.")
+
+        rows = parse_html_holdings_table_by_headers(
+            raw_html,
+            required_headers=self._REQUIRED_HEADERS,
+        )
+        if len(rows) < 10:
+            raise ValueError("Freedom product page did not expose a complete FRDM holdings table.")
+        composition_date = self._parse_effective_date(raw_html)
+        composition_value = composition_date.isoformat() if composition_date else None
+        for index, row in enumerate(rows, start=1):
+            market_value_millions = _decimal(row.extra_data.get("Market Value ($mm)"))
+            if market_value_millions is not None:
+                row.market_value = market_value_millions * Decimal("1000000")
+            row.currency = "USD"
+            row.source_row_id = f"freedom-{normalized_symbol}-{index}"
+            row.extra_data = {
+                **row.extra_data,
+                "effective_date": composition_value,
+                "market_value_mm": _clean(row.extra_data.get("Market Value ($mm)")),
+                "source": "freedom_product_page_embedded_complete_holdings_table",
+            }
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=raw_html,
+            source_url=str(response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "freedom_product_page_embedded_complete_holdings_table",
+                "product_page_url": str(response.url),
+                "snapshot_provenance": "freedom_native_current_holdings_table",
+                "composition_date": composition_value,
+                "as_of_date": composition_value,
+                "freshness_semantics": "issuer_disclosed_effective_date",
+                "refresh_frequency": "issuer_published_current_holdings",
+                "publisher": "freedom_etfs",
+                "parent_issuer": "freedom",
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    async def _fetch_product_page(url: str) -> httpx.Response | requests.Response:
+        headers = _issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*")
+        try:
+            async with httpx.AsyncClient(
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
+            ) as client:
+                response = await client.get(url, headers=headers, follow_redirects=True)
+            response.raise_for_status()
+            return response
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 403:
+                raise
+        response = await asyncio.to_thread(
+            requests.get,
+            url,
+            headers=headers,
+            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+            allow_redirects=True,
+        )
+        response.raise_for_status()
+        return response
+
+    @staticmethod
+    def _parse_effective_date(raw_html: str) -> date | None:
+        parser = _HTMLTablesParser()
+        parser.feed(raw_html)
+        for table in parser.tables:
+            if not table or not table[0]:
+                continue
+            headers = [" ".join(str(cell).split()).lower() for cell in table[0]]
+            if headers != ["effective date"]:
+                continue
+            if len(table) < 2 or not table[1]:
+                return None
+            return _parse_issuer_date(table[1][0])
+        return None
 
 
 class ColliersHarrisonStreetHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -65393,6 +65550,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "data may be subject to issuer terms."
         ),
     ),
+    "freedom": IssuerCsvAdapterConfig(
+        adapter_key="freedom",
+        source_provider="freedom_etfs",
+        source_access="issuer_product_page_embedded_complete_current_holdings_table",
+        product_page_templates=("https://freedometfs.com/frdm/",),
+        live_tested_default_route=True,
+        terms_note=(
+            "Freedom ETFs publishes FRDM's complete current holdings table and effective date "
+            "on its official ETF product page; data may be subject to issuer terms."
+        ),
+    ),
     "alerian": IssuerCsvAdapterConfig(
         adapter_key="alerian",
         source_provider="alerian",
@@ -65469,7 +65637,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "fcf_advisors",
         "formula_folio",
         "first_manhattan",
-        "freedom",
         "fpa",
         "genter_capital",
         "fundstrat",
@@ -68549,7 +68716,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "fcf_advisors": FcfAdvisorsReconciledFallbackHoldingsAdapter,
         "formula_folio": FormulaFolioReconciledFallbackHoldingsAdapter,
         "framework_digital_advisors": FrameworkDigitalAdvisorsHoldingsAdapter,
-        "freedom": FreedomReconciledFallbackHoldingsAdapter,
+        "freedom": FreedomHoldingsAdapter,
         "first_manhattan": FirstManhattanReconciledFallbackHoldingsAdapter,
         "fitzgerald": FitzgeraldHoldingsAdapter,
         "fpa": FpaReconciledFallbackHoldingsAdapter,

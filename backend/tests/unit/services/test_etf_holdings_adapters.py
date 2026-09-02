@@ -18822,6 +18822,76 @@ async def test_framework_adapter_fetches_declared_gsr_beso_holdings_api(monkeypa
 
 
 @pytest.mark.asyncio
+async def test_freedom_adapter_fetches_complete_frdm_product_page_holdings(monkeypatch):
+    adapter = get_holdings_adapter("freedom")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "FreedomHoldingsAdapter"
+    probe = adapter.probe(symbol="FRDM", name="Freedom 100 Emerging Markets ETF", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url == "https://freedometfs.com/frdm/"
+    assert adapter.probe(symbol="OTHER", name="", identifiers={}).status == "needs_issuer_route"
+
+    with pytest.raises(ValueError, match="verified FRDM product page"):
+        await adapter.fetch_latest(symbol="FRDM", source_url="https://example.invalid/frdm")
+
+    holdings_rows = "".join(
+        (
+            "<tr><td>NVDA</td><td>NVIDIA Corp</td><td>67066G104</td><td></td>"
+            "<td>100</td><td>203.28</td><td>4.63</td><td>16.41</td></tr>"
+            if index == 1
+            else "<tr><td>Cash&amp;Other</td><td>Cash &amp; Other</td><td></td><td></td>"
+            "<td>100</td><td>1.00</td><td>0.10</td><td>0.10</td></tr>"
+            if index == 10
+            else f"<tr><td>TKR{index}</td><td>Security {index}</td><td>037833100</td><td></td>"
+            f"<td>{index}</td><td>10.00</td><td>0.01</td><td>0.01</td></tr>"
+        )
+        for index in range(1, 11)
+    )
+    page_html = (
+        "<html><h2>FRDM | Freedom 100 Emerging Markets ETF</h2>"
+        "<table><thead><tr><th>Effective Date</th></tr></thead>"
+        "<tbody><tr><td>September 2, 2026</td></tr></tbody></table>"
+        "<h3>Fund Holdings</h3><table><thead><tr>"
+        "<th>Ticker</th><th>Name</th><th>CUSIP</th><th>SEDOL</th><th>Shares</th>"
+        "<th>Price</th><th>Market Value ($mm)</th><th>% of Net Assets</th>"
+        f"</tr></thead><tbody>{holdings_rows}</tbody></table></html>"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=page_html,
+            content_type="text/html",
+            url="https://freedometfs.com/frdm/",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="FRDM")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        "https://freedometfs.com/frdm/"
+    ]
+    assert len(result.rows) == 10
+    assert result.rows[0].symbol == "NVDA"
+    assert result.rows[0].cusip == "67066G104"
+    assert result.rows[0].weight == Decimal("0.1641")
+    assert result.rows[0].market_value == Decimal("4630000")
+    assert result.rows[0].currency == "USD"
+    assert result.rows[-1].symbol is None
+    assert result.rows[-1].row_type == "cash"
+    assert result.rows[-1].holding_type == "cash"
+    assert result.legal_metadata["source_provider"] == "freedom_etfs"
+    assert result.legal_metadata["route_resolution"] == (
+        "freedom_product_page_embedded_complete_holdings_table"
+    )
+    assert result.legal_metadata["snapshot_provenance"] == (
+        "freedom_native_current_holdings_table"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+    assert result.legal_metadata["parent_issuer"] == "freedom"
+
+
+@pytest.mark.asyncio
 async def test_beehive_adapter_fetches_official_declared_daily_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("beehive")
     assert adapter is not None
@@ -21400,7 +21470,13 @@ def test_etf_com_issuer_page_reconciliation_batch_is_registered_and_audited():
 
 def test_etfdb_issuer_league_reconciliation_batch_is_registered_and_audited():
     expected = set(ETFDB_ISSUER_LEAGUE_RECONCILIATION_ISSUER_HINTS)
-    promoted_native = {"guggenheim", "bancreek", "falconx", "framework_digital_advisors"}
+    promoted_native = {
+        "guggenheim",
+        "bancreek",
+        "falconx",
+        "framework_digital_advisors",
+        "freedom",
+    }
     fallback_expected = expected - promoted_native
 
     assert expected
@@ -25700,8 +25776,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 378
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 118
+    assert ledger["current_native_count"] == 379
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 117
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -25730,6 +25806,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "falconx",
         "fitzgerald",
         "framework_digital_advisors",
+        "freedom",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))
