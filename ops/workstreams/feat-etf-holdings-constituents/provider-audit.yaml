@@ -2018,7 +2018,7 @@ providers:
         evidence_ref: "web:guggenheim-gcsh-holdings-2026-09-02"
     disposition_reason: "Guggenheim's public ETF holdings page provided an executable complete table; the adapter validates requested ticker identity and parses issuer rows with an as-of date."
     next_action: "Monitor the issuer route and add representative Guggenheim symbols as evidence becomes available; demote only if the route becomes incomplete, blocked, or mismatched."
-    implementation_sha: null
+    implementation_sha: 212207ca
     validation_refs:
       - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_guggenheim_holdings_route_parses_complete_issuer_table"
       - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_guggenheim_holdings_route_rejects_wrong_fund_or_missing_table"
