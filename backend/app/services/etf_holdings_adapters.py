@@ -29505,6 +29505,17 @@ class EquitableHoldingsAdapter(AllianceBernsteinHoldingsAdapter):
 class TwentyOneSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
     primary_base_url = "https://21sharesprimary.paradox-coworking.com"
     secondary_base_url = "https://21sharessecondary.paradox-coworking.com"
+    crypto_tickers = {
+        "BTC",
+        "ETH",
+        "XRP",
+        "SOL",
+        "DOGE",
+        "DOT",
+        "SUI",
+        "HYPE",
+        "XCNUSD",
+    }
 
     def resolve_source_url(
         self,
@@ -29620,7 +29631,7 @@ class TwentyOneSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
             name = _clean(item.get("name"))
             if not any([symbol_value, name, item.get("cusip")]):
                 continue
-            holding_type = "crypto" if symbol_value in {"BTC", "ETH", "SOL", "DOGE"} else "security"
+            holding_type = "crypto" if symbol_value in self.crypto_tickers else "security"
             rows.append(
                 CanonicalHoldingRow(
                     symbol=symbol_value,
@@ -29646,6 +29657,106 @@ class TwentyOneSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 )
             )
         return rows
+
+
+class FalconXHoldingsAdapter(TwentyOneSharesHoldingsAdapter):
+    """Fetch 21Shares' current U.S. ETF holdings under the FalconX parent."""
+
+    primary_base_url = "https://api.primary.21shares.com"
+    secondary_base_url = "https://api.secondary.21shares.com"
+    supported_symbols = {
+        "ARKB",
+        "TETH",
+        "TOXR",
+        "TSOL",
+        "TDOG",
+        "TDOT",
+        "TSUI",
+        "TCAN",
+        "THYP",
+        "TKNS",
+    }
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        sec_cik = _identifier(identifiers, "sec_cik", "cik")
+        if normalized_symbol in self.supported_symbols:
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.9600"),
+                status="ready",
+                reason=(
+                    "FalconX's independently managed 21Shares subsidiary publishes "
+                    "the complete current holdings route for this U.S. ETF."
+                ),
+                source_url=(
+                    "https://www.21shares.com/en-us/products-us/" f"{normalized_symbol.lower()}"
+                ),
+                issuer_product_id=normalized_symbol,
+            )
+        if sec_cik:
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.7800"),
+                status="ready",
+                reason=(
+                    "The FalconX/21Shares identity has SEC identifiers, so holdings "
+                    "can be reconstructed from SEC EDGAR when no verified U.S. "
+                    "product route is available."
+                ),
+                source_url=f"https://data.sec.gov/submissions/CIK{sec_cik.zfill(10)}.json",
+            )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.6500"),
+            status="needs_issuer_route",
+            reason=(
+                "The FalconX parent is covered through explicit 21Shares products, "
+                "but this symbol is not in the verified U.S. product catalogue."
+            ),
+            required_identifiers=["sec_cik"],
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = (issuer_product_id or symbol).strip().upper()
+        if normalized_symbol not in self.supported_symbols:
+            raise ValueError(
+                "FalconX's verified 21Shares holdings route only supports "
+                f"{', '.join(sorted(self.supported_symbols))}; received {normalized_symbol}."
+            )
+        if issuer_product_id and issuer_product_id.strip().upper() != normalized_symbol:
+            raise ValueError("FalconX issuer product identity must match the requested ETF symbol.")
+        result = await super().fetch_latest(
+            symbol=normalized_symbol,
+            issuer_product_id=normalized_symbol,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        metadata = {
+            **(result.legal_metadata or {}),
+            "source_access": self.config.source_access,
+            "source_provider": self.source_provider,
+            "adapter_key": self.adapter_key,
+            "route_resolution": "falconx_21shares_public_product_details_api",
+            "snapshot_provenance": "falconx_21shares_native_current_holdings_api",
+            "publisher": "21shares",
+            "parent_issuer": "falconx",
+            "issuer_relationship": (
+                "FalconX parent identity / independently managed 21Shares ETF publisher"
+            ),
+            "product_page_url": (
+                "https://www.21shares.com/en-us/products-us/" f"{normalized_symbol.lower()}"
+            ),
+        }
+        return replace(result, legal_metadata=metadata)
 
 
 class AmunHoldingsAdapter(TwentyOneSharesHoldingsAdapter):
@@ -61434,6 +61545,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="21Shares public product details API may be subject to issuer terms.",
     ),
+    "falconx": IssuerCsvAdapterConfig(
+        adapter_key="falconx",
+        source_provider="21shares",
+        source_access="falconx_parent_21shares_public_product_details_api",
+        product_page_templates=("https://www.21shares.com/en-us/products-us/{symbol_lower}",),
+        live_tested_default_route=True,
+        terms_note=(
+            "FalconX's public holdings are published by its independently managed "
+            "21Shares subsidiary and may be subject to issuer terms."
+        ),
+    ),
     "amun": IssuerCsvAdapterConfig(
         adapter_key="amun",
         source_provider="21shares",
@@ -64911,7 +65033,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "elements",
         "emirate_abu_dhabi",
         "etf_managers_group",
-        "falconx",
         "fcf_advisors",
         "formula_folio",
         "first_manhattan",
@@ -66309,10 +66430,6 @@ class DvxVenturesReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
 class EmirateAbuDhabiReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """ETFDB issuer-league fallback adapter pending Abu Dhabi route discovery."""
-
-
-class FalconXReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """ETFDB issuer-league fallback adapter pending FalconX route discovery."""
 
 
 class FrameworkDigitalAdvisorsReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -68001,7 +68118,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "even_herd": EvenHerdHoldingsAdapter,
         "everence": EverenceHoldingsAdapter,
         "fairlead": CaryStreetHoldingsAdapter,
-        "falconx": FalconXReconciledFallbackHoldingsAdapter,
+        "falconx": FalconXHoldingsAdapter,
         "fcf_advisors": FcfAdvisorsReconciledFallbackHoldingsAdapter,
         "formula_folio": FormulaFolioReconciledFallbackHoldingsAdapter,
         "framework_digital_advisors": FrameworkDigitalAdvisorsReconciledFallbackHoldingsAdapter,

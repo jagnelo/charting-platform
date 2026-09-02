@@ -12,6 +12,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "818",
     "arlington",
     "21shares",
+    "falconx",
     "amun",
     "1251_capital",
     "3fourteen",
@@ -2311,6 +2312,29 @@ async def test_live_issuer_product_pages_discover_parseable_holdings_files(
 
     _assert_live_holdings_result(result, adapter_key=adapter_key, min_rows=5)
     assert result.legal_metadata["route_resolution"] == expected_route_resolution
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("falconx")
+async def test_live_falconx_parent_21shares_routes_cover_current_us_products():
+    adapter = get_holdings_adapter("falconx")
+    assert adapter is not None
+
+    symbols = ("ARKB", "TETH", "TOXR", "TSOL", "TDOG", "TDOT", "TSUI", "TCAN", "THYP", "TKNS")
+    for symbol in symbols:
+        result = await adapter.fetch_latest(symbol=symbol)
+
+        _assert_live_holdings_result(result, adapter_key="falconx", min_rows=1)
+        metadata = result.legal_metadata or {}
+        assert metadata["source_provider"] == "21shares"
+        assert metadata["publisher"] == "21shares"
+        assert metadata["parent_issuer"] == "falconx"
+        assert metadata["issuer_relationship"] == (
+            "FalconX parent identity / independently managed 21Shares ETF publisher"
+        )
+        assert metadata["route_resolution"] == "falconx_21shares_public_product_details_api"
+        assert metadata["valuation_date"]
 
 
 @pytest.mark.asyncio

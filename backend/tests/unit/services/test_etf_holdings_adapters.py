@@ -5553,6 +5553,79 @@ async def test_21shares_adapter_fetches_product_details_constituents(monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_falconx_adapter_reuses_current_21shares_routes_with_parent_provenance(monkeypatch):
+    adapter = get_holdings_adapter("falconx")
+    assert adapter is not None
+    probe = adapter.probe(symbol="TCAN", name="", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url == "https://www.21shares.com/en-us/products-us/tcan"
+    assert probe.issuer_product_id == "TCAN"
+    unknown_probe = adapter.probe(symbol="UNKNOWN", name="", identifiers={})
+    assert unknown_probe.status == "needs_issuer_route"
+
+    payload = {
+        "success": True,
+        "data": {
+            "ticker": "TCAN",
+            "product_name": "21shares Canton Network ETF",
+            "currency": {"short_name": "USD"},
+            "valuation_date": "2026-09-01",
+            "constituents": [
+                {
+                    "name": "Canton Coin",
+                    "ticker": "XCNUSD",
+                    "weight": 0.5,
+                    "quantity": 100,
+                    "price": 0.1,
+                    "market_value": 10,
+                    "cusip": None,
+                },
+                {
+                    "name": "21shares Canton Network ETP",
+                    "ticker": "CANTN NA",
+                    "weight": 0.5,
+                    "quantity": 1,
+                    "price": 10,
+                    "market_value": 10,
+                    "cusip": None,
+                },
+            ],
+        },
+    }
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps(payload),
+            content_type="application/json",
+            url="https://api.primary.21shares.com/api/product_details/TCAN",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="TCAN")
+
+    assert FakeAsyncClient.requested[0][0] == (
+        "https://api.primary.21shares.com/api/product_details/TCAN"
+    )
+    assert [row.symbol for row in result.rows] == ["XCNUSD", "CANTN NA"]
+    assert result.rows[0].holding_type == "crypto"
+    assert result.rows[1].holding_type == "security"
+    assert result.legal_metadata["adapter_key"] == "falconx"
+    assert result.legal_metadata["source_provider"] == "21shares"
+    assert result.legal_metadata["publisher"] == "21shares"
+    assert result.legal_metadata["parent_issuer"] == "falconx"
+    assert result.legal_metadata["issuer_relationship"] == (
+        "FalconX parent identity / independently managed 21Shares ETF publisher"
+    )
+    assert result.legal_metadata["route_resolution"] == (
+        "falconx_21shares_public_product_details_api"
+    )
+    assert result.legal_metadata["snapshot_provenance"] == (
+        "falconx_21shares_native_current_holdings_api"
+    )
+
+
+@pytest.mark.asyncio
 async def test_amun_adapter_is_limited_to_verified_21shares_products(monkeypatch):
     adapter = get_holdings_adapter("amun")
     assert adapter is not None
@@ -21176,7 +21249,7 @@ def test_etf_com_issuer_page_reconciliation_batch_is_registered_and_audited():
 
 def test_etfdb_issuer_league_reconciliation_batch_is_registered_and_audited():
     expected = set(ETFDB_ISSUER_LEAGUE_RECONCILIATION_ISSUER_HINTS)
-    promoted_native = {"guggenheim", "bancreek"}
+    promoted_native = {"guggenheim", "bancreek", "falconx"}
     fallback_expected = expected - promoted_native
 
     assert expected
@@ -25472,8 +25545,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 375
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 121
+    assert ledger["current_native_count"] == 376
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 120
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -25499,6 +25572,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "esoterica",
         "even_herd",
         "everence",
+        "falconx",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))
