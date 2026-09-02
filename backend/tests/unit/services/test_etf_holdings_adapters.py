@@ -6,12 +6,14 @@ import zipfile
 from datetime import date
 from decimal import Decimal
 from io import BytesIO
+from pathlib import Path
 from types import SimpleNamespace
 from xml.sax.saxutils import escape
 
 import httpx
 import pytest
 import requests
+import yaml
 
 from app.services.etf_holdings_adapters import (
     ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS,
@@ -20198,18 +20200,26 @@ def test_etf_com_issuer_page_reconciliation_batch_is_registered_and_audited():
 
 def test_etfdb_issuer_league_reconciliation_batch_is_registered_and_audited():
     expected = set(ETFDB_ISSUER_LEAGUE_RECONCILIATION_ISSUER_HINTS)
+    promoted_native = {"guggenheim"}
+    fallback_expected = expected - promoted_native
 
     assert expected
     assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
     assert expected.isdisjoint(set(ETF_COM_ISSUER_PAGE_RECONCILIATION_ISSUER_HINTS))
     assert expected.issubset(set(registered_adapter_keys()))
-    assert expected.issubset(set(FALLBACK_ISSUER_AUDITS))
-    for adapter_key in expected:
+    assert fallback_expected.issubset(set(FALLBACK_ISSUER_AUDITS))
+    assert promoted_native.isdisjoint(set(FALLBACK_ISSUER_AUDITS))
+    for adapter_key in fallback_expected:
         audit = FALLBACK_ISSUER_AUDITS[adapter_key]
         assert audit.status == "needs_first_party_route_discovery"
         adapter = get_holdings_adapter(adapter_key)
         assert adapter is not None
         assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+    for adapter_key in promoted_native:
+        assert ISSUER_ADAPTER_CONFIGS[adapter_key].live_tested_default_route is True
+        adapter = get_holdings_adapter(adapter_key)
+        assert adapter is not None
+        assert not type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
 
 
 def test_etfdb_issuer_league_continuation_batch_is_registered_and_audited():
@@ -24280,3 +24290,152 @@ async def test_alerian_rejects_empty_or_mismatched_payload(monkeypatch):
     ]
     with pytest.raises(ValueError, match="identity did not match"):
         await adapter.fetch_latest(symbol="AMLP")
+
+
+@pytest.mark.asyncio
+async def test_guggenheim_holdings_route_parses_complete_issuer_table(monkeypatch):
+    adapter = get_holdings_adapter("guggenheim")
+    assert adapter is not None
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<html><h1>GCSH Guggenheim Ultra Short Income ETF</h1>"
+                "<h2>Fund Holdings</h2><p>as of 8/31/26</p>"
+                "<table><tr><th>Security Name</th><th>Ticker</th>"
+                "<th>CUSIP</th><th>SEDOL</th><th>Quantity</th>"
+                "<th>% of Net Assets</th></tr>"
+                "<tr><td>Vanguard S&amp;P 500 ETF</td><td>VOO</td>"
+                "<td>922908363</td><td>BF2GMJ3</td><td>10000</td><td>4.84%</td></tr>"
+                "<tr><td>Cash</td><td></td><td></td><td></td><td></td><td>0.12%</td></tr>"
+                "</table></html>"
+            ),
+            url="https://portal.guggenheiminvestments.com/etf/fund/gcsh/holdings",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="GCSH")
+
+    assert FakeAsyncClient.requested[0][0].endswith("/etf/fund/gcsh/holdings")
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "VOO"
+    assert result.rows[0].cusip == "922908363"
+    assert result.rows[0].sedol == "BF2GMJ3"
+    assert result.rows[0].shares == Decimal("10000")
+    assert result.rows[0].weight == Decimal("0.0484")
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].symbol is None
+    assert result.legal_metadata == {
+        "source_access": "issuer_public_complete_etf_holdings_html_table",
+        "source_provider": "guggenheim_investments",
+        "adapter_key": "guggenheim",
+        "source_format": "html",
+        "route_resolution": "guggenheim_issuer_holdings_table",
+        "composition_date": "2026-08-31",
+        "as_of_date": "2026-08-31",
+        "terms_note": ISSUER_ADAPTER_CONFIGS["guggenheim"].terms_note,
+    }
+
+
+@pytest.mark.asyncio
+async def test_guggenheim_holdings_route_rejects_wrong_fund_or_missing_table(monkeypatch):
+    adapter = get_holdings_adapter("guggenheim")
+    assert adapter is not None
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<html><h1>Guggenheim Ultra Short Income ETF</h1></html>",
+            url="https://portal.guggenheiminvestments.com/etf/fund/voo/holdings",
+        )
+    ]
+    with pytest.raises(ValueError, match="did not match requested ETF"):
+        await adapter.fetch_latest(symbol="VOO")
+
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<html><h1>GCSH Guggenheim Ultra Short Income ETF</h1></html>",
+            url="https://portal.guggenheiminvestments.com/etf/fund/gcsh/holdings",
+        )
+    ]
+    with pytest.raises(ValueError, match="no complete rows"):
+        await adapter.fetch_latest(symbol="GCSH")
+
+    with pytest.raises(ValueError, match="symbol-scoped issuer route"):
+        await adapter.fetch_latest(
+            symbol="GCSH",
+            source_url="https://example.invalid/etf/fund/gcsh/holdings",
+        )
+
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<html><h1>GCSH Guggenheim Ultra Short Income ETF</h1></html>",
+            url="https://example.invalid/etf/fund/gcsh/holdings",
+        )
+    ]
+    with pytest.raises(ValueError, match="left the issuer domain"):
+        await adapter.fetch_latest(symbol="GCSH")
+
+
+def test_provider_audit_ledger_matches_code_derived_fallback_universe():
+    ledger_path = (
+        Path(__file__).resolve().parents[4]
+        / "ops"
+        / "workstreams"
+        / "feat-etf-holdings-constituents"
+        / "provider-audit.yaml"
+    )
+    ledger = yaml.safe_load(ledger_path.read_text())
+    records = ledger["providers"]
+    fallback_keys = set(FALLBACK_ISSUER_AUDITS)
+    record_keys = [record["adapter_key"] for record in records]
+
+    assert ledger["baseline_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
+    assert ledger["baseline_fallback_count"] == 140
+    assert ledger["baseline_native_count"] == 356
+    assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
+    assert ledger["current_native_count"] == 357
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 139
+    assert len(records) == 140
+    assert len(record_keys) == len(set(record_keys))
+    assert set(record_keys) == fallback_keys | {"guggenheim"}
+    assert sorted(record["queue_rank"] for record in records) == list(
+        range(1, len(records) + 1)
+    )
+
+    allowed_statuses = {
+        "issuer_access_blocked",
+        "inactive_or_successor_disposition",
+        "needs_first_party_route_discovery",
+        "non_executable_public_source",
+        "provider_not_a_portfolio_publisher",
+    }
+    for record in records:
+        key = record["adapter_key"]
+        config = ISSUER_ADAPTER_CONFIGS[key]
+        assert record["source_access_declared"] == config.source_access
+        if key in fallback_keys:
+            audit = FALLBACK_ISSUER_AUDITS[key]
+            assert record["starting_status"] == audit.status
+            assert audit.status in allowed_statuses
+            assert record["disposition"] in allowed_statuses
+            assert date.fromisoformat(str(record["last_checked"])) >= audit.last_checked
+            assert record["evidence_refs"][:2] == [
+                f"runtime:FALLBACK_ISSUER_AUDITS.{key}",
+                f"runtime:ISSUER_ADAPTER_CONFIGS.{key}",
+            ]
+        else:
+            assert key == "guggenheim"
+            assert record["starting_status"] == "needs_first_party_route_discovery"
+            assert record["current_status"] == "native_promoted"
+            assert record["disposition"] == "native_promoted"
+            assert record["route_complete"] is True
+            assert record["symbol_mapping_proven"] is True
+            assert record["current_holdings_proven"] is True
+            assert record["first_party_domains"] == [
+                "portal.guggenheiminvestments.com"
+            ]
+        assert key.casefold() in record["disposition_reason"].casefold()
+        assert key.casefold() in record["next_action"].casefold()
+        assert record["attempt_history"]

@@ -73,13 +73,13 @@ migration_impact: none
 deployment_impact: "none; feature implementation stops before integration or deployment"
 status: in_progress
 remaining_gaps:
-  - "Starting baseline is 496 registered providers, 356 native/live-backed providers, and 140 fallback-only providers; docs/etf-provider-universe.md still reports the stale 339/157 checkpoint and must be reconciled from code-derived counts."
-  - "The 140 starting fallback providers require exhaustive ledger coverage: 8 issuer_access_blocked, 3 non_executable_public_source, 6 provider_not_a_portfolio_publisher, and 123 needs_first_party_route_discovery."
-  - "The full current opt-in live provider matrix and final Docker-backed integration gate have not yet been rerun at the current 356-native baseline."
+  - "Starting baseline was 496 registered providers, 356 native/live-backed providers, and 140 fallback-only providers; after the Guggenheim promotion, current code and provider-universe documentation report 496/357/139 and future counts must remain derived."
+  - "The 140 starting fallback providers have a baseline ledger snapshot; Guggenheim is now recorded as native_promoted, Advisors Asset Management and Amplius are issuer-access-blocked, AlphaMark has an inactive/successor disposition, AMG National is a non-portfolio publisher, and Anydrus plus Baillie Gifford are non-executable public sources. The remaining 133 current fallbacks require issuer-specific first-party route evidence and final native or defensible dispositions."
+  - "The full current opt-in live provider matrix and final Docker-backed integration gate have not yet been rerun at the current 357-native baseline."
   - "Human closure authorization remains pending."
 progress:
   completed: []
   total: 8
-  current_phase: plan
+  current_phase: ledger_baseline
   current_blocker: none
-  next_action: "Create the unbudgeted session-local Codex goal, then begin AC1 by deriving current registry truth and materializing the exhaustive provider-audit ledger before changing any provider implementation."
+  next_action: "Process the ranked provider-audit queue with issuer-specific evidence, beginning with the highest-impact route candidates; keep the ledger and runtime audit synchronized at each changeset."

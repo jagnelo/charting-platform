@@ -14552,6 +14552,131 @@ class WisdomTreeHoldingsAdapter(IssuerCsvHoldingsAdapter):
     pass
 
 
+class GuggenheimHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Read Guggenheim's issuer-hosted complete ETF holdings table."""
+
+    _HOLDINGS_URL_TEMPLATE = "https://portal.guggenheiminvestments.com/etf/fund/{symbol_lower}/holdings"
+
+    def probe(
+        self, *, symbol: str, name: str, identifiers: dict[str, str]
+    ) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.2000"),
+                status="needs_issuer_route",
+                reason="Guggenheim holdings require an ETF ticker.",
+            )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500"),
+            status="ready",
+            reason=(
+                "Guggenheim publishes complete current ETF holdings in an issuer-hosted table."
+            ),
+            source_url=self._HOLDINGS_URL_TEMPLATE.format(
+                symbol_lower=normalized_symbol.lower()
+            ),
+            issuer_product_id=normalized_symbol,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol:
+            raise ValueError("Guggenheim holdings require an ETF symbol.")
+        resolved_source_url = source_url or self._HOLDINGS_URL_TEMPLATE.format(
+            symbol_lower=normalized_symbol.lower()
+        )
+        expected_path = f"/etf/fund/{normalized_symbol.lower()}/holdings"
+        parsed_source_url = urlparse(resolved_source_url)
+        source_host = _url_host(resolved_source_url)
+        if (
+            not source_host
+            or not _domain_matches(source_host, "portal.guggenheiminvestments.com")
+            or parsed_source_url.path.rstrip("/") != expected_path
+            or parsed_source_url.query
+        ):
+            raise ValueError(
+                "Guggenheim holdings source must be the symbol-scoped issuer route."
+            )
+        async with httpx.AsyncClient(
+            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
+        ) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        response_host = _url_host(str(response.url))
+        if not response_host or not _domain_matches(
+            response_host, "portal.guggenheiminvestments.com"
+        ):
+            raise ValueError("Guggenheim holdings response left the issuer domain.")
+        normalized_html = response.text.casefold()
+        if normalized_symbol.casefold() not in normalized_html:
+            raise ValueError(
+                f"Guggenheim holdings page did not match requested ETF {normalized_symbol}."
+            )
+        rows = parse_html_holdings_table_by_headers(
+            response.text,
+            required_headers={"security name", "ticker", "% of net assets"},
+        )
+        if not rows:
+            raise ValueError(
+                f"Guggenheim holdings page returned no complete rows for {normalized_symbol}."
+            )
+        composition_date = self._extract_composition_date(response.text)
+        for index, row in enumerate(rows, start=1):
+            row.source_row_id = (
+                f"guggenheim:{normalized_symbol}:"
+                f"{composition_date.isoformat() if composition_date else 'current'}:{index}"
+            )
+            row.extra_data = {
+                **row.extra_data,
+                "source": "guggenheim_issuer_etf_holdings_table",
+            }
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json=None,
+            source_url=str(response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "guggenheim_issuer_holdings_table",
+                "composition_date": composition_date.isoformat()
+                if composition_date
+                else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _extract_composition_date(raw_html: str) -> date | None:
+        match = re.search(
+            r"(?:fund holdings|holdings)\s*(?:</?[^>]+>\s*)*as of\s+"
+            r"(\d{1,2}/\d{1,2}/\d{2,4})",
+            raw_html,
+            re.IGNORECASE,
+        )
+        return _parse_issuer_date(match.group(1)) if match else None
+
+
 class RussellInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Read Russell ETF strategy portfolios from issuer-published month-end XLS files."""
 
@@ -60770,6 +60895,19 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         adapter_key="wisdomtree",
         source_provider="wisdomtree",
     ),
+    "guggenheim": IssuerCsvAdapterConfig(
+        adapter_key="guggenheim",
+        source_provider="guggenheim_investments",
+        source_access="issuer_public_complete_etf_holdings_html_table",
+        product_page_templates=(
+            "https://portal.guggenheiminvestments.com/etf/fund/{symbol_lower}/holdings",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "Guggenheim Investments publishes current ETF holdings through its public "
+            "fund holdings pages; issuer terms and the disclosed holdings date govern freshness."
+        ),
+    ),
     "jensen": IssuerCsvAdapterConfig(
         adapter_key="jensen",
         source_provider="jensen",
@@ -63379,7 +63517,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "gc_ferry_parent",
         "gotham",
         "granite_group_advisors",
-        "guggenheim",
         "hexis",
         "highland_capital",
         "hilton",
@@ -65451,7 +65588,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "gc_ferry_parent": GcFerryParentReconciledFallbackHoldingsAdapter,
         "gotham": GothamReconciledFallbackHoldingsAdapter,
         "granite_group_advisors": GraniteGroupAdvisorsReconciledFallbackHoldingsAdapter,
-        "guggenheim": GuggenheimReconciledFallbackHoldingsAdapter,
+        "guggenheim": GuggenheimHoldingsAdapter,
         "guinness_atkinson": GuinnessAtkinsonAuditedFallbackHoldingsAdapter,
         "hexis": HexisReconciledFallbackHoldingsAdapter,
         "highland_capital": HighlandCapitalReconciledFallbackHoldingsAdapter,
