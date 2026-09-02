@@ -42,7 +42,8 @@ workstream was 356 native and 140 fallback; the provider-audit ledger retains
 that baseline record while tracking the current 362/134 split.
 
 The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
-`FALLBACK_ISSUER_AUDITS` at the current ETF-branch implementation checkpoint.
+`FALLBACK_ISSUER_AUDITS` at the current ETF-branch implementation checkpoint
+`bc77c274db63ab7b7d501462fd91d87af87ce984`.
 The fallback audit statuses are:
 
 - `issuer_access_blocked`: `8`

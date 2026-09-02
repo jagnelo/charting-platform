@@ -7,7 +7,7 @@ baseline_fallback_count: 140
 current_registered_count: 496
 current_native_count: 362
 current_fallback_count: 134
-generated_at: 2026-09-02T16:45:00Z
+generated_at: 2026-09-02T16:50:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -940,7 +940,7 @@ providers:
     symbol_mapping_proven: true
     current_holdings_proven: true
     parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_beehive_adapter_fetches_official_declared_daily_holdings_csv
-    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows[beehive-BEEX-None-identifiers18-20]
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows[beehive-BEEX-None-identifiers306-20]
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.beehive"
@@ -957,8 +957,10 @@ providers:
         evidence_ref: "web:beehive-beex-holdings-2026-09-02"
     disposition_reason: "beehive: The official BEEX product page and declared daily CSV provide a complete current portfolio; the provider-specific adapter validates the product and response domains, maps account-scoped rows including cash, preserves the issuer date, and has deterministic plus opt-in live coverage."
     next_action: "beehive: Monitor the BEEX product page and declared CSV; retain native status while the route remains complete, executable, and identity-valid, and add any new BeeHive ETF only after equivalent evidence."
-    implementation_sha: null
-    validation_refs: []
+    implementation_sha: 777c220b6814428d6b12821e53b8fae4d120afad
+    validation_refs:
+      - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_beehive_adapter_fetches_official_declared_daily_holdings_csv"
+      - "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows[beehive-BEEX-None-identifiers306-20]"
   - adapter_key: blueprint
     display_name: blueprint
     queue_rank: 25
