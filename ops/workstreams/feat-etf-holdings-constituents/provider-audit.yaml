@@ -5,9 +5,9 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 373
-current_fallback_count: 123
-generated_at: 2026-09-02T20:08:26Z
+current_native_count: 374
+current_fallback_count: 122
+generated_at: 2026-09-02T20:57:01Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -1866,22 +1866,27 @@ providers:
     display_name: even_herd
     queue_rank: 44
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-02
+    source_access_declared: issuer_product_page_declared_complete_holdings_csv
+    representative_symbols:
+      - EHLS
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    source_freshness: daily
+    first_party_domains:
+      - www.evenherd.com
+      - evenherd-wix.s3.us-east-2.amazonaws.com
+    candidate_routes:
+      - https://www.evenherd.com/ehls
+      - https://evenherd-wix.s3.us-east-2.amazonaws.com/holdings.csv
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_even_herd_adapter_fetches_declared_complete_ehls_csv
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows[even_herd-EHLS-None-identifiers107-20]
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.even_herd"
@@ -1891,10 +1896,19 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.even_herd"
-    disposition_reason: "even_herd: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate even_herd first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
-    implementation_sha: null
-    validation_refs: []
+      - date: 2026-09-02
+        source: "https://www.evenherd.com/ehls"
+        result: "The official Even Herd EHLS page identifies the actively managed Even Herd Long/Short ETF and declares a complete holdings.csv download hosted on its official S3 bucket."
+        evidence_ref: "web:even-herd-ehls-product-page-holdings-csv-2026-09-02"
+      - date: 2026-09-02
+        source: "https://evenherd-wix.s3.us-east-2.amazonaws.com/holdings.csv"
+        result: "The declared CSV is current as of September 2, 2026, contains 230 EHLS holdings rows including long/short positions and cash-equivalent rows, and preserves account, CUSIP, shares, market value, weight, and date fields."
+        evidence_ref: "web:even-herd-ehls-current-holdings-csv-2026-09-02"
+    disposition_reason: "even_herd: The official EHLS product page declares a complete executable current holdings CSV. The provider-specific adapter validates the page identity and S3 route, isolates the EHLS account, preserves long/short quantities, identifiers, values, weights, date, and cash semantics, and has deterministic plus opt-in live coverage."
+    next_action: "even_herd: Monitor the EHLS product page and declared holdings.csv; retain native status while the route remains complete, current, executable, and identity-valid."
+    implementation_sha: 0ac2cc29a7cfb1d8b27468a9c74618ad67c3a0f9
+    validation_refs:
+      - "validation:2026-09-02T20:57:01Z"
   - adapter_key: everence
     display_name: everence
     queue_rank: 45

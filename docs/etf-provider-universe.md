@@ -28,8 +28,8 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `373`
-- Audited fallback-only providers: `123`
+- Native/live-backed providers: `374`
+- Audited fallback-only providers: `122`
 
 The current checkpoint promotes `guggenheim` through its public issuer-hosted
 ETF holdings table, reconciles `ars` to the existing ARS Investment Partners
@@ -47,14 +47,15 @@ holdings tables, and Conductor's CGV product-page-declared complete current
 holdings CSV, CresAlta's CVGD/CVSM full-holdings tables, Elm's ELM
 product-page-declared complete current holdings CSV (also available under the
 existing Cygnet parent identity), and Esoterica's WUGI product/data-page-declared
-FilePoint dated aggregate holdings CSV.
+FilePoint dated aggregate holdings CSV, and Even Herd's EHLS product-page-declared
+complete daily holdings CSV.
 The historical starting snapshot for this
 workstream was 356 native and 140 fallback; the provider-audit ledger retains
-that baseline record while tracking the current 373/123 split.
+that baseline record while tracking the current 374/122 split.
 
 The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
 `FALLBACK_ISSUER_AUDITS` at the current ETF-branch implementation checkpoint
-`915282cd` (Esoterica WUGI native route; ETF Managers Group is recorded as an
+`0ac2cc29` (Esoterica WUGI and Even Herd EHLS native routes; ETF Managers Group is recorded as an
 inactive/successor identity after Amplify's documented acquisition; the Discipline
 Funds, DVx Ventures, EA Series Trust, and Elements audits
 remain fallback-only; Elm is now native-promoted through the same declared route
@@ -62,7 +63,7 @@ as the existing Cygnet parent identity).
 The fallback audit statuses are:
 
 - `issuer_access_blocked`: `8`
-- `needs_first_party_route_discovery`: `106`
+- `needs_first_party_route_discovery`: `105`
 - `non_executable_public_source`: `3`
 - `provider_not_a_portfolio_publisher`: `6`
 
@@ -107,6 +108,9 @@ declared complete current holdings CSV.
 pages, each exposing a complete dated holdings table.
 `esoterica` is native-promoted through the official AXS WUGI product/data pages
 and their declared FilePoint dated aggregate holdings CSV.
+`even_herd` is native-promoted through the official EHLS product page and its
+declared complete daily `holdings.csv` export, with strict account filtering and
+long/short quantity preservation.
 `etf_managers_group` is an inactive/successor identity: Amplify's official
 acquisition notice documents the ETFMG fund reorganizations and sponsor transfer,
 so current holdings routes belong to Amplify or the successor fund managers.
@@ -643,12 +647,13 @@ Added adapter keys:
 The StockAnalysis table still contains unresolved names after the arithmetic
 gap closes. Those rows require alias, product-line, inactive, or source-taxonomy
 disposition before they should affect registry accounting. BufferLABS, Bushido,
-CapForce, Castellan, Conductor, and CresAlta are the exceptions in this batch: their official product pages now
-provide complete current holdings tables and are tracked as native routes in
-the current split. Bushido covers SMRI and RNIN, CapForce covers FFTY and BOUT,
-Castellan covers CTEF and CTIF, Conductor covers CGV through its declared
-CSV, CresAlta covers CVGD and CVSM, and Elm covers ELM through its declared CSV;
-each route has dated current evidence.
+CapForce, Castellan, Conductor, CresAlta, and Even Herd are the exceptions in
+this batch: their official product pages now provide complete current holdings
+tables or CSVs and are tracked as native routes in the current split. Bushido
+covers SMRI and RNIN, CapForce covers FFTY and BOUT, Castellan covers CTEF and
+CTIF, Conductor covers CGV through its declared CSV, CresAlta covers CVGD and
+CVSM, Elm covers ELM through its declared CSV, and Even Herd covers EHLS through
+its declared daily CSV; each route has dated current evidence.
 
 ## Implementation Rule
 

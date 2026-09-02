@@ -746,3 +746,51 @@ not a speculative provider adapter:
 
 This ordering makes every later decision recoverable and safe to continue
 across Codex models.
+
+## 16. Current execution checkpoint — 2026-09-02
+
+The approved plan is active in the dedicated feature worktree. The durable
+implementation state has advanced beyond the historical 356/140 baseline as
+follows:
+
+| Classification | Current count |
+|---|---:|
+| Registered issuer adapter configurations | 496 |
+| Native/live-backed providers | 374 |
+| Audited fallback-only providers | 122 |
+
+The current fallback status split is 8 `issuer_access_blocked`, 105
+`needs_first_party_route_discovery`, 3 `non_executable_public_source`, and 6
+`provider_not_a_portfolio_publisher`. The ledger still retains all 140 original
+records exactly once, including the dated terminal dispositions for providers
+that no longer remain in the runtime fallback set. There are 87 queued records
+still requiring issuer-specific evidence or a final disposition.
+
+Completed work in this execution includes the following native promotions and
+dispositions already recorded in the branch-owned ledger: Guggenheim, ARS,
+Avory, Ballast, Bancreek, BeeHive, Blueprint, Bridgeway, Brookstone,
+BufferLABS, Bushido, CapForce, Castellan, Conductor Fund, CresAlta, Elm,
+Esoterica, and Even Herd. ETF Managers Group is recorded as an
+`inactive_or_successor_disposition` after Amplify's official acquisition and
+fund-reorganization notice; Emirate Abu Dhabi, DVx Ventures, EA Series Trust,
+and the other previously reviewed identities retain their evidence-specific
+terminal or blocked dispositions.
+
+The current implementation checkpoint is `0ac2cc29a7cfb1d8b27468a9c74618ad67c3a0f9`.
+It adds `EvenHerdHoldingsAdapter` for EHLS, resolves the official product-page
+declared daily `holdings.csv`, filters the EHLS account strictly, preserves
+cash and long/short rows, records issuer-reported freshness and provenance,
+and includes deterministic and opt-in live coverage. Deterministic adapter
+tests pass 521/521; default live contracts pass 2 with 437 opt-in skips; the
+bounded Even Herd live route passes 1/1; Ruff, workstream validation, and
+whitespace checks pass. The separate durable operations checkpoint must record
+the updated ledger, handoff, provider-universe counts, validation evidence,
+and session next action before the next queue investigation.
+
+The next ranked queue item is `everence`. Continue the same evidence loop:
+inspect official product and holdings routes, promote only a complete
+executable first-party source with strict identity and parser tests, otherwise
+record a dated issuer-specific disposition. Docker-backed full integration is
+not currently executable because the local Docker daemon/socket is unavailable;
+this is an external validation gap, not permission to weaken the native-route
+contract or to integrate the feature branch.
