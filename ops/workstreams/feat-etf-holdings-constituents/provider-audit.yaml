@@ -915,7 +915,7 @@ providers:
         evidence_ref: "web:bancreek-bcus-holdings-2026-09-02"
     disposition_reason: "bancreek: The official Bancreek product pages provide a complete Nuxt-hydrated holdings component, and the provider-specific adapter validates symbol-scoped issuer routes, maps rows and FIGI metadata, preserves date provenance, and has deterministic plus opt-in live coverage."
     next_action: "bancreek: Monitor BCUS, BCIL, and BCGS product pages and retain native status while their hydrated holdings components remain complete, executable, and identity-valid."
-    implementation_sha: null
+    implementation_sha: c5f72c76fab8894203abde4a47817768da21d2f6
     validation_refs: []
   - adapter_key: beehive
     display_name: beehive
