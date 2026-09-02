@@ -3291,6 +3291,22 @@ KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
             "sec_cik": "0001592900",
         },
     },
+    "SMRI": {
+        "issuer": "Bushido Capital",
+        "provider_aliases": {
+            "holdings_adapter": "bushido",
+            "issuer_product_url": "https://bushidoetf.com/smri/",
+            "sec_cik": "0001592900",
+        },
+    },
+    "RNIN": {
+        "issuer": "Bushido Capital",
+        "provider_aliases": {
+            "holdings_adapter": "bushido",
+            "issuer_product_url": "https://bushidoetf.com/rnin/",
+            "sec_cik": "0001592900",
+        },
+    },
     "EEM": {
         "issuer": "iShares",
         "provider_aliases": {
@@ -62820,6 +62836,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="BufferLABS publishes BFLB's complete current holdings table on its public fund page.",
     ),
+    "bushido": IssuerCsvAdapterConfig(
+        adapter_key="bushido",
+        source_provider="bushido",
+        source_access="issuer_public_product_page_complete_current_holdings_table",
+        product_page_templates=(
+            "https://bushidoetf.com/smri/",
+            "https://bushidoetf.com/rnin/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Bushido Capital publishes complete current SMRI and RNIN holdings tables on its public product pages.",
+    ),
     "burney": IssuerCsvAdapterConfig(
         adapter_key="burney",
         source_provider="burney",
@@ -64269,7 +64296,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "avos",
         "azimut",
         "baillie_gifford",
-        "bushido",
         "capforce",
         "castellan",
         "conductor_fund",
@@ -65815,8 +65841,194 @@ class CastellanReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """StockAnalysis provider-table fallback adapter pending Castellan discovery."""
 
 
-class BushidoReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """StockAnalysis provider-table fallback adapter pending Bushido discovery."""
+class BushidoHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Bushido's complete current SMRI/RNIN holdings tables."""
+
+    PRODUCT_PAGE_URLS = {
+        "SMRI": "https://bushidoetf.com/smri/",
+        "RNIN": "https://bushidoetf.com/rnin/",
+    }
+    EXPECTED_IDENTITIES = {
+        "SMRI": "Bushido Capital US Equity ETF",
+        "RNIN": "Bushido Capital US SMID Cap Equity ETF",
+    }
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        source_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        sec_cik = _identifier(identifiers, "sec_cik", "cik")
+        if source_url:
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.9600"),
+                status="ready",
+                reason=(
+                    "Bushido publishes the complete current SMRI/RNIN holdings table "
+                    "on the matching official product page."
+                ),
+                source_url=source_url,
+                issuer_product_id=normalized_symbol,
+            )
+        if sec_cik:
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.7800"),
+                status="ready",
+                reason="SEC filing fallback is available when no Bushido product route matches the symbol.",
+                source_url=f"https://data.sec.gov/submissions/CIK{sec_cik.zfill(10)}.json",
+                issuer_product_id=normalized_symbol or None,
+            )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.3000"),
+            status="needs_issuer_route",
+            reason=f"No verified Bushido native holdings route is configured for {normalized_symbol}.",
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        resolved_source_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        if not resolved_source_url:
+            raise ValueError(
+                f"No verified Bushido current-holdings route is configured for {normalized_symbol or 'an empty symbol'}."
+            )
+        if source_url and source_url.rstrip("/") != resolved_source_url.rstrip("/"):
+            raise ValueError("Bushido holdings must use the matching verified official product page.")
+
+        headers = _issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*")
+        try:
+            async with httpx.AsyncClient(
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
+            ) as client:
+                response = await client.get(
+                    resolved_source_url,
+                    headers=headers,
+                    follow_redirects=True,
+                )
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 403:
+                raise
+            # Bushido's WAF may reject httpx's TLS fingerprint while serving the
+            # same public page to requests. Keep this bounded to the verified
+            # product URL; it is transport resilience, not a second data source.
+            response = await asyncio.to_thread(
+                requests.get,
+                resolved_source_url,
+                headers=headers,
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                allow_redirects=True,
+            )
+            response.raise_for_status()
+
+        page_text = html.unescape(response.text)
+        expected_identity = self.EXPECTED_IDENTITIES[normalized_symbol]
+        if not re.search(re.escape(expected_identity), page_text, re.IGNORECASE):
+            raise ValueError(
+                f"Bushido product page identity did not match {normalized_symbol}."
+            )
+        if normalized_symbol not in page_text.upper() or "FUND HOLDINGS" not in page_text.upper():
+            raise ValueError(
+                f"Bushido product page did not expose {normalized_symbol}'s complete holdings table."
+            )
+
+        rows = parse_html_holdings_table_by_headers(
+            page_text,
+            required_headers={
+                "ticker",
+                "name",
+                "cusip",
+                "shares",
+                "market value ($mm)",
+                "% of net assets",
+                "effective_date",
+            },
+        )
+        if not rows:
+            raise ValueError(
+                f"Bushido product page did not contain complete holdings rows for {normalized_symbol}."
+            )
+
+        composition_date = self._composition_date(rows)
+        for index, row in enumerate(rows, start=1):
+            raw_symbol = _clean(_first(row.extra_data, ["ticker"]))
+            raw_name = _clean(_first(row.extra_data, ["name"])) or row.name
+            row_type, holding_type = self._classify_row(
+                raw_symbol=raw_symbol,
+                name=raw_name,
+            )
+            row.row_type = row_type
+            row.holding_type = holding_type
+            if row_type == "cash":
+                row.symbol = None
+                row.cusip = None
+            elif row_type == "other":
+                row.symbol = None
+                row.cusip = None
+            row.currency = row.currency or "USD"
+            row.source_row_id = (
+                f"{normalized_symbol}:{composition_date.isoformat() if composition_date else 'current'}:{index}"
+            )
+            row.extra_data = {
+                **row.extra_data,
+                "source": "bushido_public_product_page_holdings_table",
+            }
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "html_table", "row_count": len(rows)},
+            source_url=str(getattr(response, "url", resolved_source_url)),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html_table",
+                "route_resolution": "bushido_public_complete_current_holdings_table",
+                "product_page_url": resolved_source_url,
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_current_holdings",
+                "snapshot_provenance": "bushido_native_holdings_table",
+            },
+        )
+
+    @staticmethod
+    def _composition_date(rows: list[CanonicalHoldingRow]) -> date | None:
+        for row in rows:
+            value = _first(row.extra_data, ["effective_date"])
+            parsed = _parse_issuer_date(value)
+            if parsed:
+                return parsed
+        return None
+
+    @staticmethod
+    def _classify_row(*, raw_symbol: str | None, name: str | None) -> tuple[str, str]:
+        text = " ".join(value.upper() for value in (raw_symbol, name) if value)
+        if any(
+            marker in text
+            for marker in ("CASH", "MONEY MARKET", "GOVERNMENT OBLIGATIONS", "GOVERNMENT FUND")
+        ):
+            return "cash", "cash"
+        if re.search(r"\b[A-Z0-9]{4}\s+\d{6}[CP]\d{8}\b", text) or re.search(
+            r"\b[A-Z]{1,6}\s+\d{2}/\d{2}/\d{4}\s+[\d.]+\s+[CP]\b", text
+        ):
+            return "other", "derivative"
+        if " ETF" in text or "FUND" in text or "TRUST" in text:
+            return "security", "fund"
+        return "security", "equity"
 
 
 class OpusCapitalManagementReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -66598,7 +66810,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "blueprint": BlueprintHoldingsAdapter,
         "bridgeway": BridgewayHoldingsAdapter,
         "bufferlabs": BufferLabsHoldingsAdapter,
-        "bushido": BushidoReconciledFallbackHoldingsAdapter,
+        "bushido": BushidoHoldingsAdapter,
         "calvert": CalvertHoldingsAdapter,
         "capforce": CapForceReconciledFallbackHoldingsAdapter,
         "castellan": CastellanReconciledFallbackHoldingsAdapter,

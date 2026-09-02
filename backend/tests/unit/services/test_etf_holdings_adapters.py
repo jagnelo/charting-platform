@@ -14157,6 +14157,73 @@ async def test_bufferlabs_adapter_parses_complete_current_holdings_table(monkeyp
 
 
 @pytest.mark.asyncio
+async def test_bushido_adapter_parses_complete_current_holdings_tables(monkeypatch):
+    adapter = get_holdings_adapter("bushido")
+    assert adapter is not None
+    assert type(adapter).__name__ == "BushidoHoldingsAdapter"
+    assert "bushido" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["bushido"].live_tested_default_route is True
+    assert adapter.probe(
+        symbol="SMRI", name="Bushido Capital US Equity ETF", identifiers={}
+    ).status == "ready"
+    assert adapter.probe(
+        symbol="RNIN", name="Bushido Capital US SMID Cap Equity ETF", identifiers={}
+    ).status == "ready"
+    assert adapter.probe(symbol="UNKNOWN", name="Unknown ETF", identifiers={}).status == (
+        "needs_issuer_route"
+    )
+
+    page_template = """
+    <h1>{identity}</h1><h2>FUND HOLDINGS</h2>
+    <table>
+      <tr><th>Ticker</th><th>Name</th><th>CUSIP</th><th>Shares</th><th>Price</th>
+          <th>Market Value ($mm)</th><th>% of Net Assets</th><th>EFFECTIVE_DATE</th></tr>
+      <tr><td>FGXXX</td><td>First American Government Obligations Fund 12/01/2031</td>
+          <td>31846V336</td><td>1,183,357</td><td>100.00</td><td>1.18</td><td>0.16</td><td>09/02/2026</td></tr>
+      <tr><td>ADBE</td><td>Adobe Inc</td><td>00724F101</td><td>60,358</td>
+          <td>286.08</td><td>17.27</td><td>2.40</td><td>09/02/2026</td></tr>
+      <tr><td>Cash&amp;Other</td><td>Cash &amp; Other</td><td></td><td>28,622</td>
+          <td>1.00</td><td>0.03</td><td>0.00</td><td>09/02/2026</td></tr>
+    </table>
+    """
+    for symbol, page_url, identity in (
+        ("SMRI", "https://bushidoetf.com/smri/", "Bushido Capital US Equity ETF (SMRI)"),
+        ("RNIN", "https://bushidoetf.com/rnin/", "Bushido Capital US SMID Cap Equity ETF (RNIN)"),
+    ):
+        FakeAsyncClient.requested = []
+        FakeAsyncClient.queue = [
+            FakeResponse(
+                text=page_template.format(identity=identity),
+                content_type="text/html",
+                url=page_url,
+            )
+        ]
+        monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+        result = await adapter.fetch_latest(symbol=symbol)
+
+        assert FakeAsyncClient.requested[0][0] == page_url
+        assert len(result.rows) == 3
+        assert result.rows[0].symbol is None
+        assert result.rows[0].holding_type == "cash"
+        assert result.rows[0].row_type == "cash"
+        assert result.rows[1].symbol == "ADBE"
+        assert result.rows[1].shares == Decimal("60358")
+        assert result.rows[1].market_value == Decimal("17.27")
+        assert result.rows[1].weight == Decimal("0.024")
+        assert result.rows[2].symbol is None
+        assert result.rows[2].holding_type == "cash"
+        assert result.legal_metadata["source_provider"] == "bushido"
+        assert result.legal_metadata["route_resolution"] == (
+            "bushido_public_complete_current_holdings_table"
+        )
+        assert result.legal_metadata["product_page_url"] == page_url
+        assert result.legal_metadata["composition_date"] == "2026-09-02"
+
+    with pytest.raises(ValueError, match="matching verified official product page"):
+        await adapter.fetch_latest(symbol="SMRI", source_url="https://example.invalid/holdings")
+
+
+@pytest.mark.asyncio
 async def test_madison_adapter_filters_account_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("madison")
     assert adapter is not None
@@ -20305,6 +20372,22 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
             "sec_cik": "0001592900",
         },
     }
+    assert known_etf_route_metadata("SMRI") == {
+        "issuer": "Bushido Capital",
+        "provider_aliases": {
+            "holdings_adapter": "bushido",
+            "issuer_product_url": "https://bushidoetf.com/smri/",
+            "sec_cik": "0001592900",
+        },
+    }
+    assert known_etf_route_metadata("RNIN") == {
+        "issuer": "Bushido Capital",
+        "provider_aliases": {
+            "holdings_adapter": "bushido",
+            "issuer_product_url": "https://bushidoetf.com/rnin/",
+            "sec_cik": "0001592900",
+        },
+    }
     invesco = holdings_adapter_catalog()
     invesco_entry = next(item for item in invesco if item["adapter_key"] == "invesco")
     assert invesco_entry["source_access"] == "issuer_public_json_catalog_cusip"
@@ -20961,6 +21044,7 @@ def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audit
     expected = set(STOCKANALYSIS_PROVIDER_SIXTH_CONTINUATION_ISSUER_HINTS) - {
         "avory",
         "bufferlabs",
+        "bushido",
     }
 
     assert expected
@@ -20985,8 +21069,11 @@ def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audit
         assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
     assert "avory" not in FALLBACK_ISSUER_AUDITS
     assert "bufferlabs" not in FALLBACK_ISSUER_AUDITS
+    assert "bushido" not in FALLBACK_ISSUER_AUDITS
     assert ISSUER_ADAPTER_CONFIGS["bufferlabs"].live_tested_default_route is True
     assert type(get_holdings_adapter("bufferlabs")).__name__ == "BufferLabsHoldingsAdapter"
+    assert ISSUER_ADAPTER_CONFIGS["bushido"].live_tested_default_route is True
+    assert type(get_holdings_adapter("bushido")).__name__ == "BushidoHoldingsAdapter"
 
 
 def test_stockanalysis_provider_alias_dispositions_resolve_existing_adapters():
@@ -24855,8 +24942,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 366
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 130
+    assert ledger["current_native_count"] == 367
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 129
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -24873,6 +24960,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "blueprint",
         "bridgeway",
         "bufferlabs",
+        "bushido",
         "brookstone",
         "guggenheim",
     }

@@ -130,6 +130,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "brookmont",
     "brookstone",
     "bufferlabs",
+    "bushido",
     "burney",
     "cambria",
     "cambiar",
@@ -1094,6 +1095,8 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ("brookstone", "BAMO", None, {}, 5),
         ("brookstone", "BAMY", None, {}, 5),
         ("bufferlabs", "BFLB", None, {}, 3),
+        ("bushido", "SMRI", None, {}, 20),
+        ("bushido", "RNIN", None, {}, 20),
         (
             "baron",
             "RONB",
@@ -2163,6 +2166,12 @@ async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
         assert result.legal_metadata["composition_date"]
         assert any(row.holding_type == "derivative" for row in result.rows)
         assert any(row.row_type == "cash" for row in result.rows)
+    if adapter_key == "bushido":
+        assert result.legal_metadata["route_resolution"] == (
+            "bushido_public_complete_current_holdings_table"
+        )
+        assert result.legal_metadata["composition_date"]
+        assert any(row.holding_type == "cash" for row in result.rows)
 
 
 @pytest.mark.asyncio
