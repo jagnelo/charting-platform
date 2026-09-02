@@ -25,7 +25,8 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Validation tier: `full_integration`.
 - Local validation profile: `docker_integration`.
 - Planning session: `197b239d-3322-4fc6-bf4b-0d0aecebf5e0`.
-- Latest implementation checkpoint: `9cc5be81` (CresAlta native CVGD/CVSM
+- Latest implementation checkpoint: `c1287c90` (Discipline Funds dated
+  non-executable-route disposition); prior `9cc5be81` (CresAlta native CVGD/CVSM
   holdings tables); prior `fd07b17f` (Conductor native CGV declared
   holdings CSV); prior `1aa7cc48` (Castellan native CTEF/CTIF
   holdings tables); prior `992a554d` (CapForce native FFTY/BOUT
@@ -44,6 +45,12 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
   Bushido, CapForce, Castellan, Conductor, and CresAlta
   native coverage and issuer-specific audit dispositions for the ranked fallback
   records reviewed so far.
+- The Discipline Funds audit is explicitly not a promotion: the official DDV,
+  DDX, and DDXX pages expose a nonce-backed wpDataTables loader, bounded live
+  attempts did not prove a complete executable artifact (DDV had no parseable
+  rows; DDX/DDXX exposed only ten rows), and the public AJAX probe returned no
+  usable dataset. Commit `c1287c90` removes the experimental adapter and records
+  the dated `non_executable_public_source` disposition.
 
 ## Durable implementation direction
 
@@ -69,13 +76,14 @@ exhaustive invariant test proves its key/count/rank alignment with runtime code.
 `guggenheim`, `ars`, `avory`, `ballast`, `bancreek`, `beehive`, `blueprint`, `bridgeway`, `brookstone`, `bufferlabs`, `bushido`, `capforce`, `castellan`, `conductor_fund`, and `cresalta` are native-promoted; `advisors_asset_management` and `amplius` are
 issuer-access-blocked; `alphamark_advisors` is classified as an
 inactive/successor disposition; `amg_national` is a non-portfolio publisher;
-and `anydrus` plus `baillie_gifford` are non-executable public sources;
+and `anydrus`, `baillie_gifford`, and `discipline_funds` are non-executable public sources;
 `alphaclone` is an inactive/successor disposition; `argent` and `arin` are
 issuer-access-blocked; `azimut` is a dated non-portfolio-publisher disposition.
-The audit ledger currently has 96 queued fallback records still requiring
+The audit ledger currently has 95 queued fallback records still requiring
 issuer-specific evidence and final dispositions; existing terminal/blocked records
 must remain evidence-backed. Continue replacing baseline placeholders with first-party
-route evidence, starting with the ranked queue after the Desjardins disposition at `discipline_funds`, and checkpoint
+route evidence, starting with the ranked queue after the Discipline Funds
+non-executable disposition at `dvx_ventures`, and checkpoint
 each coherent provider changeset before moving to the next.
 
 Update this handoff at every coherent implementation and operations boundary.
