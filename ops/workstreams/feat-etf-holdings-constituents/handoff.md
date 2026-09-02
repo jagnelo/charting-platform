@@ -16,16 +16,17 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 - Latest staging merge: `9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4`
 - Incorporated staging SHA: `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`
-- Current code-derived state: 496 registered, 369 native/live-backed, 127
+- Current code-derived state: 496 registered, 370 native/live-backed, 126
   fallback-only.
-- Current fallback status split: 8 access-blocked, 110 discovery, 3
+- Current fallback status split: 8 access-blocked, 109 discovery, 3
   non-executable public source, 6 non-portfolio-publisher.
 - `docs/etf-provider-universe.md` has been reconciled from code to the current
-  496/369/127 snapshot; future updates must remain code-derived.
+  496/370/126 snapshot; future updates must remain code-derived.
 - Validation tier: `full_integration`.
 - Local validation profile: `docker_integration`.
 - Planning session: `197b239d-3322-4fc6-bf4b-0d0aecebf5e0`.
-- Latest implementation checkpoint: `1aa7cc48` (Castellan native CTEF/CTIF
+- Latest implementation checkpoint: `fd07b17f` (Conductor native CGV declared
+  holdings CSV); prior `1aa7cc48` (Castellan native CTEF/CTIF
   holdings tables); prior `992a554d` (CapForce native FFTY/BOUT
   holdings tables); prior `b9a984c4` (Bushido native SMRI/RNIN
   holdings tables); prior `b967113b` (BufferLABS native BFLB
@@ -39,7 +40,7 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
   the Guggenheim audit receipt remains `c4bef2ec`.
 - Product implementation is underway; current changes add Guggenheim, ARS,
   Avory, Ballast, Bancreek, BeeHive, Blueprint, Bridgeway, Brookstone, BufferLABS,
-  Bushido, CapForce, and Castellan
+  Bushido, CapForce, Castellan, and Conductor
   native coverage and issuer-specific audit dispositions for the ranked fallback
   records reviewed so far.
 
@@ -56,24 +57,24 @@ only in this branch's registered local worktree.
 The former master-based branch was fully represented in staging before its
 remote ref was removed. Its prior checkpoint `a8d6189` recorded 496 registered,
 339 native/live-backed, and 157 fallback-only providers. Current code has
-advanced to 369/127, including the Guggenheim, ARS, Avory, Ballast, Bancreek,
-BeeHive, Blueprint, Bridgeway, Brookstone, BufferLABS, Bushido, CapForce, and Castellan promotions. Continue current gaps; do not recreate completed work or
+advanced to 370/126, including the Guggenheim, ARS, Avory, Ballast, Bancreek,
+BeeHive, Blueprint, Bridgeway, Brookstone, BufferLABS, Bushido, CapForce, Castellan, and Conductor promotions. Continue current gaps; do not recreate completed work or
 restore a dead route merely to reproduce historical counts.
 
 ## Next action
 
 The baseline provider-audit ledger now accounts for all 140 fallback keys and an
 exhaustive invariant test proves its key/count/rank alignment with runtime code.
-`guggenheim`, `ars`, `avory`, `ballast`, `bancreek`, `beehive`, `blueprint`, `bridgeway`, `brookstone`, `bufferlabs`, `bushido`, `capforce`, and `castellan` are native-promoted; `advisors_asset_management` and `amplius` are
+`guggenheim`, `ars`, `avory`, `ballast`, `bancreek`, `beehive`, `blueprint`, `bridgeway`, `brookstone`, `bufferlabs`, `bushido`, `capforce`, `castellan`, and `conductor_fund` are native-promoted; `advisors_asset_management` and `amplius` are
 issuer-access-blocked; `alphamark_advisors` is classified as an
 inactive/successor disposition; `amg_national` is a non-portfolio publisher;
 and `anydrus` plus `baillie_gifford` are non-executable public sources;
 `alphaclone` is an inactive/successor disposition; `argent` and `arin` are
 issuer-access-blocked; `azimut` is a dated non-portfolio-publisher disposition.
-The audit ledger currently has 100 queued fallback records still requiring
+The audit ledger currently has 99 queued fallback records still requiring
 issuer-specific evidence and final dispositions; existing terminal/blocked records
 must remain evidence-backed. Continue replacing baseline placeholders with first-party
-route evidence, starting with the ranked queue after Castellan at `conductor_fund`, and checkpoint
+route evidence, starting with the ranked queue after Conductor at `credit_suisse`, and checkpoint
 each coherent provider changeset before moving to the next.
 
 Update this handoff at every coherent implementation and operations boundary.

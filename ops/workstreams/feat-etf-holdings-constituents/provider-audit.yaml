@@ -5,9 +5,9 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 369
-current_fallback_count: 127
-generated_at: 2026-09-02T20:00:00Z
+current_native_count: 370
+current_fallback_count: 126
+generated_at: 2026-09-02T20:40:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -1298,35 +1298,46 @@ providers:
     display_name: conductor_fund
     queue_rank: 32
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-02
+    source_access_declared: issuer_product_page_declared_complete_current_holdings_csv
+    representative_symbols:
+      - CGV
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    source_freshness: daily
+    first_party_domains:
+      - conductoretfs.com
+    candidate_routes:
+      - https://conductoretfs.com/global-equity-etf/
+      - https://conductoretfs.com/wp-content/themes/bb-theme-child/data/download.php?id=1532
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_conductor_adapter_parses_page_declared_complete_holdings_csv
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows[conductor_fund-CGV-None-identifiers171-20]
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.conductor_fund"
       - "runtime:ISSUER_ADAPTER_CONFIGS.conductor_fund"
+      - "web:conductor-cgv-holdings-2026-09-02"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.conductor_fund"
-    disposition_reason: "conductor_fund: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate conductor_fund first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
-    implementation_sha: null
-    validation_refs: []
+      - date: 2026-09-02
+        source: "https://conductoretfs.com/global-equity-etf/"
+        result: "Conductor's official CGV product page declares a complete current holdings CSV download. The bounded live fetch returned 99 rows dated 2026-09-01 with name, security identifier, symbol, net-asset percentage, price, shares, market value, and market-value percentage; currency, sweep-vehicle, and receivables/payables rows are explicitly classified as cash."
+        evidence_ref: "web:conductor-cgv-holdings-2026-09-02"
+    disposition_reason: "conductor_fund: Conductor's official CGV product page declares a complete current holdings CSV. The provider-specific adapter restricts access to the verified page-declared CSV, validates the fund identity and declaration, normalizes the CSV schema and percentage units, parses all 99 rows dated 2026-09-01, classifies currencies, sweep vehicle, and receivables/payables as cash, and has deterministic plus opt-in live coverage."
+    next_action: "conductor_fund: Monitor the CGV product page and declared holdings CSV and retain native status while the complete dated artifact remains executable and identity-valid; add any future Conductor ETF only after equivalent route, parser, and live evidence."
+    implementation_sha: fd07b17f70ea0a5b33ec2497ac689dc7e204d75e
+    validation_refs:
+      - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_conductor_adapter_parses_page_declared_complete_holdings_csv"
+      - "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows[conductor_fund-CGV-None-identifiers171-20]"
   - adapter_key: credit_suisse
     display_name: credit_suisse
     queue_rank: 33

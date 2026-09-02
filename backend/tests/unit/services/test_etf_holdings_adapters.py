@@ -21068,6 +21068,7 @@ def test_stockanalysis_provider_continuation_batch_is_registered_and_audited():
         "ars",
         "avory",
         "bushido",
+        "castellan",
     }
     expected -= {"fairlead"}
 
@@ -21095,6 +21096,9 @@ def test_stockanalysis_provider_continuation_batch_is_registered_and_audited():
     assert "bushido" not in FALLBACK_ISSUER_AUDITS
     assert ISSUER_ADAPTER_CONFIGS["bushido"].live_tested_default_route is True
     assert type(get_holdings_adapter("bushido")).__name__ == "BushidoHoldingsAdapter"
+    assert "castellan" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["castellan"].live_tested_default_route is True
+    assert type(get_holdings_adapter("castellan")).__name__ == "CastellanHoldingsAdapter"
     assert ISSUER_ADAPTER_CONFIGS["fairlead"].live_tested_default_route is True
     assert type(get_holdings_adapter("fairlead")).__name__ == "CaryStreetHoldingsAdapter"
     assert "fairlead" not in FALLBACK_ISSUER_AUDITS

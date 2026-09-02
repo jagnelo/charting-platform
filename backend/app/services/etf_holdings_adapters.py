@@ -66123,6 +66123,22 @@ class CastellanHoldingsAdapter(BushidoHoldingsAdapter):
         "CTIF": "Castellan Targeted Income ETF (CTIF)",
     }
 
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        """Keep Castellan's provider-owned fetch entry point explicit."""
+        return await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+
 
 class OpusCapitalManagementReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """StockAnalysis provider-table fallback adapter pending Opus discovery."""
