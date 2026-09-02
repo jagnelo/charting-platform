@@ -870,7 +870,7 @@ providers:
         evidence_ref: "web:ballast-mgmt-holdings-2026-09-02"
     disposition_reason: "ballast: The official MGMT product page and declared FilePoint endpoint provide a complete current portfolio; the provider-specific adapter validates fund identity, parses holdings rows, preserves date provenance, and has deterministic plus opt-in live coverage."
     next_action: "ballast: Monitor the MGMT product page and declared holdings feed; retain native status while the route remains complete and identity-valid."
-    implementation_sha: null
+    implementation_sha: b4c96335f82080d84329dbc957377ee7eaeb0c04
     validation_refs: []
   - adapter_key: bancreek
     display_name: bancreek
