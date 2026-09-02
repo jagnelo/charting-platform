@@ -20296,6 +20296,15 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     assert rsp["issuer"] == "Invesco"
     assert rsp["provider_aliases"]["holdings_adapter"] == "invesco"
     assert rsp["provider_aliases"]["cusip"] == "46137V357"
+    bflb = known_etf_route_metadata("BFLB")
+    assert bflb == {
+        "issuer": "BufferLABS",
+        "provider_aliases": {
+            "holdings_adapter": "bufferlabs",
+            "issuer_product_url": "https://bflbetf.com/",
+            "sec_cik": "0001592900",
+        },
+    }
     invesco = holdings_adapter_catalog()
     invesco_entry = next(item for item in invesco if item["adapter_key"] == "invesco")
     assert invesco_entry["source_access"] == "issuer_public_json_catalog_cusip"

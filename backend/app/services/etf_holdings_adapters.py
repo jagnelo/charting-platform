@@ -3283,6 +3283,14 @@ KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
             "holdings_adapter": "invesco",
         },
     },
+    "BFLB": {
+        "issuer": "BufferLABS",
+        "provider_aliases": {
+            "holdings_adapter": "bufferlabs",
+            "issuer_product_url": "https://bflbetf.com/",
+            "sec_cik": "0001592900",
+        },
+    },
     "EEM": {
         "issuer": "iShares",
         "provider_aliases": {
