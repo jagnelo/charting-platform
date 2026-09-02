@@ -48889,6 +48889,105 @@ class BrookmontHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "security", "equity"
 
 
+class BrookstoneHoldingsAdapter(BrookmontHoldingsAdapter):
+    """Fetch Brookstone Asset Management's complete product-page CSV holdings."""
+
+    PRODUCT_PAGE_URLS: dict[str, str] = {
+        "BAMD": "https://www.brookstoneam.com/brookstone-dividend-stock-etf",
+        "BAMG": "https://www.brookstoneam.com/brookstone-growth-stock-etf",
+        "BAMV": "https://www.brookstoneam.com/brookstone-value-stock-etf",
+        "BAMB": "https://www.brookstoneam.com/brookstone-intermediate-bond-etf",
+        "BAMU": "https://www.brookstoneam.com/brookstone-ultra-short-bond-etf",
+        "BAMA": "https://www.brookstoneam.com/brookstone-active-etf",
+        "BAMO": "https://www.brookstoneam.com/brookstone-opportunities-etf",
+        "BAMY": "https://www.brookstoneam.com/brookstone-yield-etf",
+    }
+    HOLDINGS_URLS: dict[str, str] = {
+        symbol: (
+            "https://retirementwealth.com/wp-content/themes/retirement-wealth/inc/"
+            f"{file_id}_all_holdings.csv"
+        )
+        for symbol, file_id in {
+            "BAMD": "1480",
+            "BAMG": "1481",
+            "BAMV": "1482",
+            "BAMB": "1483",
+            "BAMU": "1484",
+            "BAMA": "1485",
+            "BAMO": "1486",
+            "BAMY": "1487",
+        }.items()
+    }
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        supported = normalized_symbol in self.PRODUCT_PAGE_URLS
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9600") if supported else Decimal("0.3000"),
+            status="ready" if supported or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "Brookstone Asset Management publishes the complete current portfolio "
+                "through the symbol's official product page and linked holdings CSV."
+                if supported
+                else (
+                    f"No verified Brookstone native holdings route is configured for {normalized_symbol}; "
+                    "SEC EDGAR remains available as fallback."
+                    if has_sec_fallback
+                    else f"No verified Brookstone native holdings route is configured for {normalized_symbol}."
+                )
+            ),
+            source_url=self.PRODUCT_PAGE_URLS.get(normalized_symbol) if supported else None,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _holdings_request_headers(accept="text/csv,application/csv,*/*")
+        headers["Referer"] = "https://www.brookstoneam.com/"
+        return headers
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol not in self.PRODUCT_PAGE_URLS:
+            raise ValueError(
+                f"No verified Brookstone native holdings route is configured for "
+                f"{normalized_symbol or 'an empty symbol'}."
+            )
+        if source_url:
+            normalized_source_url = source_url.lower().split("?", 1)[0].rstrip("/")
+            allowed_urls = {
+                self.PRODUCT_PAGE_URLS[normalized_symbol].lower().rstrip("/"),
+                self.HOLDINGS_URLS[normalized_symbol].lower().rstrip("/"),
+            }
+            if normalized_source_url not in allowed_urls:
+                raise ValueError(
+                    "Brookstone fetches must use the symbol's official product page "
+                    "or its page-declared holdings CSV."
+                )
+        result = await super().fetch_latest(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "issuer": "Brookstone Asset Management",
+            "product_page_url": self.PRODUCT_PAGE_URLS[normalized_symbol],
+            "route_resolution": "brookstone_product_page_linked_complete_holdings_csv",
+        }
+        return result
+
+
 class COtwoHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Read CTWO's complete two-asset portfolio from COtwo's declared feed."""
 
@@ -62501,6 +62600,23 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Brookmont/Brookstone public ETF product pages and holdings CSV files may be subject to issuer terms.",
     ),
+    "brookstone": IssuerCsvAdapterConfig(
+        adapter_key="brookstone",
+        source_provider="brookstone_asset_management",
+        source_access="brookstone_product_page_linked_complete_holdings_csv",
+        product_page_templates=(
+            "https://www.brookstoneam.com/brookstone-dividend-stock-etf",
+            "https://www.brookstoneam.com/brookstone-growth-stock-etf",
+            "https://www.brookstoneam.com/brookstone-value-stock-etf",
+            "https://www.brookstoneam.com/brookstone-intermediate-bond-etf",
+            "https://www.brookstoneam.com/brookstone-ultra-short-bond-etf",
+            "https://www.brookstoneam.com/brookstone-active-etf",
+            "https://www.brookstoneam.com/brookstone-opportunities-etf",
+            "https://www.brookstoneam.com/brookstone-yield-etf",
+        ),
+        live_tested_default_route=True,
+        terms_note="Brookstone Asset Management publishes complete product-page holdings CSV files that may be subject to issuer terms.",
+    ),
     "burney": IssuerCsvAdapterConfig(
         adapter_key="burney",
         source_provider="burney",
@@ -63950,7 +64066,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "avos",
         "azimut",
         "baillie_gifford",
-        "brookstone",
         "bufferlabs",
         "bushido",
         "capforce",
@@ -66283,7 +66398,6 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "beehive": BeeHiveHoldingsAdapter,
         "bluemonte": BluemonteHoldingsAdapter,
         "blueprint": BlueprintHoldingsAdapter,
-        "brookstone": BrookstoneReconciledFallbackHoldingsAdapter,
         "bridgeway": BridgewayHoldingsAdapter,
         "bufferlabs": BufferLabsReconciledFallbackHoldingsAdapter,
         "bushido": BushidoReconciledFallbackHoldingsAdapter,
@@ -66498,6 +66612,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "wbi": WbiHoldingsAdapter,
         "mairs_power": MairsPowerHoldingsAdapter,
         "brookmont": BrookmontHoldingsAdapter,
+        "brookstone": BrookstoneHoldingsAdapter,
         "burney": BurneyHoldingsAdapter,
         "cambria": CambriaHoldingsAdapter,
         "cambiar": CambiarHoldingsAdapter,

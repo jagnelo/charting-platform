@@ -14046,6 +14046,55 @@ Receivables/Payables, RECPAY, RECPAY, -0.020553590700, 1.000000000000, -10378.36
 
 
 @pytest.mark.asyncio
+async def test_brookstone_adapter_fetches_symbol_scoped_complete_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("brookstone")
+    assert adapter is not None
+    assert type(adapter).__name__ == "BrookstoneHoldingsAdapter"
+    assert "brookstone" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["brookstone"].live_tested_default_route is True
+    assert adapter.probe(symbol="BAMD", name="Brookstone Dividend Stock ETF", identifiers={}).status == "ready"
+    assert adapter.probe(symbol="UNKNOWN", name="Unknown ETF", identifiers={}).status == "needs_issuer_route"
+
+    page_url = "https://www.brookstoneam.com/brookstone-dividend-stock-etf"
+    csv_url = "https://retirementwealth.com/wp-content/themes/retirement-wealth/inc/1480_all_holdings.csv"
+    page_html = f'<h1>BAMD</h1><a href="{csv_url}">Download All Holdings (.CSV)</a>'
+    raw_csv = """Brookstone Dividend Stock ETF
+Fund Holdings Data as of 09/01/2026
+Name, Security Identifier, Symbol, Net Assets %, Market Price, Shares Held, Market Value, Market Value %
+BBH SWEEP VEHICLE, BBHETFMM, 9BBH, 1.486144310200, 100.000000000000, 1463025.2100000, 1463025.21, 1.486177386500
+GARMIN LTD, H2906T109, GRMN US, 0.462043761500, 275.170000000000, 1653.0000000, 454856.01, 0.462054045000
+"""
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page_html, content_type="text/html", url=page_url),
+        FakeResponse(text=raw_csv, url=csv_url),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="BAMD", identifiers={})
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [page_url, csv_url]
+    assert result.rows[0].symbol is None
+    assert result.rows[0].holding_type == "cash"
+    assert result.rows[1].symbol == "GRMN"
+    assert result.rows[1].exchange == "US"
+    assert result.rows[1].cusip == "H2906T109"
+    assert result.rows[1].weight == Decimal("0.00462054045")
+    assert result.legal_metadata["source_provider"] == "brookstone_asset_management"
+    assert result.legal_metadata["issuer"] == "Brookstone Asset Management"
+    assert result.legal_metadata["route_resolution"] == (
+        "brookstone_product_page_linked_complete_holdings_csv"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+
+    with pytest.raises(ValueError, match="official product page"):
+        await adapter.fetch_latest(
+            symbol="BAMD",
+            source_url="https://example.invalid/not-brookstone.csv",
+        )
+
+
+@pytest.mark.asyncio
 async def test_madison_adapter_filters_account_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("madison")
     assert adapter is not None
