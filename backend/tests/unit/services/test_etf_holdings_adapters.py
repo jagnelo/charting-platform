@@ -8868,6 +8868,17 @@ async def test_inverdale_adapter_accepts_only_mgmt_and_classifies_issuer_portfol
     assert result.legal_metadata["composition_date"] == "2026-07-20"
 
 
+def test_ballast_provider_alias_uses_verified_inverdale_route():
+    adapter = get_holdings_adapter("ballast")
+    assert adapter is not None
+    assert type(adapter).__name__ == "BallastHoldingsAdapter"
+    assert ISSUER_ADAPTER_CONFIGS["ballast"].live_tested_default_route is True
+    probe = adapter.probe(symbol="MGMT", name="Ballast Small/Mid Cap ETF", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url == "https://filepoint.live/ballast_getholdings_cached4.php"
+    assert "Ballast" in (probe.reason or "")
+
+
 @pytest.mark.asyncio
 async def test_inverdale_adapter_retries_transient_post_timeout(monkeypatch):
     adapter = get_holdings_adapter("inverdale")
@@ -24470,8 +24481,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 359
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 137
+    assert ledger["current_native_count"] == 360
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 136
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -24479,7 +24490,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         for record in records
         if record["disposition"] == "native_promoted"
     }
-    assert native_promoted == {"ars", "avory", "guggenheim"}
+    assert native_promoted == {"ars", "avory", "ballast", "guggenheim"}
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(
         range(1, len(records) + 1)

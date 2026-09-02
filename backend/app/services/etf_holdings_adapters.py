@@ -41110,6 +41110,21 @@ class InverdaleHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return "security", "equity"
 
 
+class BallastHoldingsAdapter(InverdaleHoldingsAdapter):
+    """Expose Ballast's complete MGMT holdings under its provider identity."""
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        probe = super().probe(symbol=symbol, name=name, identifiers=identifiers)
+        return replace(
+            probe,
+            reason=(
+                "Ballast's MGMT product page declares a complete current portfolio feed."
+                if symbol.strip().upper() == self.SUPPORTED_SYMBOL
+                else "Ballast currently has a verified public holdings route only for MGMT."
+            ),
+        )
+
+
 class HypatiaHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Hypatia ETF holdings from its public fund-scoped FilePoint API."""
 
@@ -63243,6 +63258,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "fund-scoped holdings feed."
         ),
     ),
+    "ballast": IssuerCsvAdapterConfig(
+        adapter_key="ballast",
+        source_provider="ballast_asset_management",
+        source_access="ballast_issuer_declared_fund_scoped_complete_holdings_json",
+        product_page_templates=("https://etf.mgmtetf.com/",),
+        live_tested_default_route=True,
+        terms_note=(
+            "Ballast Asset Management publishes the complete current MGMT portfolio "
+            "through its public ETF product page and declared holdings feed."
+        ),
+    ),
     "vontobel": IssuerCsvAdapterConfig(
         adapter_key="vontobel",
         source_provider="vontobel",
@@ -63548,7 +63574,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "avos",
         "azimut",
         "baillie_gifford",
-        "ballast",
         "bancreek",
         "beehive",
         "bridgeway",
@@ -65608,7 +65633,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "avos": AvosReconciledFallbackHoldingsAdapter,
         "azimut": AzimutReconciledFallbackHoldingsAdapter,
         "baillie_gifford": BaillieGiffordReconciledFallbackHoldingsAdapter,
-        "ballast": BallastReconciledFallbackHoldingsAdapter,
+        "ballast": BallastHoldingsAdapter,
         "bancreek": BancreekReconciledFallbackHoldingsAdapter,
         "beehive": BeeHiveReconciledFallbackHoldingsAdapter,
         "bluemonte": BluemonteHoldingsAdapter,
