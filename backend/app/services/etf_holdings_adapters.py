@@ -14686,11 +14686,11 @@ class WisdomTreeHoldingsAdapter(IssuerCsvHoldingsAdapter):
 class GuggenheimHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Read Guggenheim's issuer-hosted complete ETF holdings table."""
 
-    _HOLDINGS_URL_TEMPLATE = "https://portal.guggenheiminvestments.com/etf/fund/{symbol_lower}/holdings"
+    _HOLDINGS_URL_TEMPLATE = (
+        "https://portal.guggenheiminvestments.com/etf/fund/{symbol_lower}/holdings"
+    )
 
-    def probe(
-        self, *, symbol: str, name: str, identifiers: dict[str, str]
-    ) -> HoldingsAdapterProbe:
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
         del name, identifiers
         normalized_symbol = symbol.strip().upper()
         if not normalized_symbol:
@@ -14707,9 +14707,7 @@ class GuggenheimHoldingsAdapter(IssuerCsvHoldingsAdapter):
             reason=(
                 "Guggenheim publishes complete current ETF holdings in an issuer-hosted table."
             ),
-            source_url=self._HOLDINGS_URL_TEMPLATE.format(
-                symbol_lower=normalized_symbol.lower()
-            ),
+            source_url=self._HOLDINGS_URL_TEMPLATE.format(symbol_lower=normalized_symbol.lower()),
             issuer_product_id=normalized_symbol,
         )
 
@@ -14737,12 +14735,8 @@ class GuggenheimHoldingsAdapter(IssuerCsvHoldingsAdapter):
             or parsed_source_url.path.rstrip("/") != expected_path
             or parsed_source_url.query
         ):
-            raise ValueError(
-                "Guggenheim holdings source must be the symbol-scoped issuer route."
-            )
-        async with httpx.AsyncClient(
-            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
-        ) as client:
+            raise ValueError("Guggenheim holdings source must be the symbol-scoped issuer route.")
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
             response = await client.get(
                 resolved_source_url,
                 headers=_issuer_page_request_headers(accept="text/html,*/*"),
@@ -14789,9 +14783,7 @@ class GuggenheimHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "adapter_key": self.adapter_key,
                 "source_format": "html",
                 "route_resolution": "guggenheim_issuer_holdings_table",
-                "composition_date": composition_date.isoformat()
-                if composition_date
-                else None,
+                "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
                 "terms_note": self.config.terms_note,
             },
@@ -14800,8 +14792,7 @@ class GuggenheimHoldingsAdapter(IssuerCsvHoldingsAdapter):
     @staticmethod
     def _extract_composition_date(raw_html: str) -> date | None:
         match = re.search(
-            r"(?:fund holdings|holdings)\s*(?:</?[^>]+>\s*)*as of\s+"
-            r"(\d{1,2}/\d{1,2}/\d{2,4})",
+            r"(?:fund holdings|holdings)\s*(?:</?[^>]+>\s*)*as of\s+" r"(\d{1,2}/\d{1,2}/\d{2,4})",
             raw_html,
             re.IGNORECASE,
         )
@@ -23186,9 +23177,7 @@ class BeeHiveHoldingsAdapter(TidalHoldingsAdapter):
         normalized_symbol = symbol.strip().upper()
         product = self._PRODUCTS.get(normalized_symbol)
         if product is None:
-            raise ValueError(
-                "BeeHive's verified issuer route currently supports BEEX only."
-            )
+            raise ValueError("BeeHive's verified issuer route currently supports BEEX only.")
         if source_url and source_url.rstrip("/") != product[1].rstrip("/"):
             raise ValueError("BeeHive holdings must use its official declared holdings CSV.")
 
@@ -23252,9 +23241,7 @@ class BlueprintHoldingsAdapter(TidalHoldingsAdapter):
     def _parse_holdings_csv(
         raw_csv: str, *, symbol: str
     ) -> tuple[list[CanonicalHoldingRow], date | None]:
-        rows, composition_date = TidalHoldingsAdapter._parse_holdings_csv(
-            raw_csv, symbol=symbol
-        )
+        rows, composition_date = TidalHoldingsAdapter._parse_holdings_csv(raw_csv, symbol=symbol)
         for row in rows:
             if row.row_type == "cash":
                 continue
@@ -23269,12 +23256,8 @@ class BlueprintHoldingsAdapter(TidalHoldingsAdapter):
                 if isinstance(value, str) and value.strip()
             )
             is_derivative = any(
-                token in source_text
-                for token in (" FUT", "FUTURE", " OPTION", " SWAP", " FORWARD")
-            ) or any(
-                token in source_text
-                for token in (" CURNCY", " COMDTY", " INDEX")
-            )
+                token in source_text for token in (" FUT", "FUTURE", " OPTION", " SWAP", " FORWARD")
+            ) or any(token in source_text for token in (" CURNCY", " COMDTY", " INDEX"))
             if is_derivative:
                 row.symbol = None
                 row.holding_type = "derivative"
@@ -23294,9 +23277,7 @@ class BlueprintHoldingsAdapter(TidalHoldingsAdapter):
         normalized_symbol = symbol.strip().upper()
         product = self._PRODUCTS.get(normalized_symbol)
         if product is None:
-            raise ValueError(
-                "Blueprint's verified issuer route currently supports TFPN only."
-            )
+            raise ValueError("Blueprint's verified issuer route currently supports TFPN only.")
         if source_url and source_url.rstrip("/") != product[1].rstrip("/"):
             raise ValueError("Blueprint holdings must use its official declared holdings CSV.")
 
@@ -24327,9 +24308,7 @@ class EvenHerdHoldingsAdapter(IssuerCsvHoldingsAdapter):
     ) -> HoldingsFetchResult:
         del issuer_product_id, source_url, identifiers
         result = await self.fetch_latest(symbol=symbol)
-        composition_date = self._parse_date(
-            (result.legal_metadata or {}).get("composition_date")
-        )
+        composition_date = self._parse_date((result.legal_metadata or {}).get("composition_date"))
         if composition_date != requested_date:
             raise ValueError(
                 "Even Herd publishes a current-only holdings CSV; no exact EHLS snapshot "
@@ -24374,9 +24353,7 @@ class EvenHerdHoldingsAdapter(IssuerCsvHoldingsAdapter):
             cusip_value = _clean(raw.get("CUSIP"))
             cusip = cusip_value if _looks_like_cusip(cusip_value) else None
             parsed_symbol = cls._clean_symbol(raw_symbol) if not is_cash else None
-            if not any(
-                [parsed_symbol, name, cusip, raw.get("MarketValue"), raw.get("Weightings")]
-            ):
+            if not any([parsed_symbol, name, cusip, raw.get("MarketValue"), raw.get("Weightings")]):
                 continue
             rows.append(
                 CanonicalHoldingRow(
@@ -41820,7 +41797,11 @@ class BancreekHoldingsAdapter(IssuerCsvHoldingsAdapter):
         has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
         return HoldingsAdapterProbe(
             adapter_key=self.adapter_key,
-            confidence=Decimal("0.9500") if source_url else Decimal("0.5000") if has_sec_fallback else Decimal("0"),
+            confidence=Decimal("0.9500")
+            if source_url
+            else Decimal("0.5000")
+            if has_sec_fallback
+            else Decimal("0"),
             status="ready" if source_url or has_sec_fallback else "needs_issuer_route",
             reason=(
                 "Bancreek publishes this ETF's complete current holdings in its issuer-rendered product page."
@@ -41858,7 +41839,9 @@ class BancreekHoldingsAdapter(IssuerCsvHoldingsAdapter):
             or parsed_url.query
             or parsed_url.fragment
         ):
-            raise ValueError("Bancreek holdings must use the verified symbol-scoped issuer product page.")
+            raise ValueError(
+                "Bancreek holdings must use the verified symbol-scoped issuer product page."
+            )
         async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
             response = await client.get(
                 resolved_url,
@@ -49569,9 +49552,7 @@ class BufferLabsHoldingsAdapter(IssuerCsvHoldingsAdapter):
             if row_type != "security":
                 row.symbol = None
                 row.cusip = None
-            row.source_row_id = (
-                f"{self.SUPPORTED_SYMBOL}:{composition_date.isoformat() if composition_date else 'current'}:{index}"
-            )
+            row.source_row_id = f"{self.SUPPORTED_SYMBOL}:{composition_date.isoformat() if composition_date else 'current'}:{index}"
             row.extra_data = {
                 **row.extra_data,
                 "source": "bufferlabs_public_fund_page_holdings_table",
@@ -49622,7 +49603,10 @@ class BufferLabsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     @staticmethod
     def _classify_row(*, raw_symbol: str | None, name: str | None) -> tuple[str, str]:
         text = " ".join(part.upper() for part in (raw_symbol, name) if part)
-        if any(marker in text for marker in ("CASH", "CASH&OTHER", "MONEY MARKET", "GOVERNMENT OBLIGATIONS")):
+        if any(
+            marker in text
+            for marker in ("CASH", "CASH&OTHER", "MONEY MARKET", "GOVERNMENT OBLIGATIONS")
+        ):
             return "cash", "cash"
         if re.search(r"\b[A-Z0-9]{4}\s+\d{6}[CP]\d{8}\b", text) or re.search(
             r"\b[A-Z]{1,6}\s+\d{2}/\d{2}/\d{4}\s+[\d.]+\s+[CP]\b", text
@@ -65641,7 +65625,9 @@ class BridgewayHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "BBLU, BAGX, BRSV, BSVO, and BUSM."
             )
         if issuer_product_id and issuer_product_id.strip().upper() != normalized_symbol:
-            raise ValueError("Bridgeway issuer product identity must match the requested ETF symbol.")
+            raise ValueError(
+                "Bridgeway issuer product identity must match the requested ETF symbol."
+            )
         product_page_url, expected_title = product
         if source_url and source_url.rstrip("/") != product_page_url.rstrip("/"):
             raise ValueError("Bridgeway holdings must use its official ETF product page.")
@@ -65741,9 +65727,7 @@ class BridgewayHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 source_symbol=source_symbol,
                 name=name,
             )
-            normalized_ticker = (
-                cls._tradable_symbol(source_symbol) if row_type != "cash" else None
-            )
+            normalized_ticker = cls._tradable_symbol(source_symbol) if row_type != "cash" else None
             market_value_millions = _decimal(_first(raw, ["Market Value ($mm)"]))
             if not any([source_symbol, name, cusip_value, market_value_millions is not None]):
                 continue
@@ -65782,7 +65766,10 @@ class BridgewayHoldingsAdapter(IssuerCsvHoldingsAdapter):
     @staticmethod
     def _classify_row(*, source_symbol: str | None, name: str | None) -> tuple[str, str]:
         text = " ".join(part.upper() for part in (source_symbol, name) if part)
-        if any(marker in text for marker in ("CASH", "DOLLAR", "MONEY MARKET", "GOVERNMENT OBLIGATIONS")):
+        if any(
+            marker in text
+            for marker in ("CASH", "DOLLAR", "MONEY MARKET", "GOVERNMENT OBLIGATIONS")
+        ):
             return "cash", "cash"
         if any(marker in text for marker in ("BOND", "TREASURY", "FIXED INCOME", "NOTE")):
             return "security", "fixed_income"
@@ -65796,11 +65783,7 @@ class BridgewayHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if text is None:
             return None
         normalized = text.upper()
-        return (
-            normalized
-            if re.fullmatch(r"[A-Z0-9][A-Z0-9.\-/]{0,14}", normalized)
-            else None
-        )
+        return normalized if re.fullmatch(r"[A-Z0-9][A-Z0-9.\-/]{0,14}", normalized) else None
 
 
 class CalvertHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -66488,9 +66471,7 @@ class BushidoHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 row.symbol = None
                 row.cusip = None
             row.currency = row.currency or "USD"
-            row.source_row_id = (
-                f"{normalized_symbol}:{composition_date.isoformat() if composition_date else 'current'}:{index}"
-            )
+            row.source_row_id = f"{normalized_symbol}:{composition_date.isoformat() if composition_date else 'current'}:{index}"
             row.extra_data = {
                 **row.extra_data,
                 "source": f"{self.SOURCE_TAG}_public_product_page_holdings_table",
@@ -66697,11 +66678,7 @@ class CresAltaHoldingsAdapter(BushidoHoldingsAdapter):
                 (
                     index
                     for index, row in enumerate(table[:30])
-                    if {
-                        str(value).strip().lower()
-                        for value in row
-                        if _clean(value)
-                    }
+                    if {str(value).strip().lower() for value in row if _clean(value)}
                     >= {"name", "cusip", "shares / par", "weight", "market value"}
                 ),
                 None,
@@ -66742,9 +66719,7 @@ class CresAltaHoldingsAdapter(BushidoHoldingsAdapter):
                 row.symbol = None
                 row.cusip = None
             row.currency = row.currency or "USD"
-            row.source_row_id = (
-                f"{normalized_symbol}:{composition_date.isoformat() if composition_date else 'current'}:{index}"
-            )
+            row.source_row_id = f"{normalized_symbol}:{composition_date.isoformat() if composition_date else 'current'}:{index}"
             row.extra_data = {
                 **row.extra_data,
                 "source": f"{self.SOURCE_TAG}_public_full_holdings_table",
@@ -66924,7 +66899,9 @@ class ConductorFundHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch CGV's complete current holdings CSV declared by Conductor's fund page."""
 
     PRODUCT_PAGE_URL = "https://conductoretfs.com/global-equity-etf/"
-    HOLDINGS_URL = "https://conductoretfs.com/wp-content/themes/bb-theme-child/data/download.php?id=1532"
+    HOLDINGS_URL = (
+        "https://conductoretfs.com/wp-content/themes/bb-theme-child/data/download.php?id=1532"
+    )
     SUPPORTED_SYMBOL = "CGV"
 
     def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
@@ -66975,12 +66952,12 @@ class ConductorFundHoldingsAdapter(IssuerCsvHoldingsAdapter):
             self.PRODUCT_PAGE_URL.rstrip("/"),
             self.HOLDINGS_URL.rstrip("/"),
         }:
-            raise ValueError("Conductor holdings must use the verified official product page or its declared CSV.")
+            raise ValueError(
+                "Conductor holdings must use the verified official product page or its declared CSV."
+            )
 
         headers = _issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*")
-        async with httpx.AsyncClient(
-            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
-        ) as client:
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
             page_response = await client.get(
                 self.PRODUCT_PAGE_URL,
                 headers=headers,
@@ -67001,9 +66978,7 @@ class ConductorFundHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if "HOLDINGS" not in page_text.upper() or self.HOLDINGS_URL not in page_text:
             raise ValueError("Conductor product page did not declare CGV's complete holdings CSV.")
 
-        async with httpx.AsyncClient(
-            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
-        ) as client:
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
             csv_response = await client.get(
                 self.HOLDINGS_URL,
                 headers=_holdings_request_headers(accept="text/csv,text/plain,*/*"),
@@ -67038,9 +67013,7 @@ class ConductorFundHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 row.symbol = None
                 row.cusip = None
             row.currency = row.currency or "USD"
-            row.source_row_id = (
-                f"{self.SUPPORTED_SYMBOL}:{composition_date.isoformat() if composition_date else 'current'}:{index}"
-            )
+            row.source_row_id = f"{self.SUPPORTED_SYMBOL}:{composition_date.isoformat() if composition_date else 'current'}:{index}"
             row.extra_data = {
                 **row.extra_data,
                 "source": "conductor_public_product_page_declared_holdings_csv",
@@ -67087,9 +67060,10 @@ class ConductorFundHoldingsAdapter(IssuerCsvHoldingsAdapter):
             "FRANC",
             "POUND",
         )
-        if any(marker in text for marker in ("CASH", "MONEY MARKET", "SWEEP VEHICLE", "RECEIVABLES/PAYABLES")) or any(
-            marker in text for marker in currency_markers
-        ):
+        if any(
+            marker in text
+            for marker in ("CASH", "MONEY MARKET", "SWEEP VEHICLE", "RECEIVABLES/PAYABLES")
+        ) or any(marker in text for marker in currency_markers):
             return "cash", "cash"
         if re.search(r"\b[A-Z0-9]{4}\s+\d{6}[CP]\d{8}\b", text) or re.search(
             r"\b[A-Z]{1,6}\s+\d{2}/\d{2}/\d{4}\s+[\d.]+\s+[CP]\b", text
@@ -67694,7 +67668,9 @@ class CapForceHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 f"No verified CapForce current-holdings route is configured for {normalized_symbol or 'an empty symbol'}."
             )
         if source_url and source_url.rstrip("/") != resolved_source_url.rstrip("/"):
-            raise ValueError("CapForce holdings must use the matching verified official product page.")
+            raise ValueError(
+                "CapForce holdings must use the matching verified official product page."
+            )
 
         headers = _issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*")
         try:
@@ -67725,9 +67701,7 @@ class CapForceHoldingsAdapter(IssuerCsvHoldingsAdapter):
         page_text = html.unescape(response.text)
         expected_identity = self.EXPECTED_IDENTITIES[normalized_symbol]
         if not re.search(re.escape(expected_identity), page_text, re.IGNORECASE):
-            raise ValueError(
-                f"CapForce product page identity did not match {normalized_symbol}."
-            )
+            raise ValueError(f"CapForce product page identity did not match {normalized_symbol}.")
         if normalized_symbol not in page_text.upper() or "HOLDINGS" not in page_text.upper():
             raise ValueError(
                 f"CapForce product page did not expose {normalized_symbol}'s complete holdings table."
@@ -67755,9 +67729,7 @@ class CapForceHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 row.symbol = None
                 row.cusip = None
             row.currency = row.currency or "USD"
-            row.source_row_id = (
-                f"{normalized_symbol}:{composition_date.isoformat() if composition_date else 'current'}:{index}"
-            )
+            row.source_row_id = f"{normalized_symbol}:{composition_date.isoformat() if composition_date else 'current'}:{index}"
             row.extra_data = {
                 **row.extra_data,
                 "source": "capforce_public_product_page_holdings_table",
@@ -67791,7 +67763,11 @@ class CapForceHoldingsAdapter(IssuerCsvHoldingsAdapter):
             page_text,
             re.IGNORECASE,
         )
-        scope = page_text[holdings_marker.start() : holdings_marker.start() + 4000] if holdings_marker else page_text
+        scope = (
+            page_text[holdings_marker.start() : holdings_marker.start() + 4000]
+            if holdings_marker
+            else page_text
+        )
         match = re.search(r"As of\s+(\d{1,2}/\d{1,2}/\d{4})", scope, re.IGNORECASE)
         return _parse_issuer_date(match.group(1)) if match else None
 

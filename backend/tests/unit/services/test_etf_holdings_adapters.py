@@ -3167,7 +3167,7 @@ async def test_even_herd_adapter_fetches_declared_complete_ehls_csv(monkeypatch)
     FakeAsyncClient.queue = [
         FakeResponse(
             text=(
-                '<h1>EVEN HERD LONG/SHORT ETF (EHLS)</h1>'
+                "<h1>EVEN HERD LONG/SHORT ETF (EHLS)</h1>"
                 '<a href="https://evenherd-wix.s3.us-east-2.amazonaws.com/holdings.csv">'
                 "Download Holdings CSV</a>"
             ),
@@ -14209,11 +14209,19 @@ async def test_brookstone_adapter_fetches_symbol_scoped_complete_holdings_csv(mo
     assert type(adapter).__name__ == "BrookstoneHoldingsAdapter"
     assert "brookstone" not in FALLBACK_ISSUER_AUDITS
     assert ISSUER_ADAPTER_CONFIGS["brookstone"].live_tested_default_route is True
-    assert adapter.probe(symbol="BAMD", name="Brookstone Dividend Stock ETF", identifiers={}).status == "ready"
-    assert adapter.probe(symbol="UNKNOWN", name="Unknown ETF", identifiers={}).status == "needs_issuer_route"
+    assert (
+        adapter.probe(symbol="BAMD", name="Brookstone Dividend Stock ETF", identifiers={}).status
+        == "ready"
+    )
+    assert (
+        adapter.probe(symbol="UNKNOWN", name="Unknown ETF", identifiers={}).status
+        == "needs_issuer_route"
+    )
 
     page_url = "https://www.brookstoneam.com/brookstone-dividend-stock-etf"
-    csv_url = "https://retirementwealth.com/wp-content/themes/retirement-wealth/inc/1480_all_holdings.csv"
+    csv_url = (
+        "https://retirementwealth.com/wp-content/themes/retirement-wealth/inc/1480_all_holdings.csv"
+    )
     page_html = f'<h1>BAMD</h1><a href="{csv_url}">Download All Holdings (.CSV)</a>'
     raw_csv = """Brookstone Dividend Stock ETF
 Fund Holdings Data as of 09/01/2026
@@ -14258,9 +14266,12 @@ async def test_bufferlabs_adapter_parses_complete_current_holdings_table(monkeyp
     assert type(adapter).__name__ == "BufferLabsHoldingsAdapter"
     assert "bufferlabs" not in FALLBACK_ISSUER_AUDITS
     assert ISSUER_ADAPTER_CONFIGS["bufferlabs"].live_tested_default_route is True
-    assert adapter.probe(
-        symbol="BFLB", name="BufferLABS US Equity Dynamic Buffer ETF", identifiers={}
-    ).status == "ready"
+    assert (
+        adapter.probe(
+            symbol="BFLB", name="BufferLABS US Equity Dynamic Buffer ETF", identifiers={}
+        ).status
+        == "ready"
+    )
     assert adapter.probe(symbol="UNKNOWN", name="Unknown ETF", identifiers={}).status == (
         "needs_issuer_route"
     )
@@ -14281,9 +14292,7 @@ async def test_bufferlabs_adapter_parses_complete_current_holdings_table(monkeyp
     </table>
     """
     FakeAsyncClient.requested = []
-    FakeAsyncClient.queue = [
-        FakeResponse(text=page_html, content_type="text/html", url=page_url)
-    ]
+    FakeAsyncClient.queue = [FakeResponse(text=page_html, content_type="text/html", url=page_url)]
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
 
     result = await adapter.fetch_latest(symbol="BFLB")
@@ -14320,12 +14329,16 @@ async def test_bushido_adapter_parses_complete_current_holdings_tables(monkeypat
     assert type(adapter).__name__ == "BushidoHoldingsAdapter"
     assert "bushido" not in FALLBACK_ISSUER_AUDITS
     assert ISSUER_ADAPTER_CONFIGS["bushido"].live_tested_default_route is True
-    assert adapter.probe(
-        symbol="SMRI", name="Bushido Capital US Equity ETF", identifiers={}
-    ).status == "ready"
-    assert adapter.probe(
-        symbol="RNIN", name="Bushido Capital US SMID Cap Equity ETF", identifiers={}
-    ).status == "ready"
+    assert (
+        adapter.probe(symbol="SMRI", name="Bushido Capital US Equity ETF", identifiers={}).status
+        == "ready"
+    )
+    assert (
+        adapter.probe(
+            symbol="RNIN", name="Bushido Capital US SMID Cap Equity ETF", identifiers={}
+        ).status
+        == "ready"
+    )
     assert adapter.probe(symbol="UNKNOWN", name="Unknown ETF", identifiers={}).status == (
         "needs_issuer_route"
     )
@@ -14390,9 +14403,12 @@ async def test_capforce_adapter_parses_complete_current_holdings_tables(monkeypa
     assert adapter.probe(symbol="FFTY", name="CapForce IBD 50 ETF", identifiers={}).status == (
         "ready"
     )
-    assert adapter.probe(
-        symbol="BOUT", name="CapForce IBD Breakout Opportunities ETF", identifiers={}
-    ).status == "ready"
+    assert (
+        adapter.probe(
+            symbol="BOUT", name="CapForce IBD Breakout Opportunities ETF", identifiers={}
+        ).status
+        == "ready"
+    )
     assert adapter.probe(symbol="UNKNOWN", name="Unknown ETF", identifiers={}).status == (
         "needs_issuer_route"
     )
@@ -14457,12 +14473,12 @@ async def test_castellan_adapter_parses_complete_current_holdings_tables(monkeyp
     assert type(adapter).__name__ == "CastellanHoldingsAdapter"
     assert "castellan" not in FALLBACK_ISSUER_AUDITS
     assert ISSUER_ADAPTER_CONFIGS["castellan"].live_tested_default_route is True
-    assert adapter.probe(symbol="CTEF", name="Castellan Targeted Equity ETF", identifiers={}).status == (
-        "ready"
-    )
-    assert adapter.probe(symbol="CTIF", name="Castellan Targeted Income ETF", identifiers={}).status == (
-        "ready"
-    )
+    assert adapter.probe(
+        symbol="CTEF", name="Castellan Targeted Equity ETF", identifiers={}
+    ).status == ("ready")
+    assert adapter.probe(
+        symbol="CTIF", name="Castellan Targeted Income ETF", identifiers={}
+    ).status == ("ready")
     assert adapter.probe(symbol="UNKNOWN", name="Unknown ETF", identifiers={}).status == (
         "needs_issuer_route"
     )
@@ -14521,15 +14537,18 @@ async def test_conductor_adapter_parses_page_declared_complete_holdings_csv(monk
     assert type(adapter).__name__ == "ConductorFundHoldingsAdapter"
     assert "conductor_fund" not in FALLBACK_ISSUER_AUDITS
     assert ISSUER_ADAPTER_CONFIGS["conductor_fund"].live_tested_default_route is True
-    assert adapter.probe(
-        symbol="CGV", name="Conductor Global Equity Value ETF", identifiers={}
-    ).status == "ready"
+    assert (
+        adapter.probe(symbol="CGV", name="Conductor Global Equity Value ETF", identifiers={}).status
+        == "ready"
+    )
     assert adapter.probe(symbol="UNKNOWN", name="Unknown ETF", identifiers={}).status == (
         "needs_issuer_route"
     )
 
     page_url = "https://conductoretfs.com/global-equity-etf/"
-    holdings_url = "https://conductoretfs.com/wp-content/themes/bb-theme-child/data/download.php?id=1532"
+    holdings_url = (
+        "https://conductoretfs.com/wp-content/themes/bb-theme-child/data/download.php?id=1532"
+    )
     page_html = (
         "<h1>Conductor Global Equity Value ETF</h1><h2>Holdings</h2>"
         f'<a class="dwnld-hlds" href="{holdings_url}">Download All Holdings (.CSV)</a>'
@@ -18592,7 +18611,9 @@ async def test_blueprint_adapter_fetches_and_classifies_official_tfpn_holdings_c
         "https://blueprintip.com/wp-content/fund_files/files/wp-content/fund_files/files/"
         "BlueprintInvWeb.40T2.T2_ETF_Holdings.csv"
     )
-    probe = adapter.probe(symbol="TFPN", name="Blueprint Chesapeake Multi-Asset Trend ETF", identifiers={})
+    probe = adapter.probe(
+        symbol="TFPN", name="Blueprint Chesapeake Multi-Asset Trend ETF", identifiers={}
+    )
     assert probe.status == "ready"
     assert probe.source_url == holdings_url
 
@@ -25398,9 +25419,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
-        record["adapter_key"]
-        for record in records
-        if record["disposition"] == "native_promoted"
+        record["adapter_key"] for record in records if record["disposition"] == "native_promoted"
     }
     assert native_promoted == {
         "ars",
@@ -25423,9 +25442,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "even_herd",
     }
     assert set(record_keys) == fallback_keys | native_promoted
-    assert sorted(record["queue_rank"] for record in records) == list(
-        range(1, len(records) + 1)
-    )
+    assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))
 
     allowed_statuses = {
         "issuer_access_blocked",

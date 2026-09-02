@@ -2213,6 +2213,8 @@ async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
         )
         assert result.legal_metadata["composition_date"]
         assert any(row.holding_type == "cash" for row in result.rows)
+
+
 @pytest.mark.asyncio
 @pytest.mark.slow
 @_covers_live_provider("ishares")
