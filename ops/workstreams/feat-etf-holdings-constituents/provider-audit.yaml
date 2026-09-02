@@ -1580,17 +1580,17 @@ providers:
     display_name: ea_series_trust
     queue_rank: 38
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: provider_not_a_portfolio_publisher
+    disposition: provider_not_a_portfolio_publisher
+    last_checked: 2026-09-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols: []
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains:
+      - etfarchitect.com
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -1600,13 +1600,23 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.ea_series_trust"
       - "runtime:ISSUER_ADAPTER_CONFIGS.ea_series_trust"
+      - "web:etf-architect-white-label-ea-series-trust-2026-09-02"
+      - "web:ea-series-trust-subadviser-portfolio-ownership-2026-09-02"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.ea_series_trust"
-    disposition_reason: "ea_series_trust: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate ea_series_trust first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-02
+        source: "https://etfarchitect.com/ and https://etfarchitect.com/funds/"
+        result: "ETF Architect describes the EA Series Trust as a white-label ETF platform that partners with fund managers, RIAs, and family offices; its funds catalogue lists separate sponsor names and product pages rather than a single EA Series Trust portfolio publisher."
+        evidence_ref: "web:etf-architect-white-label-ea-series-trust-2026-09-02"
+      - date: 2026-09-02
+        source: "https://etfarchitect.com/wp-content/uploads/compliance/etf/sai/NextGen_SAI.pdf"
+        result: "The official EA Series Trust SAI identifies the trust as a Delaware statutory trust, names Empowered Funds as adviser and NextGen EMP as sub-adviser for EMPB/EMPL, and assigns investment selection and portfolio construction to the sub-adviser; this is a trust/platform structure, not a single complete holdings publisher for all series."
+        evidence_ref: "web:ea-series-trust-subadviser-portfolio-ownership-2026-09-02"
+    disposition_reason: "ea_series_trust: EA Series Trust is a multi-series white-label trust/platform. Official ETF Architect materials show it hosts partner funds with distinct sponsor names, while the trust's official filing assigns portfolio construction to each fund's adviser/sub-adviser. Holdings routes must be resolved to the actual fund sponsor or sub-adviser (for example, the separately tracked Bridgeway, Avory, or other identities), not implemented as a duplicate trust-wide native adapter."
+    next_action: "ea_series_trust: Keep fallback-only as provider_not_a_portfolio_publisher; resolve each associated ETF to its actual sponsor/sub-adviser and reuse or audit that identity's first-party holdings route. Reopen only if the trust itself publishes a stable complete holdings artifact covering a distinct provider-owned portfolio set."
     implementation_sha: null
     validation_refs: []
   - adapter_key: elements

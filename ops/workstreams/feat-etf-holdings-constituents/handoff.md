@@ -80,15 +80,17 @@ issuer-access-blocked; `alphamark_advisors` is classified as an
 inactive/successor disposition; `amg_national` is a non-portfolio publisher;
 and `anydrus`, `baillie_gifford`, and `discipline_funds` are non-executable public sources;
 `alphaclone` is an inactive/successor disposition; `argent` and `arin` are
-issuer-access-blocked; `azimut`, `desjardins`, and `dvx_ventures` are dated
+issuer-access-blocked; `azimut`, `desjardins`, `dvx_ventures`, and `ea_series_trust` are dated
 non-portfolio-publisher dispositions. The DVx record resolves the source identity
 to the separately tracked VistaShares ETF publisher: DVx's own site is a
-venture/company-creation platform, not an ETF portfolio publisher. The audit
-ledger currently has 94 queued fallback records still requiring issuer-specific
+venture/company-creation platform, not an ETF portfolio publisher. The EA Series
+Trust record resolves the trust/platform identity to each fund's actual sponsor
+or sub-adviser rather than a duplicate trust-wide route. The audit ledger
+currently has 93 queued fallback records still requiring issuer-specific
 evidence and final dispositions; existing terminal/blocked records must remain
 evidence-backed. Continue replacing baseline placeholders with first-party route
-evidence, starting with the ranked queue after the DVx Ventures
-non-portfolio-publisher disposition at `ea_series_trust`, and checkpoint
+evidence, starting with the ranked queue after the EA Series Trust
+non-portfolio-publisher disposition at `elements`, and checkpoint
 each coherent provider changeset before moving to the next.
 
 Update this handoff at every coherent implementation and operations boundary.
