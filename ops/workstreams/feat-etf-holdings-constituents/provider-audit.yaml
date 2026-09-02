@@ -5,9 +5,9 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 367
-current_fallback_count: 129
-generated_at: 2026-09-02T18:45:00Z
+current_native_count: 368
+current_fallback_count: 128
+generated_at: 2026-09-02T19:20:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -1206,35 +1206,48 @@ providers:
     display_name: capforce
     queue_rank: 30
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-02
+    source_access_declared: issuer_public_product_page_complete_current_holdings_table
+    representative_symbols:
+      - FFTY
+      - BOUT
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    source_freshness: daily
+    first_party_domains:
+      - capforceetf.com
+    candidate_routes:
+      - https://www.capforceetf.com/ffty/details
+      - https://www.capforceetf.com/bout/details
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_capforce_adapter_parses_complete_current_holdings_tables
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows[capforce-FFTY-None-identifiers167-20]
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.capforce"
       - "runtime:ISSUER_ADAPTER_CONFIGS.capforce"
+      - "web:capforce-ffty-bout-holdings-2026-09-02"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.capforce"
-    disposition_reason: "capforce: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate capforce first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
-    implementation_sha: null
-    validation_refs: []
+      - date: 2026-09-02
+        source: "https://www.capforceetf.com/ffty/details and https://www.capforceetf.com/bout/details"
+        result: "CapForce's official FFTY and BOUT product pages expose complete server-rendered holdings tables with a Show All count, Name, Ticker, Sector, and Weight columns. The holdings modules are dated 2026-09-02 and the bounded live fetches returned all 52 FFTY rows and 27 BOUT rows, including Cash & Other and the First American Treasury Obligations Fund sweep."
+        evidence_ref: "web:capforce-ffty-bout-holdings-2026-09-02"
+    disposition_reason: "capforce: CapForce's official FFTY and BOUT product pages publish complete current holdings tables. The provider-specific adapter restricts each symbol to its verified product page, validates issuer/fund identity and the holdings schema/date, parses all 52 FFTY and 27 BOUT rows, classifies Cash & Other and Treasury-obligation sweep rows as cash, and has deterministic plus opt-in live coverage."
+    next_action: "capforce: Monitor the FFTY and BOUT product pages and retain native status while their complete dated holdings tables remain executable and identity-valid; add any future CapForce ETF only after equivalent route, parser, and live evidence."
+    implementation_sha: 992a554ddc9e96692e8c08bb0212191d0c90430d
+    validation_refs:
+      - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_capforce_adapter_parses_complete_current_holdings_tables"
+      - "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows[capforce-FFTY-None-identifiers167-20]"
+      - "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows[capforce-BOUT-None-identifiers168-20]"
   - adapter_key: castellan
     display_name: castellan
     queue_rank: 31

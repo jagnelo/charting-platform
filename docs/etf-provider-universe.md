@@ -28,8 +28,8 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `367`
-- Audited fallback-only providers: `129`
+- Native/live-backed providers: `368`
+- Audited fallback-only providers: `128`
 
 The current checkpoint promotes `guggenheim` through its public issuer-hosted
 ETF holdings table, reconciles `ars` to the existing ARS Investment Partners
@@ -41,18 +41,19 @@ product-page-declared daily holdings CSV, and Bridgeway's BBLU/BAGX/BRSV/BSVO/BU
 product-page complete holdings tables, and Brookstone's BAMD/BAMG/BAMV/BAMB/BAMU/BAMA/BAMO/BAMY
 product-page-declared complete holdings CSVs, BufferLABS' BFLB product-page
 complete current holdings table, and Bushido's SMRI/RNIN product-page complete
+current holdings tables, and CapForce's FFTY/BOUT product-page complete
 current holdings tables.
 The historical starting snapshot for this
 workstream was 356 native and 140 fallback; the provider-audit ledger retains
-that baseline record while tracking the current 367/129 split.
+that baseline record while tracking the current 368/128 split.
 
 The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
 `FALLBACK_ISSUER_AUDITS` at the current ETF-branch implementation checkpoint
-`b9a984c4`.
+`992a554d`.
 The fallback audit statuses are:
 
 - `issuer_access_blocked`: `8`
-- `needs_first_party_route_discovery`: `112`
+- `needs_first_party_route_discovery`: `111`
 - `non_executable_public_source`: `3`
 - `provider_not_a_portfolio_publisher`: `6`
 
@@ -87,6 +88,8 @@ official BBLU, BAGX, BRSV, BSVO, and BUSM product pages.
 its official BAMD, BAMG, BAMV, BAMB, BAMU, BAMA, BAMO, and BAMY product pages.
 `bushido` is native-promoted through complete, dated holdings tables on its
 official SMRI and RNIN product pages.
+`capforce` is native-promoted through complete, dated holdings tables on its
+official FFTY and BOUT product pages.
 
 Current gap to the broad LSEG promoter target:
 
@@ -579,11 +582,11 @@ Added adapter keys:
 
 The StockAnalysis table still contains unresolved names after the arithmetic
 gap closes. Those rows require alias, product-line, inactive, or source-taxonomy
-disposition before they should affect registry accounting. BufferLABS and
-Bushido are the exceptions in this batch: their official product pages now
+disposition before they should affect registry accounting. BufferLABS, Bushido,
+and CapForce are the exceptions in this batch: their official product pages now
 provide complete current holdings tables and are tracked as native routes in
-the current split. Bushido covers SMRI and RNIN, each with a dated
-server-rendered table.
+the current split. Bushido covers SMRI and RNIN, while CapForce covers FFTY and
+BOUT, each with dated server-rendered tables.
 
 ## Implementation Rule
 
