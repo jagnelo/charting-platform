@@ -3291,6 +3291,22 @@ KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
             "sec_cik": "0001592900",
         },
     },
+    "FFTY": {
+        "issuer": "CapForce",
+        "provider_aliases": {
+            "holdings_adapter": "capforce",
+            "issuer_product_url": "https://www.capforceetf.com/ffty/details",
+            "sec_cik": "0002104659",
+        },
+    },
+    "BOUT": {
+        "issuer": "CapForce",
+        "provider_aliases": {
+            "holdings_adapter": "capforce",
+            "issuer_product_url": "https://www.capforceetf.com/bout/details",
+            "sec_cik": "0002104659",
+        },
+    },
     "SMRI": {
         "issuer": "Bushido Capital",
         "provider_aliases": {
@@ -62847,6 +62863,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Bushido Capital publishes complete current SMRI and RNIN holdings tables on its public product pages.",
     ),
+    "capforce": IssuerCsvAdapterConfig(
+        adapter_key="capforce",
+        source_provider="capforce",
+        source_access="issuer_public_product_page_complete_current_holdings_table",
+        product_page_templates=(
+            "https://www.capforceetf.com/ffty/details",
+            "https://www.capforceetf.com/bout/details",
+        ),
+        live_tested_default_route=True,
+        terms_note="CapForce publishes complete current FFTY and BOUT holdings tables on its public product pages.",
+    ),
     "burney": IssuerCsvAdapterConfig(
         adapter_key="burney",
         source_provider="burney",
@@ -64296,7 +64323,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "avos",
         "azimut",
         "baillie_gifford",
-        "capforce",
         "castellan",
         "conductor_fund",
         "credit_suisse",
@@ -66719,8 +66745,184 @@ class SophusReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """StockAnalysis provider-table fallback adapter pending Sophus discovery."""
 
 
-class CapForceReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """StockAnalysis provider-table fallback adapter pending CapForce discovery."""
+class CapForceHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch CapForce's complete current FFTY/BOUT holdings tables."""
+
+    PRODUCT_PAGE_URLS = {
+        "FFTY": "https://www.capforceetf.com/ffty/details",
+        "BOUT": "https://www.capforceetf.com/bout/details",
+    }
+    EXPECTED_IDENTITIES = {
+        "FFTY": "CapForce IBD® 50 ETF",
+        "BOUT": "CapForce IBD® Breakout Opportunities ETF",
+    }
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        source_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        sec_cik = _identifier(identifiers, "sec_cik", "cik")
+        if source_url:
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.9600"),
+                status="ready",
+                reason=(
+                    "CapForce publishes the complete current FFTY/BOUT holdings table "
+                    "on the matching official product page."
+                ),
+                source_url=source_url,
+                issuer_product_id=normalized_symbol,
+            )
+        if sec_cik:
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.7800"),
+                status="ready",
+                reason="SEC filing fallback is available when no CapForce product route matches the symbol.",
+                source_url=f"https://data.sec.gov/submissions/CIK{sec_cik.zfill(10)}.json",
+                issuer_product_id=normalized_symbol or None,
+            )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.3000"),
+            status="needs_issuer_route",
+            reason=f"No verified CapForce native holdings route is configured for {normalized_symbol}.",
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        resolved_source_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        if not resolved_source_url:
+            raise ValueError(
+                f"No verified CapForce current-holdings route is configured for {normalized_symbol or 'an empty symbol'}."
+            )
+        if source_url and source_url.rstrip("/") != resolved_source_url.rstrip("/"):
+            raise ValueError("CapForce holdings must use the matching verified official product page.")
+
+        headers = _issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*")
+        try:
+            async with httpx.AsyncClient(
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
+            ) as client:
+                response = await client.get(
+                    resolved_source_url,
+                    headers=headers,
+                    follow_redirects=True,
+                )
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 403:
+                raise
+            # CapForce's public HubSpot page can reject httpx's transport while
+            # serving the same unauthenticated URL to requests. Keep this bounded
+            # to the verified product URL; it is transport resilience only.
+            response = await asyncio.to_thread(
+                requests.get,
+                resolved_source_url,
+                headers=headers,
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                allow_redirects=True,
+            )
+            response.raise_for_status()
+
+        page_text = html.unescape(response.text)
+        expected_identity = self.EXPECTED_IDENTITIES[normalized_symbol]
+        if not re.search(re.escape(expected_identity), page_text, re.IGNORECASE):
+            raise ValueError(
+                f"CapForce product page identity did not match {normalized_symbol}."
+            )
+        if normalized_symbol not in page_text.upper() or "HOLDINGS" not in page_text.upper():
+            raise ValueError(
+                f"CapForce product page did not expose {normalized_symbol}'s complete holdings table."
+            )
+
+        rows = parse_html_holdings_table_by_headers(
+            page_text,
+            required_headers={"name", "ticker", "weight"},
+        )
+        if not rows:
+            raise ValueError(
+                f"CapForce product page did not contain complete holdings rows for {normalized_symbol}."
+            )
+        composition_date = self._composition_date(page_text)
+        for index, row in enumerate(rows, start=1):
+            raw_symbol = _clean(_first(row.extra_data, ["ticker"]))
+            raw_name = _clean(_first(row.extra_data, ["name"])) or row.name
+            row_type, holding_type = self._classify_row(
+                raw_symbol=raw_symbol,
+                name=raw_name,
+            )
+            row.row_type = row_type
+            row.holding_type = holding_type
+            if row_type in {"cash", "other"}:
+                row.symbol = None
+                row.cusip = None
+            row.currency = row.currency or "USD"
+            row.source_row_id = (
+                f"{normalized_symbol}:{composition_date.isoformat() if composition_date else 'current'}:{index}"
+            )
+            row.extra_data = {
+                **row.extra_data,
+                "source": "capforce_public_product_page_holdings_table",
+            }
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "html_table", "row_count": len(rows)},
+            source_url=str(getattr(response, "url", resolved_source_url)),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html_table",
+                "route_resolution": "capforce_public_complete_current_holdings_table",
+                "product_page_url": resolved_source_url,
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_current_holdings",
+                "snapshot_provenance": "capforce_native_holdings_table",
+            },
+        )
+
+    @staticmethod
+    def _composition_date(page_text: str) -> date | None:
+        holdings_marker = re.search(
+            r'data-module-root=["\']cf-holdings-table["\']',
+            page_text,
+            re.IGNORECASE,
+        )
+        scope = page_text[holdings_marker.start() : holdings_marker.start() + 4000] if holdings_marker else page_text
+        match = re.search(r"As of\s+(\d{1,2}/\d{1,2}/\d{4})", scope, re.IGNORECASE)
+        return _parse_issuer_date(match.group(1)) if match else None
+
+    @staticmethod
+    def _classify_row(*, raw_symbol: str | None, name: str | None) -> tuple[str, str]:
+        text = " ".join(value.upper() for value in (raw_symbol, name) if value)
+        if any(
+            marker in text
+            for marker in ("CASH", "MONEY MARKET", "TREASURY OBLIGATIONS", "GOVERNMENT FUND")
+        ):
+            return "cash", "cash"
+        if re.search(r"\b[A-Z0-9]{4}\s+\d{6}[CP]\d{8}\b", text) or re.search(
+            r"\b[A-Z]{1,6}\s+\d{2}/\d{2}/\d{4}\s+[\d.]+\s+[CP]\b", text
+        ):
+            return "other", "derivative"
+        if " ETF" in text or "FUND" in text or "TRUST" in text:
+            return "security", "fund"
+        return "security", "equity"
 
 
 class ArinReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -66812,7 +67014,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "bufferlabs": BufferLabsHoldingsAdapter,
         "bushido": BushidoHoldingsAdapter,
         "calvert": CalvertHoldingsAdapter,
-        "capforce": CapForceReconciledFallbackHoldingsAdapter,
+        "capforce": CapForceHoldingsAdapter,
         "castellan": CastellanReconciledFallbackHoldingsAdapter,
         "columbia_threadneedle": ColumbiaThreadneedleHoldingsAdapter,
         "conductor_fund": ConductorFundReconciledFallbackHoldingsAdapter,

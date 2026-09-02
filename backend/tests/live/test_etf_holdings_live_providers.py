@@ -131,6 +131,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "brookstone",
     "bufferlabs",
     "bushido",
+    "capforce",
     "burney",
     "cambria",
     "cambiar",
@@ -1097,6 +1098,8 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ("bufferlabs", "BFLB", None, {}, 3),
         ("bushido", "SMRI", None, {}, 20),
         ("bushido", "RNIN", None, {}, 20),
+        ("capforce", "FFTY", None, {}, 20),
+        ("capforce", "BOUT", None, {}, 20),
         (
             "baron",
             "RONB",
@@ -2169,6 +2172,12 @@ async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
     if adapter_key == "bushido":
         assert result.legal_metadata["route_resolution"] == (
             "bushido_public_complete_current_holdings_table"
+        )
+        assert result.legal_metadata["composition_date"]
+        assert any(row.holding_type == "cash" for row in result.rows)
+    if adapter_key == "capforce":
+        assert result.legal_metadata["route_resolution"] == (
+            "capforce_public_complete_current_holdings_table"
         )
         assert result.legal_metadata["composition_date"]
         assert any(row.holding_type == "cash" for row in result.rows)

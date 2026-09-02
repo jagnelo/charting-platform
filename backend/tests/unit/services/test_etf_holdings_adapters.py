@@ -14224,6 +14224,76 @@ async def test_bushido_adapter_parses_complete_current_holdings_tables(monkeypat
 
 
 @pytest.mark.asyncio
+async def test_capforce_adapter_parses_complete_current_holdings_tables(monkeypatch):
+    adapter = get_holdings_adapter("capforce")
+    assert adapter is not None
+    assert type(adapter).__name__ == "CapForceHoldingsAdapter"
+    assert "capforce" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["capforce"].live_tested_default_route is True
+    assert adapter.probe(symbol="FFTY", name="CapForce IBD 50 ETF", identifiers={}).status == (
+        "ready"
+    )
+    assert adapter.probe(
+        symbol="BOUT", name="CapForce IBD Breakout Opportunities ETF", identifiers={}
+    ).status == "ready"
+    assert adapter.probe(symbol="UNKNOWN", name="Unknown ETF", identifiers={}).status == (
+        "needs_issuer_route"
+    )
+
+    page_template = """
+    <h1>{identity}</h1><div data-module-root="cf-holdings-table" data-ticker="{symbol}">
+      <div class="cfht__asof">As of 9/2/2026</div><h2>Holdings</h2>
+      <table>
+        <tr><th>Name</th><th>Ticker</th><th>Sector</th><th>Weight</th></tr>
+        <tr><td>Adobe Inc</td><td>ADBE</td><td>Technology</td><td>2.40%</td></tr>
+        <tr><td>Cash &amp; Other</td><td>CASH&amp;OTHER</td><td></td><td>0.37%</td></tr>
+        <tr><td>First American Treasury Obligations Fund 01/01/2040</td><td>FXFXX</td><td></td><td>0.28%</td></tr>
+      </table>
+    </div>
+    """
+    for symbol, page_url, identity in (
+        (
+            "FFTY",
+            "https://www.capforceetf.com/ffty/details",
+            "CapForce IBD® 50 ETF",
+        ),
+        (
+            "BOUT",
+            "https://www.capforceetf.com/bout/details",
+            "CapForce IBD® Breakout Opportunities ETF",
+        ),
+    ):
+        FakeAsyncClient.requested = []
+        FakeAsyncClient.queue = [
+            FakeResponse(
+                text=page_template.format(identity=identity, symbol=symbol),
+                content_type="text/html",
+                url=page_url,
+            )
+        ]
+        monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+        result = await adapter.fetch_latest(symbol=symbol)
+
+        assert FakeAsyncClient.requested[0][0] == page_url
+        assert len(result.rows) == 3
+        assert result.rows[0].symbol == "ADBE"
+        assert result.rows[0].weight == Decimal("0.024")
+        assert result.rows[1].symbol is None
+        assert result.rows[1].row_type == "cash"
+        assert result.rows[2].symbol is None
+        assert result.rows[2].holding_type == "cash"
+        assert result.legal_metadata["source_provider"] == "capforce"
+        assert result.legal_metadata["route_resolution"] == (
+            "capforce_public_complete_current_holdings_table"
+        )
+        assert result.legal_metadata["product_page_url"] == page_url
+        assert result.legal_metadata["composition_date"] == "2026-09-02"
+
+    with pytest.raises(ValueError, match="matching verified official product page"):
+        await adapter.fetch_latest(symbol="FFTY", source_url="https://example.invalid/holdings")
+
+
+@pytest.mark.asyncio
 async def test_madison_adapter_filters_account_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("madison")
     assert adapter is not None
@@ -20388,6 +20458,22 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
             "sec_cik": "0001592900",
         },
     }
+    assert known_etf_route_metadata("FFTY") == {
+        "issuer": "CapForce",
+        "provider_aliases": {
+            "holdings_adapter": "capforce",
+            "issuer_product_url": "https://www.capforceetf.com/ffty/details",
+            "sec_cik": "0002104659",
+        },
+    }
+    assert known_etf_route_metadata("BOUT") == {
+        "issuer": "CapForce",
+        "provider_aliases": {
+            "holdings_adapter": "capforce",
+            "issuer_product_url": "https://www.capforceetf.com/bout/details",
+            "sec_cik": "0002104659",
+        },
+    }
     invesco = holdings_adapter_catalog()
     invesco_entry = next(item for item in invesco if item["adapter_key"] == "invesco")
     assert invesco_entry["source_access"] == "issuer_public_json_catalog_cusip"
@@ -21052,6 +21138,7 @@ def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audit
         "avory",
         "bufferlabs",
         "bushido",
+        "capforce",
     }
 
     assert expected
@@ -21077,10 +21164,13 @@ def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audit
     assert "avory" not in FALLBACK_ISSUER_AUDITS
     assert "bufferlabs" not in FALLBACK_ISSUER_AUDITS
     assert "bushido" not in FALLBACK_ISSUER_AUDITS
+    assert "capforce" not in FALLBACK_ISSUER_AUDITS
     assert ISSUER_ADAPTER_CONFIGS["bufferlabs"].live_tested_default_route is True
     assert type(get_holdings_adapter("bufferlabs")).__name__ == "BufferLabsHoldingsAdapter"
     assert ISSUER_ADAPTER_CONFIGS["bushido"].live_tested_default_route is True
     assert type(get_holdings_adapter("bushido")).__name__ == "BushidoHoldingsAdapter"
+    assert ISSUER_ADAPTER_CONFIGS["capforce"].live_tested_default_route is True
+    assert type(get_holdings_adapter("capforce")).__name__ == "CapForceHoldingsAdapter"
 
 
 def test_stockanalysis_provider_alias_dispositions_resolve_existing_adapters():
@@ -24949,8 +25039,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 367
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 129
+    assert ledger["current_native_count"] == 368
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 128
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -24968,6 +25058,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "bridgeway",
         "bufferlabs",
         "bushido",
+        "capforce",
         "brookstone",
         "guggenheim",
     }
