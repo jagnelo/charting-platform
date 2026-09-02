@@ -1007,3 +1007,47 @@ The durable ledger/docs/session checkpoint must reference this code SHA. The
 full current opt-in provider matrix and Docker-backed integration gate remain
 pending at the 377-native baseline; the known unrelated F8p-current-history
 Study Lab histogram timeout remains an AC7 gap.
+
+## 22. Current execution checkpoint — FormulaFolios inactive/successor disposition — 2026-09-02
+
+The ranked `formula_folio` audit found no current portfolio to promote. The
+official SEC-hosted August 1, 2023 supplement names FormulaFolios Hedged Growth
+ETF (FFHG), FormulaFolios Smart Growth ETF (FFSG), FormulaFolios Tactical Growth
+ETF (FFTG), and FormulaFolios Tactical Income ETF (FFTI), and records the
+Board-authorized orderly liquidation: trading ended October 6, 2023, the funds'
+assets were expected to be liquidated and distributed on October 16, 2023, and
+the funds would terminate after distribution. The official FormulaFolios site
+is retained only as a historical candidate domain and does not establish a
+current executable holdings route.
+
+Brookstone's official combination announcement establishes that Brookstone and
+FormulaFolios combined under the Brookstone name, with the FormulaFolios brand
+retained for asset-management oversight. Current Brookstone ETFs and their
+complete holdings routes are already represented by the distinct native
+`brookstone` identity; no duplicate FormulaFolios adapter or SEC-derived native
+route is warranted.
+
+The ledger record now preserves FFHG, FFSG, FFTG, and FFTI, the historical and
+successor domains, both dated official evidence references, the liquidation
+dates, and an explicit `inactive_or_successor_disposition`. Route completeness,
+symbol mapping, and current holdings proof remain false. The runtime
+`FormulaFolioReconciledFallbackHoldingsAdapter` and audit manifest are retained
+for historical/compatibility behavior, so runtime fallback status counts do not
+change.
+
+The code-derived split remains 496 registered, 377 native/live-backed, and 119
+fallback-only providers. Runtime fallback status counts remain 8
+issuer-access-blocked, 102 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The exhaustive
+ledger retains all 140 historical records exactly once, with
+`formula_folio` now terminally recorded as inactive/successor; 81 queued
+fallback records remain and the next ranked item is `fpa`. The separate
+`brookstone` identity remains the current native successor route.
+
+This checkpoint changes only issuer-audit evidence, queue state, and durable
+documentation; no runtime code changes are required. The focused ledger and
+reconciliation tests, workstream validator, whitespace checks, and validation
+receipt must be recorded against the resulting documentation SHA. The complete
+opt-in provider matrix and Docker-backed integration gate remain pending at the
+377-native baseline, with the known unrelated reproducible F8p-current-history
+Study Lab histogram timeout still an AC7 gap.

@@ -2206,17 +2206,26 @@ providers:
     display_name: formula_folio
     queue_rank: 50
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: inactive_or_successor_disposition
+    disposition: inactive_or_successor_disposition
+    last_checked: 2026-09-02
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
-    estimated_us_etf_count: null
+    representative_symbols:
+      - FFHG
+      - FFSG
+      - FFTG
+      - FFTI
+    estimated_us_etf_count: 4
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    source_freshness: historical
+    first_party_domains:
+      - formulafoliofunds.com
+      - brookstonecm.com
+    candidate_routes:
+      - https://www.formulafoliofunds.com/
+      - https://www.sec.gov/Archives/edgar/data/1644419/000158064223003928/formulafolios497supp.htm
+      - https://www.brookstonecm.com/post/brookstone-and-formulafolios-combine-to-create-6-5-billion-ria
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -2226,13 +2235,23 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.formula_folio"
       - "runtime:ISSUER_ADAPTER_CONFIGS.formula_folio"
+      - "web:formula-folios-official-liquidation-supplement-2026-09-02"
+      - "web:brookstone-formulafolios-successor-2026-09-02"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.formula_folio"
-    disposition_reason: "formula_folio: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate formula_folio first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-02
+        source: "https://www.sec.gov/Archives/edgar/data/1644419/000158064223003928/formulafolios497supp.htm"
+        result: "The official SEC-hosted August 1, 2023 supplement names FFHG, FFSG, FFTG, and FFTI and states that the Board authorized an orderly liquidation: trading would end October 6, 2023, assets would be liquidated and distributed on October 16, 2023, and the funds would terminate after distribution."
+        evidence_ref: "web:formula-folios-official-liquidation-supplement-2026-09-02"
+      - date: 2026-09-02
+        source: "https://www.brookstonecm.com/post/brookstone-and-formulafolios-combine-to-create-6-5-billion-ria"
+        result: "Brookstone's official announcement records that Brookstone and FormulaFolios combined under the Brookstone name, with the FormulaFolios brand retained for asset-management oversight; current Brookstone ETF routes are separately tracked under the native brookstone identity."
+        evidence_ref: "web:brookstone-formulafolios-successor-2026-09-02"
+    disposition_reason: "formula_folio: The official SEC liquidation supplement records the four FormulaFolios ETFs as terminated after their October 2023 liquidation. Brookstone's official combination notice establishes the successor relationship, while current Brookstone ETFs are already covered by the distinct native brookstone identity. FormulaFolios therefore has no current executable holdings portfolio to promote and must remain an inactive/successor historical identity rather than a duplicate Brookstone route."
+    next_action: "formula_folio: Keep fallback-only as inactive_or_successor_disposition; resolve historical FFHG, FFSG, FFTG, and FFTI references to their October 2023 liquidation and the current Brookstone successor context, and reopen only if a distinct current FormulaFolios U.S.-listed ETF portfolio is re-established with a complete executable first-party route."
     implementation_sha: null
     validation_refs: []
   - adapter_key: fpa

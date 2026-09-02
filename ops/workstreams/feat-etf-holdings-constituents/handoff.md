@@ -126,7 +126,7 @@ routes are current and executable through the official product-page-declared
 Azure CSV convention. FalconX's ten current U.S. products are now covered through
 the independently managed 21Shares publisher's page-declared primary and
 secondary product-details APIs, with explicit parent/publisher provenance. The
-audit ledger currently has 82 queued fallback records still
+audit ledger currently has 81 queued fallback records still
 requiring issuer-specific
 evidence and final dispositions; existing terminal/blocked records must remain
 evidence-backed. ETF Managers Group is now recorded as an inactive/successor
@@ -145,8 +145,11 @@ only sixty days after each quarter-end, so the ledger records it as a dated
 Fitzgerald/Nicholas Wealth is now native-promoted for FITZ and FIZY through the
 official XFUNDS page-declared nonce-scoped daily CSVs; FIZY option rows are
 classified as derivatives and the adapter records publisher provenance.
-baseline placeholders with first-party route evidence, continuing with
-`formula_folio`, and checkpoint
+FormulaFolios is now recorded as an inactive/successor identity after its
+official October 2023 liquidation; current Brookstone ETF routes are covered by
+the distinct `brookstone` adapter. Continue replacing baseline placeholders
+with first-party route evidence, continuing with
+`fpa`, and checkpoint
 each coherent provider changeset before moving to the next.
 
 Update this handoff at every coherent implementation and operations boundary.

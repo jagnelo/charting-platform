@@ -65,6 +65,11 @@ Fitzgerald is now covered through the official XFUNDS by Nicholas Wealth pages:
 the FITZ and FIZY product pages declare nonce-scoped current holdings CSVs, and
 the native adapter preserves daily dates, cash, CUSIPs, and FIZY option
 positions as derivatives.
+FormulaFolios is recorded as an inactive/successor identity: the official SEC
+liquidation supplement names FFHG, FFSG, FFTG, and FFTI and schedules their
+October 2023 termination, while Brookstone's official combination notice
+establishes the successor context; current Brookstone ETF routes remain under
+the distinct native `brookstone` identity.
 The historical starting snapshot for this
 workstream was 356 native and 140 fallback; the provider-audit ledger retains
 that baseline record while tracking the current 377/119 split.
@@ -154,6 +159,10 @@ adapter.
 historical Element Funds/Element ETFs identity maps to CHRG, whose official SEC
 supplement records closure and liquidation in December 2023; the current EMG
 Advisors successor domain exposes no replacement ETF holdings route.
+`formula_folio` remains fallback-only with an inactive/successor disposition:
+the official SEC supplement records the October 2023 liquidation of FFHG, FFSG,
+FFTG, and FFTI, and Brookstone's official combination notice establishes the
+successor context; no distinct current FormulaFolios holdings route exists.
 `elm` is native-promoted through Elm Partners Management's official ELM product
 page and its explicitly declared complete full-holdings CSV. The adapter keeps
 the ELM provider identity distinct while preserving the previously validated
