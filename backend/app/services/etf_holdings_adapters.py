@@ -3331,6 +3331,22 @@ KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
             "sec_cik": "0001592900",
         },
     },
+    "CVGD": {
+        "issuer": "CresAlta Investment Management",
+        "provider_aliases": {
+            "holdings_adapter": "cresalta",
+            "issuer_product_url": "https://cresalta.com/strategies/cvgd/",
+            "sec_cik": "0001936157",
+        },
+    },
+    "CVSM": {
+        "issuer": "CresAlta Investment Management",
+        "provider_aliases": {
+            "holdings_adapter": "cresalta",
+            "issuer_product_url": "https://cresalta.com/strategies/cvsm/",
+            "sec_cik": "0001936157",
+        },
+    },
     "SMRI": {
         "issuer": "Bushido Capital",
         "provider_aliases": {
@@ -62917,6 +62933,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Conductor Fund publishes CGV's complete current holdings CSV from its public product page.",
     ),
+    "cresalta": IssuerCsvAdapterConfig(
+        adapter_key="cresalta",
+        source_provider="cresalta",
+        source_access="issuer_public_product_page_complete_current_holdings_table",
+        product_page_templates=(
+            "https://cresalta.com/full-holdings/?ticker=cvgd",
+            "https://cresalta.com/full-holdings/?ticker=cvsm",
+        ),
+        live_tested_default_route=True,
+        terms_note="CresAlta publishes complete current CVGD and CVSM holdings tables on its public full-holdings pages.",
+    ),
     "burney": IssuerCsvAdapterConfig(
         adapter_key="burney",
         source_provider="burney",
@@ -64367,7 +64394,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "azimut",
         "baillie_gifford",
         "credit_suisse",
-        "cresalta",
         "desjardins",
         "discipline_funds",
         "dvx_ventures",
@@ -66095,7 +66121,13 @@ class BushidoHoldingsAdapter(IssuerCsvHoldingsAdapter):
         text = " ".join(value.upper() for value in (raw_symbol, name) if value)
         if any(
             marker in text
-            for marker in ("CASH", "MONEY MARKET", "GOVERNMENT OBLIGATIONS", "GOVERNMENT FUND")
+            for marker in (
+                "CASH",
+                "MONEY MARKET",
+                "GOVERNMENT OBLIGATIONS",
+                "GOVERNMENT FUND",
+                "GOVERNMENT PORTFOLIO",
+            )
         ):
             return "cash", "cash"
         if re.search(r"\b[A-Z0-9]{4}\s+\d{6}[CP]\d{8}\b", text) or re.search(
@@ -66137,6 +66169,196 @@ class CastellanHoldingsAdapter(BushidoHoldingsAdapter):
             issuer_product_id=issuer_product_id,
             source_url=source_url,
             identifiers=identifiers,
+        )
+
+
+class CresAltaHoldingsAdapter(BushidoHoldingsAdapter):
+    """Fetch CresAlta's complete current CVGD/CVSM holdings tables."""
+
+    PROVIDER_DISPLAY_NAME = "CresAlta"
+    SOURCE_TAG = "cresalta"
+    ROUTE_RESOLUTION = "cresalta_public_complete_current_holdings_table"
+    SNAPSHOT_PROVENANCE = "cresalta_native_holdings_table"
+    PRODUCT_PAGE_URLS = {
+        "CVGD": "https://cresalta.com/full-holdings/?ticker=cvgd",
+        "CVSM": "https://cresalta.com/full-holdings/?ticker=cvsm",
+    }
+    EXPECTED_IDENTITIES = {
+        "CVGD": "Global Dividend ETF",
+        "CVSM": "Small & Mid Cap ETF",
+    }
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        source_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        if source_url:
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.9600"),
+                status="ready",
+                reason=(
+                    f"{self.PROVIDER_DISPLAY_NAME} publishes the complete current {normalized_symbol} "
+                    "holdings table on its matching official full-holdings page."
+                ),
+                source_url=source_url,
+                issuer_product_id=normalized_symbol,
+            )
+        sec_cik = _identifier(identifiers, "sec_cik", "cik")
+        if sec_cik:
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.7800"),
+                status="ready",
+                reason=(
+                    f"SEC filing fallback is available when no {self.PROVIDER_DISPLAY_NAME} "
+                    "product route matches the symbol."
+                ),
+                source_url=f"https://data.sec.gov/submissions/CIK{sec_cik.zfill(10)}.json",
+                issuer_product_id=normalized_symbol or None,
+            )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.3000"),
+            status="needs_issuer_route",
+            reason=f"No verified {self.PROVIDER_DISPLAY_NAME} native holdings route is configured for {normalized_symbol}.",
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        resolved_source_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        if not resolved_source_url:
+            raise ValueError(
+                f"No verified {self.PROVIDER_DISPLAY_NAME} current-holdings route is configured for {normalized_symbol or 'an empty symbol'}."
+            )
+        if source_url and source_url.rstrip("/") != resolved_source_url.rstrip("/"):
+            raise ValueError(
+                f"{self.PROVIDER_DISPLAY_NAME} holdings must use the matching verified official full-holdings page."
+            )
+
+        headers = _issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*")
+        try:
+            async with httpx.AsyncClient(
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
+            ) as client:
+                response = await client.get(
+                    resolved_source_url,
+                    headers=headers,
+                    follow_redirects=True,
+                )
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 403:
+                raise
+            response = await asyncio.to_thread(
+                requests.get,
+                resolved_source_url,
+                headers=headers,
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                allow_redirects=True,
+            )
+            response.raise_for_status()
+
+        page_text = html.unescape(response.text)
+        expected_identity = self.EXPECTED_IDENTITIES[normalized_symbol]
+        if not re.search(re.escape(expected_identity), page_text, re.IGNORECASE):
+            raise ValueError(
+                f"{self.PROVIDER_DISPLAY_NAME} product page identity did not match {normalized_symbol}."
+            )
+        if "COMPLETE HOLDINGS" not in page_text.upper():
+            raise ValueError(
+                f"{self.PROVIDER_DISPLAY_NAME} product page did not expose {normalized_symbol}'s complete holdings table."
+            )
+
+        parser = _HTMLTablesParser()
+        parser.feed(page_text)
+        rows: list[CanonicalHoldingRow] = []
+        for table in parser.tables:
+            header_index = next(
+                (
+                    index
+                    for index, row in enumerate(table[:30])
+                    if {
+                        str(value).strip().lower()
+                        for value in row
+                        if _clean(value)
+                    }
+                    >= {"name", "cusip", "shares / par", "weight", "market value"}
+                ),
+                None,
+            )
+            if header_index is None:
+                continue
+            normalized_table = [list(row) for row in table]
+            normalized_table[header_index] = [
+                "Shares/Par" if str(value).strip().lower() == "shares / par" else value
+                for value in normalized_table[header_index]
+            ]
+            rows = parse_holdings_table(normalized_table)
+            if rows:
+                break
+        if not rows:
+            raise ValueError(
+                f"{self.PROVIDER_DISPLAY_NAME} product page did not contain complete holdings rows for {normalized_symbol}."
+            )
+
+        as_of_match = re.search(
+            r"As\s+of\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})",
+            page_text,
+            flags=re.IGNORECASE,
+        )
+        composition_date = None
+        if as_of_match:
+            for pattern in ("%B %d, %Y", "%b %d, %Y"):
+                try:
+                    composition_date = datetime.strptime(as_of_match.group(1), pattern).date()
+                    break
+                except ValueError:
+                    continue
+        for index, row in enumerate(rows, start=1):
+            row_type, holding_type = self._classify_row(raw_symbol=row.symbol, name=row.name)
+            row.row_type = row_type
+            row.holding_type = holding_type
+            if row_type == "cash":
+                row.symbol = None
+                row.cusip = None
+            row.currency = row.currency or "USD"
+            row.source_row_id = (
+                f"{normalized_symbol}:{composition_date.isoformat() if composition_date else 'current'}:{index}"
+            )
+            row.extra_data = {
+                **row.extra_data,
+                "source": f"{self.SOURCE_TAG}_public_full_holdings_table",
+            }
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "html_table", "row_count": len(rows)},
+            source_url=str(getattr(response, "url", resolved_source_url)),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html_table",
+                "route_resolution": self.ROUTE_RESOLUTION,
+                "product_page_url": resolved_source_url,
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_current_holdings",
+                "snapshot_provenance": self.SNAPSHOT_PROVENANCE,
+            },
         )
 
 
@@ -67279,7 +67501,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "conductor_fund": ConductorFundHoldingsAdapter,
         "congress": CongressHoldingsAdapter,
         "credit_suisse": CreditSuisseReconciledFallbackHoldingsAdapter,
-        "cresalta": CresAltaReconciledFallbackHoldingsAdapter,
+        "cresalta": CresAltaHoldingsAdapter,
         "day_hagan": DayHaganHoldingsAdapter,
         "desjardins": DesjardinsReconciledFallbackHoldingsAdapter,
         "discipline_funds": DisciplineFundsReconciledFallbackHoldingsAdapter,

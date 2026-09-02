@@ -21069,6 +21069,7 @@ def test_stockanalysis_provider_continuation_batch_is_registered_and_audited():
         "avory",
         "bushido",
         "castellan",
+        "cresalta",
     }
     expected -= {"fairlead"}
 
@@ -21099,13 +21100,16 @@ def test_stockanalysis_provider_continuation_batch_is_registered_and_audited():
     assert "castellan" not in FALLBACK_ISSUER_AUDITS
     assert ISSUER_ADAPTER_CONFIGS["castellan"].live_tested_default_route is True
     assert type(get_holdings_adapter("castellan")).__name__ == "CastellanHoldingsAdapter"
+    assert "cresalta" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["cresalta"].live_tested_default_route is True
+    assert type(get_holdings_adapter("cresalta")).__name__ == "CresAltaHoldingsAdapter"
     assert ISSUER_ADAPTER_CONFIGS["fairlead"].live_tested_default_route is True
     assert type(get_holdings_adapter("fairlead")).__name__ == "CaryStreetHoldingsAdapter"
     assert "fairlead" not in FALLBACK_ISSUER_AUDITS
 
 
 def test_stockanalysis_provider_second_continuation_batch_is_registered_and_audited():
-    expected = set(STOCKANALYSIS_PROVIDER_SECOND_CONTINUATION_ISSUER_HINTS)
+    expected = set(STOCKANALYSIS_PROVIDER_SECOND_CONTINUATION_ISSUER_HINTS) - {"cresalta"}
 
     assert expected
     assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
@@ -25172,6 +25176,44 @@ async def test_guggenheim_holdings_route_rejects_wrong_fund_or_missing_table(mon
         await adapter.fetch_latest(symbol="GCSH")
 
 
+@pytest.mark.asyncio
+async def test_cresalta_adapter_parses_complete_current_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("cresalta")
+    assert adapter is not None
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<html><h1>Small &amp; Mid Cap ETF</h1>"
+                "<p>Complete Holdings</p>"
+                "<span>As of September 2, 2026</span>"
+                "<table><tr><th>Name</th><th>CUSIP</th><th>Shares / Par</th>"
+                "<th>Weight</th><th>Market Value</th></tr>"
+                "<tr><td>MSILF Government Portfolio</td><td>61747C707</td>"
+                "<td>9222229</td><td>9.67%</td><td>$9222229.45</td></tr>"
+                "<tr><td>Dynatrace Inc</td><td>268150109</td><td>59458</td>"
+                "<td>3.29%</td><td>$3142949.88</td></tr></table></html>"
+            ),
+            url="https://cresalta.com/full-holdings/?ticker=cvsm",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="CVSM")
+
+    assert FakeAsyncClient.requested[0][0].endswith("ticker=cvsm")
+    assert len(result.rows) == 2
+    assert result.rows[0].row_type == "cash"
+    assert result.rows[0].symbol is None
+    assert result.rows[1].cusip == "268150109"
+    assert result.rows[1].shares == Decimal("59458")
+    assert result.rows[1].weight == Decimal("0.0329")
+    assert result.legal_metadata["route_resolution"] == (
+        "cresalta_public_complete_current_holdings_table"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+
+
 def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     ledger_path = (
         Path(__file__).resolve().parents[4]
@@ -25189,8 +25231,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 370
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 126
+    assert ledger["current_native_count"] == 371
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 125
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -25211,6 +25253,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "capforce",
         "castellan",
         "conductor_fund",
+        "cresalta",
         "brookstone",
         "guggenheim",
     }
