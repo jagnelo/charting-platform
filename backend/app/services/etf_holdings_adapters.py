@@ -41196,6 +41196,32 @@ class BallastHoldingsAdapter(InverdaleHoldingsAdapter):
             ),
         )
 
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        if source_url and source_url.rstrip("/") != self.HOLDINGS_URL.rstrip("/"):
+            raise ValueError("Ballast holdings must use its declared MGMT FilePoint route.")
+        result = await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "source_access": self.config.source_access,
+            "source_provider": self.source_provider,
+            "adapter_key": self.adapter_key,
+            "route_resolution": "ballast_product_page_declared_filepoint_holdings_json",
+            "snapshot_provenance": "ballast_native_current_holdings_feed",
+        }
+        return result
+
 
 class BancreekHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Bancreek ETF portfolios from issuer-rendered Nuxt holdings data."""
@@ -41208,16 +41234,19 @@ class BancreekHoldingsAdapter(IssuerCsvHoldingsAdapter):
     _ISSUER_HOST = "www.bancreeketfs.com"
 
     def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
-        del name, identifiers
+        del name
         normalized_symbol = symbol.strip().upper()
         source_url = self._PRODUCT_PAGE_URLS.get(normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
         return HoldingsAdapterProbe(
             adapter_key=self.adapter_key,
-            confidence=Decimal("0.9500") if source_url else Decimal("0"),
-            status="ready" if source_url else "needs_issuer_route",
+            confidence=Decimal("0.9500") if source_url else Decimal("0.5000") if has_sec_fallback else Decimal("0"),
+            status="ready" if source_url or has_sec_fallback else "needs_issuer_route",
             reason=(
                 "Bancreek publishes this ETF's complete current holdings in its issuer-rendered product page."
                 if source_url
+                else "Bancreek has no configured native route for this symbol; SEC filing fallback is available."
+                if has_sec_fallback
                 else "Bancreek's verified issuer route currently supports BCUS, BCIL, and BCGS only."
             ),
             source_url=source_url,

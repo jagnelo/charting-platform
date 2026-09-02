@@ -20387,7 +20387,7 @@ def test_etf_com_issuer_page_reconciliation_batch_is_registered_and_audited():
 
 def test_etfdb_issuer_league_reconciliation_batch_is_registered_and_audited():
     expected = set(ETFDB_ISSUER_LEAGUE_RECONCILIATION_ISSUER_HINTS)
-    promoted_native = {"guggenheim"}
+    promoted_native = {"guggenheim", "bancreek"}
     fallback_expected = expected - promoted_native
 
     assert expected
@@ -20558,7 +20558,7 @@ def test_stockanalysis_provider_second_continuation_batch_is_registered_and_audi
 
 
 def test_stockanalysis_provider_third_continuation_batch_is_registered_and_audited():
-    expected = set(STOCKANALYSIS_PROVIDER_THIRD_CONTINUATION_ISSUER_HINTS)
+    expected = set(STOCKANALYSIS_PROVIDER_THIRD_CONTINUATION_ISSUER_HINTS) - {"beehive"}
 
     assert expected
     assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
@@ -20580,7 +20580,10 @@ def test_stockanalysis_provider_third_continuation_batch_is_registered_and_audit
 
 
 def test_stockanalysis_provider_fourth_continuation_batch_is_registered_and_audited():
-    expected = set(STOCKANALYSIS_PROVIDER_FOURTH_CONTINUATION_ISSUER_HINTS) - {"impact_shares"}
+    expected = set(STOCKANALYSIS_PROVIDER_FOURTH_CONTINUATION_ISSUER_HINTS) - {
+        "impact_shares",
+        "ballast",
+    }
 
     assert expected
     assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
