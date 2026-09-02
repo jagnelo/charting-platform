@@ -26,7 +26,8 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Validation tier: `full_integration`.
 - Local validation profile: `docker_integration`.
 - Planning session: `197b239d-3322-4fc6-bf4b-0d0aecebf5e0`.
-- Latest implementation checkpoint: `5caa547e` (DVx Ventures dated
+- Latest implementation checkpoint: `2963751a` (EA Series Trust dated
+  non-portfolio-publisher disposition; prior DVx Ventures dated
   non-portfolio-publisher disposition; prior Discipline Funds dated
   non-executable-route disposition); prior `9cc5be81` (CresAlta native CVGD/CVSM
   holdings tables); prior `fd07b17f` (Conductor native CGV declared
