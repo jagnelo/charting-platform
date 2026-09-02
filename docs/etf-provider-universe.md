@@ -102,6 +102,9 @@ pages, each exposing a complete dated holdings table.
 UBS's official acquisition and fund-migration notices show the former issuer
 identity is being absorbed into UBS, with no current independent U.S. ETF
 holdings route available for native promotion.
+`desjardins` remains fallback-only as a non-U.S. publisher: its official pages
+expose Canadian ETF portfolios and funds, while the expected U.S. ETF provider
+catalogue is 404.
 
 Current gap to the broad LSEG promoter target:
 

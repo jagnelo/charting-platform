@@ -72,10 +72,10 @@ inactive/successor disposition; `amg_national` is a non-portfolio publisher;
 and `anydrus` plus `baillie_gifford` are non-executable public sources;
 `alphaclone` is an inactive/successor disposition; `argent` and `arin` are
 issuer-access-blocked; `azimut` is a dated non-portfolio-publisher disposition.
-The audit ledger currently has 97 queued fallback records still requiring
+The audit ledger currently has 96 queued fallback records still requiring
 issuer-specific evidence and final dispositions; existing terminal/blocked records
 must remain evidence-backed. Continue replacing baseline placeholders with first-party
-route evidence, starting with the ranked queue after the CresAlta promotion at `desjardins`, and checkpoint
+route evidence, starting with the ranked queue after the Desjardins disposition at `discipline_funds`, and checkpoint
 each coherent provider changeset before moving to the next.
 
 Update this handoff at every coherent implementation and operations boundary.

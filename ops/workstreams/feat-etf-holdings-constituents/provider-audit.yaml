@@ -1436,17 +1436,23 @@ providers:
     display_name: desjardins
     queue_rank: 35
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: provider_not_a_portfolio_publisher
+    disposition: provider_not_a_portfolio_publisher
+    last_checked: 2026-09-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols: []
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains:
+      - desjardins.com
+      - fondsdesjardins.com
+      - stockanalysis.com
+    candidate_routes:
+      - https://www.desjardins.com/ca/personal/savings-investment/mutual-funds/desjardins-funds/portfolios/etf/index.jsp
+      - https://www.fondsdesjardins.com/funds/portfolio/etf/
+      - https://stockanalysis.com/etf/provider/desjardins/
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -1456,13 +1462,23 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.desjardins"
       - "runtime:ISSUER_ADAPTER_CONFIGS.desjardins"
+      - "web:desjardins-canadian-etf-portfolios-2026-09-02"
+      - "web:desjardins-us-provider-404-2026-09-02"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.desjardins"
-    disposition_reason: "desjardins: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate desjardins first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-02
+        source: "https://www.desjardins.com/ca/personal/savings-investment/mutual-funds/desjardins-funds/portfolios/etf/index.jsp"
+        result: "Desjardins's official ETF portfolio pages describe Canadian all-in-one ETF portfolios and Canadian Desjardins funds; they do not expose a U.S.-listed ETF holdings publisher route for this target universe."
+        evidence_ref: "web:desjardins-canadian-etf-portfolios-2026-09-02"
+      - date: 2026-09-02
+        source: "https://stockanalysis.com/etf/provider/desjardins/"
+        result: "The expected public U.S. ETF provider endpoint returns HTTP 404, corroborating that this identity has no active U.S. ETF provider catalogue in the target universe."
+        evidence_ref: "web:desjardins-us-provider-404-2026-09-02"
+    disposition_reason: "desjardins: Official Desjardins pages expose Canadian ETF portfolios and Canadian-listed funds, while the public U.S. ETF provider endpoint is 404; retain explicit fallback eligibility without treating this non-U.S. publisher as a native U.S. route."
+    next_action: "desjardins: Keep fallback-only as provider_not_a_portfolio_publisher for the U.S. ETF target; reopen only if Desjardins launches a U.S.-listed ETF and publishes a complete executable first-party holdings route."
     implementation_sha: null
     validation_refs: []
   - adapter_key: discipline_funds
