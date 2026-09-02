@@ -28,8 +28,8 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `374`
-- Audited fallback-only providers: `122`
+- Native/live-backed providers: `375`
+- Audited fallback-only providers: `121`
 
 The current checkpoint promotes `guggenheim` through its public issuer-hosted
 ETF holdings table, reconciles `ars` to the existing ARS Investment Partners
@@ -48,14 +48,16 @@ holdings CSV, CresAlta's CVGD/CVSM full-holdings tables, Elm's ELM
 product-page-declared complete current holdings CSV (also available under the
 existing Cygnet parent identity), and Esoterica's WUGI product/data-page-declared
 FilePoint dated aggregate holdings CSV, and Even Herd's EHLS product-page-declared
-complete daily holdings CSV.
+complete daily holdings CSV, and Everence/Praxis's PRXG, PRXV, and PRXI
+product-page-declared complete daily holdings CSVs.
 The historical starting snapshot for this
 workstream was 356 native and 140 fallback; the provider-audit ledger retains
-that baseline record while tracking the current 374/122 split.
+that baseline record while tracking the current 375/121 split.
 
 The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
 `FALLBACK_ISSUER_AUDITS` at the current ETF-branch implementation checkpoint
-`0ac2cc29` (Esoterica WUGI and Even Herd EHLS native routes; ETF Managers Group is recorded as an
+`1b29a6fb` (Esoterica WUGI, Even Herd EHLS, and Everence/Praxis
+PRXG/PRXV/PRXI native routes; ETF Managers Group is recorded as an
 inactive/successor identity after Amplify's documented acquisition; the Discipline
 Funds, DVx Ventures, EA Series Trust, and Elements audits
 remain fallback-only; Elm is now native-promoted through the same declared route
@@ -63,7 +65,7 @@ as the existing Cygnet parent identity).
 The fallback audit statuses are:
 
 - `issuer_access_blocked`: `8`
-- `needs_first_party_route_discovery`: `105`
+- `needs_first_party_route_discovery`: `104`
 - `non_executable_public_source`: `3`
 - `provider_not_a_portfolio_publisher`: `6`
 

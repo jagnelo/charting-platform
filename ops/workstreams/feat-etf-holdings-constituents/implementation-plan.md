@@ -747,7 +747,7 @@ not a speculative provider adapter:
 This ordering makes every later decision recoverable and safe to continue
 across Codex models.
 
-## 16. Current execution checkpoint — 2026-09-02
+## 16. Previous execution checkpoint — 2026-09-02 (superseded by §17)
 
 The approved plan is active in the dedicated feature worktree. The durable
 implementation state has advanced beyond the historical 356/140 baseline as
@@ -795,7 +795,8 @@ operations checkpoint must record the updated ledger, handoff,
 provider-universe counts, validation evidence, and session next action before
 the next queue investigation.
 
-The next ranked queue item is `everence`. Continue the same evidence loop:
+The next ranked queue item at that checkpoint was `everence`; §17 records its
+resolution. Continue the same evidence loop from the next queued provider:
 inspect official product and holdings routes, promote only a complete
 executable first-party source with strict identity and parser tests, otherwise
 record a dated issuer-specific disposition. The Docker readiness check succeeds
@@ -803,3 +804,38 @@ under the narrow elevated permission required to access the local socket, while
 the unprivileged sandbox cannot open that socket. The full Docker-backed
 integration gate remains pending; this permission boundary is not permission to
 weaken the native-route contract or to integrate the feature branch.
+
+## 17. Current execution checkpoint — Everence/Praxis — 2026-09-02
+
+The ranked `everence` audit is now resolved through the existing Praxis native
+publisher route. The official Praxis ETF catalogue and individual holdings
+pages identify PRXG, PRXV, and PRXI and declare complete current holdings CSVs
+at the issuer's Azure publisher. The route is current as of September 2, 2026;
+the PRXG, PRXV, and PRXI files contain 161, 277, and 277 account-scoped rows
+respectively.
+
+The implementation adds an explicit `EverenceHoldingsAdapter` that subclasses
+the verified `PraxisHoldingsAdapter` rather than duplicating transport logic.
+It preserves the Everence adapter key and parent/publisher relationship in
+provenance, rejects unsupported symbols as native routes, filters each CSV to
+the exact requested account, parses exchange-suffixed international tickers
+such as `ASML NA`, preserves SEDOL identifiers, recognizes money-market/cash
+rows, and records the issuer-disclosed composition date. The existing Praxis
+adapter now shares the same exchange-aware symbol normalization and identifier
+preservation, improving PRXI coverage without changing its verified route.
+
+The code-derived split after this promotion is 496 registered, 375
+native/live-backed, and 121 fallback-only providers. Fallback status counts are
+8 issuer-access-blocked, 104 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The ledger still
+retains all 140 historical records exactly once, with `everence` now marked
+`native_promoted`; 86 queued fallback records remain for the next audit pass.
+
+Implementation checkpoint `1b29a6fb97bd353adce61b03b2aa216f56c83e53` contains
+the route, tests, and live-manifest changes. The full deterministic adapter
+module passes 522 tests; the default live module passes 2 with 440 opt-in
+skips; and the bounded opt-in PRXG, PRXV, and PRXI checks pass 4 selected
+cases (the fourth is the live-route matrix contract). Ruff, workstream
+validation, and whitespace checks pass. The Docker-backed gate's existing
+unrelated F8p-current-history Study Lab failure remains a separate AC7 gap and
+must not be fixed from this ETF workstream.

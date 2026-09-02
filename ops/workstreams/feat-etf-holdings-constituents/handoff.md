@@ -16,15 +16,15 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 - Latest staging merge: `9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4`
 - Incorporated staging SHA: `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`
-- Current code-derived state: 496 registered, 374 native/live-backed, 122
+- Current code-derived state: 496 registered, 375 native/live-backed, 121
   fallback-only.
-- Current fallback status split: 8 access-blocked, 105 discovery, 3
+- Current fallback status split: 8 access-blocked, 104 discovery, 3
   non-executable public source, 6 non-portfolio-publisher (the ledger's dated
   terminal dispositions preserve each record's original runtime audit status;
-  Elm, Esoterica, and Even Herd are no longer runtime fallbacks after their
+  Elm, Esoterica, Even Herd, and Everence are no longer runtime fallbacks after their
   native promotions).
 - `docs/etf-provider-universe.md` has been reconciled from code to the current
-  496/374/122 snapshot; future updates must remain code-derived.
+  496/375/121 snapshot; future updates must remain code-derived.
 - Validation tier: `full_integration`.
 - Local validation profile: `docker_integration`.
 - The full integration gate at `2d96697d` reached e2e-functional but failed one
@@ -32,7 +32,7 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
   and 106 were skipped. A fresh-stack retry reproduced a missing histogram
   element timeout. The ETF holdings tests and routes were not implicated.
 - Planning session: `197b239d-3322-4fc6-bf4b-0d0aecebf5e0`.
-- Latest implementation checkpoint: `0ac2cc29` (Even Herd native EHLS route; the existing
+- Latest implementation checkpoint: `1b29a6fb` (Everence/Praxis PRXG, PRXV, and PRXI native routes; Even Herd native EHLS route; the existing
   Esoterica WUGI and Cygnet/Elm routes remain intact); prior `915282cd` (Esoterica native WUGI route); prior `a4571ff3` (Elements inactive/successor
   disposition; prior EA Series Trust dated non-portfolio-publisher disposition;
   prior DVx Ventures dated
@@ -65,6 +65,10 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
   The Even Herd implementation promotes EHLS through the official product page
   and its declared complete daily `holdings.csv`, with strict account filtering,
   cash semantics, and preserved long/short quantities.
+  The Everence implementation exposes Praxis's PRXG, PRXV, and PRXI route under
+  an explicit parent-identity adapter, preserving exchange-suffixed international
+  symbols, SEDOL identifiers, account filtering, cash semantics, and publisher
+  relationship provenance.
 - The Discipline Funds audit is explicitly not a promotion: the official DDV,
   DDX, and DDXX pages expose a nonce-backed wpDataTables loader, bounded live
   attempts did not prove a complete executable artifact (DDV had no parseable
@@ -85,15 +89,17 @@ only in this branch's registered local worktree.
 The former master-based branch was fully represented in staging before its
 remote ref was removed. Its prior checkpoint `a8d6189` recorded 496 registered,
 339 native/live-backed, and 157 fallback-only providers. Current code has
-advanced to 374/122, including the Guggenheim, ARS, Avory, Ballast, Bancreek,
-BeeHive, Blueprint, Bridgeway, Brookstone, BufferLABS, Bushido, CapForce, Castellan, Conductor, CresAlta, Elm, Esoterica, and Even Herd promotions. Continue current gaps; do not recreate completed work or
+advanced to 375/121, including the Guggenheim, ARS, Avory, Ballast, Bancreek,
+BeeHive, Blueprint, Bridgeway, Brookstone, BufferLABS, Bushido, CapForce, Castellan,
+Conductor, CresAlta, Elm, Esoterica, Even Herd, and Everence/Praxis promotions.
+Continue current gaps; do not recreate completed work or
 restore a dead route merely to reproduce historical counts.
 
 ## Next action
 
 The baseline provider-audit ledger now accounts for all 140 fallback keys and an
 exhaustive invariant test proves its key/count/rank alignment with runtime code.
-`guggenheim`, `ars`, `avory`, `ballast`, `bancreek`, `beehive`, `blueprint`, `bridgeway`, `brookstone`, `bufferlabs`, `bushido`, `capforce`, `castellan`, `conductor_fund`, `cresalta`, `elm`, `esoterica`, and `even_herd` are native-promoted; `advisors_asset_management` and `amplius` are
+`guggenheim`, `ars`, `avory`, `ballast`, `bancreek`, `beehive`, `blueprint`, `bridgeway`, `brookstone`, `bufferlabs`, `bushido`, `capforce`, `castellan`, `conductor_fund`, `cresalta`, `elm`, `esoterica`, `even_herd`, and `everence` are native-promoted; `advisors_asset_management` and `amplius` are
 issuer-access-blocked; `alphamark_advisors` is classified as an
 inactive/successor disposition; `amg_national` is a non-portfolio publisher;
 and `anydrus`, `baillie_gifford`, and `discipline_funds` are non-executable public sources;
@@ -115,15 +121,18 @@ holdings CSV dated September 1, 2026; the `elm` adapter preserves that route
 under Elm Partners Management while the existing Cygnet adapter remains available
 for the parent identity. Esoterica's WUGI route is current and executable through the
 AXS/FilePoint chain. Even Herd's EHLS route is current and executable through the
-official product-page-declared daily CSV. The audit ledger currently has 87 queued fallback records still
+official product-page-declared daily CSV. Everence/Praxis's PRXG, PRXV, and PRXI
+routes are current and executable through the official product-page-declared
+Azure CSV convention. The audit ledger currently has 86 queued fallback records still
 requiring issuer-specific
 evidence and final dispositions; existing terminal/blocked records must remain
 evidence-backed. ETF Managers Group is now recorded as an inactive/successor
 identity because Amplify's official acquisition notice documents the fund
 reorganizations and sponsor transfer; current portfolio routes belong to Amplify
-or the successor fund managers. Continue replacing baseline placeholders with
-first-party route evidence, starting with the ranked queue after Even Herd at
-`everence`, and checkpoint
+or the successor fund managers. Everence is resolved through the Praxis
+Investment Management PRXG/PRXV/PRXI route, with explicit parent/publisher
+provenance and exchange-aware parsing. Continue replacing baseline placeholders
+with first-party route evidence, starting with `falconx`, and checkpoint
 each coherent provider changeset before moving to the next.
 
 Update this handoff at every coherent implementation and operations boundary.

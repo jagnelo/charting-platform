@@ -5,8 +5,8 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 374
-current_fallback_count: 122
+current_native_count: 375
+current_fallback_count: 121
 generated_at: 2026-09-02T20:57:01Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
@@ -1913,35 +1913,56 @@ providers:
     display_name: everence
     queue_rank: 45
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-02
+    source_access_declared: issuer_product_page_declared_complete_current_holdings_csv
+    representative_symbols:
+      - PRXG
+      - PRXV
+      - PRXI
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    source_freshness: daily
+    first_party_domains:
+      - www.everence.com
+      - www.praxisinvests.com
+      - azr1webprodcdnst.blob.core.windows.net
+    candidate_routes:
+      - https://www.praxisinvests.com/products/etfs/prxg-impact-large-cap-growth-etf/holdings
+      - https://www.praxisinvests.com/products/etfs/prxv-impact-large-cap-value-etf/holdings
+      - https://www.praxisinvests.com/products/etfs/prxi-impact-international-etf/holdings
+      - https://azr1webprodcdnst.blob.core.windows.net/praxisetf/{symbol}_Holdings.csv
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_everence_adapter_reuses_praxis_routes_with_parent_provenance
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows[everence-PRXI-None-identifiers109-100]
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.everence"
       - "runtime:ISSUER_ADAPTER_CONFIGS.everence"
+      - "web:praxis-everence-product-pages-and-holdings-routes-2026-09-02"
+      - "web:praxis-everence-current-holdings-csv-2026-09-02"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.everence"
-    disposition_reason: "everence: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate everence first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
-    implementation_sha: null
-    validation_refs: []
+      - date: 2026-09-02
+        source: "https://www.praxisinvests.com/products/etfs"
+        result: "The official Praxis ETF catalogue lists PRXG, PRXV, and PRXI; Praxis Investment Management identifies itself as a company of Everence and the ETF publisher."
+        evidence_ref: "web:praxis-everence-product-pages-and-holdings-routes-2026-09-02"
+      - date: 2026-09-02
+        source: "https://azr1webprodcdnst.blob.core.windows.net/praxisetf/PRXI_Holdings.csv"
+        result: "The official page-declared Praxis Azure CSV is executable and current as of September 2, 2026, with 277 PRXI rows preserving account, ticker, identifiers, shares, market value, weight, and money-market fields; the same verified convention returned complete PRXG and PRXV files."
+        evidence_ref: "web:praxis-everence-current-holdings-csv-2026-09-02"
+    disposition_reason: "everence: Everence is the parent financial-services identity for Praxis Investment Management, which publishes the complete current PRXG, PRXV, and PRXI holdings CSVs. The explicit Everence adapter reuses the verified Praxis route, scopes each account to its requested symbol, preserves domestic and exchange-suffixed international tickers, identifiers, quantities, values, weights, date, and cash semantics, and records the parent/publisher relationship with deterministic plus opt-in live coverage."
+    next_action: "everence: Monitor the Praxis ETF catalogue and its page-declared Azure holdings CSV convention; retain native status while PRXG, PRXV, and PRXI routes remain complete, current, executable, and identity-valid."
+    implementation_sha: 1b29a6fb97bd353adce61b03b2aa216f56c83e53
+    validation_refs:
+      - "validation:2026-09-02T22:16:46Z"
   - adapter_key: falconx
     display_name: falconx
     queue_rank: 46
