@@ -51,7 +51,7 @@ that baseline record while tracking the current 371/125 split.
 
 The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
 `FALLBACK_ISSUER_AUDITS` at the current ETF-branch implementation checkpoint
-`2963751a` (the Discipline Funds, DVx Ventures, and EA Series Trust audits
+`a4571ff3` (the Discipline Funds, DVx Ventures, EA Series Trust, and Elements audits
 remain fallback-only).
 The fallback audit statuses are:
 
