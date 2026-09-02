@@ -74,7 +74,7 @@ deployment_impact: "none; feature implementation stops before integration or dep
 status: in_progress
 remaining_gaps:
   - "Starting baseline was 496 registered providers, 356 native/live-backed providers, and 140 fallback-only providers; after the Guggenheim, ARS, Avory, Ballast, Bancreek, BeeHive, Blueprint, Bridgeway, Brookstone, BufferLABS, Bushido, CapForce, Castellan, and Conductor promotions, current code and provider-universe documentation report 496/370/126 and future counts must remain derived."
-  - "The 140 starting fallback providers have a baseline ledger snapshot; Guggenheim, ARS, Avory, Ballast, Bancreek, BeeHive, Blueprint, Bridgeway, Brookstone, BufferLABS, Bushido, CapForce, Castellan, and Conductor are now recorded as native_promoted, Advisors Asset Management, Amplius, Argent, and Arin are issuer-access-blocked, AlphaMark and AlphaClone have inactive/successor dispositions, AMG National and Azimut are non-portfolio publishers, and Anydrus plus Baillie Gifford are non-executable public sources. The ledger currently has 99 queued fallback records requiring issuer-specific first-party route evidence and final native or defensible dispositions; existing terminal/blocked records remain subject to evidence-backed validation."
+  - "The 140 starting fallback providers have a baseline ledger snapshot; Guggenheim, ARS, Avory, Ballast, Bancreek, BeeHive, Blueprint, Bridgeway, Brookstone, BufferLABS, Bushido, CapForce, Castellan, and Conductor are now recorded as native_promoted, Advisors Asset Management, Amplius, Argent, and Arin are issuer-access-blocked, AlphaMark, AlphaClone, and Credit Suisse have inactive/successor dispositions, AMG National and Azimut are non-portfolio publishers, and Anydrus plus Baillie Gifford are non-executable public sources. The ledger currently has 98 queued fallback records requiring issuer-specific first-party route evidence and final native or defensible dispositions; existing terminal/blocked records remain subject to evidence-backed validation."
   - "The full current opt-in live provider matrix and final Docker-backed integration gate have not yet been rerun at the current 370-native baseline."
   - "Human closure authorization remains pending."
 progress:
@@ -82,4 +82,4 @@ progress:
   total: 8
   current_phase: issuer_audit_queue
   current_blocker: "Docker daemon access is currently unavailable for the required docker_integration gate; issuer audit continues."
-  next_action: "Continue the ranked provider-audit queue after the Conductor promotion, starting with credit_suisse; keep the ledger and runtime audit synchronized at each changeset and promote only complete executable first-party routes."
+  next_action: "Continue the ranked provider-audit queue after the Credit Suisse disposition, starting with cresalta; keep the ledger and runtime audit synchronized at each changeset and promote only complete executable first-party routes."

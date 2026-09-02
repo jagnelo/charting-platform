@@ -1342,17 +1342,21 @@ providers:
     display_name: credit_suisse
     queue_rank: 33
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: inactive_or_successor_disposition
+    disposition: inactive_or_successor_disposition
+    last_checked: 2026-09-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols: []
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains:
+      - ubs.com
+      - credit-suisse.com
+    candidate_routes:
+      - https://www.ubs.com/global/en/media/display-page-ndp/en-20230319-tree.html
+      - https://www.ubs.com/li/en/assetmanagement/funds.html
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -1362,13 +1366,23 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.credit_suisse"
       - "runtime:ISSUER_ADAPTER_CONFIGS.credit_suisse"
+      - "web:ubs-credit-suisse-acquisition-2023-09-02"
+      - "web:ubs-credit-suisse-funds-migration-2026-09-02"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.credit_suisse"
-    disposition_reason: "credit_suisse: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate credit_suisse first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-02
+        source: "https://www.ubs.com/global/en/media/display-page-ndp/en-20230319-tree.html"
+        result: "UBS's official acquisition notice states that UBS acquired Credit Suisse's asset-management capabilities; Credit Suisse is no longer an independent issuer identity for a current U.S. ETF holdings route."
+        evidence_ref: "web:ubs-credit-suisse-acquisition-2023-09-02"
+      - date: 2026-09-02
+        source: "https://www.ubs.com/li/en/assetmanagement/funds.html"
+        result: "UBS's current fund page states that Credit Suisse funds are being migrated to UBS; no active Credit Suisse-branded U.S. ETF holdings publisher route is exposed."
+        evidence_ref: "web:ubs-credit-suisse-funds-migration-2026-09-02"
+    disposition_reason: "credit_suisse: The former issuer identity was acquired by UBS and its funds are being migrated to UBS; no current independent Credit Suisse U.S. ETF holdings route is available for native promotion."
+    next_action: "credit_suisse: Keep fallback-only as an inactive/successor identity; reopen only if a current U.S. ETF is demonstrably re-established under Credit Suisse with a complete executable first-party holdings route."
     implementation_sha: null
     validation_refs: []
   - adapter_key: cresalta

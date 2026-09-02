@@ -96,6 +96,10 @@ official FFTY and BOUT product pages.
 official CTEF and CTIF product pages.
 `conductor_fund` is native-promoted through its official CGV product page's
 declared complete current holdings CSV.
+`credit_suisse` remains fallback-only with an inactive/successor disposition:
+UBS's official acquisition and fund-migration notices show the former issuer
+identity is being absorbed into UBS, with no current independent U.S. ETF
+holdings route available for native promotion.
 
 Current gap to the broad LSEG promoter target:
 
