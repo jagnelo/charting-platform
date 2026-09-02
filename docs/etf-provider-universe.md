@@ -51,7 +51,7 @@ that baseline record while tracking the current 371/125 split.
 
 The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
 `FALLBACK_ISSUER_AUDITS` at the current ETF-branch implementation checkpoint
-`c1287c90` (the Discipline Funds audit remains fallback-only).
+`c1287c90` (the Discipline Funds and DVx Ventures audits remain fallback-only).
 The fallback audit statuses are:
 
 - `issuer_access_blocked`: `8`
@@ -104,6 +104,12 @@ component, but the current route does not provide a reproducible complete
 machine-readable holdings artifact. Bounded attempts returned no DDV rows and
 only ten DDX/DDXX rows, so the potentially paginated/incomplete view is not
 counted as native support.
+`dvx_ventures` remains fallback-only as a non-portfolio publisher: DVx's
+official site describes a venture/company-creation platform rather than an ETF
+issuer, while official VistaShares materials identify VistaShares as the ETF
+issuer and describe DVx personnel as contributors. Any VistaShares holdings
+route belongs to the separately tracked `vistashares` identity; no duplicate DVx
+native adapter is warranted.
 `credit_suisse` remains fallback-only with an inactive/successor disposition:
 UBS's official acquisition and fund-migration notices show the former issuer
 identity is being absorbed into UBS, with no current independent U.S. ETF

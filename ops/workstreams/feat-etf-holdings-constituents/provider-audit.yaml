@@ -1532,17 +1532,22 @@ providers:
     display_name: dvx_ventures
     queue_rank: 37
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: provider_not_a_portfolio_publisher
+    disposition: provider_not_a_portfolio_publisher
+    last_checked: 2026-09-02
     source_access_declared: issuer_public_holdings_file
     representative_symbols: []
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains:
+      - www.dvx.ventures
+      - www.vistashares.com
+    candidate_routes:
+      - https://www.dvx.ventures/
+      - https://www.vistashares.com/about-us/
+      - https://www.vistashares.com/vistashares-adds-three-new-supercycle-etfs-focused-on-space-defense-and-robotics/
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -1552,13 +1557,23 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.dvx_ventures"
       - "runtime:ISSUER_ADAPTER_CONFIGS.dvx_ventures"
+      - "web:dvx-venture-studio-not-etf-publisher-2026-09-02"
+      - "web:vistashares-issuer-and-dvx-relationship-2026-09-02"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.dvx_ventures"
-    disposition_reason: "dvx_ventures: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate dvx_ventures first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-02
+        source: "https://www.dvx.ventures/"
+        result: "The DVx first-party site describes DVx as a company-creation platform/venture studio and exposes no U.S.-listed ETF catalogue or issuer-owned holdings route."
+        evidence_ref: "web:dvx-venture-studio-not-etf-publisher-2026-09-02"
+      - date: 2026-09-02
+        source: "https://www.vistashares.com/about-us/ and https://www.vistashares.com/vistashares-adds-three-new-supercycle-etfs-focused-on-space-defense-and-robotics/"
+        result: "The related first-party VistaShares site identifies VistaShares as the ETF issuer, lists its ETF products, and describes Jon McNeill as a DVx Ventures co-founder/investment contributor; it does not identify DVx Ventures as the portfolio publisher."
+        evidence_ref: "web:vistashares-issuer-and-dvx-relationship-2026-09-02"
+    disposition_reason: "dvx_ventures: DVx Ventures is a venture/company-creation platform and contributor related to VistaShares, not the issuer-owned publisher of the VistaShares ETF portfolios. The ETF product and holdings ownership belongs under the separately tracked vistashares identity; no duplicate DVx native route should be created from a venture-platform or manager relationship."
+    next_action: "dvx_ventures: Keep fallback-only as provider_not_a_portfolio_publisher and resolve any source row to the actual VistaShares ETF sponsor identity; reopen only if DVx Ventures itself launches a U.S.-listed ETF and publishes a complete executable first-party holdings route."
     implementation_sha: null
     validation_refs: []
   - adapter_key: ea_series_trust

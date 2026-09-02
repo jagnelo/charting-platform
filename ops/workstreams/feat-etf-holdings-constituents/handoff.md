@@ -19,7 +19,8 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Current code-derived state: 496 registered, 371 native/live-backed, 125
   fallback-only.
 - Current fallback status split: 8 access-blocked, 108 discovery, 3
-  non-executable public source, 6 non-portfolio-publisher.
+  non-executable public source, 6 non-portfolio-publisher (the ledger's dated
+  terminal dispositions preserve each record's original runtime audit status).
 - `docs/etf-provider-universe.md` has been reconciled from code to the current
   496/371/125 snapshot; future updates must remain code-derived.
 - Validation tier: `full_integration`.
@@ -78,12 +79,15 @@ issuer-access-blocked; `alphamark_advisors` is classified as an
 inactive/successor disposition; `amg_national` is a non-portfolio publisher;
 and `anydrus`, `baillie_gifford`, and `discipline_funds` are non-executable public sources;
 `alphaclone` is an inactive/successor disposition; `argent` and `arin` are
-issuer-access-blocked; `azimut` is a dated non-portfolio-publisher disposition.
-The audit ledger currently has 95 queued fallback records still requiring
-issuer-specific evidence and final dispositions; existing terminal/blocked records
-must remain evidence-backed. Continue replacing baseline placeholders with first-party
-route evidence, starting with the ranked queue after the Discipline Funds
-non-executable disposition at `dvx_ventures`, and checkpoint
+issuer-access-blocked; `azimut`, `desjardins`, and `dvx_ventures` are dated
+non-portfolio-publisher dispositions. The DVx record resolves the source identity
+to the separately tracked VistaShares ETF publisher: DVx's own site is a
+venture/company-creation platform, not an ETF portfolio publisher. The audit
+ledger currently has 94 queued fallback records still requiring issuer-specific
+evidence and final dispositions; existing terminal/blocked records must remain
+evidence-backed. Continue replacing baseline placeholders with first-party route
+evidence, starting with the ranked queue after the DVx Ventures
+non-portfolio-publisher disposition at `ea_series_trust`, and checkpoint
 each coherent provider changeset before moving to the next.
 
 Update this handoff at every coherent implementation and operations boundary.
