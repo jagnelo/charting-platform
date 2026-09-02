@@ -5,9 +5,9 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 365
-current_fallback_count: 131
-generated_at: 2026-09-02T17:30:00Z
+current_native_count: 366
+current_fallback_count: 130
+generated_at: 2026-09-02T18:08:34Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -1117,35 +1117,45 @@ providers:
     display_name: bufferlabs
     queue_rank: 28
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-02
+    source_access_declared: issuer_public_product_page_complete_current_holdings_table
+    representative_symbols:
+      - BFLB
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    source_freshness: daily
+    first_party_domains:
+      - bflbetf.com
+    candidate_routes:
+      - "https://bflbetf.com/"
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_bufferlabs_adapter_parses_complete_current_holdings_table
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows[bufferlabs-BFLB-None-identifiers164-3]
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.bufferlabs"
       - "runtime:ISSUER_ADAPTER_CONFIGS.bufferlabs"
+      - "web:bufferlabs-bflb-holdings-2026-09-02"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.bufferlabs"
-    disposition_reason: "bufferlabs: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate bufferlabs first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
-    implementation_sha: null
-    validation_refs: []
+      - date: 2026-09-02
+        source: "https://bflbetf.com/"
+        result: "BufferLABS' official BFLB fund page exposes a complete server-rendered FUND HOLDINGS table with ticker, name, CUSIP, shares, price, market value in USD millions, percent of net assets, and a single 2026-09-02 effective date. The bounded live fetch returned six rows covering the FGXXX government-obligations sweep, four SPY option legs, and Cash&Other; locale-formatted numeric values and derivative/cash classifications are handled by the native adapter."
+        evidence_ref: "web:bufferlabs-bflb-holdings-2026-09-02"
+    disposition_reason: "bufferlabs: BufferLABS' official bflbetf.com page publishes BFLB's complete current holdings table. The provider-specific adapter restricts the route to the verified BFLB page, validates the issuer/fund identity and holdings schema/date, converts the page's locale-formatted numbers, classifies the government-obligations sweep and Cash&Other as cash and the SPY option legs as derivatives, and has deterministic plus opt-in live coverage."
+    next_action: "bufferlabs: Monitor the BFLB fund page and retain native status while its complete dated holdings table remains executable and identity-valid; add any future BufferLABS ETF only after equivalent route, parser, and live evidence."
+    implementation_sha: b967113b
+    validation_refs:
+      - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_bufferlabs_adapter_parses_complete_current_holdings_table"
+      - "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows[bufferlabs-BFLB-None-identifiers164-3]"
   - adapter_key: bushido
     display_name: bushido
     queue_rank: 29

@@ -28,8 +28,8 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `365`
-- Audited fallback-only providers: `131`
+- Native/live-backed providers: `366`
+- Audited fallback-only providers: `130`
 
 The current checkpoint promotes `guggenheim` through its public issuer-hosted
 ETF holdings table, reconciles `ars` to the existing ARS Investment Partners
@@ -39,18 +39,19 @@ Bancreek's issuer-rendered BCUS/BCIL/BCGS holdings components, and adds
 BeeHive's BEEX product-page-declared daily holdings CSV and Blueprint's TFPN
 product-page-declared daily holdings CSV, and Bridgeway's BBLU/BAGX/BRSV/BSVO/BUSM
 product-page complete holdings tables, and Brookstone's BAMD/BAMG/BAMV/BAMB/BAMU/BAMA/BAMO/BAMY
-product-page-declared complete holdings CSVs.
+product-page-declared complete holdings CSVs, and BufferLABS' BFLB product-page
+complete current holdings table.
 The historical starting snapshot for this
 workstream was 356 native and 140 fallback; the provider-audit ledger retains
-that baseline record while tracking the current 365/131 split.
+that baseline record while tracking the current 366/130 split.
 
 The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
 `FALLBACK_ISSUER_AUDITS` at the current ETF-branch implementation checkpoint
-`6aa2adb30ebe1aa95c3ab324680df825a8f4dfe5`.
+`b967113b`.
 The fallback audit statuses are:
 
 - `issuer_access_blocked`: `8`
-- `needs_first_party_route_discovery`: `114`
+- `needs_first_party_route_discovery`: `113`
 - `non_executable_public_source`: `3`
 - `provider_not_a_portfolio_publisher`: `6`
 
@@ -563,7 +564,7 @@ Added adapter keys:
 - `fitzgerald`
 - `ea_series_trust`
 - `siren`
-- `bufferlabs`
+- `bufferlabs` (now native-promoted through its official BFLB fund page)
 - `performance_trust`
 - `anydrus`
 - `sammons_enterprises`
@@ -575,7 +576,9 @@ Added adapter keys:
 
 The StockAnalysis table still contains unresolved names after the arithmetic
 gap closes. Those rows require alias, product-line, inactive, or source-taxonomy
-disposition before they should affect registry accounting.
+disposition before they should affect registry accounting. BufferLABS is the
+exception in this batch: its official BFLB fund page now provides a complete
+current holdings table and is tracked as a native route in the current split.
 
 ## Implementation Rule
 
