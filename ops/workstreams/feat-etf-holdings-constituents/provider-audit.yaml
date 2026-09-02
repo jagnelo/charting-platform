@@ -1001,7 +1001,7 @@ providers:
         evidence_ref: "web:blueprint-tfpn-holdings-2026-09-02"
     disposition_reason: "blueprint: The official TFPN product page and declared daily CSV provide a complete current portfolio; the provider-specific adapter validates the product and response domains, maps account-scoped rows with derivative, fixed-income, and cash classification, preserves the issuer date, and has deterministic plus opt-in live coverage."
     next_action: "blueprint: Monitor the TFPN product page and declared CSV; retain native status while the route remains complete, executable, and identity-valid, and add any new Blueprint ETF only after equivalent evidence."
-    implementation_sha: null
+    implementation_sha: ba4b80ea423798a3fef073e5c37286edf6e90edf
     validation_refs:
       - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_blueprint_adapter_fetches_and_classifies_official_tfpn_holdings_csv"
       - "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows[blueprint-TFPN-None-identifiers307-20]"

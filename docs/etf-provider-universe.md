@@ -44,7 +44,7 @@ that baseline record while tracking the current 363/133 split.
 
 The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
 `FALLBACK_ISSUER_AUDITS` at the current ETF-branch implementation checkpoint
-`bc77c274db63ab7b7d501462fd91d87af87ce984`.
+`ba4b80ea423798a3fef073e5c37286edf6e90edf`.
 The fallback audit statuses are:
 
 - `issuer_access_blocked`: `8`

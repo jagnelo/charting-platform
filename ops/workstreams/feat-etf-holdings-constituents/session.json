@@ -49,9 +49,10 @@
     "reason": "WARNING: Plugin \"/Users/jagnelo/.docker/cli-plugins/docker-dev\" is not valid: failed to fetch metadata: fork/exec /Users/jagnelo/.docker/cli-plugins/docker-dev: no such file or directory\nWARNING: Plugin \"/Users/jagnelo/.docker/cli-plugins/docker-feedback\" is not valid: failed to fetch metadata: fork/exec /Users/jagnelo/.docker/cli-plugins/docker-feedback: no such file or directory\nWARNING: Plugin \"/Users/jagnelo/.docker/cli-plugins/docker-sbom\" is not valid: failed to fetch metadata: fork/exec /Users/jagnelo/.docker/cli-plugins/docker-sbom: no such file or directory\npermission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
   },
   "docker_ready": {
-    "ready": true,
+    "ready": false,
     "started_desktop": false,
-    "wait_seconds": 0
+    "wait_seconds": 0,
+    "reason": "Docker daemon access is currently unavailable for the required docker_integration gate."
   },
   "goal_budget_policy": "unbounded_unless_human_authorized",
   "goal_objective": "Advance feat/etf-holdings-constituents: Exhaustively audit the remaining ETF holdings issuers, promote every proven first-party executable holdings source to a truthful native adapter, preserve explicit evidence-backed fallback dispositions for all others, and bring code, tests, live coverage, documentation, and durable workstream records into exact agreement.. Acceptance criteria: AC1: Durable ETF workstream state is current and internally consistent: the plan, handoff, provider-universe document, registry counts, audit counts, and next action agree at every checkpoint.; AC2: A complete provider-audit ledger accounts for every current fallback-only adapter key exactly once, uses the approved deterministic ranking, and records issuer-specific dated source evidence, disposition, and next action.; AC3: Every provider counted as native has a concrete provider-owned holdings route, provider-specific fetch entry point, strict parsing/mapping, truthful provenance and freshness, deterministic tests, and concrete opt-in live coverage.; AC4: Every provider remaining fallback-only has a current issuer-specific audit disposition; no fallback is silently promoted through SEC data and no generic unattempted discovery note is accepted as final evidence.; AC5: All 140 providers in the starting fallback population have been processed to either a verified native promotion or a defensible dated terminal/blocked disposition, with no missing, duplicate, or stale ledger entries.; AC6: ISSUER_ADAPTER_CONFIGS, FALLBACK_ISSUER_AUDITS, native/fallback counts, native adapter ownership, deterministic tests, live-provider coverage, documentation, and the provider-audit ledger satisfy exhaustive matrix invariants.; AC7: Focused checks, the complete deterministic adapter suite, default live contracts, the complete opt-in live provider matrix, Ruff, the Docker-backed full-integration gate, and exact-SHA CI are green or any genuine external outage is narrowly evidenced without misrepresenting validation.; AC8: The feature branch is clean and synchronized at an exact reviewed SHA, durable handoff and validation records are complete, and the workstream stops at ready_for_human_review without integration, promotion, deployment, or cross-worktree mutation.. Required local profile: docker_integration. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
@@ -62,25 +63,25 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "37182d93354f6ea434fd197f02a2879231035245",
-  "implementation_sha": "9d977a886e9788383037ea6ab7641befff136fe3",
-  "last_human_progress_update": "2026-09-02T16:39:23.922799+00:00",
+  "head": "ba4b80ea423798a3fef073e5c37286edf6e90edf",
+  "implementation_sha": "ba4b80ea423798a3fef073e5c37286edf6e90edf",
+  "last_human_progress_update": "2026-09-02T17:20:00+00:00",
   "local_validation_profile": "docker_integration",
-  "next_action": "continue implementation from the branch workstream",
-  "plan_hash": "2e0af08b351c3cfb14624486a8519e636b418588ed43740b0b5ecdc299a7c8b2",
+  "next_action": "continue ranked issuer audit from bridgeway",
+  "plan_hash": "e693708a41af27a16144e885f6ad1c01031880cfcb71cb0f706b65b550de1e2e",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [],
   "progress": {
     "completed": [],
-    "current_blocker": "none",
+    "current_blocker": "Docker daemon access is currently unavailable for the required docker_integration gate; issuer audit continues.",
     "current_phase": "issuer_audit_queue",
-    "next_action": "Continue ranked issuer audit from beehive and remaining 126 current fallback records; promote only after executable complete first-party route, otherwise record dated evidence-specific disposition",
+    "next_action": "Continue ranked issuer audit from bridgeway and the remaining queued fallbacks requiring issuer-specific evidence; promote only executable complete first-party routes, otherwise record dated evidence-specific dispositions.",
     "total": 8,
-    "updated_at": "2026-09-02T16:39:23.922688+00:00"
+    "updated_at": "2026-09-02T17:20:00+00:00"
   },
-  "remote": "37182d93354f6ea434fd197f02a2879231035245",
-  "remote_sha": "9d977a886e9788383037ea6ab7641befff136fe3",
+  "remote": "ba4b80ea423798a3fef073e5c37286edf6e90edf",
+  "remote_sha": "ba4b80ea423798a3fef073e5c37286edf6e90edf",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "197b239d-3322-4fc6-bf4b-0d0aecebf5e0",
