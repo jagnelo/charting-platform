@@ -20579,7 +20579,7 @@ def test_stockanalysis_provider_fifth_continuation_batch_is_registered_and_audit
 
 
 def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audited():
-    expected = set(STOCKANALYSIS_PROVIDER_SIXTH_CONTINUATION_ISSUER_HINTS)
+    expected = set(STOCKANALYSIS_PROVIDER_SIXTH_CONTINUATION_ISSUER_HINTS) - {"avory"}
 
     assert expected
     assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
@@ -20601,6 +20601,7 @@ def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audit
         adapter = get_holdings_adapter(adapter_key)
         assert adapter is not None
         assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+    assert "avory" not in FALLBACK_ISSUER_AUDITS
 
 
 def test_stockanalysis_provider_alias_dispositions_resolve_existing_adapters():
