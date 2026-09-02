@@ -28,8 +28,8 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `372`
-- Audited fallback-only providers: `124`
+- Native/live-backed providers: `373`
+- Audited fallback-only providers: `123`
 
 The current checkpoint promotes `guggenheim` through its public issuer-hosted
 ETF holdings table, reconciles `ars` to the existing ARS Investment Partners
@@ -44,12 +44,13 @@ complete current holdings table, and Bushido's SMRI/RNIN product-page complete
 current holdings tables, CapForce's FFTY/BOUT product-page complete current
 holdings tables, and Castellan's CTEF/CTIF product-page complete current
 holdings tables, and Conductor's CGV product-page-declared complete current
-holdings CSV, CresAlta's CVGD/CVSM full-holdings tables, and Elm's ELM
+holdings CSV, CresAlta's CVGD/CVSM full-holdings tables, Elm's ELM
 product-page-declared complete current holdings CSV (also available under the
-existing Cygnet parent identity).
+existing Cygnet parent identity), and Esoterica's WUGI product/data-page-declared
+FilePoint dated aggregate holdings CSV.
 The historical starting snapshot for this
 workstream was 356 native and 140 fallback; the provider-audit ledger retains
-that baseline record while tracking the current 372/124 split.
+that baseline record while tracking the current 373/123 split.
 
 The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
 `FALLBACK_ISSUER_AUDITS` at the current ETF-branch implementation checkpoint
@@ -59,7 +60,7 @@ as the existing Cygnet parent identity).
 The fallback audit statuses are:
 
 - `issuer_access_blocked`: `8`
-- `needs_first_party_route_discovery`: `107`
+- `needs_first_party_route_discovery`: `106`
 - `non_executable_public_source`: `3`
 - `provider_not_a_portfolio_publisher`: `6`
 

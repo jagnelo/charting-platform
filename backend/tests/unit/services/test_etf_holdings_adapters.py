@@ -3099,6 +3099,57 @@ async def test_elm_adapter_reuses_declared_full_holdings_csv_with_elm_provenance
 
 
 @pytest.mark.asyncio
+async def test_esoterica_adapter_parses_wugi_slice_from_filepoint_aggregate_csv(monkeypatch):
+    adapter = get_holdings_adapter("esoterica")
+    assert adapter is not None
+    assert type(adapter).__name__ == "EsotericaHoldingsAdapter"
+    assert "esoterica" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["esoterica"].live_tested_default_route is True
+
+    ready = adapter.probe(symbol="WUGI", name="AXS Esoterica NextG Economy ETF", identifiers={})
+    unsupported = adapter.probe(symbol="NXTE", name="", identifiers={})
+    assert ready.status == "ready"
+    assert ready.source_url == adapter.PRODUCT_PAGE_URL
+    assert unsupported.status == "needs_issuer_route"
+
+    holdings_url = adapter.DAILY_HOLDINGS_TEMPLATE.format(report_date="20260901")
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join(
+                [
+                    "ETF Ticker,Date,ISIN,CUSIP,SEDOL,Ticker,Description,Security Type,Market Value,Maturity Date,Shares,Security Price,Asset Currency,Shares Outstanding,Total Net Assets,Market Value Weight",
+                    "WUGI,9/1/2026,US8740391003,874039100,2113382,TSM,TAIWAN SEMICONDUCTOR-SP ADR,COMMON STOCK,2554380,,6170,414,USD,375754,30602408.32,8.35%",
+                    "WUGI,9/1/2026,,,,CASHEUR,CASHEUR,CASH,159.35,,137.42,,EUR,375754,30602408.32,0.00%",
+                    "WUGI,9/1/2026,,,,,NET OTHER ASSETS,OTHER,-75988.26,,-75988.26,,USD,375754,30602408.32,-0.25%",
+                    "NXTE,9/1/2026,US8740391003,874039100,2113382,TSM,TAIWAN SEMICONDUCTOR-SP ADR,COMMON STOCK,5796000,,14000,414,USD,1100000,52084969.84,11.13%",
+                ]
+            ),
+            url=holdings_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_for_date(symbol="WUGI", requested_date=date(2026, 9, 1))
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [holdings_url]
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol == "TSM"
+    assert result.rows[0].weight == Decimal("0.0835")
+    assert result.rows[0].isin == "US8740391003"
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].symbol is None
+    assert result.rows[2].name == "NET OTHER ASSETS"
+    assert result.legal_metadata["source_provider"] == "esoterica_capital"
+    assert result.legal_metadata["adapter_key"] == "esoterica"
+    assert result.legal_metadata["snapshot_provenance"] == (
+        "esoterica_wugi_filepoint_daily_holdings_csv"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+    assert result.legal_metadata["freshness_semantics"] == "issuer_disclosed_holdings_date"
+
+
+@pytest.mark.asyncio
 async def test_indexperts_adapter_validates_fund_identity_and_parses_complete_holdings(monkeypatch):
     adapter = get_holdings_adapter("indexperts")
     assert adapter is not None
@@ -20965,7 +21016,7 @@ def test_etf_com_brand_reconciliation_batch_is_registered_and_audited():
 
 def test_etf_com_issuer_page_reconciliation_batch_is_registered_and_audited():
     expected = set(ETF_COM_ISSUER_PAGE_RECONCILIATION_ISSUER_HINTS)
-    promoted_native = {"emqq", "oshares"}
+    promoted_native = {"emqq", "oshares", "esoterica"}
     fallback_expected = expected - promoted_native
 
     assert expected
@@ -25276,8 +25327,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 372
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 124
+    assert ledger["current_native_count"] == 373
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 123
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -25302,6 +25353,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "brookstone",
         "guggenheim",
         "elm",
+        "esoterica",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(

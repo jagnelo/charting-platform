@@ -5,8 +5,8 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 372
-current_fallback_count: 124
+current_native_count: 373
+current_fallback_count: 123
 generated_at: 2026-09-02T20:08:26Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
@@ -1763,22 +1763,30 @@ providers:
     display_name: esoterica
     queue_rank: 42
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-02
+    source_access_declared: issuer_product_page_declared_filepoint_dated_aggregate_holdings_csv
+    representative_symbols:
+      - WUGI
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    source_freshness: daily
+    first_party_domains:
+      - www.axsinvestments.com
+      - axsetf.filepoint.live
+    candidate_routes:
+      - https://www.axsinvestments.com/wugi/
+      - https://www.axsinvestments.com/wugi-data
+      - https://axsetf.filepoint.live/wugi
+      - https://axsetf.filepoint.live/assets/js/app.js?version=2
+      - https://axsetf.filepoint.live/assets/data/BBH_AXS_ETF_PVAL_WEB.20260901.csv
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_esoterica_adapter_parses_wugi_slice_from_filepoint_aggregate_csv
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows[esoterica-WUGI-None-identifiers106-10]
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.esoterica"
@@ -1788,8 +1796,20 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.esoterica"
-    disposition_reason: "esoterica: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate esoterica first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-02
+        source: "https://www.axsinvestments.com/wugi/"
+        result: "The official AXS page identifies the AXS Esoterica NextG Economy ETF (WUGI), names Esoterica Capital LLC as portfolio manager, and links to the performance/holdings page."
+        evidence_ref: "web:axs-esoterica-wugi-product-page-2026-09-02"
+      - date: 2026-09-02
+        source: "https://www.axsinvestments.com/wugi-data"
+        result: "The official WUGI data page embeds the AXS FilePoint fund workspace; its application declares the dated BBH_AXS_ETF_PVAL_WEB.YYYYMMDD.csv route."
+        evidence_ref: "web:axs-esoterica-wugi-filepoint-route-2026-09-02"
+      - date: 2026-09-02
+        source: "https://axsetf.filepoint.live/assets/data/BBH_AXS_ETF_PVAL_WEB.20260901.csv"
+        result: "The public dated FilePoint CSV contains a WUGI slice with 35 rows dated September 1, 2026, including identifiers, descriptions, shares, market values, weights, and cash/other rows; non-WUGI ETF rows are present and filtered by the adapter."
+        evidence_ref: "web:axs-esoterica-wugi-holdings-csv-2026-09-02"
+    disposition_reason: "esoterica: AXS's official WUGI product/data pages and the declared FilePoint application route expose a complete, executable dated aggregate holdings CSV. The provider-specific adapter strictly scopes the WUGI slice, preserves identifiers/quantities/values/weights/date and cash semantics, and records explicit Esoterica provenance with deterministic plus opt-in live coverage."
+    next_action: "esoterica: Monitor the AXS WUGI data page and declared FilePoint CSV; retain native status while the route remains complete, current, executable, and identity-valid."
     implementation_sha: null
     validation_refs: []
   - adapter_key: etf_managers_group

@@ -553,7 +553,10 @@ def parse_holdings_table(table_rows: list[list[Any]]) -> list[CanonicalHoldingRo
             )
         )
         holding_type = (
-            _clean(_first(raw, ["asset class", "asset_class", "holding type", "type"])) or "equity"
+            _clean(
+                _first(raw, ["asset class", "asset_class", "holding type", "security type", "type"])
+            )
+            or "equity"
         ).lower()
         row_type = (
             "cash"
@@ -32364,6 +32367,139 @@ class TradrHoldingsAdapter(AxsHoldingsAdapter):
         )
 
 
+class EsotericaHoldingsAdapter(AxsHoldingsAdapter):
+    """Fetch WUGI from Esoterica's official AXS/FilePoint daily CSV route."""
+
+    FUND_SYMBOL = "WUGI"
+    PRODUCT_PAGE_URL = "https://www.axsinvestments.com/wugi/"
+    HOLDINGS_PAGE_URL = "https://www.axsinvestments.com/wugi-data"
+    FILEPOINT_PAGE_URL = "https://axsetf.filepoint.live/wugi"
+    APPLICATION_SCRIPT_URL = "https://axsetf.filepoint.live/assets/js/app.js?version=2"
+    DAILY_HOLDINGS_TEMPLATE = (
+        "https://axsetf.filepoint.live/assets/data/BBH_AXS_ETF_PVAL_WEB.{report_date}.csv"
+    )
+    latest_lookback_days = 10
+    SNAPSHOT_PROVENANCE = "esoterica_wugi_filepoint_daily_holdings_csv"
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _holdings_request_headers(accept="text/csv,application/octet-stream,*/*")
+        headers["Referer"] = self.HOLDINGS_PAGE_URL
+        return headers
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        is_supported = normalized_symbol == self.FUND_SYMBOL
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        if not is_supported and has_sec_fallback:
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.2500"),
+                status="ready",
+                reason=(
+                    "Esoterica's verified native holdings route currently supports WUGI only; "
+                    "SEC EDGAR fallback remains available for this unmatched symbol."
+                ),
+                source_url=None,
+                issuer_product_id=normalized_symbol or None,
+            )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if is_supported else Decimal("0.2500"),
+            status="ready" if is_supported else "needs_issuer_route",
+            reason=(
+                "Esoterica manages WUGI and publishes its complete current holdings through "
+                "the official AXS product page's FilePoint daily CSV route."
+                if is_supported
+                else "Esoterica's verified native holdings route currently supports WUGI only."
+            ),
+            source_url=self.PRODUCT_PAGE_URL if is_supported else None,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, source_url, identifiers
+        normalized_symbol = symbol.strip().upper()
+        self._ensure_supported_symbol(normalized_symbol)
+        for days_back in range(self.latest_lookback_days + 1):
+            source_date = date.today() - timedelta(days=days_back)
+            candidate_url = self.DAILY_HOLDINGS_TEMPLATE.format(
+                report_date=source_date.strftime("%Y%m%d")
+            )
+            try:
+                result = await self._fetch_aggregate_csv(
+                    symbol=normalized_symbol,
+                    issuer_product_id=normalized_symbol,
+                    source_url=candidate_url,
+                )
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code in {403, 404}:
+                    continue
+                raise
+            if result.rows:
+                return self._decorate_result(result)
+        raise ValueError(
+            f"Esoterica's WUGI holdings feed did not expose rows for {normalized_symbol}."
+        )
+
+    async def fetch_for_date(
+        self,
+        *,
+        symbol: str,
+        requested_date: date,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, source_url, identifiers
+        normalized_symbol = symbol.strip().upper()
+        self._ensure_supported_symbol(normalized_symbol)
+        candidate_url = self.DAILY_HOLDINGS_TEMPLATE.format(
+            report_date=requested_date.strftime("%Y%m%d")
+        )
+        result = await self._fetch_aggregate_csv(
+            symbol=normalized_symbol,
+            issuer_product_id=normalized_symbol,
+            source_url=candidate_url,
+        )
+        if not result.rows:
+            raise ValueError(
+                f"Esoterica's WUGI holdings CSV returned no rows for {requested_date.isoformat()}."
+            )
+        return self._decorate_result(result)
+
+    @classmethod
+    def _ensure_supported_symbol(cls, symbol: str) -> None:
+        if symbol != cls.FUND_SYMBOL:
+            raise ValueError(
+                f"Esoterica's verified FilePoint holdings route supports {cls.FUND_SYMBOL} only."
+            )
+
+    def _decorate_result(self, result: HoldingsFetchResult) -> HoldingsFetchResult:
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "source_provider": self.source_provider,
+            "adapter_key": self.adapter_key,
+            "route_resolution": "esoterica_wugi_product_page_declared_filepoint_dated_csv",
+            "snapshot_provenance": self.SNAPSHOT_PROVENANCE,
+            "source_quality": "issuer_reported_daily_holdings",
+            "freshness_semantics": "issuer_disclosed_holdings_date",
+            "product_page_url": self.PRODUCT_PAGE_URL,
+            "holdings_page_url": self.HOLDINGS_PAGE_URL,
+            "filepoint_page_url": self.FILEPOINT_PAGE_URL,
+            "application_script_url": self.APPLICATION_SCRIPT_URL,
+            "terms_note": self.config.terms_note,
+        }
+        return result
+
+
 class BahlGaynorHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Bahl & Gaynor ETF holdings from product-page linked CSV files."""
 
@@ -60795,6 +60931,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="EMQQ Global public ETF holdings API data may be subject to issuer terms.",
     ),
+    "esoterica": IssuerCsvAdapterConfig(
+        adapter_key="esoterica",
+        source_provider="esoterica_capital",
+        source_access="issuer_product_page_declared_filepoint_dated_aggregate_holdings_csv",
+        product_page_templates=("https://www.axsinvestments.com/wugi/",),
+        live_tested_default_route=True,
+        terms_note=(
+            "AXS Investments/Esoterica public WUGI FilePoint daily holdings CSV data may "
+            "be subject to issuer terms."
+        ),
+    ),
     "aot": IssuerCsvAdapterConfig(
         adapter_key="aot",
         source_provider="aot",
@@ -64453,7 +64600,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "ea_series_trust",
         "elements",
         "emirate_abu_dhabi",
-        "esoterica",
         "etf_managers_group",
         "even_herd",
         "everence",
@@ -65772,10 +65918,6 @@ class ElementsReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
 class EmqqReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """ETF.com issuer-page fallback adapter pending EMQQ route discovery."""
-
-
-class EsotericaReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """ETF.com issuer-page fallback adapter pending Esoterica route discovery."""
 
 
 class EtfManagersGroupReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -67561,7 +67703,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "epiris": EpirisAuditedFallbackHoldingsAdapter,
         "epwa": EpwaAuditedFallbackHoldingsAdapter,
         "ershares": ErSharesHoldingsAdapter,
-        "esoterica": EsotericaReconciledFallbackHoldingsAdapter,
+        "esoterica": EsotericaHoldingsAdapter,
         "etf_managers_group": EtfManagersGroupReconciledFallbackHoldingsAdapter,
         "eurazeo": EurazeoAuditedFallbackHoldingsAdapter,
         "even_herd": EvenHerdReconciledFallbackHoldingsAdapter,
