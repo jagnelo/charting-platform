@@ -48988,6 +48988,193 @@ class BrookstoneHoldingsAdapter(BrookmontHoldingsAdapter):
         return result
 
 
+class BufferLabsHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch BFLB's complete current holdings table from BufferLABS' fund page."""
+
+    FUND_PAGE_URL = "https://bflbetf.com/"
+    SUPPORTED_SYMBOL = "BFLB"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        supported = normalized_symbol == self.SUPPORTED_SYMBOL
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9600") if supported else Decimal("0.3000"),
+            status="ready" if supported or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "BufferLABS publishes BFLB's complete current holdings table on its official fund page."
+                if supported
+                else (
+                    f"No verified BufferLABS native holdings route is configured for {normalized_symbol}; "
+                    "SEC EDGAR remains available as fallback."
+                    if has_sec_fallback
+                    else f"No verified BufferLABS native holdings route is configured for {normalized_symbol}."
+                )
+            ),
+            source_url=self.FUND_PAGE_URL if supported else None,
+            issuer_product_id=normalized_symbol if supported else None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol != self.SUPPORTED_SYMBOL:
+            raise ValueError(
+                f"No verified BufferLABS current-holdings route is configured for {normalized_symbol or 'an empty symbol'}."
+            )
+        if source_url and source_url.rstrip("/") != self.FUND_PAGE_URL.rstrip("/"):
+            raise ValueError("BufferLABS holdings must use the verified official fund page.")
+
+        headers = _issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*")
+        try:
+            async with httpx.AsyncClient(
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
+            ) as client:
+                response = await client.get(
+                    self.FUND_PAGE_URL,
+                    headers=headers,
+                    follow_redirects=True,
+                )
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 403:
+                raise
+            # The issuer's WAF rejects httpx's TLS/client fingerprint while
+            # serving the same public page to requests/curl. Keep this bounded
+            # to the verified BufferLABS page; it is not a second data source.
+            response = await asyncio.to_thread(
+                requests.get,
+                self.FUND_PAGE_URL,
+                headers=headers,
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                allow_redirects=True,
+            )
+            response.raise_for_status()
+        page_text = html.unescape(response.text)
+        if not re.search(
+            r"BufferLABS\s+US\s+Equity\s+Dynamic\s+Buffer\s+ETF\s*\(\s*BFLB\s*\)",
+            page_text,
+            re.IGNORECASE,
+        ):
+            raise ValueError("BufferLABS fund page identity did not match BFLB.")
+        if "FUND HOLDINGS" not in page_text.upper() or "BFLB Fund Holdings" not in page_text:
+            raise ValueError("BufferLABS fund page did not expose BFLB's complete holdings table.")
+
+        rows = parse_html_holdings_table_by_headers(
+            page_text,
+            required_headers={
+                "ticker",
+                "name",
+                "cusip",
+                "shares",
+                "market value ($mm)",
+                "% of net assets",
+                "effective_date",
+            },
+        )
+        if not rows:
+            raise ValueError("BufferLABS fund page contained no parseable current holdings rows.")
+
+        composition_date = self._composition_date(rows)
+        for index, row in enumerate(rows, start=1):
+            raw_symbol = _clean(row.extra_data.get("TICKER"))
+            raw_name = _clean(row.extra_data.get("NAME")) or row.name
+            raw_shares = row.extra_data.get("SHARES")
+            raw_market_value = row.extra_data.get("Market Value ($mm)")
+            row.shares = self._parse_localized_decimal(raw_shares)
+            row.market_value = self._parse_localized_decimal(raw_market_value)
+            row.currency = row.currency or "USD"
+            row_type, holding_type = self._classify_row(raw_symbol=raw_symbol, name=raw_name)
+            row.row_type = row_type
+            row.holding_type = holding_type
+            if row_type != "security":
+                row.symbol = None
+                row.cusip = None
+            row.source_row_id = (
+                f"{self.SUPPORTED_SYMBOL}:{composition_date.isoformat() if composition_date else 'current'}:{index}"
+            )
+            row.extra_data = {
+                **row.extra_data,
+                "source": "bufferlabs_public_fund_page_holdings_table",
+            }
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "html_table", "row_count": len(rows)},
+            source_url=str(getattr(response, "url", self.FUND_PAGE_URL)),
+            source_identifier=self.SUPPORTED_SYMBOL,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html_table",
+                "route_resolution": "bufferlabs_public_complete_current_holdings_table",
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_current_holdings",
+                "snapshot_provenance": "bufferlabs_native_holdings_table",
+            },
+        )
+
+    @staticmethod
+    def _parse_localized_decimal(value: Any) -> Decimal | None:
+        text = _clean(value)
+        if text is None:
+            return None
+        normalized = text.replace("$", "").replace("%", "").replace("\u2212", "-").strip()
+        is_parenthesized_negative = normalized.startswith("(") and normalized.endswith(")")
+        if is_parenthesized_negative:
+            normalized = normalized[1:-1].strip()
+        if "," in normalized:
+            if "." in normalized and normalized.rfind(",") > normalized.rfind("."):
+                normalized = normalized.replace(".", "").replace(",", ".")
+            elif "." not in normalized:
+                normalized = normalized.replace(",", ".")
+            else:
+                normalized = normalized.replace(",", "")
+        try:
+            result = Decimal(normalized)
+        except InvalidOperation:
+            return None
+        return -result if is_parenthesized_negative else result
+
+    @staticmethod
+    def _classify_row(*, raw_symbol: str | None, name: str | None) -> tuple[str, str]:
+        text = " ".join(part.upper() for part in (raw_symbol, name) if part)
+        if any(marker in text for marker in ("CASH", "CASH&OTHER", "MONEY MARKET", "GOVERNMENT OBLIGATIONS")):
+            return "cash", "cash"
+        if re.search(r"\b[A-Z0-9]{4}\s+\d{6}[CP]\d{8}\b", text) or re.search(
+            r"\b[A-Z]{1,6}\s+\d{2}/\d{2}/\d{4}\s+[\d.]+\s+[CP]\b", text
+        ):
+            return "other", "derivative"
+        if " ETF" in text or "FUND" in text:
+            return "security", "fund"
+        return "security", "equity"
+
+    @staticmethod
+    def _composition_date(rows: list[CanonicalHoldingRow]) -> date | None:
+        for row in rows:
+            for key, value in row.extra_data.items():
+                if key.strip().lower() != "effective_date":
+                    continue
+                try:
+                    return datetime.strptime(str(value).strip(), "%m/%d/%Y").date()
+                except ValueError:
+                    continue
+        return None
+
+
 class COtwoHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Read CTWO's complete two-asset portfolio from COtwo's declared feed."""
 
@@ -62617,6 +62804,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Brookstone Asset Management publishes complete product-page holdings CSV files that may be subject to issuer terms.",
     ),
+    "bufferlabs": IssuerCsvAdapterConfig(
+        adapter_key="bufferlabs",
+        source_provider="bufferlabs",
+        source_access="issuer_public_product_page_complete_current_holdings_table",
+        product_page_templates=("https://bflbetf.com/",),
+        live_tested_default_route=True,
+        terms_note="BufferLABS publishes BFLB's complete current holdings table on its public fund page.",
+    ),
     "burney": IssuerCsvAdapterConfig(
         adapter_key="burney",
         source_provider="burney",
@@ -64066,7 +64261,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "avos",
         "azimut",
         "baillie_gifford",
-        "bufferlabs",
         "bushido",
         "capforce",
         "castellan",
@@ -66333,10 +66527,6 @@ class SirenReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """StockAnalysis provider-table fallback adapter pending Siren discovery."""
 
 
-class BufferLabsReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """StockAnalysis provider-table fallback adapter pending BufferLABS discovery."""
-
-
 class PerformanceTrustReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """StockAnalysis provider-table fallback adapter pending Performance Trust discovery."""
 
@@ -66399,7 +66589,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "bluemonte": BluemonteHoldingsAdapter,
         "blueprint": BlueprintHoldingsAdapter,
         "bridgeway": BridgewayHoldingsAdapter,
-        "bufferlabs": BufferLabsReconciledFallbackHoldingsAdapter,
+        "bufferlabs": BufferLabsHoldingsAdapter,
         "bushido": BushidoReconciledFallbackHoldingsAdapter,
         "calvert": CalvertHoldingsAdapter,
         "capforce": CapForceReconciledFallbackHoldingsAdapter,

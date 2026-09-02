@@ -14095,6 +14095,68 @@ GARMIN LTD, H2906T109, GRMN US, 0.462043761500, 275.170000000000, 1653.0000000, 
 
 
 @pytest.mark.asyncio
+async def test_bufferlabs_adapter_parses_complete_current_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("bufferlabs")
+    assert adapter is not None
+    assert type(adapter).__name__ == "BufferLabsHoldingsAdapter"
+    assert "bufferlabs" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["bufferlabs"].live_tested_default_route is True
+    assert adapter.probe(
+        symbol="BFLB", name="BufferLABS US Equity Dynamic Buffer ETF", identifiers={}
+    ).status == "ready"
+    assert adapter.probe(symbol="UNKNOWN", name="Unknown ETF", identifiers={}).status == (
+        "needs_issuer_route"
+    )
+
+    page_url = "https://bflbetf.com/"
+    page_html = """
+    <h1>BufferLABS US Equity Dynamic Buffer ETF (BFLB)</h1>
+    <h2>FUND HOLDINGS</h2><p>BFLB Fund Holdings</p>
+    <table>
+      <tr><th>TICKER</th><th>NAME</th><th>CUSIP</th><th>SHARES</th><th>PRICE</th>
+          <th>Market Value ($mm)</th><th>% of NET ASSETS</th><th>EFFECTIVE_DATE</th></tr>
+      <tr><td>FGXXX</td><td>First American Government Obligations Fund 12/01/2031</td>
+          <td>31846V336</td><td>79.804,15</td><td>100,00</td><td>0,08</td><td>0.12</td><td>09/02/2026</td></tr>
+      <tr><td>4SPY 270115C00007690</td><td>SPY 01/15/2027 7.69 C</td><td></td>
+          <td>856,00</td><td>750,26</td><td>64,22</td><td>98.55</td><td>09/02/2026</td></tr>
+      <tr><td>Cash&amp;Other</td><td>Cash &amp; Other</td><td></td>
+          <td>-38.797,27</td><td>1,00</td><td>-0,04</td><td>-0.06</td><td>09/02/2026</td></tr>
+    </table>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page_html, content_type="text/html", url=page_url)
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="BFLB")
+
+    assert FakeAsyncClient.requested[0][0] == page_url
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol is None
+    assert result.rows[0].holding_type == "cash"
+    assert result.rows[0].row_type == "cash"
+    assert result.rows[0].shares == Decimal("79804.15")
+    assert result.rows[0].market_value == Decimal("0.08")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].holding_type == "derivative"
+    assert result.rows[1].row_type == "other"
+    assert result.rows[1].shares == Decimal("856.00")
+    assert result.rows[1].market_value == Decimal("64.22")
+    assert result.rows[1].weight == Decimal("0.9855")
+    assert result.rows[2].symbol is None
+    assert result.rows[2].holding_type == "cash"
+    assert result.legal_metadata["source_provider"] == "bufferlabs"
+    assert result.legal_metadata["route_resolution"] == (
+        "bufferlabs_public_complete_current_holdings_table"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+
+    with pytest.raises(ValueError, match="verified official fund page"):
+        await adapter.fetch_latest(symbol="BFLB", source_url="https://example.invalid/holdings")
+
+
+@pytest.mark.asyncio
 async def test_madison_adapter_filters_account_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("madison")
     assert adapter is not None
@@ -20887,7 +20949,10 @@ def test_stockanalysis_provider_fifth_continuation_batch_is_registered_and_audit
 
 
 def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audited():
-    expected = set(STOCKANALYSIS_PROVIDER_SIXTH_CONTINUATION_ISSUER_HINTS) - {"avory"}
+    expected = set(STOCKANALYSIS_PROVIDER_SIXTH_CONTINUATION_ISSUER_HINTS) - {
+        "avory",
+        "bufferlabs",
+    }
 
     assert expected
     assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
@@ -20910,6 +20975,9 @@ def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audit
         assert adapter is not None
         assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
     assert "avory" not in FALLBACK_ISSUER_AUDITS
+    assert "bufferlabs" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["bufferlabs"].live_tested_default_route is True
+    assert type(get_holdings_adapter("bufferlabs")).__name__ == "BufferLabsHoldingsAdapter"
 
 
 def test_stockanalysis_provider_alias_dispositions_resolve_existing_adapters():
@@ -24778,8 +24846,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 365
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 131
+    assert ledger["current_native_count"] == 366
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 130
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -24795,6 +24863,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "beehive",
         "blueprint",
         "bridgeway",
+        "bufferlabs",
         "brookstone",
         "guggenheim",
     }
