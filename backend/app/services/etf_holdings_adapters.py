@@ -2325,6 +2325,7 @@ ISSUER_DOMAIN_HINTS.update(
         "tidal": ["tidalfinancialgroup.com"],
         "beehive": ["thebeehiveetf.com"],
         "blueprint": ["blueprintip.com"],
+        "framework_digital_advisors": ["frameworkdigital.io", "gsretps.io"],
         "volatility_shares": ["volatilityshares.com"],
         "wahed": ["wahed.com"],
         "yieldmax": ["yieldmaxetfs.com"],
@@ -23516,6 +23517,202 @@ class FitzgeraldHoldingsAdapter(TidalHoldingsAdapter):
             symbol=symbol,
         )
         return cls._classify_rows(rows), composition_date
+
+
+class FrameworkDigitalAdvisorsHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch BESO holdings from Framework/GSR's declared first-party API."""
+
+    PRODUCT_PAGE_URLS = {
+        "BESO": "https://gsretps.io/etf/beso",
+    }
+    _ISSUER_HOST = "gsretps.io"
+    _API_HOST = "gsr-transformer.gsr.io"
+    _HOLDINGS_API_TEMPLATE = "https://gsr-transformer.gsr.io/etf/{symbol_upper}/holdings"
+    _DETAILS_API_TEMPLATE = "https://gsr-transformer.gsr.io/etf/{symbol_upper}/details"
+
+    def probe(
+        self,
+        *,
+        symbol: str,
+        name: str,
+        identifiers: dict[str, str],
+    ) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if product_page_url else Decimal("0.5000"),
+            status=("ready" if product_page_url or has_sec_fallback else "needs_issuer_route"),
+            reason=(
+                "GSR's official product page declares a current BESO holdings API."
+                if product_page_url
+                else "No verified Framework/GSR product page is configured for this ETF; SEC EDGAR remains available as fallback."
+                if has_sec_fallback
+                else "No verified Framework/GSR product page is configured for this ETF."
+            ),
+            source_url=product_page_url,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        if product_page_url is None:
+            raise ValueError(
+                "No verified Framework/GSR holdings route is configured for "
+                f"{normalized_symbol or 'an empty symbol'}."
+            )
+        if source_url and not _domain_matches(_url_host(source_url) or "", self._ISSUER_HOST):
+            raise ValueError("Framework/GSR holdings must use its official product domain.")
+
+        holdings_url = self._HOLDINGS_API_TEMPLATE.format(symbol_upper=normalized_symbol)
+        details_url = self._DETAILS_API_TEMPLATE.format(symbol_upper=normalized_symbol)
+        page_headers = _issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*")
+        api_headers = {
+            **_holdings_request_headers(accept="application/json,*/*"),
+            "Referer": product_page_url,
+        }
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_response = await client.get(
+                product_page_url,
+                headers=page_headers,
+                follow_redirects=True,
+            )
+            product_response.raise_for_status()
+            page_text = product_response.text
+            if not re.search(r"\bBESO\b", page_text, re.IGNORECASE) or not re.search(
+                r"GSR\s+Crypto\s+Core3", page_text, re.IGNORECASE
+            ):
+                raise ValueError(
+                    "Framework/GSR product page identity did not match requested ETF BESO."
+                )
+
+            details_response = await client.get(
+                details_url,
+                headers=api_headers,
+                follow_redirects=True,
+            )
+            details_response.raise_for_status()
+            details_payload = details_response.json()
+            product_information = (
+                details_payload.get("productInformation")
+                if isinstance(details_payload, dict)
+                else None
+            )
+            if not isinstance(product_information, dict):
+                raise ValueError("Framework/GSR details response omitted product identity metadata.")
+            if (_clean(product_information.get("fundTicker")) or "").upper() != normalized_symbol:
+                raise ValueError(
+                    "Framework/GSR details response did not match requested ETF "
+                    f"{normalized_symbol}."
+                )
+            holdings_response = await client.get(
+                holdings_url,
+                headers=api_headers,
+                follow_redirects=True,
+            )
+            holdings_response.raise_for_status()
+            holdings_payload = holdings_response.json()
+
+        composition_date = self._parse_update_date(
+            details_payload.get("updateAt") if isinstance(details_payload, dict) else None
+        )
+        rows = self._parse_holdings_payload(
+            holdings_payload,
+            symbol=normalized_symbol,
+            composition_date=composition_date,
+        )
+        if not rows:
+            raise ValueError(
+                f"Framework/GSR holdings API returned no complete rows for {normalized_symbol}."
+            )
+        composition_value = composition_date.isoformat() if composition_date else None
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=holdings_response.text,
+            raw_json={"details": details_payload, "holdings": holdings_payload},
+            source_url=str(holdings_response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "json",
+                "route_resolution": "framework_gsr_public_product_declared_holdings_api",
+                "product_page_url": str(product_response.url),
+                "snapshot_provenance": "framework_gsr_native_current_holdings_api",
+                "composition_date": composition_value,
+                "as_of_date": composition_value,
+                "freshness_semantics": "issuer_api_updateAt_date",
+                "refresh_frequency": "daily_issuer_api",
+                "publisher": "gsr_etps",
+                "parent_issuer": "framework_digital_advisors",
+                "issuer_relationship": (
+                    "Framework Digital Advisors adviser / GSR ETFs publisher"
+                ),
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _parse_update_date(value: Any) -> date | None:
+        text = _clean(value)
+        if not text:
+            return None
+        try:
+            return datetime.fromisoformat(text.replace("Z", "+00:00")).date()
+        except ValueError:
+            return _parse_issuer_date(text)
+
+    @staticmethod
+    def _parse_holdings_payload(
+        payload: Any,
+        *,
+        symbol: str,
+        composition_date: date | None,
+    ) -> list[CanonicalHoldingRow]:
+        if not isinstance(payload, list):
+            return []
+        rows: list[CanonicalHoldingRow] = []
+        date_value = composition_date.isoformat() if composition_date else "current"
+        for index, item in enumerate(payload, start=1):
+            if not isinstance(item, dict):
+                continue
+            name = _clean(item.get("name"))
+            ticker = _clean(item.get("ticker"))
+            if not name or not ticker:
+                continue
+            text = " ".join(part.upper() for part in (ticker, name) if part)
+            is_cash = ticker.upper() == "CASH&OTHER" or "CASH & OTHER" in text
+            is_fund = not is_cash and (" ETF" in text or " FUND" in text)
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else ticker.upper(),
+                    name=name,
+                    cusip=_clean(item.get("cusip")),
+                    weight=_decimal_percent_points(item.get("weight")),
+                    shares=_decimal(item.get("shares")),
+                    market_value=_decimal(item.get("marketValue")),
+                    currency="USD",
+                    holding_type="cash" if is_cash else "fund" if is_fund else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"{symbol}:{date_value}:{index}",
+                    extra_data={
+                        key: value for key, value in item.items() if value not in (None, "")
+                    },
+                )
+            )
+        return rows
 
 
 class ColliersHarrisonStreetHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -65185,6 +65382,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "data may be subject to issuer terms."
         ),
     ),
+    "framework_digital_advisors": IssuerCsvAdapterConfig(
+        adapter_key="framework_digital_advisors",
+        source_provider="gsr_etps",
+        source_access="issuer_product_page_declared_current_holdings_api",
+        product_page_templates=("https://gsretps.io/etf/beso",),
+        live_tested_default_route=True,
+        terms_note=(
+            "Framework Digital Advisors' GSR product page declares the current BESO holdings API; "
+            "data may be subject to issuer terms."
+        ),
+    ),
     "alerian": IssuerCsvAdapterConfig(
         adapter_key="alerian",
         source_provider="alerian",
@@ -65261,7 +65469,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "fcf_advisors",
         "formula_folio",
         "first_manhattan",
-        "framework_digital_advisors",
         "freedom",
         "fpa",
         "genter_capital",
@@ -68341,7 +68548,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "falconx": FalconXHoldingsAdapter,
         "fcf_advisors": FcfAdvisorsReconciledFallbackHoldingsAdapter,
         "formula_folio": FormulaFolioReconciledFallbackHoldingsAdapter,
-        "framework_digital_advisors": FrameworkDigitalAdvisorsReconciledFallbackHoldingsAdapter,
+        "framework_digital_advisors": FrameworkDigitalAdvisorsHoldingsAdapter,
         "freedom": FreedomReconciledFallbackHoldingsAdapter,
         "first_manhattan": FirstManhattanReconciledFallbackHoldingsAdapter,
         "fitzgerald": FitzgeraldHoldingsAdapter,

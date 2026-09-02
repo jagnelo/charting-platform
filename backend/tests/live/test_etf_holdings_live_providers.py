@@ -14,6 +14,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "21shares",
     "falconx",
     "fitzgerald",
+    "framework_digital_advisors",
     "amun",
     "1251_capital",
     "3fourteen",
@@ -2362,6 +2363,31 @@ async def test_live_fitzgerald_nicholas_wealth_routes_cover_current_xfunds_produ
         assert metadata["composition_date"]
         if symbol == "FIZY":
             assert any(row.holding_type == "derivative" for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("framework_digital_advisors")
+async def test_live_framework_gsr_route_covers_current_beso_holdings():
+    adapter = get_holdings_adapter("framework_digital_advisors")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="BESO")
+
+    _assert_live_holdings_result(result, adapter_key="framework_digital_advisors", min_rows=5)
+    metadata = result.legal_metadata or {}
+    assert metadata["source_provider"] == "gsr_etps"
+    assert metadata["publisher"] == "gsr_etps"
+    assert metadata["parent_issuer"] == "framework_digital_advisors"
+    assert metadata["issuer_relationship"] == (
+        "Framework Digital Advisors adviser / GSR ETFs publisher"
+    )
+    assert metadata["route_resolution"] == (
+        "framework_gsr_public_product_declared_holdings_api"
+    )
+    assert metadata["snapshot_provenance"] == "framework_gsr_native_current_holdings_api"
+    assert metadata["composition_date"]
+    assert any(row.row_type == "cash" for row in result.rows)
 
 
 @pytest.mark.asyncio

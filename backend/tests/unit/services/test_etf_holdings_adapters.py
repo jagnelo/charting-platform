@@ -18733,6 +18733,95 @@ async def test_fitzgerald_adapter_discovers_and_parses_nicholas_wealth_csv(monke
 
 
 @pytest.mark.asyncio
+async def test_framework_adapter_fetches_declared_gsr_beso_holdings_api(monkeypatch):
+    adapter = get_holdings_adapter("framework_digital_advisors")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "FrameworkDigitalAdvisorsHoldingsAdapter"
+    probe = adapter.probe(symbol="BESO", name="GSR Crypto Core3 ETF", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url == "https://gsretps.io/etf/beso"
+    assert adapter.probe(symbol="DATZ", name="", identifiers={}).status == "needs_issuer_route"
+
+    with pytest.raises(ValueError, match="official product domain"):
+        await adapter.fetch_latest(symbol="BESO", source_url="https://example.invalid/beso")
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<html><title>BESO | GSR Crypto Core3</title>"
+                "HOLDINGS_CONFIG API_BASE_URL gsr-transformer.gsr.io TICKER BESO</html>"
+            ),
+            content_type="text/html",
+            url="https://gsretps.io/etf/beso",
+        ),
+        FakeResponse(
+            text=json.dumps(
+                {
+                    "updateAt": "2026-09-01T00:00:00.000Z",
+                    "productInformation": {
+                        "fundName": "GSR Crypto Core3 ETF",
+                        "fundTicker": "BESO",
+                    },
+                }
+            ),
+            content_type="application/json",
+            url="https://gsr-transformer.gsr.io/etf/BESO/details",
+        ),
+        FakeResponse(
+            text=json.dumps(
+                [
+                    {
+                        "name": "Bitwise Solana Staking ETF",
+                        "ticker": "BSOL",
+                        "cusip": "091948109",
+                        "shares": 154919,
+                        "weight": 19.68,
+                        "price": 13.71,
+                        "marketValue": 2123939.49,
+                    },
+                    {
+                        "name": "Cash & Other",
+                        "ticker": "Cash&Other",
+                        "cusip": "Cash&Other",
+                        "shares": -5458,
+                        "weight": -0.05,
+                        "price": 1,
+                        "marketValue": -5458.74,
+                    },
+                ]
+            ),
+            content_type="application/json",
+            url="https://gsr-transformer.gsr.io/etf/BESO/holdings",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="BESO")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        "https://gsretps.io/etf/beso",
+        "https://gsr-transformer.gsr.io/etf/BESO/details",
+        "https://gsr-transformer.gsr.io/etf/BESO/holdings",
+    ]
+    assert result.rows[0].symbol == "BSOL"
+    assert result.rows[0].holding_type == "fund"
+    assert result.rows[0].weight == Decimal("0.1968")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].holding_type == "cash"
+    assert result.legal_metadata["source_provider"] == "gsr_etps"
+    assert result.legal_metadata["route_resolution"] == (
+        "framework_gsr_public_product_declared_holdings_api"
+    )
+    assert result.legal_metadata["snapshot_provenance"] == (
+        "framework_gsr_native_current_holdings_api"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+    assert result.legal_metadata["parent_issuer"] == "framework_digital_advisors"
+
+
+@pytest.mark.asyncio
 async def test_beehive_adapter_fetches_official_declared_daily_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("beehive")
     assert adapter is not None
@@ -21311,7 +21400,7 @@ def test_etf_com_issuer_page_reconciliation_batch_is_registered_and_audited():
 
 def test_etfdb_issuer_league_reconciliation_batch_is_registered_and_audited():
     expected = set(ETFDB_ISSUER_LEAGUE_RECONCILIATION_ISSUER_HINTS)
-    promoted_native = {"guggenheim", "bancreek", "falconx"}
+    promoted_native = {"guggenheim", "bancreek", "falconx", "framework_digital_advisors"}
     fallback_expected = expected - promoted_native
 
     assert expected
@@ -25611,8 +25700,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 377
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 119
+    assert ledger["current_native_count"] == 378
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 118
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -25640,6 +25729,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "everence",
         "falconx",
         "fitzgerald",
+        "framework_digital_advisors",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))
