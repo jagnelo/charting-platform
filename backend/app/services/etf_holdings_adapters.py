@@ -63542,6 +63542,23 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "its public product page and declared daily Tidal holdings CSV; data may be subject to issuer terms."
         ),
     ),
+    "bridgeway": IssuerCsvAdapterConfig(
+        adapter_key="bridgeway",
+        source_provider="bridgeway_etfs",
+        source_access="bridgeway_issuer_product_page_complete_holdings_table",
+        product_page_templates=(
+            "https://bridgewayetfs.com/bblu/",
+            "https://bridgewayetfs.com/bagx/",
+            "https://bridgewayetfs.com/brsv/",
+            "https://bridgewayetfs.com/bsvo/",
+            "https://bridgewayetfs.com/busm/",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "Bridgeway ETFs publishes complete current holdings tables on its public ETF product pages; "
+            "data may be subject to issuer terms."
+        ),
+    ),
     "concourse": IssuerCsvAdapterConfig(
         adapter_key="concourse",
         source_provider="concourse_capital",
@@ -63932,7 +63949,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "avos",
         "azimut",
         "baillie_gifford",
-        "bridgeway",
         "brookstone",
         "bufferlabs",
         "bushido",
@@ -64659,8 +64675,281 @@ class AvantisReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """ETF.com-reconciled fallback adapter pending Avantis route discovery."""
 
 
-class BridgewayReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """ETF.com-reconciled fallback adapter pending Bridgeway route discovery."""
+class BridgewayHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Bridgeway ETF portfolios from the issuer's complete holdings tables.
+
+    Bridgeway's public ETF pages render the current portfolio in a stable
+    ``table_9`` holdings component.  The table is server-rendered in the page
+    response (rather than being a top-ten marketing summary), carries a single
+    ``EFFECTIVE_DATE`` for every row, and includes cash-equivalent positions.
+    Keep the product URLs and expected identities explicit so a page for another
+    Bridgeway fund cannot be mistaken for native coverage.
+    """
+
+    _ISSUER_HOST = "bridgewayetfs.com"
+    _TABLE_ID = "table_9"
+    _REQUIRED_HEADERS = frozenset(
+        {
+            "ticker",
+            "name",
+            "cusip",
+            "shares",
+            "price",
+            "market value ($mm)",
+            "% of net assets",
+            "effective_date",
+        }
+    )
+    _PRODUCTS: dict[str, tuple[str, str]] = {
+        "BBLU": (
+            "https://bridgewayetfs.com/bblu/",
+            "EA Bridgeway Blue Chip ETF",
+        ),
+        "BAGX": (
+            "https://bridgewayetfs.com/bagx/",
+            "EA Bridgeway Aggressive Investors ETF",
+        ),
+        "BRSV": (
+            "https://bridgewayetfs.com/brsv/",
+            "EA Bridgeway Select Small-Cap Value ETF",
+        ),
+        "BSVO": (
+            "https://bridgewayetfs.com/bsvo/",
+            "EA Bridgeway Omni Small-Cap Value ETF",
+        ),
+        "BUSM": (
+            "https://bridgewayetfs.com/busm/",
+            "EA Bridgeway Ultra-Small Company Market ETF",
+        ),
+    }
+
+    def probe(
+        self,
+        *,
+        symbol: str,
+        name: str,
+        identifiers: dict[str, str],
+    ) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        product = self._PRODUCTS.get(normalized_symbol)
+        if product is not None:
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.9700"),
+                status="ready",
+                reason=(
+                    "Bridgeway publishes the complete current portfolio in the issuer-owned "
+                    "ETF product-page holdings table."
+                ),
+                source_url=product[0],
+                issuer_product_id=normalized_symbol,
+            )
+
+        sec_cik = _identifier(identifiers, "sec_cik", "cik")
+        if sec_cik:
+            normalized_cik = sec_cik.strip().zfill(10)
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.7800"),
+                status="ready",
+                reason=(
+                    "Bridgeway has no verified native product route for this symbol; "
+                    "SEC EDGAR holdings fallback is available through its CIK."
+                ),
+                source_url=f"https://data.sec.gov/submissions/CIK{normalized_cik}.json",
+                issuer_product_id=normalized_symbol or None,
+            )
+
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.6500"),
+            status="needs_issuer_route",
+            reason=(
+                "Bridgeway's verified native route currently supports only BBLU, BAGX, "
+                "BRSV, BSVO, and BUSM; a CIK is required for SEC fallback."
+            ),
+            issuer_product_id=normalized_symbol or None,
+            required_identifiers=["sec_cik"],
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del identifiers
+        normalized_symbol = symbol.strip().upper()
+        product = self._PRODUCTS.get(normalized_symbol)
+        if product is None:
+            raise ValueError(
+                "Bridgeway's verified issuer route currently supports only "
+                "BBLU, BAGX, BRSV, BSVO, and BUSM."
+            )
+        if issuer_product_id and issuer_product_id.strip().upper() != normalized_symbol:
+            raise ValueError("Bridgeway issuer product identity must match the requested ETF symbol.")
+        product_page_url, expected_title = product
+        if source_url and source_url.rstrip("/") != product_page_url.rstrip("/"):
+            raise ValueError("Bridgeway holdings must use its official ETF product page.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                source_url or product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        resolved_page_url = str(response.url)
+        if not _domain_matches(_url_host(resolved_page_url), self._ISSUER_HOST):
+            raise ValueError("Bridgeway holdings response left the issuer product domain.")
+
+        rows, composition_date = self._parse_product_page(
+            response.text,
+            symbol=normalized_symbol,
+            expected_title=expected_title,
+        )
+        if not rows or composition_date is None:
+            raise ValueError(
+                f"Bridgeway's {normalized_symbol} page did not expose a complete dated holdings table."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={
+                "source_format": "issuer_product_page_complete_holdings_table",
+                "product_page_url": resolved_page_url,
+                "table_id": self._TABLE_ID,
+                "row_count": len(rows),
+            },
+            source_url=resolved_page_url,
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "bridgeway_issuer_product_page_complete_holdings_table",
+                "product_page_url": resolved_page_url,
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+                "refresh_frequency": "daily_issuer_holdings_table",
+                "freshness_semantics": "issuer_disclosed_holdings_date",
+                "snapshot_provenance": "bridgeway_native_current_holdings_table",
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_product_page(
+        cls,
+        raw_html: str,
+        *,
+        symbol: str,
+        expected_title: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        normalized_html = html.unescape(raw_html)
+        if expected_title.casefold() not in normalized_html.casefold():
+            raise ValueError(
+                f"Bridgeway product page identity did not match requested ETF {symbol}."
+            )
+
+        parser = _HTMLTableByIdParser(table_id=cls._TABLE_ID)
+        parser.feed(raw_html)
+        header_index = next(
+            (
+                index
+                for index, row in enumerate(parser.rows[:30])
+                if {str(cell).strip().casefold() for cell in row if _clean(cell)}
+                >= cls._REQUIRED_HEADERS
+            ),
+            None,
+        )
+        if header_index is None:
+            raise ValueError(
+                f"Bridgeway's {symbol} page did not expose the expected complete holdings schema."
+            )
+
+        header = parser.rows[header_index]
+        rows: list[CanonicalHoldingRow] = []
+        composition_dates: set[date] = set()
+        for position, values in enumerate(parser.rows[header_index + 1 :], start=1):
+            raw = _row_dict(header, values)
+            source_symbol = _clean(_first(raw, ["Ticker"]))
+            name = _clean(_first(raw, ["Name"]))
+            cusip_value = _clean(_first(raw, ["CUSIP"]))
+            row_date = _parse_issuer_date(_first(raw, ["EFFECTIVE_DATE"]))
+            if row_date is None:
+                raise ValueError(
+                    f"Bridgeway's {symbol} holdings row {position} is missing EFFECTIVE_DATE."
+                )
+            composition_dates.add(row_date)
+            row_type, holding_type = cls._classify_row(
+                source_symbol=source_symbol,
+                name=name,
+            )
+            normalized_ticker = (
+                cls._tradable_symbol(source_symbol) if row_type != "cash" else None
+            )
+            market_value_millions = _decimal(_first(raw, ["Market Value ($mm)"]))
+            if not any([source_symbol, name, cusip_value, market_value_millions is not None]):
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=normalized_ticker,
+                    name=name,
+                    cusip=cusip_value if _looks_like_cusip(cusip_value) else None,
+                    shares=_decimal(_first(raw, ["Shares"])),
+                    market_value=(market_value_millions * Decimal("1000000"))
+                    if market_value_millions is not None
+                    else None,
+                    weight=_decimal_percent_points(_first(raw, ["% of Net Assets"])),
+                    currency="USD" if row_type == "cash" else None,
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"{symbol}:{position}:{cusip_value or source_symbol or name or 'holding'}",
+                    extra_data={
+                        "source_symbol": source_symbol,
+                        "market_value_unit": "USD millions",
+                        "source": "bridgeway_issuer_product_page_holdings_table",
+                        **{
+                            key: value
+                            for key, value in raw.items()
+                            if key and _clean(value) is not None
+                        },
+                    },
+                )
+            )
+        if len(composition_dates) != 1:
+            raise ValueError(
+                f"Bridgeway's {symbol} holdings table has inconsistent disclosure dates."
+            )
+        return rows, next(iter(composition_dates))
+
+    @staticmethod
+    def _classify_row(*, source_symbol: str | None, name: str | None) -> tuple[str, str]:
+        text = " ".join(part.upper() for part in (source_symbol, name) if part)
+        if any(marker in text for marker in ("CASH", "DOLLAR", "MONEY MARKET", "GOVERNMENT OBLIGATIONS")):
+            return "cash", "cash"
+        if any(marker in text for marker in ("BOND", "TREASURY", "FIXED INCOME", "NOTE")):
+            return "security", "fixed_income"
+        if any(marker in text for marker in ("FUND", "ETF", "MUTUAL")):
+            return "security", "fund"
+        return "security", "equity"
+
+    @staticmethod
+    def _tradable_symbol(value: str | None) -> str | None:
+        text = _clean(value)
+        if text is None:
+            return None
+        normalized = text.upper()
+        return (
+            normalized
+            if re.fullmatch(r"[A-Z0-9][A-Z0-9.\-/]{0,14}", normalized)
+            else None
+        )
 
 
 class CalvertHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -65994,7 +66283,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "bluemonte": BluemonteHoldingsAdapter,
         "blueprint": BlueprintHoldingsAdapter,
         "brookstone": BrookstoneReconciledFallbackHoldingsAdapter,
-        "bridgeway": BridgewayReconciledFallbackHoldingsAdapter,
+        "bridgeway": BridgewayHoldingsAdapter,
         "bufferlabs": BufferLabsReconciledFallbackHoldingsAdapter,
         "bushido": BushidoReconciledFallbackHoldingsAdapter,
         "calvert": CalvertHoldingsAdapter,

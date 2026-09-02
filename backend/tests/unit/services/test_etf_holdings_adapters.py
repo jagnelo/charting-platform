@@ -18123,6 +18123,73 @@ async def test_blueprint_adapter_fetches_and_classifies_official_tfpn_holdings_c
     )
 
 
+@pytest.mark.asyncio
+async def test_bridgeway_adapter_fetches_complete_issuer_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("bridgeway")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "BridgewayHoldingsAdapter"
+    assert "bridgeway" not in FALLBACK_ISSUER_AUDITS
+
+    product_page_url = "https://bridgewayetfs.com/bblu/"
+    probe = adapter.probe(symbol="BBLU", name="EA Bridgeway Blue Chip ETF", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url == product_page_url
+
+    unsupported = adapter.probe(symbol="NOT_BRIDGEWAY", name="", identifiers={})
+    assert unsupported.status == "needs_issuer_route"
+
+    with pytest.raises(ValueError, match="official ETF product page"):
+        await adapter.fetch_latest(
+            symbol="BBLU",
+            source_url="https://example.invalid/holdings.html",
+        )
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<html><h1>EA Bridgeway Blue Chip ETF</h1>"
+                "<table id='table_9'><thead><tr>"
+                "<th>Ticker</th><th>Name</th><th>CUSIP</th><th>Shares</th>"
+                "<th>Price</th><th>Market Value ($mm)</th>"
+                "<th>% of Net Assets</th><th>EFFECTIVE_DATE</th>"
+                "</tr></thead><tbody>"
+                "<tr><td>ABBV</td><td>AbbVie Inc</td><td>00287Y109</td>"
+                "<td>43,444</td><td>259.99</td><td>11.30</td><td>2.44</td>"
+                "<td>09/02/2026</td></tr>"
+                "<tr><td>FGXXX</td><td>First American Government Obligations Fund</td>"
+                "<td>31846V336</td><td>791,330</td><td>100.00</td><td>0.79</td>"
+                "<td>0.17</td><td>09/02/2026</td></tr>"
+                "<tr><td>Cash&amp;Other</td><td>Cash &amp; Other</td><td></td>"
+                "<td>456,567</td><td>1.00</td><td>0.46</td><td>0.10</td>"
+                "<td>09/02/2026</td></tr>"
+                "</tbody></table></html>"
+            ),
+            content_type="text/html",
+            url=product_page_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="BBLU")
+
+    assert FakeAsyncClient.requested[0][0] == product_page_url
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol == "ABBV"
+    assert result.rows[0].market_value == Decimal("11300000.00")
+    assert result.rows[0].weight == Decimal("0.0244")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].holding_type == "cash"
+    assert result.rows[2].symbol is None
+    assert result.rows[2].row_type == "cash"
+    assert result.legal_metadata["source_provider"] == "bridgeway_etfs"
+    assert result.legal_metadata["route_resolution"] == (
+        "bridgeway_issuer_product_page_complete_holdings_table"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+    assert result.raw_json["row_count"] == 3
+
+
 def test_colliers_harrison_street_adapter_discovers_and_parses_nfrx_holdings_csv():
     adapter = get_holdings_adapter("colliers")
     assert adapter is not None
@@ -20647,6 +20714,7 @@ def test_stockanalysis_provider_fourth_continuation_batch_is_registered_and_audi
         "impact_shares",
         "ballast",
         "blueprint",
+        "bridgeway",
     }
 
     assert expected
@@ -24658,8 +24726,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 363
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 133
+    assert ledger["current_native_count"] == 364
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 132
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -24674,6 +24742,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "bancreek",
         "beehive",
         "blueprint",
+        "bridgeway",
         "guggenheim",
     }
     assert set(record_keys) == fallback_keys | native_promoted
