@@ -962,3 +962,48 @@ and whitespace checks must be recorded against the resulting durable SHA. The
 existing full deterministic/live evidence at the FalconX checkpoint remains
 valid; the current Docker-backed gate still has the unrelated reproducible
 F8p-current-history Study Lab histogram timeout.
+
+## 21. Current execution checkpoint — Fitzgerald/Nicholas Wealth — 2026-09-02
+
+The ranked `fitzgerald` audit is promoted through the official XFUNDS by
+Nicholas Wealth pages for the Fitz-Gerald Must Have Portfolio ETF (FITZ) and
+the Fitz-Gerald Must Have Portfolio and Options Overlay ETF (FIZY). Each page
+declares a holdings download whose page script resolves to a nonce-scoped
+`twm_download=holdings&ticker={symbol}` CSV endpoint on `nicholasx.com`.
+
+Bounded live requests on September 2, 2026 returned HTTP 200 CSV artifacts
+dated September 2, 2026. FITZ returned 31 parseable rows and FIZY returned 112
+rows, including the FIZY option positions. The new explicit
+`FitzgeraldHoldingsAdapter` validates the requested product page and issuer
+domain, discovers the current nonce-bearing download URL rather than relying
+on a stale hard-coded nonce, enforces ticker scoping, preserves CUSIPs,
+quantities, market values, weights, cash, and dates, and classifies FIZY option
+contracts as derivatives with no tradable equity symbol. Its metadata records
+Nicholas Wealth as publisher and parent issuer, the Fitz-Gerald product
+relationship, current daily provenance, and the page-declared route.
+
+The adapter configuration is native/live-backed and the live manifest covers
+both FITZ and FIZY in one bounded opt-in test. The deterministic unit test
+covers nonce discovery, issuer-domain rejection, current-date parsing,
+account scoping, metadata, and derivative classification. The full
+deterministic adapter module passes 524 tests; the default live contract matrix
+passes 2 with 442 opt-in skips; the focused opt-in Fitzgerald test passes 1;
+Ruff and whitespace checks pass.
+
+The code-derived split after this promotion is 496 registered, 377
+native/live-backed, and 119 fallback-only providers. Runtime fallback status
+counts are 8 issuer-access-blocked, 102 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The ledger retains
+all 140 historical records exactly once, with `fitzgerald` marked
+`native_promoted`; 82 queued fallback records remain and the next ranked item
+is `formula_folio`. The separate `nicholas_wealth` identity remains queued for
+its own identity audit; this promotion does not create a duplicate route for
+that key.
+
+Implementation checkpoint
+`a1caaa0c6da2ded19891795b58e6e6ffe9ae09fd` contains the adapter, registry and
+config, deterministic parser/provenance coverage, and opt-in live coverage.
+The durable ledger/docs/session checkpoint must reference this code SHA. The
+full current opt-in provider matrix and Docker-backed integration gate remain
+pending at the 377-native baseline; the known unrelated F8p-current-history
+Study Lab histogram timeout remains an AC7 gap.

@@ -16,15 +16,15 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 - Latest staging merge: `9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4`
 - Incorporated staging SHA: `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`
-- Current code-derived state: 496 registered, 376 native/live-backed, 120
+- Current code-derived state: 496 registered, 377 native/live-backed, 119
   fallback-only.
-- Current fallback status split: 8 access-blocked, 103 discovery, 3
+- Current fallback status split: 8 access-blocked, 102 discovery, 3
   non-executable public source, 6 non-portfolio-publisher (the ledger's dated
   terminal dispositions preserve each record's original runtime audit status;
   Elm, Esoterica, Even Herd, and Everence are no longer runtime fallbacks after their
   native promotions).
 - `docs/etf-provider-universe.md` has been reconciled from code to the current
-  496/376/120 snapshot; future updates must remain code-derived.
+  496/377/119 snapshot; future updates must remain code-derived.
 - Validation tier: `full_integration`.
 - Local validation profile: `docker_integration`.
 - The full integration gate at `2d96697d` reached e2e-functional but failed one
@@ -32,7 +32,7 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
   and 106 were skipped. A fresh-stack retry reproduced a missing histogram
   element timeout. The ETF holdings tests and routes were not implicated.
 - Planning session: `197b239d-3322-4fc6-bf4b-0d0aecebf5e0`.
-- Latest implementation checkpoint: `2ffa2796` (FalconX parent coverage through the independently managed 21Shares ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN, THYP, and TKNS routes; Everence/Praxis PRXG, PRXV, and PRXI native routes; Even Herd native EHLS route; the existing
+- Latest implementation checkpoint: `a1caaa0c` (Fitzgerald/Nicholas Wealth FITZ and FIZY current holdings routes through the official XFUNDS pages and nonce-scoped CSV endpoints; FalconX parent coverage through the independently managed 21Shares ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN, THYP, and TKNS routes; Everence/Praxis PRXG, PRXV, and PRXI native routes; Even Herd native EHLS route; the existing
   Esoterica WUGI and Cygnet/Elm routes remain intact); prior `915282cd` (Esoterica native WUGI route); prior `a4571ff3` (Elements inactive/successor
   disposition; prior EA Series Trust dated non-portfolio-publisher disposition;
   prior DVx Ventures dated
@@ -126,7 +126,7 @@ routes are current and executable through the official product-page-declared
 Azure CSV convention. FalconX's ten current U.S. products are now covered through
 the independently managed 21Shares publisher's page-declared primary and
 secondary product-details APIs, with explicit parent/publisher provenance. The
-audit ledger currently has 83 queued fallback records still
+audit ledger currently has 82 queued fallback records still
 requiring issuer-specific
 evidence and final dispositions; existing terminal/blocked records must remain
 evidence-backed. ETF Managers Group is now recorded as an inactive/successor
@@ -142,8 +142,11 @@ ABXB routes belong to the existing `abacus_global` adapter. First Manhattan's
 official FMCX and FMCE pages identify two active products but disclose holdings
 only sixty days after each quarter-end, so the ledger records it as a dated
 `non_executable_public_source` rather than a native route. Continue replacing
+Fitzgerald/Nicholas Wealth is now native-promoted for FITZ and FIZY through the
+official XFUNDS page-declared nonce-scoped daily CSVs; FIZY option rows are
+classified as derivatives and the adapter records publisher provenance.
 baseline placeholders with first-party route evidence, continuing with
-`fitzgerald`, and checkpoint
+`formula_folio`, and checkpoint
 each coherent provider changeset before moving to the next.
 
 Update this handoff at every coherent implementation and operations boundary.
