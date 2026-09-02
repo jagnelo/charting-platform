@@ -1816,17 +1816,26 @@ providers:
     display_name: etf_managers_group
     queue_rank: 43
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: inactive_or_successor_disposition
+    disposition: inactive_or_successor_disposition
+    last_checked: 2026-09-02
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols:
+      - AIEQ
+      - AWAY
+      - BDRY
+      - BWET
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    source_freshness: historical
+    first_party_domains:
+      - amplifyetfs.com
+      - etfmg.com
+    candidate_routes:
+      - https://info.amplifyetfs.com/hubfs/Amplify%20ETFs%20Completes%20Acquisition_2024_0126.pdf
+      - https://amplifyetfs.com/
+      - https://www.etfmg.com/
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -1841,8 +1850,16 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.etf_managers_group"
-    disposition_reason: "etf_managers_group: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate etf_managers_group first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-02
+        source: "https://info.amplifyetfs.com/hubfs/Amplify%20ETFs%20Completes%20Acquisition_2024_0126.pdf"
+        result: "Amplify's official completion notice states that it acquired ETF Managers Group's ETF assets and reorganized the listed ETFMG funds into corresponding Amplify ETFs effective January 26, 2024; it also transferred ETF Managers Capital's Commodity Trust sponsor role to Amplify for BDRY and BWET."
+        evidence_ref: "web:amplify-etfmg-acquisition-complete-2026-09-02"
+      - date: 2026-09-02
+        source: "https://www.etfmg.com/"
+        result: "The historical ETFMG domain was not reachable during the bounded public check, while the successor Amplify domain is the active public ETF publisher; no current ETFMG-owned holdings route was identified."
+        evidence_ref: "web:etfmg-domain-unreachable-successor-amplify-2026-09-02"
+    disposition_reason: "etf_managers_group: ETF Managers Group is an inactive/successor identity for current holdings coverage. Amplify's official completion notice documents the acquisition and fund reorganizations/sponsor transfer, so current portfolio routes belong to Amplify or each successor manager rather than a distinct ETFMG publisher; do not create a duplicate native ETFMG route."
+    next_action: "etf_managers_group: Keep fallback-only as inactive_or_successor_disposition; resolve historical ETFMG symbols to their Amplify successor or actual current sponsor and reopen only if ETFMG resumes a distinct U.S.-listed ETF portfolio with an executable first-party route."
     implementation_sha: null
     validation_refs: []
   - adapter_key: even_herd

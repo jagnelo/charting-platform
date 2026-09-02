@@ -54,7 +54,9 @@ that baseline record while tracking the current 373/123 split.
 
 The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
 `FALLBACK_ISSUER_AUDITS` at the current ETF-branch implementation checkpoint
-`915282cd` (Esoterica WUGI native route; the Discipline Funds, DVx Ventures, EA Series Trust, and Elements audits
+`915282cd` (Esoterica WUGI native route; ETF Managers Group is recorded as an
+inactive/successor identity after Amplify's documented acquisition; the Discipline
+Funds, DVx Ventures, EA Series Trust, and Elements audits
 remain fallback-only; Elm is now native-promoted through the same declared route
 as the existing Cygnet parent identity).
 The fallback audit statuses are:
@@ -103,6 +105,11 @@ official CTEF and CTIF product pages.
 declared complete current holdings CSV.
 `cresalta` is native-promoted through its official CVGD and CVSM full-holdings
 pages, each exposing a complete dated holdings table.
+`esoterica` is native-promoted through the official AXS WUGI product/data pages
+and their declared FilePoint dated aggregate holdings CSV.
+`etf_managers_group` is an inactive/successor identity: Amplify's official
+acquisition notice documents the ETFMG fund reorganizations and sponsor transfer,
+so current holdings routes belong to Amplify or the successor fund managers.
 `discipline_funds` remains fallback-only as a non-executable public source:
 its official DDV, DDX, and DDXX pages expose a nonce-backed wpDataTables
 component, but the current route does not provide a reproducible complete

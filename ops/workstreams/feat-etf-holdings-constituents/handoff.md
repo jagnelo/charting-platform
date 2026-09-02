@@ -107,11 +107,15 @@ holdings route. Elm's official ELM product page now provides a complete current
 holdings CSV dated September 1, 2026; the `elm` adapter preserves that route
 under Elm Partners Management while the existing Cygnet adapter remains available
 for the parent identity. Esoterica's WUGI route is current and executable through the
-AXS/FilePoint chain. The audit ledger currently has 89 queued fallback records still
+AXS/FilePoint chain. The audit ledger currently has 88 queued fallback records still
 requiring issuer-specific
 evidence and final dispositions; existing terminal/blocked records must remain
-evidence-backed. Continue replacing baseline placeholders with first-party route
-evidence, starting with the ranked queue after Esoterica at `etf_managers_group`, and checkpoint
+evidence-backed. ETF Managers Group is now recorded as an inactive/successor
+identity because Amplify's official acquisition notice documents the fund
+reorganizations and sponsor transfer; current portfolio routes belong to Amplify
+or the successor fund managers. Continue replacing baseline placeholders with
+first-party route evidence, starting with the ranked queue after that disposition
+at `even_herd`, and checkpoint
 each coherent provider changeset before moving to the next.
 
 Update this handoff at every coherent implementation and operations boundary.
