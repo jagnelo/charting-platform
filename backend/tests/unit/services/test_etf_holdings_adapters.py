@@ -13624,6 +13624,37 @@ async def test_artemis_adapter_verifies_ars_product_page_and_parses_complete_hol
 
 
 @pytest.mark.asyncio
+async def test_ars_provider_alias_uses_verified_ars_product_page_route(monkeypatch):
+    adapter = get_holdings_adapter("ars")
+    assert adapter is not None
+    product_page_url = "https://arsinvestetfs.com/acep/"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<h1>ARS Core Equity Portfolio ETF</h1><h2>Fund Holdings</h2>"
+                "<table><tr><th>Ticker</th><th>Name</th><th>CUSIP</th>"
+                "<th>Shares</th><th>Price</th><th>Market Value ($mm)</th>"
+                "<th>% of Net Assets</th><th>EFFECTIVE_DATE</th></tr>"
+                "<tr><td>NVDA</td><td>NVIDIA Corp</td><td>67066G104</td>"
+                "<td>22,795</td><td>203.28</td><td>4.63</td><td>16.41</td>"
+                "<td>07/20/2026</td></tr></table>"
+            ),
+            content_type="text/html",
+            url=product_page_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="ACEP")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_page_url]
+    assert result.rows[0].symbol == "NVDA"
+    assert result.legal_metadata["adapter_key"] == "ars"
+    assert result.legal_metadata["source_provider"] == "ars_investment_partners"
+
+
+@pytest.mark.asyncio
 async def test_x_square_adapter_verifies_product_page_and_parses_declared_complete_holdings_api(
     monkeypatch,
 ):
@@ -20318,7 +20349,9 @@ def test_stockanalysis_provider_reconciliation_batch_is_registered_and_audited()
 
 
 def test_stockanalysis_provider_continuation_batch_is_registered_and_audited():
-    expected = set(STOCKANALYSIS_PROVIDER_CONTINUATION_ISSUER_HINTS)
+    # ARS was reconciled to the existing ARS product-page adapter; the other
+    # continuation identities remain explicit fallback-only records.
+    expected = set(STOCKANALYSIS_PROVIDER_CONTINUATION_ISSUER_HINTS) - {"ars"}
     expected -= {"fairlead"}
 
     assert expected
@@ -20336,6 +20369,9 @@ def test_stockanalysis_provider_continuation_batch_is_registered_and_audited():
         adapter = get_holdings_adapter(adapter_key)
         assert adapter is not None
         assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+    assert "ars" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["ars"].live_tested_default_route is True
+    assert type(get_holdings_adapter("ars")).__name__ == "ArtemisHoldingsAdapter"
     assert ISSUER_ADAPTER_CONFIGS["fairlead"].live_tested_default_route is True
     assert type(get_holdings_adapter("fairlead")).__name__ == "CaryStreetHoldingsAdapter"
     assert "fairlead" not in FALLBACK_ISSUER_AUDITS
@@ -24395,11 +24431,17 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 357
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 139
+    assert ledger["current_native_count"] == 358
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 138
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
-    assert set(record_keys) == fallback_keys | {"guggenheim"}
+    native_promoted = {
+        record["adapter_key"]
+        for record in records
+        if record["disposition"] == "native_promoted"
+    }
+    assert native_promoted == {"ars", "guggenheim"}
+    assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(
         range(1, len(records) + 1)
     )
@@ -24426,16 +24468,15 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
                 f"runtime:ISSUER_ADAPTER_CONFIGS.{key}",
             ]
         else:
-            assert key == "guggenheim"
+            assert key in native_promoted
             assert record["starting_status"] == "needs_first_party_route_discovery"
             assert record["current_status"] == "native_promoted"
             assert record["disposition"] == "native_promoted"
             assert record["route_complete"] is True
             assert record["symbol_mapping_proven"] is True
             assert record["current_holdings_proven"] is True
-            assert record["first_party_domains"] == [
-                "portal.guggenheiminvestments.com"
-            ]
+            assert record["first_party_domains"]
+            assert ISSUER_ADAPTER_CONFIGS[key].live_tested_default_route is True
         assert key.casefold() in record["disposition_reason"].casefold()
         assert key.casefold() in record["next_action"].casefold()
         assert record["attempt_history"]

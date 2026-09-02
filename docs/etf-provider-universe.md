@@ -28,20 +28,21 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `357`
-- Audited fallback-only providers: `139`
+- Native/live-backed providers: `358`
+- Audited fallback-only providers: `138`
 
 The current checkpoint promotes `guggenheim` through its public issuer-hosted
-ETF holdings table. The historical starting snapshot for this workstream was
-356 native and 140 fallback; the provider-audit ledger retains that baseline
-record while tracking the current 357/139 split.
+ETF holdings table and reconciles `ars` to the existing ARS Investment Partners
+ACEP/AFOS product-page adapter. The historical starting snapshot for this
+workstream was 356 native and 140 fallback; the provider-audit ledger retains
+that baseline record while tracking the current 358/138 split.
 
 The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
 `FALLBACK_ISSUER_AUDITS` at the approved ETF-branch checkpoint
 `9d977a886e9788383037ea6ab7641befff136fe3`. The fallback audit statuses are:
 
 - `issuer_access_blocked`: `8`
-- `needs_first_party_route_discovery`: `122`
+- `needs_first_party_route_discovery`: `121`
 - `non_executable_public_source`: `3`
 - `provider_not_a_portfolio_publisher`: `6`
 
@@ -52,7 +53,8 @@ already been freshly re-audited; each issuer requires dated route evidence
 before promotion or terminal closure.
 
 The current audit checkpoint has issuer-specific evidence for the highest-ranked
-records reviewed so far: `advisors_asset_management` is blocked before a stable
+records reviewed so far: `ars` is native-promoted through complete ACEP/AFOS
+first-party holdings tables; `advisors_asset_management` is blocked before a stable
 backend export can be captured; `alphamark_advisors` now redirects to an EP
 Wealth successor page; `amg_national` is a bank/wealth manager rather than an
 ETF portfolio publisher; `amplius` exposes a complete table but blocks backend

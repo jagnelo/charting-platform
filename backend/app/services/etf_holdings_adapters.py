@@ -63020,6 +63020,20 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "for its public ETF product pages."
         ),
     ),
+    "ars": IssuerCsvAdapterConfig(
+        adapter_key="ars",
+        source_provider="ars_investment_partners",
+        source_access="ars_issuer_product_page_complete_holdings_table",
+        product_page_templates=(
+            "https://arsinvestetfs.com/acep/",
+            "https://arsinvestetfs.com/afos/",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "ARS Investment Partners publishes complete current holdings tables "
+            "for its public ETF product pages; data may be subject to issuer terms."
+        ),
+    ),
     "myriad": IssuerCsvAdapterConfig(
         adapter_key="myriad",
         source_provider="myriad_asset_management",
@@ -63480,7 +63494,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "azimut",
         "baillie_gifford",
         "ballast",
-        "ars",
         "bancreek",
         "beehive",
         "bridgeway",
@@ -65533,7 +65546,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "american_beacon": AmericanBeaconHoldingsAdapter,
         "anydrus": AnydrusReconciledFallbackHoldingsAdapter,
         "arin": ArinReconciledFallbackHoldingsAdapter,
-        "ars": ArsReconciledFallbackHoldingsAdapter,
+        "ars": ArtemisHoldingsAdapter,
         "argent": ArgentReconciledFallbackHoldingsAdapter,
         "avantis": AvantisHoldingsAdapter,
         "avory": AvoryReconciledFallbackHoldingsAdapter,
