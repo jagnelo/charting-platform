@@ -32,7 +32,7 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
   and 106 were skipped. A fresh-stack retry reproduced a missing histogram
   element timeout. The ETF holdings tests and routes were not implicated.
 - Planning session: `197b239d-3322-4fc6-bf4b-0d0aecebf5e0`.
-- Latest implementation checkpoint: `3acd95f0` (Freedom/FRDM complete current holdings table through the official Freedom ETFs product page; Framework/GSR BESO current holdings route through the official GSR product page and details/holdings APIs; Fitzgerald/Nicholas Wealth FITZ and FIZY current holdings routes through the official XFUNDS pages and nonce-scoped CSV endpoints; FalconX parent coverage through the independently managed 21Shares ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN, THYP, and TKNS routes; Everence/Praxis PRXG, PRXV, and PRXI native routes; Even Herd native EHLS route; the existing
+- Latest implementation checkpoint: `5518a3c3` (Freedom/FRDM complete current holdings table through the official Freedom ETFs product page; Framework/GSR BESO current holdings route through the official GSR product page and details/holdings APIs; Fitzgerald/Nicholas Wealth FITZ and FIZY current holdings routes through the official XFUNDS pages and nonce-scoped CSV endpoints; FalconX parent coverage through the independently managed 21Shares ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN, THYP, and TKNS routes; Everence/Praxis PRXG, PRXV, and PRXI native routes; Even Herd native EHLS route; the existing
   Esoterica WUGI and Cygnet/Elm routes remain intact); prior `915282cd` (Esoterica native WUGI route); prior `a4571ff3` (Elements inactive/successor
   disposition; prior EA Series Trust dated non-portfolio-publisher disposition;
   prior DVx Ventures dated

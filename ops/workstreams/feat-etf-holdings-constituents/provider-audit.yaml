@@ -2407,9 +2407,9 @@ providers:
         evidence_ref: "live:freedom-frdm-holdings-table-2026-09-03"
     disposition_reason: "freedom: Freedom ETFs' official FRDM product page publishes a complete current holdings table with a disclosed effective date. The native adapter strictly validates the FRDM identity, parses the embedded schema, converts million-dollar values, preserves identifiers and weights, and records issuer-page freshness with deterministic and opt-in live coverage."
     next_action: "freedom: Monitor the official FRDM product page and effective-date table; retain native status while the complete current route remains identity-valid and executable, and add any future Freedom ETF only after equivalent first-party evidence."
-    implementation_sha: 3acd95f07d378de162baa4c59ba941de22cf4f06
+    implementation_sha: 5518a3c3f43556d81aedcbb0ff2c0e1de47fe7be
     validation_refs:
-      - "validation:2026-09-03T00:20:00Z"
+      - "validation:2026-09-02T23:55:45Z"
   - adapter_key: fundstrat
     display_name: fundstrat
     queue_rank: 54

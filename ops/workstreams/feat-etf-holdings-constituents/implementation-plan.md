@@ -1092,7 +1092,7 @@ ledger retains all 140 historical records exactly once, with `freedom` marked
 `native_promoted`; 78 queued fallback records remain and the next ranked item
 is `fundstrat`.
 
-Implementation checkpoint SHA: `3acd95f07d378de162baa4c59ba941de22cf4f06`.
+Implementation checkpoint SHA: `5518a3c3f43556d81aedcbb0ff2c0e1de47fe7be`.
 The provider-audit ledger and documentation checkpoint must reference this SHA
 and the dated Freedom page/live evidence. The complete opt-in provider matrix
 and Docker-backed integration gate remain pending at the 379-native baseline;

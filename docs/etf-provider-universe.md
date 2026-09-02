@@ -87,7 +87,7 @@ that baseline record while tracking the current 379/117 split.
 
 The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
 `FALLBACK_ISSUER_AUDITS` at the current ETF-branch implementation checkpoint
-`3acd95f0` (Freedom/FRDM product-page holdings route; Framework/GSR BESO route; Fitzgerald/Nicholas Wealth FITZ and FIZY routes; FalconX/21Shares ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN,
+`5518a3c3` (Freedom/FRDM product-page holdings route; Framework/GSR BESO route; Fitzgerald/Nicholas Wealth FITZ and FIZY routes; FalconX/21Shares ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN,
 THYP, and TKNS native routes; Esoterica WUGI, Even Herd EHLS, and Everence/Praxis
 PRXG/PRXV/PRXI native routes; Framework/GSR BESO and Freedom/FRDM are now native through their
 declared details/holdings API; ETF Managers Group is recorded as an
