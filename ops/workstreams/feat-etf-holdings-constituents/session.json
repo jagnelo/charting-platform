@@ -45,12 +45,29 @@
   },
   "dirty_paths": [],
   "docker": {
-    "available": false,
-    "reason": "WARNING: Plugin \"/Users/jagnelo/.docker/cli-plugins/docker-dev\" is not valid: failed to fetch metadata: fork/exec /Users/jagnelo/.docker/cli-plugins/docker-dev: no such file or directory\nWARNING: Plugin \"/Users/jagnelo/.docker/cli-plugins/docker-feedback\" is not valid: failed to fetch metadata: fork/exec /Users/jagnelo/.docker/cli-plugins/docker-feedback: no such file or directory\nWARNING: Plugin \"/Users/jagnelo/.docker/cli-plugins/docker-sbom\" is not valid: failed to fetch metadata: fork/exec /Users/jagnelo/.docker/cli-plugins/docker-sbom: no such file or directory\npermission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-etf-holdings-constituents-45bdf9bd",
+      "charting-stack-feat-etf-holdings-constituents-45bdf9bd"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "feat-etf-holdings-constituents-45bdf9bd8d"
   },
   "docker_ready": {
-    "ready": false,
-    "reason": "Docker daemon access is currently unavailable for the required docker_integration gate.",
+    "ready": true,
+    "reason": "Docker daemon is ready under the approved elevated local-socket permission.",
     "started_desktop": false,
     "wait_seconds": 0
   },
@@ -63,12 +80,12 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "0ac2cc29a7cfb1d8b27468a9c74618ad67c3a0f9",
+  "head": "4396ab995f3a74a7947d86bcbb03aa9bba31049b",
   "implementation_sha": "0ac2cc29a7cfb1d8b27468a9c74618ad67c3a0f9",
   "last_human_progress_update": "2026-09-02T20:53:56+00:00",
   "local_validation_profile": "docker_integration",
   "next_action": "continue ranked issuer audit from everence",
-  "plan_hash": "a0a022e2aee2bc02a72c5406e4cd79e4b9156360b202af0f95f8f41457568b2b",
+  "plan_hash": "228db4696ea221e745652b079af838bca29bff3ee825d528bdd84cd2b44ed534",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [],
@@ -80,7 +97,7 @@
     "total": 8,
     "updated_at": "2026-09-02T20:57:01+00:00"
   },
-  "remote": "915282cd7589678010adff9ee3fa3461f7464d4d",
+  "remote": "4396ab995f3a74a7947d86bcbb03aa9bba31049b",
   "remote_sha": "915282cd7589678010adff9ee3fa3461f7464d4d",
   "remote_synchronized": true,
   "schema": 2,

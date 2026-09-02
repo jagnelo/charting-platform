@@ -790,7 +790,8 @@ and session next action before the next queue investigation.
 The next ranked queue item is `everence`. Continue the same evidence loop:
 inspect official product and holdings routes, promote only a complete
 executable first-party source with strict identity and parser tests, otherwise
-record a dated issuer-specific disposition. Docker-backed full integration is
-not currently executable because the local Docker daemon/socket is unavailable;
-this is an external validation gap, not permission to weaken the native-route
-contract or to integrate the feature branch.
+record a dated issuer-specific disposition. The Docker readiness check succeeds
+under the narrow elevated permission required to access the local socket, while
+the unprivileged sandbox cannot open that socket. The full Docker-backed
+integration gate remains pending; this permission boundary is not permission to
+weaken the native-route contract or to integrate the feature branch.
