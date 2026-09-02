@@ -1717,17 +1717,22 @@ providers:
     display_name: emirate_abu_dhabi
     queue_rank: 41
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: provider_not_a_portfolio_publisher
+    disposition: provider_not_a_portfolio_publisher
+    last_checked: 2026-09-02
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols:
+      - USSE
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains:
+      - cisbh.com
+      - sec.gov
+    candidate_routes:
+      - https://cisbh.com/funds/etfs
+      - https://www.sec.gov/Archives/edgar/data/357204/000139834426008572/fp0098088-6_497k.htm
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -1742,8 +1747,16 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.emirate_abu_dhabi"
-    disposition_reason: "emirate_abu_dhabi: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate emirate_abu_dhabi first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-02
+        source: "https://www.sec.gov/Archives/edgar/data/357204/000139834426008572/fp0098088-6_497k.htm"
+        result: "The current SEC summary prospectus identifies the apparent USSE source row as Segall Bryant & Hamill Select Equity ETF (ticker USSE), with Segall Bryant & Hamill, LLC (d/b/a CI SBH Asset Management) as adviser; it does not identify the Emirate of Abu Dhabi as the ETF publisher."
+        evidence_ref: "web:sec-usse-segall-bryant-2026-09-02"
+      - date: 2026-09-02
+        source: "https://cisbh.com/funds/etfs"
+        result: "The issuer-owned CI SBH page presents the Segall Bryant & Hamill Select Equity ETF and identifies CI SBH Asset Management/Segall Bryant & Hamill as the investment-advisory identity, corroborating that the Abu Dhabi label is a source-data misattribution rather than a distinct ETF portfolio publisher."
+        evidence_ref: "web:ci-sbh-usse-page-2026-09-02"
+    disposition_reason: "emirate_abu_dhabi: The ETFDB/market-data identity is not substantiated as a U.S. ETF portfolio publisher. The representative USSE row is identified by the current SEC prospectus and issuer page as Segall Bryant & Hamill/CI SBH, while Emirate of Abu Dhabi is a sovereign debt issuer; keep this identity fallback-only and do not create a duplicate native route."
+    next_action: "emirate_abu_dhabi: Keep fallback-only as provider_not_a_portfolio_publisher; resolve any USSE/source-row reference to the separately tracked segall_bryant_hamill or CI SBH identity, and reopen only if the Emirate itself sponsors a U.S.-listed ETF with a complete executable first-party holdings route."
     implementation_sha: null
     validation_refs: []
   - adapter_key: esoterica

@@ -87,8 +87,11 @@ issuer-access-blocked; `alphamark_advisors` is classified as an
 inactive/successor disposition; `amg_national` is a non-portfolio publisher;
 and `anydrus`, `baillie_gifford`, and `discipline_funds` are non-executable public sources;
 `alphaclone` and `elements` are inactive/successor dispositions; `argent` and `arin` are
-issuer-access-blocked; `azimut`, `desjardins`, `dvx_ventures`, and `ea_series_trust` are dated
-non-portfolio-publisher dispositions. The DVx record resolves the source identity
+issuer-access-blocked; `azimut`, `desjardins`, `dvx_ventures`, `ea_series_trust`, and
+`emirate_abu_dhabi` are dated non-portfolio-publisher dispositions. The Emirate
+record resolves the apparent USSE source row to the separately tracked Segall
+Bryant & Hamill/CI SBH identity rather than creating a duplicate sovereign
+publisher route. The DVx record resolves the source identity
 to the separately tracked VistaShares ETF publisher: DVx's own site is a
 venture/company-creation platform, not an ETF portfolio publisher. The EA Series
 Trust record resolves the trust/platform identity to each fund's actual sponsor
@@ -99,11 +102,11 @@ CHRG, whose official SEC supplement records closure and liquidation in December
 holdings route. Elm's official ELM product page now provides a complete current
 holdings CSV dated September 1, 2026; the `elm` adapter preserves that route
 under Elm Partners Management while the existing Cygnet adapter remains available
-for the parent identity. The audit ledger currently has 91 queued fallback records still
+for the parent identity. The audit ledger currently has 90 queued fallback records still
 requiring issuer-specific
 evidence and final dispositions; existing terminal/blocked records must remain
 evidence-backed. Continue replacing baseline placeholders with first-party route
-evidence, starting with the ranked queue after Elm at `emirate_abu_dhabi`, and checkpoint
+evidence, starting with the ranked queue after Emirate Abu Dhabi at `esoterica`, and checkpoint
 each coherent provider changeset before moving to the next.
 
 Update this handoff at every coherent implementation and operations boundary.

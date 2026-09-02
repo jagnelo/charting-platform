@@ -65,9 +65,9 @@
   "goal_unavailable_reason": null,
   "head": "30fef93e2c9a18a31567b60f6e66ca1a2e27dded",
   "implementation_sha": "30fef93e2c9a18a31567b60f6e66ca1a2e27dded",
-  "last_human_progress_update": "2026-09-02T20:12:14+00:00",
+  "last_human_progress_update": "2026-09-02T20:20:13+00:00",
   "local_validation_profile": "docker_integration",
-  "next_action": "continue ranked issuer audit from emirate_abu_dhabi",
+  "next_action": "continue ranked issuer audit from esoterica",
   "plan_hash": "b04257bd1cf2e644ceaa1f8e287748e0ac805aa7e5a82e229b0525f04be59ff4",
   "planning_required": false,
   "planning_state": "ready",
@@ -76,9 +76,9 @@
     "completed": [],
     "current_blocker": "Docker daemon access is currently unavailable for the required docker_integration gate; issuer audit continues.",
     "current_phase": "issuer_audit_queue",
-    "next_action": "Continue ranked issuer audit from emirate_abu_dhabi and the remaining queued fallbacks requiring issuer-specific evidence; promote only executable complete first-party routes, otherwise record dated evidence-specific dispositions.",
+    "next_action": "Continue ranked issuer audit from esoterica and the remaining queued fallbacks requiring issuer-specific evidence; promote only executable complete first-party routes, otherwise record dated evidence-specific dispositions.",
     "total": 8,
-    "updated_at": "2026-09-02T20:12:14+00:00"
+    "updated_at": "2026-09-02T20:20:13+00:00"
   },
   "remote": "a4571ff3f4e34a8b7a38c7414a3cc0ccaeb8e588",
   "remote_sha": "a4571ff3f4e34a8b7a38c7414a3cc0ccaeb8e588",

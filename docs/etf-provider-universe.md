@@ -135,6 +135,12 @@ holdings route available for native promotion.
 `desjardins` remains fallback-only as a non-U.S. publisher: its official pages
 expose Canadian ETF portfolios and funds, while the expected U.S. ETF provider
 catalogue is 404.
+`emirate_abu_dhabi` remains fallback-only as a non-portfolio publisher: the
+representative `USSE` source row is identified by the current SEC prospectus
+and the CI SBH issuer page as Segall Bryant & Hamill/CI SBH, while Emirate of
+Abu Dhabi is a sovereign debt issuer. The source identity therefore resolves
+to the separately tracked `segall_bryant_hamill` identity; no duplicate Abu
+Dhabi native route is warranted.
 
 Current gap to the broad LSEG promoter target:
 
