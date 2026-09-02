@@ -783,9 +783,17 @@ cash and long/short rows, records issuer-reported freshness and provenance,
 and includes deterministic and opt-in live coverage. Deterministic adapter
 tests pass 521/521; default live contracts pass 2 with 437 opt-in skips; the
 bounded Even Herd live route passes 1/1; Ruff, workstream validation, and
-whitespace checks pass. The separate durable operations checkpoint must record
-the updated ledger, handoff, provider-universe counts, validation evidence,
-and session next action before the next queue investigation.
+whitespace checks pass. The full Docker-backed integration gate at
+`2d96697d2fd98bad6c8c5796ff046cd6bbad4dfd` reached e2e-functional but recorded
+153 passed, 106 skipped, and one failure in the unrelated
+`F8p-current-history` Study Lab browser flow. A fresh-stack isolated retry
+reproduced the failure as a missing histogram element (`toBeVisible` timeout),
+not an ETF holdings error. AC7 therefore remains open pending an independent
+repair or approved disposition of that pre-existing e2e gap; no unrelated
+application code is changed by this workstream. The separate durable
+operations checkpoint must record the updated ledger, handoff,
+provider-universe counts, validation evidence, and session next action before
+the next queue investigation.
 
 The next ranked queue item is `everence`. Continue the same evidence loop:
 inspect official product and holdings routes, promote only a complete

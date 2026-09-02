@@ -27,6 +27,10 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
   496/374/122 snapshot; future updates must remain code-derived.
 - Validation tier: `full_integration`.
 - Local validation profile: `docker_integration`.
+- The full integration gate at `2d96697d` reached e2e-functional but failed one
+  unrelated Study Lab browser case (`F8p-current-history`); 153 e2e cases passed
+  and 106 were skipped. A fresh-stack retry reproduced a missing histogram
+  element timeout. The ETF holdings tests and routes were not implicated.
 - Planning session: `197b239d-3322-4fc6-bf4b-0d0aecebf5e0`.
 - Latest implementation checkpoint: `0ac2cc29` (Even Herd native EHLS route; the existing
   Esoterica WUGI and Cygnet/Elm routes remain intact); prior `915282cd` (Esoterica native WUGI route); prior `a4571ff3` (Elements inactive/successor
