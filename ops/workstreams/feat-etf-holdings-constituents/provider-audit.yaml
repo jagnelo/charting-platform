@@ -323,17 +323,23 @@ providers:
     display_name: alphaclone
     queue_rank: 10
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: inactive_or_successor_disposition
+    disposition: inactive_or_successor_disposition
+    last_checked: 2026-09-02
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols:
+      - ALFA
+      - ALFS
+      - ALFD
+      - ALFV
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains:
+      - alphaclonefunds.com
+    candidate_routes:
+      - https://alphaclonefunds.com/
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -348,8 +354,12 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.alphaclone"
-    disposition_reason: "alphaclone: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate alphaclone first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-02
+        source: "https://alphaclonefunds.com/"
+        result: "The first-party domain returns HTTP 200 but its current page is an unrelated generic gambling/crypto content site with no AlphaClone ETF products or holdings artifact. Historical symbols ALFA, ALFS, ALFD, and ALFV are not currently mapped to a live issuer route."
+        evidence_ref: "web:alphaclone-domain-unrelated-content-2026-09-02"
+    disposition_reason: "alphaclone: The historical AlphaClone fund domain no longer presents AlphaClone ETF products or holdings and currently serves unrelated content; no current executable issuer route is available for native promotion."
+    next_action: "Confirm liquidation or successor disposition for the historical AlphaClone symbols through current fund records; reopen only if a legitimate successor publishes complete holdings."
     implementation_sha: null
     validation_refs: []
   - adapter_key: alphamark_advisors
@@ -518,20 +528,28 @@ providers:
     display_name: argent
     queue_rank: 15
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: issuer_access_blocked
+    disposition: issuer_access_blocked
+    last_checked: 2026-09-02
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols:
+      - AMID
+      - ABIG
+      - ALIL
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains:
+      - argentetfs.com
+    candidate_routes:
+      - https://argentetfs.com/amid/
+      - https://argentetfs.com/abig/
+      - https://argentetfs.com/alil/
     route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    source_format: html
     parser_fixture: null
     live_test: null
     credential_required: false
@@ -543,28 +561,36 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.argent"
-    disposition_reason: "argent: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate argent first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-02
+        source: "https://argentetfs.com/alil/"
+        result: "Argent's public AMID, ABIG, and ALIL pages visibly expose current holdings tables, but the backend request is blocked by Cloudflare before a stable executable artifact can be captured."
+        evidence_ref: "web:argent-etf-holdings-cloudflare-2026-09-02"
+    disposition_reason: "argent: First-party product pages expose complete current holdings tables, but backend requests are Cloudflare-blocked; no stable executable route is proven for native promotion."
+    next_action: "argent: Re-test symbol-scoped pages or identify an issuer-published machine-readable export accessible without challenge state; promote only after parser and bounded live evidence."
     implementation_sha: null
     validation_refs: []
   - adapter_key: arin
     display_name: arin
     queue_rank: 16
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: issuer_access_blocked
+    disposition: issuer_access_blocked
+    last_checked: 2026-09-02
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols:
+      - ATTR
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    source_freshness: daily
+    first_party_domains:
+      - arinetfs.com
+    candidate_routes:
+      - https://arinetfs.com/attr
     route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    source_format: html
     parser_fixture: null
     live_test: null
     credential_required: false
@@ -576,8 +602,12 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.arin"
-    disposition_reason: "arin: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate arin first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-02
+        source: "https://arinetfs.com/"
+        result: "The first-party ATTR page visibly exposes a current 25-row options/equity holdings table, but the backend HTTP request is Cloudflare-blocked before a stable executable artifact can be captured."
+        evidence_ref: "web:arin-attr-holdings-cloudflare-2026-09-02"
+    disposition_reason: "arin: The issuer page exposes current ATTR holdings, but backend requests are Cloudflare-blocked; no stable executable route is proven for native promotion."
+    next_action: "arin: Re-test the ATTR page or identify an issuer-published machine-readable export accessible without challenge state; promote only after parser and bounded live evidence."
     implementation_sha: null
     validation_refs: []
   - adapter_key: ars

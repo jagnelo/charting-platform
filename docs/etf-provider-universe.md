@@ -57,8 +57,10 @@ backend export can be captured; `alphamark_advisors` now redirects to an EP
 Wealth successor page; `amg_national` is a bank/wealth manager rather than an
 ETF portfolio publisher; `amplius` exposes a complete table but blocks backend
 requests with Cloudflare; `anydrus` shows placeholder holdings; and
-`baillie_gifford` exposes only top-ten spreadsheets. These records remain
-fallback-only until a complete executable issuer route is proven.
+`baillie_gifford` exposes only top-ten spreadsheets. `alphaclone` currently
+serves unrelated content, while `argent` and `arin` expose holdings pages that
+are likewise blocked to backend requests. These records remain fallback-only
+until a complete executable issuer route is proven.
 
 Current gap to the broad LSEG promoter target:
 

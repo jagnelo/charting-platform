@@ -43,16 +43,7 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-45bdf9bd8d"
   },
-  "dirty_paths": [
-    "ackend/app/services/etf_holdings_adapters.py",
-    "backend/tests/live/test_etf_holdings_live_providers.py",
-    "backend/tests/unit/services/test_etf_holdings_adapters.py",
-    "docs/etf-provider-universe.md",
-    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/session.json",
-    "ops/workstreams/feat-etf-holdings-constituents/provider-audit.yaml"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -88,12 +79,12 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "9d977a886e9788383037ea6ab7641befff136fe3",
+  "head": "f13cf04ac8854478b21214a94121c858d7768a4b",
   "implementation_sha": "9d977a886e9788383037ea6ab7641befff136fe3",
-  "last_human_progress_update": "2026-09-02T15:56:10.891839+00:00",
+  "last_human_progress_update": "2026-09-02T16:08:48.652743+00:00",
   "local_validation_profile": "docker_integration",
   "next_action": "continue implementation from the branch workstream",
-  "plan_hash": "9ab303219ea48704dd0775c59358575ad8b75432b0c882e2263dde1d4b2b912f",
+  "plan_hash": "bea1300181ae9edba7bf3542ecdcc94576257301768b448303a68cabae1852ea",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [],
@@ -101,11 +92,11 @@
     "completed": [],
     "current_blocker": "none",
     "current_phase": "issuer_audit_queue",
-    "next_action": "Continue ranked issuer audit from amg_national and remaining fallback records; promote only after executable complete first-party route, otherwise record dated evidence-specific disposition.",
+    "next_action": "Continue ranked issuer audit from ars and the remaining fallback records; promote only after executable complete first-party route, otherwise record dated evidence-specific disposition.",
     "total": 8,
-    "updated_at": "2026-09-02T15:56:10.891725+00:00"
+    "updated_at": "2026-09-02T16:08:48.652610+00:00"
   },
-  "remote": "9d977a886e9788383037ea6ab7641befff136fe3",
+  "remote": "f13cf04ac8854478b21214a94121c858d7768a4b",
   "remote_sha": "9d977a886e9788383037ea6ab7641befff136fe3",
   "remote_synchronized": true,
   "schema": 2,

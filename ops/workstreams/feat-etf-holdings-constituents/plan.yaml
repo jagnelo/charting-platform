@@ -74,7 +74,7 @@ deployment_impact: "none; feature implementation stops before integration or dep
 status: in_progress
 remaining_gaps:
   - "Starting baseline was 496 registered providers, 356 native/live-backed providers, and 140 fallback-only providers; after the Guggenheim promotion, current code and provider-universe documentation report 496/357/139 and future counts must remain derived."
-  - "The 140 starting fallback providers have a baseline ledger snapshot; Guggenheim is now recorded as native_promoted, Advisors Asset Management and Amplius are issuer-access-blocked, AlphaMark has an inactive/successor disposition, AMG National is a non-portfolio publisher, and Anydrus plus Baillie Gifford are non-executable public sources. The remaining 133 current fallbacks require issuer-specific first-party route evidence and final native or defensible dispositions."
+  - "The 140 starting fallback providers have a baseline ledger snapshot; Guggenheim is now recorded as native_promoted, Advisors Asset Management, Amplius, Argent, and Arin are issuer-access-blocked, AlphaMark and AlphaClone have inactive/successor dispositions, AMG National is a non-portfolio publisher, and Anydrus plus Baillie Gifford are non-executable public sources. The remaining 130 current fallbacks require issuer-specific first-party route evidence and final native or defensible dispositions."
   - "The full current opt-in live provider matrix and final Docker-backed integration gate have not yet been rerun at the current 357-native baseline."
   - "Human closure authorization remains pending."
 progress:

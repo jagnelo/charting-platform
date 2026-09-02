@@ -28,7 +28,7 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Latest implementation checkpoint: `212207ca` with durable audit receipt
   `c4bef2ec`; both are pushed to the feature remote.
 - Product implementation is underway; current changes add Guggenheim native
-  coverage and issuer-specific audit dispositions for six ranked fallback
+  coverage and issuer-specific audit dispositions for nine ranked fallback
   records.
 
 ## Durable implementation direction
@@ -54,8 +54,10 @@ exhaustive invariant test proves its key/count/rank alignment with runtime code.
 `guggenheim` is native-promoted; `advisors_asset_management` and `amplius` are
 issuer-access-blocked; `alphamark_advisors` is classified as an
 inactive/successor disposition; `amg_national` is a non-portfolio publisher;
-and `anydrus` plus `baillie_gifford` are non-executable public sources. The
-remaining 133 current fallbacks still require issuer-specific evidence and
+and `anydrus` plus `baillie_gifford` are non-executable public sources;
+`alphaclone` is an inactive/successor disposition; `argent` and `arin` are
+issuer-access-blocked. The remaining 130 current fallbacks still require
+issuer-specific evidence and
 final dispositions. Continue replacing baseline placeholders with first-party
 route evidence, starting with the ranked queue, and checkpoint each coherent
 provider changeset before moving to the next.
