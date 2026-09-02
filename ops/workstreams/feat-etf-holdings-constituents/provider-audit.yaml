@@ -699,7 +699,7 @@ providers:
         evidence_ref: "web:avory-avry-holdings-2026-09-02"
     disposition_reason: "avory: The first-party AVRY product page provides a complete current holdings table, and the provider-specific adapter validates fund identity, parses issuer rows, preserves effective-date provenance, and has deterministic plus opt-in live coverage."
     next_action: "avory: Monitor the AVRY product page and retain native status while the route remains complete, executable, and identity-valid."
-    implementation_sha: null
+    implementation_sha: 695dea16c1d5f89ae1833a2d03cc900bd9adc966
     validation_refs: []
   - adapter_key: avos
     display_name: avos

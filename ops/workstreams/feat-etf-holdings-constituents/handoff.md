@@ -25,8 +25,9 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Validation tier: `full_integration`.
 - Local validation profile: `docker_integration`.
 - Planning session: `197b239d-3322-4fc6-bf4b-0d0aecebf5e0`.
-- Latest implementation checkpoint: `f33224ab` (ARS provider reconciliation);
-  the prior Guggenheim audit receipt remains `c4bef2ec`.
+- Latest implementation checkpoint: `695dea16` (Avory native holdings route);
+  the prior ARS checkpoint is `f33224ab` and the Guggenheim audit receipt remains
+  `c4bef2ec`.
 - Product implementation is underway; current changes add Guggenheim, ARS, and
   Avory
   native coverage and issuer-specific audit dispositions for the ranked fallback
