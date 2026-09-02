@@ -28,8 +28,8 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `371`
-- Audited fallback-only providers: `125`
+- Native/live-backed providers: `372`
+- Audited fallback-only providers: `124`
 
 The current checkpoint promotes `guggenheim` through its public issuer-hosted
 ETF holdings table, reconciles `ars` to the existing ARS Investment Partners
@@ -44,19 +44,22 @@ complete current holdings table, and Bushido's SMRI/RNIN product-page complete
 current holdings tables, CapForce's FFTY/BOUT product-page complete current
 holdings tables, and Castellan's CTEF/CTIF product-page complete current
 holdings tables, and Conductor's CGV product-page-declared complete current
-holdings CSV, and CresAlta's CVGD/CVSM full-holdings tables.
+holdings CSV, CresAlta's CVGD/CVSM full-holdings tables, and Elm's ELM
+product-page-declared complete current holdings CSV (also available under the
+existing Cygnet parent identity).
 The historical starting snapshot for this
 workstream was 356 native and 140 fallback; the provider-audit ledger retains
-that baseline record while tracking the current 371/125 split.
+that baseline record while tracking the current 372/124 split.
 
 The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
 `FALLBACK_ISSUER_AUDITS` at the current ETF-branch implementation checkpoint
 `a4571ff3` (the Discipline Funds, DVx Ventures, EA Series Trust, and Elements audits
-remain fallback-only).
+remain fallback-only; Elm is now native-promoted through the same declared route
+as the existing Cygnet parent identity).
 The fallback audit statuses are:
 
 - `issuer_access_blocked`: `8`
-- `needs_first_party_route_discovery`: `108`
+- `needs_first_party_route_discovery`: `107`
 - `non_executable_public_source`: `3`
 - `provider_not_a_portfolio_publisher`: `6`
 
@@ -121,6 +124,10 @@ adapter.
 historical Element Funds/Element ETFs identity maps to CHRG, whose official SEC
 supplement records closure and liquidation in December 2023; the current EMG
 Advisors successor domain exposes no replacement ETF holdings route.
+`elm` is native-promoted through Elm Partners Management's official ELM product
+page and its explicitly declared complete full-holdings CSV. The adapter keeps
+the ELM provider identity distinct while preserving the previously validated
+Cygnet parent route and provenance.
 `credit_suisse` remains fallback-only with an inactive/successor disposition:
 UBS's official acquisition and fund-migration notices show the former issuer
 identity is being absorbed into UBS, with no current independent U.S. ETF
@@ -496,9 +503,10 @@ These dispositions are source reconciled but do not create new provider keys.
 
 On `2026-07-28`, a third StockAnalysis provider-table continuation pass added
 `10` more ranked provider identities that were not already distinct repo adapter
-keys after alias checks against existing adapters. They are registered as
-explicit audited fallback-only adapters under `needs_first_party_route_discovery`
-until a first-party complete holdings route is proven for each provider.
+keys after alias checks against existing adapters. They were initially registered
+as explicit audited fallback-only adapters under
+`needs_first_party_route_discovery`; each is promoted only after a first-party
+complete holdings route is proven.
 
 Batch source:
 `https://stockanalysis.com/etf/provider/`
@@ -510,7 +518,7 @@ Added adapter keys:
 
 - `brookstone`
 - `fpa`
-- `elm`
+- `elm` (now native-promoted through the official ELM product-page CSV)
 - `segall_bryant_hamill`
 - `amplius`
 - `nestyield`
@@ -625,7 +633,8 @@ CapForce, Castellan, Conductor, and CresAlta are the exceptions in this batch: t
 provide complete current holdings tables and are tracked as native routes in
 the current split. Bushido covers SMRI and RNIN, CapForce covers FFTY and BOUT,
 Castellan covers CTEF and CTIF, Conductor covers CGV through its declared
-CSV, and CresAlta covers CVGD and CVSM; each route has dated current evidence.
+CSV, CresAlta covers CVGD and CVSM, and Elm covers ELM through its declared CSV;
+each route has dated current evidence.
 
 ## Implementation Rule
 

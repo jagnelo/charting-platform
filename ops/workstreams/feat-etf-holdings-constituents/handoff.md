@@ -16,17 +16,19 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 - Latest staging merge: `9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4`
 - Incorporated staging SHA: `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`
-- Current code-derived state: 496 registered, 371 native/live-backed, 125
+- Current code-derived state: 496 registered, 372 native/live-backed, 124
   fallback-only.
-- Current fallback status split: 8 access-blocked, 108 discovery, 3
+- Current fallback status split: 8 access-blocked, 107 discovery, 3
   non-executable public source, 6 non-portfolio-publisher (the ledger's dated
-  terminal dispositions preserve each record's original runtime audit status).
+  terminal dispositions preserve each record's original runtime audit status;
+  Elm is no longer a runtime fallback after its native promotion).
 - `docs/etf-provider-universe.md` has been reconciled from code to the current
-  496/371/125 snapshot; future updates must remain code-derived.
+  496/372/124 snapshot; future updates must remain code-derived.
 - Validation tier: `full_integration`.
 - Local validation profile: `docker_integration`.
 - Planning session: `197b239d-3322-4fc6-bf4b-0d0aecebf5e0`.
-- Latest implementation checkpoint: `a4571ff3` (Elements inactive/successor
+- Latest implementation checkpoint: pending Elm changeset (Elm native ELM route;
+  the existing Cygnet parent route remains intact); prior `a4571ff3` (Elements inactive/successor
   disposition; prior EA Series Trust dated non-portfolio-publisher disposition;
   prior DVx Ventures dated
   non-portfolio-publisher disposition; prior Discipline Funds dated
@@ -49,6 +51,9 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
   Bushido, CapForce, Castellan, Conductor, and CresAlta
   native coverage and issuer-specific audit dispositions for the ranked fallback
   records reviewed so far.
+  The Elm implementation reuses the proven official product-page-declared full
+  holdings CSV under an explicit `elm` adapter, with Elm Partners Management
+  provenance and a dated source audit; it is not a generic alias to SEC data.
 - The Discipline Funds audit is explicitly not a promotion: the official DDV,
   DDX, and DDXX pages expose a nonce-backed wpDataTables loader, bounded live
   attempts did not prove a complete executable artifact (DDV had no parseable
@@ -69,15 +74,15 @@ only in this branch's registered local worktree.
 The former master-based branch was fully represented in staging before its
 remote ref was removed. Its prior checkpoint `a8d6189` recorded 496 registered,
 339 native/live-backed, and 157 fallback-only providers. Current code has
-advanced to 371/125, including the Guggenheim, ARS, Avory, Ballast, Bancreek,
-BeeHive, Blueprint, Bridgeway, Brookstone, BufferLABS, Bushido, CapForce, Castellan, Conductor, and CresAlta promotions. Continue current gaps; do not recreate completed work or
+advanced to 372/124, including the Guggenheim, ARS, Avory, Ballast, Bancreek,
+BeeHive, Blueprint, Bridgeway, Brookstone, BufferLABS, Bushido, CapForce, Castellan, Conductor, CresAlta, and Elm promotions. Continue current gaps; do not recreate completed work or
 restore a dead route merely to reproduce historical counts.
 
 ## Next action
 
 The baseline provider-audit ledger now accounts for all 140 fallback keys and an
 exhaustive invariant test proves its key/count/rank alignment with runtime code.
-`guggenheim`, `ars`, `avory`, `ballast`, `bancreek`, `beehive`, `blueprint`, `bridgeway`, `brookstone`, `bufferlabs`, `bushido`, `capforce`, `castellan`, `conductor_fund`, and `cresalta` are native-promoted; `advisors_asset_management` and `amplius` are
+`guggenheim`, `ars`, `avory`, `ballast`, `bancreek`, `beehive`, `blueprint`, `bridgeway`, `brookstone`, `bufferlabs`, `bushido`, `capforce`, `castellan`, `conductor_fund`, `cresalta`, and `elm` are native-promoted; `advisors_asset_management` and `amplius` are
 issuer-access-blocked; `alphamark_advisors` is classified as an
 inactive/successor disposition; `amg_national` is a non-portfolio publisher;
 and `anydrus`, `baillie_gifford`, and `discipline_funds` are non-executable public sources;
@@ -91,12 +96,14 @@ or sub-adviser rather than a duplicate trust-wide route. The Elements record
 maps the historical Element Funds/Element ETFs identity to
 CHRG, whose official SEC supplement records closure and liquidation in December
 2023; the current EMG Advisors successor domain exposes no replacement ETF
-holdings route. The audit ledger currently has 92 queued fallback records still
+holdings route. Elm's official ELM product page now provides a complete current
+holdings CSV dated September 1, 2026; the `elm` adapter preserves that route
+under Elm Partners Management while the existing Cygnet adapter remains available
+for the parent identity. The audit ledger currently has 91 queued fallback records still
 requiring issuer-specific
 evidence and final dispositions; existing terminal/blocked records must remain
 evidence-backed. Continue replacing baseline placeholders with first-party route
-evidence, starting with the ranked queue after the Elements inactive/successor
-disposition at `elm`, and checkpoint
+evidence, starting with the ranked queue after Elm at `emirate_abu_dhabi`, and checkpoint
 each coherent provider changeset before moving to the next.
 
 Update this handoff at every coherent implementation and operations boundary.

@@ -23994,6 +23994,9 @@ class TremblantHoldingsAdapter(IssuerCsvHoldingsAdapter):
 class CygnetHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Cygnet Capital's ELM holdings from Elm's declared full CSV export."""
 
+    PROVIDER_DISPLAY_NAME = "Cygnet Capital"
+    SNAPSHOT_PROVENANCE = "cygnet_elm_issuer_native_holdings_csv"
+    SOURCE_ROW_PREFIX = "cygnet"
     _FUNDS = {"ELM": "https://www.elmfunds.com/elm-market-navigator-etf"}
     _ANCHOR_PATTERN = re.compile(
         r'<a[^>]+href=["\'](?P<href>[^"\']+)["\'][^>]*>(?P<label>.*?)</a>',
@@ -24009,9 +24012,9 @@ class CygnetHoldingsAdapter(IssuerCsvHoldingsAdapter):
             confidence=Decimal("0.9500") if product_url else Decimal("0.3500"),
             status="ready" if normalized_symbol else "needs_issuer_route",
             reason=(
-                "Cygnet Capital publishes ELM's complete current holdings CSV on its official Elm product page."
+                f"{self.PROVIDER_DISPLAY_NAME} publishes ELM's complete current holdings CSV on its official Elm product page."
                 if product_url
-                else f"Cygnet Capital has no configured native holdings route for {normalized_symbol}; SEC fallback remains available."
+                else f"{self.PROVIDER_DISPLAY_NAME} has no configured native holdings route for {normalized_symbol}; SEC fallback remains available."
             ),
             source_url=product_url,
             issuer_product_id=normalized_symbol or None,
@@ -24030,7 +24033,7 @@ class CygnetHoldingsAdapter(IssuerCsvHoldingsAdapter):
         product_url = self._FUNDS.get(normalized_symbol)
         if product_url is None:
             raise ValueError(
-                f"Cygnet Capital has no configured native holdings route for {symbol}."
+                f"{self.PROVIDER_DISPLAY_NAME} has no configured native holdings route for {symbol}."
             )
         async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
             product_page = await client.get(
@@ -24054,7 +24057,7 @@ class CygnetHoldingsAdapter(IssuerCsvHoldingsAdapter):
         )
         if not rows:
             raise ValueError(
-                f"Cygnet Capital holdings CSV did not expose rows for {normalized_symbol}."
+                f"{self.PROVIDER_DISPLAY_NAME} holdings CSV did not expose rows for {normalized_symbol}."
             )
         return HoldingsFetchResult(
             rows=rows,
@@ -24072,7 +24075,7 @@ class CygnetHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "as_of_date": composition_date.isoformat() if composition_date else None,
                 "terms_note": self.config.terms_note,
                 "source_quality": "issuer_reported_daily_holdings",
-                "snapshot_provenance": "cygnet_elm_issuer_native_holdings_csv",
+                "snapshot_provenance": self.SNAPSHOT_PROVENANCE,
             },
         )
 
@@ -24080,13 +24083,15 @@ class CygnetHoldingsAdapter(IssuerCsvHoldingsAdapter):
     def _holdings_url(cls, raw_html: str, *, product_url: str) -> str:
         if "Elm Market Navigator ETF" not in raw_html or "ELM" not in raw_html:
             raise ValueError(
-                "Cygnet Capital product page identity did not match requested ETF ELM."
+                f"{cls.PROVIDER_DISPLAY_NAME} product page identity did not match requested ETF ELM."
             )
         for match in cls._ANCHOR_PATTERN.finditer(html.unescape(raw_html)):
             label = re.sub(r"<[^>]+>", " ", html.unescape(match.group("label")))
             if re.search(r"\bDownload\s+FULL\s+Holdings\s+CSV\b", label, re.IGNORECASE):
                 return urljoin(product_url, html.unescape(match.group("href")))
-        raise ValueError("Cygnet Capital product page did not declare a complete holdings CSV.")
+        raise ValueError(
+            f"{cls.PROVIDER_DISPLAY_NAME} product page did not declare a complete holdings CSV."
+        )
 
     @staticmethod
     async def _get_with_timeout_retry(
@@ -24144,7 +24149,7 @@ class CygnetHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     currency="USD",
                     holding_type="cash" if is_cash else "fund",
                     row_type="cash" if is_cash else "security",
-                    source_row_id=f"cygnet-{symbol}-{position}",
+                    source_row_id=f"{cls.SOURCE_ROW_PREFIX}-{symbol}-{position}",
                     extra_data={
                         key: value for key, value in raw.items() if _clean(value) is not None
                     },
@@ -24171,6 +24176,46 @@ class CygnetHoldingsAdapter(IssuerCsvHoldingsAdapter):
             return None
         normalized = candidate.upper().strip()
         return normalized if re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", normalized) else None
+
+
+class ElmHoldingsAdapter(CygnetHoldingsAdapter):
+    """Expose Elm's ELM route under the Elm provider identity.
+
+    Elm Partners Management LLC (doing business as Elm Wealth) advises ELM and
+    is wholly owned by Cygnet Capital LLC.  The provider catalogue's ``Elm``
+    label therefore resolves to this same issuer-owned product page and CSV,
+    while the adapter key remains explicit for source provenance.
+    """
+
+    PROVIDER_DISPLAY_NAME = "Elm Partners Management"
+    SNAPSHOT_PROVENANCE = "elm_issuer_native_holdings_csv"
+    SOURCE_ROW_PREFIX = "elm"
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        """Fetch ELM through the provider-owned route with explicit identity metadata."""
+
+        result = await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "source_provider": self.source_provider,
+            "adapter_key": self.adapter_key,
+            "issuer_relationship": (
+                "Elm Partners Management LLC (Elm Wealth), wholly owned by Cygnet Capital LLC"
+            ),
+        }
+        return result
 
 
 class LionSharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -63580,6 +63625,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Cygnet Capital's Elm ETF public holdings CSV may be subject to issuer terms.",
     ),
+    "elm": IssuerCsvAdapterConfig(
+        adapter_key="elm",
+        source_provider="elm_partners_management",
+        source_access="issuer_product_page_declared_complete_holdings_csv",
+        product_page_templates=("https://www.elmfunds.com/elm-market-navigator-etf",),
+        live_tested_default_route=True,
+        terms_note="Elm Partners Management's public ELM holdings CSV may be subject to issuer terms.",
+    ),
     "indexperts": IssuerCsvAdapterConfig(
         adapter_key="indexperts",
         source_provider="indexperts",
@@ -64399,7 +64452,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "dvx_ventures",
         "ea_series_trust",
         "elements",
-        "elm",
         "emirate_abu_dhabi",
         "esoterica",
         "etf_managers_group",
@@ -66442,10 +66494,6 @@ class FpaReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """StockAnalysis provider-table fallback adapter pending FPA discovery."""
 
 
-class ElmReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """StockAnalysis provider-table fallback adapter pending Elm discovery."""
-
-
 class SegallBryantHamillReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """StockAnalysis provider-table fallback adapter pending Segall Bryant & Hamill discovery."""
 
@@ -67508,7 +67556,6 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "dvx_ventures": DvxVenturesReconciledFallbackHoldingsAdapter,
         "ea_series_trust": EaSeriesTrustReconciledFallbackHoldingsAdapter,
         "elements": ElementsReconciledFallbackHoldingsAdapter,
-        "elm": ElmReconciledFallbackHoldingsAdapter,
         "emirate_abu_dhabi": EmirateAbuDhabiReconciledFallbackHoldingsAdapter,
         "emqq": EmqqHoldingsAdapter,
         "epiris": EpirisAuditedFallbackHoldingsAdapter,
@@ -67853,6 +67900,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "russell_investments": RussellInvestmentsHoldingsAdapter,
         "lionshares": LionSharesHoldingsAdapter,
         "cygnet": CygnetHoldingsAdapter,
+        "elm": ElmHoldingsAdapter,
         "im_global_partner": IMGlobalPartnerHoldingsAdapter,
         "gqg": GqgHoldingsAdapter,
         "gmo": GmoHoldingsAdapter,

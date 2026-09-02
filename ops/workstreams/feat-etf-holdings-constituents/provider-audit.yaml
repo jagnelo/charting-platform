@@ -5,9 +5,9 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 371
-current_fallback_count: 125
-generated_at: 2026-09-02T19:30:00Z
+current_native_count: 372
+current_fallback_count: 124
+generated_at: 2026-09-02T20:08:26Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -1672,22 +1672,26 @@ providers:
     display_name: elm
     queue_rank: 40
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-02
+    source_access_declared: issuer_product_page_declared_complete_holdings_csv
+    representative_symbols:
+      - ELM
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    source_freshness: daily
+    first_party_domains:
+      - www.elmfunds.com
+    candidate_routes:
+      - https://www.elmfunds.com/elm-market-navigator-etf
+      - https://docs.google.com/spreadsheets/export?exportFormat=csv&id=1hsSesyaOA4fbo1Uyy6VKK5ENeX-jJ_ZT-vye-QKiQJc
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_elm_adapter_reuses_declared_full_holdings_csv_with_elm_provenance
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows[elm-ELM-None-identifiers105-10]
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.elm"
@@ -1697,8 +1701,16 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.elm"
-    disposition_reason: "elm: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate elm first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-02
+        source: "https://www.elmfunds.com/elm-market-navigator-etf"
+        result: "Elm's official ELM product page identifies the fund, reports a September 1, 2026 holdings date, and declares a complete full-holdings CSV export. The export is account-scoped to ELM and includes ticker, CUSIP/ISIN, shares, market value, weights, and non-tradable cash rows."
+        evidence_ref: "web:elm-elmfunds-complete-holdings-2026-09-02"
+      - date: 2026-09-02
+        source: "https://www.sec.gov/Archives/edgar/data/1650149/000089418926002725/elmmarketnavigatoretfsumma.htm"
+        result: "The official SEC summary prospectus identifies Elm Partners Management LLC (doing business as Elm Wealth) as the investment adviser for Elm Market Navigator ETF. A related SEC adviser record identifies the manager as wholly owned by Cygnet Capital LLC, explaining the existing Cygnet route without conflating the two provider identities."
+        evidence_ref: "web:elm-sec-adviser-cygnet-relationship-2026-09-02"
+    disposition_reason: "elm: Elm Partners Management's official ELM product page declares a complete current holdings CSV, and the provider-specific Elm adapter validates the fund identity, isolates the ELM account, preserves identifiers/quantities/values/weights/date and cash semantics, and has deterministic plus opt-in live coverage. The existing Cygnet route is retained as the parent-identity equivalent rather than used as a generic fallback."
+    next_action: "elm: Monitor the ELM product page and declared full-holdings CSV; retain native status while the route remains complete, current, executable, and identity-valid."
     implementation_sha: null
     validation_refs: []
   - adapter_key: emirate_abu_dhabi

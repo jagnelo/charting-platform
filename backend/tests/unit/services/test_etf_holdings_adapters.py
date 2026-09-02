@@ -3055,6 +3055,50 @@ async def test_cygnet_adapter_retries_transient_holdings_csv_timeout(monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_elm_adapter_reuses_declared_full_holdings_csv_with_elm_provenance(monkeypatch):
+    adapter = get_holdings_adapter("elm")
+    assert adapter is not None
+    product_url = "https://www.elmfunds.com/elm-market-navigator-etf"
+    holdings_url = "https://docs.google.com/spreadsheets/export?id=example&exportFormat=csv"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<h1>Elm Market Navigator ETF (ELM)</h1>"
+                '<a href="https://docs.google.com/spreadsheets/export?id=example&amp;exportFormat=csv">'
+                "Download FULL Holdings CSV</a>"
+            ),
+            content_type="text/html",
+            url=product_url,
+        ),
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Date,Account,Stock Ticker,CUSIP,Security Name,Shares,Price,Market Value,Weightings,Net Assets",
+                    "09/01/2026,ELM,VBIL,922040845,Vanguard 0-3 Month Treasury Bill ETF,2060988,75.50,155604594,26.17%,594610380",
+                    "09/01/2026,ELM,FGXXX,31846V336,First American Government Obligations Fund,100000,100,100000,0.02%,594610380",
+                    "09/01/2026,OTHER,AAA,123456789,Sibling Fund Position,1,1,1,100%,1",
+                ]
+            ),
+            url=holdings_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="ELM")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_url, holdings_url]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "VBIL"
+    assert result.rows[0].source_row_id == "elm-ELM-1"
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["source_provider"] == "elm_partners_management"
+    assert result.legal_metadata["adapter_key"] == "elm"
+    assert result.legal_metadata["snapshot_provenance"] == "elm_issuer_native_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+
+
+@pytest.mark.asyncio
 async def test_indexperts_adapter_validates_fund_identity_and_parses_complete_holdings(monkeypatch):
     adapter = get_holdings_adapter("indexperts")
     assert adapter is not None
@@ -21133,6 +21177,7 @@ def test_stockanalysis_provider_third_continuation_batch_is_registered_and_audit
     expected = set(STOCKANALYSIS_PROVIDER_THIRD_CONTINUATION_ISSUER_HINTS) - {
         "beehive",
         "brookstone",
+        "elm",
     }
 
     assert expected
@@ -25231,8 +25276,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 371
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 125
+    assert ledger["current_native_count"] == 372
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 124
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -25256,6 +25301,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "cresalta",
         "brookstone",
         "guggenheim",
+        "elm",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(
