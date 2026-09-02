@@ -28,8 +28,8 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `364`
-- Audited fallback-only providers: `132`
+- Native/live-backed providers: `365`
+- Audited fallback-only providers: `131`
 
 The current checkpoint promotes `guggenheim` through its public issuer-hosted
 ETF holdings table, reconciles `ars` to the existing ARS Investment Partners
@@ -38,18 +38,19 @@ holdings route, reconciles Ballast to the complete MGMT FilePoint feed, adds
 Bancreek's issuer-rendered BCUS/BCIL/BCGS holdings components, and adds
 BeeHive's BEEX product-page-declared daily holdings CSV and Blueprint's TFPN
 product-page-declared daily holdings CSV, and Bridgeway's BBLU/BAGX/BRSV/BSVO/BUSM
-product-page complete holdings tables.
+product-page complete holdings tables, and Brookstone's BAMD/BAMG/BAMV/BAMB/BAMU/BAMA/BAMO/BAMY
+product-page-declared complete holdings CSVs.
 The historical starting snapshot for this
 workstream was 356 native and 140 fallback; the provider-audit ledger retains
-that baseline record while tracking the current 364/132 split.
+that baseline record while tracking the current 365/131 split.
 
 The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
 `FALLBACK_ISSUER_AUDITS` at the current ETF-branch implementation checkpoint
-`c1caf5554ad5b385506c892adf25f30319e54b7b`.
+`6aa2adb30ebe1aa95c3ab324680df825a8f4dfe5`.
 The fallback audit statuses are:
 
 - `issuer_access_blocked`: `8`
-- `needs_first_party_route_discovery`: `115`
+- `needs_first_party_route_discovery`: `114`
 - `non_executable_public_source`: `3`
 - `provider_not_a_portfolio_publisher`: `6`
 
@@ -80,6 +81,8 @@ catalogue contains mutual-fund/UCITS products rather than a U.S. ETF holdings
 route.
 `bridgeway` is native-promoted through complete, dated holdings tables on its
 official BBLU, BAGX, BRSV, BSVO, and BUSM product pages.
+`brookstone` is native-promoted through complete, dated holdings CSVs declared by
+its official BAMD, BAMG, BAMV, BAMB, BAMU, BAMA, BAMO, and BAMY product pages.
 
 Current gap to the broad LSEG promoter target:
 

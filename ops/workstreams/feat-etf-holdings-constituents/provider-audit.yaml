@@ -5,8 +5,8 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 364
-current_fallback_count: 132
+current_native_count: 365
+current_fallback_count: 131
 generated_at: 2026-09-02T17:30:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
@@ -1060,35 +1060,59 @@ providers:
     display_name: brookstone
     queue_rank: 27
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-02
+    source_access_declared: brookstone_product_page_linked_complete_holdings_csv
+    representative_symbols:
+      - BAMD
+      - BAMG
+      - BAMV
+      - BAMB
+      - BAMU
+      - BAMA
+      - BAMO
+      - BAMY
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    source_freshness: daily
+    first_party_domains:
+      - brookstoneam.com
+    candidate_routes:
+      - "https://www.brookstoneam.com/brookstone-dividend-stock-etf"
+      - "https://www.brookstoneam.com/brookstone-growth-stock-etf"
+      - "https://www.brookstoneam.com/brookstone-value-stock-etf"
+      - "https://www.brookstoneam.com/brookstone-intermediate-bond-etf"
+      - "https://www.brookstoneam.com/brookstone-ultra-short-bond-etf"
+      - "https://www.brookstoneam.com/brookstone-active-etf"
+      - "https://www.brookstoneam.com/brookstone-opportunities-etf"
+      - "https://www.brookstoneam.com/brookstone-yield-etf"
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_brookstone_adapter_fetches_symbol_scoped_complete_holdings_csv
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows[brookstone-BAMD-None-{}-5]
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.brookstone"
       - "runtime:ISSUER_ADAPTER_CONFIGS.brookstone"
+      - "web:brookstone-product-holdings-2026-09-01"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.brookstone"
-    disposition_reason: "brookstone: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate brookstone first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
-    implementation_sha: null
-    validation_refs: []
+      - date: 2026-09-02
+        source: "https://www.brookstoneam.com/brookstone-dividend-stock-etf"
+        result: "Brookstone's official BAMD, BAMG, BAMV, BAMB, BAMU, BAMA, BAMO, and BAMY product pages declare complete holdings CSV downloads. The eight linked CSVs expose the Brookstone preamble schema with a single 2026-09-01 effective date; bounded live fetches returned 98, 102, 100, 8, 7, 8, 7, and 7 portfolio rows respectively."
+        evidence_ref: "web:brookstone-product-holdings-2026-09-01"
+    disposition_reason: "brookstone: The official Brookstone Asset Management product pages declare complete current holdings CSVs for all eight BAM* ETFs; the provider adapter restricts symbols and source URLs to those issuer pages/routes, preserves identifiers/shares/values/weights and dated provenance, classifies sweep and receivable/payable rows as cash, and has deterministic plus opt-in live coverage for every route."
+    next_action: "brookstone: Monitor all eight Brookstone product pages and retain native status while their complete dated holdings CSVs remain executable and identity-valid; add any newly listed Brookstone ETF only after equivalent route evidence."
+    implementation_sha: 6aa2adb30ebe1aa95c3ab324680df825a8f4dfe5
+    validation_refs:
+      - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_brookstone_adapter_fetches_symbol_scoped_complete_holdings_csv"
+      - "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows[brookstone-BAMD-None-{}-5]"
   - adapter_key: bufferlabs
     display_name: bufferlabs
     queue_rank: 28
