@@ -68,7 +68,7 @@ inactive/successor disposition; `amg_national` is a non-portfolio publisher;
 and `anydrus` plus `baillie_gifford` are non-executable public sources;
 `alphaclone` is an inactive/successor disposition; `argent` and `arin` are
 issuer-access-blocked; `azimut` is a dated non-portfolio-publisher disposition.
-The audit ledger currently has 103 queued fallback records still requiring
+The audit ledger currently has 102 queued fallback records still requiring
 issuer-specific evidence and final dispositions; existing terminal/blocked records
 must remain evidence-backed. Continue replacing baseline placeholders with first-party
 route evidence, starting with the ranked queue after Bushido at `capforce`, and checkpoint
