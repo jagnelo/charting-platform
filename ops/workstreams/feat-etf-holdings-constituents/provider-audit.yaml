@@ -2035,17 +2035,29 @@ providers:
     display_name: fcf_advisors
     queue_rank: 47
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: inactive_or_successor_disposition
+    disposition: inactive_or_successor_disposition
+    last_checked: 2026-09-02
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols:
+      - ABFL
+      - ABLG
+      - ABLD
+      - ABOT
+      - ABLS
+      - ABXB
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    source_freshness: historical
+    first_party_domains:
+      - ir.abacusgm.com
+      - abacusfcf.com
+    candidate_routes:
+      - https://ir.abacusgm.com/node/8591/pdf
+      - https://abacusfcf.com/
+      - https://abacusfcf.com/{symbol_lower}/
+      - https://abacusfcf.com/wp-content/uploads/DailyUploads/{symbol_upper}_allHoldings.csv
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -2055,13 +2067,28 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.fcf_advisors"
       - "runtime:ISSUER_ADAPTER_CONFIGS.fcf_advisors"
+      - "web:abacus-fcf-rebrand-2026-09-02"
+      - "web:abacus-fcf-catalogue-2026-09-02"
+      - "web:abacus-fcf-current-holdings-2026-09-02"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.fcf_advisors"
-    disposition_reason: "fcf_advisors: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate fcf_advisors first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-02
+        source: "https://ir.abacusgm.com/node/8591/pdf"
+        result: "Abacus Life's official rebrand announcement states that it completed the acquisition of FCF Advisors, rebranded it as Abacus FCF Advisors, and lists the successor ABFL, ABLG, ABLD, ABOT, ABHY, and ABXB products."
+        evidence_ref: "web:abacus-fcf-rebrand-2026-09-02"
+      - date: 2026-09-02
+        source: "https://abacusfcf.com/"
+        result: "The current Abacus FCF Advisors catalogue identifies the successor ABFL, ABLG, ABLD, ABOT, ABLS, and ABXB product pages and no longer presents a separate FCF Advisors publisher identity."
+        evidence_ref: "web:abacus-fcf-catalogue-2026-09-02"
+      - date: 2026-09-02
+        source: "https://abacusfcf.com/ablg/"
+        result: "The successor product pages link complete current daily holdings CSVs for all six current Abacus FCF products; the existing abacus_global adapter already validates the page identity, parses the files, and has deterministic plus opt-in live coverage."
+        evidence_ref: "web:abacus-fcf-current-holdings-2026-09-02"
+    disposition_reason: "fcf_advisors: FCF Advisors was acquired and rebranded as Abacus FCF Advisors. Current portfolio routes belong to the existing abacus_global successor adapter, which covers the six current Abacus FCF products through complete page-linked daily CSVs; do not create a duplicate native FCF route."
+    next_action: "fcf_advisors: Keep fallback-only as inactive_or_successor_disposition; resolve historical FCF Advisors symbols to the existing Abacus FCF/abacus_global adapter and reopen only if FCF Advisors resumes a distinct U.S.-listed ETF portfolio with an executable first-party route."
     implementation_sha: null
     validation_refs: []
   - adapter_key: first_manhattan

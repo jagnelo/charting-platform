@@ -54,6 +54,10 @@ FalconX is now covered through its independently managed 21Shares subsidiary,
 whose official U.S. catalogue and page-declared primary/secondary product-details
 APIs provide current holdings for ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN,
 THYP, and TKNS.
+The former `fcf_advisors` identity is recorded as an inactive/successor
+disposition because Abacus Life acquired and rebranded it as Abacus FCF Advisors;
+current ABFL, ABLG, ABLD, ABOT, ABLS, and ABXB holdings are covered by the
+existing `abacus_global` successor adapter rather than a duplicate FCF route.
 The historical starting snapshot for this
 workstream was 356 native and 140 fallback; the provider-audit ledger retains
 that baseline record while tracking the current 376/120 split.

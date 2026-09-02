@@ -886,3 +886,44 @@ inspect official product and holdings routes, promote only a complete executable
 first-party source with strict identity and parser tests, otherwise record a
 dated issuer-specific disposition. Do not integrate, promote, deploy, or push
 the feature branch without the separately required authorization.
+
+## 19. Current execution checkpoint — FCF Advisors successor disposition — 2026-09-02
+
+The ranked `fcf_advisors` audit is resolved as an inactive/successor identity,
+not as a duplicate native provider. Abacus Life's official rebrand and
+acquisition announcement states that FCF Advisors was acquired and rebranded as
+Abacus FCF Advisors. The current official Abacus FCF catalogue publishes ABFL,
+ABLG, ABLD, ABOT, ABLS, and ABXB product pages, while the historical FCF
+Advisors identity no longer presents a distinct publisher route.
+
+Each current successor product page links a complete daily
+`{SYMBOL}_allHoldings.csv` file from `abacusfcf.com`. Bounded read-only checks on
+September 2, 2026 returned HTTP 200 for all six files; they contained 58, 51,
+50, 52, 48, and 9 data rows respectively (plus headers), with issuer dates
+shown as September 1, 2026 on the product pages. The existing
+`AbacusGlobalHoldingsAdapter` already validates these pages, discovers the
+declared files, parses identifiers/quantities/values/weights and cash rows, and
+has deterministic plus opt-in live coverage.
+
+No `FcfAdvisorsHoldingsAdapter` is added: current holdings belong to the
+existing `abacus_global` successor identity, and registering a second native
+route would misrepresent the provider universe and duplicate coverage. The
+FCF ledger record keeps its runtime fallback key for historical discovery, but
+its dated `current_status` and `disposition` are
+`inactive_or_successor_disposition`; its next action is to resolve historical
+symbols to `abacus_global` and reopen only if FCF Advisors becomes a distinct
+current ETF publisher again.
+
+The code-derived split remains 496 registered, 376 native/live-backed, and 120
+fallback-only providers. Runtime fallback status counts remain 8
+issuer-access-blocked, 103 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The ledger still
+retains all 140 historical records exactly once, and 84 queued fallback records
+remain for the next audit pass. The next ranked queue item is
+`first_manhattan`.
+
+This successor-only audit changes durable evidence and queue state but no
+runtime code. The focused ledger/reconciliation tests, workstream validator,
+and whitespace checks pass. The existing full deterministic/live evidence at
+the FalconX checkpoint remains valid; Docker integration still has the
+unrelated F8p-current-history Study Lab gap.
