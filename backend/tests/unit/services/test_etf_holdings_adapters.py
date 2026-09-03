@@ -22145,6 +22145,7 @@ def test_etfdb_issuer_league_reconciliation_batch_is_registered_and_audited():
         "fundstrat",
         "mig_capital",
         "milliman",
+        "moonvest",
     }
     fallback_expected = expected - promoted_native
 
@@ -22173,6 +22174,7 @@ def test_etfdb_issuer_league_continuation_batch_is_registered_and_audited():
         "hexis",
         "measured_risk_portfolios",
         "milliman",
+        "moonvest",
     }
 
     assert expected
@@ -22548,6 +22550,7 @@ def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audit
         "fitzgerald",
         "logiq",
         "max",
+        "moonvest",
     }
 
     assert expected
@@ -24349,6 +24352,36 @@ async def test_milliman_adapter_resolves_next_data_dated_csv_when_shell_omits_li
     assert len(result.rows) == 1
     assert result.rows[0].symbol == "AAPL"
     assert result.legal_metadata["holdings_url"].endswith("MHIP_Holdings_20260901.csv")
+
+
+@pytest.mark.asyncio
+async def test_moonvest_adapter_parses_mnvt_wpdatatable_holdings(monkeypatch):
+    adapter = get_holdings_adapter("moonvest")
+    assert adapter is not None
+    page = """
+    <html><h1>Moonvest ETF</h1><div>MNVT</div><h2>Fund Holdings</h2>
+    <table><tr><th>TICKER</th><th>NAME</th><th>CUSIP</th><th>SHARES</th><th>PRICE</th>
+    <th>Market Value ($mm)</th><th>% OF NET ASSETS</th><th>EFFECTIVE_DATE</th></tr>
+    <tr><td>RCAT</td><td>Red Cat Holdings Inc</td><td>75644T100</td><td>436468</td><td>8.32</td><td>3.63</td><td>4.82</td><td>09/03/2026</td></tr>
+    <tr><td>Cash&amp;Other</td><td>Cash &amp; Other</td><td></td><td>-2177</td><td>1.00</td><td>0.00</td><td>0.00</td><td>09/03/2026</td></tr>
+    </table></html>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page, content_type="text/html", url="https://mnvt-etf.com/"),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="MNVT")
+
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "RCAT"
+    assert result.rows[0].market_value == Decimal("3630000")
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].shares == Decimal("-2177")
+    assert result.legal_metadata["route_resolution"] == (
+        "moonvest_official_product_page_wpdatatable_complete_holdings_table"
+    )
 
 
 @pytest.mark.asyncio
@@ -27015,8 +27048,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 395
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 101
+    assert ledger["current_native_count"] == 396
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 100
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -27062,6 +27095,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "mig_capital",
         "militia",
         "milliman",
+        "moonvest",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))

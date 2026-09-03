@@ -31,6 +31,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "mig_capital",
     "militia",
     "milliman",
+    "moonvest",
     "amun",
     "1251_capital",
     "3fourteen",
@@ -3657,6 +3658,26 @@ async def test_live_milliman_mhip_product_declared_holdings_csv():
     assert any(row.holding_type == "derivative" for row in result.rows)
     assert any(row.holding_type == "fixed_income" for row in result.rows)
     assert any(row.holding_type == "fund" for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("moonvest")
+async def test_live_moonvest_mnvt_official_wpdatatable_holdings():
+    adapter = get_holdings_adapter("moonvest")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="MNVT")
+
+    _assert_live_holdings_result(result, adapter_key="moonvest", min_rows=20)
+    assert (
+        result.legal_metadata["route_resolution"]
+        == "moonvest_official_product_page_wpdatatable_complete_holdings_table"
+    )
+    assert result.legal_metadata["source_format"] == "html_table"
+    assert result.legal_metadata["composition_date"]
+    assert any(row.holding_type == "fund" for row in result.rows)
+    assert any(row.row_type == "cash" for row in result.rows)
 
 
 @pytest.mark.asyncio

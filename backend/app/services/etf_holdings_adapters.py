@@ -66746,6 +66746,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "data may be subject to issuer terms."
         ),
     ),
+    "moonvest": IssuerCsvAdapterConfig(
+        adapter_key="moonvest",
+        source_provider="moonvest",
+        source_access="issuer_public_product_page_wpdatatable_complete_holdings_table",
+        product_page_templates=("https://mnvt-etf.com/",),
+        live_tested_default_route=True,
+        terms_note=(
+            "Moonvest publishes complete current MNVT ETF holdings in its public WPDataTables page; "
+            "data may be subject to issuer terms."
+        ),
+    ),
     "militia": IssuerCsvAdapterConfig(
         adapter_key="militia",
         source_provider="militia",
@@ -68868,7 +68879,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "merchant_investment_management",
         "merk",
         "merlyn_ai",
-        "moonvest",
         "new_age_alpha",
         "nestyield",
         "nicholas_wealth",
@@ -72111,8 +72121,44 @@ class SammonsEnterprisesReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapt
     """StockAnalysis provider-table fallback adapter pending Sammons Enterprises discovery."""
 
 
-class MoonvestReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """StockAnalysis provider-table fallback adapter pending Moonvest discovery."""
+class MoonvestHoldingsAdapter(MilitiaHoldingsAdapter):
+    """Fetch MNVT's complete current Moonvest holdings table from its official page."""
+
+    PROVIDER_DISPLAY_NAME = "Moonvest"
+    SOURCE_TAG = "moonvest"
+    ROUTE_RESOLUTION = "moonvest_official_product_page_wpdatatable_complete_holdings_table"
+    SNAPSHOT_PROVENANCE = "moonvest_native_current_holdings_table"
+    PRODUCT_PAGE_URLS = {"MNVT": "https://mnvt-etf.com/"}
+    EXPECTED_IDENTITIES = {"MNVT": "Moonvest ETF"}
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        result = await BushidoHoldingsAdapter.fetch_latest(
+            self,
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        for row in result.rows:
+            market_value_mm = _decimal(row.extra_data.get("Market Value ($mm)"))
+            if market_value_mm is not None:
+                row.market_value = market_value_mm * Decimal("1000000")
+            row.extra_data = {
+                **row.extra_data,
+                "market_value_mm": _clean(row.extra_data.get("Market Value ($mm)")),
+                "market_value_unit": "millions_usd",
+                "source": self.ROUTE_RESOLUTION,
+            }
+        if result.raw_json is not None:
+            result.raw_json["market_value_unit"] = "millions_usd"
+        return result
 
 
 class AvoryReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -72230,7 +72276,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "mig_capital": MigCapitalHoldingsAdapter,
         "militia": MilitiaHoldingsAdapter,
         "milliman": MillimanHoldingsAdapter,
-        "moonvest": MoonvestReconciledFallbackHoldingsAdapter,
+        "moonvest": MoonvestHoldingsAdapter,
         "msc_group": MscGroupAuditedFallbackHoldingsAdapter,
         "new_age_alpha": NewAgeAlphaReconciledFallbackHoldingsAdapter,
         "nestyield": NestYieldReconciledFallbackHoldingsAdapter,
