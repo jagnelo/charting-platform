@@ -28,8 +28,8 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `390`
-- Audited fallback-only providers: `106`
+- Native/live-backed providers: `391`
+- Audited fallback-only providers: `105`
 
 The current checkpoint promotes `guggenheim` through its public issuer-hosted
 ETF holdings table, reconciles `ars` to the existing ARS Investment Partners
@@ -155,13 +155,22 @@ liquidation supplement names FFHG, FFSG, FFTG, and FFTI and schedules their
 October 2023 termination, while Brookstone's official combination notice
 establishes the successor context; current Brookstone ETF routes remain under
 the distinct native `brookstone` identity.
+Measured Risk Portfolios is now covered natively for SNTH and SNTQ through the
+official SynthEquity product pages and their declared daily CSV routes. The
+native adapter validates the shared dated schema, scopes rows by account,
+preserves ticker/CUSIP and numeric holdings, classifies Treasury/fixed-income,
+fund, option, and Cash&Other rows, and records issuer-owned provenance. SNTH's
+current CSV is live-tested; SNTQ's issuer API is configured and fixture-tested
+but reports `Unavailable midnight-7am ET.` outside its serving window, so no
+separate SNTQ live-green claim is made yet.
+
 The historical starting snapshot for this
 workstream was 356 native and 140 fallback; the provider-audit ledger retains
-that baseline record while tracking the current 390/106 split.
+that baseline record while tracking the current 391/105 split.
 
 The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
 `FALLBACK_ISSUER_AUDITS` at the current ETF-branch implementation checkpoint
-`2753c9146e3720b92778ab7bce0a3dbaefb99cd3` (MAX ETNs CARD/CARU/JETD/JETU official product-page index constituents; McElhenny Sheffield MSMR official product-page holdings table; LSV LSVD official product-page-declared holdings CSV; Long Pond LPRE official product-page CMS holdings JSON; Logiq LCO official product-page-declared Tidal daily holdings CSV; Knowledge Leaders KNO official AXS/FilePoint dated holdings CSV; JLens TOV official product-page embedded holdings table; Hoya Capital display-name and URL alias reconciliation to the existing Pettee HOMZ/RIET native route; Hilton SMCO/HBDC product-page-declared AllHoldings CSV; Hexis/NICO FilePoint app-declared daily holdings CSV; Gotham GSPY/GVLU/SHRT DownloadHoldings CSV routes; Fundstrat Granny Shots GRNY/GRNJ/GRNI holdings routes; Freedom/FRDM product-page holdings route; Framework/GSR BESO route; Fitzgerald/Nicholas Wealth FITZ and FIZY routes; FalconX/21Shares ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN,
+`e5567bec0ed53268195cf1866250e9e1a199143a` (Measured Risk Portfolios SNTH/SNTQ official SynthEquity product-page-declared daily holdings CSV routes; MAX ETNs CARD/CARU/JETD/JETU official product-page index constituents; McElhenny Sheffield MSMR official product-page holdings table; LSV LSVD official product-page-declared holdings CSV; Long Pond LPRE official product-page CMS holdings JSON; Logiq LCO official product-page-declared Tidal daily holdings CSV; Knowledge Leaders KNO official AXS/FilePoint dated holdings CSV; JLens TOV official product-page embedded holdings table; Hoya Capital display-name and URL alias reconciliation to the existing Pettee HOMZ/RIET native route; Hilton SMCO/HBDC product-page-declared AllHoldings CSV; Hexis/NICO FilePoint app-declared daily holdings CSV; Gotham GSPY/GVLU/SHRT DownloadHoldings CSV routes; Fundstrat Granny Shots GRNY/GRNJ/GRNI holdings routes; Freedom/FRDM product-page holdings route; Framework/GSR BESO route; Fitzgerald/Nicholas Wealth FITZ and FIZY routes; FalconX/21Shares ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN,
 THYP, and TKNS native routes; Esoterica WUGI, Even Herd EHLS, and Everence/Praxis
 PRXG/PRXV/PRXI native routes; Framework/GSR BESO, Freedom/FRDM, and Fundstrat Granny Shots are now native through their
 declared details/holdings API; ETF Managers Group is recorded as an
@@ -934,3 +943,39 @@ issuer-access-blocked, 89 needs-first-party-route-discovery, 3
 non-executable-public-source, and 6 non-portfolio-publisher. The ledger
 retains all 140 historical records exactly once, now with 57 queued fallback
 records; the next ranked issuer is `measured_risk_portfolios`.
+
+## Current audit checkpoint — Measured Risk Portfolios / SNTH-SNTQ native promotion — 2026-09-03
+
+The ranked `measured_risk_portfolios` audit verified the official Measured
+Risk Portfolios and SynthEquity sites. The SynthEquity product pages identify
+SNTH and SNTQ and declare issuer-owned daily holdings CSV routes: SNTH uses
+`https://synthequityfunds.com/wp-content/uploads/2026/07/snth_holdings_full.csv`,
+while SNTQ uses
+`https://synthequityfunds.com/wp-json/mrp/v4/sntq-holdings-csv`. The SNTH CSV
+returned a current September 3, 2026 snapshot with 17 rows. The SNTQ endpoint
+is a valid issuer-declared route but currently returns `Unavailable
+midnight-7am ET.` outside its serving window; it is therefore recorded as
+configured and parser-tested, without a separate live-green claim.
+
+The native `measured_risk_portfolios` adapter validates SNTH/SNTQ product
+identity and exact holdings routes, requires the dated account-scoped CSV
+schema, maps ticker/CUSIP/shares/price/market value/weight fields, parses
+percentage-point weights, classifies Treasury and other fixed-income rows,
+funds, options, and Cash&Other/money-market rows, and preserves
+provider-owned daily holdings provenance. Deterministic parser/registry
+coverage and the bounded opt-in SNTH live route pass; the live transport also
+handles the issuer's HTTP 403 response by retrying once through the established
+browser-compatible requests path.
+
+The exhaustive ledger records `measured_risk_portfolios` as `native_promoted`,
+bringing the code-derived split to 496 registered, 391 native/live-backed, and
+105 fallback-only providers. Runtime fallback statuses are 8
+issuer-access-blocked, 88 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The 140-record
+ledger now has 56 queued fallback records; the next ranked issuer is
+`merchant_investment_management`.
+
+The complete opt-in provider matrix and Docker-backed integration gate remain
+pending at the 391-native baseline, with the known unrelated reproducible
+F8p-current-history Study Lab histogram timeout still recorded as the
+integration blocker.

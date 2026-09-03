@@ -5,9 +5,9 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 390
-current_fallback_count: 106
-generated_at: 2026-09-03T04:02:01Z
+current_native_count: 391
+current_fallback_count: 105
+generated_at: 2026-09-03T04:34:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -3562,35 +3562,54 @@ providers:
     display_name: measured_risk_portfolios
     queue_rank: 76
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
-    estimated_us_etf_count: null
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-03
+    source_access_declared: issuer_public_product_page_declared_daily_holdings_csv
+    representative_symbols:
+      - SNTH
+      - SNTQ
+    estimated_us_etf_count: 2
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    source_freshness: current_as_of_date
+    first_party_domains:
+      - synthequityfunds.com
+    candidate_routes:
+      - https://synthequityfunds.com/snth/
+      - https://synthequityfunds.com/wp-content/uploads/2026/07/snth_holdings_full.csv
+      - https://synthequityfunds.com/sntq/
+      - https://synthequityfunds.com/wp-json/mrp/v4/sntq-holdings-csv
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_measured_risk_portfolios_adapter_fetches_daily_snth_and_sntq_csvs
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_measured_risk_portfolios_snth_declared_daily_holdings_csv
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.measured_risk_portfolios"
       - "runtime:ISSUER_ADAPTER_CONFIGS.measured_risk_portfolios"
+      - "web:measured-risk-official-synthequity-routes-2026-09-03"
+      - "live:measured-risk-snth-current-holdings-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.measured_risk_portfolios"
-    disposition_reason: "measured_risk_portfolios: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate measured_risk_portfolios first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
-    implementation_sha: null
-    validation_refs: []
+      - date: 2026-09-03
+        source: "https://www.measuredriskportfolios.com/ and https://synthequityfunds.com/"
+        result: "Measured Risk Portfolios' official SynthEquity site identifies SNTH and SNTQ. SNTH's product page declares a complete daily holdings CSV at /wp-content/uploads/2026/07/snth_holdings_full.csv; SNTQ's product page declares the /wp-json/mrp/v4/sntq-holdings-csv endpoint. The SNTQ endpoint is issuer-owned but returns a documented 'Unavailable midnight-7am ET' response outside its serving window, so it remains configured and parser-tested without being represented as a separate live-green run."
+        evidence_ref: "web:measured-risk-official-synthequity-routes-2026-09-03"
+      - date: 2026-09-03
+        source: "backend/tests/live/test_etf_holdings_live_providers.py::test_live_measured_risk_portfolios_snth_declared_daily_holdings_csv"
+        result: "The native adapter fetched the current SNTH CSV, parsed 17 dated rows including Treasury/fixed-income positions, equity and option rows, and explicit Cash&Other/money-market rows, and preserved symbol/CUSIP/weight, cash/USD, option, and provider-owned provenance semantics."
+        evidence_ref: "live:measured-risk-snth-current-holdings-2026-09-03"
+    disposition_reason: "measured_risk_portfolios: Official SynthEquity product pages provide declared issuer-owned daily CSV routes for SNTH and SNTQ. The native adapter validates the supported product symbols, parses the shared dated schema with strict account scoping, maps identifiers and numeric holdings, classifies fixed income, funds, options, and cash, preserves current composition dates, and records provider-owned provenance. SNTH is live-proven today; SNTQ's official endpoint is configured and fixture-tested but is time-windowed and was not claimed as live-green outside its serving window."
+    next_action: "measured_risk_portfolios: Monitor the official SNTH CSV and SNTQ API for schema/date continuity; rerun bounded SNTQ live coverage during its issuer serving window before claiming a second live-green route, and add future products only after equivalent first-party evidence."
+    implementation_sha: e5567bec0ed53268195cf1866250e9e1a199143a
+    validation_refs:
+      - "validation:2026-09-03T04:27:57Z"
+      - "validation:2026-09-03T04:28:06Z"
   - adapter_key: merchant_investment_management
     display_name: merchant_investment_management
     queue_rank: 77

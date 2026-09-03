@@ -548,6 +548,42 @@ fallback-only providers. Runtime fallback statuses are 8 issuer-access-blocked,
 non-portfolio-publisher. The 140-record ledger now has 57 queued fallback
 records; the next ranked issuer is `measured_risk_portfolios`.
 
+## Current implementation checkpoint — Measured Risk Portfolios / SNTH-SNTQ native promotion — 2026-09-03
+
+The ranked `measured_risk_portfolios` audit verified the official Measured
+Risk Portfolios and SynthEquity sites. SynthEquity identifies SNTH and SNTQ
+and declares issuer-owned daily holdings CSV routes. SNTH uses
+`https://synthequityfunds.com/wp-content/uploads/2026/07/snth_holdings_full.csv`;
+SNTQ uses `https://synthequityfunds.com/wp-json/mrp/v4/sntq-holdings-csv`.
+SNTH returned a current September 3, 2026 CSV snapshot with 17 rows. The SNTQ
+endpoint is issuer-owned and parser-tested, but currently responds
+`Unavailable midnight-7am ET.` outside its serving window, so this checkpoint
+does not claim a separate SNTQ live-green run.
+
+Implementation adds `MeasuredRiskPortfoliosHoldingsAdapter` with strict
+SNTH/SNTQ route and product support, account-scoped dated CSV parsing,
+ticker/CUSIP and numeric-field mapping, percentage-point weight conversion,
+fixed-income/fund/option/cash classification, and provider-owned daily
+holdings provenance. A 403 from the issuer transport is retried once through
+the established browser-compatible synchronous requests path. The
+deterministic adapter fixture and bounded opt-in SNTH live test pass, including
+current Treasury, equity, option, and Cash&Other/money-market semantics.
+
+The exhaustive ledger records `measured_risk_portfolios` as `native_promoted`,
+bringing the code-derived split to 496 registered, 391 native/live-backed, and
+105 fallback-only providers. Runtime fallback statuses are 8
+issuer-access-blocked, 88 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The 140-record
+ledger now has 56 queued fallback records; the next ranked issuer is
+`merchant_investment_management`.
+
+Required focused, deterministic, opt-in live, Ruff, and workstream checks are
+recorded against implementation SHA
+`fdb856d470e65305939209c7a1964bc102f6d5bd`. The complete opt-in provider
+matrix and Docker-backed integration gate remain pending at the 391-native
+baseline, with the known unrelated reproducible F8p-current-history Study Lab
+histogram timeout retained as the integration blocker.
+
 The complete opt-in provider matrix and Docker-backed integration gate remain
 pending at the 390-native baseline, with the known unrelated reproducible
 F8p-current-history Study Lab histogram timeout still recorded as the
