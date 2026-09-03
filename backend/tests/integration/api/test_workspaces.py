@@ -697,14 +697,14 @@ class TestWorkspaces:
                     instrument_id=instrument.id,
                     industry="Technology",
                     field_provenance={
-                        "industry": {"observed_at": "2024-01-02T00:00:00Z"}
+                        "industry": {"observed_at": "2027-03-01T00:00:00Z"}
                     },
                 ),
                 EquityDetail(
                     instrument_id=instrument_b.id,
                     industry="Software",
                     field_provenance={
-                        "industry": {"observed_at": "2024-01-02T00:00:00Z"}
+                        "industry": {"observed_at": "2027-03-01T00:00:00Z"}
                     },
                 ),
             ]
@@ -725,6 +725,18 @@ class TestWorkspaces:
         assert cap["weights_status"] == "ready"
         assert cap["classified_member_count"] == 2
         assert cap["classification_status"] == "ready"
+        historical = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/coverage",
+            headers=auth_headers,
+            params={"as_of": "2026-12-01T00:00:00Z"},
+        )
+        assert historical.status_code == 200, historical.text
+        historical_cap = next(
+            role for role in historical.json()["roles"] if role["role"] == "cap_weight"
+        )
+        assert historical_cap["member_count"] == 2
+        assert historical_cap["classified_member_count"] == 0
+        assert historical_cap["classification_status"] == "pending"
         daily = next(item for item in history["timeframes"] if item["timeframe"] == "D1")
         assert daily["member_count"] == 2
         assert daily["covered_member_count"] == 2
