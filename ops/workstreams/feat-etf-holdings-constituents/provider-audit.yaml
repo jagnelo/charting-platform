@@ -5,8 +5,8 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 397
-current_fallback_count: 99
+current_native_count: 398
+current_fallback_count: 98
 generated_at: 2026-09-03T08:30:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
@@ -4208,35 +4208,55 @@ providers:
     display_name: norris_perne_french
     queue_rank: 88
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-03
+    source_access_declared: issuer_product_page_declared_holdings_json
+    representative_symbols: [NPFE]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    source_freshness: current_as_of_date
+    first_party_domains: [npfinvestetfs.com, sec.gov]
+    candidate_routes:
+      - "https://npfinvestetfs.com/etfs/npfe/"
+      - "https://npfinvestetfs.com/wp-admin/admin-ajax.php?action=get_holdings_json&slug=npfe"
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_norris_perne_french_adapter_fetches_declared_holdings_json
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_norris_perne_french_npfe_declared_holdings_json
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.norris_perne_french"
       - "runtime:ISSUER_ADAPTER_CONFIGS.norris_perne_french"
+      - "web:norris-perne-french-official-npfe-2026-09-03"
+      - "web:norris-perne-french-sec-series-2026-09-03"
+      - "live:norris-perne-french-npfe-current-holdings-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.norris_perne_french"
-    disposition_reason: "norris_perne_french: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate norris_perne_french first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
-    implementation_sha: null
-    validation_refs: []
+      - date: 2026-09-03
+        source: "https://npfinvestetfs.com/etfs/npfe/"
+        result: "NPF Investment Advisors' official NPFE product page identifies the fund, exposes full-holdings navigation, and declares its issuer-owned JSON download route."
+        evidence_ref: "web:norris-perne-french-official-npfe-2026-09-03"
+      - date: 2026-09-03
+        source: "https://www.sec.gov/Archives/edgar/data/1936157/000200032426003611/0002000324-26-003611-index.htm"
+        result: "The official Elevation Series Trust SEC filing independently confirms the NPF Core Equity ETF series and its current trust identity."
+        evidence_ref: "web:norris-perne-french-sec-series-2026-09-03"
+      - date: 2026-09-03
+        source: "https://npfinvestetfs.com/wp-admin/admin-ajax.php?action=get_holdings_json&slug=npfe"
+        result: "The bounded live route returned a successful JSON payload with 328 current holdings dated September 3, 2026; canonical parsing preserved ticker, CUSIP, shares, market value, weights, and derivative/cash semantics."
+        evidence_ref: "live:norris-perne-french-npfe-current-holdings-2026-09-03"
+    disposition_reason: "norris_perne_french: NPF Investment Advisors' official NPFE product page declares a complete current holdings JSON endpoint. The native adapter validates the exact product identity and issuer domain, fetches the page-declared endpoint, parses all current rows with truthful composition date and provenance, and preserves SEC/adviser relationship metadata."
+    next_action: "norris_perne_french: Monitor the official NPFE page and holdings JSON route for schema continuity and current dates; add any future NPF ETF only after equivalent first-party route and bounded live evidence."
+    implementation_sha: faec32c5c9e7fc2cced2e4f90e1d58152970eff5
+    validation_refs:
+      - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_norris_perne_french_adapter_fetches_declared_holdings_json"
+      - "backend/tests/live/test_etf_holdings_live_providers.py::test_live_norris_perne_french_npfe_declared_holdings_json"
+      - "validation:2026-09-03T09:00:00Z"
   - adapter_key: north_square
     display_name: north_square
     queue_rank: 89

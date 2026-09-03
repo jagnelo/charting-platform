@@ -863,3 +863,21 @@ publisher. The ledger has 45 queued fallback records and the next ranked issuer
 is `norris_perne_french`. The full opt-in live matrix and Docker-backed
 integration gate remain pending, with the known unrelated reproducible
 F8p-current-history Study Lab histogram timeout retained.
+
+## Current promotion checkpoint — Norris Perne French / NPFE native route — 2026-09-03
+
+The ranked `norris_perne_french` audit verified NPF Investment Advisors'
+official NPFE product page and its declared WordPress AJAX holdings endpoint.
+The endpoint returned 328 current rows dated September 3, 2026. The native
+adapter validates the exact product identity and issuer domain, parses ticker,
+CUSIP, shares, market value, weights, cash, and derivative-like rows, and
+records truthful current-date and publisher provenance.
+
+The durable ledger records `norris_perne_french` as `native_promoted`. Runtime
+state is now 496 registered / 398 native-live-backed / 98 fallback-only
+providers; runtime fallback statuses are 9 issuer-access-blocked, 80
+route-discovery, 3 non-executable-public-source, and 6 non-portfolio-publisher.
+The ledger has 44 queued fallback records and the next ranked issuer is
+`north_square`. Focused NPF unit/live checks pass; the full opt-in matrix and
+Docker-backed integration gate remain pending with the known unrelated
+F8p-current-history Study Lab histogram timeout retained.

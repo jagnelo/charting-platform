@@ -2154,3 +2154,19 @@ non-portfolio-publisher. The ledger has 45 queued records and
 `web:nicholas-wealth-official-xfunds-2026-09-03`,
 `web:nicholas-wealth-sec-series-identities-2026-09-03`, and
 `web:nicholas-wealth-access-blocked-2026-09-03`.
+
+## 59. Current promotion checkpoint — Norris Perne French / NPFE native route — 2026-09-03
+
+NPF Investment Advisors' official NPFE page declares a complete current
+holdings JSON endpoint. A bounded live request returned 328 rows dated
+September 3, 2026. `NorrisPerneFrenchHoldingsAdapter` validates the product
+identity/domain, fetches the page-declared WordPress AJAX payload, maps issuer
+fields into canonical rows, classifies cash and derivative-like positions,
+and records current-date and publisher provenance. Deterministic fixture,
+opt-in live coverage, registry ownership, and ledger promotion are aligned.
+
+Current state is 496 registered / 398 native-live-backed / 98 fallback-only,
+with 44 queued records and `north_square` next. Evidence refs:
+`web:norris-perne-french-official-npfe-2026-09-03`,
+`web:norris-perne-french-sec-series-2026-09-03`, and
+`live:norris-perne-french-npfe-current-holdings-2026-09-03`.

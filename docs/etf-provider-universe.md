@@ -1178,6 +1178,18 @@ fallback-only providers. The ledger has 49 queued fallback records and
 full opt-in matrix and Docker integration gate remain pending, with the known
 unrelated F8p-current-history Study Lab histogram timeout retained.
 
+## Current promotion checkpoint — Norris Perne French / NPFE — 2026-09-03
+
+NPF Investment Advisors' official NPFE page declares a complete current
+holdings JSON endpoint. The bounded live route returned 328 rows dated
+September 3, 2026; the native parser preserves issuer fields, dates, and
+publisher provenance while classifying cash and derivative-like rows.
+
+The current split is 496 registered, 398 native/live-backed, and 98
+fallback-only providers. Runtime statuses are 9 issuer-access-blocked, 80
+route-discovery, 3 non-executable, and 6 non-portfolio-publisher. The ledger
+has 44 queued records and `north_square` is next.
+
 ## Current audit checkpoint — Nicholas Wealth access-blocked — 2026-09-03
 
 Nicholas Wealth's official XFUNDS catalogue identifies current products and
