@@ -385,3 +385,13 @@ the exact implementation tip `9364748d30d3350d810190e0aa8fdb8d7014c026`; the sta
 torn down with its branch-owned volumes and containers removed. The receipt proves browser
 workflow compatibility for the seeded local runtime only; it does not establish live provider
 population, member-history continuity, entitlement records, or the four visual projects.
+
+Point-in-time readiness now normalizes both offset-aware and offset-less ISO cutoffs before
+comparing them with persisted UTC provenance at `06054df7d8dc0b72d5ea88e6a14d05bac67a5e19`.
+This prevents historical family coverage from raising on a valid offset-less `as_of` query and
+keeps future membership/classification evidence excluded. The focused Docker-backed coverage
+regression passes `1/1`, the analysis-router cutoff/entitlement unit slice passes `5/5`, the
+benchmark-family matrix passes `21/21`, and the full backend unit gate passes `1289/1289` in
+`64.42s` with `67.43%` coverage; Ruff and `git diff --check` are clean. This closes timestamp
+normalization only; it does not establish persisted provider population, member-history
+continuity, or live entitlement evidence.
