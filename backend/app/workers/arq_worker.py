@@ -505,6 +505,7 @@ class WorkerSettings:
         scheduled_etf_holdings_sec_backfill,
         scheduled_etf_holdings_classification_refresh,
         scheduled_benchmark_family_holdings_refresh,
+        scheduled_core_workstation_bootstrap,
         scheduled_daily_provider_availability,
         scheduled_weekly_provider_availability,
     ]

@@ -475,6 +475,7 @@ async def test_worker_startup_does_not_fail_when_redis_is_unavailable(monkeypatc
 
 def test_worker_registers_core_bootstrap_and_startup_hook():
     assert arq_worker.task_bootstrap_core_workstation in arq_worker.WorkerSettings.functions
+    assert arq_worker.scheduled_core_workstation_bootstrap in arq_worker.WorkerSettings.functions
     assert arq_worker.WorkerSettings.on_startup is arq_worker.worker_startup
 
 
