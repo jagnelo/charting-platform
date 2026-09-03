@@ -428,3 +428,28 @@ coverage (above the repository `55%` threshold); the warning set remains the exi
 deprecations. The assigned Docker project was used exclusively; its disposable local volumes will
 be removed after the final evidence checkpoint. No other worktree, staging, master, integration,
 promotion, or deployment action was performed.
+
+## 2026-09-03 — durable refresh progress serialization and bounded live outcome
+
+The provider-backed family refresh worker had a concrete persistence defect: adapter leg
+provenance includes Python `date`/`datetime` values, and writing that raw structure into the
+PostgreSQL JSON progress document aborted the worker after a unit completed, leaving the durable
+run stuck in `running`. Commit `9d1ff3532fc1ef50f9331cc9b9b40678069ec60a` encodes leg provenance and
+history-queue metadata with FastAPI's JSON encoder before persistence, with a regression test that
+round-trips a dated composition field and verifies `json.dumps` succeeds.
+
+The rebuilt assigned stack accepted an authenticated, bounded SP500 month-end refresh for
+`2026-08-31`. Run 2 reached terminal `completed` with one completed unit and four explicit failed
+legs: SPY, SPYV, and SPYG report that the SPDR adapter has no configured dated holdings URL
+template, while RSP reports no SEC filing at or before the requested date. No latest-data fallback,
+proxy substitution, or fabricated snapshot was used; the run persisted zero snapshots and no
+member-history queue work. This proves durable completion/error isolation, but it does not close
+the R1 historical-population gap. State Street's public product pages expose current daily/month-end
+downloads, while authorized-participant daily holdings are described as an SFTP resource; no
+authoritative public dated route was established here, so the SPDR historical route remains an
+explicit provider-readiness gap rather than a speculative URL implementation.
+
+The full backend unit suite passed 1,291/1,291 with 67.45% coverage, the complete worker unit file
+passed 24/24, Ruff and `git diff --check` passed, and the worker log contained no serialization
+exception after rebuild. The stack remains live only for this validation boundary and must be torn
+down with the prescribed branch-scoped helper before the session checkpoint.
