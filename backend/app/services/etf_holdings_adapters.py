@@ -62500,6 +62500,90 @@ class SammonsEnterprisesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class SapientHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Sapient Quality Select ETF holdings from its official HTML table."""
+
+    PRODUCT_PAGE_URL = "https://sapientqualityselect.com/"
+    SYMBOL = "SQS"
+    _ISSUER_HOSTS = {"sapientqualityselect.com", "www.sapientqualityselect.com"}
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=(Decimal("0.9500") if normalized_symbol == self.SYMBOL else Decimal("0.3000") if has_sec_fallback else Decimal("0.0000")),
+            status="ready" if normalized_symbol == self.SYMBOL or has_sec_fallback else "unsupported_symbol",
+            reason=(
+                "Sapient publishes SQS's complete current holdings in its official HTML table."
+                if normalized_symbol == self.SYMBOL
+                else "Sapient has no native route for this symbol; SEC EDGAR fallback is available."
+                if has_sec_fallback
+                else "Sapient's verified native route is limited to SQS."
+            ),
+            source_url=self.PRODUCT_PAGE_URL if normalized_symbol == self.SYMBOL else None,
+            issuer_product_id=normalized_symbol if normalized_symbol == self.SYMBOL else None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del source_url, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol != self.SYMBOL:
+            raise ValueError(f"Sapient has no configured native holdings route for {symbol}.")
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                self.PRODUCT_PAGE_URL,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+        if response.status_code == 403:
+            response = await asyncio.to_thread(
+                requests.get,
+                self.PRODUCT_PAGE_URL,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                allow_redirects=True,
+            )
+        response.raise_for_status()
+        page_text = html.unescape(response.text)
+        if "SAPIENT QUALITY SELECT ETF" not in page_text.upper() or "SQS" not in page_text.upper():
+            raise ValueError("Sapient official product page identity did not match SQS.")
+        rows = parse_html_holdings_table_by_id(page_text, table_id="table_12")
+        if not rows:
+            raise ValueError("Sapient's official SQS page did not expose complete holdings rows.")
+        dates = re.findall(r"\b\d{2}/\d{2}/\d{4}\b", page_text)
+        composition_date = _parse_issuer_date(dates[-1]) if dates else None
+        composition_value = composition_date.isoformat() if composition_date else None
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "html_table", "row_count": len(rows)},
+            source_url=str(getattr(response, "url", self.PRODUCT_PAGE_URL)),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html_table",
+                "route_resolution": "sapient_official_product_page_complete_holdings_table",
+                "composition_date": composition_value,
+                "as_of_date": composition_value,
+                "source_quality": "issuer_reported_current_holdings",
+                "snapshot_provenance": "sapient_native_product_page_html_table",
+                "legal_publisher": "Sapient Capital / Empowered Funds",
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+
 class SummitGlobalHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Read Summit Global's disclosed tracking baskets from issuer product pages.
 
@@ -66593,6 +66677,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Beacon/Sammons public ETF product pages and daily holdings CSVs may be subject to issuer terms.",
     ),
+    "sapient": IssuerCsvAdapterConfig(
+        adapter_key="sapient",
+        source_provider="sapient_quality_select",
+        source_access="issuer_product_page_complete_holdings_html_table",
+        product_page_templates=("https://sapientqualityselect.com/",),
+        live_tested_default_route=True,
+        terms_note="Sapient Quality Select's public product page and holdings table may be subject to issuer terms.",
+    ),
     "resolute": IssuerCsvAdapterConfig(
         adapter_key="resolute",
         source_provider="resolute_american_beacon",
@@ -70164,7 +70256,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "putnam",
         "rareview_funds",
         "roc",
-        "sapient",
         "saturna",
         "siren",
         "smi_funds",
@@ -73719,7 +73810,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "rockefeller_capital": RockefellerHoldingsAdapter,
         "saba_capital": SabaCapitalHoldingsAdapter,
         "sammons_enterprises": SammonsEnterprisesHoldingsAdapter,
-        "sapient": SapientReconciledFallbackHoldingsAdapter,
+        "sapient": SapientHoldingsAdapter,
         "saturna": SaturnaReconciledFallbackHoldingsAdapter,
         "segall_bryant_hamill": SegallBryantHamillReconciledFallbackHoldingsAdapter,
         "siren": SirenReconciledFallbackHoldingsAdapter,

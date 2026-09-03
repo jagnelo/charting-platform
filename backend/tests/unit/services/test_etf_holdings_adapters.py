@@ -1527,6 +1527,38 @@ async def test_sammons_enterprises_adapter_fetches_declared_beacon_csv(monkeypat
 
 
 @pytest.mark.asyncio
+async def test_sapient_adapter_parses_current_html_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("sapient")
+    assert adapter is not None
+    page = """
+    <h1>Sapient Quality Select ETF (SQS)</h1>
+    <h2>Fund Holdings</h2>
+    <table id="table_12"><thead><tr>
+      <th>TICKER</th><th>NAME</th><th>CUSIP</th><th>SHARES</th>
+      <th>PRICE</th><th>Market Value ($mm)</th><th>% OF NET ASSETS</th><th>EFFECTIVE_DATE</th>
+    </tr></thead><tbody>
+      <tr><td>NVDA</td><td>NVIDIA Corp</td><td>67066G104</td><td>618465</td><td>199.40</td><td>123.43</td><td>9.08</td><td>09/03/2026</td></tr>
+      <tr><td>GOOGL</td><td>Alphabet Inc</td><td>02079K305</td><td>306235</td><td>384.90</td><td>117.84</td><td>8.67</td><td>09/03/2026</td></tr>
+    </tbody></table>
+    """
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page, content_type="text/html", url=adapter.PRODUCT_PAGE_URL)
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="SQS")
+
+    assert [row.symbol for row in result.rows] == ["NVDA", "GOOGL"]
+    assert result.rows[0].cusip == "67066G104"
+    assert result.rows[0].weight == Decimal("0.0908")
+    assert result.legal_metadata["source_provider"] == "sapient_quality_select"
+    assert result.legal_metadata["composition_date"] == "2026-09-03"
+    assert result.legal_metadata["route_resolution"] == (
+        "sapient_official_product_page_complete_holdings_table"
+    )
+
+
+@pytest.mark.asyncio
 async def test_eldridge_adapter_filters_combined_daily_holdings_and_preserves_cusips(monkeypatch):
     adapter = get_holdings_adapter("eldridge")
     assert adapter is not None
@@ -22691,6 +22723,7 @@ def test_stockanalysis_provider_reconciliation_batch_is_registered_and_audited()
         "mfs",
         "portfolio_building_block",
         "range",
+        "sapient",
         "strategas",
     }
     fallback_expected = expected - promoted_native
@@ -22717,6 +22750,8 @@ def test_stockanalysis_provider_reconciliation_batch_is_registered_and_audited()
         assert not type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
     assert ISSUER_ADAPTER_CONFIGS["range"].live_tested_default_route is True
     assert type(get_holdings_adapter("range")).__name__ == "RangeHoldingsAdapter"
+    assert ISSUER_ADAPTER_CONFIGS["sapient"].live_tested_default_route is True
+    assert type(get_holdings_adapter("sapient")).__name__ == "SapientHoldingsAdapter"
     for adapter_key in fallback_expected:
         audit = FALLBACK_ISSUER_AUDITS[adapter_key]
         assert audit.status == "needs_first_party_route_discovery"
@@ -27534,8 +27569,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 408
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 88
+    assert ledger["current_native_count"] == 409
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 87
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
