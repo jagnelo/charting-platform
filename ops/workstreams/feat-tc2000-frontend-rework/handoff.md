@@ -237,3 +237,16 @@ benchmark-family proxy symbols now have explicit local adapter metadata and a `r
 probe (SPDR, iShares, Invesco, or Direxion as configured). This is route-selection evidence only;
 it performs no network request and does not claim that any holdings artifact or historical member
 bars have been populated.
+
+## 2026-09-03 — Core bootstrap member-history queue resilience
+
+The core workstation bootstrap handoff is now aligned with the shared family-history queue
+contract at `ad5740893f7b07a8a381ae9e5b2bfb6bb75b43e4`. Per-instrument Redis enqueue failures are
+retained as bounded `queue_errors` with `queue_error_count`, later members continue to queue, and
+the aggregate status becomes `queue_error` without discarding the provider-backed bootstrap result.
+Redis-unavailable results now expose the same zero-count queue fields for a stable diagnostic shape.
+
+The focused workstation-bootstrap unit suite passes `9/9`, including a regression where the middle
+member fails and the first/last members still queue. Ruff and `git diff --check` pass. This closes a
+worker fan-out integrity gap only; it does not claim canonical holdings/history population,
+provider entitlements, point-in-time continuity, or live-source readiness.
