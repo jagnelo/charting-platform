@@ -11,18 +11,20 @@ validation_tier: full_integration
 human_validation_authorization: "The human requested continued product development from staging; all application/workstation changes use the complete integration gate."
 previous_branch: feat/tc2000-frontend-rework (old master-based history, fully merged into staging)
 previous_tip: 8a9c26a872ce02e69817b119885a0dfe0aedcb0d
-goal: "Continue the TC2000-style workstation toward the documented V25 parity and canonical-data goals."
+goal: "Execute docs/tc2000-roadmap.md to deliver the canonical-data-backed, V25-inspired TC2000 workstation and stop at ready_for_human_review."
 scope:
-  - "Close the remaining exact V25 workstation behavior and visual gaps without weakening existing oracles."
-  - "Continue canonical provider-backed family population, history, entitlement, and provenance work."
-  - "Preserve authenticated workstation, cross-window, linked-tool, and persisted-state behavior."
+  - "Re-establish a current baseline from green staging, then execute the roadmap's dependency-ordered workstreams as one continuous delivery stint."
+  - "Complete canonical provider-backed family population, point-in-time history, entitlement, provenance, and the live-data top-down trader workflow."
+  - "Complete compatible Python/Study Lab promotion, analytics, V25 visual/state evidence, resilience, and final acceptance without weakening existing oracles."
 owned_paths:
   - frontend/src/views/WorkstationView.vue
   - frontend/src/components/workstation
   - frontend/tests/e2e/flows.spec.ts
   - frontend/tests/e2e/tc2000_visual.spec.ts
   - docs/tc2000-acceptance-governance.md
+  - docs/tc2000-roadmap.md
   - docs/tc2000-visual-parity.md
+  - docs/project-todos.md
   - ops/state.json
 dependencies: [canonical provider/data evidence and existing workstation acceptance governance]
 acceptance_criteria:
@@ -38,4 +40,8 @@ migration_impact: none
 deployment_impact: none
 status: in_progress
 remaining_gaps:
-  - "Exact/unrepresented V25 visuals, canonical provider-backed family population/history, entitlement evidence, and final audit remain open in the inherited TC2000 records."
+  - "R0: synchronize the branch with a selected green staging checkpoint and produce fresh static, unit, browser, and visual baseline receipts."
+  - "R1-R2: complete canonical family population/history/entitlement evidence and prove the live-data top-down trader workflow."
+  - "R3-R4: close historical analytics and compatible immutable-output promotion across workstation consumers."
+  - "R5-R6: close required visual states, Golden Layout/native-window resilience, endurance, accessibility, security, and performance gaps."
+  - "R7: run the final exact-tip audit and exhaustive integration gate; integration and deployment remain separately authorized."

@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-03 — Prior-session evidence reconciled into the active TC2000 roadmap
+
+- [x] Reconcile the staging-derived feature worktree, the durable August implementation ledgers,
+      all 78 canonical user turns from the prior Codex rollout, the four distinct user-shared
+      visual subjects, and the reconstructed 230-item/26-source-group public TC2000 reference
+      board.
+- [x] Publish `docs/tc2000-roadmap.md` as the concise product north star, current baseline,
+      dependency-ordered workstream map, and completion definition. Historical test counts remain
+      explicitly historical until the synchronized branch baseline is rerun.
+- [ ] Execute R0: synchronize the branch with a selected green staging checkpoint, rerun the named
+      current-state gates, and reproduce or retire the ambiguous late-session Golden Layout concern
+      before beginning new product slices.
+- [ ] Execute R1 next: close the canonical benchmark-family population, entitlement, point-in-time
+      holdings/classification, and member-history gaps that currently limit real-data daily use.
+
 ### 2026-08-19 — Generic breadth predicates can be reused as Study Lab definitions
 
 - [x] Add a direct persistence action to the authenticated Breadth tool for a completed
