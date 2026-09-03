@@ -268,3 +268,8 @@ The startup queue resilience follow-up is `6997d6d81453062b65c1959b9aebb920b55ad
 returns without taking the ARQ worker down. The worker unit slice passes `22/22`, including the
 failure regression; Ruff and diff checks pass. This keeps opt-in bootstrap availability explicit
 under queue outage and does not enable provider calls or alter schedule flags.
+
+The full backend unit suite at the current implementation tip passes `1285/1285` with `67.32%`
+coverage, above the repository `55%` gate. Existing NumPy/Pandas deprecation warnings remain the
+only warnings reported. This is deterministic local evidence; canonical provider population,
+historical continuity, and live entitlement proof remain open R1 requirements.
