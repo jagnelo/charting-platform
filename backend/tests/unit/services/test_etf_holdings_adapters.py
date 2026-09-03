@@ -18817,6 +18817,72 @@ async def test_long_pond_adapter_fetches_official_lpre_cms_holdings(monkeypatch)
 
 
 @pytest.mark.asyncio
+async def test_lsv_adapter_fetches_official_lsvd_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("lsv")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "LsvHoldingsAdapter"
+    probe = adapter.probe(symbol="LSVD", name="LSV Disciplined Value ETF", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url == adapter.PRODUCT_PAGE_URL
+
+    with pytest.raises(ValueError, match="verified LSVD product page or CSV route"):
+        await adapter.fetch_latest(symbol="LSVD", source_url="https://example.invalid/holdings.csv")
+
+    csv_rows = [
+        "Name,Ticker,ISIN,Number of Shares,Market Value,% of NAV",
+        "FIRST AMERICAN TREASURY OBLIGATIONS FUND,,US31846V3289,239284.83,239284.83,    0.04",
+        *(
+            f"Company {index},SYM{index},US0000000{index:03d},{index * 100},{index * 100000}.00,    1.25"
+            for index in range(1, 21)
+        ),
+        "Cash,,,309070.78,309070.78,    0.05",
+    ]
+    page_html = (
+        "<html><h1>LSV Disciplined Value ETF</h1><p>Ticker : LSVD</p>"
+        "<h2>Top 10 Holdings</h2>"
+        "<table><tr><td>As of:</td><td> 09/01/2026</td></tr></table>"
+        f'<a href="{adapter.HOLDINGS_URL}">All Fund Holdings CSV Download</a></html>'
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=page_html,
+            content_type="text/html",
+            url=adapter.PRODUCT_PAGE_URL,
+        ),
+        FakeResponse(
+            text="\n".join(csv_rows),
+            content_type="text/csv",
+            url=adapter.HOLDINGS_URL,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="LSVD")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        adapter.PRODUCT_PAGE_URL,
+        adapter.HOLDINGS_URL,
+    ]
+    assert len(result.rows) == 22
+    assert result.rows[0].symbol is None
+    assert result.rows[0].holding_type == "cash"
+    assert result.rows[0].isin == "US31846V3289"
+    assert result.rows[1].symbol == "SYM1"
+    assert result.rows[1].shares == Decimal("100")
+    assert result.rows[1].market_value == Decimal("100000.00")
+    assert result.rows[1].weight == Decimal("0.0125")
+    assert result.rows[-1].row_type == "cash"
+    assert result.legal_metadata["source_provider"] == "lsv_asset_management"
+    assert result.legal_metadata["publisher"] == "LSV Asset Management"
+    assert result.legal_metadata["route_resolution"] == ("lsv_product_page_declared_holdings_csv")
+    assert result.legal_metadata["snapshot_provenance"] == "lsv_native_current_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+    assert result.raw_json["source_format"] == "issuer_product_page_declared_holdings_csv"
+    assert adapter.probe(symbol="UNKNOWN", name="", identifiers={}).status == "needs_issuer_route"
+
+
+@pytest.mark.asyncio
 async def test_fitzgerald_adapter_discovers_and_parses_nicholas_wealth_csv(monkeypatch):
     adapter = get_holdings_adapter("fitzgerald")
     assert adapter is not None
@@ -22147,6 +22213,7 @@ def test_stockanalysis_provider_fourth_continuation_batch_is_registered_and_audi
         "bridgeway",
         "jlens",
         "long_pond",
+        "lsv",
     }
 
     assert expected
@@ -22176,6 +22243,9 @@ def test_stockanalysis_provider_fourth_continuation_batch_is_registered_and_audi
     assert "long_pond" not in FALLBACK_ISSUER_AUDITS
     assert ISSUER_ADAPTER_CONFIGS["long_pond"].live_tested_default_route is True
     assert type(get_holdings_adapter("long_pond")).__name__ == "LongPondHoldingsAdapter"
+    assert "lsv" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["lsv"].live_tested_default_route is True
+    assert type(get_holdings_adapter("lsv")).__name__ == "LsvHoldingsAdapter"
 
 
 def test_redwood_has_a_verified_native_route_after_live_probe():
@@ -26423,6 +26493,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "knowledge_leaders",
         "logiq",
         "long_pond",
+        "lsv",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))

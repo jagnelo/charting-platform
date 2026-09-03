@@ -2346,6 +2346,7 @@ ISSUER_DOMAIN_HINTS.update(
         "hilton": ["hiltonetfs.com", "hiltonetfjson.com", "hiltoncapitalmanagement.com"],
         "logiq": ["logiqetf.com", "logiqcap.com"],
         "long_pond": ["longpondetf.com", "longpondcapital.com"],
+        "lsv": ["lsvasset.com"],
         "knowledge_leaders": [
             "axsinvestments.com",
             "axsetf.filepoint.live",
@@ -23965,6 +23966,202 @@ class LongPondHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if not all(row.symbol or row.name or row.extra_data.get("figi") for row in rows):
             raise ValueError(f"Long Pond LPRE holdings contained an unidentifiable {symbol} row.")
         return rows, _parse_issuer_date(component.get("date"))
+
+
+class LsvHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Read LSV Asset Management's current LSVD holdings CSV."""
+
+    PRODUCT_PAGE_URL = "https://www.lsvasset.com/disciplined-value-etf/"
+    HOLDINGS_URL = "https://www.lsvasset.com/ETFLive/LSVD-holdings.csv"
+    SUPPORTED_SYMBOL = "LSVD"
+    _ISSUER_HOST = "lsvasset.com"
+    _HOLDINGS_PATH = "/ETFLive/LSVD-holdings.csv"
+    _EXPECTED_HEADERS = (
+        "name",
+        "ticker",
+        "isin",
+        "number of shares",
+        "market value",
+        "% of nav",
+    )
+
+    def probe(
+        self,
+        *,
+        symbol: str,
+        name: str,
+        identifiers: dict[str, str],
+    ) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        supported = normalized_symbol == self.SUPPORTED_SYMBOL
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if supported else Decimal("0.5000"),
+            status="ready" if supported or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "LSV publishes LSVD's complete current holdings through its official product page and CSV."
+                if supported
+                else "No verified LSV product page is configured for this ETF; SEC EDGAR remains available as fallback."
+                if has_sec_fallback
+                else "No verified LSV product page is configured for this ETF."
+            ),
+            source_url=self.PRODUCT_PAGE_URL if supported else None,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol != self.SUPPORTED_SYMBOL:
+            raise ValueError("LSV's verified issuer route currently supports LSVD only.")
+        if source_url and not self._is_accepted_source_url(source_url):
+            raise ValueError("LSV holdings must use the verified LSVD product page or CSV route.")
+        holdings_url = source_url if self._is_holdings_url(source_url or "") else self.HOLDINGS_URL
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            page_response = await client.get(
+                self.PRODUCT_PAGE_URL,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+            page_response.raise_for_status()
+            product_url = str(getattr(page_response, "url", self.PRODUCT_PAGE_URL))
+            composition_date = self._validate_product_page(page_response.text, product_url)
+
+            holdings_response = await client.get(
+                holdings_url,
+                headers={
+                    **_holdings_request_headers(accept="text/csv,text/plain,*/*"),
+                    "Referer": product_url,
+                },
+                follow_redirects=True,
+            )
+            holdings_response.raise_for_status()
+            resolved_holdings_url = str(getattr(holdings_response, "url", holdings_url))
+            if not self._is_holdings_url(resolved_holdings_url):
+                raise ValueError("LSV holdings CSV response left the official issuer route.")
+
+        rows = self._parse_holdings_csv(holdings_response.text, symbol=normalized_symbol)
+        if len(rows) < 20 or composition_date is None:
+            raise ValueError("LSV LSVD holdings CSV did not expose complete dated holdings.")
+        composition_value = composition_date.isoformat()
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=holdings_response.text,
+            raw_json={
+                "source_format": "issuer_product_page_declared_holdings_csv",
+                "row_count": len(rows),
+                "composition_date": composition_value,
+            },
+            source_url=resolved_holdings_url,
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "lsv_product_page_declared_holdings_csv",
+                "snapshot_provenance": "lsv_native_current_holdings_csv",
+                "product_page_url": product_url,
+                "composition_date": composition_value,
+                "as_of_date": composition_value,
+                "freshness_semantics": "issuer_disclosed_holdings_as_of_date",
+                "refresh_frequency": "issuer_published_current_holdings",
+                "publisher": "LSV Asset Management",
+                "parent_issuer": "The Advisors' Inner Circle Fund",
+                "issuer_relationship": (
+                    "LSV Asset Management adviser; The Advisors' Inner Circle Fund registrant"
+                ),
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _is_accepted_source_url(cls, value: str) -> bool:
+        return value.rstrip("/").casefold() in {
+            cls.PRODUCT_PAGE_URL.rstrip("/").casefold(),
+            cls.HOLDINGS_URL.rstrip("/").casefold(),
+        } or cls._is_holdings_url(value)
+
+    @classmethod
+    def _is_holdings_url(cls, value: str) -> bool:
+        parsed = urlparse(value)
+        return (
+            _domain_matches(_url_host(value) or "", cls._ISSUER_HOST)
+            and parsed.path.rstrip("/").casefold() == cls._HOLDINGS_PATH.casefold()
+        )
+
+    @classmethod
+    def _validate_product_page(cls, raw_html: str, resolved_url: str) -> date | None:
+        parsed = urlparse(resolved_url)
+        if not _domain_matches(_url_host(resolved_url) or "", cls._ISSUER_HOST):
+            raise ValueError("LSV product page resolved outside the official issuer host.")
+        if parsed.path.rstrip("/") != "/disciplined-value-etf":
+            raise ValueError("LSV product page did not preserve the LSVD route.")
+        page = html.unescape(raw_html)
+        identity = page.upper()
+        if "LSV DISCIPLINED VALUE ETF" not in identity or "LSVD" not in identity:
+            raise ValueError("LSV product page identity did not match requested ETF LSVD.")
+        if cls.HOLDINGS_URL.casefold() not in page.casefold():
+            raise ValueError("LSV product page did not declare its official holdings CSV route.")
+        date_match = re.search(
+            r"Top\s+10\s+Holdings.*?As\s+of:\s*</td>\s*<td[^>]*>\s*([^<]+)",
+            page,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        return _parse_issuer_date(date_match.group(1)) if date_match else None
+
+    @classmethod
+    def _parse_holdings_csv(cls, raw_csv: str, *, symbol: str) -> list[CanonicalHoldingRow]:
+        table_rows = [
+            row
+            for row in csv.reader(raw_csv.lstrip("\ufeff").strip().splitlines())
+            if any(_clean(cell) for cell in row)
+        ]
+        if not table_rows:
+            raise ValueError("LSV holdings CSV was empty.")
+        header = [str(value).strip().casefold() for value in table_rows[0]]
+        if tuple(header) != cls._EXPECTED_HEADERS:
+            raise ValueError("LSV holdings CSV schema did not match the official LSVD export.")
+        rows: list[CanonicalHoldingRow] = []
+        for position, values in enumerate(table_rows[1:], start=1):
+            raw = _row_dict(header, values)
+            name = _clean(raw.get("name"))
+            ticker = _clean(raw.get("ticker"))
+            isin = _clean(raw.get("isin"))
+            if not any((name, ticker, isin)):
+                continue
+            normalized_name = (name or "").casefold()
+            is_cash = normalized_name == "cash" or "treasury obligations fund" in normalized_name
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else (ticker.upper() if ticker else None),
+                    name=name,
+                    isin=isin.upper() if isin and _looks_like_isin(isin) else None,
+                    shares=_decimal(raw.get("number of shares")),
+                    market_value=_decimal(raw.get("market value")),
+                    weight=_decimal_percent_points(raw.get("% of nav")),
+                    currency="USD" if is_cash else None,
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"lsv-{symbol}-{position}",
+                    extra_data={
+                        key: value
+                        for key, value in raw.items()
+                        if key and _clean(value) is not None
+                    },
+                )
+            )
+        return rows
 
 
 class BeeHiveHoldingsAdapter(TidalHoldingsAdapter):
@@ -65770,6 +65967,18 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "through its CMS payload; data may be subject to issuer terms."
         ),
     ),
+    "lsv": IssuerCsvAdapterConfig(
+        adapter_key="lsv",
+        source_provider="lsv_asset_management",
+        source_access="issuer_product_page_declared_holdings_csv",
+        url_templates=("https://www.lsvasset.com/ETFLive/LSVD-holdings.csv",),
+        product_page_templates=("https://www.lsvasset.com/disciplined-value-etf/",),
+        live_tested_default_route=True,
+        terms_note=(
+            "LSV Asset Management's official LSVD product page declares a complete current "
+            "holdings CSV; data may be subject to issuer terms."
+        ),
+    ),
     "counterpoint": IssuerCsvAdapterConfig(
         adapter_key="counterpoint",
         source_provider="counterpoint",
@@ -67506,7 +67715,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "highland_capital",
         "horizons",
         "hoya",
-        "lsv",
         "m2_financial",
         "m_d_sass",
         "madison_avenue",
@@ -70594,7 +70802,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "kovitz": KovitzHoldingsAdapter,
         "leverage_shares": LeverageSharesHoldingsAdapter,
         "long_pond": LongPondHoldingsAdapter,
-        "lsv": LsvReconciledFallbackHoldingsAdapter,
+        "lsv": LsvHoldingsAdapter,
         "m2_financial": M2FinancialReconciledFallbackHoldingsAdapter,
         "m_d_sass": MDSassReconciledFallbackHoldingsAdapter,
         "madison_avenue": MadisonAvenueReconciledFallbackHoldingsAdapter,
