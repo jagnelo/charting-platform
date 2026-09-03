@@ -5,12 +5,15 @@ import pytest
 from sqlalchemy import select
 
 from app.config import settings
+from app.models.data_source import DataSource
 from app.models.etf_holdings import ETFHoldingsSnapshot
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.models.provider_runtime import ProviderCapability, ProviderEntitlement
 from app.models.workstation import MarketGroup, MarketGroupMember
 from app.routers.analysis import (
     _aggregate_series_cells,
     _calendar_year_cells,
+    _entitlement_state,
     _gauge_exclusion_warnings,
     _group_members_at,
     _group_membership_version,
@@ -55,6 +58,24 @@ def test_volume_ratio_returns_structured_warning_for_missing_provider_volume():
     assert value is None
     assert warning is not None
     assert warning.code == "missing_volume"
+
+
+def test_entitlement_readiness_requires_a_successful_persisted_live_probe():
+    source = DataSource(name="public-eod", config={})
+    entitlement = ProviderEntitlement(
+        data_source_id=1,
+        capability=ProviderCapability.PRICE_HISTORY,
+        configured_plan="public-eod",
+        is_free=True,
+        authentication_required=False,
+        live_probe_status="not_run",
+    )
+
+    assert _entitlement_state(source, entitlement) == "unreviewed"
+    entitlement.live_probe_status = "passed"
+    assert _entitlement_state(source, entitlement) == "verified"
+    entitlement.live_probe_status = "failure"
+    assert _entitlement_state(source, entitlement) == "probe_failed"
 
 
 def test_python_breadth_history_projects_member_transitions_with_metric_lineage():

@@ -283,6 +283,8 @@ def _entitlement_state(
         return "not_configured"
     if entitlement.live_probe_status in {"failure", "failed", "error"}:
         return "probe_failed"
+    if entitlement.live_probe_status not in {"success", "passed", "verified", "ok"}:
+        return "unreviewed"
     return "verified"
 
 
