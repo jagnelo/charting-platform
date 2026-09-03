@@ -5,9 +5,9 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 400
-current_fallback_count: 96
-generated_at: 2026-09-03T11:00:00Z
+current_native_count: 401
+current_fallback_count: 95
+generated_at: 2026-09-03T12:00:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -4604,35 +4604,57 @@ providers:
     display_name: portfolio_building_block
     queue_rank: 96
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-03
+    source_access_declared: issuer_public_product_page_declared_holdings_csv_query
+    representative_symbols: [PBOG, PBEU, PBPH]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    source_freshness: current_as_of_date
+    first_party_domains: [portfoliobuildingblocketfs.com]
+    candidate_routes:
+      - "https://portfoliobuildingblocketfs.com/pbog/"
+      - "https://portfoliobuildingblocketfs.com/pbeu/"
+      - "https://portfoliobuildingblocketfs.com/pbph/"
+      - "https://portfoliobuildingblocketfs.com/pbog/?download_holdings_csv=1"
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_portfolio_building_block_adapter_fetches_declared_holdings_csv
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.portfolio_building_block"
       - "runtime:ISSUER_ADAPTER_CONFIGS.portfolio_building_block"
+      - "web:portfolio-building-block-pbog-2026-09-03"
+      - "web:portfolio-building-block-pbeu-2026-09-03"
+      - "live:portfolio-building-block-current-pbog-csv-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.portfolio_building_block"
-    disposition_reason: "portfolio_building_block: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate portfolio_building_block first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
-    implementation_sha: null
-    validation_refs: []
+      - date: 2026-09-03
+        source: "https://portfoliobuildingblocketfs.com/pbog/"
+        result: "The official PBOG page identifies PBOG and declares the complete holdings download query; the linked PBEU and PBPH pages expose the same route pattern."
+        evidence_ref: "web:portfolio-building-block-pbog-2026-09-03"
+      - date: 2026-09-03
+        source: "https://portfoliobuildingblocketfs.com/pbeu/"
+        result: "The official PBEU page identifies PBEU and exposes current holdings dated September 2, 2026."
+        evidence_ref: "web:portfolio-building-block-pbeu-2026-09-03"
+      - date: 2026-09-03
+        source: "https://portfoliobuildingblocketfs.com/pbog/?download_holdings_csv=1"
+        result: "The issuer route returned HTTP 200 text/csv with complete PBOG rows dated September 2, 2026."
+        evidence_ref: "live:portfolio-building-block-current-pbog-csv-2026-09-03"
+    disposition_reason: "portfolio_building_block: The issuer's PBOG, PBEU, and PBPH product pages declare a complete query-based holdings CSV. The native adapter validates each page and account symbol, parses the issuer CSV, and records Portfolio Building Block ETFs provenance. A current PBOG route returned rows dated September 2, 2026; all three products are promoted under one provider-specific adapter."
+    next_action: "portfolio_building_block: Monitor the three product pages and download query for schema/date continuity and preserve separate product coverage."
+    implementation_sha: 0b6d5f9626851d3a23910f5159f2fa00587abea8
+    validation_refs:
+      - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_portfolio_building_block_adapter_fetches_declared_holdings_csv"
+      - "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows"
+      - "validation:2026-09-03T12:00:00Z"
   - adapter_key: premise_capital
     display_name: premise_capital
     queue_rank: 97

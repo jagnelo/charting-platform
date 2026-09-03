@@ -1357,3 +1357,16 @@ fallback-only, with 37 queued records and `portfolio_building_block` next.
 Evidence refs: `web:performance-trust-ptam-resources-2026-09-03`,
 `web:performance-trust-current-holdings-pdf-2026-09-03`, and
 `live:performance-trust-holdings-pdf-stale-2026-09-03`.
+
+## Current promotion checkpoint — Portfolio Building Block / PBOG-PBEU-PBPH — 2026-09-03
+
+The official PBOG, PBEU, and PBPH product pages declare a complete
+`?download_holdings_csv=1` route. The current PBOG CSV returned rows dated
+September 2, 2026. The native adapter validates page/account identity and
+parses the issuer CSV for all three products with truthful publisher provenance.
+
+The current split is 496 registered / 401 native-live-backed / 95 fallback-only,
+with 36 queued records and `premise_capital` next. Evidence refs:
+`web:portfolio-building-block-pbog-2026-09-03`,
+`web:portfolio-building-block-pbeu-2026-09-03`, and
+`live:portfolio-building-block-current-pbog-csv-2026-09-03`.

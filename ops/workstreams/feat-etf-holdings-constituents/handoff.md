@@ -977,6 +977,22 @@ The ledger has 37 queued records and the next ranked issuer is
 `web:performance-trust-current-holdings-pdf-2026-09-03`, and
 `live:performance-trust-holdings-pdf-stale-2026-09-03`.
 
+## Current promotion checkpoint — Portfolio Building Block / PBOG-PBEU-PBPH native route — 2026-09-03
+
+Portfolio Building Block's official PBOG, PBEU, and PBPH product pages declare
+the `?download_holdings_csv=1` download. The current PBOG route returned a
+complete CSV dated September 2, 2026; the native adapter validates each page
+and account symbol, parses the complete CSV, and records Portfolio Building
+Block ETFs provenance for all three products.
+
+Runtime state is now 496 registered / 401 native-live-backed / 95 fallback-only
+providers. Runtime fallback statuses are 10 issuer-access-blocked, 74
+route-discovery, 5 non-executable-public-source, and 6 non-portfolio-publisher.
+The ledger has 36 queued records and the next ranked issuer is `premise_capital`.
+Evidence refs: `web:portfolio-building-block-pbog-2026-09-03`,
+`web:portfolio-building-block-pbeu-2026-09-03`, and
+`live:portfolio-building-block-current-pbog-csv-2026-09-03`.
+
 ## Current audit checkpoint — North Square non-executable public source — 2026-09-03
 
 The ranked `north_square` audit verified official NSIV and NSIG product pages
