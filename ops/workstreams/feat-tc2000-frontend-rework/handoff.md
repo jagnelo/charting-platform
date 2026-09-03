@@ -570,5 +570,6 @@ pass inclusive UTC end-of-day to the bulk worker.
 
 The focused history/worker suite passes `34/34`, the exact-tip backend unit suite passes
 `1,296/1,296` with `67.50%` coverage, and Ruff plus `git diff --check` pass. This is an
-observability/provenance improvement only; it does not claim additional QQQ member bars or close
-the remaining 76 placeholder bindings, MN/W1 coverage, QQQE, or SPDR dated-source gaps.
+observability/provenance improvement only; the Docker-backed benchmark-family integration matrix
+also passes `21/21` at the current tip. It does not claim additional QQQ member bars or close the
+remaining 76 placeholder bindings, MN/W1 coverage, QQQE, or SPDR dated-source gaps.
