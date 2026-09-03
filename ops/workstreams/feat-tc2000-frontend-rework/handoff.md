@@ -479,3 +479,30 @@ gap; no paid credential, latest-only fallback, or fabricated bar was introduced.
 The QQQ validation stack was then removed with the prescribed `make test-stack-down` helper:
 zero containers and retained volumes remained, four generated images were removed, no host-wide
 prune was performed, and the disposable local admin token was deleted.
+
+## 2026-09-03 — empty-history provider fallback and timeframe isolation
+
+The first QQQ history run exposed two provider-chain defects in the free-source path. Bulk history
+treated an empty Alpaca response as a successful call, so credential-less local runs stopped before
+reaching the configured Nasdaq fallback. After that was corrected, a second boundary appeared:
+`ProviderNoDataError` from an MN/W1/D1 history request was persisted as capability-wide
+`unsupported`, which caused the MN miss to hide Nasdaq from the later D1 request even though the
+Nasdaq adapter is intentionally D1-only. Commit `aff586ef` makes bulk history treat empty provider
+responses as chain failures and prevents timeframe/range-specific history misses from poisoning the
+instrument's capability support state. Latest-price probes and non-history capability downgrades
+retain their existing behavior. Unit regressions cover both empty-result fallback and the
+history-support isolation contract.
+
+On a clean assigned stack, an authenticated Nasdaq-100/QQQ refresh for `2025-12-31` completed and
+queued `101` member jobs. During the bounded drain sample, D1 worker logs showed Alpaca failing,
+Nasdaq being attempted, and the remaining free providers being exhausted; the prior
+`No currently-supported providers available ... D1` outcome did not recur. Nasdaq returned no rows
+in this local environment, so no OHLCV bars were persisted in the sample and member-bar readiness
+remains open. The run was intentionally cleaned before all 101 slow public-provider attempts
+completed; this is provider-chain evidence, not a claim of full member-history hydration.
+
+The exact-tip backend unit suite passes `1293/1293` with `67.47%` coverage, the focused
+Docker-backed benchmark-family integration matrix passes `21/21`, and Ruff plus `git diff --check`
+are clean. The assigned stack was removed with branch-scoped volumes and the disposable local token
+deleted; no other worktree, staging, master, integration, promotion, or deployment action was
+performed.
