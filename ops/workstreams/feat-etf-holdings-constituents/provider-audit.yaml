@@ -7,7 +7,7 @@ baseline_fallback_count: 140
 current_registered_count: 496
 current_native_count: 398
 current_fallback_count: 98
-generated_at: 2026-09-03T08:30:00Z
+generated_at: 2026-09-03T09:30:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -4261,19 +4261,22 @@ providers:
     display_name: north_square
     queue_rank: 89
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: non_executable_public_source
+    disposition: non_executable_public_source
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols: [NSIV, NSIG, QTPI]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains: [northsquareinvest.com, northsquaredocs.filepoint.live, sec.gov]
+    candidate_routes:
+      - "https://northsquareinvest.com/strategies/north-square-disciplined-value-etf/"
+      - "https://northsquareinvest.com/strategies/north-square-growth-opportunities-etf/"
+      - "https://northsquaredocs.filepoint.live/"
     route_complete: false
-    symbol_mapping_proven: false
+    symbol_mapping_proven: true
     current_holdings_proven: false
     parser_fixture: null
     live_test: null
@@ -4286,8 +4289,20 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.north_square"
-    disposition_reason: "north_square: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate north_square first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-03
+        source: "https://northsquareinvest.com/strategies/north-square-disciplined-value-etf/"
+        result: "The official NSIV product page identifies the ETF but states portfolio characteristics are quarterly and that a complete holdings list is available upon request; no public complete current artifact is declared."
+        evidence_ref: "web:north-square-nsiv-non-executable-2026-09-03"
+      - date: 2026-09-03
+        source: "https://northsquareinvest.com/strategies/north-square-growth-opportunities-etf/"
+        result: "The official NSIG product page has the same quarterly/available-upon-request limitation, and the FilePoint catalogue lists NSIG/NSIV without current holdings downloads."
+        evidence_ref: "web:north-square-nsig-filepoint-2026-09-03"
+      - date: 2026-09-03
+        source: "https://www.sec.gov/Archives/edgar/data/1750821/000158064226002170/epat_northswuare-485a.htm"
+        result: "The SEC filing confirms North Square's adviser role and website disclosure policy but does not provide a current complete public holdings artifact."
+        evidence_ref: "web:north-square-sec-disclosure-2026-09-03"
+    disposition_reason: "north_square: Official NSIV/NSIG pages and the FilePoint catalogue identify the current ETFs but expose no executable complete current holdings artifact; portfolio characteristics are quarterly and complete lists are available upon request. The provider remains fallback-only as non_executable_public_source, with no SEC-derived reconstruction promoted."
+    next_action: "north_square: Re-audit the official product and FilePoint pages for a public complete holdings download after the next reporting cycle; promote only when executable current rows and dates are proven."
     implementation_sha: null
     validation_refs: []
   - adapter_key: opus_capital_management

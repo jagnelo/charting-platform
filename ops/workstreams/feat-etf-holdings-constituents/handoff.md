@@ -864,6 +864,21 @@ is `norris_perne_french`. The full opt-in live matrix and Docker-backed
 integration gate remain pending, with the known unrelated reproducible
 F8p-current-history Study Lab histogram timeout retained.
 
+## Current audit checkpoint — North Square non-executable public source — 2026-09-03
+
+The ranked `north_square` audit verified official NSIV and NSIG product pages
+and the North Square FilePoint catalogue. The pages identify current ETFs but
+state that portfolio characteristics are quarterly and complete holdings are
+available upon request; no executable complete current holdings artifact is
+publicly declared. The ledger records `north_square` as
+`non_executable_public_source`, with no SEC-derived reconstruction promoted.
+
+Runtime state remains 496 registered / 398 native-live-backed / 98
+fallback-only providers. Runtime fallback statuses are 9 issuer-access-blocked,
+79 route-discovery, 4 non-executable-public-source, and 6 non-portfolio-
+publisher. The ledger has 43 queued fallback records and the next ranked issuer
+is `opus_capital_management`.
+
 ## Current promotion checkpoint — Norris Perne French / NPFE native route — 2026-09-03
 
 The ranked `norris_perne_french` audit verified NPF Investment Advisors'

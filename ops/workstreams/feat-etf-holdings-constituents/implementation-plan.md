@@ -2170,3 +2170,17 @@ with 44 queued records and `north_square` next. Evidence refs:
 `web:norris-perne-french-official-npfe-2026-09-03`,
 `web:norris-perne-french-sec-series-2026-09-03`, and
 `live:norris-perne-french-npfe-current-holdings-2026-09-03`.
+
+## 60. Current audit checkpoint — North Square non-executable public source — 2026-09-03
+
+North Square's official NSIV/NSIG pages and FilePoint catalogue identify the
+current ETF products but expose only quarterly characteristics and
+available-upon-request complete holdings. No public executable current
+artifact was proven, so `north_square` remains fallback-only as
+`non_executable_public_source` without SEC-derived promotion.
+
+Current state is 496 registered / 398 native-live-backed / 98 fallback-only,
+with 43 queued records and `opus_capital_management` next. Evidence refs:
+`web:north-square-nsiv-non-executable-2026-09-03`,
+`web:north-square-nsig-filepoint-2026-09-03`, and
+`web:north-square-sec-disclosure-2026-09-03`.

@@ -1178,6 +1178,19 @@ fallback-only providers. The ledger has 49 queued fallback records and
 full opt-in matrix and Docker integration gate remain pending, with the known
 unrelated F8p-current-history Study Lab histogram timeout retained.
 
+## Current audit checkpoint — North Square non-executable public source — 2026-09-03
+
+North Square's official NSIV and NSIG pages identify current ETFs but state
+that portfolio characteristics are quarterly and complete holdings are
+available upon request. The FilePoint catalogue lists the products without a
+current holdings download. The ledger records `north_square` as
+`non_executable_public_source`; no SEC-derived reconstruction is promoted.
+
+The current split remains 496 registered, 398 native/live-backed, and 98
+fallback-only providers. Runtime statuses are 9 issuer-access-blocked, 79
+route-discovery, 4 non-executable, and 6 non-portfolio-publisher. The ledger
+has 43 queued records and `opus_capital_management` is next.
+
 ## Current promotion checkpoint — Norris Perne French / NPFE — 2026-09-03
 
 NPF Investment Advisors' official NPFE page declares a complete current
