@@ -14,6 +14,9 @@
           </select>
         </label>
         <span v-if="benchmarkFamilyKey" class="benchmark-surface__family-state">{{ activeBenchmarkLabel }} · locked family legs</span>
+        <span v-if="benchmarkFamilyReadinessLoading" role="status">Checking all-family readiness…</span>
+        <span v-else-if="benchmarkFamilyReadinessError" class="benchmark-surface__family-error" role="alert">Readiness unavailable: {{ benchmarkFamilyReadinessError }}</span>
+        <span v-else-if="benchmarkFamilyReadiness" class="benchmark-surface__family-readiness" aria-label="Benchmark family readiness">All-family readiness: {{ benchmarkFamilyReadiness.readiness_status }} · {{ benchmarkFamilyReadiness.ready_role_count }}/{{ benchmarkFamilyReadiness.role_count }} roles · {{ benchmarkFamilyReadiness.ready_family_count }}/{{ benchmarkFamilyReadiness.family_count }} families ready</span>
         <span v-if="benchmarkFamilyLoading" role="status">Loading family legs…</span>
         <span v-else-if="benchmarkFamilyError" class="benchmark-surface__family-error" role="alert">{{ benchmarkFamilyError }}</span>
       </div>
@@ -763,7 +766,7 @@
           <label>As of <select :value="familyAsOf" aria-label="Family analysis as of" @change="setBreadthConfiguration({ as_of: (($event.target as HTMLSelectElement).value || null) })"><option value="">Latest</option><option v-for="date in familyCoverageDates" :key="date" :value="familyAsOfValue(date)">{{ date }}</option></select></label>
           <div class="breadth-tool__family-coverage-roles">
             <span v-for="role in familyCoverage.roles" :key="role.role">
-              <b>{{ familyRoleLabel(role.role) }}</b> {{ role.symbol ?? role.label }} · {{ role.status }} · {{ role.snapshots.length }} date{{ role.snapshots.length === 1 ? '' : 's' }} · {{ familyContinuityLabel(role) }} · bars {{ familyMemberBarHistoryLabel(role) }}
+              <b>{{ familyRoleLabel(role.role) }}</b> {{ role.symbol ?? role.label }} · {{ role.status }} · readiness {{ role.composite_readiness_status ?? 'unknown' }} · entitlement {{ role.entitlement_status ?? 'unknown' }} · {{ role.snapshots.length }} date{{ role.snapshots.length === 1 ? '' : 's' }} · {{ familyContinuityLabel(role) }} · bars {{ familyMemberBarHistoryLabel(role) }}
             </span>
           </div>
         </div>
@@ -1929,6 +1932,9 @@ const activeBenchmarkMapRole = computed<BenchmarkFamilyMapRole>(() => {
   return selected?.role ?? 'cap_weight'
 })
 const benchmarkFamilyLoading = ref(false)
+const benchmarkFamilyReadiness = computed(() => workspaceStore.benchmarkFamilyReadiness)
+const benchmarkFamilyReadinessError = computed(() => workspaceStore.benchmarkFamilyReadinessError)
+const benchmarkFamilyReadinessLoading = ref(false)
 const benchmarkFamilyError = computed(() => {
   if (!benchmarkFamilyKey.value) return ''
   return workspaceStore.marketGroupErrors[benchmarkFamilyKey.value] ?? workspaceStore.groupSnapshotErrors[benchmarkFamilyKey.value] ?? benchmarkFamilyOverviewError.value
@@ -3363,6 +3369,15 @@ watch([benchmarkFamilyKey, benchmarkFamilyCapProxy, activeTimeframe], async ([fa
     ])
   } finally {
     if (sequence === benchmarkFamilyLoadSequence) benchmarkFamilyLoading.value = false
+  }
+}, { immediate: true })
+watch(() => props.tool.instance_key, async instanceKey => {
+  if (instanceKey !== 'benchmark-list') return
+  benchmarkFamilyReadinessLoading.value = true
+  try {
+    await workspaceStore.loadBenchmarkFamilyReadiness()
+  } finally {
+    benchmarkFamilyReadinessLoading.value = false
   }
 }, { immediate: true })
 watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, breadthLookback, familyAsOf], ([groupKey, timeframe, adjusted, lookback]) => {

@@ -557,6 +557,9 @@ class TestWorkspaces:
         assert roles["cap_weight"]["adapter_key"] == "spdr"
         assert roles["cap_weight"]["adapter_status"] == "failure"
         assert Decimal(roles["cap_weight"]["adapter_confidence"]) == Decimal("0.9900")
+        assert roles["cap_weight"]["entitlement_status"] == "unknown"
+        assert roles["cap_weight"]["composite_readiness_status"] == "partial"
+        assert roles["cap_weight"]["point_in_time_supported"] is True
         assert [row["composition_date"] for row in roles["cap_weight"]["snapshots"]] == [
             "2027-06-30",
             "2026-06-30",
@@ -743,6 +746,44 @@ class TestWorkspaces:
         assert any(
             warning["code"] == "family_role_profile_unavailable"
             for warning in response.json()["exclusions"]
+        )
+
+    def test_benchmark_family_readiness_returns_all_registry_families_without_fallback(
+        self, client, auth_headers
+    ):
+        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
+        assert seeded.status_code == 200, seeded.text
+
+        response = client.get(
+            "/api/v1/analysis/benchmark-families/readiness",
+            headers=auth_headers,
+            params={"as_of": "2026-08-01T00:00:00Z", "limit": 8},
+        )
+        assert response.status_code == 200, response.text
+        payload = response.json()
+        assert payload["family_count"] == 8
+        assert payload["role_count"] == 32
+        assert payload["ready_family_count"] == 0
+        assert payload["ready_role_count"] == 0
+        assert payload["readiness_status"] == "coverage_limited"
+        assert payload["as_of"] == "2026-08-01T00:00:00Z"
+        assert payload["snapshot_limit"] == 8
+        assert payload["universe_provenance"]["provider_calls"] is False
+        assert {family["family_key"] for family in payload["families"]} == {
+            "sp500",
+            "sp400",
+            "sp600",
+            "sp1500",
+            "russell1000",
+            "russell2000",
+            "russell3000",
+            "nasdaq100",
+        }
+        assert all(len(family["roles"]) == 4 for family in payload["families"])
+        assert all(
+            role["composite_readiness_status"] == "unavailable"
+            for family in payload["families"]
+            for role in family["roles"]
         )
 
     def test_benchmark_family_coverage_marks_unresolved_snapshot_as_pending(

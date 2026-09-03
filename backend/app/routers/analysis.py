@@ -16,12 +16,14 @@ from sqlalchemy.orm import selectinload
 
 from app.auth.dependencies import get_current_user
 from app.database import get_db
+from app.models.data_source import DataSource
 from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
 from app.models.instrument import Instrument
 from app.models.instrument_event import InstrumentEvent, InstrumentEventFetchState
 from app.models.market_map import MarketMapSnapshot
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+from app.models.provider_runtime import ProviderCapability, ProviderEntitlement
 from app.models.research import CodeAsset, CodeVersion, ResearchRun
 from app.models.screener import ScreenerDefinition, ScreenerResult
 from app.models.user import User
@@ -63,6 +65,7 @@ from app.schemas.analysis import (
     BenchmarkFamilyRankingRoleOut,
     BenchmarkFamilyRatioOut,
     BenchmarkFamilyRatiosOut,
+    BenchmarkFamilyReadinessOut,
     BenchmarkFamilyRotationOut,
     BenchmarkFamilyRotationRoleOut,
     BenchmarkFamilyTechnicalRoleOut,
@@ -133,11 +136,13 @@ from app.services.breadth import (
 from app.services.indicators import OHLCVSeries, get_latest_value
 from app.services.market_map import build_market_map, read_market_map_cache
 from app.services.parameter_validation import validate_parameter_values
+from app.services.provider_availability import provider_configured
 from app.services.research_jobs import (
     collect_research_result,
     enqueue_research_run,
     read_research_progress,
 )
+from app.services.top_down_taxonomy import benchmark_family_registry
 from app.services.watchlist_sources import resolve_watchlist_source
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
@@ -262,6 +267,66 @@ async def _family_member_bar_history(
         composition_date=snapshot.composition_date,
         timeframes=timeframes,
     )
+
+
+def _entitlement_state(
+    source: DataSource | None,
+    entitlement: ProviderEntitlement | None,
+) -> str:
+    """Classify persisted entitlement evidence without probing a provider."""
+
+    if entitlement is None:
+        return "unknown"
+    if not entitlement.is_free or entitlement.configured_plan in {"excluded", "unreviewed"}:
+        return "excluded" if entitlement.configured_plan == "excluded" else "unreviewed"
+    if source is None or not provider_configured(source, entitlement):
+        return "not_configured"
+    if entitlement.live_probe_status in {"failure", "failed", "error"}:
+        return "probe_failed"
+    return "verified"
+
+
+def _role_readiness(
+    *,
+    mapping_available: bool,
+    profile_loaded: bool,
+    holdings_status: str,
+    member_bar_status: str,
+    entitlement_status: str,
+    point_in_time_supported: bool,
+) -> tuple[str, list[str]]:
+    """Return conservative composite readiness and machine-readable reasons."""
+
+    reasons: list[str] = []
+    if not mapping_available:
+        return "unavailable", ["mapping_unavailable"]
+    if not profile_loaded:
+        return "pending", ["profile_not_loaded"]
+    if entitlement_status in {"excluded", "not_configured", "probe_failed"}:
+        reasons.append(f"entitlement_{entitlement_status}")
+    elif entitlement_status in {"unknown", "unreviewed"}:
+        reasons.append(f"entitlement_{entitlement_status}")
+    if holdings_status != "available":
+        reasons.append(f"holdings_{holdings_status}")
+    if not point_in_time_supported:
+        reasons.append("point_in_time_unavailable")
+    if member_bar_status != "ready":
+        reasons.append(f"member_history_{member_bar_status}")
+    if any(reason.startswith("entitlement_") for reason in reasons) and entitlement_status in {
+        "excluded",
+        "not_configured",
+        "probe_failed",
+    }:
+        return "blocked", reasons
+    if (
+        holdings_status == "available"
+        and member_bar_status == "ready"
+        and entitlement_status == "verified"
+    ):
+        return "ready", reasons
+    if holdings_status == "available" or member_bar_status in {"partial", "ready"}:
+        return "partial", reasons
+    return "pending", reasons
 
 
 @router.post("/market-map", response_model=MarketMapOut)
@@ -3429,6 +3494,19 @@ async def benchmark_family_coverage(
             )
         ).scalars()
     }
+    sources = {source.id: source for source in (await db.execute(select(DataSource))).scalars()}
+    entitlements = {
+        (entitlement.data_source_id, entitlement.capability): entitlement
+        for entitlement in (
+            await db.execute(
+                select(ProviderEntitlement).where(
+                    ProviderEntitlement.capability.in_(
+                        (ProviderCapability.UNIVERSE_DISCOVERY, ProviderCapability.PRICE_HISTORY)
+                    )
+                )
+            )
+        ).scalars()
+    }
 
     roles: list[BenchmarkFamilyCoverageRoleOut] = []
     exclusions: list[AnalysisWarning] = []
@@ -3445,6 +3523,11 @@ async def benchmark_family_coverage(
         continuity_status = "not_applicable"
         continuity_gaps: list[BenchmarkFamilyCoverageGapOut] = []
         continuity_snapshot_limit_reached = False
+        selected_snapshot: ETFHoldingsSnapshot | None = None
+        source: DataSource | None = None
+        holdings_entitlement: ProviderEntitlement | None = None
+        price_entitlement: ProviderEntitlement | None = None
+        point_in_time_supported = False
         if instrument is None:
             status = "mapping_unavailable"
             exclusions.append(
@@ -3520,6 +3603,15 @@ async def benchmark_family_coverage(
                 (row for row in snapshot_rows if row.resolved_count > 0),
                 None,
             )
+            source = sources.get(selected_snapshot.data_source_id) if selected_snapshot else None
+            if selected_snapshot is not None:
+                holdings_entitlement = entitlements.get(
+                    (selected_snapshot.data_source_id, ProviderCapability.UNIVERSE_DISCOVERY)
+                )
+                price_entitlement = entitlements.get(
+                    (selected_snapshot.data_source_id, ProviderCapability.PRICE_HISTORY)
+                )
+            point_in_time_supported = bool(profile and (as_of is not None or snapshots))
             member_bar_history = await _family_member_bar_history(
                 db,
                 selected_snapshot,
@@ -3566,6 +3658,55 @@ async def benchmark_family_coverage(
                         instrument_id=instrument.id,
                     )
                 )
+            if not point_in_time_supported and profile is not None:
+                exclusions.append(
+                    AnalysisWarning(
+                        code="family_role_point_in_time_unavailable",
+                        message=f"No dated holdings evidence is available for {family_key} {role}.",
+                        instrument_id=instrument.id,
+                    )
+                )
+        entitlement_candidates = [
+            item for item in (holdings_entitlement, price_entitlement) if item
+        ]
+        entitlement_statuses = {
+            capability.value: _entitlement_state(source, entitlement)
+            for capability, entitlement in (
+                (ProviderCapability.UNIVERSE_DISCOVERY, holdings_entitlement),
+                (ProviderCapability.PRICE_HISTORY, price_entitlement),
+            )
+            if entitlement is not None
+        }
+        entitlement_status = (
+            "not_configured"
+            if any(value == "not_configured" for value in entitlement_statuses.values())
+            else "excluded"
+            if any(value == "excluded" for value in entitlement_statuses.values())
+            else "probe_failed"
+            if any(value == "probe_failed" for value in entitlement_statuses.values())
+            else "unreviewed"
+            if any(value == "unreviewed" for value in entitlement_statuses.values())
+            else "verified"
+            if entitlement_candidates
+            and all(value == "verified" for value in entitlement_statuses.values())
+            else "unknown"
+        )
+        entitlement_record = next(
+            (
+                item
+                for item in entitlement_candidates
+                if item.capability == ProviderCapability.UNIVERSE_DISCOVERY
+            ),
+            next(iter(entitlement_candidates), None),
+        )
+        composite_status, composite_reasons = _role_readiness(
+            mapping_available=instrument is not None,
+            profile_loaded=profile is not None,
+            holdings_status=status,
+            member_bar_status=member_bar_history.status,
+            entitlement_status=entitlement_status,
+            point_in_time_supported=point_in_time_supported,
+        )
         roles.append(
             BenchmarkFamilyCoverageRoleOut(
                 role=role,
@@ -3587,6 +3728,25 @@ async def benchmark_family_coverage(
                 continuity_gaps=continuity_gaps,
                 continuity_snapshot_limit_reached=continuity_snapshot_limit_reached,
                 member_bar_history=member_bar_history,
+                entitlement_status=entitlement_status,
+                entitlement_provider=source.name if source else None,
+                entitlement_capabilities=entitlement_statuses,
+                entitlement_revision=(
+                    int(entitlement_record.revision) if entitlement_record else None
+                ),
+                entitlement_effective_at=(
+                    entitlement_record.effective_at if entitlement_record else None
+                ),
+                entitlement_review_due_at=(
+                    entitlement_record.review_due_at if entitlement_record else None
+                ),
+                entitlement_live_probe_status=(
+                    entitlement_record.live_probe_status if entitlement_record else None
+                ),
+                point_in_time_supported=point_in_time_supported,
+                history_ready=member_bar_history.status == "ready",
+                composite_readiness_status=composite_status,
+                composite_readiness_reasons=composite_reasons,
             )
         )
 
@@ -3612,6 +3772,124 @@ async def benchmark_family_coverage(
         exclusions=exclusions,
         freshness="available" if covered_roles else "coverage_limited",
         freshness_detail={"role_count": role_count, "covered_roles": covered_roles},
+    )
+
+
+@router.get(
+    "/benchmark-families/readiness",
+    response_model=BenchmarkFamilyReadinessOut,
+)
+async def benchmark_family_readiness(
+    as_of: datetime | None = Query(default=None),
+    limit: int = Query(default=256, ge=1, le=512),
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return one bounded readiness matrix for every curated benchmark family.
+
+    The matrix deliberately composes the existing role coverage contract.  It
+    never calls a provider, invents an instrument, or substitutes a different
+    family when a registry group has not yet been materialised.
+    """
+
+    families: list[BenchmarkFamilyCoverageOut] = []
+    missing_families: list[str] = []
+    for metadata in benchmark_family_registry():
+        family_key = str(metadata["logical_key"])
+        try:
+            coverage = await benchmark_family_coverage(family_key, as_of, limit, None, db)
+        except HTTPException as exc:
+            if exc.status_code != 404:
+                raise
+            missing_families.append(family_key)
+            roles = [
+                BenchmarkFamilyCoverageRoleOut(
+                    role=role,
+                    symbol=(mapping.get("symbol") if isinstance(mapping, Mapping) else None),
+                    label=(
+                        str(mapping.get("label") or "No verified mapped proxy")
+                        if isinstance(mapping, Mapping)
+                        else "No verified mapped proxy"
+                    ),
+                    verification_state=(
+                        str(mapping.get("verification_state") or "not_verified")
+                        if isinstance(mapping, Mapping)
+                        else "not_verified"
+                    ),
+                    available=False,
+                    status="mapping_unavailable",
+                    composite_readiness_status="unavailable",
+                    composite_readiness_reasons=["benchmark_family_not_materialised"],
+                )
+                for role in ("cap_weight", "equal_weight", "value", "growth")
+                for mapping in [metadata.get(role)]
+            ]
+            coverage = BenchmarkFamilyCoverageOut(
+                family_key=family_key,
+                name=str(metadata.get("name") or family_key),
+                official_index_symbol=str(metadata.get("official_index_symbol") or ""),
+                official_index_name=str(
+                    metadata.get("official_index_name") or metadata.get("name") or family_key
+                ),
+                as_of=as_of,
+                membership_version=0,
+                universe_provenance={
+                    "family_key": family_key,
+                    "registry_only": True,
+                    "point_in_time": as_of is not None,
+                },
+                coverage=0,
+                roles=roles,
+                exclusions=[
+                    AnalysisWarning(
+                        code="benchmark_family_not_materialised",
+                        message=f"No canonical market group is materialised for {family_key}.",
+                    )
+                ],
+                freshness="coverage_limited",
+                freshness_detail={"role_count": 4, "covered_roles": 0},
+            )
+        families.append(coverage)
+
+    all_roles = [role for family in families for role in family.roles]
+    ready_role_count = sum(role.composite_readiness_status == "ready" for role in all_roles)
+    ready_family_count = sum(
+        bool(family.roles)
+        and all(role.composite_readiness_status == "ready" for role in family.roles)
+        for family in families
+    )
+    role_count = len(all_roles)
+    family_count = len(families)
+    if family_count and ready_family_count == family_count:
+        readiness_status = "ready"
+    elif ready_role_count or any(family.coverage for family in families):
+        readiness_status = "partial"
+    else:
+        readiness_status = "coverage_limited"
+    return BenchmarkFamilyReadinessOut(
+        as_of=as_of,
+        snapshot_limit=limit,
+        family_count=family_count,
+        ready_family_count=ready_family_count,
+        role_count=role_count,
+        ready_role_count=ready_role_count,
+        readiness_status=readiness_status,
+        universe_provenance={
+            "registry": "top_down_taxonomy",
+            "family_keys": [family.family_key for family in families],
+            "point_in_time": as_of is not None,
+            "missing_families": missing_families,
+            "coverage_semantics": "role_independent_dated_holdings_snapshots",
+            "provider_calls": False,
+        },
+        families=families,
+        freshness="available" if readiness_status == "ready" else "coverage_limited",
+        freshness_detail={
+            "family_count": family_count,
+            "ready_family_count": ready_family_count,
+            "role_count": role_count,
+            "ready_role_count": ready_role_count,
+        },
     )
 
 

@@ -404,6 +404,32 @@ describe('workspace store layout tabs', () => {
     expect(store.benchmarkFamilyCoverageErrors['sp500:latest:256']).toBeNull()
   })
 
+  it('loads the provider-neutral all-family readiness matrix with explicit as-of bounds', async () => {
+    apiGet.mockResolvedValue({
+      as_of: '2026-08-01T00:00:00Z',
+      snapshot_limit: 8,
+      family_count: 8,
+      ready_family_count: 0,
+      role_count: 32,
+      ready_role_count: 0,
+      readiness_status: 'coverage_limited',
+      universe_provenance: { provider_calls: false },
+      families: [],
+    })
+    const store = useWorkspaceStore()
+
+    const result = await store.loadBenchmarkFamilyReadiness({ as_of: '2026-08-01T00:00:00Z', limit: 8 })
+
+    expect(apiGet).toHaveBeenCalledWith('/analysis/benchmark-families/readiness', {
+      as_of: '2026-08-01T00:00:00Z',
+      limit: 8,
+    })
+    expect(result?.readiness_status).toBe('coverage_limited')
+    expect(result?.universe_provenance.provider_calls).toBe(false)
+    expect(store.benchmarkFamilyReadiness?.role_count).toBe(32)
+    expect(store.benchmarkFamilyReadinessError).toBeNull()
+  })
+
   it('loads role-specific family constituents without substituting a missing leg', async () => {
     apiGet.mockResolvedValue({
       group_key: 'benchmark-family:sp500:equal_weight',

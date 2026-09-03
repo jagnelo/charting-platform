@@ -558,6 +558,17 @@ export interface BenchmarkFamilyCoverageRoleState {
   continuity_gaps?: BenchmarkFamilyCoverageGapState[]
   continuity_snapshot_limit_reached?: boolean
   member_bar_history?: BenchmarkFamilyMemberBarHistoryState
+  entitlement_status?: string
+  entitlement_provider?: string | null
+  entitlement_capabilities?: Record<string, string>
+  entitlement_revision?: number | null
+  entitlement_effective_at?: string | null
+  entitlement_review_due_at?: string | null
+  entitlement_live_probe_status?: string | null
+  point_in_time_supported?: boolean
+  history_ready?: boolean
+  composite_readiness_status?: string
+  composite_readiness_reasons?: string[]
 }
 
 export interface BenchmarkFamilyCoverageState {
@@ -571,6 +582,20 @@ export interface BenchmarkFamilyCoverageState {
   coverage: number
   roles: BenchmarkFamilyCoverageRoleState[]
   exclusions: Array<{ code: string; message: string; instrument_id?: number | null }>
+  freshness?: string
+  freshness_detail?: Record<string, number>
+}
+
+export interface BenchmarkFamilyReadinessState {
+  as_of?: string | null
+  snapshot_limit: number
+  family_count: number
+  ready_family_count: number
+  role_count: number
+  ready_role_count: number
+  readiness_status: string
+  universe_provenance: Record<string, unknown>
+  families: BenchmarkFamilyCoverageState[]
   freshness?: string
   freshness_detail?: Record<string, number>
 }
@@ -986,6 +1011,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const benchmarkFamilyOverviewErrors = ref<Record<string, string | null>>({})
   const benchmarkFamilyCoverages = ref<Record<string, BenchmarkFamilyCoverageState | null>>({})
   const benchmarkFamilyCoverageErrors = ref<Record<string, string | null>>({})
+  const benchmarkFamilyReadiness = ref<BenchmarkFamilyReadinessState | null>(null)
+  const benchmarkFamilyReadinessError = ref<string | null>(null)
   const benchmarkFamilyConstituents = ref<Record<string, BenchmarkFamilyConstituentsState | null>>({})
   const benchmarkFamilyConstituentErrors = ref<Record<string, string | null>>({})
   const breadth = ref<Record<string, BreadthState>>({})
@@ -2112,6 +2139,27 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
+  async function loadBenchmarkFamilyReadiness(options: { as_of?: string; limit?: number } = {}) {
+    const requestKey = `top-down:family-readiness:${options.as_of ?? 'latest'}:${options.limit ?? 256}`
+    const generation = beginAnalysisRequest(requestKey)
+    if (!documentIsVisible()) return null
+    benchmarkFamilyReadinessError.value = null
+    try {
+      const result = await api.get<BenchmarkFamilyReadinessState>('/analysis/benchmark-families/readiness', {
+        ...(options.as_of ? { as_of: options.as_of } : {}),
+        ...(options.limit ? { limit: options.limit } : {}),
+      })
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+      benchmarkFamilyReadiness.value = result
+      return result
+    } catch (cause: any) {
+      if (!isCurrentAnalysisRequest(requestKey, generation)) return null
+      benchmarkFamilyReadinessError.value = cause?.message ?? 'Unable to load benchmark family readiness'
+      benchmarkFamilyReadiness.value = null
+      return null
+    }
+  }
+
   async function loadBenchmarkFamilyConstituents(
     familyKey: string,
     role: BenchmarkFamilyMappingState['role'] = 'cap_weight',
@@ -3082,6 +3130,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     benchmarkFamilyOverviewErrors,
     benchmarkFamilyCoverages,
     benchmarkFamilyCoverageErrors,
+    benchmarkFamilyReadiness,
+    benchmarkFamilyReadinessError,
     benchmarkFamilyConstituents,
     benchmarkFamilyConstituentErrors,
     marketGroupErrors,
@@ -3146,6 +3196,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loadCrossFamilyRankingHistory,
     loadBenchmarkFamilyOverview,
     loadBenchmarkFamilyCoverage,
+    loadBenchmarkFamilyReadiness,
     loadBenchmarkFamilyConstituents,
     loadBreadth,
     loadBreadthHistory,

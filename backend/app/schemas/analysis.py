@@ -362,6 +362,17 @@ class BenchmarkFamilyCoverageRoleOut(BaseModel):
     member_bar_history: BenchmarkFamilyMemberBarHistoryOut = Field(
         default_factory=BenchmarkFamilyMemberBarHistoryOut
     )
+    entitlement_status: str = "unknown"
+    entitlement_provider: str | None = None
+    entitlement_capabilities: dict[str, str] = Field(default_factory=dict)
+    entitlement_revision: int | None = Field(default=None, ge=1)
+    entitlement_effective_at: datetime | None = None
+    entitlement_review_due_at: datetime | None = None
+    entitlement_live_probe_status: str | None = None
+    point_in_time_supported: bool = False
+    history_ready: bool = False
+    composite_readiness_status: str = "unavailable"
+    composite_readiness_reasons: list[str] = Field(default_factory=list)
 
 
 class BenchmarkFamilyCoverageOut(AnalysisResponseMetadata):
@@ -377,6 +388,20 @@ class BenchmarkFamilyCoverageOut(AnalysisResponseMetadata):
     coverage: float = Field(ge=0, le=1)
     roles: list[BenchmarkFamilyCoverageRoleOut] = Field(default_factory=list)
     exclusions: list[AnalysisWarning] = Field(default_factory=list)
+
+
+class BenchmarkFamilyReadinessOut(AnalysisResponseMetadata):
+    """Provider-neutral readiness matrix for all curated benchmark families."""
+
+    as_of: datetime | None = None
+    snapshot_limit: int = Field(default=256, ge=1, le=512)
+    family_count: int = Field(default=0, ge=0)
+    ready_family_count: int = Field(default=0, ge=0)
+    role_count: int = Field(default=0, ge=0)
+    ready_role_count: int = Field(default=0, ge=0)
+    readiness_status: str = "coverage_limited"
+    universe_provenance: dict[str, object] = Field(default_factory=dict)
+    families: list[BenchmarkFamilyCoverageOut] = Field(default_factory=list)
 
 
 class BenchmarkFamilyOverviewOut(AnalysisResponseMetadata):
