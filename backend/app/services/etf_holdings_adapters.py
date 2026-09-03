@@ -2336,6 +2336,7 @@ ISSUER_DOMAIN_HINTS.update(
         "blueprint": ["blueprintip.com"],
         "framework_digital_advisors": ["frameworkdigital.io", "gsretps.io"],
         "fundstrat": ["fundstrat.com", "grannyshots.com"],
+        "gotham": ["gothametfs.com", "gothamassetmanagement.com"],
         "volatility_shares": ["volatilityshares.com"],
         "wahed": ["wahed.com"],
         "yieldmax": ["yieldmaxetfs.com"],
@@ -24055,6 +24056,248 @@ class FundstratHoldingsAdapter(IssuerCsvHoldingsAdapter):
             flags=re.IGNORECASE,
         )
         return _parse_issuer_date(match.group(1)) if match else None
+
+
+class GothamHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Gotham ETFs' complete current holdings CSV exports."""
+
+    _PRODUCTS = {
+        "GSPY": (
+            "https://www.gothametfs.com/gspy/DownloadHoldings",
+            "The Gotham Enhanced 500 ETF",
+        ),
+        "GVLU": (
+            "https://www.gothametfs.com/gvlu/DownloadHoldings",
+            "The Gotham 1000 Value ETF",
+        ),
+        "SHRT": (
+            "https://www.gothametfs.com/shrt/DownloadHoldings",
+            "The Gotham Short Strategies ETF",
+        ),
+    }
+    _ISSUER_HOST = "gothametfs.com"
+    _REQUIRED_HEADERS = frozenset(
+        {
+            "as of date",
+            "percentage of net assets",
+            "name",
+            "ticker",
+            "cusip",
+            "shares held",
+            "market value",
+        }
+    )
+
+    def probe(
+        self,
+        *,
+        symbol: str,
+        name: str,
+        identifiers: dict[str, str],
+    ) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        product = self._PRODUCTS.get(normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if product else Decimal("0.5000"),
+            status="ready" if product or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "Gotham ETFs publishes a complete current holdings CSV for this product."
+                if product
+                else "No verified Gotham ETFs product route is configured for this ETF; SEC EDGAR remains available as fallback."
+                if has_sec_fallback
+                else "No verified Gotham ETFs product route is configured for this ETF."
+            ),
+            source_url=product[0] if product else None,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product = self._PRODUCTS.get(normalized_symbol)
+        if product is None:
+            raise ValueError(
+                "Gotham ETFs' verified issuer route supports GSPY, GVLU, and SHRT only."
+            )
+        holdings_url, expected_name = product
+        if source_url and source_url.rstrip("/") != holdings_url.rstrip("/"):
+            raise ValueError(
+                "Gotham holdings must use the verified product DownloadHoldings route."
+            )
+
+        response = await self._fetch_csv(holdings_url)
+        resolved_url = str(response.url)
+        parsed_url = urlparse(resolved_url)
+        if not _domain_matches(_url_host(resolved_url) or "", self._ISSUER_HOST):
+            raise ValueError("Gotham holdings response left the official issuer domain.")
+        expected_path = f"/{normalized_symbol.lower()}/downloadholdings"
+        if parsed_url.path.rstrip("/").lower() != expected_path:
+            raise ValueError(
+                "Gotham holdings response did not preserve the requested product route."
+            )
+
+        rows, composition_date = self._parse_csv(
+            response.text,
+            symbol=normalized_symbol,
+            expected_name=expected_name,
+        )
+        if len(rows) < 10 or composition_date is None:
+            raise ValueError(
+                f"Gotham's {normalized_symbol} holdings CSV did not expose complete dated holdings."
+            )
+        composition_value = composition_date.isoformat()
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={
+                "source_format": "csv",
+                "row_count": len(rows),
+                "product_name": expected_name,
+            },
+            source_url=resolved_url,
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "gotham_product_download_holdings_csv",
+                "product_page_url": f"https://www.gothametfs.com/{normalized_symbol.lower()}",
+                "snapshot_provenance": "gotham_native_current_holdings_csv",
+                "composition_date": composition_value,
+                "as_of_date": composition_value,
+                "freshness_semantics": "issuer_disclosed_holdings_as_of_date",
+                "refresh_frequency": "issuer_published_current_holdings",
+                "publisher": "gotham_etfs",
+                "parent_issuer": "gotham_asset_management",
+                "issuer_relationship": "Gotham Asset Management adviser / Gotham ETFs publisher",
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    async def _fetch_csv(url: str) -> httpx.Response | requests.Response:
+        headers = _issuer_page_request_headers(
+            accept="text/csv,text/plain,application/octet-stream,*/*"
+        )
+        try:
+            async with httpx.AsyncClient(
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
+            ) as client:
+                response = await client.get(url, headers=headers, follow_redirects=True)
+            response.raise_for_status()
+            return response
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 403:
+                raise
+        response = await asyncio.to_thread(
+            requests.get,
+            url,
+            headers=headers,
+            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+            allow_redirects=True,
+        )
+        response.raise_for_status()
+        return response
+
+    @classmethod
+    def _parse_csv(
+        cls,
+        raw_csv: str,
+        *,
+        symbol: str,
+        expected_name: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        del expected_name
+        reader = csv.DictReader(StringIO(raw_csv.lstrip("\ufeff")))
+        if not reader.fieldnames:
+            return [], None
+        fieldnames = [str(field).strip().lower() for field in reader.fieldnames]
+        if not cls._REQUIRED_HEADERS <= set(fieldnames):
+            return [], None
+        original_fields = [str(field) for field in reader.fieldnames]
+        key_by_normalized = {
+            normalized: original
+            for normalized, original in zip(fieldnames, original_fields, strict=False)
+        }
+        dates: set[date] = set()
+        rows: list[CanonicalHoldingRow] = []
+        for index, raw in enumerate(reader, start=1):
+            if not raw or not any(_clean(value) for value in raw.values()):
+                continue
+            as_of = _parse_issuer_date(raw.get(key_by_normalized["as of date"]))
+            if as_of is None:
+                continue
+            dates.add(as_of)
+            name = _clean(raw.get(key_by_normalized["name"]))
+            ticker = _clean(raw.get(key_by_normalized["ticker"]))
+            cusip = _clean(raw.get(key_by_normalized["cusip"]))
+            if not name or not ticker:
+                continue
+            text = " ".join(part.upper() for part in (name, ticker, cusip) if part)
+            is_cash = (
+                ticker.upper() in {"CASH", "CASH&OTHER", "CASH & OTHER"} or "CASH & OTHER" in text
+            )
+            is_derivative = "-TRS-" in ticker.upper() or bool(
+                re.search(r"\b(TRS|SWAP|OPTION|FUTURE)\b", text)
+            )
+            is_fund = (
+                not is_cash
+                and not is_derivative
+                and (
+                    " FUND" in f" {text}"
+                    or " TRUST" in f" {text}"
+                    or ticker.upper().endswith("XXX")
+                )
+            )
+            raw_weight = raw.get(key_by_normalized["percentage of net assets"])
+            weight = _decimal(raw_weight)
+            if weight is None and _clean(raw_weight) is not None:
+                weight = _decimal_percent_points(raw_weight)
+            shares = _decimal(raw.get(key_by_normalized["shares held"]))
+            market_value = _decimal(raw.get(key_by_normalized["market value"]))
+            row_type = "cash" if is_cash else "security"
+            holding_type = (
+                "cash"
+                if is_cash
+                else "derivative"
+                if is_derivative
+                else "fund"
+                if is_fund
+                else "equity"
+            )
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash or is_derivative else ticker.upper(),
+                    name=name,
+                    cusip=None if is_derivative else cusip,
+                    weight=weight,
+                    shares=shares,
+                    market_value=market_value,
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"gotham-{symbol}-{as_of.isoformat()}-{index}",
+                    extra_data={
+                        **{key: value for key, value in raw.items() if value not in (None, "")},
+                        "as_of_date": as_of.isoformat(),
+                        "position_side": "short" if shares is not None and shares < 0 else "long",
+                    },
+                )
+            )
+        if len(dates) != 1:
+            return [], None
+        return rows, next(iter(dates))
 
 
 class ColliersHarrisonStreetHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -65735,6 +65978,21 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "data may be subject to issuer terms."
         ),
     ),
+    "gotham": IssuerCsvAdapterConfig(
+        adapter_key="gotham",
+        source_provider="gotham_asset_management",
+        source_access="issuer_public_product_download_holdings_csv",
+        product_page_templates=(
+            "https://www.gothametfs.com/gspy",
+            "https://www.gothametfs.com/gvlu",
+            "https://www.gothametfs.com/shrt",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "Gotham ETFs publishes complete current GSPY, GVLU, and SHRT holdings CSV exports; "
+            "data may be subject to issuer terms."
+        ),
+    ),
     "freedom": IssuerCsvAdapterConfig(
         adapter_key="freedom",
         source_provider="freedom_etfs",
@@ -65840,7 +66098,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "fpa",
         "genter_capital",
         "gc_ferry_parent",
-        "gotham",
         "granite_group_advisors",
         "hexis",
         "highland_capital",
@@ -68922,7 +69179,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "fundstrat": FundstratHoldingsAdapter,
         "genter_capital": GenterCapitalReconciledFallbackHoldingsAdapter,
         "gc_ferry_parent": GcFerryParentReconciledFallbackHoldingsAdapter,
-        "gotham": GothamReconciledFallbackHoldingsAdapter,
+        "gotham": GothamHoldingsAdapter,
         "granite_group_advisors": GraniteGroupAdvisorsReconciledFallbackHoldingsAdapter,
         "guggenheim": GuggenheimHoldingsAdapter,
         "guinness_atkinson": GuinnessAtkinsonAuditedFallbackHoldingsAdapter,

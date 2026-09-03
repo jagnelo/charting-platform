@@ -17,6 +17,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "framework_digital_advisors",
     "freedom",
     "fundstrat",
+    "gotham",
     "amun",
     "1251_capital",
     "3fourteen",
@@ -2431,6 +2432,35 @@ async def test_live_fundstrat_granny_shots_pages_cover_current_products():
         assert metadata["composition_date"]
         if symbol == "GRNI":
             assert any(row.holding_type == "derivative" for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("gotham")
+async def test_live_gotham_product_downloads_cover_current_holdings():
+    adapter = get_holdings_adapter("gotham")
+    assert adapter is not None
+
+    minimum_rows = {"GSPY": 400, "GVLU": 400, "SHRT": 500}
+    for symbol, minimum in minimum_rows.items():
+        result = await adapter.fetch_latest(symbol=symbol)
+
+        _assert_live_holdings_result(result, adapter_key="gotham", min_rows=minimum)
+        metadata = result.legal_metadata or {}
+        assert metadata["source_provider"] == "gotham_asset_management"
+        assert metadata["publisher"] == "gotham_etfs"
+        assert metadata["parent_issuer"] == "gotham_asset_management"
+        assert metadata["issuer_relationship"] == (
+            "Gotham Asset Management adviser / Gotham ETFs publisher"
+        )
+        assert metadata["route_resolution"] == "gotham_product_download_holdings_csv"
+        assert metadata["snapshot_provenance"] == "gotham_native_current_holdings_csv"
+        assert metadata["composition_date"]
+        assert result.source_url.endswith(f"/{symbol.lower()}/DownloadHoldings")
+        if symbol == "SHRT":
+            assert any(row.row_type == "cash" for row in result.rows)
+            assert any(row.holding_type == "derivative" for row in result.rows)
+            assert any(row.shares is not None and row.shares < 0 for row in result.rows)
 
 
 @pytest.mark.asyncio

@@ -18975,6 +18975,65 @@ async def test_fundstrat_adapter_fetches_complete_granny_shots_holdings_pages(mo
 
 
 @pytest.mark.asyncio
+async def test_gotham_adapter_fetches_symbol_scoped_complete_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("gotham")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "GothamHoldingsAdapter"
+    probe = adapter.probe(symbol="GSPY", name="The Gotham Enhanced 500 ETF", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url.endswith("/gspy/DownloadHoldings")
+    assert adapter.probe(symbol="UNKNOWN", name="", identifiers={}).status == "needs_issuer_route"
+
+    with pytest.raises(ValueError, match="verified product DownloadHoldings route"):
+        await adapter.fetch_latest(symbol="GSPY", source_url="https://example.invalid/gspy.csv")
+
+    for symbol in ("GSPY", "GVLU", "SHRT"):
+        rows = []
+        for index in range(1, 11):
+            ticker = "Cash&Other" if symbol == "SHRT" and index == 1 else f"TKR{index}"
+            name = "Cash & Other" if ticker == "Cash&Other" else f"Security {index}"
+            cusip = "Cash&Other" if ticker == "Cash&Other" else "037833100"
+            shares = "(100)" if symbol == "SHRT" and index == 2 else str(index)
+            market_value = "($10.00)" if symbol == "SHRT" and index == 2 else "$10.00"
+            if symbol == "SHRT" and index == 2:
+                ticker = "037833100-TRS-05/14/31-S"
+                name = "APPLE INC"
+                cusip = ticker
+            rows.append(f"09/02/2026,10.00%,{name},{ticker},{cusip},{shares},{market_value}")
+        csv_text = (
+            "As Of Date,Percentage of Net Assets,Name,Ticker,CUSIP,Shares Held,Market Value\n"
+            + "\n".join(rows)
+            + "\n"
+        )
+        holdings_url = adapter._PRODUCTS[symbol][0]
+        FakeAsyncClient.requested = []
+        FakeAsyncClient.queue = [FakeResponse(text=csv_text, url=holdings_url)]
+        monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+        result = await adapter.fetch_latest(symbol=symbol)
+
+        assert len(result.rows) == 10
+        assert result.rows[0].weight == Decimal("0.10")
+        assert result.rows[0].market_value == Decimal("10.00")
+        assert result.rows[0].currency == "USD"
+        if symbol == "SHRT":
+            assert result.rows[0].row_type == "cash"
+            assert result.rows[1].holding_type == "derivative"
+            assert result.rows[1].symbol is None
+            assert result.rows[1].shares == Decimal("-100")
+        else:
+            assert result.rows[0].symbol == "TKR1"
+        assert result.legal_metadata["source_provider"] == "gotham_asset_management"
+        assert result.legal_metadata["publisher"] == "gotham_etfs"
+        assert result.legal_metadata["parent_issuer"] == "gotham_asset_management"
+        assert result.legal_metadata["route_resolution"] == ("gotham_product_download_holdings_csv")
+        assert result.legal_metadata["snapshot_provenance"] == (
+            "gotham_native_current_holdings_csv"
+        )
+        assert result.legal_metadata["composition_date"] == "2026-09-02"
+
+
+@pytest.mark.asyncio
 async def test_beehive_adapter_fetches_official_declared_daily_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("beehive")
     assert adapter is not None
