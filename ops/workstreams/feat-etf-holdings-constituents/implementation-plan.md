@@ -1626,3 +1626,30 @@ blocked, 94 route discovery, 3 non-executable, and 6 non-portfolio-publisher.
 The ledger has 66 queued fallback records remaining, with `logiq` next. The
 known unrelated F8p-current-history Study Lab histogram timeout remains the
 Docker integration blocker.
+
+## 38. Current execution checkpoint — Logiq/LCO native promotion — 2026-09-03
+
+The ranked `logiq` audit found a complete executable first-party route on the
+official LOGIQ ETF page at `https://logiqetf.com/`. The page identifies the
+LOGIQ Contrarian Opportunities ETF (`LCO`) and declares both the fund-scoped
+holdings download and static `TidalFG_Holdings_LCO.csv` export. The current
+issuer CSV is dated 2026-09-02 and contains 86 LCO rows.
+
+`LogiqHoldingsAdapter` subclasses the verified Tidal sponsor CSV path, adds
+strict LOGIQ page identity and route-marker validation, enforces the static
+issuer-domain CSV, requires at least 20 parsed rows, preserves CUSIPs,
+quantities, market values, and percentage weights, and classifies CASH and
+currency rows such as EUR as cash. It records LOGIQ ETF and LOGIQ Capital
+Partners provenance and supports LCO only. Deterministic fixture coverage
+exercises route declaration, source-domain checks, date and value parsing,
+cash/currency classification, metadata, and unsupported symbols; bounded opt-in
+live coverage exercises the current official route.
+
+The runtime fallback audit no longer contains `logiq`; the ledger record is
+`native_promoted` with official route, parser fixture, and live evidence refs.
+The code-derived split is 496 registered, 386 native/live-backed, and 110
+fallback-only providers; runtime statuses are 8 blocked, 93 route discovery, 3
+non-executable, and 6 non-portfolio-publisher. The ledger has 65 queued
+fallback records remaining, with `long_pond` next. The known unrelated
+F8p-current-history Study Lab histogram timeout remains the Docker integration
+blocker.

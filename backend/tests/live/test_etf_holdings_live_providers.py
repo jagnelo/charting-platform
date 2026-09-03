@@ -21,6 +21,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "hexis",
     "hilton",
     "jlens",
+    "logiq",
     "amun",
     "1251_capital",
     "3fourteen",
@@ -3448,6 +3449,26 @@ async def test_live_knowledge_leaders_kno_product_page_filepoint_holdings():
         == "axs_knowledge_leaders_filepoint_dated_holdings_csv"
     )
     assert result.legal_metadata["publisher"] == "AXS Investments"
+    assert result.legal_metadata["composition_date"]
+    assert any(row.cusip for row in result.rows)
+    assert any(row.row_type == "cash" for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("logiq")
+async def test_live_logiq_lco_product_page_declared_holdings_csv():
+    adapter = get_holdings_adapter("logiq")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="LCO")
+
+    _assert_live_holdings_result(result, adapter_key="logiq", min_rows=20)
+    assert (
+        result.legal_metadata["route_resolution"]
+        == "logiq_product_page_declared_tidal_daily_holdings_csv"
+    )
+    assert result.legal_metadata["publisher"] == "logiq_etf"
     assert result.legal_metadata["composition_date"]
     assert any(row.cusip for row in result.rows)
     assert any(row.row_type == "cash" for row in result.rows)

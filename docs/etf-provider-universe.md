@@ -28,8 +28,8 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `385`
-- Audited fallback-only providers: `111`
+- Native/live-backed providers: `386`
+- Audited fallback-only providers: `110`
 
 The current checkpoint promotes `guggenheim` through its public issuer-hosted
 ETF holdings table, reconciles `ars` to the existing ARS Investment Partners
@@ -128,6 +128,12 @@ FilePoint route. The dated multi-fund CSV publishes the current KNO snapshot;
 the adapter scopes the export to KNO, preserves ISIN/CUSIP/SEDOL/ticker/shares,
 weights, currencies, and cash/other-assets rows, and records the 2026-09-02
 holdings date with AXS Investments and Knowledge Leaders Capital provenance.
+Logiq is now covered natively for LCO through the official LOGIQ ETF product
+page and its declared fund-scoped Tidal holdings download/static CSV route. The
+adapter validates the product identity and issuer-owned route markers, parses
+the current 2026-09-02 snapshot, preserves CUSIPs/quantities/values/weights,
+and classifies CASH and EUR currency rows as cash with LOGIQ Capital Partners
+provenance.
 Granite Group Advisors is recorded as a non-portfolio-publisher identity: its
 official wealth-management materials describe allocation to independent fund
 managers, disclaim proprietary fund products, and expose no sponsored U.S. ETF
@@ -140,11 +146,11 @@ establishes the successor context; current Brookstone ETF routes remain under
 the distinct native `brookstone` identity.
 The historical starting snapshot for this
 workstream was 356 native and 140 fallback; the provider-audit ledger retains
-that baseline record while tracking the current 385/111 split.
+that baseline record while tracking the current 386/110 split.
 
 The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
 `FALLBACK_ISSUER_AUDITS` at the current ETF-branch implementation checkpoint
-`3351e4a116d4bfba46d0fb0e1565e9d9e8a07c5c` (Knowledge Leaders KNO official AXS/FilePoint dated holdings CSV; JLens TOV official product-page embedded holdings table; Hoya Capital display-name and URL alias reconciliation to the existing Pettee HOMZ/RIET native route; Hilton SMCO/HBDC product-page-declared AllHoldings CSV; Hexis/NICO FilePoint app-declared daily holdings CSV; Gotham GSPY/GVLU/SHRT DownloadHoldings CSV routes; Fundstrat Granny Shots GRNY/GRNJ/GRNI holdings routes; Freedom/FRDM product-page holdings route; Framework/GSR BESO route; Fitzgerald/Nicholas Wealth FITZ and FIZY routes; FalconX/21Shares ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN,
+`3351e4a116d4bfba46d0fb0e1565e9d9e8a07c5c` (Knowledge Leaders KNO official AXS/FilePoint dated holdings CSV; Logiq LCO official product-page-declared Tidal daily holdings CSV; JLens TOV official product-page embedded holdings table; Hoya Capital display-name and URL alias reconciliation to the existing Pettee HOMZ/RIET native route; Hilton SMCO/HBDC product-page-declared AllHoldings CSV; Hexis/NICO FilePoint app-declared daily holdings CSV; Gotham GSPY/GVLU/SHRT DownloadHoldings CSV routes; Fundstrat Granny Shots GRNY/GRNJ/GRNI holdings routes; Freedom/FRDM product-page holdings route; Framework/GSR BESO route; Fitzgerald/Nicholas Wealth FITZ and FIZY routes; FalconX/21Shares ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN,
 THYP, and TKNS native routes; Esoterica WUGI, Even Herd EHLS, and Everence/Praxis
 PRXG/PRXV/PRXI native routes; Framework/GSR BESO, Freedom/FRDM, and Fundstrat Granny Shots are now native through their
 declared details/holdings API; ETF Managers Group is recorded as an
@@ -155,7 +161,7 @@ as the existing Cygnet parent identity).
 The fallback audit statuses are:
 
 - `issuer_access_blocked`: `8`
-- `needs_first_party_route_discovery`: `94`
+- `needs_first_party_route_discovery`: `93`
 - `non_executable_public_source`: `3`
 - `provider_not_a_portfolio_publisher`: `6`
 

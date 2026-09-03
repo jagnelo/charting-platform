@@ -5,8 +5,8 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 385
-current_fallback_count: 111
+current_native_count: 386
+current_fallback_count: 110
 generated_at: 2026-09-03T02:08:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
@@ -3113,39 +3113,53 @@ providers:
     implementation_sha: 3351e4a116d4bfba46d0fb0e1565e9d9e8a07c5c
     validation_refs:
       - "validation:2026-09-03T02:32:30Z"
-    implementation_sha: null
-    validation_refs: []
   - adapter_key: logiq
     display_name: logiq
     queue_rank: 67
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
-    estimated_us_etf_count: null
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-03
+    source_access_declared: logiq_product_page_declared_tidal_daily_holdings_csv
+    representative_symbols:
+      - LCO
+    estimated_us_etf_count: 1
     estimated_us_etf_aum: null
-    us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    us_equity_breadth: 1
+    source_freshness: daily
+    first_party_domains:
+      - logiqetf.com
+      - logiqcap.com
+    candidate_routes:
+      - https://logiqetf.com/
+      - https://logiqetf.com/?twm_download=holdings&ticker=LCO&nonce={page_declared_nonce}
+      - https://logiqetf.com/wp-content/uploads/data/TidalFG_Holdings_LCO.csv
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    source_format: csv
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_logiq_adapter_fetches_official_lco_holdings_csv
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_logiq_lco_product_page_declared_holdings_csv
     credential_required: false
     evidence_refs:
-      - "runtime:FALLBACK_ISSUER_AUDITS.logiq"
       - "runtime:ISSUER_ADAPTER_CONFIGS.logiq"
+      - "web:logiq-official-lco-holdings-route-2026-09-03"
+      - "live:logiq-lco-current-holdings-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.logiq"
-    disposition_reason: "logiq: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate logiq first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-03
+        source: "https://logiqetf.com/"
+        result: "The official LOGIQ ETF page identifies the LOGIQ Contrarian Opportunities ETF (LCO), publishes a Top 10 Holdings view, and declares both the fund-scoped holdings download and static TidalFG_Holdings_LCO.csv route. The current CSV is dated 2026-09-02 and contains 86 LCO rows including securities, CASH, and EUR currency rows."
+        evidence_ref: "web:logiq-official-lco-holdings-route-2026-09-03"
+      - date: 2026-09-03
+        source: "backend/tests/live/test_etf_holdings_live_providers.py::test_live_logiq_lco_product_page_declared_holdings_csv"
+        result: "The native LOGIQ adapter fetched the official product page and declared CSV, parsed the current 86-row LCO snapshot, preserved CUSIPs/quantities/values/weights, and classified CASH and EUR currency rows as cash."
+        evidence_ref: "live:logiq-lco-current-holdings-2026-09-03"
+    disposition_reason: "logiq: LOGIQ's official LCO product page declares a fund-scoped holdings download and static issuer CSV. The native adapter validates page identity and both issuer-owned route markers, requires a complete current snapshot, preserves CUSIPs/quantities/values/weights, classifies cash/currency rows, and records LOGIQ Capital Partners provenance without SEC-derived reconstruction."
+    next_action: "logiq: Monitor the official LOGIQ LCO product page and declared TidalFG_Holdings_LCO.csv route; retain native status while the route remains complete, identity-valid, current, and executable, and add any future LOGIQ product only after equivalent first-party evidence."
     implementation_sha: null
     validation_refs: []
   - adapter_key: long_pond

@@ -2344,6 +2344,7 @@ ISSUER_DOMAIN_HINTS.update(
         "gotham": ["gothametfs.com", "gothamassetmanagement.com"],
         "hexis": ["hexis.capital", "hexis.filepoint.live"],
         "hilton": ["hiltonetfs.com", "hiltonetfjson.com", "hiltoncapitalmanagement.com"],
+        "logiq": ["logiqetf.com", "logiqcap.com"],
         "knowledge_leaders": [
             "axsinvestments.com",
             "axsetf.filepoint.live",
@@ -23496,10 +23497,7 @@ class TidalHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 fallback_response.raise_for_status()
                 resolved_page_url = str(fallback_response.url)
                 page_text = fallback_response.text
-            if normalized_symbol not in page_text.upper():
-                raise ValueError(
-                    f"Tidal sponsor page identity did not match requested ETF {normalized_symbol}."
-                )
+            self._validate_product_page(page_text, symbol=normalized_symbol)
             csv_headers = {
                 **_holdings_request_headers(accept="text/csv,application/octet-stream,*/*"),
                 "Referer": resolved_page_url,
@@ -23553,6 +23551,10 @@ class TidalHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "terms_note": self.config.terms_note,
             },
         )
+
+    def _validate_product_page(self, page_text: str, *, symbol: str) -> None:
+        if symbol not in page_text.upper():
+            raise ValueError(f"Tidal sponsor page identity did not match requested ETF {symbol}.")
 
     @staticmethod
     def _parse_holdings_csv(
@@ -23625,6 +23627,126 @@ class TidalHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 )
             )
         return rows, composition_date
+
+
+class LogiqHoldingsAdapter(TidalHoldingsAdapter):
+    """Fetch LOGIQ's LCO portfolio from its issuer-declared daily CSV."""
+
+    _PRODUCTS: dict[str, tuple[str, str]] = {
+        "LCO": (
+            "https://logiqetf.com/",
+            "https://logiqetf.com/wp-content/uploads/data/TidalFG_Holdings_LCO.csv",
+        ),
+    }
+    _ISSUER_HOST = "logiqetf.com"
+    _STATIC_HOLDINGS_ROUTE = "TidalFG_Holdings_LCO.csv"
+
+    def probe(
+        self,
+        *,
+        symbol: str,
+        name: str,
+        identifiers: dict[str, str],
+    ) -> HoldingsAdapterProbe:
+        probe = super().probe(symbol=symbol, name=name, identifiers=identifiers)
+        return replace(
+            probe,
+            reason=(
+                "LOGIQ publishes LCO's complete current portfolio from its official product page."
+                if symbol.strip().upper() == "LCO"
+                else "LOGIQ currently has a verified public holdings route only for LCO."
+            ),
+        )
+
+    def _validate_product_page(self, page_text: str, *, symbol: str) -> None:
+        normalized_page = html.unescape(page_text).replace("\\/", "/").replace("\\u0026", "&")
+        identity = normalized_page.upper()
+        if "LOGIQ CONTRARIAN OPPORTUNITIES ETF" not in identity or symbol not in identity:
+            raise ValueError(f"LOGIQ product page identity did not match requested ETF {symbol}.")
+        if "TWM_DOWNLOAD=HOLDINGS" not in identity or "TICKER=LCO" not in identity:
+            raise ValueError(
+                "LOGIQ product page did not declare its fund-scoped holdings download."
+            )
+        if self._STATIC_HOLDINGS_ROUTE.upper() not in identity:
+            raise ValueError("LOGIQ product page did not declare its static holdings CSV route.")
+
+    @staticmethod
+    def _parse_holdings_csv(
+        raw_csv: str, *, symbol: str
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        rows, composition_date = TidalHoldingsAdapter._parse_holdings_csv(
+            raw_csv,
+            symbol=symbol,
+        )
+        currency_names = {
+            "AUSTRALIAN DOLLAR": "AUD",
+            "CANADIAN DOLLAR": "CAD",
+            "EURO": "EUR",
+            "JAPANESE YEN": "JPY",
+            "POUND STERLING": "GBP",
+            "SWISS FRANC": "CHF",
+            "US DOLLAR": "USD",
+        }
+        currency_codes = {"AUD", "CAD", "CHF", "EUR", "GBP", "JPY", "USD"}
+        for row in rows:
+            source_values = row.extra_data or {}
+            source_ticker = str(source_values.get("StockTicker") or "").strip().upper()
+            source_name = str(source_values.get("SecurityName") or "").strip().upper()
+            currency = (
+                source_ticker
+                if source_ticker in currency_codes
+                else currency_names.get(source_name)
+            )
+            if currency:
+                row.symbol = None
+                row.currency = currency
+                row.holding_type = "cash"
+                row.row_type = "cash"
+        return rows, composition_date
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        product = self._PRODUCTS.get(normalized_symbol)
+        if product is None:
+            raise ValueError("LOGIQ's verified issuer route currently supports LCO only.")
+        if source_url and source_url.rstrip("/") != product[1].rstrip("/"):
+            raise ValueError("LOGIQ holdings must use its official declared holdings CSV.")
+        result = await super().fetch_latest(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if len(result.rows) < 20:
+            raise ValueError("LOGIQ holdings CSV returned too few rows for LCO.")
+        page_url = (result.raw_json or {}).get("product_page_url")
+        if not page_url or not _domain_matches(_url_host(page_url) or "", self._ISSUER_HOST):
+            raise ValueError("LOGIQ holdings response left the issuer product domain.")
+        if not _domain_matches(_url_host(result.source_url) or "", self._ISSUER_HOST):
+            raise ValueError("LOGIQ holdings CSV response left the issuer domain.")
+        result.raw_json = {
+            **(result.raw_json or {}),
+            "source_format": "issuer_product_page_declared_tidal_daily_holdings_csv",
+        }
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "source_access": self.config.source_access,
+            "source_provider": self.source_provider,
+            "adapter_key": self.adapter_key,
+            "route_resolution": "logiq_product_page_declared_tidal_daily_holdings_csv",
+            "snapshot_provenance": "logiq_native_current_holdings_csv",
+            "publisher": "logiq_etf",
+            "parent_issuer": "logiq_capital_partners",
+            "issuer_relationship": "LOGIQ Contrarian Opportunities ETF published by LOGIQ Capital Partners",
+        }
+        return result
 
 
 class BeeHiveHoldingsAdapter(TidalHoldingsAdapter):
@@ -65407,6 +65529,18 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="AXS Investments' public KNO product page and FilePoint holdings CSV may be subject to issuer terms.",
     ),
+    "logiq": IssuerCsvAdapterConfig(
+        adapter_key="logiq",
+        source_provider="logiq_capital_partners",
+        source_access="logiq_product_page_declared_tidal_daily_holdings_csv",
+        url_templates=("https://logiqetf.com/wp-content/uploads/data/TidalFG_Holdings_LCO.csv",),
+        product_page_templates=("https://logiqetf.com/",),
+        live_tested_default_route=True,
+        terms_note=(
+            "LOGIQ publishes LCO's complete current portfolio through its public product page "
+            "and declared daily holdings CSV; data may be subject to issuer terms."
+        ),
+    ),
     "counterpoint": IssuerCsvAdapterConfig(
         adapter_key="counterpoint",
         source_provider="counterpoint",
@@ -67143,7 +67277,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "highland_capital",
         "horizons",
         "hoya",
-        "logiq",
         "long_pond",
         "lsv",
         "m2_financial",
@@ -70229,9 +70362,9 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "jlens": JLensHoldingsAdapter,
         "keating": KeatingHoldingsAdapter,
         "knowledge_leaders": KnowledgeLeadersHoldingsAdapter,
+        "logiq": LogiqHoldingsAdapter,
         "kovitz": KovitzHoldingsAdapter,
         "leverage_shares": LeverageSharesHoldingsAdapter,
-        "logiq": LogiqReconciledFallbackHoldingsAdapter,
         "long_pond": LongPondReconciledFallbackHoldingsAdapter,
         "lsv": LsvReconciledFallbackHoldingsAdapter,
         "m2_financial": M2FinancialReconciledFallbackHoldingsAdapter,

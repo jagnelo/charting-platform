@@ -18671,6 +18671,67 @@ def test_tidal_adapter_parses_verified_sponsor_fund_scoped_holdings_csv():
 
 
 @pytest.mark.asyncio
+async def test_logiq_adapter_fetches_official_lco_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("logiq")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "LogiqHoldingsAdapter"
+    probe = adapter.probe(symbol="LCO", name="LOGIQ Contrarian Opportunities ETF", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url == (
+        "https://logiqetf.com/wp-content/uploads/data/TidalFG_Holdings_LCO.csv"
+    )
+
+    with pytest.raises(ValueError, match="official declared holdings CSV"):
+        await adapter.fetch_latest(symbol="LCO", source_url="https://example.invalid/holdings.csv")
+
+    page_url = "https://logiqetf.com/"
+    holdings_url = "https://logiqetf.com/wp-content/uploads/data/TidalFG_Holdings_LCO.csv"
+    page_text = (
+        "<html><h1>LOGIQ Contrarian Opportunities ETF (LCO)</h1>"
+        '<script>var holdingsUrl = "https://logiqetf.com/?twm_download=holdings&ticker=LCO&nonce=test"; '
+        f'var csvUrl = "{holdings_url}";</script></html>'
+    )
+    csv_rows = [
+        "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding",
+        *(
+            f"09/02/2026,LCO,TKR{index},03783310{index},Security {index},10,100,1000,1.25%,80000,1000"
+            for index in range(20)
+        ),
+        "09/02/2026,LCO,,CASH,CASH,100,1,100,0.125%,80000,1000",
+        "09/02/2026,LCO,,EUR,EURO,-63,0.86,-72.82,-0.0001%,80000,1000",
+    ]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page_text, content_type="text/html", url=page_url),
+        FakeResponse(text="\n".join(csv_rows), url=holdings_url),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="LCO")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [page_url, holdings_url]
+    assert len(result.rows) == 22
+    assert result.rows[0].symbol == "TKR0"
+    assert result.rows[0].cusip == "037833100"
+    assert result.rows[0].weight == Decimal("0.0125")
+    assert result.rows[-2].row_type == "cash"
+    assert result.rows[-2].symbol is None
+    assert result.rows[-1].row_type == "cash"
+    assert result.rows[-1].currency == "EUR"
+    assert result.legal_metadata["source_provider"] == "logiq_capital_partners"
+    assert result.legal_metadata["publisher"] == "logiq_etf"
+    assert result.legal_metadata["route_resolution"] == (
+        "logiq_product_page_declared_tidal_daily_holdings_csv"
+    )
+    assert result.legal_metadata["snapshot_provenance"] == "logiq_native_current_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+    assert result.raw_json["source_format"] == (
+        "issuer_product_page_declared_tidal_daily_holdings_csv"
+    )
+    assert adapter.probe(symbol="UNKNOWN", name="", identifiers={}).status == "needs_issuer_route"
+
+
+@pytest.mark.asyncio
 async def test_fitzgerald_adapter_discovers_and_parses_nicholas_wealth_csv(monkeypatch):
     adapter = get_holdings_adapter("fitzgerald")
     assert adapter is not None
@@ -26233,8 +26294,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 385
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 111
+    assert ledger["current_native_count"] == 386
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 110
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -26270,6 +26331,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "hilton",
         "jlens",
         "knowledge_leaders",
+        "logiq",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))

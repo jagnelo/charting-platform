@@ -296,4 +296,32 @@ pending at the 385-native baseline, with the known unrelated reproducible
 F8p-current-history Study Lab histogram timeout still recorded as the integration
 blocker.
 
+## Current implementation checkpoint — Logiq/LCO native promotion — 2026-09-03
+
+The ranked `logiq` audit verified the official LOGIQ ETF page at
+`https://logiqetf.com/`. It identifies the LOGIQ Contrarian Opportunities ETF
+(`LCO`) and declares both a fund-scoped holdings download and the static
+`https://logiqetf.com/wp-content/uploads/data/TidalFG_Holdings_LCO.csv` route.
+The current CSV is dated 2026-09-02 and contains 86 LCO rows, including
+securities, CASH, and EUR currency rows.
+
+`LogiqHoldingsAdapter` now validates the LCO/page identity and both issuer-owned
+route markers, requires a complete current snapshot, preserves CUSIPs,
+quantities, market values, and percentage weights, and classifies cash/currency
+rows explicitly. It records LOGIQ ETF and LOGIQ Capital Partners provenance and
+keeps the route limited to LCO.
+
+Logiq is removed from the runtime fallback discovery audit and promoted in the
+exhaustive ledger. The code-derived split is now 496 registered, 386
+native/live-backed, and 110 fallback-only providers. Runtime fallback status
+counts are 8 issuer-access-blocked, 93 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The ledger retains
+all 140 historical records exactly once; 65 queued fallback records remain and
+the next ranked item is `long_pond`.
+
+The complete opt-in provider matrix and Docker-backed integration gate remain
+pending at the 386-native baseline, with the known unrelated reproducible
+F8p-current-history Study Lab histogram timeout still recorded as the
+integration blocker.
+
 Update this handoff at every coherent implementation and operations boundary.
