@@ -1645,3 +1645,17 @@ responses for both routes. No executable native route is promoted, so
 Counts remain 496 registered / 410 native / 86 fallback, with 18 queued and
 `srh` next. Evidence ref:
 `live:sophus-current-emem-emsc-holdings-pages-2026-09-04-blocked`.
+
+## Current promotion checkpoint — SRH Funds / SRHQ-SRHR HTML routes — 2026-09-04
+
+SRH Funds' official SRHQ and SRHR product pages publish complete current
+holdings tables with security, ticker, security ID, shares, market value,
+weight, and dated snapshots. The native adapter validates product identity and
+table headers, maps security IDs and percentage weights, and records SRH
+Advisors / Paralel provenance without SEC reconstruction. Both bounded live
+probes returned parseable current rows.
+
+Counts are 496 registered / 411 native / 85 fallback, with 17 queued and
+`stance` next. Evidence refs:
+`web:srh-current-srhq-srhr-holdings-pages-2026-09-04` and
+`live:srh-current-srhq-srhr-holdings-pages-2026-09-04`.

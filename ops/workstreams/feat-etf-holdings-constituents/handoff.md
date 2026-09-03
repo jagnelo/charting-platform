@@ -1316,3 +1316,19 @@ fallback-only providers, with 18 queued records and `srh` next. Runtime
 fallback statuses are 15 issuer-access-blocked, 56 route-discovery, 9
 non-executable-public-source, and 7 non-portfolio-publisher. Evidence ref:
 `live:sophus-current-emem-emsc-holdings-pages-2026-09-04-blocked`.
+
+## Current promotion checkpoint — SRH Funds / SRHQ-SRHR HTML routes — 2026-09-04
+
+SRH Funds' official SRHQ and SRHR product pages publish complete current
+holdings HTML tables with security, ticker, security ID, shares, market value,
+weight, and dated snapshots. The native adapter validates product identity and
+table headers, maps security IDs and percentage weights, and records SRH
+Advisors / Paralel provenance without SEC reconstruction. Both bounded live
+probes returned parseable current rows.
+
+The durable split is now 496 registered / 411 native-live-backed / 85
+fallback-only providers, with 17 queued records and `stance` next. Runtime
+fallback statuses remain 15 issuer-access-blocked, 55 route-discovery, 9
+non-executable-public-source, and 7 non-portfolio-publisher. Evidence refs:
+`web:srh-current-srhq-srhr-holdings-pages-2026-09-04` and
+`live:srh-current-srhq-srhr-holdings-pages-2026-09-04`.

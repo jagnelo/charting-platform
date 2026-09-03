@@ -5,8 +5,8 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 410
-current_fallback_count: 86
+current_native_count: 411
+current_fallback_count: 85
 generated_at: 2026-09-04T05:00:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
@@ -5477,35 +5477,46 @@ providers:
     display_name: srh
     queue_rank: 116
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-04
+    source_access_declared: issuer_product_page_complete_holdings_html_table
+    representative_symbols: [SRHQ, SRHR]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    source_freshness: daily
+    first_party_domains: [srhfunds.com]
+    candidate_routes:
+      - "https://srhfunds.com/fund-overview/srhq/"
+      - "https://srhfunds.com/fund-overview/srhr/"
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: "backend/tests/unit/services/test_etf_holdings_adapters.py::test_srh_adapter_parses_current_holdings_table"
+    live_test: "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows"
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.srh"
       - "runtime:ISSUER_ADAPTER_CONFIGS.srh"
+      - "web:srh-current-srhq-srhr-holdings-pages-2026-09-04"
+      - "live:srh-current-srhq-srhr-holdings-pages-2026-09-04"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.srh"
-    disposition_reason: "srh: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate srh first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
-    implementation_sha: null
-    validation_refs: []
+      - date: 2026-09-04
+        source: "SRH Funds official SRHQ and SRHR product pages"
+        result: "Both official pages publish complete current holdings HTML tables with ticker, security ID, shares, market value, weight, and dated snapshots; bounded live probes returned parseable current rows for both products."
+        evidence_ref: "web:srh-current-srhq-srhr-holdings-pages-2026-09-04"
+    disposition_reason: "srh: SRH Funds' official SRHQ and SRHR product pages publish complete current holdings tables. The provider-specific adapter validates product identity and table headers, maps security IDs, weights, shares, and market values, and records SRH Advisors / Paralel provenance without SEC reconstruction."
+    next_action: "srh: Monitor the SRHQ and SRHR pages, table schema, and composition-date continuity; add future SRH products only after equivalent complete first-party route and live evidence."
+    implementation_sha: 167daa994223d4727880d117f7c59a97edb88331
+    validation_refs:
+      - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_srh_adapter_parses_current_holdings_table"
+      - "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows"
+      - "validation:2026-09-04T07:00:00Z"
   - adapter_key: stance
     display_name: stance
     queue_rank: 117
