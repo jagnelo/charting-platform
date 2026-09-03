@@ -2274,3 +2274,13 @@ registered / 401 native / 95 fallback, with 36 queued records and
 `web:portfolio-building-block-pbog-2026-09-03`,
 `web:portfolio-building-block-pbeu-2026-09-03`, and
 `live:portfolio-building-block-current-pbog-csv-2026-09-03`.
+
+## Current audit checkpoint — Premise Capital / TCTL issuer-access-blocked — 2026-09-03
+
+The historical Premise Capital/TCTL route points to `tctl.us`; DNS resolution
+failed for both issuer hostnames, so no current first-party holdings artifact
+could be executed. Preserve the fallback and record an issuer-access-blocked
+disposition. Counts are 496 registered / 401 native / 95 fallback, with 35
+queued records and `putnam` next. Evidence refs:
+`web:premise-tctl-current-identity-2026-09-03` and
+`live:premise-tctl-domain-unreachable-2026-09-03`.

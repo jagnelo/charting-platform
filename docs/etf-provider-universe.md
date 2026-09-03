@@ -1370,3 +1370,15 @@ with 36 queued records and `premise_capital` next. Evidence refs:
 `web:portfolio-building-block-pbog-2026-09-03`,
 `web:portfolio-building-block-pbeu-2026-09-03`, and
 `live:portfolio-building-block-current-pbog-csv-2026-09-03`.
+
+## Current audit checkpoint — Premise Capital / TCTL — 2026-09-03
+
+Premise Capital's historical TCTL identity points to `tctl.us`, but both issuer
+hostnames failed DNS resolution and no current symbol-scoped holdings artifact
+was available. The provider remains `issuer_access_blocked` without SEC-derived
+reconstruction or native promotion.
+
+The current split remains 496 registered / 401 native-live-backed / 95
+fallback-only, with 35 queued records and `putnam` next. Evidence refs:
+`web:premise-tctl-current-identity-2026-09-03` and
+`live:premise-tctl-domain-unreachable-2026-09-03`.

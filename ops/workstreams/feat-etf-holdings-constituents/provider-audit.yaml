@@ -4659,17 +4659,20 @@ providers:
     display_name: premise_capital
     queue_rank: 97
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: audited
+    disposition: issuer_access_blocked
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols: [TCTL]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains: [tctl.us, sec.gov]
+    candidate_routes:
+      - "https://www.tctl.us"
+      - "https://tctl.us"
+      - "https://www.sec.gov/Archives/edgar/data/1540305"
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -4679,13 +4682,23 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.premise_capital"
       - "runtime:ISSUER_ADAPTER_CONFIGS.premise_capital"
+      - "web:premise-tctl-current-identity-2026-09-03"
+      - "live:premise-tctl-domain-unreachable-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.premise_capital"
-    disposition_reason: "premise_capital: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate premise_capital first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-03
+        source: "https://www.etf.com/issuer/premise-capital"
+        result: "The current issuer identity is Premise Capital with historical ETF ticker TCTL and website tctl.us; the listing provides no executable first-party holdings route."
+        evidence_ref: "web:premise-tctl-current-identity-2026-09-03"
+      - date: 2026-09-03
+        source: "https://www.tctl.us"
+        result: "Backend-equivalent retrieval failed at DNS resolution for both tctl.us and www.tctl.us, before any product or holdings artifact could be accessed."
+        evidence_ref: "live:premise-tctl-domain-unreachable-2026-09-03"
+    disposition_reason: "premise_capital: The historical TCTL issuer identity points to tctl.us, but both issuer hostnames currently fail DNS resolution and no current symbol-scoped holdings artifact can be executed. The provider remains issuer_access_blocked; no SEC-derived reconstruction or unproven native adapter is counted. Reopen only after a reachable issuer-owned product/holdings route is established."
+    next_action: "premise_capital: Recheck tctl.us and current trust disclosures for a reachable TCTL issuer route; do not promote from SEC filings alone."
     implementation_sha: null
     validation_refs: []
   - adapter_key: putnam

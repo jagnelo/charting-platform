@@ -993,6 +993,21 @@ Evidence refs: `web:portfolio-building-block-pbog-2026-09-03`,
 `web:portfolio-building-block-pbeu-2026-09-03`, and
 `live:portfolio-building-block-current-pbog-csv-2026-09-03`.
 
+## Current audit checkpoint — Premise Capital / TCTL issuer-access-blocked — 2026-09-03
+
+The historical Premise Capital identity points to `tctl.us`, but both the
+issuer hostname and `www.tctl.us` failed DNS resolution during the audit. No
+current symbol-scoped holdings artifact could be accessed or parsed, so the
+ledger records `premise_capital` as `issuer_access_blocked`; no SEC-derived
+reconstruction or unproven native adapter is counted.
+
+Runtime state remains 496 registered / 401 native-live-backed / 95 fallback-only
+providers. Runtime fallback statuses are 11 issuer-access-blocked, 73
+route-discovery, 5 non-executable-public-source, and 6 non-portfolio-publisher.
+The ledger has 35 queued records and the next ranked issuer is `putnam`.
+Evidence refs: `web:premise-tctl-current-identity-2026-09-03` and
+`live:premise-tctl-domain-unreachable-2026-09-03`.
+
 ## Current audit checkpoint — North Square non-executable public source — 2026-09-03
 
 The ranked `north_square` audit verified official NSIV and NSIG product pages
