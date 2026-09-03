@@ -3655,7 +3655,8 @@ providers:
     disposition_reason: "merchant_investment_management: Merchant's official business site describes a strategic/capital partnership and alternative-solutions firm rather than a U.S. ETF portfolio publisher. Its Form ADV records sub-advisory recommendations to sponsors of two Canadian ETFs, with sponsors executing the portfolios; no issuer-owned U.S. ETF catalogue or complete holdings artifact is exposed. The existing adapter remains a truthful reconciled fallback identity, and no 13F, adviser recommendation, Canadian product, or SEC-derived reconstruction is promoted as U.S. ETF constituents."
     next_action: "merchant_investment_management: Keep this identity as provider_not_a_portfolio_publisher and resolve any ETFDB source rows to the actual ETF sponsor/publisher; do not create a Merchant native adapter unless Merchant later publishes a distinct U.S. ETF product and complete issuer-owned holdings route."
     implementation_sha: null
-    validation_refs: []
+    validation_refs:
+      - "validation:2026-09-03T04:33:16Z"
   - adapter_key: meridian
     display_name: meridian
     queue_rank: 78
