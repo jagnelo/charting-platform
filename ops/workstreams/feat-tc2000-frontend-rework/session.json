@@ -51,9 +51,7 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [
-    "ps/workstreams/feat-tc2000-frontend-rework/session.json"
-  ],
+  "dirty_paths": [],
   "docker": {
     "available": false,
     "reason": "WARNING: Plugin \"/Users/jagnelo/.docker/cli-plugins/docker-dev\" is not valid: failed to fetch metadata: fork/exec /Users/jagnelo/.docker/cli-plugins/docker-dev: no such file or directory\nWARNING: Plugin \"/Users/jagnelo/.docker/cli-plugins/docker-feedback\" is not valid: failed to fetch metadata: fork/exec /Users/jagnelo/.docker/cli-plugins/docker-feedback: no such file or directory\nWARNING: Plugin \"/Users/jagnelo/.docker/cli-plugins/docker-sbom\" is not valid: failed to fetch metadata: fork/exec /Users/jagnelo/.docker/cli-plugins/docker-sbom: no such file or directory\npermission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
@@ -72,7 +70,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "a9571d41ec6e29413024ab82e0defafb9d3d5103",
+  "head": "fb6e6b71ff4804747c8e068157c4f38664dbdb0d",
   "implementation_sha": "7e7e498ef6cc51a4c236affca55c30a31e24dac4",
   "last_human_progress_update": "2026-09-03T18:02:37.696492+00:00",
   "local_validation_profile": "full_stack_browser",
@@ -89,7 +87,7 @@
     "total": 10,
     "updated_at": "2026-09-03T18:02:37.696421+00:00"
   },
-  "remote": "a9571d41ec6e29413024ab82e0defafb9d3d5103",
+  "remote": "fb6e6b71ff4804747c8e068157c4f38664dbdb0d",
   "remote_sha": "7e7e498ef6cc51a4c236affca55c30a31e24dac4",
   "remote_synchronized": true,
   "schema": 2,
