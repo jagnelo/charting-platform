@@ -1679,3 +1679,30 @@ fallback-only providers; runtime statuses are 8 blocked, 92 route discovery, 3
 non-executable, and 6 non-portfolio-publisher. The ledger has 64 queued
 fallback records remaining, with `lsv` next. The known unrelated F8p-current-
 history Study Lab histogram timeout remains the Docker integration blocker.
+## 40. Current execution checkpoint — LSV/LSVD native promotion — 2026-09-03
+
+The ranked `lsv` audit found a complete executable first-party route on the
+official LSV Asset Management product page at
+`https://www.lsvasset.com/disciplined-value-etf/`. The page identifies the LSV
+Disciplined Value ETF (`LSVD`), declares its 2026-09-01 holdings date, and links
+the complete `https://www.lsvasset.com/ETFLive/LSVD-holdings.csv` export. The
+current issuer file contains 136 rows and the exact Name, Ticker, ISIN, Number
+of Shares, Market Value, and % of NAV schema.
+
+`LsvHoldingsAdapter` validates the official page host and LSVD identity, requires
+the page-declared CSV route and exact schema, converts percentage-point weights,
+preserves ISIN/ticker/quantity/value fields, classifies Cash and the treasury-
+obligations sweep rows as cash equivalents, and records LSV Asset Management /
+The Advisors' Inner Circle Fund provenance. It does not reconstruct holdings
+through SEC filings. The deterministic fixture covers route and schema checks,
+date/value/weight mapping, cash classification, metadata, request routing, and
+unsupported symbols; bounded opt-in live coverage exercises the current route.
+
+The runtime fallback audit no longer contains `lsv`; its ledger record is
+`native_promoted` with official route, parser fixture, and live evidence refs.
+The code-derived split is 496 registered, 388 native/live-backed, and 108
+fallback-only providers; runtime statuses are 8 blocked, 91 route discovery, 3
+non-executable, and 6 non-portfolio-publisher. The ledger has 63 queued
+fallback records remaining, with `m2_financial` next. The known unrelated
+F8p-current-history Study Lab histogram timeout remains the Docker integration
+blocker.

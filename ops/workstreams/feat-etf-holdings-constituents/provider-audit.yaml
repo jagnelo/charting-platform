@@ -5,9 +5,9 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 387
-current_fallback_count: 109
-generated_at: 2026-09-03T02:57:15Z
+current_native_count: 388
+current_fallback_count: 108
+generated_at: 2026-09-03T03:14:34Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -3217,35 +3217,51 @@ providers:
     display_name: lsv
     queue_rank: 69
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
-    estimated_us_etf_count: null
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-03
+    source_access_declared: issuer_product_page_declared_holdings_csv
+    representative_symbols:
+      - LSVD
+    estimated_us_etf_count: 1
     estimated_us_etf_aum: null
-    us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    us_equity_breadth: 1
+    source_freshness: current_as_of_date
+    first_party_domains:
+      - lsvasset.com
+    candidate_routes:
+      - https://www.lsvasset.com/disciplined-value-etf/
+      - https://www.lsvasset.com/ETFLive/LSVD-holdings.csv
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    source_format: csv
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_lsv_adapter_fetches_official_lsvd_holdings_csv
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_lsv_lsvd_product_page_declared_holdings_csv
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.lsv"
       - "runtime:ISSUER_ADAPTER_CONFIGS.lsv"
+      - "web:lsv-official-lsvd-holdings-route-2026-09-03"
+      - "live:lsv-lsvd-current-holdings-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.lsv"
-    disposition_reason: "lsv: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate lsv first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
-    implementation_sha: null
-    validation_refs: []
+      - date: 2026-09-03
+        source: "https://www.lsvasset.com/disciplined-value-etf/ and https://www.lsvasset.com/ETFLive/LSVD-holdings.csv"
+        result: "The official LSV Disciplined Value ETF page identifies LSVD, declares its complete All Fund Holdings CSV, and exposes a 2026-09-01 holdings-as-of date. The issuer CSV uses the documented Name, Ticker, ISIN, Number of Shares, Market Value, and % of NAV schema and contains 136 rows."
+        evidence_ref: "web:lsv-official-lsvd-holdings-route-2026-09-03"
+      - date: 2026-09-03
+        source: "backend/tests/live/test_etf_holdings_live_providers.py::test_live_lsv_lsvd_product_page_declared_holdings_csv"
+        result: "The native LSV adapter fetched the official LSVD product page and declared CSV, parsed the complete 136-row dated snapshot, preserved ISIN/ticker/shares/market values/weights, and classified the cash and treasury-obligations sweep rows explicitly."
+        evidence_ref: "live:lsv-lsvd-current-holdings-2026-09-03"
+    disposition_reason: "lsv: LSV's official LSVD product page declares a complete issuer-owned holdings CSV. The native adapter validates the official host, page identity, declared CSV link, exact schema, dated holdings section, canonical ISIN/ticker/quantity/value/weight mapping, and cash-equivalent rows without SEC-derived reconstruction."
+    next_action: "lsv: Monitor the official LSVD product page and ETFLive/LSVD-holdings.csv route; retain native status while the route remains complete, identity-valid, current, and executable, and add any future LSV ETF only after equivalent first-party evidence."
+    implementation_sha: 138957049c3c81e1d50707ddd7838444818d6020
+    validation_refs:
+      - "validation:2026-09-03T03:14:34Z"
   - adapter_key: m2_financial
     display_name: m2_financial
     queue_rank: 70

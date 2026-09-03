@@ -22111,6 +22111,7 @@ def test_stockanalysis_provider_continuation_batch_is_registered_and_audited():
         "castellan",
         "cresalta",
         "jlens",
+        "lsv",
     }
     expected -= {"fairlead"}
 
@@ -26454,8 +26455,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 387
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 109
+    assert ledger["current_native_count"] == 388
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 108
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {

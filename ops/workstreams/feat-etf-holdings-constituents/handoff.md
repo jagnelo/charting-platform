@@ -330,6 +330,7 @@ The current Long Pond changeset owns these durable paths before checkpoint:
 `ops/workstreams/feat-etf-holdings-constituents/implementation-plan.md`,
 `ops/workstreams/feat-etf-holdings-constituents/plan.yaml`,
 `ops/workstreams/feat-etf-holdings-constituents/provider-audit.yaml`, and
+`ops/workstreams/feat-etf-holdings-constituents/session.json` plus
 `ops/workstreams/feat-etf-holdings-constituents/validation.jsonl`.
 
 Update this handoff at every coherent implementation and operations boundary.
@@ -362,5 +363,35 @@ the next ranked item is `lsv`.
 
 The complete opt-in provider matrix and Docker-backed integration gate remain
 pending at the 387-native baseline, with the known unrelated reproducible
+F8p-current-history Study Lab histogram timeout still recorded as the
+integration blocker.
+## Current implementation checkpoint — LSV/LSVD native promotion — 2026-09-03
+
+The ranked `lsv` audit verified the official LSV Asset Management product page
+at `https://www.lsvasset.com/disciplined-value-etf/`. It identifies the LSV
+Disciplined Value ETF (`LSVD`), declares an `As of: 09/01/2026` holdings date,
+and links the complete `https://www.lsvasset.com/ETFLive/LSVD-holdings.csv`
+export. The issuer CSV uses Name, Ticker, ISIN, Number of Shares, Market Value,
+and % of NAV columns and contains 136 rows.
+
+`LsvHoldingsAdapter` now validates the official product-page host and LSVD
+identity, requires the page-declared CSV and exact schema, maps ISIN/ticker/
+shares/market-value/weight fields, classifies the treasury-obligations sweep and
+Cash rows as cash equivalents, and records LSV Asset Management / The Advisors'
+Inner Circle Fund provenance. The deterministic fixture covers route identity,
+schema, date/value/weight mapping, cash classification, metadata, request
+routing, and unsupported symbols; the opt-in live test exercises the current
+official page and CSV route.
+
+LSV is removed from the runtime fallback discovery audit and promoted in the
+exhaustive ledger. The code-derived split is now 496 registered, 388
+native/live-backed, and 108 fallback-only providers. Runtime fallback status
+counts are 8 issuer-access-blocked, 91 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The ledger retains
+all 140 historical records exactly once; 63 queued fallback records remain and
+the next ranked item is `m2_financial`.
+
+The complete opt-in provider matrix and Docker-backed integration gate remain
+pending at the 388-native baseline, with the known unrelated reproducible
 F8p-current-history Study Lab histogram timeout still recorded as the
 integration blocker.
