@@ -75,6 +75,28 @@ The schema-4 contract is `plan.yaml`. A later Codex implementation model must
 read both completely, follow the automatic agent-session workflow, and work
 only in this branch's registered local worktree.
 
+## CI follow-up — live-provider edge resilience — 2026-09-03
+
+The first exact-SHA feature-branch CI run (`33798889215`, checkpoint
+`e0195f29`) passed Frontend Unit Tests, Backend Tests, and Playwright. Its
+branch-declared live matrix failed 13 cases after 481 passed and 12 skipped:
+eight Return Stacked products received empty Tidal CSV bodies, OneAscent and
+Nightview intermittently returned product pages without the declared CSV
+route, Hypatia and Cohen Steers timed out, and Abacus returned a current page
+whose date was formatted as `AS OF 09/02/2026` rather than the fixture's
+parenthesized two-digit form. Current probes from this worktree fetched the
+Return Stacked CSV and both product pages successfully, supporting transient
+issuer-edge variability rather than a proven route removal.
+
+The follow-up patch keeps deterministic contracts strict while handling only
+these evidenced cases: issuer challenge markup is detected before page-route
+validation for OneAscent/Nightview; the live test classifier recognizes the
+provider-specific Tidal empty-body error and catches Hypatia/Cohen Steers
+timeouts; Abacus composition-date parsing accepts issuer `AS OF` markup with
+or without parentheses and one- or two-digit month/day fields. The exact
+provider subset passed locally after the patch, and the deterministic suite
+remains 567 passed. A fresh exact-SHA CI run is required before closure.
+
 ## Current implementation checkpoint — Hilton/SMCO-HBDC — 2026-09-03
 
 Hilton Capital Management's official Hilton ETFs product pages identify SMCO

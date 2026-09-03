@@ -1181,6 +1181,22 @@ def _looks_like_aws_waf_challenge(raw_text: str | None) -> bool:
     )
 
 
+def _looks_like_issuer_access_challenge(raw_text: str | None) -> bool:
+    """Identify common issuer edge pages returned instead of product markup."""
+
+    text = (raw_text or "").lower()
+    return _looks_like_aws_waf_challenge(text) or any(
+        marker in text
+        for marker in (
+            "cf-chl-",
+            "challenge-platform",
+            "cloudflare ray id",
+            "verify you are human",
+            "just a moment...",
+        )
+    )
+
+
 def _invesco_holdings_request_headers() -> dict[str, str]:
     return {
         "User-Agent": (
@@ -12468,6 +12484,10 @@ class NightviewHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 follow_redirects=True,
             )
             page_response.raise_for_status()
+            if _looks_like_issuer_access_challenge(page_response.text):
+                raise ValueError(
+                    "Nightview official fund page returned an issuer access challenge."
+                )
             self._validate_product_page(
                 page_response.text,
                 symbol=normalized_symbol,
@@ -22067,7 +22087,9 @@ class AbacusGlobalHoldingsAdapter(IssuerCsvHoldingsAdapter):
     @staticmethod
     def _parse_composition_date(raw_html: str) -> date | None:
         matches = re.findall(
-            r"\(\s*as\s+of\s+(\d{2}/\d{2}/\d{4})\s*\)", raw_html, flags=re.IGNORECASE
+            r"\(?\s*as\s+of\s+(\d{1,2}/\d{1,2}/\d{4})\s*\)?",
+            raw_html,
+            flags=re.IGNORECASE,
         )
         if not matches:
             return None
@@ -39066,6 +39088,8 @@ class OneAscentHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     follow_redirects=True,
                 )
                 page_response.raise_for_status()
+                if _looks_like_issuer_access_challenge(page_response.text):
+                    raise ValueError("OneAscent product page returned an issuer access challenge.")
                 holdings_url = self._discover_holdings_csv(
                     page_response.text,
                     base_url=str(getattr(page_response, "url", product_page_url)),

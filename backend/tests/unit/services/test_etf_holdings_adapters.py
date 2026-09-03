@@ -19154,7 +19154,7 @@ async def test_abacus_global_adapter_follows_issuer_page_linked_daily_csv(monkey
 
     raw_html = """
     <h1>Abacus FCF International Leaders ETF (ABLG)</h1>
-    <h3>Top 10 Holdings <span>(as of 07/10/2026)</span></h3>
+    <h3>Top 10 Holdings <span>AS OF 7/10/2026</span></h3>
     <a href="https://abacusfcf.com/wp-content/uploads/DailyUploads/ABLG_allHoldings.csv">
       DOWNLOAD FULL HOLDINGS
     </a>
