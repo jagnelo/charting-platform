@@ -43,14 +43,7 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-45bdf9bd8d"
   },
-  "dirty_paths": [
-    "ocs/etf-provider-universe.md",
-    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/provider-audit.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/session.json",
-    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -87,7 +80,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "7b95cb926cd5c0a356ee8506893d865cc45419b1",
+  "head": "a6cf36ee3c7f4b69351fe687452c1668deaed937",
   "implementation_sha": "a696277b6efed719cc40051e010f5e6a5b542f3e",
   "last_checkpoint": "2026-09-03T16:23:16.895622+00:00",
   "last_human_progress_update": "2026-09-03T14:40:04.134148+00:00",
