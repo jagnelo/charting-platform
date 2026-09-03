@@ -161,3 +161,7 @@ Its history handoff now retains a structured `queue_error` result (including sna
 bounded error string) when member-history enqueueing fails, then commits and returns the completed
 holdings refresh evidence. A regression test covers this failure path so one queue failure remains
 local evidence and cannot erase the rest of the unit result or suppress later scheduled roots.
+
+At the fan-out checkpoint tip `ebd03f3a6cf91eec42d2361f4bf7266afb19735f`, the complete backend
+unit suite passed (`1281` tests, `67.31%` coverage against the `55%` gate). The suite includes the
+new scheduler failure-isolation tests; warnings remain limited to existing NumPy/Pandas deprecations.
