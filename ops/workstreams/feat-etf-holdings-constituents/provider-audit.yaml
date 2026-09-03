@@ -4553,19 +4553,22 @@ providers:
     display_name: performance_trust
     queue_rank: 95
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: audited
+    disposition: non_executable_public_source
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols: [STBF]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    source_freshness: monthly
+    first_party_domains: [ptam.com, s3.amazonaws.com, sec.gov]
+    candidate_routes:
+      - "https://ptam.com/resources/"
+      - "https://s3.amazonaws.com/ptam.com/documents/Fundholdings_stbf_monthly.pdf"
+      - "https://www.sec.gov/Archives/edgar/data/1141819/000089418925017279/ck0001141819-20251219.htm"
     route_complete: false
-    symbol_mapping_proven: false
+    symbol_mapping_proven: true
     current_holdings_proven: false
     parser_fixture: null
     live_test: null
@@ -4573,13 +4576,28 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.performance_trust"
       - "runtime:ISSUER_ADAPTER_CONFIGS.performance_trust"
+      - "web:performance-trust-ptam-resources-2026-09-03"
+      - "web:performance-trust-current-holdings-pdf-2026-09-03"
+      - "live:performance-trust-holdings-pdf-stale-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.performance_trust"
-    disposition_reason: "performance_trust: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate performance_trust first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-03
+        source: "https://ptam.com/resources/"
+        result: "PT Asset Management's official resources page links the STBF Monthly Fund Holdings PDF."
+        evidence_ref: "web:performance-trust-ptam-resources-2026-09-03"
+      - date: 2026-09-03
+        source: "https://s3.amazonaws.com/ptam.com/documents/Fundholdings_stbf_monthly.pdf"
+        result: "The issuer-hosted PDF is a complete STBF holdings schedule as of July 31, 2026; the object Last-Modified header is August 7, 2026, so it is not a current executable daily artifact on September 3, 2026."
+        evidence_ref: "web:performance-trust-current-holdings-pdf-2026-09-03"
+      - date: 2026-09-03
+        source: "https://s3.amazonaws.com/ptam.com/documents/Fundholdings_stbf_monthly.pdf"
+        result: "Backend-equivalent HEAD returned HTTP 200 and application/pdf, confirming access but not current freshness."
+        evidence_ref: "live:performance-trust-holdings-pdf-stale-2026-09-03"
+    disposition_reason: "performance_trust: PT Asset Management publishes a complete STBF holdings PDF, but the latest issuer artifact is dated July 31, 2026 and the object was last modified August 7, 2026. It does not establish a current executable holdings route for September 3, 2026, so the provider remains non_executable_public_source without native promotion or SEC-derived reconstruction."
+    next_action: "performance_trust: Recheck the PTAM resources page for a refreshed current STBF artifact; promote only after a current symbol-scoped route and parser/live proof are available."
     implementation_sha: null
     validation_refs: []
   - adapter_key: portfolio_building_block

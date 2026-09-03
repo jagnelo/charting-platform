@@ -2249,3 +2249,16 @@ fallback, with 38 queued records and `performance_trust` next. Evidence refs:
 `web:pathfinder-official-pfde-2026-09-03`,
 `web:pathfinder-sec-daily-disclosure-2026-09-03`, and
 `live:pathfinder-pfde-current-holdings-2026-09-03`.
+
+## Current audit checkpoint — Performance Trust / STBF non-executable public source — 2026-09-03
+
+The official PTAM resources page exposes an issuer-hosted STBF monthly holdings
+PDF, but its July 31, 2026 as-of date and August 7, 2026 object modification
+date are stale for the current September 3 audit. Record the dated
+`non_executable_public_source` disposition, retain the provider fallback, and
+recheck for a current route before considering native promotion. Counts are 496
+registered / 400 native / 96 fallback, with 37 queued records and
+`portfolio_building_block` next. Evidence refs:
+`web:performance-trust-ptam-resources-2026-09-03`,
+`web:performance-trust-current-holdings-pdf-2026-09-03`, and
+`live:performance-trust-holdings-pdf-stale-2026-09-03`.

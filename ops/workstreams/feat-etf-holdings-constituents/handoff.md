@@ -959,6 +959,24 @@ Lab histogram timeout remains the integration blocker. Evidence refs:
 `web:pathfinder-sec-daily-disclosure-2026-09-03`, and
 `live:pathfinder-pfde-current-holdings-2026-09-03`.
 
+## Current audit checkpoint — Performance Trust / STBF non-executable public source — 2026-09-03
+
+PT Asset Management's official resources page links a complete STBF Monthly
+Fund Holdings PDF. The issuer artifact is dated July 31, 2026 and its S3 object
+was last modified August 7, 2026; although reachable with HTTP 200, it is not a
+current executable holdings route on September 3. The ledger records
+`performance_trust` as `non_executable_public_source` without native promotion
+or SEC-derived reconstruction.
+
+Runtime state remains 496 registered / 400 native-live-backed / 96 fallback-only
+providers. Runtime fallback statuses are 10 issuer-access-blocked, 75
+route-discovery, 5 non-executable-public-source, and 6 non-portfolio-publisher.
+The ledger has 37 queued records and the next ranked issuer is
+`portfolio_building_block`. Evidence refs:
+`web:performance-trust-ptam-resources-2026-09-03`,
+`web:performance-trust-current-holdings-pdf-2026-09-03`, and
+`live:performance-trust-holdings-pdf-stale-2026-09-03`.
+
 ## Current audit checkpoint — North Square non-executable public source — 2026-09-03
 
 The ranked `north_square` audit verified official NSIV and NSIG product pages

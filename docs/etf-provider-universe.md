@@ -1344,3 +1344,16 @@ with 38 queued records and `performance_trust` next. Evidence refs:
 `web:pathfinder-official-pfde-2026-09-03`,
 `web:pathfinder-sec-daily-disclosure-2026-09-03`, and
 `live:pathfinder-pfde-current-holdings-2026-09-03`.
+
+## Current audit checkpoint — Performance Trust / STBF — 2026-09-03
+
+PT Asset Management links an issuer-hosted STBF Monthly Fund Holdings PDF, but
+the latest artifact is dated July 31, 2026 (S3 last modified August 7, 2026).
+It is therefore recorded as `non_executable_public_source`, not native, until
+a current symbol-scoped holdings route is available.
+
+The current split remains 496 registered / 400 native-live-backed / 96
+fallback-only, with 37 queued records and `portfolio_building_block` next.
+Evidence refs: `web:performance-trust-ptam-resources-2026-09-03`,
+`web:performance-trust-current-holdings-pdf-2026-09-03`, and
+`live:performance-trust-holdings-pdf-stale-2026-09-03`.
