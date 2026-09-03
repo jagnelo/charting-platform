@@ -1361,6 +1361,54 @@ async def test_river1_adapter_verifies_rver_page_and_parses_issuer_xls(monkeypat
 
 
 @pytest.mark.asyncio
+async def test_robo_global_adapter_parses_nuxt_holdings(monkeypatch):
+    adapter = get_holdings_adapter("robo_global")
+    assert adapter is not None
+    payload = [
+        None,
+        "roboglobaletfs-robo-HoldingsComponent-1",
+        "09/01/2026",
+        [5],
+        {"componentId": 1, "date": 2, "finData": 3},
+        {
+            "ticker": 6,
+            "description": 7,
+            "quantity": 8,
+            "market_value": 9,
+            "percent_of_nav": 10,
+            "figi": 11,
+        },
+        "AUTO NO",
+        "AUTOSTORE HOLDINGS LTD.",
+        22983541,
+        "39751581.87",
+        "0.0196",
+        "BBG0130YK031",
+    ]
+    page = (
+        '<div data-preview-route="robo"></div>'
+        '<script type="application/json" id="__NUXT_DATA__">'
+        f"{json.dumps(payload)}"
+        "</script>"
+        "<h1>ROBO Global Robotics & Automation ETF (ROBO)</h1>"
+    )
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page, content_type="text/html", url=adapter.PRODUCT_PAGE_URLS["ROBO"])
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="ROBO")
+
+    assert [row.symbol for row in result.rows] == ["AUTO"]
+    assert result.rows[0].extra_data["source_ticker"] == "AUTO NO"
+    assert result.legal_metadata["source_provider"] == "robo_global_etfs"
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+    assert result.legal_metadata["route_resolution"] == (
+        "robo_global_product_page_nuxt_complete_holdings_component"
+    )
+
+
+@pytest.mark.asyncio
 async def test_eldridge_adapter_filters_combined_daily_holdings_and_preserves_cusips(monkeypatch):
     adapter = get_holdings_adapter("eldridge")
     assert adapter is not None
@@ -27364,8 +27412,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 404
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 92
+    assert ledger["current_native_count"] == 405
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 91
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -27420,6 +27468,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "quadratic",
         "return_stacked",
         "river1",
+        "robo_global",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))

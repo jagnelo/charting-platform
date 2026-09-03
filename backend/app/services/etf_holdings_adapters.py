@@ -1704,6 +1704,7 @@ ETF_COM_BRAND_RECONCILIATION_NATIVE_ADAPTERS: frozenset[str] = frozenset(
         "range",
         "quadratic",
         "return_stacked",
+        "robo_global",
         "sp_funds",
         "touchstone",
         "tradr",
@@ -56518,6 +56519,7 @@ class PathfinderHoldingsAdapter(GraffHoldingsAdapter):
         }
         return result
 
+
 class PortfolioBuildingBlockHoldingsAdapter(GraffHoldingsAdapter):
     """Fetch Portfolio Building Block ETFs from their issuer CSV download route."""
 
@@ -56642,6 +56644,7 @@ class PortfolioBuildingBlockHoldingsAdapter(GraffHoldingsAdapter):
             timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
             allow_redirects=True,
         )
+
 
 class OneTwoFiveOneCapitalHoldingsAdapter(FMInvestmentsHoldingsAdapter):
     """Fetch 1251 Capital ETFs through its owned F/M Investments issuer API."""
@@ -61969,6 +61972,202 @@ class River1HoldingsAdapter(OptimizeHoldingsAdapter):
             raise ValueError(f"River1 holdings export was not scoped to {symbol}.")
 
 
+class RoboGlobalHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch ROBO Global's complete ETF holdings from issuer Nuxt pages."""
+
+    PRODUCT_PAGE_URLS = {
+        "ROBO": "https://www.roboglobaletfs.com/robo/",
+        "HTEC": "https://www.roboglobaletfs.com/htec/",
+        "THNQ": "https://www.roboglobaletfs.com/thnq/",
+    }
+    COMPONENT_IDS = {
+        symbol: f"roboglobaletfs-{symbol.lower()}-HoldingsComponent-1"
+        for symbol in PRODUCT_PAGE_URLS
+    }
+    _ISSUER_HOSTS = {"roboglobaletfs.com", "www.roboglobaletfs.com"}
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        source_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=(
+                Decimal("0.9500")
+                if source_url
+                else Decimal("0.3000")
+                if has_sec_fallback
+                else Decimal("0.0000")
+            ),
+            status="ready" if source_url or has_sec_fallback else "unsupported_symbol",
+            reason=(
+                "ROBO Global publishes complete current ROBO, HTEC, and THNQ holdings in official Nuxt pages."
+                if source_url
+                else "ROBO Global has no native route for this symbol; SEC EDGAR fallback is available."
+                if has_sec_fallback
+                else "ROBO Global's verified native route is limited to ROBO, HTEC, and THNQ."
+            ),
+            source_url=source_url,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        expected_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        if expected_url is None:
+            return None
+        if source_url:
+            parsed = urlparse(source_url.strip())
+            expected = urlparse(expected_url)
+            if (
+                parsed.scheme != "https"
+                or parsed.netloc.lower() not in self._ISSUER_HOSTS
+                or parsed.path.rstrip("/").lower() != expected.path.rstrip("/").lower()
+                or parsed.query
+                or parsed.fragment
+            ):
+                return None
+        return expected_url
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        resolved_source_url = self.resolve_source_url(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if resolved_source_url is None:
+            raise ValueError(
+                f"ROBO Global has no verified native holdings route for {normalized_symbol}."
+            )
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        page_text = html.unescape(response.text)
+        if normalized_symbol not in page_text.upper():
+            raise ValueError(
+                f"ROBO Global product page identity did not match {normalized_symbol}."
+            )
+        rows, composition_date = self._parse_product_page(page_text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(
+                f"ROBO Global's official product page did not expose holdings for {normalized_symbol}."
+            )
+        composition_value = composition_date.isoformat() if composition_date else None
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "nuxt_hydration_json", "row_count": len(rows)},
+            source_url=str(response.url),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "nuxt_hydration_json",
+                "route_resolution": "robo_global_product_page_nuxt_complete_holdings_component",
+                "composition_date": composition_value,
+                "as_of_date": composition_value,
+                "source_quality": "issuer_reported_current_holdings",
+                "snapshot_provenance": "robo_global_native_product_page_nuxt_hydration",
+                "legal_publisher": "ROBO Global / Exchange Traded Concepts",
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_product_page(
+        cls,
+        raw_html: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        normalized_symbol = symbol.strip().upper()
+        component_id = cls.COMPONENT_IDS.get(normalized_symbol)
+        if component_id is None:
+            return [], None
+        route_match = re.search(r'data-preview-route="(?P<route>[^"]+)"', raw_html)
+        if (
+            route_match is None
+            or route_match.group("route").strip().lower() != normalized_symbol.lower()
+        ):
+            return [], None
+        hydrated_rows, composition_date = _extract_nuxt_hydration_holdings(
+            raw_html,
+            component_id=component_id,
+        )
+        rows: list[CanonicalHoldingRow] = []
+        for position, source_row in enumerate(hydrated_rows, start=1):
+            source_ticker = _clean(source_row.get("ticker"))
+            name = _clean(source_row.get("description"))
+            figi = _clean(source_row.get("figi"))
+            if not any((source_ticker, name, figi)):
+                continue
+            text = " ".join(value.upper() for value in (source_ticker, name) if value)
+            is_cash = any(marker in text for marker in ("CASH", "CURRENCY", "MONEY MARKET"))
+            ticker = source_ticker.upper().split()[0] if source_ticker else None
+            tradable = (
+                ticker
+                if ticker and re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", ticker) and not is_cash
+                else None
+            )
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=tradable,
+                    name=name,
+                    weight=_decimal(source_row.get("percent_of_nav")),
+                    shares=_decimal(source_row.get("quantity")),
+                    market_value=_decimal(source_row.get("market_value")),
+                    currency="USD",
+                    holding_type="cash" if is_cash else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=(
+                        f"robo-global-{normalized_symbol.lower()}-"
+                        f"{composition_date.isoformat() if composition_date else 'current'}-{position}"
+                    ),
+                    extra_data={
+                        **{
+                            key: value
+                            for key, value in source_row.items()
+                            if key
+                            not in {
+                                "ticker",
+                                "description",
+                                "quantity",
+                                "market_value",
+                                "percent_of_nav",
+                            }
+                            and _clean(value) is not None
+                        },
+                        **({"source_ticker": source_ticker} if source_ticker else {}),
+                        **({"figi": figi} if figi else {}),
+                    },
+                )
+            )
+        return rows, composition_date
+
+
 class SummitGlobalHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Read Summit Global's disclosed tracking baskets from issuer product pages.
 
@@ -65938,9 +66137,7 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "https://kfafunds.com/etf/ivol/",
             "https://kfafunds.com/etf/bndd/",
         ),
-        url_templates=(
-            "https://kraneshares.com/csv/{MM_DD_YYYY}_{symbol_lower}_holdings.csv",
-        ),
+        url_templates=("https://kraneshares.com/csv/{MM_DD_YYYY}_{symbol_lower}_holdings.csv",),
         live_tested_default_route=True,
         terms_note=(
             "Quadratic/KFA public product pages and KraneShares dated holdings CSVs may be "
@@ -65969,9 +66166,7 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "https://www.returnstackedetfs.com/rsba-return-stacked-bonds-merger-arbitrage/",
             "https://www.returnstackedetfs.com/rssb-return-stacked-global-stocks-bonds/",
         ),
-        url_templates=(
-            "https://www.returnstackedetfs.com/{symbol_lower}/holdings",
-        ),
+        url_templates=("https://www.returnstackedetfs.com/{symbol_lower}/holdings",),
         live_tested_default_route=True,
         terms_note=(
             "Return Stacked public ETF product pages and daily holdings CSVs may be subject to issuer terms."
@@ -65998,6 +66193,20 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=False,
         terms_note=(
             "RiverFront sub-advised ETFs are legally published by First Trust; successor holdings pages may be subject to issuer terms."
+        ),
+    ),
+    "robo_global": IssuerCsvAdapterConfig(
+        adapter_key="robo_global",
+        source_provider="robo_global_etfs",
+        source_access="issuer_product_page_nuxt_complete_holdings_component",
+        product_page_templates=(
+            "https://www.roboglobaletfs.com/robo/",
+            "https://www.roboglobaletfs.com/htec/",
+            "https://www.roboglobaletfs.com/thnq/",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "ROBO Global public ETF product pages and embedded holdings payloads may be subject to issuer terms."
         ),
     ),
     "resolute": IssuerCsvAdapterConfig(
@@ -69570,7 +69779,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "performance_trust",
         "putnam",
         "rareview_funds",
-        "robo_global",
         "rockefeller_capital",
         "roc",
         "saba_capital",
@@ -73124,7 +73332,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "river1": River1HoldingsAdapter,
         "ridgeline": RidgelineAuditedFallbackHoldingsAdapter,
         "riverfront": RiverFrontReconciledFallbackHoldingsAdapter,
-        "robo_global": RoboGlobalReconciledFallbackHoldingsAdapter,
+        "robo_global": RoboGlobalHoldingsAdapter,
         "roc": RocReconciledFallbackHoldingsAdapter,
         "rock_point": RockPointAuditedFallbackHoldingsAdapter,
         "rockefeller_capital": RockefellerCapitalReconciledFallbackHoldingsAdapter,

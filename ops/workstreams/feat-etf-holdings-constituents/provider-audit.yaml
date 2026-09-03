@@ -5,9 +5,9 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 404
-current_fallback_count: 92
-generated_at: 2026-09-03T18:00:00Z
+current_native_count: 405
+current_fallback_count: 91
+generated_at: 2026-09-03T19:00:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -5011,35 +5011,47 @@ providers:
     display_name: robo_global
     queue_rank: 105
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-03
+    source_access_declared: issuer_product_page_nuxt_complete_holdings_component
+    representative_symbols: [ROBO, HTEC, THNQ]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    source_freshness: daily
+    first_party_domains: [roboglobaletfs.com]
+    candidate_routes:
+      - "https://www.roboglobaletfs.com/robo/"
+      - "https://www.roboglobaletfs.com/htec/"
+      - "https://www.roboglobaletfs.com/thnq/"
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: "backend/tests/unit/services/test_etf_holdings_adapters.py::test_robo_global_adapter_parses_nuxt_holdings"
+    live_test: "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows"
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.robo_global"
       - "runtime:ISSUER_ADAPTER_CONFIGS.robo_global"
+      - "web:robo-global-current-robo-htec-thnq-pages-2026-09-03"
+      - "live:robo-global-current-nuxt-holdings-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.robo_global"
-    disposition_reason: "robo_global: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate robo_global first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-03
+        source: "ROBO Global official ROBO, HTEC, and THNQ product pages"
+        result: "Each official product page server-publishes a complete current holdings component in its Nuxt hydration payload dated September 1, 2026; ROBO, HTEC, and THNQ rows are parseable with strict product/component identity checks."
+        evidence_ref: "web:robo-global-current-robo-htec-thnq-pages-2026-09-03"
+    disposition_reason: "robo_global: ROBO Global's official ROBO, HTEC, and THNQ pages expose complete current holdings in issuer-controlled Nuxt hydration payloads. The provider-specific adapter validates page route/component identity, normalizes ticker/date/position rows, and records issuer provenance without SEC reconstruction."
+    next_action: "robo_global: Monitor the three product pages for component/schema/date continuity; add future ROBO Global products only after equivalent parser and live evidence."
     implementation_sha: null
-    validation_refs: []
+    validation_refs:
+      - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_robo_global_adapter_parses_nuxt_holdings"
+      - "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows"
+      - "validation:2026-09-03T19:00:00Z"
   - adapter_key: roc
     display_name: roc
     queue_rank: 106

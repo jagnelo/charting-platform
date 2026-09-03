@@ -40,6 +40,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "quadratic",
     "return_stacked",
     "river1",
+    "robo_global",
     "amun",
     "1251_capital",
     "3fourteen",
@@ -1050,6 +1051,9 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ("return_stacked", "RSBA", None, {}, 4),
         ("return_stacked", "RSSB", None, {}, 4),
         ("river1", "RVER", None, {}, 10),
+        ("robo_global", "ROBO", None, {}, 50),
+        ("robo_global", "HTEC", None, {}, 40),
+        ("robo_global", "THNQ", None, {}, 40),
         (
             "cicc",
             "KWEB",
