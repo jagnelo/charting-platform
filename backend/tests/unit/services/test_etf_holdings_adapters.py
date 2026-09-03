@@ -6447,6 +6447,59 @@ async def test_mcelhenny_sheffield_adapter_fetches_msmr_product_page_holdings(mo
 
 
 @pytest.mark.asyncio
+async def test_measured_risk_portfolios_adapter_fetches_daily_snth_and_sntq_csvs(monkeypatch):
+    adapter = get_holdings_adapter("measured_risk_portfolios")
+    assert adapter is not None
+
+    csv_template = """Date,Account,StockTicker,CUSIP,Security,Shares,Price,Market Value,Weight,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag
+09/03/2026,{account},91282CNL1,91282CNL1,United States Treasury Note/Bond 3.75%,1000,99.66,99660,18.31%,1000000,1000,1,
+09/03/2026,{account},Cash&Other,Cash&Other,Cash & Other,100,1.00,100,14.09%,1000000,1000,1,Y
+09/03/2026,{account},4SPY  270617C00735000,4SPY  270617C00735000,SPY 06/17/2027 735 C,10,76.11,761.10,8.89%,1000000,1000,1,
+"""
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=csv_template.format(account="SNTH"),
+            content_type="text/csv",
+            url="https://synthequityfunds.com/wp-content/uploads/2026/07/snth_holdings_full.csv",
+        ),
+        FakeResponse(
+            text=csv_template.format(account="SNTQ"),
+            content_type="text/csv",
+            url="https://synthequityfunds.com/wp-json/mrp/v4/sntq-holdings-csv",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    snth = await adapter.fetch_latest(symbol="SNTH")
+    sntq = await adapter.fetch_latest(symbol="SNTQ")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        "https://synthequityfunds.com/wp-content/uploads/2026/07/snth_holdings_full.csv",
+        "https://synthequityfunds.com/wp-json/mrp/v4/sntq-holdings-csv",
+    ]
+    assert len(snth.rows) == len(sntq.rows) == 3
+    assert snth.legal_metadata["composition_date"] == "2026-09-03"
+    assert snth.rows[0].holding_type == "fixed_income"
+    assert snth.rows[0].weight == Decimal("0.1831")
+    assert snth.rows[1].row_type == "cash"
+    assert snth.rows[1].currency == "USD"
+    assert snth.rows[2].holding_type == "option"
+    assert snth.rows[2].symbol is None
+    assert snth.rows[2].cusip is None
+    assert sntq.legal_metadata["route_resolution"] == (
+        "measured_risk_portfolios_product_page_declared_daily_holdings_csv"
+    )
+
+    assert adapter.probe(symbol="OTHER", name="", identifiers={}).status == "needs_issuer_route"
+    assert adapter.probe(symbol="OTHER", name="", identifiers={"sec_cik": "1587551"}).status == (
+        "ready"
+    )
+    with pytest.raises(ValueError, match="SNTH and SNTQ only"):
+        await adapter.fetch_latest(symbol="OTHER")
+
+
+@pytest.mark.asyncio
 async def test_noa_adapter_fetches_usaf_from_official_bundle_declared_csv(monkeypatch):
     adapter = get_holdings_adapter("noa")
     assert adapter is not None
@@ -26576,8 +26629,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 390
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 106
+    assert ledger["current_native_count"] == 391
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 105
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -26618,6 +26671,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "lsv",
         "max",
         "mcelhenny_sheffield",
+        "measured_risk_portfolios",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))

@@ -26,6 +26,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "lsv",
     "max",
     "mcelhenny_sheffield",
+    "measured_risk_portfolios",
     "amun",
     "1251_capital",
     "3fourteen",
@@ -3546,6 +3547,26 @@ async def test_live_mcelhenny_sheffield_msmr_product_page_holdings_table():
     assert result.legal_metadata["composition_date"]
     assert any(row.symbol == "QQQ" for row in result.rows)
     assert any(row.cusip == "46090E103" for row in result.rows)
+    assert any(row.row_type == "cash" for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("measured_risk_portfolios")
+async def test_live_measured_risk_portfolios_snth_declared_daily_holdings_csv():
+    adapter = get_holdings_adapter("measured_risk_portfolios")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="SNTH")
+
+    _assert_live_holdings_result(result, adapter_key="measured_risk_portfolios", min_rows=15)
+    assert (
+        result.legal_metadata["route_resolution"]
+        == "measured_risk_portfolios_product_page_declared_daily_holdings_csv"
+    )
+    assert result.legal_metadata["composition_date"]
+    assert any(row.holding_type == "fixed_income" for row in result.rows)
+    assert any(row.holding_type == "option" for row in result.rows)
     assert any(row.row_type == "cash" for row in result.rows)
 
 

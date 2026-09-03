@@ -31741,6 +31741,218 @@ class McElhennySheffieldHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return None
 
 
+class MeasuredRiskPortfoliosHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Measured Risk Portfolios' issuer-declared daily holdings CSVs."""
+
+    _PRODUCTS = {
+        "SNTH": (
+            "https://synthequityfunds.com/snth/",
+            "https://synthequityfunds.com/wp-content/uploads/2026/07/snth_holdings_full.csv",
+        ),
+        "SNTQ": (
+            "https://synthequityfunds.com/sntq/",
+            "https://synthequityfunds.com/wp-json/mrp/v4/sntq-holdings-csv",
+        ),
+    }
+    _REQUIRED_HEADERS = frozenset(
+        {"date", "account", "stockticker", "cusip", "security", "shares", "market value", "weight"}
+    )
+    _OPTION_RE = re.compile(r"\d{6}[CP]\d{8}", re.IGNORECASE)
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        product = self._PRODUCTS.get(normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if product else Decimal("0.5000"),
+            status="ready" if product or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "Measured Risk Portfolios publishes this ETF's complete daily holdings CSV from its official SynthEquity fund page."
+                if product
+                else (
+                    "Measured Risk Portfolios is recognized; no verified native holdings route is configured for this symbol, and SEC EDGAR remains available as fallback."
+                    if has_sec_fallback
+                    else "Measured Risk Portfolios' verified native holdings routes are configured for SNTH and SNTQ only."
+                )
+            ),
+            source_url=product[1] if product else None,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del identifiers
+        normalized_symbol = symbol.strip().upper()
+        product = self._PRODUCTS.get(normalized_symbol)
+        if product is None:
+            raise ValueError(
+                "Measured Risk Portfolios' verified holdings routes are configured for SNTH and SNTQ only."
+            )
+        product_page_url, holdings_url = product
+        if source_url and source_url.rstrip("/") != holdings_url.rstrip("/"):
+            raise ValueError(
+                "Measured Risk Portfolios holdings must use the verified issuer route."
+            )
+
+        headers = {
+            **_holdings_request_headers(accept="text/csv,text/plain,application/json,*/*"),
+            "Referer": product_page_url,
+        }
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                holdings_url,
+                headers=headers,
+                follow_redirects=True,
+            )
+            try:
+                response.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code != 403:
+                    raise
+                browser_response = await asyncio.to_thread(
+                    requests.get,
+                    holdings_url,
+                    headers=headers,
+                    timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                    allow_redirects=True,
+                )
+                browser_response.raise_for_status()
+                response = browser_response
+        rows, composition_date = self._parse_holdings_csv(
+            response.text,
+            symbol=normalized_symbol,
+        )
+        if len(rows) < 2:
+            raise ValueError(
+                f"Measured Risk Portfolios holdings route returned too few rows for {normalized_symbol}."
+            )
+        if composition_date is None:
+            raise ValueError(
+                f"Measured Risk Portfolios holdings route did not expose a dated snapshot for {normalized_symbol}."
+            )
+        for index, row in enumerate(rows, start=1):
+            row.source_row_id = f"measured-risk-portfolios-{normalized_symbol}-{composition_date.isoformat()}-{index}"
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={
+                "source_format": "issuer_daily_holdings_csv",
+                "product_page_url": product_page_url,
+                "row_count": len(rows),
+            },
+            source_url=str(response.url),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "measured_risk_portfolios_product_page_declared_daily_holdings_csv",
+                "snapshot_provenance": "measured_risk_portfolios_native_daily_holdings_csv",
+                "disclosure_type": "portfolio_holdings",
+                "product_page_url": product_page_url,
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_holdings_csv(
+        cls, raw_csv: str, *, symbol: str
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        reader = csv.DictReader(StringIO(raw_csv.strip()))
+        headers = {
+            str(value).strip().lstrip("\ufeff").lower()
+            for value in (reader.fieldnames or [])
+            if _clean(value)
+        }
+        if not cls._REQUIRED_HEADERS <= headers:
+            raise ValueError(
+                "Measured Risk Portfolios holdings CSV did not expose the expected schema."
+            )
+
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        for index, raw in enumerate(reader, start=1):
+            account = _clean(raw.get("Account") or raw.get("account"))
+            if account and account.upper() != symbol:
+                continue
+            ticker = _clean(raw.get("StockTicker") or raw.get("stockticker"))
+            cusip = _clean(raw.get("CUSIP") or raw.get("cusip"))
+            name = _clean(raw.get("Security") or raw.get("security") or raw.get("SecurityName"))
+            row_date = _parse_issuer_date(raw.get("Date") or raw.get("date"))
+            if row_date and (composition_date is None or row_date > composition_date):
+                composition_date = row_date
+            money_market = (_clean(raw.get("MoneyMarketFlag")) or "").upper()
+            identity_text = " ".join(part.upper() for part in (ticker, cusip, name) if part)
+            is_cash = money_market in {"Y", "YES", "1"} or any(
+                marker in identity_text for marker in ("CASH", "RECEIVABLE", "PAYABLE")
+            )
+            is_option = bool(cls._OPTION_RE.search(ticker or "")) or any(
+                marker in identity_text for marker in (" OPTION", " CALL", " PUT")
+            )
+            if not any((ticker, name, cusip, _clean(raw.get("Market Value")))):
+                continue
+            holding_type, row_type = cls._classify_row(
+                is_cash=is_cash,
+                is_option=is_option,
+                name=name,
+            )
+            weight_value = raw.get("Weight") or raw.get("weight") or raw.get("Weightings")
+            weight = (
+                _decimal(weight_value)
+                if _clean(weight_value) and "%" in str(weight_value)
+                else _decimal_percent_points(weight_value)
+            )
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None
+                    if row_type == "cash" or is_option
+                    else ticker.upper()
+                    if ticker
+                    else None,
+                    name=name,
+                    cusip=cusip if row_type != "cash" and _looks_like_cusip(cusip) else None,
+                    shares=_decimal(raw.get("Shares") or raw.get("shares")),
+                    market_value=_decimal(raw.get("Market Value") or raw.get("marketvalue")),
+                    weight=weight,
+                    currency="USD" if row_type == "cash" else None,
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"{symbol}:{index}:{cusip or ticker or name or 'holding'}",
+                    extra_data={
+                        key: value
+                        for key, value in raw.items()
+                        if key and _clean(value) is not None
+                    },
+                )
+            )
+        return rows, composition_date
+
+    @staticmethod
+    def _classify_row(*, is_cash: bool, is_option: bool, name: str | None) -> tuple[str, str]:
+        if is_cash:
+            return "cash", "cash"
+        if is_option:
+            return "option", "security"
+        upper_name = (name or "").upper()
+        if any(marker in upper_name for marker in ("TREASURY", "NOTE", "BOND")):
+            return "fixed_income", "security"
+        if any(marker in upper_name for marker in (" ETF", " FUND", " TRUST")):
+            return "fund", "security"
+        return "equity", "security"
+
+
 class ArrowHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Arrow ETF holdings from the issuer's public export endpoint."""
 
@@ -65492,6 +65704,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "McElhenny Sheffield public ETF product-page holdings may be subject to issuer terms."
         ),
     ),
+    "measured_risk_portfolios": IssuerCsvAdapterConfig(
+        adapter_key="measured_risk_portfolios",
+        source_provider="measured_risk_portfolios",
+        source_access="issuer_public_product_page_declared_daily_holdings_csv",
+        product_page_templates=("https://synthequityfunds.com/{symbol_lower}/",),
+        live_tested_default_route=True,
+        terms_note=(
+            "Measured Risk Portfolios public SynthEquity ETF holdings files may be subject to issuer terms."
+        ),
+    ),
     "proshares": IssuerCsvAdapterConfig(
         adapter_key="proshares",
         source_provider="proshares",
@@ -68100,7 +68322,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "m_d_sass",
         "madison_avenue",
         "matrix",
-        "measured_risk_portfolios",
         "merchant_investment_management",
         "merk",
         "meridian",
@@ -69501,10 +69722,6 @@ class MDSassReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
 class MerchantInvestmentManagementReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """ETFDB issuer-league fallback adapter pending Merchant discovery."""
-
-
-class MeasuredRiskPortfoliosReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """ETFDB issuer-league fallback adapter pending Measured Risk discovery."""
 
 
 class MigCapitalReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -71186,7 +71403,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "merk": MerkReconciledFallbackHoldingsAdapter,
         "meridian": MeridianReconciledFallbackHoldingsAdapter,
         "merlyn_ai": MerlynAiReconciledFallbackHoldingsAdapter,
-        "measured_risk_portfolios": MeasuredRiskPortfoliosReconciledFallbackHoldingsAdapter,
+        "measured_risk_portfolios": MeasuredRiskPortfoliosHoldingsAdapter,
         "mfs": MfsHoldingsAdapter,
         "mig_capital": MigCapitalReconciledFallbackHoldingsAdapter,
         "militia": MilitiaReconciledFallbackHoldingsAdapter,
