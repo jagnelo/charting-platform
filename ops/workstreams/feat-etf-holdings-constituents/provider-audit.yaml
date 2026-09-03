@@ -3773,19 +3773,31 @@ providers:
     display_name: merlyn_ai
     queue_rank: 80
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: inactive_or_successor_disposition
+    disposition: inactive_or_successor_disposition
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
-    estimated_us_etf_count: null
+    representative_symbols:
+      - WIZ
+      - SNUG
+      - BOB
+      - DUDE
+    estimated_us_etf_count: 4
     estimated_us_etf_aum: null
-    us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    us_equity_breadth: 4
+    source_freshness: historical
+    first_party_domains:
+      - merlynetfs.com
+      - sec.gov
+      - alphaarchitect.com
+    candidate_routes:
+      - https://www.merlynetfs.com/
+      - https://www.sec.gov/Archives/edgar/data/1592900/000159290023000912/wiz_497liquidationoct2023.htm
+      - https://www.sec.gov/Archives/edgar/data/1592900/000159290023000914/dude_497xliquidation.htm
+      - https://www.prnewswire.com/news-releases/closure-due-to-limited-interest-since-launch-301670836.html
+      - https://www.prnewswire.com/news-releases/merlynai-corporation-announces-etfs-liquidation-de-listing-301969474.html
     route_complete: false
-    symbol_mapping_proven: false
+    symbol_mapping_proven: true
     current_holdings_proven: false
     parser_fixture: null
     live_test: null
@@ -3793,15 +3805,34 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.merlyn_ai"
       - "runtime:ISSUER_ADAPTER_CONFIGS.merlyn_ai"
+      - "web:merlyn-ai-liquidation-2026-09-03"
+      - "web:merlyn-ai-sec-fund-series-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.merlyn_ai"
-    disposition_reason: "merlyn_ai: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate merlyn_ai first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-03
+        source: "https://www.prnewswire.com/news-releases/closure-due-to-limited-interest-since-launch-301670836.html"
+        result: "The ETF Architect announcement states that the EA Series Trust approved liquidation and closure of SNUG and BOB, with trading closed November 18, 2022 and liquidation on or about November 23, 2022."
+        evidence_ref: "web:merlyn-ai-liquidation-2026-09-03"
+      - date: 2026-09-03
+        source: "https://www.sec.gov/Archives/edgar/data/1592900/000159290023000912/wiz_497liquidationoct2023.htm and https://www.sec.gov/Archives/edgar/data/1592900/000159290023000914/dude_497xliquidation.htm"
+        result: "Official SEC liquidation supplements state that WIZ and DUDE would cease trading and be liquidated on or about November 17, 2023, with shares cancelled and operations terminated."
+        evidence_ref: "web:merlyn-ai-liquidation-2026-09-03"
+      - date: 2026-09-03
+        source: "https://www.prnewswire.com/news-releases/merlynai-corporation-announces-etfs-liquidation-de-listing-301969474.html"
+        result: "The issuer-adviser announcement identifies WIZ and DUDE as Merlyn.AI ETFs approved for liquidation because of insufficient assets, confirming no current executable Merlyn portfolio."
+        evidence_ref: "web:merlyn-ai-liquidation-2026-09-03"
+      - date: 2026-09-03
+        source: "https://www.sec.gov/Archives/edgar/data/1592900/000182912623000609/easeries-merlyn_ncsra.htm"
+        result: "The official SEC filing enumerates the four historical Merlyn.AI series and their symbols WIZ, SNUG, DUDE, and BOB under EA Series Trust."
+        evidence_ref: "web:merlyn-ai-sec-fund-series-2026-09-03"
+    disposition_reason: "merlyn_ai: All four distinct Merlyn.AI U.S. ETF series identified in the official SEC record (WIZ, SNUG, BOB, and DUDE) were liquidated and terminated: SNUG/BOB in November 2022 and WIZ/DUDE in November 2023. The historical MerlynETF holdings site cannot provide a current executable portfolio, so native promotion would misstate stale liquidation-era constituents."
+    next_action: "merlyn_ai: Keep fallback-only as inactive_or_successor_disposition; retain WIZ, SNUG, BOB, and DUDE as historical liquidation context and reopen only if Merlyn.AI launches a distinct current U.S.-listed ETF with a complete executable first-party holdings route."
     implementation_sha: null
-    validation_refs: []
+    validation_refs:
+      - "validation:2026-09-03T05:13:04Z"
   - adapter_key: mig_capital
     display_name: mig_capital
     queue_rank: 81

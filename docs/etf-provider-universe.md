@@ -1076,3 +1076,32 @@ The complete opt-in provider matrix and Docker-backed integration gate remain
 pending at the 391-native baseline, with the known unrelated reproducible
 F8p-current-history Study Lab histogram timeout still recorded as the
 integration blocker.
+
+## Current audit checkpoint — Merlyn.AI / WIZ-SNUG-BOB-DUDE inactive-successor disposition — 2026-09-03
+
+The ranked `merlyn_ai` audit verified the historical Merlyn.AI ETF series and
+their liquidation records. The official SEC filings enumerate the four
+Merlyn.AI funds—WIZ, SNUG, BOB, and DUDE—under EA Series Trust. The ETF
+Architect announcement records SNUG and BOB closing in November 2022 because
+of insufficient assets, while the SEC liquidation supplements and issuer
+announcement record WIZ and DUDE closing and liquidating in November 2023.
+
+The historical MerlynETF site and SEC disclosures cannot provide a current
+executable holdings portfolio for any of the four symbols. The complete
+historical identity is retained for reconciliation, but stale liquidation-era
+constituents are not promoted as current ETF holdings.
+
+The exhaustive ledger records `merlyn_ai` as a dated
+`inactive_or_successor_disposition`; no native adapter, parser fixture, or
+live test is added. Runtime code remains at 496 registered, 392 native/live-
+backed, and 104 fallback-only providers with fallback statuses 8
+issuer-access-blocked, 87 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The 140-record
+ledger now has 52 queued fallback records; the next ranked issuer is
+`mig_capital`.
+
+The complete opt-in provider matrix and Docker-backed integration gate remain
+pending at the 392-native baseline, with the known unrelated reproducible
+F8p-current-history Study Lab histogram timeout retained as the integration
+blocker. Evidence refs: `web:merlyn-ai-liquidation-2026-09-03` and
+`web:merlyn-ai-sec-fund-series-2026-09-03`.
