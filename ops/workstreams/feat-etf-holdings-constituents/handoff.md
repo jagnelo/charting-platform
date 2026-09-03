@@ -1726,3 +1726,20 @@ test failed in that run. A GitHub rerun was not available to this session due
 to repository-admin permission; the earlier exact-SHA run `33809060206` already
 passed Playwright at the same code state, so this is retained as an
 infrastructure timing limitation rather than a feature regression.
+
+## Final queue documentation and exact-SHA CI — 2026-09-04
+
+The provider-universe document now includes the terminal Worth Charting and
+Yoke issuer-access-blocked dispositions and explicitly records the exhausted
+140-record audit queue. Its current snapshot agrees with the code and ledger:
+496 registered, 414 native/live-backed, 82 fallback-only, zero queued records,
+and runtime fallback statuses of 8 blocked, 64 route-discovery, 3
+non-executable, and 7 non-portfolio-publisher.
+
+Exact-SHA CI run `33813104738` at `792682a2f7bc92a175c23fe87c432b1c8f6a381a`
+passed Backend Tests, Frontend Unit Tests, Branch-declared Tests, and
+Playwright E2E; the protected staging/master-only exhaustive gate was skipped.
+The latest local Docker-backed gate remains blocked only by the unrelated,
+fresh-stack-reproduced Study Lab `F8p-current-history` histogram failure. No
+ETF route or test is implicated, and no integration, promotion, deployment, or
+other-worktree mutation was performed.

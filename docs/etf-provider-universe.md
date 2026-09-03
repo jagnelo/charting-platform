@@ -1749,3 +1749,23 @@ Wellesley Asset Management is identified as an investment adviser/sub-adviser,
 not an independent ETF portfolio publisher. Current split: 496 registered /
 414 native/live-backed / 82 fallback-only, with 2 queued records and
 `worth_charting` next.
+
+## Final audit checkpoint — Worth Charting and Yoke queue closure — 2026-09-04
+
+Worth Charting's official WRTH page declares a complete current CSV, and Yoke's
+official YOKE page publishes a complete current holdings table. Bounded
+backend-equivalent requests to both issuer routes returned HTTP 403, so neither
+source is executable by the application client and neither provider is promoted.
+They remain explicit `issuer_access_blocked` fallback dispositions with dated
+route evidence in the provider-audit ledger.
+
+The exhaustive audit queue is now closed: all 140 starting fallback records are
+represented exactly once, the current code-derived split is `496` registered /
+`414` native/live-backed / `82` fallback-only, and zero audit records remain
+queued. Runtime fallback statuses remain 8 issuer-access-blocked, 64
+needs-first-party-route-discovery, 3 non-executable-public-source, and 7
+provider-not-a-portfolio-publisher. Evidence refs:
+`web:worth-charting-current-wrth-holdings-page-2026-09-04`,
+`live:worth-charting-current-wrth-holdings-csv-2026-09-04-blocked`,
+`web:yoke-current-holdings-page-2026-09-04`, and
+`live:yoke-current-holdings-page-2026-09-04-blocked`.
