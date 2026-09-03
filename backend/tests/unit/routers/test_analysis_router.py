@@ -78,6 +78,39 @@ def test_entitlement_readiness_requires_a_successful_persisted_live_probe():
     assert _entitlement_state(source, entitlement) == "probe_failed"
 
 
+def test_entitlement_readiness_respects_effective_and_review_cutoffs():
+    source = DataSource(name="public-eod", config={})
+    entitlement = ProviderEntitlement(
+        data_source_id=1,
+        capability=ProviderCapability.PRICE_HISTORY,
+        configured_plan="public-eod",
+        is_free=True,
+        authentication_required=False,
+        live_probe_status="passed",
+    )
+
+    entitlement.effective_at = datetime(2026, 9, 4, tzinfo=UTC)
+    assert (
+        _entitlement_state(
+            source,
+            entitlement,
+            evaluation_at=datetime(2026, 9, 3, tzinfo=UTC),
+        )
+        == "unreviewed"
+    )
+
+    entitlement.effective_at = datetime(2026, 1, 1, tzinfo=UTC)
+    entitlement.review_due_at = datetime(2026, 9, 3, tzinfo=UTC)
+    assert (
+        _entitlement_state(
+            source,
+            entitlement,
+            evaluation_at=datetime(2026, 9, 3, tzinfo=UTC),
+        )
+        == "unreviewed"
+    )
+
+
 def test_python_breadth_history_projects_member_transitions_with_metric_lineage():
     points = [
         _python_breadth_point(

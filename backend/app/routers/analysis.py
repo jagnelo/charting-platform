@@ -346,9 +346,17 @@ async def _family_member_metadata_readiness(
     return member_count, weighted_count, weights_status, classified_count, classification_status
 
 
+def _as_utc(value: datetime) -> datetime:
+    """Normalize database timestamps before entitlement cutoff comparisons."""
+
+    return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+
+
 def _entitlement_state(
     source: DataSource | None,
     entitlement: ProviderEntitlement | None,
+    *,
+    evaluation_at: datetime | None = None,
 ) -> str:
     """Classify persisted entitlement evidence without probing a provider."""
 
@@ -358,6 +366,11 @@ def _entitlement_state(
         return "excluded" if entitlement.configured_plan == "excluded" else "unreviewed"
     if source is None or not provider_configured(source, entitlement):
         return "not_configured"
+    evaluation = _as_utc(evaluation_at or datetime.now(UTC))
+    if entitlement.effective_at and _as_utc(entitlement.effective_at) > evaluation:
+        return "unreviewed"
+    if entitlement.review_due_at and _as_utc(entitlement.review_due_at) <= evaluation:
+        return "unreviewed"
     if entitlement.live_probe_status in {"failure", "failed", "error"}:
         return "probe_failed"
     if entitlement.live_probe_status not in {"success", "passed", "verified", "ok"}:
@@ -3841,7 +3854,11 @@ async def benchmark_family_coverage(
             item for item in (holdings_entitlement, price_entitlement) if item
         ]
         entitlement_statuses = {
-            capability.value: _entitlement_state(entitlement_source, entitlement)
+            capability.value: _entitlement_state(
+                entitlement_source,
+                entitlement,
+                evaluation_at=as_of,
+            )
             for capability, entitlement in (
                 (ProviderCapability.UNIVERSE_DISCOVERY, holdings_entitlement),
                 (ProviderCapability.PRICE_HISTORY, price_entitlement),
