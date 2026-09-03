@@ -370,6 +370,11 @@ class BenchmarkFamilyCoverageRoleOut(BaseModel):
     entitlement_review_due_at: datetime | None = None
     entitlement_live_probe_status: str | None = None
     point_in_time_supported: bool = False
+    member_count: int = Field(default=0, ge=0)
+    weighted_member_count: int = Field(default=0, ge=0)
+    weights_status: str = "unavailable"
+    classified_member_count: int = Field(default=0, ge=0)
+    classification_status: str = "unavailable"
     history_ready: bool = False
     composite_readiness_status: str = "unavailable"
     composite_readiness_reasons: list[str] = Field(default_factory=list)

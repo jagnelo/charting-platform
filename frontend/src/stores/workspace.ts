@@ -566,6 +566,11 @@ export interface BenchmarkFamilyCoverageRoleState {
   entitlement_review_due_at?: string | null
   entitlement_live_probe_status?: string | null
   point_in_time_supported?: boolean
+  member_count?: number
+  weighted_member_count?: number
+  weights_status?: string
+  classified_member_count?: number
+  classification_status?: string
   history_ready?: boolean
   composite_readiness_status?: string
   composite_readiness_reasons?: string[]

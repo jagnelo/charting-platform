@@ -269,6 +269,77 @@ async def _family_member_bar_history(
     )
 
 
+async def _family_member_metadata_readiness(
+    db: AsyncSession,
+    snapshot: ETFHoldingsSnapshot | None,
+    *,
+    as_of: datetime | None,
+) -> tuple[int, int, str, int, str]:
+    """Summarize point-in-time weight and classification evidence for one snapshot."""
+
+    if snapshot is None:
+        return 0, 0, "unavailable", 0, "unavailable"
+    rows = (
+        await db.execute(
+            select(ETFHolding)
+            .options(
+                selectinload(ETFHolding.constituent_instrument).selectinload(
+                    Instrument.equity_detail
+                )
+            )
+            .where(
+                ETFHolding.snapshot_id == snapshot.id,
+                ETFHolding.row_type == "security",
+                ETFHolding.holding_type.in_(("equity", "stock", "common_stock")),
+                ETFHolding.is_resolved.is_(True),
+                ETFHolding.constituent_instrument_id.is_not(None),
+            )
+            .order_by(ETFHolding.position)
+        )
+    ).scalars().all()
+    member_count = len(rows)
+    if not member_count:
+        return 0, 0, "unavailable", 0, "unavailable"
+
+    weighted_count = sum(row.weight is not None for row in rows)
+    classified_count = 0
+    for row in rows:
+        detail = row.constituent_instrument.equity_detail if row.constituent_instrument else None
+        if detail is None or not detail.industry:
+            continue
+        if as_of is None:
+            classified_count += 1
+            continue
+        evidence = (detail.field_provenance or {}).get("industry")
+        observed_text = evidence.get("observed_at") or evidence.get("known_at") if isinstance(evidence, dict) else None
+        if not observed_text:
+            continue
+        try:
+            observed_at = datetime.fromisoformat(str(observed_text).replace("Z", "+00:00"))
+        except ValueError:
+            continue
+        if observed_at.tzinfo is None:
+            observed_at = observed_at.replace(tzinfo=UTC)
+        if observed_at <= as_of:
+            classified_count += 1
+
+    weights_status = (
+        "ready"
+        if weighted_count == member_count
+        else "partial"
+        if weighted_count
+        else "pending"
+    )
+    classification_status = (
+        "ready"
+        if classified_count == member_count
+        else "partial"
+        if classified_count
+        else "pending"
+    )
+    return member_count, weighted_count, weights_status, classified_count, classification_status
+
+
 def _entitlement_state(
     source: DataSource | None,
     entitlement: ProviderEntitlement | None,
@@ -296,6 +367,8 @@ def _role_readiness(
     member_bar_status: str,
     entitlement_status: str,
     point_in_time_supported: bool,
+    weights_status: str,
+    classification_status: str,
 ) -> tuple[str, list[str]]:
     """Return conservative composite readiness and machine-readable reasons."""
 
@@ -314,6 +387,10 @@ def _role_readiness(
         reasons.append("point_in_time_unavailable")
     if member_bar_status != "ready":
         reasons.append(f"member_history_{member_bar_status}")
+    if weights_status != "ready":
+        reasons.append(f"weights_{weights_status}")
+    if classification_status != "ready":
+        reasons.append(f"classification_{classification_status}")
     if any(reason.startswith("entitlement_") for reason in reasons) and entitlement_status in {
         "excluded",
         "not_configured",
@@ -324,6 +401,8 @@ def _role_readiness(
         holdings_status == "available"
         and member_bar_status == "ready"
         and entitlement_status == "verified"
+        and weights_status == "ready"
+        and classification_status == "ready"
     ):
         return "ready", reasons
     if holdings_status == "available" or member_bar_status in {"partial", "ready"}:
@@ -3701,6 +3780,13 @@ async def benchmark_family_coverage(
             ),
             next(iter(entitlement_candidates), None),
         )
+        (
+            member_count,
+            weighted_member_count,
+            weights_status,
+            classified_member_count,
+            classification_status,
+        ) = await _family_member_metadata_readiness(db, selected_snapshot, as_of=as_of)
         composite_status, composite_reasons = _role_readiness(
             mapping_available=instrument is not None,
             profile_loaded=profile is not None,
@@ -3708,6 +3794,8 @@ async def benchmark_family_coverage(
             member_bar_status=member_bar_history.status,
             entitlement_status=entitlement_status,
             point_in_time_supported=point_in_time_supported,
+            weights_status=weights_status,
+            classification_status=classification_status,
         )
         roles.append(
             BenchmarkFamilyCoverageRoleOut(
@@ -3746,6 +3834,11 @@ async def benchmark_family_coverage(
                     entitlement_record.live_probe_status if entitlement_record else None
                 ),
                 point_in_time_supported=point_in_time_supported,
+                member_count=member_count,
+                weighted_member_count=weighted_member_count,
+                weights_status=weights_status,
+                classified_member_count=classified_member_count,
+                classification_status=classification_status,
                 history_ready=member_bar_history.status == "ready",
                 composite_readiness_status=composite_status,
                 composite_readiness_reasons=composite_reasons,

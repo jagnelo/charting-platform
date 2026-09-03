@@ -600,7 +600,7 @@ class TestWorkspaces:
         from datetime import UTC, datetime, timedelta
 
         from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
-        from app.models.instrument import Instrument
+        from app.models.instrument import EquityDetail, Instrument
         from app.models.ohlcv import OHLCVBar, Timeframe
 
         seeded = client.get("/api/v1/market-groups", headers=auth_headers)
@@ -691,6 +691,24 @@ class TestWorkspaces:
                 )
             ]
         )
+        db.add_all(
+            [
+                EquityDetail(
+                    instrument_id=instrument.id,
+                    industry="Technology",
+                    field_provenance={
+                        "industry": {"observed_at": "2024-01-02T00:00:00Z"}
+                    },
+                ),
+                EquityDetail(
+                    instrument_id=instrument_b.id,
+                    industry="Software",
+                    field_provenance={
+                        "industry": {"observed_at": "2024-01-02T00:00:00Z"}
+                    },
+                ),
+            ]
+        )
         db.flush()
 
         response = client.get(
@@ -702,6 +720,11 @@ class TestWorkspaces:
         history = cap["member_bar_history"]
         assert history["status"] == "partial"
         assert history["snapshot_id"] == snapshot.id
+        assert cap["member_count"] == 2
+        assert cap["weighted_member_count"] == 2
+        assert cap["weights_status"] == "ready"
+        assert cap["classified_member_count"] == 2
+        assert cap["classification_status"] == "ready"
         daily = next(item for item in history["timeframes"] if item["timeframe"] == "D1")
         assert daily["member_count"] == 2
         assert daily["covered_member_count"] == 2
