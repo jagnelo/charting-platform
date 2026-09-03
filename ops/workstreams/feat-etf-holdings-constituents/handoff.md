@@ -165,8 +165,9 @@ The ledger now records `genter_capital` as an inactive/successor alias of the
 existing native `mcivy` Genter publisher after its official GENT/GEND/GENM/GENW
 routes and bounded live GEND proof were reconciled. Gotham is now native-promoted
 for GSPY, GVLU, and SHRT through its official symbol-scoped DownloadHoldings CSVs,
-including cash and SHRT TRS derivative semantics. The ledger has 74 queued
-fallback records; continue with `granite_group_advisors`, and checkpoint each coherent provider
+including cash and SHRT TRS derivative semantics. Granite Group Advisors is now
+recorded as a non-portfolio-publisher wealth adviser with no sponsored ETF route.
+The ledger has 73 queued fallback records; continue with `hexis`, and checkpoint each coherent provider
 changeset before moving to the next.
 
 Update this handoff at every coherent implementation and operations boundary.

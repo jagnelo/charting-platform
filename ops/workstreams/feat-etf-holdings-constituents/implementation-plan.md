@@ -1058,6 +1058,39 @@ opt-in provider matrix and Docker-backed integration gate remain pending at the
 377-native baseline, with the known unrelated reproducible F8p-current-history
 Study Lab histogram timeout still an AC7 gap.
 
+## 30. Current execution checkpoint — Granite Group Advisors non-portfolio disposition — 2026-09-03
+
+The ranked `granite_group_advisors` audit resolved a wealth-management adviser
+identity rather than a distinct ETF portfolio publisher. Granite Group Advisors'
+official site describes customized wealth-management portfolios and allocation to
+independent fund managers. Its official Form ADV says the firm does not offer
+proprietary products such as target-date or lifestyle funds; it may purchase
+exchange-traded funds for client accounts, but that is client-account activity,
+not sponsorship or publication of ETF portfolios. SEC and AdviserInfo records
+identify the organization as an investment adviser/manager and do not expose an
+ETF trust, product catalogue, or issuer holdings feed.
+
+The ledger now records `granite_group_advisors` as
+`provider_not_a_portfolio_publisher`, preserving the official Granite Group and
+SEC/AdviserInfo routes and dated evidence. No runtime adapter, registry,
+fallback-manifest, or live-test change is required; manager/13F disclosures
+remain explicitly ineligible as ETF constituents. The code-derived split remains
+496 registered, 381 native/live-backed, and 115 fallback-only providers. Runtime
+fallback status counts remain 8 issuer-access-blocked, 98
+needs-first-party-route-discovery, 3 non-executable-public-source, and 6
+non-portfolio-publisher. The exhaustive ledger retains all 140 historical
+records exactly once, with 73 queued fallback records remaining; the next ranked
+queued item is `hexis`.
+
+This checkpoint changes only issuer-audit evidence, queue state, and durable
+documentation. The current runtime implementation baseline remains
+`5f8d0b9dacf7231ae9ea1a906d1360c798bd1812`; the ledger and documentation
+receipt must reference the resulting documentation SHA and dated Granite Group
+evidence. The complete deterministic adapter suite, full opt-in provider matrix,
+and Docker-backed integration gate remain pending at the 381-native baseline;
+the known unrelated reproducible F8p-current-history Study Lab histogram timeout
+remains an AC7 gap.
+
 ## 29. Current execution checkpoint — Gotham ETFs native promotion — 2026-09-03
 
 The ranked `gotham` audit found complete executable first-party routes for the

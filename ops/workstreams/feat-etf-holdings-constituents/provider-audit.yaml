@@ -2645,17 +2645,24 @@ providers:
     display_name: granite_group_advisors
     queue_rank: 58
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: provider_not_a_portfolio_publisher
+    disposition: provider_not_a_portfolio_publisher
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
     representative_symbols: []
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains:
+      - granitegroupadvisors.com
+      - sec.gov
+      - adviserinfo.sec.gov
+    candidate_routes:
+      - https://www.granitegroupadvisors.com/aboutus
+      - https://www.granitegroupadvisors.com/_files/ugd/5a705f_37e7ca53e2fc44eaa205c558b9be6627.pdf
+      - https://www.sec.gov/edgar/browse/?CIK=0002018114
+      - https://adviserinfo.sec.gov/firm/summary/127357
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -2665,15 +2672,26 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.granite_group_advisors"
       - "runtime:ISSUER_ADAPTER_CONFIGS.granite_group_advisors"
+      - "web:granite-group-advisors-about-and-adv-2026-09-03"
+      - "web:granite-group-advisors-sec-record-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.granite_group_advisors"
-    disposition_reason: "granite_group_advisors: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate granite_group_advisors first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-03
+        source: "https://www.granitegroupadvisors.com/aboutus and official Granite Group Advisors Form ADV brochure"
+        result: "Granite Group Advisors describes itself as an independent wealth-management and investment-advisory firm that creates customized portfolios and allocates to independent fund managers. Its Form ADV states that it does not offer proprietary products such as target-date or lifestyle funds and only may purchase ETFs for client accounts; no sponsored U.S. ETF catalogue or complete issuer holdings route is exposed."
+        evidence_ref: "web:granite-group-advisors-about-and-adv-2026-09-03"
+      - date: 2026-09-03
+        source: "https://www.sec.gov/edgar/browse/?CIK=0002018114 and https://adviserinfo.sec.gov/firm/summary/127357"
+        result: "SEC and AdviserInfo records identify Granite Group Advisors, LLC as an investment adviser/manager, with regulatory and adviser filings rather than an ETF trust or sponsored-fund holdings catalogue; any 13F holdings are manager disclosures, not ETF portfolio constituents."
+        evidence_ref: "web:granite-group-advisors-sec-record-2026-09-03"
+    disposition_reason: "granite_group_advisors: Granite Group Advisors is a wealth-management adviser that allocates client assets among independent managers and expressly disclaims proprietary fund products; no sponsored U.S. ETF portfolio publisher or complete first-party holdings route exists. Manager/13F disclosures must not be promoted as ETF constituents."
+    next_action: "granite_group_advisors: Keep fallback-only as provider_not_a_portfolio_publisher and resolve any source row to the actual ETF sponsor/adviser; reopen only if Granite Group launches a sponsored ETF and publishes a complete executable first-party holdings route."
     implementation_sha: null
-    validation_refs: []
+    validation_refs:
+      - "validation:2026-09-03T00:52:00Z"
   - adapter_key: guggenheim
     display_name: guggenheim
     queue_rank: 59

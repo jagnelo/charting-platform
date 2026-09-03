@@ -85,6 +85,11 @@ symbol-scoped `DownloadHoldings` CSV routes for GSPY, GVLU, and SHRT. The native
 adapter requires the declared schema and a consistent holdings-as-of date,
 preserves CUSIPs, signed quantities, weights, and dollar values, and classifies
 Cash & Other and SHRT TRS rows as cash and derivatives respectively.
+Granite Group Advisors is recorded as a non-portfolio-publisher identity: its
+official wealth-management materials describe allocation to independent fund
+managers, disclaim proprietary fund products, and expose no sponsored U.S. ETF
+catalogue or complete issuer holdings route. Its adviser/13F records therefore
+remain ineligible as ETF constituent data.
 FormulaFolios is recorded as an inactive/successor identity: the official SEC
 liquidation supplement names FFHG, FFSG, FFTG, and FFTI and schedules their
 October 2023 termination, while Brookstone's official combination notice
