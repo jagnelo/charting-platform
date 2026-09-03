@@ -396,6 +396,32 @@ pending at the 388-native baseline, with the known unrelated reproducible
 F8p-current-history Study Lab histogram timeout still recorded as the
 integration blocker.
 
+## Current implementation checkpoint — M.D. Sass / SASS route disposition — 2026-09-03
+
+The ranked `m_d_sass` audit checked the official M.D. Sass site at
+`https://www.mdsassetf.com/`. It identifies the M.D. Sass Concentrated Value
+ETF (`SASS`) and renders a Top 10 Holdings section, but the live page currently
+contains `XX/XX/XXXX` dates and dash placeholders for all holdings, NAV, and AUM
+values. The official SAI confirms the fund/adviser relationship but is not a
+current complete holdings feed; third-party SASS tables and 13F filings are
+outside the native source contract.
+
+The ledger records `m_d_sass` as a dated `non_executable_public_source`
+disposition with the official page/SAI routes, SASS representative symbol, and
+an explicit re-test action. No native adapter or SEC-derived promotion is
+added. The code-derived split remains 496 registered, 388 native/live-backed,
+and 108 fallback-only providers; runtime statuses remain 8
+issuer-access-blocked, 91 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher because this ledger
+disposition remains represented by its existing code-derived fallback adapter.
+The ledger retains all 140 historical records exactly once, now with 61 queued
+fallback records; the next ranked item is `madison_avenue`.
+
+The complete opt-in provider matrix and Docker-backed integration gate remain
+pending at the 388-native baseline, with the known unrelated reproducible
+F8p-current-history Study Lab histogram timeout still recorded as the
+integration blocker.
+
 ## Current implementation checkpoint — M2 Financial / CapForce identity reconciliation — 2026-09-03
 
 The ranked `m2_financial` audit reconciled M2 Financial LLC to the existing

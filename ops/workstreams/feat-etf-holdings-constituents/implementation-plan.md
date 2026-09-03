@@ -1677,6 +1677,30 @@ the repository’s code-derived status truly changes, and maintain the same
 focused/deterministic/live/workstream validation sequence before each durable
 checkpoint.
 
+## 42. Current execution checkpoint — M.D. Sass / SASS route disposition — 2026-09-03
+
+The ranked `m_d_sass` audit checked the official M.D. Sass ETF page at
+`https://www.mdsassetf.com/`. The page identifies SASS and renders a Top 10
+Holdings table, but its current response contains `XX/XX/XXXX` date
+placeholders and dash values for every row, NAV, and AUM field. The official
+M.D. Sass SAI confirms the adviser and fund identity but is not a current
+complete holdings artifact. Third-party data and 13F filings are intentionally
+not treated as issuer-native ETF holdings.
+
+The ledger now records `m_d_sass` as `non_executable_public_source`, with the
+official page/SAI routes, SASS representative symbol, dated evidence, and a
+re-test action. No adapter or SEC-derived promotion is added. Runtime code
+remains unchanged: 496 registered, 388 native/live-backed, 108 fallback-only;
+runtime statuses are 8 blocked, 91 route discovery, 3 non-executable, and 6
+non-portfolio-publisher, while the ledger queue is 61 records and the next
+ranked issuer is `madison_avenue`.
+
+The next cycle should investigate `madison_avenue` first-party ETF product
+pages and complete holdings routes, preserving the distinction between an
+issuer-published current artifact and stale, placeholder, third-party, or
+regulatory-only data. Repeat focused invariants, deterministic/live checks,
+Ruff, workstream validation, and the durable checkpoint before any promotion.
+
 ## 39. Current execution checkpoint — Long Pond/LPRE native promotion — 2026-09-03
 
 The ranked `long_pond` audit found an executable first-party route in the

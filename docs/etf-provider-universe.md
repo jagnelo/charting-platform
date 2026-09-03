@@ -825,3 +825,24 @@ non-portfolio-publisher because this terminal ledger disposition, like other
 identity reconciliations, remains represented by its existing code-derived
 fallback adapter. The ledger now has 62 queued fallback records and the next
 ranked item is `m_d_sass`.
+
+## Current audit checkpoint — M.D. Sass / SASS route disposition — 2026-09-03
+
+The ranked `m_d_sass` audit verified the official M.D. Sass ETF site at
+`https://www.mdsassetf.com/`. It identifies the M.D. Sass Concentrated Value
+ETF (`SASS`) and presents a Top 10 Holdings table, but the live page currently
+serves `XX/XX/XXXX` dates and dash placeholders for every holding, NAV, and AUM
+value. The official SAI confirms fund/adviser identity but does not provide a
+current complete holdings artifact. Third-party SASS tables and M.D. Sass 13F
+filings are not issuer-published daily ETF holdings and are not substituted.
+
+The exhaustive ledger records `m_d_sass` as a dated
+`non_executable_public_source` disposition with the official page and SAI
+routes, one representative symbol, and explicit next steps to re-test for a
+populated complete export. No native adapter or SEC-derived promotion is added.
+The code-derived split remains 496 registered, 388 native/live-backed, and 108
+fallback-only providers; runtime statuses remain 8 issuer-access-blocked, 91
+needs-first-party-route-discovery, 3 non-executable-public-source, and 6
+non-portfolio-publisher because this terminal ledger disposition remains
+represented by its existing code-derived fallback adapter. The ledger now has
+61 queued fallback records and the next ranked item is `madison_avenue`.

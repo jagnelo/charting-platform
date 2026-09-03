@@ -3311,33 +3311,44 @@ providers:
     display_name: m_d_sass
     queue_rank: 71
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: non_executable_public_source
+    disposition: non_executable_public_source
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
-    estimated_us_etf_count: null
+    representative_symbols:
+      - SASS
+    estimated_us_etf_count: 1
     estimated_us_etf_aum: null
-    us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    us_equity_breadth: 1
+    source_freshness: page_placeholder_no_current_date
+    first_party_domains:
+      - mdsassetf.com
+      - sec.gov
+    candidate_routes:
+      - https://www.mdsassetf.com/
+      - https://www.mdsassetf.com/assets/pdfs/MD_Sass_SAI.pdf
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
+    source_format: html
     parser_fixture: null
     live_test: null
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.m_d_sass"
       - "runtime:ISSUER_ADAPTER_CONFIGS.m_d_sass"
+      - "web:m-d-sass-official-page-placeholder-holdings-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.m_d_sass"
-    disposition_reason: "m_d_sass: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate m_d_sass first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-03
+        source: "https://www.mdsassetf.com/ and https://www.mdsassetf.com/assets/pdfs/MD_Sass_SAI.pdf"
+        result: "The official M.D. Sass page identifies SASS and a Top 10 Holdings table but serves XX/XX/XXXX placeholders and dash values for every holding, NAV, and AUM field. The official SAI identifies M.D. Sass as adviser but is a regulatory document rather than a current complete holdings artifact; no executable ticker-bearing portfolio export is declared."
+        evidence_ref: "web:m-d-sass-official-page-placeholder-holdings-2026-09-03"
+    disposition_reason: "m_d_sass: The official M.D. Sass SASS page exposes only placeholder holdings/date values and no complete executable current portfolio artifact; its SAI confirms fund/adviser identity but cannot substitute for daily holdings. Third-party tables and 13F data are not promoted as native holdings sources, so the provider remains a dated non_executable_public_source."
+    next_action: "m_d_sass: Re-test the official SASS page for a populated complete holdings export or table with current date, ticker/identifier mapping, and all constituents; promote only after deterministic parser fixtures and bounded live evidence are added."
     implementation_sha: null
     validation_refs: []
   - adapter_key: madison_avenue
