@@ -444,10 +444,11 @@ legs: SPY, SPYV, and SPYG report that the SPDR adapter has no configured dated h
 template, while RSP reports no SEC filing at or before the requested date. No latest-data fallback,
 proxy substitution, or fabricated snapshot was used; the run persisted zero snapshots and no
 member-history queue work. This proves durable completion/error isolation, but it does not close
-the R1 historical-population gap. State Street's public product pages expose current daily/month-end
-downloads, while authorized-participant daily holdings are described as an SFTP resource; no
-authoritative public dated route was established here, so the SPDR historical route remains an
-explicit provider-readiness gap rather than a speculative URL implementation.
+the R1 historical-population gap. State Street's [public fund finder](https://www.ssga.com/us/en/intermediary/fund-finder)
+exposes current daily/month-end downloads, while its [authorized-participant resources](https://www.ssga.com/us/en/intermediary/resources/authorized-participants)
+describe daily holdings as an SFTP resource; no authoritative public dated route was established
+here, so the SPDR historical route remains an explicit provider-readiness gap rather than a
+speculative URL implementation.
 
 The full backend unit suite passed 1,291/1,291 with 67.45% coverage, the complete worker unit file
 passed 24/24, Ruff and `git diff --check` passed, and the worker log contained no serialization
