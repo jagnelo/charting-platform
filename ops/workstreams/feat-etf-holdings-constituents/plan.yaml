@@ -79,7 +79,13 @@ remaining_gaps:
   - "Human closure authorization remains pending."
   - "Exact-SHA CI run 33801827238 on 405b2947 passed frontend unit, backend, branch-declared, and Playwright jobs. The branch matrix reported 567 deterministic tests passed, 2 default-live contract tests passed with 504 skips, and 493 opt-in live cases passed with 13 narrowly evidenced external skips covering the previously observed Return Stacked/Tidal empty bodies, OneAscent/Nightview route availability, Hypatia/Cohen Steers timeouts, and Abacus date-format variability. The feature workflow intentionally skipped the staging/master-only exhaustive integration job."
 progress:
-  completed: []
+  completed:
+    - AC1
+    - AC2
+    - AC3
+    - AC4
+    - AC5
+    - AC6
   total: 8
   current_phase: final_validation
   current_blocker: "The opt-in live matrix retains 13 narrowly evidenced external skips: Vident/MM VAM Cloudflare 403, Zacks transport closure, Morgan Stanley's advertised MSLC workbook 404, Thrivent TSCV 403 with SEC identity-mismatch fallback failure, Redwood's empty official download, transient Return Stacked/Tidal empty bodies, OneAscent/Nightview route-availability responses, Hypatia/Cohen Steers timeouts, and Abacus date-format variability. Deterministic, default-live, Ruff, workstream, and exact-SHA CI checks are green. The latest Docker gate remains blocked only by the unrelated F8p-current-history Study Lab histogram failure (reproduced on a fresh stack); the prior post-repair gate at a696277b passed. Human closure authorization remains pending."
