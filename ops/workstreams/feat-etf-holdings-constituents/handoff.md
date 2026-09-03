@@ -1522,3 +1522,24 @@ authorization are pending.
 
 Evidence refs: `web:federated-hermes-current-etf-api-2026-09-03` and
 `live:federated-hermes-ftrb-current-holdings-2026-09-03`.
+
+## Final local integration validation — 2026-09-03
+
+The complete `make validate-integration` gate passed locally at implementation
+SHA `5392bdfeee147535572a32e2d5b38a9fa0ee4fca` (the validation-receipt commit
+advances the clean branch head to `fb0d473a805f3b15d5fa5226796d700ee0b17667`).
+Backend unit/integration coverage passed 1711 tests at 80.91% coverage;
+frontend unit checks passed 923 tests at 81.99% coverage; the production build,
+compose contract, healthy branch-scoped stack, research-runner sandbox/resource
+probes, functional E2E (154 passed/106 skipped), visual E2E (104 passed), and
+cleanup all passed. The opt-in provider matrix retains five narrowly evidenced
+external/provider failures: Vident/MM VAM and Warren HTTP 403, Fidelity's
+declared 231 versus parsed 214 basket rows, and Inspire API-key rejection.
+
+The required exact-SHA remote synchronization is blocked because auto-review
+rejected pushing the private feature branch without explicit destination
+authorization. No integration, promotion, deployment, or cross-worktree
+mutation was performed. Next action: human-authorize the intended remote push
+and CI synchronization, then run `plan-ready`/checkpoint and obtain closure
+authorization; otherwise retain this branch as locally validated and pending
+review.
