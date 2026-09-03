@@ -1162,3 +1162,18 @@ issuer is `milliman`. Focused Militia checks and the deterministic 540-test
 adapter suite pass. The full opt-in live matrix and Docker-backed integration
 gate remain pending at this baseline; the unrelated reproducible F8p-current-
 history Study Lab histogram timeout remains the known integration blocker.
+
+## Current promotion checkpoint — Milliman / MHIG-MHIP — 2026-09-03
+
+Milliman's official MHIG and MHIP product pages declare complete dated
+holdings CSV downloads on `mfassets.millimanfunds.com`; the official prospectus
+confirms daily online holdings dissemination. The native route validates exact
+product pages, resolves dated artifacts from rendered links or Next.js page
+metadata, and preserves issuer holdings fields and composition dates while
+classifying derivatives, fixed income, funds, equities, and cash.
+
+The current split is 496 registered, 395 native/live-backed, and 101
+fallback-only providers. The ledger has 49 queued fallback records and
+`moonvest` is next. Focused deterministic and opt-in MHIP live checks pass; the
+full opt-in matrix and Docker integration gate remain pending, with the known
+unrelated F8p-current-history Study Lab histogram timeout retained.

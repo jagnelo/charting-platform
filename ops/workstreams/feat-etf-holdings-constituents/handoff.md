@@ -735,3 +735,33 @@ Lab histogram timeout remains the known integration blocker. Evidence refs:
 `web:militia-official-orr-holdings-2026-09-03`,
 `web:militia-sec-daily-holdings-dissemination`, and
 `live:militia-orr-current-holdings-2026-09-03`.
+
+## Current promotion checkpoint — Milliman / MHIG-MHIP native route — 2026-09-03
+
+The ranked `milliman` audit verified Milliman Funds' official MHIG and MHIP
+product pages. They identify the Milliman Healthcare Inflation Guard ETF and
+Milliman Healthcare Inflation Plus ETF and declare complete dated holdings CSV
+downloads served from `mfassets.millimanfunds.com`; the official prospectus
+independently confirms online daily portfolio holdings dissemination.
+
+`MillimanHoldingsAdapter` validates exact symbol-scoped product pages, resolves
+the concrete dated CSV from a rendered link or trusted `__NEXT_DATA__`
+holdings date/account payload, fetches only that issuer-declared artifact,
+preserves issuer fields and composition dates, and classifies derivatives,
+fixed income, funds, equities, and cash. Configuration, registry ownership,
+fallback-audit removal, deterministic fixture, live manifest, and bespoke
+opt-in MHIP live coverage are synchronized.
+
+The durable ledger records `milliman` as `native_promoted`: 496 registered, 395
+native/live-backed, 101 fallback-only, and 49 queued fallback records. Runtime
+fallback statuses are 8 issuer-access-blocked, 84 route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher; the next ranked
+issuer is `moonvest`.
+
+Focused Milliman unit and opt-in live checks pass; the complete deterministic
+adapter suite is rerun at this checkpoint. The full opt-in live matrix and
+Docker-backed integration gate remain pending, with the unrelated reproducible
+F8p-current-history Study Lab histogram timeout retained. Evidence refs:
+`web:milliman-official-mhip-holdings-2026-09-03`,
+`web:milliman-sec-daily-holdings-dissemination`, and
+`live:milliman-mhip-current-holdings-2026-09-03`.

@@ -2073,3 +2073,21 @@ history Study Lab histogram timeout remains the integration blocker. Evidence
 refs: `web:militia-official-orr-holdings-2026-09-03`,
 `web:militia-sec-daily-holdings-dissemination`, and
 `live:militia-orr-current-holdings-2026-09-03`.
+
+## 54. Current execution checkpoint — Milliman / MHIG-MHIP native route — 2026-09-03
+
+Milliman's official MHIG and MHIP product pages declare complete dated
+holdings CSV artifacts on `mfassets.millimanfunds.com`; the SEC prospectus
+confirms daily online holdings dissemination. The native adapter validates
+exact product pages, resolves concrete dated URLs from rendered links or
+serialized Next.js holdings metadata, and parses issuer rows with truthful
+date/provenance and derivative, fixed-income, fund, equity, and cash
+classification. The bounded MHIP live route is green.
+
+Current code-derived state is 496 registered / 395 native-live-backed / 101
+fallback-only, with 49 queued ledger records and `moonvest` next. The full
+opt-in live matrix and Docker-backed integration gate remain pending; the known
+unrelated F8p-current-history Study Lab histogram timeout is retained. Evidence
+refs: `web:milliman-official-mhip-holdings-2026-09-03`,
+`web:milliman-sec-daily-holdings-dissemination`, and
+`live:milliman-mhip-current-holdings-2026-09-03`.

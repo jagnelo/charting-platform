@@ -5,9 +5,9 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 394
-current_fallback_count: 102
-generated_at: 2026-09-03T06:00:00Z
+current_native_count: 395
+current_fallback_count: 101
+generated_at: 2026-09-03T06:30:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -3942,35 +3942,59 @@ providers:
     display_name: milliman
     queue_rank: 83
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-03
+    source_access_declared: issuer_product_page_declared_dated_holdings_csv
+    representative_symbols:
+      - MHIG
+      - MHIP
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    first_party_domains:
+      - millimanfunds.com
+      - mfassets.millimanfunds.com
+      - sec.gov
+    candidate_routes:
+      - "https://millimanfunds.com/etfs/mhig (official MHIG product page with dated View All Holdings CSV declaration)"
+      - "https://millimanfunds.com/etfs/mhip (official MHIP product page with dated View All Holdings CSV declaration)"
+      - "https://www.sec.gov/Archives/edgar/data/2096904/000199937126008501/mft-497_041726.htm (official prospectus confirming online daily holdings dissemination)"
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: "backend/tests/unit/services/test_etf_holdings_adapters.py::test_milliman_adapter_parses_product_declared_mhip_csv"
+    live_test: "backend/tests/live/test_etf_holdings_live_providers.py::test_live_milliman_mhip_product_declared_holdings_csv"
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.milliman"
       - "runtime:ISSUER_ADAPTER_CONFIGS.milliman"
+      - "web:milliman-official-mhip-holdings-2026-09-03"
+      - "web:milliman-sec-daily-holdings-dissemination"
+      - "live:milliman-mhip-current-holdings-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.milliman"
-    disposition_reason: "milliman: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate milliman first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
-    implementation_sha: null
-    validation_refs: []
+      - date: 2026-09-03
+        source: "https://millimanfunds.com/etfs/mhig and https://millimanfunds.com/etfs/mhip"
+        result: "Milliman's official product pages identify MHIG and MHIP and declare dated complete holdings CSV downloads on the mfassets.millimanfunds.com publisher domain; the serialized Next.js page props provide the current holdings date when the initial response is an HTML shell."
+        evidence_ref: "web:milliman-official-mhip-holdings-2026-09-03"
+      - date: 2026-09-03
+        source: "https://www.sec.gov/Archives/edgar/data/2096904/000199937126008501/mft-497_041726.htm"
+        result: "The official Milliman Funds Trust prospectus confirms the MHIG/MHIP series and online daily portfolio holdings dissemination, independently corroborating the issuer route."
+        evidence_ref: "web:milliman-sec-daily-holdings-dissemination"
+      - date: 2026-09-03
+        source: "backend/tests/live/test_etf_holdings_live_providers.py::test_live_milliman_mhip_product_declared_holdings_csv"
+        result: "The native Milliman adapter fetched the official MHIP page, resolved the current dated CSV from declared page metadata, parsed the complete live holdings set, and classified derivatives, fixed income, funds, and equities without SEC-derived reconstruction."
+        evidence_ref: "live:milliman-mhip-current-holdings-2026-09-03"
+    disposition_reason: "milliman: Official MHIG and MHIP product pages provide executable dated complete holdings CSV routes on the Milliman asset domain. The native adapter validates exact product URLs and symbol-scoped page metadata, resolves concrete dated artifacts from either rendered links or __NEXT_DATA__ holdings dates, preserves issuer identifiers and composition dates, and classifies derivatives, fixed income, funds, equities, and cash with deterministic and opt-in live coverage."
+    next_action: "milliman: Monitor the MHIG/MHIP product pages and dated mfassets CSV route for schema, identity, and freshness continuity; retain native status and add future Milliman ETFs only after equivalent first-party route and bounded live evidence."
+    implementation_sha: 35bba0e11bab3449919a1c43e1e582b466bf51c0
+    validation_refs:
+      - "validation:2026-09-03T06:30:00Z"
   - adapter_key: moonvest
     display_name: moonvest
     queue_rank: 84
