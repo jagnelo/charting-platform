@@ -1052,6 +1052,45 @@ opt-in provider matrix and Docker-backed integration gate remain pending at the
 377-native baseline, with the known unrelated reproducible F8p-current-history
 Study Lab histogram timeout still an AC7 gap.
 
+## 27. Current execution checkpoint — GC Ferry Parent identity reconciliation — 2026-09-03
+
+The ranked `gc_ferry_parent` audit resolved a corporate-parent identity rather
+than a distinct holdings publisher. The SEC's August 25, 2026 Form 8-K
+identifies GC Ferry Parent, L.P. as the seller and GC Ferry Holdings, Inc. as
+First Eagle in the proposed Victory Capital acquisition. The current First
+Eagle Form ADV records the ownership chain from GC Ferry Parent through GC
+Ferry Holdings and First Eagle Holdings to First Eagle Investment Management,
+LLC, and identifies FEIM as adviser to the First Eagle ETF Trust. GC Ferry
+Parent is therefore an ownership/holding identity above the publisher and does
+not expose an independent ETF holdings route.
+
+First Eagle's official ETF catalogue identifies the current FEGE, FEOE, USFE,
+and FEMD products and links their publisher-owned product pages. Those pages,
+not GC Ferry Parent, are the source of current holdings tables. The existing
+`first_eagle` adapter remains the sole native owner for the publisher route;
+creating a second GC Ferry adapter would duplicate ownership and misstate
+provenance. No runtime adapter, registry, fallback manifest, or live test
+changes are required for this identity disposition.
+
+The provider-audit ledger now records `gc_ferry_parent` as
+`provider_not_a_portfolio_publisher`, with the four representative First Eagle
+symbols, dated SEC/Form ADV/catalogue evidence, explicit First Eagle publisher
+resolution, and a reopen condition only if GC Ferry Parent later exposes a
+distinct ETF portfolio route. The code-derived split remains 496 registered,
+380 native/live-backed, and 116 fallback-only providers. Runtime fallback
+status counts remain 8 issuer-access-blocked, 99 needs-first-party-route-
+discovery, 3 non-executable-public-source, and 6 non-portfolio-publisher; 76
+ledger records remain queued and `genter_capital` is the next planned audit
+item.
+
+This checkpoint changes only issuer-audit evidence, queue state, and durable
+documentation. The current runtime implementation baseline remains
+`e33ddd8ebd919d14e1969af2aa36537864ece0f2`; the ledger and documentation
+receipt must be recorded against the resulting documentation SHA. The complete
+opt-in provider matrix and Docker-backed integration gate remain pending at the
+380-native baseline, with the known unrelated reproducible F8p-current-history
+Study Lab histogram timeout still an AC7 gap.
+
 ## 26. Current execution checkpoint — Fundstrat Granny Shots — 2026-09-03
 
 The ranked `fundstrat` audit found complete executable first-party routes for

@@ -126,7 +126,7 @@ routes are current and executable through the official product-page-declared
 Azure CSV convention. FalconX's ten current U.S. products are now covered through
 the independently managed 21Shares publisher's page-declared primary and
 secondary product-details APIs, with explicit parent/publisher provenance. The
-  audit ledger currently has 79 queued fallback records still
+  audit ledger currently has 76 queued fallback records still
 requiring issuer-specific
 evidence and final dispositions; existing terminal/blocked records must remain
 evidence-backed. ETF Managers Group is now recorded as an inactive/successor
@@ -157,8 +157,11 @@ with
 `freedom` is now native-promoted for FRDM through the official Freedom ETFs
 product page's complete holdings table and effective date. Continue with
 `fundstrat` is now native-promoted for GRNY, GRNJ, and GRNI through the official
-Granny Shots full-holdings pages, including GRNI option classification. Continue
-with `gc_ferry_parent`, and checkpoint
-each coherent provider changeset before moving to the next.
+Granny Shots full-holdings pages, including GRNI option classification. GC Ferry
+Parent is now recorded as a non-portfolio-publisher parent identity: SEC and
+First Eagle ownership evidence ties it to the existing First Eagle publisher,
+whose current product catalogue and holdings pages remain the sole native route.
+The ledger has 76 queued fallback records; continue with `genter_capital`, and
+checkpoint each coherent provider changeset before moving to the next.
 
 Update this handoff at every coherent implementation and operations boundary.

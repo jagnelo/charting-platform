@@ -7,7 +7,7 @@ baseline_fallback_count: 140
 current_registered_count: 496
 current_native_count: 380
 current_fallback_count: 116
-generated_at: 2026-09-03T00:05:00Z
+generated_at: 2026-09-03T00:18:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -2466,17 +2466,30 @@ providers:
     display_name: gc_ferry_parent
     queue_rank: 55
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: provider_not_a_portfolio_publisher
+    disposition: provider_not_a_portfolio_publisher
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
-    estimated_us_etf_count: null
+    representative_symbols:
+      - FEGE
+      - FEOE
+      - USFE
+      - FEMD
+    estimated_us_etf_count: 4
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains:
+      - firsteagle.com
+      - sec.gov
+      - stephens.com
+    candidate_routes:
+      - https://www.firsteagle.com/etfs
+      - https://www.firsteagle.com/funds/global-equity-etf
+      - https://www.firsteagle.com/funds/overseas-equity-etf
+      - https://www.firsteagle.com/funds/usfe-us-equity-etf
+      - https://www.firsteagle.com/funds/mid-cap-equity-etf
+      - https://www.sec.gov/Archives/edgar/data/1570827/000110465926103936/tm2624030d6_8k.htm
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -2491,8 +2504,20 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.gc_ferry_parent"
-    disposition_reason: "gc_ferry_parent: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate gc_ferry_parent first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-03
+        source: "https://www.sec.gov/Archives/edgar/data/1570827/000110465926103936/tm2624030d6_8k.htm"
+        result: "The SEC Form 8-K identifies GC Ferry Parent, L.P. as the seller and GC Ferry Holdings, Inc. as First Eagle in a proposed Victory Capital acquisition; GC Ferry Parent is therefore a corporate parent identity, not the ETF holdings publisher."
+        evidence_ref: "web:gc-ferry-parent-sec-transaction-2026-09-03"
+      - date: 2026-09-03
+        source: "https://www.stephens.com/uploads/shared/documents/PCG-Docs/Form-ADVs-and-Privacy-Notices/first-eagle-march-2026.pdf"
+        result: "The First Eagle Form ADV ownership chain states that GC Ferry Parent, L.P. is the sole shareholder of GC Ferry Holdings, Inc., which owns First Eagle Holdings and First Eagle Investment Management; FEIM is the adviser to the First Eagle ETF Trust."
+        evidence_ref: "web:gc-ferry-parent-first-eagle-ownership-2026-09-03"
+      - date: 2026-09-03
+        source: "https://www.firsteagle.com/etfs"
+        result: "First Eagle's official ETF catalogue lists FEGE, FEOE, USFE, and FEMD and links their product pages, where First Eagle publishes the current holdings tables; no GC Ferry Parent-owned holdings route is exposed."
+        evidence_ref: "web:gc-ferry-parent-first-eagle-etf-catalogue-2026-09-03"
+    disposition_reason: "gc_ferry_parent: Current SEC and First Eagle ownership evidence identifies GC Ferry Parent, L.P. as the corporate parent/holding identity above First Eagle rather than an independent ETF portfolio publisher. First Eagle's official catalogue publishes the FEGE, FEOE, USFE, and FEMD product routes, and the repository's existing first_eagle adapter owns the publisher-specific coverage; creating a duplicate GC Ferry holdings adapter would misstate provider ownership."
+    next_action: "gc_ferry_parent: Keep fallback-only as provider_not_a_portfolio_publisher and resolve GC Ferry Parent references to the existing first_eagle publisher/adapter; reopen only if GC Ferry Parent ever exposes a distinct ETF portfolio publisher route separate from First Eagle."
     implementation_sha: null
     validation_refs: []
   - adapter_key: genter_capital
