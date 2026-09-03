@@ -1718,3 +1718,11 @@ live test skip is retained. The prior 33807197004 failure and superseded
 33808689024 run remain historical evidence only. The local Docker-backed gate
 still has the unrelated reproduced F8p-current-history Study Lab histogram
 failure, and human closure authorization remains pending.
+The follow-on exact-SHA run `33811430864` at the final checkpoint head passed
+backend, frontend, and branch-declared jobs but failed before Playwright could
+start: the five-minute `Start stack` step expired while the frontend Docker
+image's `npm ci` layer took approximately five minutes. No ETF or application
+test failed in that run. A GitHub rerun was not available to this session due
+to repository-admin permission; the earlier exact-SHA run `33809060206` already
+passed Playwright at the same code state, so this is retained as an
+infrastructure timing limitation rather than a feature regression.
