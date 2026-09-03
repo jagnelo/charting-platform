@@ -16,41 +16,32 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 - Latest staging merge: `9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4`
 - Incorporated staging SHA: `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`
-- Current code-derived state: 496 registered, 383 native/live-backed, 113
+- Current code-derived state: 496 registered, 414 native/live-backed, 82
   fallback-only.
-- Current fallback status split: 8 access-blocked, 96 discovery, 3
-  non-executable public source, 6 non-portfolio-publisher (the ledger's dated
-  terminal dispositions preserve each record's original runtime audit status;
-  Elm, Esoterica, Even Herd, Everence, Hexis, and Hilton are no longer runtime fallbacks
-  after their native promotions).
-- `docs/etf-provider-universe.md` has been reconciled from code to the current
-  496/383/113 snapshot; future updates must remain code-derived.
+- Current fallback status split: 8 issuer-access-blocked, 64
+  needs-first-party-route-discovery, 3 non-executable public source, and 7
+  non-portfolio-publisher. The ledger retains dated terminal dispositions for
+  every fallback key; all 140 historical records are represented exactly once.
+- `docs/etf-provider-universe.md` is reconciled from code to the current
+  496/414/82 snapshot; future updates must remain code-derived.
 - Validation tier: `full_integration`.
 - Local validation profile: `docker_integration`.
-- The full integration gate at `2d96697d` reached e2e-functional but failed one
-  unrelated Study Lab browser case (`F8p-current-history`); 153 e2e cases passed
-  and 106 were skipped. A fresh-stack retry reproduced a missing histogram
-  element timeout. The ETF holdings tests and routes were not implicated.
+- The latest complete `make validate-integration` run on the current working
+  changes reached healthy branch-scoped stack, backend/frontend checks,
+  research-runner probes, and visual E2E (104/104), but functional E2E failed
+  only the unrelated Study Lab browser case `F8p-current-history` (153 passed,
+  106 skipped). A fresh-stack targeted retry reproduced the missing histogram
+  element at `flows.spec.ts:2602`; the earlier post-repair gate at
+  `a696277b` passed. ETF holdings tests and routes were not implicated.
 - Planning session: `197b239d-3322-4fc6-bf4b-0d0aecebf5e0`.
-- Latest implementation checkpoint: `dabe2329965c704f93e3dbb21ec50a7da418ba6c` (Hexis/NICO native FilePoint route, adapter/config/tests, current holdings evidence, and synchronized workstream records); prior `5f8d0b9d` (Gotham GSPY/GVLU/SHRT complete current holdings through official symbol-scoped DownloadHoldings CSV routes, with derivative CUSIP preservation; Fundstrat Granny Shots GRNY/GRNJ/GRNI complete current holdings tables through the official Granny Shots pages; Freedom/FRDM complete current holdings table through the official Freedom ETFs product page; Framework/GSR BESO current holdings route through the official GSR product page and details/holdings APIs; Fitzgerald/Nicholas Wealth FITZ and FIZY current holdings routes through the official XFUNDS pages and nonce-scoped CSV endpoints; FalconX parent coverage through the independently managed 21Shares ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN, THYP, and TKNS routes; Everence/Praxis PRXG, PRXV, and PRXI native routes; Even Herd native EHLS route; the existing
-  Esoterica WUGI and Cygnet/Elm routes remain intact); prior `915282cd` (Esoterica native WUGI route); prior `a4571ff3` (Elements inactive/successor
-  disposition; prior EA Series Trust dated non-portfolio-publisher disposition;
-  prior DVx Ventures dated
-  non-portfolio-publisher disposition; prior Discipline Funds dated
-  non-executable-route disposition); prior `9cc5be81` (CresAlta native CVGD/CVSM
-  holdings tables); prior `fd07b17f` (Conductor native CGV declared
-  holdings CSV); prior `1aa7cc48` (Castellan native CTEF/CTIF
-  holdings tables); prior `992a554d` (CapForce native FFTY/BOUT
-  holdings tables); prior `b9a984c4` (Bushido native SMRI/RNIN
-  holdings tables); prior `b967113b` (BufferLABS native BFLB
-  holdings table and live coverage); prior Brookstone checkpoint `6aa2adb3` (Brookstone native BAMD/BAMG/BAMV/
-  BAMB/BAMU/BAMA/BAMO/BAMY holdings routes and live coverage); prior Bridgeway
-  checkpoint `c1caf555` (Bridgeway native BBLU/BAGX/BRSV/BSVO/BUSM holdings routes
-  and live coverage); prior Blueprint checkpoint
-  `ba4b80ea` (Blueprint native TFPN holdings route); prior BeeHive checkpoint `bc77c274` (BeeHive native holdings route plus
-  promoted-adapter contract alignment);
-  prior Ballast/Avory/ARS checkpoints are `b4c96335`/`695dea16`/`f33224ab` and
-  the Guggenheim audit receipt remains `c4bef2ec`.
+- Latest committed checkpoint is `15c167e7ca80b5c5e785ba1886d96868320b8c58`; the
+  current working changes extend it with Beacon's current Craft CSV routes and
+  probe fix, Fundsmith/Eighth Wonder `Sept` date parsing, Pictet canonical/WAF
+  handling, Redwood empty-download detection, and issuer/SEC fallback error
+  preservation. These changes are pending the next coherent commit. Earlier
+  checkpoints include `dabe2329965c704f93e3dbb21ec50a7da418ba6c` (Hexis/NICO
+  native FilePoint route and synchronized records) and the named provider
+  promotions retained in the historical record below.
 - Product implementation is underway; current changes add Guggenheim, ARS,
   Avory, Ballast, Bancreek, BeeHive, Blueprint, Bridgeway, Brookstone, BufferLABS,
   Bushido, CapForce, Castellan, Conductor, and CresAlta
@@ -1615,8 +1606,46 @@ WisdomTree, EPWA/CornerCap FUNL, Pacific Investments/PIMCO, PlanRock,
 Epiris, Eurazeo, Marathon, MSC Group, ORIX, and Rock Point. No provider was
 promoted from this pass. Complete executable holdings routes remain unproven
 for these records, so their fallback classifications are preserved; Anfield
-is recorded as inactive/successor-dependent, and the non-publisher records are
-explicitly tied to their actual corporate or adviser identities. This closes
-the prior ledger evidence-quality gap; the remaining blockers are the two
-Vident/MM VAM Cloudflare failures, exact-SHA remote synchronization, and human
-closure authorization.
+  is recorded as inactive/successor-dependent, and the non-publisher records are
+  explicitly tied to their actual corporate or adviser identities. This closes
+  the prior ledger evidence-quality gap; the remaining blockers are the two
+  Vident/MM VAM Cloudflare failures, exact-SHA remote synchronization, and human
+  closure authorization.
+
+## Current issuer-route resilience changes — 2026-09-03
+
+The current working changes extend the committed `15c167e7` checkpoint without
+changing the provider-universe split. Beacon's BSR and BTR adapters now follow
+the issuer's current Craft-hosted CSV routes and return the resolved holdings
+URL from `probe`. The shared issuer-date parser accepts the issuer's `Sept`
+spelling, allowing the current Fundsmith ETFT page to remain native without a
+locale-specific parser fork. Pictet now accepts the canonical redirected US
+product identity and records an AWS WAF challenge when the legacy page returns
+the challenge while still validating the public allocation API's symbol-bound
+payload. Redwood rejects an empty official download explicitly. Issuer-route
+failures that fall through to SEC EDGAR now retain the original issuer error
+alongside the fallback error, preserving truthful live diagnostics for Thrivent
+and generic CSV adapters.
+
+Deterministic adapter coverage is 567 passing tests. The default live contract
+is green (2 passed, 504 skipped); the opt-in matrix is 500 passed with six
+narrow external skips: Vident/MM VAM Cloudflare 403, Zacks transport closure,
+Morgan Stanley's advertised MSLC workbook 404, Thrivent TSCV 403 plus SEC
+identity-mismatch fallback failure, and Redwood's empty official payload.
+Ruff check/format, diff-check, and workstream validation pass. The latest
+complete Docker gate reached healthy stack, backend/frontend checks,
+research-runner probes, and visual E2E 104/104, but functional E2E failed only
+the unrelated Study Lab `F8p-current-history` case (153 passed/106 skipped).
+A fresh-stack targeted retry reproduced the missing histogram at
+`flows.spec.ts:2602`; no ETF route or test was implicated. The previous
+post-repair full gate at `a696277b` remains a passing historical receipt.
+
+## Remote authorization and next checkpoint
+
+The human has explicitly authorized pushing this local work to the same-named
+remote feature branch. No integration, promotion, deployment, or other
+worktree mutation is authorized or planned. Next step is to commit these
+changes with the synchronized durable records, push
+`feat/etf-holdings-constituents`, and obtain exact-SHA CI. The unrelated
+`F8p-current-history` failure and the six provider access limitations remain
+visible review blockers; closure authorization is still pending.

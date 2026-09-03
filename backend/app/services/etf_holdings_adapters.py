@@ -159,6 +159,10 @@ def _parse_issuer_date(value: Any) -> date | None:
     text = _clean(value)
     if text is None:
         return None
+    # Some issuer templates spell September as ``Sept``.  Python's ``%b``
+    # parser accepts ``Sep`` but not the four-letter variant; normalize only
+    # that unambiguous month spelling before trying the shared formats.
+    text = re.sub(r"^Sept(?=\s+\d)", "Sep", text, flags=re.IGNORECASE)
     for pattern in (
         "%m/%d/%Y",
         "%m/%d/%y",
@@ -1163,6 +1167,18 @@ def _issuer_page_request_headers(*, accept: str | None = None) -> dict[str, str]
         }
     )
     return headers
+
+
+def _looks_like_aws_waf_challenge(raw_text: str | None) -> bool:
+    """Identify an AWS WAF challenge page returned instead of issuer HTML."""
+
+    text = (raw_text or "").lower()
+    return (
+        "awswafintegration" in text
+        or "window.awswafcookiedomainlist" in text
+        or "token.awswaf.com" in text
+        or ("javascript is disabled" in text and "verify that you're not a robot" in text)
+    )
 
 
 def _invesco_holdings_request_headers() -> dict[str, str]:
@@ -2946,11 +2962,19 @@ class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
         identifiers: dict[str, str] | None,
     ) -> HoldingsFetchResult:
         if self.config.supports_sec_filing_fallback:
-            sec_result = await self._fetch_latest_sec_filing_holdings(
-                symbol=symbol,
-                issuer_product_id=issuer_product_id,
-                identifiers=identifiers or {},
-            )
+            try:
+                sec_result = await self._fetch_latest_sec_filing_holdings(
+                    symbol=symbol,
+                    issuer_product_id=issuer_product_id,
+                    identifiers=identifiers or {},
+                )
+            except (httpx.HTTPError, requests.RequestException, ValueError) as fallback_error:
+                # Keep the original issuer response visible when EDGAR is also
+                # unavailable.  Live coverage uses that status to distinguish
+                # an external outage from a parser or identity regression.
+                raise ValueError(
+                    f"{route_error}; SEC filing fallback failed: {fallback_error}"
+                ) from fallback_error
             if sec_result is not None:
                 sec_result.legal_metadata = {
                     **(sec_result.legal_metadata or {}),
@@ -10695,15 +10719,15 @@ class BeaconCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
     _routes = {
         "BSR": (
             "Beacon Unified Catalyst ETF",
-            "https://beaconinvestingfunds.com/beacon-unified-catalyst/",
-            "https://beaconinvestingfunds.com/wp-content/uploads/ultimus-holdings/"
-            "UnifiedCatalystHoldings.csv",
+            "https://beaconinvestingfunds.com/funds/unified-catalyst",
+            "https://cdn.craft.cloud/019fb3dc-f507-725b-a261-893c424184c8/"
+            "assets/ultimus-holdings/unified-catalyst-holdings.csv",
         ),
         "BTR": (
             "Beacon Tactical Risk ETF",
-            "https://beaconinvestingfunds.com/beacon-tactical-risk/",
-            "https://beaconinvestingfunds.com/wp-content/uploads/ultimus-holdings/"
-            "TacticalHoldings.csv",
+            "https://beaconinvestingfunds.com/funds/tactical-risk",
+            "https://cdn.craft.cloud/019fb3dc-f507-725b-a261-893c424184c8/"
+            "assets/ultimus-holdings/tactical-risk-holdings.csv",
         ),
     }
 
@@ -10724,7 +10748,7 @@ class BeaconCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 if has_sec_fallback
                 else "No verified Beacon native holdings route is configured for this ETF."
             ),
-            source_url=self._product_page_url if supported else None,
+            source_url=self._routes[normalized_symbol][1] if supported else None,
             issuer_product_id=normalized_symbol or None,
         )
 
@@ -34768,6 +34792,11 @@ class RedwoodHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     headers=_holdings_request_headers(accept="text/csv,*/*"),
                 )
                 response.raise_for_status()
+                if not response.text.strip():
+                    raise ValueError(
+                        "Redwood issuer holdings download returned an empty payload; "
+                        "the issuer route is temporarily unavailable."
+                    )
                 try:
                     rows, composition_date = self._parse_holdings_csv(
                         response.text,
@@ -64441,7 +64470,9 @@ class PictetHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 follow_redirects=True,
             )
             page_response.raise_for_status()
-            self._validate_product_page(page_response.text, symbol=normalized_symbol)
+            product_page_challenged = _looks_like_aws_waf_challenge(page_response.text)
+            if not product_page_challenged:
+                self._validate_product_page(page_response.text, symbol=normalized_symbol)
             holdings_response = await client.post(
                 self.holdings_api_url,
                 json={
@@ -64480,6 +64511,9 @@ class PictetHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "route_resolution": "pictet_public_kurtosys_fund_allocations",
                 "product_page_url": str(page_response.url),
                 "holdings_allocation_code": self.holdings_allocation_code,
+                "product_page_access": (
+                    "aws_waf_challenge" if product_page_challenged else "issuer_public_html"
+                ),
                 "composition_date": composition_date.isoformat() if composition_date else None,
                 "as_of_date": composition_date.isoformat() if composition_date else None,
                 "terms_note": self.config.terms_note,
@@ -64489,8 +64523,16 @@ class PictetHoldingsAdapter(IssuerCsvHoldingsAdapter):
     @staticmethod
     def _validate_product_page(raw_html: str, *, symbol: str) -> None:
         pattern = rf"data-input-client_code=[\"']{re.escape(symbol)}[\"']"
-        if not re.search(pattern, html.unescape(raw_html), re.IGNORECASE):
-            raise ValueError(f"Pictet product page identity did not match requested ETF {symbol}.")
+        normalized_html = html.unescape(raw_html)
+        if re.search(pattern, normalized_html, re.IGNORECASE):
+            return
+        # The legacy ETF host now redirects to Pictet Asset Management's
+        # canonical US page, which identifies the fund in its title rather
+        # than the retired Kurtosys widget attribute.
+        canonical_title = rf"<title>[^<]*\b{re.escape(symbol)}\b[^<]*Pictet"
+        if re.search(canonical_title, normalized_html, re.IGNORECASE | re.DOTALL):
+            return
+        raise ValueError(f"Pictet product page identity did not match requested ETF {symbol}.")
 
     @classmethod
     def _parse_holdings_payload(
@@ -65950,9 +65992,8 @@ class EighthWonderHoldingsAdapter(IssuerCsvHoldingsAdapter):
             return [], date.min, []
         if not isinstance(payload, list):
             return [], date.min, []
-        try:
-            composition_date = datetime.strptime(date_match.group("value"), "%b %d, %Y").date()
-        except ValueError:
+        composition_date = _parse_issuer_date(date_match.group("value"))
+        if composition_date is None:
             return [], date.min, []
 
         rows: list[CanonicalHoldingRow] = []
@@ -70886,11 +70927,16 @@ class ThriventHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     value = _identifier(provider_aliases, key)
                     if value and not _identifier(fallback_identifiers, key):
                         fallback_identifiers[key] = value
-            sec_result = await self._fetch_latest_sec_filing_holdings(
-                symbol=normalized_symbol,
-                issuer_product_id=issuer_product_id,
-                identifiers=fallback_identifiers,
-            )
+            try:
+                sec_result = await self._fetch_latest_sec_filing_holdings(
+                    symbol=normalized_symbol,
+                    issuer_product_id=issuer_product_id,
+                    identifiers=fallback_identifiers,
+                )
+            except (httpx.HTTPError, requests.RequestException, ValueError) as fallback_error:
+                raise ValueError(
+                    f"{route_error}; SEC filing fallback failed: {fallback_error}"
+                ) from fallback_error
             if sec_result is None:
                 raise route_error
             sec_result.legal_metadata = {

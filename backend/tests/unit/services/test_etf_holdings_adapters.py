@@ -17678,7 +17678,7 @@ async def test_beacon_adapter_validates_bsr_page_and_normalizes_holdings_weights
     product_page_html = """
     <html><body>
       <h1>Beacon Unified Catalyst ETF</h1><p>FUND TICKER BSR</p>
-      <a href="https://beaconinvestingfunds.com/wp-content/uploads/ultimus-holdings/UnifiedCatalystHoldings.csv">
+      <a href="https://cdn.craft.cloud/019fb3dc-f507-725b-a261-893c424184c8/assets/ultimus-holdings/unified-catalyst-holdings.csv">
         Holdings CSV
       </a>
     </body></html>
@@ -17695,7 +17695,7 @@ Receivables/Payables, RECPAY, RECPAY, -0.100000000000, 1, -35696, -35696, -0.100
         FakeResponse(
             text=product_page_html,
             content_type="text/html",
-            url="https://beaconinvestingfunds.com/beacon-unified-catalyst/",
+            url="https://beaconinvestingfunds.com/funds/unified-catalyst",
         ),
         FakeResponse(text=raw_csv, content_type="text/csv", url=adapter._routes["BSR"][2]),
     ]
@@ -17725,7 +17725,7 @@ async def test_beacon_adapter_supports_the_tactical_risk_product_route(monkeypat
     product_page_html = """
     <html><body>
       <h1>Beacon Tactical Risk ETF</h1><p>FUND TICKER BTR</p>
-      <a href="https://beaconinvestingfunds.com/wp-content/uploads/ultimus-holdings/TacticalHoldings.csv">
+      <a href="https://cdn.craft.cloud/019fb3dc-f507-725b-a261-893c424184c8/assets/ultimus-holdings/tactical-risk-holdings.csv">
         Holdings CSV
       </a>
     </body></html>
@@ -17740,7 +17740,7 @@ VANGUARD REAL ES, 922908553, VNQ US, 8.452668732000, 99.48, 27962, 2781659.76, 8
         FakeResponse(
             text=product_page_html,
             content_type="text/html",
-            url="https://beaconinvestingfunds.com/beacon-tactical-risk/",
+            url="https://beaconinvestingfunds.com/funds/tactical-risk",
         ),
         FakeResponse(text=raw_csv, content_type="text/csv", url=adapter._routes["BTR"][2]),
     ]
@@ -21727,6 +21727,66 @@ async def test_pictet_adapter_uses_public_fund_allocation_api(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_pictet_adapter_reports_aws_waf_challenge_as_temporary_access_block(monkeypatch):
+    adapter = get_holdings_adapter("pictet")
+    assert adapter is not None
+    payload = {
+        "data": {
+            "clientCode": "PQUS",
+            "allocations": [
+                {
+                    "code": "fund_holdings",
+                    "values": [
+                        {
+                            "as_at_date": "2026-09-02",
+                            "security_name": "Apple Inc.",
+                            "security_ticker": "AAPL",
+                            "cusip": "037833100",
+                            "weight": 1.0,
+                        }
+                    ],
+                }
+            ],
+        }
+    }
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<script>window.awsWafCookieDomainList=['etf.am.pictet.com'];"
+                "AwsWafIntegration.getToken()</script>"
+            ),
+            content_type="text/html",
+            status_code=202,
+            url="https://etf.am.pictet.com/pqus/",
+        ),
+        FakeResponse(
+            text=json.dumps(payload),
+            content_type="application/json",
+            url=adapter.holdings_api_url,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="PQUS")
+
+    assert result.rows[0].symbol == "AAPL"
+    assert result.legal_metadata["product_page_access"] == "aws_waf_challenge"
+
+
+@pytest.mark.asyncio
+async def test_redwood_adapter_reports_empty_holdings_download_as_temporary_access_block(
+    monkeypatch,
+):
+    adapter = get_holdings_adapter("redwood")
+    assert adapter is not None
+    FakeAsyncClient.queue = [FakeResponse(text="", content_type="text/csv")]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="empty payload"):
+        await adapter.fetch_latest(symbol="LSAT")
+
+
+@pytest.mark.asyncio
 async def test_dana_adapter_uses_fund_scoped_daily_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("dana")
     assert adapter is not None
@@ -22140,7 +22200,7 @@ async def test_eighth_wonder_adapter_parses_the_full_fundsmith_etft_component(mo
         FakeResponse(
             text=(
                 "<h1>Fundsmith Equity ETF</h1><p>NYSE Arca: ETFT</p>"
-                '<top-ten-holdings-table subtitle="as of Jul 17, 2026" '
+                '<top-ten-holdings-table subtitle="as of Sept 17, 2026" '
                 f':holdings="{encoded_payload}"></top-ten-holdings-table>'
             ),
             content_type="text/html",
@@ -22163,7 +22223,7 @@ async def test_eighth_wonder_adapter_parses_the_full_fundsmith_etft_component(mo
     assert result.legal_metadata["route_resolution"] == (
         "fundsmith_public_etft_complete_holdings_component"
     )
-    assert result.legal_metadata["composition_date"] == "2026-07-17"
+    assert result.legal_metadata["composition_date"] == "2026-09-17"
 
 
 @pytest.mark.asyncio
