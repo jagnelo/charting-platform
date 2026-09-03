@@ -474,13 +474,17 @@ async def worker_startup(ctx: dict):
     if redis is None:
         logger.warning("Core workstation bootstrap could not be queued: Redis is unavailable")
         return
-    job = await redis.enqueue_job(
-        "task_bootstrap_core_workstation",
-        # Bump this id when bootstrap semantics change so a completed result
-        # from an older deployment cannot suppress the corrected sweep.
-        _job_id="core-workstation-bootstrap-startup-v4",
-        _expires=3600,
-    )
+    try:
+        job = await redis.enqueue_job(
+            "task_bootstrap_core_workstation",
+            # Bump this id when bootstrap semantics change so a completed result
+            # from an older deployment cannot suppress the corrected sweep.
+            _job_id="core-workstation-bootstrap-startup-v4",
+            _expires=3600,
+        )
+    except Exception as exc:  # noqa: BLE001 - startup must survive a transient queue outage.
+        logger.warning("Core workstation bootstrap could not be queued: %s", exc)
+        return
     logger.info("Queued core workstation bootstrap at worker startup: job=%s", job)
 
 

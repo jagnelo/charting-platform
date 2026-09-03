@@ -473,6 +473,17 @@ async def test_worker_startup_does_not_fail_when_redis_is_unavailable(monkeypatc
     await arq_worker.worker_startup({})
 
 
+@pytest.mark.asyncio
+async def test_worker_startup_survives_bootstrap_queue_failure(monkeypatch):
+    monkeypatch.setattr(settings, "CORE_WORKSTATION_BOOTSTRAP_ENABLED", True)
+
+    class FailingRedis:
+        async def enqueue_job(self, *_args, **_kwargs):
+            raise RuntimeError("temporary Redis outage")
+
+    await arq_worker.worker_startup({"redis": FailingRedis()})
+
+
 def test_worker_registers_core_bootstrap_and_startup_hook():
     assert arq_worker.task_bootstrap_core_workstation in arq_worker.WorkerSettings.functions
     assert arq_worker.scheduled_core_workstation_bootstrap in arq_worker.WorkerSettings.functions
