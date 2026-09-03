@@ -1571,3 +1571,17 @@ issuer-access-blocked, 63 route-discovery, 7 non-executable-public-source, and
 7 non-portfolio-publisher. Evidence refs:
 `web:beacon-sammons-current-btr-bsr-bta-pages-2026-09-03` and
 `live:beacon-sammons-current-holdings-csv-2026-09-03`.
+
+## Current promotion checkpoint — Sapient Quality Select / SQS HTML route — 2026-09-04
+
+Sapient Quality Select's official product page publishes a complete current
+SQS holdings table with ticker, name, CUSIP, shares, price, market value, net
+assets weight, and effective date. The current table was dated September 3,
+2026; the native adapter validates the official page identity and table schema
+and records Sapient Capital / Empowered Funds provenance without SEC
+reconstruction.
+
+Counts are 496 registered / 409 native / 87 fallback, with 23 queued and
+`saturna` next. Evidence refs:
+`web:sapient-current-sqs-holdings-html-table-2026-09-04` and
+`live:sapient-current-sqs-holdings-html-table-2026-09-04`.
