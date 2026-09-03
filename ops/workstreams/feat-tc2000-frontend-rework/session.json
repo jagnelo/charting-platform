@@ -51,23 +51,14 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [
-    "ps/workstreams/feat-tc2000-frontend-rework/session.json"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
     "build_cache_bytes": null,
-    "container_count": 6,
-    "containers": [
-      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4-worker-1",
-      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4-backend-1",
-      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4-frontend-1",
-      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4-postgres-1",
-      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4-redis-1",
-      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4-research-runner-1"
-    ],
-    "known_bytes": 111230819,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
     "over_budget": false,
     "projects": [
       "charting-dev-feat-tc2000-frontend-rework-db4ca1c4",
@@ -78,8 +69,8 @@
     "unattributed_shared_layers_excluded": true,
     "unique_image_bytes": 0,
     "unknown_components": [],
-    "volume_bytes": 108407500,
-    "volume_count": 4,
+    "volume_bytes": 0,
+    "volume_count": 0,
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
   "docker_ready": {
@@ -96,9 +87,9 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "70485c03c46f3dad6f7f43e89d6fd4bb1314d0f1",
+  "head": "16bc8a6f9eb321de9b78209f4f1c28fd31030436",
   "implementation_sha": "70485c03c46f3dad6f7f43e89d6fd4bb1314d0f1",
-  "last_checkpoint": "2026-09-03T21:11:55.021610+00:00",
+  "last_checkpoint": "2026-09-03T21:12:47.032660+00:00",
   "last_human_progress_update": "2026-09-03T19:57:16.586064+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
@@ -114,7 +105,7 @@
     "total": 10,
     "updated_at": "2026-09-03T19:57:16.585986+00:00"
   },
-  "remote": "70485c03c46f3dad6f7f43e89d6fd4bb1314d0f1",
+  "remote": "16bc8a6f9eb321de9b78209f4f1c28fd31030436",
   "remote_sha": "70485c03c46f3dad6f7f43e89d6fd4bb1314d0f1",
   "remote_synchronized": true,
   "schema": 2,
