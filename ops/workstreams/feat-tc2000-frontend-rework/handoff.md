@@ -573,3 +573,11 @@ The focused history/worker suite passes `34/34`, the exact-tip backend unit suit
 observability/provenance improvement only; the Docker-backed benchmark-family integration matrix
 also passes `21/21` at the current tip. It does not claim additional QQQ member bars or close the
 remaining 76 placeholder bindings, MN/W1 coverage, QQQE, or SPDR dated-source gaps.
+
+The declared exhaustive integration gate was attempted at `fe53e93d` on 2026-09-03. Dependency
+lock, migration-head, and workstream validation stages passed; the gate stopped at repository
+lint because six pre-existing files would be reformatted (`analysis.py`, `etf_holdings_refresh.py`,
+`workstation_bootstrap.py`, and three existing tests). The four files changed for this slice are
+already formatter-clean. The prescribed branch-scoped cleanup found zero containers, images,
+retained volumes, or testcontainer sessions. This formatter drift remains a reproducible R7 gate
+blocker and was not broadened into unrelated formatting changes.
