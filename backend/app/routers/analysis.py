@@ -3717,7 +3717,7 @@ async def benchmark_family_coverage(
             # holdings snapshot is actually available; otherwise a profile
             # with no local disclosures would be reported as historically
             # supported merely because the caller supplied ``as_of``.
-            point_in_time_supported = bool(profile and snapshots)
+            point_in_time_supported = bool(profile and resolved_snapshots)
             member_bar_history = await _family_member_bar_history(
                 db,
                 selected_snapshot,

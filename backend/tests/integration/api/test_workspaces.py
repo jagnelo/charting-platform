@@ -918,6 +918,7 @@ class TestWorkspaces:
         assert value_role["available"] is True
         assert value_role["status"] == "holdings_snapshot_unresolved"
         assert value_role["snapshots"][0]["resolved_count"] == 0
+        assert value_role["point_in_time_supported"] is False
         assert response.json()["coverage"] == 0
         assert any(
             warning["code"] == "family_role_holdings_unresolved"
