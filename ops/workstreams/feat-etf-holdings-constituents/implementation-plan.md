@@ -2106,3 +2106,19 @@ unrelated F8p-current-history Study Lab histogram timeout is retained. Evidence
 refs: `web:moonvest-official-mnvt-holdings-2026-09-03`,
 `web:moonvest-sec-mnvt-identity-2026-09-03`, and
 `live:moonvest-mnvt-current-holdings-2026-09-03`.
+
+## 56. Current execution checkpoint — NestYield / EGGQ-EGGY-EGGS native route — 2026-09-03
+
+NestYield's official product pages publish complete dated holdings tables for
+EGGQ, EGGY, and EGGS. The native adapter validates symbol-scoped identities,
+parses issuer rows and option positions, preserves dates/identifiers, and
+classifies funds, equities, derivatives, and cash. All three bounded live
+routes are green.
+
+Current code-derived state is 496 registered / 397 native-live-backed / 99
+fallback-only, with 47 queued ledger records and `new_age_alpha` next. The full
+opt-in live matrix and Docker-backed integration gate remain pending; the known
+unrelated F8p-current-history Study Lab histogram timeout is retained. Evidence
+refs: `web:nestyield-official-eggs-holdings-2026-09-03`,
+`web:nestyield-sec-series-identities-2026-09-03`, and
+`live:nestyield-current-holdings-2026-09-03`.

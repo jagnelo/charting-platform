@@ -1178,6 +1178,19 @@ fallback-only providers. The ledger has 49 queued fallback records and
 full opt-in matrix and Docker integration gate remain pending, with the known
 unrelated F8p-current-history Study Lab histogram timeout retained.
 
+## Current promotion checkpoint — NestYield / EGGQ-EGGY-EGGS — 2026-09-03
+
+NestYield's official product pages publish complete dated holdings tables for
+EGGQ, EGGY, and EGGS. The native route validates symbol-scoped identities,
+parses issuer rows and option positions, preserves dates/identifiers, and
+classifies funds, equities, derivatives, and cash.
+
+The current split is 496 registered, 397 native/live-backed, and 99
+fallback-only providers. The ledger has 47 queued fallback records and
+`new_age_alpha` is next. Focused deterministic and opt-in live checks pass; the
+full opt-in matrix and Docker integration gate remain pending, with the known
+unrelated F8p-current-history Study Lab histogram timeout retained.
+
 ## Current promotion checkpoint — Moonvest / MNVT — 2026-09-03
 
 Moonvest's official MNVT page publishes a complete dated WPDataTables holdings

@@ -5,9 +5,9 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 396
-current_fallback_count: 100
-generated_at: 2026-09-03T07:00:00Z
+current_native_count: 397
+current_fallback_count: 99
+generated_at: 2026-09-03T07:30:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -4053,35 +4053,60 @@ providers:
     display_name: nestyield
     queue_rank: 85
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-03
+    source_access_declared: issuer_public_product_page_wpdatatable_complete_holdings_table
+    representative_symbols:
+      - EGGQ
+      - EGGY
+      - EGGS
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    first_party_domains:
+      - nestyield.com
+      - sec.gov
+    candidate_routes:
+      - "https://nestyield.com/eggq/ (official EGGQ product page with complete WPDataTables holdings and linked all-holdings CSV)"
+      - "https://nestyield.com/eggy/ (official EGGY product page with complete WPDataTables holdings and linked all-holdings CSV)"
+      - "https://nestyield.com/eggs/ (official EGGS product page with complete WPDataTables holdings and linked all-holdings CSV)"
+      - "https://www.sec.gov/Archives/edgar/data/1722388/000199937126017218/0001999371-26-017218-index.htm (official filings identifying the three NestYield series and tickers)"
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: "backend/tests/unit/services/test_etf_holdings_adapters.py::test_nestyield_adapter_parses_eggq_wpdatatable_holdings"
+    live_test: "backend/tests/live/test_etf_holdings_live_providers.py::test_live_nestyield_official_wpdatatable_holdings"
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.nestyield"
       - "runtime:ISSUER_ADAPTER_CONFIGS.nestyield"
+      - "web:nestyield-official-eggs-holdings-2026-09-03"
+      - "web:nestyield-sec-series-identities-2026-09-03"
+      - "live:nestyield-current-holdings-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.nestyield"
-    disposition_reason: "nestyield: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate nestyield first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
-    implementation_sha: null
-    validation_refs: []
+      - date: 2026-09-03
+        source: "https://nestyield.com/eggq/, https://nestyield.com/eggy/, and https://nestyield.com/eggs/"
+        result: "The official NestYield product pages identify EGGQ, EGGY, and EGGS and expose complete holdings tables with Date, Account, StockTicker, CUSIP, SecurityName, Shares, Price, MarketValue, Weightings, and a linked Download All Holdings artifact. Current page tables are dated September 1, 2026."
+        evidence_ref: "web:nestyield-official-eggs-holdings-2026-09-03"
+      - date: 2026-09-03
+        source: "https://www.sec.gov/Archives/edgar/data/1722388/000199937126017218/0001999371-26-017218-index.htm"
+        result: "The official SEC filing identifies the NestYield Dynamic Income ETF (EGGY), Total Return Guard ETF (EGGS), and Visionary ETF (EGGQ) series."
+        evidence_ref: "web:nestyield-sec-series-identities-2026-09-03"
+      - date: 2026-09-03
+        source: "backend/tests/live/test_etf_holdings_live_providers.py::test_live_nestyield_official_wpdatatable_holdings"
+        result: "The native NestYield adapter fetched all three official product pages, validated each identity and complete table, parsed current rows, preserved issuer identifiers and dates, and classified derivative, fund, equity, and cash rows without SEC-derived reconstruction."
+        evidence_ref: "live:nestyield-current-holdings-2026-09-03"
+    disposition_reason: "nestyield: Official EGGQ, EGGY, and EGGS product pages provide complete executable WPDataTables holdings tables dated September 1, 2026. The native adapter validates symbol-scoped identities, parses issuer rows with ticker/CUSIP/shares/value/weights/date, preserves option positions, and classifies funds, equities, derivatives, and cash with deterministic and bounded live coverage."
+    next_action: "nestyield: Monitor the three official product pages and linked holdings artifacts for schema, identity, and effective-date continuity; retain native status and add future NestYield ETFs only after equivalent first-party route and bounded live evidence."
+    implementation_sha: b917dc57ae7ad2abb124088f722ca9b63ae89c19
+    validation_refs:
+      - "validation:2026-09-03T07:30:00Z"
   - adapter_key: new_age_alpha
     display_name: new_age_alpha
     queue_rank: 86

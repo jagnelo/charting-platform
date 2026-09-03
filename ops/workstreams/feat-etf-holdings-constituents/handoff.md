@@ -794,3 +794,33 @@ F8p-current-history Study Lab histogram timeout retained. Evidence refs:
 `web:moonvest-official-mnvt-holdings-2026-09-03`,
 `web:moonvest-sec-mnvt-identity-2026-09-03`, and
 `live:moonvest-mnvt-current-holdings-2026-09-03`.
+
+## Current promotion checkpoint — NestYield / EGGQ-EGGY-EGGS native route — 2026-09-03
+
+The ranked `nestyield` audit verified the official EGGQ, EGGY, and EGGS product
+pages at `https://nestyield.com/`. Each page identifies its symbol-scoped
+NestYield ETF and publishes a complete holdings table with Date, Account,
+StockTicker, CUSIP, SecurityName, Shares, Price, MarketValue, Weightings, and
+a linked all-holdings CSV. Current page tables are dated September 1, 2026; the
+official SEC filing independently identifies all three series.
+
+`NestYieldHoldingsAdapter` validates each exact product URL and identity,
+parses the issuer's complete table, preserves option positions and identifiers,
+records the composition date, and classifies funds, equities, derivatives, and
+cash. Configuration, registry ownership, fallback-audit removal, deterministic
+fixture, live manifest, and bespoke opt-in coverage for all three products are
+synchronized.
+
+The durable ledger records `nestyield` as `native_promoted`: 496 registered,
+397 native/live-backed, 99 fallback-only, and 47 queued fallback records.
+Runtime fallback statuses are 8 issuer-access-blocked, 82 route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher; the next ranked
+issuer is `new_age_alpha`.
+
+Focused NestYield unit and opt-in live checks pass; the complete deterministic
+adapter suite is rerun at this checkpoint. The full opt-in live matrix and
+Docker-backed integration gate remain pending, with the unrelated reproducible
+F8p-current-history Study Lab histogram timeout retained. Evidence refs:
+`web:nestyield-official-eggs-holdings-2026-09-03`,
+`web:nestyield-sec-series-identities-2026-09-03`, and
+`live:nestyield-current-holdings-2026-09-03`.
