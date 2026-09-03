@@ -34,11 +34,12 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
   element at `flows.spec.ts:2602`; the earlier post-repair gate at
   `a696277b` passed. ETF holdings tests and routes were not implicated.
 - Planning session: `197b239d-3322-4fc6-bf4b-0d0aecebf5e0`.
-- Latest committed checkpoint is `15c167e7ca80b5c5e785ba1886d96868320b8c58`; the
-  current working changes extend it with Beacon's current Craft CSV routes and
-  probe fix, Fundsmith/Eighth Wonder `Sept` date parsing, Pictet canonical/WAF
-  handling, Redwood empty-download detection, and issuer/SEC fallback error
-  preservation. These changes are pending the next coherent commit. Earlier
+- Latest committed checkpoint is `405b2947266c1f41bce46e18ed68fa5877f87412`; it
+  includes Beacon's current Craft CSV routes and probe fix, Fundsmith/Eighth
+  Wonder `Sept` date parsing, Pictet canonical/WAF handling, Redwood
+  empty-download detection, issuer/SEC fallback error preservation, and the
+  follow-up issuer-edge resilience/date parsing corrections documented below.
+  Earlier
   checkpoints include `dabe2329965c704f93e3dbb21ec50a7da418ba6c` (Hexis/NICO
   native FilePoint route and synchronized records) and the named provider
   promotions retained in the historical record below.
@@ -95,7 +96,11 @@ provider-specific Tidal empty-body error and catches Hypatia/Cohen Steers
 timeouts; Abacus composition-date parsing accepts issuer `AS OF` markup with
 or without parentheses and one- or two-digit month/day fields. The exact
 provider subset passed locally after the patch, and the deterministic suite
-remains 567 passed. A fresh exact-SHA CI run is required before closure.
+remains 567 passed. Follow-up exact-SHA CI run `33801827238` is green: 567
+deterministic tests, 2 default-live contract tests, 493 opt-in live cases, and
+the complete Playwright job passed; 13 opt-in cases were narrowly skipped for
+the recorded external issuer/transport limitations. The feature workflow's
+staging/master-only exhaustive gate was intentionally skipped.
 
 ## Current implementation checkpoint — Hilton/SMCO-HBDC — 2026-09-03
 
