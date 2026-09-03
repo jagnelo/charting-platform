@@ -923,6 +923,24 @@ history Study Lab histogram timeout remains the integration blocker. Evidence
 refs: `web:panagram-eldridge-successor-2026-09-03` and
 `web:panagram-eldridge-sec-name-change-2026-09-03`.
 
+## Current audit checkpoint — Parnassus daily route access-blocked — 2026-09-03
+
+The ranked `parnassus_investments` audit verified official PRCS/PRVS daily-
+holdings route declarations and the SEC prospectus identity, but the PRCS
+backend-equivalent request returned an empty body despite HTTP 200. A complete
+current holdings payload could not be executed or parsed; the ledger records
+`issuer_access_blocked` and no SEC-derived reconstruction is promoted.
+
+Runtime state remains 496 registered / 399 native-live-backed / 97
+fallback-only providers; runtime fallback statuses are 10 issuer-access-
+blocked, 77 route-discovery, 4 non-executable-public-source, and 6
+non-portfolio-publisher. The ledger has 39 queued records and the next ranked
+issuer is `pathfinder`. Workstream validation and diff-check remain pending for
+this documentation checkpoint; the known unrelated F8p-current-history Study
+Lab histogram timeout remains the integration blocker. Evidence refs:
+`web:parnassus-official-daily-holdings-routes-2026-09-03` and
+`web:parnassus-sec-etf-identity-2026-09-03`.
+
 ## Current audit checkpoint — North Square non-executable public source — 2026-09-03
 
 The ranked `north_square` audit verified official NSIV and NSIG product pages

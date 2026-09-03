@@ -4454,17 +4454,19 @@ providers:
     display_name: parnassus_investments
     queue_rank: 93
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    current_status: issuer_access_blocked
+    disposition: issuer_access_blocked
+    last_checked: 2026-09-03
+    source_access_declared: issuer_daily_holdings_page
+    representative_symbols: [PRCS, PRVS]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    source_freshness: current_as_of_date
+    first_party_domains: [parnassus.com, content.parnassus.com, sec.gov]
+    candidate_routes:
+      - "https://www.parnassus.com/investments/etfs/prcs-core-select/daily-holdings"
+      - "https://www.parnassus.com/investments/etfs/prvs-value-select/daily-holdings"
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -4474,13 +4476,23 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.parnassus_investments"
       - "runtime:ISSUER_ADAPTER_CONFIGS.parnassus_investments"
+      - "web:parnassus-official-daily-holdings-routes-2026-09-03"
+      - "web:parnassus-sec-etf-identity-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.parnassus_investments"
-    disposition_reason: "parnassus_investments: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate parnassus_investments first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-03
+        source: "https://www.parnassus.com/investments/etfs/prcs-core-select/daily-holdings"
+        result: "The official Parnassus PRCS daily-holdings route is publicly advertised, but backend-equivalent retrieval returned an empty body despite HTTP 200, so no holdings payload or declared download endpoint could be executed."
+        evidence_ref: "web:parnassus-official-daily-holdings-routes-2026-09-03"
+      - date: 2026-09-03
+        source: "https://www.sec.gov/Archives/edgar/data/866256/000119312526195360/d42488d485bpos.htm"
+        result: "The SEC prospectus confirms Parnassus Core Select ETF and Parnassus Value Select ETF identities and states that daily holdings are available on parnassus.com, but does not provide an executable artifact itself."
+        evidence_ref: "web:parnassus-sec-etf-identity-2026-09-03"
+    disposition_reason: "parnassus_investments: Parnassus advertises official daily holdings pages for PRCS and PRVS, but backend-equivalent retrieval currently yields no usable response body, preventing verification or parsing of a complete current artifact. The provider remains fallback-only as issuer_access_blocked; no SEC-derived reconstruction is promoted."
+    next_action: "parnassus_investments: Re-test the official PRCS/PRVS daily-holdings pages and resolve their data endpoint when backend access returns a usable payload; promote only after complete rows and current dates are proven."
     implementation_sha: null
     validation_refs: []
   - adapter_key: pathfinder

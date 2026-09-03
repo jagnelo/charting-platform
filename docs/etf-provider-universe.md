@@ -1226,6 +1226,21 @@ has 40 queued records and `parnassus_investments` is next. Evidence refs:
 `web:panagram-eldridge-successor-2026-09-03` and
 `web:panagram-eldridge-sec-name-change-2026-09-03`.
 
+## Current audit checkpoint — Parnassus daily route access-blocked — 2026-09-03
+
+Parnassus' official PRCS and PRVS daily-holdings pages are publicly advertised
+and the SEC prospectus confirms that policy, but backend-equivalent retrieval of
+the PRCS route returned an empty body despite HTTP 200. No holdings payload or
+declared machine-readable endpoint could be executed, so the ledger records
+`issuer_access_blocked` without SEC-derived reconstruction.
+
+The current split remains 496 registered, 399 native/live-backed, and 97
+fallback-only providers. Runtime statuses are 10 issuer-access-blocked, 77
+route-discovery, 4 non-executable, and 6 non-portfolio-publisher. The ledger
+has 39 queued records and `pathfinder` is next. Evidence refs:
+`web:parnassus-official-daily-holdings-routes-2026-09-03` and
+`web:parnassus-sec-etf-identity-2026-09-03`.
+
 ## Current audit checkpoint — North Square non-executable public source — 2026-09-03
 
 North Square's official NSIV and NSIG pages identify current ETFs but state

@@ -2225,3 +2225,15 @@ Current state is 496 registered / 399 native-live-backed / 97 fallback-only,
 with 40 queued records and `parnassus_investments` next. Evidence refs:
 `web:panagram-eldridge-successor-2026-09-03` and
 `web:panagram-eldridge-sec-name-change-2026-09-03`.
+
+## 64. Current audit checkpoint — Parnassus daily route access-blocked — 2026-09-03
+
+Parnassus advertises PRCS/PRVS daily holdings, but backend-equivalent access to
+the official PRCS route returned no usable body. The ledger records an
+issuer-access-blocked disposition with no native adapter or SEC-derived
+promotion pending a usable issuer payload.
+
+Current state is 496 registered / 399 native-live-backed / 97 fallback-only,
+with 39 queued records and `pathfinder` next. Evidence refs:
+`web:parnassus-official-daily-holdings-routes-2026-09-03` and
+`web:parnassus-sec-etf-identity-2026-09-03`.
