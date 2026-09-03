@@ -53,8 +53,32 @@
   },
   "dirty_paths": [],
   "docker": {
-    "available": false,
-    "reason": "WARNING: Plugin \"/Users/jagnelo/.docker/cli-plugins/docker-dev\" is not valid: failed to fetch metadata: fork/exec /Users/jagnelo/.docker/cli-plugins/docker-dev: no such file or directory\nWARNING: Plugin \"/Users/jagnelo/.docker/cli-plugins/docker-feedback\" is not valid: failed to fetch metadata: fork/exec /Users/jagnelo/.docker/cli-plugins/docker-feedback: no such file or directory\nWARNING: Plugin \"/Users/jagnelo/.docker/cli-plugins/docker-sbom\" is not valid: failed to fetch metadata: fork/exec /Users/jagnelo/.docker/cli-plugins/docker-sbom: no such file or directory\npermission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": 5406000000,
+    "container_count": 6,
+    "containers": [
+      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4-worker-1",
+      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4-frontend-1",
+      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4-backend-1",
+      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4-postgres-1",
+      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4-redis-1",
+      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4-research-runner-1"
+    ],
+    "known_bytes": 5544670522,
+    "over_budget": true,
+    "projects": [
+      "charting-dev-feat-tc2000-frontend-rework-db4ca1c4",
+      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 134222432,
+    "volume_count": 4,
+    "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
   "docker_ready": {
     "ready": true,
@@ -70,7 +94,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "fb6e6b71ff4804747c8e068157c4f38664dbdb0d",
+  "head": "067ade5f96021d79014a2dcc8f1039e03d686a77",
   "implementation_sha": "7e7e498ef6cc51a4c236affca55c30a31e24dac4",
   "last_human_progress_update": "2026-09-03T18:02:37.696492+00:00",
   "local_validation_profile": "full_stack_browser",
@@ -87,7 +111,7 @@
     "total": 10,
     "updated_at": "2026-09-03T18:02:37.696421+00:00"
   },
-  "remote": "fb6e6b71ff4804747c8e068157c4f38664dbdb0d",
+  "remote": "067ade5f96021d79014a2dcc8f1039e03d686a77",
   "remote_sha": "7e7e498ef6cc51a4c236affca55c30a31e24dac4",
   "remote_synchronized": true,
   "schema": 2,
