@@ -1,47 +1,114 @@
-schema: 2
+schema: 4
 branch: feat/tc2000-frontend-rework
 base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 parent_branch: staging
-parent_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
+parent_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
+latest_staging_parent_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
+latest_staging_merge_sha: da78591c0f75626d584e0bc691cd939f80addc27
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging."
 human_closure_authorization: pending
 closure_summary: pending
 validation_tier: full_integration
-human_validation_authorization: "The human requested continued product development from staging; all application/workstation changes use the complete integration gate."
+human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
+planning_state: ready
+local_validation_profile: full_stack_browser
+local_validation_reason: "The roadmap changes frontend workstation behavior, backend canonical provider/history contracts, authenticated browser workflows, Playwright visual assertions, worker-backed data readiness, and full integration evidence."
+goal_budget_policy: unbounded_unless_human_authorized
+human_goal_budget_authorization: none
 previous_branch: feat/tc2000-frontend-rework (old master-based history, fully merged into staging)
 previous_tip: 8a9c26a872ce02e69817b119885a0dfe0aedcb0d
 goal: "Execute docs/tc2000-roadmap.md to deliver the canonical-data-backed, V25-inspired TC2000 workstation and stop at ready_for_human_review."
 scope:
-  - "Re-establish a current baseline from green staging, then execute the roadmap's dependency-ordered workstreams as one continuous delivery stint."
-  - "Complete canonical provider-backed family population, point-in-time history, entitlement, provenance, and the live-data top-down trader workflow."
-  - "Complete compatible Python/Study Lab promotion, analytics, V25 visual/state evidence, resilience, and final acceptance without weakening existing oracles."
+  - "R0: synchronize and baseline the staging-derived feature branch, including static checks, focused authenticated browser flows, visual projects, and Golden Layout resilience reproduction."
+  - "R1: make all eight benchmark families canonical-data-ready with provider, entitlement, point-in-time holdings/classification/weights/history, continuity, provenance, and bounded refresh evidence; no silent fallback or fabricated data."
+  - "R2: complete the live-data benchmark-to-style-to-sector-to-industry/proxy-to-constituent top-down trader workflow with linked symbols/timeframes, indicators, drawings, keyboard behavior, save/restore, source lock/edit states, and actionable freshness."
+  - "R3: complete current and historical breadth, ratios, rotation, rankings, leadership, concentration, dispersion, drawdown, volatility, correlation, seasonality, and source-polymorphic Market Map contracts where supported."
+  - "R4: preserve immutable Python/Study Lab AST and lineage while promoting compatible outputs across columns, filters, scans, gauges, alerts, chart plots, and strategy signals with explicit capability errors."
+  - "R5-R6: close the mapped V25 visual/state parity, loading/error/freshness, Golden Layout/native-window, endurance, accessibility, security, sandbox, migration, and performance evidence without weakening visual or functional oracles."
+  - "R7: perform the exact-tip audit and exhaustive integration gate, stopping at ready_for_human_review without integrating, promoting, deploying, or mutating another worktree."
 owned_paths:
   - frontend/src/views/WorkstationView.vue
   - frontend/src/components/workstation
+  - frontend/src/stores
+  - frontend/tests/unit
   - frontend/tests/e2e/flows.spec.ts
   - frontend/tests/e2e/tc2000_visual.spec.ts
+  - frontend/playwright.config.ts
+  - backend/app/api/routes/analysis.py
+  - backend/app/api/routes/providers.py
+  - backend/app/api/routes/etf_holdings.py
+  - backend/app/services/top_down_taxonomy.py
+  - backend/app/services/benchmark_family_coverage.py
+  - backend/app/services/benchmark_family_history.py
+  - backend/app/services/benchmark_family_holdings_runs.py
+  - backend/app/services/etf_holdings_refresh.py
+  - backend/app/services/workstation_bootstrap.py
+  - backend/app/services/market_map.py
+  - backend/app/services/breadth.py
+  - backend/app/services/provider_entitlements.py
+  - backend/app/schemas
+  - backend/app/models
+  - backend/app/workers
+  - backend/tests/unit/services/test_top_down_taxonomy.py
+  - backend/tests/unit/services/test_benchmark_family_coverage.py
+  - backend/tests/unit/services/test_benchmark_family_history.py
+  - backend/tests/unit/services/test_benchmark_family_holdings_runs.py
+  - backend/tests/unit/services/test_market_map.py
+  - backend/tests/unit/services/test_breadth.py
+  - backend/tests/unit/services/test_workstation_bootstrap.py
+  - backend/tests/integration/api/test_etf_holdings.py
   - docs/tc2000-acceptance-governance.md
   - docs/tc2000-roadmap.md
   - docs/tc2000-visual-parity.md
   - docs/project-todos.md
-  - ops/state.json
-dependencies: [canonical provider/data evidence and existing workstation acceptance governance]
+  - ops/workstreams/feat-tc2000-frontend-rework
+dependencies:
+  - "canonical provider/data evidence and existing workstation acceptance governance"
+  - "synchronized staging capabilities only; do not mutate the active ETF worktree"
 acceptance_criteria:
-  - "Every change preserves the existing functional and visual assertions; no baseline, mask, threshold, or skip is changed to hide a regression."
-  - "Canonical data, provider, entitlement, history, and provenance limitations remain visible and accurately documented."
-  - "Changed frontend tests, full frontend checks, and the exhaustive integration gate pass."
+  - id: AC1
+    text: "Every change preserves existing functional and visual assertions; no baseline, mask, threshold, or skip is changed to hide a regression."
+  - id: AC2
+    text: "All eight benchmark families expose explicit canonical readiness, provider entitlement, point-in-time holdings/classification/weights/history, continuity, provenance, and unsupported-role states without silent fallback or fabricated data."
+  - id: AC3
+    text: "The live-data top-down workflow links benchmark, style, sector, industry/proxy, and constituent views with synchronized symbols/timeframes, indicators, drawings, keyboard behavior, save/restore, source lock/edit states, and actionable freshness."
+  - id: AC4
+    text: "Current and historical breadth contracts support generic condition predicates, denominator/exclusion/member-level/source lineage evidence, derived-series semantics, and supported ratio/history queries."
+  - id: AC5
+    text: "Market Map, breadth, rotation, ranking, leadership, concentration, dispersion, drawdown, volatility, correlation, and seasonality consumers use source-polymorphic, period-aware, bounded, provenance-visible contracts where data supports them."
+  - id: AC6
+    text: "Python/Study Lab outputs remain immutable and lineage-preserving while compatible shapes promote to columns, filters, scans, gauges, alerts, chart plots, and strategy signals with explicit capability errors."
+  - id: AC7
+    text: "The mapped V25 reference states are implemented and validated across source selection, treemap geometry, breadth/study/promotion, loading/error/freshness, keyboard, tool menus, popouts, and state restoration using the unchanged visual acceptance policy."
+  - id: AC8
+    text: "Golden Layout and native/browser window resilience, endurance beyond 100 rounds, 100k-point/10k-row performance, accessibility, security, sandbox, migration, and logging checks provide actionable evidence."
+  - id: AC9
+    text: "Focused backend/frontend/unit/integration checks, authenticated browser flows, all four visual projects, provider/data probes, and the final exact-tip exhaustive integration gate pass or record an explicit reproducible blocker."
+  - id: AC10
+    text: "The branch stops at ready_for_human_review with clean, synchronized branch-owned workstream records and no integration, promotion, deployment, or mutation of another worktree."
 branch_tests:
   - "cd frontend && npm run type-check"
   - "cd frontend && npm run test:coverage"
   - "cd frontend && npm run build"
-live_test_impact: "Authenticated workstation and opt-in canonical-data evidence may be required; no unreviewed provider calls."
-migration_impact: none
-deployment_impact: none
+  - "cd frontend && npx playwright test tests/e2e/flows.spec.ts --project=chromium"
+  - "cd frontend && npx playwright test tests/e2e/tc2000_visual.spec.ts --project=visual-1080p-100 --project=visual-1080p-125 --project=visual-1440p-100 --project=visual-1440p-125"
+  - "uv run --project backend python scripts/validate-workstream.py ops/workstreams/feat-tc2000-frontend-rework"
+  - "make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework"
+branch_tests_reason: "The implementation spans backend services and workers, frontend workstation consumers, authenticated Playwright flows, four visual projects, and the exhaustive repository integration gate; all listed commands are run as their relevant phases become ready."
+live_test_impact: "Authenticated workstation and opt-in canonical provider/data evidence may be required; use bounded probes and never expose or invent credentials."
+migration_impact: "Potential additive schema/index changes only if required by canonical readiness/history contracts; run migration and rollback evidence before completion."
+deployment_impact: "No deployment or environment promotion is authorized in this feature session; record deployment impact only as a final review handoff."
 status: in_progress
+progress:
+  completed: []
+  total: 10
+  current_phase: baseline_sync
+  current_blocker: none
+  next_action: "Run fresh R0 backend/frontend static and unit baselines, then reproduce the Golden Layout concern before selecting the first product gap."
 remaining_gaps:
-  - "R0: synchronize the branch with a selected green staging checkpoint and produce fresh static, unit, browser, and visual baseline receipts."
-  - "R1-R2: complete canonical family population/history/entitlement evidence and prove the live-data top-down trader workflow."
-  - "R3-R4: close historical analytics and compatible immutable-output promotion across workstation consumers."
-  - "R5-R6: close required visual states, Golden Layout/native-window resilience, endurance, accessibility, security, and performance gaps."
-  - "R7: run the final exact-tip audit and exhaustive integration gate; integration and deployment remain separately authorized."
+  - "R0: fresh static, unit, browser, visual, and Golden Layout baseline receipts from the synchronized staging tip."
+  - "R1-R2: canonical family population/history/entitlement evidence and the live-data top-down trader workflow."
+  - "R3-R4: historical analytics and compatible immutable-output promotion across workstation consumers."
+  - "R5-R6: required visual states, window resilience, endurance, accessibility, security, and performance evidence."
+  - "R7: final exact-tip audit and exhaustive integration gate; integration and deployment remain separately authorized."

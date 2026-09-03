@@ -1,0 +1,73 @@
+{
+  "acceptance_criteria": [
+    {
+      "id": "AC1",
+      "text": "Every change preserves the existing functional and visual assertions; no baseline, mask, threshold, or skip is changed to hide a regression."
+    },
+    {
+      "id": "AC2",
+      "text": "Canonical data, provider, entitlement, history, and provenance limitations remain visible and accurately documented."
+    },
+    {
+      "id": "AC3",
+      "text": "Changed frontend tests, full frontend checks, and the exhaustive integration gate pass."
+    }
+  ],
+  "active_session_id": "e225ac6d-5c97-4805-bb18-9bb433431092",
+  "branch": "feat/tc2000-frontend-rework",
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-tc2000-frontend-rework-db4ca1c4",
+      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
+  },
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance feat/tc2000-frontend-rework: Execute docs/tc2000-roadmap.md to deliver the canonical-data-backed, V25-inspired TC2000 workstation and stop at ready_for_human_review.. Acceptance criteria: AC1: Every change preserves the existing functional and visual assertions; no baseline, mask, threshold, or skip is changed to hide a regression.; AC2: Canonical data, provider, entitlement, history, and provenance limitations remain visible and accurately documented.; AC3: Changed frontend tests, full frontend checks, and the exhaustive integration gate pass.. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Advance feat/tc2000-frontend-rework: Execute docs/tc2000-roadmap.md to deliver the canonical-data-backed, V25-inspired TC2000 workstation and stop at ready_for_human_review.. Acceptance criteria: AC1: Every change preserves the existing functional and visual assertions; no baseline, mask, threshold, or skip is changed to hide a regression.; AC2: Canonical data, provider, entitlement, history, and provenance limitations remain visible and accurately documented.; AC3: Changed frontend tests, full frontend checks, and the exhaustive integration gate pass.. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+  },
+  "goal_request_state": "ready",
+  "goal_state": "requested",
+  "head": "da78591c0f75626d584e0bc691cd939f80addc27",
+  "local_validation_profile": "pending_agent_assessment",
+  "plan_hash": "97f3d8bfe02397d49dd1d81378d9f04ec7438b70ff51cc9609a458476fc67e15",
+  "planning_required": false,
+  "planning_state": "legacy_ready",
+  "previous_session_ids": [],
+  "progress": {
+    "completed": [],
+    "current_blocker": "none",
+    "current_phase": "implementation",
+    "total": 3
+  },
+  "remote": "da78591c0f75626d584e0bc691cd939f80addc27",
+  "remote_synchronized": true,
+  "schema": 2,
+  "session_id": "e225ac6d-5c97-4805-bb18-9bb433431092",
+  "validation_tier": "full_integration",
+  "workstream": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework/ops/workstreams/feat-tc2000-frontend-rework",
+  "workstream_files": [
+    "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework/ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework/ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework/ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl",
+    "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework/ops/workstreams/feat-tc2000-frontend-rework/session.json"
+  ],
+  "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
+  "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
+}
