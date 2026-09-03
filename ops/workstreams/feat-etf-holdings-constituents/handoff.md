@@ -1698,6 +1698,23 @@ provider-specific live skip was added in commit
 `d2bba885f317cb535bd30867a704be2d608d239d`, which is synchronized to
 `origin/feat/etf-holdings-constituents`. Focused Donoghue live and unit tests
 passed (one external skip and three unit tests). Fresh exact-SHA CI
-`33808689024` is queued; the preceding run's Playwright job was still running
-at the time of this handoff. The unrelated F8p-current-history Docker-gate
+`33808689024` was superseded by the durable-record checkpoint push before it
+reached a terminal result. The unrelated F8p-current-history Docker-gate
 failure and human closure authorization remain pending.
+
+## Final exact-SHA validation checkpoint — 2026-09-03
+
+The synchronized feature head `fa5cc31e3140dcbd68462861357f266b6a3e1346`
+passed exact-SHA CI run `33809060206`: backend tests, frontend unit tests,
+branch-declared tests, and Playwright E2E all passed; the feature workflow
+correctly skipped the protected staging/master exhaustive gate. The branch
+job reported 567 deterministic adapter tests passed, 2 default-live contract
+tests passed with 504 skips, and 485 opt-in live cases passed with 21 narrowly
+guarded external/provider skips; Ruff and workstream validation also passed.
+The Donoghue Forlines route remains strict: the official product page declares
+the fund-scoped AJAX CSV, but the current issuer endpoint returned an
+access-limited 503 HTML response in the bounded probe, so the provider-specific
+live test skip is retained. The prior 33807197004 failure and superseded
+33808689024 run remain historical evidence only. The local Docker-backed gate
+still has the unrelated reproduced F8p-current-history Study Lab histogram
+failure, and human closure authorization remains pending.
