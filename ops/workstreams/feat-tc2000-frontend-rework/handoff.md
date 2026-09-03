@@ -452,5 +452,7 @@ speculative URL implementation.
 
 The full backend unit suite passed 1,291/1,291 with 67.45% coverage, the complete worker unit file
 passed 24/24, Ruff and `git diff --check` passed, and the worker log contained no serialization
-exception after rebuild. The stack remains live only for this validation boundary and must be torn
-down with the prescribed branch-scoped helper before the session checkpoint.
+exception after rebuild. The stack remained live only for this validation boundary and was then
+torn down with the prescribed branch-scoped helper. Cleanup reported zero containers and zero
+retained volumes, removed four generated images, and performed no host-wide prune. The disposable
+validation token was removed from `/tmp`.
