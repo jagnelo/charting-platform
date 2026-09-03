@@ -24281,7 +24281,7 @@ class GothamHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 CanonicalHoldingRow(
                     symbol=None if is_cash or is_derivative else ticker.upper(),
                     name=name,
-                    cusip=None if is_derivative else cusip,
+                    cusip=cusip,
                     weight=weight,
                     shares=shares,
                     market_value=market_value,

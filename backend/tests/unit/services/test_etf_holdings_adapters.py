@@ -19020,6 +19020,7 @@ async def test_gotham_adapter_fetches_symbol_scoped_complete_holdings_csv(monkey
             assert result.rows[0].row_type == "cash"
             assert result.rows[1].holding_type == "derivative"
             assert result.rows[1].symbol is None
+            assert result.rows[1].cusip == "037833100-TRS-05/14/31-S"
             assert result.rows[1].shares == Decimal("-100")
         else:
             assert result.rows[0].symbol == "TKR1"
