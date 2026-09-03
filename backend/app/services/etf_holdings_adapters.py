@@ -68891,7 +68891,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "merk",
         "merlyn_ai",
         "new_age_alpha",
-        "nestyield",
         "nicholas_wealth",
         "north_square",
         "norris_perne_french",

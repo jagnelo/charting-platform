@@ -22635,7 +22635,7 @@ def test_us_etf_promoter_universe_status_tracks_broad_market_target():
 
 def test_every_registered_adapter_can_probe_ready_with_sec_identifiers():
     for adapter_key, config in ISSUER_ADAPTER_CONFIGS.items():
-        if adapter_key == "milliman":
+        if adapter_key in {"milliman", "nestyield"}:
             # Milliman is intentionally symbol-scoped to its two verified
             # product pages and must not claim a route for an arbitrary symbol.
             continue
@@ -27081,8 +27081,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 396
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 100
+    assert ledger["current_native_count"] == 397
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 99
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -27129,6 +27129,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "militia",
         "milliman",
         "moonvest",
+        "nestyield",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))
