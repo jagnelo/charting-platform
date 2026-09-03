@@ -581,3 +581,18 @@ lint because six pre-existing files would be reformatted (`analysis.py`, `etf_ho
 already formatter-clean. The prescribed branch-scoped cleanup found zero containers, images,
 retained volumes, or testcontainer sessions. This formatter drift remains a reproducible R7 gate
 blocker and was not broadened into unrelated formatting changes.
+
+## 2026-09-03 — exhaustive gate reaches backend coverage but loses test PostgreSQL
+
+After the formatter-only commit `c81403d`, the exhaustive `make validate-integration
+INTEGRATION_BRANCH=feat/tc2000-frontend-rework` gate passed dependency lock/sync/export,
+migration-head, workstream validation, `npm ci`, Ruff, and TypeScript. Its combined backend
+coverage run then reached `1,506 passed` before the test PostgreSQL server terminated
+unexpectedly during the radar-to-screener sequence; the remaining `165` integration tests
+reported the same server-closed/connection-refused failure on port `53660`. The gate exited at
+`backend-coverage` with code `2`. This is not evidence of a TC2000 assertion failure: the
+isolated radar integration file passes `10/10` against a fresh branch-scoped container, but the
+full-suite database crash still needs an environment or cumulative-test diagnosis before the
+exhaustive gate can be called green. The gate's prescribed cleanup completed successfully and
+removed only the assigned branch's test resources. No visual baseline, threshold, skip, provider
+fallback, integration, promotion, deployment, or other-worktree mutation was performed.
