@@ -1894,6 +1894,35 @@ SHA `e5567bec0ed53268195cf1866250e9e1a199143a`; the full opt-in matrix and
 Docker-backed integration gate remain pending with the known unrelated
 F8p-current-history Study Lab histogram timeout blocker.
 
+## 50. Current execution checkpoint — Merk / STGF inactive-successor disposition — 2026-09-03
+
+The ranked `merk` audit verified the official Merk STGF product page, the
+official SEC prospectus, and the current Merk/VanEck gold product page. Merk's
+official page identifies the Merk Stagflation ETF (`STGF`) and explicitly
+states that it was liquidated in December 2023; its final holdings and market
+data are historical as of December 26, 2023. The SEC prospectus confirms STGF
+as a historical Listed Funds Trust series advised by Merk Investments LLC.
+
+The current Merk-branded gold relationship is the VanEck Merk Gold ETF
+(`OUNZ`). The official current page identifies Merk Investments LLC as sponsor
+and VanEck as the product relationship, so OUNZ is not a distinct current Merk
+ETF publisher route and must remain under the existing VanEck ownership
+context rather than receive a duplicate Merk adapter.
+
+The durable ledger records `merk` as
+`inactive_or_successor_disposition`. No native adapter, parser fixture, or
+live test is added. Runtime code remains at 496 registered / 392 native / 104
+fallback, with 8 issuer-access-blocked, 87 route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher statuses. The
+ledger now has 53 queued records with `merlyn_ai` next. Evidence refs are
+`web:merk-stgf-liquidation-2026-09-03`,
+`web:merk-stgf-sec-fund-identity-2026-09-03`, and
+`web:merk-ounz-vaneck-successor-2026-09-03`.
+
+The complete opt-in provider matrix and Docker-backed integration gate remain
+pending at the 392-native baseline, with the known unrelated reproducible
+F8p-current-history Study Lab histogram timeout blocker retained.
+
 ## 48. Current execution checkpoint — Merchant Investment Management disposition — 2026-09-03
 
 The ranked `merchant_investment_management` audit verified the official

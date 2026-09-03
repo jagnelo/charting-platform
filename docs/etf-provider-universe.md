@@ -987,6 +987,36 @@ pending at the 391-native baseline, with the known unrelated reproducible
 F8p-current-history Study Lab histogram timeout still recorded as the
 integration blocker.
 
+## Current audit checkpoint — Merk / STGF inactive-successor disposition — 2026-09-03
+
+The ranked `merk` audit verified Merk's official STGF page, SEC fund identity,
+and current Merk/VanEck gold product relationship. Merk's official STGF page
+identifies the Merk Stagflation ETF and explicitly states that the fund was
+liquidated in December 2023; its final holdings and market-data snapshot is
+dated December 26, 2023. The SEC prospectus confirms STGF as a historical
+series of Listed Funds Trust advised by Merk Investments LLC.
+
+Merk's current gold product is the VanEck Merk Gold ETF (OUNZ). The official
+current product page identifies Merk Investments LLC as sponsor and VanEck as
+the product relationship, so OUNZ is not a distinct current Merk-published ETF
+route and must not be duplicated under the Merk adapter identity.
+
+The exhaustive ledger records `merk` as a dated
+`inactive_or_successor_disposition`; no native adapter, parser fixture, or
+live test is added. Runtime code remains at 496 registered, 392 native/live-
+backed, and 104 fallback-only providers with fallback statuses 8
+issuer-access-blocked, 87 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The 140-record
+ledger now has 53 queued fallback records; the next ranked issuer is
+`merlyn_ai`.
+
+The complete opt-in provider matrix and Docker-backed integration gate remain
+pending at the 392-native baseline, with the known unrelated reproducible
+F8p-current-history Study Lab histogram timeout retained as the integration
+blocker. Evidence refs: `web:merk-stgf-liquidation-2026-09-03`,
+`web:merk-stgf-sec-fund-identity-2026-09-03`, and
+`web:merk-ounz-vaneck-successor-2026-09-03`.
+
 ## Current audit checkpoint — 6 Meridian / SIXH-SIXL-SIXA-SIXS-SXQG native promotion — 2026-09-03
 
 The ranked `meridian` audit verified the official 6 Meridian catalogue and its

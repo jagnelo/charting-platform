@@ -3717,19 +3717,27 @@ providers:
     display_name: merk
     queue_rank: 79
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: inactive_or_successor_disposition
+    disposition: inactive_or_successor_disposition
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
-    estimated_us_etf_count: null
+    representative_symbols:
+      - STGF
+      - OUNZ
+    estimated_us_etf_count: 1
     estimated_us_etf_aum: null
-    us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    us_equity_breadth: 0
+    source_freshness: historical
+    first_party_domains:
+      - merkfunds.com
+      - merkgold.com
+      - sec.gov
+    candidate_routes:
+      - https://www.merkfunds.com/stgf
+      - https://merkgold.com/
+      - https://www.sec.gov/Archives/edgar/data/1683471/000089418922001200/merk485a.htm
     route_complete: false
-    symbol_mapping_proven: false
+    symbol_mapping_proven: true
     current_holdings_proven: false
     parser_fixture: null
     live_test: null
@@ -3737,15 +3745,30 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.merk"
       - "runtime:ISSUER_ADAPTER_CONFIGS.merk"
+      - "web:merk-stgf-liquidation-2026-09-03"
+      - "web:merk-ounz-vaneck-successor-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.merk"
-    disposition_reason: "merk: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate merk first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-03
+        source: "https://www.merkfunds.com/stgf"
+        result: "Merk's official STGF product page identifies the Merk Stagflation ETF and explicitly states that it was liquidated in December 2023; the page's only holdings and market-data snapshot is dated December 26, 2023."
+        evidence_ref: "web:merk-stgf-liquidation-2026-09-03"
+      - date: 2026-09-03
+        source: "https://www.sec.gov/Archives/edgar/data/1683471/000089418922001200/merk485a.htm"
+        result: "The official SEC prospectus identifies STGF as a series of Listed Funds Trust advised by Merk Investments LLC, confirming the historical fund identity but not a current executable portfolio."
+        evidence_ref: "web:merk-stgf-sec-fund-identity-2026-09-03"
+      - date: 2026-09-03
+        source: "https://merkgold.com/"
+        result: "Merk's current gold product is the VanEck Merk Gold ETF (OUNZ); the page identifies Merk Investments LLC as sponsor and VanEck as the current product relationship, so OUNZ is not a distinct current Merk ETF publisher route."
+        evidence_ref: "web:merk-ounz-vaneck-successor-2026-09-03"
+    disposition_reason: "merk: Merk's only distinct Merk-branded U.S. ETF, STGF, was liquidated in December 2023 and has only historical holdings evidence. Current OUNZ is the VanEck Merk Gold Trust sponsored by Merk Investments LLC and belongs to the existing VanEck publisher relationship, so a separate Merk adapter would duplicate ownership and misstate current coverage."
+    next_action: "merk: Keep fallback-only as inactive_or_successor_disposition; retain STGF as historical liquidation context and resolve current OUNZ references to the existing VanEck relationship. Reopen only if Merk launches a distinct current U.S.-listed ETF and publishes a complete executable first-party holdings route."
     implementation_sha: null
-    validation_refs: []
+    validation_refs:
+      - "validation:2026-09-03T05:04:18Z"
   - adapter_key: merlyn_ai
     display_name: merlyn_ai
     queue_rank: 80

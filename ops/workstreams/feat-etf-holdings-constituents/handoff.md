@@ -641,3 +641,34 @@ opt-in provider matrix and Docker-backed integration gate remain pending with
 the known unrelated reproducible F8p-current-history Study Lab histogram
 timeout blocker. Evidence refs: `web:six-meridian-official-product-pages-2026-09-03`
 and `live:six-meridian-sixh-current-holdings-2026-09-03`.
+
+## Current audit checkpoint — Merk / STGF inactive-successor disposition — 2026-09-03
+
+The ranked `merk` audit verified the official Merk STGF product page, the
+official SEC prospectus, and the current Merk/VanEck gold product page. Merk's
+official page identifies STGF and explicitly states that the Merk Stagflation
+ETF was liquidated in December 2023; its final holdings and market-data
+snapshot is dated December 26, 2023. The SEC prospectus confirms the
+historical Listed Funds Trust fund identity and Merk Investments LLC adviser
+relationship.
+
+The current Merk-branded gold relationship is the VanEck Merk Gold ETF
+(`OUNZ`). The official current page identifies Merk Investments LLC as sponsor
+and VanEck as the product relationship, so OUNZ is not a distinct current Merk
+ETF publisher route. It remains under the existing VanEck ownership context;
+no duplicate Merk adapter is warranted.
+
+The exhaustive ledger records `merk` as a dated
+`inactive_or_successor_disposition`. No native adapter, parser fixture, or
+live test is added. Runtime code remains at 496 registered, 392 native/live-
+backed, and 104 fallback-only providers with fallback statuses 8
+issuer-access-blocked, 87 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The ledger now
+has 53 queued fallback records; the next ranked issuer is `merlyn_ai`.
+
+Evidence refs: `web:merk-stgf-liquidation-2026-09-03`,
+`web:merk-stgf-sec-fund-identity-2026-09-03`, and
+`web:merk-ounz-vaneck-successor-2026-09-03`. The complete opt-in provider
+matrix and Docker-backed integration gate remain pending at the 392-native
+baseline, with the known unrelated reproducible F8p-current-history Study Lab
+histogram timeout blocker retained.
