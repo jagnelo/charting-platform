@@ -1462,3 +1462,16 @@ Runtime fallback statuses are 12 issuer-access-blocked, 69 route-discovery, 7
 non-executable-public-source, and 6 non-portfolio-publisher. Evidence refs:
 `web:return-stacked-current-product-pages-2026-09-03` and
 `live:return-stacked-current-holdings-csv-2026-09-03`.
+
+## Current promotion checkpoint — River1 / RVER issuer XLS route — 2026-09-03
+
+River1's official RVER page declares a fund-scoped full holdings XLS export.
+The September 1, 2026 workbook returned complete parseable current rows.
+
+The ledger records `river1` as `native_promoted` through its strict product-page
+and XLS adapter. The current split is 496 registered / 404 native-live-backed /
+92 fallback-only, with 29 queued records and `riverfront` next. Runtime fallback
+statuses are 12 issuer-access-blocked, 68 route-discovery, 7
+non-executable-public-source, and 6 non-portfolio-publisher. Evidence refs:
+`web:river1-current-rver-page-2026-09-03` and
+`live:river1-current-holdings-xls-2026-09-03`.

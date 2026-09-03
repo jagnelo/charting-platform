@@ -2345,3 +2345,12 @@ issuer-owned route map and Return Stacked provenance. Counts are 496 registered
 / 403 native / 93 fallback, with 30 queued and `river1` next. Evidence refs:
 `web:return-stacked-current-product-pages-2026-09-03` and
 `live:return-stacked-current-holdings-csv-2026-09-03`.
+
+## Current promotion checkpoint — River1 / RVER issuer XLS route — 2026-09-03
+
+River1's RVER product page declares a fund-scoped full holdings XLS download.
+The native adapter reuses the strict legacy-XLS parser while validating the
+RVER identity and `fund=rver` export scope. Counts are 496 registered / 404
+native / 92 fallback, with 29 queued and `riverfront` next. Evidence refs:
+`web:river1-current-rver-page-2026-09-03` and
+`live:river1-current-holdings-xls-2026-09-03`.

@@ -4960,8 +4960,11 @@ providers:
         evidence_ref: "live:river1-current-holdings-xls-2026-09-03"
     disposition_reason: "river1: River1's official RVER page declares a fund-scoped full holdings XLS export, and the September 1, 2026 workbook returned complete parseable current rows. The provider-specific adapter validates page identity and preserves River1 provenance without SEC reconstruction."
     next_action: "river1: Monitor the RVER page and fund-scoped XLS export for schema/date continuity; add future River1 products only after equivalent route and live evidence."
-    implementation_sha: null
-    validation_refs: []
+    implementation_sha: b2622cccb61829b869d13b80fd3294c74e1cd776
+    validation_refs:
+      - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_river1_adapter_verifies_rver_page_and_parses_issuer_xls"
+      - "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows"
+      - "validation:2026-09-03T17:00:00Z"
   - adapter_key: riverfront
     display_name: riverfront
     queue_rank: 104
