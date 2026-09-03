@@ -102,6 +102,14 @@ the complete Playwright job passed; 13 opt-in cases were narrowly skipped for
 the recorded external issuer/transport limitations. The feature workflow's
 staging/master-only exhaustive gate was intentionally skipped.
 
+The subsequent final-checkpoint run `33804725528` passed frontend, backend, and
+Playwright but encountered one additional Sterling SCMC live edge: an
+identity-bearing PDF with no parseable positions. The same endpoint currently
+returns 183 parseable rows from this worktree, and the bounded Sterling retry
+passes. The follow-up test change recognizes only this exact provider-specific
+condition as an external skip; the corrected commit requires a fresh exact-SHA
+CI run.
+
 ## Current implementation checkpoint — Hilton/SMCO-HBDC — 2026-09-03
 
 Hilton Capital Management's official Hilton ETFs product pages identify SMCO
