@@ -322,3 +322,9 @@ The post-provenance full backend unit gate is green at the current implementatio
 The warning set remains limited to the existing NumPy/Pandas deprecations. This deterministic
 receipt validates the worker and dated-refresh changes; it does not convert route evidence into
 persisted all-family population, member-bar continuity, or entitlement verification.
+
+The bounded API integration rerun at the exact branch tip passes `2/2` for the dated issuer
+refresh paths (`test_admin_can_refresh_issuer_holdings_for_specific_date` and
+`test_admin_dated_ishares_refresh_preserves_returned_composition_date`) with the two existing
+NumPy deprecation warnings. The assigned TC2000 Docker project remains clean; an unrelated
+ETF-worktree BuildKit container was observed and was not touched.
