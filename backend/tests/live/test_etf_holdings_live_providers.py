@@ -16,6 +16,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "fitzgerald",
     "framework_digital_advisors",
     "freedom",
+    "fundstrat",
     "amun",
     "1251_capital",
     "3fourteen",
@@ -2407,6 +2408,29 @@ async def test_live_freedom_product_page_covers_current_frdm_holdings():
     assert metadata["snapshot_provenance"] == "freedom_native_current_holdings_table"
     assert metadata["composition_date"]
     assert any(row.row_type == "cash" for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("fundstrat")
+async def test_live_fundstrat_granny_shots_pages_cover_current_products():
+    adapter = get_holdings_adapter("fundstrat")
+    assert adapter is not None
+
+    minimum_rows = {"GRNY": 40, "GRNJ": 60, "GRNI": 100}
+    for symbol, minimum in minimum_rows.items():
+        result = await adapter.fetch_latest(symbol=symbol)
+
+        _assert_live_holdings_result(result, adapter_key="fundstrat", min_rows=minimum)
+        metadata = result.legal_metadata or {}
+        assert metadata["source_provider"] == "fundstrat_capital"
+        assert metadata["publisher"] == "fundstrat_capital"
+        assert metadata["parent_issuer"] == "fundstrat"
+        assert metadata["route_resolution"] == ("fundstrat_granny_shots_complete_holdings_page")
+        assert metadata["snapshot_provenance"] == "fundstrat_native_current_holdings_table"
+        assert metadata["composition_date"]
+        if symbol == "GRNI":
+            assert any(row.holding_type == "derivative" for row in result.rows)
 
 
 @pytest.mark.asyncio

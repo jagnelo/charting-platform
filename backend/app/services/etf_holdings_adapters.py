@@ -1697,6 +1697,7 @@ ETF_COM_BRAND_RECONCILIATION_NATIVE_ADAPTERS: frozenset[str] = frozenset(
         "congress",
         "day_hagan",
         "freedom",
+        "fundstrat",
         "oakmark",
         "range",
         "sp_funds",
@@ -2334,6 +2335,7 @@ ISSUER_DOMAIN_HINTS.update(
         "beehive": ["thebeehiveetf.com"],
         "blueprint": ["blueprintip.com"],
         "framework_digital_advisors": ["frameworkdigital.io", "gsretps.io"],
+        "fundstrat": ["fundstrat.com", "grannyshots.com"],
         "volatility_shares": ["volatilityshares.com"],
         "wahed": ["wahed.com"],
         "yieldmax": ["yieldmaxetfs.com"],
@@ -23869,6 +23871,190 @@ class FreedomHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 return None
             return _parse_issuer_date(table[1][0])
         return None
+
+
+class FundstratHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Fundstrat Granny Shots holdings from complete issuer pages."""
+
+    _PRODUCT_PAGES = {
+        "GRNY": (
+            "https://grannyshots.com/fundstrat-granny-shots-us-large-cap-etf/grny-holdings/",
+            "Fundstrat Granny Shots US Large Cap ETF",
+        ),
+        "GRNJ": (
+            "https://grannyshots.com/fundstrat-granny-shots-us-large-cap-etf/grnj-holdings/",
+            "Fundstrat Granny Shots US Small- & Mid-Cap ETF",
+        ),
+        "GRNI": (
+            "https://grannyshots.com/fundstrat-granny-shots-us-large-cap-etf/grni-holdings/",
+            "Fundstrat Granny Shots US Large Cap & Income ETF",
+        ),
+    }
+    _REQUIRED_HEADERS = frozenset(
+        {
+            "ticker",
+            "cusip",
+            "name",
+            "weight",
+            "shares",
+            "market value",
+        }
+    )
+    _ISSUER_HOST = "grannyshots.com"
+
+    def probe(
+        self,
+        *,
+        symbol: str,
+        name: str,
+        identifiers: dict[str, str],
+    ) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        product = self._PRODUCT_PAGES.get(normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if product else Decimal("0.5000"),
+            status="ready" if product or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "Fundstrat Granny Shots publishes this ETF's complete current holdings table on its official product page."
+                if product
+                else "No verified Fundstrat Granny Shots product page is configured for this ETF; SEC EDGAR remains available as fallback."
+                if has_sec_fallback
+                else "No verified Fundstrat Granny Shots product page is configured for this ETF."
+            ),
+            source_url=product[0] if product else None,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product = self._PRODUCT_PAGES.get(normalized_symbol)
+        if product is None:
+            raise ValueError(
+                "Fundstrat Granny Shots' verified issuer route supports GRNY, GRNJ, and GRNI only."
+            )
+        product_page_url, expected_fund_name = product
+        if source_url and source_url.rstrip("/") != product_page_url.rstrip("/"):
+            raise ValueError("Fundstrat holdings must use the verified full holdings page.")
+
+        response = await self._fetch_product_page(product_page_url)
+        raw_html = response.text
+        page = html.unescape(raw_html)
+        if normalized_symbol not in page.upper() or expected_fund_name.upper() not in page.upper():
+            raise ValueError(
+                f"Fundstrat product page identity did not match requested ETF {normalized_symbol}."
+            )
+        rows = parse_html_holdings_table_by_headers(
+            raw_html,
+            required_headers=self._REQUIRED_HEADERS,
+        )
+        if len(rows) < 10:
+            raise ValueError(
+                f"Fundstrat product page did not expose complete holdings for {normalized_symbol}."
+            )
+        composition_date = self._parse_holdings_date(page)
+        if composition_date is None:
+            raise ValueError(
+                f"Fundstrat product page omitted a holdings-as-of date for {normalized_symbol}."
+            )
+        composition_value = composition_date.isoformat()
+        for index, row in enumerate(rows, start=1):
+            source_type = (_clean(row.extra_data.get("Type")) or row.holding_type or "").lower()
+            source_text = " ".join(
+                str(value).upper()
+                for value in (
+                    row.extra_data.get("Ticker"),
+                    row.extra_data.get("CUSIP"),
+                    row.extra_data.get("Name"),
+                    source_type,
+                )
+                if value
+            )
+            is_derivative = source_type in {
+                "option",
+                "future",
+                "futures",
+                "swap",
+                "forward",
+            } or bool(re.search(r"\b[A-Z]{1,6}\s+\d{6}[CP]\d{8}\b", source_text))
+            if is_derivative:
+                row.symbol = None
+                row.holding_type = "derivative"
+            else:
+                row.holding_type = "equity"
+            row.currency = "USD"
+            row.source_row_id = f"fundstrat-{normalized_symbol}-{composition_value}-{index}"
+            row.extra_data = {
+                **row.extra_data,
+                "holdings_as_of": composition_value,
+                "source": "fundstrat_granny_shots_complete_holdings_page",
+            }
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=raw_html,
+            source_url=str(response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "fundstrat_granny_shots_complete_holdings_page",
+                "product_page_url": str(response.url),
+                "snapshot_provenance": "fundstrat_native_current_holdings_table",
+                "composition_date": composition_value,
+                "as_of_date": composition_value,
+                "freshness_semantics": "issuer_disclosed_holdings_as_of_date",
+                "refresh_frequency": "issuer_published_current_holdings",
+                "publisher": "fundstrat_capital",
+                "parent_issuer": "fundstrat",
+                "issuer_relationship": "Fundstrat Capital publisher / Granny Shots ETF product family",
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    async def _fetch_product_page(url: str) -> httpx.Response | requests.Response:
+        headers = _issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*")
+        try:
+            async with httpx.AsyncClient(
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
+            ) as client:
+                response = await client.get(url, headers=headers, follow_redirects=True)
+            response.raise_for_status()
+            return response
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 403:
+                raise
+        response = await asyncio.to_thread(
+            requests.get,
+            url,
+            headers=headers,
+            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+            allow_redirects=True,
+        )
+        response.raise_for_status()
+        return response
+
+    @staticmethod
+    def _parse_holdings_date(page: str) -> date | None:
+        match = re.search(
+            r"Holdings\s+as\s+of\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})",
+            page,
+            flags=re.IGNORECASE,
+        )
+        return _parse_issuer_date(match.group(1)) if match else None
 
 
 class ColliersHarrisonStreetHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -65560,6 +65746,21 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "on its official ETF product page; data may be subject to issuer terms."
         ),
     ),
+    "fundstrat": IssuerCsvAdapterConfig(
+        adapter_key="fundstrat",
+        source_provider="fundstrat_capital",
+        source_access="issuer_product_page_embedded_complete_current_holdings_table",
+        product_page_templates=(
+            "https://grannyshots.com/fundstrat-granny-shots-us-large-cap-etf/grny-holdings/",
+            "https://grannyshots.com/fundstrat-granny-shots-us-large-cap-etf/grnj-holdings/",
+            "https://grannyshots.com/fundstrat-granny-shots-us-large-cap-etf/grni-holdings/",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "Fundstrat Capital's Granny Shots ETF pages publish complete current holdings tables "
+            "and holdings-as-of dates; data may be subject to issuer terms."
+        ),
+    ),
     "alerian": IssuerCsvAdapterConfig(
         adapter_key="alerian",
         source_provider="alerian",
@@ -65638,7 +65839,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "first_manhattan",
         "fpa",
         "genter_capital",
-        "fundstrat",
         "gc_ferry_parent",
         "gotham",
         "granite_group_advisors",
@@ -68719,7 +68919,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "first_manhattan": FirstManhattanReconciledFallbackHoldingsAdapter,
         "fitzgerald": FitzgeraldHoldingsAdapter,
         "fpa": FpaReconciledFallbackHoldingsAdapter,
-        "fundstrat": FundstratReconciledFallbackHoldingsAdapter,
+        "fundstrat": FundstratHoldingsAdapter,
         "genter_capital": GenterCapitalReconciledFallbackHoldingsAdapter,
         "gc_ferry_parent": GcFerryParentReconciledFallbackHoldingsAdapter,
         "gotham": GothamReconciledFallbackHoldingsAdapter,

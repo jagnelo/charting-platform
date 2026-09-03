@@ -18890,6 +18890,91 @@ async def test_freedom_adapter_fetches_complete_frdm_product_page_holdings(monke
 
 
 @pytest.mark.asyncio
+async def test_fundstrat_adapter_fetches_complete_granny_shots_holdings_pages(monkeypatch):
+    adapter = get_holdings_adapter("fundstrat")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "FundstratHoldingsAdapter"
+    probe = adapter.probe(
+        symbol="GRNY", name="Fundstrat Granny Shots US Large Cap ETF", identifiers={}
+    )
+    assert probe.status == "ready"
+    assert probe.source_url.endswith("/grny-holdings/")
+    assert adapter.probe(symbol="UNKNOWN", name="", identifiers={}).status == "needs_issuer_route"
+
+    with pytest.raises(ValueError, match="verified full holdings page"):
+        await adapter.fetch_latest(symbol="GRNY", source_url="https://example.invalid/grny")
+
+    products = {
+        "GRNY": (
+            "Fundstrat Granny Shots US Large Cap ETF",
+            "grny-holdings",
+            "AAPL",
+            "Stock",
+        ),
+        "GRNJ": (
+            "Fundstrat Granny Shots US Small- & Mid-Cap ETF",
+            "grnj-holdings",
+            "PATH",
+            "Stock",
+        ),
+        "GRNI": (
+            "Fundstrat Granny Shots US Large Cap & Income ETF",
+            "grni-holdings",
+            "AAPL 260918C00320000",
+            "Option",
+        ),
+    }
+    for symbol, (fund_name, page_slug, ticker, source_type) in products.items():
+        holdings_rows = "".join(
+            (
+                f"<tr><td>{ticker}</td><td>037833100</td><td>Apple Inc.</td><td>Technology</td>"
+                f"<td>10%</td><td>100</td><td>$1,000</td><td>$10</td><td>{source_type}</td></tr>"
+                if index == 1
+                else f"<tr><td>TKR{index}</td><td>037833100</td><td>Security {index}</td><td>Technology</td>"
+                f"<td>10%</td><td>{index}</td><td>$1,000</td><td>$10</td><td>Stock</td></tr>"
+            )
+            for index in range(1, 11)
+        )
+        page_html = (
+            f"<html><h1>{symbol} Holdings</h1><h2>{fund_name}</h2>"
+            "<p>Holdings as of September 2, 2026</p>"
+            "<table><thead><tr><th>Ticker</th><th>CUSIP</th><th>Name</th><th>Sector</th>"
+            "<th>Weight</th><th>Shares</th><th>Market Value</th><th>Last Price</th><th>Type</th>"
+            f"</tr></thead><tbody>{holdings_rows}</tbody></table></html>"
+        )
+        FakeAsyncClient.requested = []
+        FakeAsyncClient.queue = [
+            FakeResponse(
+                text=page_html,
+                content_type="text/html",
+                url=f"https://grannyshots.com/fundstrat-granny-shots-us-large-cap-etf/{page_slug}/",
+            )
+        ]
+        monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+        result = await adapter.fetch_latest(symbol=symbol)
+
+        assert len(result.rows) == 10
+        assert result.rows[0].weight == Decimal("0.10")
+        assert result.rows[0].market_value == Decimal("1000")
+        assert result.rows[0].currency == "USD"
+        assert result.rows[0].holding_type == ("derivative" if symbol == "GRNI" else "equity")
+        if symbol == "GRNI":
+            assert result.rows[0].symbol is None
+        else:
+            assert result.rows[0].symbol == ticker
+        assert result.legal_metadata["source_provider"] == "fundstrat_capital"
+        assert result.legal_metadata["route_resolution"] == (
+            "fundstrat_granny_shots_complete_holdings_page"
+        )
+        assert result.legal_metadata["snapshot_provenance"] == (
+            "fundstrat_native_current_holdings_table"
+        )
+        assert result.legal_metadata["composition_date"] == "2026-09-02"
+        assert result.legal_metadata["parent_issuer"] == "fundstrat"
+
+
+@pytest.mark.asyncio
 async def test_beehive_adapter_fetches_official_declared_daily_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("beehive")
     assert adapter is not None
@@ -21474,6 +21559,7 @@ def test_etfdb_issuer_league_reconciliation_batch_is_registered_and_audited():
         "falconx",
         "framework_digital_advisors",
         "freedom",
+        "fundstrat",
     }
     fallback_expected = expected - promoted_native
 
@@ -25774,8 +25860,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 379
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 117
+    assert ledger["current_native_count"] == 380
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 116
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -25805,6 +25891,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "fitzgerald",
         "framework_digital_advisors",
         "freedom",
+        "fundstrat",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))
