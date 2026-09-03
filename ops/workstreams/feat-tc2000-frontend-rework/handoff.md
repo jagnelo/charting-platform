@@ -151,6 +151,11 @@ environment blocker only; no Docker images, containers, visual baselines, or val
 were changed. The branch remains in `R1_provider_readiness` and is not marked ready for human review
 until the required profile can be checkpointed with a usable daemon.
 
+The scheduled fan-out hardening checkpoint is `8e68b8fce5ad937ef506367fab73dcd9bcf42c9d`.
+Redis enqueue exceptions are now retained as bounded per-family/date `queue_errors` while the
+remaining deterministic units continue to be submitted. This complements the per-unit
+`queue_error` evidence and keeps one transient queue failure from suppressing other benchmark roots.
+
 The scheduled family/date worker hardening checkpoint is `e503afe11297180ebd1af5e3887c8c8e518e2b8e`.
 Its history handoff now retains a structured `queue_error` result (including snapshot IDs and a
 bounded error string) when member-history enqueueing fails, then commits and returns the completed
