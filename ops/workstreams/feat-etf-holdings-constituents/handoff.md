@@ -1289,3 +1289,17 @@ fallback-only providers, with 20 queued records and `smi_funds` next. Runtime
 fallback statuses are 13 issuer-access-blocked, 59 route-discovery, 9
 non-executable-public-source, and 7 non-portfolio-publisher. Evidence ref:
 `web:siren-current-product-pages-2026-09-04`.
+
+## Current promotion checkpoint — SMI Funds / 3FourteenSMI RAA-FCTE HTML routes — 2026-09-04
+
+The official 3FourteenSMI RAA and FCTE pages publish complete current holdings
+tables with description, ticker, weight, market value, FIGI, shares, and dated
+snapshots. The native adapter validates both product identities and parsed
+current rows without SEC reconstruction.
+
+The durable split is now 496 registered / 410 native-live-backed / 86
+fallback-only providers, with 19 queued records and `sophus` next. Runtime
+fallback statuses are 13 issuer-access-blocked, 58 route-discovery, 9
+non-executable-public-source, and 7 non-portfolio-publisher. Evidence refs:
+`web:smi-funds-current-raa-fcte-holdings-pages-2026-09-04` and
+`live:smi-funds-current-raa-fcte-holdings-pages-2026-09-04`.

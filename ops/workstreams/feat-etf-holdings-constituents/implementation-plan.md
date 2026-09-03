@@ -2487,3 +2487,15 @@ filings are not promoted as current routes, so `siren` remains an explicit
 Counts are 496 registered / 409 native / 87 fallback, with 20 queued and
 `smi_funds` next. Evidence ref:
 `web:siren-current-product-pages-2026-09-04`.
+
+## Current promotion checkpoint — SMI Funds / 3FourteenSMI RAA-FCTE HTML routes — 2026-09-04
+
+The official 3FourteenSMI RAA and FCTE pages publish complete current holdings
+tables with description, ticker, weight, market value, FIGI, shares, and dated
+snapshots. The native adapter validates both product identities and parsed
+current rows without SEC reconstruction.
+
+Counts are 496 registered / 410 native / 86 fallback, with 19 queued and
+`sophus` next. Evidence refs:
+`web:smi-funds-current-raa-fcte-holdings-pages-2026-09-04` and
+`live:smi-funds-current-raa-fcte-holdings-pages-2026-09-04`.
