@@ -22166,7 +22166,11 @@ def test_etfdb_issuer_league_reconciliation_batch_is_registered_and_audited():
 
 
 def test_etfdb_issuer_league_continuation_batch_is_registered_and_audited():
-    expected = set(ETFDB_ISSUER_LEAGUE_CONTINUATION_ISSUER_HINTS) - {"everence", "hexis"}
+    expected = set(ETFDB_ISSUER_LEAGUE_CONTINUATION_ISSUER_HINTS) - {
+        "everence",
+        "hexis",
+        "measured_risk_portfolios",
+    }
 
     assert expected
     assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
