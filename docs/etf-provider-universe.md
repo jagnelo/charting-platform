@@ -1659,3 +1659,17 @@ Counts are 496 registered / 411 native / 85 fallback, with 17 queued and
 `stance` next. Evidence refs:
 `web:srh-current-srhq-srhr-holdings-pages-2026-09-04` and
 `live:srh-current-srhq-srhr-holdings-pages-2026-09-04`.
+
+## Current promotion checkpoint — Stance / Hennessy STNC HTML route — 2026-09-04
+
+Hennessy's official STNC product page publishes both a top-ten table and a
+complete 48-row total-holdings table dated September 2, 2026. The native
+adapter selects the complete table, validates the Hennessy/STNC identity and
+headers, maps CUSIPs, shares, market values, and weights, and records Hennessy
+Advisors / Stance Capital provenance without SEC reconstruction. The bounded
+live probe passed against the complete table.
+
+Counts are 496 registered / 412 native / 84 fallback, with 16 queued and
+`strategy_shares` next. Evidence refs:
+`web:stance-hennessy-current-stnc-holdings-page-2026-09-04` and
+`live:stance-hennessy-current-stnc-holdings-page-2026-09-04`.

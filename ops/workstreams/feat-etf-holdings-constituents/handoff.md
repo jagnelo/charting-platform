@@ -1332,3 +1332,19 @@ fallback statuses remain 15 issuer-access-blocked, 55 route-discovery, 9
 non-executable-public-source, and 7 non-portfolio-publisher. Evidence refs:
 `web:srh-current-srhq-srhr-holdings-pages-2026-09-04` and
 `live:srh-current-srhq-srhr-holdings-pages-2026-09-04`.
+
+## Current promotion checkpoint — Stance / Hennessy STNC HTML route — 2026-09-04
+
+Hennessy's official STNC product page publishes both a top-ten table and a
+complete 48-row total-holdings table dated September 2, 2026. The native
+adapter selects the complete table, validates the Hennessy/STNC identity and
+headers, maps CUSIPs, shares, market values, and weights, and records Hennessy
+Advisors / Stance Capital provenance without SEC reconstruction. The bounded
+live probe passed against the complete table.
+
+The durable split is now 496 registered / 412 native-live-backed / 84
+fallback-only providers, with 16 queued records and `strategy_shares` next.
+Runtime fallback statuses are 15 issuer-access-blocked, 54 route-discovery, 9
+non-executable-public-source, and 7 non-portfolio-publisher. Evidence refs:
+`web:stance-hennessy-current-stnc-holdings-page-2026-09-04` and
+`live:stance-hennessy-current-stnc-holdings-page-2026-09-04`.
