@@ -5,9 +5,9 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 389
-current_fallback_count: 107
-generated_at: 2026-09-03T03:14:34Z
+current_native_count: 390
+current_fallback_count: 106
+generated_at: 2026-09-03T04:02:01Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -3513,35 +3513,51 @@ providers:
     display_name: mcelhenny_sheffield
     queue_rank: 75
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
-    estimated_us_etf_count: null
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-03
+    source_access_declared: issuer_public_product_page_holdings_table
+    representative_symbols:
+      - MSMR
+    estimated_us_etf_count: 1
     estimated_us_etf_aum: null
-    us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    us_equity_breadth: 1
+    source_freshness: current_as_of_date
+    first_party_domains:
+      - mscmfunds.com
+    candidate_routes:
+      - https://mscmfunds.com/msmr-etf/
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    source_format: html_table
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_mcelhenny_sheffield_adapter_fetches_msmr_product_page_holdings
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_mcelhenny_sheffield_msmr_product_page_holdings_table
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.mcelhenny_sheffield"
       - "runtime:ISSUER_ADAPTER_CONFIGS.mcelhenny_sheffield"
+      - "web:mcelhenny-sheffield-official-msmr-holdings-2026-09-03"
+      - "live:mcelhenny-sheffield-msmr-current-holdings-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.mcelhenny_sheffield"
-    disposition_reason: "mcelhenny_sheffield: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate mcelhenny_sheffield first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
-    implementation_sha: null
-    validation_refs: []
+      - date: 2026-09-03
+        source: "https://mscmfunds.com/msmr-etf/"
+        result: "McElhenny Sheffield's official MSMR page identifies the McElhenny Sheffield Managed Risk ETF and publishes a complete current seven-row holdings table with ticker, CUSIP, security description, shares, price, market value, weightings, and effective date; the page is current as of August 31, 2026 and rows are effective September 1, 2026."
+        evidence_ref: "web:mcelhenny-sheffield-official-msmr-holdings-2026-09-03"
+      - date: 2026-09-03
+        source: "backend/tests/live/test_etf_holdings_live_providers.py::test_live_mcelhenny_sheffield_msmr_product_page_holdings_table"
+        result: "The native McElhenny Sheffield adapter fetched the official MSMR product page, validated issuer/product identity and the exact holdings-table schema, parsed current symbol/CUSIP/weight/share/value rows plus the Cash & Other row, and preserved the effective date without SEC-derived reconstruction."
+        evidence_ref: "live:mcelhenny-sheffield-msmr-current-holdings-2026-09-03"
+    disposition_reason: "mcelhenny_sheffield: McElhenny Sheffield's official MSMR product page provides a complete executable and dated holdings table. The native adapter validates the product identity and schema, maps symbols/CUSIPs/shares/market values/weights, classifies Cash & Other explicitly, preserves page and effective dates, and records provider-owned provenance with deterministic and opt-in live coverage."
+    next_action: "mcelhenny_sheffield: Monitor the official MSMR product page and holdings table; retain native status while the route remains complete, identity-valid, dated, and executable, and add future McElhenny Sheffield products only after equivalent first-party evidence."
+    implementation_sha: 9b8ed8ea54f7c4c6940c12361de3081bd9ce6ef1
+    validation_refs:
+      - "validation:2026-09-03T04:08:06Z"
+      - "validation:2026-09-03T04:08:24Z"
   - adapter_key: measured_risk_portfolios
     display_name: measured_risk_portfolios
     queue_rank: 76

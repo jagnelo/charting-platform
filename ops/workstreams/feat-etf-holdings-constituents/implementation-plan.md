@@ -1834,3 +1834,29 @@ The next cycle should continue with `mcelhenny_sheffield`, preserving the
 issuer-owned route requirement and repeating focused invariants, deterministic
 and opt-in live checks, Ruff, workstream validation, and the durable checkpoint
 before any further promotion.
+
+## 46. Current execution checkpoint — McElhenny Sheffield / MSMR native promotion — 2026-09-03
+
+The ranked `mcelhenny_sheffield` audit verified the official McElhenny
+Sheffield product page at `https://mscmfunds.com/msmr-etf/`. The page identifies
+MSMR as the McElhenny Sheffield Managed Risk ETF and publishes a complete
+seven-row current holdings table with Stock Ticker, CUSIP, Security Desc,
+Shares, Price, Market Value, Weightings, and Effective Date columns. The page
+reports current holdings as of August 31, 2026; the row effective date is
+September 1, 2026 and the table includes a Cash & Other row.
+
+Implementation adds `McElhennySheffieldHoldingsAdapter`, a provider-specific
+HTML-table fetch/parser that permits MSMR only, enforces the exact official
+route and product identity, rejects missing schema or dates, maps symbols and
+CUSIPs plus numeric holdings fields, classifies ETF/fund and cash rows, and
+preserves page/effective dates and native provenance. The registry config,
+fallback audit tuple, adapter map, deterministic fixture, live-backed manifest,
+and bespoke opt-in live test are updated together.
+
+The durable ledger checkpoint promotes `mcelhenny_sheffield`, updates the
+derived split to 496 registered / 390 native / 106 fallback, reduces the
+route-discovery runtime status to 89, and leaves 57 queued records with
+`measured_risk_portfolios` next. Required focused, deterministic, live, Ruff,
+and workstream checks must be recorded against the final implementation SHA;
+the known unrelated F8p-current-history Study Lab histogram timeout remains
+the full-integration blocker.

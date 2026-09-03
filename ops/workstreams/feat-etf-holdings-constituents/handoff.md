@@ -525,3 +525,30 @@ The complete opt-in provider matrix and Docker-backed integration gate remain
 pending at the 389-native baseline, with the known unrelated reproducible
 F8p-current-history Study Lab histogram timeout still recorded as the
 integration blocker.
+
+## Current implementation checkpoint — McElhenny Sheffield / MSMR native promotion — 2026-09-03
+
+The ranked `mcelhenny_sheffield` audit verified the official McElhenny
+Sheffield MSMR product page at `https://mscmfunds.com/msmr-etf/`. It identifies
+the McElhenny Sheffield Managed Risk ETF and publishes a complete current
+seven-row holdings table with ticker, CUSIP, security description, shares,
+price, market value, weightings, and effective date. The page is current as of
+August 31, 2026; rows are effective September 1, 2026 and include Cash & Other.
+
+The native adapter validates MSMR identity and the exact table schema, maps
+symbols/CUSIPs/shares/market values/weights, classifies fund and cash rows,
+preserves page and effective dates, and records McElhenny Sheffield provenance.
+Deterministic parser/registry coverage and the bounded opt-in live MSMR route
+pass; no SEC-derived reconstruction is used.
+
+The ledger records `mcelhenny_sheffield` as `native_promoted`, bringing the
+code-derived split to 496 registered, 390 native/live-backed, and 106
+fallback-only providers. Runtime fallback statuses are 8 issuer-access-blocked,
+89 needs-first-party-route-discovery, 3 non-executable-public-source, and 6
+non-portfolio-publisher. The 140-record ledger now has 57 queued fallback
+records; the next ranked issuer is `measured_risk_portfolios`.
+
+The complete opt-in provider matrix and Docker-backed integration gate remain
+pending at the 390-native baseline, with the known unrelated reproducible
+F8p-current-history Study Lab histogram timeout still recorded as the
+integration blocker.

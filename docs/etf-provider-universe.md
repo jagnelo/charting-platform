@@ -28,8 +28,8 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `389`
-- Audited fallback-only providers: `107`
+- Native/live-backed providers: `390`
+- Audited fallback-only providers: `106`
 
 The current checkpoint promotes `guggenheim` through its public issuer-hosted
 ETF holdings table, reconciles `ars` to the existing ARS Investment Partners
@@ -157,11 +157,11 @@ establishes the successor context; current Brookstone ETF routes remain under
 the distinct native `brookstone` identity.
 The historical starting snapshot for this
 workstream was 356 native and 140 fallback; the provider-audit ledger retains
-that baseline record while tracking the current 389/107 split.
+that baseline record while tracking the current 390/106 split.
 
 The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
 `FALLBACK_ISSUER_AUDITS` at the current ETF-branch implementation checkpoint
-`840cc3e1e3e1dce38f33d2d190f4e33b1abf74b1` (MAX ETNs CARD/CARU/JETD/JETU official product-page index constituents; LSV LSVD official product-page-declared holdings CSV; Long Pond LPRE official product-page CMS holdings JSON; Logiq LCO official product-page-declared Tidal daily holdings CSV; Knowledge Leaders KNO official AXS/FilePoint dated holdings CSV; JLens TOV official product-page embedded holdings table; Hoya Capital display-name and URL alias reconciliation to the existing Pettee HOMZ/RIET native route; Hilton SMCO/HBDC product-page-declared AllHoldings CSV; Hexis/NICO FilePoint app-declared daily holdings CSV; Gotham GSPY/GVLU/SHRT DownloadHoldings CSV routes; Fundstrat Granny Shots GRNY/GRNJ/GRNI holdings routes; Freedom/FRDM product-page holdings route; Framework/GSR BESO route; Fitzgerald/Nicholas Wealth FITZ and FIZY routes; FalconX/21Shares ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN,
+`2753c9146e3720b92778ab7bce0a3dbaefb99cd3` (MAX ETNs CARD/CARU/JETD/JETU official product-page index constituents; McElhenny Sheffield MSMR official product-page holdings table; LSV LSVD official product-page-declared holdings CSV; Long Pond LPRE official product-page CMS holdings JSON; Logiq LCO official product-page-declared Tidal daily holdings CSV; Knowledge Leaders KNO official AXS/FilePoint dated holdings CSV; JLens TOV official product-page embedded holdings table; Hoya Capital display-name and URL alias reconciliation to the existing Pettee HOMZ/RIET native route; Hilton SMCO/HBDC product-page-declared AllHoldings CSV; Hexis/NICO FilePoint app-declared daily holdings CSV; Gotham GSPY/GVLU/SHRT DownloadHoldings CSV routes; Fundstrat Granny Shots GRNY/GRNJ/GRNI holdings routes; Freedom/FRDM product-page holdings route; Framework/GSR BESO route; Fitzgerald/Nicholas Wealth FITZ and FIZY routes; FalconX/21Shares ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN,
 THYP, and TKNS native routes; Esoterica WUGI, Even Herd EHLS, and Everence/Praxis
 PRXG/PRXV/PRXI native routes; Framework/GSR BESO, Freedom/FRDM, and Fundstrat Granny Shots are now native through their
 declared details/holdings API; ETF Managers Group is recorded as an
@@ -910,3 +910,27 @@ needs-first-party-route-discovery, 3 non-executable-public-source, and 6
 non-portfolio-publisher. The ledger retains all 140 historical records exactly
 once, now with 58 queued fallback records; the next ranked item is
 `mcelhenny_sheffield`.
+
+## Current audit checkpoint — McElhenny Sheffield / MSMR native promotion — 2026-09-03
+
+The ranked `mcelhenny_sheffield` audit verified the official McElhenny
+Sheffield MSMR product page at `https://mscmfunds.com/msmr-etf/`. The page
+identifies the McElhenny Sheffield Managed Risk ETF and publishes a complete
+current seven-row holdings table with ticker, CUSIP, security description,
+shares, price, market value, weightings, and effective date. The page is
+current as of August 31, 2026; the holdings rows are effective September 1,
+2026 and include the explicit Cash & Other row.
+
+The native `mcelhenny_sheffield` adapter validates the requested MSMR identity
+and exact table schema, maps security identifiers and numeric fields, classifies
+fund and cash rows, preserves both page and composition dates, and records
+provider-owned provenance. Deterministic parser/registry coverage and the
+bounded opt-in live MSMR route pass; no SEC-derived reconstruction is used.
+
+The exhaustive ledger records `mcelhenny_sheffield` as `native_promoted`,
+increasing the code-derived split to 496 registered, 390 native/live-backed,
+and 106 fallback-only providers. Runtime fallback statuses are 8
+issuer-access-blocked, 89 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The ledger
+retains all 140 historical records exactly once, now with 57 queued fallback
+records; the next ranked issuer is `measured_risk_portfolios`.
