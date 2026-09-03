@@ -401,6 +401,7 @@ class BenchmarkFamilyReadinessOut(AnalysisResponseMetadata):
     ready_role_count: int = Field(default=0, ge=0)
     readiness_status: str = "coverage_limited"
     universe_provenance: dict[str, object] = Field(default_factory=dict)
+    provider_probe_evidence: list[dict[str, object]] = Field(default_factory=list)
     families: list[BenchmarkFamilyCoverageOut] = Field(default_factory=list)
 
 

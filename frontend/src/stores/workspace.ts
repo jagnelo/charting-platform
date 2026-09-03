@@ -595,6 +595,15 @@ export interface BenchmarkFamilyReadinessState {
   ready_role_count: number
   readiness_status: string
   universe_provenance: Record<string, unknown>
+  provider_probe_evidence?: Array<{
+    provider: string
+    capability: string
+    classification: string
+    success: boolean
+    consecutive_failures: number
+    recovered: boolean
+    observed_at: string
+  }>
   families: BenchmarkFamilyCoverageState[]
   freshness?: string
   freshness_detail?: Record<string, number>

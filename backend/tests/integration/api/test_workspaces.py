@@ -769,6 +769,9 @@ class TestWorkspaces:
         assert payload["as_of"] == "2026-08-01T00:00:00Z"
         assert payload["snapshot_limit"] == 8
         assert payload["universe_provenance"]["provider_calls"] is False
+        assert payload["universe_provenance"]["provider_probe_count"] == len(
+            payload["provider_probe_evidence"]
+        )
         assert {family["family_key"] for family in payload["families"]} == {
             "sp500",
             "sp400",

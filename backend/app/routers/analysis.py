@@ -136,7 +136,7 @@ from app.services.breadth import (
 from app.services.indicators import OHLCVSeries, get_latest_value
 from app.services.market_map import build_market_map, read_market_map_cache
 from app.services.parameter_validation import validate_parameter_values
-from app.services.provider_availability import provider_configured
+from app.services.provider_availability import latest_availability, provider_configured
 from app.services.research_jobs import (
     collect_research_result,
     enqueue_research_run,
@@ -3854,6 +3854,19 @@ async def benchmark_family_readiness(
         families.append(coverage)
 
     all_roles = [role for family in families for role in family.roles]
+    availability = await latest_availability(db)
+    provider_probe_evidence = [
+        {
+            "provider": item["provider"],
+            "capability": item["capability"],
+            "classification": item["classification"],
+            "success": item["success"],
+            "consecutive_failures": item["consecutive_failures"],
+            "recovered": item["recovered"],
+            "observed_at": item["observed_at"],
+        }
+        for item in availability
+    ]
     ready_role_count = sum(role.composite_readiness_status == "ready" for role in all_roles)
     ready_family_count = sum(
         bool(family.roles)
@@ -3876,6 +3889,7 @@ async def benchmark_family_readiness(
         role_count=role_count,
         ready_role_count=ready_role_count,
         readiness_status=readiness_status,
+        provider_probe_evidence=provider_probe_evidence,
         universe_provenance={
             "registry": "top_down_taxonomy",
             "family_keys": [family.family_key for family in families],
@@ -3883,6 +3897,7 @@ async def benchmark_family_readiness(
             "missing_families": missing_families,
             "coverage_semantics": "role_independent_dated_holdings_snapshots",
             "provider_calls": False,
+            "provider_probe_count": len(provider_probe_evidence),
         },
         families=families,
         freshness="available" if readiness_status == "ready" else "coverage_limited",
