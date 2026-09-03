@@ -144,6 +144,12 @@ async def task_refresh_benchmark_family_holdings_run(ctx: dict, run_id: int):
                     and leg.get("snapshot_id") is not None
                 ]
                 if refreshed_snapshot_ids:
+                    # The holdings refresh and constituent materialization run in
+                    # this session's transaction.  Commit before enqueueing the
+                    # independent member jobs, otherwise a fast worker can query
+                    # the IDs before their parent snapshot/instruments are visible
+                    # and incorrectly report them as missing.
+                    await db.commit()
                     try:
                         history_queue = await queue_snapshot_member_history(
                             db,
@@ -281,6 +287,10 @@ async def task_refresh_scheduled_benchmark_family_holdings_unit(
             and leg.get("status") == "refreshed"
             and leg.get("snapshot_id") is not None
         ]
+        if snapshot_ids:
+            # Publish only committed snapshot/member rows to the separate bulk
+            # history workers; avoid an enqueue/transaction visibility race.
+            await db.commit()
         try:
             history_queue = await queue_snapshot_member_history(
                 db,

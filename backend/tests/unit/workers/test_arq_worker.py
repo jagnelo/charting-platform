@@ -95,6 +95,9 @@ def test_worker_registers_benchmark_family_dated_refresh_function():
 @pytest.mark.asyncio
 async def test_scheduled_family_unit_refreshes_one_family_and_queues_history(monkeypatch):
     class Session:
+        def __init__(self):
+            self.commits = 0
+
         async def __aenter__(self):
             return self
 
@@ -105,7 +108,9 @@ async def test_scheduled_family_unit_refreshes_one_family_and_queues_history(mon
             return _AsyncNested()
 
         async def commit(self):
-            return None
+            self.commits += 1
+
+    session = Session()
 
     refresh_calls = []
     queue_calls = []
@@ -123,10 +128,11 @@ async def test_scheduled_family_unit_refreshes_one_family_and_queues_history(mon
         }
 
     async def fake_queue(_db, redis, snapshot_ids):
+        assert session.commits == 1
         queue_calls.append((redis, snapshot_ids))
         return {"status": "queued", "queued": 4, "already_queued": 0}
 
-    monkeypatch.setattr("app.database.AsyncSessionLocal", lambda: Session())
+    monkeypatch.setattr("app.database.AsyncSessionLocal", lambda: session)
     monkeypatch.setattr(
         "app.services.etf_holdings_refresh.refresh_benchmark_family_holdings_for_date",
         fake_refresh,
@@ -145,6 +151,7 @@ async def test_scheduled_family_unit_refreshes_one_family_and_queues_history(mon
     assert result["requested_date"] == "2026-07-31"
     assert result["snapshot_ids"] == [12]
     assert result["history_queue"]["queued"] == 4
+    assert session.commits == 2
 
 
 @pytest.mark.asyncio
@@ -365,6 +372,7 @@ async def test_family_holdings_refresh_worker_handoffs_refreshed_snapshots_to_me
         }
 
     async def fake_queue(_db, redis, snapshot_ids):
+        assert session.commits == 2
         queue_calls.append((redis, snapshot_ids))
         return {"status": "queued", "queued": 3, "already_queued": 1}
 
