@@ -52,22 +52,23 @@ never maintain them as an independent implementation constant.
 | Classification | Count |
 |---|---:|
 | Registered issuer adapter configurations | 496 |
-| Native/live-backed providers | 356 |
-| Audited fallback-only providers | 140 |
+| Native/live-backed providers | 381 |
+| Audited fallback-only providers | 115 |
 | Native plus fallback | 496 |
 
-The 140 fallback audits currently divide into:
+The current 115 fallback audits divide into:
 
 | Audit status | Count |
 |---|---:|
 | `issuer_access_blocked` | 8 |
-| `needs_first_party_route_discovery` | 123 |
+| `needs_first_party_route_discovery` | 98 |
 | `non_executable_public_source` | 3 |
 | `provider_not_a_portfolio_publisher` | 6 |
 
-`docs/etf-provider-universe.md` still reports 339 native and 157 fallback. That
-is stale evidence, not current truth. The first implementation checkpoint must
-reconcile it from registry/audit structures.
+The approved plan began from a 356-native/140-fallback baseline. The current
+checkpoint has reconciled `docs/etf-provider-universe.md` and the branch-owned
+ledger to 381 native and 115 fallback providers; code-derived counts remain the
+authoritative truth and must be re-derived at every subsequent checkpoint.
 
 ### 2.3 Historical continuity
 
@@ -732,6 +733,11 @@ After all 140 starting fallbacks have final ledger outcomes:
 
 ## 15. Immediate next action
 
+This original activation checklist is retained for historical continuity. The
+current execution resumes after the completed GC Ferry Parent, Genter Capital,
+and Gotham checkpoints; the live next action is recorded in the latest
+execution section below.
+
 Resume the branch workflow and active unbudgeted Codex goal. Begin AC1 and AC2,
 not a speculative provider adapter:
 
@@ -1051,6 +1057,52 @@ receipt must be recorded against the resulting documentation SHA. The complete
 opt-in provider matrix and Docker-backed integration gate remain pending at the
 377-native baseline, with the known unrelated reproducible F8p-current-history
 Study Lab histogram timeout still an AC7 gap.
+
+## 29. Current execution checkpoint — Gotham ETFs native promotion — 2026-09-03
+
+The ranked `gotham` audit found complete executable first-party routes for the
+three current Gotham ETFs. Gotham's official catalogue and product pages
+identify GSPY as The Gotham Enhanced 500 ETF, GVLU as The Gotham 1000 Value ETF,
+and SHRT as The Gotham Short Strategies ETF. Each symbol-specific page exposes
+an official `DownloadHoldings` CSV route on `gothametfs.com`; the current SAI
+also identifies the three funds and directs investors to GothamETFs.com for
+daily portfolio holdings. The official September 2, 2026 exports contained 502
+GSPY rows, 481 GVLU rows, and 677 SHRT rows.
+
+The new explicit `GothamHoldingsAdapter` maps only GSPY, GVLU, and SHRT to their
+verified product download paths. It rejects unsupported symbols and unapproved
+source URLs, requires the exact declared CSV schema and one consistent as-of
+date, validates the final URL remains on the issuer host and requested product
+path, parses percentage-point and dollar values, preserves CUSIPs and signed
+shares, assigns USD, and records Gotham ETFs publisher / Gotham Asset Management
+parent provenance. Cash & Other rows are normalized as cash; SHRT TRS rows are
+normalized as derivatives with no tradable symbol while retaining signed short
+quantities and source identifiers.
+
+The deterministic unit test covers all three symbol mappings, probe behavior,
+source URL rejection, complete-schema parsing, date/weight/value conversion,
+cash semantics, and SHRT derivative/short semantics. The opt-in live test
+fetches all three official CSV routes, enforces conservative minimum row counts,
+checks current provenance/freshness, and requires SHRT cash, derivative, and
+negative-position evidence. `gotham` is now in the native/live-backed registry,
+the ETF.com reconciliation native set, and the exhaustive live-provider
+manifest; it is removed from the fallback audit manifest.
+
+The code-derived split after this promotion is 496 registered, 381
+native/live-backed, and 115 fallback-only providers. Runtime fallback status
+counts are 8 issuer-access-blocked, 98 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The exhaustive
+ledger retains all 140 historical records exactly once, with `gotham` marked
+`native_promoted`; 74 queued fallback records remain and the next ranked item is
+`granite_group_advisors`.
+
+Implementation checkpoint SHA: `31a6f1728e92619bbf273effd4e4a49c4654d08b`.
+The provider-audit ledger and documentation checkpoint must reference this SHA
+and the dated Gotham evidence. The focused Gotham unit and opt-in live checks
+passed; the complete deterministic adapter suite, full opt-in provider matrix,
+and Docker-backed integration gate remain pending at the 381-native baseline.
+The known unrelated reproducible F8p-current-history Study Lab histogram
+timeout remains an AC7 gap.
 
 ## 28. Current execution checkpoint — Genter Capital identity reconciliation — 2026-09-03
 

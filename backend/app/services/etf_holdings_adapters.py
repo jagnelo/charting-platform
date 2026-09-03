@@ -1698,6 +1698,7 @@ ETF_COM_BRAND_RECONCILIATION_NATIVE_ADAPTERS: frozenset[str] = frozenset(
         "day_hagan",
         "freedom",
         "fundstrat",
+        "gotham",
         "oakmark",
         "range",
         "sp_funds",

@@ -5,9 +5,9 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 380
-current_fallback_count: 116
-generated_at: 2026-09-03T00:18:00Z
+current_native_count: 381
+current_fallback_count: 115
+generated_at: 2026-09-03T00:34:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -2583,35 +2583,64 @@ providers:
     display_name: gotham
     queue_rank: 57
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
-    estimated_us_etf_count: null
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-03
+    source_access_declared: issuer_public_product_download_holdings_csv
+    representative_symbols:
+      - GSPY
+      - GVLU
+      - SHRT
+    estimated_us_etf_count: 3
     estimated_us_etf_aum: null
-    us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    us_equity_breadth: 3
+    source_freshness: current_holdings_as_of_date
+    first_party_domains:
+      - gothametfs.com
+      - gothamassetmanagement.com
+      - sec.gov
+    candidate_routes:
+      - "https://www.gothametfs.com/gspy"
+      - "https://www.gothametfs.com/gspy/DownloadHoldings"
+      - "https://www.gothametfs.com/gvlu"
+      - "https://www.gothametfs.com/gvlu/DownloadHoldings"
+      - "https://www.gothametfs.com/shrt"
+      - "https://www.gothametfs.com/shrt/DownloadHoldings"
+      - "https://www.sec.gov/Archives/edgar/data/1742912/000199937126001640/gotham-485bpos_012626.htm"
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_gotham_adapter_fetches_symbol_scoped_complete_holdings_csv
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_gotham_product_downloads_cover_current_holdings
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.gotham"
       - "runtime:ISSUER_ADAPTER_CONFIGS.gotham"
+      - "web:gotham-etfs-current-product-catalogue-2026-09-03"
+      - "web:gotham-sec-sai-current-funds-2026-09-03"
+      - "live:gotham-product-download-holdings-csv-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.gotham"
-    disposition_reason: "gotham: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate gotham first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
-    implementation_sha: null
-    validation_refs: []
+      - date: 2026-09-03
+        source: "https://www.gothametfs.com/ and official GSPY/GVLU/SHRT product pages"
+        result: "Gotham's official catalogue identifies GSPY as The Gotham Enhanced 500 ETF, GVLU as The Gotham 1000 Value ETF, and SHRT as The Gotham Short Strategies ETF; each product page links its symbol-scoped DownloadHoldings route."
+        evidence_ref: "web:gotham-etfs-current-product-catalogue-2026-09-03"
+      - date: 2026-09-03
+        source: "https://www.sec.gov/Archives/edgar/data/1742912/000199937126001640/gotham-485bpos_012626.htm"
+        result: "The current Gotham SAI identifies the GSPY, GVLU, and SHRT funds and directs investors to GothamETFs.com for daily portfolio holdings, corroborating the product catalogue identity without substituting SEC filings for the native route."
+        evidence_ref: "web:gotham-sec-sai-current-funds-2026-09-03"
+      - date: 2026-09-03
+        source: "https://www.gothametfs.com/gspy/DownloadHoldings, https://www.gothametfs.com/gvlu/DownloadHoldings, and https://www.gothametfs.com/shrt/DownloadHoldings"
+        result: "The bounded live route returned complete CSV schemas with As Of Date, Percentage of Net Assets, Name, Ticker, CUSIP, Shares Held, and Market Value; the September 2, 2026 exports contained 502 GSPY, 481 GVLU, and 677 SHRT rows. The native parser preserves dollar values, percentage decimals, CUSIPs, signed long/short quantities, Cash & Other rows, and SHRT TRS derivative rows."
+        evidence_ref: "live:gotham-product-download-holdings-csv-2026-09-03"
+    disposition_reason: "gotham: Gotham Asset Management's GothamETFs catalogue and current SAI identify three active U.S. ETF products with symbol-scoped, issuer-hosted complete DownloadHoldings CSVs. The native adapter strictly scopes GSPY, GVLU, and SHRT to their official product paths, requires the declared CSV schema and one consistent as-of date, preserves identifiers/weights/values/signed positions, classifies cash and SHRT TRS rows, and records Gotham ETFs publisher / Gotham Asset Management parent provenance."
+    next_action: "gotham: Monitor the official GSPY, GVLU, and SHRT product pages and DownloadHoldings routes; retain native status while each export remains complete, dated, identity-valid, and executable, and add any future Gotham product only after equivalent first-party evidence."
+    implementation_sha: 31a6f1728e92619bbf273effd4e4a49c4654d08b
+    validation_refs:
+      - "validation:2026-09-03T00:33:00Z"
   - adapter_key: granite_group_advisors
     display_name: granite_group_advisors
     queue_rank: 58
