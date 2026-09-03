@@ -12914,7 +12914,7 @@ async def test_logan_adapter_verifies_bundle_declared_filepoint_csv(monkeypatch)
     page_html = """
     <html>
       <body>
-        <p>Logan Capital Broad Innovative Growth ETF (LCLG)</p>
+        <p>Logan Large Cap Growth ETF (LCLG)</p>
         <a class="button" id="csvdownload" href="#">Download Holdings</a>
         <table><tbody id="full-holdings"></tbody></table>
       </body>

@@ -52847,7 +52847,13 @@ class LoganHoldingsAdapter(IssuerCsvHoldingsAdapter):
     def _is_verified_product_page(page_text: str) -> bool:
         return (
             "Logan Capital" in page_text
-            and "Logan Capital Broad Innovative Growth ETF (LCLG)" in page_text
+            and any(
+                product_name in page_text
+                for product_name in (
+                    "Logan Capital Broad Innovative Growth ETF (LCLG)",
+                    "Logan Large Cap Growth ETF (LCLG)",
+                )
+            )
             and 'id="full-holdings"' in page_text
             and 'id="csvdownload"' in page_text
         )

@@ -2661,4 +2661,22 @@ Evidence ref: `web:wellesley-asset-management-current-identity-pages-2026-09-04`
 ### Final issuer-queue checkpoint (2026-09-04)
 
 Wellesley was dispositioned as a non-portfolio publisher. Worth Charting WRTH and Yoke YOKE were audited against their official current holdings pages; each page exposes a complete artifact, but the application HTTP client receives issuer HTTP 403, so both remain issuer-access-blocked fallbacks. The ranked queue is now empty at 496 registered / 414 native / 82 fallback. Proceed to final deterministic/live/Docker/exact-SHA validation only.
-Final validation status: backend unit suite 1,341 passed (34 warnings), default live contract 2 passed/504 skipped. The complete opt-in live matrix initially yielded 277 passed, 1 skipped, and 10 failures; a narrow retry recovered iShares IVV/IWN, leaving 8 persistent provider/network failures recorded in validation.jsonl. The complete Docker integration gate terminated successfully after dependency/lint, image build, stack health, frontend test/build, research-runner probes, functional E2E, visual E2E, and cleanup; standalone confirmation was Chromium 154 passed/2 skipped and visual 104 passed. Exact-SHA CI/remote synchronization and human closure authorization remain pending.
+Final validation status: backend unit suite 1,341 passed (34 warnings), default live contract 2 passed/504 skipped. The complete opt-in live matrix initially yielded 277 passed, 1 skipped, and 10 failures; a narrow retry recovered iShares IVV/IWN, and the Logan identity-drift repair now passes its bounded live route, leaving 7 persistent provider/network failures recorded in validation.jsonl. The complete Docker integration gate terminated successfully after dependency/lint, image build, stack health, frontend test/build, research-runner probes, functional E2E, visual E2E, and cleanup; standalone confirmation was Chromium 154 passed/2 skipped and visual 104 passed. Exact-SHA CI/remote synchronization and human closure authorization remain pending.
+
+## Current validation checkpoint — Logan current product identity repair — 2026-09-03
+
+The official Logan Capital full-holdings page now identifies LCLG as
+`Logan Large Cap Growth ETF (LCLG)` rather than the historical
+`Broad Innovative Growth` name. The existing provider-owned Filepoint CSV route
+remains complete, dated, and executable. The Logan adapter now accepts both the
+current and historical product names while retaining the page/table/download
+identity guards; its deterministic unit test and bounded opt-in live probe pass.
+
+This repair removes one of the ten initial opt-in live failures. The remaining
+matrix disposition is seven narrowly evidenced external/provider failures;
+deterministic, default-live, Docker integration, functional E2E, visual E2E,
+Ruff, and workstream checks remain green. Exact-SHA CI/remote synchronization
+and human closure authorization remain pending.
+
+Evidence refs: `web:logan-current-lclg-full-holdings-2026-09-03`,
+`live:logan-lclg-current-holdings-2026-09-03`.
