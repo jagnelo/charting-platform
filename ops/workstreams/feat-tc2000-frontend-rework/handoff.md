@@ -211,3 +211,9 @@ The follow-up `eba8bcda7e1b1dc08ae0164c05dcb468d8fbc369` applies the same guard 
 holdings: a snapshot with zero resolved canonical members is not point-in-time support. The
 benchmark-family integration contract remains `20/20`, including this unresolved-snapshot
 assertion, with Ruff and diff checks green.
+
+At the same implementation tip, the full backend unit suite passed `1281` tests with `67.29%`
+coverage (above the repository `55%` gate). Frontend coverage passed `108` files / `924` tests,
+and the production build plus type-check passed with only the existing large-chunk warning.
+These are deterministic local checks; they do not substitute for live provider population or
+historical continuity evidence.
