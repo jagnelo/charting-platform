@@ -2344,6 +2344,11 @@ ISSUER_DOMAIN_HINTS.update(
         "gotham": ["gothametfs.com", "gothamassetmanagement.com"],
         "hexis": ["hexis.capital", "hexis.filepoint.live"],
         "hilton": ["hiltonetfs.com", "hiltonetfjson.com", "hiltoncapitalmanagement.com"],
+        "knowledge_leaders": [
+            "axsinvestments.com",
+            "axsetf.filepoint.live",
+            "knowledgeleaderscapital.com",
+        ],
         "pettee": ["hoyaetfs.com", "hoyacapital.com"],
         "jlens": ["investjewishly.org", "jlensnetwork.org"],
         "volatility_shares": ["volatilityshares.com"],
@@ -19644,6 +19649,301 @@ class LittleHarborHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 )
             )
         return rows, table
+
+
+class KnowledgeLeadersHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Read AXS Knowledge Leaders' dated multi-fund FilePoint CSV export."""
+
+    PRODUCT_PAGE_URL = "https://www.axsinvestments.com/kno/"
+    FILEPOINT_PAGE_URL = "https://axsetf.filepoint.live/v2/kno/nav"
+    HOLDINGS_URL_TEMPLATE = (
+        "https://axsetf.filepoint.live/assets/data/BBH_AXS_ETF_PVAL_WEB.{report_date}.csv"
+    )
+    SUPPORTED_SYMBOL = "KNO"
+    MAX_LOOKBACK_DAYS = 15
+    _AXS_HOST = "www.axsinvestments.com"
+    _FILEPOINT_HOST = "axsetf.filepoint.live"
+    _HOLDINGS_PATH_PREFIX = "/assets/data/BBH_AXS_ETF_PVAL_WEB."
+    _EXPECTED_HEADERS = (
+        "etf ticker",
+        "date",
+        "isin",
+        "cusip",
+        "sedol",
+        "ticker",
+        "description",
+        "security type",
+        "market value",
+        "maturity date",
+        "shares",
+        "security price",
+        "asset currency",
+        "shares outstanding",
+        "total net assets",
+        "market value weight",
+    )
+
+    def probe(
+        self,
+        *,
+        symbol: str,
+        name: str,
+        identifiers: dict[str, str],
+    ) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        supported = normalized_symbol == self.SUPPORTED_SYMBOL
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if supported else Decimal("0.5000"),
+            status="ready" if supported or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "AXS publishes KNO's complete current holdings through its official product page and FilePoint export."
+                if supported
+                else "No verified AXS Knowledge Leaders route is configured for this ETF; SEC EDGAR remains available as fallback."
+                if has_sec_fallback
+                else "No verified AXS Knowledge Leaders route is configured for this ETF."
+            ),
+            source_url=self.PRODUCT_PAGE_URL if supported else None,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol != self.SUPPORTED_SYMBOL:
+            raise ValueError("AXS Knowledge Leaders' verified route supports KNO only.")
+        if source_url and not self._is_accepted_source_url(source_url):
+            raise ValueError(
+                "Knowledge Leaders holdings must use the verified AXS/FilePoint route."
+            )
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_response = await client.get(
+                self.PRODUCT_PAGE_URL,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+            product_response.raise_for_status()
+            product_url = str(getattr(product_response, "url", self.PRODUCT_PAGE_URL))
+            self._validate_product_page(product_response.text, product_url)
+
+            filepoint_response = await client.get(
+                self.FILEPOINT_PAGE_URL,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+            filepoint_response.raise_for_status()
+            filepoint_url = str(getattr(filepoint_response, "url", self.FILEPOINT_PAGE_URL))
+            self._validate_filepoint_page(filepoint_response.text, filepoint_url)
+
+            explicit_holdings_url = source_url if self._is_holdings_url(source_url or "") else None
+            candidate_urls = (
+                [explicit_holdings_url]
+                if explicit_holdings_url
+                else [
+                    self.HOLDINGS_URL_TEMPLATE.format(
+                        report_date=(date.today() - timedelta(days=offset)).strftime("%Y%m%d")
+                    )
+                    for offset in range(self.MAX_LOOKBACK_DAYS)
+                ]
+            )
+            holdings_response: httpx.Response | None = None
+            for candidate_url in candidate_urls:
+                if not candidate_url:
+                    continue
+                candidate_response = await client.get(
+                    candidate_url,
+                    headers={
+                        **_holdings_request_headers(accept="text/csv,text/plain,*/*"),
+                        "Referer": filepoint_url,
+                    },
+                    follow_redirects=True,
+                )
+                if candidate_response.status_code == 404 and not explicit_holdings_url:
+                    continue
+                candidate_response.raise_for_status()
+                holdings_response = candidate_response
+                break
+
+        if holdings_response is None:
+            raise ValueError("AXS Knowledge Leaders did not publish a recent KNO holdings CSV.")
+        resolved_url = str(getattr(holdings_response, "url", ""))
+        if not self._is_holdings_url(resolved_url):
+            raise ValueError(
+                "Knowledge Leaders holdings response left the declared FilePoint CSV route."
+            )
+        rows, composition_date = self._parse_holdings_csv(holdings_response.text)
+        if len(rows) < 50 or composition_date is None:
+            raise ValueError(
+                "AXS Knowledge Leaders KNO holdings CSV did not expose complete dated holdings."
+            )
+        composition_value = composition_date.isoformat()
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=holdings_response.text,
+            raw_json={
+                "source_format": "csv",
+                "row_count": len(rows),
+                "composition_date": composition_value,
+            },
+            source_url=resolved_url,
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "axs_knowledge_leaders_filepoint_dated_holdings_csv",
+                "snapshot_provenance": "axs_knowledge_leaders_native_dated_holdings_csv",
+                "product_page_url": product_url,
+                "filepoint_page_url": filepoint_url,
+                "composition_date": composition_value,
+                "as_of_date": composition_value,
+                "freshness_semantics": "issuer_disclosed_holdings_as_of_date",
+                "refresh_frequency": "issuer_published_current_holdings",
+                "publisher": "AXS Investments",
+                "parent_issuer": "Knowledge Leaders Capital",
+                "issuer_relationship": "AXS Investments product publisher; Knowledge Leaders Capital strategy originator",
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_holdings_csv(
+        cls,
+        raw_csv: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        reader = csv.reader(StringIO(raw_csv.lstrip("\ufeff")))
+        try:
+            header = [str(value).strip().casefold() for value in next(reader)]
+        except StopIteration:
+            return [], None
+        if header[: len(cls._EXPECTED_HEADERS)] != list(cls._EXPECTED_HEADERS):
+            return [], None
+        rows: list[CanonicalHoldingRow] = []
+        dates: set[date] = set()
+        source_headers = list(cls._EXPECTED_HEADERS)
+        for source_index, raw in enumerate(reader, start=2):
+            if (
+                len(raw) < len(source_headers)
+                or (_clean(raw[0]) or "").upper() != cls.SUPPORTED_SYMBOL
+            ):
+                continue
+            row = [str(value).strip() for value in raw]
+            composition_date = _parse_issuer_date(row[1])
+            if composition_date is None:
+                continue
+            dates.add(composition_date)
+            raw_symbol = _clean(row[5])
+            name = _clean(row[6])
+            security_type = (_clean(row[7]) or "").upper()
+            is_cash = security_type == "CASH" or (raw_symbol or "").upper().startswith("CASH")
+            is_derivative = security_type in {"SWAPS", "OPTIONS", "FUTURES", "FORWARDS"}
+            is_other = security_type == "OTHER"
+            symbol_value = (
+                raw_symbol.upper()
+                if not is_cash
+                and not is_other
+                and raw_symbol
+                and re.fullmatch(r"[A-Z0-9][A-Z0-9.-]{0,11}", raw_symbol.upper())
+                else None
+            )
+            weight = _decimal(row[15])
+            if weight is not None and not row[15].endswith("%") and abs(weight) > 1:
+                weight /= Decimal("100")
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol_value,
+                    name=name,
+                    isin=_clean(row[2]),
+                    cusip=_clean(row[3]),
+                    sedol=_clean(row[4]),
+                    weight=weight,
+                    shares=_decimal(row[10]),
+                    market_value=_decimal(row[8]),
+                    currency=_clean(row[12]),
+                    holding_type="cash"
+                    if is_cash
+                    else "derivative"
+                    if is_derivative
+                    else "other"
+                    if is_other
+                    else "equity",
+                    row_type="cash" if is_cash else "other" if is_other else "security",
+                    source_row_id=f"knowledge-leaders-{cls.SUPPORTED_SYMBOL}-{composition_date.isoformat()}-{source_index}",
+                    extra_data={
+                        key: value
+                        for key, value in zip(source_headers, row, strict=False)
+                        if key and _clean(value) is not None
+                    }
+                    | {
+                        "source_symbol": raw_symbol,
+                        "source_security_type": security_type,
+                        "as_of_date": composition_date.isoformat(),
+                        "position_side": "short"
+                        if _decimal(row[10]) is not None and _decimal(row[10]) < 0
+                        else "long",
+                        "source": "axs_knowledge_leaders_filepoint_dated_holdings_csv",
+                    },
+                )
+            )
+        if len(dates) != 1:
+            return [], None
+        return rows, next(iter(dates))
+
+    @classmethod
+    def _validate_product_page(cls, raw_html: str, resolved_url: str) -> None:
+        parsed_url = urlparse(resolved_url)
+        if not _domain_matches(_url_host(resolved_url) or "", cls._AXS_HOST):
+            raise ValueError(
+                "AXS Knowledge Leaders product page resolved outside the official host."
+            )
+        if parsed_url.path.rstrip("/") != "/kno":
+            raise ValueError("AXS Knowledge Leaders product page did not preserve the KNO route.")
+        normalized = html.unescape(raw_html)
+        required_markers = (
+            "AXS Knowledge Leaders ETF",
+            "KNO",
+            "axsetf.filepoint.live/v2/kno/nav",
+        )
+        if any(marker.casefold() not in normalized.casefold() for marker in required_markers):
+            raise ValueError("AXS product page did not identify the KNO/FilePoint holdings route.")
+
+    @classmethod
+    def _validate_filepoint_page(cls, raw_html: str, resolved_url: str) -> None:
+        parsed_url = urlparse(resolved_url)
+        if not _domain_matches(_url_host(resolved_url) or "", cls._FILEPOINT_HOST):
+            raise ValueError("Knowledge Leaders FilePoint page resolved outside the official host.")
+        if parsed_url.path.rstrip("/") != "/v2/kno/nav":
+            raise ValueError("Knowledge Leaders FilePoint page did not preserve the KNO route.")
+        normalized = html.unescape(raw_html)
+        if 'data-id="KNO"' not in normalized and "data-id='KNO'" not in normalized:
+            raise ValueError("Knowledge Leaders FilePoint page did not identify KNO.")
+
+    @classmethod
+    def _is_accepted_source_url(cls, value: str) -> bool:
+        return value.rstrip("/").casefold() in {
+            cls.PRODUCT_PAGE_URL.rstrip("/").casefold(),
+            cls.FILEPOINT_PAGE_URL.rstrip("/").casefold(),
+        } or cls._is_holdings_url(value)
+
+    @classmethod
+    def _is_holdings_url(cls, value: str) -> bool:
+        parsed_url = urlparse(value)
+        return (
+            _domain_matches(_url_host(value) or "", cls._FILEPOINT_HOST)
+            and parsed_url.path.startswith(cls._HOLDINGS_PATH_PREFIX)
+            and parsed_url.path.endswith(".csv")
+        )
 
 
 class JLensHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -65099,6 +65399,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="JLens' public TOV ETF product page publishes a complete current holdings table.",
     ),
+    "knowledge_leaders": IssuerCsvAdapterConfig(
+        adapter_key="knowledge_leaders",
+        source_provider="knowledge_leaders",
+        source_access="issuer_product_page_declared_filepoint_dated_holdings_csv",
+        product_page_templates=("https://www.axsinvestments.com/kno/",),
+        live_tested_default_route=True,
+        terms_note="AXS Investments' public KNO product page and FilePoint holdings CSV may be subject to issuer terms.",
+    ),
     "counterpoint": IssuerCsvAdapterConfig(
         adapter_key="counterpoint",
         source_provider="counterpoint",
@@ -66835,7 +67143,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "highland_capital",
         "horizons",
         "hoya",
-        "knowledge_leaders",
         "logiq",
         "long_pond",
         "lsv",
@@ -69921,7 +70228,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "impact_shares": ImpactSharesHoldingsAdapter,
         "jlens": JLensHoldingsAdapter,
         "keating": KeatingHoldingsAdapter,
-        "knowledge_leaders": KnowledgeLeadersReconciledFallbackHoldingsAdapter,
+        "knowledge_leaders": KnowledgeLeadersHoldingsAdapter,
         "kovitz": KovitzHoldingsAdapter,
         "leverage_shares": LeverageSharesHoldingsAdapter,
         "logiq": LogiqReconciledFallbackHoldingsAdapter,

@@ -5,8 +5,8 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 384
-current_fallback_count: 112
+current_native_count: 385
+current_fallback_count: 111
 generated_at: 2026-09-03T02:08:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
@@ -3066,33 +3066,52 @@ providers:
     display_name: knowledge_leaders
     queue_rank: 66
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
-    estimated_us_etf_count: null
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-03
+    source_access_declared: issuer_product_page_declared_filepoint_dated_holdings_csv
+    representative_symbols:
+      - KNO
+    estimated_us_etf_count: 1
     estimated_us_etf_aum: null
-    us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    us_equity_breadth: 1
+    source_freshness: daily
+    first_party_domains:
+      - axsinvestments.com
+      - axsetf.filepoint.live
+      - knowledgeleaderscapital.com
+    candidate_routes:
+      - https://www.axsinvestments.com/kno/
+      - https://axsetf.filepoint.live/v2/kno/nav
+      - https://axsetf.filepoint.live/assets/data/BBH_AXS_ETF_PVAL_WEB.{YYYYMMDD}.csv
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    source_format: csv
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_knowledge_leaders_adapter_fetches_dated_kno_filepoint_csv
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_knowledge_leaders_kno_product_page_filepoint_holdings
     credential_required: false
     evidence_refs:
-      - "runtime:FALLBACK_ISSUER_AUDITS.knowledge_leaders"
       - "runtime:ISSUER_ADAPTER_CONFIGS.knowledge_leaders"
+      - "web:knowledge-leaders-axs-filepoint-route-2026-09-03"
+      - "live:knowledge-leaders-kno-current-holdings-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
-        evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.knowledge_leaders"
-    disposition_reason: "knowledge_leaders: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate knowledge_leaders first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+        evidence_ref: "runtime:ISSUER_ADAPTER_CONFIGS.knowledge_leaders"
+      - date: 2026-09-03
+        source: "https://www.axsinvestments.com/kno/ and https://axsetf.filepoint.live/v2/kno/nav"
+        result: "The official AXS KNO product page identifies the AXS Knowledge Leaders ETF, confirms ticker KNO and CUSIP 46144X396, and declares its axsetf.filepoint.live/v2/kno/nav holdings iframe. The FilePoint page identifies KNO and its application loads the dated BBH_AXS_ETF_PVAL_WEB holdings export."
+        evidence_ref: "web:knowledge-leaders-axs-filepoint-route-2026-09-03"
+      - date: 2026-09-03
+        source: "backend/tests/live/test_etf_holdings_live_providers.py::test_live_knowledge_leaders_kno_product_page_filepoint_holdings"
+        result: "The native Knowledge Leaders adapter fetched the official AXS page, FilePoint route, and 2026-09-02 dated CSV, parsed 83 KNO rows including 70 common stocks, 12 cash rows, and one other-assets row, preserved ISIN/CUSIP/SEDOL/weights, and retained AXS/Knowledge Leaders provenance."
+        evidence_ref: "live:knowledge-leaders-kno-current-holdings-2026-09-03"
+    disposition_reason: "knowledge_leaders: AXS' official KNO product page declares the issuer-owned FilePoint holdings route, and the dated multi-fund CSV provides a complete current KNO snapshot with identity, dates, identifiers, quantities, values, currencies, and weights. The native adapter enforces page/FilePoint identity, scopes the aggregate export to KNO, preserves cash and other-assets rows, and records AXS/Knowledge Leaders provenance without SEC-derived reconstruction."
+    next_action: "knowledge_leaders: Monitor the official AXS KNO page, FilePoint nav route, and dated BBH_AXS_ETF_PVAL_WEB export; retain native status while the route remains complete, identity-valid, current, and executable, and add any future Knowledge Leaders product only after equivalent first-party evidence."
+    implementation_sha: null
+    validation_refs: []
     implementation_sha: null
     validation_refs: []
   - adapter_key: logiq

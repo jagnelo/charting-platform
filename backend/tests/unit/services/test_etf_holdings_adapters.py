@@ -23901,6 +23901,95 @@ async def test_jlens_adapter_parses_complete_tov_product_page_holdings(monkeypat
 
 
 @pytest.mark.asyncio
+async def test_knowledge_leaders_adapter_fetches_dated_kno_filepoint_csv(monkeypatch):
+    adapter = get_holdings_adapter("knowledge_leaders")
+    assert adapter is not None
+
+    header = (
+        "ETF Ticker,Date,ISIN,CUSIP,SEDOL,Ticker,Description,Security Type,"
+        "Market Value,Maturity Date,Shares,Security Price,Asset Currency,"
+        "Shares Outstanding,Total Net Assets,Market Value Weight"
+    )
+    equity_rows = "\n".join(
+        ",".join(
+            [
+                "KNO",
+                "9/2/2026",
+                f"US0000000{index:03d}",
+                f"{index:09d}",
+                f"B{index:06d}",
+                f"SYM{index}",
+                f"Company {index}",
+                "COMMON STOCK",
+                "1250000.00",
+                "",
+                "100",
+                "12500.00",
+                "USD",
+                "675001",
+                "43148024.45",
+                "11.81%",
+            ]
+        )
+        for index in range(1, 51)
+    )
+    raw_csv = (
+        f"{header}\n{equity_rows}\n"
+        "KNO,9/2/2026,,, ,CASHUSD,CASH,CASH,100.00,,100,1.00,USD,675001,43148024.45,0.00%\n"
+        "KNO,9/2/2026,,,,,NET OTHER ASSETS,OTHER,-5.00,,,-,USD,675001,43148024.45,0.00%\n"
+    ).replace(", ,", ",,")
+
+    class FixedDate(date):
+        @classmethod
+        def today(cls):
+            return date(2026, 9, 3)
+
+    product_html = (
+        "<html>AXS Knowledge Leaders ETF KNO "
+        '<iframe src="https://axsetf.filepoint.live/v2/kno/nav"></iframe></html>'
+    )
+    filepoint_html = '<html><section class="fund-page" data-id="KNO"></section></html>'
+    today_url = "https://axsetf.filepoint.live/assets/data/BBH_AXS_ETF_PVAL_WEB.20260903.csv"
+    previous_url = "https://axsetf.filepoint.live/assets/data/BBH_AXS_ETF_PVAL_WEB.20260902.csv"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=product_html, content_type="text/html", url=adapter.PRODUCT_PAGE_URL),
+        FakeResponse(text=filepoint_html, content_type="text/html", url=adapter.FILEPOINT_PAGE_URL),
+        FakeResponse(text="not found", status_code=404, url=today_url),
+        FakeResponse(text=raw_csv, content_type="text/csv", url=previous_url),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.date", FixedDate)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="KNO")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        adapter.PRODUCT_PAGE_URL,
+        adapter.FILEPOINT_PAGE_URL,
+        today_url,
+        previous_url,
+    ]
+    assert len(result.rows) == 52
+    assert result.rows[0].symbol == "SYM1"
+    assert result.rows[0].cusip == "000000001"
+    assert result.rows[0].weight == Decimal("0.1181")
+    assert result.rows[0].market_value == Decimal("1250000.00")
+    assert result.rows[-2].row_type == "cash"
+    assert result.rows[-2].holding_type == "cash"
+    assert result.rows[-1].row_type == "other"
+    assert result.rows[-1].holding_type == "other"
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+    assert result.legal_metadata["publisher"] == "AXS Investments"
+    assert result.legal_metadata["parent_issuer"] == "Knowledge Leaders Capital"
+    assert result.legal_metadata["route_resolution"] == (
+        "axs_knowledge_leaders_filepoint_dated_holdings_csv"
+    )
+
+    with pytest.raises(ValueError, match="supports KNO only"):
+        await adapter.fetch_latest(symbol="UNRELATED")
+
+
+@pytest.mark.asyncio
 async def test_sound_capital_adapter_parses_only_rver_linked_holdings_workbook(monkeypatch):
     adapter = get_holdings_adapter("sound_capital")
     assert adapter is not None
@@ -26144,8 +26233,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 384
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 112
+    assert ledger["current_native_count"] == 385
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 111
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -26180,6 +26269,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "hexis",
         "hilton",
         "jlens",
+        "knowledge_leaders",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))

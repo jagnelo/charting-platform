@@ -311,6 +311,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "pmv",
     "point_bridge",
     "pettee",
+    "knowledge_leaders",
     "polen",
     "principal",
     "prudential",
@@ -3430,6 +3431,26 @@ async def test_live_jlens_tov_product_page_embedded_holdings():
     assert result.legal_metadata["publisher"] == "JLens"
     assert result.legal_metadata["fund_data_as_of_date"]
     assert any(row.cusip for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("knowledge_leaders")
+async def test_live_knowledge_leaders_kno_product_page_filepoint_holdings():
+    adapter = get_holdings_adapter("knowledge_leaders")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="KNO")
+
+    _assert_live_holdings_result(result, adapter_key="knowledge_leaders", min_rows=50)
+    assert (
+        result.legal_metadata["route_resolution"]
+        == "axs_knowledge_leaders_filepoint_dated_holdings_csv"
+    )
+    assert result.legal_metadata["publisher"] == "AXS Investments"
+    assert result.legal_metadata["composition_date"]
+    assert any(row.cusip for row in result.rows)
+    assert any(row.row_type == "cash" for row in result.rows)
 
 
 @pytest.mark.asyncio

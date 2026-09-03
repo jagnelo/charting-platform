@@ -264,4 +264,36 @@ The operational checkpoint is recorded in
 `ops/workstreams/feat-etf-holdings-constituents/session.json`; the latter is
 the session-local state updated by the checkpoint helper.
 
+## Current implementation checkpoint — Knowledge Leaders/KNO native promotion — 2026-09-03
+
+The ranked `knowledge_leaders` audit verified the official AXS Investments KNO
+product page at `https://www.axsinvestments.com/kno/`. It identifies the AXS
+Knowledge Leaders ETF (`KNO`, CUSIP `46144X396`) and declares the
+`https://axsetf.filepoint.live/v2/kno/nav` FilePoint holdings iframe. The
+FilePoint application loads the dated multi-fund
+`BBH_AXS_ETF_PVAL_WEB.{YYYYMMDD}.csv` export; the 2026-09-02 file contains 83
+KNO rows (70 common stocks, 12 cash rows, and one other-assets row).
+
+`KnowledgeLeadersHoldingsAdapter` now validates the AXS product page and
+FilePoint identity, searches only the issuer-declared dated export with a
+bounded 15-day lookback, scopes the aggregate file to KNO, requires a single
+dated complete snapshot, preserves ISIN/CUSIP/SEDOL/ticker/shares/values/
+currencies/weights, and classifies cash and other-assets rows explicitly. The
+deterministic fixture covers date fallback, filtering, identifier/value/weight
+mapping, row classification, metadata, and unsupported symbols; the opt-in
+live test exercises the current official route.
+
+Knowledge Leaders is removed from the runtime fallback discovery audit and
+promoted in the exhaustive ledger. The code-derived split is now 496
+registered, 385 native/live-backed, and 111 fallback-only providers. Runtime
+fallback status counts are 8 issuer-access-blocked, 94
+needs-first-party-route-discovery, 3 non-executable-public-source, and 6
+non-portfolio-publisher. The ledger retains all 140 historical records exactly
+once; 66 queued fallback records remain and the next ranked item is `logiq`.
+
+The complete opt-in provider matrix and Docker-backed integration gate remain
+pending at the 385-native baseline, with the known unrelated reproducible
+F8p-current-history Study Lab histogram timeout still recorded as the integration
+blocker.
+
 Update this handoff at every coherent implementation and operations boundary.

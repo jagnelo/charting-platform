@@ -1600,3 +1600,29 @@ discovery, 3 non-executable, and 6 non-portfolio-publisher. The ledger has 67
 queued fallback records remaining, with `knowledge_leaders` next. The known
 unrelated F8p-current-history Study Lab histogram timeout remains the full
 Docker integration blocker.
+
+## 37. Current execution checkpoint — Knowledge Leaders/KNO native promotion — 2026-09-03
+
+The ranked `knowledge_leaders` audit found an executable first-party route in
+the official AXS Investments KNO product page and its declared FilePoint
+iframe. AXS identifies KNO and CUSIP 46144X396; the FilePoint application
+publishes the dated aggregate `BBH_AXS_ETF_PVAL_WEB.{YYYYMMDD}.csv` export.
+The 2026-09-02 snapshot contains 83 KNO rows and a single composition date.
+
+`KnowledgeLeadersHoldingsAdapter` validates both page and FilePoint hosts,
+requires the declared schema, bounds date lookback to 15 days, filters the
+multi-fund export to KNO, rejects mixed-date snapshots, preserves all available
+identifiers and source fields, converts percentage weights, and explicitly
+classifies cash and other-assets rows. The adapter records AXS Investments as
+publisher and Knowledge Leaders Capital as strategy parent/originator. The
+deterministic and bounded opt-in live tests cover route identity, date fallback,
+filtering, mapping, provenance, and current row/classification behavior.
+
+The runtime fallback audit no longer contains `knowledge_leaders`; its ledger
+record is `native_promoted` with official route, parser fixture, and live
+evidence references. The code-derived split is 496 registered, 385
+native/live-backed, and 111 fallback-only providers; runtime statuses are 8
+blocked, 94 route discovery, 3 non-executable, and 6 non-portfolio-publisher.
+The ledger has 66 queued fallback records remaining, with `logiq` next. The
+known unrelated F8p-current-history Study Lab histogram timeout remains the
+Docker integration blocker.
