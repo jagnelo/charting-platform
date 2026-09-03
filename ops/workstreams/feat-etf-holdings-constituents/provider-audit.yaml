@@ -3110,8 +3110,9 @@ providers:
         evidence_ref: "live:knowledge-leaders-kno-current-holdings-2026-09-03"
     disposition_reason: "knowledge_leaders: AXS' official KNO product page declares the issuer-owned FilePoint holdings route, and the dated multi-fund CSV provides a complete current KNO snapshot with identity, dates, identifiers, quantities, values, currencies, and weights. The native adapter enforces page/FilePoint identity, scopes the aggregate export to KNO, preserves cash and other-assets rows, and records AXS/Knowledge Leaders provenance without SEC-derived reconstruction."
     next_action: "knowledge_leaders: Monitor the official AXS KNO page, FilePoint nav route, and dated BBH_AXS_ETF_PVAL_WEB export; retain native status while the route remains complete, identity-valid, current, and executable, and add any future Knowledge Leaders product only after equivalent first-party evidence."
-    implementation_sha: null
-    validation_refs: []
+    implementation_sha: 3351e4a116d4bfba46d0fb0e1565e9d9e8a07c5c
+    validation_refs:
+      - "validation:2026-09-03T02:32:30Z"
     implementation_sha: null
     validation_refs: []
   - adapter_key: logiq
