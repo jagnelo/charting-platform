@@ -3712,7 +3712,12 @@ async def benchmark_family_coverage(
                 price_entitlement = entitlements.get(
                     (selected_snapshot.data_source_id, ProviderCapability.PRICE_HISTORY)
                 )
-            point_in_time_supported = bool(profile and (as_of is not None or snapshots))
+            # A requested cutoff is not evidence that the role can answer it.
+            # Keep point-in-time readiness false until at least one dated
+            # holdings snapshot is actually available; otherwise a profile
+            # with no local disclosures would be reported as historically
+            # supported merely because the caller supplied ``as_of``.
+            point_in_time_supported = bool(profile and snapshots)
             member_bar_history = await _family_member_bar_history(
                 db,
                 selected_snapshot,

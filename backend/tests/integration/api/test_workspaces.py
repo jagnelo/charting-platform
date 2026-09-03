@@ -796,6 +796,38 @@ class TestWorkspaces:
             for warning in response.json()["exclusions"]
         )
 
+    def test_benchmark_family_coverage_does_not_infer_point_in_time_from_requested_cutoff(
+        self, client, auth_headers, db, instrument_type
+    ):
+        from app.models.etf_holdings import ETFProfile
+        from app.models.instrument import Instrument
+
+        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
+        assert seeded.status_code == 200, seeded.text
+        value_proxy = Instrument(
+            symbol="SPYV",
+            name="S&P 500 value proxy without dated holdings",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+            is_synthetic=False,
+        )
+        db.add(value_proxy)
+        db.flush()
+        db.add(ETFProfile(instrument_id=value_proxy.id, adapter_key="spdr"))
+        db.flush()
+
+        response = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/coverage",
+            headers=auth_headers,
+            params={"as_of": "2030-01-01T00:00:00Z"},
+        )
+        assert response.status_code == 200, response.text
+        value_role = next(role for role in response.json()["roles"] if role["role"] == "value")
+        assert value_role["status"] == "no_snapshot"
+        assert value_role["point_in_time_supported"] is False
+        assert "point_in_time_unavailable" in value_role["composite_readiness_reasons"]
+
     def test_benchmark_family_readiness_returns_all_registry_families_without_fallback(
         self, client, auth_headers
     ):
