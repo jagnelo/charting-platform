@@ -161,7 +161,10 @@ Granny Shots full-holdings pages, including GRNI option classification. GC Ferry
 Parent is now recorded as a non-portfolio-publisher parent identity: SEC and
 First Eagle ownership evidence ties it to the existing First Eagle publisher,
 whose current product catalogue and holdings pages remain the sole native route.
-The ledger has 76 queued fallback records; continue with `genter_capital`, and
-checkpoint each coherent provider changeset before moving to the next.
+The ledger now records `genter_capital` as an inactive/successor alias of the
+existing native `mcivy` Genter publisher after its official GENT/GEND/GENM/GENW
+routes and bounded live GEND proof were reconciled. The ledger has 75 queued
+fallback records; continue with `gotham`, and checkpoint each coherent provider
+changeset before moving to the next.
 
 Update this handoff at every coherent implementation and operations boundary.

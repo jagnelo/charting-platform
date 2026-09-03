@@ -2524,17 +2524,30 @@ providers:
     display_name: genter_capital
     queue_rank: 56
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: inactive_or_successor_disposition
+    disposition: inactive_or_successor_disposition
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
-    estimated_us_etf_count: null
+    representative_symbols:
+      - GENT
+      - GEND
+      - GENM
+      - GENW
+    estimated_us_etf_count: 4
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    source_freshness: issuer_pricing_effective_date
+    first_party_domains:
+      - genterfunds.com
+      - ncfunds.com
+      - etfdb.com
+    candidate_routes:
+      - https://www.genterfunds.com/holdings.html?t=GENT
+      - https://www.genterfunds.com/holdings.html?t=GEND
+      - https://www.genterfunds.com/holdings.html?t=GENM
+      - https://www.genterfunds.com/holdings.html?t=GENW
+      - https://www.genterfunds.com/js/fund_settings.json?version=6.17.26
+      - https://www.ncfunds.com/etf/load.php?f={fund_number}
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -2549,10 +2562,23 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.genter_capital"
-    disposition_reason: "genter_capital: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate genter_capital first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-03
+        source: "https://www.genterfunds.com/holdings.html?t=GEND"
+        result: "Genter Capital's official holdings page identifies GEND and publishes a complete portfolio table; the existing mcivy adapter's bounded opt-in live route returned parseable rows with a current pricing effective date through the issuer-declared Nottingham fund-data endpoint."
+        evidence_ref: "live:genter-mcivy-gend-current-holdings-2026-09-03"
+      - date: 2026-09-03
+        source: "https://www.genterfunds.com/js/fund_settings.json?version=6.17.26"
+        result: "The issuer settings document maps GENT, GEND, GENM, and GENW to fund-scoped identifiers 445, 446, 447, and 454; the repository's native mcivy adapter enforces those symbol/name identities before parsing each Nottingham response."
+        evidence_ref: "web:genter-mcivy-fund-settings-2026-09-03"
+      - date: 2026-09-03
+        source: "https://etfdb.com/advisor_reports/GEND/"
+        result: "ETF Database labels the Genter Capital Dividend Income ETF issuer brand and structure as McIvy Co. LLC / Genter Capital, confirming that the queued genter_capital key is an alternate identity for the existing mcivy_genter route rather than an independent publisher."
+        evidence_ref: "web:genter-mcivy-issuer-alias-2026-09-03"
+    disposition_reason: "genter_capital: Genter Capital's official product pages and settings document expose the GENT, GEND, GENM, and GENW routes already implemented and live-tested under the native mcivy adapter, whose publisher metadata identifies the Nottingham Company and whose parser verifies each fund identity. The queued genter_capital key is an alternate ETFDB identity for the same Genter/McIvy publisher; creating a duplicate adapter would misstate ownership."
+    next_action: "genter_capital: Keep fallback-only as an inactive_or_successor alias and resolve GENT, GEND, GENM, and GENW references to the existing mcivy adapter; extend that native owner only when additional Genter products gain equivalent identity-verified current holdings routes, and do not create a duplicate genter_capital adapter."
     implementation_sha: null
-    validation_refs: []
+    validation_refs:
+      - "validation:2026-09-03T00:26:33Z"
   - adapter_key: gotham
     display_name: gotham
     queue_rank: 57

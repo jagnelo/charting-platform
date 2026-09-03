@@ -1052,6 +1052,45 @@ opt-in provider matrix and Docker-backed integration gate remain pending at the
 377-native baseline, with the known unrelated reproducible F8p-current-history
 Study Lab histogram timeout still an AC7 gap.
 
+## 28. Current execution checkpoint — Genter Capital identity reconciliation — 2026-09-03
+
+The ranked `genter_capital` audit resolved an alternate identity for an
+existing native publisher rather than requiring a second adapter. Genter
+Capital's official product pages and public settings document identify the
+GENT, GEND, GENM, and GENW funds and bind each ticker to a fund-scoped
+identifier. The repository already implements that route as `mcivy` through
+Genter's disclosed Nottingham Company fund-data endpoint, with strict
+symbol/fund/name checks, complete holdings parsing, cash and derivative
+classification, effective-date freshness, deterministic coverage, and an
+opt-in live GEND test. ETF Database's issuer-brand record also labels the
+Genter products as McIvy Co. LLC / Genter Capital, confirming the identity
+relationship.
+
+The ledger now records `genter_capital` as
+`inactive_or_successor_disposition`, preserving the four representative
+symbols, official Genter and Nottingham routes, dated source evidence, and the
+existing `mcivy` runtime configuration/live receipt. Route completeness and
+symbol mapping remain false for the duplicate key so native ownership is not
+double-counted; no runtime adapter, registry, fallback manifest, or live test
+changes are required. The existing `mcivy` adapter remains the sole native
+owner and should be extended only for additional Genter products after the
+same identity-verified, complete current holdings contract is proven.
+
+The code-derived split remains 496 registered, 380 native/live-backed, and 116
+fallback-only providers. Runtime fallback status counts remain 8
+issuer-access-blocked, 99 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. With GC Ferry
+Parent and Genter Capital resolved in the ledger, 75 records remain queued and
+`gotham` is the next planned audit item.
+
+This checkpoint changes only issuer-audit evidence, queue state, and durable
+documentation. The current runtime implementation baseline remains
+`e33ddd8ebd919d14e1969af2aa36537864ece0f2`; the ledger and documentation
+receipt must be recorded against the resulting documentation SHA. The complete
+opt-in provider matrix and Docker-backed integration gate remain pending at the
+380-native baseline, with the known unrelated reproducible F8p-current-history
+Study Lab histogram timeout still an AC7 gap.
+
 ## 27. Current execution checkpoint — GC Ferry Parent identity reconciliation — 2026-09-03
 
 The ranked `gc_ferry_parent` audit resolved a corporate-parent identity rather
