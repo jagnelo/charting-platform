@@ -66735,6 +66735,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "Nuxt payload; data may be subject to issuer terms."
         ),
     ),
+    "militia": IssuerCsvAdapterConfig(
+        adapter_key="militia",
+        source_provider="militia",
+        source_access="issuer_public_product_page_wpdatatable_complete_holdings_table",
+        product_page_templates=("https://militiaetf.com/",),
+        live_tested_default_route=True,
+        terms_note=(
+            "Militia publishes complete current ORR ETF holdings in its public WPDataTables page; "
+            "data may be subject to issuer terms."
+        ),
+    ),
     "mcivy": IssuerCsvAdapterConfig(
         adapter_key="mcivy",
         source_provider="mcivy_genter",
@@ -68846,7 +68857,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "merchant_investment_management",
         "merk",
         "merlyn_ai",
-        "militia",
         "milliman",
         "moonvest",
         "new_age_alpha",
@@ -70775,8 +70785,64 @@ class SmiFundsReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """StockAnalysis provider-table fallback adapter pending SMI Funds discovery."""
 
 
-class MilitiaReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """StockAnalysis provider-table fallback adapter pending Militia discovery."""
+class MilitiaHoldingsAdapter(BushidoHoldingsAdapter):
+    """Fetch ORR's complete current Militia holdings table from its official page."""
+
+    PROVIDER_DISPLAY_NAME = "Militia"
+    SOURCE_TAG = "militia"
+    ROUTE_RESOLUTION = "militia_official_product_page_wpdatatable_complete_holdings_table"
+    SNAPSHOT_PROVENANCE = "militia_native_current_holdings_table"
+    PRODUCT_PAGE_URLS = {"ORR": "https://militiaetf.com/"}
+    EXPECTED_IDENTITIES = {"ORR": "Militia Long/Short Equity ETF"}
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        probe = super().probe(symbol=symbol, name=name, identifiers=identifiers)
+        if probe.source_url:
+            return replace(
+                probe,
+                reason=(
+                    "Militia publishes ORR's complete current holdings in the official page's "
+                    "server-rendered WPDataTables holdings table."
+                ),
+            )
+        return probe
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        result = await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        for row in result.rows:
+            market_value_mm = _decimal(row.extra_data.get("Market Value ($mm)"))
+            if market_value_mm is not None:
+                row.market_value = market_value_mm * Decimal("1000000")
+            row.extra_data = {
+                **row.extra_data,
+                "market_value_mm": _clean(row.extra_data.get("Market Value ($mm)")),
+                "market_value_unit": "millions_usd",
+                "source": "militia_official_product_page_wpdatatable_complete_holdings_table",
+            }
+        if result.raw_json is not None:
+            result.raw_json["market_value_unit"] = "millions_usd"
+        return result
+
+    @staticmethod
+    def _classify_row(*, raw_symbol: str | None, name: str | None) -> tuple[str, str]:
+        text = " ".join(value.upper() for value in (raw_symbol, name) if value)
+        if any(marker in text for marker in ("CASH", "CURRENCY")):
+            return "cash", "cash"
+        if raw_symbol and raw_symbol.strip().upper() == "FGXXX":
+            return "security", "fund"
+        return BushidoHoldingsAdapter._classify_row(raw_symbol=raw_symbol, name=name)
 
 
 class RocReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -71925,7 +71991,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "measured_risk_portfolios": MeasuredRiskPortfoliosHoldingsAdapter,
         "mfs": MfsHoldingsAdapter,
         "mig_capital": MigCapitalHoldingsAdapter,
-        "militia": MilitiaReconciledFallbackHoldingsAdapter,
+        "militia": MilitiaHoldingsAdapter,
         "milliman": MillimanReconciledFallbackHoldingsAdapter,
         "moonvest": MoonvestReconciledFallbackHoldingsAdapter,
         "msc_group": MscGroupAuditedFallbackHoldingsAdapter,

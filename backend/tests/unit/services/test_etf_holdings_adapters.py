@@ -22334,6 +22334,7 @@ def test_stockanalysis_provider_second_continuation_batch_is_registered_and_audi
         "cresalta",
         "hilton",
         "mcelhenny_sheffield",
+        "militia",
     }
 
     assert expected
@@ -22360,6 +22361,9 @@ def test_stockanalysis_provider_second_continuation_batch_is_registered_and_audi
     assert type(get_holdings_adapter("mcelhenny_sheffield")).__name__ == (
         "McElhennySheffieldHoldingsAdapter"
     )
+    assert "militia" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["militia"].live_tested_default_route is True
+    assert type(get_holdings_adapter("militia")).__name__ == "MilitiaHoldingsAdapter"
 
 
 def test_stockanalysis_provider_third_continuation_batch_is_registered_and_audited():
@@ -24187,6 +24191,57 @@ async def test_mig_capital_adapter_parses_migo_nuxt_holdings(monkeypatch):
     )
     with pytest.raises(ValueError, match="no verified native holdings route"):
         await adapter.fetch_latest(symbol="NOT_MIGO")
+
+
+@pytest.mark.asyncio
+async def test_militia_adapter_parses_orr_wpdatatable_holdings(monkeypatch):
+    adapter = get_holdings_adapter("militia")
+    assert adapter is not None
+    assert type(adapter).__name__ == "MilitiaHoldingsAdapter"
+
+    page = """
+    <html><h1>ORR - Militia Long/Short Equity ETF</h1><h2>Fund Holdings</h2>
+    <table id="table_11"><thead><tr>
+      <th>Ticker</th><th>Name</th><th>CUSIP</th><th>Shares</th><th>Price</th>
+      <th>Market Value ($mm)</th><th>% of Net Assets</th><th>EFFECTIVE_DATE</th>
+    </tr></thead><tbody>
+      <tr><td>GOOG</td><td>Alphabet Inc</td><td>02079K107</td><td>41,535</td><td>333.78</td><td>13.86</td><td>3.95</td><td>09/03/2026</td></tr>
+      <tr><td>FGXXX</td><td>First American Government Obligations Fund 12/01/2031</td><td>31846V336</td><td>3,839,413</td><td>100.00</td><td>3.84</td><td>1.09</td><td>09/03/2026</td></tr>
+      <tr><td>Cash&amp;Other</td><td>Cash &amp; Other</td><td></td><td>99,709,347</td><td>1.00</td><td>99.71</td><td>28.42</td><td>09/03/2026</td></tr>
+    </tbody></table></html>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page, content_type="text/html", url="https://militiaetf.com/")
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="ORR")
+
+    assert FakeAsyncClient.requested[0][0] == "https://militiaetf.com/"
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol == "GOOG"
+    assert result.rows[0].weight == Decimal("0.0395")
+    assert result.rows[0].market_value == Decimal("13860000")
+    assert result.rows[1].symbol == "FGXXX"
+    assert result.rows[1].holding_type == "fund"
+    assert result.rows[2].symbol is None
+    assert result.rows[2].row_type == "cash"
+    assert result.rows[2].holding_type == "cash"
+    assert result.rows[2].market_value == Decimal("99710000")
+    assert result.legal_metadata["source_provider"] == "militia"
+    assert result.legal_metadata["route_resolution"] == (
+        "militia_official_product_page_wpdatatable_complete_holdings_table"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-03"
+
+    assert adapter.probe(symbol="ORR", name="", identifiers={}).source_url == (
+        "https://militiaetf.com/"
+    )
+    with pytest.raises(ValueError, match="matching verified official product page"):
+        await adapter.fetch_latest(symbol="ORR", source_url="https://evil.example/")
+    with pytest.raises(ValueError, match="No verified Militia current-holdings route"):
+        await adapter.fetch_latest(symbol="NOT_ORR")
 
 
 @pytest.mark.asyncio

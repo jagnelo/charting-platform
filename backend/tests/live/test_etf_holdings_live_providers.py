@@ -29,6 +29,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "measured_risk_portfolios",
     "meridian",
     "mig_capital",
+    "militia",
     "amun",
     "1251_capital",
     "3fourteen",
@@ -3612,6 +3613,28 @@ async def test_live_mig_capital_migo_nuxt_holdings_component():
     assert any(row.holding_type == "fund" for row in result.rows)
     assert any(row.symbol == "AVGO" for row in result.rows)
     assert any(row.row_type == "cash" for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("militia")
+async def test_live_militia_orr_official_wpdatatable_holdings():
+    adapter = get_holdings_adapter("militia")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="ORR")
+
+    _assert_live_holdings_result(result, adapter_key="militia", min_rows=180)
+    assert (
+        result.legal_metadata["route_resolution"]
+        == "militia_official_product_page_wpdatatable_complete_holdings_table"
+    )
+    assert result.legal_metadata["source_format"] == "html_table"
+    assert result.legal_metadata["composition_date"]
+    assert any(row.symbol == "GOOG" for row in result.rows)
+    assert any(row.holding_type == "fund" for row in result.rows)
+    assert any(row.row_type == "cash" for row in result.rows)
+    assert any(row.shares is not None and row.shares < 0 for row in result.rows)
 
 
 @pytest.mark.asyncio
