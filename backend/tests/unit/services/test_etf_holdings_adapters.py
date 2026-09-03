@@ -23031,7 +23031,6 @@ def test_stockanalysis_provider_fourth_continuation_batch_is_registered_and_audi
         "river1",
         "stratified",
         "stance",
-        "stratified",
     }
 
     assert expected
