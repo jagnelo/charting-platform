@@ -74,7 +74,7 @@
   },
   "goal_budget_policy": "unbounded_unless_human_authorized",
   "goal_objective": "Advance feat/etf-holdings-constituents: Exhaustively audit the remaining ETF holdings issuers, promote every proven first-party executable holdings source to a truthful native adapter, preserve explicit evidence-backed fallback dispositions for all others, and bring code, tests, live coverage, documentation, and durable workstream records into exact agreement.. Acceptance criteria: AC1: Durable ETF workstream state is current and internally consistent: the plan, handoff, provider-universe document, registry counts, audit counts, and next action agree at every checkpoint.; AC2: A complete provider-audit ledger accounts for every current fallback-only adapter key exactly once, uses the approved deterministic ranking, and records issuer-specific dated source evidence, disposition, and next action.; AC3: Every provider counted as native has a concrete provider-owned holdings route, provider-specific fetch entry point, strict parsing/mapping, truthful provenance and freshness, deterministic tests, and concrete opt-in live coverage.; AC4: Every provider remaining fallback-only has a current issuer-specific audit disposition; no fallback is silently promoted through SEC data and no generic unattempted discovery note is accepted as final evidence.; AC5: All 140 providers in the starting fallback population have been processed to either a verified native promotion or a defensible dated terminal/blocked disposition, with no missing, duplicate, or stale ledger entries.; AC6: ISSUER_ADAPTER_CONFIGS, FALLBACK_ISSUER_AUDITS, native/fallback counts, native adapter ownership, deterministic tests, live-provider coverage, documentation, and the provider-audit ledger satisfy exhaustive matrix invariants.; AC7: Focused checks, the complete deterministic adapter suite, default live contracts, the complete opt-in live provider matrix, Ruff, the Docker-backed full-integration gate, and exact-SHA CI are green or any genuine external outage is narrowly evidenced without misrepresenting validation.; AC8: The feature branch is clean and synchronized at an exact reviewed SHA, durable handoff and validation records are complete, and the workstream stops at ready_for_human_review without integration, promotion, deployment, or cross-worktree mutation.. Required local profile: docker_integration. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
-  "goal_recorded_at": "2026-09-03T22:06:11.722920+00:00",
+  "goal_recorded_at": "2026-09-03T23:52:43.543398+00:00",
   "goal_request": {
     "objective": "Advance feat/etf-holdings-constituents: Exhaustively audit the remaining ETF holdings issuers, promote every proven first-party executable holdings source to a truthful native adapter, preserve explicit evidence-backed fallback dispositions for all others, and bring code, tests, live coverage, documentation, and durable workstream records into exact agreement.. Acceptance criteria: AC1: Durable ETF workstream state is current and internally consistent: the plan, handoff, provider-universe document, registry counts, audit counts, and next action agree at every checkpoint.; AC2: A complete provider-audit ledger accounts for every current fallback-only adapter key exactly once, uses the approved deterministic ranking, and records issuer-specific dated source evidence, disposition, and next action.; AC3: Every provider counted as native has a concrete provider-owned holdings route, provider-specific fetch entry point, strict parsing/mapping, truthful provenance and freshness, deterministic tests, and concrete opt-in live coverage.; AC4: Every provider remaining fallback-only has a current issuer-specific audit disposition; no fallback is silently promoted through SEC data and no generic unattempted discovery note is accepted as final evidence.; AC5: All 140 providers in the starting fallback population have been processed to either a verified native promotion or a defensible dated terminal/blocked disposition, with no missing, duplicate, or stale ledger entries.; AC6: ISSUER_ADAPTER_CONFIGS, FALLBACK_ISSUER_AUDITS, native/fallback counts, native adapter ownership, deterministic tests, live-provider coverage, documentation, and the provider-audit ledger satisfy exhaustive matrix invariants.; AC7: Focused checks, the complete deterministic adapter suite, default live contracts, the complete opt-in live provider matrix, Ruff, the Docker-backed full-integration gate, and exact-SHA CI are green or any genuine external outage is narrowly evidenced without misrepresenting validation.; AC8: The feature branch is clean and synchronized at an exact reviewed SHA, durable handoff and validation records are complete, and the workstream stops at ready_for_human_review without integration, promotion, deployment, or cross-worktree mutation.. Required local profile: docker_integration. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
@@ -82,12 +82,12 @@
   "goal_state": "active",
   "goal_unavailable_reason": null,
   "head": "07b31bc2a6500d74bcd0460d9890f7fd032574a6",
-  "implementation_sha": "07b31bc2a6500d74bcd0460d9890f7fd032574a6",
+  "implementation_sha": "168b4518a3338cf17186624d11a5ee1731cc2426",
   "last_checkpoint": "2026-09-03T22:06:12.663699+00:00",
   "last_human_progress_update": "2026-09-03T22:06:11.992073+00:00",
   "local_validation_profile": "docker_integration",
   "next_action": "continue implementation from the branch workstream",
-  "plan_hash": "1b2070f748946985e9e621c8547095869f0767fff6c8f958aaa31a0dc1c29385",
+  "plan_hash": "01f25787a36d93ac0b3e43a9dfc1e9523b927e44945e1a453b84b32cbc07aa21",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [],
@@ -107,7 +107,7 @@
     "updated_at": "2026-09-03T22:06:11.991972+00:00"
   },
   "remote": "07b31bc2a6500d74bcd0460d9890f7fd032574a6",
-  "remote_sha": "07b31bc2a6500d74bcd0460d9890f7fd032574a6",
+  "remote_sha": "168b4518a3338cf17186624d11a5ee1731cc2426",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "197b239d-3322-4fc6-bf4b-0d0aecebf5e0",
