@@ -3868,7 +3868,15 @@ async def benchmark_family_coverage(
                     entitlement_record.live_probe_status if entitlement_record else None
                 ),
                 holdings_refresh_status=(adapter_state.status if adapter_state else "not_attempted"),
-                holdings_refresh_provider=source.name if source else None,
+                holdings_refresh_provider=(
+                    selected_snapshot.source_provider
+                    if selected_snapshot is not None
+                    else adapter_state.adapter_key
+                    if adapter_state is not None
+                    else source.name
+                    if source is not None
+                    else None
+                ),
                 holdings_refresh_last_checked_at=(
                     adapter_state.last_checked_at if adapter_state else None
                 ),

@@ -570,6 +570,7 @@ class TestWorkspaces:
         assert Decimal(roles["cap_weight"]["adapter_confidence"]) == Decimal("0.9900")
         assert roles["cap_weight"]["entitlement_status"] == "unknown"
         assert roles["cap_weight"]["holdings_refresh_status"] == "failure"
+        assert roles["cap_weight"]["holdings_refresh_provider"] == "issuer"
         assert roles["cap_weight"]["holdings_refresh_failure_reason"] == "issuer endpoint unavailable"
         assert roles["cap_weight"]["composite_readiness_status"] == "partial"
         assert roles["cap_weight"]["point_in_time_supported"] is True
