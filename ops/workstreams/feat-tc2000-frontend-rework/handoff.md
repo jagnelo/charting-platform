@@ -128,3 +128,11 @@ It uses a snapshot known before the requested evaluation date but classification
 later: the current read reports classified members, while the historical read reports zero eligible
 classification evidence. This protects the R1 point-in-time boundary independently of holdings
 composition selection and member-bar truncation.
+
+The adapter-maintenance evidence checkpoint is `8ca6cb48c8d7944e1e37430ede1f41fb94f13f54`.
+Coverage roles now surface the latest persisted `ETFHoldingAdapterState` attempt (status, source,
+checked/success/failure times, composition date, and bounded failure reason) without contacting a
+provider. When a selected snapshot has no linked source, the most recent adapter state can still
+identify the attempted source and entitlement context; absent state remains explicitly
+`not_attempted`. This keeps scheduled refresh evidence actionable while interactive reads stay
+provider-neutral.
