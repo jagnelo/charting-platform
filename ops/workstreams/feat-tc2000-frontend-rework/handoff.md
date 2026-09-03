@@ -100,3 +100,10 @@ or historical continuity is complete. Session progress is now `R1_provider_readi
 slice is bounded provider/history readiness evidence and family-specific worker coverage for roles
 that remain pending. No visual threshold, baseline, mask, provider entitlement, integration, or
 deployment policy was changed.
+
+The follow-up hardening checkpoint is `33fbe404ed52f75ba02a5ebdd87dfbcecf665ffb`: an entitlement
+is now classified as `verified` only after a persisted successful live-probe status. Seeded or
+operator-declared terms with `not_run` remain `unreviewed`, and failed probes remain
+`probe_failed`; this prevents a configured provider from being presented as live-ready before an
+actual bounded probe receipt exists. The focused analysis-router regression covers `not_run`,
+`passed`, and `failure` transitions.
