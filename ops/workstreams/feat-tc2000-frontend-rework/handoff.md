@@ -556,3 +556,19 @@ and QQQE plus the SPDR dated holdings routes remain unresolved. No paid credenti
 fallback, or fabricated bar was introduced. The assigned stack and volumes were removed after
 capture; no other worktree, staging, master, integration, promotion, or deployment action was
 performed.
+
+## 2026-09-03 — dated history bound is retained in queue provenance
+
+The inclusive end-of-day bound added for dated family refreshes was enforced by the worker, but
+the returned queue summary did not identify the bound. Commit `87c7d6cd` adds `history_end_iso`, a
+single UTC-normalizing serializer shared by the idempotence key and queue result, and records
+`history_end` in no-snapshot, unavailable-queue, successful, and per-member queue-error outcomes.
+Durable and scheduled worker error/no-snapshot progress now retain the same bound, so an operator
+can distinguish an open-ended refresh from a point-in-time history handoff without inspecting ARQ
+arguments. Naive inputs are normalized to UTC for the evidence field; dated refreshes continue to
+pass inclusive UTC end-of-day to the bulk worker.
+
+The focused history/worker suite passes `34/34`, the exact-tip backend unit suite passes
+`1,296/1,296` with `67.50%` coverage, and Ruff plus `git diff --check` pass. This is an
+observability/provenance improvement only; it does not claim additional QQQ member bars or close
+the remaining 76 placeholder bindings, MN/W1 coverage, QQQE, or SPDR dated-source gaps.
