@@ -1475,3 +1475,22 @@ statuses are 12 issuer-access-blocked, 68 route-discovery, 7
 non-executable-public-source, and 6 non-portfolio-publisher. Evidence refs:
 `web:river1-current-rver-page-2026-09-03` and
 `live:river1-current-holdings-xls-2026-09-03`.
+
+## Current audit checkpoint — RiverFront sub-adviser disposition — 2026-09-03
+
+RiverFront's official sub-advised ETF page identifies RFDI and RFEM as
+RiverFront-managed products offered through a partnership with First Trust.
+The current full holdings tables are hosted by First Trust, which is the legal
+adviser/distributor and portfolio publisher. RFEU is terminated, and the RFDA
+successor no longer has RiverFront as sub-adviser.
+
+The ledger records `riverfront` as `provider_not_a_portfolio_publisher` with
+representative symbols RFDI and RFEM. Keep the RiverFront identity fallback-only
+and route any future implementation request to the existing or future First
+Trust native publisher adapter; do not duplicate a RiverFront adapter or
+reconstruct holdings through SEC data. Current state is 496 registered / 404
+native-live-backed / 92 fallback-only, with 28 queued records and
+`robo_global` next. Runtime fallback statuses are 12 issuer-access-blocked,
+66 route-discovery, 7 non-executable-public-source, and 7 non-portfolio-
+publisher. Evidence refs: `web:riverfront-subadvised-first-trust-2026-09-03`
+and `web:riverfront-rfdi-rfem-current-first-trust-holdings-2026-09-03`.

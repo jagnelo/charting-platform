@@ -2354,3 +2354,20 @@ RVER identity and `fund=rver` export scope. Counts are 496 registered / 404
 native / 92 fallback, with 29 queued and `riverfront` next. Evidence refs:
 `web:river1-current-rver-page-2026-09-03` and
 `live:river1-current-holdings-xls-2026-09-03`.
+
+## Current audit checkpoint — RiverFront sub-adviser disposition — 2026-09-03
+
+RiverFront's official sub-advised ETF page identifies RFDI and RFEM as
+sub-advised products in partnership with First Trust. First Trust's current
+RFDI and RFEM holdings tables are the publisher-owned routes; RiverFront is not
+the legal adviser/distributor or portfolio publisher. RFEU is terminated and
+the RFDA successor no longer uses RiverFront as sub-adviser.
+
+Record `riverfront` as `provider_not_a_portfolio_publisher`, preserve the
+fallback adapter, and resolve future requests to a First Trust native adapter.
+Do not create a duplicate RiverFront adapter or use SEC reconstruction. The
+current split is 496 registered / 404 native / 92 fallback, with 28 queued
+records and `robo_global` next. Runtime statuses are 12 blocked, 66
+route-discovery, 7 non-executable, and 7 non-portfolio-publisher. Evidence
+refs: `web:riverfront-subadvised-first-trust-2026-09-03` and
+`web:riverfront-rfdi-rfem-current-first-trust-holdings-2026-09-03`.
