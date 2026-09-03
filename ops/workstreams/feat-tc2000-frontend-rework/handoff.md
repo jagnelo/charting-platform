@@ -171,3 +171,7 @@ remain green: 42 workflow tests, the 48-primary-source uPlot numerical-renderer 
 visual-acceptance policy assertions, and the TC2000 V25 visual manifest validator passed. The
 Docker-backed stack/browser/exhaustive integration profile remains blocked by the inaccessible
 Docker Desktop socket recorded above.
+
+The fan-out receipt shape was tightened at `7ddb76339d6443826a1b7099ab07bb6caa9776fd`: each
+per-family/date queue failure now includes an explicit `status: queue_error`, alongside its family,
+requested date, and bounded error message. The 25-test scheduled task/worker regression remains green.
