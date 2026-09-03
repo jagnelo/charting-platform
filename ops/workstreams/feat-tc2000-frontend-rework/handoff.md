@@ -217,3 +217,10 @@ coverage (above the repository `55%` gate). Frontend coverage passed `108` files
 and the production build plus type-check passed with only the existing large-chunk warning.
 These are deterministic local checks; they do not substitute for live provider population or
 historical continuity evidence.
+
+The bootstrap follow-up is `4bfd3e783fa5eb8cea561c73ae7179cd8d8fd94b`. Core ETF identity bootstrap
+now applies the registry's explicit symbol-to-issuer adapter metadata (merging existing aliases)
+so readiness and maintenance can disclose the known free route immediately; it still creates
+identity-only profiles and performs no provider request or holdings fabrication. Workstation
+bootstrap units pass `7/7`, and the bootstrap API integration slice passes `7/7`, with Ruff and
+diff checks green.
