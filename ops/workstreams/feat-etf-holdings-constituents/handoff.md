@@ -1362,3 +1362,16 @@ fallback-only providers, with 15 queued records and `subversive` next. Runtime
 fallback statuses are 15 issuer-access-blocked, 54 route-discovery, 10
 non-executable-public-source, and 7 non-portfolio-publisher. Evidence ref:
 `web:strategy-shares-current-goly-hndl-mply-romo-pages-2026-09-04`.
+
+## Current audit checkpoint — Subversive issuer-access-blocked GOP/NANC pages — 2026-09-04
+
+Subversive's official GOP and NANC pages expose current holdings tables, but
+bounded backend-equivalent requests received HTTP 403 for both routes. No
+executable native route is promoted, so `subversive` remains an explicit
+`issuer_access_blocked` fallback.
+
+The durable split remains 496 registered / 412 native-live-backed / 84
+fallback-only providers, with 14 queued records and `stratified` next. Runtime
+fallback statuses are 16 issuer-access-blocked, 54 route-discovery, 10
+non-executable-public-source, and 7 non-portfolio-publisher. Evidence ref:
+`live:subversive-current-gop-nanc-holdings-pages-2026-09-04-blocked`.

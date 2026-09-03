@@ -1685,3 +1685,14 @@ current executable route, so `strategy_shares` remains an explicit
 Counts remain 496 registered / 412 native / 84 fallback, with 15 queued and
 `subversive` next. Evidence ref:
 `web:strategy-shares-current-goly-hndl-mply-romo-pages-2026-09-04`.
+
+## Current audit checkpoint — Subversive issuer-access-blocked GOP/NANC pages — 2026-09-04
+
+Subversive's official GOP and NANC pages expose current holdings tables, but
+bounded backend-equivalent requests received HTTP 403 for both routes. No
+executable native route is promoted, so `subversive` remains an explicit
+`issuer_access_blocked` fallback.
+
+Counts remain 496 registered / 412 native / 84 fallback, with 14 queued and
+`stratified` next. Evidence ref:
+`live:subversive-current-gop-nanc-holdings-pages-2026-09-04-blocked`.

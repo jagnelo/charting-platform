@@ -5639,17 +5639,19 @@ providers:
     display_name: subversive
     queue_rank: 120
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: issuer_access_blocked
+    disposition: issuer_access_blocked
+    last_checked: 2026-09-04
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols: [GOP, NANC]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    source_freshness: daily
+    first_party_domains: [subversiveetfs.com]
+    candidate_routes:
+      - "https://subversiveetfs.com/gop/"
+      - "https://subversiveetfs.com/nanc/"
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -5659,13 +5661,19 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.subversive"
       - "runtime:ISSUER_ADAPTER_CONFIGS.subversive"
+      - "web:subversive-current-gop-nanc-holdings-pages-2026-09-04"
+      - "live:subversive-current-gop-nanc-holdings-pages-2026-09-04-blocked"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.subversive"
-    disposition_reason: "subversive: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate subversive first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-04
+        source: "Subversive ETFs official GOP and NANC product pages and bounded backend requests"
+        result: "Official pages expose current holdings tables, but bounded backend-equivalent httpx requests received HTTP 403 for both routes; no executable native route is promoted."
+        evidence_ref: "live:subversive-current-gop-nanc-holdings-pages-2026-09-04-blocked"
+    disposition_reason: "subversive: Subversive's official GOP and NANC pages expose current holdings tables, but backend-equivalent access was blocked by HTTP 403 for both routes. Preserve the issuer-access-blocked fallback until complete rows are executable."
+    next_action: "subversive: Periodically re-test the official GOP and NANC pages and declared downloads; promote only after bounded backend access returns complete current rows with proven mapping."
     implementation_sha: null
     validation_refs: []
   - adapter_key: suncoast
