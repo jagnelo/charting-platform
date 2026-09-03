@@ -2213,3 +2213,15 @@ Current state is 496 registered / 399 native-live-backed / 97 fallback-only,
 with 41 queued records and `panagram` next. Evidence refs:
 `web:pabrai-wagons-investor-resources-2026-09-03` and
 `web:pabrai-wagons-current-report-2026-09-03`.
+
+## 63. Current audit checkpoint — Panagram CLO ETFs successor disposition — 2026-09-03
+
+Panagram's CLOX/CLOZ funds were renamed Eldridge AAA/BBB-B CLO ETFs while
+retaining symbols; the active Eldridge adapter already provides the current
+daily holdings route. The ledger records Panagram as an inactive/successor
+identity with no duplicate code or SEC-derived promotion.
+
+Current state is 496 registered / 399 native-live-backed / 97 fallback-only,
+with 40 queued records and `parnassus_investments` next. Evidence refs:
+`web:panagram-eldridge-successor-2026-09-03` and
+`web:panagram-eldridge-sec-name-change-2026-09-03`.

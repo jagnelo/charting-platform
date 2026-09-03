@@ -904,6 +904,25 @@ Lab histogram timeout remains the integration blocker. Evidence refs:
 `web:pabrai-wagons-investor-resources-2026-09-03` and
 `web:pabrai-wagons-current-report-2026-09-03`.
 
+## Current audit checkpoint — Panagram CLO ETFs successor disposition — 2026-09-03
+
+The ranked `panagram` identity resolves to the current Eldridge successor:
+Panagram AAA/BBB-B CLO ETFs became Eldridge AAA/BBB-B CLO ETFs effective
+January 1, 2025 while retaining CLOX/CLOZ. The successor's official sites and
+existing native Eldridge daily CSV cover the active products, so no duplicate
+Panagram adapter is warranted. The ledger records
+`inactive_or_successor_disposition`.
+
+Runtime state remains 496 registered / 399 native-live-backed / 97
+fallback-only providers; runtime fallback statuses are 9 issuer-access-
+blocked, 78 route-discovery, 4 non-executable-public-source, and 6
+non-portfolio-publisher. The ledger has 40 queued records and the next ranked
+issuer is `parnassus_investments`. Workstream validation and diff-check remain
+pending for this documentation checkpoint; the known unrelated F8p-current-
+history Study Lab histogram timeout remains the integration blocker. Evidence
+refs: `web:panagram-eldridge-successor-2026-09-03` and
+`web:panagram-eldridge-sec-name-change-2026-09-03`.
+
 ## Current audit checkpoint — North Square non-executable public source — 2026-09-03
 
 The ranked `north_square` audit verified official NSIV and NSIG product pages

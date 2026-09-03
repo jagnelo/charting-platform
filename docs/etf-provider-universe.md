@@ -1210,6 +1210,22 @@ has 41 queued records and `panagram` is next. Evidence refs:
 `web:pabrai-wagons-investor-resources-2026-09-03` and
 `web:pabrai-wagons-current-report-2026-09-03`.
 
+## Current audit checkpoint — Panagram CLO ETFs successor disposition — 2026-09-03
+
+The former Panagram AAA and BBB-B CLO ETFs (CLOX/CLOZ) are now the Eldridge
+AAA and BBB-B CLO ETFs. The current CLOX/CLOZ sites expose the successor
+holdings surface, and the SEC supplement confirms the January 1, 2025 name
+change while retaining the symbols. Because Eldridge already owns the native
+daily holdings adapter, the ledger records Panagram as
+`inactive_or_successor_disposition` rather than duplicating the route.
+
+The current split remains 496 registered, 399 native/live-backed, and 97
+fallback-only providers. Runtime statuses are 9 issuer-access-blocked, 78
+route-discovery, 4 non-executable, and 6 non-portfolio-publisher. The ledger
+has 40 queued records and `parnassus_investments` is next. Evidence refs:
+`web:panagram-eldridge-successor-2026-09-03` and
+`web:panagram-eldridge-sec-name-change-2026-09-03`.
+
 ## Current audit checkpoint — North Square non-executable public source — 2026-09-03
 
 North Square's official NSIV and NSIG pages identify current ETFs but state

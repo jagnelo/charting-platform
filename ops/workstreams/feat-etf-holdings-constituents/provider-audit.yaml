@@ -4408,19 +4408,22 @@ providers:
     display_name: panagram
     queue_rank: 92
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    current_status: inactive_or_successor_disposition
+    disposition: inactive_or_successor_disposition
+    last_checked: 2026-09-03
+    source_access_declared: successor_issuer_eldridge_daily_holdings_csv
+    representative_symbols: [CLOX, CLOZ]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    source_freshness: current_as_of_date
+    first_party_domains: [cloxfund.com, clozfund.com, sec.gov]
+    candidate_routes:
+      - "https://cloxfund.com/"
+      - "https://clozfund.com/"
+      - "https://clozfund.com/assets/data/FilepointPanagram.40P2.P2_Holdings.csv"
     route_complete: false
-    symbol_mapping_proven: false
+    symbol_mapping_proven: true
     current_holdings_proven: false
     parser_fixture: null
     live_test: null
@@ -4428,13 +4431,23 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.panagram"
       - "runtime:ISSUER_ADAPTER_CONFIGS.panagram"
+      - "web:panagram-eldridge-successor-2026-09-03"
+      - "web:panagram-eldridge-sec-name-change-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.panagram"
-    disposition_reason: "panagram: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate panagram first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-03
+        source: "https://clozfund.com/"
+        result: "The current official CLOZ site identifies Eldridge BBB-B CLO ETF, formerly the Panagram BBB-B CLO ETF, and exposes the successor's holdings/download surface; CLOX is likewise now branded Eldridge AAA CLO ETF."
+        evidence_ref: "web:panagram-eldridge-successor-2026-09-03"
+      - date: 2026-09-03
+        source: "https://www.sec.gov/Archives/edgar/data/1650149/000089418926021766/eldridgeetfs-497ejuly2026p.htm"
+        result: "The SEC supplement confirms both Panagram AAA/BBB-B ETFs changed to Eldridge names and retained CLOX/CLOZ symbols, establishing the successor relationship."
+        evidence_ref: "web:panagram-eldridge-sec-name-change-2026-09-03"
+    disposition_reason: "panagram: The former Panagram AAA/BBB-B CLO ETFs were renamed Eldridge AAA/BBB-B CLO ETFs effective January 1, 2025, retaining CLOX/CLOZ and an existing Eldridge native daily holdings adapter. The Panagram identity is therefore recorded as inactive_or_successor_disposition rather than duplicating the successor route."
+    next_action: "panagram: Monitor successor Eldridge holdings coverage; do not add a duplicate Panagram adapter unless a distinct active Panagram ETF and first-party route reappear."
     implementation_sha: null
     validation_refs: []
   - adapter_key: parnassus_investments
