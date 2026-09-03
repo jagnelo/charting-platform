@@ -66757,6 +66757,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "data may be subject to issuer terms."
         ),
     ),
+    "nestyield": IssuerCsvAdapterConfig(
+        adapter_key="nestyield",
+        source_provider="nestyield",
+        source_access="issuer_public_product_page_wpdatatable_complete_holdings_table",
+        product_page_templates=("https://nestyield.com/{symbol_lower}/",),
+        live_tested_default_route=True,
+        terms_note=(
+            "NestYield publishes complete current EGGQ, EGGY, and EGGS ETF holdings in public product pages; "
+            "data may be subject to issuer terms."
+        ),
+    ),
     "militia": IssuerCsvAdapterConfig(
         adapter_key="militia",
         source_provider="militia",
@@ -71140,8 +71151,161 @@ class AmpliusReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """StockAnalysis provider-table fallback adapter pending Amplius discovery."""
 
 
-class NestYieldReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """StockAnalysis provider-table fallback adapter pending NestYield discovery."""
+class NestYieldHoldingsAdapter(MilitiaHoldingsAdapter):
+    """Fetch NestYield's complete current ETF holdings tables from official pages."""
+
+    PROVIDER_DISPLAY_NAME = "NestYield"
+    SOURCE_TAG = "nestyield"
+    ROUTE_RESOLUTION = "nestyield_official_product_page_wpdatatable_complete_holdings_table"
+    SNAPSHOT_PROVENANCE = "nestyield_native_current_holdings_table"
+    PRODUCT_PAGE_URLS = {
+        "EGGQ": "https://nestyield.com/eggq/",
+        "EGGY": "https://nestyield.com/eggy/",
+        "EGGS": "https://nestyield.com/eggs/",
+    }
+    EXPECTED_IDENTITIES = {
+        "EGGQ": "NestYield Visionary ETF",
+        "EGGY": "NestYield Dynamic Income ETF",
+        "EGGS": "NestYield Total Return Guard ETF",
+    }
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        source_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9600") if source_url else Decimal("0.3000"),
+            status="ready" if source_url else "needs_issuer_route",
+            reason=(
+                "NestYield's official product page publishes a complete current holdings table."
+                if source_url
+                else f"No verified NestYield product page is configured for {normalized_symbol}."
+            ),
+            source_url=source_url,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        if not product_page_url:
+            raise ValueError(
+                f"No verified NestYield current-holdings route is configured for {normalized_symbol}."
+            )
+        if source_url and source_url.rstrip("/") != product_page_url.rstrip("/"):
+            raise ValueError(
+                "NestYield holdings must use the matching verified official product page."
+            )
+        headers = _issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*")
+        try:
+            async with httpx.AsyncClient(
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
+            ) as client:
+                response = await client.get(
+                    product_page_url, headers=headers, follow_redirects=True
+                )
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 403:
+                raise
+            response = await asyncio.to_thread(
+                requests.get,
+                product_page_url,
+                headers=headers,
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                allow_redirects=True,
+            )
+            response.raise_for_status()
+        page_text = html.unescape(response.text)
+        expected_identity = self.EXPECTED_IDENTITIES[normalized_symbol]
+        if not re.search(re.escape(expected_identity), page_text, re.IGNORECASE):
+            raise ValueError(f"NestYield product page identity did not match {normalized_symbol}.")
+        rows = parse_html_holdings_table_by_headers(
+            page_text,
+            required_headers={
+                "date",
+                "account",
+                "stockticker",
+                "securityname",
+                "cusip",
+                "shares",
+                "price",
+                "marketvalue",
+                "weightings",
+            },
+        )
+        if not rows:
+            raise ValueError(
+                f"NestYield product page did not contain complete holdings rows for {normalized_symbol}."
+            )
+        composition_date = next(
+            (
+                _parse_issuer_date(_first(row.extra_data, ["date"]))
+                for row in rows
+                if _parse_issuer_date(_first(row.extra_data, ["date"]))
+            ),
+            None,
+        )
+        for index, row in enumerate(rows, start=1):
+            raw_symbol = _clean(_first(row.extra_data, ["stockticker"]))
+            raw_name = _clean(_first(row.extra_data, ["securityname"])) or row.name
+            row.row_type, row.holding_type = self._classify_row(
+                raw_symbol=raw_symbol, name=raw_name
+            )
+            if row.row_type == "cash":
+                row.symbol = None
+                row.cusip = None
+            elif row.holding_type == "derivative":
+                row.symbol = None
+            row.currency = "USD"
+            row.source_row_id = f"{normalized_symbol}:{composition_date.isoformat() if composition_date else 'current'}:{index}"
+            row.extra_data = {
+                **row.extra_data,
+                "source_ticker": raw_symbol,
+                "market_value_unit": "usd",
+                "source": self.ROUTE_RESOLUTION,
+            }
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={
+                "source_format": "html_table",
+                "row_count": len(rows),
+                "market_value_unit": "usd",
+            },
+            source_url=str(getattr(response, "url", product_page_url)),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html_table",
+                "route_resolution": self.ROUTE_RESOLUTION,
+                "product_page_url": product_page_url,
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "snapshot_provenance": self.SNAPSHOT_PROVENANCE,
+                "source_quality": "issuer_reported_current_holdings",
+            },
+        )
+
+    @staticmethod
+    def _classify_row(*, raw_symbol: str | None, name: str | None) -> tuple[str, str]:
+        text = " ".join(value.upper() for value in (raw_symbol, name) if value)
+        if "CASH" in text or "CURRENCY" in text:
+            return "cash", "cash"
+        if raw_symbol and raw_symbol.upper() == "FGXXX":
+            return "security", "fund"
+        return BushidoHoldingsAdapter._classify_row(raw_symbol=raw_symbol, name=name)
 
 
 class RareviewFundsReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -72279,7 +72443,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "moonvest": MoonvestHoldingsAdapter,
         "msc_group": MscGroupAuditedFallbackHoldingsAdapter,
         "new_age_alpha": NewAgeAlphaReconciledFallbackHoldingsAdapter,
-        "nestyield": NestYieldReconciledFallbackHoldingsAdapter,
+        "nestyield": NestYieldHoldingsAdapter,
         "nicholas_wealth": NicholasWealthReconciledFallbackHoldingsAdapter,
         "north_square": NorthSquareReconciledFallbackHoldingsAdapter,
         "norris_perne_french": NorrisPerneFrenchReconciledFallbackHoldingsAdapter,

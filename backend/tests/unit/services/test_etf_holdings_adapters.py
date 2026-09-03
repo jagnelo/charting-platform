@@ -22146,6 +22146,7 @@ def test_etfdb_issuer_league_reconciliation_batch_is_registered_and_audited():
         "mig_capital",
         "milliman",
         "moonvest",
+        "nestyield",
     }
     fallback_expected = expected - promoted_native
 
@@ -22175,6 +22176,7 @@ def test_etfdb_issuer_league_continuation_batch_is_registered_and_audited():
         "measured_risk_portfolios",
         "milliman",
         "moonvest",
+        "nestyield",
     }
 
     assert expected
@@ -22375,6 +22377,7 @@ def test_stockanalysis_provider_third_continuation_batch_is_registered_and_audit
         "beehive",
         "brookstone",
         "elm",
+        "nestyield",
     }
 
     assert expected
@@ -24381,6 +24384,36 @@ async def test_moonvest_adapter_parses_mnvt_wpdatatable_holdings(monkeypatch):
     assert result.rows[1].shares == Decimal("-2177")
     assert result.legal_metadata["route_resolution"] == (
         "moonvest_official_product_page_wpdatatable_complete_holdings_table"
+    )
+
+
+@pytest.mark.asyncio
+async def test_nestyield_adapter_parses_eggq_wpdatatable_holdings(monkeypatch):
+    adapter = get_holdings_adapter("nestyield")
+    assert adapter is not None
+    page = """
+    <html><h1>NestYield Visionary ETF</h1><div>EGGQ</div>
+    <table><tr><th>Date</th><th>Account</th><th>StockTicker</th><th>SecurityName</th><th>CUSIP</th>
+    <th>Shares</th><th>Price</th><th>MarketValue</th><th>Weightings</th></tr>
+    <tr><td>09/01/2026</td><td>EGGQ</td><td>FGXXX</td><td>First American Government Obligations Fund</td><td>31846V336</td><td>100</td><td>100</td><td>10000</td><td>1.0</td></tr>
+    <tr><td>09/01/2026</td><td>EGGQ</td><td>CASH&amp;OTHER</td><td>Cash &amp; Other</td><td></td><td>-10</td><td>1</td><td>-10</td><td>-0.01</td></tr>
+    </table></html>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page, content_type="text/html", url="https://nestyield.com/eggq/")
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="EGGQ")
+
+    assert len(result.rows) == 2
+    assert result.rows[0].holding_type == "fund"
+    assert result.rows[0].market_value == Decimal("10000")
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].shares == Decimal("-10")
+    assert result.legal_metadata["route_resolution"] == (
+        "nestyield_official_product_page_wpdatatable_complete_holdings_table"
     )
 
 

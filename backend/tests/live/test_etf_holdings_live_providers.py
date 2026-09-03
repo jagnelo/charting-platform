@@ -32,6 +32,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "militia",
     "milliman",
     "moonvest",
+    "nestyield",
     "amun",
     "1251_capital",
     "3fourteen",
@@ -3678,6 +3679,28 @@ async def test_live_moonvest_mnvt_official_wpdatatable_holdings():
     assert result.legal_metadata["composition_date"]
     assert any(row.holding_type == "fund" for row in result.rows)
     assert any(row.row_type == "cash" for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("nestyield")
+async def test_live_nestyield_official_wpdatatable_holdings():
+    adapter = get_holdings_adapter("nestyield")
+    assert adapter is not None
+
+    results = []
+    for symbol in ("EGGQ", "EGGY", "EGGS"):
+        result = await adapter.fetch_latest(symbol=symbol)
+        results.append(result)
+        _assert_live_holdings_result(result, adapter_key="nestyield", min_rows=5)
+        assert (
+            result.legal_metadata["route_resolution"]
+            == "nestyield_official_product_page_wpdatatable_complete_holdings_table"
+        )
+        assert result.legal_metadata["source_format"] == "html_table"
+        assert result.legal_metadata["composition_date"]
+        assert any(row.row_type == "cash" for row in result.rows)
+    assert any(row.holding_type == "fund" for result in results for row in result.rows)
 
 
 @pytest.mark.asyncio
