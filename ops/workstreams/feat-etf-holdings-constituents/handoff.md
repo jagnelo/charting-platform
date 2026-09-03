@@ -1069,6 +1069,21 @@ non-executable-public-source, and 6 non-portfolio-publisher. Evidence refs:
 `web:rareview-current-etf-catalogue-2026-09-03` and
 `web:rareview-stale-holdings-pages-2026-09-03`.
 
+## Current audit checkpoint — Return Stacked daily holdings routes — 2026-09-03
+
+Return Stacked's official product pages expose daily symbol-scoped holdings
+CSVs for RSST, RSIT, RSSY, RSSX, RSBT, RSBY, RSBA, and RSSB. The September 2,
+2026 issuer endpoints returned complete parseable rows for every mapped product.
+The provider-specific adapter validates page identity and preserves issuer
+provenance, so `return_stacked` is native-promoted without SEC reconstruction.
+
+Runtime state is now 496 registered / 403 native-live-backed / 93 fallback-only
+providers, with 30 queued records and `river1` next. Runtime fallback statuses
+are 12 issuer-access-blocked, 69 route-discovery, 7 non-executable-public-source,
+and 6 non-portfolio-publisher. Evidence refs:
+`web:return-stacked-current-product-pages-2026-09-03` and
+`live:return-stacked-current-holdings-csv-2026-09-03`.
+
 ## Current audit checkpoint — North Square non-executable public source — 2026-09-03
 
 The ranked `north_square` audit verified official NSIV and NSIG product pages

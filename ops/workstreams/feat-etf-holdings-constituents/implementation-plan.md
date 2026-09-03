@@ -2335,3 +2335,13 @@ current symbol-scoped artifact and parser/live evidence are available. Counts
 are 496 registered / 402 native / 94 fallback, with 31 queued and
 `return_stacked` next. Evidence refs: `web:rareview-current-etf-catalogue-2026-09-03`
 and `web:rareview-stale-holdings-pages-2026-09-03`.
+
+## Current audit checkpoint — Return Stacked daily holdings routes — 2026-09-03
+
+The Return Stacked product pages declare complete daily holdings CSVs for all
+eight current products (RSST, RSIT, RSSY, RSSX, RSBT, RSBY, RSBA, RSSB). The
+provider-specific adapter reuses the strict CSV parser while fixing the
+issuer-owned route map and Return Stacked provenance. Counts are 496 registered
+/ 403 native / 93 fallback, with 30 queued and `river1` next. Evidence refs:
+`web:return-stacked-current-product-pages-2026-09-03` and
+`live:return-stacked-current-holdings-csv-2026-09-03`.

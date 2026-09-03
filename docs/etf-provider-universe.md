@@ -1448,3 +1448,17 @@ and `return_stacked` next. Runtime fallback statuses are 12 issuer-access-
 blocked, 70 route-discovery, 7 non-executable-public-source, and 6
 non-portfolio-publisher. Evidence refs: `web:rareview-current-etf-catalogue-2026-09-03`
 and `web:rareview-stale-holdings-pages-2026-09-03`.
+
+## Current audit checkpoint — Return Stacked daily holdings routes — 2026-09-03
+
+Return Stacked's official product pages expose daily, symbol-scoped holdings
+CSVs for RSST, RSIT, RSSY, RSSX, RSBT, RSBY, RSBA, and RSSB. The September 2,
+2026 endpoints returned complete parseable rows for each mapped product.
+
+The ledger records `return_stacked` as `native_promoted` through its strict
+issuer-specific adapter. The current split is 496 registered / 403
+native-live-backed / 93 fallback-only, with 30 queued records and `river1` next.
+Runtime fallback statuses are 12 issuer-access-blocked, 69 route-discovery, 7
+non-executable-public-source, and 6 non-portfolio-publisher. Evidence refs:
+`web:return-stacked-current-product-pages-2026-09-03` and
+`live:return-stacked-current-holdings-csv-2026-09-03`.

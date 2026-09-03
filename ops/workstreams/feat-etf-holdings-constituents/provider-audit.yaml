@@ -4916,8 +4916,11 @@ providers:
         evidence_ref: "live:return-stacked-current-holdings-csv-2026-09-03"
     disposition_reason: "return_stacked: Return Stacked's official product pages declare daily holdings and the eight mapped holdings endpoints returned complete current CSV rows dated September 2, 2026. The provider-specific adapter validates product identity and preserves issuer provenance."
     next_action: "return_stacked: Monitor daily holdings endpoint continuity for RSST, RSIT, RSSY, RSSX, RSBT, RSBY, RSBA, and RSSB; add future products only after equivalent route and live evidence."
-    implementation_sha: null
-    validation_refs: []
+    implementation_sha: f9f7fdbd6cce00828296d4f2be31ae656e0f78d7
+    validation_refs:
+      - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_return_stacked_adapter_fetches_issuer_daily_holdings_csv"
+      - "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows"
+      - "validation:2026-09-03T16:00:00Z"
   - adapter_key: river1
     display_name: river1
     queue_rank: 103
