@@ -80,8 +80,9 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "db0dfd1dee4f5133065aef2d83e9469d66e91b2f",
+  "head": "4994675e4445a90c84ec046bdf04b172f63e02d4",
   "implementation_sha": "5f8d0b9dacf7231ae9ea1a906d1360c798bd1812",
+  "last_checkpoint": "2026-09-03T01:16:25.277387+00:00",
   "last_human_progress_update": "2026-09-03T01:12:19.045079+00:00",
   "local_validation_profile": "docker_integration",
   "next_action": "continue ranked issuer audit from hexis",
@@ -102,6 +103,7 @@
   "remote_synchronized": false,
   "schema": 2,
   "session_id": "197b239d-3322-4fc6-bf4b-0d0aecebf5e0",
+  "state": "checkpointed",
   "validation_tier": "full_integration",
   "workstream": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents",
   "workstream_files": [
