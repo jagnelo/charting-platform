@@ -18732,6 +18732,91 @@ async def test_logiq_adapter_fetches_official_lco_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_long_pond_adapter_fetches_official_lpre_cms_holdings(monkeypatch):
+    adapter = get_holdings_adapter("long_pond")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "LongPondHoldingsAdapter"
+    probe = adapter.probe(symbol="LPRE", name="Long Pond Real Estate Select ETF", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url == adapter.PRODUCT_PAGE_URL
+
+    with pytest.raises(ValueError, match="verified LPRE product page or CMS route"):
+        await adapter.fetch_latest(
+            symbol="LPRE", source_url="https://example.invalid/holdings.json"
+        )
+
+    source_rows = [
+        {
+            "figi": f"BBG000000{index:03d}",
+            "ticker": f"SYM{index}",
+            "quantity": str(index * 100),
+            "description": f"Company {index}",
+            "market_value": f"{index * 100000:,}.00",
+            "percent_of_nav": "1.25%",
+        }
+        for index in range(1, 21)
+    ]
+    page_html = (
+        "<html><h1>LPRE Fund Summary | Long Pond Real Estate Select ETF</h1>"
+        "<section>Holdings as of 09/01/2026</section></html>"
+    )
+    cms_payload = {
+        "data": [
+            {
+                "pageId": "longpond-lpre",
+                "routeName": "lpre",
+                "holdingsComponents": [
+                    {
+                        "componentId": adapter._COMPONENT_ID,
+                        "date": "09/01/2026",
+                        "tableMapping": [{"columnTitle": list(adapter._REQUIRED_COLUMNS)}],
+                        "finData": source_rows,
+                    }
+                ],
+            }
+        ],
+        "meta": {},
+    }
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=page_html,
+            content_type="text/html",
+            url=adapter.PRODUCT_PAGE_URL,
+        ),
+        FakeResponse(
+            text=json.dumps(cms_payload),
+            content_type="application/json",
+            url=adapter.CMS_API_URL,
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="LPRE")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        adapter.PRODUCT_PAGE_URL,
+        adapter.CMS_API_URL,
+    ]
+    assert len(result.rows) == 20
+    assert result.rows[0].symbol == "SYM1"
+    assert result.rows[0].extra_data["figi"] == "BBG000000001"
+    assert result.rows[0].shares == Decimal("100")
+    assert result.rows[0].market_value == Decimal("100000.00")
+    assert result.rows[0].weight == Decimal("0.0125")
+    assert result.legal_metadata["source_provider"] == "long_pond_capital"
+    assert result.legal_metadata["publisher"] == "Long Pond Capital"
+    assert result.legal_metadata["parent_issuer"] == "Exchange Traded Concepts"
+    assert result.legal_metadata["route_resolution"] == ("long_pond_product_page_cms_holdings_json")
+    assert result.legal_metadata["snapshot_provenance"] == (
+        "long_pond_native_current_holdings_json"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+    assert result.raw_json["source_format"] == "issuer_product_page_cms_holdings_json"
+    assert adapter.probe(symbol="UNKNOWN", name="", identifiers={}).status == "needs_issuer_route"
+
+
+@pytest.mark.asyncio
 async def test_fitzgerald_adapter_discovers_and_parses_nicholas_wealth_csv(monkeypatch):
     adapter = get_holdings_adapter("fitzgerald")
     assert adapter is not None
@@ -22061,6 +22146,7 @@ def test_stockanalysis_provider_fourth_continuation_batch_is_registered_and_audi
         "blueprint",
         "bridgeway",
         "jlens",
+        "long_pond",
     }
 
     assert expected
@@ -22087,6 +22173,9 @@ def test_stockanalysis_provider_fourth_continuation_batch_is_registered_and_audi
     assert "jlens" not in FALLBACK_ISSUER_AUDITS
     assert ISSUER_ADAPTER_CONFIGS["jlens"].live_tested_default_route is True
     assert type(get_holdings_adapter("jlens")).__name__ == "JLensHoldingsAdapter"
+    assert "long_pond" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["long_pond"].live_tested_default_route is True
+    assert type(get_holdings_adapter("long_pond")).__name__ == "LongPondHoldingsAdapter"
 
 
 def test_redwood_has_a_verified_native_route_after_live_probe():
@@ -26295,8 +26384,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 386
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 110
+    assert ledger["current_native_count"] == 387
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 109
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -26333,6 +26422,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "jlens",
         "knowledge_leaders",
         "logiq",
+        "long_pond",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))

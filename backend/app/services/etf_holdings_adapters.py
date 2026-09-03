@@ -2345,6 +2345,7 @@ ISSUER_DOMAIN_HINTS.update(
         "hexis": ["hexis.capital", "hexis.filepoint.live"],
         "hilton": ["hiltonetfs.com", "hiltonetfjson.com", "hiltoncapitalmanagement.com"],
         "logiq": ["logiqetf.com", "logiqcap.com"],
+        "long_pond": ["longpondetf.com", "longpondcapital.com"],
         "knowledge_leaders": [
             "axsinvestments.com",
             "axsetf.filepoint.live",
@@ -23747,6 +23748,223 @@ class LogiqHoldingsAdapter(TidalHoldingsAdapter):
             "issuer_relationship": "LOGIQ Contrarian Opportunities ETF published by LOGIQ Capital Partners",
         }
         return result
+
+
+class LongPondHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Read Long Pond Capital's current LPRE holdings from its CMS payload."""
+
+    PRODUCT_PAGE_URL = "https://www.longpondetf.com/lpre"
+    CMS_API_URL = (
+        "https://www.longpondetf.com/api/cms/pages?"
+        "filters%5Bsite%5D%5BsiteId%5D=longpond&"
+        "filters%5BrouteName%5D%5B%24eq%5D=lpre&"
+        "populate%5BholdingsComponents%5D%5Bpopulate%5D=*&"
+        "pagination%5BpageSize%5D=1"
+    )
+    SUPPORTED_SYMBOL = "LPRE"
+    _ISSUER_HOST = "longpondetf.com"
+    _CMS_PATH = "/api/cms/pages"
+    _COMPONENT_ID = "longpond-lpre-HoldingsComponent-1"
+    _REQUIRED_COLUMNS = (
+        "COMPANY NAME",
+        "TICKER",
+        "FIGI",
+        "SHARES",
+        "MARKET VALUE",
+        "% OF NET ASSET VALUES",
+    )
+
+    def probe(
+        self,
+        *,
+        symbol: str,
+        name: str,
+        identifiers: dict[str, str],
+    ) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        supported = normalized_symbol == self.SUPPORTED_SYMBOL
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if supported else Decimal("0.5000"),
+            status="ready" if supported or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "Long Pond publishes LPRE's complete current holdings in its official CMS-backed product page."
+                if supported
+                else "No verified Long Pond product page is configured for this ETF; SEC EDGAR remains available as fallback."
+                if has_sec_fallback
+                else "No verified Long Pond product page is configured for this ETF."
+            ),
+            source_url=self.PRODUCT_PAGE_URL if supported else None,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol != self.SUPPORTED_SYMBOL:
+            raise ValueError("Long Pond's verified issuer route currently supports LPRE only.")
+        if source_url and not self._is_accepted_source_url(source_url):
+            raise ValueError(
+                "Long Pond holdings must use the verified LPRE product page or CMS route."
+            )
+
+        cms_url = source_url if self._is_cms_url(source_url or "") else self.CMS_API_URL
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_response = await client.get(
+                self.PRODUCT_PAGE_URL,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+            product_response.raise_for_status()
+            product_url = str(getattr(product_response, "url", self.PRODUCT_PAGE_URL))
+            self._validate_product_page(product_response.text, product_url)
+
+            cms_response = await client.get(
+                cms_url,
+                headers=_issuer_page_request_headers(accept="application/json,text/plain,*/*"),
+                follow_redirects=True,
+            )
+            cms_response.raise_for_status()
+            resolved_cms_url = str(getattr(cms_response, "url", cms_url))
+            if not self._is_cms_url(resolved_cms_url):
+                raise ValueError("Long Pond CMS holdings response left the official API route.")
+            try:
+                payload = cms_response.json()
+            except (TypeError, ValueError) as exc:
+                raise ValueError("Long Pond CMS holdings response was not valid JSON.") from exc
+
+        rows, composition_date = self._parse_payload(payload, symbol=normalized_symbol)
+        if len(rows) < 20 or composition_date is None:
+            raise ValueError(
+                "Long Pond CMS holdings did not expose complete dated LPRE holdings rows."
+            )
+        composition_value = composition_date.isoformat()
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=cms_response.text,
+            raw_json={
+                "source_format": "issuer_product_page_cms_holdings_json",
+                "row_count": len(rows),
+                "composition_date": composition_value,
+                "component_id": self._COMPONENT_ID,
+            },
+            source_url=resolved_cms_url,
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "json",
+                "route_resolution": "long_pond_product_page_cms_holdings_json",
+                "snapshot_provenance": "long_pond_native_current_holdings_json",
+                "product_page_url": product_url,
+                "cms_api_url": resolved_cms_url,
+                "composition_date": composition_value,
+                "as_of_date": composition_value,
+                "freshness_semantics": "issuer_disclosed_holdings_as_of_date",
+                "refresh_frequency": "issuer_published_current_holdings",
+                "publisher": "Long Pond Capital",
+                "parent_issuer": "Exchange Traded Concepts",
+                "issuer_relationship": (
+                    "Long Pond Capital, LP sub-advisor; Exchange Traded Concepts adviser and ETF issuer"
+                ),
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _is_accepted_source_url(cls, value: str) -> bool:
+        return value.rstrip("/").casefold() in {
+            cls.PRODUCT_PAGE_URL.rstrip("/").casefold(),
+            cls.CMS_API_URL.rstrip("/").casefold(),
+        } or cls._is_cms_url(value)
+
+    @classmethod
+    def _is_cms_url(cls, value: str) -> bool:
+        parsed = urlparse(value)
+        return (
+            _domain_matches(_url_host(value) or "", cls._ISSUER_HOST)
+            and parsed.path.rstrip("/") == cls._CMS_PATH
+            and "routeName" in parsed.query
+            and "lpre" in parsed.query.casefold()
+        )
+
+    @classmethod
+    def _validate_product_page(cls, raw_html: str, resolved_url: str) -> None:
+        parsed = urlparse(resolved_url)
+        if not _domain_matches(_url_host(resolved_url) or "", cls._ISSUER_HOST):
+            raise ValueError("Long Pond product page resolved outside the official issuer host.")
+        if parsed.path.rstrip("/") != "/lpre":
+            raise ValueError("Long Pond product page did not preserve the LPRE route.")
+        identity = html.unescape(raw_html).upper()
+        if "LONG POND REAL ESTATE SELECT ETF" not in identity or "LPRE" not in identity:
+            raise ValueError("Long Pond product page identity did not match requested ETF LPRE.")
+        if "HOLDINGS AS OF" not in identity:
+            raise ValueError("Long Pond product page did not declare its holdings section.")
+
+    @classmethod
+    def _parse_payload(
+        cls,
+        payload: Any,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        if not isinstance(payload, dict):
+            raise ValueError("Long Pond CMS holdings payload was not an object.")
+        pages = payload.get("data")
+        if not isinstance(pages, list) or len(pages) != 1 or not isinstance(pages[0], dict):
+            raise ValueError("Long Pond CMS holdings payload did not contain one LPRE page.")
+        page = pages[0]
+        if page.get("pageId") != "longpond-lpre" or page.get("routeName") != "lpre":
+            raise ValueError("Long Pond CMS payload identity did not match LPRE.")
+        components = page.get("holdingsComponents")
+        if not isinstance(components, list):
+            raise ValueError("Long Pond CMS payload did not contain holdings components.")
+        component = next(
+            (
+                item
+                for item in components
+                if isinstance(item, dict) and item.get("componentId") == cls._COMPONENT_ID
+            ),
+            None,
+        )
+        if component is None:
+            raise ValueError("Long Pond CMS payload did not contain the LPRE holdings component.")
+        mapping = component.get("tableMapping")
+        if (
+            not isinstance(mapping, list)
+            or not mapping
+            or tuple(mapping[0].get("columnTitle", ())) != cls._REQUIRED_COLUMNS
+        ):
+            raise ValueError("Long Pond LPRE holdings component schema was not recognized.")
+        source_rows = component.get("finData")
+        if not isinstance(source_rows, list):
+            raise ValueError("Long Pond LPRE holdings component did not contain rows.")
+        required_fields = {
+            "figi",
+            "ticker",
+            "quantity",
+            "description",
+            "market_value",
+            "percent_of_nav",
+        }
+        if any(
+            not isinstance(row, dict) or not required_fields.issubset(row) for row in source_rows
+        ):
+            raise ValueError("Long Pond LPRE holdings rows did not contain the complete schema.")
+        rows = _canonical_nuxt_holdings_rows(source_rows, source_row_prefix="long-pond")
+        if not all(row.symbol or row.name or row.extra_data.get("figi") for row in rows):
+            raise ValueError(f"Long Pond LPRE holdings contained an unidentifiable {symbol} row.")
+        return rows, _parse_issuer_date(component.get("date"))
 
 
 class BeeHiveHoldingsAdapter(TidalHoldingsAdapter):
@@ -65541,6 +65759,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "and declared daily holdings CSV; data may be subject to issuer terms."
         ),
     ),
+    "long_pond": IssuerCsvAdapterConfig(
+        adapter_key="long_pond",
+        source_provider="long_pond_capital",
+        source_access="issuer_product_page_cms_holdings_json",
+        product_page_templates=("https://www.longpondetf.com/lpre",),
+        live_tested_default_route=True,
+        terms_note=(
+            "Long Pond Capital's public LPRE product page exposes complete current holdings "
+            "through its CMS payload; data may be subject to issuer terms."
+        ),
+    ),
     "counterpoint": IssuerCsvAdapterConfig(
         adapter_key="counterpoint",
         source_provider="counterpoint",
@@ -67277,7 +67506,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "highland_capital",
         "horizons",
         "hoya",
-        "long_pond",
         "lsv",
         "m2_financial",
         "m_d_sass",
@@ -70365,7 +70593,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "logiq": LogiqHoldingsAdapter,
         "kovitz": KovitzHoldingsAdapter,
         "leverage_shares": LeverageSharesHoldingsAdapter,
-        "long_pond": LongPondReconciledFallbackHoldingsAdapter,
+        "long_pond": LongPondHoldingsAdapter,
         "lsv": LsvReconciledFallbackHoldingsAdapter,
         "m2_financial": M2FinancialReconciledFallbackHoldingsAdapter,
         "m_d_sass": MDSassReconciledFallbackHoldingsAdapter,

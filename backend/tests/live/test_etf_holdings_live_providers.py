@@ -22,6 +22,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "hilton",
     "jlens",
     "logiq",
+    "long_pond",
     "amun",
     "1251_capital",
     "3fourteen",
@@ -3472,6 +3473,23 @@ async def test_live_logiq_lco_product_page_declared_holdings_csv():
     assert result.legal_metadata["composition_date"]
     assert any(row.cusip for row in result.rows)
     assert any(row.row_type == "cash" for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("long_pond")
+async def test_live_long_pond_lpre_product_page_cms_holdings():
+    adapter = get_holdings_adapter("long_pond")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="LPRE")
+
+    _assert_live_holdings_result(result, adapter_key="long_pond", min_rows=20)
+    assert result.legal_metadata["route_resolution"] == "long_pond_product_page_cms_holdings_json"
+    assert result.legal_metadata["publisher"] == "Long Pond Capital"
+    assert result.legal_metadata["parent_issuer"] == "Exchange Traded Concepts"
+    assert result.legal_metadata["composition_date"]
+    assert any(row.extra_data.get("figi") for row in result.rows)
 
 
 @pytest.mark.asyncio
