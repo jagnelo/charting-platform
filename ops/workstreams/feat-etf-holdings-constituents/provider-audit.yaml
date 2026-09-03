@@ -7,7 +7,7 @@ baseline_fallback_count: 140
 current_registered_count: 496
 current_native_count: 391
 current_fallback_count: 105
-generated_at: 2026-09-03T04:34:00Z
+generated_at: 2026-09-03T04:32:56Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -3614,17 +3614,21 @@ providers:
     display_name: merchant_investment_management
     queue_rank: 77
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: provider_not_a_portfolio_publisher
+    disposition: provider_not_a_portfolio_publisher
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
     representative_symbols: []
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    source_freshness: not_applicable_no_us_etf_route
+    first_party_domains:
+      - merchantim.com
+      - reports.adviserinfo.sec.gov
+    candidate_routes:
+      - https://www.merchantim.com/
+      - https://reports.adviserinfo.sec.gov/reports/ADV/114861/PDF/114861.pdf
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -3634,13 +3638,22 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.merchant_investment_management"
       - "runtime:ISSUER_ADAPTER_CONFIGS.merchant_investment_management"
+      - "web:merchant-investment-official-business-and-sec-adv-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.merchant_investment_management"
-    disposition_reason: "merchant_investment_management: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate merchant_investment_management first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-03
+        source: "https://www.merchantim.com/"
+        result: "Merchant Investment Management's official site describes a strategic and capital partner to wealth-management firms and service providers, with non-controlling equity partnerships, business services, and alternative investment solutions. It exposes no sponsored U.S. ETF catalogue or issuer-owned complete ETF holdings route."
+        evidence_ref: "web:merchant-investment-official-business-and-sec-adv-2026-09-03"
+      - date: 2026-09-03
+        source: "https://reports.adviserinfo.sec.gov/reports/ADV/114861/PDF/114861.pdf"
+        result: "The firm's SEC Form ADV identifies sub-advisory services to the sponsors of two ETFs registered in Canada and describes providing holdings recommendations to those sponsors, who execute the portfolios. This is advisory/sub-advisory evidence, not a provider-owned U.S. ETF holdings publication route."
+        evidence_ref: "web:merchant-investment-official-business-and-sec-adv-2026-09-03"
+    disposition_reason: "merchant_investment_management: Merchant's official business site describes a strategic/capital partnership and alternative-solutions firm rather than a U.S. ETF portfolio publisher. Its Form ADV records sub-advisory recommendations to sponsors of two Canadian ETFs, with sponsors executing the portfolios; no issuer-owned U.S. ETF catalogue or complete holdings artifact is exposed. The existing adapter remains a truthful reconciled fallback identity, and no 13F, adviser recommendation, Canadian product, or SEC-derived reconstruction is promoted as U.S. ETF constituents."
+    next_action: "merchant_investment_management: Keep this identity as provider_not_a_portfolio_publisher and resolve any ETFDB source rows to the actual ETF sponsor/publisher; do not create a Merchant native adapter unless Merchant later publishes a distinct U.S. ETF product and complete issuer-owned holdings route."
     implementation_sha: null
     validation_refs: []
   - adapter_key: meridian

@@ -579,12 +579,34 @@ ledger now has 56 queued fallback records; the next ranked issuer is
 
 Required focused, deterministic, opt-in live, Ruff, and workstream checks are
 recorded against implementation SHA
-`fdb856d470e65305939209c7a1964bc102f6d5bd`. The complete opt-in provider
+`e5567bec0ed53268195cf1866250e9e1a199143a`. The complete opt-in provider
 matrix and Docker-backed integration gate remain pending at the 391-native
 baseline, with the known unrelated reproducible F8p-current-history Study Lab
 histogram timeout retained as the integration blocker.
 
-The complete opt-in provider matrix and Docker-backed integration gate remain
-pending at the 390-native baseline, with the known unrelated reproducible
-F8p-current-history Study Lab histogram timeout still recorded as the
-integration blocker.
+## Current audit checkpoint — Merchant Investment Management disposition — 2026-09-03
+
+The ranked `merchant_investment_management` audit verified the official
+Merchant site at `https://www.merchantim.com/` and the firm's SEC Form ADV.
+Merchant describes itself as a strategic and capital partner to wealth
+management firms and service providers, offering non-controlling equity
+partnerships, business infrastructure, and alternative investment solutions;
+its public site exposes no sponsored U.S. ETF catalogue or complete issuer
+holdings route. The Form ADV describes sub-advisory services to sponsors of
+two Canadian ETFs and holdings recommendations that the sponsors execute,
+which is advisory identity evidence rather than a provider-owned U.S. ETF
+portfolio publication.
+
+The ledger records `merchant_investment_management` as a dated
+`provider_not_a_portfolio_publisher` disposition. No native adapter is added,
+and no adviser recommendations, 13F data, Canadian products, or SEC-derived
+reconstruction is promoted as U.S. ETF constituents. Runtime code remains at
+496 registered, 391 native/live-backed, and 105 fallback-only providers with
+fallback statuses 8 issuer-access-blocked, 88 needs-first-party-route-
+discovery, 3 non-executable-public-source, and 6 non-portfolio-publisher. The
+ledger now has 55 queued fallback records; the next ranked issuer is `meridian`.
+
+The full opt-in provider matrix and Docker-backed integration gate remain
+pending at the 391-native baseline, with the known unrelated reproducible
+F8p-current-history Study Lab histogram timeout retained as the integration
+blocker.

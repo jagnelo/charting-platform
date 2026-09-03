@@ -1890,6 +1890,33 @@ registered / 391 native / 105 fallback, reducing route-discovery runtime
 status to 88, and leaving 56 queued records with
 `merchant_investment_management` next. Required focused, deterministic,
 opt-in live, Ruff, and workstream checks are recorded against implementation
-SHA `fdb856d470e65305939209c7a1964bc102f6d5bd`; the full opt-in matrix and
+SHA `e5567bec0ed53268195cf1866250e9e1a199143a`; the full opt-in matrix and
 Docker-backed integration gate remain pending with the known unrelated
 F8p-current-history Study Lab histogram timeout blocker.
+
+## 48. Current execution checkpoint — Merchant Investment Management disposition — 2026-09-03
+
+The ranked `merchant_investment_management` audit verified the official
+Merchant site at `https://www.merchantim.com/` and the firm's SEC Form ADV.
+Merchant presents itself as a strategic and capital partner to wealth
+management firms and service providers, with non-controlling equity
+partnerships, business infrastructure, and alternative investment solutions;
+it exposes no sponsored U.S. ETF catalogue or complete issuer holdings route.
+The Form ADV records sub-advisory services to sponsors of two Canadian ETFs
+and holdings recommendations that sponsors execute. That is advisory/sub-
+advisory evidence, not a provider-owned U.S. ETF portfolio publication route.
+
+The ledger records `merchant_investment_management` as a dated
+`provider_not_a_portfolio_publisher` disposition. No native adapter is added,
+and no adviser recommendations, 13F data, Canadian products, or SEC-derived
+reconstruction is promoted as U.S. ETF constituents. Runtime code remains at
+496 registered / 391 native / 105 fallback, with 8 blocked, 88 route
+discovery, 3 non-executable, and 6 non-portfolio-publisher statuses. The
+ledger has 55 queued fallback records and `meridian` is next.
+
+The official Merchant site and Form ADV evidence are retained under
+`web:merchant-investment-official-business-and-sec-adv-2026-09-03`. Focused
+ledger/workstream checks and diff validation remain required after this
+checkpoint; the full opt-in live matrix and Docker-backed integration gate
+remain pending with the known unrelated F8p-current-history Study Lab
+histogram timeout blocker.
