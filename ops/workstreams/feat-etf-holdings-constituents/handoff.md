@@ -259,4 +259,9 @@ pending at the 384-native baseline, with the known unrelated reproducible
 F8p-current-history Study Lab histogram timeout still recorded as the integration
 blocker.
 
+The operational checkpoint is recorded in
+`ops/workstreams/feat-etf-holdings-constituents/handoff.md` and
+`ops/workstreams/feat-etf-holdings-constituents/session.json`; the latter is
+the session-local state updated by the checkpoint helper.
+
 Update this handoff at every coherent implementation and operations boundary.
