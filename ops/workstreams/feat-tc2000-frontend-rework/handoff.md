@@ -376,3 +376,12 @@ The exact-tip backend unit gate was rerun after the entitlement-window change: `
 passed in `59.40s` with `67.45%` total coverage, above the repository `55%` gate. The warning set
 remains limited to the existing NumPy/Pandas deprecations; no provider calls or fixture data were
 added.
+
+The branch-scoped authenticated Chromium flow gate was run against the assigned full stack at
+`STACK_URL=http://127.0.0.1:28083` with `E2E_SEED_MARKET_DATA=true`: `151` tests passed and `2`
+tests were skipped in `7.0m`. This covers the current workstation, top-down family surfaces,
+Study Lab, promotion, layout, alerts, screener, drawing, dashboard, legacy, and radar flows at
+the exact implementation tip `9364748d30d3350d810190e0aa8fdb8d7014c026`; the stack was then
+torn down with its branch-owned volumes and containers removed. The receipt proves browser
+workflow compatibility for the seeded local runtime only; it does not establish live provider
+population, member-history continuity, entitlement records, or the four visual projects.
