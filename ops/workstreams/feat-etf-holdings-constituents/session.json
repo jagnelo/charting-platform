@@ -44,8 +44,8 @@
     "worktree_id": "feat-etf-holdings-constituents-45bdf9bd8d"
   },
   "dirty_paths": [
-    "ops/workstreams/feat-etf-holdings-constituents/provider-audit.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/session.json"
+    "ops/workstreams/feat-etf-holdings-constituents/session.json",
+    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
   ],
   "docker": {
     "accounting_complete": true,
@@ -83,13 +83,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "0404d0bf8918f9f91f26f8cce6ca896e4bff9106",
-  "implementation_sha": "0b6d5f9626851d3a23910f5159f2fa00587abea8",
-  "last_checkpoint": "2026-09-03T14:30:00+00:00",
+  "head": "576d911b154f3a054ccbbda599cfea388ed0db8d",
+  "implementation_sha": "0404d0bf8918f9f91f26f8cce6ca896e4bff9106",
+  "last_checkpoint": "2026-09-03T15:00:00+00:00",
   "last_human_progress_update": "2026-09-03T04:36:00.000000+00:00",
   "local_validation_profile": "docker_integration",
-  "next_action": "continue ranked issuer audit from rareview_funds; keep the ledger and runtime audit synchronized and promote only complete executable first-party routes",
-  "plan_hash": "c64bb3581ca19e8bc968da4d29c5f8051ed18c65dd786e5a28eef2e7dbea36c7",
+  "next_action": "continue ranked issuer audit from return_stacked; keep the ledger and runtime audit synchronized and promote only complete executable first-party routes",
+  "plan_hash": "a26bcdb27e343ef50ac736daf0e3cf4a2bf3c5b315a5e7246a87e1c2e60d462b",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [],
@@ -97,9 +97,9 @@
     "completed": [],
     "current_blocker": "Full integration gate retains the unrelated reproducible F8p-current-history Study Lab histogram timeout; issuer audit continues.",
     "current_phase": "issuer_audit_queue",
-    "next_action": "continue ranked issuer audit from rareview_funds; keep the ledger and runtime audit synchronized and promote only complete executable first-party routes",
+    "next_action": "continue ranked issuer audit from return_stacked; keep the ledger and runtime audit synchronized and promote only complete executable first-party routes",
     "total": 8,
-    "updated_at": "2026-09-03T14:30:00.000000+00:00"
+    "updated_at": "2026-09-03T15:00:00.000000+00:00"
   },
   "remote": "2d96697d2fd98bad6c8c5796ff046cd6bbad4dfd",
   "remote_sha": "2d96697d2fd98bad6c8c5796ff046cd6bbad4dfd",
