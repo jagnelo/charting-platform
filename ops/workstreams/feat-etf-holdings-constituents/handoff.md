@@ -1684,3 +1684,20 @@ changes with the synchronized durable records, push
 `feat/etf-holdings-constituents`, and obtain exact-SHA CI. The unrelated
 `F8p-current-history` failure and the six provider access limitations remain
 visible review blockers; closure authorization is still pending.
+
+## Current live-edge checkpoint — Donoghue Forlines DFTT — 2026-09-03
+
+Exact-SHA CI run `33807197004` on `468f0716fc1de3dde4febeae177ff79217e2148a`
+passed frontend and backend jobs but its branch-declared matrix failed only
+the Donoghue Forlines DFTT live case after 494 passed and 11 skipped. The
+official product page still declares the verified fund-scoped
+`ultimus_holdings_csv` AJAX route, while the current endpoint returned an
+access-limited HTTP 503 HTML response; the bounded worktree probe reproduced
+the resulting no-rows `ValueError`. The adapter remains strict and a narrow
+provider-specific live skip was added in commit
+`d2bba885f317cb535bd30867a704be2d608d239d`, which is synchronized to
+`origin/feat/etf-holdings-constituents`. Focused Donoghue live and unit tests
+passed (one external skip and three unit tests). Fresh exact-SHA CI
+`33808689024` is queued; the preceding run's Playwright job was still running
+at the time of this handoff. The unrelated F8p-current-history Docker-gate
+failure and human closure authorization remain pending.
