@@ -43,7 +43,12 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-45bdf9bd8d"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ocs/etf-provider-universe.md",
+    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
+    "ops/workstreams/feat-etf-holdings-constituents/provider-audit.yaml",
+    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -80,13 +85,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "c5a1d261c7f69978f1553205be25a6fb9a1edf96",
+  "head": "2f0065c25b1cbb0df515419111d27f55a1106c8a",
   "implementation_sha": "5f8d0b9dacf7231ae9ea1a906d1360c798bd1812",
   "last_checkpoint": "2026-09-03T01:16:25.277387+00:00",
-  "last_human_progress_update": "2026-09-03T01:21:44.522150+00:00",
+  "last_human_progress_update": "2026-09-03T01:41:21.067746+00:00",
   "local_validation_profile": "docker_integration",
   "next_action": "continue ranked issuer audit from hexis",
-  "plan_hash": "7bee4685adff1fd246910976f0ea7c7b1410c8b4fae3ce42e9d89785e0a8f21a",
+  "plan_hash": "8283b15b7e844fdaa0a34b9872c4ee15b6674c0c64786d7ca6207857101238bc",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [],
@@ -94,9 +99,9 @@
     "completed": [],
     "current_blocker": "Full integration gate retains the unrelated reproducible F8p-current-history Study Lab histogram timeout; issuer audit continues.",
     "current_phase": "issuer_audit_queue",
-    "next_action": "Continue ranked issuer audit from hilton; keep the ledger and runtime audit synchronized and promote only complete executable first-party routes.",
+    "next_action": "Continue ranked issuer audit from horizons; keep the ledger and runtime audit synchronized and promote only complete executable first-party routes.",
     "total": 8,
-    "updated_at": "2026-09-03T01:21:44.522038+00:00"
+    "updated_at": "2026-09-03T01:41:21.067623+00:00"
   },
   "remote": "2d96697d2fd98bad6c8c5796ff046cd6bbad4dfd",
   "remote_sha": "2d96697d2fd98bad6c8c5796ff046cd6bbad4dfd",

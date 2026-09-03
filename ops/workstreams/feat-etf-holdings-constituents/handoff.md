@@ -95,12 +95,16 @@ it preserves CUSIPs, converts percentage-point weights, and classifies SMCO
 equities/funds/cash and HBDC fixed-income/fund/cash rows. The deterministic
 unit test and bounded opt-in live test both pass for the two current products.
 
+The committed Hilton implementation checkpoint is
+`2f0065c25b1cbb0df515419111d27f55a1106c8a`; the corresponding validation
+receipt records the complete deterministic suite, default live contracts,
+opt-in SMCO/HBDC live route, Ruff, workstream validation, and diff-check.
+
 The current code-derived split is 496 registered, 383 native/live-backed, and
 113 fallback-only providers. Runtime fallback status counts are 8
 access-blocked, 96 discovery, 3 non-executable public source, and 6
 non-portfolio-publisher. The ledger has 70 queued records and the next ranked
-item is `horizons`. The implementation SHA and validation receipt will be
-filled after the clean Hilton changeset is committed.
+item is `horizons`.
 
 ## Historical continuity
 
