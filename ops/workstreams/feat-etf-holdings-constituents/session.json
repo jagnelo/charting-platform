@@ -44,14 +44,8 @@
     "worktree_id": "feat-etf-holdings-constituents-45bdf9bd8d"
   },
   "dirty_paths": [
-    "backend/app/services/etf_holdings_adapters.py",
     "ops/workstreams/feat-etf-holdings-constituents/provider-audit.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
-    "docs/etf-provider-universe.md",
-    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-    "ops/workstreams/feat-etf-holdings-constituents/implementation-plan.md",
-    "ops/workstreams/feat-etf-holdings-constituents/session.json",
-    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
+    "ops/workstreams/feat-etf-holdings-constituents/session.json"
   ],
   "docker": {
     "accounting_complete": true,
@@ -89,7 +83,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "1f48a50fd69e127af3286514540fac046bc49cb8",
+  "head": "0404d0bf8918f9f91f26f8cce6ca896e4bff9106",
   "implementation_sha": "0b6d5f9626851d3a23910f5159f2fa00587abea8",
   "last_checkpoint": "2026-09-03T14:30:00+00:00",
   "last_human_progress_update": "2026-09-03T04:36:00.000000+00:00",

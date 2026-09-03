@@ -4828,7 +4828,7 @@ providers:
         evidence_ref: "live:quadratic-kraneshares-current-csv-2026-09-03"
     disposition_reason: "quadratic: KFA's official IVOL/BNDD pages declare full holdings, and the KraneShares dated CSV route returned complete current rows dated September 2, 2026 for both products. The provider-specific adapter enforces symbol identity, parses securities/cash/derivatives, and records truthful Quadratic/KraneShares provenance."
     next_action: "quadratic: Monitor KFA product pages and KraneShares dated CSV continuity for IVOL and BNDD; add future Quadratic products only after equivalent route and live evidence."
-    implementation_sha: 2026-09-03-quadratic-native
+    implementation_sha: 0404d0bf8918f9f91f26f8cce6ca896e4bff9106
     validation_refs:
       - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_quadratic_adapter_parses_verified_kraneshares_holdings_csv"
       - "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows"
