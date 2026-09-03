@@ -1408,8 +1408,17 @@ non-executable-public-source, and 7 non-portfolio-publisher. Evidence refs:
 
 SEK is a state-owned export-credit financing institution rather than a U.S.
 ETF portfolio publisher, so no holdings route applies. The durable split remains
-496 registered / 413 native-live-backed / 83 fallback-only providers, with 12
-queued records and `towle` next. Runtime fallback statuses are 17
+496 registered / 413 native-live-backed / 83 fallback-only providers, with 11
+queued records and `trimtabs` next. Runtime fallback statuses are 18
 issuer-access-blocked, 52 route-discovery, 10 non-executable-public-source, and
 8 non-portfolio-publisher. Evidence ref:
 `web:swedish-export-credit-current-sek-pages-2026-09-04`.
+
+## Current audit checkpoint — Towle issuer-access-blocked TCV page — 2026-09-04
+
+Towle's official TCV page exposes a complete dated holdings table, but bounded
+backend-equivalent access is blocked by Cloudflare HTTP 403. No executable
+native route is promoted; `towle` remains an explicit `issuer_access_blocked`
+fallback. Evidence refs:
+`web:towle-current-tcv-holdings-page-2026-09-04` and
+`live:towle-current-tcv-holdings-page-2026-09-04-blocked`.
