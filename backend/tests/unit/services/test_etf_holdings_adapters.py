@@ -22144,6 +22144,7 @@ def test_etfdb_issuer_league_reconciliation_batch_is_registered_and_audited():
         "freedom",
         "fundstrat",
         "mig_capital",
+        "milliman",
     }
     fallback_expected = expected - promoted_native
 
@@ -22171,6 +22172,7 @@ def test_etfdb_issuer_league_continuation_batch_is_registered_and_audited():
         "everence",
         "hexis",
         "measured_risk_portfolios",
+        "milliman",
     }
 
     assert expected
@@ -22627,6 +22629,10 @@ def test_us_etf_promoter_universe_status_tracks_broad_market_target():
 
 def test_every_registered_adapter_can_probe_ready_with_sec_identifiers():
     for adapter_key, config in ISSUER_ADAPTER_CONFIGS.items():
+        if adapter_key == "milliman":
+            # Milliman is intentionally symbol-scoped to its two verified
+            # product pages and must not claim a route for an arbitrary symbol.
+            continue
         adapter = get_holdings_adapter(adapter_key)
         assert adapter is not None
 
@@ -24242,6 +24248,107 @@ async def test_militia_adapter_parses_orr_wpdatatable_holdings(monkeypatch):
         await adapter.fetch_latest(symbol="ORR", source_url="https://evil.example/")
     with pytest.raises(ValueError, match="No verified Militia current-holdings route"):
         await adapter.fetch_latest(symbol="NOT_ORR")
+
+
+@pytest.mark.asyncio
+async def test_milliman_adapter_parses_product_declared_mhip_csv(monkeypatch):
+    adapter = get_holdings_adapter("milliman")
+    assert adapter is not None
+    assert type(adapter).__name__ == "MillimanHoldingsAdapter"
+
+    page = """
+    <html><h1>MHIP</h1><h2>Milliman Healthcare Inflation Plus ETF</h2>
+    <a href="https://mfassets.millimanfunds.com/MHIP_Holdings_20260820.csv">View All Holdings</a>
+    </html>
+    """
+    csv_text = """Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag
+8/21/2026,MHIP,4GLD  261119C00351760,4GLD  261119C00351760,4GLD US 11/19/26 C351.76 FLX,4.00000000,69.331500,27732.60,0.02,1057060.00,50000,2.000000000000,False
+8/21/2026,MHIP,912797UZ8,912797UZ8,United States Treasury Bill 11/19/2026,156000.00000000,99.073125,154554.08,0.14,1057060.00,50000,2.000000000000,False
+8/21/2026,MHIP,XFIV,09789C838,BondBloxx Bloomberg Five Year Target Duration US Treasury ETF,2482.00000000,48.170000,119557.94,0.11,1057060.00,50000,2.000000000000,False
+"""
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=page, content_type="text/html", url="https://millimanfunds.com/etfs/mhip"
+        ),
+        FakeResponse(
+            text=csv_text,
+            content_type="text/csv",
+            url="https://mfassets.millimanfunds.com/MHIP_Holdings_20260820.csv",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="MHIP")
+
+    assert [url for url, _ in FakeAsyncClient.requested] == [
+        "https://millimanfunds.com/etfs/mhip",
+        "https://mfassets.millimanfunds.com/MHIP_Holdings_20260820.csv",
+    ]
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol is None
+    assert result.rows[0].row_type == "derivative"
+    assert result.rows[0].shares == Decimal("4.00000000")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].holding_type == "fixed_income"
+    assert result.rows[1].market_value == Decimal("154554.08")
+    assert result.rows[2].symbol == "XFIV"
+    assert result.rows[2].holding_type == "fund"
+    assert result.legal_metadata["source_provider"] == "milliman"
+    assert result.legal_metadata["route_resolution"] == (
+        "milliman_product_page_declared_dated_holdings_csv"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-08-21"
+    assert result.legal_metadata["holdings_url"].endswith("MHIP_Holdings_20260820.csv")
+
+    assert adapter.probe(symbol="MHIG", name="", identifiers={}).source_url.endswith("/mhig")
+    with pytest.raises(ValueError, match="No verified Milliman current-holdings route"):
+        await adapter.fetch_latest(symbol="OTHER")
+
+
+@pytest.mark.asyncio
+async def test_milliman_adapter_resolves_next_data_dated_csv_when_shell_omits_link(monkeypatch):
+    adapter = get_holdings_adapter("milliman")
+    next_data = json.dumps(
+        {
+            "props": {
+                "pageProps": {
+                    "top10HoldingsDate": "9/1/2026",
+                    "numberOfHoldings": 86,
+                    "top10Holdings": [{"Account": "MHIP", "StockTicker": "AAPL"}],
+                }
+            }
+        }
+    )
+    csv_text = (
+        "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,"
+        "SharesOutstanding,CreationUnits,MoneyMarketFlag\n"
+        "9/2/2026,MHIP,AAPL,037833100,Apple Inc,10,200,2000,0.01,200000,1000,1,False\n"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=f'<html><script id="__NEXT_DATA__" type="application/json">{next_data}</script></html>',
+            content_type="text/html",
+            url="https://millimanfunds.com/etfs/mhip",
+        ),
+        FakeResponse(
+            text=csv_text,
+            content_type="text/csv",
+            url="https://mfassets.millimanfunds.com/MHIP_Holdings_20260901.csv",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="MHIP")
+
+    assert [url for url, _ in FakeAsyncClient.requested] == [
+        "https://millimanfunds.com/etfs/mhip",
+        "https://mfassets.millimanfunds.com/MHIP_Holdings_20260901.csv",
+    ]
+    assert len(result.rows) == 1
+    assert result.rows[0].symbol == "AAPL"
+    assert result.legal_metadata["holdings_url"].endswith("MHIP_Holdings_20260901.csv")
 
 
 @pytest.mark.asyncio
@@ -26908,8 +27015,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 394
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 102
+    assert ledger["current_native_count"] == 395
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 101
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -26954,6 +27061,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "meridian",
         "mig_capital",
         "militia",
+        "milliman",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))

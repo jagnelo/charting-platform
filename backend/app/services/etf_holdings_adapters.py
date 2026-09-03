@@ -66735,6 +66735,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "Nuxt payload; data may be subject to issuer terms."
         ),
     ),
+    "milliman": IssuerCsvAdapterConfig(
+        adapter_key="milliman",
+        source_provider="milliman",
+        source_access="issuer_product_page_declared_dated_holdings_csv",
+        product_page_templates=("https://millimanfunds.com/etfs/{symbol_lower}",),
+        live_tested_default_route=True,
+        terms_note=(
+            "Milliman public ETF product pages declare dated holdings CSV artifacts; "
+            "data may be subject to issuer terms."
+        ),
+    ),
     "militia": IssuerCsvAdapterConfig(
         adapter_key="militia",
         source_provider="militia",
@@ -68857,7 +68868,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "merchant_investment_management",
         "merk",
         "merlyn_ai",
-        "milliman",
         "moonvest",
         "new_age_alpha",
         "nestyield",
@@ -70257,8 +70267,235 @@ class MigCapitalReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """ETFDB issuer-league fallback adapter pending MIG Capital route discovery."""
 
 
-class MillimanReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """ETFDB issuer-league fallback adapter pending Milliman route discovery."""
+class MillimanHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch MHIG/MHIP holdings from Milliman's product-declared CSV artifact."""
+
+    PROVIDER_DISPLAY_NAME = "Milliman"
+    PRODUCT_PAGE_URLS = {
+        "MHIG": "https://millimanfunds.com/etfs/mhig",
+        "MHIP": "https://millimanfunds.com/etfs/mhip",
+    }
+    EXPECTED_IDENTITIES = {
+        "MHIG": "Milliman Healthcare Inflation Guard ETF",
+        "MHIP": "Milliman Healthcare Inflation Plus ETF",
+    }
+    HOLDINGS_URL_PATTERN = re.compile(
+        r"https?://mfassets\.millimanfunds\.com/(?P<symbol>MHIG|MHIP)_Holdings_(?P<date>\d{8})\.csv",
+        re.IGNORECASE,
+    )
+    ROUTE_RESOLUTION = "milliman_product_page_declared_dated_holdings_csv"
+    SNAPSHOT_PROVENANCE = "milliman_native_product_declared_holdings_csv"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        source_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9600") if source_url else Decimal("0.3000"),
+            status="ready" if source_url else "needs_issuer_route",
+            reason=(
+                "Milliman's official product page declares a dated complete holdings CSV."
+                if source_url
+                else f"No verified Milliman product page is configured for {normalized_symbol}."
+            ),
+            source_url=source_url,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        if not product_page_url:
+            raise ValueError(
+                f"No verified Milliman current-holdings route is configured for {normalized_symbol}."
+            )
+        if source_url and source_url.rstrip("/") != product_page_url.rstrip("/"):
+            raise ValueError("Milliman holdings must use the matching verified product page.")
+
+        headers = _issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*")
+        try:
+            async with httpx.AsyncClient(
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
+            ) as client:
+                page_response = await client.get(
+                    product_page_url,
+                    headers=headers,
+                    follow_redirects=True,
+                )
+            page_response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 403:
+                raise
+            page_response = await asyncio.to_thread(
+                requests.get,
+                product_page_url,
+                headers=headers,
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                allow_redirects=True,
+            )
+            page_response.raise_for_status()
+
+        page_text = html.unescape(page_response.text)
+        expected_identity = self.EXPECTED_IDENTITIES[normalized_symbol]
+        holdings_url = next(
+            (
+                match.group(0)
+                for match in self.HOLDINGS_URL_PATTERN.finditer(page_text)
+                if match.group("symbol").upper() == normalized_symbol
+            ),
+            None,
+        )
+        identity_verified = bool(re.search(re.escape(expected_identity), page_text, re.IGNORECASE))
+        # The live Next.js response can be an HTML shell without the rendered
+        # product heading or the concrete link. Its serialized page props still
+        # carry the holdings date and top-holdings account, which is the same
+        # metadata used by the page's "View All Holdings" link generator.
+        next_data_match = re.search(
+            r'<script[^>]+id=["\']__NEXT_DATA__["\'][^>]*>(.*?)</script>',
+            page_text,
+            flags=re.S | re.I,
+        )
+        if next_data_match:
+            try:
+                next_payload = json.loads(html.unescape(next_data_match.group(1)))
+            except json.JSONDecodeError:
+                next_payload = None
+            page_props = (
+                next_payload.get("props", {}).get("pageProps", {})
+                if isinstance(next_payload, dict)
+                else {}
+            )
+            top_holdings = page_props.get("top10Holdings")
+            account_match = isinstance(top_holdings, list) and any(
+                isinstance(row, dict) and _clean(row.get("Account")) == normalized_symbol
+                for row in top_holdings
+            )
+            page_date = _parse_issuer_date(
+                page_props.get("top10HoldingsDate") or page_props.get("holdingsDate")
+            )
+            if account_match and page_date:
+                identity_verified = True
+                holdings_url = (
+                    f"https://mfassets.millimanfunds.com/"
+                    f"{normalized_symbol}_Holdings_{page_date:%Y%m%d}.csv"
+                )
+
+        if not identity_verified or not holdings_url:
+            # Milliman's Next.js export ships the product data in a route chunk
+            # rather than the initial HTML shell. Read only the bounded static
+            # chunks declared by that exact product page to resolve its dated
+            # holdings URL and identity.
+            chunk_paths = re.findall(r"/_next/static/[^\"']+\.js", page_text)
+            async with httpx.AsyncClient(
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
+            ) as client:
+                for chunk_path in dict.fromkeys(chunk_paths):
+                    chunk_response = await client.get(
+                        urljoin(product_page_url, chunk_path),
+                        headers=_issuer_page_request_headers(accept="application/javascript,*/*"),
+                        follow_redirects=True,
+                    )
+                    if chunk_response.status_code != 200:
+                        continue
+                    chunk_text = html.unescape(chunk_response.text)
+                    if not re.search(re.escape(expected_identity), chunk_text, re.IGNORECASE):
+                        continue
+                    holdings_url = next(
+                        (
+                            match.group(0)
+                            for match in self.HOLDINGS_URL_PATTERN.finditer(chunk_text)
+                            if match.group("symbol").upper() == normalized_symbol
+                        ),
+                        None,
+                    )
+                    if holdings_url:
+                        break
+        if not holdings_url:
+            if not identity_verified:
+                raise ValueError(
+                    f"Milliman product page identity did not match {normalized_symbol}."
+                )
+            raise ValueError(
+                f"Milliman product page did not declare a dated {normalized_symbol} holdings CSV."
+            )
+
+        result = await self._fetch_explicit_issuer_csv(
+            symbol=normalized_symbol,
+            issuer_product_id=normalized_symbol,
+            source_url=holdings_url,
+            identifiers=None,
+            route_resolution=self.ROUTE_RESOLUTION,
+        )
+        composition_date = self._composition_date(result.rows)
+        for index, row in enumerate(result.rows, start=1):
+            raw_symbol = _clean(_first(row.extra_data, ["StockTicker", "stockticker"]))
+            raw_name = _clean(_first(row.extra_data, ["SecurityName"])) or row.name
+            row.row_type, row.holding_type = self._classify_row(
+                raw_symbol=raw_symbol,
+                name=raw_name,
+            )
+            if row.row_type == "cash":
+                row.symbol = None
+                row.cusip = None
+            elif row.row_type == "derivative":
+                row.symbol = None
+            elif row.cusip and raw_symbol and raw_symbol.upper() == row.cusip.upper():
+                row.symbol = None
+            row.currency = "USD"
+            row.source_row_id = f"{normalized_symbol}:{composition_date.isoformat() if composition_date else 'current'}:{index}"
+            row.extra_data = {
+                **row.extra_data,
+                "source_ticker": raw_symbol,
+                "source": "milliman_product_page_declared_dated_holdings_csv",
+            }
+        result.raw_json = {
+            **(result.raw_json or {}),
+            "source_format": "issuer_declared_csv",
+            "row_count": len(result.rows),
+            "holdings_url": holdings_url,
+        }
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "source_format": "issuer_declared_csv",
+            "route_resolution": self.ROUTE_RESOLUTION,
+            "product_page_url": product_page_url,
+            "holdings_url": holdings_url,
+            "composition_date": composition_date.isoformat() if composition_date else None,
+            "as_of_date": composition_date.isoformat() if composition_date else None,
+            "snapshot_provenance": self.SNAPSHOT_PROVENANCE,
+            "source_quality": "issuer_reported_current_holdings",
+        }
+        return result
+
+    @staticmethod
+    def _composition_date(rows: list[CanonicalHoldingRow]) -> date | None:
+        for row in rows:
+            parsed = _parse_issuer_date(_first(row.extra_data, ["Date", "date"]))
+            if parsed:
+                return parsed
+        return None
+
+    @staticmethod
+    def _classify_row(*, raw_symbol: str | None, name: str | None) -> tuple[str, str]:
+        text = " ".join(value.upper() for value in (raw_symbol, name) if value)
+        if "CASH" in text or text in {"USD", "USD CASH"}:
+            return "cash", "cash"
+        if re.search(r"\b\d{2}/\d{2}/\d{2,4}\b.*\b[CP]\d", text) or " FLX" in text:
+            return "derivative", "derivative"
+        if any(marker in text for marker in (" ETF", " FUND", " TRUST")):
+            return "security", "fund"
+        if any(marker in text for marker in ("TREASURY", "BOND", "NOTE")):
+            return "security", "fixed_income"
+        return "security", "equity"
 
 
 class NicholasWealthReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -71992,7 +72229,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "mfs": MfsHoldingsAdapter,
         "mig_capital": MigCapitalHoldingsAdapter,
         "militia": MilitiaHoldingsAdapter,
-        "milliman": MillimanReconciledFallbackHoldingsAdapter,
+        "milliman": MillimanHoldingsAdapter,
         "moonvest": MoonvestReconciledFallbackHoldingsAdapter,
         "msc_group": MscGroupAuditedFallbackHoldingsAdapter,
         "new_age_alpha": NewAgeAlphaReconciledFallbackHoldingsAdapter,
