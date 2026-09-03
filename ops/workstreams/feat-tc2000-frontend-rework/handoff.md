@@ -262,3 +262,9 @@ worker regression asserting both the scheduled wrapper and underlying bootstrap 
 registered. The complete ARQ worker unit slice passes `21/21`; Ruff and diff checks pass. This
 ensures the existing bounded bootstrap can execute when enabled; it does not enable the schedule or
 claim provider-backed population.
+
+The startup queue resilience follow-up is `6997d6d81453062b65c1959b9aebb920b55ad86d`.
+`worker_startup` now catches a transient Redis enqueue exception, logs the bounded failure, and
+returns without taking the ARQ worker down. The worker unit slice passes `22/22`, including the
+failure regression; Ruff and diff checks pass. This keeps opt-in bootstrap availability explicit
+under queue outage and does not enable provider calls or alter schedule flags.
