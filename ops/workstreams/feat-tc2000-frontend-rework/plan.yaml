@@ -103,11 +103,11 @@ status: in_progress
 progress:
   completed: []
   total: 10
-  current_phase: baseline_sync
+  current_phase: R1_canonical_readiness
   current_blocker: none
-  next_action: "Run fresh R0 backend/frontend static and unit baselines, then reproduce the Golden Layout concern before selecting the first product gap."
+  next_action: "Inspect the existing benchmark-family coverage response and add an additive provider-neutral readiness matrix with explicit entitlement, composite, continuity, and unsupported-role semantics."
 remaining_gaps:
-  - "R0: fresh static, unit, browser, visual, and Golden Layout baseline receipts from the synchronized staging tip."
+  - "R0: baseline receipts are recorded; 11 Chromium flow failures and 21 visual screenshot diffs remain reproducible gaps for later phases."
   - "R1-R2: canonical family population/history/entitlement evidence and the live-data top-down trader workflow."
   - "R3-R4: historical analytics and compatible immutable-output promotion across workstation consumers."
   - "R5-R6: required visual states, window resilience, endurance, accessibility, security, and performance evidence."
