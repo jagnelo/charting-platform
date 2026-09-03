@@ -63,6 +63,41 @@ async def test_daily_history_refresh_delegates_to_canonical_batch_task(monkeypat
     assert calls == [{"redis": "test"}]
 
 
+@pytest.mark.asyncio
+async def test_bulk_history_worker_eager_loads_provider_bindings(monkeypatch):
+    calls = []
+    instrument = type("Instrument", (), {"symbol": "AAPL"})()
+
+    class Session:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def get(self, _model, _instrument_id, *, options=None):
+            calls.append(options)
+            return instrument
+
+    async def fake_bulk_fetch(db, loaded, timeframes, *, redis, cancel_key, end):
+        assert db is not None
+        assert loaded is instrument
+        return {"D1": 1}
+
+    monkeypatch.setattr("app.database.AsyncSessionLocal", lambda: Session())
+    monkeypatch.setattr("app.services.bulk_fetch.bulk_fetch_instrument", fake_bulk_fetch)
+
+    result = await arq_worker.task_bulk_fetch_instrument(
+        {"redis": "redis"},
+        42,
+        timeframes=["D1"],
+        end="2025-12-31T00:00:00+00:00",
+    )
+
+    assert result == {"D1": 1}
+    assert calls and len(calls[0]) == 2
+
+
 def test_worker_registers_history_refresh_function():
     assert arq_worker.scheduled_daily_history_refresh in arq_worker.WorkerSettings.functions
 

@@ -13,6 +13,7 @@ from datetime import UTC, datetime
 from arq import cron
 from arq.connections import RedisSettings
 from fastapi.encoders import jsonable_encoder
+from sqlalchemy.orm import selectinload
 
 from app.config import settings
 
@@ -39,7 +40,19 @@ async def task_bulk_fetch_instrument(
     from app.services.bulk_fetch import bulk_fetch_instrument, refresh_cancel_key
 
     async with AsyncSessionLocal() as db:
-        instrument = await db.get(Instrument, instrument_id)
+        # ``provider_symbol_for_instrument`` deliberately never triggers lazy
+        # loads: history jobs must resolve the canonical provider binding that
+        # was persisted during holdings reconciliation, not fall back to an
+        # internal HOLDING-* symbol just because this worker loaded a bare row.
+        # Keep both relationship collections available for every timeframe.
+        instrument = await db.get(
+            Instrument,
+            instrument_id,
+            options=[
+                selectinload(Instrument.provider_symbols),
+                selectinload(Instrument.listings),
+            ],
+        )
         if instrument is None:
             logger.warning(f"bulk_fetch: instrument {instrument_id} not found")
             return
