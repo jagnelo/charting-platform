@@ -198,3 +198,11 @@ This receipt validates the deterministic seeded browser path only. It does not c
 R1 provider-population/history gaps or establish live entitlement evidence. The earlier Docker
 socket-access failure remains retained as historical evidence; the daemon was subsequently
 restored sufficiently for the rebuilt stack and cleanup.
+
+The point-in-time readiness follow-up is `09eca9de46dd7f6ea72d3deda2c2891d35673f81`. A role with
+only a canonical ETF profile and no dated holdings snapshot now remains
+`point_in_time_supported=false` even when a caller supplies an `as_of` cutoff; the cutoff is a
+query boundary, not evidence. The focused regression passes, the complete benchmark-family
+integration contract remains green, and Ruff/diff checks pass. This prevents the readiness matrix
+from overstating historical support while leaving provider-free reads and explicit pending states
+unchanged.
