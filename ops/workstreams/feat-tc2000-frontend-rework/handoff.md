@@ -273,3 +273,13 @@ The full backend unit suite at the current implementation tip passes `1285/1285`
 coverage, above the repository `55%` gate. Existing NumPy/Pandas deprecation warnings remain the
 only warnings reported. This is deterministic local evidence; canonical provider population,
 historical continuity, and live entitlement proof remain open R1 requirements.
+
+The durable family-refresh queue-shape follow-up is `e764027a21dcaf3dcf347d4d16106a2d19c73095`.
+The multi-unit family refresh worker now returns the same bounded `queue_errors` and
+`queue_error_count` fields for whole history-queue exceptions and explicit no-snapshot units,
+while retaining the legacy error text for compatibility. Its worker unit slice passes `23/23`;
+Ruff and diff checks pass. The refresh run remains completed with provider/holdings outcomes intact.
+
+The complete backend unit suite was rerun after this worker change: `1286/1286` passed in `58.88s`
+with `67.33%` coverage, above the `55%` gate. The warning set remains limited to existing
+NumPy/Pandas deprecations.
