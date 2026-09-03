@@ -1598,3 +1598,15 @@ ETF page set.
 Counts remain 496 registered / 409 native / 87 fallback, with 22 queued and
 `segall_bryant_hamill` next. Evidence ref:
 `live:saturna-current-amana-etf-holdings-pages-2026-09-04-blocked`.
+
+## Current audit checkpoint — Segall Bryant & Hamill non-executable public source — 2026-09-04
+
+The official CI SBH ETF page identifies the USSE product and publishes
+prospectus/material links, but no complete current holdings table or executable
+holdings download is declared. Historical SEC filings are not promoted as a
+current route, so `segall_bryant_hamill` remains an explicit
+`non_executable_public_source` fallback.
+
+Counts remain 496 registered / 409 native / 87 fallback, with 21 queued and
+`siren` next. Evidence ref:
+`web:segall-bryant-hamill-current-etf-page-2026-09-04`.

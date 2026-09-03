@@ -1261,3 +1261,17 @@ fallback-only providers, with 22 queued records and
 issuer-access-blocked, 61 route-discovery, 7 non-executable-public-source, and
 7 non-portfolio-publisher. Evidence ref:
 `live:saturna-current-amana-etf-holdings-pages-2026-09-04-blocked`.
+
+## Current audit checkpoint — Segall Bryant & Hamill non-executable public source — 2026-09-04
+
+The official CI SBH ETF page identifies USSE and publishes prospectus/material
+links, but no complete current holdings table or executable holdings download
+is declared. Historical SEC filings are not promoted as a current route, so
+`segall_bryant_hamill` remains an explicit `non_executable_public_source`
+fallback.
+
+The durable split remains 496 registered / 409 native-live-backed / 87
+fallback-only providers, with 21 queued records and `siren` next. Runtime
+fallback statuses are 13 issuer-access-blocked, 60 route-discovery, 8
+non-executable-public-source, and 7 non-portfolio-publisher. Evidence ref:
+`web:segall-bryant-hamill-current-etf-page-2026-09-04`.

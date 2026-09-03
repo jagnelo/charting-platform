@@ -5317,17 +5317,18 @@ providers:
     display_name: segall_bryant_hamill
     queue_rank: 112
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: non_executable_public_source
+    disposition: non_executable_public_source
+    last_checked: 2026-09-04
     source_access_declared: issuer_public_holdings_file
     representative_symbols: []
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains: [cisbh.com]
+    candidate_routes:
+      - "https://cisbh.com/funds/etfs"
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -5342,8 +5343,12 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.segall_bryant_hamill"
-    disposition_reason: "segall_bryant_hamill: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate segall_bryant_hamill first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-04
+        source: "CI SBH official ETF page and current public materials"
+        result: "The official page identifies the USSE ETF and publishes prospectus/material links, but no complete current holdings table or executable holdings download is declared; SEC filings are historical and are not promoted as a current route."
+        evidence_ref: "web:segall-bryant-hamill-current-etf-page-2026-09-04"
+    disposition_reason: "segall_bryant_hamill: CI SBH's official ETF page identifies USSE but exposes no complete current holdings table or executable holdings download. Preserve the fallback as non-executable public source and do not reconstruct current holdings from historical SEC filings."
+    next_action: "segall_bryant_hamill: Re-audit the official CI SBH page for a declared complete current holdings artifact; promote only after an executable route with proven mapping and freshness."
     implementation_sha: null
     validation_refs: []
   - adapter_key: siren
