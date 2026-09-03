@@ -27593,6 +27593,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "robo_global",
         "rockefeller_capital",
         "saba_capital",
+        "sammons_enterprises",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))

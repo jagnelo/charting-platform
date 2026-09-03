@@ -2424,3 +2424,16 @@ Counts are 496 registered / 407 native / 89 fallback, with 25 queued and
 `sammons_enterprises` next. Evidence refs:
 `web:saba-cefs-current-nuxt-holdings-2026-09-03` and
 `live:saba-cefs-current-nuxt-holdings-2026-09-03`.
+
+## Current promotion checkpoint — Beacon / Sammons BTR-BSR-BTA CSV routes — 2026-09-04
+
+The official Beacon Tactical Risk (BTR), Unified Catalyst (BSR), and Tactical
+Alternatives (BTA) pages declare complete Craft CDN holdings CSVs. The three
+current files returned parseable September 1, 2026 rows; the native adapter
+validates each exact product-page/link pair and records Beacon Capital
+Management / Sammons provenance.
+
+Counts are 496 registered / 408 native / 88 fallback, with 24 queued and
+`sapient` next. Evidence refs:
+`web:beacon-sammons-current-btr-bsr-bta-pages-2026-09-03` and
+`live:beacon-sammons-current-holdings-csv-2026-09-03`.

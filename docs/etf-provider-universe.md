@@ -1555,3 +1555,19 @@ issuer-access-blocked, 64 route-discovery, 7 non-executable-public-source, and
 7 non-portfolio-publisher. Evidence refs:
 `web:saba-cefs-current-nuxt-holdings-2026-09-03` and
 `live:saba-cefs-current-nuxt-holdings-2026-09-03`.
+
+## Current promotion checkpoint — Beacon / Sammons BTR-BSR-BTA CSV routes — 2026-09-04
+
+Beacon Investing Funds' official Tactical Risk (BTR), Unified Catalyst (BSR),
+and Tactical Alternatives (BTA) pages each declare a complete holdings CSV on
+the issuer's Craft CDN. All three CSVs returned current parseable rows dated
+September 1, 2026, with exact product-page and declared-link validation.
+
+The ledger records `sammons_enterprises` as `native_promoted` with Beacon
+Capital Management / Sammons provenance and no SEC reconstruction. Current
+state is 496 registered / 408 native-live-backed / 88 fallback-only, with 24
+queued records and `sapient` next. Runtime fallback statuses are 12
+issuer-access-blocked, 63 route-discovery, 7 non-executable-public-source, and
+7 non-portfolio-publisher. Evidence refs:
+`web:beacon-sammons-current-btr-bsr-bta-pages-2026-09-03` and
+`live:beacon-sammons-current-holdings-csv-2026-09-03`.

@@ -5,9 +5,9 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 407
-current_fallback_count: 89
-generated_at: 2026-09-03T22:00:00Z
+current_native_count: 408
+current_fallback_count: 88
+generated_at: 2026-09-04T00:00:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -5186,35 +5186,47 @@ providers:
     display_name: sammons_enterprises
     queue_rank: 109
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-03
+    source_access_declared: issuer_product_page_declared_complete_holdings_csv
+    representative_symbols: [BTR, BSR, BTA]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    source_freshness: daily
+    first_party_domains: [beaconinvestingfunds.com, cdn.craft.cloud]
+    candidate_routes:
+      - "https://beaconinvestingfunds.com/funds/tactical-risk"
+      - "https://beaconinvestingfunds.com/funds/unified-catalyst"
+      - "https://beaconinvestingfunds.com/funds/tactical-alternatives"
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: "backend/tests/unit/services/test_etf_holdings_adapters.py::test_sammons_enterprises_adapter_fetches_declared_beacon_csv"
+    live_test: "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows"
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.sammons_enterprises"
       - "runtime:ISSUER_ADAPTER_CONFIGS.sammons_enterprises"
+      - "web:beacon-sammons-current-btr-bsr-bta-pages-2026-09-03"
+      - "live:beacon-sammons-current-holdings-csv-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.sammons_enterprises"
-    disposition_reason: "sammons_enterprises: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate sammons_enterprises first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
-    implementation_sha: null
-    validation_refs: []
+      - date: 2026-09-03
+        source: "Beacon Investing Funds official BTR, BSR, and BTA pages and declared Craft CDN holdings CSVs"
+        result: "All three product pages declared complete current CSVs dated September 1, 2026; the provider-specific adapter validated each page/link pair and parsed the current rows."
+        evidence_ref: "web:beacon-sammons-current-btr-bsr-bta-pages-2026-09-03"
+    disposition_reason: "sammons_enterprises: Sammons-associated Beacon BTR, BSR, and BTA product pages declare complete fund-scoped daily holdings CSVs. The native adapter validates exact product/link pairs and parses current holdings without SEC reconstruction, preserving Beacon/Sammons publisher provenance."
+    next_action: "sammons_enterprises: Monitor the three Beacon product pages, declared CDN filenames, schemas, and composition-date continuity; add future products only after equivalent route and live evidence."
+    implementation_sha: bf44fd3e9d88d82532aaae2a96265ec3b65a1fb0
+    validation_refs:
+      - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_sammons_enterprises_adapter_fetches_declared_beacon_csv"
+      - "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows"
+      - "validation:2026-09-04T00:00:00Z"
   - adapter_key: sapient
     display_name: sapient
     queue_rank: 110
