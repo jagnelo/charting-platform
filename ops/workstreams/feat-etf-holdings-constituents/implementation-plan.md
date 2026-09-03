@@ -2451,3 +2451,15 @@ Counts are 496 registered / 409 native / 87 fallback, with 23 queued and
 `saturna` next. Evidence refs:
 `web:sapient-current-sqs-holdings-html-table-2026-09-04` and
 `live:sapient-current-sqs-holdings-html-table-2026-09-04`.
+
+## Current audit checkpoint — Saturna issuer-access-blocked Amana pages — 2026-09-04
+
+Saturna Capital's official AMEI, AMGR, and AMEM pages document current
+holdings tables, but bounded backend-equivalent requests received HTTP 403 from
+the issuer WAF for all three routes. Saturna remains an explicit
+`issuer_access_blocked` fallback; AMSU is not currently present in the active
+ETF page set.
+
+Counts are 496 registered / 409 native / 87 fallback, with 22 queued and
+`segall_bryant_hamill` next. Evidence ref:
+`live:saturna-current-amana-etf-holdings-pages-2026-09-04-blocked`.

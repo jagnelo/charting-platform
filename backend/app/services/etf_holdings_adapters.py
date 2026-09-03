@@ -71872,7 +71872,7 @@ class PzenaReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
 
 class SaturnaReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """ETFDB issuer-league fallback adapter pending Saturna route discovery."""
+    """ETFDB issuer-league fallback adapter blocked by Saturna's public WAF."""
 
 
 class VegaFinancialReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):

@@ -1246,3 +1246,18 @@ issuer-access-blocked, 62 route-discovery, 7 non-executable-public-source, and
 7 non-portfolio-publisher. Evidence refs:
 `web:sapient-current-sqs-holdings-html-table-2026-09-04` and
 `live:sapient-current-sqs-holdings-html-table-2026-09-04`.
+
+## Current audit checkpoint — Saturna issuer-access-blocked Amana pages — 2026-09-04
+
+Saturna Capital's official AMEI, AMGR, and AMEM pages document current
+holdings tables, but both bounded backend transports received HTTP 403 from
+the issuer WAF for all three routes. Saturna remains an explicit
+`issuer_access_blocked` fallback; AMSU is not currently present in the active
+ETF page set.
+
+The durable split remains 496 registered / 409 native-live-backed / 87
+fallback-only providers, with 22 queued records and
+`segall_bryant_hamill` next. Runtime fallback statuses are 13
+issuer-access-blocked, 61 route-discovery, 7 non-executable-public-source, and
+7 non-portfolio-publisher. Evidence ref:
+`live:saturna-current-amana-etf-holdings-pages-2026-09-04-blocked`.
