@@ -3013,7 +3013,8 @@ providers:
     disposition_reason: "hoya: Hoya's official HOMZ and RIET pages and their linked complete holdings workbooks prove a current route, but the queued StockAnalysis Hoya identity is an alternate brand/provider spelling for the existing native pettee adapter and not a distinct portfolio publisher. The native route validates both symbols and records Hoya Capital Real Estate provenance; creating a duplicate hoya adapter would split ownership and misstate coverage."
     next_action: "hoya: Keep fallback-only as an inactive_or_successor alias and resolve HOMZ and RIET references to the existing native pettee adapter; extend that native owner only when additional Hoya products gain equivalent identity-verified current holdings routes, and do not create a duplicate hoya adapter."
     implementation_sha: null
-    validation_refs: []
+    validation_refs:
+      - "validation:2026-09-03T01:57:46Z"
   - adapter_key: jlens
     display_name: jlens
     queue_rank: 65
