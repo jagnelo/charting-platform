@@ -24,6 +24,7 @@ from app.schemas.workstation import (
     InstrumentReferenceOut,
     MarketGroupOut,
 )
+from app.services.etf_holdings import is_equity_holding_type, normalize_holding_type
 from app.services.top_down_taxonomy import (
     industry_proxy_candidates,
     seed_top_down_taxonomy,
@@ -37,8 +38,8 @@ router = APIRouter(prefix="/market-groups", tags=["market-groups"])
 def _holding_exclusion_code(row: ETFHolding) -> str | None:
     """Return the explicit reason a holding cannot be an equity taxonomy member."""
 
-    holding_type = str(row.holding_type or "").strip().casefold()
-    row_type = str(row.row_type or "").strip().casefold()
+    holding_type = normalize_holding_type(row.holding_type)
+    row_type = normalize_holding_type(row.row_type)
     if row_type == "cash" or holding_type in {"cash", "currency", "collateral"}:
         return "cash_holding"
     if holding_type in {"derivative", "derivatives", "option", "future", "swap"}:
@@ -48,7 +49,7 @@ def _holding_exclusion_code(row: ETFHolding) -> str | None:
     # coverage denominator where the constituent endpoint cannot return it.
     if not row.is_resolved or row.constituent_instrument_id is None:
         return "unresolved_holding"
-    if row_type != "security" or holding_type not in {"equity", "stock", "common_stock"}:
+    if row_type != "security" or not is_equity_holding_type(row.holding_type):
         return "non_equity_holding"
     return None
 

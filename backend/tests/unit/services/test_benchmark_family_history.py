@@ -174,6 +174,37 @@ async def test_queue_snapshot_member_history_deduplicates_canonical_members_and_
 
 
 @pytest.mark.asyncio
+async def test_queue_snapshot_member_history_accepts_issuer_equity_label_variants():
+    class Result:
+        def all(self):
+            return [
+                (101, 10, "security", "common stock", True),
+                (101, 20, "security", "real estate investment trust", True),
+                (101, 30, "security", "money market fund, taxable", True),
+            ]
+
+    class Session:
+        async def execute(self, _statement):
+            return Result()
+
+    class Redis:
+        def __init__(self):
+            self.calls = []
+
+        async def enqueue_job(self, *args, **kwargs):
+            self.calls.append((args, kwargs))
+            return object()
+
+    redis = Redis()
+    result = await history.queue_snapshot_member_history(Session(), redis, [101])
+
+    assert result["available_instrument_count"] == 2
+    assert result["selected_instrument_count"] == 2
+    assert result["unresolved_count"] == 1
+    assert [call[0][1] for call in redis.calls] == [10, 20]
+
+
+@pytest.mark.asyncio
 async def test_queue_snapshot_member_history_retains_member_queue_errors_and_continues():
     class Result:
         def all(self):

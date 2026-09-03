@@ -138,6 +138,7 @@ from app.services.breadth import (
     evaluate_breadth,
     evaluate_breadth_history,
 )
+from app.services.etf_holdings import EQUITY_HOLDING_TYPE_VALUES
 from app.services.etf_holdings_adapters import get_holdings_adapter, known_etf_route_metadata
 from app.services.indicators import OHLCVSeries, get_latest_value
 from app.services.market_map import build_market_map, read_market_map_cache
@@ -193,7 +194,7 @@ async def _family_member_bar_history(
             .where(
                 ETFHolding.snapshot_id == snapshot.id,
                 ETFHolding.row_type == "security",
-                ETFHolding.holding_type.in_(("equity", "stock", "common_stock")),
+                ETFHolding.holding_type.in_(EQUITY_HOLDING_TYPE_VALUES),
                 ETFHolding.is_resolved.is_(True),
                 ETFHolding.constituent_instrument_id.is_not(None),
             )
@@ -303,7 +304,7 @@ async def _family_member_metadata_readiness(
             .where(
                 ETFHolding.snapshot_id == snapshot.id,
                 ETFHolding.row_type == "security",
-                ETFHolding.holding_type.in_(("equity", "stock", "common_stock")),
+                ETFHolding.holding_type.in_(EQUITY_HOLDING_TYPE_VALUES),
                 ETFHolding.is_resolved.is_(True),
                 ETFHolding.constituent_instrument_id.is_not(None),
             )

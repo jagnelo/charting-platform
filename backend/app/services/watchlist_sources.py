@@ -20,6 +20,7 @@ from app.models.user import User
 from app.models.watchlist import Watchlist
 from app.models.workstation import MarketGroup, WorkspaceLibraryItem
 from app.schemas.watchlist import WatchlistSourceRead
+from app.services.etf_holdings import is_equity_holding_type, normalize_holding_type
 
 PENDING_SOURCE_AVAILABILITIES = frozenset(
     {
@@ -1182,7 +1183,7 @@ async def resolve_watchlist_source(
             holding
             for holding in rows
             if holding.row_type == "security"
-            and holding.holding_type in {"equity", "stock", "common_stock"}
+            and is_equity_holding_type(holding.holding_type)
             and holding.is_resolved
             and holding.constituent_instrument_id is not None
         ]
@@ -1190,15 +1191,15 @@ async def resolve_watchlist_source(
         members: list[ResolvedWatchlistMember] = []
         exclusions: list[dict] = []
         for holding in rows:
-            holding_type = str(holding.holding_type or "").casefold()
-            row_type = str(holding.row_type or "").casefold()
+            holding_type = normalize_holding_type(holding.holding_type)
+            row_type = normalize_holding_type(holding.row_type)
             if row_type == "cash" or holding_type in {"cash", "currency", "collateral"}:
                 exclusions.append({"holding_id": holding.id, "reason": "cash_holding"})
                 continue
             if holding_type in {"derivative", "derivatives", "option", "future", "swap"}:
                 exclusions.append({"holding_id": holding.id, "reason": "derivative_holding"})
                 continue
-            if row_type != "security" or holding_type not in {"equity", "stock", "common_stock"}:
+            if row_type != "security" or not is_equity_holding_type(holding.holding_type):
                 exclusions.append({"holding_id": holding.id, "reason": "non_equity_holding"})
                 continue
             if not holding.is_resolved or holding.constituent_instrument_id is None:
@@ -1340,15 +1341,15 @@ async def resolve_watchlist_source(
         members: list[ResolvedWatchlistMember] = []
         exclusions: list[dict] = []
         for holding in rows:
-            holding_type = str(holding.holding_type or "").casefold()
-            row_type = str(holding.row_type or "").casefold()
+            holding_type = normalize_holding_type(holding.holding_type)
+            row_type = normalize_holding_type(holding.row_type)
             if row_type == "cash" or holding_type in {"cash", "currency", "collateral"}:
                 exclusions.append({"holding_id": holding.id, "reason": "cash_holding"})
                 continue
             if holding_type in {"derivative", "derivatives", "option", "future", "swap"}:
                 exclusions.append({"holding_id": holding.id, "reason": "derivative_holding"})
                 continue
-            if row_type != "security" or holding_type not in {"equity", "stock", "common_stock"}:
+            if row_type != "security" or not is_equity_holding_type(holding.holding_type):
                 exclusions.append({"holding_id": holding.id, "reason": "non_equity_holding"})
                 continue
             if not holding.is_resolved or holding.constituent_instrument_id is None:

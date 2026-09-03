@@ -3118,6 +3118,56 @@ def test_admin_dated_refresh_returns_capability_conflict_for_unresolved_route(
     assert "No configured free issuer adapter" in detail["message"]
 
 
+def test_admin_dated_refresh_reuses_probe_state_when_fetch_fails(
+    client, admin_headers, monkeypatch
+):
+    """A failed dated fetch must update the probed adapter row, not insert a duplicate."""
+
+    from app.services.etf_holdings_adapters import HoldingsAdapterProbe
+
+    class FailingAdapter:
+        adapter_key = "spdr"
+        source_provider = "spdr"
+
+        def probe(self, *, symbol, name, identifiers):
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=1,
+                status="ready",
+                source_url="https://issuer.example/latest.xlsx",
+            )
+
+        async def fetch_for_date(self, **kwargs):
+            raise ValueError("dated holdings route is unavailable")
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.get_holdings_adapter",
+        lambda adapter_key: FailingAdapter() if adapter_key == "spdr" else None,
+    )
+
+    profile = client.patch(
+        "/api/v1/etf-holdings/SPY/profile",
+        json={"issuer": "State Street Global Advisors"},
+        headers=admin_headers,
+    )
+    assert profile.status_code == 200
+
+    with pytest.raises(ValueError, match="dated holdings route is unavailable"):
+        client.post(
+            "/api/v1/etf-holdings/SPY/refresh-date",
+            json={"requested_date": "2026-08-31"},
+            headers=admin_headers,
+        )
+
+    state = client.get("/api/v1/etf-holdings/SPY/adapter-state", headers=admin_headers)
+    assert state.status_code == 200
+    body = state.json()
+    assert len(body) == 1
+    assert body[0]["adapter_key"] == "spdr"
+    assert body[0]["status"] == "failure"
+    assert body[0]["failure_reason"] == "dated holdings route is unavailable"
+
+
 def test_profile_ticker_alone_does_not_guess_issuer_adapter(client, admin_headers):
     profile = client.patch(
         "/api/v1/etf-holdings/VOO/profile",

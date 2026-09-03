@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections import defaultdict
 from datetime import UTC, date, datetime, time
 from decimal import Decimal
@@ -65,6 +66,33 @@ from app.services.instrument_mastering import (
 )
 
 ETF_HOLDINGS_INTERNAL_PROVIDER = "etf_holdings_internal"
+
+# Issuer feeds do not share one spelling for ordinary equity holdings. Keep
+# the persisted raw label for auditability, but normalize eligibility checks at
+# the read/queue boundary (for example, Invesco reports ``common stock`` while
+# SPDR reports ``equity``).
+EQUITY_HOLDING_TYPES = frozenset(
+    {
+        "equity",
+        "stock",
+        "common_stock",
+        "real_estate_investment_trust",
+    }
+)
+EQUITY_HOLDING_TYPE_VALUES = tuple(
+    sorted(EQUITY_HOLDING_TYPES | {"common stock", "real estate investment trust"})
+)
+
+
+def normalize_holding_type(value: str | None) -> str:
+    """Normalize issuer holding-type labels without changing their audit value."""
+
+    text = str(value or "").strip().casefold()
+    return "_".join(part for part in re.split(r"[^a-z0-9]+", text) if part)
+
+
+def is_equity_holding_type(value: str | None) -> bool:
+    return normalize_holding_type(value) in EQUITY_HOLDING_TYPES
 
 
 def _now() -> datetime:
@@ -1219,7 +1247,11 @@ async def reconcile_snapshot_constituents(
     snapshot.resolved_count = resolved
     snapshot.unresolved_count = unresolved
     await db.flush()
-    await db.refresh(snapshot)
+    # Keep the eagerly loaded ``rows``/constituent relationships attached to
+    # this async-session instance.  Refreshing the parent here expires that
+    # collection; the next access would attempt an implicit lazy load and
+    # raise ``MissingGreenlet`` in the bounded classification maintenance job.
+    # The scalar counters above are already synchronized by the flush.
     return snapshot
 
 

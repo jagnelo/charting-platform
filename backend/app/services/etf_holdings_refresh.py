@@ -1906,14 +1906,30 @@ def _rate_limit_state_for_failure(exc: Exception | str) -> str | None:
 
 async def _record_failure(db: AsyncSession, profile: ETFProfile, failure: Exception | str) -> None:
     adapter_key = profile.adapter_key or "unresolved"
-    state = (
-        await db.execute(
-            select(ETFHoldingsAdapterState).where(
-                ETFHoldingsAdapterState.etf_profile_id == profile.id,
-                ETFHoldingsAdapterState.adapter_key == adapter_key,
+    # The request-scoped async session deliberately disables autoflush.  A
+    # preceding adapter probe can therefore leave its new state row in
+    # ``session.new`` without making it visible to this SELECT.  Reusing that
+    # pending object avoids a second INSERT against the unique
+    # (etf_profile_id, adapter_key) constraint when the dated fetch fails.
+    state = next(
+        (
+            pending
+            for pending in getattr(db, "new", ())
+            if isinstance(pending, ETFHoldingsAdapterState)
+            and pending.etf_profile_id == profile.id
+            and pending.adapter_key == adapter_key
+        ),
+        None,
+    )
+    if state is None:
+        state = (
+            await db.execute(
+                select(ETFHoldingsAdapterState).where(
+                    ETFHoldingsAdapterState.etf_profile_id == profile.id,
+                    ETFHoldingsAdapterState.adapter_key == adapter_key,
+                )
             )
-        )
-    ).scalar_one_or_none()
+        ).scalar_one_or_none()
     if state is None:
         state = ETFHoldingsAdapterState(etf_profile_id=profile.id, adapter_key=adapter_key)
         db.add(state)

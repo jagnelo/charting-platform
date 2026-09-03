@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.etf_holdings import ETFHolding
 from app.models.ohlcv import Timeframe
+from app.services.etf_holdings import is_equity_holding_type
 from app.services.top_down_taxonomy import BENCHMARK_FAMILY_REGISTRY
 from app.services.watchlist_sources import (
     PENDING_SOURCE_AVAILABILITIES,
@@ -258,7 +259,7 @@ async def queue_snapshot_member_history(
     for _snapshot_id, instrument_id, row_type, holding_type, is_resolved in rows:
         if (
             row_type != "security"
-            or holding_type not in {"equity", "stock", "common_stock"}
+            or not is_equity_holding_type(holding_type)
             or not is_resolved
             or instrument_id is None
         ):
