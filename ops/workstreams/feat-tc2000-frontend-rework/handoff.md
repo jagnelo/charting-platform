@@ -475,3 +475,7 @@ missing-instrument warnings. This proves the snapshot-to-history handoff and ide
 lifecycle, not member-bar readiness: the local free-provider runtime returned zero MN/W1/D1 bars
 for all 101 jobs, so no OHLCV bars were persisted. That remains an explicit R1 data-availability
 gap; no paid credential, latest-only fallback, or fabricated bar was introduced.
+
+The QQQ validation stack was then removed with the prescribed `make test-stack-down` helper:
+zero containers and retained volumes remained, four generated images were removed, no host-wide
+prune was performed, and the disposable local admin token was deleted.
