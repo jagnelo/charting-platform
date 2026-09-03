@@ -392,9 +392,7 @@ async def test_dated_refresh_preserves_provider_snapshot_metadata(monkeypatch):
         "app.services.etf_holdings_refresh.get_holdings_adapter",
         lambda key: FakeAdapter() if key == "invesco" else None,
     )
-    monkeypatch.setattr(
-        "app.services.etf_holdings_refresh.ingest_holdings_snapshot", fake_ingest
-    )
+    monkeypatch.setattr("app.services.etf_holdings_refresh.ingest_holdings_snapshot", fake_ingest)
     monkeypatch.setattr("app.services.etf_holdings_refresh._record_success", fake_record_success)
 
     result = await refresh_etf_holdings_for_date(

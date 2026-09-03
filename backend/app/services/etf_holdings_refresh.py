@@ -969,8 +969,7 @@ async def refresh_etf_holdings_for_date(
             as_of_date=requested_date,
             known_at=datetime.now(UTC),
             provenance=str(
-                result_metadata.get("snapshot_provenance")
-                or "issuer_self_snapshotted_holdings"
+                result_metadata.get("snapshot_provenance") or "issuer_self_snapshotted_holdings"
             ),
             source_provider=str(source_provider),
             source_url=fetch_result.source_url,
@@ -986,8 +985,7 @@ async def refresh_etf_holdings_for_date(
                 or "unknown"
             ),
             parser_version=str(
-                result_metadata.get("parser_version")
-                or f"{adapter.adapter_key}-{source_format}-v1"
+                result_metadata.get("parser_version") or f"{adapter.adapter_key}-{source_format}-v1"
             ),
             raw_payload_text=fetch_result.raw_text,
             raw_payload_json=fetch_result.raw_json,

@@ -78,9 +78,7 @@ def test_core_workstation_identity_bootstrap_is_idempotent_and_not_fixture_data(
         profile.legal_metadata["holdings_membership_status"] == "not_loaded" for profile in profiles
     )
     profiles_by_symbol = {
-        profile.instrument.symbol: profile
-        for profile in profiles
-        if profile.instrument is not None
+        profile.instrument.symbol: profile for profile in profiles if profile.instrument is not None
     }
     assert profiles_by_symbol["SPY"].adapter_key == "spdr"
     assert profiles_by_symbol["RSP"].adapter_key == "invesco"

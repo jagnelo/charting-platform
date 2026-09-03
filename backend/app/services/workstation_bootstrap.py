@@ -198,9 +198,7 @@ async def ensure_core_workstation_identities(db: AsyncSession) -> dict:
             route_aliases = route_metadata.get("provider_aliases") or {}
             provider_aliases = {
                 **(
-                    existing_provider_aliases
-                    if isinstance(existing_provider_aliases, dict)
-                    else {}
+                    existing_provider_aliases if isinstance(existing_provider_aliases, dict) else {}
                 ),
                 **(route_aliases if isinstance(route_aliases, dict) else {}),
             }

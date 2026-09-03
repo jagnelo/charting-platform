@@ -294,23 +294,27 @@ async def _family_member_metadata_readiness(
     if snapshot is None:
         return 0, 0, "unavailable", 0, "unavailable"
     rows = (
-        await db.execute(
-            select(ETFHolding)
-            .options(
-                selectinload(ETFHolding.constituent_instrument).selectinload(
-                    Instrument.equity_detail
+        (
+            await db.execute(
+                select(ETFHolding)
+                .options(
+                    selectinload(ETFHolding.constituent_instrument).selectinload(
+                        Instrument.equity_detail
+                    )
                 )
+                .where(
+                    ETFHolding.snapshot_id == snapshot.id,
+                    ETFHolding.row_type == "security",
+                    ETFHolding.holding_type.in_(EQUITY_HOLDING_TYPE_VALUES),
+                    ETFHolding.is_resolved.is_(True),
+                    ETFHolding.constituent_instrument_id.is_not(None),
+                )
+                .order_by(ETFHolding.position)
             )
-            .where(
-                ETFHolding.snapshot_id == snapshot.id,
-                ETFHolding.row_type == "security",
-                ETFHolding.holding_type.in_(EQUITY_HOLDING_TYPE_VALUES),
-                ETFHolding.is_resolved.is_(True),
-                ETFHolding.constituent_instrument_id.is_not(None),
-            )
-            .order_by(ETFHolding.position)
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     member_count = len(rows)
     if not member_count:
         return 0, 0, "unavailable", 0, "unavailable"
@@ -325,7 +329,11 @@ async def _family_member_metadata_readiness(
             classified_count += 1
             continue
         evidence = (detail.field_provenance or {}).get("industry")
-        observed_text = evidence.get("observed_at") or evidence.get("known_at") if isinstance(evidence, dict) else None
+        observed_text = (
+            evidence.get("observed_at") or evidence.get("known_at")
+            if isinstance(evidence, dict)
+            else None
+        )
         if not observed_text:
             continue
         try:
@@ -338,11 +346,7 @@ async def _family_member_metadata_readiness(
             classified_count += 1
 
     weights_status = (
-        "ready"
-        if weighted_count == member_count
-        else "partial"
-        if weighted_count
-        else "pending"
+        "ready" if weighted_count == member_count else "partial" if weighted_count else "pending"
     )
     classification_status = (
         "ready"
@@ -3751,19 +3755,23 @@ async def benchmark_family_coverage(
             )
             source = sources.get(selected_snapshot.data_source_id) if selected_snapshot else None
             if selected_snapshot is not None:
-                entitlement_source = sources_by_name.get(
-                    selected_snapshot.source_provider.strip().lower()
-                ) or source
+                entitlement_source = (
+                    sources_by_name.get(selected_snapshot.source_provider.strip().lower()) or source
+                )
             if selected_snapshot is not None:
                 holdings_entitlement = entitlements.get(
                     (
-                        entitlement_source.id if entitlement_source is not None else selected_snapshot.data_source_id,
+                        entitlement_source.id
+                        if entitlement_source is not None
+                        else selected_snapshot.data_source_id,
                         ProviderCapability.UNIVERSE_DISCOVERY,
                     )
                 )
                 price_entitlement = entitlements.get(
                     (
-                        entitlement_source.id if entitlement_source is not None else selected_snapshot.data_source_id,
+                        entitlement_source.id
+                        if entitlement_source is not None
+                        else selected_snapshot.data_source_id,
                         ProviderCapability.PRICE_HISTORY,
                     )
                 )
@@ -3953,7 +3961,9 @@ async def benchmark_family_coverage(
                 entitlement_live_probe_status=(
                     entitlement_record.live_probe_status if entitlement_record else None
                 ),
-                holdings_refresh_status=(adapter_state.status if adapter_state else "not_attempted"),
+                holdings_refresh_status=(
+                    adapter_state.status if adapter_state else "not_attempted"
+                ),
                 holdings_refresh_provider=(
                     selected_snapshot.source_provider
                     if selected_snapshot is not None
