@@ -136,3 +136,9 @@ provider. When a selected snapshot has no linked source, the most recent adapter
 identify the attempted source and entitlement context; absent state remains explicitly
 `not_attempted`. This keeps scheduled refresh evidence actionable while interactive reads stay
 provider-neutral.
+
+The scheduled family/date worker hardening checkpoint is `e503afe11297180ebd1af5e3887c8c8e518e2b8e`.
+Its history handoff now retains a structured `queue_error` result (including snapshot IDs and a
+bounded error string) when member-history enqueueing fails, then commits and returns the completed
+holdings refresh evidence. A regression test covers this failure path so one queue failure remains
+local evidence and cannot erase the rest of the unit result or suppress later scheduled roots.
