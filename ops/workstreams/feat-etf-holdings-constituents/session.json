@@ -43,18 +43,7 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-45bdf9bd8d"
   },
-  "dirty_paths": [
-    "backend/app/services/etf_holdings_adapters.py",
-    "backend/tests/live/test_etf_holdings_live_providers.py",
-    "backend/tests/unit/services/test_etf_holdings_adapters.py",
-    "docs/etf-provider-universe.md",
-    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-    "ops/workstreams/feat-etf-holdings-constituents/implementation-plan.md",
-    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/provider-audit.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/session.json",
-    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -91,9 +80,9 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "726ed30eb3834477d8d2cd59674ae6903c7f6baf",
+  "head": "1e3d2211b4da0f6847595d03210f07aaa5965e87",
   "implementation_sha": "a09d8be6a1b6290e32dcb43bc40920b456c6088e",
-  "last_checkpoint": "2026-09-04T22:15:00+00:00",
+  "last_checkpoint": "2026-09-03T13:00:42.964723+00:00",
   "last_human_progress_update": "2026-09-03T04:36:00.000000+00:00",
   "local_validation_profile": "docker_integration",
   "next_action": "run final deterministic, default-live, opt-in-live, Docker integration, and exact-SHA validation; reconcile durable records and stop at ready_for_human_review",
