@@ -1457,3 +1457,11 @@ periodic. The provider remains non-executable; the durable split is 496
 registered / 414 native-live-backed / 82 fallback-only, with 5 queued records
 and `vega_financial` next. Evidence ref:
 `web:us-benchmark-series-current-fm-pages-2026-09-04`.
+
+## Current audit checkpoint — VegaShares non-executable complete route — 2026-09-04
+
+VegaShares' official pages publish current top-ten holdings and a full-holdings
+affordance, but no resolvable complete artifact is declared in the bounded
+response. The durable split remains 496 registered / 414 native-live-backed /
+82 fallback-only providers, with 4 queued records and `vistashares` next.
+Evidence ref: `web:vega-shares-current-product-pages-2026-09-04`.

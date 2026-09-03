@@ -1725,3 +1725,10 @@ the bounded product-page holdings section is empty and available downloads are
 periodic. The provider remains non-executable. Current split: 496 registered /
 414 native/live-backed / 82 fallback-only, with 5 queued records and
 `vega_financial` next.
+
+## Current audit checkpoint — VegaShares non-executable complete route — 2026-09-04
+
+VegaShares' official product pages publish current top-ten holdings and a
+full-holdings affordance, but no resolvable complete artifact is declared in
+the bounded response. Current split: 496 registered / 414 native/live-backed /
+82 fallback-only, with 4 queued records and `vistashares` next.

@@ -2628,3 +2628,13 @@ complete executable route is promoted. The next queued issuer is
 5 queued records.
 
 Evidence ref: `web:us-benchmark-series-current-fm-pages-2026-09-04`.
+
+## Current audit checkpoint — VegaShares non-executable complete route — 2026-09-04
+
+VegaShares' official ODTE, VAIE, XSPC, CGPT, and COOL pages publish current
+top-ten holdings and a full-holdings affordance, but the bounded response does
+not declare a resolvable complete holdings artifact. No native route is
+promoted. The next queued issuer is `vistashares`; counts remain 496 registered
+/ 414 native / 82 fallback with 4 queued records.
+
+Evidence ref: `web:vega-shares-current-product-pages-2026-09-04`.
