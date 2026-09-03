@@ -61067,6 +61067,182 @@ class BmoMicroSectorsHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows
 
 
+class MaxHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch MAX ETN index constituents from the official product pages."""
+
+    PRODUCT_PAGE_URLS = {
+        "CARD": "https://www.maxetns.com/product/CARD.P/",
+        "CARU": "https://www.maxetns.com/product/CARU.P/",
+        "JETD": "https://www.maxetns.com/product/JETD.P/",
+        "JETU": "https://www.maxetns.com/product/JETU.P/",
+    }
+    EXPECTED_PRODUCT_FRAGMENTS = {
+        "CARD": "MAX™ Auto Industry -3X Inverse Leveraged ETNs",
+        "CARU": "MAX™ Auto Industry 3X Leveraged ETNs",
+        "JETD": "MAX™ Airlines -3X Inverse Leveraged ETNs",
+        "JETU": "MAX™ Airlines 3X Leveraged ETNs",
+    }
+    _CONSTITUENT_SECTION_RE = re.compile(
+        r'<ul\b[^>]*class=["\'][^"\']*\bindex-weights\b[^"\']*["\'][^>]*>' r"(?P<body>.*?)</ul>",
+        re.IGNORECASE | re.DOTALL,
+    )
+    _CONSTITUENT_ITEM_RE = re.compile(r"<li\b[^>]*>(?P<item>.*?)</li>", re.IGNORECASE | re.DOTALL)
+    _COMPOSITION_DATE_RE = re.compile(
+        r"\bas\s+of\s+(?P<date>[A-Za-z]+\s+\d{1,2},\s+\d{4})",
+        re.IGNORECASE,
+    )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        supported = normalized_symbol in self.PRODUCT_PAGE_URLS
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if supported else Decimal("0.5000"),
+            status="ready" if supported or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "MAX ETNs publishes the complete current index-constituent weights "
+                "on the matching official product page."
+                if supported
+                else (
+                    "MAX is recognized; this native route is configured for CARD/CARU/JETD/JETU. "
+                    "SEC EDGAR remains available for other MAX products."
+                    if has_sec_fallback
+                    else "MAX is recognized; no configured native product page is available for this symbol."
+                )
+            ),
+            source_url=self.PRODUCT_PAGE_URLS.get(normalized_symbol),
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        if product_page_url is None:
+            raise ValueError(
+                "MAX's verified index-constituent route is configured for CARD/CARU/JETD/JETU."
+            )
+        if source_url and source_url.rstrip("/") != product_page_url.rstrip("/"):
+            raise ValueError("MAX holdings must use the matching verified official product page.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        page_text = html.unescape(response.text)
+        self._validate_product_page(page_text, symbol=normalized_symbol)
+        rows, composition_date = self._parse_constituents(page_text, symbol=normalized_symbol)
+        if len(rows) < 2:
+            raise ValueError(
+                f"MAX product page returned too few index-constituent rows for {normalized_symbol}."
+            )
+        if composition_date is None:
+            raise ValueError(
+                f"MAX product page did not expose a parseable constituent as-of date for {normalized_symbol}."
+            )
+
+        for index, row in enumerate(rows, start=1):
+            row.source_row_id = f"max-{normalized_symbol}-{composition_date.isoformat()}-{index}"
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={
+                "source_format": "html",
+                "row_count": len(rows),
+                "disclosure_type": "etn_index_components",
+            },
+            source_url=str(response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "max_etns_public_index_components",
+                "disclosure_type": "etn_index_components",
+                "product_page_url": str(response.url),
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+                "snapshot_provenance": "max_etns_native_index_components",
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _validate_product_page(cls, page_text: str, *, symbol: str) -> None:
+        normalized = re.sub(r"\s+", " ", page_text)
+        if symbol not in normalized or "MAX" not in normalized:
+            raise ValueError(f"MAX product page did not verify {symbol} identity.")
+        expected_fragment = cls.EXPECTED_PRODUCT_FRAGMENTS[symbol]
+        if expected_fragment not in normalized:
+            raise ValueError(f"MAX product page did not verify the expected {symbol} product.")
+        if "Index Constituents" not in normalized or "Weights" not in normalized:
+            raise ValueError(f"MAX product page did not expose {symbol} constituent weights.")
+
+    @classmethod
+    def _parse_constituents(
+        cls, page_text: str, *, symbol: str
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        section_match = cls._CONSTITUENT_SECTION_RE.search(page_text)
+        if section_match is None:
+            raise ValueError(f"MAX product page did not expose the {symbol} constituent list.")
+
+        rows: list[CanonicalHoldingRow] = []
+        for index, item_match in enumerate(
+            cls._CONSTITUENT_ITEM_RE.finditer(section_match.group("body")), start=1
+        ):
+            item_html = item_match.group("item")
+            name_match = re.search(
+                r"<h4\b[^>]*>(?P<name>.*?)</h4>", item_html, re.IGNORECASE | re.DOTALL
+            )
+            weight_match = re.search(
+                r"<p\b[^>]*>\s*(?P<weight>[-+]?\d+(?:\.\d+)?)\s*%?\s*</p>",
+                item_html,
+                re.IGNORECASE | re.DOTALL,
+            )
+            name = (
+                _clean(re.sub(r"<[^>]+>", " ", html.unescape(name_match.group("name"))))
+                if name_match
+                else None
+            )
+            weight = _decimal_percent_points(weight_match.group("weight")) if weight_match else None
+            if not name or weight is None:
+                continue
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None,
+                    name=name,
+                    weight=weight,
+                    currency="USD",
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_id=f"max-{symbol}-{index}",
+                    extra_data={
+                        "disclosure_type": "etn_index_components",
+                        "reported_weight_percent": str(weight * Decimal("100")),
+                        "source": "max_etns_public_index_components",
+                    },
+                )
+            )
+
+        date_match = cls._COMPOSITION_DATE_RE.search(page_text)
+        composition_date = _parse_issuer_date(date_match.group("date")) if date_match else None
+        return rows, composition_date
+
+
 class PrecidianAdrHedgedHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch ADRhedged series portfolios from Precidian's public product pages."""
 
@@ -64356,6 +64532,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         terms_note=(
             "BMO's MicroSectors public ETN product pages and index-component disclosures "
             "may be subject to issuer terms."
+        ),
+    ),
+    "max": IssuerCsvAdapterConfig(
+        adapter_key="max",
+        source_provider="max_etns",
+        source_access="issuer_public_max_etns_index_components_html",
+        product_page_templates=("https://www.maxetns.com/product/{symbol_upper}.P/",),
+        live_tested_default_route=True,
+        terms_note=(
+            "MAX ETNs, issued by Bank of Montreal, publishes public product-page "
+            "index-constituent weights that may be subject to issuer terms."
         ),
     ),
     "precidian": IssuerCsvAdapterConfig(
@@ -67719,7 +67906,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "m_d_sass",
         "madison_avenue",
         "matrix",
-        "max",
         "mcelhenny_sheffield",
         "measured_risk_portfolios",
         "merchant_investment_management",
@@ -69636,10 +69822,6 @@ class LsvReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """StockAnalysis provider-table fallback adapter pending LSV discovery."""
 
 
-class MaxReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """StockAnalysis provider-table fallback adapter pending Max discovery."""
-
-
 class TweedyBrowneReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """StockAnalysis provider-table fallback adapter pending Tweedy Browne discovery."""
 
@@ -70809,7 +70991,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "manulife": ManulifeAuditedFallbackHoldingsAdapter,
         "marathon": MarathonAuditedFallbackHoldingsAdapter,
         "matrix": MatrixReconciledFallbackHoldingsAdapter,
-        "max": MaxReconciledFallbackHoldingsAdapter,
+        "max": MaxHoldingsAdapter,
         "mcelhenny_sheffield": McElhennySheffieldReconciledFallbackHoldingsAdapter,
         "merchant_investment_management": MerchantInvestmentManagementReconciledFallbackHoldingsAdapter,
         "merk": MerkReconciledFallbackHoldingsAdapter,

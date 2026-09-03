@@ -24,6 +24,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "logiq",
     "long_pond",
     "lsv",
+    "max",
     "amun",
     "1251_capital",
     "3fourteen",
@@ -3508,6 +3509,22 @@ async def test_live_lsv_lsvd_product_page_declared_holdings_csv():
     assert result.legal_metadata["composition_date"]
     assert any(row.isin for row in result.rows)
     assert any(row.row_type == "cash" for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("max")
+async def test_live_max_jetu_product_page_index_constituents():
+    adapter = get_holdings_adapter("max")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="JETU")
+
+    _assert_live_holdings_result(result, adapter_key="max", min_rows=20)
+    assert result.legal_metadata["route_resolution"] == "max_etns_public_index_components"
+    assert result.legal_metadata["disclosure_type"] == "etn_index_components"
+    assert result.legal_metadata["composition_date"]
+    assert all(row.weight is not None for row in result.rows)
 
 
 @pytest.mark.asyncio

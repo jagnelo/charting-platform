@@ -6341,6 +6341,55 @@ async def test_bmo_adapter_fetches_microsectors_big_banks_index_components(monke
 
 
 @pytest.mark.asyncio
+async def test_max_adapter_fetches_jetu_index_constituents(monkeypatch):
+    adapter = get_holdings_adapter("max")
+    assert adapter is not None
+
+    page_html = """
+    <html><head><title>JETU | MAX ETNs</title></head>
+    <body>
+      <h1>MAX™ Airlines 3X Leveraged ETNs</h1>
+      <h2>Index Constituents Weights</h2>
+      <ul class="section-product__info-container index-weights">
+        <li class="section-product__info-item">
+          <h4>RTX CORPORATION </h4><p id="updateValue1">9.20 %</p>
+        </li>
+        <li class="section-product__info-item">
+          <h4>BOEING CO/THE </h4><p id="updateValue2">9.04 %</p>
+        </li>
+      </ul>
+      <div class="section-product__exposures-date"><p>as of September 2, 2026</p></div>
+    </body></html>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=page_html,
+            content_type="text/html",
+            url="https://www.maxetns.com/product/JETU.P/",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="JETU")
+
+    assert FakeAsyncClient.requested[0][0] == "https://www.maxetns.com/product/JETU.P/"
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol is None
+    assert result.rows[0].name == "RTX CORPORATION"
+    assert result.rows[0].weight == Decimal("0.092")
+    assert result.rows[0].holding_type == "equity"
+    assert result.legal_metadata["source_provider"] == "max_etns"
+    assert result.legal_metadata["route_resolution"] == "max_etns_public_index_components"
+    assert result.legal_metadata["disclosure_type"] == "etn_index_components"
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+
+    assert adapter.probe(symbol="SPYU", name="", identifiers={}).status == "needs_issuer_route"
+    with pytest.raises(ValueError, match="CARD/CARU/JETD/JETU"):
+        await adapter.fetch_latest(symbol="SPYU")
+
+
+@pytest.mark.asyncio
 async def test_noa_adapter_fetches_usaf_from_official_bundle_declared_csv(monkeypatch):
     adapter = get_holdings_adapter("noa")
     assert adapter is not None
@@ -22358,6 +22407,7 @@ def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audit
         "everence",
         "fitzgerald",
         "logiq",
+        "max",
     }
 
     assert expected
@@ -22388,6 +22438,9 @@ def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audit
     assert "even_herd" not in FALLBACK_ISSUER_AUDITS
     assert "everence" not in FALLBACK_ISSUER_AUDITS
     assert "fitzgerald" not in FALLBACK_ISSUER_AUDITS
+    assert "max" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["max"].live_tested_default_route is True
+    assert type(get_holdings_adapter("max")).__name__ == "MaxHoldingsAdapter"
     assert ISSUER_ADAPTER_CONFIGS["bufferlabs"].live_tested_default_route is True
     assert type(get_holdings_adapter("bufferlabs")).__name__ == "BufferLabsHoldingsAdapter"
     assert ISSUER_ADAPTER_CONFIGS["bushido"].live_tested_default_route is True
@@ -26455,8 +26508,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 388
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 108
+    assert ledger["current_native_count"] == 389
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 107
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -26495,6 +26548,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "logiq",
         "long_pond",
         "lsv",
+        "max",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))
