@@ -194,6 +194,14 @@ async def test_scheduled_family_unit_retains_history_queue_failure_evidence(monk
         "snapshot_ids": [13],
         "queued": 0,
         "already_queued": 0,
+        "queue_errors": [
+            {
+                "status": "queue_error",
+                "snapshot_ids": [13],
+                "error": "history worker unavailable",
+            }
+        ],
+        "queue_error_count": 1,
         "error": "history worker unavailable",
     }
 

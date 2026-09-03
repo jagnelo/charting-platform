@@ -286,7 +286,16 @@ async def task_refresh_scheduled_benchmark_family_holdings_unit(
                 "snapshot_ids": snapshot_ids,
                 "queued": 0,
                 "already_queued": 0,
-                "error": str(exc) or "Scheduled benchmark family history queue failed.",
+                "queue_errors": [
+                    {
+                        "status": "queue_error",
+                        "snapshot_ids": snapshot_ids,
+                        "error": str(exc)[:500]
+                        or "Scheduled benchmark family history queue failed.",
+                    }
+                ],
+                "queue_error_count": 1,
+                "error": str(exc)[:500],
             }
         await db.commit()
         return {
