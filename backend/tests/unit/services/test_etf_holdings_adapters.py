@@ -15,6 +15,7 @@ import pytest
 import requests
 import yaml
 
+from app.config import settings
 from app.services.etf_holdings_adapters import (
     ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS,
     ETF_COM_BRAND_RECONCILIATION_NATIVE_ADAPTERS,
@@ -6552,6 +6553,11 @@ async def test_warren_adapter_fetches_wcap_from_official_page_declared_fund_api(
         "https://www.warcap.com/wp-content/themes/warcap/assets/wcap/js/data.js?version=6.10.26",
         "https://www.ncfunds.com/etf/load.php?f=456",
     ]
+    assert FakeAsyncClient.requested[0][1]["headers"]["User-Agent"] == (
+        settings.ETF_HOLDINGS_HTTP_USER_AGENT
+    )
+    assert "Cache-Control" not in FakeAsyncClient.requested[0][1]["headers"]
+    assert "Upgrade-Insecure-Requests" not in FakeAsyncClient.requested[0][1]["headers"]
     assert FakeAsyncClient.requested[3][1]["headers"]["Referer"] == "https://www.warcap.com/wcap/"
     assert result.legal_metadata["composition_date"] == "2026-07-24"
     assert result.legal_metadata["source_provider"] == "warren_capital"
@@ -17131,7 +17137,7 @@ async def test_fidelity_adapter_fetches_complete_creation_basket(monkeypatch):
 
     holdings_html = """
     <html><body>
-      <h3 class="num-results">Basket Holdings: 3
+      <h3 class="num-results">Basket Holdings: 4
         <span class="timestamp">AS OF 05/31/2026</span>
       </h3>
       <table class="results-table sortable">
@@ -17140,6 +17146,7 @@ async def test_fidelity_adapter_fetches_complete_creation_basket(monkeypatch):
           <tr><td>NVDA</td><td>NVIDIA Corp</td><td>14.69</td></tr>
           <tr><td>AAPL</td><td>Apple Inc</td><td>10.12</td></tr>
           <tr><td></td><td>Cash</td><td>0.20</td></tr>
+          <tr><td></td><td>Pending constituent</td><td>0.00</td></tr>
         </tbody>
       </table>
     </body></html>
@@ -17170,8 +17177,10 @@ async def test_fidelity_adapter_fetches_complete_creation_basket(monkeypatch):
     assert result.rows[2].symbol is None
     assert result.rows[2].row_type == "cash"
     assert result.rows[2].holding_type == "cash"
+    assert result.rows[3].name == "Pending constituent"
+    assert result.rows[3].weight == Decimal("0.0000")
     assert result.legal_metadata["composition_date"] == "2026-05-31"
-    assert result.legal_metadata["declared_basket_holding_count"] == 3
+    assert result.legal_metadata["declared_basket_holding_count"] == 4
     assert result.legal_metadata["portfolio_semantics"] == "daily_creation_redemption_basket"
     assert result.legal_metadata["route_resolution"] == (
         "fidelity_research_complete_basket_holdings"
@@ -26795,14 +26804,14 @@ async def test_world_gold_council_adapter_parses_gold_archive_workbook(monkeypat
 
 
 @pytest.mark.asyncio
-async def test_inspire_adapter_fetches_quarterly_holdings_json(monkeypatch):
+async def test_inspire_adapter_fetches_current_etfeng_holdings_json(monkeypatch):
     adapter = get_holdings_adapter("inspire")
     assert adapter is not None
 
     FakeAsyncClient.requested = []
     FakeAsyncClient.queue = [
         FakeResponse(
-            text="""[
+            text="""{"holdings": [
               {
                 "as_of_date": "2026-02-27T00:00:00Z",
                 "country": "US",
@@ -26840,20 +26849,17 @@ async def test_inspire_adapter_fetches_quarterly_holdings_json(monkeypatch):
                 "ticker": "OTHER",
                 "weight": 0.5
               }
-            ]""",
+            ]}""",
             content_type="application/json",
         )
     ]
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
 
-    result = await adapter.fetch_latest(
-        symbol="BIBL",
-        identifiers={"holdings_date": "20260228"},
-    )
+    result = await adapter.fetch_latest(symbol="BIBL")
 
     assert FakeAsyncClient.requested[0][0] == (
-        "https://data.etflogic.io/prod?apikey=263752e3-765e-4dab-aa89-ab3d6a49d7dc"
-        "&function=holdings&format=json&ticker=BIBL&date=20260228"
+        "https://api.etfeng.com/inspire/inspire?apikey=d4747610-f863-4755-9ec2-65990d0793ac"
+        "&ticker=BIBL&format=json"
     )
     assert FakeAsyncClient.requested[0][1]["headers"]["Referer"] == ("https://www.inspireetf.com/")
     assert len(result.rows) == 2
@@ -26867,10 +26873,8 @@ async def test_inspire_adapter_fetches_quarterly_holdings_json(monkeypatch):
     assert result.rows[1].symbol is None
     assert result.rows[1].holding_type == "fixed_income"
     assert result.rows[1].cusip == "133131BB7"
-    assert result.legal_metadata["route_resolution"] == (
-        "issuer_page_public_quarterly_holdings_api"
-    )
-    assert result.legal_metadata["source_frequency"] == "quarterly"
+    assert result.legal_metadata["route_resolution"] == "issuer_page_declared_etfeng_holdings_api"
+    assert result.legal_metadata["source_frequency"] == "daily_or_provider_reported"
     assert result.legal_metadata["composition_date"] == "2026-02-27"
 
 

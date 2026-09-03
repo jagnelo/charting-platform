@@ -1543,3 +1543,30 @@ mutation was performed. Next action: human-authorize the intended remote push
 and CI synchronization, then run `plan-ready`/checkpoint and obtain closure
 authorization; otherwise retain this branch as locally validated and pending
 review.
+
+## Current provider-route repairs — 2026-09-03
+
+Three of the five remaining live failures were resolved with current
+first-party evidence. Warren WCAP now uses the issuer-compatible holdings
+request profile (the prior hard-coded browser/cache headers triggered HTTP 403)
+and its official page-declared NC Funds route passes live. Inspire's current
+issuer page loads `data.etfeng.com/inspireetfs/prod/inspire.js`, which declares
+the `api.etfeng.com/inspire/inspire` endpoint and current public key; the adapter
+now parses its dated `holdings` payload and BIBL passes live with 102 rows.
+Fidelity's official FBCG table contains 231 declared rows, including 17 named
+zero-weight rows without tickers; Fidelity-only parsing now preserves those
+rows and the live count reconciles.
+
+The remaining two live failures are the `vident` and `mm_vam` aliases, which
+share Vident's official product-page route. The route is issuer-owned and
+renders a current dated holdings table, but the issuer edge returns a
+Cloudflare challenge (HTTP 403) to the available HTTP clients. A read-only
+text rendering confirms the official page and holdings table, but no alternate
+provider-declared executable API or download route has been proven. The two
+aliases therefore remain explicitly blocked rather than being silently
+promoted through SEC fallback.
+
+Focused unit/live/Ruff checks for Warren, Inspire, and Fidelity pass. The
+complete deterministic suite and Docker integration gate must be rerun after
+this changeset; exact-SHA remote synchronization remains blocked pending human
+authorization for private-branch push.

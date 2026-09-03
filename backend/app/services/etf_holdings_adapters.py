@@ -498,7 +498,11 @@ def _table_to_text(rows: list[list[Any]]) -> str:
     return output.getvalue()
 
 
-def parse_holdings_table(table_rows: list[list[Any]]) -> list[CanonicalHoldingRow]:
+def parse_holdings_table(
+    table_rows: list[list[Any]],
+    *,
+    preserve_named_zero_rows: bool = False,
+) -> list[CanonicalHoldingRow]:
     """Parse a generic holdings table into canonical rows."""
 
     rows_by_index = [
@@ -678,7 +682,11 @@ def parse_holdings_table(table_rows: list[list[Any]]) -> list[CanonicalHoldingRo
         isin_value = _clean(_first(raw, ["isin"])) or identifier_isin
         sedol_value = _clean(_first(raw, ["sedol", "sedol number"]))
         identity_value = cusip_value or isin_value or sedol_value
-        if not any([symbol, identity_value]) and not any([weight, shares, market_value]):
+        if (
+            not any([symbol, identity_value])
+            and not any([weight, shares, market_value])
+            and not (preserve_named_zero_rows and name)
+        ):
             continue
         rows.append(
             CanonicalHoldingRow(
@@ -828,6 +836,7 @@ def parse_html_holdings_table_by_headers(
     raw_html: str,
     *,
     required_headers: set[str],
+    preserve_named_zero_rows: bool = False,
 ) -> list[CanonicalHoldingRow]:
     parser = _HTMLTablesParser()
     parser.feed(raw_html)
@@ -836,7 +845,10 @@ def parse_html_holdings_table_by_headers(
         for row in table[:30]:
             normalized_row = {str(value).strip().lower() for value in row if _clean(value)}
             if normalized_required <= normalized_row:
-                return parse_holdings_table(table)
+                return parse_holdings_table(
+                    table,
+                    preserve_named_zero_rows=preserve_named_zero_rows,
+                )
     return []
 
 
@@ -43067,7 +43079,9 @@ class HarborHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
 
 class InspireHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    API_KEY = "263752e3-765e-4dab-aa89-ab3d6a49d7dc"
+    API_KEY = "d4747610-f863-4755-9ec2-65990d0793ac"
+    API_URL = "https://api.etfeng.com/inspire/inspire"
+    PRODUCT_PAGE_URL = "https://www.inspireetf.com/etf/"
 
     def source_request_headers(self, *, source_url: str) -> dict[str, str]:
         return {
@@ -43090,25 +43104,15 @@ class InspireHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 issuer_product_id=issuer_product_id,
             )
 
-        date_candidates = self._quarter_end_date_candidates(
-            explicit_date=_identifier(identifiers or {}, "holdings_date", "as_of_date"),
+        del identifiers
+        candidate_url = source_url or self._source_url(symbol=symbol)
+        result = await self._fetch_source_url(
+            symbol=symbol,
+            source_url=candidate_url,
+            issuer_product_id=issuer_product_id or symbol.strip().upper(),
         )
-        last_error: Exception | None = None
-        for holdings_date in date_candidates:
-            candidate_url = self._source_url(symbol=symbol, holdings_date=holdings_date)
-            try:
-                result = await self._fetch_source_url(
-                    symbol=symbol,
-                    source_url=candidate_url,
-                    issuer_product_id=issuer_product_id or holdings_date,
-                )
-            except (httpx.HTTPError, ValueError) as exc:
-                last_error = exc
-                continue
-            if result.rows:
-                return result
-        if last_error is not None:
-            raise last_error
+        if result.rows:
+            return result
         raise ValueError(f"Inspire did not return holdings for {symbol}.")
 
     async def _fetch_source_url(
@@ -43128,7 +43132,8 @@ class InspireHoldingsAdapter(IssuerCsvHoldingsAdapter):
         payload = response.json()
         if isinstance(payload, dict) and payload.get("error"):
             raise ValueError(str(payload["error"]))
-        rows, composition_date = self._parse_inspire_payload(payload, symbol=symbol)
+        holdings_payload = payload.get("holdings") if isinstance(payload, dict) else payload
+        rows, composition_date = self._parse_inspire_payload(holdings_payload, symbol=symbol)
         return HoldingsFetchResult(
             rows=rows,
             raw_text=response.text,
@@ -43140,8 +43145,9 @@ class InspireHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "adapter_key": self.adapter_key,
                 "source_provider": self.source_provider,
                 "source_format": "json",
-                "route_resolution": "issuer_page_public_quarterly_holdings_api",
-                "source_frequency": "quarterly",
+                "route_resolution": "issuer_page_declared_etfeng_holdings_api",
+                "source_frequency": "daily_or_provider_reported",
+                "product_page_url": f"{self.PRODUCT_PAGE_URL}{symbol.strip().lower()}",
                 **(
                     {
                         "composition_date": composition_date.isoformat(),
@@ -43154,36 +43160,15 @@ class InspireHoldingsAdapter(IssuerCsvHoldingsAdapter):
         )
 
     @classmethod
-    def _source_url(cls, *, symbol: str, holdings_date: str) -> str:
+    def _source_url(cls, *, symbol: str) -> str:
         query = urlencode(
             {
                 "apikey": cls.API_KEY,
-                "function": "holdings",
-                "format": "json",
                 "ticker": symbol.strip().upper(),
-                "date": holdings_date,
+                "format": "json",
             }
         )
-        return f"https://data.etflogic.io/prod?{query}"
-
-    @staticmethod
-    def _quarter_end_date_candidates(explicit_date: str | None = None) -> list[str]:
-        if explicit_date:
-            normalized = re.sub(r"[^0-9]", "", explicit_date)
-            return [normalized] if len(normalized) == 8 else [explicit_date]
-        candidates: list[str] = []
-        cursor = date.today().replace(day=1)
-        for _ in range(30):
-            cursor = (cursor - timedelta(days=1)).replace(day=1)
-            year = cursor.year
-            month = cursor.month
-            if month in {2, 8}:
-                last_day = (
-                    date(year + (month == 12), 1 if month == 12 else month + 1, 1)
-                    - timedelta(days=1)
-                ).day
-                candidates.append(f"{year}{month:02d}{last_day:02d}")
-        return candidates
+        return f"{cls.API_URL}?{query}"
 
     @staticmethod
     def _parse_inspire_payload(
@@ -47389,6 +47374,7 @@ class FidelityHoldingsAdapter(IssuerCsvHoldingsAdapter):
         rows = parse_html_holdings_table_by_headers(
             response.text,
             required_headers={"symbol", "company", "weight"},
+            preserve_named_zero_rows=True,
         )
         match = self.AS_OF_RE.search(response.text)
         expected_count = int(match.group("count").replace(",", "")) if match else None
@@ -52425,19 +52411,19 @@ class WarrenHoldingsAdapter(IssuerCsvHoldingsAdapter):
             product_response = await self._get_with_timeout_retry(
                 client,
                 self.PRODUCT_PAGE_URL,
-                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                headers=self._warcap_request_headers(accept="text/html,*/*"),
             )
             product_response.raise_for_status()
             etf_script_response = await self._get_with_timeout_retry(
                 client,
                 self.ETF_SCRIPT_URL,
-                headers=_issuer_page_request_headers(accept="application/javascript,*/*"),
+                headers=self._warcap_request_headers(accept="application/javascript,*/*"),
             )
             etf_script_response.raise_for_status()
             data_script_response = await self._get_with_timeout_retry(
                 client,
                 self.DATA_SCRIPT_URL,
-                headers=_issuer_page_request_headers(accept="application/javascript,*/*"),
+                headers=self._warcap_request_headers(accept="application/javascript,*/*"),
             )
             data_script_response.raise_for_status()
             holdings_response = await self._get_with_timeout_retry(
@@ -52497,6 +52483,11 @@ class WarrenHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     raise
                 await asyncio.sleep(0.25 * (attempt + 1))
         raise AssertionError("unreachable")
+
+    @staticmethod
+    def _warcap_request_headers(*, accept: str) -> dict[str, str]:
+        """Use WarCap's accepted public-client profile without challenge headers."""
+        return _holdings_request_headers(accept=accept)
 
     @classmethod
     def _is_verified_product_page(cls, page_text: str) -> bool:
@@ -68561,8 +68552,8 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         source_provider="inspire",
         live_tested_default_route=True,
         terms_note=(
-            "Inspire public holdings pages use a public ETFLogic-backed quarterly "
-            "holdings endpoint that may be subject to issuer and data-provider terms."
+            "Inspire's public ETF pages declare an ETF Engine holdings endpoint "
+            "that may be subject to issuer and data-provider terms."
         ),
     ),
     "american_century": IssuerCsvAdapterConfig(
