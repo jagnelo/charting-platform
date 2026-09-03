@@ -224,3 +224,10 @@ so readiness and maintenance can disclose the known free route immediately; it s
 identity-only profiles and performs no provider request or holdings fabrication. Workstation
 bootstrap units pass `7/7`, and the bootstrap API integration slice passes `7/7`, with Ruff and
 diff checks green.
+
+The history queue-error follow-up is `9a636c5094a07a43b72722186eb2f9109a05b0bc`. The shared
+snapshot-to-member-history service and admin benchmark-family history endpoint now isolate each
+Redis enqueue attempt, retain bounded per-instrument `queue_error` evidence, continue later
+members, and expose `queue_error_count` in the response. The service regression passes `6/6`; the
+admin history-refresh integration slice passes `2/2`; Ruff and diff checks are green. A whole-pool
+failure remains an explicit `queue_unavailable` outcome.
