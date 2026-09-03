@@ -1699,6 +1699,7 @@ ETF_COM_BRAND_RECONCILIATION_NATIVE_ADAPTERS: frozenset[str] = frozenset(
         "freedom",
         "fundstrat",
         "gotham",
+        "meridian",
         "oakmark",
         "range",
         "sp_funds",
@@ -19111,6 +19112,267 @@ class MitsubishiUfjHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if ticker and ticker.upper().endswith("WW"):
             return "warrant"
         return "equity"
+
+
+class SixMeridianHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch 6 Meridian's complete current ETF portfolios from Nuxt pages.
+
+    The 6 Meridian site publishes the complete holdings component in its
+    ``__NUXT_DATA__`` hydration payload.  Exchange Traded Concepts is the
+    legal adviser/trust relationship shown on the pages, while 6 Meridian is
+    the product identity and public portfolio publisher for these five funds.
+    """
+
+    PRODUCT_PAGE_SLUGS: dict[str, str] = {
+        "SIXH": "sixh",
+        "SIXL": "sixl",
+        "SIXA": "sixa",
+        "SIXS": "sixs",
+        "SXQG": "sxqg",
+    }
+    PRODUCT_NAMES: dict[str, str] = {
+        "SIXH": "6 Meridian Hedged Equity",
+        "SIXL": "6 Meridian Low Beta Equity",
+        "SIXA": "6 Meridian Mega Cap Equity",
+        "SIXS": "6 Meridian Small Cap Equity",
+        "SXQG": "6 Meridian Quality Growth",
+    }
+    PRODUCT_PAGE_BASE = "https://www.6meridianfunds.com"
+    _ISSUER_HOSTS = {"6meridianfunds.com", "www.6meridianfunds.com"}
+    ROUTE_RESOLUTION = "six_meridian_product_page_nuxt_complete_holdings_component"
+    SNAPSHOT_PROVENANCE = "six_meridian_native_product_page_nuxt_hydration"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        source_url = self.resolve_source_url(symbol=normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=(
+                Decimal("0.9500")
+                if source_url
+                else Decimal("0.3000")
+                if has_sec_fallback
+                else Decimal("0.0000")
+            ),
+            status="ready" if source_url or has_sec_fallback else "unsupported_symbol",
+            reason=(
+                "6 Meridian publishes this ETF's complete current holdings in its official Nuxt product page."
+                if source_url
+                else "6 Meridian has no native route for this symbol; SEC EDGAR fallback is available."
+                if has_sec_fallback
+                else "6 Meridian's verified native route is limited to SIXH, SIXL, SIXA, SIXS, and SXQG."
+            ),
+            source_url=source_url,
+            issuer_product_id=normalized_symbol if source_url else None,
+        )
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        slug = self.PRODUCT_PAGE_SLUGS.get(normalized_symbol)
+        if slug is None:
+            return None
+        expected_url = f"{self.PRODUCT_PAGE_BASE}/{slug}"
+        if source_url:
+            parsed = urlparse(source_url.strip())
+            if (
+                parsed.scheme != "https"
+                or parsed.netloc.lower() not in self._ISSUER_HOSTS
+                or parsed.path.rstrip("/").lower() != f"/{slug}"
+                or parsed.query
+                or parsed.fragment
+            ):
+                return None
+        return expected_url
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*")
+        headers["Referer"] = f"{self.PRODUCT_PAGE_BASE}/"
+        return headers
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        resolved_source_url = self.resolve_source_url(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if resolved_source_url is None:
+            raise ValueError(
+                f"6 Meridian has no verified native holdings route for {normalized_symbol}."
+            )
+
+        headers = self.source_request_headers(source_url=resolved_source_url)
+        try:
+            async with httpx.AsyncClient(
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
+            ) as client:
+                response = await client.get(
+                    resolved_source_url,
+                    headers=headers,
+                    follow_redirects=True,
+                )
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 403:
+                raise
+            response = await asyncio.to_thread(
+                requests.get,
+                resolved_source_url,
+                headers=headers,
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                allow_redirects=True,
+            )
+            response.raise_for_status()
+
+        page_text = html.unescape(response.text)
+        expected_name = self.PRODUCT_NAMES[normalized_symbol]
+        if expected_name.casefold() not in page_text.casefold():
+            raise ValueError(f"6 Meridian product page identity did not match {normalized_symbol}.")
+        rows, composition_date = self._parse_product_page(
+            page_text,
+            symbol=normalized_symbol,
+        )
+        if not rows:
+            raise ValueError(
+                f"6 Meridian's official product page did not expose holdings for {normalized_symbol}."
+            )
+        composition_value = composition_date.isoformat() if composition_date else None
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "nuxt_hydration_json", "row_count": len(rows)},
+            source_url=str(getattr(response, "url", resolved_source_url)),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "nuxt_hydration_json",
+                "route_resolution": self.ROUTE_RESOLUTION,
+                "product_page_url": resolved_source_url,
+                "composition_date": composition_value,
+                "as_of_date": composition_value,
+                "source_quality": "issuer_reported_current_holdings",
+                "snapshot_provenance": self.SNAPSHOT_PROVENANCE,
+                "legal_publisher": "Exchange Traded Concepts / 6 Meridian",
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_product_page(
+        cls,
+        raw_html: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        normalized_symbol = symbol.strip().upper()
+        slug = cls.PRODUCT_PAGE_SLUGS.get(normalized_symbol)
+        if slug is None:
+            return [], None
+        route_match = re.search(r'data-preview-route="(?P<route>[^"]+)"', raw_html)
+        if route_match is None or route_match.group("route").strip().lower() != slug:
+            return [], None
+        component_match = re.search(
+            rf'data-preview-component-id="(?P<component>sixmeridianetfs-{re.escape(slug)}-HoldingsComponent-\d+)"',
+            raw_html,
+        )
+        if component_match is None:
+            return [], None
+        hydrated_rows, composition_date = _extract_nuxt_hydration_holdings(
+            raw_html,
+            component_id=component_match.group("component"),
+        )
+        rows: list[CanonicalHoldingRow] = []
+        for position, source_row in enumerate(hydrated_rows, start=1):
+            source_ticker = _clean(source_row.get("ticker"))
+            name = _clean(source_row.get("description"))
+            figi = _clean(source_row.get("figi"))
+            if not any((source_ticker, name, figi)):
+                continue
+            text = " ".join(value.upper() for value in (source_ticker, name) if value)
+            is_cash = any(marker in text for marker in ("CASH", "CURRENCY", "MONEY MARKET"))
+            is_derivative = bool(
+                re.search(
+                    r"\b(?:OPTION|FUTURE|SWAP|CALL|PUT)\b|\b\d{1,2}/\d{1,2}/\d{2,4}\s+[CP]\d",
+                    text,
+                )
+            )
+            is_fixed_income = any(
+                marker in text for marker in ("TREASURY", "BOND", "NOTE", "FIXED INCOME")
+            )
+            is_fund = any(marker in text for marker in (" ETF", " FUND", " TRUST"))
+            tradable = (
+                source_ticker.upper()
+                if source_ticker
+                and re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", source_ticker.upper())
+                and not (is_cash or is_derivative)
+                else None
+            )
+            holding_type = (
+                "cash"
+                if is_cash
+                else "derivative"
+                if is_derivative
+                else "fixed_income"
+                if is_fixed_income
+                else "fund"
+                if is_fund
+                else "equity"
+            )
+            row_type = "cash" if is_cash else "derivative" if is_derivative else "security"
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=tradable,
+                    name=name,
+                    weight=_decimal(source_row.get("percent_of_nav")),
+                    shares=_decimal(source_row.get("quantity")),
+                    market_value=_decimal(source_row.get("market_value")),
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=(
+                        f"six-meridian-{normalized_symbol.lower()}-"
+                        f"{composition_date.isoformat() if composition_date else 'current'}-"
+                        f"{position}-{figi or source_ticker or name}"
+                    ),
+                    extra_data={
+                        **{
+                            key: value
+                            for key, value in source_row.items()
+                            if key
+                            not in {
+                                "ticker",
+                                "description",
+                                "quantity",
+                                "market_value",
+                                "percent_of_nav",
+                            }
+                            and _clean(value) is not None
+                        },
+                        **({"source_ticker": source_ticker} if source_ticker else {}),
+                    },
+                )
+            )
+        return rows, composition_date
 
 
 class McivyHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -66214,6 +66476,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="MUFG public ETF product-page holdings payloads may be subject to issuer terms.",
     ),
+    "meridian": IssuerCsvAdapterConfig(
+        adapter_key="meridian",
+        source_provider="six_meridian_etfs",
+        source_access="issuer_public_product_page_nuxt_complete_holdings_component",
+        product_page_templates=("https://www.6meridianfunds.com/{symbol_lower}",),
+        live_tested_default_route=True,
+        terms_note=(
+            "6 Meridian publishes complete current ETF holdings in public product-page Nuxt payloads; "
+            "data may be subject to issuer terms."
+        ),
+    ),
     "mcivy": IssuerCsvAdapterConfig(
         adapter_key="mcivy",
         source_provider="mcivy_genter",
@@ -68324,7 +68597,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "matrix",
         "merchant_investment_management",
         "merk",
-        "meridian",
         "merlyn_ai",
         "mig_capital",
         "militia",
@@ -71401,7 +71673,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "mcelhenny_sheffield": McElhennySheffieldHoldingsAdapter,
         "merchant_investment_management": MerchantInvestmentManagementReconciledFallbackHoldingsAdapter,
         "merk": MerkReconciledFallbackHoldingsAdapter,
-        "meridian": MeridianReconciledFallbackHoldingsAdapter,
+        "meridian": SixMeridianHoldingsAdapter,
         "merlyn_ai": MerlynAiReconciledFallbackHoldingsAdapter,
         "measured_risk_portfolios": MeasuredRiskPortfoliosHoldingsAdapter,
         "mfs": MfsHoldingsAdapter,

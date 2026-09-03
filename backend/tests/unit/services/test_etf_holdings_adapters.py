@@ -23970,6 +23970,109 @@ async def test_mitsubishi_ufj_adapter_parses_only_mjsc_product_page_holdings(mon
 
 
 @pytest.mark.asyncio
+async def test_six_meridian_adapter_parses_nuxt_equity_option_and_cash_rows(monkeypatch):
+    adapter = get_holdings_adapter("meridian")
+    assert adapter is not None
+    assert type(adapter).__name__ == "SixMeridianHoldingsAdapter"
+
+    payload = [
+        None,
+        {
+            "componentId": 2,
+            "date": 3,
+            "finData": 4,
+        },
+        "sixmeridianetfs-sixh-HoldingsComponent-1",
+        "09/01/2026",
+        [5, 6, 7],
+        {
+            "figi": 8,
+            "ticker": 9,
+            "quantity": 10,
+            "description": 11,
+            "market_value": 12,
+            "percent_of_nav": 13,
+        },
+        {
+            "figi": 14,
+            "ticker": 15,
+            "quantity": 16,
+            "description": 17,
+            "market_value": 18,
+            "percent_of_nav": 19,
+        },
+        {
+            "figi": 20,
+            "ticker": 21,
+            "quantity": 22,
+            "description": 23,
+            "market_value": 24,
+            "percent_of_nav": 25,
+        },
+        "BBG000B9XRY4",
+        "AAPL",
+        100,
+        "APPLE INC",
+        "10,000.00",
+        "5.00%",
+        "BBG01XC0HWP6",
+        "SPX 10/16/26 C7750",
+        -857,
+        "SPX US 10/16/26 C7750",
+        "-8,077.00",
+        "-1.22%",
+        "BBG0013HGBT3",
+        "Cash-USD",
+        68100,
+        "CASH & OTHER",
+        "68,100.18",
+        "0.11%",
+    ]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<html><h1>6 Meridian Hedged Equity – Index Option ETF</h1>"
+                '<div data-preview-route="sixh" '
+                'data-preview-component-id="sixmeridianetfs-sixh-HoldingsComponent-1"></div>'
+                '<script type="application/json" data-nuxt-data="nuxt-app" '
+                'id="__NUXT_DATA__">'
+                f"{json.dumps(payload)}"
+                "</script></html>"
+            ),
+            content_type="text/html",
+            url="https://www.6meridianfunds.com/sixh",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="SIXH")
+
+    assert FakeAsyncClient.requested[0][0] == "https://www.6meridianfunds.com/sixh"
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol == "AAPL"
+    assert result.rows[0].weight == Decimal("0.05")
+    assert result.rows[0].extra_data["figi"] == "BBG000B9XRY4"
+    assert result.rows[1].symbol is None
+    assert result.rows[1].row_type == "derivative"
+    assert result.rows[1].holding_type == "derivative"
+    assert result.rows[1].extra_data["source_ticker"] == "SPX 10/16/26 C7750"
+    assert result.rows[2].row_type == "cash"
+    assert result.rows[2].holding_type == "cash"
+    assert result.rows[2].symbol is None
+    assert result.legal_metadata["source_provider"] == "six_meridian_etfs"
+    assert result.legal_metadata["route_resolution"] == (
+        "six_meridian_product_page_nuxt_complete_holdings_component"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+
+    assert adapter.probe(symbol="SXQG", name="", identifiers={}).source_url.endswith("/sxqg")
+    assert adapter.resolve_source_url(symbol="SIXH", source_url="https://evil.example/sixh") is None
+    with pytest.raises(ValueError, match="no verified native holdings route"):
+        await adapter.fetch_latest(symbol="NOT_SIXH")
+
+
+@pytest.mark.asyncio
 async def test_mcivy_adapter_parses_only_identity_verified_genter_holdings(monkeypatch):
     adapter = get_holdings_adapter("mcivy")
     assert adapter is not None

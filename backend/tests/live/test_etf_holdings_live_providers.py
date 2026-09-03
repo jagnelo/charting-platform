@@ -27,6 +27,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "max",
     "mcelhenny_sheffield",
     "measured_risk_portfolios",
+    "meridian",
     "amun",
     "1251_capital",
     "3fourteen",
@@ -3568,6 +3569,27 @@ async def test_live_measured_risk_portfolios_snth_declared_daily_holdings_csv():
     assert any(row.holding_type == "fixed_income" for row in result.rows)
     assert any(row.holding_type == "option" for row in result.rows)
     assert any(row.row_type == "cash" for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("meridian")
+async def test_live_six_meridian_sixh_nuxt_holdings_component():
+    adapter = get_holdings_adapter("meridian")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="SIXH")
+
+    _assert_live_holdings_result(result, adapter_key="meridian", min_rows=40)
+    assert (
+        result.legal_metadata["route_resolution"]
+        == "six_meridian_product_page_nuxt_complete_holdings_component"
+    )
+    assert result.legal_metadata["source_format"] == "nuxt_hydration_json"
+    assert result.legal_metadata["composition_date"]
+    assert any(row.holding_type == "derivative" for row in result.rows)
+    assert any(row.row_type == "cash" for row in result.rows)
+    assert any(row.symbol == "MO" for row in result.rows)
 
 
 @pytest.mark.asyncio
