@@ -2590,3 +2590,41 @@ identifies SEK as a state-owned export-credit financing institution issuing
 debt, not an independent U.S. ETF portfolio publisher. No ETF holdings route
 applies; the record is closed as `provider_not_a_portfolio_publisher` and
 `towle` is next.
+## Current promotion checkpoint — TrimTabs / Abacus FCF successor CSV routes — 2026-09-04
+
+The former TrimTabs TTAC and TTAI products are now Abacus FCF's ABFL and ABLG;
+the same trust also publishes ABLD, ABOT, ABLS, and ABXB. Each official Abacus
+FCF product page declares a complete daily holdings CSV at the provider-owned
+`DailyUploads/<SYMBOL>_allHoldings.csv` route. The native adapter validates the
+product-page identity, strict symbol-scoped URL, legacy aliases, and complete
+CSV rows while preserving Abacus FCF provenance.
+
+Counts are 496 registered / 414 native / 82 fallback, with 10 queued records
+and `tweedy_browne` next. Evidence refs:
+`web:trimtabs-abacus-current-six-fund-holdings-pages-2026-09-04` and
+`live:trimtabs-abacus-current-six-fund-holdings-pages-2026-09-04`.
+
+## Current audit checkpoint — AVOS access-blocked and Tweedy Browne non-executable — 2026-09-04
+
+Avos Global Equities' official AVOS page exposes a complete current holdings
+table, but bounded backend-equivalent access returned HTTP 403, so no native
+adapter is retained. Tweedy Browne's official FilePoint page exposes only a
+stale 2024 COPY artifact with the current snapshot marked TBD; it is recorded as
+non-executable. The next queued issuer by ledger rank is `us_benchmark_series`.
+
+Counts remain 496 registered / 414 native / 82 fallback, with 6 queued records.
+Evidence refs:
+`web:avos-current-holdings-page-2026-09-04`,
+`live:avos-current-holdings-page-2026-09-04-blocked`, and
+`web:tweedy-browne-current-copy-holdings-page-2026-09-04`.
+
+## Current audit checkpoint — US Benchmark Series non-executable current route — 2026-09-04
+
+F/m Investments' official US Benchmark Series catalogue identifies the ten
+Treasury ETFs and current fund metadata, but the bounded product-page holdings
+section is empty and downloadable holdings materials are periodic. No current
+complete executable route is promoted. The next queued issuer is
+`vega_financial`; counts remain 496 registered / 414 native / 82 fallback with
+5 queued records.
+
+Evidence ref: `web:us-benchmark-series-current-fm-pages-2026-09-04`.

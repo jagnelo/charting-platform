@@ -1696,3 +1696,32 @@ executable native route is promoted, so `subversive` remains an explicit
 Counts remain 496 registered / 412 native / 84 fallback, with 14 queued and
 `stratified` next. Evidence ref:
 `live:subversive-current-gop-nanc-holdings-pages-2026-09-04-blocked`.
+## Current promotion checkpoint — TrimTabs / Abacus FCF successor CSV routes — 2026-09-04
+
+Abacus FCF's official ABFL, ABLG, ABLD, ABOT, ABLS, and ABXB pages declare
+complete daily holdings CSVs. The former TrimTabs TTAC/TTAI symbols are retained
+as aliases for ABFL/ABLG. The native adapter validates each product-page identity,
+strict symbol-scoped CSV route, complete rows, and provider provenance.
+
+The current code-derived split is 496 registered / 414 native/live-backed / 82
+fallback-only providers, with 10 queued records and `tweedy_browne` next.
+Evidence refs:
+`web:trimtabs-abacus-current-six-fund-holdings-pages-2026-09-04` and
+`live:trimtabs-abacus-current-six-fund-holdings-pages-2026-09-04`.
+
+## Current audit checkpoint — AVOS access-blocked and Tweedy Browne non-executable — 2026-09-04
+
+AVOS exposes a complete current holdings table in browser-facing evidence, but
+the bounded backend-equivalent request returned HTTP 403, so no native route is
+retained. Tweedy Browne's official FilePoint page exposes only a stale 2024 COPY
+artifact and marks the current snapshot TBD, so it remains non-executable.
+The current split is 496 registered / 414 native/live-backed / 82 fallback-only,
+with 6 queued records and `us_benchmark_series` next.
+
+## Current audit checkpoint — US Benchmark Series non-executable current route — 2026-09-04
+
+F/m's official US Benchmark Series catalogue identifies ten Treasury ETFs, but
+the bounded product-page holdings section is empty and available downloads are
+periodic. The provider remains non-executable. Current split: 496 registered /
+414 native/live-backed / 82 fallback-only, with 5 queued records and
+`vega_financial` next.

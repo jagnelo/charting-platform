@@ -5,9 +5,9 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 413
-current_fallback_count: 83
-generated_at: 2026-09-04T09:00:00Z
+current_native_count: 414
+current_fallback_count: 82
+generated_at: 2026-09-04T16:00:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -705,33 +705,40 @@ providers:
     display_name: avos
     queue_rank: 19
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: issuer_access_blocked
+    disposition: issuer_access_blocked
+    last_checked: 2026-09-04
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols: [AVOS]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    source_freshness: daily
+    first_party_domains: [avosglobalequities.com]
+    candidate_routes:
+      - "https://avosglobalequities.com/"
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
     parser_fixture: null
-    live_test: null
+    live_test: "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows"
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.avos"
       - "runtime:ISSUER_ADAPTER_CONFIGS.avos"
+      - "web:avos-current-holdings-page-2026-09-04"
+      - "live:avos-current-holdings-page-2026-09-04-blocked"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.avos"
-    disposition_reason: "avos: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate avos first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-04
+        source: "Avos Global Equities official AVOS product page"
+        result: "The official page exposes a complete 2026-09-02 holdings table, but bounded backend-equivalent access returned HTTP 403; no executable native route is retained."
+        evidence_ref: "live:avos-current-holdings-page-2026-09-04-blocked"
+    disposition_reason: "avos: Avos Global Equities' official AVOS page exposes current holdings in browser-facing evidence, but bounded backend-equivalent access returns HTTP 403, so native promotion is not justified."
+    next_action: "avos: Periodically re-test the official AVOS page; promote only after backend access returns complete current rows with proven mapping."
     implementation_sha: null
     validation_refs: []
   - adapter_key: azimut
@@ -5806,83 +5813,105 @@ providers:
     display_name: trimtabs
     queue_rank: 124
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-04
+    source_access_declared: issuer_product_page_declared_complete_holdings_csv
+    representative_symbols: [ABFL, ABLG, ABLD, ABOT, ABLS, ABXB]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    source_freshness: daily
+    first_party_domains: [abacusfcf.com]
+    candidate_routes:
+      - "https://abacusfcf.com/abfl/"
+      - "https://abacusfcf.com/ablg/"
+      - "https://abacusfcf.com/abld/"
+      - "https://abacusfcf.com/abot/"
+      - "https://abacusfcf.com/abls/"
+      - "https://abacusfcf.com/abxb/"
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: "backend/tests/unit/services/test_etf_holdings_adapters.py::test_trimtabs_adapter_resolves_abacus_successor_csv"
+    live_test: "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows"
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.trimtabs"
       - "runtime:ISSUER_ADAPTER_CONFIGS.trimtabs"
+      - "web:trimtabs-abacus-current-six-fund-holdings-pages-2026-09-04"
+      - "live:trimtabs-abacus-current-six-fund-holdings-pages-2026-09-04"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.trimtabs"
-    disposition_reason: "trimtabs: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate trimtabs first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
-    implementation_sha: null
-    validation_refs: []
+      - date: 2026-09-04
+        source: "Abacus FCF official successor product pages"
+        result: "The former TrimTabs TTAC/TTAI products and current Abacus FCF ABFL/ABLG/ABLD/ABOT/ABLS/ABXB pages declare complete daily holdings CSVs with stable symbol mapping; bounded live probes passed."
+        evidence_ref: "live:trimtabs-abacus-current-six-fund-holdings-pages-2026-09-04"
+    disposition_reason: "trimtabs: Abacus FCF's official successor product pages publish complete current daily holdings CSVs for all six products, including legacy TTAC/TTAI aliases, with proven symbol mapping and parseable rows."
+    next_action: "trimtabs: Re-test the six Abacus FCF product pages and declared daily CSVs periodically; preserve complete-row, identity, alias, and date validation."
+    implementation_sha: "a09d8be6a1b6290e32dcb43bc40920b456c6088e"
+    validation_refs:
+      - "validation.jsonl:2026-09-04T15:00:00Z"
   - adapter_key: tweedy_browne
     display_name: tweedy_browne
     queue_rank: 125
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: non_executable_public_source
+    disposition: non_executable_public_source
+    last_checked: 2026-09-04
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols: [COPY]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    source_freshness: stale
+    first_party_domains: [tweedybrowne.filepoint.live, tweedyetfs.com]
+    candidate_routes:
+      - "https://tweedybrowne.filepoint.live/allocation-of-investments"
+      - "https://www.tweedyetfs.com/etf-overview/"
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
     parser_fixture: null
-    live_test: null
+    live_test: "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows"
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.tweedy_browne"
       - "runtime:ISSUER_ADAPTER_CONFIGS.tweedy_browne"
+      - "web:tweedy-browne-current-copy-holdings-page-2026-09-04"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.tweedy_browne"
-    disposition_reason: "tweedy_browne: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate tweedy_browne first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-04
+        source: "Tweedy Browne official FilePoint allocation page"
+        result: "The official page exposes only a stale COPY holdings artifact dated 2024-12-27 and reports the current snapshot as TBD; no executable current complete holdings route is available."
+        evidence_ref: "web:tweedy-browne-current-copy-holdings-page-2026-09-04"
+    disposition_reason: "tweedy_browne: The official FilePoint holdings page exposes only a stale 2024 COPY artifact and no current complete executable holdings route, so native promotion is not justified."
+    next_action: "tweedy_browne: Re-test the official ETF overview and FilePoint holdings page for a current complete artifact before considering native promotion."
     implementation_sha: null
     validation_refs: []
   - adapter_key: us_benchmark_series
     display_name: us_benchmark_series
     queue_rank: 126
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: non_executable_public_source
+    disposition: non_executable_public_source
+    last_checked: 2026-09-04
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols: [TBIL, XBIL, OBIL, UTWO, UTRE, UFIV, USVN, UTEN, UTWY, UTHY]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    source_freshness: quarterly
+    first_party_domains: [fminvest.com, ustreasuryetf.com]
+    candidate_routes:
+      - "https://www.fminvest.com/us-benchmark-series"
+      - "https://www.fminvest.com/etfs/tbil-fm-us-treasury-3-month-bill-etf"
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -5892,13 +5921,18 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.us_benchmark_series"
       - "runtime:ISSUER_ADAPTER_CONFIGS.us_benchmark_series"
+      - "web:us-benchmark-series-current-fm-pages-2026-09-04"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.us_benchmark_series"
-    disposition_reason: "us_benchmark_series: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate us_benchmark_series first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-04
+        source: "F/m Investments official US Benchmark Series and TBIL pages"
+        result: "Official pages identify the ten US Benchmark Series ETFs and current fund metadata, but the server-rendered holdings section is empty and available downloadable holdings materials are periodic rather than current executable rows."
+        evidence_ref: "web:us-benchmark-series-current-fm-pages-2026-09-04"
+    disposition_reason: "us_benchmark_series: F/m's official pages identify the ETF suite but do not expose a complete current executable holdings artifact in the bounded route; periodic documents are not promoted as daily holdings."
+    next_action: "us_benchmark_series: Re-test the F/m product pages and any declared holdings API/download for a current complete route before native promotion."
     implementation_sha: null
     validation_refs: []
   - adapter_key: vega_financial

@@ -1422,3 +1422,38 @@ native route is promoted; `towle` remains an explicit `issuer_access_blocked`
 fallback. Evidence refs:
 `web:towle-current-tcv-holdings-page-2026-09-04` and
 `live:towle-current-tcv-holdings-page-2026-09-04-blocked`.
+
+## Current promotion checkpoint — TrimTabs / Abacus FCF successor CSV routes — 2026-09-04
+
+Abacus FCF's official ABFL, ABLG, ABLD, ABOT, ABLS, and ABXB pages declare
+complete daily holdings CSVs. The former TrimTabs TTAC/TTAI symbols are retained
+as strict aliases for ABFL/ABLG. The native adapter validates page identity,
+symbol-scoped CSV routes, complete rows, and Abacus FCF provenance.
+
+The durable split is now 496 registered / 414 native-live-backed / 82
+fallback-only providers, with 10 queued records and `tweedy_browne` next.
+Runtime fallback statuses are 18 issuer-access-blocked, 51 route-discovery, 10
+non-executable-public-source, and 8 non-portfolio-publisher. Evidence refs:
+`web:trimtabs-abacus-current-six-fund-holdings-pages-2026-09-04` and
+`live:trimtabs-abacus-current-six-fund-holdings-pages-2026-09-04`.
+
+## Current audit checkpoint — AVOS access-blocked and Tweedy Browne non-executable — 2026-09-04
+
+AVOS has current complete browser-facing holdings, but the bounded backend
+request returned HTTP 403, so it remains issuer-access-blocked. Tweedy Browne's
+official FilePoint page exposes only a stale 2024 COPY artifact with the current
+snapshot marked TBD, so it remains non-executable. The durable split remains
+496 registered / 414 native-live-backed / 82 fallback-only providers, with 6
+queued records and `us_benchmark_series` next. Evidence refs:
+`web:avos-current-holdings-page-2026-09-04`,
+`live:avos-current-holdings-page-2026-09-04-blocked`, and
+`web:tweedy-browne-current-copy-holdings-page-2026-09-04`.
+
+## Current audit checkpoint — US Benchmark Series non-executable current route — 2026-09-04
+
+F/m's official US Benchmark Series catalogue identifies ten Treasury ETFs, but
+the bounded product-page holdings section is empty and available downloads are
+periodic. The provider remains non-executable; the durable split is 496
+registered / 414 native-live-backed / 82 fallback-only, with 5 queued records
+and `vega_financial` next. Evidence ref:
+`web:us-benchmark-series-current-fm-pages-2026-09-04`.
