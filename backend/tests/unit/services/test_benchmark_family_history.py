@@ -138,6 +138,8 @@ async def test_queue_snapshot_member_history_deduplicates_canonical_members_and_
         "limited": True,
         "queued": 2,
         "already_queued": 0,
+        "queue_errors": [],
+        "queue_error_count": 0,
         "unresolved_count": 0,
         "timeframes": ["D1", "W1"],
     }
@@ -169,3 +171,46 @@ async def test_queue_snapshot_member_history_deduplicates_canonical_members_and_
         "2024-01-02T00:00:00",
     )
     assert "end=2024-01-02T00:00:00+00:00" in redis.calls[-2][1]["_job_id"]
+
+
+@pytest.mark.asyncio
+async def test_queue_snapshot_member_history_retains_member_queue_errors_and_continues():
+    class Result:
+        def all(self):
+            return [
+                (101, 10, "security", "equity", True),
+                (101, 20, "security", "equity", True),
+                (101, 30, "security", "equity", True),
+            ]
+
+    class Session:
+        async def execute(self, _statement):
+            return Result()
+
+    class Redis:
+        def __init__(self):
+            self.calls = []
+
+        async def enqueue_job(self, *args, **kwargs):
+            self.calls.append((args, kwargs))
+            if args[1] == 20:
+                raise RuntimeError("transient history queue failure")
+            return object()
+
+    redis = Redis()
+    result = await history.queue_snapshot_member_history(Session(), redis, [101])
+
+    assert result["status"] == "queue_error"
+    assert result["available_instrument_count"] == 3
+    assert result["selected_instrument_count"] == 3
+    assert result["queued"] == 2
+    assert result["already_queued"] == 0
+    assert result["queue_error_count"] == 1
+    assert result["queue_errors"] == [
+        {
+            "status": "queue_error",
+            "instrument_id": 20,
+            "error": "transient history queue failure",
+        }
+    ]
+    assert [call[0][1] for call in redis.calls] == [10, 20, 30]

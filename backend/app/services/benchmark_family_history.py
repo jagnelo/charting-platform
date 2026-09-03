@@ -233,6 +233,8 @@ async def queue_snapshot_member_history(
             "limited": False,
             "queued": 0,
             "already_queued": 0,
+            "queue_errors": [],
+            "queue_error_count": 0,
             "unresolved_count": 0,
             "timeframes": normalized_timeframes,
         }
@@ -277,31 +279,46 @@ async def queue_snapshot_member_history(
             "limited": len(instrument_ids) > max_instruments,
             "queued": 0,
             "already_queued": 0,
+            "queue_errors": [],
+            "queue_error_count": 0,
             "unresolved_count": unresolved_count,
             "timeframes": normalized_timeframes,
         }
 
     queued = already_queued = 0
+    queue_errors: list[dict[str, str | int]] = []
     for instrument_id in selected_ids:
         job_args = ["task_bulk_fetch_instrument", instrument_id, normalized_timeframes]
         if end is not None:
             job_args.extend([None, end.isoformat()])
-        job = await redis.enqueue_job(
-            *job_args,
-            _job_id=canonical_history_job_id(instrument_id, normalized_timeframes, end),
-        )
+        try:
+            job = await redis.enqueue_job(
+                *job_args,
+                _job_id=canonical_history_job_id(instrument_id, normalized_timeframes, end),
+            )
+        except Exception as exc:  # noqa: BLE001 - retain per-member queue evidence.
+            queue_errors.append(
+                {
+                    "status": "queue_error",
+                    "instrument_id": instrument_id,
+                    "error": str(exc)[:500] or "Canonical history queue failed.",
+                }
+            )
+            continue
         if job is None:
             already_queued += 1
         else:
             queued += 1
     return {
-        "status": "queued",
+        "status": "queue_error" if queue_errors else "queued",
         "snapshot_ids": normalized_snapshots,
         "available_instrument_count": len(instrument_ids),
         "selected_instrument_count": len(selected_ids),
         "limited": len(instrument_ids) > max_instruments,
         "queued": queued,
         "already_queued": already_queued,
+        "queue_errors": queue_errors,
+        "queue_error_count": len(queue_errors),
         "unresolved_count": unresolved_count,
         "timeframes": normalized_timeframes,
     }

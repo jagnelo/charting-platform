@@ -282,6 +282,7 @@ async def queue_benchmark_family_history_refresh(
 
     queued = 0
     already_queued = 0
+    queue_errors: list[dict[str, object]] = []
     queue_unavailable = False
     try:
         redis = await create_pool(RedisSettings.from_dsn(settings.REDIS_URL))
@@ -290,14 +291,24 @@ async def queue_benchmark_family_history_refresh(
                 job_args = ["task_bulk_fetch_instrument", instrument_id, plan["timeframes"]]
                 if plan["as_of"] is not None:
                     job_args.extend([None, plan["as_of"].isoformat()])
-                job = await redis.enqueue_job(
-                    *job_args,
-                    _job_id=canonical_history_job_id(
-                        instrument_id,
-                        plan["timeframes"],
-                        plan["as_of"],
-                    ),
-                )
+                try:
+                    job = await redis.enqueue_job(
+                        *job_args,
+                        _job_id=canonical_history_job_id(
+                            instrument_id,
+                            plan["timeframes"],
+                            plan["as_of"],
+                        ),
+                    )
+                except Exception as exc:  # noqa: BLE001 - retain per-member queue evidence.
+                    queue_errors.append(
+                        {
+                            "status": "queue_error",
+                            "instrument_id": int(instrument_id),
+                            "error": str(exc)[:500] or "Canonical history queue failed.",
+                        }
+                    )
+                    continue
                 if job is None:
                     already_queued += 1
                 else:
@@ -323,6 +334,8 @@ async def queue_benchmark_family_history_refresh(
             },
             queued=queued,
             already_queued=already_queued,
+            queue_errors=queue_errors,
+            queue_error_count=len(queue_errors),
             queue_unavailable=True,
             message=(f"History queue unavailable after {queued + already_queued} jobs: {exc}"),
         )
@@ -344,8 +357,16 @@ async def queue_benchmark_family_history_refresh(
         },
         queued=queued,
         already_queued=already_queued,
+        queue_errors=queue_errors,
+        queue_error_count=len(queue_errors),
         queue_unavailable=queue_unavailable,
-        message=("Selection was bounded by max_instruments." if plan["limited"] else None),
+        message=(
+            f"History queue had {len(queue_errors)} member enqueue failure(s)."
+            if queue_errors
+            else "Selection was bounded by max_instruments."
+            if plan["limited"]
+            else None
+        ),
     )
 
 

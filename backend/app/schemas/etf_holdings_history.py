@@ -37,6 +37,8 @@ class BenchmarkFamilyHistoryRefreshSummary(BaseModel):
     limited: bool
     queued: int
     already_queued: int = 0
+    queue_errors: list[dict[str, object]] = Field(default_factory=list)
+    queue_error_count: int = 0
     queue_unavailable: bool = False
     legs: list[BenchmarkFamilyHistoryRefreshLegOut] = Field(default_factory=list)
     message: str | None = None

@@ -205,6 +205,65 @@ def test_admin_family_history_refresh_queues_deduplicated_local_members(
     )
 
 
+def test_admin_family_history_refresh_retains_member_queue_failure_and_continues(
+    client, admin_headers, monkeypatch
+):
+    async def fake_plan(*_args, **_kwargs):
+        return {
+            "family_keys": ["sp500"],
+            "roles": ["cap_weight"],
+            "timeframes": ["D1"],
+            "as_of": None,
+            "max_instruments": 5000,
+            "available_instrument_count": 2,
+            "selected_instrument_count": 2,
+            "limited": False,
+            "instrument_ids": [10, 20],
+            "legs": [],
+        }
+
+    class FakeRedis:
+        def __init__(self):
+            self.calls = []
+
+        async def enqueue_job(self, *args, **kwargs):
+            self.calls.append((args, kwargs))
+            if args[1] == 10:
+                raise RuntimeError("member queue unavailable")
+            return object()
+
+        async def aclose(self):
+            return None
+
+    redis = FakeRedis()
+
+    async def fake_create_pool(*_args, **_kwargs):
+        return redis
+
+    monkeypatch.setattr("app.routers.etf_holdings.plan_benchmark_family_history_refresh", fake_plan)
+    monkeypatch.setattr("arq.connections.create_pool", fake_create_pool)
+
+    response = client.post(
+        "/api/v1/etf-holdings/benchmark-families/history-refresh",
+        json={},
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["queued"] == 1
+    assert body["already_queued"] == 0
+    assert body["queue_error_count"] == 1
+    assert body["queue_errors"] == [
+        {
+            "status": "queue_error",
+            "instrument_id": 10,
+            "error": "member queue unavailable",
+        }
+    ]
+    assert [call[0][1] for call in redis.calls] == [10, 20]
+
+
 def test_admin_family_holdings_refresh_run_persists_scope_and_cancellation(
     client, admin_headers, monkeypatch
 ):
