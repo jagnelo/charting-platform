@@ -3160,8 +3160,9 @@ providers:
         evidence_ref: "live:logiq-lco-current-holdings-2026-09-03"
     disposition_reason: "logiq: LOGIQ's official LCO product page declares a fund-scoped holdings download and static issuer CSV. The native adapter validates page identity and both issuer-owned route markers, requires a complete current snapshot, preserves CUSIPs/quantities/values/weights, classifies cash/currency rows, and records LOGIQ Capital Partners provenance without SEC-derived reconstruction."
     next_action: "logiq: Monitor the official LOGIQ LCO product page and declared TidalFG_Holdings_LCO.csv route; retain native status while the route remains complete, identity-valid, current, and executable, and add any future LOGIQ product only after equivalent first-party evidence."
-    implementation_sha: null
-    validation_refs: []
+    implementation_sha: 99a246933638689e4056659e5d5f18dad0c37799
+    validation_refs:
+      - "validation:2026-09-03T02:46:06Z"
   - adapter_key: long_pond
     display_name: long_pond
     queue_rank: 68
