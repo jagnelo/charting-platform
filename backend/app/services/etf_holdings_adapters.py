@@ -2338,6 +2338,7 @@ ISSUER_DOMAIN_HINTS.update(
         "framework_digital_advisors": ["frameworkdigital.io", "gsretps.io"],
         "fundstrat": ["fundstrat.com", "grannyshots.com"],
         "gotham": ["gothametfs.com", "gothamassetmanagement.com"],
+        "hexis": ["hexis.capital", "hexis.filepoint.live"],
         "volatility_shares": ["volatilityshares.com"],
         "wahed": ["wahed.com"],
         "yieldmax": ["yieldmaxetfs.com"],
@@ -24299,6 +24300,265 @@ class GothamHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if len(dates) != 1:
             return [], None
         return rows, next(iter(dates))
+
+
+class HexisHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Hexis's complete current NICO holdings through its FilePoint app."""
+
+    PRODUCT_PAGE_URL = "https://hexis.capital/nico"
+    FILEPOINT_PAGE_URL = "https://hexis.filepoint.live/iframe_main.html"
+    APPLICATION_SCRIPT_URL = "https://hexis.filepoint.live/assets/js/app.js?version=1"
+    HOLDINGS_URL = (
+        "https://hexis.filepoint.live/assets/data/" "FilepointHexis.40H8.H8_ETF_Holdings.csv"
+    )
+    HOLDINGS_FILENAME = "FilepointHexis.40H8.H8_ETF_Holdings.csv"
+    SUPPORTED_SYMBOL = "NICO"
+    _FILEPOINT_HOST = "hexis.filepoint.live"
+    _FILEPOINT_PAGE_PATHS = frozenset({"/iframe_main.html", "/iframe_main"})
+    _REQUIRED_HEADERS = frozenset(
+        {
+            "date",
+            "account",
+            "stockticker",
+            "cusip",
+            "securityname",
+            "shares",
+            "marketvalue",
+            "weightings",
+        }
+    )
+
+    def probe(
+        self,
+        *,
+        symbol: str,
+        name: str,
+        identifiers: dict[str, str],
+    ) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        supported = normalized_symbol == self.SUPPORTED_SYMBOL
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if supported else Decimal("0.5000"),
+            status="ready" if supported or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "Hexis publishes NICO's complete current holdings through its public FilePoint app."
+                if supported
+                else (
+                    "No verified Hexis NICO route is configured for this symbol; SEC EDGAR remains available as fallback."
+                    if has_sec_fallback
+                    else "No verified Hexis NICO route is configured for this symbol."
+                )
+            ),
+            source_url=self.FILEPOINT_PAGE_URL if supported else None,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del identifiers
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol != self.SUPPORTED_SYMBOL:
+            raise ValueError("Hexis's verified FilePoint holdings route supports NICO only.")
+        if issuer_product_id and issuer_product_id.strip().upper() != normalized_symbol:
+            raise ValueError("Hexis issuer product identity must match the requested ETF symbol.")
+        if source_url and source_url.rstrip("/") not in {
+            self.PRODUCT_PAGE_URL.rstrip("/"),
+            self.FILEPOINT_PAGE_URL.rstrip("/"),
+            self.APPLICATION_SCRIPT_URL.rstrip("/"),
+            self.HOLDINGS_URL.rstrip("/"),
+        }:
+            raise ValueError("Hexis holdings must use its official NICO/FilePoint route.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            app_response = await client.get(
+                self.FILEPOINT_PAGE_URL,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+            app_response.raise_for_status()
+            self._validate_filepoint_page(app_response.text, str(app_response.url))
+            script_response = await client.get(
+                self.APPLICATION_SCRIPT_URL,
+                headers=_issuer_page_request_headers(
+                    accept="application/javascript,text/javascript,*/*"
+                ),
+                follow_redirects=True,
+            )
+            script_response.raise_for_status()
+            self._validate_application_script(script_response.text, str(script_response.url))
+            holdings_response = await client.get(
+                self.HOLDINGS_URL,
+                headers={
+                    **_holdings_request_headers(accept="text/csv,text/plain,*/*"),
+                    "Referer": str(app_response.url),
+                },
+                follow_redirects=True,
+            )
+        holdings_response.raise_for_status()
+        resolved_url = str(getattr(holdings_response, "url", self.HOLDINGS_URL))
+        parsed_url = urlparse(resolved_url)
+        if not _domain_matches(_url_host(resolved_url) or "", self._FILEPOINT_HOST):
+            raise ValueError("Hexis holdings response left the official FilePoint host.")
+        if parsed_url.path.rstrip("/") != urlparse(self.HOLDINGS_URL).path.rstrip("/"):
+            raise ValueError("Hexis holdings response did not preserve the declared CSV route.")
+        rows, composition_date = self._parse_holdings_csv(holdings_response.text)
+        if len(rows) < 10 or composition_date is None:
+            raise ValueError("Hexis's NICO holdings CSV did not expose complete dated holdings.")
+        composition_value = composition_date.isoformat()
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=holdings_response.text,
+            raw_json={"source_format": "csv", "row_count": len(rows)},
+            source_url=resolved_url,
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "hexis_filepoint_app_declared_daily_holdings_csv",
+                "product_page_url": self.PRODUCT_PAGE_URL,
+                "filepoint_app_url": str(app_response.url),
+                "application_script_url": str(script_response.url),
+                "snapshot_provenance": "hexis_native_current_holdings_csv",
+                "composition_date": composition_value,
+                "as_of_date": composition_value,
+                "freshness_semantics": "issuer_disclosed_holdings_as_of_date",
+                "refresh_frequency": "issuer_published_current_holdings",
+                "publisher": "hexis_capital_management",
+                "parent_issuer": "hexis_capital_management",
+                "issuer_relationship": "Hexis Capital Management adviser / Hexis FilePoint publisher",
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _validate_filepoint_page(cls, raw_html: str, resolved_url: str) -> None:
+        parsed_url = urlparse(resolved_url)
+        if not _domain_matches(_url_host(resolved_url) or "", cls._FILEPOINT_HOST):
+            raise ValueError("Hexis FilePoint app resolved outside the official host.")
+        if parsed_url.path.rstrip("/") not in cls._FILEPOINT_PAGE_PATHS:
+            raise ValueError("Hexis FilePoint app did not resolve to the NICO main iframe.")
+        normalized = raw_html.upper()
+        required_markers = (">NICO<", "DOWNLOAD HOLDINGS", "HOLDINGSCSV")
+        if any(marker not in normalized for marker in required_markers):
+            raise ValueError("Hexis FilePoint app did not identify NICO's holdings view.")
+
+    @classmethod
+    def _validate_application_script(cls, raw_script: str, resolved_url: str) -> None:
+        if not _domain_matches(_url_host(resolved_url) or "", cls._FILEPOINT_HOST):
+            raise ValueError("Hexis application script resolved outside the official host.")
+        if cls.HOLDINGS_FILENAME not in raw_script:
+            raise ValueError("Hexis application script did not declare its holdings CSV.")
+
+    @classmethod
+    def _parse_holdings_csv(
+        cls,
+        raw_csv: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        reader = csv.DictReader(StringIO(raw_csv.lstrip("\ufeff")))
+        fieldnames = [str(field).strip().lower() for field in (reader.fieldnames or [])]
+        if not cls._REQUIRED_HEADERS.issubset(set(fieldnames)):
+            return [], None
+        original_fields = [str(field) for field in (reader.fieldnames or [])]
+        key_by_normalized = {
+            normalized: original
+            for normalized, original in zip(fieldnames, original_fields, strict=False)
+        }
+        dates: set[date] = set()
+        rows: list[CanonicalHoldingRow] = []
+        for index, raw in enumerate(reader, start=1):
+            if not raw or not any(_clean(value) for value in raw.values()):
+                continue
+            if (
+                _clean(raw.get(key_by_normalized["account"])) or ""
+            ).upper() != cls.SUPPORTED_SYMBOL:
+                continue
+            row_date = _parse_issuer_date(raw.get(key_by_normalized["date"]))
+            if row_date is None:
+                continue
+            dates.add(row_date)
+            raw_symbol = _clean(raw.get(key_by_normalized["stockticker"]))
+            name = _clean(raw.get(key_by_normalized["securityname"]))
+            raw_cusip = _clean(raw.get(key_by_normalized["cusip"]))
+            if not any((raw_symbol, name, raw_cusip)):
+                continue
+            text = " ".join(part.upper() for part in (raw_symbol, name, raw_cusip) if part)
+            is_cash = (
+                (raw_symbol or "").upper() in {"CASH", "CASH&OTHER", "CASH & OTHER", "USD"}
+                or "CASH & OTHER" in text
+                or "CASH&OTHER" in text
+            )
+            is_derivative = "-TRS-" in text or bool(
+                re.search(r"\b(TRS|SWAP|OPTION|FUTURE|FORWARD)\b", text)
+            )
+            is_fund = (
+                not is_cash
+                and not is_derivative
+                and (" FUND" in f" {text}" or (raw_symbol or "").upper().endswith("XXX"))
+            )
+            symbol_value, exchange = cls._split_symbol(raw_symbol)
+            if is_cash or is_derivative:
+                symbol_value = None
+                exchange = None
+            shares = _decimal(raw.get(key_by_normalized["shares"]))
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol_value,
+                    name=name,
+                    cusip=raw_cusip,
+                    weight=_decimal(raw.get(key_by_normalized["weightings"])),
+                    shares=shares,
+                    market_value=_decimal(raw.get(key_by_normalized["marketvalue"])),
+                    currency="USD",
+                    exchange=exchange,
+                    holding_type="cash"
+                    if is_cash
+                    else "derivative"
+                    if is_derivative
+                    else "fund"
+                    if is_fund
+                    else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"hexis-{cls.SUPPORTED_SYMBOL}-{row_date.isoformat()}-{index}",
+                    extra_data={
+                        **{
+                            key: value
+                            for key, value in raw.items()
+                            if key and _clean(value) is not None
+                        },
+                        "source_symbol": raw_symbol,
+                        "source_cusip": raw_cusip,
+                        "as_of_date": row_date.isoformat(),
+                        "position_side": "short" if shares is not None and shares < 0 else "long",
+                        "source": "hexis_filepoint_daily_holdings_csv",
+                    },
+                )
+            )
+        if len(dates) != 1:
+            return [], None
+        return rows, next(iter(dates))
+
+    @staticmethod
+    def _split_symbol(value: str | None) -> tuple[str | None, str | None]:
+        text = _clean(value)
+        if not text:
+            return None, None
+        parts = text.upper().split()
+        if len(parts) == 2 and re.fullmatch(r"[A-Z0-9.=-]{1,12}", parts[0]):
+            return parts[0], parts[1]
+        if re.fullmatch(r"[A-Z][A-Z0-9.=-]{0,11}", text.upper()):
+            return text.upper(), None
+        return None, None
 
 
 class ColliersHarrisonStreetHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -65994,6 +66254,20 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "data may be subject to issuer terms."
         ),
     ),
+    "hexis": IssuerCsvAdapterConfig(
+        adapter_key="hexis",
+        source_provider="hexis_capital_management",
+        source_access="issuer_product_page_declared_filepoint_daily_holdings_csv",
+        product_page_templates=(
+            "https://hexis.capital/nico",
+            "https://hexis.filepoint.live/iframe_main.html",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "Hexis publishes NICO's complete current holdings through its public FilePoint app; "
+            "data may be subject to issuer terms."
+        ),
+    ),
     "freedom": IssuerCsvAdapterConfig(
         adapter_key="freedom",
         source_provider="freedom_etfs",
@@ -66100,7 +66374,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "genter_capital",
         "gc_ferry_parent",
         "granite_group_advisors",
-        "hexis",
         "highland_capital",
         "hilton",
         "horizons",
@@ -69184,7 +69457,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "granite_group_advisors": GraniteGroupAdvisorsReconciledFallbackHoldingsAdapter,
         "guggenheim": GuggenheimHoldingsAdapter,
         "guinness_atkinson": GuinnessAtkinsonAuditedFallbackHoldingsAdapter,
-        "hexis": HexisReconciledFallbackHoldingsAdapter,
+        "hexis": HexisHoldingsAdapter,
         "highland_capital": HighlandCapitalReconciledFallbackHoldingsAdapter,
         "hilton": HiltonReconciledFallbackHoldingsAdapter,
         "horizons": HorizonsReconciledFallbackHoldingsAdapter,

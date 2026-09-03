@@ -28,8 +28,8 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `381`
-- Audited fallback-only providers: `115`
+- Native/live-backed providers: `382`
+- Audited fallback-only providers: `114`
 
 The current checkpoint promotes `guggenheim` through its public issuer-hosted
 ETF holdings table, reconciles `ars` to the existing ARS Investment Partners
@@ -85,6 +85,13 @@ symbol-scoped `DownloadHoldings` CSV routes for GSPY, GVLU, and SHRT. The native
 adapter requires the declared schema and a consistent holdings-as-of date,
 preserves CUSIPs, signed quantities, weights, and dollar values, and classifies
 Cash & Other and SHRT TRS rows as cash and derivatives respectively.
+Hexis is now covered for NICO through the official Hexis Capital product page
+and its public FilePoint application. The app identifies NICO, exposes a
+Download Holdings control, and declares a complete daily CSV route in its
+application script. The native adapter validates that declaration and the
+issuer-owned host/path, preserves dated equity and exchange-suffixed symbols,
+signed TRS derivatives, the FXFXX money-market fund, and Cash&Other, and records
+Hexis Capital Management/FilePoint publisher provenance.
 Granite Group Advisors is recorded as a non-portfolio-publisher identity: its
 official wealth-management materials describe allocation to independent fund
 managers, disclaim proprietary fund products, and expose no sponsored U.S. ETF
@@ -97,11 +104,11 @@ establishes the successor context; current Brookstone ETF routes remain under
 the distinct native `brookstone` identity.
 The historical starting snapshot for this
 workstream was 356 native and 140 fallback; the provider-audit ledger retains
-that baseline record while tracking the current 381/115 split.
+that baseline record while tracking the current 382/114 split.
 
 The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
 `FALLBACK_ISSUER_AUDITS` at the current ETF-branch implementation checkpoint
-`5f8d0b9d` (Gotham GSPY/GVLU/SHRT DownloadHoldings CSV routes; Fundstrat Granny Shots GRNY/GRNJ/GRNI holdings routes; Freedom/FRDM product-page holdings route; Framework/GSR BESO route; Fitzgerald/Nicholas Wealth FITZ and FIZY routes; FalconX/21Shares ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN,
+`pending-hexis-commit` (Hexis/NICO FilePoint app-declared daily holdings CSV; Gotham GSPY/GVLU/SHRT DownloadHoldings CSV routes; Fundstrat Granny Shots GRNY/GRNJ/GRNI holdings routes; Freedom/FRDM product-page holdings route; Framework/GSR BESO route; Fitzgerald/Nicholas Wealth FITZ and FIZY routes; FalconX/21Shares ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN,
 THYP, and TKNS native routes; Esoterica WUGI, Even Herd EHLS, and Everence/Praxis
 PRXG/PRXV/PRXI native routes; Framework/GSR BESO, Freedom/FRDM, and Fundstrat Granny Shots are now native through their
 declared details/holdings API; ETF Managers Group is recorded as an
@@ -112,7 +119,7 @@ as the existing Cygnet parent identity).
 The fallback audit statuses are:
 
 - `issuer_access_blocked`: `8`
-- `needs_first_party_route_discovery`: `98`
+- `needs_first_party_route_discovery`: `97`
 - `non_executable_public_source`: `3`
 - `provider_not_a_portfolio_publisher`: `6`
 

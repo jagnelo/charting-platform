@@ -5,8 +5,8 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 381
-current_fallback_count: 115
+current_native_count: 382
+current_fallback_count: 114
 generated_at: 2026-09-03T00:50:21Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
@@ -2739,35 +2739,60 @@ providers:
     display_name: hexis
     queue_rank: 60
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
-    estimated_us_etf_count: null
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-03
+    source_access_declared: issuer_product_page_declared_filepoint_daily_holdings_csv
+    representative_symbols:
+      - NICO
+    estimated_us_etf_count: 1
     estimated_us_etf_aum: null
-    us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    us_equity_breadth: 1
+    source_freshness: current_holdings_as_of_date
+    first_party_domains:
+      - hexis.capital
+      - hexis.filepoint.live
+      - sec.gov
+    candidate_routes:
+      - https://hexis.capital/nico
+      - https://hexis.filepoint.live/iframe_main.html
+      - "https://hexis.filepoint.live/assets/js/app.js?version=1"
+      - https://hexis.filepoint.live/assets/data/FilepointHexis.40H8.H8_ETF_Holdings.csv
+      - https://www.sec.gov/Archives/edgar/data/1650149/000089418926013192/hexisetf497k.htm
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_hexis_adapter_fetches_filepoint_declared_nico_holdings_csv
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_hexis_filepoint_nico_holdings_cover_current_positions
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.hexis"
       - "runtime:ISSUER_ADAPTER_CONFIGS.hexis"
+      - "web:hexis-capital-nico-filepoint-app-2026-09-03"
+      - "web:hexis-sec-nico-prospectus-2026-09-03"
+      - "live:hexis-filepoint-nico-holdings-csv-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.hexis"
-    disposition_reason: "hexis: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate hexis first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-03
+        source: "https://hexis.capital/nico, https://hexis.filepoint.live/iframe_main.html, and the declared FilePoint application script"
+        result: "Hexis's NICO product view identifies the NICO fund, exposes a Download Holdings control, and its official FilePoint application script declares the machine-readable daily holdings CSV route."
+        evidence_ref: "web:hexis-capital-nico-filepoint-app-2026-09-03"
+      - date: 2026-09-03
+        source: "https://www.sec.gov/Archives/edgar/data/1650149/000089418926013192/hexisetf497k.htm"
+        result: "The current Hexis prospectus identifies NICO as the Hexis Active Nicotine Engagement ETF and directs investors to hexis.capital for daily portfolio holdings, corroborating product identity without substituting SEC filings for the native route."
+        evidence_ref: "web:hexis-sec-nico-prospectus-2026-09-03"
+      - date: 2026-09-03
+        source: "https://hexis.filepoint.live/assets/data/FilepointHexis.40H8.H8_ETF_Holdings.csv"
+        result: "The official FilePoint CSV returned a current 09/03/2026 NICO snapshot with 18 rows, including equities, exchange-suffixed international listings, signed TRS derivatives, the FXFXX money-market fund, and Cash&Other; the native parser preserves identifiers, weights, values, exchanges, and signed positions."
+        evidence_ref: "live:hexis-filepoint-nico-holdings-csv-2026-09-03"
+    disposition_reason: "hexis: Hexis Capital Management publishes NICO's complete current holdings through an issuer-owned FilePoint application. The adapter strictly verifies the NICO product page, FilePoint iframe markers, declared application-script filename, official CSV host/path, one consistent as-of date, account identity, and complete schema; it preserves equity/exchange identifiers, fund, cash, and signed TRS derivative rows while recording Hexis Capital Management/FilePoint provenance."
+    next_action: "hexis: Monitor the official NICO product page, FilePoint app, declared script, and daily holdings CSV; retain native status while the route remains complete, dated, identity-valid, and executable, and add any future Hexis product only after equivalent first-party evidence."
     implementation_sha: null
-    validation_refs: []
+    validation_refs:
+      - "validation:2026-09-03T00:00:00Z"
   - adapter_key: highland_capital
     display_name: highland_capital
     queue_rank: 61

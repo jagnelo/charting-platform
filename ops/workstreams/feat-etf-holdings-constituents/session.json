@@ -82,7 +82,7 @@
   "goal_unavailable_reason": null,
   "head": "03fb672bbd2055ace04c9bfef70a93c54ffb63b1",
   "implementation_sha": "5f8d0b9dacf7231ae9ea1a906d1360c798bd1812",
-  "last_human_progress_update": "2026-09-03T00:48:00+00:00",
+  "last_human_progress_update": "2026-09-03T01:12:19.045079+00:00",
   "local_validation_profile": "docker_integration",
   "next_action": "continue ranked issuer audit from hexis",
   "plan_hash": "fe8c47d7858abd81feb7f9fae4fa47f8e56a2d159e3742517a8e7ae5e5f4d963",
@@ -91,11 +91,11 @@
   "previous_session_ids": [],
   "progress": {
     "completed": [],
-    "current_blocker": "Full integration gate has one unrelated reproducible F8p-current-history histogram timeout; issuer audit continues.",
+    "current_blocker": "Full integration gate retains the unrelated reproducible F8p-current-history Study Lab histogram timeout; issuer audit continues.",
     "current_phase": "issuer_audit_queue",
-    "next_action": "Continue ranked issuer audit from hexis and the remaining queued fallbacks requiring issuer-specific evidence; promote only executable complete first-party routes, otherwise record dated evidence-specific dispositions.",
+    "next_action": "Continue ranked issuer audit from highland_capital; keep the ledger and runtime audit synchronized and promote only complete executable first-party routes.",
     "total": 8,
-    "updated_at": "2026-09-03T00:49:55+00:00"
+    "updated_at": "2026-09-03T01:12:19.044958+00:00"
   },
   "remote": "2d96697d2fd98bad6c8c5796ff046cd6bbad4dfd",
   "remote_sha": "2d96697d2fd98bad6c8c5796ff046cd6bbad4dfd",

@@ -16,15 +16,15 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 - Latest staging merge: `9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4`
 - Incorporated staging SHA: `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`
-- Current code-derived state: 496 registered, 381 native/live-backed, 115
+- Current code-derived state: 496 registered, 382 native/live-backed, 114
   fallback-only.
-- Current fallback status split: 8 access-blocked, 98 discovery, 3
+- Current fallback status split: 8 access-blocked, 97 discovery, 3
   non-executable public source, 6 non-portfolio-publisher (the ledger's dated
   terminal dispositions preserve each record's original runtime audit status;
-  Elm, Esoterica, Even Herd, and Everence are no longer runtime fallbacks after their
-  native promotions).
+  Elm, Esoterica, Even Herd, Everence, and Hexis are no longer runtime fallbacks
+  after their native promotions).
 - `docs/etf-provider-universe.md` has been reconciled from code to the current
-  496/381/115 snapshot; future updates must remain code-derived.
+  496/382/114 snapshot; future updates must remain code-derived.
 - Validation tier: `full_integration`.
 - Local validation profile: `docker_integration`.
 - The full integration gate at `2d96697d` reached e2e-functional but failed one
@@ -32,7 +32,7 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
   and 106 were skipped. A fresh-stack retry reproduced a missing histogram
   element timeout. The ETF holdings tests and routes were not implicated.
 - Planning session: `197b239d-3322-4fc6-bf4b-0d0aecebf5e0`.
-- Latest implementation checkpoint: `5f8d0b9d` (Gotham GSPY/GVLU/SHRT complete current holdings through official symbol-scoped DownloadHoldings CSV routes, with derivative CUSIP preservation; Fundstrat Granny Shots GRNY/GRNJ/GRNI complete current holdings tables through the official Granny Shots pages; Freedom/FRDM complete current holdings table through the official Freedom ETFs product page; Framework/GSR BESO current holdings route through the official GSR product page and details/holdings APIs; Fitzgerald/Nicholas Wealth FITZ and FIZY current holdings routes through the official XFUNDS pages and nonce-scoped CSV endpoints; FalconX parent coverage through the independently managed 21Shares ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN, THYP, and TKNS routes; Everence/Praxis PRXG, PRXV, and PRXI native routes; Even Herd native EHLS route; the existing
+- Latest implementation checkpoint: pending Hexis/NICO promotion commit (current working changes add the official FilePoint route); prior `5f8d0b9d` (Gotham GSPY/GVLU/SHRT complete current holdings through official symbol-scoped DownloadHoldings CSV routes, with derivative CUSIP preservation; Fundstrat Granny Shots GRNY/GRNJ/GRNI complete current holdings tables through the official Granny Shots pages; Freedom/FRDM complete current holdings table through the official Freedom ETFs product page; Framework/GSR BESO current holdings route through the official GSR product page and details/holdings APIs; Fitzgerald/Nicholas Wealth FITZ and FIZY current holdings routes through the official XFUNDS pages and nonce-scoped CSV endpoints; FalconX parent coverage through the independently managed 21Shares ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN, THYP, and TKNS routes; Everence/Praxis PRXG, PRXV, and PRXI native routes; Even Herd native EHLS route; the existing
   Esoterica WUGI and Cygnet/Elm routes remain intact); prior `915282cd` (Esoterica native WUGI route); prior `a4571ff3` (Elements inactive/successor
   disposition; prior EA Series Trust dated non-portfolio-publisher disposition;
   prior DVx Ventures dated
@@ -89,9 +89,10 @@ only in this branch's registered local worktree.
 The former master-based branch was fully represented in staging before its
 remote ref was removed. Its prior checkpoint `a8d6189` recorded 496 registered,
 339 native/live-backed, and 157 fallback-only providers. Current code has
-advanced to 381/115, including the Guggenheim, ARS, Avory, Ballast, Bancreek,
+advanced to 382/114, including the Guggenheim, ARS, Avory, Ballast, Bancreek,
 BeeHive, Blueprint, Bridgeway, Brookstone, BufferLABS, Bushido, CapForce, Castellan,
-Conductor, CresAlta, Elm, Esoterica, Even Herd, and Everence/Praxis promotions.
+Conductor, CresAlta, Elm, Esoterica, Even Herd, Everence/Praxis, and Hexis/NICO
+promotions.
 Continue current gaps; do not recreate completed work or
 restore a dead route merely to reproduce historical counts.
 
@@ -167,7 +168,8 @@ routes and bounded live GEND proof were reconciled. Gotham is now native-promote
 for GSPY, GVLU, and SHRT through its official symbol-scoped DownloadHoldings CSVs,
 including cash and SHRT TRS derivative semantics. Granite Group Advisors is now
 recorded as a non-portfolio-publisher wealth adviser with no sponsored ETF route.
-The ledger has 73 queued fallback records; continue with `hexis`, and checkpoint each coherent provider
-changeset before moving to the next.
+Hexis/NICO is now native-promoted through the official Hexis FilePoint application and its
+declared daily holdings CSV. The ledger has 72 queued fallback records; continue with
+`highland_capital`, and checkpoint each coherent provider changeset before moving to the next.
 
 Update this handoff at every coherent implementation and operations boundary.

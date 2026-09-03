@@ -18,6 +18,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "freedom",
     "fundstrat",
     "gotham",
+    "hexis",
     "amun",
     "1251_capital",
     "3fourteen",
@@ -2461,6 +2462,31 @@ async def test_live_gotham_product_downloads_cover_current_holdings():
             assert any(row.row_type == "cash" for row in result.rows)
             assert any(row.holding_type == "derivative" for row in result.rows)
             assert any(row.shares is not None and row.shares < 0 for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("hexis")
+async def test_live_hexis_filepoint_nico_holdings_cover_current_positions():
+    adapter = get_holdings_adapter("hexis")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="NICO")
+
+    _assert_live_holdings_result(result, adapter_key="hexis", min_rows=10)
+    metadata = result.legal_metadata or {}
+    assert metadata["source_provider"] == "hexis_capital_management"
+    assert metadata["publisher"] == "hexis_capital_management"
+    assert metadata["parent_issuer"] == "hexis_capital_management"
+    assert metadata["issuer_relationship"] == (
+        "Hexis Capital Management adviser / Hexis FilePoint publisher"
+    )
+    assert metadata["route_resolution"] == ("hexis_filepoint_app_declared_daily_holdings_csv")
+    assert metadata["snapshot_provenance"] == "hexis_native_current_holdings_csv"
+    assert metadata["composition_date"]
+    assert any(row.row_type == "cash" for row in result.rows)
+    assert any(row.holding_type == "derivative" for row in result.rows)
+    assert any(row.exchange == "KS" for row in result.rows)
 
 
 @pytest.mark.asyncio

@@ -19035,6 +19035,79 @@ async def test_gotham_adapter_fetches_symbol_scoped_complete_holdings_csv(monkey
 
 
 @pytest.mark.asyncio
+async def test_hexis_adapter_fetches_filepoint_declared_nico_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("hexis")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "HexisHoldingsAdapter"
+    probe = adapter.probe(
+        symbol="NICO", name="Hexis Active Nicotine Engagement ETF", identifiers={}
+    )
+    assert probe.status == "ready"
+    assert probe.source_url == adapter.FILEPOINT_PAGE_URL
+    assert adapter.probe(symbol="UNKNOWN", name="", identifiers={}).status == "needs_issuer_route"
+
+    with pytest.raises(ValueError, match="official NICO/FilePoint route"):
+        await adapter.fetch_latest(symbol="NICO", source_url="https://example.invalid/nico.csv")
+
+    rows = [
+        "09/02/2026,NICO,PM,718172109,Philip Morris International Inc,1211,187.15,226638.65,12.84%,1765253,70000,7,",
+        "09/02/2026,NICO,033780 KS,6175076,KT&G Corp,308,174900,39313.41,2.23%,1765253,70000,7,",
+        "09/02/2026,NICO,02209S103-TRS-06/07/27-L-CANT,02209S103-TRS-06/07/27-L-CANT,ALTRIA GROUP INC.-SWAP-CANT-L,1456,69.57,101293.92,5.74%,1765253,70000,7,",
+        "09/02/2026,NICO,FXFXX,31846V328,First American Treasury Obligations Fund 01/01/2040,679699.57,100,679699.57,38.50%,1765253,70000,7,Y",
+        "09/02/2026,NICO,Cash&Other,Cash&Other,Cash & Other,-632625.58,1,-632625.58,-35.84%,1765253,70000,7,Y",
+    ] + [
+        f"09/02/2026,NICO,TKR{index},037833100,Security {index},{index},10,10,0.01%,1765253,70000,7,"
+        for index in range(1, 7)
+    ]
+    csv_text = (
+        "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,"
+        "NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag\n" + "\n".join(rows) + "\n"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text='<html><td>NICO</td><a id="holdingscsv">Download Holdings</a></html>',
+            content_type="text/html",
+            url=adapter.FILEPOINT_PAGE_URL,
+        ),
+        FakeResponse(
+            text=f"const holdings = '{adapter.HOLDINGS_FILENAME}';",
+            content_type="application/javascript",
+            url=adapter.APPLICATION_SCRIPT_URL,
+        ),
+        FakeResponse(text=csv_text, url=adapter.HOLDINGS_URL),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="NICO")
+
+    assert [url for url, _ in FakeAsyncClient.requested] == [
+        adapter.FILEPOINT_PAGE_URL,
+        adapter.APPLICATION_SCRIPT_URL,
+        adapter.HOLDINGS_URL,
+    ]
+    assert len(result.rows) == 11
+    assert result.rows[0].symbol == "PM"
+    assert result.rows[0].weight == Decimal("0.1284")
+    assert result.rows[1].symbol == "033780"
+    assert result.rows[1].exchange == "KS"
+    assert result.rows[2].holding_type == "derivative"
+    assert result.rows[2].symbol is None
+    assert result.rows[2].cusip == "02209S103-TRS-06/07/27-L-CANT"
+    assert result.rows[3].holding_type == "fund"
+    assert result.rows[4].row_type == "cash"
+    assert result.rows[4].shares == Decimal("-632625.58")
+    assert result.legal_metadata["source_provider"] == "hexis_capital_management"
+    assert result.legal_metadata["publisher"] == "hexis_capital_management"
+    assert result.legal_metadata["parent_issuer"] == "hexis_capital_management"
+    assert result.legal_metadata["route_resolution"] == (
+        "hexis_filepoint_app_declared_daily_holdings_csv"
+    )
+    assert result.legal_metadata["snapshot_provenance"] == "hexis_native_current_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+
+
+@pytest.mark.asyncio
 async def test_beehive_adapter_fetches_official_declared_daily_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("beehive")
     assert adapter is not None
@@ -21643,7 +21716,7 @@ def test_etfdb_issuer_league_reconciliation_batch_is_registered_and_audited():
 
 
 def test_etfdb_issuer_league_continuation_batch_is_registered_and_audited():
-    expected = set(ETFDB_ISSUER_LEAGUE_CONTINUATION_ISSUER_HINTS) - {"everence"}
+    expected = set(ETFDB_ISSUER_LEAGUE_CONTINUATION_ISSUER_HINTS) - {"everence", "hexis"}
 
     assert expected
     assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
@@ -25920,8 +25993,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 381
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 115
+    assert ledger["current_native_count"] == 382
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 114
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -25953,6 +26026,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "freedom",
         "fundstrat",
         "gotham",
+        "hexis",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))

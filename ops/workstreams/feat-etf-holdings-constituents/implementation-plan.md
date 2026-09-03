@@ -1392,3 +1392,50 @@ receipt must be recorded against the resulting documentation SHA. The complete
 opt-in provider matrix and Docker-backed integration gate remain pending at the
 377-native baseline, with the known unrelated reproducible F8p-current-history
 Study Lab histogram timeout still an AC7 gap.
+
+## 31. Current execution checkpoint — Hexis Capital Management / NICO — 2026-09-03
+
+The ranked `hexis` audit found a complete, executable first-party route for the
+Hexis Active Nicotine Engagement ETF (`NICO`). The official product page at
+`https://hexis.capital/nico` identifies the fund and links to the public Hexis
+FilePoint application. The FilePoint NICO view at
+`https://hexis.filepoint.live/iframe_main.html` exposes a `Download Holdings`
+control, and its official application script declares the exact daily holdings
+CSV filename and route. The current CSV fetched on September 3, 2026 was dated
+September 3, 2026 and contained 18 NICO rows, including equities,
+exchange-suffixed international listings, signed TRS derivative positions, the
+FXFXX money-market fund, and Cash&Other.
+
+The new explicit `HexisHoldingsAdapter` is scoped strictly to NICO and the
+issuer-owned FilePoint chain. It validates product identity, the FilePoint
+iframe markers, the declared application-script filename, official host/path
+preservation, NICO account identity, the complete CSV schema, and one
+consistent as-of date. It splits exchange-suffixed symbols such as `033780 KS`,
+classifies funds/cash/derivatives, preserves raw CUSIPs and signed quantities,
+and records Hexis Capital Management/FilePoint publisher provenance plus the
+product/app/script/snapshot routes. Unsupported symbols continue to use the
+existing SEC fallback path only when a CIK is supplied; SEC data is not used to
+silently promote an unverified product.
+
+The deterministic unit test covers route declaration validation, request
+ordering, NICO identity, schema/date checks, exchange mapping, fund/cash/TRS
+classification, signed positions, and publisher/provenance metadata. The
+opt-in live test fetches the current FilePoint CSV, requires at least 20 rows,
+and verifies current-date, cash, derivative, and international-exchange
+semantics. The ETFDB issuer-league reconciliation invariant now treats `hexis`
+as native-promoted, removes it from the runtime fallback audit, and the
+live-provider manifest owns the bespoke NICO route test.
+
+The code-derived split after this promotion is 496 registered, 382
+native/live-backed, and 114 fallback-only providers. Runtime fallback status
+counts are 8 issuer-access-blocked, 97 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The exhaustive
+ledger retains all 140 historical records exactly once, with `hexis` marked
+`native_promoted`; 72 queued fallback records remain and the next ranked item
+is `highland_capital`.
+
+Implementation and validation records for this checkpoint must reference the
+resulting Hexis adapter/config/test SHA and dated Hexis product, FilePoint, SEC,
+and live CSV evidence. The complete opt-in provider matrix and Docker-backed
+integration gate remain pending at the 382-native baseline; the known unrelated
+reproducible F8p-current-history Study Lab histogram timeout remains an AC7 gap.
