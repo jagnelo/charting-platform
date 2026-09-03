@@ -51,14 +51,23 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ps/workstreams/feat-tc2000-frontend-rework/session.json"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
     "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
+    "container_count": 6,
+    "containers": [
+      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4-worker-1",
+      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4-backend-1",
+      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4-frontend-1",
+      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4-postgres-1",
+      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4-redis-1",
+      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4-research-runner-1"
+    ],
+    "known_bytes": 111230819,
     "over_budget": false,
     "projects": [
       "charting-dev-feat-tc2000-frontend-rework-db4ca1c4",
@@ -69,8 +78,8 @@
     "unattributed_shared_layers_excluded": true,
     "unique_image_bytes": 0,
     "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
+    "volume_bytes": 108407500,
+    "volume_count": 4,
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
   "docker_ready": {
@@ -80,20 +89,20 @@
   },
   "goal_budget_policy": "unbounded_unless_human_authorized",
   "goal_objective": "Advance feat/tc2000-frontend-rework: Execute docs/tc2000-roadmap.md to deliver the canonical-data-backed, V25-inspired TC2000 workstation and stop at ready_for_human_review.. Acceptance criteria: AC1: Every change preserves existing functional and visual assertions; no baseline, mask, threshold, or skip is changed to hide a regression.; AC2: All eight benchmark families expose explicit canonical readiness, provider entitlement, point-in-time holdings/classification/weights/history, continuity, provenance, and unsupported-role states without silent fallback or fabricated data.; AC3: The live-data top-down workflow links benchmark, style, sector, industry/proxy, and constituent views with synchronized symbols/timeframes, indicators, drawings, keyboard behavior, save/restore, source lock/edit states, and actionable freshness.; AC4: Current and historical breadth contracts support generic condition predicates, denominator/exclusion/member-level/source lineage evidence, derived-series semantics, and supported ratio/history queries.; AC5: Market Map, breadth, rotation, ranking, leadership, concentration, dispersion, drawdown, volatility, correlation, and seasonality consumers use source-polymorphic, period-aware, bounded, provenance-visible contracts where data supports them.; AC6: Python/Study Lab outputs remain immutable and lineage-preserving while compatible shapes promote to columns, filters, scans, gauges, alerts, chart plots, and strategy signals with explicit capability errors.; AC7: The mapped V25 reference states are implemented and validated across source selection, treemap geometry, breadth/study/promotion, loading/error/freshness, keyboard, tool menus, popouts, and state restoration using the unchanged visual acceptance policy.; AC8: Golden Layout and native/browser window resilience, endurance beyond 100 rounds, 100k-point/10k-row performance, accessibility, security, sandbox, migration, and logging checks provide actionable evidence.; AC9: Focused backend/frontend/unit/integration checks, authenticated browser flows, all four visual projects, provider/data probes, and the final exact-tip exhaustive integration gate pass or record an explicit reproducible blocker.; AC10: The branch stops at ready_for_human_review with clean, synchronized branch-owned workstream records and no integration, promotion, deployment, or mutation of another worktree.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
-  "goal_recorded_at": "2026-09-03T17:57:30.502914+00:00",
+  "goal_recorded_at": "2026-09-03T21:11:46.033642+00:00",
   "goal_request": {
     "objective": "Advance feat/tc2000-frontend-rework: Execute docs/tc2000-roadmap.md to deliver the canonical-data-backed, V25-inspired TC2000 workstation and stop at ready_for_human_review.. Acceptance criteria: AC1: Every change preserves existing functional and visual assertions; no baseline, mask, threshold, or skip is changed to hide a regression.; AC2: All eight benchmark families expose explicit canonical readiness, provider entitlement, point-in-time holdings/classification/weights/history, continuity, provenance, and unsupported-role states without silent fallback or fabricated data.; AC3: The live-data top-down workflow links benchmark, style, sector, industry/proxy, and constituent views with synchronized symbols/timeframes, indicators, drawings, keyboard behavior, save/restore, source lock/edit states, and actionable freshness.; AC4: Current and historical breadth contracts support generic condition predicates, denominator/exclusion/member-level/source lineage evidence, derived-series semantics, and supported ratio/history queries.; AC5: Market Map, breadth, rotation, ranking, leadership, concentration, dispersion, drawdown, volatility, correlation, and seasonality consumers use source-polymorphic, period-aware, bounded, provenance-visible contracts where data supports them.; AC6: Python/Study Lab outputs remain immutable and lineage-preserving while compatible shapes promote to columns, filters, scans, gauges, alerts, chart plots, and strategy signals with explicit capability errors.; AC7: The mapped V25 reference states are implemented and validated across source selection, treemap geometry, breadth/study/promotion, loading/error/freshness, keyboard, tool menus, popouts, and state restoration using the unchanged visual acceptance policy.; AC8: Golden Layout and native/browser window resilience, endurance beyond 100 rounds, 100k-point/10k-row performance, accessibility, security, sandbox, migration, and logging checks provide actionable evidence.; AC9: Focused backend/frontend/unit/integration checks, authenticated browser flows, all four visual projects, provider/data probes, and the final exact-tip exhaustive integration gate pass or record an explicit reproducible blocker.; AC10: The branch stops at ready_for_human_review with clean, synchronized branch-owned workstream records and no integration, promotion, deployment, or mutation of another worktree.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "dd06f74fc9609e0e62c684e24a7e1435f3940439",
-  "implementation_sha": "7e7e498ef6cc51a4c236affca55c30a31e24dac4",
-  "last_checkpoint": "2026-09-03T20:34:02.457395+00:00",
+  "head": "70485c03c46f3dad6f7f43e89d6fd4bb1314d0f1",
+  "implementation_sha": "70485c03c46f3dad6f7f43e89d6fd4bb1314d0f1",
+  "last_checkpoint": "2026-09-03T21:11:55.021610+00:00",
   "last_human_progress_update": "2026-09-03T19:57:16.586064+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
-  "plan_hash": "19691cf77c2cca3ba43b9fe73ac6ae52d383f9d57d347c542fa67486e1942013",
+  "plan_hash": "6c99e36c99c658c1a517b492723b9bf46a5170f0a3e86175a6775b562afc490e",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [],
@@ -105,8 +114,8 @@
     "total": 10,
     "updated_at": "2026-09-03T19:57:16.585986+00:00"
   },
-  "remote": "dd06f74fc9609e0e62c684e24a7e1435f3940439",
-  "remote_sha": "7e7e498ef6cc51a4c236affca55c30a31e24dac4",
+  "remote": "70485c03c46f3dad6f7f43e89d6fd4bb1314d0f1",
+  "remote_sha": "70485c03c46f3dad6f7f43e89d6fd4bb1314d0f1",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "e225ac6d-5c97-4805-bb18-9bb433431092",
