@@ -1567,9 +1567,9 @@ aliases therefore remain explicitly blocked rather than being silently
 promoted through SEC fallback.
 
 Focused unit/live/Ruff checks for Warren, Inspire, and Fidelity pass. The
-complete deterministic suite and Docker integration gate must be rerun after
-this changeset; exact-SHA remote synchronization remains blocked pending human
-authorization for private-branch push.
+complete deterministic suite and Docker integration gate were rerun after this
+changeset and passed; exact-SHA remote synchronization remains blocked pending
+human authorization for private-branch push.
 
 ## Post-repair Docker integration validation — 2026-09-03
 
