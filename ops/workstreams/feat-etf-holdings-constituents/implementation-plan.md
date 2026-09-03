@@ -2199,3 +2199,17 @@ with 42 queued records and `pabrai` next. Evidence refs:
 `web:opus-capital-management-official-oscv-2026-09-03`,
 `web:opus-capital-management-sec-series-2026-09-03`, and
 `live:opus-capital-management-oscv-current-holdings-2026-09-03`.
+
+## 62. Current audit checkpoint — Pabrai Wagons / WAGN non-executable public source — 2026-09-03
+
+The official WAGN investor-resources page publishes periodic complete-holdings
+PDFs rather than a current executable daily route. The June 30, 2026 N-CSR
+confirms the latest dated Schedule of Investments but does not establish a
+current symbol-scoped artifact. `pabrai` is therefore terminally recorded as
+`non_executable_public_source` without a native adapter or SEC-derived
+promotion.
+
+Current state is 496 registered / 399 native-live-backed / 97 fallback-only,
+with 41 queued records and `panagram` next. Evidence refs:
+`web:pabrai-wagons-investor-resources-2026-09-03` and
+`web:pabrai-wagons-current-report-2026-09-03`.

@@ -1195,6 +1195,21 @@ has 42 queued records and `pabrai` is next. Evidence refs:
 `web:opus-capital-management-sec-series-2026-09-03`, and
 `live:opus-capital-management-oscv-current-holdings-2026-09-03`.
 
+## Current audit checkpoint — Pabrai Wagons / WAGN non-executable public source — 2026-09-03
+
+The official Pabrai Wagons investor-resources page identifies WAGN and links
+periodic complete-holdings PDFs and shareholder reports, including the June 30,
+2026 N-CSR Schedule of Investments. It does not declare a current executable
+daily holdings artifact or symbol-scoped feed, so the ledger records Pabrai as
+`non_executable_public_source` without SEC-derived reconstruction.
+
+The current split remains 496 registered, 399 native/live-backed, and 97
+fallback-only providers. Runtime statuses are 9 issuer-access-blocked, 78
+route-discovery, 4 non-executable, and 6 non-portfolio-publisher. The ledger
+has 41 queued records and `panagram` is next. Evidence refs:
+`web:pabrai-wagons-investor-resources-2026-09-03` and
+`web:pabrai-wagons-current-report-2026-09-03`.
+
 ## Current audit checkpoint — North Square non-executable public source — 2026-09-03
 
 North Square's official NSIV and NSIG pages identify current ETFs but state

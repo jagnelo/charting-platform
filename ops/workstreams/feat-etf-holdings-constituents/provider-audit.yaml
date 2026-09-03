@@ -4362,19 +4362,22 @@ providers:
     display_name: pabrai
     queue_rank: 91
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    current_status: non_executable_public_source
+    disposition: non_executable_public_source
+    last_checked: 2026-09-03
+    source_access_declared: issuer_investor_resources_periodic_holdings_pdf
+    representative_symbols: [WAGN]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    source_freshness: quarterly
+    first_party_domains: [wagonsetf.com, wagonsfund.b-cdn.net, sec.gov]
+    candidate_routes:
+      - "https://www.wagonsetf.com/ir"
+      - "https://wagonsfund.b-cdn.net/Certified%20Shareholder%20Report%20%28Form%20N-CSR%29%20with%20Holdings%20%E2%80%93%20June%2030%2C%202026.pdf"
+      - "https://wagonsfund.b-cdn.net/Pabrai%20Wagons%20ETF%20SOI%20%283.31.2026%29.pdf"
     route_complete: false
-    symbol_mapping_proven: false
+    symbol_mapping_proven: true
     current_holdings_proven: false
     parser_fixture: null
     live_test: null
@@ -4382,13 +4385,23 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.pabrai"
       - "runtime:ISSUER_ADAPTER_CONFIGS.pabrai"
+      - "web:pabrai-wagons-investor-resources-2026-09-03"
+      - "web:pabrai-wagons-current-report-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.pabrai"
-    disposition_reason: "pabrai: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate pabrai first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-03
+        source: "https://www.wagonsetf.com/ir"
+        result: "The official Pabrai Wagons investor-resources page identifies WAGN and publishes only periodic shareholder reports and complete holdings PDFs; it declares no current daily holdings artifact or executable symbol-scoped feed."
+        evidence_ref: "web:pabrai-wagons-investor-resources-2026-09-03"
+      - date: 2026-09-03
+        source: "https://wagonsfund.b-cdn.net/Certified%20Shareholder%20Report%20%28Form%20N-CSR%29%20with%20Holdings%20%E2%80%93%20June%2030%2C%202026.pdf"
+        result: "The latest issuer-hosted N-CSR PDF contains a June 30, 2026 Schedule of Investments, confirming periodic holdings disclosure but not a current executable portfolio route; several non-US positions also lack exchange tickers."
+        evidence_ref: "web:pabrai-wagons-current-report-2026-09-03"
+    disposition_reason: "pabrai: The official WAGN investor-resources page exposes periodic shareholder-report PDFs rather than a current executable holdings feed. The June 30, 2026 N-CSR is a dated Schedule of Investments, so the provider remains fallback-only as non_executable_public_source; no SEC-derived reconstruction is promoted."
+    next_action: "pabrai: Re-audit the official WAGN investor resources after a new reporting cycle for a public current complete holdings artifact; promote only when an executable route and current date are proven."
     implementation_sha: null
     validation_refs: []
   - adapter_key: panagram

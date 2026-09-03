@@ -885,6 +885,25 @@ retained. Evidence refs:
 `web:opus-capital-management-sec-series-2026-09-03`, and
 `live:opus-capital-management-oscv-current-holdings-2026-09-03`.
 
+## Current audit checkpoint — Pabrai Wagons / WAGN non-executable public source — 2026-09-03
+
+The ranked `pabrai` audit verified the official WAGN investor-resources page
+and issuer-hosted reports. Complete holdings are exposed only as periodic PDFs,
+most recently the June 30, 2026 N-CSR Schedule of Investments; no current
+executable daily holdings artifact or symbol-scoped feed was declared. The
+ledger records `pabrai` as `non_executable_public_source`, with no SEC-derived
+reconstruction promoted.
+
+Runtime state remains 496 registered / 399 native-live-backed / 97
+fallback-only providers; runtime fallback statuses are 9 issuer-access-
+blocked, 78 route-discovery, 4 non-executable-public-source, and 6
+non-portfolio-publisher. The ledger has 41 queued records and the next ranked
+issuer is `panagram`. Focused ledger/workstream validation remains pending for
+this documentation checkpoint; the known unrelated F8p-current-history Study
+Lab histogram timeout remains the integration blocker. Evidence refs:
+`web:pabrai-wagons-investor-resources-2026-09-03` and
+`web:pabrai-wagons-current-report-2026-09-03`.
+
 ## Current audit checkpoint — North Square non-executable public source — 2026-09-03
 
 The ranked `north_square` audit verified official NSIV and NSIG product pages
