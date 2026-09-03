@@ -328,3 +328,11 @@ refresh paths (`test_admin_can_refresh_issuer_holdings_for_specific_date` and
 `test_admin_dated_ishares_refresh_preserves_returned_composition_date`) with the two existing
 NumPy deprecation warnings. The assigned TC2000 Docker project remains clean; an unrelated
 ETF-worktree BuildKit container was observed and was not touched.
+
+The benchmark-family coverage response now reports the selected canonical snapshot's provider
+provenance (falling back to the ready adapter key or source label only when no snapshot provider
+is available) at `19b6e494b734af28ca3b96ee2426f54b8ef97a60`. The focused Docker-backed coverage
+integration passes `1/1` (`test_benchmark_family_coverage_exposes_role_dates_and_point_in_time_filter`)
+with the two existing NumPy deprecation warnings; Ruff and `git diff --check` are clean. This
+corrects provider display provenance only and does not claim persisted family population,
+entitlement verification, member-history continuity, or live authenticated readiness.
