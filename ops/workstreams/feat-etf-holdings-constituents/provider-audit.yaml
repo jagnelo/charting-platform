@@ -5727,17 +5727,18 @@ providers:
     display_name: swedish_export_credit
     queue_rank: 122
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: provider_not_a_portfolio_publisher
+    disposition: provider_not_a_portfolio_publisher
+    last_checked: 2026-09-04
     source_access_declared: issuer_public_holdings_file
     representative_symbols: []
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains: [sek.se]
+    candidate_routes:
+      - "https://www.sek.se/en/investor-relations/"
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -5747,13 +5748,18 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.swedish_export_credit"
       - "runtime:ISSUER_ADAPTER_CONFIGS.swedish_export_credit"
+      - "web:swedish-export-credit-current-sek-pages-2026-09-04"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.swedish_export_credit"
-    disposition_reason: "swedish_export_credit: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate swedish_export_credit first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-04
+        source: "Swedish Export Credit Corporation investor-relations pages"
+        result: "SEK is a state-owned export-credit financing corporation issuing debt, not an independent U.S. ETF portfolio publisher; no ETF holdings route applies."
+        evidence_ref: "web:swedish-export-credit-current-sek-pages-2026-09-04"
+    disposition_reason: "swedish_export_credit: Swedish Export Credit Corporation is a state-owned export-credit financing institution, not an independent U.S. ETF portfolio publisher; no complete ETF holdings route applies."
+    next_action: "swedish_export_credit: Keep this non-portfolio-publisher disposition unless discovery identifies a distinct U.S.-listed ETF sponsor identity."
     implementation_sha: null
     validation_refs: []
   - adapter_key: towle

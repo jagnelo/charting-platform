@@ -1403,3 +1403,13 @@ fallback statuses are 17 issuer-access-blocked, 53 route-discovery, 10
 non-executable-public-source, and 7 non-portfolio-publisher. Evidence refs:
 `web:suncoast-current-semg-holdings-page-2026-09-04` and
 `live:suncoast-current-semg-holdings-page-2026-09-04-blocked`.
+
+## Current audit checkpoint — Swedish Export Credit non-publisher — 2026-09-04
+
+SEK is a state-owned export-credit financing institution rather than a U.S.
+ETF portfolio publisher, so no holdings route applies. The durable split remains
+496 registered / 413 native-live-backed / 83 fallback-only providers, with 12
+queued records and `towle` next. Runtime fallback statuses are 17
+issuer-access-blocked, 52 route-discovery, 10 non-executable-public-source, and
+8 non-portfolio-publisher. Evidence ref:
+`web:swedish-export-credit-current-sek-pages-2026-09-04`.

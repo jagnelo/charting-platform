@@ -2582,3 +2582,11 @@ Suncoast's official SEMG page exposes a complete current holdings table, but
 the bounded backend-equivalent request returned HTTP 403. No executable native
 route is promoted, so `suncoast` remains an explicit `issuer_access_blocked`
 fallback and the next queued issuer remains `suncoast`.
+
+## Current audit checkpoint — Swedish Export Credit non-publisher — 2026-09-04
+
+Swedish Export Credit Corporation's official investor-relations material
+identifies SEK as a state-owned export-credit financing institution issuing
+debt, not an independent U.S. ETF portfolio publisher. No ETF holdings route
+applies; the record is closed as `provider_not_a_portfolio_publisher` and
+`towle` is next.
