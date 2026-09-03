@@ -2091,3 +2091,18 @@ unrelated F8p-current-history Study Lab histogram timeout is retained. Evidence
 refs: `web:milliman-official-mhip-holdings-2026-09-03`,
 `web:milliman-sec-daily-holdings-dissemination`, and
 `live:milliman-mhip-current-holdings-2026-09-03`.
+
+## 55. Current execution checkpoint — Moonvest / MNVT native route — 2026-09-03
+
+Moonvest's official MNVT page publishes a complete dated WPDataTables holdings
+table. The native adapter validates the product identity, parses issuer rows,
+normalizes USD-million market values, and classifies fund and cash rows. The
+bounded MNVT live route is green.
+
+Current code-derived state is 496 registered / 396 native-live-backed / 100
+fallback-only, with 48 queued ledger records and `nestyield` next. The full
+opt-in live matrix and Docker-backed integration gate remain pending; the known
+unrelated F8p-current-history Study Lab histogram timeout is retained. Evidence
+refs: `web:moonvest-official-mnvt-holdings-2026-09-03`,
+`web:moonvest-sec-mnvt-identity-2026-09-03`, and
+`live:moonvest-mnvt-current-holdings-2026-09-03`.

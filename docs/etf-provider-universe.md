@@ -1177,3 +1177,15 @@ fallback-only providers. The ledger has 49 queued fallback records and
 `moonvest` is next. Focused deterministic and opt-in MHIP live checks pass; the
 full opt-in matrix and Docker integration gate remain pending, with the known
 unrelated F8p-current-history Study Lab histogram timeout retained.
+
+## Current promotion checkpoint — Moonvest / MNVT — 2026-09-03
+
+Moonvest's official MNVT page publishes a complete dated WPDataTables holdings
+table. The native route validates the product identity, parses issuer rows,
+normalizes USD-million market values, and classifies fund and cash rows.
+
+The current split is 496 registered, 396 native/live-backed, and 100
+fallback-only providers. The ledger has 48 queued fallback records and
+`nestyield` is next. Focused deterministic and opt-in MNVT live checks pass; the
+full opt-in matrix and Docker integration gate remain pending, with the known
+unrelated F8p-current-history Study Lab histogram timeout retained.

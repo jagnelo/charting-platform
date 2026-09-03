@@ -765,3 +765,32 @@ F8p-current-history Study Lab histogram timeout retained. Evidence refs:
 `web:milliman-official-mhip-holdings-2026-09-03`,
 `web:milliman-sec-daily-holdings-dissemination`, and
 `live:milliman-mhip-current-holdings-2026-09-03`.
+
+## Current promotion checkpoint — Moonvest / MNVT native route — 2026-09-03
+
+The ranked `moonvest` audit verified `https://mnvt-etf.com/`. The official
+page identifies the Moonvest ETF (MNVT) and server-renders a complete 22-row
+holdings table with ticker, name, CUSIP, shares, price, USD-million market
+value, percent of net assets, and effective date dated September 3, 2026. The
+official SEC filing independently identifies the MNVT series.
+
+`MoonvestHoldingsAdapter` validates the exact official homepage and product
+identity, parses only the complete embedded table, preserves issuer fields and
+effective dates, converts USD-million values to canonical dollars, and
+classifies fund and cash rows. Configuration, registry ownership,
+fallback-audit removal, deterministic fixture, live manifest, and bespoke
+opt-in MNVT live coverage are synchronized.
+
+The durable ledger records `moonvest` as `native_promoted`: 496 registered, 396
+native/live-backed, 100 fallback-only, and 48 queued fallback records. Runtime
+fallback statuses are 8 issuer-access-blocked, 83 route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher; the next ranked
+issuer is `nestyield`.
+
+Focused Moonvest unit and opt-in live checks pass; the complete deterministic
+adapter suite is rerun at this checkpoint. The full opt-in live matrix and
+Docker-backed integration gate remain pending, with the unrelated reproducible
+F8p-current-history Study Lab histogram timeout retained. Evidence refs:
+`web:moonvest-official-mnvt-holdings-2026-09-03`,
+`web:moonvest-sec-mnvt-identity-2026-09-03`, and
+`live:moonvest-mnvt-current-holdings-2026-09-03`.
