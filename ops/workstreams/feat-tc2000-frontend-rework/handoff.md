@@ -371,3 +371,8 @@ focused analysis-router entitlement tests pass `2/2`, the Docker-backed benchmar
 passes `21/21`, and Ruff plus `git diff --check` are clean. This closes entitlement time-window
 classification only; it does not establish live entitlement records or canonical family
 population/member-history continuity.
+
+The exact-tip backend unit gate was rerun after the entitlement-window change: `1288/1288`
+passed in `59.40s` with `67.45%` total coverage, above the repository `55%` gate. The warning set
+remains limited to the existing NumPy/Pandas deprecations; no provider calls or fixture data were
+added.
