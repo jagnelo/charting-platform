@@ -2538,3 +2538,15 @@ Counts are 496 registered / 412 native / 84 fallback, with 16 queued and
 `strategy_shares` next. Evidence refs:
 `web:stance-hennessy-current-stnc-holdings-page-2026-09-04` and
 `live:stance-hennessy-current-stnc-holdings-page-2026-09-04`.
+
+## Current audit checkpoint — Strategy Shares non-executable public source — 2026-09-04
+
+Strategy Shares' official GOLY, HNDL, MPLY, and ROMO pages expose top-ten
+holdings tables and top-holdings CSV links, but no complete current daily
+holdings artifact. Periodic shareholder and SEC reports are not promoted as a
+current executable route, so `strategy_shares` remains an explicit
+`non_executable_public_source` fallback.
+
+Counts remain 496 registered / 412 native / 84 fallback, with 15 queued and
+`subversive` next. Evidence ref:
+`web:strategy-shares-current-goly-hndl-mply-romo-pages-2026-09-04`.

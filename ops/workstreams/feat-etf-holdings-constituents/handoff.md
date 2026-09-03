@@ -1348,3 +1348,17 @@ Runtime fallback statuses are 15 issuer-access-blocked, 54 route-discovery, 9
 non-executable-public-source, and 7 non-portfolio-publisher. Evidence refs:
 `web:stance-hennessy-current-stnc-holdings-page-2026-09-04` and
 `live:stance-hennessy-current-stnc-holdings-page-2026-09-04`.
+
+## Current audit checkpoint — Strategy Shares non-executable public source — 2026-09-04
+
+Strategy Shares' official GOLY, HNDL, MPLY, and ROMO pages expose top-ten
+holdings tables and top-holdings CSV links, but no complete current daily
+holdings artifact. Periodic shareholder and SEC reports are not promoted as a
+current executable route, so `strategy_shares` remains an explicit
+`non_executable_public_source` fallback.
+
+The durable split remains 496 registered / 412 native-live-backed / 84
+fallback-only providers, with 15 queued records and `subversive` next. Runtime
+fallback statuses are 15 issuer-access-blocked, 54 route-discovery, 10
+non-executable-public-source, and 7 non-portfolio-publisher. Evidence ref:
+`web:strategy-shares-current-goly-hndl-mply-romo-pages-2026-09-04`.

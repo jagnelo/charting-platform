@@ -7,7 +7,7 @@ baseline_fallback_count: 140
 current_registered_count: 496
 current_native_count: 412
 current_fallback_count: 84
-generated_at: 2026-09-04T08:00:00Z
+generated_at: 2026-09-04T09:00:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -5564,17 +5564,21 @@ providers:
     display_name: strategy_shares
     queue_rank: 118
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: non_executable_public_source
+    disposition: non_executable_public_source
+    last_checked: 2026-09-04
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols: [GOLY, HNDL, MPLY, ROMO]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    source_freshness: quarterly
+    first_party_domains: [strategysharesetfs.com]
+    candidate_routes:
+      - "https://strategysharesetfs.com/goly/"
+      - "https://strategysharesetfs.com/hndl/"
+      - "https://strategysharesetfs.com/mply/"
+      - "https://strategysharesetfs.com/romo/"
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -5584,13 +5588,18 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.strategy_shares"
       - "runtime:ISSUER_ADAPTER_CONFIGS.strategy_shares"
+      - "web:strategy-shares-current-goly-hndl-mply-romo-pages-2026-09-04"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.strategy_shares"
-    disposition_reason: "strategy_shares: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate strategy_shares first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-04
+        source: "Strategy Shares official GOLY, HNDL, MPLY, and ROMO product pages"
+        result: "The official pages publish top-ten holdings tables and top-holdings CSV links, but no complete current daily holdings artifact is exposed; remaining portfolio documents are periodic reports."
+        evidence_ref: "web:strategy-shares-current-goly-hndl-mply-romo-pages-2026-09-04"
+    disposition_reason: "strategy_shares: Strategy Shares' official product pages expose only top-ten holdings and top-holdings CSV artifacts for GOLY, HNDL, MPLY, and ROMO; no complete current executable holdings feed is available. Do not reconstruct current holdings from periodic SEC or shareholder reports."
+    next_action: "strategy_shares: Re-audit the official GOLY, HNDL, MPLY, and ROMO pages for a declared complete current holdings artifact; promote only after executable route, mapping, and freshness are proven."
     implementation_sha: null
     validation_refs: []
   - adapter_key: stratified
