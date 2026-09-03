@@ -263,11 +263,20 @@ async def task_refresh_scheduled_benchmark_family_holdings_unit(
             and leg.get("status") == "refreshed"
             and leg.get("snapshot_id") is not None
         ]
-        history_queue = await queue_snapshot_member_history(
-            db,
-            ctx.get("redis"),
-            snapshot_ids,
-        )
+        try:
+            history_queue = await queue_snapshot_member_history(
+                db,
+                ctx.get("redis"),
+                snapshot_ids,
+            )
+        except Exception as exc:  # noqa: BLE001 - retain bounded queue failure evidence.
+            history_queue = {
+                "status": "queue_error",
+                "snapshot_ids": snapshot_ids,
+                "queued": 0,
+                "already_queued": 0,
+                "error": str(exc) or "Scheduled benchmark family history queue failed.",
+            }
         await db.commit()
         return {
             **summary,

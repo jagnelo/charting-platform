@@ -144,6 +144,60 @@ async def test_scheduled_family_unit_refreshes_one_family_and_queues_history(mon
     assert result["history_queue"]["queued"] == 4
 
 
+@pytest.mark.asyncio
+async def test_scheduled_family_unit_retains_history_queue_failure_evidence(monkeypatch):
+    class Session:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        def begin_nested(self):
+            return _AsyncNested()
+
+        async def commit(self):
+            return None
+
+    async def fake_refresh(_db, *, family_key, requested_date, roles):
+        return {
+            "family_key": family_key,
+            "requested_date": requested_date,
+            "roles": roles,
+            "refreshed": 1,
+            "unavailable": 0,
+            "failed": 0,
+            "legs": [{"status": "refreshed", "snapshot_id": 13}],
+        }
+
+    async def failed_queue(*_args):
+        raise RuntimeError("history worker unavailable")
+
+    monkeypatch.setattr("app.database.AsyncSessionLocal", lambda: Session())
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.refresh_benchmark_family_holdings_for_date",
+        fake_refresh,
+    )
+    monkeypatch.setattr(
+        "app.services.benchmark_family_history.queue_snapshot_member_history",
+        failed_queue,
+    )
+
+    result = await arq_worker.task_refresh_scheduled_benchmark_family_holdings_unit(
+        {"redis": "redis"}, "sp500", "2026-07-31", ["cap_weight"]
+    )
+
+    assert result["refreshed"] == 1
+    assert result["snapshot_ids"] == [13]
+    assert result["history_queue"] == {
+        "status": "queue_error",
+        "snapshot_ids": [13],
+        "queued": 0,
+        "already_queued": 0,
+        "error": "history worker unavailable",
+    }
+
+
 def test_worker_registers_scheduled_family_unit_function():
     assert (
         arq_worker.task_refresh_scheduled_benchmark_family_holdings_unit
