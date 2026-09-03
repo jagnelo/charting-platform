@@ -51,7 +51,9 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ps/workstreams/feat-tc2000-frontend-rework/session.json"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -87,10 +89,10 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "c1ec5345bd8c4179a8ad872d8a268def2a6ee381",
+  "head": "9984f3e99dbd50a310fb89edc6aa9b116a06512d",
   "implementation_sha": "7e7e498ef6cc51a4c236affca55c30a31e24dac4",
-  "last_checkpoint": "2026-09-03T19:46:48.425074+00:00",
-  "last_human_progress_update": "2026-09-03T19:26:01.002544+00:00",
+  "last_checkpoint": "2026-09-03T19:57:25.182980+00:00",
+  "last_human_progress_update": "2026-09-03T19:57:16.586064+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "plan_hash": "19691cf77c2cca3ba43b9fe73ac6ae52d383f9d57d347c542fa67486e1942013",
@@ -101,11 +103,11 @@
     "completed": [],
     "current_blocker": "none",
     "current_phase": "R1_provider_readiness",
-    "next_action": "Reconcile the fresh all-20 route evidence with persisted canonical snapshots, member-history continuity, and entitlement outcomes; add only family-specific hydration coverage where those checks remain pending.",
+    "next_action": "Reconcile route readiness against persisted canonical snapshots, member-history continuity, and entitlement outcomes; implement the next evidence-backed hydration or provenance gap without provider fan-out on interactive reads.",
     "total": 10,
-    "updated_at": "2026-09-03T19:26:01.002225+00:00"
+    "updated_at": "2026-09-03T19:57:16.585986+00:00"
   },
-  "remote": "c1ec5345bd8c4179a8ad872d8a268def2a6ee381",
+  "remote": "9984f3e99dbd50a310fb89edc6aa9b116a06512d",
   "remote_sha": "7e7e498ef6cc51a4c236affca55c30a31e24dac4",
   "remote_synchronized": true,
   "schema": 2,
