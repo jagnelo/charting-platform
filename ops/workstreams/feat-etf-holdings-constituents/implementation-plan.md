@@ -2325,3 +2325,13 @@ KraneShares parser, and records publisher/provenance metadata. Counts are 496
 registered / 402 native / 94 fallback, with 32 queued and `rareview_funds` next.
 Evidence refs: `web:quadratic-kfa-current-holdings-2026-09-03` and
 `live:quadratic-kraneshares-current-csv-2026-09-03`.
+
+## Current audit checkpoint — Rareview Funds stale holdings sources — 2026-09-03
+
+The Rareview ETF catalogue is current as a product list, but accessible
+holdings sections are stale historical tables and no current complete data route
+is declared. Retain `rareview_funds` as `non_executable_public_source` until a
+current symbol-scoped artifact and parser/live evidence are available. Counts
+are 496 registered / 402 native / 94 fallback, with 31 queued and
+`return_stacked` next. Evidence refs: `web:rareview-current-etf-catalogue-2026-09-03`
+and `web:rareview-stale-holdings-pages-2026-09-03`.

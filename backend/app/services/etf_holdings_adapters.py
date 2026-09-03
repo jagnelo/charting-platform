@@ -65833,6 +65833,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "subject to issuer terms."
         ),
     ),
+    "rareview_funds": IssuerCsvAdapterConfig(
+        adapter_key="rareview_funds",
+        source_provider="rareview_capital",
+        source_access="issuer_public_product_page_stale_holdings_table",
+        product_page_templates=("https://rareviewcapital.com/etfs/",),
+        live_tested_default_route=False,
+        terms_note="Rareview Capital public ETF product pages and holdings tables may be subject to issuer terms.",
+    ),
     "resolute": IssuerCsvAdapterConfig(
         adapter_key="resolute",
         source_provider="resolute_american_beacon",

@@ -1433,3 +1433,18 @@ with 32 queued records and `rareview_funds` next. Runtime fallback statuses are
 and 6 non-portfolio-publisher. Evidence refs:
 `web:quadratic-kfa-current-holdings-2026-09-03` and
 `live:quadratic-kraneshares-current-csv-2026-09-03`.
+
+## Current audit checkpoint — Rareview Funds stale holdings sources — 2026-09-03
+
+Rareview's official ETF catalogue identifies six current products (RMME, BEGS,
+RSEE, RTRE, RDFI, and RTAI). Accessible product holdings sections expose stale
+historical tables—RSEE is dated January 21, 2022 and RTAI October 22, 2020—and
+no current complete machine-readable route is declared.
+
+The ledger records `rareview_funds` as `non_executable_public_source` without
+SEC-derived reconstruction or native promotion. The current split remains 496
+registered / 402 native-live-backed / 94 fallback-only, with 31 queued records
+and `return_stacked` next. Runtime fallback statuses are 12 issuer-access-
+blocked, 70 route-discovery, 7 non-executable-public-source, and 6
+non-portfolio-publisher. Evidence refs: `web:rareview-current-etf-catalogue-2026-09-03`
+and `web:rareview-stale-holdings-pages-2026-09-03`.

@@ -1054,6 +1054,21 @@ non-executable-public-source, and 6 non-portfolio-publisher. Evidence refs:
 `web:quadratic-kfa-current-holdings-2026-09-03` and
 `live:quadratic-kraneshares-current-csv-2026-09-03`.
 
+## Current audit checkpoint — Rareview Funds stale holdings sources — 2026-09-03
+
+Rareview's official ETF catalogue identifies six products, but accessible
+product holdings sections are stale historical tables (RSEE January 21, 2022;
+RTAI October 22, 2020) and no current complete machine-readable route is
+declared. Keep `rareview_funds` as `non_executable_public_source` without SEC
+reconstruction or native promotion.
+
+Runtime state remains 496 registered / 402 native-live-backed / 94 fallback-only
+providers, with 31 queued records and `return_stacked` next. Runtime fallback
+statuses are 12 issuer-access-blocked, 70 route-discovery, 7
+non-executable-public-source, and 6 non-portfolio-publisher. Evidence refs:
+`web:rareview-current-etf-catalogue-2026-09-03` and
+`web:rareview-stale-holdings-pages-2026-09-03`.
+
 ## Current audit checkpoint — North Square non-executable public source — 2026-09-03
 
 The ranked `north_square` audit verified official NSIV and NSIG product pages

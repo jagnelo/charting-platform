@@ -7,7 +7,7 @@ baseline_fallback_count: 140
 current_registered_count: 496
 current_native_count: 402
 current_fallback_count: 94
-generated_at: 2026-09-03T14:30:00Z
+generated_at: 2026-09-03T15:00:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -4837,19 +4837,24 @@ providers:
     display_name: rareview_funds
     queue_rank: 101
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    current_status: audited
+    disposition: non_executable_public_source
+    last_checked: 2026-09-03
+    source_access_declared: issuer_public_product_page_stale_holdings_table
+    representative_symbols: [RMME, BEGS, RSEE, RTRE, RDFI, RTAI]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    source_freshness: stale_historical_table
+    first_party_domains: [rareviewcapital.com, sec.gov]
+    candidate_routes:
+      - "https://rareviewcapital.com/etfs/"
+      - "https://rareviewcapital.com/systematic-equity-etf/"
+      - "https://rareviewcapital.com/government-money-market-etf/"
+      - "https://rareviewcapital.com/tax-advantaged-income-etf/"
+      - "https://rareviewcapital.com/2x-bull-cryptocurrency-precious-metals-etf/"
     route_complete: false
-    symbol_mapping_proven: false
+    symbol_mapping_proven: true
     current_holdings_proven: false
     parser_fixture: null
     live_test: null
@@ -4857,13 +4862,19 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.rareview_funds"
       - "runtime:ISSUER_ADAPTER_CONFIGS.rareview_funds"
+      - "web:rareview-current-etf-catalogue-2026-09-03"
+      - "web:rareview-stale-holdings-pages-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.rareview_funds"
-    disposition_reason: "rareview_funds: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate rareview_funds first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-03
+        source: "Rareview Capital official ETF catalogue and product pages"
+        result: "The official catalogue identifies six current ETFs, but the accessible product holdings sections are stale historical tables (for example RSEE dated January 21, 2022 and RTAI dated October 22, 2020); no current complete machine-readable route is declared."
+        evidence_ref: "web:rareview-stale-holdings-pages-2026-09-03"
+    disposition_reason: "rareview_funds: Rareview's official catalogue identifies six ETFs, but accessible product holdings sections expose stale historical tables rather than a current complete symbol-scoped artifact. The provider remains non_executable_public_source without SEC reconstruction or native promotion."
+    next_action: "rareview_funds: Recheck Rareview ETF product pages for a current complete holdings route; promote only after current rows, strict parsing, and bounded live validation are proven."
     implementation_sha: null
     validation_refs: []
   - adapter_key: return_stacked
