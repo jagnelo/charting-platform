@@ -2284,3 +2284,19 @@ disposition. Counts are 496 registered / 401 native / 95 fallback, with 35
 queued records and `putnam` next. Evidence refs:
 `web:premise-tctl-current-identity-2026-09-03` and
 `live:premise-tctl-domain-unreachable-2026-09-03`.
+
+## Current audit checkpoint — Putnam / Franklin successor periodic disclosure — 2026-09-03
+
+The Putnam retail ETF catalogue now redirects to Franklin Templeton. Its public
+successor catalogue and GraphQL endpoint map 14 symbols, but live probes yielded
+delayed January–July 2026 snapshots and no PFRX rows. Official materials specify
+lagged quarterly complete-holdings disclosure. Keep `putnam` fallback-only as
+`non_executable_public_source` until current complete coverage, parser fixtures,
+and bounded live tests are proven.
+
+Counts are 496 registered / 401 native / 95 fallback, with 34 queued records and
+`pzena` next; runtime statuses are 11 blocked, 72 route-discovery, 6
+non-executable, and 6 non-portfolio-publisher. Evidence refs:
+`web:putnam-franklin-current-etf-catalogue-2026-09-03`,
+`web:putnam-quarterly-holdings-disclosure-2026-09-03`, and
+`live:putnam-franklin-api-stale-or-empty-2026-09-03`.

@@ -65750,6 +65750,20 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "subject to issuer terms."
         ),
     ),
+    "putnam": IssuerCsvAdapterConfig(
+        adapter_key="putnam",
+        source_provider="putnam_franklin_successor",
+        source_access="issuer_successor_graphql_holdings_periodic_disclosure",
+        product_page_templates=(
+            "https://www.putnam.com/putnam-investments/investment-options",
+            "https://www.franklintempleton.com/investments/options/exchange-traded-funds/products/{issuer_product_id}/SINGLCLASS/{symbol_lower}/{symbol_upper}",
+        ),
+        terms_note=(
+            "Putnam ETF retail products have moved to Franklin Templeton; the public successor "
+            "catalogue/API may expose delayed holdings and is retained as fallback until current "
+            "complete coverage is proven."
+        ),
+    ),
     "resolute": IssuerCsvAdapterConfig(
         adapter_key="resolute",
         source_provider="resolute_american_beacon",

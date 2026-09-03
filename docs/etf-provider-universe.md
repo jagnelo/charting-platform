@@ -1382,3 +1382,23 @@ The current split remains 496 registered / 401 native-live-backed / 95
 fallback-only, with 35 queued records and `putnam` next. Evidence refs:
 `web:premise-tctl-current-identity-2026-09-03` and
 `live:premise-tctl-domain-unreachable-2026-09-03`.
+
+## Current audit checkpoint — Putnam / Franklin successor periodic disclosure — 2026-09-03
+
+Putnam's current retail ETF catalogue has moved to Franklin Templeton. The
+successor catalogue mapped 14 Putnam ETF symbols to fund IDs, and the public
+Franklin GraphQL endpoint was executable. Probes nevertheless returned delayed
+monthly/quarterly snapshots dated January through July 2026, while PFRX returned
+no holdings rows. Official Putnam/Franklin materials describe delayed quarterly
+complete-portfolio disclosure, so the route is not counted as a current native
+integration.
+
+The ledger records `putnam` as `non_executable_public_source` with symbol
+mapping evidence retained, without SEC-derived reconstruction or native
+promotion. The current split remains 496 registered / 401 native-live-backed /
+95 fallback-only, with 34 queued records and `pzena` next. Runtime fallback
+statuses are 11 issuer-access-blocked, 72 route-discovery, 6
+non-executable-public-source, and 6 non-portfolio-publisher. Evidence refs:
+`web:putnam-franklin-current-etf-catalogue-2026-09-03`,
+`web:putnam-quarterly-holdings-disclosure-2026-09-03`, and
+`live:putnam-franklin-api-stale-or-empty-2026-09-03`.

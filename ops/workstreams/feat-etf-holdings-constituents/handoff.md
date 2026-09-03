@@ -1008,6 +1008,23 @@ The ledger has 35 queued records and the next ranked issuer is `putnam`.
 Evidence refs: `web:premise-tctl-current-identity-2026-09-03` and
 `live:premise-tctl-domain-unreachable-2026-09-03`.
 
+## Current audit checkpoint — Putnam / Franklin successor periodic disclosure — 2026-09-03
+
+Putnam retail ETFs have moved to Franklin Templeton. The public successor
+catalogue mapped 14 Putnam symbols to fund IDs, but API probes returned delayed
+January–July 2026 snapshots and no holdings rows for PFRX. Putnam/Franklin
+materials describe delayed quarterly complete-holdings disclosure, so the
+provider remains `non_executable_public_source`; no native adapter or SEC
+reconstruction is counted.
+
+Runtime state remains 496 registered / 401 native-live-backed / 95 fallback-only
+providers, with 34 queued records and `pzena` next. Runtime fallback statuses
+are 11 issuer-access-blocked, 72 route-discovery, 6 non-executable-public-source,
+and 6 non-portfolio-publisher. Evidence refs:
+`web:putnam-franklin-current-etf-catalogue-2026-09-03`,
+`web:putnam-quarterly-holdings-disclosure-2026-09-03`, and
+`live:putnam-franklin-api-stale-or-empty-2026-09-03`.
+
 ## Current audit checkpoint — North Square non-executable public source — 2026-09-03
 
 The ranked `north_square` audit verified official NSIV and NSIG product pages
