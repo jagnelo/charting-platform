@@ -16,15 +16,15 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 - Latest staging merge: `9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4`
 - Incorporated staging SHA: `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`
-- Current code-derived state: 496 registered, 379 native/live-backed, 117
+- Current code-derived state: 496 registered, 380 native/live-backed, 116
   fallback-only.
-- Current fallback status split: 8 access-blocked, 100 discovery, 3
+- Current fallback status split: 8 access-blocked, 99 discovery, 3
   non-executable public source, 6 non-portfolio-publisher (the ledger's dated
   terminal dispositions preserve each record's original runtime audit status;
   Elm, Esoterica, Even Herd, and Everence are no longer runtime fallbacks after their
   native promotions).
 - `docs/etf-provider-universe.md` has been reconciled from code to the current
-  496/379/117 snapshot; future updates must remain code-derived.
+  496/380/116 snapshot; future updates must remain code-derived.
 - Validation tier: `full_integration`.
 - Local validation profile: `docker_integration`.
 - The full integration gate at `2d96697d` reached e2e-functional but failed one
@@ -32,7 +32,7 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
   and 106 were skipped. A fresh-stack retry reproduced a missing histogram
   element timeout. The ETF holdings tests and routes were not implicated.
 - Planning session: `197b239d-3322-4fc6-bf4b-0d0aecebf5e0`.
-- Latest implementation checkpoint: `5518a3c3` (Freedom/FRDM complete current holdings table through the official Freedom ETFs product page; Framework/GSR BESO current holdings route through the official GSR product page and details/holdings APIs; Fitzgerald/Nicholas Wealth FITZ and FIZY current holdings routes through the official XFUNDS pages and nonce-scoped CSV endpoints; FalconX parent coverage through the independently managed 21Shares ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN, THYP, and TKNS routes; Everence/Praxis PRXG, PRXV, and PRXI native routes; Even Herd native EHLS route; the existing
+- Latest implementation checkpoint: `e33ddd8e` (Fundstrat Granny Shots GRNY/GRNJ/GRNI complete current holdings tables through the official Granny Shots pages; Freedom/FRDM complete current holdings table through the official Freedom ETFs product page; Framework/GSR BESO current holdings route through the official GSR product page and details/holdings APIs; Fitzgerald/Nicholas Wealth FITZ and FIZY current holdings routes through the official XFUNDS pages and nonce-scoped CSV endpoints; FalconX parent coverage through the independently managed 21Shares ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN, THYP, and TKNS routes; Everence/Praxis PRXG, PRXV, and PRXI native routes; Even Herd native EHLS route; the existing
   Esoterica WUGI and Cygnet/Elm routes remain intact); prior `915282cd` (Esoterica native WUGI route); prior `a4571ff3` (Elements inactive/successor
   disposition; prior EA Series Trust dated non-portfolio-publisher disposition;
   prior DVx Ventures dated
@@ -89,7 +89,7 @@ only in this branch's registered local worktree.
 The former master-based branch was fully represented in staging before its
 remote ref was removed. Its prior checkpoint `a8d6189` recorded 496 registered,
 339 native/live-backed, and 157 fallback-only providers. Current code has
-advanced to 379/117, including the Guggenheim, ARS, Avory, Ballast, Bancreek,
+advanced to 380/116, including the Guggenheim, ARS, Avory, Ballast, Bancreek,
 BeeHive, Blueprint, Bridgeway, Brookstone, BufferLABS, Bushido, CapForce, Castellan,
 Conductor, CresAlta, Elm, Esoterica, Even Herd, and Everence/Praxis promotions.
 Continue current gaps; do not recreate completed work or
@@ -156,7 +156,9 @@ current GSR page or API data and was not silently promoted through EDGAR. Contin
 with
 `freedom` is now native-promoted for FRDM through the official Freedom ETFs
 product page's complete holdings table and effective date. Continue with
-`fundstrat`, and checkpoint
+`fundstrat` is now native-promoted for GRNY, GRNJ, and GRNI through the official
+Granny Shots full-holdings pages, including GRNI option classification. Continue
+with `gc_ferry_parent`, and checkpoint
 each coherent provider changeset before moving to the next.
 
 Update this handoff at every coherent implementation and operations boundary.

@@ -1052,6 +1052,52 @@ opt-in provider matrix and Docker-backed integration gate remain pending at the
 377-native baseline, with the known unrelated reproducible F8p-current-history
 Study Lab histogram timeout still an AC7 gap.
 
+## 26. Current execution checkpoint — Fundstrat Granny Shots — 2026-09-03
+
+The ranked `fundstrat` audit found complete executable first-party routes for
+the Fundstrat Granny Shots ETF family. The official full-holdings pages on
+`grannyshots.com` identify and publish current portfolios for GRNY (Fundstrat
+Granny Shots US Large Cap ETF), GRNJ (Fundstrat Granny Shots US Small- & Mid-Cap
+ETF), and GRNI (Fundstrat Granny Shots US Large Cap & Income ETF). Each page
+server-renders a complete table with Ticker, CUSIP, Name, Weight, Shares, and
+Market Value fields plus a Holdings-as-of date of September 2, 2026. The live
+row counts were 42 for GRNY, 62 for GRNJ, and 130 for GRNI.
+
+The new explicit `FundstratHoldingsAdapter` maps only GRNY, GRNJ, and GRNI to
+their verified full-holdings pages. It validates symbol-specific page identity,
+rejects unapproved URLs, selects the complete table by required headers,
+requires a bounded non-trivial row count, parses and requires the disclosed
+holdings-as-of date, converts percentage and dollar strings, preserves CUSIPs
+and shares, assigns USD, and records Fundstrat Capital as publisher/parent.
+GRNI's `Type=Option` rows are mapped to derivative holdings with no tradable
+symbol, while ordinary stock rows are normalized to equity holdings. The route
+does not depend on SEC reconstruction or an undocumented endpoint.
+
+The deterministic unit test covers all three symbol mappings, probe behavior,
+unsupported symbols, source URL rejection, identity checks, complete-table
+parsing, date parsing, weight/value conversion, identifier preservation, GRNI
+option classification, and publisher/provenance metadata. The opt-in live test
+fetches all three official pages, requires their observed minimum row counts,
+checks current metadata, and requires derivative classification on GRNI. The
+ETF.com brand reconciliation invariant now treats `fundstrat` as
+native-promoted, the fallback manifest no longer lists it, and the
+live-provider manifest owns the bespoke three-product route test.
+
+The code-derived split after this promotion is 496 registered, 380
+native/live-backed, and 116 fallback-only providers. Runtime fallback status
+counts are 8 issuer-access-blocked, 99 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The exhaustive
+ledger retains all 140 historical records exactly once, with `fundstrat` marked
+`native_promoted`; 77 queued fallback records remain and the next ranked item
+is `gc_ferry_parent`.
+
+Implementation checkpoint SHA: `e33ddd8ebd919d14e1969af2aa36537864ece0f2`.
+The provider-audit ledger and documentation checkpoint must reference this SHA
+and the dated Granny Shots evidence. The complete opt-in provider matrix and
+Docker-backed integration gate remain pending at the 380-native baseline; the
+known unrelated reproducible F8p-current-history Study Lab histogram timeout
+remains an AC7 gap.
+
 ## 25. Current execution checkpoint — Freedom ETFs / FRDM — 2026-09-03
 
 The ranked `freedom` audit found a complete, executable first-party route for

@@ -5,9 +5,9 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 379
-current_fallback_count: 117
-generated_at: 2026-09-03T00:20:00Z
+current_native_count: 380
+current_fallback_count: 116
+generated_at: 2026-09-03T00:05:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -2414,35 +2414,54 @@ providers:
     display_name: fundstrat
     queue_rank: 54
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
-    estimated_us_etf_count: null
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-03
+    source_access_declared: issuer_product_page_embedded_complete_current_holdings_table
+    representative_symbols:
+      - GRNY
+      - GRNJ
+      - GRNI
+    estimated_us_etf_count: 3
     estimated_us_etf_aum: null
-    us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    us_equity_breadth: 3
+    source_freshness: current_holdings_as_of_date
+    first_party_domains:
+      - grannyshots.com
+      - fundstrat.com
+    candidate_routes:
+      - "https://grannyshots.com/fundstrat-granny-shots-us-large-cap-etf/grny-holdings/"
+      - "https://grannyshots.com/fundstrat-granny-shots-us-large-cap-etf/grnj-holdings/"
+      - "https://grannyshots.com/fundstrat-granny-shots-us-large-cap-etf/grni-holdings/"
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_fundstrat_adapter_fetches_complete_granny_shots_holdings_pages
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_fundstrat_granny_shots_pages_cover_current_products
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.fundstrat"
       - "runtime:ISSUER_ADAPTER_CONFIGS.fundstrat"
+      - "web:fundstrat-granny-shots-complete-holdings-pages-2026-09-03"
+      - "live:fundstrat-granny-shots-current-holdings-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.fundstrat"
-    disposition_reason: "fundstrat: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate fundstrat first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
-    implementation_sha: null
-    validation_refs: []
+      - date: 2026-09-03
+        source: "https://grannyshots.com/fundstrat-granny-shots-us-large-cap-etf/grny-holdings/ and corresponding GRNJ/GRNI pages"
+        result: "Fundstrat Granny Shots' official full-holdings pages identify GRNY, GRNJ, and GRNI and expose complete server-rendered tables with Ticker, CUSIP, Name, Weight, Shares, and Market Value columns. The pages report Holdings as of September 2, 2026 and contain 42, 62, and 130 rows respectively."
+        evidence_ref: "web:fundstrat-granny-shots-complete-holdings-pages-2026-09-03"
+      - date: 2026-09-03
+        source: "https://grannyshots.com/fundstrat-granny-shots-us-large-cap-etf/grny-holdings/ and corresponding GRNJ/GRNI pages"
+        result: "The bounded live adapter test fetched all three issuer pages, parsed complete current rows, converted weights and dollar market values, preserved CUSIPs/shares, and classified GRNI option positions as derivatives."
+        evidence_ref: "live:fundstrat-granny-shots-current-holdings-2026-09-03"
+    disposition_reason: "fundstrat: Fundstrat Capital's official Granny Shots full-holdings pages publish complete current GRNY, GRNJ, and GRNI tables with September 2, 2026 holdings-as-of dates. The native adapter validates each symbol-specific page, parses the complete schema, preserves identifiers/weights/values, classifies GRNI options as derivatives, and records issuer publisher/parent provenance with deterministic and opt-in live coverage."
+    next_action: "fundstrat: Monitor the official Granny Shots GRNY/GRNJ/GRNI full-holdings pages and disclosed as-of dates; retain native status while each route remains complete, current, identity-valid, and executable, and add future Fundstrat products only after equivalent first-party evidence."
+    implementation_sha: e33ddd8ebd919d14e1969af2aa36537864ece0f2
+    validation_refs:
+      - "validation:2026-09-03T00:04:09Z"
   - adapter_key: gc_ferry_parent
     display_name: gc_ferry_parent
     queue_rank: 55
