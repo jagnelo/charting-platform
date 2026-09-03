@@ -114,3 +114,11 @@ provider/capability pair, reduced to safe classification/success/timestamp field
 count in `universe_provenance`; raw provider errors and request payloads are intentionally omitted.
 This makes the no-provider-call read path able to show the difference between declared terms and
 an actually observed probe without weakening the source-lock or fallback rules.
+
+The metadata-readiness checkpoint is `30f0e792433f410f94910e57bf79b82118875cd9`. Each selected
+holdings snapshot now reports resolved member count, non-null weight coverage, and classification
+coverage. Historical classification counts require field-level industry evidence observed on or
+before the requested `as_of`; current-only detail is not reused to fill a historical gap. The
+role composite status remains conservative until weights, classification, member bars, point-in-
+time support, and persisted entitlement/probe evidence are all ready. The workstation coverage
+row exposes the weight and classification states beside continuity and history.
