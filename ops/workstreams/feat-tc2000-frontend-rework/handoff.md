@@ -250,3 +250,8 @@ The focused workstation-bootstrap unit suite passes `9/9`, including a regressio
 member fails and the first/last members still queue. Ruff and `git diff --check` pass. This closes a
 worker fan-out integrity gap only; it does not claim canonical holdings/history population,
 provider entitlements, point-in-time continuity, or live-source readiness.
+
+The current-tip bounded readiness rerun is also green: benchmark-family coverage/readiness and
+related ratios, breadth, ranking, rotation, and derived-equal integration tests pass `20/20` with
+Docker access. The unprivileged retry remains a setup-only Docker socket permission failure; no
+application assertion failed. The existing two NumPy deprecation warnings remain non-blocking.
