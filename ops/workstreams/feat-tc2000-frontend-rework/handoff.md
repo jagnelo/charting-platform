@@ -231,3 +231,9 @@ Redis enqueue attempt, retain bounded per-instrument `queue_error` evidence, con
 members, and expose `queue_error_count` in the response. The service regression passes `6/6`; the
 admin history-refresh integration slice passes `2/2`; Ruff and diff checks are green. A whole-pool
 failure remains an explicit `queue_unavailable` outcome.
+
+The route-matrix regression is `798f32577bacb0ed49f1a663a19ff51dc8e3a146`: all 20 configured
+benchmark-family proxy symbols now have explicit local adapter metadata and a `ready` adapter
+probe (SPDR, iShares, Invesco, or Direxion as configured). This is route-selection evidence only;
+it performs no network request and does not claim that any holdings artifact or historical member
+bars have been populated.
