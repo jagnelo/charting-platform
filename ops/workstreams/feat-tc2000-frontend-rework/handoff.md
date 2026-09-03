@@ -507,6 +507,30 @@ are clean. The assigned stack was removed with branch-scoped volumes and the dis
 deleted; no other worktree, staging, master, integration, promotion, or deployment action was
 performed.
 
+## 2026-09-03 — dated member history now carries an inclusive end bound
+
+The bounded provider sample revealed that durable and scheduled dated holdings refreshes were
+queueing member-history jobs without the composition date. The worker consequently defaulted to
+the current instant, allowing a historical refresh to persist bars newer than its requested
+point-in-time boundary. Commit `c67104c7` adds `history_end_for_date`, which resolves a requested
+composition date to inclusive UTC end-of-day, and passes that bound through both durable and
+scheduled family-refresh queue paths. Service and worker regressions assert the exact bound and
+the end-aware idempotence key.
+
+On a fresh assigned stack, a Nasdaq-100 QQQ refresh for `2025-12-31` completed and queued `101`
+member jobs. The queue was intentionally paused after a bounded sample (`94` jobs remained) to
+avoid another uncontrolled public-provider drain. A seeded canonical SPY/Nasdaq binding was then
+run through the same worker with the explicit `2025-12-31T23:59:59.999999Z` bound: `2,345` D1
+bars were persisted, `0` were after the bound, and the maximum stored timestamp was
+`2025-12-31T00:00:00Z`. This proves the worker's inclusive end filtering without exporting any
+new identifiers; full QQQ member hydration and provider coverage remain open.
+
+The exact-tip backend unit suite passed `1,295/1,295` with `67.49%` coverage, the focused
+history/worker suite passed `33/33`, and Ruff plus `git diff --check` passed. The assigned stack
+was removed with branch-scoped containers, volumes, and generated images; disposable runtime
+files and tokens were deleted. No other worktree, staging, master, integration, promotion, or
+deployment action was performed.
+
 ## 2026-09-03 — bounded identifier enrichment and worker provider-symbol resolution
 
 The previous history run showed that canonical provider bindings could exist in PostgreSQL while
