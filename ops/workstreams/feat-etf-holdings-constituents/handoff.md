@@ -1570,3 +1570,22 @@ Focused unit/live/Ruff checks for Warren, Inspire, and Fidelity pass. The
 complete deterministic suite and Docker integration gate must be rerun after
 this changeset; exact-SHA remote synchronization remains blocked pending human
 authorization for private-branch push.
+
+## Post-repair Docker integration validation — 2026-09-03
+
+The required `make validate-integration` gate was rerun at implementation SHA
+`a696277b6efed719cc40051e010f5e6a5b542f3e` after the Warren, Inspire, and
+Fidelity repairs. Dependency/lint/type checks, backend unit/integration tests
+(1711 passed, 80.93% total coverage), frontend unit checks (923 passed,
+81.99% coverage), production build, compose contract, and branch-scoped stack
+health all passed. Research-runner sandbox/resource probes reported the
+expected denied capabilities and contained resource-failure probes. Functional
+Playwright passed 154 tests with 106 expected skips; visual Playwright passed
+104 tests. The isolated containers, volumes, network, and four temporary images
+were removed by the gate cleanup; no cross-worktree resources remain.
+
+The two Vident/MM VAM live failures remain the only provider-route failures:
+both aliases share Vident's official page, which returns a Cloudflare challenge
+(HTTP 403) to the available clients. Exact-SHA remote/CI synchronization and
+human closure authorization remain pending; no integration, promotion,
+deployment, or cross-worktree mutation was performed.
