@@ -67217,6 +67217,21 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Touchstone public ETF product-page holdings data may be subject to issuer terms.",
     ),
+    "trimtabs": IssuerCsvAdapterConfig(
+        adapter_key="trimtabs",
+        source_provider="abacus_fcf",
+        source_access="issuer_product_page_declared_complete_holdings_csv",
+        product_page_templates=(
+            "https://abacusfcf.com/abfl/",
+            "https://abacusfcf.com/ablg/",
+            "https://abacusfcf.com/abld/",
+            "https://abacusfcf.com/abot/",
+            "https://abacusfcf.com/abls/",
+            "https://abacusfcf.com/abxb/",
+        ),
+        live_tested_default_route=True,
+        terms_note="Abacus FCF public ETF product pages and daily holdings CSVs may be subject to issuer terms.",
+    ),
     "intech": IssuerCsvAdapterConfig(
         adapter_key="intech",
         source_provider="intech_etfs",
@@ -70303,7 +70318,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "anydrus",
         "argent",
         "arin",
-        "avos",
         "azimut",
         "baillie_gifford",
         "credit_suisse",
@@ -70347,12 +70361,12 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "siren",
         "suncoast",
         "segall_bryant_hamill",
+        "avos",
         "sophus",
         "strategy_shares",
         "subversive",
         "swedish_export_credit",
         "towle",
-        "trimtabs",
         "us_benchmark_series",
         "tweedy_browne",
         "vega_financial",
@@ -71639,8 +71653,122 @@ class SwedishExportCreditReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdap
     """ETF.com issuer-page fallback adapter pending Swedish Export Credit discovery."""
 
 
-class TrimTabsReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """ETF.com issuer-page fallback adapter pending TrimTabs route discovery."""
+class TrimTabsHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Abacus FCF's successor pages and complete daily holdings CSVs.
+
+    TrimTabs' former TTAC/TTAI products were rebranded to Abacus FCF funds.
+    The trust now publishes a complete, symbol-scoped CSV from each official
+    product page; retain the legacy symbols as aliases for existing records.
+    """
+
+    PRODUCT_PAGE_BASE = "https://abacusfcf.com"
+    PRODUCT_PAGE_SYMBOLS = {
+        "ABFL": "abfl",
+        "ABLG": "ablg",
+        "ABLD": "abld",
+        "ABOT": "abot",
+        "ABLS": "abls",
+        "ABXB": "abxb",
+        "TTAC": "abfl",
+        "TTAI": "ablg",
+    }
+    LEGACY_SYMBOL_ALIASES = {"TTAC": "ABFL", "TTAI": "ABLG"}
+    HOLDINGS_URL_PATTERN = re.compile(
+        r"(?:https?://abacusfcf\.com)?/wp-content/uploads/DailyUploads/"
+        r"(?P<symbol>[A-Z]{4})_allHoldings\.csv",
+        re.IGNORECASE,
+    )
+    ROUTE_RESOLUTION = "abacus_fcf_official_product_page_declared_complete_holdings_csv"
+    SNAPSHOT_PROVENANCE = "abacus_fcf_native_daily_holdings_csv"
+
+    def _canonical_symbol(self, symbol: str) -> str:
+        normalized = symbol.strip().upper()
+        return self.LEGACY_SYMBOL_ALIASES.get(normalized, normalized)
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized = symbol.strip().upper()
+        canonical = self._canonical_symbol(normalized)
+        page_slug = self.PRODUCT_PAGE_SYMBOLS.get(normalized)
+        source_url = f"{self.PRODUCT_PAGE_BASE}/{page_slug}/" if page_slug else None
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9600") if source_url else Decimal("0.3000"),
+            status="ready" if source_url else "needs_issuer_route",
+            reason=(
+                "Abacus FCF's official product page declares a complete daily holdings CSV."
+                if source_url
+                else f"No verified Abacus FCF product page is configured for {normalized}."
+            ),
+            source_url=source_url,
+            issuer_product_id=canonical or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized = symbol.strip().upper()
+        canonical = self._canonical_symbol(normalized)
+        page_slug = self.PRODUCT_PAGE_SYMBOLS.get(normalized)
+        if not page_slug:
+            raise ValueError(f"No verified Abacus FCF current-holdings route for {normalized}.")
+        product_page_url = f"{self.PRODUCT_PAGE_BASE}/{page_slug}/"
+        if source_url and source_url.rstrip("/") != product_page_url.rstrip("/"):
+            raise ValueError("TrimTabs holdings must use the matching Abacus FCF product page.")
+
+        async with httpx.AsyncClient(
+            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
+        ) as client:
+            page_response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+            page_response.raise_for_status()
+        page_text = html.unescape(page_response.text)
+        expected_heading = re.search(
+            rf"(?:Abacus|FCF).*?\b{re.escape(canonical)}\b|\b{re.escape(canonical)}\b.*?ETF",
+            page_text,
+            re.IGNORECASE | re.DOTALL,
+        )
+        holdings_url = next(
+            (
+                urljoin(product_page_url, match.group(0))
+                for match in self.HOLDINGS_URL_PATTERN.finditer(page_text)
+                if match.group("symbol").upper() == canonical
+            ),
+            None,
+        )
+        if not expected_heading or not holdings_url:
+            raise ValueError(
+                f"Abacus FCF product page did not declare a complete holdings CSV for {canonical}."
+            )
+
+        result = await PublicCsvHoldingsAdapter.fetch_latest(
+            self,
+            symbol=canonical,
+            source_url=holdings_url,
+        )
+        if not result.rows:
+            raise ValueError(f"Abacus FCF complete holdings CSV returned no rows for {canonical}.")
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "source_access": "abacus_fcf_official_product_page_declared_complete_holdings_csv",
+            "source_provider": "abacus_fcf",
+            "adapter_key": self.adapter_key,
+            "source_format": "csv",
+            "route_resolution": self.ROUTE_RESOLUTION,
+            "product_page_url": str(page_response.url),
+            "snapshot_provenance": self.SNAPSHOT_PROVENANCE,
+            "canonical_symbol": canonical,
+        }
+        return result
 
 
 class AmgNationalReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -74309,7 +74437,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "thrivent": ThriventHoldingsAdapter,
         "touchstone": TouchstoneHoldingsAdapter,
         "tradr": TradrHoldingsAdapter,
-        "trimtabs": TrimTabsReconciledFallbackHoldingsAdapter,
+        "trimtabs": TrimTabsHoldingsAdapter,
         "truth_social": YorkvilleHoldingsAdapter,
         "towle": TowleReconciledFallbackHoldingsAdapter,
         "tweedy_browne": TweedyBrowneReconciledFallbackHoldingsAdapter,

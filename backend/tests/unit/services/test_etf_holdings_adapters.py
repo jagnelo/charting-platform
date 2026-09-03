@@ -1689,6 +1689,38 @@ async def test_stratified_adapter_parses_nuxt_holdings_payload(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_trimtabs_adapter_resolves_abacus_successor_csv(monkeypatch):
+    adapter = get_holdings_adapter("trimtabs")
+    assert adapter is not None
+    page = (
+        '<html><h1>Abacus FCF Leaders ETF (ABFL)</h1>'
+        '<a href="https://abacusfcf.com/wp-content/uploads/DailyUploads/ABFL_allHoldings.csv">'
+        "DOWNLOAD FULL HOLDINGS</a></html>"
+    )
+    holdings = (
+        "Ticker,CUSIP,Security Description,Shares,Market Value,% of Net Assets\n"
+        'AAPL,037833100,Apple Inc,100,"$10,000",5.00%\n'
+        'CASH,,Cash & Other,1,"$100",0.05%\n'
+    )
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page, content_type="text/html", url="https://abacusfcf.com/abfl/"),
+        FakeResponse(text=holdings, content_type="text/csv", url="https://abacusfcf.com/wp-content/uploads/DailyUploads/ABFL_allHoldings.csv"),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="TTAC")
+
+    assert [row.symbol for row in result.rows] == ["AAPL", None]
+    assert result.rows[0].weight == Decimal("0.05")
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["source_provider"] == "abacus_fcf"
+    assert result.legal_metadata["canonical_symbol"] == "ABFL"
+    assert result.legal_metadata["route_resolution"] == (
+        "abacus_fcf_official_product_page_declared_complete_holdings_csv"
+    )
+
+
+@pytest.mark.asyncio
 async def test_eldridge_adapter_filters_combined_daily_holdings_and_preserves_cusips(monkeypatch):
     adapter = get_holdings_adapter("eldridge")
     assert adapter is not None
@@ -22707,7 +22739,14 @@ def test_etf_com_brand_reconciliation_batch_is_registered_and_audited():
 
 def test_etf_com_issuer_page_reconciliation_batch_is_registered_and_audited():
     expected = set(ETF_COM_ISSUER_PAGE_RECONCILIATION_ISSUER_HINTS)
-    promoted_native = {"emqq", "oshares", "esoterica", "knowledge_leaders", "saba_capital"}
+    promoted_native = {
+        "emqq",
+        "oshares",
+        "esoterica",
+        "knowledge_leaders",
+        "saba_capital",
+        "trimtabs",
+    }
     terminal_dispositions = {"riverfront"}
     fallback_expected = expected - promoted_native - terminal_dispositions
 
@@ -23265,7 +23304,7 @@ def test_us_etf_promoter_universe_status_tracks_broad_market_target():
 
 def test_every_registered_adapter_can_probe_ready_with_sec_identifiers():
     for adapter_key, config in ISSUER_ADAPTER_CONFIGS.items():
-        if adapter_key in {"milliman", "nestyield", "river1"}:
+        if adapter_key in {"milliman", "nestyield", "river1", "trimtabs"}:
             # Milliman is intentionally symbol-scoped to its two verified
             # product pages and must not claim a route for an arbitrary symbol.
             continue
@@ -27711,8 +27750,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 413
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 83
+    assert ledger["current_native_count"] == 414
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 82
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -27776,6 +27815,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "srh",
         "stance",
         "stratified",
+        "trimtabs",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))
