@@ -301,3 +301,10 @@ holdings. Together with the preceding SPDR/iShares/Invesco/Direxion runs, this g
 public-route probe for every one of the 20 configured family proxy symbols. This remains provider
 route evidence only; persisted multi-date snapshots, entitlement verification, member-history
 continuity, and live authenticated workstation readiness are still open R1 requirements.
+
+The scheduled family/date worker now uses the same bounded queue-error shape as the durable run
+worker at `745501566ab1f6acefd8b7f88677bedf5b6e5d34`: a broad member-history enqueue exception
+retains `queue_errors`, `queue_error_count`, bounded snapshot IDs, and legacy error text while
+preserving the refreshed holdings result. The focused ARQ worker suite remains green at `23/23`,
+with Ruff and `git diff --check` passing. This is queue-evidence consistency only; it does not
+claim persisted member-bar hydration or historical continuity.
