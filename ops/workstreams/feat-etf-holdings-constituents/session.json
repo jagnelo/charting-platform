@@ -43,7 +43,9 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-45bdf9bd8d"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ops/workstreams/feat-etf-holdings-constituents/session.json"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -80,23 +82,23 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "ede412c8b50d2339b2051a11f7412a0c6bdc7765",
-  "implementation_sha": "fb0d473a805f3b15d5fa5226796d700ee0b17667",
-  "last_checkpoint": "2026-09-03T14:41:17.889508+00:00",
+  "head": "10f84f775c69632b519e5756aec56c9880782bca",
+  "implementation_sha": "10f84f775c69632b519e5756aec56c9880782bca",
+  "last_checkpoint": "2026-09-03T16:00:27.843756+00:00",
   "last_human_progress_update": "2026-09-03T14:40:04.134148+00:00",
   "local_validation_profile": "docker_integration",
   "next_action": "Human-authorize the intended remote push and CI synchronization, then run plan-ready and checkpoint before closure review",
-  "plan_hash": "933607cdc3b209088f50a06e2252932556177bbb85724f07e866bbed50da9129",
+  "plan_hash": "7b125050d42fa243f8d8f33cc9390c33ad711308bb5436a11b50dec6c70896ad",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [],
   "progress": {
     "completed": [],
-    "current_blocker": "Local Docker integration, deterministic, default-live, functional E2E, visual E2E, and workstream checks are green; five narrow external/provider live failures remain, while exact-SHA remote synchronization is blocked by auto-review rejection of an unapproved private-branch push",
+    "current_blocker": "Local Docker integration, deterministic, default-live, functional E2E, visual E2E, and workstream checks are green; two Vident/MM VAM aliases remain blocked by the issuer Cloudflare challenge, while exact-SHA remote synchronization is blocked by auto-review rejection of an unapproved private-branch push",
     "current_phase": "final_validation",
     "next_action": "Human-authorize the intended remote push and CI synchronization, then run plan-ready and checkpoint before closure review",
     "total": 8,
-    "updated_at": "2026-09-03T14:40:04.134031+00:00"
+    "updated_at": "2026-09-03T16:00:27.843756+00:00"
   },
   "remote": "2d96697d2fd98bad6c8c5796ff046cd6bbad4dfd",
   "remote_sha": "2d96697d2fd98bad6c8c5796ff046cd6bbad4dfd",
