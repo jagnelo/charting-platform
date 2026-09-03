@@ -5355,17 +5355,19 @@ providers:
     display_name: siren
     queue_rank: 113
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: non_executable_public_source
+    disposition: non_executable_public_source
+    last_checked: 2026-09-04
     source_access_declared: issuer_public_holdings_file
     representative_symbols: []
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains: [sirenetfs.com]
+    candidate_routes:
+      - "https://sirenetfs.com/siren-nasdaq-nexgen-economy-etf-blcn/"
+      - "https://dev.sirenetfs.com/siren-divcon-leaders-dividend-etf-lead/"
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -5380,8 +5382,12 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.siren"
-    disposition_reason: "siren: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate siren first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-04
+        source: "Siren ETFs official BLCN and LEAD product pages"
+        result: "The official pages expose top-ten holdings and fiscal-year Q1/Q3 portfolio documents, but no complete current daily holdings table or executable current holdings download is declared; reports and SEC filings are periodic historical disclosures."
+        evidence_ref: "web:siren-current-product-pages-2026-09-04"
+    disposition_reason: "siren: Siren's official BLCN and LEAD pages expose top-ten holdings and periodic fiscal-year portfolio documents, not a complete current executable holdings artifact. Preserve the fallback as non-executable public source and do not reconstruct current holdings from periodic SEC/report filings."
+    next_action: "siren: Re-audit the official BLCN and LEAD pages for a declared complete current holdings artifact; promote only after executable route, mapping, and freshness are proven."
     implementation_sha: null
     validation_refs: []
   - adapter_key: smi_funds

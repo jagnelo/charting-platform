@@ -1275,3 +1275,17 @@ fallback-only providers, with 21 queued records and `siren` next. Runtime
 fallback statuses are 13 issuer-access-blocked, 60 route-discovery, 8
 non-executable-public-source, and 7 non-portfolio-publisher. Evidence ref:
 `web:segall-bryant-hamill-current-etf-page-2026-09-04`.
+
+## Current audit checkpoint — Siren non-executable public source — 2026-09-04
+
+Siren's official BLCN and LEAD pages expose top-ten holdings and fiscal-year
+Q1/Q3 portfolio documents, but no complete current daily holdings table or
+executable current holdings download is declared. Periodic reports and SEC
+filings are not promoted as current routes, so `siren` remains an explicit
+`non_executable_public_source` fallback.
+
+The durable split remains 496 registered / 409 native-live-backed / 87
+fallback-only providers, with 20 queued records and `smi_funds` next. Runtime
+fallback statuses are 13 issuer-access-blocked, 59 route-discovery, 9
+non-executable-public-source, and 7 non-portfolio-publisher. Evidence ref:
+`web:siren-current-product-pages-2026-09-04`.
