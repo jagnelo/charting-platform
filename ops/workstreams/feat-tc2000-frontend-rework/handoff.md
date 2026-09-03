@@ -283,3 +283,9 @@ Ruff and diff checks pass. The refresh run remains completed with provider/holdi
 The complete backend unit suite was rerun after this worker change: `1286/1286` passed in `58.88s`
 with `67.33%` coverage, above the `55%` gate. The warning set remains limited to existing
 NumPy/Pandas deprecations.
+
+Fresh opt-in provider evidence at the current tip is `11/11` in `12.24s`: iShares IWV/IJR/IWB/
+IWD/IWF/IWN/IWO historical routes, Invesco QQQ SEC historical fallback, and Direxion QQQE current
+and SEC historical fallback all returned parseable, identity-checked holdings. This confirms the
+reviewed issuer/SEC routes, not complete database hydration, all-family population, member-bar
+continuity, entitlement verification, or live top-down browser readiness.
