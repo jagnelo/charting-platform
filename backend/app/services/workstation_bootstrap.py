@@ -235,7 +235,14 @@ async def queue_core_family_member_history(db: AsyncSession, redis) -> dict:
     """Queue member history after provider-backed core ETF snapshots are committed."""
 
     if redis is None:
-        return {"status": "not_queued", "reason": "Redis worker queue unavailable"}
+        return {
+            "status": "not_queued",
+            "reason": "Redis worker queue unavailable",
+            "queued": 0,
+            "already_queued": 0,
+            "queue_errors": [],
+            "queue_error_count": 0,
+        }
 
     from app.services.benchmark_family_history import (
         canonical_history_job_id,
@@ -244,26 +251,39 @@ async def queue_core_family_member_history(db: AsyncSession, redis) -> dict:
 
     plan = await plan_benchmark_family_history_refresh(db)
     queued = already_queued = 0
+    queue_errors: list[dict[str, str | int]] = []
     for instrument_id in plan["instrument_ids"]:
         job_args = ["task_bulk_fetch_instrument", instrument_id, plan["timeframes"]]
         if plan.get("as_of") is not None:
             job_args.extend([None, plan["as_of"].isoformat()])
-        job = await redis.enqueue_job(
-            *job_args,
-            _job_id=canonical_history_job_id(
-                instrument_id,
-                plan["timeframes"],
-                plan.get("as_of"),
-            ),
-        )
+        try:
+            job = await redis.enqueue_job(
+                *job_args,
+                _job_id=canonical_history_job_id(
+                    instrument_id,
+                    plan["timeframes"],
+                    plan.get("as_of"),
+                ),
+            )
+        except Exception as exc:  # noqa: BLE001 - retain bounded per-member queue evidence.
+            queue_errors.append(
+                {
+                    "status": "queue_error",
+                    "instrument_id": int(instrument_id),
+                    "error": str(exc)[:500] or "Core family history queue failed.",
+                }
+            )
+            continue
         if job is None:
             already_queued += 1
         else:
             queued += 1
     return {
-        "status": "queued",
+        "status": "queue_error" if queue_errors else "queued",
         "queued": queued,
         "already_queued": already_queued,
+        "queue_errors": queue_errors,
+        "queue_error_count": len(queue_errors),
         "available_instrument_count": plan["available_instrument_count"],
         "selected_instrument_count": plan["selected_instrument_count"],
         "limited": plan["limited"],

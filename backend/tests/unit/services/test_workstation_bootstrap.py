@@ -346,6 +346,53 @@ def test_core_bootstrap_queues_deduplicated_family_member_history(monkeypatch):
     assert result["status"] == "queued"
     assert result["queued"] == 2
     assert result["already_queued"] == 0
+    assert result["queue_errors"] == []
+    assert result["queue_error_count"] == 0
     assert len(redis.calls) == 2
     assert redis.calls[0][0] == ("task_bulk_fetch_instrument", 10, ["MN", "W1", "D1"])
     assert redis.calls[0][1]["_job_id"] == "watchlist-source-history:10:MN,W1,D1"
+
+
+def test_core_workstation_history_queue_retains_member_errors_and_continues(monkeypatch):
+    plan = {
+        "instrument_ids": [10, 20, 30],
+        "timeframes": ["MN", "W1", "D1"],
+        "available_instrument_count": 3,
+        "selected_instrument_count": 3,
+        "limited": False,
+        "legs": [],
+    }
+
+    async def fake_plan(*_args, **_kwargs):
+        return plan
+
+    monkeypatch.setattr(
+        "app.services.benchmark_family_history.plan_benchmark_family_history_refresh",
+        fake_plan,
+    )
+
+    class FakeRedis:
+        def __init__(self):
+            self.calls = []
+
+        async def enqueue_job(self, *args, **kwargs):
+            self.calls.append((args, kwargs))
+            if args[1] == 20:
+                raise RuntimeError("temporary Redis failure")
+            return object()
+
+    redis = FakeRedis()
+    result = asyncio.run(queue_core_family_member_history(object(), redis))
+
+    assert result["status"] == "queue_error"
+    assert result["queued"] == 2
+    assert result["already_queued"] == 0
+    assert result["queue_error_count"] == 1
+    assert result["queue_errors"] == [
+        {
+            "status": "queue_error",
+            "instrument_id": 20,
+            "error": "temporary Redis failure",
+        }
+    ]
+    assert [call[0][1] for call in redis.calls] == [10, 20, 30]
