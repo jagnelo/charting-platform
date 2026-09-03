@@ -336,3 +336,18 @@ integration passes `1/1` (`test_benchmark_family_coverage_exposes_role_dates_and
 with the two existing NumPy deprecation warnings; Ruff and `git diff --check` are clean. This
 corrects provider display provenance only and does not claim persisted family population,
 entitlement verification, member-history continuity, or live authenticated readiness.
+
+The family coverage contract now exposes curated route readiness separately from persisted profile,
+snapshot, and entitlement state at `dfd82b63ed8680bcbb6b4a6296e6fa6306721ca4`. A mapped canonical
+instrument without an ETF profile reports its registered adapter/provider as `configured`, while
+profile probe outcomes may report `ready` or an explicit failure state; no route is presented as
+hydrated merely because its metadata is configured. The focused Docker-backed coverage slice
+passes `5/5`, the analysis-router unit slice passes `21/21`, frontend type-check passes, and Ruff
+plus `git diff --check` are clean. This closes route-state observability only; snapshots, member
+bars, historical continuity, entitlements, and authenticated live readiness remain open.
+
+The complete benchmark-family integration matrix remains green after the additive route fields:
+`20/20` tests passed in `11.09s` at the same product tip, with only the existing two NumPy
+deprecation warnings. This confirms the route-readiness disclosure is compatible with the family
+overview, coverage, point-in-time, breadth, ratios, ranking, rotation, concentration, and
+derived-equal contracts; it does not convert seeded/local evidence into provider-backed population.
