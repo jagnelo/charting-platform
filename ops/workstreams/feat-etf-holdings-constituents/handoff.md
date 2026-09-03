@@ -1743,3 +1743,23 @@ The latest local Docker-backed gate remains blocked only by the unrelated,
 fresh-stack-reproduced Study Lab `F8p-current-history` histogram failure. No
 ETF route or test is implicated, and no integration, promotion, deployment, or
 other-worktree mutation was performed.
+
+## Alexis edge correction and CI infrastructure timing — 2026-09-04
+
+Checkpoint CI run `33815725551` at `b48e31f3e83d3341b144598735f96820919ae266`
+passed frontend, backend, and Playwright jobs but the branch-declared live
+matrix failed one Alexis direct-route case: the current LEXI product page did
+not expose its complete holdings CSV to the runner. A bounded current-route
+probe fetched the official `lexietf.com` page successfully and extracted its
+current Wix-hosted CSV declaration, so the adapter remains strict and the
+matrix now records only this narrow issuer-access/route-exposure limitation.
+
+Follow-up exact-SHA CI run `33817619636` at
+`97c3630bb5a02f4b83e2f0b40a3a68d464309f16` passed Backend Tests, Frontend Unit
+Tests, and Branch-declared Tests. Playwright failed before any test began: the
+five-minute `Start stack` step expired while the frontend Docker image's
+`npm ci` build layer was still running. This is infrastructure timing evidence,
+matching the earlier `33811430864` timeout, not an ETF or application failure;
+Playwright had passed in the preceding exact-SHA run `33813104738` at the
+validated code state. The protected staging/master-only exhaustive gate was
+skipped as intended for this feature branch.
