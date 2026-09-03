@@ -608,6 +608,102 @@ class TestWorkspaces:
             == "observed_snapshot_intervals_gt_45_days"
         )
 
+    def test_benchmark_family_coverage_resolves_entitlements_by_snapshot_provider(
+        self, client, auth_headers, db, instrument_type
+    ):
+        from datetime import UTC, datetime
+
+        from app.models.data_source import DataSource
+        from app.models.etf_holdings import ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import Instrument
+        from app.models.provider_runtime import ProviderCapability, ProviderEntitlement
+
+        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
+        assert seeded.status_code == 200
+        spy = Instrument(
+            symbol="SPY",
+            name="S&P 500 provider-entitlement fixture",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add(spy)
+        db.flush()
+        profile = ETFProfile(instrument_id=spy.id, adapter_key="spdr", adapter_status="success")
+        db.add(profile)
+        provider_source = DataSource(
+            name="spdr",
+            base_url="https://issuer.example/spdr",
+            description="Provider entitlement fixture",
+            is_active=True,
+        )
+        db.add(provider_source)
+        db.flush()
+        db.add_all(
+            [
+                ProviderEntitlement(
+                    data_source_id=provider_source.id,
+                    capability=ProviderCapability.UNIVERSE_DISCOVERY,
+                    configured_plan="free",
+                    is_free=True,
+                    authentication_required=False,
+                    live_probe_status="passed",
+                ),
+                ProviderEntitlement(
+                    data_source_id=provider_source.id,
+                    capability=ProviderCapability.PRICE_HISTORY,
+                    configured_plan="free",
+                    is_free=True,
+                    authentication_required=False,
+                    live_probe_status="passed",
+                ),
+            ]
+        )
+        db.add(
+            ETFHoldingsSnapshot(
+                etf_profile_id=profile.id,
+                data_source_id=None,
+                composition_date=datetime(2026, 6, 30, tzinfo=UTC).date(),
+                known_at=datetime(2026, 7, 1, tzinfo=UTC),
+                provenance="issuer_native",
+                source_provider="spdr",
+                source_quality="issuer_disclosed",
+                completeness_status="complete",
+                row_count=1,
+                resolved_count=1,
+                unresolved_count=0,
+                snapshot_hash="test-family-provider-entitlement",
+            )
+        )
+        value_proxy = Instrument(
+            symbol="SPYV",
+            name="S&P 500 value provider-entitlement fixture",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add(value_proxy)
+        db.flush()
+        db.add(ETFProfile(instrument_id=value_proxy.id, adapter_key="spdr"))
+        db.flush()
+
+        response = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/coverage",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200, response.text
+        cap = next(role for role in response.json()["roles"] if role["role"] == "cap_weight")
+        assert cap["entitlement_status"] == "verified"
+        assert cap["entitlement_provider"] == "spdr"
+        assert cap["entitlement_capabilities"] == {
+            "universe_discovery": "verified",
+            "price_history": "verified",
+        }
+        value = next(role for role in response.json()["roles"] if role["role"] == "value")
+        assert value["status"] == "no_snapshot"
+        assert value["entitlement_status"] == "verified"
+        assert value["entitlement_provider"] == "spdr"
+
     def test_benchmark_family_coverage_reports_member_bar_and_technical_readiness(
         self, client, auth_headers, db, instrument_type, instrument, instrument_b
     ):

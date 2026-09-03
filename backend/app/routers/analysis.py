@@ -3581,7 +3581,13 @@ async def benchmark_family_coverage(
             )
         ).scalars()
     }
-    sources = {source.id: source for source in (await db.execute(select(DataSource))).scalars()}
+    source_rows = (await db.execute(select(DataSource))).scalars().all()
+    sources = {source.id: source for source in source_rows}
+    sources_by_name = {
+        source.name.strip().lower(): source
+        for source in source_rows
+        if source.name and source.name.strip()
+    }
     entitlements = {
         (entitlement.data_source_id, entitlement.capability): entitlement
         for entitlement in (
@@ -3627,6 +3633,7 @@ async def benchmark_family_coverage(
         continuity_snapshot_limit_reached = False
         selected_snapshot: ETFHoldingsSnapshot | None = None
         source: DataSource | None = None
+        entitlement_source: DataSource | None = None
         holdings_entitlement: ProviderEntitlement | None = None
         price_entitlement: ProviderEntitlement | None = None
         route_adapter_key: str | None = None
@@ -3721,11 +3728,21 @@ async def benchmark_family_coverage(
             )
             source = sources.get(selected_snapshot.data_source_id) if selected_snapshot else None
             if selected_snapshot is not None:
+                entitlement_source = sources_by_name.get(
+                    selected_snapshot.source_provider.strip().lower()
+                ) or source
+            if selected_snapshot is not None:
                 holdings_entitlement = entitlements.get(
-                    (selected_snapshot.data_source_id, ProviderCapability.UNIVERSE_DISCOVERY)
+                    (
+                        entitlement_source.id if entitlement_source is not None else selected_snapshot.data_source_id,
+                        ProviderCapability.UNIVERSE_DISCOVERY,
+                    )
                 )
                 price_entitlement = entitlements.get(
-                    (selected_snapshot.data_source_id, ProviderCapability.PRICE_HISTORY)
+                    (
+                        entitlement_source.id if entitlement_source is not None else selected_snapshot.data_source_id,
+                        ProviderCapability.PRICE_HISTORY,
+                    )
                 )
             # A requested cutoff is not evidence that the role can answer it.
             # Keep point-in-time readiness false until at least one dated
@@ -3807,18 +3824,24 @@ async def benchmark_family_coverage(
                     "holdings_adapter_unresolved",
                 }:
                     route_status = profile.adapter_status
-        if adapter_state is not None and source is not None:
+        if entitlement_source is None and source is not None:
+            entitlement_source = source
+        if entitlement_source is None and route_provider:
+            entitlement_source = sources_by_name.get(route_provider.strip().lower())
+        if entitlement_source is not None:
             if holdings_entitlement is None:
                 holdings_entitlement = entitlements.get(
-                    (source.id, ProviderCapability.UNIVERSE_DISCOVERY)
+                    (entitlement_source.id, ProviderCapability.UNIVERSE_DISCOVERY)
                 )
             if price_entitlement is None:
-                price_entitlement = entitlements.get((source.id, ProviderCapability.PRICE_HISTORY))
+                price_entitlement = entitlements.get(
+                    (entitlement_source.id, ProviderCapability.PRICE_HISTORY)
+                )
         entitlement_candidates = [
             item for item in (holdings_entitlement, price_entitlement) if item
         ]
         entitlement_statuses = {
-            capability.value: _entitlement_state(source, entitlement)
+            capability.value: _entitlement_state(entitlement_source, entitlement)
             for capability, entitlement in (
                 (ProviderCapability.UNIVERSE_DISCOVERY, holdings_entitlement),
                 (ProviderCapability.PRICE_HISTORY, price_entitlement),
@@ -3889,7 +3912,7 @@ async def benchmark_family_coverage(
                 continuity_snapshot_limit_reached=continuity_snapshot_limit_reached,
                 member_bar_history=member_bar_history,
                 entitlement_status=entitlement_status,
-                entitlement_provider=source.name if source else None,
+                entitlement_provider=entitlement_source.name if entitlement_source else None,
                 entitlement_capabilities=entitlement_statuses,
                 entitlement_revision=(
                     int(entitlement_record.revision) if entitlement_record else None
