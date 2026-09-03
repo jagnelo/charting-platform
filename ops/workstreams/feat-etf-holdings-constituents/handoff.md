@@ -1589,3 +1589,34 @@ both aliases share Vident's official page, which returns a Cloudflare challenge
 (HTTP 403) to the available clients. Exact-SHA remote/CI synchronization and
 human closure authorization remain pending; no integration, promotion,
 deployment, or cross-worktree mutation was performed.
+
+## Ledger and provider-universe reconciliation — 2026-09-03
+
+A read-only matrix audit confirms 496 registry keys, 82 runtime fallback keys,
+and 140 provider-audit records with 140 unique keys; no fallback key is missing
+or duplicated in the ledger. The provider-universe document was corrected to
+the current 414 native / 82 fallback split, current runtime fallback status
+counts (8 blocked, 64 route-discovery, 3 non-executable, 7 non-publisher), and
+provider-repair implementation checkpoint `a696277b6efed719cc40051e010f5e6a5b542f3e`.
+
+The audit also identified 17 legacy ledger records whose only attempt history
+is the original 2026-07-26 code-derived manifest; they remain explicitly
+fallback-only and are not being presented as freshly issuer-audited evidence.
+Those records are a remaining evidence-quality gap for the exhaustive AC2/AC4
+closure claim, separate from the two current Vident/MM VAM route blocks and
+the pending exact-SHA remote synchronization.
+
+## Legacy issuer-evidence refresh — 2026-09-03
+
+The 17 records identified above were subsequently refreshed with dated
+issuer-specific evidence and explicit route dispositions: Aegon,
+Anfield/ADFI, Guinness Atkinson, Manulife, Q3, Ridgeline, Westwood,
+WisdomTree, EPWA/CornerCap FUNL, Pacific Investments/PIMCO, PlanRock,
+Epiris, Eurazeo, Marathon, MSC Group, ORIX, and Rock Point. No provider was
+promoted from this pass. Complete executable holdings routes remain unproven
+for these records, so their fallback classifications are preserved; Anfield
+is recorded as inactive/successor-dependent, and the non-publisher records are
+explicitly tied to their actual corporate or adviser identities. This closes
+the prior ledger evidence-quality gap; the remaining blockers are the two
+Vident/MM VAM Cloudflare failures, exact-SHA remote synchronization, and human
+closure authorization.

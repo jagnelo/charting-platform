@@ -18,15 +18,17 @@ providers:
     starting_status: issuer_access_blocked
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-07-26
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols: [TALV, TABD]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains: [aegonam.com, transamerica.com]
+    candidate_routes:
+      - https://www.transamerica.com/individual/products/mutual-funds/etfs
+      - https://www.transamerica.com/individual/products/mutual-funds/etfs/talv
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -41,25 +43,30 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records issuer route access blocked; no native promotion."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.aegon"
-    disposition_reason: "aegon: Runtime baseline records issuer route access blocked; no native promotion. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Re-test aegon issuer-owned holdings route without bypassing its access control; promote only after a complete executable artifact is proven."
+      - date: 2026-09-03
+        source: "https://www.aegonam.com/"
+        result: "Aegon Asset Management publishes asset-management capabilities but no executable U.S. ETF holdings route; representative Transamerica TALV/TABD probes returned the Incapsula shell or 404, so native promotion remains blocked."
+        evidence_ref: "web:aegonam-us-asset-management-capabilities-2026-09-03"
+    disposition_reason: "aegon: Official Aegon/Transamerica surfaces identify the asset manager and ETF catalogue, but bounded TALV/TABD holdings routes return access-control shells or 404 pages; no complete executable artifact is proven."
+    next_action: "aegon: Re-test the official Transamerica TALV/TABD product and holdings routes; promote only after complete current rows, symbol mapping, parser coverage, and bounded live evidence are proven."
     implementation_sha: null
     validation_refs: []
   - adapter_key: anfield
     display_name: anfield
     queue_rank: 2
     starting_status: issuer_access_blocked
-    current_status: issuer_access_blocked
-    disposition: issuer_access_blocked
-    last_checked: 2026-07-26
+    current_status: inactive_or_successor_disposition
+    disposition: inactive_or_successor_disposition
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_adfi_product_page_declared_complete_holdings_csv
-    representative_symbols: []
+    representative_symbols: [ADFI]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains: [regentsparkfunds.com]
+    candidate_routes:
+      - https://regentsparkfunds.com/our-funds/anfield-dynamic-fixed-income-etf/
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -74,8 +81,16 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records issuer route access blocked; no native promotion."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.anfield"
-    disposition_reason: "anfield: Runtime baseline records issuer route access blocked; no native promotion. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Re-test anfield issuer-owned holdings route without bypassing its access control; promote only after a complete executable artifact is proven."
+      - date: 2026-09-03
+        source: "https://regentsparkfunds.com/our-funds/anfield-dynamic-fixed-income-etf/"
+        result: "The official ADFI page identifies a Notice of Intent to Close and the bounded exact page returned 404; no current executable holdings route remains for native promotion."
+        evidence_ref: "web:anfield-adfi-current-close-notice-2026-09-03"
+      - date: 2026-09-03
+        source: "https://regentsparkfunds.com/our-funds/anfield-dynamic-fixed-income-etf/"
+        result: "Backend-equivalent request returned HTTP 404."
+        evidence_ref: "live:anfield-adfi-product-page-2026-09-03-404"
+    disposition_reason: "anfield: The historical ADFI product is covered by an official close notice and its product route now returns 404; native promotion is not applicable unless a legitimate successor publishes complete current holdings."
+    next_action: "anfield: Confirm the ADFI closure/successor record; reopen only if a current successor issuer publishes a complete executable holdings artifact."
     implementation_sha: null
     validation_refs: []
   - adapter_key: guinness_atkinson
@@ -84,15 +99,16 @@ providers:
     starting_status: issuer_access_blocked
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-07-26
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols: [GAUD, GAID]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains: [gafunds.com]
+    candidate_routes:
+      - https://www.gafunds.com/fund-resources/
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -107,8 +123,16 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records issuer route access blocked; no native promotion."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.guinness_atkinson"
-    disposition_reason: "guinness_atkinson: Runtime baseline records issuer route access blocked; no native promotion. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Re-test guinness_atkinson issuer-owned holdings route without bypassing its access control; promote only after a complete executable artifact is proven."
+      - date: 2026-09-03
+        source: "https://www.gafunds.com/fund-resources/"
+        result: "Official Fund Resources material identifies GAUD/GAID ETF products, but bounded backend requests returned Cloudflare 403 challenge content and no complete executable holdings artifact."
+        evidence_ref: "web:guinness-atkinson-fund-resources-2026-09-03"
+      - date: 2026-09-03
+        source: "https://www.gafunds.com/fund-resources/"
+        result: "Backend-equivalent request returned HTTP 403 Cloudflare challenge."
+        evidence_ref: "live:guinness-atkinson-fund-resources-2026-09-03-blocked"
+    disposition_reason: "guinness_atkinson: Official Fund Resources material identifies GAUD/GAID ETF products, but backend-equivalent access is Cloudflare-blocked and no stable complete holdings artifact is executable."
+    next_action: "guinness_atkinson: Re-test the official Fund Resources and symbol-scoped ETF routes; promote only after complete rows, mapping, parser fixtures, and bounded live evidence are available."
     implementation_sha: null
     validation_refs: []
   - adapter_key: manulife
@@ -117,15 +141,16 @@ providers:
     starting_status: issuer_access_blocked
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-07-26
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols: [UDIV, UDEF, GEDG]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains: [manulifeim.com]
+    candidate_routes:
+      - https://www.manulifeim.com/retail/ca/en/landing-page/etfs
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -140,8 +165,16 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records issuer route access blocked; no native promotion."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.manulife"
-    disposition_reason: "manulife: Runtime baseline records issuer route access blocked; no native promotion. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Re-test manulife issuer-owned holdings route without bypassing its access control; promote only after a complete executable artifact is proven."
+      - date: 2026-09-03
+        source: "https://www.manulifeim.com/retail/ca/en/landing-page/etfs"
+        result: "Official Manulife material exposes a Canadian ETF catalogue, while bounded catalogue and representative holdings/document requests returned Akamai 403; no complete executable U.S. route is proven."
+        evidence_ref: "web:manulife-canadian-etf-catalogue-2026-09-03"
+      - date: 2026-09-03
+        source: "https://www.manulifeim.com/retail/ca/en/landing-page/etfs"
+        result: "Backend-equivalent request returned HTTP 403 Akamai access denied."
+        evidence_ref: "live:manulife-etf-catalogue-2026-09-03-blocked"
+    disposition_reason: "manulife: Official material is a Canadian ETF catalogue and bounded access is Akamai-blocked; no complete executable U.S. holdings publisher route is proven for native promotion."
+    next_action: "manulife: Re-test Manulife/John Hancock symbol-scoped routes; promote only if a complete U.S.-listed holdings artifact, mapping, parser fixture, and live proof are established."
     implementation_sha: null
     validation_refs: []
   - adapter_key: q3
@@ -150,15 +183,16 @@ providers:
     starting_status: issuer_access_blocked
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-07-26
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols: [QVOY]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains: [q3allseasonfunds.com, q3tactical.com]
+    candidate_routes:
+      - https://www.q3allseasonfunds.com/etf/
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -173,8 +207,16 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records issuer route access blocked; no native promotion."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.q3"
-    disposition_reason: "q3: Runtime baseline records issuer route access blocked; no native promotion. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Re-test q3 issuer-owned holdings route without bypassing its access control; promote only after a complete executable artifact is proven."
+      - date: 2026-09-03
+        source: "https://www.q3allseasonfunds.com/etf/"
+        result: "The official ETF page identifies QVOY and its holdings links, but the bounded page returned HTTP 503 with Retry-After 3600 and no executable complete artifact."
+        evidence_ref: "web:q3-qvoy-official-etf-page-2026-09-03"
+      - date: 2026-09-03
+        source: "https://www.q3allseasonfunds.com/etf/"
+        result: "Backend-equivalent request returned HTTP 503 site-owner/Cloudflare access-limited response."
+        evidence_ref: "live:q3-qvoy-official-etf-page-2026-09-03-blocked"
+    disposition_reason: "q3: The official QVOY ETF page identifies a holdings route, but bounded access returns HTTP 503 with Retry-After 3600; no complete executable artifact is proven."
+    next_action: "q3: Re-test the QVOY page and declared holdings route after the issuer throttle clears; promote only after complete rows, mapping, parser fixtures, and live evidence are available."
     implementation_sha: null
     validation_refs: []
   - adapter_key: ridgeline
@@ -183,15 +225,16 @@ providers:
     starting_status: issuer_access_blocked
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-07-26
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols: [ACVF]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains: [acvetfs.com]
+    candidate_routes:
+      - https://acvetfs.com/fund/acv-etf-fund-data/
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -206,8 +249,12 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records issuer route access blocked; no native promotion."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.ridgeline"
-    disposition_reason: "ridgeline: Runtime baseline records issuer route access blocked; no native promotion. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Re-test ridgeline issuer-owned holdings route without bypassing its access control; promote only after a complete executable artifact is proven."
+      - date: 2026-09-03
+        source: "https://acvetfs.com/fund/acv-etf-fund-data/"
+        result: "The official ACVF page identifies Ridgeline Research as adviser and exposes the ACV holdings route, so Ridgeline is not a separate portfolio publisher; bounded access returned 403."
+        evidence_ref: "web:ridgeline-acvf-adviser-identity-2026-09-03"
+    disposition_reason: "ridgeline: The official ACVF page identifies Ridgeline Research as adviser and ACV as the holdings publisher; the separate Ridgeline identity must not be promoted through that route, and bounded access is blocked."
+    next_action: "ridgeline: Keep ACVF under its existing ACV publisher route; reopen Ridgeline only if a distinct issuer-owned ETF holdings publisher is identified."
     implementation_sha: null
     validation_refs: []
   - adapter_key: westwood
@@ -216,15 +263,17 @@ providers:
     starting_status: issuer_access_blocked
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-07-26
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols: [MDST]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains: [westwoodgroup.com]
+    candidate_routes:
+      - https://westwoodgroup.com/product/westwood-salient-enhanced-midstream-income/
+      - https://westwoodgroup.com/wp-content/themes/westwood/data/ultimus/1471-MDST/1471-Holdings.csv
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -239,8 +288,16 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records issuer route access blocked; no native promotion."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.westwood"
-    disposition_reason: "westwood: Runtime baseline records issuer route access blocked; no native promotion. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Re-test westwood issuer-owned holdings route without bypassing its access control; promote only after a complete executable artifact is proven."
+      - date: 2026-09-03
+        source: "https://westwoodgroup.com/product/westwood-salient-enhanced-midstream-income/"
+        result: "The official MDST page declares current holdings and a Download CSV route, but both product and exact CSV requests returned Cloudflare 403."
+        evidence_ref: "web:westwood-mdst-current-holdings-2026-09-03"
+      - date: 2026-09-03
+        source: "https://westwoodgroup.com/wp-content/themes/westwood/data/ultimus/1471-MDST/1471-Holdings.csv"
+        result: "Backend-equivalent request returned HTTP 403."
+        evidence_ref: "live:westwood-mdst-current-holdings-csv-2026-09-03-blocked"
+    disposition_reason: "westwood: The official MDST page declares current holdings and a CSV, but product and exact CSV requests are Cloudflare-blocked; no stable executable route is proven."
+    next_action: "westwood: Periodically re-test the official MDST page and declared CSV; promote only after complete rows, mapping, parser fixtures, and bounded live evidence are available."
     implementation_sha: null
     validation_refs: []
   - adapter_key: wisdomtree
@@ -249,15 +306,17 @@ providers:
     starting_status: issuer_access_blocked
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-07-26
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols: [DXJ, NTSX]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains: [wisdomtree.com]
+    candidate_routes:
+      - https://www.wisdomtree.com/us/products/fund-holdings
+      - https://www.wisdomtree.com/investments/etfs/equity/dxj
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -272,8 +331,16 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records issuer route access blocked; no native promotion."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.wisdomtree"
-    disposition_reason: "wisdomtree: Runtime baseline records issuer route access blocked; no native promotion. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Re-test wisdomtree issuer-owned holdings route without bypassing its access control; promote only after a complete executable artifact is proven."
+      - date: 2026-09-03
+        source: "https://www.wisdomtree.com/us/products/fund-holdings"
+        result: "The official WisdomTree holdings page and DXJ/NTSX product material identify current fund holdings, but bounded requests returned Cloudflare 403 challenge content."
+        evidence_ref: "web:wisdomtree-current-fund-holdings-2026-09-03"
+      - date: 2026-09-03
+        source: "https://www.wisdomtree.com/us/products/fund-holdings"
+        result: "Backend-equivalent request returned HTTP 403 Cloudflare challenge."
+        evidence_ref: "live:wisdomtree-current-fund-holdings-2026-09-03-blocked"
+    disposition_reason: "wisdomtree: Official holdings and product pages identify current DXJ/NTSX holdings, but bounded requests are Cloudflare-blocked and no stable executable route is proven."
+    next_action: "wisdomtree: Periodically re-test the official fund-holdings and symbol-scoped pages; promote only after complete rows, mapping, parser fixtures, and bounded live evidence are available."
     implementation_sha: null
     validation_refs: []
   - adapter_key: advisors_asset_management
@@ -6142,15 +6209,17 @@ providers:
     starting_status: non_executable_public_source
     current_status: non_executable_public_source
     disposition: non_executable_public_source
-    last_checked: 2026-07-26
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols: [FUNL]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains: [cornercapfunl-etf.com, cornercapfunds.com, epwealth.com]
+    candidate_routes:
+      - https://cornercapfunl-etf.com/
+      - https://cornercapfunds.com/funl/
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -6165,8 +6234,12 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no executable complete first-party artifact."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.epwa"
-    disposition_reason: "epwa: Runtime baseline records no executable complete first-party artifact. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Re-audit epwa official product pages and disclosures for a complete machine-readable current holdings artifact."
+      - date: 2026-09-03
+        source: "https://cornercapfunl-etf.com/; https://cornercapfunds.com/funl/"
+        result: "EPWA/CornerCap FUNL routes timed out, returned Cloudflare 522, or redirected to unrelated EP Wealth/ETF Architect pages; no complete current holdings artifact is executable."
+        evidence_ref: "web:epwa-cornercap-funl-route-audit-2026-09-03"
+    disposition_reason: "epwa: Current CornerCap/FUNL routes timed out, returned 522, or redirected to unrelated pages; no complete executable first-party holdings artifact is proven."
+    next_action: "epwa: Re-test the official FUNL domains after access recovery; promote only after a complete current artifact, mapping, parser fixture, and bounded live proof are available."
     implementation_sha: null
     validation_refs: []
   - adapter_key: pacific_investments
@@ -6175,15 +6248,17 @@ providers:
     starting_status: non_executable_public_source
     current_status: non_executable_public_source
     disposition: non_executable_public_source
-    last_checked: 2026-07-26
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols: [GEME, MINT, BOND]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains: [pacificinvestments.com, pimco.com]
+    candidate_routes:
+      - https://www.pacificinvestments.com/about-us/
+      - https://www.pimco.com/us/en/investments/etf/mint/pimco-multi-sector-bond-active-etf
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -6198,8 +6273,12 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no executable complete first-party artifact."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.pacific_investments"
-    disposition_reason: "pacific_investments: Runtime baseline records no executable complete first-party artifact. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Re-audit pacific_investments official product pages and disclosures for a complete machine-readable current holdings artifact."
+      - date: 2026-09-03
+        source: "https://www.pacificinvestments.com/about-us/; https://www.pimco.com/us/en/investments/etf/mint/pimco-multi-sector-bond-active-etf"
+        result: "Pacific Investments identifies a non-U.S. GEME ETF, while PIMCO MINT/BOND pages and declared APIs expose catalogue/top-ten surfaces but no complete executable holdings export; bounded API requests returned 401/403/404."
+        evidence_ref: "web:pacific-investments-geme-pimco-mint-2026-09-03"
+    disposition_reason: "pacific_investments: Pacific Investments identifies a non-U.S. GEME ETF, while PIMCO routes expose only catalogue/top-ten surfaces and bounded holdings APIs are 401/403/404; no complete executable source is proven."
+    next_action: "pacific_investments: Keep fallback-only; revisit only if a U.S.-listed Pacific/PIMCO ETF publishes a complete executable holdings route with mapping and live evidence."
     implementation_sha: null
     validation_refs: []
   - adapter_key: planrock
@@ -6208,15 +6287,17 @@ providers:
     starting_status: non_executable_public_source
     current_status: non_executable_public_source
     disposition: non_executable_public_source
-    last_checked: 2026-07-26
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols: [PRAE, PRMN]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains: [planrockfunds.com, data.planrockfunds.com]
+    candidate_routes:
+      - https://planrockfunds.com/fund-details
+      - https://planrockfunds.com/alternative-growth
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -6231,8 +6312,12 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no executable complete first-party artifact."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.planrock"
-    disposition_reason: "planrock: Runtime baseline records no executable complete first-party artifact. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Re-audit planrock official product pages and disclosures for a complete machine-readable current holdings artifact."
+      - date: 2026-09-03
+        source: "https://planrockfunds.com/fund-details; https://planrockfunds.com/alternative-growth"
+        result: "PlanRock pages identify PRAE/PRMN and expose a fund-details widget, but the advertised Holdings.csv is a 48-byte opaque body and no complete current machine-readable holdings route is proven."
+        evidence_ref: "web:planrock-prae-prmn-current-pages-2026-09-03"
+    disposition_reason: "planrock: Official PRAE/PRMN pages expose fund widgets, but the advertised Holdings.csv is an opaque 48-byte body and no complete current machine-readable holdings route is proven."
+    next_action: "planrock: Re-test PlanRock fund-details and declared download routes; promote only after a complete current artifact, symbol mapping, parser fixture, and live evidence are available."
     implementation_sha: null
     validation_refs: []
   - adapter_key: epiris
@@ -6241,15 +6326,16 @@ providers:
     starting_status: provider_not_a_portfolio_publisher
     current_status: provider_not_a_portfolio_publisher
     disposition: provider_not_a_portfolio_publisher
-    last_checked: 2026-07-26
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
     representative_symbols: []
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains: [epiris.co.uk]
+    candidate_routes:
+      - https://www.epiris.co.uk/
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -6264,8 +6350,12 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records identity as a non-publishing parent, service, or related entity."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.epiris"
-    disposition_reason: "epiris: Runtime baseline records identity as a non-publishing parent, service, or related entity. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Resolve epiris to the actual ETF portfolio-publishing issuer or document its successor relationship."
+      - date: 2026-09-03
+        source: "https://www.epiris.co.uk/"
+        result: "Official Epiris material identifies a UK/international private-equity firm and portfolio-company manager, not a U.S. ETF portfolio publisher."
+        evidence_ref: "web:epiris-private-equity-identity-2026-09-03"
+    disposition_reason: "epiris: Official identity material describes a UK/international private-equity firm and portfolio-company manager, not a U.S. ETF portfolio publisher."
+    next_action: "epiris: Keep non-publisher disposition unless a distinct U.S. ETF sponsor identity is documented."
     implementation_sha: null
     validation_refs: []
   - adapter_key: eurazeo
@@ -6274,15 +6364,16 @@ providers:
     starting_status: provider_not_a_portfolio_publisher
     current_status: provider_not_a_portfolio_publisher
     disposition: provider_not_a_portfolio_publisher
-    last_checked: 2026-07-26
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
     representative_symbols: []
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains: [eurazeo.com]
+    candidate_routes:
+      - https://www.eurazeo.com/en/investments
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -6297,8 +6388,12 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records identity as a non-publishing parent, service, or related entity."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.eurazeo"
-    disposition_reason: "eurazeo: Runtime baseline records identity as a non-publishing parent, service, or related entity. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Resolve eurazeo to the actual ETF portfolio-publishing issuer or document its successor relationship."
+      - date: 2026-09-03
+        source: "https://www.eurazeo.com/en/investments"
+        result: "Official Eurazeo material identifies a private-markets investment firm and portfolio-company platform, not a U.S. ETF portfolio publisher."
+        evidence_ref: "web:eurazeo-private-markets-identity-2026-09-03"
+    disposition_reason: "eurazeo: Official identity material describes a private-markets investment firm and portfolio-company platform, not a U.S. ETF portfolio publisher."
+    next_action: "eurazeo: Keep non-publisher disposition unless a distinct U.S. ETF sponsor identity is documented."
     implementation_sha: null
     validation_refs: []
   - adapter_key: marathon
@@ -6307,15 +6402,17 @@ providers:
     starting_status: provider_not_a_portfolio_publisher
     current_status: provider_not_a_portfolio_publisher
     disposition: provider_not_a_portfolio_publisher
-    last_checked: 2026-07-26
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
     representative_symbols: []
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains: [marathon.co.uk, marathonmp.com]
+    candidate_routes:
+      - https://marathon.co.uk/
+      - https://marathonmp.com/
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -6330,8 +6427,12 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records identity as a non-publishing parent, service, or related entity."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.marathon"
-    disposition_reason: "marathon: Runtime baseline records identity as a non-publishing parent, service, or related entity. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Resolve marathon to the actual ETF portfolio-publishing issuer or document its successor relationship."
+      - date: 2026-09-03
+        source: "https://marathon.co.uk/; https://marathonmp.com/"
+        result: "Official Marathon material describes institutional strategies and separately managed/commingled vehicles; it does not publish U.S. ETF portfolios and identified ETF relationships are sub-advisory."
+        evidence_ref: "web:marathon-no-us-fund-publisher-2026-09-03"
+    disposition_reason: "marathon: Official material describes institutional strategies and separately managed/commingled vehicles; ETF relationships are sub-advisory and Marathon does not publish U.S. ETF portfolios."
+    next_action: "marathon: Keep non-publisher disposition; attribute any Marathon-subadvised ETF to its actual sponsor/publisher and do not create a Marathon native adapter."
     implementation_sha: null
     validation_refs: []
   - adapter_key: msc_group
@@ -6340,15 +6441,16 @@ providers:
     starting_status: provider_not_a_portfolio_publisher
     current_status: provider_not_a_portfolio_publisher
     disposition: provider_not_a_portfolio_publisher
-    last_checked: 2026-07-26
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
     representative_symbols: []
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains: [msc.com]
+    candidate_routes:
+      - https://www.msc.com/about-us
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -6363,8 +6465,12 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records identity as a non-publishing parent, service, or related entity."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.msc_group"
-    disposition_reason: "msc_group: Runtime baseline records identity as a non-publishing parent, service, or related entity. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Resolve msc_group to the actual ETF portfolio-publishing issuer or document its successor relationship."
+      - date: 2026-09-03
+        source: "https://www.msc.com/about-us"
+        result: "MSC Group material identifies a global logistics/operating company rather than an ETF portfolio publisher; no ETF holdings catalogue applies."
+        evidence_ref: "web:msc-group-operating-company-identity-2026-09-03"
+    disposition_reason: "msc_group: Official MSC Group material identifies a global logistics/operating company, not an ETF portfolio publisher; no ETF holdings catalogue applies."
+    next_action: "msc_group: Keep non-publisher disposition unless discovery identifies a distinct ETF sponsor sharing the MSC name."
     implementation_sha: null
     validation_refs: []
   - adapter_key: orix
@@ -6373,15 +6479,17 @@ providers:
     starting_status: provider_not_a_portfolio_publisher
     current_status: provider_not_a_portfolio_publisher
     disposition: provider_not_a_portfolio_publisher
-    last_checked: 2026-07-26
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
     representative_symbols: []
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains: [orix.com, orix.co.jp]
+    candidate_routes:
+      - https://www.orix.com/our-firm/
+      - https://www.orix.co.jp/grp/en/ir/index.html
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -6396,8 +6504,12 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records identity as a non-publishing parent, service, or related entity."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.orix"
-    disposition_reason: "orix: Runtime baseline records identity as a non-publishing parent, service, or related entity. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Resolve orix to the actual ETF portfolio-publishing issuer or document its successor relationship."
+      - date: 2026-09-03
+        source: "https://www.orix.com/our-firm/; https://www.orix.co.jp/grp/en/ir/index.html"
+        result: "Official ORIX material identifies a diversified finance/private-markets group; ORIX-labelled ORCX resolves to the existing Defiance publisher route, not an ORIX-owned holdings feed."
+        evidence_ref: "web:orix-corporate-and-defiance-alias-audit-2026-09-03"
+    disposition_reason: "orix: Official ORIX material identifies a diversified finance/private-markets group; ORIX-labelled ORCX resolves to the existing Defiance publisher route, not an ORIX-owned holdings feed."
+    next_action: "orix: Keep non-publisher disposition; retain ORCX under Defiance and do not duplicate it as an ORIX native adapter."
     implementation_sha: null
     validation_refs: []
   - adapter_key: rock_point
@@ -6406,15 +6518,16 @@ providers:
     starting_status: provider_not_a_portfolio_publisher
     current_status: provider_not_a_portfolio_publisher
     disposition: provider_not_a_portfolio_publisher
-    last_checked: 2026-07-26
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
     representative_symbols: []
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains: [rockpoint.com]
+    candidate_routes:
+      - https://rockpoint.com/firm-overview/
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -6429,7 +6542,11 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records identity as a non-publishing parent, service, or related entity."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.rock_point"
-    disposition_reason: "rock_point: Runtime baseline records identity as a non-publishing parent, service, or related entity. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Resolve rock_point to the actual ETF portfolio-publishing issuer or document its successor relationship."
+      - date: 2026-09-03
+        source: "https://rockpoint.com/firm-overview/"
+        result: "Official Rockpoint material identifies a U.S. real-estate investment manager; no ETF catalogue or complete holdings publisher route applies, and ADPV remains covered by its existing publisher."
+        evidence_ref: "web:rockpoint-real-estate-manager-identity-2026-09-03"
+    disposition_reason: "rock_point: Official Rockpoint material identifies a U.S. real-estate investment manager with no ETF catalogue; ADPV is already covered by its actual publisher route."
+    next_action: "rock_point: Keep non-publisher disposition unless a distinct Rockpoint ETF sponsor and complete holdings publisher are documented."
     implementation_sha: null
     validation_refs: []
