@@ -31580,17 +31580,23 @@ class McElhennySheffieldHoldingsAdapter(IssuerCsvHoldingsAdapter):
     )
 
     def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
-        del name, identifiers
+        del name
         normalized_symbol = symbol.strip().upper()
         supported = normalized_symbol == self.SUPPORTED_SYMBOL
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
         return HoldingsAdapterProbe(
             adapter_key=self.adapter_key,
             confidence=Decimal("0.9600") if supported else Decimal("0.5000"),
-            status="ready" if supported else "needs_issuer_route",
+            status="ready" if supported or has_sec_fallback else "needs_issuer_route",
             reason=(
                 "McElhenny Sheffield publishes MSMR's complete current holdings table on its official product page."
                 if supported
-                else "McElhenny Sheffield's verified native route is configured for MSMR only."
+                else (
+                    "McElhenny Sheffield's verified native route is configured for MSMR only; "
+                    "SEC EDGAR remains available for recognized products without a native page."
+                    if has_sec_fallback
+                    else "McElhenny Sheffield's verified native route is configured for MSMR only."
+                )
             ),
             source_url=self.PRODUCT_PAGE_URL if supported else None,
             issuer_product_id=normalized_symbol or None,
@@ -31679,8 +31685,7 @@ class McElhennySheffieldHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "McElhenny Sheffield product page did not verify the requested MSMR identity."
             )
         if not any(
-            table
-            and cls.REQUIRED_HEADERS <= {value.strip().lower() for value in table[0]}
+            table and cls.REQUIRED_HEADERS <= {value.strip().lower() for value in table[0]}
             for table in cls._extract_tables(raw_html)
         ):
             raise ValueError(

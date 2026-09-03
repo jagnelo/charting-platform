@@ -22331,6 +22331,7 @@ def test_stockanalysis_provider_fourth_continuation_batch_is_registered_and_audi
         "jlens",
         "long_pond",
         "lsv",
+        "mcelhenny_sheffield",
     }
 
     assert expected
