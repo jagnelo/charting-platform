@@ -22161,6 +22161,7 @@ def test_stockanalysis_provider_continuation_batch_is_registered_and_audited():
         "cresalta",
         "jlens",
         "lsv",
+        "max",
     }
     expected -= {"fairlead"}
 
@@ -22200,6 +22201,9 @@ def test_stockanalysis_provider_continuation_batch_is_registered_and_audited():
     assert "jlens" not in FALLBACK_ISSUER_AUDITS
     assert ISSUER_ADAPTER_CONFIGS["jlens"].live_tested_default_route is True
     assert type(get_holdings_adapter("jlens")).__name__ == "JLensHoldingsAdapter"
+    assert "max" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["max"].live_tested_default_route is True
+    assert type(get_holdings_adapter("max")).__name__ == "MaxHoldingsAdapter"
 
 
 def test_stockanalysis_provider_second_continuation_batch_is_registered_and_audited():
