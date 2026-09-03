@@ -175,3 +175,26 @@ Docker Desktop socket recorded above.
 The fan-out receipt shape was tightened at `7ddb76339d6443826a1b7099ab07bb6caa9776fd`: each
 per-family/date queue failure now includes an explicit `status: queue_error`, alongside its family,
 requested date, and bounded error message. The 25-test scheduled task/worker regression remains green.
+
+## 2026-09-03 — seeded Chromium contract repair and clean runtime checkpoint
+
+The browser stack was rebuilt after the prior seeded run exposed one established-text compatibility
+regression in the family coverage row. The readiness fields are now rendered after the legacy
+`symbol · status · N date · continuity · bars` phrase, preserving existing authenticated flow
+selectors while retaining the new R1 readiness detail. The focused `F8s-breadth-family-ratio`
+regression passed `1/1` after the rebuilt frontend was recreated.
+
+Fresh branch-scoped evidence at `fa97580a27777dff7c5cfe5a58fc31acc4d5bda5`:
+
+- Seeded full Chromium flow suite: `148 passed, 0 failed` in `408.9s` against
+  `STACK_URL=http://127.0.0.1:28083`; this includes the repaired F8s contract and the prior
+  147 passing flows.
+- Frontend type-check: passed (`npm run type-check`).
+- The exact branch-scoped stack was stopped with `make test-stack-down`; its containers, volumes,
+  network, and four generated images were removed by the prescribed cleanup, with no host-wide
+  prune. Docker accounting is now zero known bytes, zero containers, and zero volumes.
+
+This receipt validates the deterministic seeded browser path only. It does not close the remaining
+R1 provider-population/history gaps or establish live entitlement evidence. The earlier Docker
+socket-access failure remains retained as historical evidence; the daemon was subsequently
+restored sufficiently for the rebuilt stack and cleanup.
