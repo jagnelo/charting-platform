@@ -4748,19 +4748,23 @@ providers:
     display_name: pzena
     queue_rank: 99
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    current_status: audited
+    disposition: issuer_access_blocked
+    last_checked: 2026-09-03
+    source_access_declared: issuer_public_etf_page_daily_holdings
+    representative_symbols: [PZIV, PZLV]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    source_freshness: daily_advertised
+    first_party_domains: [pzena.com, sec.gov]
+    candidate_routes:
+      - "https://www.pzena.com/etfs/"
+      - "https://www.pzena.com/americas/investment-professionals/funds/etfs/international-value-etf-pziv/"
+      - "https://www.pzena.com/americas/investment-professionals/funds/etfs/us-large-cap-value-etf-pzlv/"
+      - "https://www.sec.gov/Archives/edgar/data/1027596"
     route_complete: false
-    symbol_mapping_proven: false
+    symbol_mapping_proven: true
     current_holdings_proven: false
     parser_fixture: null
     live_test: null
@@ -4768,13 +4772,20 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.pzena"
       - "runtime:ISSUER_ADAPTER_CONFIGS.pzena"
+      - "web:pzena-current-etf-catalogue-2026-09-03"
+      - "web:pzena-daily-holdings-disclosure-2026-09-03"
+      - "live:pzena-etf-page-shell-blocked-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.pzena"
-    disposition_reason: "pzena: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate pzena first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-03
+        source: "Pzena official ETF catalogue and advertised holdings pages"
+        result: "Pzena's catalogue identifies PZIV and PZLV and its prospectuses advertise daily holdings at pzena.com/etfs. Backend-equivalent requests to the issuer pages returned an unusable shell without a holdings payload, so the route is access-blocked and no complete rows can be parsed."
+        evidence_ref: "live:pzena-etf-page-shell-blocked-2026-09-03"
+    disposition_reason: "pzena: The official catalogue confirms PZIV and PZLV and advertises daily portfolio holdings, but backend-equivalent access returned only an unusable page shell without a holdings payload. The issuer route is therefore issuer_access_blocked; no SEC-derived reconstruction or unproven native adapter is counted."
+    next_action: "pzena: Re-test the official /etfs and product pages with an issuer-supported backend-readable holdings payload; promote only after complete symbol-scoped parsing and live validation."
     implementation_sha: null
     validation_refs: []
   - adapter_key: quadratic

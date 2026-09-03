@@ -2300,3 +2300,18 @@ non-executable, and 6 non-portfolio-publisher. Evidence refs:
 `web:putnam-franklin-current-etf-catalogue-2026-09-03`,
 `web:putnam-quarterly-holdings-disclosure-2026-09-03`, and
 `live:putnam-franklin-api-stale-or-empty-2026-09-03`.
+
+## Current audit checkpoint — Pzena / PZIV-PZLV issuer-access-blocked — 2026-09-03
+
+The official Pzena catalogue and prospectuses identify PZIV/PZLV and advertise
+daily holdings, but live backend-equivalent requests yielded only an unusable
+page shell. Preserve `pzena` as `issuer_access_blocked` until a complete
+symbol-scoped payload is accessible and parsable; do not reconstruct through
+SEC filings.
+
+Counts are 496 registered / 401 native / 95 fallback, with 33 queued records and
+`quadratic` next; runtime statuses are 12 blocked, 72 route-discovery, 6
+non-executable, and 6 non-portfolio-publisher. Evidence refs:
+`web:pzena-current-etf-catalogue-2026-09-03`,
+`web:pzena-daily-holdings-disclosure-2026-09-03`, and
+`live:pzena-etf-page-shell-blocked-2026-09-03`.

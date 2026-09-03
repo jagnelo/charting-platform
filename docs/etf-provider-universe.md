@@ -1402,3 +1402,19 @@ non-executable-public-source, and 6 non-portfolio-publisher. Evidence refs:
 `web:putnam-franklin-current-etf-catalogue-2026-09-03`,
 `web:putnam-quarterly-holdings-disclosure-2026-09-03`, and
 `live:putnam-franklin-api-stale-or-empty-2026-09-03`.
+
+## Current audit checkpoint — Pzena / PZIV-PZLV issuer-access-blocked — 2026-09-03
+
+Pzena's official fund catalogue confirms PZIV and PZLV, and its prospectuses
+advertise daily portfolio holdings at `pzena.com/etfs`. Backend-equivalent
+requests to the ETF/product pages returned only an unusable page shell without
+a holdings payload, so no complete symbol-scoped rows could be parsed.
+
+The ledger records `pzena` as `issuer_access_blocked` without SEC-derived
+reconstruction or native promotion. The current split remains 496 registered /
+401 native-live-backed / 95 fallback-only, with 33 queued records and
+`quadratic` next. Runtime fallback statuses are 12 issuer-access-blocked, 72
+route-discovery, 6 non-executable-public-source, and 6 non-portfolio-publisher.
+Evidence refs: `web:pzena-current-etf-catalogue-2026-09-03`,
+`web:pzena-daily-holdings-disclosure-2026-09-03`, and
+`live:pzena-etf-page-shell-blocked-2026-09-03`.

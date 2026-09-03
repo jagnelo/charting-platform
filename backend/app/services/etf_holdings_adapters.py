@@ -65764,6 +65764,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "complete coverage is proven."
         ),
     ),
+    "pzena": IssuerCsvAdapterConfig(
+        adapter_key="pzena",
+        source_provider="pzena",
+        source_access="issuer_public_etf_page_daily_holdings",
+        product_page_templates=(
+            "https://www.pzena.com/etfs/",
+            "https://www.pzena.com/americas/investment-professionals/funds/etfs/international-value-etf-pziv/",
+            "https://www.pzena.com/americas/investment-professionals/funds/etfs/us-large-cap-value-etf-pzlv/",
+        ),
+        terms_note="Pzena public ETF pages advertise daily holdings and may be subject to issuer terms.",
+    ),
     "resolute": IssuerCsvAdapterConfig(
         adapter_key="resolute",
         source_provider="resolute_american_beacon",

@@ -1025,6 +1025,21 @@ and 6 non-portfolio-publisher. Evidence refs:
 `web:putnam-quarterly-holdings-disclosure-2026-09-03`, and
 `live:putnam-franklin-api-stale-or-empty-2026-09-03`.
 
+## Current audit checkpoint — Pzena / PZIV-PZLV issuer-access-blocked — 2026-09-03
+
+Pzena's official catalogue identifies PZIV and PZLV and advertises daily
+holdings at `pzena.com/etfs`. Backend-equivalent requests returned only an
+unusable page shell without holdings data, so `pzena` remains
+`issuer_access_blocked`; no native adapter or SEC reconstruction is counted.
+
+Runtime state remains 496 registered / 401 native-live-backed / 95 fallback-only
+providers, with 33 queued records and `quadratic` next. Runtime fallback statuses
+are 12 issuer-access-blocked, 72 route-discovery, 6 non-executable-public-source,
+and 6 non-portfolio-publisher. Evidence refs:
+`web:pzena-current-etf-catalogue-2026-09-03`,
+`web:pzena-daily-holdings-disclosure-2026-09-03`, and
+`live:pzena-etf-page-shell-blocked-2026-09-03`.
+
 ## Current audit checkpoint — North Square non-executable public source — 2026-09-03
 
 The ranked `north_square` audit verified official NSIV and NSIG product pages
