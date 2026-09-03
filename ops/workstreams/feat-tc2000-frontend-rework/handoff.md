@@ -107,3 +107,10 @@ operator-declared terms with `not_run` remain `unreviewed`, and failed probes re
 `probe_failed`; this prevents a configured provider from being presented as live-ready before an
 actual bounded probe receipt exists. The focused analysis-router regression covers `not_run`,
 `passed`, and `failure` transitions.
+
+The provider-evidence follow-up is published at `4ffe02a5eb6f843a50057dbe791669ae7f9036a7`.
+The readiness matrix now includes the latest persisted availability observation for each
+provider/capability pair, reduced to safe classification/success/timestamp fields and a bounded
+count in `universe_provenance`; raw provider errors and request payloads are intentionally omitted.
+This makes the no-provider-call read path able to show the difference between declared terms and
+an actually observed probe without weakening the source-lock or fallback rules.
