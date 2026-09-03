@@ -361,3 +361,13 @@ snapshot-backed and route-only roles. The focused entitlement regression passes 
 benchmark-family matrix passes `21/21`, the exact-tip backend unit suite passes `1287/1287` with
 `67.44%` coverage, and Ruff plus `git diff --check` are clean. This closes entitlement lineage
 observability only; it does not populate snapshots, member bars, or historical continuity.
+
+The family coverage entitlement classifier now applies persisted `effective_at` and
+`review_due_at` validity windows at the requested evaluation cutoff (or current UTC time for
+latest reads), at `9962ab2ad3de4ff1ff470f99f15f8d37e181e6de`. Future-effective and review-expired
+terms remain `unreviewed` even when their stored probe says `passed`, matching the provider-chain
+eligibility policy and preventing historical views from using future entitlement evidence. The
+focused analysis-router entitlement tests pass `2/2`, the Docker-backed benchmark-family matrix
+passes `21/21`, and Ruff plus `git diff --check` are clean. This closes entitlement time-window
+classification only; it does not establish live entitlement records or canonical family
+population/member-history continuity.
