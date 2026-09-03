@@ -206,3 +206,8 @@ query boundary, not evidence. The focused regression passes, the complete benchm
 integration contract remains green, and Ruff/diff checks pass. This prevents the readiness matrix
 from overstating historical support while leaving provider-free reads and explicit pending states
 unchanged.
+
+The follow-up `eba8bcda7e1b1dc08ae0164c05dcb468d8fbc369` applies the same guard to unresolved
+holdings: a snapshot with zero resolved canonical members is not point-in-time support. The
+benchmark-family integration contract remains `20/20`, including this unresolved-snapshot
+assertion, with Ruff and diff checks green.
