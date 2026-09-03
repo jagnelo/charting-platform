@@ -66685,6 +66685,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Sapient Quality Select's public product page and holdings table may be subject to issuer terms.",
     ),
+    "smi_funds": IssuerCsvAdapterConfig(
+        adapter_key="smi_funds",
+        source_provider="smi_funds",
+        source_access="issuer_product_page_complete_holdings_html_table",
+        product_page_templates=("https://3fourteensmi.com/raa", "https://3fourteensmi.com/fcte"),
+        live_tested_default_route=True,
+        terms_note="3FourteenSMI's public RAA and FCTE product pages and holdings tables may be subject to issuer terms.",
+    ),
     "resolute": IssuerCsvAdapterConfig(
         adapter_key="resolute",
         source_provider="resolute_american_beacon",
@@ -70258,7 +70266,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "roc",
         "saturna",
         "siren",
-        "smi_funds",
         "suncoast",
         "segall_bryant_hamill",
         "sophus",
@@ -72375,8 +72382,97 @@ class JLensReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """StockAnalysis provider-table fallback adapter pending JLens discovery."""
 
 
-class SmiFundsReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """StockAnalysis provider-table fallback adapter pending SMI Funds discovery."""
+class SmiFundsHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch SMI/3Fourteen ETFs' complete current official holdings tables."""
+
+    PRODUCT_PAGE_URLS = {
+        "RAA": "https://3fourteensmi.com/raa",
+        "FCTE": "https://3fourteensmi.com/fcte",
+    }
+    EXPECTED_IDENTITIES = {
+        "RAA": "Real Asset Allocation ETF",
+        "FCTE": "Full-Cycle Trend ETF",
+    }
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        source_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=(Decimal("0.9600") if source_url else Decimal("0.7800") if has_sec_fallback else Decimal("0.0000")),
+            status="ready" if source_url or has_sec_fallback else "unsupported_symbol",
+            reason=(
+                "3FourteenSMI publishes the complete current holdings table on the matching official ETF page."
+                if source_url
+                else "SMI Funds has no native route for this symbol; SEC EDGAR fallback is available."
+                if has_sec_fallback
+                else "SMI Funds' verified native route is limited to RAA and FCTE."
+            ),
+            source_url=source_url,
+            issuer_product_id=normalized_symbol if source_url else None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        if not product_page_url:
+            raise ValueError(f"SMI Funds has no configured native holdings route for {symbol}.")
+        if source_url and source_url.rstrip("/") != product_page_url.rstrip("/"):
+            raise ValueError("SMI Funds holdings must use the matching verified official product page.")
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        page_text = html.unescape(response.text)
+        if not re.search(re.escape(self.EXPECTED_IDENTITIES[normalized_symbol]), page_text, re.IGNORECASE):
+            raise ValueError(f"SMI Funds product page identity did not match {normalized_symbol}.")
+        rows = parse_html_holdings_table_by_headers(
+            page_text,
+            required_headers={"Description", "Ticker", "Weight (%)**", "Market Value ($)", "FIGI", "Shares Held"},
+        )
+        if not rows:
+            raise ValueError(f"SMI Funds did not expose complete holdings rows for {normalized_symbol}.")
+        for row in rows:
+            source_weight = _clean(row.extra_data.get("Weight (%)**"))
+            if source_weight:
+                row.weight = _decimal_percent_points(source_weight)
+            row.extra_data = {**row.extra_data, "source_figi": _clean(row.extra_data.get("FIGI"))}
+        dates = re.findall(r"\b\d{2}/\d{2}/\d{4}\b", page_text)
+        composition_date = _parse_issuer_date(dates[-1]) if dates else None
+        composition_value = composition_date.isoformat() if composition_date else None
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "html_table", "row_count": len(rows)},
+            source_url=str(getattr(response, "url", product_page_url)),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html_table",
+                "route_resolution": "smi_funds_official_product_page_complete_holdings_table",
+                "composition_date": composition_value,
+                "as_of_date": composition_value,
+                "source_quality": "issuer_reported_current_holdings",
+                "snapshot_provenance": "smi_funds_native_product_page_html_table",
+                "legal_publisher": "3Fourteen & SMI Advisory Services",
+                "terms_note": self.config.terms_note,
+            },
+        )
 
 
 class MilitiaHoldingsAdapter(BushidoHoldingsAdapter):
@@ -73814,7 +73910,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "saturna": SaturnaReconciledFallbackHoldingsAdapter,
         "segall_bryant_hamill": SegallBryantHamillReconciledFallbackHoldingsAdapter,
         "siren": SirenReconciledFallbackHoldingsAdapter,
-        "smi_funds": SmiFundsReconciledFallbackHoldingsAdapter,
+        "smi_funds": SmiFundsHoldingsAdapter,
         "sofi": SofiHoldingsAdapter,
         "sophus": SophusReconciledFallbackHoldingsAdapter,
         "sp_funds": SpFundsHoldingsAdapter,

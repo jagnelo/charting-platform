@@ -1559,6 +1559,37 @@ async def test_sapient_adapter_parses_current_html_holdings_table(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_smi_funds_adapter_parses_current_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("smi_funds")
+    assert adapter is not None
+    page = """
+    <h1>3FourteenSMI: Real Asset Allocation ETF (RAA)</h1>
+    <h2>Holdings</h2><p>As of 09/01/2026</p>
+    <table><thead><tr>
+      <th>Description</th><th>Ticker</th><th>Weight (%)**</th><th>Market Value ($)</th>
+      <th>FIGI</th><th>Shares Held</th>
+    </tr></thead><tbody>
+      <tr><td>BNY MELLON US LARGE CAP CORE E</td><td>BKLC</td><td>14.94</td><td>91713300</td><td>BBG00RYR67P4</td><td>1884780</td></tr>
+      <tr><td>INVESCO OPTIMUM YIELD DIVERS</td><td>PDBC</td><td>7.16</td><td>43975600</td><td>N/A</td><td>2308430</td></tr>
+    </tbody></table>
+    """
+    product_url = adapter.PRODUCT_PAGE_URLS["RAA"]
+    FakeAsyncClient.queue = [FakeResponse(text=page, content_type="text/html", url=product_url)]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="RAA")
+
+    assert [row.symbol for row in result.rows] == ["BKLC", "PDBC"]
+    assert result.rows[0].weight == Decimal("0.1494")
+    assert result.rows[0].shares == Decimal("1884780")
+    assert result.legal_metadata["source_provider"] == "smi_funds"
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+    assert result.legal_metadata["route_resolution"] == (
+        "smi_funds_official_product_page_complete_holdings_table"
+    )
+
+
+@pytest.mark.asyncio
 async def test_eldridge_adapter_filters_combined_daily_holdings_and_preserves_cusips(monkeypatch):
     adapter = get_holdings_adapter("eldridge")
     assert adapter is not None
@@ -22826,6 +22857,7 @@ def test_stockanalysis_provider_second_continuation_batch_is_registered_and_audi
         "mcelhenny_sheffield",
         "militia",
         "pathfinder",
+        "smi_funds",
     }
 
     assert expected
@@ -22855,6 +22887,9 @@ def test_stockanalysis_provider_second_continuation_batch_is_registered_and_audi
     assert "militia" not in FALLBACK_ISSUER_AUDITS
     assert ISSUER_ADAPTER_CONFIGS["militia"].live_tested_default_route is True
     assert type(get_holdings_adapter("militia")).__name__ == "MilitiaHoldingsAdapter"
+    assert "smi_funds" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["smi_funds"].live_tested_default_route is True
+    assert type(get_holdings_adapter("smi_funds")).__name__ == "SmiFundsHoldingsAdapter"
 
 
 def test_stockanalysis_provider_third_continuation_batch_is_registered_and_audited():
@@ -27569,8 +27604,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 409
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 87
+    assert ledger["current_native_count"] == 410
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 86
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -27630,6 +27665,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "saba_capital",
         "sammons_enterprises",
         "sapient",
+        "smi_funds",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))
