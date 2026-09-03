@@ -473,3 +473,26 @@ The complete opt-in provider matrix and Docker-backed integration gate remain
 pending at the 388-native baseline, with the known unrelated reproducible
 F8p-current-history Study Lab histogram timeout still recorded as the
 integration blocker.
+## Current implementation checkpoint — Matrix / MAVF issuer-access disposition — 2026-09-03
+
+The ranked `matrix` audit verified the official Matrix Advisors Value ETF page
+at `https://matrixadvisorsvalueetf.com/`. Indexed page content identifies MAVF
+and shows a complete 27-row holdings table with ticker, name, CUSIP, shares,
+market value, and percentage columns. A bounded direct HTTP request from the
+adapter transport instead receives a Cloudflare “Attention Required” block,
+so the page cannot yet be captured reproducibly for native parsing.
+
+The ledger records `matrix` as a dated `issuer_access_blocked` disposition with
+MAVF, official Matrix/SEC routes, and Cloudflare evidence. No native adapter or
+indexed/SEC-derived promotion is added. The code-derived split remains 496
+registered, 388 native/live-backed, and 108 fallback-only providers; runtime
+statuses remain 8 issuer-access-blocked, 91 needs-first-party-route-discovery,
+3 non-executable-public-source, and 6 non-portfolio-publisher because this
+terminal ledger disposition remains represented by its existing code-derived
+fallback adapter. The ledger retains all 140 historical records exactly once,
+now with 59 queued fallback records; the next ranked item is `max`.
+
+The complete opt-in provider matrix and Docker-backed integration gate remain
+pending at the 388-native baseline, with the known unrelated reproducible
+F8p-current-history Study Lab histogram timeout still recorded as the
+integration blocker.

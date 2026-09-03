@@ -868,3 +868,21 @@ statuses remain 8 issuer-access-blocked, 91 needs-first-party-route-discovery,
 terminal ledger disposition remains represented by its existing code-derived
 fallback adapter. The ledger now has 60 queued fallback records and the next
 ranked item is `matrix`.
+
+## Current audit checkpoint — Matrix / MAVF issuer-access disposition — 2026-09-03
+
+The ranked `matrix` audit verified the official Matrix Advisors Value ETF page
+at `https://matrixadvisorsvalueetf.com/`. Indexed page content identifies MAVF
+and shows a complete 27-row holdings table with ticker, name, CUSIP, shares,
+market value, and percentage columns. However, a bounded direct HTTP request
+from the adapter transport receives a Cloudflare “Attention Required” block
+before the page can be captured reproducibly.
+
+The exhaustive ledger records `matrix` as a dated `issuer_access_blocked`
+disposition with MAVF, official Matrix and SEC routes, and the captured
+Cloudflare evidence. No native adapter or indexed/SEC-derived promotion is
+added. The code-derived split remains 496 registered, 388 native/live-backed,
+and 108 fallback-only providers; runtime statuses are now 9
+issuer-access-blocked, 90 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The ledger now has
+59 queued fallback records and the next ranked item is `max`.

@@ -3408,33 +3408,49 @@ providers:
     display_name: matrix
     queue_rank: 73
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: issuer_access_blocked
+    disposition: issuer_access_blocked
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
-    estimated_us_etf_count: null
+    representative_symbols:
+      - MAVF
+    estimated_us_etf_count: 1
     estimated_us_etf_aum: null
-    us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    us_equity_breadth: 1
+    source_freshness: daily
+    first_party_domains:
+      - matrixadvisorsvalueetf.com
+      - sec.gov
+    candidate_routes:
+      - https://matrixadvisorsvalueetf.com/
+      - https://www.sec.gov/Archives/edgar/data/1592900/000159290026000788/ck0001592900-20251231.htm
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
+    source_format: html_table
     parser_fixture: null
     live_test: null
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.matrix"
       - "runtime:ISSUER_ADAPTER_CONFIGS.matrix"
+      - "web:matrix-mavf-official-page-2026-09-03"
+      - "live:matrix-mavf-cloudflare-block-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.matrix"
-    disposition_reason: "matrix: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate matrix first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-03
+        source: "https://matrixadvisorsvalueetf.com/"
+        result: "The official Matrix Advisors Value ETF page identifies MAVF and exposes a complete 27-row holdings table with ticker, name, CUSIP, shares, market value, and % of net assets in indexed content, but a backend-equivalent direct request is blocked by Cloudflare before the page can be captured reliably for an adapter."
+        evidence_ref: "web:matrix-mavf-official-page-2026-09-03"
+      - date: 2026-09-03
+        source: "https://matrixadvisorsvalueetf.com/ direct HTTP request"
+        result: "The bounded direct request returned a Cloudflare 'Attention Required' block for wpenginepowered.com, so issuer access is not currently executable from the adapter transport."
+        evidence_ref: "live:matrix-mavf-cloudflare-block-2026-09-03"
+    disposition_reason: "matrix: Matrix Asset Advisors' official MAVF page appears to publish a complete holdings table, but the issuer route is Cloudflare-blocked to backend-equivalent requests and cannot yet be captured or parsed reproducibly. Keep the provider fallback-only as issuer_access_blocked rather than promoting indexed content or SEC holdings."
+    next_action: "matrix: Re-test the official MAVF page from an allowed backend path; promote only after the complete table is executable, identity/date semantics are captured, and deterministic plus bounded live parser coverage is added."
     implementation_sha: null
     validation_refs: []
   - adapter_key: max

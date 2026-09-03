@@ -1777,3 +1777,25 @@ complete holdings routes, preserving the distinction between issuer-published
 current artifacts and sub-adviser or regulatory identity evidence. Repeat
 focused invariants, deterministic/live checks, Ruff, workstream validation,
 and the durable checkpoint before any promotion.
+## 44. Current execution checkpoint — Matrix / MAVF issuer-access disposition — 2026-09-03
+
+The ranked `matrix` audit verified the official Matrix Advisors Value ETF page
+at `https://matrixadvisorsvalueetf.com/`. Indexed content identifies MAVF and
+shows a complete 27-row holdings table with ticker, name, CUSIP, shares, market
+value, and percentage columns. A bounded direct HTTP request from the adapter
+transport receives a Cloudflare “Attention Required” block before the page can
+be captured reproducibly.
+
+The ledger records `matrix` as `issuer_access_blocked`, preserving the MAVF
+route and dated web/transport evidence. No adapter or indexed/SEC-derived
+promotion is added. Runtime code remains 496 registered, 388 native/live-backed,
+108 fallback-only; runtime statuses remain 8 blocked, 91 route discovery, 3
+non-executable, and 6 non-portfolio-publisher because this terminal ledger
+disposition remains represented by the existing code-derived fallback adapter,
+while the ledger queue is 59 records and the next ranked issuer is `max`.
+
+The next cycle should investigate `max` first-party ETF product pages and
+complete holdings routes, retaining the distinction between an issuer route
+that exists but is transport-blocked and one that is executable. Repeat
+focused invariants, deterministic/live checks, Ruff, workstream validation,
+and the durable checkpoint before any promotion.
