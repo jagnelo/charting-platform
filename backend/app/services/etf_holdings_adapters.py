@@ -61913,6 +61913,62 @@ class OptimizeHoldingsAdapter(IssuerCsvHoldingsAdapter):
             return None
 
 
+class River1HoldingsAdapter(OptimizeHoldingsAdapter):
+    """Fetch River1's RVER portfolio through its issuer XLS export."""
+
+    PRODUCT_PAGE_URLS = {"RVER": "https://river1.us/rver"}
+    HOLDINGS_URLS = {"RVER": "https://river1.us/download-holdings-usbanks.php?fund=rver"}
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        page_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if page_url else Decimal("0.5000"),
+            status="ready" if page_url else "needs_issuer_route",
+            reason=(
+                "River1 publishes RVER's complete current portfolio through its issuer XLS export."
+                if page_url
+                else "River1 is recognized; a configured issuer holdings route is required."
+            ),
+            source_url=self.HOLDINGS_URLS.get(normalized_symbol),
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        result = await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        result.legal_metadata["route_resolution"] = (
+            "river1_product_page_verified_fund_scoped_full_holdings_xls"
+        )
+        result.raw_json["source_format"] = "river1_issuer_holdings_xls"
+        return result
+
+    @staticmethod
+    def _validate_product_page(raw_html: str, *, symbol: str, holdings_url: str) -> None:
+        normalized_page = re.sub(r"\s+", " ", html.unescape(raw_html)).lower()
+        if symbol.lower() not in normalized_page:
+            raise ValueError(f"River1 product page identity did not match requested ETF {symbol}.")
+        expected_path = urlparse(holdings_url).path.lower()
+        if expected_path not in normalized_page:
+            raise ValueError(f"River1 product page did not link the holdings export for {symbol}.")
+        expected_fund = _clean(urlparse(holdings_url).query.split("fund=", 1)[-1])
+        if expected_fund and f"fund={expected_fund.lower()}" not in normalized_page:
+            raise ValueError(f"River1 holdings export was not scoped to {symbol}.")
+
+
 class SummitGlobalHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Read Summit Global's disclosed tracking baskets from issuer product pages.
 
@@ -65921,6 +65977,15 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "Return Stacked public ETF product pages and daily holdings CSVs may be subject to issuer terms."
         ),
     ),
+    "river1": IssuerCsvAdapterConfig(
+        adapter_key="river1",
+        source_provider="river1_asset_management",
+        source_access="issuer_product_page_declared_fund_scoped_holdings_xls",
+        product_page_templates=("https://river1.us/rver",),
+        url_templates=("https://river1.us/download-holdings-usbanks.php?fund=rver",),
+        live_tested_default_route=True,
+        terms_note="River1's public RVER page and fund-scoped XLS holdings export may be subject to issuer terms.",
+    ),
     "resolute": IssuerCsvAdapterConfig(
         adapter_key="resolute",
         source_provider="resolute_american_beacon",
@@ -69493,7 +69558,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "riverfront",
         "robo_global",
         "rockefeller_capital",
-        "river1",
         "roc",
         "saba_capital",
         "sammons_enterprises",
@@ -73043,9 +73107,9 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "q3": Q3AuditedFallbackHoldingsAdapter,
         "rareview_funds": RareviewFundsReconciledFallbackHoldingsAdapter,
         "return_stacked": ReturnStackedHoldingsAdapter,
+        "river1": River1HoldingsAdapter,
         "ridgeline": RidgelineAuditedFallbackHoldingsAdapter,
         "riverfront": RiverFrontReconciledFallbackHoldingsAdapter,
-        "river1": River1ReconciledFallbackHoldingsAdapter,
         "robo_global": RoboGlobalReconciledFallbackHoldingsAdapter,
         "roc": RocReconciledFallbackHoldingsAdapter,
         "rock_point": RockPointAuditedFallbackHoldingsAdapter,

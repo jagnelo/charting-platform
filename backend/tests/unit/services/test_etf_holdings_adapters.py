@@ -1307,6 +1307,60 @@ async def test_optimize_adapter_verifies_optz_page_and_parses_issuer_xls(monkeyp
 
 
 @pytest.mark.asyncio
+async def test_river1_adapter_verifies_rver_page_and_parses_issuer_xls(monkeypatch):
+    adapter = get_holdings_adapter("river1")
+    assert adapter is not None
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                '<h1>RVER The Trenchless Fund ETF</h1>'
+                '<a href="/download-holdings-usbanks.php?fund=rver">Download full holdings</a>'
+                '<p>Data as of 09/01/2026</p>'
+            ),
+            content_type="text/html",
+            url="https://river1.us/rver",
+        ),
+        FakeResponse(
+            content=b"legacy-workbook",
+            content_type="application/vnd.ms-excel",
+            url="https://river1.us/download-holdings-usbanks.php?fund=rver",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_adapters.parse_holdings_xls",
+        lambda _content: (
+            [
+                CanonicalHoldingRow(
+                    symbol="HPE",
+                    name="Hewlett Packard Enterprise Co",
+                    cusip="42824C109",
+                    weight=Decimal("0.0858"),
+                    shares=Decimal("261606"),
+                    market_value=Decimal("13666297.44"),
+                )
+            ],
+            [["% Of Net Assets", "Name", "Ticker", "CUSIP", "Shares Held", "Market Value"]],
+        ),
+    )
+
+    result = await adapter.fetch_latest(symbol="RVER")
+
+    assert [row.symbol for row in result.rows] == ["HPE"]
+    assert result.legal_metadata["source_provider"] == "river1_asset_management"
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+    assert result.legal_metadata["route_resolution"] == (
+        "river1_product_page_verified_fund_scoped_full_holdings_xls"
+    )
+    assert [url for url, _kwargs in FakeAsyncClient.requested] == [
+        "https://river1.us/rver",
+        "https://river1.us/download-holdings-usbanks.php?fund=rver",
+    ]
+
+
+@pytest.mark.asyncio
 async def test_eldridge_adapter_filters_combined_daily_holdings_and_preserves_cusips(monkeypatch):
     adapter = get_holdings_adapter("eldridge")
     assert adapter is not None
@@ -22630,6 +22684,7 @@ def test_stockanalysis_provider_fourth_continuation_batch_is_registered_and_audi
         "long_pond",
         "lsv",
         "mcelhenny_sheffield",
+        "river1",
     }
 
     assert expected
@@ -22856,7 +22911,7 @@ def test_us_etf_promoter_universe_status_tracks_broad_market_target():
 
 def test_every_registered_adapter_can_probe_ready_with_sec_identifiers():
     for adapter_key, config in ISSUER_ADAPTER_CONFIGS.items():
-        if adapter_key in {"milliman", "nestyield"}:
+        if adapter_key in {"milliman", "nestyield", "river1"}:
             # Milliman is intentionally symbol-scoped to its two verified
             # product pages and must not claim a route for an arbitrary symbol.
             continue
@@ -27302,8 +27357,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 403
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 93
+    assert ledger["current_native_count"] == 404
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 92
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -27357,6 +27412,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "portfolio_building_block",
         "quadratic",
         "return_stacked",
+        "river1",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))
