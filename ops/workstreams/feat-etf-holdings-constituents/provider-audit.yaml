@@ -3059,8 +3059,9 @@ providers:
         evidence_ref: "live:jlens-tov-current-holdings-2026-09-03"
     disposition_reason: "jlens: JLens' official TOV product page provides a complete executable server-rendered holdings table with identity, CUSIP, shares, weights, market values, and a current fund-data date. The native adapter enforces the TOV/page identity, parses the full table, converts million-dollar values, preserves raw identifiers, and records JLens/Empowered Funds provenance; no SEC-derived reconstruction is used."
     next_action: "jlens: Monitor the official JLens TOV page and its embedded holdings table; retain native status while the route remains complete, identity-valid, current, and executable, and add any future JLens product only after equivalent first-party evidence."
-    implementation_sha: null
-    validation_refs: []
+    implementation_sha: fbede6738aabb4ff986f0e1a25bcd1d797004008
+    validation_refs:
+      - "validation:2026-09-03T02:14:08Z"
   - adapter_key: knowledge_leaders
     display_name: knowledge_leaders
     queue_rank: 66
