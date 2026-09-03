@@ -1738,3 +1738,9 @@ VistaShares' official pages expose current top-ten holdings and a Download All
 Holdings affordance, but no resolvable complete artifact is declared in the
 bounded response. Current split: 496 registered / 414 native/live-backed /
 82 fallback-only, with 3 queued records and `wellesley_asset_management` next.
+## Current audit checkpoint — Wellesley adviser/non-publisher disposition — 2026-09-04
+
+Wellesley Asset Management is identified as an investment adviser/sub-adviser,
+not an independent ETF portfolio publisher. Current split: 496 registered /
+414 native/live-backed / 82 fallback-only, with 2 queued records and
+`worth_charting` next.

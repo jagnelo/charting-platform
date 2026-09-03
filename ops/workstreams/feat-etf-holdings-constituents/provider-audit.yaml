@@ -7,7 +7,7 @@ baseline_fallback_count: 140
 current_registered_count: 496
 current_native_count: 414
 current_fallback_count: 82
-generated_at: 2026-09-04T16:00:00Z
+generated_at: 2026-09-04T20:00:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -6019,17 +6019,19 @@ providers:
     display_name: wellesley_asset_management
     queue_rank: 129
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: provider_not_a_portfolio_publisher
+    disposition: provider_not_a_portfolio_publisher
+    last_checked: 2026-09-04
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols: [MCRT]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains: [wellesleyinvestment.com, wellesleyassetmanagement.com]
+    candidate_routes:
+      - "https://www.wellesleyinvestment.com/"
+      - "https://www.wellesleyassetmanagement.com/"
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -6039,79 +6041,99 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.wellesley_asset_management"
       - "runtime:ISSUER_ADAPTER_CONFIGS.wellesley_asset_management"
+      - "web:wellesley-asset-management-current-identity-pages-2026-09-04"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.wellesley_asset_management"
-    disposition_reason: "wellesley_asset_management: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate wellesley_asset_management first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-04
+        source: "Wellesley Asset Management official sites and fund references"
+        result: "Wellesley is identified as an investment adviser/sub-adviser for managed accounts and the Miller Convertible Total Return ETF, not the legal publisher of a distinct ETF portfolio catalogue."
+        evidence_ref: "web:wellesley-asset-management-current-identity-pages-2026-09-04"
+    disposition_reason: "wellesley_asset_management: Official identity material describes an adviser/sub-adviser rather than an independent ETF portfolio publisher; no separate first-party holdings catalogue applies."
+    next_action: "wellesley_asset_management: Revisit only if a legally published ETF catalogue is identified; otherwise preserve the non-publisher disposition."
     implementation_sha: null
     validation_refs: []
   - adapter_key: worth_charting
     display_name: worth_charting
     queue_rank: 130
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: issuer_access_blocked
+    disposition: issuer_access_blocked
+    last_checked: 2026-09-04
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols: [WRTH]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains: [worthchartinggroup.com]
+    candidate_routes:
+      - "https://worthchartinggroup.com/"
+      - "https://worthchartinggroup.com/wp-content/uploads/data/TidalFG_Holdings_WRTH.csv"
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
     parser_fixture: null
-    live_test: null
+    live_test: "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows"
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.worth_charting"
       - "runtime:ISSUER_ADAPTER_CONFIGS.worth_charting"
+      - "web:worth-charting-current-wrth-holdings-page-2026-09-04"
+      - "live:worth-charting-current-wrth-holdings-csv-2026-09-04-blocked"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.worth_charting"
-    disposition_reason: "worth_charting: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate worth_charting first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-04
+        source: "Worth Charting Group official WRTH product page and bounded live probe"
+        result: "The official page declares a complete current TidalFG_Holdings_WRTH.csv artifact, but the backend-equivalent HTTP client receives HTTP 403 from the issuer page; native promotion was not retained."
+        evidence_ref: "live:worth-charting-current-wrth-holdings-csv-2026-09-04-blocked"
+    disposition_reason: "worth_charting: The official page declares a complete current CSV, but bounded backend-equivalent access is issuer-blocked with HTTP 403, so native promotion is not justified."
+    next_action: "worth_charting: Periodically re-test the official WRTH page and CSV; promote only after complete artifact access succeeds through the application client."
     implementation_sha: null
     validation_refs: []
   - adapter_key: yoke
     display_name: yoke
     queue_rank: 131
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: issuer_access_blocked
+    disposition: issuer_access_blocked
+    last_checked: 2026-09-04
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols: [YOKE]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains: [yokeetf.com]
+    candidate_routes:
+      - "https://yokeetf.com/"
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
     parser_fixture: null
-    live_test: null
+    live_test: "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows"
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.yoke"
       - "runtime:ISSUER_ADAPTER_CONFIGS.yoke"
+      - "web:yoke-current-holdings-page-2026-09-04"
+      - "live:yoke-current-holdings-page-2026-09-04-blocked"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.yoke"
-    disposition_reason: "yoke: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate yoke first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-04
+        source: "Yoke ETF official product page and bounded live probe"
+        result: "The official YOKE page publishes a complete current server-rendered holdings table, but the backend-equivalent HTTP client receives HTTP 403 from the issuer page; native promotion was not retained."
+        evidence_ref: "live:yoke-current-holdings-page-2026-09-04-blocked"
+    disposition_reason: "yoke: The official page exposes a complete current table, but bounded backend-equivalent access is issuer-blocked with HTTP 403, so native promotion is not justified."
+    next_action: "yoke: Periodically re-test the official YOKE page; promote only after complete table access succeeds through the application client."
     implementation_sha: null
     validation_refs: []
   - adapter_key: epwa

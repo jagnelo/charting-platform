@@ -2648,3 +2648,17 @@ promoted. The next queued issuer is `wellesley_asset_management`; counts remain
 496 registered / 414 native / 82 fallback with 3 queued records.
 
 Evidence ref: `web:vistashares-current-product-pages-2026-09-04`.
+
+## Current audit checkpoint — Wellesley adviser/non-publisher disposition — 2026-09-04
+
+Wellesley Asset Management's official identity material describes an
+investment adviser/sub-adviser rather than an independent ETF portfolio
+publisher. No distinct first-party ETF catalogue applies. The next queued
+issuer is `worth_charting`; counts remain 496 registered / 414 native / 82
+fallback with 2 queued records.
+
+Evidence ref: `web:wellesley-asset-management-current-identity-pages-2026-09-04`.
+### Final issuer-queue checkpoint (2026-09-04)
+
+Wellesley was dispositioned as a non-portfolio publisher. Worth Charting WRTH and Yoke YOKE were audited against their official current holdings pages; each page exposes a complete artifact, but the application HTTP client receives issuer HTTP 403, so both remain issuer-access-blocked fallbacks. The ranked queue is now empty at 496 registered / 414 native / 82 fallback. Proceed to final deterministic/live/Docker/exact-SHA validation only.
+Final validation status: backend unit suite 1,341 passed (34 warnings), default live contract 2 passed/504 skipped. The complete opt-in live matrix was attempted, yielding 277 passed, 1 skipped, and 10 narrowly evidenced provider/network failures before interruption; Docker integration and exact-SHA gates remain pending.

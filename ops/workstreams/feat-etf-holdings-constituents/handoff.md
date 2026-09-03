@@ -1473,3 +1473,16 @@ bounded response. The durable split remains 496 registered / 414
 native-live-backed / 82 fallback-only providers, with 3 queued records and
 `wellesley_asset_management` next. Evidence ref:
 `web:vistashares-current-product-pages-2026-09-04`.
+## Current audit checkpoint — Wellesley adviser/non-publisher disposition — 2026-09-04
+
+Wellesley Asset Management is identified as an investment adviser/sub-adviser,
+not an independent ETF portfolio publisher. The durable split remains 496
+registered / 414 native-live-backed / 82 fallback-only providers, with 2 queued
+records and `worth_charting` next. Evidence ref:
+`web:wellesley-asset-management-current-identity-pages-2026-09-04`.
+## Final issuer-queue checkpoint (2026-09-04)
+
+- Wellesley Asset Management is recorded as `provider_not_a_portfolio_publisher`; official identity material describes an adviser/sub-adviser rather than an independent ETF portfolio publisher.
+- Worth Charting WRTH and Yoke YOKE official pages expose complete current holdings artifacts, but backend-equivalent HTTP probes returned HTTP 403. Both remain explicit `issuer_access_blocked` fallbacks; no native promotion was retained.
+- The queue is exhausted: 496 registered / 414 native / 82 fallback, zero queued records. Final validation gates remain to be rerun at the synchronized implementation SHA.
+- Final checks: deterministic backend unit suite 1,341 passed (34 warnings); default live contract 2 passed/504 skipped. The full opt-in matrix was attempted and interrupted after 277 passed, 1 skipped, and 10 provider/network failures (recorded in validation.jsonl); Docker integration and exact-SHA checks remain the human-review gate.
