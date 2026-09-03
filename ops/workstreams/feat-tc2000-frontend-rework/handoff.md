@@ -255,3 +255,10 @@ The current-tip bounded readiness rerun is also green: benchmark-family coverage
 related ratios, breadth, ranking, rotation, and derived-equal integration tests pass `20/20` with
 Docker access. The unprivileged retry remains a setup-only Docker socket permission failure; no
 application assertion failed. The existing two NumPy deprecation warnings remain non-blocking.
+
+The scheduled core bootstrap registration follow-up is `c1e16f4b1f0eec5513fb4e92e37bde7b5de8ed8a`.
+The 01:00 opt-in core bootstrap cron function is now included in `WorkerSettings.functions`, with a
+worker regression asserting both the scheduled wrapper and underlying bootstrap task are
+registered. The complete ARQ worker unit slice passes `21/21`; Ruff and diff checks pass. This
+ensures the existing bounded bootstrap can execute when enabled; it does not enable the schedule or
+claim provider-backed population.
