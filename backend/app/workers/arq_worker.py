@@ -93,7 +93,10 @@ async def task_refresh_benchmark_family_holdings_run(ctx: dict, run_id: int):
 
     from app.database import AsyncSessionLocal
     from app.models.benchmark_family_history import BenchmarkFamilyHoldingsRefreshRun
-    from app.services.benchmark_family_history import queue_snapshot_member_history
+    from app.services.benchmark_family_history import (
+        history_end_for_date,
+        queue_snapshot_member_history,
+    )
     from app.services.etf_holdings_refresh import refresh_benchmark_family_holdings_for_date
 
     async with AsyncSessionLocal() as db:
@@ -168,6 +171,7 @@ async def task_refresh_benchmark_family_holdings_run(ctx: dict, run_id: int):
                             db,
                             ctx.get("redis"),
                             refreshed_snapshot_ids,
+                            end=history_end_for_date(requested_date),
                         )
                     except Exception as exc:  # noqa: BLE001 - retain bounded queue evidence.
                         history_queue = {
@@ -269,7 +273,10 @@ async def task_refresh_scheduled_benchmark_family_holdings_unit(
     from datetime import date, datetime
 
     from app.database import AsyncSessionLocal
-    from app.services.benchmark_family_history import queue_snapshot_member_history
+    from app.services.benchmark_family_history import (
+        history_end_for_date,
+        queue_snapshot_member_history,
+    )
     from app.services.etf_holdings_refresh import refresh_benchmark_family_holdings_for_date
 
     requested_date = date.fromisoformat(str(requested_date_text))
@@ -309,6 +316,7 @@ async def task_refresh_scheduled_benchmark_family_holdings_unit(
                 db,
                 ctx.get("redis"),
                 snapshot_ids,
+                end=history_end_for_date(requested_date),
             )
         except Exception as exc:  # noqa: BLE001 - retain bounded queue failure evidence.
             history_queue = {

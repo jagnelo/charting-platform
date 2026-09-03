@@ -162,9 +162,9 @@ async def test_scheduled_family_unit_refreshes_one_family_and_queues_history(mon
             "legs": [{"status": "refreshed", "snapshot_id": 12}],
         }
 
-    async def fake_queue(_db, redis, snapshot_ids):
+    async def fake_queue(_db, redis, snapshot_ids, *, end):
         assert session.commits == 1
-        queue_calls.append((redis, snapshot_ids))
+        queue_calls.append((redis, snapshot_ids, end))
         return {"status": "queued", "queued": 4, "already_queued": 0}
 
     monkeypatch.setattr("app.database.AsyncSessionLocal", lambda: session)
@@ -182,7 +182,13 @@ async def test_scheduled_family_unit_refreshes_one_family_and_queues_history(mon
     )
 
     assert refresh_calls == [("sp500", "2026-07-31", ["cap_weight", "equal_weight"])]
-    assert queue_calls == [("redis", [12])]
+    assert queue_calls == [
+        (
+            "redis",
+            [12],
+            arq_worker.datetime(2026, 7, 31, 23, 59, 59, 999999, tzinfo=arq_worker.UTC),
+        )
+    ]
     assert result["requested_date"] == "2026-07-31"
     assert result["snapshot_ids"] == [12]
     assert result["history_queue"]["queued"] == 4
@@ -215,7 +221,7 @@ async def test_scheduled_family_unit_retains_history_queue_failure_evidence(monk
             "legs": [{"status": "refreshed", "snapshot_id": 13}],
         }
 
-    async def failed_queue(*_args):
+    async def failed_queue(*_args, **_kwargs):
         raise RuntimeError("history worker unavailable")
 
     monkeypatch.setattr("app.database.AsyncSessionLocal", lambda: Session())
@@ -406,9 +412,9 @@ async def test_family_holdings_refresh_worker_handoffs_refreshed_snapshots_to_me
             "legs": [{"role": "cap_weight", "status": "refreshed", "snapshot_id": 101}],
         }
 
-    async def fake_queue(_db, redis, snapshot_ids):
+    async def fake_queue(_db, redis, snapshot_ids, *, end):
         assert session.commits == 2
-        queue_calls.append((redis, snapshot_ids))
+        queue_calls.append((redis, snapshot_ids, end))
         return {"status": "queued", "queued": 3, "already_queued": 1}
 
     monkeypatch.setattr("app.database.AsyncSessionLocal", lambda: session)
@@ -425,7 +431,13 @@ async def test_family_holdings_refresh_worker_handoffs_refreshed_snapshots_to_me
     result = await arq_worker.task_refresh_benchmark_family_holdings_run({"redis": redis}, run.id)
 
     assert result["status"] == "completed"
-    assert queue_calls == [(redis, [101])]
+    assert queue_calls == [
+        (
+            redis,
+            [101],
+            arq_worker.datetime(2026, 6, 30, 23, 59, 59, 999999, tzinfo=arq_worker.UTC),
+        )
+    ]
     assert run.progress["units"][0]["history_queue"] == {
         "status": "queued",
         "queued": 3,
@@ -524,7 +536,7 @@ async def test_family_holdings_refresh_worker_retains_history_queue_error_shape(
             "legs": [{"status": "refreshed", "snapshot_id": 102}],
         }
 
-    async def failed_queue(*_args):
+    async def failed_queue(*_args, **_kwargs):
         raise RuntimeError("history queue unavailable")
 
     monkeypatch.setattr("app.database.AsyncSessionLocal", lambda: session)

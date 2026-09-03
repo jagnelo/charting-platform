@@ -1,8 +1,15 @@
+from datetime import UTC, date, datetime
 from types import SimpleNamespace
 
 import pytest
 
 from app.services import benchmark_family_history as history
+
+
+def test_history_end_for_date_is_inclusive_utc_end_of_day():
+    assert history.history_end_for_date(date(2024, 1, 2)) == datetime(
+        2024, 1, 2, 23, 59, 59, 999999, tzinfo=UTC
+    )
 
 
 def test_canonical_history_job_id_separates_historical_end_bounds():

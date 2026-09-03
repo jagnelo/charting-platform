@@ -9,7 +9,7 @@ is contacted while building a Market Map, breadth view, or watchlist response.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, time
 from typing import Any
 
 from sqlalchemy import select
@@ -27,6 +27,12 @@ from app.services.watchlist_sources import (
 DEFAULT_HISTORY_TIMEFRAMES = (Timeframe.MN.value, Timeframe.W1.value, Timeframe.D1.value)
 MAX_HISTORY_INSTRUMENTS = 5000
 BENCHMARK_FAMILY_ROLES = ("cap_weight", "equal_weight", "value", "growth")
+
+
+def history_end_for_date(value: date) -> datetime:
+    """Return the inclusive UTC history bound for a dated composition."""
+
+    return datetime.combine(value, time.max, tzinfo=UTC)
 
 
 def canonical_history_job_id(
