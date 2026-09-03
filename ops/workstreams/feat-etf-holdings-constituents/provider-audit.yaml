@@ -4654,7 +4654,7 @@ providers:
     validation_refs:
       - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_portfolio_building_block_adapter_fetches_declared_holdings_csv"
       - "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows"
-      - "validation:2026-09-03T12:00:00Z"
+      - "validation:2026-09-03T12:30:00Z"
   - adapter_key: premise_capital
     display_name: premise_capital
     queue_rank: 97
