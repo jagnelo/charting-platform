@@ -1653,3 +1653,29 @@ non-executable, and 6 non-portfolio-publisher. The ledger has 65 queued
 fallback records remaining, with `long_pond` next. The known unrelated
 F8p-current-history Study Lab histogram timeout remains the Docker integration
 blocker.
+
+## 39. Current execution checkpoint — Long Pond/LPRE native promotion — 2026-09-03
+
+The ranked `long_pond` audit found an executable first-party route in the
+official Long Pond LPRE product page and its public CMS endpoint. The page at
+`https://www.longpondetf.com/lpre` identifies the Long Pond Real Estate Select
+ETF (`LPRE`) and declares a dated Holdings section. The CMS page route returns
+the exact `longpond-lpre-HoldingsComponent-1` component and its six-column
+holdings schema; the current 2026-09-01 payload contains 24 rows.
+
+`LongPondHoldingsAdapter` validates the official product-page host and LPRE
+identity, fetches the issuer CMS endpoint, validates the page/component/schema
+identity, requires a complete dated payload, maps FIGI/ticker/quantity/value/
+weight fields into canonical rows, and records Long Pond Capital / Exchange
+Traded Concepts provenance. It does not reconstruct holdings through SEC
+filings. The deterministic fixture covers the strict route and schema checks,
+date/value/weight mapping, metadata, request sequence, and unsupported symbols;
+the opt-in live test covers the current official route.
+
+The runtime fallback audit no longer contains `long_pond`; its ledger record is
+`native_promoted` with official route, parser fixture, and live evidence refs.
+The code-derived split is 496 registered, 387 native/live-backed, and 109
+fallback-only providers; runtime statuses are 8 blocked, 92 route discovery, 3
+non-executable, and 6 non-portfolio-publisher. The ledger has 64 queued
+fallback records remaining, with `lsv` next. The known unrelated F8p-current-
+history Study Lab histogram timeout remains the Docker integration blocker.

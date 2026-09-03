@@ -324,4 +324,43 @@ pending at the 386-native baseline, with the known unrelated reproducible
 F8p-current-history Study Lab histogram timeout still recorded as the
 integration blocker.
 
+The current Long Pond changeset owns these durable paths before checkpoint:
+`docs/etf-provider-universe.md`,
+`ops/workstreams/feat-etf-holdings-constituents/handoff.md`,
+`ops/workstreams/feat-etf-holdings-constituents/implementation-plan.md`,
+`ops/workstreams/feat-etf-holdings-constituents/plan.yaml`,
+`ops/workstreams/feat-etf-holdings-constituents/provider-audit.yaml`, and
+`ops/workstreams/feat-etf-holdings-constituents/validation.jsonl`.
+
 Update this handoff at every coherent implementation and operations boundary.
+
+## Current implementation checkpoint — Long Pond/LPRE native promotion — 2026-09-03
+
+The ranked `long_pond` audit verified the official Long Pond LPRE product page
+at `https://www.longpondetf.com/lpre`. It identifies the Long Pond Real Estate
+Select ETF (`LPRE`) and declares a dated Holdings section. The public CMS route
+at `https://www.longpondetf.com/api/cms/pages` returns the LPRE
+`longpond-lpre-HoldingsComponent-1` payload with the documented COMPANY NAME,
+TICKER, FIGI, SHARES, MARKET VALUE, and % OF NET ASSET VALUES columns. The
+current payload is dated 2026-09-01 and contains 24 holdings rows.
+
+`LongPondHoldingsAdapter` now validates the official product-page host and LPRE
+identity, fetches only the issuer's CMS page/component route, requires the exact
+holdings schema and a complete dated snapshot, preserves FIGI/ticker/shares/
+market-value/weight fields, and records Long Pond Capital / Exchange Traded
+Concepts provenance. The deterministic fixture covers route identity, schema,
+date/value/weight mapping, metadata, request routing, and unsupported symbols;
+the opt-in live test exercises the current official page and CMS route.
+
+Long Pond is removed from the runtime fallback discovery audit and promoted in
+the exhaustive ledger. The code-derived split is now 496 registered, 387
+native/live-backed, and 109 fallback-only providers. Runtime fallback status
+counts are 8 issuer-access-blocked, 92 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The ledger retains
+all 140 historical records exactly once; 64 queued fallback records remain and
+the next ranked item is `lsv`.
+
+The complete opt-in provider matrix and Docker-backed integration gate remain
+pending at the 387-native baseline, with the known unrelated reproducible
+F8p-current-history Study Lab histogram timeout still recorded as the
+integration blocker.
