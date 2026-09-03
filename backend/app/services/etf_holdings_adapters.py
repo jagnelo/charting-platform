@@ -19375,6 +19375,243 @@ class SixMeridianHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class MigCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch MIG Capital's complete current MIGO portfolio from its Nuxt page.
+
+    The official MIG Capital ETF site server-renders the complete holdings table
+    in the ``__NUXT_DATA__`` hydration payload.  The adapter is intentionally
+    scoped to the single verified MIGO product and accepts only the page's
+    identity, route, and component markers before normalizing rows.
+    """
+
+    SYMBOL = "MIGO"
+    PRODUCT_NAME = "MIG Core ETF"
+    PRODUCT_PAGE_BASE = "https://www.migcapitaletf.com"
+    PRODUCT_PAGE_URL = f"{PRODUCT_PAGE_BASE}/"
+    COMPONENT_ID = "migocap-home-HoldingsComponent-1"
+    _ISSUER_HOSTS = {"migcapitaletf.com", "www.migcapitaletf.com"}
+    ROUTE_RESOLUTION = "mig_capital_product_page_nuxt_complete_holdings_component"
+    SNAPSHOT_PROVENANCE = "mig_capital_native_product_page_nuxt_hydration"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        source_url = self.resolve_source_url(symbol=normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=(
+                Decimal("0.9500")
+                if source_url
+                else Decimal("0.3000")
+                if has_sec_fallback
+                else Decimal("0.0000")
+            ),
+            status="ready" if source_url or has_sec_fallback else "unsupported_symbol",
+            reason=(
+                "MIG Capital publishes MIGO's complete current holdings in its official Nuxt product page."
+                if source_url
+                else "MIG Capital has no native route for this symbol; SEC EDGAR fallback is available."
+                if has_sec_fallback
+                else "MIG Capital's verified native route is limited to MIGO."
+            ),
+            source_url=source_url,
+            issuer_product_id=normalized_symbol if source_url else None,
+        )
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        del issuer_product_id, identifiers
+        if symbol.strip().upper() != self.SYMBOL:
+            return None
+        if source_url:
+            parsed = urlparse(source_url.strip())
+            if (
+                parsed.scheme != "https"
+                or parsed.netloc.lower() not in self._ISSUER_HOSTS
+                or parsed.path not in {"", "/"}
+                or parsed.query
+                or parsed.fragment
+            ):
+                return None
+        return self.PRODUCT_PAGE_URL
+
+    def source_request_headers(self, *, source_url: str) -> dict[str, str]:
+        headers = _issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*")
+        headers["Referer"] = self.PRODUCT_PAGE_URL
+        return headers
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        resolved_source_url = self.resolve_source_url(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if resolved_source_url is None:
+            raise ValueError(
+                f"MIG Capital has no verified native holdings route for {normalized_symbol}."
+            )
+
+        headers = self.source_request_headers(source_url=resolved_source_url)
+        try:
+            async with httpx.AsyncClient(
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
+            ) as client:
+                response = await client.get(
+                    resolved_source_url,
+                    headers=headers,
+                    follow_redirects=True,
+                )
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 403:
+                raise
+            response = await asyncio.to_thread(
+                requests.get,
+                resolved_source_url,
+                headers=headers,
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                allow_redirects=True,
+            )
+            response.raise_for_status()
+
+        page_text = html.unescape(response.text)
+        if self.PRODUCT_NAME.casefold() not in page_text.casefold():
+            raise ValueError(
+                f"MIG Capital product page identity did not match {normalized_symbol}."
+            )
+        rows, composition_date = self._parse_product_page(page_text)
+        if not rows:
+            raise ValueError("MIG Capital's official product page did not expose MIGO holdings.")
+        composition_value = composition_date.isoformat() if composition_date else None
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "nuxt_hydration_json", "row_count": len(rows)},
+            source_url=str(getattr(response, "url", resolved_source_url)),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "nuxt_hydration_json",
+                "route_resolution": self.ROUTE_RESOLUTION,
+                "product_page_url": resolved_source_url,
+                "composition_date": composition_value,
+                "as_of_date": composition_value,
+                "source_quality": "issuer_reported_current_holdings",
+                "snapshot_provenance": self.SNAPSHOT_PROVENANCE,
+                "legal_publisher": "Exchange Traded Concepts / MIG Capital",
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_product_page(
+        cls,
+        raw_html: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        route_match = re.search(r'data-preview-route="(?P<route>[^"]+)"', raw_html)
+        if route_match is None or route_match.group("route").strip().lower() != "home":
+            return [], None
+        component_match = re.search(
+            rf'data-preview-component-id="{re.escape(cls.COMPONENT_ID)}"',
+            raw_html,
+        )
+        if component_match is None:
+            return [], None
+        hydrated_rows, composition_date = _extract_nuxt_hydration_holdings(
+            raw_html,
+            component_id=cls.COMPONENT_ID,
+        )
+        rows: list[CanonicalHoldingRow] = []
+        for position, source_row in enumerate(hydrated_rows, start=1):
+            source_ticker = _clean(source_row.get("ticker"))
+            name = _clean(source_row.get("description"))
+            figi = _clean(source_row.get("figi"))
+            if not any((source_ticker, name, figi)):
+                continue
+            text = " ".join(value.upper() for value in (source_ticker, name) if value)
+            is_cash = any(marker in text for marker in ("CASH", "CURRENCY", "MONEY MARKET"))
+            is_derivative = bool(
+                re.search(
+                    r"\b(?:OPTION|FUTURE|SWAP|CALL|PUT)\b|\b\d{1,2}/\d{1,2}/\d{2,4}\s+[CP]\d",
+                    text,
+                )
+            )
+            is_fixed_income = any(
+                marker in text for marker in ("TREASURY", "BOND", "NOTE", "FIXED INCOME")
+            )
+            is_fund = any(marker in text for marker in (" ETF", " FUND", " TRUST"))
+            tradable = (
+                source_ticker.upper()
+                if source_ticker
+                and re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", source_ticker.upper())
+                and not (is_cash or is_derivative)
+                else None
+            )
+            holding_type = (
+                "cash"
+                if is_cash
+                else "derivative"
+                if is_derivative
+                else "fixed_income"
+                if is_fixed_income
+                else "fund"
+                if is_fund
+                else "equity"
+            )
+            row_type = "cash" if is_cash else "derivative" if is_derivative else "security"
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=tradable,
+                    name=name,
+                    weight=_decimal(source_row.get("percent_of_nav")),
+                    shares=_decimal(source_row.get("quantity")),
+                    market_value=_decimal(source_row.get("market_value")),
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=(
+                        f"mig-capital-migo-{composition_date.isoformat() if composition_date else 'current'}-"
+                        f"{position}-{figi or source_ticker or name}"
+                    ),
+                    extra_data={
+                        **{
+                            key: value
+                            for key, value in source_row.items()
+                            if key
+                            not in {
+                                "ticker",
+                                "description",
+                                "quantity",
+                                "market_value",
+                                "percent_of_nav",
+                            }
+                            and _clean(value) is not None
+                        },
+                        **({"source_ticker": source_ticker} if source_ticker else {}),
+                    },
+                )
+            )
+        return rows, composition_date
+
+
 class McivyHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch McIvy/Genter ETF holdings through its verified publisher route.
 
@@ -66487,6 +66724,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "data may be subject to issuer terms."
         ),
     ),
+    "mig_capital": IssuerCsvAdapterConfig(
+        adapter_key="mig_capital",
+        source_provider="mig_capital",
+        source_access="issuer_public_product_page_nuxt_complete_holdings_component",
+        product_page_templates=("https://www.migcapitaletf.com/",),
+        live_tested_default_route=True,
+        terms_note=(
+            "MIG Capital publishes complete current MIGO ETF holdings in its public product-page "
+            "Nuxt payload; data may be subject to issuer terms."
+        ),
+    ),
     "mcivy": IssuerCsvAdapterConfig(
         adapter_key="mcivy",
         source_provider="mcivy_genter",
@@ -68598,7 +68846,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "merchant_investment_management",
         "merk",
         "merlyn_ai",
-        "mig_capital",
         "militia",
         "milliman",
         "moonvest",
@@ -71677,7 +71924,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "merlyn_ai": MerlynAiReconciledFallbackHoldingsAdapter,
         "measured_risk_portfolios": MeasuredRiskPortfoliosHoldingsAdapter,
         "mfs": MfsHoldingsAdapter,
-        "mig_capital": MigCapitalReconciledFallbackHoldingsAdapter,
+        "mig_capital": MigCapitalHoldingsAdapter,
         "militia": MilitiaReconciledFallbackHoldingsAdapter,
         "milliman": MillimanReconciledFallbackHoldingsAdapter,
         "moonvest": MoonvestReconciledFallbackHoldingsAdapter,

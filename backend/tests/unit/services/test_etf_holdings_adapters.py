@@ -22143,6 +22143,7 @@ def test_etfdb_issuer_league_reconciliation_batch_is_registered_and_audited():
         "framework_digital_advisors",
         "freedom",
         "fundstrat",
+        "mig_capital",
     }
     fallback_expected = expected - promoted_native
 
@@ -22188,6 +22189,8 @@ def test_etfdb_issuer_league_continuation_batch_is_registered_and_audited():
 
 def test_etfdb_issuer_league_exhaustion_batch_is_registered_and_audited():
     expected = set(ETFDB_ISSUER_LEAGUE_EXHAUSTION_ISSUER_HINTS)
+    promoted_native = {"mig_capital"}
+    fallback_expected = expected - promoted_native
 
     assert expected
     assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
@@ -22195,13 +22198,19 @@ def test_etfdb_issuer_league_exhaustion_batch_is_registered_and_audited():
     assert expected.isdisjoint(set(ETFDB_ISSUER_LEAGUE_RECONCILIATION_ISSUER_HINTS))
     assert expected.isdisjoint(set(ETFDB_ISSUER_LEAGUE_CONTINUATION_ISSUER_HINTS))
     assert expected.issubset(set(registered_adapter_keys()))
-    assert expected.issubset(set(FALLBACK_ISSUER_AUDITS))
-    for adapter_key in expected:
+    assert fallback_expected.issubset(set(FALLBACK_ISSUER_AUDITS))
+    assert promoted_native.isdisjoint(set(FALLBACK_ISSUER_AUDITS))
+    for adapter_key in fallback_expected:
         audit = FALLBACK_ISSUER_AUDITS[adapter_key]
         assert audit.status == "needs_first_party_route_discovery"
         adapter = get_holdings_adapter(adapter_key)
         assert adapter is not None
         assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+    for adapter_key in promoted_native:
+        assert ISSUER_ADAPTER_CONFIGS[adapter_key].live_tested_default_route is True
+        adapter = get_holdings_adapter(adapter_key)
+        assert adapter is not None
+        assert not type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
 
 
 def test_etfdb_issuer_league_alias_dispositions_resolve_existing_adapters():
@@ -24070,6 +24079,114 @@ async def test_six_meridian_adapter_parses_nuxt_equity_option_and_cash_rows(monk
     assert adapter.resolve_source_url(symbol="SIXH", source_url="https://evil.example/sixh") is None
     with pytest.raises(ValueError, match="no verified native holdings route"):
         await adapter.fetch_latest(symbol="NOT_SIXH")
+
+
+@pytest.mark.asyncio
+async def test_mig_capital_adapter_parses_migo_nuxt_holdings(monkeypatch):
+    adapter = get_holdings_adapter("mig_capital")
+    assert adapter is not None
+    assert type(adapter).__name__ == "MigCapitalHoldingsAdapter"
+
+    payload = [
+        None,
+        {
+            "componentId": 2,
+            "date": 3,
+            "finData": 4,
+        },
+        "migocap-home-HoldingsComponent-1",
+        "09/01/2026",
+        [5, 6, 7],
+        {
+            "figi": 8,
+            "ticker": 9,
+            "quantity": 10,
+            "description": 11,
+            "market_value": 12,
+            "percent_of_nav": 13,
+        },
+        {
+            "figi": 14,
+            "ticker": 15,
+            "quantity": 16,
+            "description": 17,
+            "market_value": 18,
+            "percent_of_nav": 19,
+        },
+        {
+            "figi": 20,
+            "ticker": 21,
+            "quantity": 22,
+            "description": 23,
+            "market_value": 24,
+            "percent_of_nav": 25,
+        },
+        "BBG00KHY5S69",
+        "AVGO",
+        80320,
+        "BROADCOM INC",
+        "29,692,697.60",
+        "3.94%",
+        "BBG0015VYNT4",
+        "VOO",
+        209308,
+        "VANGUARD S&P 500 ETF",
+        "146,574,206.24",
+        "19.46%",
+        "BBG0013HGBT3",
+        "Cash-USD",
+        39063,
+        "CASH & OTHER",
+        "39,063.23",
+        "0.01%",
+    ]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<html><title>MIGO ETF | MIG Core ETF</title>"
+                '<div data-preview-route="home" '
+                'data-preview-component-id="migocap-home-HoldingsComponent-1"></div>'
+                '<script type="application/json" data-nuxt-data="nuxt-app" '
+                'id="__NUXT_DATA__">'
+                f"{json.dumps(payload)}"
+                "</script></html>"
+            ),
+            content_type="text/html",
+            url="https://www.migcapitaletf.com/",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="MIGO")
+
+    assert FakeAsyncClient.requested[0][0] == "https://www.migcapitaletf.com/"
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol == "AVGO"
+    assert result.rows[0].weight == Decimal("0.0394")
+    assert result.rows[0].extra_data["figi"] == "BBG00KHY5S69"
+    assert result.rows[1].symbol == "VOO"
+    assert result.rows[1].holding_type == "fund"
+    assert result.rows[2].symbol is None
+    assert result.rows[2].row_type == "cash"
+    assert result.rows[2].holding_type == "cash"
+    assert result.rows[2].extra_data["source_ticker"] == "Cash-USD"
+    assert result.legal_metadata["source_provider"] == "mig_capital"
+    assert result.legal_metadata["route_resolution"] == (
+        "mig_capital_product_page_nuxt_complete_holdings_component"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+
+    assert adapter.probe(symbol="MIGO", name="", identifiers={}).source_url == (
+        "https://www.migcapitaletf.com/"
+    )
+    assert adapter.resolve_source_url(symbol="MIGO", source_url="https://evil.example/") is None
+    assert (
+        adapter.resolve_source_url(symbol="MIGO", source_url="https://www.migcapitaletf.com/?x=1")
+        is None
+    )
+    with pytest.raises(ValueError, match="no verified native holdings route"):
+        await adapter.fetch_latest(symbol="NOT_MIGO")
 
 
 @pytest.mark.asyncio
@@ -26736,8 +26853,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 392
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 104
+    assert ledger["current_native_count"] == 393
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 103
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -26780,6 +26897,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "mcelhenny_sheffield",
         "measured_risk_portfolios",
         "meridian",
+        "mig_capital",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))
