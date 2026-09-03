@@ -2398,3 +2398,16 @@ Counts are 496 registered / 405 native / 91 fallback, with 26 queued and
 `rockefeller_capital` next. Runtime statuses remain 12 blocked, 65
 route-discovery, 7 non-executable, and 7 non-portfolio-publisher. Evidence ref:
 `web:roc-roci-liquidation-2023-10-11`.
+
+## Current promotion checkpoint — Rockefeller ETFs daily holdings routes — 2026-09-03
+
+The official Rockefeller ETFs RMOP, RMNY, RMCA, RSMC, and RGEF pages declare
+complete fund-scoped TidalFG daily holdings CSVs. All five current routes
+returned parseable September 3, 2026 holdings. The native adapter validates
+page identity and declared product/account scope and records Rockefeller ETFs /
+Tidal Investments provenance.
+
+Counts are 496 registered / 406 native / 90 fallback, with 26 queued and
+`saba_capital` next. Evidence refs:
+`web:rockefeller-current-product-pages-and-csv-routes-2026-09-03` and
+`live:rockefeller-current-daily-holdings-csv-2026-09-03`.

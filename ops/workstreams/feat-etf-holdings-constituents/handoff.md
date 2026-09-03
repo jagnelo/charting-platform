@@ -864,6 +864,22 @@ is `norris_perne_french`. The full opt-in live matrix and Docker-backed
 integration gate remain pending, with the known unrelated reproducible
 F8p-current-history Study Lab histogram timeout retained.
 
+## Current promotion checkpoint — Rockefeller ETFs daily holdings routes — 2026-09-03
+
+Rockefeller ETFs' RMOP, RMNY, RMCA, RSMC, and RGEF product pages declare
+fund-scoped TidalFG daily holdings CSVs. All five September 3, 2026 CSV routes
+returned complete parseable current rows. The provider-specific adapter checks
+the product-page identity and declared filename/account scope, then preserves
+Rockefeller ETFs / Tidal Investments provenance.
+
+The durable ledger records `rockefeller_capital` as `native_promoted` without
+SEC reconstruction. The current split is 496 registered / 406 native-live-backed
+/ 90 fallback-only providers, with 26 queued records and `saba_capital` next.
+Runtime fallback statuses are 12 issuer-access-blocked, 65 route-discovery, 7
+non-executable-public-source, and 7 non-portfolio-publisher. Evidence refs:
+`web:rockefeller-current-product-pages-and-csv-routes-2026-09-03` and
+`live:rockefeller-current-daily-holdings-csv-2026-09-03`.
+
 ## Current promotion checkpoint — Opus Capital Management / OSCV native route — 2026-09-03
 
 The ranked `opus_capital_management` audit verified the official Aptus OSCV
