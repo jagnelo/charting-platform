@@ -95,6 +95,7 @@ async def task_refresh_benchmark_family_holdings_run(ctx: dict, run_id: int):
     from app.models.benchmark_family_history import BenchmarkFamilyHoldingsRefreshRun
     from app.services.benchmark_family_history import (
         history_end_for_date,
+        history_end_iso,
         queue_snapshot_member_history,
     )
     from app.services.etf_holdings_refresh import refresh_benchmark_family_holdings_for_date
@@ -166,12 +167,13 @@ async def task_refresh_benchmark_family_holdings_run(ctx: dict, run_id: int):
                     # the IDs before their parent snapshot/instruments are visible
                     # and incorrectly report them as missing.
                     await db.commit()
+                    history_end = history_end_for_date(requested_date)
                     try:
                         history_queue = await queue_snapshot_member_history(
                             db,
                             ctx.get("redis"),
                             refreshed_snapshot_ids,
-                            end=history_end_for_date(requested_date),
+                            end=history_end,
                         )
                     except Exception as exc:  # noqa: BLE001 - retain bounded queue evidence.
                         history_queue = {
@@ -188,9 +190,11 @@ async def task_refresh_benchmark_family_holdings_run(ctx: dict, run_id: int):
                                 }
                             ],
                             "queue_error_count": 1,
+                            "history_end": history_end_iso(history_end),
                             "error": str(exc)[:500],
                         }
                 else:
+                    history_end = history_end_for_date(requested_date)
                     history_queue = {
                         "status": "no_snapshots",
                         "snapshot_ids": [],
@@ -198,6 +202,7 @@ async def task_refresh_benchmark_family_holdings_run(ctx: dict, run_id: int):
                         "already_queued": 0,
                         "queue_errors": [],
                         "queue_error_count": 0,
+                        "history_end": history_end_iso(history_end),
                     }
 
                 run = await db.get(BenchmarkFamilyHoldingsRefreshRun, run_id)
@@ -275,6 +280,7 @@ async def task_refresh_scheduled_benchmark_family_holdings_unit(
     from app.database import AsyncSessionLocal
     from app.services.benchmark_family_history import (
         history_end_for_date,
+        history_end_iso,
         queue_snapshot_member_history,
     )
     from app.services.etf_holdings_refresh import refresh_benchmark_family_holdings_for_date
@@ -307,6 +313,7 @@ async def task_refresh_scheduled_benchmark_family_holdings_unit(
             and leg.get("status") == "refreshed"
             and leg.get("snapshot_id") is not None
         ]
+        history_end = history_end_for_date(requested_date)
         if snapshot_ids:
             # Publish only committed snapshot/member rows to the separate bulk
             # history workers; avoid an enqueue/transaction visibility race.
@@ -316,7 +323,7 @@ async def task_refresh_scheduled_benchmark_family_holdings_unit(
                 db,
                 ctx.get("redis"),
                 snapshot_ids,
-                end=history_end_for_date(requested_date),
+                end=history_end,
             )
         except Exception as exc:  # noqa: BLE001 - retain bounded queue failure evidence.
             history_queue = {
@@ -333,6 +340,7 @@ async def task_refresh_scheduled_benchmark_family_holdings_unit(
                     }
                 ],
                 "queue_error_count": 1,
+                "history_end": history_end_iso(history_end),
                 "error": str(exc)[:500],
             }
         await db.commit()

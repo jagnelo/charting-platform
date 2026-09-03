@@ -12,6 +12,14 @@ def test_history_end_for_date_is_inclusive_utc_end_of_day():
     )
 
 
+def test_history_end_iso_normalizes_naive_and_offset_aware_bounds():
+    assert history.history_end_iso(datetime(2024, 1, 2)) == "2024-01-02T00:00:00+00:00"
+    assert history.history_end_iso(datetime(2024, 1, 2, tzinfo=UTC)) == (
+        "2024-01-02T00:00:00+00:00"
+    )
+    assert history.history_end_iso(None) is None
+
+
 def test_canonical_history_job_id_separates_historical_end_bounds():
     assert history.canonical_history_job_id(7, ["D1"]) == "watchlist-source-history:7:D1"
     assert (
@@ -149,6 +157,7 @@ async def test_queue_snapshot_member_history_deduplicates_canonical_members_and_
         "queue_error_count": 0,
         "unresolved_count": 0,
         "timeframes": ["D1", "W1"],
+        "history_end": None,
     }
     assert redis.calls == [
         (
@@ -170,6 +179,7 @@ async def test_queue_snapshot_member_history_deduplicates_canonical_members_and_
         end=history.datetime(2024, 1, 2),
     )
     assert historical["queued"] == 2
+    assert historical["history_end"] == "2024-01-02T00:00:00+00:00"
     assert redis.calls[-2][0] == (
         "task_bulk_fetch_instrument",
         10,

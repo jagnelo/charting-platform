@@ -253,6 +253,7 @@ async def test_scheduled_family_unit_retains_history_queue_failure_evidence(monk
             }
         ],
         "queue_error_count": 1,
+        "history_end": "2026-07-31T23:59:59.999999+00:00",
         "error": "history worker unavailable",
     }
 
@@ -567,6 +568,7 @@ async def test_family_holdings_refresh_worker_retains_history_queue_error_shape(
             }
         ],
         "queue_error_count": 1,
+        "history_end": "2026-06-30T23:59:59.999999+00:00",
         "error": "history queue unavailable",
     }
 

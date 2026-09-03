@@ -35,6 +35,15 @@ def history_end_for_date(value: date) -> datetime:
     return datetime.combine(value, time.max, tzinfo=UTC)
 
 
+def history_end_iso(end: datetime | None) -> str | None:
+    """Return a stable UTC ISO representation for a history queue bound."""
+
+    if end is None:
+        return None
+    normalized = end if end.tzinfo is not None else end.replace(tzinfo=UTC)
+    return normalized.astimezone(UTC).isoformat()
+
+
 def canonical_history_job_id(
     instrument_id: int,
     timeframes: list[str],
@@ -44,8 +53,7 @@ def canonical_history_job_id(
 
     end_key = ""
     if end is not None:
-        normalized = end if end.tzinfo is not None else end.replace(tzinfo=UTC)
-        end_key = f":end={normalized.astimezone(UTC).isoformat()}"
+        end_key = f":end={history_end_iso(end)}"
     return f"watchlist-source-history:{int(instrument_id)}:{','.join(timeframes)}{end_key}"
 
 
@@ -244,6 +252,7 @@ async def queue_snapshot_member_history(
             "queue_error_count": 0,
             "unresolved_count": 0,
             "timeframes": normalized_timeframes,
+            "history_end": history_end_iso(end),
         }
 
     rows = (
@@ -290,6 +299,7 @@ async def queue_snapshot_member_history(
             "queue_error_count": 0,
             "unresolved_count": unresolved_count,
             "timeframes": normalized_timeframes,
+            "history_end": history_end_iso(end),
         }
 
     queued = already_queued = 0
@@ -328,4 +338,5 @@ async def queue_snapshot_member_history(
         "queue_error_count": len(queue_errors),
         "unresolved_count": unresolved_count,
         "timeframes": normalized_timeframes,
+        "history_end": history_end_iso(end),
     }
