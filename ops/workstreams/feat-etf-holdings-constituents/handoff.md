@@ -496,3 +496,32 @@ The complete opt-in provider matrix and Docker-backed integration gate remain
 pending at the 388-native baseline, with the known unrelated reproducible
 F8p-current-history Study Lab histogram timeout still recorded as the
 integration blocker.
+## Current implementation checkpoint — MAX ETNs / CARD-CARU-JETD-JETU native promotion — 2026-09-03
+
+The ranked `max` audit verified the official MAX ETNs catalogue and product
+pages at `https://www.maxetns.com/products` and the CARD, CARU, JETD, and JETU
+routes. The catalogue identifies five Bank of Montreal MAX products. Four
+product pages expose complete server-rendered Index Constituents and Weights
+lists with 20 named constituents and an as-of date; SPYU is listed but its
+official page does not expose a constituent list.
+
+The native `max` adapter validates supported product identity and exact
+official routes, parses the complete dated constituent-weight list, and
+records the disclosure as ETN index components. Deterministic parser coverage
+and the bounded opt-in JETU live route pass. SPYU remains outside the native
+route until an equivalent issuer-owned constituent artifact is published; no
+third-party or SEC-derived data is promoted.
+
+The exhaustive ledger records `max` as `native_promoted` with CARD/CARU/JETD/
+JETU representative symbols and official MAX ETNs evidence. The code-derived
+split is now 496 registered, 389 native/live-backed, and 107 fallback-only
+providers; runtime fallback statuses are 8 issuer-access-blocked, 90
+needs-first-party-route-discovery, 3 non-executable-public-source, and 6
+non-portfolio-publisher. The ledger retains all 140 historical records exactly
+once, now with 58 queued fallback records; the next ranked item is
+`mcelhenny_sheffield`.
+
+The complete opt-in provider matrix and Docker-backed integration gate remain
+pending at the 389-native baseline, with the known unrelated reproducible
+F8p-current-history Study Lab histogram timeout still recorded as the
+integration blocker.

@@ -1799,3 +1799,38 @@ complete holdings routes, retaining the distinction between an issuer route
 that exists but is transport-blocked and one that is executable. Repeat
 focused invariants, deterministic/live checks, Ruff, workstream validation,
 and the durable checkpoint before any promotion.
+## 45. Current execution checkpoint — MAX ETNs / CARD-CARU-JETD-JETU native promotion — 2026-09-03
+
+The ranked `max` audit verified the official MAX ETNs catalogue and product
+pages at `https://www.maxetns.com/products` and the CARD, CARU, JETD, and JETU
+routes. The catalogue identifies five Bank of Montreal MAX products. Four
+product pages expose complete server-rendered Index Constituents and Weights
+lists with 20 named constituents and an as-of date; SPYU is listed but its
+official page does not expose a constituent list.
+
+The native `max` adapter validates supported product identity and exact
+official routes, parses the complete dated constituent-weight list, and
+records the disclosure as ETN index components. Deterministic parser coverage
+and the bounded opt-in JETU live route pass. SPYU remains outside the native
+route until an equivalent issuer-owned constituent artifact is published; no
+third-party or SEC-derived data is promoted.
+
+The ledger now records `max` as `native_promoted`, increasing the code-derived
+split to 496 registered, 389 native/live-backed, and 107 fallback-only
+providers. Runtime fallback statuses are 8 issuer-access-blocked, 90
+needs-first-party-route-discovery, 3 non-executable-public-source, and 6
+non-portfolio-publisher. The 140-record ledger has 58 queued fallback records;
+the next ranked issuer is `mcelhenny_sheffield`.
+
+Required durable evidence for this checkpoint:
+
+- `backend/app/services/etf_holdings_adapters.py::MaxHoldingsAdapter`
+- `backend/tests/unit/services/test_etf_holdings_adapters.py::test_max_adapter_fetches_jetu_index_constituents`
+- `backend/tests/live/test_etf_holdings_live_providers.py::test_live_max_jetu_product_page_index_constituents`
+- `web:max-etns-official-product-pages-2026-09-03`
+- `live:max-jetu-current-index-components-2026-09-03`
+
+The next cycle should continue with `mcelhenny_sheffield`, preserving the
+issuer-owned route requirement and repeating focused invariants, deterministic
+and opt-in live checks, Ruff, workstream validation, and the durable checkpoint
+before any further promotion.

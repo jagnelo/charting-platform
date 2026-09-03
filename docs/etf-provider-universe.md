@@ -28,8 +28,8 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `386`
-- Audited fallback-only providers: `110`
+- Native/live-backed providers: `389`
+- Audited fallback-only providers: `107`
 
 The current checkpoint promotes `guggenheim` through its public issuer-hosted
 ETF holdings table, reconciles `ars` to the existing ARS Investment Partners
@@ -157,11 +157,11 @@ establishes the successor context; current Brookstone ETF routes remain under
 the distinct native `brookstone` identity.
 The historical starting snapshot for this
 workstream was 356 native and 140 fallback; the provider-audit ledger retains
-that baseline record while tracking the current 388/108 split.
+that baseline record while tracking the current 389/107 split.
 
 The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
 `FALLBACK_ISSUER_AUDITS` at the current ETF-branch implementation checkpoint
-`138957049c3c81e1d50707ddd7838444818d6020` (LSV LSVD official product-page-declared holdings CSV; Long Pond LPRE official product-page CMS holdings JSON; Logiq LCO official product-page-declared Tidal daily holdings CSV; Knowledge Leaders KNO official AXS/FilePoint dated holdings CSV; JLens TOV official product-page embedded holdings table; Hoya Capital display-name and URL alias reconciliation to the existing Pettee HOMZ/RIET native route; Hilton SMCO/HBDC product-page-declared AllHoldings CSV; Hexis/NICO FilePoint app-declared daily holdings CSV; Gotham GSPY/GVLU/SHRT DownloadHoldings CSV routes; Fundstrat Granny Shots GRNY/GRNJ/GRNI holdings routes; Freedom/FRDM product-page holdings route; Framework/GSR BESO route; Fitzgerald/Nicholas Wealth FITZ and FIZY routes; FalconX/21Shares ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN,
+`840cc3e1e3e1dce38f33d2d190f4e33b1abf74b1` (MAX ETNs CARD/CARU/JETD/JETU official product-page index constituents; LSV LSVD official product-page-declared holdings CSV; Long Pond LPRE official product-page CMS holdings JSON; Logiq LCO official product-page-declared Tidal daily holdings CSV; Knowledge Leaders KNO official AXS/FilePoint dated holdings CSV; JLens TOV official product-page embedded holdings table; Hoya Capital display-name and URL alias reconciliation to the existing Pettee HOMZ/RIET native route; Hilton SMCO/HBDC product-page-declared AllHoldings CSV; Hexis/NICO FilePoint app-declared daily holdings CSV; Gotham GSPY/GVLU/SHRT DownloadHoldings CSV routes; Fundstrat Granny Shots GRNY/GRNJ/GRNI holdings routes; Freedom/FRDM product-page holdings route; Framework/GSR BESO route; Fitzgerald/Nicholas Wealth FITZ and FIZY routes; FalconX/21Shares ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN,
 THYP, and TKNS native routes; Esoterica WUGI, Even Herd EHLS, and Everence/Praxis
 PRXG/PRXV/PRXI native routes; Framework/GSR BESO, Freedom/FRDM, and Fundstrat Granny Shots are now native through their
 declared details/holdings API; ETF Managers Group is recorded as an
@@ -172,7 +172,7 @@ as the existing Cygnet parent identity).
 The fallback audit statuses are:
 
 - `issuer_access_blocked`: `8`
-- `needs_first_party_route_discovery`: `91`
+- `needs_first_party_route_discovery`: `90`
 - `non_executable_public_source`: `3`
 - `provider_not_a_portfolio_publisher`: `6`
 
@@ -886,3 +886,27 @@ and 108 fallback-only providers; runtime statuses are now 9
 issuer-access-blocked, 90 needs-first-party-route-discovery, 3
 non-executable-public-source, and 6 non-portfolio-publisher. The ledger now has
 59 queued fallback records and the next ranked item is `max`.
+## Current audit checkpoint — MAX ETNs / CARD-CARU-JETD-JETU native promotion — 2026-09-03
+
+The ranked `max` audit verified the official MAX ETNs catalogue and product
+pages at `https://www.maxetns.com/products` and the CARD, CARU, JETD, and JETU
+routes. The catalogue identifies five Bank of Montreal MAX ETNs. Four product
+pages expose complete server-rendered `Index Constituents` and `Weights` lists
+with 20 named constituents and a dated as-of line; the SPYU page is listed but
+does not expose a constituent list.
+
+The native `max` adapter validates each supported product identity and exact
+official route, parses the complete dated constituent-weight list, and records
+the disclosure as ETN index components. Deterministic parser coverage and the
+bounded opt-in JETU live route both pass. SPYU remains outside the native route
+until an equivalent issuer-owned constituent artifact is published; no
+third-party or SEC-derived data is promoted.
+
+The exhaustive ledger records `max` as `native_promoted` with CARD/CARU/JETD/
+JETU representative symbols and official MAX ETNs evidence. The code-derived
+split is now 496 registered, 389 native/live-backed, and 107 fallback-only
+providers; runtime fallback statuses are 8 issuer-access-blocked, 90
+needs-first-party-route-discovery, 3 non-executable-public-source, and 6
+non-portfolio-publisher. The ledger retains all 140 historical records exactly
+once, now with 58 queued fallback records; the next ranked item is
+`mcelhenny_sheffield`.
