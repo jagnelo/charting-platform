@@ -1665,14 +1665,40 @@ async def test_stratified_adapter_parses_nuxt_holdings_payload(monkeypatch):
         "stratified-sspy-HoldingsComponent-1",
         [5, 6],
         "09/02/2026",
-        {"ticker": 7, "description": 8, "quantity": 9, "market_value": 10, "percent_of_nav": 11, "figi": 12},
-        {"ticker": 13, "description": 14, "quantity": 15, "market_value": 16, "percent_of_nav": 17, "figi": 18},
-        "MSFT", "Microsoft Corp", 100, "50000.00", "1.25%", "BBG000BPH459",
-        "CASH", "CASH & OTHER", 1, "1.00", "0.01%", "BBG0013HGBT3",
+        {
+            "ticker": 7,
+            "description": 8,
+            "quantity": 9,
+            "market_value": 10,
+            "percent_of_nav": 11,
+            "figi": 12,
+        },
+        {
+            "ticker": 13,
+            "description": 14,
+            "quantity": 15,
+            "market_value": 16,
+            "percent_of_nav": 17,
+            "figi": 18,
+        },
+        "MSFT",
+        "Microsoft Corp",
+        100,
+        "50000.00",
+        "1.25%",
+        "BBG000BPH459",
+        "CASH",
+        "CASH & OTHER",
+        1,
+        "1.00",
+        "0.01%",
+        "BBG0013HGBT3",
     ]
     page = '<script type="application/json" id="__NUXT_DATA__">' + json.dumps(payload) + "</script>"
     FakeAsyncClient.queue = [
-        FakeResponse(text=page, content_type="text/html", url="https://www.stratifiedfunds.com/sspy")
+        FakeResponse(
+            text=page, content_type="text/html", url="https://www.stratifiedfunds.com/sspy"
+        )
     ]
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
 
@@ -1693,7 +1719,7 @@ async def test_trimtabs_adapter_resolves_abacus_successor_csv(monkeypatch):
     adapter = get_holdings_adapter("trimtabs")
     assert adapter is not None
     page = (
-        '<html><h1>Abacus FCF Leaders ETF (ABFL)</h1>'
+        "<html><h1>Abacus FCF Leaders ETF (ABFL)</h1>"
         '<a href="https://abacusfcf.com/wp-content/uploads/DailyUploads/ABFL_allHoldings.csv">'
         "DOWNLOAD FULL HOLDINGS</a></html>"
     )
@@ -1704,7 +1730,11 @@ async def test_trimtabs_adapter_resolves_abacus_successor_csv(monkeypatch):
     )
     FakeAsyncClient.queue = [
         FakeResponse(text=page, content_type="text/html", url="https://abacusfcf.com/abfl/"),
-        FakeResponse(text=holdings, content_type="text/csv", url="https://abacusfcf.com/wp-content/uploads/DailyUploads/ABFL_allHoldings.csv"),
+        FakeResponse(
+            text=holdings,
+            content_type="text/csv",
+            url="https://abacusfcf.com/wp-content/uploads/DailyUploads/ABFL_allHoldings.csv",
+        ),
     ]
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
 

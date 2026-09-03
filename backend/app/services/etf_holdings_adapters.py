@@ -71722,9 +71722,7 @@ class TrimTabsHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if source_url and source_url.rstrip("/") != product_page_url.rstrip("/"):
             raise ValueError("TrimTabs holdings must use the matching Abacus FCF product page.")
 
-        async with httpx.AsyncClient(
-            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
-        ) as client:
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
             page_response = await client.get(
                 product_page_url,
                 headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
@@ -73226,7 +73224,11 @@ class StratifiedHoldingsAdapter(IssuerCsvHoldingsAdapter):
         has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
         return HoldingsAdapterProbe(
             adapter_key=self.adapter_key,
-            confidence=Decimal("0.9600") if source_url else Decimal("0.3000") if has_sec_fallback else Decimal("0.0000"),
+            confidence=Decimal("0.9600")
+            if source_url
+            else Decimal("0.3000")
+            if has_sec_fallback
+            else Decimal("0.0000"),
             status="ready" if source_url or has_sec_fallback else "unsupported_symbol",
             reason=(
                 "Stratified publishes complete dated holdings in its official Nuxt fund-page payload."
@@ -73239,7 +73241,14 @@ class StratifiedHoldingsAdapter(IssuerCsvHoldingsAdapter):
             issuer_product_id=normalized_symbol if source_url else None,
         )
 
-    def resolve_source_url(self, *, symbol: str, issuer_product_id: str | None = None, source_url: str | None = None, identifiers: dict[str, str] | None = None) -> str | None:
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
         del identifiers
         normalized_symbol = (issuer_product_id or symbol).strip().upper()
         slug = self.PRODUCT_PAGE_SLUGS.get(normalized_symbol)
@@ -73248,24 +73257,54 @@ class StratifiedHoldingsAdapter(IssuerCsvHoldingsAdapter):
         expected_url = f"{self.PRODUCT_PAGE_BASE}/{slug}"
         if source_url:
             parsed = urlparse(source_url.strip())
-            if parsed.scheme != "https" or parsed.netloc.lower() not in self._ISSUER_HOSTS or parsed.path.rstrip("/").lower() != f"/{slug}":
+            if (
+                parsed.scheme != "https"
+                or parsed.netloc.lower() not in self._ISSUER_HOSTS
+                or parsed.path.rstrip("/").lower() != f"/{slug}"
+            ):
                 return None
             return source_url.strip()
         return expected_url
 
-    async def fetch_latest(self, *, symbol: str, issuer_product_id: str | None = None, source_url: str | None = None, identifiers: dict[str, str] | None = None) -> HoldingsFetchResult:
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
         normalized_symbol = symbol.strip().upper()
-        resolved_source_url = self.resolve_source_url(symbol=normalized_symbol, issuer_product_id=issuer_product_id, source_url=source_url, identifiers=identifiers)
+        resolved_source_url = self.resolve_source_url(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
         if resolved_source_url is None:
-            raise ValueError(f"Stratified has no verified native holdings route for {normalized_symbol}.")
+            raise ValueError(
+                f"Stratified has no verified native holdings route for {normalized_symbol}."
+            )
         async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
-            response = await client.get(resolved_source_url, headers=_issuer_page_request_headers(accept="text/html,*/*"), follow_redirects=True)
+            response = await client.get(
+                resolved_source_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
         response.raise_for_status()
-        component_id = f"stratified-{self.PRODUCT_PAGE_SLUGS[normalized_symbol]}-HoldingsComponent-1"
-        source_rows, composition_date = _extract_nuxt_hydration_holdings(response.text, component_id=component_id)
-        rows = _canonical_nuxt_holdings_rows(source_rows, source_row_prefix=f"stratified-{normalized_symbol.lower()}")
+        component_id = (
+            f"stratified-{self.PRODUCT_PAGE_SLUGS[normalized_symbol]}-HoldingsComponent-1"
+        )
+        source_rows, composition_date = _extract_nuxt_hydration_holdings(
+            response.text, component_id=component_id
+        )
+        rows = _canonical_nuxt_holdings_rows(
+            source_rows, source_row_prefix=f"stratified-{normalized_symbol.lower()}"
+        )
         if not rows:
-            raise ValueError(f"Stratified's official product page did not expose holdings for {normalized_symbol}.")
+            raise ValueError(
+                f"Stratified's official product page did not expose holdings for {normalized_symbol}."
+            )
         composition_value = composition_date.isoformat() if composition_date else None
         return HoldingsFetchResult(
             rows=rows,
