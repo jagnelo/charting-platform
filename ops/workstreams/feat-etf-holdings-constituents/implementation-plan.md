@@ -2385,3 +2385,16 @@ next. Runtime statuses are 12 blocked, 65 route-discovery, 7 non-executable,
 and 7 non-portfolio-publisher. Evidence refs:
 `web:robo-global-current-robo-htec-thnq-pages-2026-09-03` and
 `live:robo-global-current-nuxt-holdings-2026-09-03`.
+
+## Current audit checkpoint — ROC / ROCI inactive disposition — 2026-09-03
+
+ROCI's official liquidation materials document Board approval on October 11,
+2023, cessation of trading October 20, and dissolution October 27. Because the
+sole product is inactive, retain `roc` as an explicit
+`inactive_or_successor_disposition`; do not add a native route or reconstruct
+holdings from SEC filings.
+
+Counts are 496 registered / 405 native / 91 fallback, with 26 queued and
+`rockefeller_capital` next. Runtime statuses remain 12 blocked, 65
+route-discovery, 7 non-executable, and 7 non-portfolio-publisher. Evidence ref:
+`web:roc-roci-liquidation-2023-10-11`.

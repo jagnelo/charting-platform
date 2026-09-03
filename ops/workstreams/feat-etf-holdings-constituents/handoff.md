@@ -1135,6 +1135,21 @@ non-executable-public-source, and 7 non-portfolio-publisher. Evidence refs:
 `web:robo-global-current-robo-htec-thnq-pages-2026-09-03` and
 `live:robo-global-current-nuxt-holdings-2026-09-03`.
 
+## Current audit checkpoint — ROC / ROCI inactive disposition — 2026-09-03
+
+The official ROC ETF prospectus supplement and ETF Architect announcement state
+that ROCI was approved for liquidation October 11, 2023, stopped trading after
+October 20, and dissolved October 27. No current product or holdings artifact
+is available.
+
+The durable ledger records `roc` as `inactive_or_successor_disposition`; no
+native adapter or SEC reconstruction is warranted. Runtime state remains 496
+registered / 405 native-live-backed / 91 fallback-only providers, with 26
+queued records and `rockefeller_capital` next. Runtime fallback statuses remain
+12 issuer-access-blocked, 65 route-discovery, 7 non-executable-public-source,
+and 7 non-portfolio-publisher. Evidence ref:
+`web:roc-roci-liquidation-2023-10-11`.
+
 ## Current audit checkpoint — North Square non-executable public source — 2026-09-03
 
 The ranked `north_square` audit verified official NSIV and NSIG product pages

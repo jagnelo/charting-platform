@@ -1509,3 +1509,17 @@ records and `roc` next. Runtime fallback statuses are 12 issuer-access-blocked,
 65 route-discovery, 7 non-executable-public-source, and 7 non-portfolio-
 publisher. Evidence refs: `web:robo-global-current-robo-htec-thnq-pages-2026-09-03`
 and `live:robo-global-current-nuxt-holdings-2026-09-03`.
+
+## Current audit checkpoint — ROC / ROCI inactive disposition — 2026-09-03
+
+ROC Investments' sole ROCI ETF was approved for liquidation on October 11,
+2023, ceased trading on October 20, 2023, and dissolved on October 27, 2023.
+The official prospectus supplement and liquidation announcement leave no
+current product or executable holdings route.
+
+The ledger records `roc` as `inactive_or_successor_disposition` without native
+promotion or SEC reconstruction. Current state remains 496 registered / 405
+native-live-backed / 91 fallback-only, with 26 queued records and
+`rockefeller_capital` next. Runtime fallback statuses remain 12
+issuer-access-blocked, 65 route-discovery, 7 non-executable-public-source, and
+7 non-portfolio-publisher. Evidence ref: `web:roc-roci-liquidation-2023-10-11`.
