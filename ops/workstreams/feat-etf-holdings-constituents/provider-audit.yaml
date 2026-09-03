@@ -5687,17 +5687,18 @@ providers:
     display_name: suncoast
     queue_rank: 121
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: issuer_access_blocked
+    disposition: issuer_access_blocked
+    last_checked: 2026-09-04
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
-    estimated_us_etf_count: null
+    representative_symbols: [SEMG]
+    estimated_us_etf_count: 1
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    source_freshness: daily
+    first_party_domains: [suncoastequityetf.com]
+    candidate_routes:
+      - "https://suncoastequityetf.com/"
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -5707,13 +5708,19 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.suncoast"
       - "runtime:ISSUER_ADAPTER_CONFIGS.suncoast"
+      - "web:suncoast-current-semg-holdings-page-2026-09-04"
+      - "live:suncoast-current-semg-holdings-page-2026-09-04-blocked"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.suncoast"
-    disposition_reason: "suncoast: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate suncoast first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-04
+        source: "Suncoast official SEMG product page"
+        result: "The official page exposes a complete current holdings table, but bounded backend-equivalent access returned HTTP 403; no executable native route is promoted."
+        evidence_ref: "live:suncoast-current-semg-holdings-page-2026-09-04-blocked"
+    disposition_reason: "suncoast: Suncoast's official SEMG page exposes current holdings, but backend-equivalent access is blocked by HTTP 403. Preserve the issuer-access-blocked fallback until complete rows are executable."
+    next_action: "suncoast: Periodically re-test the official SEMG page; promote only after bounded backend access returns complete current rows with proven mapping."
     implementation_sha: null
     validation_refs: []
   - adapter_key: swedish_export_credit

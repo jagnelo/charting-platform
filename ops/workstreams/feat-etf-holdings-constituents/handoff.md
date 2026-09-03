@@ -1389,3 +1389,17 @@ fallback statuses are 16 issuer-access-blocked, 53 route-discovery, 10
 non-executable-public-source, and 7 non-portfolio-publisher. Evidence refs:
 `web:stratified-current-sspy-shus-holdings-pages-2026-09-04` and
 `live:stratified-current-sspy-shus-holdings-pages-2026-09-04`.
+
+## Current audit checkpoint — Suncoast issuer-access-blocked SEMG page — 2026-09-04
+
+Suncoast's official SEMG page exposes a complete current holdings table, but
+the bounded backend-equivalent request returned HTTP 403. No executable native
+route is promoted, so `suncoast` remains an explicit `issuer_access_blocked`
+fallback.
+
+The durable split remains 496 registered / 413 native-live-backed / 83
+fallback-only providers, with 13 queued records and `suncoast` next. Runtime
+fallback statuses are 17 issuer-access-blocked, 53 route-discovery, 10
+non-executable-public-source, and 7 non-portfolio-publisher. Evidence refs:
+`web:suncoast-current-semg-holdings-page-2026-09-04` and
+`live:suncoast-current-semg-holdings-page-2026-09-04-blocked`.

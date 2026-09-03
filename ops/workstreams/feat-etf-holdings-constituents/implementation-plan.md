@@ -2575,3 +2575,10 @@ Counts are 496 registered / 413 native / 83 fallback, with 13 queued and
 `suncoast` next. Evidence refs:
 `web:stratified-current-sspy-shus-holdings-pages-2026-09-04` and
 `live:stratified-current-sspy-shus-holdings-pages-2026-09-04`.
+
+## Current audit checkpoint — Suncoast issuer-access-blocked SEMG page — 2026-09-04
+
+Suncoast's official SEMG page exposes a complete current holdings table, but
+the bounded backend-equivalent request returned HTTP 403. No executable native
+route is promoted, so `suncoast` remains an explicit `issuer_access_blocked`
+fallback and the next queued issuer remains `suncoast`.
