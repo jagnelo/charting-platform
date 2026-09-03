@@ -1315,9 +1315,9 @@ async def test_river1_adapter_verifies_rver_page_and_parses_issuer_xls(monkeypat
     FakeAsyncClient.queue = [
         FakeResponse(
             text=(
-                '<h1>RVER The Trenchless Fund ETF</h1>'
+                "<h1>RVER The Trenchless Fund ETF</h1>"
                 '<a href="/download-holdings-usbanks.php?fund=rver">Download full holdings</a>'
-                '<p>Data as of 09/01/2026</p>'
+                "<p>Data as of 09/01/2026</p>"
             ),
             content_type="text/html",
             url="https://river1.us/rver",
@@ -1422,7 +1422,7 @@ async def test_rockefeller_adapter_fetches_fund_scoped_daily_csv(monkeypatch):
     FakeAsyncClient.requested = []
     FakeAsyncClient.queue = [
         FakeResponse(
-            text='<html><h1>Rockefeller U.S. Small-Mid Cap ETF (RSMC)</h1>'
+            text="<html><h1>Rockefeller U.S. Small-Mid Cap ETF (RSMC)</h1>"
             '<a href="/wp-content/uploads/data/TidalFG_Holdings_RSMC.csv">Download</a></html>',
             url=product_url,
         ),
@@ -1494,10 +1494,7 @@ async def test_sammons_enterprises_adapter_fetches_declared_beacon_csv(monkeypat
     adapter = get_holdings_adapter("sammons_enterprises")
     assert adapter is not None
     product_url, holdings_url = adapter._FUNDS["BTR"]
-    page = (
-        '<h1>Beacon Tactical Risk ETF (BTR)</h1>'
-        f'<a href="{holdings_url}">Holdings CSV</a>'
-    )
+    page = "<h1>Beacon Tactical Risk ETF (BTR)</h1>" f'<a href="{holdings_url}">Holdings CSV</a>'
     holdings_csv = "\n".join(
         [
             "Beacon Tactical Risk ETF",
@@ -1586,6 +1583,40 @@ async def test_smi_funds_adapter_parses_current_holdings_table(monkeypatch):
     assert result.legal_metadata["composition_date"] == "2026-09-01"
     assert result.legal_metadata["route_resolution"] == (
         "smi_funds_official_product_page_complete_holdings_table"
+    )
+
+
+@pytest.mark.asyncio
+async def test_srh_adapter_parses_current_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("srh")
+    assert adapter is not None
+    page = """
+    <h1>SRH U.S. Quality GARP ETF (SRHQ)</h1>
+    <p>As of 09/01/2026</p>
+    <table><thead><tr>
+      <th>Security</th><th>Ticker</th><th>Security ID</th>
+      <th>Number of Shares</th><th>Market Value</th><th>Weight</th>
+    </tr></thead><tbody>
+      <tr><td>Humacyte, Inc.</td><td>HUMA</td><td>444-28-7421</td>
+      <td>125000</td><td>$1,250,000</td><td>2.43%</td></tr>
+      <tr><td>Qualys, Inc.</td><td>QLYS</td><td>74758T303</td>
+      <td>50000</td><td>$6,000,000</td><td>1.17%</td></tr>
+    </tbody></table>
+    """
+    product_url = adapter.PRODUCT_PAGE_URLS["SRHQ"]
+    FakeAsyncClient.queue = [FakeResponse(text=page, content_type="text/html", url=product_url)]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="SRHQ")
+
+    assert [row.symbol for row in result.rows] == ["HUMA", "QLYS"]
+    assert result.rows[0].cusip == "444-28-7421"
+    assert result.rows[0].weight == Decimal("0.0243")
+    assert result.rows[0].shares == Decimal("125000")
+    assert result.legal_metadata["source_provider"] == "srh_funds"
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+    assert result.legal_metadata["route_resolution"] == (
+        "srh_official_product_page_complete_holdings_table"
     )
 
 
@@ -16253,9 +16284,7 @@ async def test_quadratic_adapter_parses_verified_kraneshares_holdings_csv(monkey
     assert result.rows[1].row_type == "cash"
     assert result.legal_metadata["source_provider"] == "quadratic"
     assert result.legal_metadata["publisher"] == "kraneshares"
-    assert result.legal_metadata["route_resolution"] == (
-        "quadratic_kraneshares_dated_csv_lookback"
-    )
+    assert result.legal_metadata["route_resolution"] == ("quadratic_kraneshares_dated_csv_lookback")
     assert result.legal_metadata["composition_date"] == "2026-09-02"
 
 
@@ -16263,9 +16292,7 @@ async def test_quadratic_adapter_parses_verified_kraneshares_holdings_csv(monkey
 async def test_return_stacked_adapter_fetches_issuer_daily_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("return_stacked")
     assert adapter is not None
-    product_url = (
-        "https://www.returnstackedetfs.com/rsst-return-stacked-us-stocks-managed-futures/"
-    )
+    product_url = "https://www.returnstackedetfs.com/rsst-return-stacked-us-stocks-managed-futures/"
     holdings_url = "https://www.returnstackedetfs.com/rsst/holdings"
     holdings_csv = "\n".join(
         [
@@ -22898,6 +22925,7 @@ def test_stockanalysis_provider_third_continuation_batch_is_registered_and_audit
         "brookstone",
         "elm",
         "nestyield",
+        "srh",
     }
 
     assert expected
@@ -22917,6 +22945,9 @@ def test_stockanalysis_provider_third_continuation_batch_is_registered_and_audit
         adapter = get_holdings_adapter(adapter_key)
         assert adapter is not None
         assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+    assert "srh" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["srh"].live_tested_default_route is True
+    assert type(get_holdings_adapter("srh")).__name__ == "SrhHoldingsAdapter"
 
 
 def test_stockanalysis_provider_fourth_continuation_batch_is_registered_and_audited():
@@ -27604,8 +27635,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 410
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 86
+    assert ledger["current_native_count"] == 411
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 85
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -27666,6 +27697,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "sammons_enterprises",
         "sapient",
         "smi_funds",
+        "srh",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))

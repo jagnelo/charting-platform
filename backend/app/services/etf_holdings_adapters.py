@@ -59695,9 +59695,13 @@ class QuadraticHoldingsAdapter(KranesharesHoldingsAdapter):
                 f"{', '.join(sorted(self.supported_symbols))}; received {normalized_symbol}."
             )
         if source_url and "kraneshares.com" not in source_url.casefold():
-            raise ValueError("Quadratic holdings must use its verified KraneShares publisher route.")
+            raise ValueError(
+                "Quadratic holdings must use its verified KraneShares publisher route."
+            )
         if issuer_product_id and issuer_product_id.strip().upper() != normalized_symbol:
-            raise ValueError("Quadratic issuer product identity must match the requested ETF symbol.")
+            raise ValueError(
+                "Quadratic issuer product identity must match the requested ETF symbol."
+            )
 
         result = await super().fetch_latest(
             symbol=normalized_symbol,
@@ -62283,7 +62287,9 @@ class SabaCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
             identifiers=identifiers,
         )
         if resolved_source_url is None:
-            raise ValueError(f"Saba Capital has no verified native holdings route for {normalized_symbol}.")
+            raise ValueError(
+                f"Saba Capital has no verified native holdings route for {normalized_symbol}."
+            )
         async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
             response = await client.get(
                 resolved_source_url,
@@ -62293,7 +62299,9 @@ class SabaCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
         response.raise_for_status()
         page_text = html.unescape(response.text)
         if "SABA" not in page_text.upper() or "CEFS" not in page_text.upper():
-            raise ValueError(f"Saba Capital product page identity did not match {normalized_symbol}.")
+            raise ValueError(
+                f"Saba Capital product page identity did not match {normalized_symbol}."
+            )
         rows, composition_date = self._parse_product_page(page_text, symbol=normalized_symbol)
         if not rows:
             raise ValueError("Saba Capital's official CEFS product page did not expose holdings.")
@@ -62349,7 +62357,9 @@ class SabaCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
             ticker = source_ticker.upper() if source_ticker else None
             tradable = (
                 ticker
-                if ticker and re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", ticker) and not (is_cash or is_derivative)
+                if ticker
+                and re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", ticker)
+                and not (is_cash or is_derivative)
                 else None
             )
             rows.append(
@@ -62371,7 +62381,13 @@ class SabaCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
                             key: value
                             for key, value in source_row.items()
                             if key
-                            not in {"ticker", "description", "quantity", "market_value", "percent_of_nav"}
+                            not in {
+                                "ticker",
+                                "description",
+                                "quantity",
+                                "market_value",
+                                "percent_of_nav",
+                            }
                             and _clean(value) is not None
                         },
                         **({"source_ticker": source_ticker} if source_ticker else {}),
@@ -62411,7 +62427,11 @@ class SammonsEnterprisesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
         return HoldingsAdapterProbe(
             adapter_key=self.adapter_key,
-            confidence=Decimal("0.9500") if fund else Decimal("0.3000") if has_sec_fallback else Decimal("0.0000"),
+            confidence=Decimal("0.9500")
+            if fund
+            else Decimal("0.3000")
+            if has_sec_fallback
+            else Decimal("0.0000"),
             status="ready" if fund or has_sec_fallback else "unsupported_symbol",
             reason=(
                 "Beacon publishes complete current BTR, BSR, and BTA holdings CSVs from official product pages."
@@ -62436,7 +62456,9 @@ class SammonsEnterprisesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         normalized_symbol = symbol.strip().upper()
         fund = self._FUNDS.get(normalized_symbol)
         if fund is None:
-            raise ValueError(f"Sammons/Beacon has no configured native holdings route for {symbol}.")
+            raise ValueError(
+                f"Sammons/Beacon has no configured native holdings route for {symbol}."
+            )
         product_url, expected_csv_url = fund
         async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
             product_response = await client.get(
@@ -62449,18 +62471,29 @@ class SammonsEnterprisesHoldingsAdapter(IssuerCsvHoldingsAdapter):
             if normalized_symbol not in page_text.upper():
                 raise ValueError(f"Beacon product page identity did not match {normalized_symbol}.")
             link_match = self._CSV_LINK_PATTERN.search(page_text)
-            declared_csv_url = urljoin(product_url, link_match.group("href")) if link_match else None
+            declared_csv_url = (
+                urljoin(product_url, link_match.group("href")) if link_match else None
+            )
             if declared_csv_url != expected_csv_url:
-                raise ValueError(f"Beacon product page did not declare the verified {normalized_symbol} holdings CSV.")
+                raise ValueError(
+                    f"Beacon product page did not declare the verified {normalized_symbol} holdings CSV."
+                )
             holdings_response = await client.get(
                 expected_csv_url,
-                headers={**_holdings_request_headers(accept="text/csv,*/*"), "Referer": product_url},
+                headers={
+                    **_holdings_request_headers(accept="text/csv,*/*"),
+                    "Referer": product_url,
+                },
                 follow_redirects=True,
             )
             holdings_response.raise_for_status()
-        rows, composition_date = self._parse_holdings_csv(holdings_response.text, symbol=normalized_symbol)
+        rows, composition_date = self._parse_holdings_csv(
+            holdings_response.text, symbol=normalized_symbol
+        )
         if not rows:
-            raise ValueError(f"Beacon holdings CSV did not expose complete current rows for {normalized_symbol}.")
+            raise ValueError(
+                f"Beacon holdings CSV did not expose complete current rows for {normalized_symbol}."
+            )
         composition_value = composition_date.isoformat() if composition_date else None
         return HoldingsFetchResult(
             rows=rows,
@@ -62485,11 +62518,19 @@ class SammonsEnterprisesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         )
 
     @staticmethod
-    def _parse_holdings_csv(raw_csv: str, *, symbol: str) -> tuple[list[CanonicalHoldingRow], date | None]:
-        source_rows = [row for row in csv.reader(raw_csv.strip().splitlines()) if any(_clean(cell) for cell in row)]
+    def _parse_holdings_csv(
+        raw_csv: str, *, symbol: str
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        source_rows = [
+            row
+            for row in csv.reader(raw_csv.strip().splitlines())
+            if any(_clean(cell) for cell in row)
+        ]
         if len(source_rows) < 4 or "BEACON" not in (_clean(source_rows[0][0]) or "").upper():
             return [], None
-        composition_date = _parse_issuer_date((_clean(source_rows[1][0]) or "").removeprefix("Fund Holdings Data as of "))
+        composition_date = _parse_issuer_date(
+            (_clean(source_rows[1][0]) or "").removeprefix("Fund Holdings Data as of ")
+        )
         rows = parse_holdings_table(source_rows[2:])
         for row in rows:
             if row.symbol:
@@ -62513,8 +62554,16 @@ class SapientHoldingsAdapter(IssuerCsvHoldingsAdapter):
         has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
         return HoldingsAdapterProbe(
             adapter_key=self.adapter_key,
-            confidence=(Decimal("0.9500") if normalized_symbol == self.SYMBOL else Decimal("0.3000") if has_sec_fallback else Decimal("0.0000")),
-            status="ready" if normalized_symbol == self.SYMBOL or has_sec_fallback else "unsupported_symbol",
+            confidence=(
+                Decimal("0.9500")
+                if normalized_symbol == self.SYMBOL
+                else Decimal("0.3000")
+                if has_sec_fallback
+                else Decimal("0.0000")
+            ),
+            status="ready"
+            if normalized_symbol == self.SYMBOL or has_sec_fallback
+            else "unsupported_symbol",
             reason=(
                 "Sapient publishes SQS's complete current holdings in its official HTML table."
                 if normalized_symbol == self.SYMBOL
@@ -66693,6 +66742,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="3FourteenSMI's public RAA and FCTE product pages and holdings tables may be subject to issuer terms.",
     ),
+    "srh": IssuerCsvAdapterConfig(
+        adapter_key="srh",
+        source_provider="srh_funds",
+        source_access="issuer_product_page_complete_holdings_html_table",
+        product_page_templates=(
+            "https://srhfunds.com/fund-overview/srhq/",
+            "https://srhfunds.com/fund-overview/srhr/",
+        ),
+        live_tested_default_route=True,
+        terms_note="SRH Funds public SRHQ and SRHR product pages and holdings tables may be subject to issuer terms.",
+    ),
     "resolute": IssuerCsvAdapterConfig(
         adapter_key="resolute",
         source_provider="resolute_american_beacon",
@@ -70269,7 +70329,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "suncoast",
         "segall_bryant_hamill",
         "sophus",
-        "srh",
         "stance",
         "stratified",
         "strategy_shares",
@@ -72401,7 +72460,13 @@ class SmiFundsHoldingsAdapter(IssuerCsvHoldingsAdapter):
         has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
         return HoldingsAdapterProbe(
             adapter_key=self.adapter_key,
-            confidence=(Decimal("0.9600") if source_url else Decimal("0.7800") if has_sec_fallback else Decimal("0.0000")),
+            confidence=(
+                Decimal("0.9600")
+                if source_url
+                else Decimal("0.7800")
+                if has_sec_fallback
+                else Decimal("0.0000")
+            ),
             status="ready" if source_url or has_sec_fallback else "unsupported_symbol",
             reason=(
                 "3FourteenSMI publishes the complete current holdings table on the matching official ETF page."
@@ -72428,7 +72493,9 @@ class SmiFundsHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if not product_page_url:
             raise ValueError(f"SMI Funds has no configured native holdings route for {symbol}.")
         if source_url and source_url.rstrip("/") != product_page_url.rstrip("/"):
-            raise ValueError("SMI Funds holdings must use the matching verified official product page.")
+            raise ValueError(
+                "SMI Funds holdings must use the matching verified official product page."
+            )
         async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
             response = await client.get(
                 product_page_url,
@@ -72437,14 +72504,25 @@ class SmiFundsHoldingsAdapter(IssuerCsvHoldingsAdapter):
             )
         response.raise_for_status()
         page_text = html.unescape(response.text)
-        if not re.search(re.escape(self.EXPECTED_IDENTITIES[normalized_symbol]), page_text, re.IGNORECASE):
+        if not re.search(
+            re.escape(self.EXPECTED_IDENTITIES[normalized_symbol]), page_text, re.IGNORECASE
+        ):
             raise ValueError(f"SMI Funds product page identity did not match {normalized_symbol}.")
         rows = parse_html_holdings_table_by_headers(
             page_text,
-            required_headers={"Description", "Ticker", "Weight (%)**", "Market Value ($)", "FIGI", "Shares Held"},
+            required_headers={
+                "Description",
+                "Ticker",
+                "Weight (%)**",
+                "Market Value ($)",
+                "FIGI",
+                "Shares Held",
+            },
         )
         if not rows:
-            raise ValueError(f"SMI Funds did not expose complete holdings rows for {normalized_symbol}.")
+            raise ValueError(
+                f"SMI Funds did not expose complete holdings rows for {normalized_symbol}."
+            )
         for row in rows:
             source_weight = _clean(row.extra_data.get("Weight (%)**"))
             if source_weight:
@@ -72744,8 +72822,115 @@ class RareviewFundsReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """StockAnalysis provider-table fallback adapter pending Rareview Funds discovery."""
 
 
-class SrhReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """StockAnalysis provider-table fallback adapter pending SRH discovery."""
+class SrhHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch SRH Funds' complete current SRHQ/SRHR holdings tables."""
+
+    PRODUCT_PAGE_URLS = {
+        "SRHQ": "https://srhfunds.com/fund-overview/srhq/",
+        "SRHR": "https://srhfunds.com/fund-overview/srhr/",
+    }
+    EXPECTED_IDENTITIES = {
+        "SRHQ": "SRH U.S. Quality GARP ETF",
+        "SRHR": "SRH REIT Covered Call ETF",
+    }
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        source_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        sec_cik = _identifier(identifiers, "sec_cik", "cik")
+        if source_url is None and sec_cik:
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.7800"),
+                status="ready",
+                reason="SEC filing fallback is available when no SRH product route matches the symbol.",
+                source_url=f"https://data.sec.gov/submissions/CIK{sec_cik.zfill(10)}.json",
+                issuer_product_id=normalized_symbol or None,
+            )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9600") if source_url else Decimal("0.0000"),
+            status="ready" if source_url else "unsupported_symbol",
+            reason="SRH publishes a complete current holdings table on its official product page."
+            if source_url
+            else "SRH route is limited to SRHQ and SRHR.",
+            source_url=source_url,
+            issuer_product_id=normalized_symbol if source_url else None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del identifiers
+        normalized_symbol = symbol.strip().upper()
+        product_page_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        if not product_page_url:
+            raise ValueError(f"SRH has no configured native holdings route for {symbol}.")
+        if source_url and source_url.rstrip("/") != product_page_url.rstrip("/"):
+            raise ValueError("SRH holdings must use the matching verified official product page.")
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        page_text = html.unescape(response.text)
+        if not re.search(
+            re.escape(self.EXPECTED_IDENTITIES[normalized_symbol]),
+            page_text,
+            re.IGNORECASE,
+        ):
+            raise ValueError(f"SRH product page identity did not match {normalized_symbol}.")
+        rows = parse_html_holdings_table_by_headers(
+            page_text,
+            required_headers={
+                "Security",
+                "Ticker",
+                "Security ID",
+                "Number of Shares",
+                "Market Value",
+                "Weight",
+            },
+        )
+        if not rows:
+            raise ValueError(f"SRH did not expose complete holdings rows for {normalized_symbol}.")
+        for row in rows:
+            weight = _clean(row.extra_data.get("Weight"))
+            if weight:
+                row.weight = _decimal(weight)
+            security_id = _clean(row.extra_data.get("Security ID"))
+            if row.cusip is None and security_id:
+                row.cusip = security_id
+        dates = re.findall(r"\b\d{2}/\d{2}/\d{4}\b", page_text)
+        composition_date = _parse_issuer_date(dates[-1]) if dates else None
+        composition_value = composition_date.isoformat() if composition_date else None
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "html_table", "row_count": len(rows)},
+            source_url=str(getattr(response, "url", product_page_url)),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html_table",
+                "route_resolution": "srh_official_product_page_complete_holdings_table",
+                "composition_date": composition_value,
+                "as_of_date": composition_value,
+                "source_quality": "issuer_reported_current_holdings",
+                "snapshot_provenance": "srh_native_product_page_html_table",
+                "legal_publisher": "SRH Advisors / Paralel",
+                "terms_note": self.config.terms_note,
+            },
+        )
 
 
 class ParnassusInvestmentsReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -73918,7 +74103,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "strategas": StrategasHoldingsAdapter,
         "stratified": StratifiedReconciledFallbackHoldingsAdapter,
         "strategy_shares": StrategySharesReconciledFallbackHoldingsAdapter,
-        "srh": SrhReconciledFallbackHoldingsAdapter,
+        "srh": SrhHoldingsAdapter,
         "subversive": SubversiveReconciledFallbackHoldingsAdapter,
         "suncoast": SuncoastReconciledFallbackHoldingsAdapter,
         "swedish_export_credit": SwedishExportCreditReconciledFallbackHoldingsAdapter,
