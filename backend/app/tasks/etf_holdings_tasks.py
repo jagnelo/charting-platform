@@ -116,6 +116,7 @@ async def refresh_benchmark_family_holdings_task(ctx: dict) -> dict:
             except Exception as exc:  # noqa: BLE001 - retain bounded per-root evidence.
                 queue_errors.append(
                     {
+                        "status": "queue_error",
                         "family_key": family_key,
                         "requested_date": requested_date.isoformat(),
                         "error": str(exc) or "Benchmark family unit queue failed.",

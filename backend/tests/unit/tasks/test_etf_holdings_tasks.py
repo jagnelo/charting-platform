@@ -103,6 +103,7 @@ def test_benchmark_family_dated_refresh_retains_per_root_queue_failures(monkeypa
     assert result["queue_error_count"] == 1
     assert result["queue_errors"] == [
         {
+            "status": "queue_error",
             "family_key": "sp500",
             "requested_date": "2026-07-31",
             "error": "redis queue unavailable for sp500",
