@@ -1621,6 +1621,41 @@ async def test_srh_adapter_parses_current_holdings_table(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_stance_adapter_parses_current_hennessy_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("stance")
+    assert adapter is not None
+    page = """
+    <h1>Hennessy Sustainable ETF</h1>
+    <h2>### Total Holdings: 48</h2><p>as of 9/2/26</p>
+    <table><thead><tr>
+      <th>Name</th><th>Ticker</th><th>CUSIP</th><th>Shares</th>
+      <th>Market Value</th><th>% of Net Assets</th>
+    </tr></thead><tbody>
+      <tr><td>HP Inc</td><td>HPQ</td><td>40434L105</td><td>123,924</td>
+      <td>$3,881,299.68</td><td>4.3%</td></tr>
+      <tr><td>McKesson Corp</td><td>MCK</td><td>58155Q103</td><td>3,775</td>
+      <td>$3,423,056.75</td><td>3.8%</td></tr>
+    </tbody></table>
+    """
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page, content_type="text/html", url=adapter.PRODUCT_PAGE_URL)
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="STNC")
+
+    assert [row.symbol for row in result.rows] == ["HPQ", "MCK"]
+    assert result.rows[0].cusip == "40434L105"
+    assert result.rows[0].weight == Decimal("0.043")
+    assert result.rows[0].shares == Decimal("123924")
+    assert result.legal_metadata["source_provider"] == "hennessy_stance"
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+    assert result.legal_metadata["route_resolution"] == (
+        "stance_hennessy_official_product_page_complete_holdings_table"
+    )
+
+
+@pytest.mark.asyncio
 async def test_eldridge_adapter_filters_combined_daily_holdings_and_preserves_cusips(monkeypatch):
     adapter = get_holdings_adapter("eldridge")
     assert adapter is not None
@@ -22961,6 +22996,7 @@ def test_stockanalysis_provider_fourth_continuation_batch_is_registered_and_audi
         "lsv",
         "mcelhenny_sheffield",
         "river1",
+        "stance",
     }
 
     assert expected
@@ -22993,6 +23029,9 @@ def test_stockanalysis_provider_fourth_continuation_batch_is_registered_and_audi
     assert "lsv" not in FALLBACK_ISSUER_AUDITS
     assert ISSUER_ADAPTER_CONFIGS["lsv"].live_tested_default_route is True
     assert type(get_holdings_adapter("lsv")).__name__ == "LsvHoldingsAdapter"
+    assert "stance" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["stance"].live_tested_default_route is True
+    assert type(get_holdings_adapter("stance")).__name__ == "StanceHoldingsAdapter"
 
 
 def test_redwood_has_a_verified_native_route_after_live_probe():
@@ -27635,8 +27674,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 411
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 85
+    assert ledger["current_native_count"] == 412
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 84
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -27698,6 +27737,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "sapient",
         "smi_funds",
         "srh",
+        "stance",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))

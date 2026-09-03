@@ -66753,6 +66753,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="SRH Funds public SRHQ and SRHR product pages and holdings tables may be subject to issuer terms.",
     ),
+    "stance": IssuerCsvAdapterConfig(
+        adapter_key="stance",
+        source_provider="hennessy_stance",
+        source_access="issuer_product_page_complete_holdings_html_table",
+        product_page_templates=("https://www.hennessyetfs.com/etfs/stnc",),
+        live_tested_default_route=True,
+        terms_note="Hennessy's public STNC product page and holdings table may be subject to issuer terms.",
+    ),
     "resolute": IssuerCsvAdapterConfig(
         adapter_key="resolute",
         source_provider="resolute_american_beacon",
@@ -70329,7 +70337,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "suncoast",
         "segall_bryant_hamill",
         "sophus",
-        "stance",
         "stratified",
         "strategy_shares",
         "subversive",
@@ -72945,8 +72952,118 @@ class BallastReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """StockAnalysis provider-table fallback adapter pending Ballast discovery."""
 
 
-class StanceReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """StockAnalysis provider-table fallback adapter pending Stance discovery."""
+class StanceHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch STNC's complete current holdings table from Hennessy Funds."""
+
+    PRODUCT_PAGE_URL = "https://www.hennessyetfs.com/etfs/stnc"
+    EXPECTED_IDENTITY = "Hennessy Sustainable ETF"
+    SUPPORTED_SYMBOL = "STNC"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        sec_cik = _identifier(identifiers, "sec_cik", "cik")
+        if normalized_symbol == self.SUPPORTED_SYMBOL:
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.9600"),
+                status="ready",
+                reason="Hennessy publishes STNC's complete current holdings table on its official product page.",
+                source_url=self.PRODUCT_PAGE_URL,
+                issuer_product_id=normalized_symbol,
+            )
+        if sec_cik:
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.7800"),
+                status="ready",
+                reason="SEC filing fallback is available when no Stance product route matches the symbol.",
+                source_url=f"https://data.sec.gov/submissions/CIK{sec_cik.zfill(10)}.json",
+                issuer_product_id=normalized_symbol or None,
+            )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.0000"),
+            status="unsupported_symbol",
+            reason="Stance route is limited to STNC.",
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del identifiers
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol != self.SUPPORTED_SYMBOL:
+            raise ValueError(f"Stance has no configured native holdings route for {symbol}.")
+        if source_url and source_url.rstrip("/") != self.PRODUCT_PAGE_URL.rstrip("/"):
+            raise ValueError(
+                "Stance holdings must use the matching verified Hennessy product page."
+            )
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                self.PRODUCT_PAGE_URL,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        page_text = html.unescape(response.text)
+        if not re.search(re.escape(self.EXPECTED_IDENTITY), page_text, re.IGNORECASE):
+            raise ValueError("Hennessy product page identity did not match STNC.")
+        required_headers = {
+            "Name",
+            "Ticker",
+            "CUSIP",
+            "Shares",
+            "Market Value",
+            "% of Net Assets",
+        }
+        parser = _HTMLTablesParser()
+        parser.feed(page_text)
+        matching_tables = []
+        normalized_required = {header.lower() for header in required_headers}
+        for table in parser.tables:
+            for header_row in table[:30]:
+                normalized_headers = {
+                    str(value).strip().lower() for value in header_row if _clean(value)
+                }
+                if normalized_required <= normalized_headers:
+                    matching_tables.append(parse_holdings_table(table))
+                    break
+        rows = max(matching_tables, key=len, default=[])
+        if not rows:
+            raise ValueError("Hennessy did not expose complete current holdings rows for STNC.")
+        for row in rows:
+            source_weight = _clean(row.extra_data.get("% of Net Assets"))
+            if source_weight:
+                row.weight = _decimal(source_weight)
+        dates = re.findall(r"\bas of (\d{1,2}/\d{1,2}/\d{2})\b", page_text, re.IGNORECASE)
+        composition_date = _parse_issuer_date(dates[-1]) if dates else None
+        composition_value = composition_date.isoformat() if composition_date else None
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "html_table", "row_count": len(rows)},
+            source_url=str(getattr(response, "url", self.PRODUCT_PAGE_URL)),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html_table",
+                "route_resolution": "stance_hennessy_official_product_page_complete_holdings_table",
+                "composition_date": composition_value,
+                "as_of_date": composition_value,
+                "source_quality": "issuer_reported_current_holdings",
+                "snapshot_provenance": "stance_hennessy_native_product_page_html_table",
+                "legal_publisher": "Hennessy Advisors / Stance Capital",
+                "terms_note": self.config.terms_note,
+            },
+        )
 
 
 class LongPondReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -74099,7 +74216,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "sofi": SofiHoldingsAdapter,
         "sophus": SophusReconciledFallbackHoldingsAdapter,
         "sp_funds": SpFundsHoldingsAdapter,
-        "stance": StanceReconciledFallbackHoldingsAdapter,
+        "stance": StanceHoldingsAdapter,
         "strategas": StrategasHoldingsAdapter,
         "stratified": StratifiedReconciledFallbackHoldingsAdapter,
         "strategy_shares": StrategySharesReconciledFallbackHoldingsAdapter,
