@@ -380,6 +380,71 @@ async def test_family_holdings_refresh_worker_handoffs_refreshed_snapshots_to_me
 
 
 @pytest.mark.asyncio
+async def test_family_holdings_refresh_worker_retains_history_queue_error_shape(monkeypatch):
+    from types import SimpleNamespace
+
+    run = SimpleNamespace(
+        id=10,
+        family_keys=["sp500"],
+        roles=["cap_weight"],
+        requested_dates=["2026-06-30"],
+        total_units=1,
+        completed_units=0,
+        refreshed_count=0,
+        unavailable_count=0,
+        failed_count=0,
+        status="queued",
+        cancel_requested=False,
+        progress={"units": []},
+        started_at=None,
+        finished_at=None,
+    )
+    session = _RefreshRunSession(run)
+
+    async def fake_refresh(_db, **_kwargs):
+        return {
+            "refreshed": 1,
+            "unavailable": 0,
+            "failed": 0,
+            "legs": [{"status": "refreshed", "snapshot_id": 102}],
+        }
+
+    async def failed_queue(*_args):
+        raise RuntimeError("history queue unavailable")
+
+    monkeypatch.setattr("app.database.AsyncSessionLocal", lambda: session)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.refresh_benchmark_family_holdings_for_date",
+        fake_refresh,
+    )
+    monkeypatch.setattr(
+        "app.services.benchmark_family_history.queue_snapshot_member_history",
+        failed_queue,
+    )
+
+    result = await arq_worker.task_refresh_benchmark_family_holdings_run(
+        {"redis": object()}, run.id
+    )
+
+    assert result["status"] == "completed"
+    assert run.progress["units"][0]["history_queue"] == {
+        "status": "queue_error",
+        "snapshot_ids": [102],
+        "queued": 0,
+        "already_queued": 0,
+        "queue_errors": [
+            {
+                "status": "queue_error",
+                "snapshot_ids": [102],
+                "error": "history queue unavailable",
+            }
+        ],
+        "queue_error_count": 1,
+        "error": "history queue unavailable",
+    }
+
+
+@pytest.mark.asyncio
 async def test_etf_classification_refresh_is_explicitly_disabled_by_default(monkeypatch):
     monkeypatch.setattr(settings, "ETF_HOLDINGS_CLASSIFICATION_REFRESH_ENABLED", False)
 

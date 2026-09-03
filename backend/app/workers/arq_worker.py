@@ -155,6 +155,15 @@ async def task_refresh_benchmark_family_holdings_run(ctx: dict, run_id: int):
                             "snapshot_ids": refreshed_snapshot_ids,
                             "queued": 0,
                             "already_queued": 0,
+                            "queue_errors": [
+                                {
+                                    "status": "queue_error",
+                                    "snapshot_ids": refreshed_snapshot_ids,
+                                    "error": str(exc)[:500]
+                                    or "Benchmark family history queue failed.",
+                                }
+                            ],
+                            "queue_error_count": 1,
                             "error": str(exc)[:500],
                         }
                 else:
@@ -163,6 +172,8 @@ async def task_refresh_benchmark_family_holdings_run(ctx: dict, run_id: int):
                         "snapshot_ids": [],
                         "queued": 0,
                         "already_queued": 0,
+                        "queue_errors": [],
+                        "queue_error_count": 0,
                     }
 
                 run = await db.get(BenchmarkFamilyHoldingsRefreshRun, run_id)
