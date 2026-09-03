@@ -2411,3 +2411,16 @@ Counts are 496 registered / 406 native / 90 fallback, with 26 queued and
 `saba_capital` next. Evidence refs:
 `web:rockefeller-current-product-pages-and-csv-routes-2026-09-03` and
 `live:rockefeller-current-daily-holdings-csv-2026-09-03`.
+
+## Current promotion checkpoint — Saba Capital / CEFS Nuxt route — 2026-09-03
+
+The official Saba ETF CEFS page publishes complete holdings in its Nuxt
+hydration component, dated September 1, 2026. The current page exposed 77
+parseable rows; the native adapter validates the exact `cefs` route and
+`sabaetf-temp-holdings-1` component and records Exchange Traded Concepts / Saba
+Capital provenance.
+
+Counts are 496 registered / 407 native / 89 fallback, with 25 queued and
+`sammons_enterprises` next. Evidence refs:
+`web:saba-cefs-current-nuxt-holdings-2026-09-03` and
+`live:saba-cefs-current-nuxt-holdings-2026-09-03`.

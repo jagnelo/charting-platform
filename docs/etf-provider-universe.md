@@ -1539,3 +1539,19 @@ issuer-access-blocked, 65 route-discovery, 7 non-executable-public-source, and
 7 non-portfolio-publisher. Evidence refs:
 `web:rockefeller-current-product-pages-and-csv-routes-2026-09-03` and
 `live:rockefeller-current-daily-holdings-csv-2026-09-03`.
+
+## Current promotion checkpoint — Saba Capital / CEFS Nuxt route — 2026-09-03
+
+Saba ETF's official CEFS page publishes a complete holdings component in its
+Nuxt hydration payload, dated September 1, 2026. The current page exposed 77
+parseable rows and the provider-specific adapter validates the exact `cefs`
+route and `sabaetf-temp-holdings-1` component before normalizing them.
+
+The ledger records `saba_capital` as `native_promoted` with Exchange Traded
+Concepts / Saba Capital provenance and no SEC reconstruction. Current state is
+496 registered / 407 native-live-backed / 89 fallback-only, with 25 queued
+records and `sammons_enterprises` next. Runtime fallback statuses are 12
+issuer-access-blocked, 64 route-discovery, 7 non-executable-public-source, and
+7 non-portfolio-publisher. Evidence refs:
+`web:saba-cefs-current-nuxt-holdings-2026-09-03` and
+`live:saba-cefs-current-nuxt-holdings-2026-09-03`.

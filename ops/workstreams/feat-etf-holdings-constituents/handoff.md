@@ -1198,3 +1198,19 @@ The ledger has 44 queued fallback records and the next ranked issuer is
 `north_square`. Focused NPF unit/live checks pass; the full opt-in matrix and
 Docker-backed integration gate remain pending with the known unrelated
 F8p-current-history Study Lab histogram timeout retained.
+
+## Current promotion checkpoint — Saba Capital / CEFS Nuxt route — 2026-09-03
+
+Saba ETF's official CEFS page publishes a complete holdings component in its
+Nuxt hydration payload, dated September 1, 2026. The current page exposed 77
+parseable rows and the provider-specific adapter validates the exact `cefs`
+route and `sabaetf-temp-holdings-1` component before normalizing them.
+
+The durable ledger records `saba_capital` as `native_promoted` with Exchange
+Traded Concepts / Saba Capital provenance and no SEC reconstruction. The
+current split is 496 registered / 407 native-live-backed / 89 fallback-only
+providers, with 25 queued records and `sammons_enterprises` next. Runtime
+fallback statuses are 12 issuer-access-blocked, 64 route-discovery, 7
+non-executable-public-source, and 7 non-portfolio-publisher. Evidence refs:
+`web:saba-cefs-current-nuxt-holdings-2026-09-03` and
+`live:saba-cefs-current-nuxt-holdings-2026-09-03`.
