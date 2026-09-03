@@ -2137,3 +2137,20 @@ full opt-in live matrix and Docker-backed integration gate remain pending; the
 known unrelated F8p-current-history Study Lab histogram timeout is retained.
 Evidence refs: `web:new-age-alpha-avdr-liquidation-2026-09-03` and
 `web:new-age-alpha-historical-sec-identity-2026-09-03`.
+
+## 58. Current audit checkpoint — Nicholas Wealth access-blocked disposition — 2026-09-03
+
+The official Nicholas Wealth XFUNDS catalogue and product pages identify the
+current product family, but backend-equivalent requests to representative
+pages returned Cloudflare challenges before a complete issuer holdings artifact
+could be resolved. Nicholas Wealth therefore remains fallback-only with an
+`issuer_access_blocked` disposition; no unproven native adapter was retained.
+
+The code-derived split remains 496 registered / 397 native-live-backed / 99
+fallback-only. Runtime fallback statuses are 9 issuer-access-blocked, 81
+needs-first-party-route-discovery, 3 non-executable-public-source, and 6
+non-portfolio-publisher. The ledger has 45 queued records and
+`norris_perne_french` is next. Evidence refs:
+`web:nicholas-wealth-official-xfunds-2026-09-03`,
+`web:nicholas-wealth-sec-series-identities-2026-09-03`, and
+`web:nicholas-wealth-access-blocked-2026-09-03`.

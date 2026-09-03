@@ -7,7 +7,7 @@ baseline_fallback_count: 140
 current_registered_count: 496
 current_native_count: 397
 current_fallback_count: 99
-generated_at: 2026-09-03T07:30:00Z
+generated_at: 2026-09-03T08:30:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -4159,19 +4159,23 @@ providers:
     display_name: nicholas_wealth
     queue_rank: 87
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: issuer_access_blocked
+    disposition: issuer_access_blocked
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols: [DRMY, GLDN, NUKX, WEPN, SLVX, GIAX, BHDG, BLOX, NGHT, FIAX, XCSH]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains: [nicholasx.com, sec.gov]
+    candidate_routes:
+      - "https://nicholasx.com/our-etfs/"
+      - "https://nicholasx.com/nght/"
+      - "https://nicholasx.com/wepn/"
+      - "https://nicholasx.com/fiax/"
     route_complete: false
-    symbol_mapping_proven: false
+    symbol_mapping_proven: true
     current_holdings_proven: false
     parser_fixture: null
     live_test: null
@@ -4184,8 +4188,20 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.nicholas_wealth"
-    disposition_reason: "nicholas_wealth: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate nicholas_wealth first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-03
+        source: "https://nicholasx.com/our-etfs/"
+        result: "Nicholas Wealth's official Our ETFs catalogue identifies the current XFUNDS products and links symbol-scoped product pages that declare daily holdings downloads."
+        evidence_ref: "web:nicholas-wealth-official-xfunds-2026-09-03"
+      - date: 2026-09-03
+        source: "https://www.sec.gov/Archives/edgar/data/1924868/000199937126014634/nicholas-ncsrs_043026.htm"
+        result: "The current SEC filing independently confirms the Nicholas Wealth ETF series identity and issuer relationship."
+        evidence_ref: "web:nicholas-wealth-sec-series-identities-2026-09-03"
+      - date: 2026-09-03
+        source: "https://nicholasx.com/nght/"
+        result: "The official product page was reachable only as a Cloudflare challenge in backend-equivalent requests for NGHT, WEPN, GIAX, and DRMY; no issuer-declared holdings CSV or complete current portfolio was executable."
+        evidence_ref: "web:nicholas-wealth-access-blocked-2026-09-03"
+    disposition_reason: "nicholas_wealth: The official catalogue identifies current XFUNDS products, but backend-equivalent requests to representative product pages return a Cloudflare challenge before any holdings artifact can be resolved. The provider remains fallback-only as issuer_access_blocked; do not promote through SEC-derived reconstruction."
+    next_action: "nicholas_wealth: Re-test the issuer-owned product pages when access permits and promote only after a complete executable current holdings artifact is proven."
     implementation_sha: null
     validation_refs: []
   - adapter_key: norris_perne_french

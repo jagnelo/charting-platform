@@ -1178,6 +1178,19 @@ fallback-only providers. The ledger has 49 queued fallback records and
 full opt-in matrix and Docker integration gate remain pending, with the known
 unrelated F8p-current-history Study Lab histogram timeout retained.
 
+## Current audit checkpoint — Nicholas Wealth access-blocked — 2026-09-03
+
+Nicholas Wealth's official XFUNDS catalogue identifies current products and
+symbol-scoped pages, but representative backend-equivalent requests returned
+Cloudflare challenges before any complete holdings artifact could be resolved.
+The provider remains fallback-only as `issuer_access_blocked`; no SEC-derived
+reconstruction or unproven native adapter is counted.
+
+The current split is 496 registered, 397 native/live-backed, and 99
+fallback-only providers. Runtime statuses are 9 issuer-access-blocked, 81
+route-discovery, 3 non-executable, and 6 non-portfolio-publisher. The ledger
+has 45 queued records and `norris_perne_french` is next.
+
 ## Current promotion checkpoint — NestYield / EGGQ-EGGY-EGGS — 2026-09-03
 
 NestYield's official product pages publish complete dated holdings tables for
