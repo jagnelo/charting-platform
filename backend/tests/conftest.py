@@ -12,15 +12,40 @@ Integration     One Postgres container + one Redis container started *once* per
                 leaving zero state for the next test.
 """
 
+import json
 import os
 from collections.abc import Generator
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
+
+
+def _record_testcontainer(container) -> None:
+    """Persist session IDs so scoped cleanup can find abandoned Ryuk resources."""
+    try:
+        identifier = os.getenv("WORKTREE_ID", "unscoped")
+        details = container.get_wrapped_container().attrs
+        labels = details.get("Config", {}).get("Labels", {}) or {}
+        session_id = labels.get("org.testcontainers.session-id")
+        if not session_id:
+            return
+        target = os.getenv("WORKTREE_RUNTIME_STATE")
+        if not target:
+            return
+        path = Path(target) / "testcontainers-sessions.json"
+        values = json.loads(path.read_text()) if path.exists() else {}
+        sessions = values.setdefault(identifier, [])
+        if session_id not in sessions:
+            sessions.append(session_id)
+        path.write_text(json.dumps(values, indent=2, sort_keys=True) + "\n")
+    except (OSError, TypeError, ValueError):
+        # Resource cleanup remains conservative if Docker metadata is unavailable.
+        return
 
 
 class AsyncSessionAdapter:
@@ -98,7 +123,9 @@ def pg_container(test_database_url):
         yield None
         return
 
-    with PostgresContainer("postgres:16-alpine") as pg:
+    labels = {"charting.worktree.id": os.getenv("WORKTREE_ID", "unscoped")}
+    with PostgresContainer("postgres:16-alpine").with_kwargs(labels=labels) as pg:
+        _record_testcontainer(pg)
         yield pg
 
 
@@ -110,7 +137,9 @@ def redis_container(test_redis_url):
         yield None
         return
 
-    with RedisContainer("redis:7-alpine") as r:
+    labels = {"charting.worktree.id": os.getenv("WORKTREE_ID", "unscoped")}
+    with RedisContainer("redis:7-alpine").with_kwargs(labels=labels) as r:
+        _record_testcontainer(r)
         yield r
 
 

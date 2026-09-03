@@ -3,7 +3,10 @@
 ## Human authority
 
 - A human explicitly authorizes a topic before an agent creates a branch/worktree or edits it.
-- The human explicitly chooses `full_integration` or the restricted `focused_only` path.
+- `full_integration` is the normal validation tier; the agent derives the minimum
+  local profile from the declared scope and runtime impact. `focused_only` is
+  permitted only when that exception is already recorded by the human in the
+  workstream.
 - Green validation means ready for review, not permission to close.
 - The human explicitly closes a topic before it may enter staging. Deployment is a separate request.
 - A human may grant standing authorization for CI/CD-only housekeeping. That lets agents finish

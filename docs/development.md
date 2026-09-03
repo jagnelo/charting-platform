@@ -124,14 +124,14 @@ boilerplate. An agent must not create a worktree, modify product code, integrate
 or deploy merely because it found a potential improvement. It first needs an
 explicit human request for that topic.
 
-Before selecting validation, the agent must ask the human whether this topic
-needs the default `full_integration` gate or is explicitly approved as
-`focused_only` documentation/workflow-helper work. A missing decision blocks
-integration. `focused_only` is allowed only for changes limited to `docs/`,
-`scripts/`, `Makefile`, `AGENTS.md`, and the branch's own workstream record;
-it runs diff/workstream validation, Python syntax checks, and declared focused
-tests. Any application, dependency, migration, Compose, CI, or test-product
-change requires `full_integration`.
+The normal validation tier is `full_integration`; the agent derives the minimum
+local profile from the changed paths and recorded runtime impact, selecting a
+stronger profile when useful. The human is not asked to repeat this routine
+choice. `focused_only` is allowed only when the human has already recorded that
+exception in the workstream, and it is limited to documentation, workflow
+helpers, Make/policy files, and the branch's own record. Any application,
+dependency, migration, Compose, CI, or product-test change requires the full
+integration gate.
 
 When development is complete, green tests mean `ready_for_human_review`, not
 permission to merge for product or deployment work. Keep those branches/worktrees available
@@ -323,3 +323,12 @@ COMPOSE_PROJECT_NAME="$(./scripts/dev-stack.sh project-name dev)" docker compose
 ```
 
 The backend and frontend stop when you Ctrl+C the `make dev` terminal.
+## VS Code branch sessions
+
+After an explicitly authorized `make worktree-create`, open that path in its own
+VS Code window and run `make agent-session-start BRANCH=<branch>`. The session
+goal is intentionally unbounded: no `token_budget` is supplied unless the human
+has recorded an exact budget. Use `agent-session-checkpoint` during long work and
+`agent-session-finish` only after the branch handoff and Docker disposition are
+recorded. `make integration-queue` is read-only; only the staging coordinator may
+run `make integrate-ready`, which selects the deterministic closure-ready batch.

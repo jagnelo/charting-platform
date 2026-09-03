@@ -7,12 +7,19 @@ import argparse
 import contextlib
 import fcntl
 import json
+import os
 import re
+import shutil
 import subprocess
 import sys
 import time
+import urllib.error
+import urllib.parse
+import urllib.request
 from datetime import UTC, datetime
 from pathlib import Path
+
+import yaml
 
 PREFIXES = ("feat/", "fix/", "chore/", "docs/", "test/")
 ROOT = Path(
@@ -32,6 +39,9 @@ DEGRADED = AI / "staging-degraded.json"
 MASTER_DEGRADED = AI / "master-degraded.json"
 CI_DISCOVERY_ATTEMPTS = 12
 CI_DISCOVERY_DELAY_SECONDS = 5.0
+CI_RETRY_DISCOVERY_ATTEMPTS = 36
+CI_RETRY_DISCOVERY_DELAY_SECONDS = 5.0
+CI_API_WATCH_ATTEMPTS = 720
 
 
 def run(
@@ -128,24 +138,33 @@ def worktree_path(branch: str) -> Path:
     raise SystemExit(f"branch is not checked out in a worktree: {branch}")
 
 
-def plan_values(path: Path, branch: str) -> dict[str, str]:
+def plan_values(path: Path, branch: str) -> dict[str, object]:
     slug = re.sub(r"[^a-zA-Z0-9]+", "-", branch).strip("-").lower()
     plan = path / "ops" / "workstreams" / slug / "plan.yaml"
     if not plan.exists():
         raise SystemExit(f"missing branch workstream plan: {plan}")
-    values: dict[str, str] = {}
-    for line in plan.read_text().splitlines():
-        match = re.match(r"^([A-Za-z_][A-Za-z0-9_]*):\s*(.*)$", line)
-        if match:
-            values[match.group(1)] = match.group(2).strip().strip("'\"")
-    return values
+    if not plan.exists():
+        return {}
+    try:
+        value = yaml.safe_load(plan.read_text())
+    except yaml.YAMLError as exc:
+        raise SystemExit(f"invalid workstream YAML: {plan}: {exc}") from exc
+    return value if isinstance(value, dict) else {}
 
 
 def require_closed_workstream(path: Path, branch: str) -> None:
     values = plan_values(path, branch)
     failures: list[str] = []
-    if values.get("schema") != "2":
-        failures.append("schema must be 2")
+    if str(values.get("schema")) not in {"2", "3", "4"}:
+        failures.append("schema must be 2, 3, or 4")
+    if str(values.get("schema")) in {"3", "4"} and values.get(
+        "goal_budget_policy"
+    ) not in {
+        "unbounded_unless_human_authorized",
+    }:
+        failures.append("schema-3/4 goal_budget_policy must be explicit")
+    if str(values.get("schema")) == "4" and values.get("planning_state") != "ready":
+        failures.append("schema-4 planning_state must be ready")
     if values.get("status") != "ready_for_integration":
         failures.append("status must be ready_for_integration")
     for key in (
@@ -153,13 +172,13 @@ def require_closed_workstream(path: Path, branch: str) -> None:
         "human_closure_authorization",
         "closure_summary",
     ):
-        value = values.get(key, "").lower()
+        value = str(values.get(key, "")).lower()
         if not value or value == "pending" or value.startswith("pending_"):
             failures.append(f"{key} must record the human-approved closure")
     if values.get("validation_tier") not in {"focused_only", "full_integration"}:
         failures.append("validation_tier must record the human-approved decision")
     source_sha = git("rev-parse", "HEAD", cwd=path)
-    closure_summary = values.get("closure_summary", "")
+    closure_summary = str(values.get("closure_summary", ""))
     if (
         source_sha not in closure_summary
         and "integration_capture: exact branch head" not in closure_summary.lower()
@@ -171,35 +190,129 @@ def require_closed_workstream(path: Path, branch: str) -> None:
         raise SystemExit(f"{branch} cannot enter staging: " + "; ".join(failures))
 
 
-def github_run(branch: str, commit: str, *, exhaustive: bool) -> dict[str, object]:
-    if not shutil_which("gh"):
+def github_repository() -> str:
+    remote = git("remote", "get-url", "origin", check=False)
+    match = re.search(
+        r"(?:github\.com|github-[^/:]+)[:/]([^/]+)/([^/]+?)(?:\.git)?$", remote
+    )
+    if not match:
         raise SystemExit(
-            "GitHub CLI (gh) is required to verify the exact remote CI run"
+            "origin is not a GitHub repository; exact CI cannot be inspected"
         )
+    return f"{match.group(1)}/{match.group(2)}"
+
+
+def github_run(branch: str, commit: str, *, exhaustive: bool) -> dict[str, object]:
+    repository = github_repository()
+    gh_error = ""
+
+    def gh_json(*args: str) -> object | None:
+        nonlocal gh_error
+        if not shutil_which("gh"):
+            gh_error = "GitHub CLI (gh) is unavailable"
+            return None
+        result = run("gh", *args, check=False)
+        if result.returncode:
+            gh_error = result.stderr.strip() or "gh command failed"
+            return None
+        try:
+            return json.loads(result.stdout or "null")
+        except json.JSONDecodeError as exc:
+            gh_error = f"gh returned invalid JSON: {exc}"
+            return None
+
+    def api_json(path: str) -> object:
+        token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "User-Agent": "charting-platform-workflow",
+        }
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        request = urllib.request.Request(
+            f"https://api.github.com/{path.lstrip('/')}", headers=headers
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=20) as response:
+                return json.loads(response.read())
+        except (
+            urllib.error.HTTPError,
+            urllib.error.URLError,
+            json.JSONDecodeError,
+        ) as exc:
+            raise RuntimeError(
+                "GitHub read-only API fallback failed; authenticate gh for a private repository"
+            ) from exc
+
+    def api_run(run_id: str) -> dict[str, object]:
+        payload = api_json(f"repos/{repository}/actions/runs/{run_id}")
+        jobs = api_json(f"repos/{repository}/actions/runs/{run_id}/jobs?per_page=100")
+        return {
+            "databaseId": payload.get("id"),
+            "headSha": payload.get("head_sha"),
+            "headBranch": payload.get("head_branch"),
+            "status": payload.get("status"),
+            "conclusion": payload.get("conclusion"),
+            "url": payload.get("html_url"),
+            "runAttempt": payload.get("run_attempt") or 1,
+            "jobs": jobs.get("jobs", []) if isinstance(jobs, dict) else [],
+        }
+
+    use_gh = bool(shutil_which("gh"))
     runs: list[dict[str, object]] = []
     for attempt in range(CI_DISCOVERY_ATTEMPTS):
-        result = run(
-            "gh",
-            "run",
-            "list",
-            "--workflow",
-            "ci.yml",
-            "--branch",
-            branch,
-            "--commit",
-            commit,
-            "--event",
-            "push",
-            "--limit",
-            "10",
-            "--json",
-            "databaseId,headSha,headBranch,status,conclusion,url",
-        )
+        if use_gh:
+            payload = gh_json(
+                "run",
+                "list",
+                "--workflow",
+                "ci.yml",
+                "--branch",
+                branch,
+                "--commit",
+                commit,
+                "--event",
+                "push",
+                "--limit",
+                "10",
+                "--json",
+                "databaseId,headSha,headBranch,status,conclusion,url,runAttempt",
+            )
+            if payload is None:
+                use_gh = False
+        else:
+            query = urllib.parse.urlencode(
+                {"branch": branch, "event": "push", "head_sha": commit, "per_page": 10}
+            )
+            try:
+                payload = api_json(f"repos/{repository}/actions/runs?{query}")
+            except RuntimeError as exc:
+                raise SystemExit(
+                    f"cannot inspect exact GitHub CI run: {exc}; gh: {gh_error}"
+                ) from exc
+        if not isinstance(payload, list | dict):
+            payload = []
+        if isinstance(payload, dict):
+            payload = payload.get("workflow_runs", [])
         runs = [
             item
-            for item in json.loads(result.stdout or "[]")
+            for item in payload
             if item.get("headSha") == commit and item.get("headBranch") == branch
         ]
+        if not runs and not use_gh:
+            runs = [
+                {
+                    "databaseId": item.get("id"),
+                    "headSha": item.get("head_sha"),
+                    "headBranch": item.get("head_branch"),
+                    "status": item.get("status"),
+                    "conclusion": item.get("conclusion"),
+                    "url": item.get("html_url"),
+                    "runAttempt": item.get("run_attempt") or 1,
+                }
+                for item in payload
+                if item.get("head_sha") == commit and item.get("head_branch") == branch
+            ]
         if runs:
             break
         if attempt + 1 < CI_DISCOVERY_ATTEMPTS:
@@ -213,20 +326,82 @@ def github_run(branch: str, commit: str, *, exhaustive: bool) -> dict[str, objec
         )
     selected = runs[0]
     run_id = str(selected["databaseId"])
+    first_attempt = int(selected.get("runAttempt") or 1)
+
+    def refresh() -> dict[str, object]:
+        if use_gh:
+            detail = gh_json(
+                "run",
+                "view",
+                run_id,
+                "--json",
+                "status,conclusion,url,jobs,runAttempt,headSha,headBranch",
+            )
+            if isinstance(detail, dict):
+                return detail
+            raise SystemExit(f"cannot inspect exact GitHub CI run {run_id}: {gh_error}")
+        return api_run(run_id)
+
     if selected.get("status") != "completed":
-        subprocess.run(
-            ["gh", "run", "watch", run_id, "--exit-status"], cwd=ROOT, check=False
-        )
-        refreshed = run(
-            "gh", "run", "view", run_id, "--json", "status,conclusion,url,jobs"
-        )
-        selected.update(json.loads(refreshed.stdout))
+        if use_gh:
+            subprocess.run(
+                ["gh", "run", "watch", run_id, "--exit-status"], cwd=ROOT, check=False
+            )
+            selected.update(refresh())
+        else:
+            for _ in range(CI_API_WATCH_ATTEMPTS):
+                selected.update(refresh())
+                if selected.get("status") == "completed":
+                    break
+                time.sleep(CI_RETRY_DISCOVERY_DELAY_SECONDS)
     else:
-        detail = run("gh", "run", "view", run_id, "--json", "jobs")
-        selected.update(json.loads(detail.stdout))
+        selected.update(refresh())
+    ci_attempts: dict[int, dict[str, object]] = {
+        first_attempt: {
+            "attempt": first_attempt,
+            "url": selected.get("url"),
+            "status": selected.get("status"),
+            "conclusion": selected.get("conclusion"),
+        }
+    }
+    if selected.get("conclusion") != "success" and first_attempt == 1:
+        # The trusted workflow_run coordinator may schedule one rerun of
+        # allowlisted infrastructure failures. Wait for that same run ID to
+        # advance to attempt 2 before declaring the exact SHA degraded.
+        for attempt in range(CI_RETRY_DISCOVERY_ATTEMPTS):
+            if attempt:
+                time.sleep(CI_RETRY_DISCOVERY_DELAY_SECONDS)
+            latest = refresh()
+            latest_attempt = int(latest.get("runAttempt") or 1)
+            if latest_attempt <= first_attempt:
+                continue
+            selected.update(latest)
+            if latest.get("status") != "completed":
+                if use_gh:
+                    subprocess.run(
+                        ["gh", "run", "watch", run_id, "--exit-status"],
+                        cwd=ROOT,
+                        check=False,
+                    )
+                    selected.update(refresh())
+                else:
+                    for _ in range(CI_API_WATCH_ATTEMPTS):
+                        selected.update(refresh())
+                        if selected.get("status") == "completed":
+                            break
+                        time.sleep(CI_RETRY_DISCOVERY_DELAY_SECONDS)
+            ci_attempts[latest_attempt] = {
+                "attempt": latest_attempt,
+                "url": selected.get("url"),
+                "status": selected.get("status"),
+                "conclusion": selected.get("conclusion"),
+            }
+            break
+    selected["ci_attempts"] = [ci_attempts[key] for key in sorted(ci_attempts)]
     if selected.get("conclusion") != "success":
         raise SystemExit(
-            f"GitHub CI is not green for exact {branch} commit {commit}: {selected.get('url')}"
+            f"GitHub CI is not green for exact {branch} commit {commit}: "
+            f"{selected.get('url')} attempts={selected.get('ci_attempts')}"
         )
     if exhaustive:
         jobs = selected.get("jobs", [])
@@ -248,8 +423,6 @@ def github_run(branch: str, commit: str, *, exhaustive: bool) -> dict[str, objec
 
 
 def shutil_which(command: str) -> str | None:
-    import shutil
-
     return shutil.which(command)
 
 

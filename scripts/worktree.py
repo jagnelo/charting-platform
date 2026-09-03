@@ -11,6 +11,9 @@ import subprocess
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
+
+import yaml
 
 
 PREFIXES = ("feat/", "fix/", "chore/", "docs/", "test/")
@@ -68,6 +71,28 @@ def ensure_operator_ready(*, allow_degraded: bool = False) -> None:
         )
     if git("rev-parse", "HEAD") != remote:
         raise SystemExit("master is not synchronized with origin/master")
+    if not git_succeeds("rev-parse", "--verify", "refs/heads/staging"):
+        raise SystemExit(
+            "staging is not bootstrapped; create staging before starting work"
+        )
+    staging_path = branch_path("staging")
+    git(
+        "fetch",
+        "origin",
+        "+refs/heads/staging:refs/remotes/origin/staging",
+        cwd=staging_path,
+    )
+    if git("status", "--porcelain", cwd=staging_path):
+        raise SystemExit("staging is dirty; do not branch from it")
+    if git("rev-parse", "HEAD", cwd=staging_path) != git(
+        "rev-parse", "origin/staging", cwd=staging_path, check=False
+    ):
+        raise SystemExit("staging is not synchronized with origin/staging")
+    degraded_staging = common_root() / ".ai" / "staging-degraded.json"
+    if degraded_staging.exists() and not allow_degraded:
+        raise SystemExit(
+            "staging is marked degraded; repair it before creating ordinary work"
+        )
     degraded = common_root() / ".ai" / "staging-degraded.json"
     if degraded.exists() and not allow_degraded:
         raise SystemExit(
@@ -119,38 +144,77 @@ def initialise_docs(
     directory.mkdir(parents=True, exist_ok=False)
     base_sha = git("rev-parse", base, cwd=path)
     (directory / "plan.yaml").write_text(
-        "schema: 2\n"
+        "schema: 4\n"
         f"branch: {branch}\n"
         f"base_sha: {base_sha}\n"
         f"parent_branch: {base}\n"
         f"parent_sha: {base_sha}\n"
         f"dependency_authorization: {json.dumps(dependency_authorization or 'not applicable: independent staging-based topic')}\n"
         f"human_intent_authorization: {json.dumps(request)}\n"
+        "planning_state: draft\n"
         "human_closure_authorization: pending\n"
         "closure_summary: pending\n"
-        "validation_tier: pending_human_decision\n"
-        "human_validation_authorization: pending\n"
-        'goal: "replace me with the human-requested outcome"\n'
+        "validation_tier: full_integration\n"
+        "human_validation_authorization: agent_default_full_integration\n"
+        "local_validation_profile: pending_agent_assessment\n"
+        "local_validation_reason: pending agent assessment from changed paths and runtime impact\n"
+        "goal_budget_policy: unbounded_unless_human_authorized\n"
+        "human_goal_budget_authorization: none\n"
+        f"goal: {json.dumps(request)}\n"
         "scope: []\n"
         "owned_paths: []\n"
         "dependencies: []\n"
         "acceptance_criteria: []\n"
         "branch_tests: []\n"
+        "branch_tests_reason: pending agent assessment\n"
         "live_test_impact: none\n"
         "migration_impact: none\n"
         "deployment_impact: none\n"
         "status: authorized\n"
         "remaining_gaps: []\n"
+        "progress:\n"
+        "  completed: []\n"
+        "  total: 0\n"
+        "  current_phase: plan\n"
+        "  current_blocker: none\n"
+        "  next_action: complete the branch-owned plan before creating a goal\n"
     )
     (directory / "handoff.md").write_text(
         f"# {branch}\n\nCreated from `{base}` at `{base_sha}`.\n\n"
         "## Human authorization\n\n"
         f"- Recorded at: {datetime.now(UTC).isoformat()}\n"
         f"- Request: {request}\n"
-        "- Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.\n\n"
+        "- Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.\n"
+        "- Planning state: draft; the implementation agent must complete scope, acceptance criteria, tests, and local validation profile before creating a goal.\n\n"
         "Update this handoff at each coherent boundary.\n"
     )
     (directory / "validation.jsonl").write_text("")
+    (directory / "session.json").write_text(
+        json.dumps(
+            {
+                "schema": 2,
+                "branch": branch,
+                "parent_branch": base,
+                "implementation_sha": base_sha,
+                "remote_sha": None,
+                "active_session_id": None,
+                "previous_session_ids": [],
+                "goal_state": "not_started",
+                "goal_budget_policy": "unbounded_unless_human_authorized",
+                "planning_state": "draft",
+                "progress": {
+                    "completed": [],
+                    "total": 0,
+                    "current_phase": "plan",
+                    "current_blocker": "none",
+                },
+                "next_action": "run make agent-session-start",
+                "retained_docker_resources": [],
+            },
+            indent=2,
+        )
+        + "\n"
+    )
 
 
 def create(
@@ -246,6 +310,30 @@ def create(
     initialise_docs(
         target, branch, request.strip(), base, dependency_authorization.strip()
     )
+    files = [
+        f"ops/workstreams/{branch_slug(branch)}/plan.yaml",
+        f"ops/workstreams/{branch_slug(branch)}/handoff.md",
+        f"ops/workstreams/{branch_slug(branch)}/validation.jsonl",
+        f"ops/workstreams/{branch_slug(branch)}/session.json",
+    ]
+    git("add", "--", *files, cwd=target)
+    git("commit", "-m", f"chore(workflow): bootstrap {branch} workstream", cwd=target)
+    push = subprocess.run(
+        ["git", "push", "-u", "origin", branch],
+        cwd=target,
+        text=True,
+        capture_output=True,
+    )
+    if push.returncode:
+        raise SystemExit(
+            f"workstream bootstrap committed locally at {git('rev-parse', 'HEAD', cwd=target)} but push failed: {push.stderr.strip()}"
+        )
+    if git("rev-parse", "HEAD", cwd=target) != git(
+        "rev-parse", f"origin/{branch}", cwd=target, check=False
+    ):
+        raise SystemExit(
+            "bootstrap push completed but local and origin branch heads differ"
+        )
     print(target)
 
 
@@ -276,15 +364,15 @@ def size_bytes(path: Path) -> int:
     )
 
 
-def plan_values(path: Path, branch: str) -> dict[str, str]:
+def plan_values(path: Path, branch: str) -> dict[str, Any]:
     plan = path / "ops" / "workstreams" / branch_slug(branch) / "plan.yaml"
-    values: dict[str, str] = {}
-    if plan.exists():
-        for line in plan.read_text().splitlines():
-            match = re.match(r"^([A-Za-z_][A-Za-z0-9_]*):\s*(.*)$", line)
-            if match:
-                values[match.group(1)] = match.group(2).strip().strip("'\"")
-    return values
+    if not plan.exists():
+        return {}
+    try:
+        values = yaml.safe_load(plan.read_text())
+    except yaml.YAMLError as exc:
+        raise SystemExit(f"invalid workstream YAML: {plan}: {exc}") from exc
+    return values if isinstance(values, dict) else {}
 
 
 def closure_reasons(branch: str, path: Path) -> list[str]:
@@ -470,9 +558,7 @@ def archive_pre_staging(branch: str, confirm: str, reason: str) -> None:
     )
 
 
-def archive_subsumed(
-    branch: str, parent: str, confirm: str, reason: str
-) -> None:
+def archive_subsumed(branch: str, parent: str, confirm: str, reason: str) -> None:
     """Remove a local branch already contained in one cumulative parent branch.
 
     This is the counterpart to pre-staging archive for a dependency chain.  It
@@ -506,9 +592,7 @@ def archive_subsumed(
         remote_sha = git("rev-parse", f"origin/{ref}", cwd=checkout, check=False)
         if not local_sha or not remote_sha or local_sha != remote_sha:
             raise SystemExit(f"{label} branch is not synchronized with its remote")
-    if not git_succeeds(
-        "merge-base", "--is-ancestor", branch, parent, cwd=parent_path
-    ):
+    if not git_succeeds("merge-base", "--is-ancestor", branch, parent, cwd=parent_path):
         raise SystemExit("branch is not fully contained in the named parent")
     try:
         slug = branch_slug(branch)
@@ -575,15 +659,14 @@ def operational_tail_reasons(branch: str, path: Path) -> list[str]:
     if not git_succeeds("merge-base", "--is-ancestor", branch, "master", cwd=path):
         base = git("merge-base", "master", branch, cwd=path, check=False)
         changed = (
-            git("diff", "--name-only", f"{base}..{branch}", cwd=path, check=False)
-            .splitlines()
+            git(
+                "diff", "--name-only", f"{base}..{branch}", cwd=path, check=False
+            ).splitlines()
             if base
             else []
         )
         expected_prefix = f"ops/workstreams/{branch_slug(branch)}/"
-        if not changed or any(
-            not item.startswith(expected_prefix) for item in changed
-        ):
+        if not changed or any(not item.startswith(expected_prefix) for item in changed):
             reasons.append(
                 "branch contains unmerged files outside its own workstream record"
             )
@@ -649,6 +732,33 @@ def close(branch: str) -> None:
     if git("status", "--porcelain", cwd=path):
         raise SystemExit(
             "worktree is dirty; commit or account for changes before closing"
+        )
+    plan = plan_values(path, branch)
+    if plan.get("status") not in {"ready_for_integration", "integrated", "closed"}:
+        raise SystemExit(
+            "workstream is not closure-authorized; finish human review and record ready_for_integration"
+        )
+    source_sha = git("rev-parse", "HEAD", cwd=path)
+    attempts = common_root() / ".ai" / "staging-attempts"
+    green = False
+    for receipt in attempts.glob("*.json") if attempts.exists() else []:
+        try:
+            data = json.loads(receipt.read_text())
+        except (OSError, json.JSONDecodeError):
+            continue
+        if data.get("state") != "green":
+            continue
+        sources = data.get("sources") or []
+        if any(
+            item.get("branch") == branch and item.get("sha") == source_sha
+            for item in sources
+            if isinstance(item, dict)
+        ):
+            green = True
+            break
+    if not green:
+        raise SystemExit(
+            "no green staging receipt covers this exact source SHA; keep the worktree until staging CI passes"
         )
     if not git_succeeds("merge-base", "--is-ancestor", branch, "staging", cwd=path):
         raise SystemExit("worktree is not merged into staging")

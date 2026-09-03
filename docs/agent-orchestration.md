@@ -2,7 +2,9 @@
 
 This is the **single canonical entry point** for unattended or multi-agent development on this repository.
 
-If an orchestrator, agent runner, or human operator needs to tell an LLM what to do, it should point the LLM to **this file first**.
+Codex-compatible agents discover the repository's `AGENTS.md` automatically.
+That entry point directs the agent here; neither the human developer nor a
+supported VS Code session needs to repeat this document's path or contents.
 
 This file is intentionally the top-level behavior document. An LLM should not need a second initial instruction file. This document tells it:
 - what tooling model to assume
@@ -11,11 +13,17 @@ This file is intentionally the top-level behavior document. An LLM should not ne
 - how validation must work
 - how handoffs between models must work
 
-Use this setup for overnight or unattended development with multiple LLM coding agents.
+Use this setup for VS Code Codex sessions as well as overnight or unattended
+development with multiple LLM coding agents.
 
-## Recommended orchestrator
+## Supported operating modes
 
-Use **LangGraph** as the orchestrator.
+The normal human-driven mode is one VS Code window and one Codex session per
+branch worktree. The control session plans and reports only; an implementation
+session is opened in the assigned worktree after explicit human activation.
+
+For unattended execution, LangGraph may orchestrate the same commands and
+handoffs. It is optional and does not replace the VS Code boundary.
 
 Why this one:
 - good fit for long-running, stateful agent workflows
@@ -23,23 +31,51 @@ Why this one:
 - supports explicit control over handoffs, validation, and retries
 - flexible enough to switch between Codex and Claude as workers
 
-Do **not** use the VS Code extensions as the automation surface.
+Codex CLI, Claude Code CLI, and the VS Code extension are interchangeable worker
+surfaces. If stronger crash-resume guarantees are needed later, add Temporal
+under LangGraph; do not make that a prerequisite for local development.
 
-Use:
-- Codex CLI
-- Claude Code CLI
+### Canonical lifecycle
 
-If stronger crash-resume guarantees are needed later, add **Temporal** under the LangGraph workflow. Do not start there.
+`discussion → explicit activation → clean worktree bootstrap → exclusive
+implementation session → unbounded goal → implementation/checkpoints → human
+review → explicit closure → integration queue → one persistent staging merge →
+staging CI → optional human promotion to master → optional separately authorized
+deployment`. There is one merge path: the persistent staging worktree. Do not
+create disposable local integration candidates or alternate merge copies.
 
-## Single entry-point rule
+## Control and implementation sessions
 
-The orchestrator should point every worker to exactly one initial file:
+The control session is a planning and coordination boundary. It may inspect the
+repository and produce a plan, but conversation alone never authorizes mutation.
+An unambiguous human request to fix, build, implement, start, or continue a
+named topic is the activation signal. Requests to inspect, explain, review,
+discuss, or plan remain read-only. If intent is genuinely ambiguous, ask one
+short confirmation question before mutating anything.
 
-- `docs/agent-orchestration.md`
+An implementation session must open the exact worktree in its own VS Code window.
+The repository entry point tells the agent to run the session preflight, read the
+printed workstream, and create or resume a session-local Codex goal. A human only
+needs to open the generated worktree and describe the desired product work; the
+human does not need to supply orchestration instructions.
+The goal is an execution aid, not durable state: workstream files and commits are
+the source of truth. The goal ends at `ready_for_human_review`; it never authorizes
+integration, closure, promotion, or deployment.
 
-That is the only initial documentation path the orchestrator needs to inject.
+Only one writer may use a worktree. `agent-session-start` creates a persistent
+claim; another session is refused. Claims never expire automatically. After a
+crash or abandoned VS Code window, the human must explicitly authorize
+`make agent-session-takeover CONFIRM=<old-session-id>` before a new writer starts.
 
-From this file, the worker must then read the live state/memory files under `ops/`.
+## Automatic repository entry
+
+`AGENTS.md` is the automatic entry point for supported Codex sessions. It points
+to this document, which then directs the worker to the live state and branch
+workstream. External runners that do not implement repository instruction
+discovery may use this document as a fallback, but that fallback must not be
+turned into a repeated human prompt requirement.
+
+From this file, the worker reads the live state/memory files under `ops/`.
 
 For a checked-out feature/fix/chore/docs/test branch, the worker must also read
 the branch-owned durable record at `ops/workstreams/<branch-slug>/`:
@@ -49,16 +85,28 @@ the branch-owned durable record at `ops/workstreams/<branch-slug>/`:
 - `validation.jsonl` is append-only command/result evidence.
 
 The global `ops/tasks.yaml`, `ops/handoff.md`, `ops/state.json`, and
-`ops/run-report.md` remain legacy integration evidence. A branch must not edit
-another branch's workstream directory; proposed shared-document changes belong
-in its own record until an integration agent reconciles them.
+`ops/run-report.md` are legacy evidence only. Feature sessions must not update
+them. A branch must not edit another branch's workstream directory; proposed
+shared-document changes belong in its own record until the staging coordinator
+reconciles them.
 
 So the correct model is:
-- **single initial entry point**: this file
+- **automatic initial entry point**: repository-discovered `AGENTS.md`
+- **canonical behavior document**: this file
 - **live operational state**: global `ops/*` plus the current branch's
   `ops/workstreams/<branch-slug>/` record
 
 This avoids making the orchestrator juggle multiple peer instruction files.
+
+### Goal budget contract
+
+The control session never creates a Codex goal. After activation and successful
+session preflight, the implementation session creates a local goal containing
+only the recorded objective. `token_budget` is omitted by default and agents
+must not invent a limit. A budget is allowed only when the human explicitly
+authorizes an exact positive value and that authorization is recorded in the
+workstream. Goals are execution aids; the durable workstream, commits, and
+validation evidence remain authoritative.
 
 ## Human intent boundary (non-negotiable)
 
@@ -68,9 +116,9 @@ explicit. Do not infer authorization from an old task, a TODO, a failing test,
 or an opportunity noticed during other work.
 
 - Before creating a worktree or changing any product/workflow code, obtain an
-  explicit human request to address that named topic. Create the worktree with
-  `make worktree-create BRANCH=<prefix/topic> REQUEST='<human request>'`; this
-  records the request in its schema-2 workstream plan and handoff.
+  explicit human request to address that named topic. The control agent records
+  the request while creating the worktree; the human does not need to know or
+  repeat the command syntax.
 - Independent topics start from synchronized, green `staging`. Continue feedback in the
   same unmerged topic branch. A separate dependent branch is exceptional: it
   requires an explicit human authorization naming the parent/dependency and
@@ -78,12 +126,11 @@ or an opportunity noticed during other work.
   non-staging parent at agent discretion.
 - Work autonomously inside that authorized branch: plan, implement, test,
   document, commit, push, and make the result available for human review.
-- Before deciding the final verification path, ask the human whether to use the
-  default `full_integration` gate or an explicitly approved `focused_only`
-  documentation/workflow-helper gate. Record the exact answer in
-  `human_validation_authorization`. Do not infer that a change is “small”.
-  `focused_only` is mechanically limited to documentation/workflow-helper paths
-  and runs its own focused gate; all other changes require the full gate.
+- Use `full_integration` by default. The implementation agent derives the
+  required local validation profile from the changed paths and recorded impact;
+  it does not ask the human to repeat the normal gate choice. `focused_only` is
+  an exception that is valid only when the human explicitly authorizes it and
+  the helper verifies that the changed paths qualify.
 - Green validation means `ready_for_human_review`; it is never implicit merge,
   close, or deployment permission. Preserve the branch for feedback iterations.
 - Only after an explicit human statement such as “close this topic” may an
@@ -136,7 +183,7 @@ when a proposed cleanup would delete a remote branch, discard uncommitted or
 unpushed work, or change the meaning of a product/deployment requirement.
 
 This section supersedes older text in this document that refers to mandatory
-global `ops/handoff.md`, `ops/state.json`, or `ops/run-report.md` updates for
+global operational-file updates for
 feature workers. Those files are historical integration evidence. The current
 branch's workstream is the durable coordination record.
 
@@ -158,6 +205,9 @@ the retired workflow and must never receive a new candidate.
    Integration Gate`. Failure writes `.ai/staging-degraded.json`; ordinary
    integration and promotion stop. Only an explicitly authorized repair branch
    based directly on that exact degraded SHA may use `REMEDIATE_DEGRADED=1`.
+   A source worktree can be removed only after a green staging receipt names
+   that exact source SHA; the guarded close command keeps the remote source ref
+   as an audit reference.
 4. `make promote-staging COMMIT=<sha> CONFIRM=<sha>` accepts only the current,
    synchronized, green staging SHA and fast-forwards `master`. `master` then
    independently replays the exhaustive gate. A failed replay marks master
@@ -171,6 +221,11 @@ the retired workflow and must never receive a new candidate.
 
 The historical cleanup commands remain available only to account for and remove
 pre-staging `.ai/integration` artifacts. They are not part of current integration.
+
+The exceptional workflow-maintenance rehearsal performed directly on `staging`
+is recorded in the tracked `ops/workflow-validation.jsonl` ledger. This does
+not create a protected-branch workstream; it is the durable evidence for the
+workflow helpers and their scoped Docker cleanup.
 
 ## Architecture-neutral CI and target-specific deployment
 
@@ -216,20 +271,25 @@ repository's declared runtime.
 
 ## Worker bootstrap sequence
 
-After being pointed to this file, every worker must do the following before making any code changes:
+Repository-aware agents discover `AGENTS.md` before their first response. That
+entry point directs them here and to the role-specific durable state, so the
+human does not need to name a policy file or repeat its rules. Before any
+mutation, the agent must:
 
-1. Read `docs/agent-orchestration.md`
-2. Determine whether the checkout is root `master`, persistent `staging`, or a feature worktree
-3. In a feature worktree, read its `ops/workstreams/<branch-slug>/plan.yaml`, `handoff.md`, and `validation.jsonl`; confirm the recorded human request before acting
-4. In root `master`, read relevant global `ops/*` evidence before staging control, promotion, or deployment work
-5. Optionally consult global `ops/*` legacy history when it materially helps a feature worker, but do not edit it as routine branch coordination
-6. Only then begin authorized implementation/validation work
+1. run `make agent-context` and classify the checkout as control, staging
+   coordinator, implementation, or invalid;
+2. keep control sessions read-only and use the staging coordinator only for
+   explicitly authorized staging/workflow operations;
+3. in an implementation worktree, run `make agent-session-start`, then read its
+   `plan.yaml`, `handoff.md`, `validation.jsonl`, and `session.json`;
+4. confirm that the recorded human request authorizes the current topic and
+   that the session claim belongs to this writer;
+5. consult global `ops/*` only as legacy evidence when it materially helps;
+6. begin the permitted implementation or validation action.
 
-This means the orchestrator only needs to say:
-
-> Read `docs/agent-orchestration.md` and obey it.
-
-Everything else flows from this file.
+External runners that cannot discover repository instructions may use this file
+as a fallback entry point. That is an adapter for the runner, never a prompt
+the human is expected to supply.
 
 ## Non-negotiable rule
 
@@ -245,7 +305,7 @@ This means:
 
 If a worker waits until the final moments of its remaining budget to externalize context, that worker has failed the contract.
 
-Every worker must read `docs/agent-orchestration.md`. A feature worker must
+Every worker must obey the repository-discovered policy. A feature worker must
 read and maintain only its branch-owned workstream record; the `master`
 integration worker reads the relevant global `ops/*` integration evidence.
 
@@ -284,9 +344,9 @@ Because practical exhaustion may happen much earlier, the worker must actively p
 
 At soft stop, the worker must:
 - finish the current small action if possible
-- update `ops/handoff.md`
-- update `ops/state.json`
-- append to `ops/run-report.md`
+- run `make agent-session-checkpoint SESSION_ID=<id>`
+- update the current branch's `ops/workstreams/<slug>/handoff.md`
+- append validation evidence to that workstream's `validation.jsonl`
 - record exact next step
 - stop cleanly
 
@@ -345,8 +405,9 @@ this order:
    remain unstaged or uncommitted.
 5. Push that commit immediately. Verify the local commit hash and
    `origin/<branch>` hash are identical and verify a clean worktree.
-6. Only after the implementation commit is synchronized, update `ops/handoff.md`,
-   `ops/state.json`, and `ops/run-report.md` with the exact commit hash,
+6. Only after the implementation commit is synchronized, update the branch-owned
+   `ops/workstreams/<branch-slug>/handoff.md`, `session.json`, and
+   `validation.jsonl` with the exact commit hash,
    validation evidence, remaining gaps, acceptance flexibility, and the next
    context. Commit and push this operational record as a separate small
    checkpoint, then verify clean status and matching hashes again. The state
@@ -366,7 +427,7 @@ this order:
 - Push the commit immediately after the checkpoint whenever the remote is
   available. Verify that `HEAD` and the remote branch resolve to the same hash
   and that the worktree is clean.
-- Refresh `ops/handoff.md`, `ops/state.json`, and `ops/run-report.md` with the
+- Refresh the branch-owned handoff, session state, and validation journal with the
   commit/push result, validation evidence, and the exact next context. Do not
   leave a stale statement that a commit or push is pending after it succeeds.
 - At minimum, perform this checkpoint after each substantial feature/fix,
@@ -495,7 +556,7 @@ and is prohibited. The worker must immediately:
 
 1. verify the worktree is clean and the local commit is intact;
 2. record `committed_locally_pending_push`, the exact command, range, and
-   rejection category in `ops/handoff.md`, `ops/state.json`, and the run report;
+   rejection category in the branch-owned handoff, session state, and validation journal;
 3. continue the next independently scoped implementation context from the clean
    local boundary; and
 4. retry the same push only when a later continuation presents an approved
@@ -543,15 +604,15 @@ context, the proposed context, or an unrelated pre-existing change; finish or
 handoff the prior context; and run the changeset-closure protocol above. No
 blanket `git add -A`, stash, reset, discard, or broad cleanup may be used to make
 the boundary appear clean. A deliberately unfinished context must remain named
-in `ops/handoff.md` with its owned files and exact next action, and the next
+in the branch-owned handoff with its owned files and exact next action, and the next
 worker must resume that context rather than selecting a different one.
 
 ### Context ledger and completion boundary
 
 The active changeset context is a ledger item, not merely a label in chat. At
 the moment a context is selected, the worker must record its name, intent, and
-owned paths in `ops/handoff.md` (and, when it is a substantial unit, in
-`ops/tasks.yaml`). Every subsequent edit must belong to that ledger item. A
+owned paths in the branch-owned handoff and plan. Every subsequent edit must
+belong to that ledger item. A
 file that is shared by two contexts must be finished and committed in the
 first context, or the work must be split into independently reviewable files;
 it must not be carried forward implicitly.
@@ -647,7 +708,7 @@ ahead commit is a clearly labelled `docs(ops)` checkpoint, the worker may open t
 context. It must:
 
 - keep the operational checkpoint as a separate commit and never amend feature files into it;
-- record the exact pending SHA, remote SHA, and push failure in `ops/handoff.md`/`ops/state.json`;
+- record the exact pending SHA, remote SHA, and push failure in the branch-owned handoff/session state;
 - attempt the checkpoint push again through the approved elevated Git path, without indirect
   workarounds;
 - commit the next implementation context separately, attempt its push, and continue only with
@@ -682,9 +743,8 @@ If the worker believes exhaustion risk is rising, it must immediately shift from
 - record what remains
 - record exact next step
 - record validation state
-- update `ops/handoff.md`
-- update `ops/state.json`
-- append to `ops/run-report.md`
+- update the branch-owned workstream handoff and session state
+- append validation evidence to the branch-owned validation journal
 
 The worker must prefer leaving a clean handoff over squeezing in one more edit.
 
@@ -747,34 +807,78 @@ Every handoff must include:
 - assumptions made
 - whether the tree is ready to commit
 
+The current branch-owned workstream is the required handoff location. The old
+global legacy operational files are
+legacy integration evidence and must not be edited by independent feature
+workers.
+
+## Docker ownership and cleanup
+
+Each worktree's Compose projects, containers, volumes, networks, built images,
+Testcontainers resources, and attributable build cache carry a path-derived
+worktree ID. Use `make agent-resource-status` to inspect only the current
+worktree. More than 5 GB of attributable usage schedules cleanup at the next
+safe boundary; there is no repository-wide 10 GB limit.
+
+After every Docker-backed run, use `make agent-resource-cleanup`, including on
+failure or cancellation. Cleanup removes only resources carrying the current
+worktree ID or exact Compose project labels. Shared base images and resources
+belonging to another worktree are never removed. Do not use `docker system
+prune` from a branch session. A volume may remain only after
+`make agent-resource-retain-volume ...` records its owner, reason, next use, and
+review condition. Once that condition is satisfied, release it with
+`make agent-resource-release-volume VOLUME=<exact-name> CONFIRM=<same-name>`.
+Checkpoint and finish must report any remaining resource.
+
+The helper runs through the backend UV-managed Python (`uv run --project
+backend python ...`); macOS system Python is not a supported workflow runtime.
+
+### Local validation profiles
+
+The implementation agent selects the minimum local profile from the recorded
+scope and impact. `full_integration` remains the default branch validation tier;
+this table controls the local evidence required before human review:
+
+- `none`: documentation-only changes with a recorded reason;
+- `unit`: pure logic with no database, queue, browser, Compose, or runtime
+  boundary;
+- `docker_integration`: database, Redis, worker, migration, provider
+  persistence, Testcontainers, or Docker contract changes;
+- `full_stack_browser`: UI/API integration, WebSocket, authentication,
+  Compose, workstation behavior, E2E, or visual changes.
+
+Agents may select a stronger profile, but may not select a weaker one without a
+human-authorized remote-only exception recorded in the workstream. When a
+Docker-backed profile is required, the agent may launch an already-installed
+Docker Desktop on macOS (`open -a Docker`) and wait for the daemon; it must not
+install, upgrade, restart, or quit Docker automatically. A failed readiness
+check is an honest local-runtime blocker, not evidence that Docker validation
+passed. Remote CI complements this local evidence; it does not silently replace
+it.
+
 This contract applies both:
 - at final handoff
 - at intermediate checkpoints
 
-## Prompting rule for any LLM
+## Prompting and progress rule
 
-When launching a worker, always provide:
-- the task to work on
-- the instruction to read `docs/agent-orchestration.md` first
-- the instruction to obey the stop-before-expiry rule
-- the instruction to obey the frequent checkpoint rule
-- the instruction to prioritize continuity if exhaustion risk is suspected
-- the instruction to update handoff/state/report before stopping
-- the validation requirements for the current task
+Supported Codex VS Code sessions receive their repository instructions through
+automatic `AGENTS.md` discovery. The human's prompt should contain only the
+natural request or feedback. It must not be necessary to repeat this document's
+path, validation commands, checkpoint rules, commit/push rules, or integration
+and deployment prohibitions.
 
-The orchestrator does **not** need to separately enumerate the `ops/*` files in its initial prompt if it already points the worker to this file, because this file already instructs the worker to load them.
+External runners without repository instruction discovery may use a short
+fallback wrapper that names this document, but that wrapper is an adapter for
+the runner and is never a requirement imposed on the human.
 
-## Recommended orchestrator prompt shape
-
-Use a short launch instruction shaped like this:
-
-> You are the current worker on this repository. Read `docs/agent-orchestration.md` first and obey it fully. Then continue the active task from the repository handoff/state files. Before stopping, update the required handoff/state/report files and record exact next steps.
-
-In practice, the orchestrator should prefer a slightly expanded version:
-
-> You are the current worker on this repository. Read `docs/agent-orchestration.md` first and obey it fully. Then continue the active task from the repository handoff/state files. Assume your usable session budget may end much earlier than expected. Checkpoint frequently. If exhaustion risk increases, stop new implementation work and preserve continuity first. Before stopping, update the required handoff/state/report files and record exact next steps.
-
-That is enough as the generic prompt wrapper.
+Every implementation goal must expose concrete acceptance criteria and stop at
+`ready_for_human_review`. Workers report progress after each meaningful phase
+and approximately every 20 minutes during long work, using completed criteria
+over total criteria (`x/y`, with a percentage only when it is meaningful).
+Checkpoint state records the same progress, current phase, blocker, latest
+validated SHA, and exact next action so a replacement session can resume from
+repository state rather than chat history.
 
 ## Root repository discovery
 
