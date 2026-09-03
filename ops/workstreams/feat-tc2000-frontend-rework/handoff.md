@@ -165,3 +165,9 @@ local evidence and cannot erase the rest of the unit result or suppress later sc
 At the fan-out checkpoint tip `ebd03f3a6cf91eec42d2361f4bf7266afb19735f`, the complete backend
 unit suite passed (`1281` tests, `67.31%` coverage against the `55%` gate). The suite includes the
 new scheduler failure-isolation tests; warnings remain limited to existing NumPy/Pandas deprecations.
+
+At the session tip `df08b269b6064b1afd46b5c3c8e95a5c8ee7e046`, the non-Docker repository contracts
+remain green: 42 workflow tests, the 48-primary-source uPlot numerical-renderer audit, all 26
+visual-acceptance policy assertions, and the TC2000 V25 visual manifest validator passed. The
+Docker-backed stack/browser/exhaustive integration profile remains blocked by the inaccessible
+Docker Desktop socket recorded above.
