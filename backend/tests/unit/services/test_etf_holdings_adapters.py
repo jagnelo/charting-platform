@@ -21742,7 +21742,7 @@ def test_etf_com_brand_reconciliation_batch_is_registered_and_audited():
 
 def test_etf_com_issuer_page_reconciliation_batch_is_registered_and_audited():
     expected = set(ETF_COM_ISSUER_PAGE_RECONCILIATION_ISSUER_HINTS)
-    promoted_native = {"emqq", "oshares", "esoterica"}
+    promoted_native = {"emqq", "oshares", "esoterica", "knowledge_leaders"}
     fallback_expected = expected - promoted_native
 
     assert expected
