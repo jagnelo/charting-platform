@@ -15,6 +15,7 @@ from app.models.instrument import Instrument
 from app.models.instrument_identity import InstrumentProviderSymbol
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.workstation import MarketGroup, MarketGroupMember
+from app.services.etf_holdings_adapters import get_holdings_adapter, known_etf_route_metadata
 from app.services.top_down_taxonomy import (
     BENCHMARK_FAMILY_REGISTRY,
     benchmark_family_proxy_symbols,
@@ -103,6 +104,21 @@ def test_core_workstation_identity_bootstrap_is_idempotent_and_not_fixture_data(
         for family in BENCHMARK_FAMILY_REGISTRY
     )
     assert len(members) == 5 + 11 + expected_proxy_members
+
+
+def test_all_benchmark_family_proxy_routes_have_explicit_local_probe_support():
+    symbols = benchmark_family_proxy_symbols()
+
+    assert len(symbols) == 20
+    for symbol in symbols:
+        metadata = known_etf_route_metadata(symbol)
+        aliases = metadata.get("provider_aliases") or {}
+        adapter_key = aliases.get("holdings_adapter")
+        adapter = get_holdings_adapter(adapter_key)
+
+        assert adapter_key, f"No curated holdings adapter is mapped for {symbol}"
+        assert adapter is not None, f"Curated adapter {adapter_key!r} is not registered"
+        assert adapter.probe(symbol=symbol, name="", identifiers=aliases).status == "ready"
 
 
 def test_core_workstation_bootstrap_tolerates_venue_distinct_provider_symbols(db):
