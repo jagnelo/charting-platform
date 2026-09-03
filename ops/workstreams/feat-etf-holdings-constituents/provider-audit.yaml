@@ -5056,19 +5056,21 @@ providers:
     display_name: roc
     queue_rank: 106
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    current_status: inactive_or_successor_disposition
+    disposition: inactive_or_successor_disposition
+    last_checked: 2026-09-03
+    source_access_declared: historical_issuer_liquidation_disclosure
+    representative_symbols: [ROCI]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains: [alphaarchitect.com, rocetf.com]
+    candidate_routes:
+      - "https://alphaarchitect.com/wp-content/uploads/compliance/etf/statutory_prospectus/ROCI_Prospectus.pdf"
+      - "https://www.prnewswire.com/news-releases/roc-investments-llc-announces-etf-liquidation-de-listing-301954204.html"
     route_complete: false
-    symbol_mapping_proven: false
+    symbol_mapping_proven: true
     current_holdings_proven: false
     parser_fixture: null
     live_test: null
@@ -5076,13 +5078,18 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.roc"
       - "runtime:ISSUER_ADAPTER_CONFIGS.roc"
+      - "web:roc-roci-liquidation-2023-10-11"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.roc"
-    disposition_reason: "roc: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate roc first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-03
+        source: "ROC ETF prospectus supplement and ETF Architect liquidation announcement"
+        result: "ROCI was approved for liquidation on October 11, 2023, ceased trading October 20, 2023, and was scheduled to dissolve October 27, 2023; no current product or holdings route remains."
+        evidence_ref: "web:roc-roci-liquidation-2023-10-11"
+    disposition_reason: "roc: The sole ROCI product was formally liquidated and dissolved in October 2023. Preserve this recognition identity as inactive_or_successor_disposition without native promotion or SEC reconstruction."
+    next_action: "roc: Keep inactive unless a new ROC Investments U.S.-listed ETF launches with a distinct current first-party holdings route."
     implementation_sha: null
     validation_refs: []
   - adapter_key: rockefeller_capital

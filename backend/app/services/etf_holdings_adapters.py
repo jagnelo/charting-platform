@@ -66209,6 +66209,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "ROBO Global public ETF product pages and embedded holdings payloads may be subject to issuer terms."
         ),
     ),
+    "roc": IssuerCsvAdapterConfig(
+        adapter_key="roc",
+        source_provider="roc_investments",
+        source_access="historical_issuer_liquidation_disclosure",
+        product_page_templates=(
+            "https://alphaarchitect.com/wp-content/uploads/compliance/etf/statutory_prospectus/ROCI_Prospectus.pdf",
+        ),
+        live_tested_default_route=False,
+        terms_note="ROC Investments historical ROCI liquidation materials may be subject to issuer terms.",
+    ),
     "resolute": IssuerCsvAdapterConfig(
         adapter_key="resolute",
         source_provider="resolute_american_beacon",
