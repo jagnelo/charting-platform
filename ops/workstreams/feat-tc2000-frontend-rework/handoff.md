@@ -395,3 +395,36 @@ benchmark-family matrix passes `21/21`, and the full backend unit gate passes `1
 `64.42s` with `67.43%` coverage; Ruff and `git diff --check` are clean. This closes timestamp
 normalization only; it does not establish persisted provider population, member-history
 continuity, or live entitlement evidence.
+
+The canonical holding-maintenance slice now has three additional safeguards. Dated refresh failure
+handling reuses a matching pending adapter-state row in the async session, preventing a duplicate
+unique-key insert after a ready probe; `test_admin_dated_refresh_reuses_probe_state_when_fetch_fails`
+passes alongside the two existing dated-refresh regressions (`3/3` in `12.20s`). Classification
+maintenance no longer refreshes the parent snapshot after flushing scalar counters, preserving the
+eagerly loaded holdings relationship and avoiding an async `MissingGreenlet` during bounded
+reconciliation. The focused resolution/history unit slice remains green (`46` tests with the
+normalization additions), and Ruff plus `git diff --check` pass.
+
+Issuer holding labels are now normalized at the eligibility boundary while their raw values remain
+persisted for provenance. Invesco `common stock` and `real estate investment trust` rows therefore
+participate in canonical family membership/history and market-group/watchlist classification instead
+of being silently excluded as non-equities. The new history unit regression accepts both labels and
+rejects a money-market label. On the branch-scoped canonical runtime, the RSP equal-weight planner
+reports `503` usable members and `8` explicit exclusions, selecting `50` bounded history jobs
+(`44` newly queued, `6` already queued) with zero queue errors; the combined cap/equal plan reports
+the same canonical counts without fabricated fallback. The RSP industry composition endpoint also
+returns `13` classified industries with source `invesco` and persisted issuer-snapshot provenance.
+
+The rebuilt branch-local runtime contains non-fixture canonical snapshots for SPY (`505/505`
+resolved), RSP (`511/509`), XLK (`76/75`), and all ten mapped SPDR sector proxies; a bounded
+classification pass processed `13` profiles and persisted SEC-SIC details. The authenticated
+canonical browser gates `F8e.live-membership` and `F8e.live-sector-drilldown` pass `2/2` in `6.4s`
+against `http://127.0.0.1:28083`, and the frontend type-check passes. This is bounded local runtime
+evidence only: full all-family provider hydration, multi-date member-bar continuity, entitlement
+verification, and the remaining R2-R7 workflow/visual/performance gates remain open.
+
+The exact-tip backend unit gate after these fixes passes `1290/1290` in `59.58s` with `67.45%`
+coverage (above the repository `55%` threshold); the warning set remains the existing NumPy/Pandas
+deprecations. The assigned Docker project was used exclusively; its disposable local volumes will
+be removed after the final evidence checkpoint. No other worktree, staging, master, integration,
+promotion, or deployment action was performed.
