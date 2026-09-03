@@ -617,3 +617,12 @@ for the workstation, source selection, linked tools, Study Lab, Market Map, brea
 promotion, loading/error/freshness, keyboard, and dashboard paths covered by `flows.spec.ts`.
 The stack was fully removed afterward; no other worktree or environment was touched. The four
 visual projects and the remaining R5-R7 acceptance gaps still require separate evidence.
+
+The unchanged four-project visual matrix was then run on the same seeded stack. It completed
+`98/104` cases; the six failures are exactly two concentrated states: `watchlist-column-editor-open`
+at 1080p (100% and 125%) and `workspace-floating` at all four projects. The former captures the
+expanded benchmark column editor, while the latter captures the floating benchmark table with
+the current dense columns versus the older two-column snapshot. This is recorded as a visual gap,
+not waived: no baseline, mask, threshold, or skip was changed. All other visual loading,
+freshness, Study Lab, validation-error, and shell states passed, and the assigned stack was fully
+cleaned afterward.
