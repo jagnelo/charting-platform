@@ -1409,6 +1409,37 @@ async def test_robo_global_adapter_parses_nuxt_holdings(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_rockefeller_adapter_fetches_fund_scoped_daily_csv(monkeypatch):
+    adapter = get_holdings_adapter("rockefeller_capital")
+    assert adapter is not None
+    product_url, holdings_url = adapter._PRODUCTS["RSMC"]
+    holdings_csv = "\n".join(
+        [
+            "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits",
+            "09/03/2026,RSMC,HASI,41068X100,HA Sustainable Infrastructure Capital Inc,762326,39.83,30363444.58,3.97%,764067825.0,27050000,2705.0",
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text='<html><h1>Rockefeller U.S. Small-Mid Cap ETF (RSMC)</h1>'
+            '<a href="/wp-content/uploads/data/TidalFG_Holdings_RSMC.csv">Download</a></html>',
+            url=product_url,
+        ),
+        FakeResponse(text=holdings_csv, content_type="text/csv", url=holdings_url),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="RSMC")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_url, holdings_url]
+    assert result.rows[0].symbol == "HASI"
+    assert result.legal_metadata["source_provider"] == "rockefeller_etfs"
+    assert result.legal_metadata["route_resolution"] == "rockefeller_issuer_daily_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-09-03"
+
+
+@pytest.mark.asyncio
 async def test_eldridge_adapter_filters_combined_daily_holdings_and_preserves_cusips(monkeypatch):
     adapter = get_holdings_adapter("eldridge")
     assert adapter is not None
@@ -27412,8 +27443,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 405
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 91
+    assert ledger["current_native_count"] == 406
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 90
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -27469,6 +27500,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "return_stacked",
         "river1",
         "robo_global",
+        "rockefeller_capital",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))

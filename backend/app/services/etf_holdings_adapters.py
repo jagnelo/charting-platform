@@ -1705,6 +1705,7 @@ ETF_COM_BRAND_RECONCILIATION_NATIVE_ADAPTERS: frozenset[str] = frozenset(
         "quadratic",
         "return_stacked",
         "robo_global",
+        "rockefeller_capital",
         "sp_funds",
         "touchstone",
         "tradr",
@@ -24190,6 +24191,45 @@ class ReturnStackedHoldingsAdapter(TidalHoldingsAdapter):
         )
         result.raw_json["source_format"] = "return_stacked_issuer_daily_holdings_csv"
         result.legal_metadata["route_resolution"] = "return_stacked_issuer_daily_holdings_csv"
+        return result
+
+
+class RockefellerHoldingsAdapter(TidalHoldingsAdapter):
+    """Fetch Rockefeller ETFs from its issuer-published daily Tidal CSVs."""
+
+    _PRODUCTS: dict[str, tuple[str, str]] = {
+        symbol: (
+            f"https://rockefelleretfs.com/{symbol.lower()}/",
+            f"https://rockefelleretfs.com/wp-content/uploads/data/TidalFG_Holdings_{symbol}.csv",
+        )
+        for symbol in ("RMOP", "RMNY", "RMCA", "RSMC", "RGEF")
+    }
+
+    def _validate_product_page(self, page_text: str, *, symbol: str) -> None:
+        super()._validate_product_page(page_text, symbol=symbol)
+        if f"TidalFG_Holdings_{symbol}.csv" not in html.unescape(page_text):
+            raise ValueError(
+                f"Rockefeller product page did not declare the holdings CSV for {symbol}."
+            )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        result = await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        result.raw_json["source_format"] = "rockefeller_issuer_daily_holdings_csv"
+        result.legal_metadata["route_resolution"] = "rockefeller_issuer_daily_holdings_csv"
+        result.legal_metadata["source_provider"] = "rockefeller_etfs"
+        result.legal_metadata["legal_publisher"] = "Rockefeller ETFs / Tidal Investments"
         return result
 
 
@@ -66219,6 +66259,21 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=False,
         terms_note="ROC Investments historical ROCI liquidation materials may be subject to issuer terms.",
     ),
+    "rockefeller_capital": IssuerCsvAdapterConfig(
+        adapter_key="rockefeller_capital",
+        source_provider="rockefeller_etfs",
+        source_access="issuer_product_page_declared_daily_holdings_csv",
+        product_page_templates=tuple(
+            f"https://rockefelleretfs.com/{symbol.lower()}/"
+            for symbol in ("RMOP", "RMNY", "RMCA", "RSMC", "RGEF")
+        ),
+        url_templates=tuple(
+            f"https://rockefelleretfs.com/wp-content/uploads/data/TidalFG_Holdings_{symbol}.csv"
+            for symbol in ("RMOP", "RMNY", "RMCA", "RSMC", "RGEF")
+        ),
+        live_tested_default_route=True,
+        terms_note="Rockefeller ETFs public product pages and daily holdings CSVs may be subject to issuer terms.",
+    ),
     "resolute": IssuerCsvAdapterConfig(
         adapter_key="resolute",
         source_provider="resolute_american_beacon",
@@ -69789,7 +69844,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "performance_trust",
         "putnam",
         "rareview_funds",
-        "rockefeller_capital",
         "roc",
         "saba_capital",
         "sammons_enterprises",
@@ -73345,7 +73399,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "robo_global": RoboGlobalHoldingsAdapter,
         "roc": RocReconciledFallbackHoldingsAdapter,
         "rock_point": RockPointAuditedFallbackHoldingsAdapter,
-        "rockefeller_capital": RockefellerCapitalReconciledFallbackHoldingsAdapter,
+        "rockefeller_capital": RockefellerHoldingsAdapter,
         "saba_capital": SabaCapitalReconciledFallbackHoldingsAdapter,
         "sammons_enterprises": SammonsEnterprisesReconciledFallbackHoldingsAdapter,
         "sapient": SapientReconciledFallbackHoldingsAdapter,
