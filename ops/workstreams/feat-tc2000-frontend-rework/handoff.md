@@ -506,3 +506,29 @@ Docker-backed benchmark-family integration matrix passes `21/21`, and Ruff plus 
 are clean. The assigned stack was removed with branch-scoped volumes and the disposable local token
 deleted; no other worktree, staging, master, integration, promotion, or deployment action was
 performed.
+
+## 2026-09-03 — bounded identifier enrichment and worker provider-symbol resolution
+
+The previous history run showed that canonical provider bindings could exist in PostgreSQL while
+the ARQ history worker still loaded a bare `Instrument` row. Because the provider-symbol resolver
+intentionally does not trigger relationship lazy loads, those jobs fell back to internal
+`HOLDING-*` symbols. Commit `4d34bf60` makes the worker eagerly load both provider-symbol and
+listing relationships, with a regression test asserting both loader options are supplied.
+
+The existing bounded OpenFIGI reconciliation path was then run for the QQQ snapshot without
+changing SEC ingestion's provider-neutral policy. It promoted `25/101` QQQ constituents to
+canonical provider symbols (each with OpenFIGI provenance); `76/101` remain explicit
+`HOLDING-*` placeholders and require additional bounded maintenance passes. After the worker
+restart, logs showed canonical symbols (`GEHC`, `REGN`, `ABNB`, `APP`, and `FANG`) entering the
+provider chain, and the assigned runtime persisted `8,748` Nasdaq D1 bars across those five
+members (2016-09-02 through 2026-09-02). The requested refresh date was 2025-12-31, so the
+observed range is provider-chain/member-bar evidence only; point-in-time end-date correctness is
+not claimed and remains an R1 audit item.
+
+This was intentionally a bounded sample: Redis still reported `64` queued jobs at capture and
+the stack was cleaned before the remaining slow public-provider attempts completed. MN/W1 had no
+usable Nasdaq coverage, the remaining 76 members have no established free-provider D1 coverage,
+and QQQE plus the SPDR dated holdings routes remain unresolved. No paid credential, latest-only
+fallback, or fabricated bar was introduced. The assigned stack and volumes were removed after
+capture; no other worktree, staging, master, integration, promotion, or deployment action was
+performed.
