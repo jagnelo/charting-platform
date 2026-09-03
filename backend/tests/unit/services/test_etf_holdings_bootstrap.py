@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date
 from types import SimpleNamespace
 
 import pytest
@@ -13,6 +14,7 @@ from app.services.etf_holdings_refresh import (
     _issuer_product_identifier,
     bootstrap_etf_holdings_profile,
     holdings_snapshot_is_bootstrap_ready,
+    refresh_etf_holdings_for_date,
 )
 from app.services.instrument_mastering import ensure_internal_identifier
 
@@ -333,6 +335,81 @@ async def test_bootstrap_uses_async_nested_transaction_for_ready_routes(monkeypa
     assert result.refresh_succeeded is True
     assert db.nested_enters == 1
     assert db.nested_exits == 1
+
+
+@pytest.mark.asyncio
+async def test_dated_refresh_preserves_provider_snapshot_metadata(monkeypatch):
+    """Dated routes must retain their completeness/provenance contract on persistence."""
+
+    db = FakeBootstrapDB()
+    instrument = SimpleNamespace(id=101, symbol="QQQ", name="Invesco QQQ Trust")
+    profile = SimpleNamespace(
+        instrument=instrument,
+        adapter_key="invesco",
+        provider_aliases={},
+        issuer=None,
+        sponsor=None,
+        fund_family=None,
+        product_url=None,
+        sec_cik=None,
+        sec_series_id=None,
+        sec_class_id=None,
+    )
+    snapshot = SimpleNamespace(id=501)
+    captured: dict = {}
+
+    class FakeAdapter:
+        adapter_key = "invesco"
+
+        async def fetch_for_date(self, **kwargs):
+            assert kwargs["symbol"] == "QQQ"
+            assert kwargs["requested_date"].isoformat() == "2026-06-30"
+            return SimpleNamespace(
+                rows=[SimpleNamespace(symbol="AAPL")],
+                raw_text="AAPL",
+                raw_json={"rows": ["AAPL"]},
+                source_url="https://sec.example/qqq.xml",
+                source_identifier="000001",
+                legal_metadata={
+                    "route_resolution": "sec_edgar_filing_fallback",
+                    "source_provider": "sec",
+                    "source_format": "xml",
+                    "snapshot_provenance": "sec_nport_reconstructed_holdings",
+                    "source_quality": "filing_reconstructed_holdings",
+                    "completeness_status": "filing_reconstructed",
+                    "parser_version": "invesco-sec-v2",
+                },
+            )
+
+    async def fake_ingest(_db, **kwargs):
+        captured.update(kwargs)
+        return snapshot
+
+    async def fake_record_success(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.get_holdings_adapter",
+        lambda key: FakeAdapter() if key == "invesco" else None,
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.ingest_holdings_snapshot", fake_ingest
+    )
+    monkeypatch.setattr("app.services.etf_holdings_refresh._record_success", fake_record_success)
+
+    result = await refresh_etf_holdings_for_date(
+        db,
+        profile,
+        requested_date=date(2026, 6, 30),
+    )
+
+    assert result is snapshot
+    assert captured["provenance"] == "sec_nport_reconstructed_holdings"
+    assert captured["source_provider"] == "sec"
+    assert captured["source_quality"] == "filing_reconstructed_holdings"
+    assert captured["completeness_status"] == "filing_reconstructed"
+    assert captured["parser_version"] == "invesco-sec-v2"
+    assert "SEC EDGAR holdings filings" in captured["notes"]
 
 
 @pytest.mark.asyncio

@@ -968,13 +968,27 @@ async def refresh_etf_holdings_for_date(
             composition_date=composition_date,
             as_of_date=requested_date,
             known_at=datetime.now(UTC),
-            provenance="issuer_self_snapshotted_holdings",
+            provenance=str(
+                result_metadata.get("snapshot_provenance")
+                or "issuer_self_snapshotted_holdings"
+            ),
             source_provider=str(source_provider),
             source_url=fetch_result.source_url,
             source_identifier=fetch_result.source_identifier or issuer_product_id,
-            source_quality="self_snapshotted_holdings",
-            completeness_status=str(aliases.get("holdings_completeness_status") or "unknown"),
-            parser_version=f"{adapter.adapter_key}-{source_format}-v1",
+            source_quality=str(
+                result_metadata.get("source_quality")
+                or aliases.get("holdings_source_quality")
+                or "self_snapshotted_holdings"
+            ),
+            completeness_status=str(
+                result_metadata.get("completeness_status")
+                or aliases.get("holdings_completeness_status")
+                or "unknown"
+            ),
+            parser_version=str(
+                result_metadata.get("parser_version")
+                or f"{adapter.adapter_key}-{source_format}-v1"
+            ),
             raw_payload_text=fetch_result.raw_text,
             raw_payload_json=fetch_result.raw_json,
             legal_metadata={
@@ -982,7 +996,12 @@ async def refresh_etf_holdings_for_date(
                 "terms_note": aliases.get("terms_note"),
                 "artifact_identity_validation": artifact_identity_validation,
             },
-            notes="Fetched through the ETF profile's dated issuer holdings adapter route.",
+            notes=(
+                "Reconstructed from SEC EDGAR holdings filings through the ETF profile's "
+                "provider-specific adapter."
+                if result_metadata.get("route_resolution") == "sec_edgar_filing_fallback"
+                else "Fetched through the ETF profile's dated issuer holdings adapter route."
+            ),
             # Issuer artifacts already carry their canonical symbol/identifier
             # evidence.  Do not fan out synchronously to optional metadata
             # providers for every row; unresolved rows remain explicit and can
