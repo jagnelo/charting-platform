@@ -22197,6 +22197,7 @@ def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audit
         "even_herd",
         "everence",
         "fitzgerald",
+        "logiq",
     }
 
     assert expected
