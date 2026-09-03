@@ -610,3 +610,10 @@ numerical-renderer contract, and all 26 unchanged visual-policy assertions. `npm
 also passed `vue-tsc` and Vite's 490-module production build; its only diagnostic was the
 existing large-chunk warning. These receipts do not close the browser functional/visual gaps or
 the backend coverage-instrumentation blocker.
+
+The seeded assigned-stack Chromium run then completed all `153` flow cases: `148 passed`, `5
+documented skips`, and `0 failures` in 6.8 minutes. This is fresh authenticated browser evidence
+for the workstation, source selection, linked tools, Study Lab, Market Map, breadth/rotation,
+promotion, loading/error/freshness, keyboard, and dashboard paths covered by `flows.spec.ts`.
+The stack was fully removed afterward; no other worktree or environment was touched. The four
+visual projects and the remaining R5-R7 acceptance gaps still require separate evidence.
