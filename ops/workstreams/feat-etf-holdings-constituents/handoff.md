@@ -1384,7 +1384,7 @@ maps ticker/FIGI/quantity/market value/weight fields, preserves cash rows, and
 records dated issuer provenance. Both bounded live probes passed.
 
 The durable split is now 496 registered / 413 native-live-backed / 83
-fallback-only providers, with 13 queued records and `hoya` next. Runtime
+fallback-only providers, with 13 queued records and `suncoast` next. Runtime
 fallback statuses are 16 issuer-access-blocked, 53 route-discovery, 10
 non-executable-public-source, and 7 non-portfolio-publisher. Evidence refs:
 `web:stratified-current-sspy-shus-holdings-pages-2026-09-04` and

@@ -2572,6 +2572,6 @@ component, preserves cash rows, and records the issuer-page provenance. The
 bounded live probes passed for both products.
 
 Counts are 496 registered / 413 native / 83 fallback, with 13 queued and
-`hoya` next. Evidence refs:
+`suncoast` next. Evidence refs:
 `web:stratified-current-sspy-shus-holdings-pages-2026-09-04` and
 `live:stratified-current-sspy-shus-holdings-pages-2026-09-04`.
