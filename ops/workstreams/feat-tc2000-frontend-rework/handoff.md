@@ -122,3 +122,9 @@ before the requested `as_of`; current-only detail is not reused to fill a histor
 role composite status remains conservative until weights, classification, member bars, point-in-
 time support, and persisted entitlement/probe evidence are all ready. The workstation coverage
 row exposes the weight and classification states beside continuity and history.
+
+The historical-cutoff regression is published at `9019a04f52c85235cec0820eab9c3de12299ad4f`.
+It uses a snapshot known before the requested evaluation date but classification observations learned
+later: the current read reports classified members, while the historical read reports zero eligible
+classification evidence. This protects the R1 point-in-time boundary independently of holdings
+composition selection and member-bar truncation.
