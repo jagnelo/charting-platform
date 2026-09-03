@@ -25,6 +25,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "long_pond",
     "lsv",
     "max",
+    "mcelhenny_sheffield",
     "amun",
     "1251_capital",
     "3fourteen",
@@ -3525,6 +3526,27 @@ async def test_live_max_jetu_product_page_index_constituents():
     assert result.legal_metadata["disclosure_type"] == "etn_index_components"
     assert result.legal_metadata["composition_date"]
     assert all(row.weight is not None for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("mcelhenny_sheffield")
+async def test_live_mcelhenny_sheffield_msmr_product_page_holdings_table():
+    adapter = get_holdings_adapter("mcelhenny_sheffield")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="MSMR")
+
+    _assert_live_holdings_result(result, adapter_key="mcelhenny_sheffield", min_rows=7)
+    assert (
+        result.legal_metadata["route_resolution"]
+        == "mcelhenny_sheffield_product_page_holdings_table"
+    )
+    assert result.legal_metadata["source_format"] == "html_table"
+    assert result.legal_metadata["composition_date"]
+    assert any(row.symbol == "QQQ" for row in result.rows)
+    assert any(row.cusip == "46090E103" for row in result.rows)
+    assert any(row.row_type == "cash" for row in result.rows)
 
 
 @pytest.mark.asyncio

@@ -31557,6 +31557,185 @@ class AptusHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return None
 
 
+class McElhennySheffieldHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Parse MSMR's complete current holdings table from McElhenny Sheffield."""
+
+    PRODUCT_PAGE_URL = "https://mscmfunds.com/msmr-etf/"
+    SUPPORTED_SYMBOL = "MSMR"
+    EXPECTED_PRODUCT_NAME = "McElhenny Sheffield Managed Risk ETF"
+    REQUIRED_HEADERS = frozenset(
+        {
+            "stock ticker",
+            "cusip",
+            "security desc",
+            "shares",
+            "price",
+            "market value",
+            "weightings",
+            "effective date",
+        }
+    )
+    _CURRENT_AS_OF_RE = re.compile(
+        r"Current\s+as\s+of\s+(?P<date>\d{1,2}/\d{1,2}/\d{4})", re.IGNORECASE
+    )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        supported = normalized_symbol == self.SUPPORTED_SYMBOL
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9600") if supported else Decimal("0.5000"),
+            status="ready" if supported else "needs_issuer_route",
+            reason=(
+                "McElhenny Sheffield publishes MSMR's complete current holdings table on its official product page."
+                if supported
+                else "McElhenny Sheffield's verified native route is configured for MSMR only."
+            ),
+            source_url=self.PRODUCT_PAGE_URL if supported else None,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del identifiers
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol != self.SUPPORTED_SYMBOL:
+            raise ValueError(
+                "McElhenny Sheffield's verified holdings route is configured for MSMR only."
+            )
+        product_page_url = source_url or self.PRODUCT_PAGE_URL
+        if product_page_url.rstrip("/") != self.PRODUCT_PAGE_URL.rstrip("/"):
+            raise ValueError(
+                "McElhenny Sheffield holdings must use the verified MSMR product page."
+            )
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                product_page_url,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        self._validate_product_page(response.text, symbol=normalized_symbol)
+        rows, composition_date, page_as_of_date = self._parse_product_page(response.text)
+        if len(rows) < 2:
+            raise ValueError(
+                "McElhenny Sheffield MSMR product page returned too few holdings rows."
+            )
+        if composition_date is None:
+            raise ValueError(
+                "McElhenny Sheffield MSMR holdings table did not expose an effective date."
+            )
+
+        for index, row in enumerate(rows, start=1):
+            row.source_row_id = (
+                f"mcelhenny-sheffield-{normalized_symbol}-{composition_date.isoformat()}-{index}"
+            )
+            if row.row_type == "cash":
+                row.cusip = None
+                row.isin = None
+                row.sedol = None
+                row.currency = row.currency or "USD"
+            elif row.name and any(marker in row.name.upper() for marker in (" ETF", " TRUST")):
+                row.holding_type = "fund"
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "html_table", "row_count": len(rows)},
+            source_url=str(response.url),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html_table",
+                "route_resolution": "mcelhenny_sheffield_product_page_holdings_table",
+                "snapshot_provenance": "mcelhenny_sheffield_native_holdings_table",
+                "disclosure_type": "portfolio_holdings",
+                "product_page_url": str(response.url),
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+                "page_as_of_date": page_as_of_date.isoformat() if page_as_of_date else None,
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _validate_product_page(cls, raw_html: str, *, symbol: str) -> None:
+        normalized = re.sub(r"\s+", " ", html.unescape(raw_html))
+        if (
+            symbol not in normalized
+            or cls.EXPECTED_PRODUCT_NAME.casefold() not in normalized.casefold()
+        ):
+            raise ValueError(
+                "McElhenny Sheffield product page did not verify the requested MSMR identity."
+            )
+        if not any(
+            table
+            and cls.REQUIRED_HEADERS <= {value.strip().lower() for value in table[0]}
+            for table in cls._extract_tables(raw_html)
+        ):
+            raise ValueError(
+                "McElhenny Sheffield MSMR product page did not expose the expected holdings table."
+            )
+
+    @classmethod
+    def _parse_product_page(
+        cls, raw_html: str
+    ) -> tuple[list[CanonicalHoldingRow], date | None, date | None]:
+        page_as_of_match = cls._CURRENT_AS_OF_RE.search(html.unescape(raw_html))
+        page_as_of_date = (
+            _parse_issuer_date(page_as_of_match.group("date")) if page_as_of_match else None
+        )
+        for table in cls._extract_tables(raw_html):
+            if not table:
+                continue
+            header_values = {str(value).strip().lower() for value in table[0] if _clean(value)}
+            if not cls.REQUIRED_HEADERS <= header_values:
+                continue
+            normalized_table = [
+                [cls._normalize_header(value) for value in table[0]],
+                *table[1:],
+            ]
+            rows = parse_holdings_table(normalized_table)
+            composition_date = cls._extract_effective_date(rows)
+            return rows, composition_date, page_as_of_date
+        raise ValueError(
+            "McElhenny Sheffield MSMR product page did not expose parseable holdings rows."
+        )
+
+    @staticmethod
+    def _extract_tables(raw_html: str) -> list[list[list[str]]]:
+        parser = _HTMLTablesParser()
+        parser.feed(raw_html)
+        return parser.tables
+
+    @staticmethod
+    def _normalize_header(value: Any) -> str:
+        lowered = str(value).strip().lower()
+        return {
+            "stock ticker": "Ticker",
+            "security desc": "Security Description",
+            "weightings": "Weightings",
+        }.get(lowered, str(value).strip())
+
+    @staticmethod
+    def _extract_effective_date(rows: list[CanonicalHoldingRow]) -> date | None:
+        for row in rows:
+            effective_date = _parse_issuer_date(row.extra_data.get("Effective Date"))
+            if effective_date:
+                return effective_date
+        return None
+
+
 class ArrowHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch Arrow ETF holdings from the issuer's public export endpoint."""
 
@@ -65298,6 +65477,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Aptus public ETF product pages may be subject to issuer terms.",
     ),
+    "mcelhenny_sheffield": IssuerCsvAdapterConfig(
+        adapter_key="mcelhenny_sheffield",
+        source_provider="mcelhenny_sheffield",
+        source_access="issuer_public_product_page_holdings_table",
+        product_page_templates=("https://mscmfunds.com/msmr-etf/",),
+        live_tested_default_route=True,
+        terms_note=(
+            "McElhenny Sheffield public ETF product-page holdings may be subject to issuer terms."
+        ),
+    ),
     "proshares": IssuerCsvAdapterConfig(
         adapter_key="proshares",
         source_provider="proshares",
@@ -67906,7 +68095,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "m_d_sass",
         "madison_avenue",
         "matrix",
-        "mcelhenny_sheffield",
         "measured_risk_portfolios",
         "merchant_investment_management",
         "merk",
@@ -69918,10 +70106,6 @@ class BeeHiveReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """StockAnalysis provider-table fallback adapter pending BeeHive discovery."""
 
 
-class McElhennySheffieldReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """StockAnalysis provider-table fallback adapter pending McElhenny Sheffield discovery."""
-
-
 class BallastReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """StockAnalysis provider-table fallback adapter pending Ballast discovery."""
 
@@ -70992,7 +71176,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "marathon": MarathonAuditedFallbackHoldingsAdapter,
         "matrix": MatrixReconciledFallbackHoldingsAdapter,
         "max": MaxHoldingsAdapter,
-        "mcelhenny_sheffield": McElhennySheffieldReconciledFallbackHoldingsAdapter,
+        "mcelhenny_sheffield": McElhennySheffieldHoldingsAdapter,
         "merchant_investment_management": MerchantInvestmentManagementReconciledFallbackHoldingsAdapter,
         "merk": MerkReconciledFallbackHoldingsAdapter,
         "meridian": MeridianReconciledFallbackHoldingsAdapter,

@@ -6390,6 +6390,63 @@ async def test_max_adapter_fetches_jetu_index_constituents(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_mcelhenny_sheffield_adapter_fetches_msmr_product_page_holdings(monkeypatch):
+    adapter = get_holdings_adapter("mcelhenny_sheffield")
+    assert adapter is not None
+
+    page_html = """
+    <html><head><title>MSMR | McElhenny Sheffield Managed Risk ETF</title></head>
+    <body>
+      <h1>McElhenny Sheffield Managed Risk ETF (MSMR)</h1>
+      <p>Current as of 08/31/2026</p>
+      <table>
+        <thead><tr>
+          <th>Stock Ticker</th><th>Cusip</th><th>Security Desc</th><th>Shares</th>
+          <th>Price</th><th>Market Value</th><th>Weightings</th><th>Effective Date</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>QQQ</td><td>46090E103</td><td>Invesco QQQ Trust</td><td>100</td>
+              <td>500.00</td><td>50000.00</td><td>20.15%</td><td>09/01/2026</td></tr>
+          <tr><td>CASH&Other</td><td>CASH&Other</td><td>Cash &amp; Other</td><td></td>
+              <td>1.00</td><td>46780.00</td><td>18.84%</td><td>09/01/2026</td></tr>
+        </tbody>
+      </table>
+    </body></html>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=page_html,
+            content_type="text/html",
+            url="https://mscmfunds.com/msmr-etf/",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="MSMR")
+
+    assert FakeAsyncClient.requested[0][0] == "https://mscmfunds.com/msmr-etf/"
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "QQQ"
+    assert result.rows[0].cusip == "46090E103"
+    assert result.rows[0].weight == Decimal("0.2015")
+    assert result.rows[0].holding_type == "fund"
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].symbol is None
+    assert result.rows[1].cusip is None
+    assert result.rows[1].currency == "USD"
+    assert result.legal_metadata["source_provider"] == "mcelhenny_sheffield"
+    assert result.legal_metadata["route_resolution"] == (
+        "mcelhenny_sheffield_product_page_holdings_table"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+    assert result.legal_metadata["page_as_of_date"] == "2026-08-31"
+
+    with pytest.raises(ValueError, match="MSMR only"):
+        await adapter.fetch_latest(symbol="OTHER")
+
+
+@pytest.mark.asyncio
 async def test_noa_adapter_fetches_usaf_from_official_bundle_declared_csv(monkeypatch):
     adapter = get_holdings_adapter("noa")
     assert adapter is not None
@@ -22210,6 +22267,7 @@ def test_stockanalysis_provider_second_continuation_batch_is_registered_and_audi
     expected = set(STOCKANALYSIS_PROVIDER_SECOND_CONTINUATION_ISSUER_HINTS) - {
         "cresalta",
         "hilton",
+        "mcelhenny_sheffield",
     }
 
     assert expected
@@ -22231,6 +22289,11 @@ def test_stockanalysis_provider_second_continuation_batch_is_registered_and_audi
     assert "hilton" not in FALLBACK_ISSUER_AUDITS
     assert ISSUER_ADAPTER_CONFIGS["hilton"].live_tested_default_route is True
     assert type(get_holdings_adapter("hilton")).__name__ == "HiltonHoldingsAdapter"
+    assert "mcelhenny_sheffield" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["mcelhenny_sheffield"].live_tested_default_route is True
+    assert type(get_holdings_adapter("mcelhenny_sheffield")).__name__ == (
+        "McElhennySheffieldHoldingsAdapter"
+    )
 
 
 def test_stockanalysis_provider_third_continuation_batch_is_registered_and_audited():
@@ -26512,8 +26575,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 389
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 107
+    assert ledger["current_native_count"] == 390
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 106
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -26553,6 +26616,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "long_pond",
         "lsv",
         "max",
+        "mcelhenny_sheffield",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))
