@@ -456,3 +456,22 @@ exception after rebuild. The stack remained live only for this validation bounda
 torn down with the prescribed branch-scoped helper. Cleanup reported zero containers and zero
 retained volumes, removed four generated images, and performed no host-wide prune. The disposable
 validation token was removed from `/tmp`.
+
+## 2026-09-03 — committed-snapshot history enqueue verified with QQQ
+
+The next R1 defect was a transaction-visibility race: the durable and scheduled workers queued
+member-history jobs before the holdings refresh transaction committed. Commit `000b1705b1a8246fbdef2012267bd0f49abebb2e`
+commits the refreshed snapshot and materialized constituent rows before enqueueing independent
+bulk-history jobs in both paths. Ordering regressions assert that queueing observes the committed
+boundary.
+
+The assigned runtime then ran a bounded Nasdaq-100 refresh for `2025-12-31` (the date used by the
+existing SEC-backed QQQ/QQQE provider evidence). QQQ refreshed as snapshot `1` with `101/101`
+resolved rows; a direct database assertion found `0` dangling constituent IDs. The durable run
+completed with `history_queue.status=queued`, `101` selected/queued jobs, and the equal-weight
+QQQE leg retained an explicit SEC identity/no-parseable-filing failure. All `101/101` member jobs
+drained from Redis, every progress record reached `complete`, and the worker log contained `0`
+missing-instrument warnings. This proves the snapshot-to-history handoff and idempotent queue
+lifecycle, not member-bar readiness: the local free-provider runtime returned zero MN/W1/D1 bars
+for all 101 jobs, so no OHLCV bars were persisted. That remains an explicit R1 data-availability
+gap; no paid credential, latest-only fallback, or fabricated bar was introduced.

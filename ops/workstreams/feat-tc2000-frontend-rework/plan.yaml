@@ -105,10 +105,10 @@ progress:
   total: 10
   current_phase: R1_provider_readiness
   current_blocker: none
-  next_action: "Expand bounded provider-backed canonical member-history hydration and recheck point-in-time continuity and entitlement outcomes; durable refresh completion is now JSON-safe, while SPDR dated-source coverage and full member-history readiness remain open."
+  next_action: "Close free-provider member-bar coverage for the verified QQQ snapshot and resolve QQQE/SPDR dated holdings sources; committed snapshot-to-history enqueueing is proven, but all 101 local QQQ member jobs returned zero bars and full member-history readiness remains open."
 remaining_gaps:
   - "R0: baseline receipts are recorded; 11 Chromium flow failures and 21 visual screenshot diffs remain reproducible gaps for later phases."
-  - "R1-R2: canonical family population/history/entitlement evidence and the live-data top-down trader workflow; SPDR dated holdings source coverage remains unestablished without an authoritative public route."
+  - "R1-R2: canonical family population/history/entitlement evidence and the live-data top-down trader workflow; QQQE/SPDR dated holdings sources and free-provider member-bar coverage remain unestablished."
   - "R3-R4: historical analytics and compatible immutable-output promotion across workstation consumers."
   - "R5-R6: required visual states, window resilience, endurance, accessibility, security, and performance evidence."
   - "R7: final exact-tip audit and exhaustive integration gate; integration and deployment remain separately authorized."
