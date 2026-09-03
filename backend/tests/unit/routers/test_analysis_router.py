@@ -225,6 +225,12 @@ def test_point_in_time_membership_normalises_legacy_naive_timestamps():
     assert not _is_known_at(datetime(2024, 3, 11), as_of)
 
 
+def test_point_in_time_membership_normalises_offsetless_cutoffs():
+    as_of = datetime(2024, 3, 10)
+    assert _is_known_at(datetime(2024, 3, 9, tzinfo=UTC), as_of)
+    assert not _is_known_at(datetime(2024, 3, 11, tzinfo=UTC), as_of)
+
+
 def test_group_members_and_bars_are_cut_at_the_requested_time():
     as_of = datetime(2024, 3, 10, tzinfo=UTC)
     group = MarketGroup(

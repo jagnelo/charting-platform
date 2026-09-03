@@ -838,7 +838,10 @@ class TestWorkspaces:
         historical = client.get(
             "/api/v1/analysis/benchmark-families/sp500/coverage",
             headers=auth_headers,
-            params={"as_of": "2026-12-01T00:00:00Z"},
+            # Exercise the offset-less ISO form accepted by FastAPI; the
+            # readiness classifier must normalize it before comparing stored
+            # UTC provenance timestamps.
+            params={"as_of": "2026-12-01T00:00:00"},
         )
         assert historical.status_code == 200, historical.text
         historical_cap = next(

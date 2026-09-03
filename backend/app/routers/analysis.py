@@ -283,6 +283,13 @@ async def _family_member_metadata_readiness(
 ) -> tuple[int, int, str, int, str]:
     """Summarize point-in-time weight and classification evidence for one snapshot."""
 
+    # FastAPI accepts both offset-aware and offset-less ISO timestamps.  The
+    # provenance timestamps are normalized to UTC below, so normalize the
+    # caller cutoff as well before comparing Python datetime values.  Without
+    # this boundary, a valid historical request such as ``2026-12-01T00:00:00``
+    # would raise on aware/naive comparison instead of returning readiness.
+    evaluation_at = _as_utc(as_of) if as_of is not None else None
+
     if snapshot is None:
         return 0, 0, "unavailable", 0, "unavailable"
     rows = (
@@ -313,7 +320,7 @@ async def _family_member_metadata_readiness(
         detail = row.constituent_instrument.equity_detail if row.constituent_instrument else None
         if detail is None or not detail.industry:
             continue
-        if as_of is None:
+        if evaluation_at is None:
             classified_count += 1
             continue
         evidence = (detail.field_provenance or {}).get("industry")
@@ -326,7 +333,7 @@ async def _family_member_metadata_readiness(
             continue
         if observed_at.tzinfo is None:
             observed_at = observed_at.replace(tzinfo=UTC)
-        if observed_at <= as_of:
+        if observed_at <= evaluation_at:
             classified_count += 1
 
     weights_status = (
@@ -948,9 +955,11 @@ def _is_known_at(
         return True
     if value is None:
         return not required
-    if value.tzinfo is None and as_of.tzinfo is not None:
-        value = value.replace(tzinfo=as_of.tzinfo)
-    return value <= as_of
+    # Query parameters may be offset-less while persisted provenance is UTC
+    # aware (and legacy rows can have the inverse shape).  Compare one
+    # canonical timeline so historical membership never crashes on a valid
+    # ISO cutoff or silently admits a future version.
+    return _as_utc(value) <= _as_utc(as_of)
 
 
 def _wire_datetime(value: datetime | None) -> str | None:
