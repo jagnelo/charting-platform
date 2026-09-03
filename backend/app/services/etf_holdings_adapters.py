@@ -2358,6 +2358,7 @@ ISSUER_DOMAIN_HINTS.update(
         "volatility_shares": ["volatilityshares.com"],
         "wahed": ["wahed.com"],
         "yieldmax": ["yieldmaxetfs.com"],
+        "opus_capital_management": ["aptusetfs.com", "opusetfs.com"],
     }
 )
 
@@ -32209,6 +32210,55 @@ class AptusHoldingsAdapter(IssuerCsvHoldingsAdapter):
             except ValueError:
                 continue
         return None
+
+
+class OpusCapitalManagementHoldingsAdapter(AptusHoldingsAdapter):
+    """Read OSCV through the Opus product page published on Aptus ETFs."""
+
+    SUPPORTED_SYMBOL = "OSCV"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol != self.SUPPORTED_SYMBOL:
+            return super().probe(symbol=symbol, name=name, identifiers=identifiers)
+        probe = super().probe(symbol=symbol, name=name, identifiers=identifiers)
+        return replace(
+            probe,
+            confidence=Decimal("0.9600"),
+            reason=(
+                "Opus Capital Management publishes OSCV's complete current holdings table "
+                "through the official Aptus ETF product page and declared WordPress API."
+            ),
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol != self.SUPPORTED_SYMBOL:
+            raise ValueError(
+                "Opus Capital Management's verified holdings route is configured for OSCV only."
+            )
+        result = await super().fetch_latest(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "source_provider": self.source_provider,
+            "publisher": "Opus Capital Management",
+            "parent_issuer": "Opus Capital Management",
+            "route_resolution": "opus_capital_management_aptus_product_page_holdings_table",
+            "snapshot_provenance": "opus_capital_management_native_current_holdings_table",
+        }
+        return result
 
 
 class McElhennySheffieldHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -68976,6 +69026,18 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "public product page and declared holdings JSON endpoint; data may be subject to issuer terms."
         ),
     ),
+    "opus_capital_management": IssuerCsvAdapterConfig(
+        adapter_key="opus_capital_management",
+        source_provider="opus_capital_management",
+        source_access="issuer_product_page_declared_wordpress_holdings_table",
+        product_page_templates=("https://aptusetfs.com/oscv/",),
+        live_tested_default_route=True,
+        terms_note=(
+            "Opus Capital Management publishes OSCV's complete current holdings through "
+            "the official Aptus ETF product page and declared WordPress API; data may be "
+            "subject to issuer terms."
+        ),
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -69059,7 +69121,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "new_age_alpha",
         "nicholas_wealth",
         "north_square",
-        "opus_capital_management",
         "pabrai",
         "panagram",
         "pathfinder",
@@ -71175,10 +71236,6 @@ class CresAltaHoldingsAdapter(BushidoHoldingsAdapter):
         )
 
 
-class OpusCapitalManagementReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """StockAnalysis provider-table fallback adapter pending Opus discovery."""
-
-
 class LsvReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """StockAnalysis provider-table fallback adapter pending LSV discovery."""
 
@@ -72613,7 +72670,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "norris_perne_french": NorrisPerneFrenchHoldingsAdapter,
         "orix": OrixAuditedFallbackHoldingsAdapter,
         "oshares": OSharesHoldingsAdapter,
-        "opus_capital_management": OpusCapitalManagementReconciledFallbackHoldingsAdapter,
+        "opus_capital_management": OpusCapitalManagementHoldingsAdapter,
         "pacific_investments": PacificInvestmentsAuditedFallbackHoldingsAdapter,
         "pabrai": PabraiReconciledFallbackHoldingsAdapter,
         "panagram": PanagramReconciledFallbackHoldingsAdapter,

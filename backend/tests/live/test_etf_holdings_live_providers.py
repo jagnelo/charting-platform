@@ -34,6 +34,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "moonvest",
     "nestyield",
     "norris_perne_french",
+    "opus_capital_management",
     "amun",
     "1251_capital",
     "3fourteen",
@@ -3724,6 +3725,30 @@ async def test_live_norris_perne_french_npfe_declared_holdings_json():
     assert metadata["snapshot_provenance"] == "norris_perne_french_native_current_holdings_json"
     assert metadata["composition_date"]
     assert any(row.symbol == "MSFT" for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("opus_capital_management")
+async def test_live_opus_capital_management_oscv_holdings():
+    adapter = get_holdings_adapter("opus_capital_management")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="OSCV")
+
+    _assert_live_holdings_result(result, adapter_key="opus_capital_management", min_rows=50)
+    metadata = result.legal_metadata or {}
+    assert metadata["source_provider"] == "opus_capital_management"
+    assert metadata["publisher"] == "Opus Capital Management"
+    assert metadata["parent_issuer"] == "Opus Capital Management"
+    assert metadata["route_resolution"] == (
+        "opus_capital_management_aptus_product_page_holdings_table"
+    )
+    assert metadata["snapshot_provenance"] == (
+        "opus_capital_management_native_current_holdings_table"
+    )
+    assert metadata["composition_date"]
+    assert any(row.symbol == "AGX" for row in result.rows)
 
 
 @pytest.mark.asyncio

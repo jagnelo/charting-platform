@@ -15209,6 +15209,46 @@ async def test_aptus_adapter_fetches_product_page_holdings_table(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_opus_capital_management_adapter_fetches_oscv_holdings(monkeypatch):
+    adapter = get_holdings_adapter("opus_capital_management")
+    assert adapter is not None
+
+    html = """
+    <span class="currentdate">Current as of 09/01/2026</span>
+    <table class="custom_tables fund_holdings_table">
+      <tr><th>Stock Ticker</th><th>Cusip</th><th>Security Desc</th><th>Shares</th>
+      <th>Price</th><th>Market Value</th><th>Weightings</th><th>Effective Date</th></tr>
+      <tr><td>AGX</td><td>04010E109</td><td>Argan Inc</td><td>7,962.00</td>
+      <td>404.75</td><td>3,222,619.50</td><td>0.49%</td><td>09/02/2026</td></tr>
+    </table>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps([{"content": {"rendered": html}}]), content_type="application/json"
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="OSCV")
+
+    assert FakeAsyncClient.requested[0][0] == "https://aptusetfs.com/wp-json/wp/v2/pages?slug=oscv"
+    assert len(result.rows) == 1
+    assert result.rows[0].symbol == "AGX"
+    assert result.rows[0].cusip == "04010E109"
+    assert result.rows[0].weight == Decimal("0.0049")
+    assert result.rows[0].shares == Decimal("7962.00")
+    assert result.legal_metadata["source_provider"] == "opus_capital_management"
+    assert result.legal_metadata["publisher"] == "Opus Capital Management"
+    assert result.legal_metadata["route_resolution"] == (
+        "opus_capital_management_aptus_product_page_holdings_table"
+    )
+    assert result.legal_metadata["snapshot_provenance"] == (
+        "opus_capital_management_native_current_holdings_table"
+    )
+
+
+@pytest.mark.asyncio
 async def test_arrow_adapter_fetches_native_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("arrow")
     assert adapter is not None
@@ -22354,6 +22394,7 @@ def test_stockanalysis_provider_continuation_batch_is_registered_and_audited():
         "max",
     }
     expected -= {"fairlead"}
+    expected -= {"opus_capital_management"}
 
     assert expected
     assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
@@ -27142,8 +27183,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 398
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 98
+    assert ledger["current_native_count"] == 399
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 97
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -27192,6 +27233,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "moonvest",
         "nestyield",
         "norris_perne_french",
+        "opus_capital_management",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))
