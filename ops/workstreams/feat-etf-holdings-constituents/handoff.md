@@ -1485,7 +1485,7 @@ records and `worth_charting` next. Evidence ref:
 - Wellesley Asset Management is recorded as `provider_not_a_portfolio_publisher`; official identity material describes an adviser/sub-adviser rather than an independent ETF portfolio publisher.
 - Worth Charting WRTH and Yoke YOKE official pages expose complete current holdings artifacts, but backend-equivalent HTTP probes returned HTTP 403. Both remain explicit `issuer_access_blocked` fallbacks; no native promotion was retained.
 - The queue is exhausted: 496 registered / 414 native / 82 fallback, zero queued records. Deterministic/default-live checks and the complete Docker integration gate are now rerun and green; exact-SHA CI/remote synchronization and human closure authorization remain pending.
-- Final checks: deterministic backend unit suite 1,341 passed (34 warnings); default live contract 2 passed/504 skipped. The full opt-in matrix initially reached 277 passed, 1 skipped, and 10 failures; a narrow retry recovered iShares IVV/IWN, and the Logan current-name repair now passes its bounded live probe, leaving 7 provider/network failures (all recorded in validation.jsonl). The complete Docker integration gate terminated successfully after dependency/lint, image build, stack health, frontend test/build, research-runner probes, functional E2E, visual E2E, and cleanup; standalone confirmation was Chromium 154 passed/2 skipped and visual 104 passed. Exact-SHA CI/remote synchronization and human closure authorization remain pending.
+- Final checks: deterministic backend unit suite 1,341 passed (34 warnings); default live contract 2 passed/504 skipped. The full opt-in matrix initially reached 277 passed, 1 skipped, and 10 failures; a narrow retry recovered iShares IVV/IWN, the Logan current-name repair, and the stale Kensington KAMO row-count assertion, leaving 6 provider/network failures (all recorded in validation.jsonl). The complete Docker integration gate terminated successfully after dependency/lint, image build, stack health, frontend test/build, research-runner probes, functional E2E, visual E2E, and cleanup; standalone confirmation was Chromium 154 passed/2 skipped and visual 104 passed. Exact-SHA CI/remote synchronization and human closure authorization remain pending.
 
 ## Current validation checkpoint — Logan current product identity repair — 2026-09-03
 
@@ -1497,3 +1497,15 @@ removes Logan from the prior ten-case live failure set; seven external/provider
 failures remain narrowly evidenced. Evidence refs:
 `web:logan-current-lclg-full-holdings-2026-09-03` and
 `live:logan-lclg-current-holdings-2026-09-03`.
+
+## Current validation checkpoint — Kensington KAMO current row-count contract — 2026-09-03
+
+The official Kensington combined daily CSV currently returns seven complete
+KAMO account rows, including security, money-market, and cash entries. The
+live manifest's stale minimum of eight was corrected to seven; identity, date,
+account filtering, and non-empty-row checks remain strict. The bounded live and
+focused unit checks pass. Six external/provider failures remain; exact-SHA
+CI/remote synchronization and human closure authorization are pending.
+
+Evidence refs: `web:kensington-kamo-current-holdings-2026-09-03` and
+`live:kensington-kamo-current-holdings-2026-09-03`.
