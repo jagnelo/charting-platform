@@ -704,3 +704,34 @@ opt-in provider matrix and Docker-backed integration gate remain pending at the
 Study Lab histogram timeout retained as the integration blocker. Evidence refs:
 `web:mig-capital-official-migo-holdings-2026-09-03` and
 `live:mig-capital-migo-current-holdings-2026-09-03`.
+
+## Current promotion checkpoint — Militia / ORR native route — 2026-09-03
+
+The ranked `militia` audit verified `https://militiaetf.com/`, whose official
+ORR page identifies the Militia Long/Short Equity ETF and server-renders a
+complete 203-row WPDataTables holdings table (`table_11`, data table `97`).
+Rows expose ticker, name, CUSIP, signed shares, price, USD-million market value,
+percent of net assets, and effective date dated September 3, 2026. The official
+SEC prospectus independently confirms the ORR series and daily full-holdings
+dissemination on the issuer page.
+
+`MilitiaHoldingsAdapter` validates the exact product identity and homepage,
+parses only the complete embedded table, preserves source identifiers and
+signed long/short positions, converts USD-million values to canonical dollars,
+and classifies the FGXXX government-obligations fund and Cash&Other row. Its
+configuration, registry ownership, fallback removal, deterministic fixture,
+live manifest, and bespoke opt-in live test are synchronized.
+
+The ledger now records `militia` as `native_promoted`: 496 registered, 394
+native/live-backed, 102 fallback-only, and 50 queued fallback records. Runtime
+fallback statuses are 8 issuer-access-blocked, 85 route-discovery, 3
+non-executable, and 6 non-portfolio-publisher; the next ranked issuer is
+`milliman`.
+
+Focused Militia unit/live checks pass and the deterministic adapter suite passes
+540 tests. The full opt-in live matrix and Docker-backed integration gate remain
+pending at this baseline; the unrelated reproducible F8p-current-history Study
+Lab histogram timeout remains the known integration blocker. Evidence refs:
+`web:militia-official-orr-holdings-2026-09-03`,
+`web:militia-sec-daily-holdings-dissemination`, and
+`live:militia-orr-current-holdings-2026-09-03`.

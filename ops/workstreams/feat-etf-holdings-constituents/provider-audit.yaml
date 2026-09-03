@@ -5,9 +5,9 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 393
-current_fallback_count: 103
-generated_at: 2026-09-03T05:30:00Z
+current_native_count: 394
+current_fallback_count: 102
+generated_at: 2026-09-03T06:00:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -3888,35 +3888,56 @@ providers:
     display_name: militia
     queue_rank: 82
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-03
+    source_access_declared: issuer_public_product_page_wpdatatable_complete_holdings_table
+    representative_symbols:
+      - ORR
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    source_freshness: current_as_of_date
+    first_party_domains:
+      - militiaetf.com
+      - sec.gov
+    candidate_routes:
+      - "https://militiaetf.com/ (official ORR page with server-rendered WPDataTables table_11 / wpdatatable 97)"
+      - "https://www.sec.gov/Archives/edgar/data/1592900/000159290025002050/ck0001592900-20250813.htm (official prospectus confirming daily full holdings dissemination)"
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: "backend/tests/unit/services/test_etf_holdings_adapters.py::test_militia_adapter_parses_orr_wpdatatable_holdings"
+    live_test: "backend/tests/live/test_etf_holdings_live_providers.py::test_live_militia_orr_official_wpdatatable_holdings"
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.militia"
       - "runtime:ISSUER_ADAPTER_CONFIGS.militia"
+      - "web:militia-official-orr-holdings-2026-09-03"
+      - "web:militia-sec-daily-holdings-dissemination"
+      - "live:militia-orr-current-holdings-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.militia"
-    disposition_reason: "militia: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate militia first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
-    implementation_sha: null
-    validation_refs: []
+      - date: 2026-09-03
+        source: "https://militiaetf.com/"
+        result: "The official Militia ORR page identifies the Militia Long/Short Equity ETF and embeds a complete 203-row holdings table in WPDataTables table_11 (wpdatatable 97), with ticker, name, CUSIP, signed shares, price, market value in USD millions, percent of net assets, and effective date columns dated September 3, 2026."
+        evidence_ref: "web:militia-official-orr-holdings-2026-09-03"
+      - date: 2026-09-03
+        source: "https://www.sec.gov/Archives/edgar/data/1592900/000159290025002050/ck0001592900-20250813.htm"
+        result: "The official SEC prospectus identifies ORR as the Militia Long/Short Equity ETF and confirms that full portfolio holdings are disseminated daily on militiaetf.com."
+        evidence_ref: "web:militia-sec-daily-holdings-dissemination"
+      - date: 2026-09-03
+        source: "backend/tests/live/test_etf_holdings_live_providers.py::test_live_militia_orr_official_wpdatatable_holdings"
+        result: "The native Militia adapter fetched the official ORR page, validated product identity and complete table headers, parsed at least 180 live rows, preserved signed positions and source identifiers, classified fund/cash rows, normalized USD-million market values, and recorded the current composition date without SEC-derived reconstruction."
+        evidence_ref: "live:militia-orr-current-holdings-2026-09-03"
+    disposition_reason: "militia: The official ORR product page provides a complete executable WPDataTables holdings table dated September 3, 2026. The native adapter validates the Militia Long/Short Equity ETF identity and official HTTPS homepage, parses all embedded rows with signed long/short shares, CUSIPs, weights, effective date, and USD-million market values, preserves source tickers for non-US listings, classifies the FGXXX government-obligations fund and Cash&Other correctly, and records issuer/SEC provenance with deterministic and opt-in live coverage."
+    next_action: "militia: Monitor the official ORR homepage for route/schema continuity and current effective dates; retain native status while the complete table remains executable and identity-valid, and add any future Militia ETF only after equivalent first-party route, parser, and bounded live evidence."
+    implementation_sha: c7054299c8550912b0a4d0910804269b4f0e9e2f
+    validation_refs:
+      - "validation:2026-09-03T06:00:00Z"
   - adapter_key: milliman
     display_name: milliman
     queue_rank: 83

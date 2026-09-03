@@ -2039,3 +2039,37 @@ opt-in provider matrix and Docker-backed integration gate remain pending at the
 Study Lab histogram timeout retained as the integration blocker. Evidence refs:
 `web:mig-capital-official-migo-holdings-2026-09-03` and
 `live:mig-capital-migo-current-holdings-2026-09-03`.
+
+## 53. Current execution checkpoint — Militia / ORR native route — 2026-09-03
+
+The ranked `militia` audit verified `https://militiaetf.com/`. The official
+page identifies the Militia Long/Short Equity ETF (ticker `ORR`) and
+server-renders its complete current portfolio in WPDataTables table `table_11`
+(`wpdatatable` 97). The table exposes 203 dated rows with ticker, name, CUSIP,
+signed shares, price, USD-million market value, percent of net assets, and
+`EFFECTIVE_DATE`; the live snapshot is dated September 3, 2026. The official
+SEC prospectus independently identifies ORR and daily full-holdings
+dissemination on the Militia site.
+
+`MilitiaHoldingsAdapter` validates the exact official homepage and product
+identity, parses only the complete embedded table, preserves source
+tickers/CUSIPs/effective dates and signed long/short positions, converts
+USD-million market values to canonical dollars, and classifies the FGXXX
+government-obligations fund and Cash&Other row correctly. Configuration,
+registry ownership, fallback-audit removal, deterministic fixture, live-backed
+manifest, and bespoke opt-in live coverage are aligned.
+
+The durable ledger records `militia` as `native_promoted`, increasing the
+code-derived split to 496 registered, 394 native/live-backed, and 102
+fallback-only providers. Runtime fallback statuses are 8 issuer-access-blocked,
+85 needs-first-party-route-discovery, 3 non-executable-public-source, and 6
+non-portfolio-publisher. The 140-record ledger now has 50 queued fallback
+records; the next ranked issuer is `milliman`.
+
+Focused Militia unit/live checks pass and the deterministic adapter suite passes
+540 tests. The full opt-in live matrix and Docker-backed integration gate remain
+pending at the current baseline; the known unrelated reproducible F8p-current-
+history Study Lab histogram timeout remains the integration blocker. Evidence
+refs: `web:militia-official-orr-holdings-2026-09-03`,
+`web:militia-sec-daily-holdings-dissemination`, and
+`live:militia-orr-current-holdings-2026-09-03`.

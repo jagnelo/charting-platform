@@ -1137,3 +1137,28 @@ opt-in provider matrix and Docker-backed integration gate remain pending at the
 Study Lab histogram timeout retained as the integration blocker. Evidence refs:
 `web:mig-capital-official-migo-holdings-2026-09-03` and
 `live:mig-capital-migo-current-holdings-2026-09-03`.
+
+## Current promotion checkpoint — Militia / ORR native route — 2026-09-03
+
+The ranked `militia` audit verified the official ORR page at
+`https://militiaetf.com/`. It identifies the Militia Long/Short Equity ETF and
+server-renders a complete 203-row WPDataTables portfolio (`table_11`, data
+table `97`) with ticker, name, CUSIP, signed shares, price, USD-million market
+value, percent of net assets, and effective date dated September 3, 2026. The
+official SEC prospectus independently confirms the ORR series and daily full
+holdings dissemination on the issuer page.
+
+`MilitiaHoldingsAdapter` validates the exact official page and product
+identity, parses only the complete embedded table, preserves source tickers,
+CUSIPs, effective dates, and signed long/short positions, converts USD-million
+values to canonical dollars, and classifies the FGXXX government-obligations
+fund and Cash&Other row. Configuration, registry ownership, fallback removal,
+deterministic fixture, live manifest, and bespoke opt-in live coverage are
+aligned.
+
+The durable split is now 496 registered, 394 native/live-backed, and 102
+fallback-only providers, with 50 queued fallback records; the next ranked
+issuer is `milliman`. Focused Militia checks and the deterministic 540-test
+adapter suite pass. The full opt-in live matrix and Docker-backed integration
+gate remain pending at this baseline; the unrelated reproducible F8p-current-
+history Study Lab histogram timeout remains the known integration blocker.
