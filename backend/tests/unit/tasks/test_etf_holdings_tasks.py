@@ -77,3 +77,36 @@ def test_benchmark_family_dated_refresh_fans_out_idempotent_units(monkeypatch):
     assert all(call[1][1] == "2026-07-31" for call in calls)
     assert all(call[1][2] == result["roles"] for call in calls)
     assert all(call[2]["_expires"] == 86_400 for call in calls)
+
+
+def test_benchmark_family_dated_refresh_retains_per_root_queue_failures(monkeypatch):
+    calls: list[tuple[str, tuple[object, ...], dict]] = []
+
+    class Redis:
+        async def enqueue_job(self, function, *args, **kwargs):
+            calls.append((function, args, kwargs))
+            if args[0] == "sp500":
+                raise RuntimeError("redis queue unavailable for sp500")
+            return object()
+
+    monkeypatch.setattr(settings, "BENCHMARK_FAMILY_HOLDINGS_REFRESH_ENABLED", True)
+    monkeypatch.setattr(settings, "BENCHMARK_FAMILY_HOLDINGS_REFRESH_LOOKBACK_DATES", 1)
+    monkeypatch.setattr(
+        "app.services.benchmark_family_holdings_runs.completed_month_end_dates",
+        lambda *, count: [date(2026, 7, 31)],
+    )
+
+    result = asyncio.run(
+        etf_holdings_tasks.refresh_benchmark_family_holdings_task({"redis": Redis()})
+    )
+
+    assert result["queue_error_count"] == 1
+    assert result["queue_errors"] == [
+        {
+            "family_key": "sp500",
+            "requested_date": "2026-07-31",
+            "error": "redis queue unavailable for sp500",
+        }
+    ]
+    assert result["queued"] == len(result["family_keys"]) - 1
+    assert len(calls) == len(result["family_keys"])

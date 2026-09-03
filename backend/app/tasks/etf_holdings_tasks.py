@@ -99,16 +99,29 @@ async def refresh_benchmark_family_holdings_task(ctx: dict) -> dict:
         }
 
     queued = already_queued = 0
+    queue_errors: list[dict[str, str]] = []
     for requested_date in requested_dates:
         for family_key in family_keys:
-            job = await redis.enqueue_job(
-                "task_refresh_scheduled_benchmark_family_holdings_unit",
-                family_key,
-                requested_date.isoformat(),
-                roles,
-                _job_id=(f"benchmark-family-scheduled:{family_key}:{requested_date.isoformat()}"),
-                _expires=86_400,
-            )
+            try:
+                job = await redis.enqueue_job(
+                    "task_refresh_scheduled_benchmark_family_holdings_unit",
+                    family_key,
+                    requested_date.isoformat(),
+                    roles,
+                    _job_id=(
+                        f"benchmark-family-scheduled:{family_key}:{requested_date.isoformat()}"
+                    ),
+                    _expires=86_400,
+                )
+            except Exception as exc:  # noqa: BLE001 - retain bounded per-root evidence.
+                queue_errors.append(
+                    {
+                        "family_key": family_key,
+                        "requested_date": requested_date.isoformat(),
+                        "error": str(exc) or "Benchmark family unit queue failed.",
+                    }
+                )
+                continue
             if job is None:
                 already_queued += 1
             else:
@@ -119,5 +132,7 @@ async def refresh_benchmark_family_holdings_task(ctx: dict) -> dict:
         "roles": roles,
         "queued": queued,
         "already_queued": already_queued,
+        "queue_errors": queue_errors,
+        "queue_error_count": len(queue_errors),
         "queue_unavailable": False,
     }
