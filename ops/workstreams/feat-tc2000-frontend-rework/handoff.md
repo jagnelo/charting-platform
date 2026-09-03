@@ -316,3 +316,9 @@ by dated-route defaults. A focused bootstrap/service regression passes `15/15`, 
 `git diff --check` green. This keeps filing-reconstructed and issuer-dated snapshots
 machine-readable; it does not claim that those snapshots or member bars have been populated in
 the deployment database.
+
+The post-provenance full backend unit gate is green at the current implementation boundary:
+`1287/1287` passed in `61.84s` with `67.49%` total coverage, above the repository `55%` gate.
+The warning set remains limited to the existing NumPy/Pandas deprecations. This deterministic
+receipt validates the worker and dated-refresh changes; it does not convert route evidence into
+persisted all-family population, member-bar continuity, or entitlement verification.
