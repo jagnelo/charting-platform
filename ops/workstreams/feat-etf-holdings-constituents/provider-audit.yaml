@@ -5429,7 +5429,7 @@ providers:
         evidence_ref: "web:smi-funds-current-raa-fcte-holdings-pages-2026-09-04"
     disposition_reason: "smi_funds: 3FourteenSMI's official RAA and FCTE pages publish complete current holdings tables. The provider-specific adapter validates product identity and table headers, maps ticker/weight/shares fields, and records 3Fourteen & SMI provenance without SEC reconstruction."
     next_action: "smi_funds: Monitor the RAA and FCTE pages, table schema, and composition-date continuity; add future SMI products only after equivalent complete first-party route and live evidence."
-    implementation_sha: 1dc0aea68830d9474d20594dfd3e1c443ee29278
+    implementation_sha: 25708101209115a3a98140ddbdc355920e185413
     validation_refs:
       - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_smi_funds_adapter_parses_current_holdings_table"
       - "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows"
@@ -5438,17 +5438,19 @@ providers:
     display_name: sophus
     queue_rank: 115
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: issuer_access_blocked
+    disposition: issuer_access_blocked
+    last_checked: 2026-09-04
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols: [EMEM, EMSC]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains: [sophus-capital-etfs.com]
+    candidate_routes:
+      - "https://sophus-capital-etfs.com/EMEM/"
+      - "https://sophus-capital-etfs.com/emsc/"
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -5463,8 +5465,12 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.sophus"
-    disposition_reason: "sophus: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate sophus first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-04
+        source: "Sophus Capital official EMEM and EMSC product pages and bounded backend requests"
+        result: "Official pages publish complete current holdings tables, but httpx received HTTP 403 and the bounded requests fallback returned a non-matching challenge page for both routes; no executable native route is promoted."
+        evidence_ref: "live:sophus-current-emem-emsc-holdings-pages-2026-09-04-blocked"
+    disposition_reason: "sophus: Sophus' official EMEM and EMSC pages advertise complete current holdings tables, but backend-equivalent access was blocked by HTTP 403/challenge responses for both routes. Preserve the issuer-access-blocked fallback until complete rows are executable."
+    next_action: "sophus: Periodically re-test the official EMEM and EMSC pages and declared downloads; promote only after bounded backend access returns complete current rows with proven mapping."
     implementation_sha: null
     validation_refs: []
   - adapter_key: srh

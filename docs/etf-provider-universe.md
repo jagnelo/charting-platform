@@ -1634,3 +1634,14 @@ Counts are 496 registered / 410 native / 86 fallback, with 19 queued and
 `sophus` next. Evidence refs:
 `web:smi-funds-current-raa-fcte-holdings-pages-2026-09-04` and
 `live:smi-funds-current-raa-fcte-holdings-pages-2026-09-04`.
+
+## Current audit checkpoint — Sophus issuer-access-blocked EMEM/EMSC pages — 2026-09-04
+
+Sophus Capital's official EMEM and EMSC pages publish complete current
+holdings tables, but bounded backend requests received HTTP 403/challenge
+responses for both routes. No executable native route is promoted, so
+`sophus` remains an explicit `issuer_access_blocked` fallback.
+
+Counts remain 496 registered / 410 native / 86 fallback, with 18 queued and
+`srh` next. Evidence ref:
+`live:sophus-current-emem-emsc-holdings-pages-2026-09-04-blocked`.

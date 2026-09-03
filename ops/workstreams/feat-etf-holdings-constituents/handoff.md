@@ -1303,3 +1303,16 @@ fallback statuses are 13 issuer-access-blocked, 58 route-discovery, 9
 non-executable-public-source, and 7 non-portfolio-publisher. Evidence refs:
 `web:smi-funds-current-raa-fcte-holdings-pages-2026-09-04` and
 `live:smi-funds-current-raa-fcte-holdings-pages-2026-09-04`.
+
+## Current audit checkpoint — Sophus issuer-access-blocked EMEM/EMSC pages — 2026-09-04
+
+Sophus Capital's official EMEM and EMSC pages publish complete current
+holdings tables, but bounded backend requests received HTTP 403/challenge
+responses for both routes. No executable native route is promoted, so
+`sophus` remains an explicit `issuer_access_blocked` fallback.
+
+The durable split remains 496 registered / 410 native-live-backed / 86
+fallback-only providers, with 18 queued records and `srh` next. Runtime
+fallback statuses are 15 issuer-access-blocked, 56 route-discovery, 9
+non-executable-public-source, and 7 non-portfolio-publisher. Evidence ref:
+`live:sophus-current-emem-emsc-holdings-pages-2026-09-04-blocked`.
