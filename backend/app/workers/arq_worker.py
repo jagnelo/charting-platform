@@ -12,6 +12,7 @@ from datetime import UTC, datetime
 
 from arq import cron
 from arq.connections import RedisSettings
+from fastapi.encoders import jsonable_encoder
 
 from app.config import settings
 
@@ -191,8 +192,14 @@ async def task_refresh_benchmark_family_holdings_run(ctx: dict, run_id: int):
                         "refreshed": int(summary.get("refreshed", 0)),
                         "unavailable": int(summary.get("unavailable", 0)),
                         "failed": int(summary.get("failed", 0)),
-                        "legs": summary.get("legs") or [],
-                        "history_queue": history_queue,
+                        # Adapter summaries carry date/datetime provenance in
+                        # each refreshed leg.  Encode those values before
+                        # storing the progress document in PostgreSQL JSON;
+                        # a raw ``date`` otherwise aborts the worker on the
+                        # first successful unit and leaves the durable run
+                        # stuck in ``running``.
+                        "legs": jsonable_encoder(summary.get("legs") or []),
+                        "history_queue": jsonable_encoder(history_queue),
                         "error": summary.get("error"),
                     }
                 )
