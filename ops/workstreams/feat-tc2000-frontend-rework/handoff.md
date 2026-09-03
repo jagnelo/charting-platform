@@ -137,6 +137,20 @@ identify the attempted source and entitlement context; absent state remains expl
 `not_attempted`. This keeps scheduled refresh evidence actionable while interactive reads stay
 provider-neutral.
 
+The branch-owned session metadata at `ops/workstreams/feat-tc2000-frontend-rework/session.json` is
+refreshed at each implementation checkpoint and records the active goal, exact implementation tip,
+validation profile, and next action.
+
+This handoff is the branch-owned `ops/workstreams/feat-tc2000-frontend-rework/handoff.md` record;
+its updates are committed alongside validation receipts and session metadata.
+
+The 2026-09-03 session checkpoint remains blocked by the required local runtime: the repository
+`agent-session docker-ready` helper waited 180 seconds but Docker Desktop's socket stayed
+inaccessible (`permission denied` on `~/.docker/run/docker.sock`). This is recorded as an
+environment blocker only; no Docker images, containers, visual baselines, or validation thresholds
+were changed. The branch remains in `R1_provider_readiness` and is not marked ready for human review
+until the required profile can be checkpointed with a usable daemon.
+
 The scheduled family/date worker hardening checkpoint is `e503afe11297180ebd1af5e3887c8c8e518e2b8e`.
 Its history handoff now retains a structured `queue_error` result (including snapshot IDs and a
 bounded error string) when member-history enqueueing fails, then commits and returns the completed
