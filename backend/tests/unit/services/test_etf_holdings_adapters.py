@@ -12914,6 +12914,7 @@ async def test_logan_adapter_verifies_bundle_declared_filepoint_csv(monkeypatch)
     page_html = """
     <html>
       <body>
+        <p>Logan Capital Management, Inc.</p>
         <p>Logan Large Cap Growth ETF (LCLG)</p>
         <a class="button" id="csvdownload" href="#">Download Holdings</a>
         <table><tbody id="full-holdings"></tbody></table>
@@ -16874,6 +16875,77 @@ async def test_federated_hermes_adapter_fetches_daily_holdings_table(monkeypatch
     assert result.rows[1].market_value == Decimal("-33264.877")
     assert result.legal_metadata["route_resolution"] == ("issuer_product_page_daily_holdings_table")
     assert result.legal_metadata["composition_date"] == "2026-07-06"
+
+
+@pytest.mark.asyncio
+async def test_federated_hermes_adapter_fetches_current_etf_daily_holdings_api(monkeypatch):
+    adapter = get_holdings_adapter("federated_hermes")
+    assert adapter is not None
+
+    page_data = json.dumps([{"ticker": "FTRB", "legacyProductId": "18031"}])
+    product_page = '<script id="page-data" type="application/json">' f"{page_data}</script>"
+    api_payload = {
+        "Holdings": [
+            {
+                "fundId": "22Y2",
+                "ticker": "91282CME8",
+                "name": "US TREASURY N/B",
+                "securityType": "Bond",
+                "sharesNumberOfContracts": 10000,
+                "marketValue": 995000,
+                "marketValueWeight": 0.0168,
+                "CUSIP": "91282CME8",
+                "ISIN": "US91282CME89",
+                "SEDOL": "BS82CME",
+                "posDate": "2026-09-03",
+            },
+            {
+                "fundId": "22Y2",
+                "ticker": None,
+                "name": "USD CASH",
+                "securityType": "Cash",
+                "sharesNumberOfContracts": 1,
+                "marketValue": 1000,
+                "marketValueWeight": 0.0001,
+                "CUSIP": None,
+                "ISIN": None,
+                "SEDOL": None,
+                "posDate": "2026-09-03",
+            },
+        ]
+    }
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text="<html>ETF listing</html>", content_type="text/html"),
+        FakeResponse(
+            text=product_page,
+            content_type="text/html",
+            url="https://www.federatedhermes.com/funds/exchange-traded-funds/total-return-bond-etf",
+        ),
+        FakeResponse(
+            text=json.dumps(api_payload),
+            content_type="application/json",
+            url=adapter.current_holdings_api_url + "?productId=18031",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="FTRB", identifiers={})
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        adapter.etf_listing_url,
+        adapter.product_pages["ftrb"],
+        adapter.current_holdings_api_url,
+    ]
+    assert FakeAsyncClient.requested[2][1]["params"] == {"productId": "18031"}
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "91282CME8"
+    assert result.rows[0].holding_type == "fixed_income"
+    assert result.rows[0].weight == Decimal("0.0168")
+    assert result.rows[1].symbol is None
+    assert result.rows[1].holding_type == "cash"
+    assert result.legal_metadata["route_resolution"] == ("federated_hermes_etf_daily_holdings_api")
+    assert result.legal_metadata["composition_date"] == "2026-09-03"
 
 
 @pytest.mark.asyncio

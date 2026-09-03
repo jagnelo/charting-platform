@@ -1485,7 +1485,7 @@ records and `worth_charting` next. Evidence ref:
 - Wellesley Asset Management is recorded as `provider_not_a_portfolio_publisher`; official identity material describes an adviser/sub-adviser rather than an independent ETF portfolio publisher.
 - Worth Charting WRTH and Yoke YOKE official pages expose complete current holdings artifacts, but backend-equivalent HTTP probes returned HTTP 403. Both remain explicit `issuer_access_blocked` fallbacks; no native promotion was retained.
 - The queue is exhausted: 496 registered / 414 native / 82 fallback, zero queued records. Deterministic/default-live checks and the complete Docker integration gate are now rerun and green; exact-SHA CI/remote synchronization and human closure authorization remain pending.
-- Final checks: deterministic backend unit suite 1,341 passed (34 warnings); default live contract 2 passed/504 skipped. The full opt-in matrix initially reached 277 passed, 1 skipped, and 10 failures; a narrow retry recovered iShares IVV/IWN, the Logan current-name repair, and the stale Kensington KAMO row-count assertion, leaving 6 provider/network failures (all recorded in validation.jsonl). The complete Docker integration gate terminated successfully after dependency/lint, image build, stack health, frontend test/build, research-runner probes, functional E2E, visual E2E, and cleanup; standalone confirmation was Chromium 154 passed/2 skipped and visual 104 passed. Exact-SHA CI/remote synchronization and human closure authorization remain pending.
+- Final checks: deterministic backend unit suite 1,341 passed (34 warnings); default live contract 2 passed/504 skipped. The full opt-in matrix initially reached 277 passed, 1 skipped, and 10 failures; a narrow retry recovered iShares IVV/IWN, the Logan current-name repair, the stale Kensington KAMO row-count assertion, and Federated Hermes' redesigned daily-holdings API route, leaving 5 provider/network failures (all recorded in validation.jsonl). The complete Docker integration gate terminated successfully after dependency/lint, image build, stack health, frontend test/build, research-runner probes, functional E2E, visual E2E, and cleanup; standalone confirmation was Chromium 154 passed/2 skipped and visual 104 passed. Exact-SHA CI/remote synchronization and human closure authorization remain pending.
 
 ## Current validation checkpoint — Logan current product identity repair — 2026-09-03
 
@@ -1509,3 +1509,16 @@ CI/remote synchronization and human closure authorization are pending.
 
 Evidence refs: `web:kensington-kamo-current-holdings-2026-09-03` and
 `live:kensington-kamo-current-holdings-2026-09-03`.
+
+## Current validation checkpoint — Federated Hermes redesigned daily-holdings API — 2026-09-03
+
+Federated Hermes now serves redesigned product pages whose page-data binds the
+requested ticker to a legacy product ID and declares the `EtfDailyHoldings`
+JSON route. The adapter validates that binding and parses the complete dated
+payload, including fixed-income, derivative, and cash rows. The deterministic
+current-route test and bounded FTRB live probe pass with 707 rows. Five external
+provider failures remain; exact-SHA CI/remote synchronization and human closure
+authorization are pending.
+
+Evidence refs: `web:federated-hermes-current-etf-api-2026-09-03` and
+`live:federated-hermes-ftrb-current-holdings-2026-09-03`.

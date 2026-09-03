@@ -36912,6 +36912,9 @@ class FederatedHermesHoldingsAdapter(IssuerCsvHoldingsAdapter):
     }
     etf_listing_url = "https://www.federatedhermes.com/us/products.do?productType=12"
     product_post_url = "https://www.federatedhermes.com/us/products/product.do"
+    current_holdings_api_url = (
+        "https://www.federatedhermes.com/external/open/corpwebsite/v1/api/EtfDailyHoldings"
+    )
     daily_section = "section-characteristics-daily-holdings"
 
     def resolve_product_page_url(
@@ -36962,6 +36965,47 @@ class FederatedHermesHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 follow_redirects=True,
             )
             product_response.raise_for_status()
+            current_product_id = self._extract_current_api_product_id(
+                product_response.text,
+                symbol=symbol,
+            )
+            if current_product_id:
+                holdings_response = await client.get(
+                    self.current_holdings_api_url,
+                    params={"productId": current_product_id},
+                    headers=_issuer_page_request_headers(accept="application/json,*/*"),
+                    follow_redirects=True,
+                )
+                holdings_response.raise_for_status()
+                payload = holdings_response.json()
+                rows, composition_date = self._parse_api_holdings_payload(payload)
+                if not rows:
+                    raise ValueError(
+                        f"{self.adapter_key} returned no parseable holdings rows for {symbol}."
+                    )
+                return HoldingsFetchResult(
+                    rows=rows,
+                    raw_text=holdings_response.text,
+                    raw_json=payload,
+                    source_url=str(
+                        getattr(holdings_response, "url", self.current_holdings_api_url)
+                    ),
+                    source_identifier=issuer_product_id or symbol.strip().upper(),
+                    legal_metadata={
+                        "source_access": self.config.source_access,
+                        "source_provider": self.source_provider,
+                        "adapter_key": self.adapter_key,
+                        "source_format": "json",
+                        "route_resolution": "federated_hermes_etf_daily_holdings_api",
+                        "product_page_url": str(getattr(product_response, "url", product_page_url)),
+                        "product_id": current_product_id,
+                        "composition_date": (
+                            composition_date.isoformat() if composition_date else None
+                        ),
+                        "as_of_date": composition_date.isoformat() if composition_date else None,
+                        "terms_note": self.config.terms_note,
+                    },
+                )
             form_payload = self._extract_product_form_payload(product_response.text)
             form_payload["section"] = self.daily_section
 
@@ -37018,6 +37062,83 @@ class FederatedHermesHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "terms_note": self.config.terms_note,
             },
         )
+
+    @staticmethod
+    def _extract_current_api_product_id(raw_html: str, *, symbol: str) -> str | None:
+        match = re.search(
+            r'<script id="page-data" type="application/json">(.*?)</script>',
+            raw_html,
+            re.DOTALL,
+        )
+        if not match:
+            return None
+        try:
+            payload = json.loads(match.group(1))
+        except json.JSONDecodeError:
+            return None
+        if not isinstance(payload, list) or not payload or not isinstance(payload[0], dict):
+            return None
+        page = payload[0]
+        page_symbol = _clean(page.get("ticker"))
+        product_id = _clean(page.get("legacyProductId"))
+        if page_symbol and product_id and page_symbol.upper() == symbol.strip().upper():
+            return product_id
+        return None
+
+    @classmethod
+    def _parse_api_holdings_payload(
+        cls,
+        payload: Any,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        if not isinstance(payload, dict) or not isinstance(payload.get("Holdings"), list):
+            raise ValueError("Federated Hermes daily holdings API returned an invalid payload.")
+        rows: list[CanonicalHoldingRow] = []
+        composition_dates: set[date] = set()
+        for index, item in enumerate(payload["Holdings"], start=1):
+            if not isinstance(item, dict):
+                continue
+            name = cls._clean_federated_text(item.get("name"))
+            symbol = cls._clean_federated_text(item.get("ticker"))
+            security_type = cls._clean_federated_text(item.get("securityType"))
+            cusip = cls._clean_federated_text(item.get("CUSIP"))
+            isin = cls._clean_federated_text(item.get("ISIN"))
+            sedol = cls._clean_federated_text(item.get("SEDOL"))
+            if not any([name, symbol, cusip, isin, sedol]):
+                continue
+            raw_date = cls._clean_federated_text(item.get("posDate"))
+            if raw_date:
+                try:
+                    composition_dates.add(datetime.strptime(raw_date, "%Y-%m-%d").date())
+                except ValueError:
+                    raise ValueError("Federated Hermes daily holdings row has an invalid date.")
+            holding_type = cls._holding_type(
+                security_type=security_type,
+                name=name,
+                symbol=symbol,
+            )
+            row_type = "cash" if holding_type == "cash" else "security"
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=symbol if row_type != "cash" else None,
+                    name=name,
+                    cusip=cusip if _looks_like_cusip(cusip) else None,
+                    isin=isin if _looks_like_isin(isin) else None,
+                    sedol=sedol if _looks_like_sedol(sedol) else None,
+                    weight=_decimal(item.get("marketValueWeight")),
+                    shares=_decimal(item.get("sharesNumberOfContracts")),
+                    market_value=_decimal(item.get("marketValue")),
+                    currency="USD",
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=str(index),
+                    extra_data={
+                        key: value for key, value in item.items() if value not in (None, "")
+                    },
+                )
+            )
+        if len(composition_dates) > 1:
+            raise ValueError("Federated Hermes daily holdings have inconsistent disclosure dates.")
+        return rows, next(iter(composition_dates), None)
 
     @staticmethod
     def _extract_product_form_payload(raw_html: str) -> dict[str, str]:
