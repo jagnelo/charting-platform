@@ -16,15 +16,15 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 - Latest staging merge: `9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4`
 - Incorporated staging SHA: `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`
-- Current code-derived state: 496 registered, 382 native/live-backed, 114
+- Current code-derived state: 496 registered, 383 native/live-backed, 113
   fallback-only.
-- Current fallback status split: 8 access-blocked, 97 discovery, 3
+- Current fallback status split: 8 access-blocked, 96 discovery, 3
   non-executable public source, 6 non-portfolio-publisher (the ledger's dated
   terminal dispositions preserve each record's original runtime audit status;
-  Elm, Esoterica, Even Herd, Everence, and Hexis are no longer runtime fallbacks
+  Elm, Esoterica, Even Herd, Everence, Hexis, and Hilton are no longer runtime fallbacks
   after their native promotions).
 - `docs/etf-provider-universe.md` has been reconciled from code to the current
-  496/382/114 snapshot; future updates must remain code-derived.
+  496/383/113 snapshot; future updates must remain code-derived.
 - Validation tier: `full_integration`.
 - Local validation profile: `docker_integration`.
 - The full integration gate at `2d96697d` reached e2e-functional but failed one
@@ -84,14 +84,33 @@ The schema-4 contract is `plan.yaml`. A later Codex implementation model must
 read both completely, follow the automatic agent-session workflow, and work
 only in this branch's registered local worktree.
 
+## Current implementation checkpoint — Hilton/SMCO-HBDC — 2026-09-03
+
+Hilton Capital Management's official Hilton ETFs product pages identify SMCO
+and HBDC and link dedicated all-holdings pages. Those pages declare the shared
+`https://hiltonetfjson.com/etf/AllHoldings.csv` export. The native
+`HiltonHoldingsAdapter` now validates the product page, all-holdings page,
+declared CSV route, complete account-scoped schema, and one current trade date;
+it preserves CUSIPs, converts percentage-point weights, and classifies SMCO
+equities/funds/cash and HBDC fixed-income/fund/cash rows. The deterministic
+unit test and bounded opt-in live test both pass for the two current products.
+
+The current code-derived split is 496 registered, 383 native/live-backed, and
+113 fallback-only providers. Runtime fallback status counts are 8
+access-blocked, 96 discovery, 3 non-executable public source, and 6
+non-portfolio-publisher. The ledger has 70 queued records and the next ranked
+item is `horizons`. The implementation SHA and validation receipt will be
+filled after the clean Hilton changeset is committed.
+
 ## Historical continuity
 
 The former master-based branch was fully represented in staging before its
 remote ref was removed. Its prior checkpoint `a8d6189` recorded 496 registered,
 339 native/live-backed, and 157 fallback-only providers. Current code has
-advanced to 382/114, including the Guggenheim, ARS, Avory, Ballast, Bancreek,
+advanced to 383/113, including the Guggenheim, ARS, Avory, Ballast, Bancreek,
 BeeHive, Blueprint, Bridgeway, Brookstone, BufferLABS, Bushido, CapForce, Castellan,
-Conductor, CresAlta, Elm, Esoterica, Even Herd, Everence/Praxis, and Hexis/NICO
+Conductor, CresAlta, Elm, Esoterica, Even Herd, Everence/Praxis, Hexis/NICO,
+and Hilton/SMCO-HBDC
 promotions.
 Continue current gaps; do not recreate completed work or
 restore a dead route merely to reproduce historical counts.
@@ -171,7 +190,9 @@ recorded as a non-portfolio-publisher wealth adviser with no sponsored ETF route
 Hexis/NICO is now native-promoted through the official Hexis FilePoint application and its
 declared daily holdings CSV. Highland Capital is recorded as a dated non-executable public
 source because the official AQLG CSV omits all ticker symbols and AQLV has no assigned ticker
-or current route. The ledger has 71 queued fallback records; continue with `hilton`, and
+or current route. Hilton/SMCO-HBDC is now native-promoted through the official Hilton ETFs
+product pages and declared AllHoldings CSV, with account-scoped equity, fixed-income, fund,
+and cash parsing. The ledger has 70 queued fallback records; continue with `horizons`, and
 checkpoint each coherent provider changeset before moving to the next.
 
 Update this handoff at every coherent implementation and operations boundary.

@@ -5,9 +5,9 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 382
-current_fallback_count: 114
-generated_at: 2026-09-03T01:21:10Z
+current_native_count: 383
+current_fallback_count: 113
+generated_at: 2026-09-03T02:00:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -2845,34 +2845,61 @@ providers:
     display_name: hilton
     queue_rank: 62
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
-    estimated_us_etf_count: null
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-03
+    source_access_declared: issuer_product_page_declared_complete_all_holdings_csv
+    representative_symbols:
+      - SMCO
+      - HBDC
+    estimated_us_etf_count: 2
     estimated_us_etf_aum: null
-    us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    us_equity_breadth: 1
+    source_freshness: current_holdings_as_of_date
+    first_party_domains:
+      - hiltonetfs.com
+      - hiltonetfjson.com
+      - sec.gov
+    candidate_routes:
+      - https://www.hiltonetfs.com/hilton-small-midcap-opportunity-etf
+      - https://www.hiltonetfs.com/smco-all-holdings
+      - https://www.hiltonetfs.com/bdc-corporate-bond-etf
+      - https://www.hiltonetfs.com/hbdc-all-holdings
+      - https://hiltonetfjson.com/etf/AllHoldings.csv
+      - https://www.sec.gov/Archives/edgar/data/1771146/000177114626000253/ck0001771146-20260129.htm
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    source_format: csv
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_hilton_adapter_fetches_account_scoped_all_holdings_csv
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_hilton_all_holdings_cover_smco_and_hbdc
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.hilton"
       - "runtime:ISSUER_ADAPTER_CONFIGS.hilton"
+      - "web:hilton-etfs-product-pages-and-all-holdings-csv-2026-09-03"
+      - "web:hilton-sec-prospectus-2026-09-03"
+      - "live:hilton-all-holdings-csv-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.hilton"
-    disposition_reason: "hilton: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate hilton first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
-    implementation_sha: null
+      - date: 2026-09-03
+        source: "https://www.hiltonetfs.com/ product pages, complete-holdings pages, and declared AllHoldings CSV"
+        result: "Hilton's official SMCO and HBDC product pages identify both funds and declare the complete AllHoldings CSV route; the symbol-scoped parser preserves SMCO equities/funds/cash and HBDC fixed-income/fund/cash rows with one current trade date."
+        evidence_ref: "web:hilton-etfs-product-pages-and-all-holdings-csv-2026-09-03"
+      - date: 2026-09-03
+        source: "https://www.sec.gov/Archives/edgar/data/1771146/000177114626000253/ck0001771146-20260129.htm"
+        result: "The current SEC prospectus corroborates Hilton Capital Management's ETF identities and identifies the Hilton ETF product family without substituting SEC holdings for the native route."
+        evidence_ref: "web:hilton-sec-prospectus-2026-09-03"
+      - date: 2026-09-03
+        source: "https://hiltonetfjson.com/etf/AllHoldings.csv"
+        result: "The official AllHoldings CSV returned a 2026-09-02 snapshot with 160 HBDC rows and 66 SMCO rows; account filtering, CUSIP preservation, percentage-point weights, fixed-income classification, money-market funds, and Cash&Other were validated by the native adapter and opt-in live test."
+        evidence_ref: "live:hilton-all-holdings-csv-2026-09-03"
+    disposition_reason: "hilton: Hilton Capital Management's public Hilton ETFs pages declare a complete current AllHoldings CSV for SMCO and HBDC. The provider-specific adapter validates product identity, official page declaration, data host/path, account-scoped complete schema, one dated snapshot, percentage-point weights, fixed-income/fund/cash classification, and publisher/parent provenance; deterministic and bounded opt-in live coverage prove both products."
+    next_action: "hilton: Monitor the official SMCO/HBDC product pages and AllHoldings CSV; retain native status while the route remains complete, dated, identity-valid, and executable, and add any future Hilton product only after equivalent first-party evidence."
+    implementation_sha: pending
     validation_refs: []
   - adapter_key: horizons
     display_name: horizons

@@ -19,6 +19,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "fundstrat",
     "gotham",
     "hexis",
+    "hilton",
     "amun",
     "1251_capital",
     "3fourteen",
@@ -2487,6 +2488,32 @@ async def test_live_hexis_filepoint_nico_holdings_cover_current_positions():
     assert any(row.row_type == "cash" for row in result.rows)
     assert any(row.holding_type == "derivative" for row in result.rows)
     assert any(row.exchange == "KS" for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("hilton")
+async def test_live_hilton_all_holdings_cover_smco_and_hbdc():
+    adapter = get_holdings_adapter("hilton")
+    assert adapter is not None
+
+    for symbol in ("SMCO", "HBDC"):
+        result = await adapter.fetch_latest(symbol=symbol)
+
+        _assert_live_holdings_result(result, adapter_key="hilton", min_rows=10)
+        metadata = result.legal_metadata or {}
+        assert metadata["source_provider"] == "hilton_capital_management"
+        assert metadata["publisher"] == "hilton_etfs"
+        assert metadata["parent_issuer"] == "hilton_capital_management"
+        assert metadata["route_resolution"] == ("hilton_product_page_declared_all_holdings_csv")
+        assert metadata["snapshot_provenance"] == "hilton_native_all_holdings_csv"
+        assert metadata["composition_date"]
+        assert any(row.row_type == "cash" for row in result.rows)
+        if symbol == "SMCO":
+            assert any(row.holding_type == "equity" for row in result.rows)
+            assert any(row.holding_type == "fund" for row in result.rows)
+        else:
+            assert any(row.holding_type == "fixed_income" for row in result.rows)
 
 
 @pytest.mark.asyncio

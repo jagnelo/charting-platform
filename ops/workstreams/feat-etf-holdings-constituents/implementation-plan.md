@@ -1474,3 +1474,44 @@ disposition is more specific. The next ranked queue item is `hilton`.
 The complete deterministic/live matrix and Docker-backed integration gate remain
 pending at the 382-native baseline; the known unrelated reproducible
 F8p-current-history Study Lab histogram timeout remains an AC7 gap.
+
+## 33. Current execution checkpoint — Hilton SMCO/HBDC native promotion — 2026-09-03
+
+The ranked `hilton` audit found a complete, executable first-party route for
+both currently identified Hilton ETFs. The official Hilton ETFs home page and
+product pages identify the Hilton Small-MidCap Opportunity ETF (`SMCO`) and the
+Hilton BDC Corporate Bond ETF (`HBDC`). Each product page declares the shared
+`https://hiltonetfjson.com/etf/AllHoldings.csv` download, and the dedicated
+all-holdings pages provide the same route context. The current CSV returned on
+September 3, 2026 contained one `2026-09-02` snapshot with 160 HBDC account
+rows and 66 SMCO account rows.
+
+The new `HiltonHoldingsAdapter` validates the requested SMCO/HBDC identity,
+official product-page host/path, declared complete AllHoldings filename, data
+host/path, complete schema, account filtering, and one consistent trade date.
+It treats the issuer's percentage-point `Weightings` values as canonical
+fractions, preserves CUSIPs and raw source fields, retains signed quantities,
+and classifies SMCO equity, money-market fund, and Cash&Other rows alongside
+HBDC fixed-income, fund, and cash rows. Metadata records the Hilton ETFs
+publisher, Hilton Capital Management parent, official product/all-holdings/CSV
+routes, dated issuer-disclosed freshness, and the native snapshot provenance.
+
+The deterministic unit test covers unsupported symbols, source-route rejection,
+product-page declaration, request ordering, account-scoped filtering, date and
+weight conversion, fund/cash/fixed-income classification, and provenance. The
+opt-in live test fetches both SMCO and HBDC from the current official CSV,
+requires at least ten rows per account, and verifies each product's expected
+holding classes and metadata. Hilton is removed from the runtime fallback
+discovery audit and promoted in the exhaustive ledger.
+
+The code-derived split after this promotion is 496 registered, 383
+native/live-backed, and 113 fallback-only providers. Runtime fallback status
+counts are 8 issuer-access-blocked, 96 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The exhaustive
+ledger retains all 140 historical records exactly once, with `hilton` marked
+`native_promoted`; 70 queued fallback records remain and the next ranked item
+is `horizons`.
+
+The complete opt-in provider matrix and Docker-backed integration gate remain
+pending at the 383-native baseline; the known unrelated reproducible
+F8p-current-history Study Lab histogram timeout remains an AC7 gap.

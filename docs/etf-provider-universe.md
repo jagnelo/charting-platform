@@ -28,8 +28,8 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `382`
-- Audited fallback-only providers: `114`
+- Native/live-backed providers: `383`
+- Audited fallback-only providers: `113`
 
 The current checkpoint promotes `guggenheim` through its public issuer-hosted
 ETF holdings table, reconciles `ars` to the existing ARS Investment Partners
@@ -92,6 +92,12 @@ application script. The native adapter validates that declaration and the
 issuer-owned host/path, preserves dated equity and exchange-suffixed symbols,
 signed TRS derivatives, the FXFXX money-market fund, and Cash&Other, and records
 Hexis Capital Management/FilePoint publisher provenance.
+Hilton is now covered for SMCO and HBDC through the official Hilton ETFs
+product pages and their declared `https://hiltonetfjson.com/etf/AllHoldings.csv`
+route. The native adapter filters the shared export by account, requires one
+dated complete schema, preserves CUSIPs and percentage-point weights, and
+classifies SMCO equities/funds/cash plus HBDC fixed-income/fund/cash rows with
+Hilton ETFs publisher and Hilton Capital Management parent provenance.
 Highland Capital is recorded as an audited `non_executable_public_source`:
 its official AQLG page exposes a complete 130-row CSV with names, CUSIPs,
 quantities, and weights, but every ticker field is blank, while the AQLV
@@ -110,11 +116,11 @@ establishes the successor context; current Brookstone ETF routes remain under
 the distinct native `brookstone` identity.
 The historical starting snapshot for this
 workstream was 356 native and 140 fallback; the provider-audit ledger retains
-that baseline record while tracking the current 382/114 split.
+that baseline record while tracking the current 383/113 split.
 
 The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
 `FALLBACK_ISSUER_AUDITS` at the current ETF-branch implementation checkpoint
-`dabe2329965c704f93e3dbb21ec50a7da418ba6c` (Hexis/NICO FilePoint app-declared daily holdings CSV; Gotham GSPY/GVLU/SHRT DownloadHoldings CSV routes; Fundstrat Granny Shots GRNY/GRNJ/GRNI holdings routes; Freedom/FRDM product-page holdings route; Framework/GSR BESO route; Fitzgerald/Nicholas Wealth FITZ and FIZY routes; FalconX/21Shares ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN,
+`pending Hilton checkpoint` (Hilton SMCO/HBDC product-page-declared AllHoldings CSV; Hexis/NICO FilePoint app-declared daily holdings CSV; Gotham GSPY/GVLU/SHRT DownloadHoldings CSV routes; Fundstrat Granny Shots GRNY/GRNJ/GRNI holdings routes; Freedom/FRDM product-page holdings route; Framework/GSR BESO route; Fitzgerald/Nicholas Wealth FITZ and FIZY routes; FalconX/21Shares ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN,
 THYP, and TKNS native routes; Esoterica WUGI, Even Herd EHLS, and Everence/Praxis
 PRXG/PRXV/PRXI native routes; Framework/GSR BESO, Freedom/FRDM, and Fundstrat Granny Shots are now native through their
 declared details/holdings API; ETF Managers Group is recorded as an
@@ -125,7 +131,7 @@ as the existing Cygnet parent identity).
 The fallback audit statuses are:
 
 - `issuer_access_blocked`: `8`
-- `needs_first_party_route_discovery`: `97`
+- `needs_first_party_route_discovery`: `96`
 - `non_executable_public_source`: `3`
 - `provider_not_a_portfolio_publisher`: `6`
 

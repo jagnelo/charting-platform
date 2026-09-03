@@ -2339,6 +2339,7 @@ ISSUER_DOMAIN_HINTS.update(
         "fundstrat": ["fundstrat.com", "grannyshots.com"],
         "gotham": ["gothametfs.com", "gothamassetmanagement.com"],
         "hexis": ["hexis.capital", "hexis.filepoint.live"],
+        "hilton": ["hiltonetfs.com", "hiltonetfjson.com", "hiltoncapitalmanagement.com"],
         "volatility_shares": ["volatilityshares.com"],
         "wahed": ["wahed.com"],
         "yieldmax": ["yieldmaxetfs.com"],
@@ -24559,6 +24560,267 @@ class HexisHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if re.fullmatch(r"[A-Z][A-Z0-9.=-]{0,11}", text.upper()):
             return text.upper(), None
         return None, None
+
+
+class HiltonHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Hilton Capital's complete SMCO and HBDC holdings CSV."""
+
+    PRODUCT_PAGES = {
+        "SMCO": "https://www.hiltonetfs.com/hilton-small-midcap-opportunity-etf",
+        "HBDC": "https://www.hiltonetfs.com/bdc-corporate-bond-etf",
+    }
+    HOLDINGS_PAGES = {
+        "SMCO": "https://www.hiltonetfs.com/smco-all-holdings",
+        "HBDC": "https://www.hiltonetfs.com/hbdc-all-holdings",
+    }
+    HOLDINGS_URL = "https://hiltonetfjson.com/etf/AllHoldings.csv"
+    SUPPORTED_SYMBOLS = frozenset(PRODUCT_PAGES)
+    _PRODUCT_HOST = "www.hiltonetfs.com"
+    _DATA_HOST = "hiltonetfjson.com"
+    _REQUIRED_HEADERS = frozenset(
+        {
+            "tradedate",
+            "account",
+            "stockticker",
+            "cusip",
+            "securityname",
+            "shares",
+            "marketvalue",
+            "weightings",
+            "netassets",
+            "moneymarketflag",
+        }
+    )
+
+    def probe(
+        self,
+        *,
+        symbol: str,
+        name: str,
+        identifiers: dict[str, str],
+    ) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        supported = normalized_symbol in self.SUPPORTED_SYMBOLS
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if supported else Decimal("0.5000"),
+            status="ready" if supported or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                f"Hilton publishes {normalized_symbol}'s complete current holdings through its official ETF page and AllHoldings CSV."
+                if supported
+                else (
+                    "No verified Hilton route is configured for this symbol; SEC EDGAR remains available as fallback."
+                    if has_sec_fallback
+                    else "No verified Hilton route is configured for this symbol."
+                )
+            ),
+            source_url=self.PRODUCT_PAGES.get(normalized_symbol),
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del identifiers
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol not in self.SUPPORTED_SYMBOLS:
+            raise ValueError("Hilton's verified holdings route supports SMCO and HBDC only.")
+        if issuer_product_id and issuer_product_id.strip().upper() != normalized_symbol:
+            raise ValueError("Hilton issuer product identity must match the requested ETF symbol.")
+        allowed_sources = {
+            self.PRODUCT_PAGES[normalized_symbol].rstrip("/"),
+            self.HOLDINGS_PAGES[normalized_symbol].rstrip("/"),
+            self.HOLDINGS_URL.rstrip("/"),
+        }
+        if source_url and source_url.rstrip("/") not in allowed_sources:
+            raise ValueError("Hilton holdings must use its official ETF/FilePoint route.")
+
+        product_url = self.PRODUCT_PAGES[normalized_symbol]
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_response = await client.get(
+                product_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+            product_response.raise_for_status()
+            self._validate_product_page(
+                product_response.text, str(product_response.url), normalized_symbol
+            )
+            holdings_page_url = self.HOLDINGS_PAGES[normalized_symbol]
+            holdings_page_response = await client.get(
+                holdings_page_url,
+                headers={
+                    **_issuer_page_request_headers(accept="text/html,*/*"),
+                    "Referer": str(product_response.url),
+                },
+                follow_redirects=True,
+            )
+            holdings_page_response.raise_for_status()
+            self._validate_holdings_page(
+                holdings_page_response.text,
+                str(holdings_page_response.url),
+                normalized_symbol,
+            )
+            holdings_response = await client.get(
+                self.HOLDINGS_URL,
+                headers={
+                    **_holdings_request_headers(accept="text/csv,text/plain,*/*"),
+                    "Referer": str(holdings_page_response.url),
+                },
+                follow_redirects=True,
+            )
+        holdings_response.raise_for_status()
+        resolved_url = str(getattr(holdings_response, "url", self.HOLDINGS_URL))
+        parsed_url = urlparse(resolved_url)
+        if not _domain_matches(_url_host(resolved_url) or "", self._DATA_HOST):
+            raise ValueError("Hilton holdings response left the official data host.")
+        if parsed_url.path.rstrip("/") != urlparse(self.HOLDINGS_URL).path.rstrip("/"):
+            raise ValueError("Hilton holdings response did not preserve the declared CSV route.")
+        rows, composition_date = self._parse_holdings_csv(
+            holdings_response.text, symbol=normalized_symbol
+        )
+        if len(rows) < 10 or composition_date is None:
+            raise ValueError(
+                f"Hilton's {normalized_symbol} holdings CSV did not expose complete dated holdings."
+            )
+        composition_value = composition_date.isoformat()
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=holdings_response.text,
+            raw_json={"source_format": "csv", "row_count": len(rows)},
+            source_url=resolved_url,
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "hilton_product_page_declared_all_holdings_csv",
+                "product_page_url": str(product_response.url),
+                "holdings_page_url": str(holdings_page_response.url),
+                "holdings_url": self.HOLDINGS_URL,
+                "snapshot_provenance": "hilton_native_all_holdings_csv",
+                "composition_date": composition_value,
+                "as_of_date": composition_value,
+                "freshness_semantics": "issuer_disclosed_holdings_as_of_date",
+                "refresh_frequency": "issuer_published_current_holdings",
+                "publisher": "hilton_etfs",
+                "parent_issuer": "hilton_capital_management",
+                "issuer_relationship": "Hilton Capital Management adviser/sub-adviser / Hilton ETFs publisher",
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _validate_product_page(cls, raw_html: str, resolved_url: str, symbol: str) -> None:
+        parsed_url = urlparse(resolved_url)
+        if not _domain_matches(_url_host(resolved_url) or "", cls._PRODUCT_HOST):
+            raise ValueError("Hilton product page resolved outside the official host.")
+        if parsed_url.path.rstrip("/") != urlparse(cls.PRODUCT_PAGES[symbol]).path.rstrip("/"):
+            raise ValueError("Hilton product page did not preserve the requested fund route.")
+        normalized = raw_html.upper()
+        if symbol not in normalized:
+            raise ValueError("Hilton product page did not preserve the requested fund identity.")
+
+    @classmethod
+    def _validate_holdings_page(cls, raw_html: str, resolved_url: str, symbol: str) -> None:
+        parsed_url = urlparse(resolved_url)
+        if not _domain_matches(_url_host(resolved_url) or "", cls._PRODUCT_HOST):
+            raise ValueError("Hilton all-holdings page resolved outside the official host.")
+        if parsed_url.path.rstrip("/") != urlparse(cls.HOLDINGS_PAGES[symbol]).path.rstrip("/"):
+            raise ValueError("Hilton all-holdings page did not preserve the requested fund route.")
+        normalized = raw_html.upper()
+        if symbol not in normalized or "ALLHOLDINGS.CSV" not in normalized:
+            raise ValueError("Hilton all-holdings page did not declare the complete holdings CSV.")
+
+    @classmethod
+    def _parse_holdings_csv(
+        cls,
+        raw_csv: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        reader = csv.DictReader(StringIO(raw_csv.lstrip("\ufeff")))
+        fieldnames = [str(field).strip().lower() for field in (reader.fieldnames or [])]
+        if not cls._REQUIRED_HEADERS.issubset(set(fieldnames)):
+            return [], None
+        original_fields = [str(field) for field in (reader.fieldnames or [])]
+        key_by_normalized = {
+            normalized: original
+            for normalized, original in zip(fieldnames, original_fields, strict=False)
+        }
+        dates: set[date] = set()
+        rows: list[CanonicalHoldingRow] = []
+        for index, raw in enumerate(reader, start=1):
+            if not raw or not any(_clean(value) for value in raw.values()):
+                continue
+            if (_clean(raw.get(key_by_normalized["account"])) or "").upper() != symbol:
+                continue
+            raw_date = _clean(raw.get(key_by_normalized["tradedate"]))
+            row_date = _parse_issuer_date(raw_date.split(" ", 1)[0] if raw_date else None)
+            if row_date is None:
+                continue
+            dates.add(row_date)
+            raw_symbol = _clean(raw.get(key_by_normalized["stockticker"]))
+            name = _clean(raw.get(key_by_normalized["securityname"]))
+            cusip = _clean(raw.get(key_by_normalized["cusip"]))
+            if not any((raw_symbol, name, cusip)):
+                continue
+            text = " ".join(part.upper() for part in (raw_symbol, name, cusip) if part)
+            is_cash = (
+                (_clean(raw.get(key_by_normalized["moneymarketflag"])) or "").upper() == "Y"
+                and (raw_symbol or "").upper() in {"CASH", "CASH&OTHER", "CASH & OTHER"}
+            ) or "CASH & OTHER" in text
+            is_fund = not is_cash and (
+                " FUND" in f" {text}" or (raw_symbol or "").upper().endswith("XXX")
+            )
+            is_fixed_income = (
+                not is_cash
+                and not is_fund
+                and (symbol == "HBDC" or any(token in text for token in ("BOND", "NOTE", "DEBT")))
+            )
+            shares = _decimal(raw.get(key_by_normalized["shares"]))
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash or is_fixed_income else (raw_symbol or None).upper(),
+                    name=name,
+                    cusip=cusip,
+                    weight=_decimal_percent_points(raw.get(key_by_normalized["weightings"])),
+                    shares=shares,
+                    market_value=_decimal(raw.get(key_by_normalized["marketvalue"])),
+                    currency="USD",
+                    holding_type="cash"
+                    if is_cash
+                    else "fund"
+                    if is_fund
+                    else "fixed_income"
+                    if is_fixed_income
+                    else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"hilton-{symbol}-{row_date.isoformat()}-{index}",
+                    extra_data={
+                        **{
+                            key: value
+                            for key, value in raw.items()
+                            if key and _clean(value) is not None
+                        },
+                        "source_symbol": raw_symbol,
+                        "as_of_date": row_date.isoformat(),
+                        "position_side": "short" if shares is not None and shares < 0 else "long",
+                        "source": "hilton_all_holdings_csv",
+                    },
+                )
+            )
+        if len(dates) != 1:
+            return [], None
+        return rows, next(iter(dates))
 
 
 class ColliersHarrisonStreetHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -66268,6 +66530,20 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "data may be subject to issuer terms."
         ),
     ),
+    "hilton": IssuerCsvAdapterConfig(
+        adapter_key="hilton",
+        source_provider="hilton_capital_management",
+        source_access="issuer_product_page_declared_complete_all_holdings_csv",
+        product_page_templates=(
+            "https://www.hiltonetfs.com/hilton-small-midcap-opportunity-etf",
+            "https://www.hiltonetfs.com/bdc-corporate-bond-etf",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "Hilton Capital Management's public Hilton ETFs pages declare a complete current "
+            "AllHoldings CSV; data may be subject to issuer terms."
+        ),
+    ),
     "freedom": IssuerCsvAdapterConfig(
         adapter_key="freedom",
         source_provider="freedom_etfs",
@@ -66375,7 +66651,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "gc_ferry_parent",
         "granite_group_advisors",
         "highland_capital",
-        "hilton",
         "horizons",
         "hoya",
         "jlens",
@@ -69459,7 +69734,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "guinness_atkinson": GuinnessAtkinsonAuditedFallbackHoldingsAdapter,
         "hexis": HexisHoldingsAdapter,
         "highland_capital": HighlandCapitalReconciledFallbackHoldingsAdapter,
-        "hilton": HiltonReconciledFallbackHoldingsAdapter,
+        "hilton": HiltonHoldingsAdapter,
         "horizons": HorizonsReconciledFallbackHoldingsAdapter,
         "hoya": HoyaReconciledFallbackHoldingsAdapter,
         "impact_shares": ImpactSharesHoldingsAdapter,

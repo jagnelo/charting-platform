@@ -19108,6 +19108,85 @@ async def test_hexis_adapter_fetches_filepoint_declared_nico_holdings_csv(monkey
 
 
 @pytest.mark.asyncio
+async def test_hilton_adapter_fetches_account_scoped_all_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("hilton")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "HiltonHoldingsAdapter"
+    assert "hilton" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["hilton"].live_tested_default_route is True
+
+    probe = adapter.probe(symbol="SMCO", name="Hilton Small-MidCap Opportunity ETF", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url == adapter.PRODUCT_PAGES["SMCO"]
+    assert adapter.probe(symbol="UNKNOWN", name="", identifiers={}).status == "needs_issuer_route"
+
+    with pytest.raises(ValueError, match="official ETF/FilePoint route"):
+        await adapter.fetch_latest(symbol="SMCO", source_url="https://example.invalid/holdings.csv")
+
+    header = (
+        "TradeDate,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,"
+        "NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag,RowNum,MarketTicker"
+    )
+    smco_rows = [
+        "9/2/2026 12:00:00 AM,SMCO,AAPL,037833100,Apple Inc,100,200,20000,1.25,1600000,80000,8,,1,SMCO",
+        "9/2/2026 12:00:00 AM,SMCO,MSFT,594918104,Microsoft Corp,90,300,27000,1.69,1600000,80000,8,,2,SMCO",
+        "9/2/2026 12:00:00 AM,SMCO,FGXXX,31846V336,First American Government Obligations Fund,5000,1,5000,0.31,1600000,80000,8,Y,3,SMCO",
+        "9/2/2026 12:00:00 AM,SMCO,Cash&Other,Cash&Other,Cash & Other,1000,1,1000,0.06,1600000,80000,8,Y,4,SMCO",
+    ] + [
+        f"9/2/2026 12:00:00 AM,SMCO,TKR{index},037833100,Security {index},10,10,100,0.01,1600000,80000,8,,{index + 4},SMCO"
+        for index in range(1, 9)
+    ]
+    hbdc_rows = [
+        "9/2/2026 12:00:00 AM,HBDC,912797SU2,912797SU2,United States Treasury Note,100,99,9900,0.90,1100000,50000,5,,1,HBDC",
+        "9/2/2026 12:00:00 AM,HBDC,FGXXX,31846V336,First American Government Obligations Fund,1000,1,1000,0.09,1100000,50000,5,Y,2,HBDC",
+        "9/2/2026 12:00:00 AM,HBDC,Cash&Other,Cash&Other,Cash & Other,500,1,500,0.05,1100000,50000,5,Y,3,HBDC",
+    ]
+    csv_text = header + "\n" + "\n".join(smco_rows + hbdc_rows) + "\n"
+
+    product_url = adapter.PRODUCT_PAGES["SMCO"]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=("<html><h1>Hilton Small-MidCap Opportunity ETF (SMCO)</h1>"),
+            content_type="text/html",
+            url=product_url,
+        ),
+        FakeResponse(
+            text=(
+                "<html><h1>SMCO All Holdings</h1>"
+                "<script>fetch('https://hiltonetfjson.com/etf/AllHoldings.csv')</script></html>"
+            ),
+            content_type="text/html",
+            url=adapter.HOLDINGS_PAGES["SMCO"],
+        ),
+        FakeResponse(text=csv_text, url=adapter.HOLDINGS_URL),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="SMCO")
+
+    assert [url for url, _ in FakeAsyncClient.requested] == [
+        product_url,
+        adapter.HOLDINGS_PAGES["SMCO"],
+        adapter.HOLDINGS_URL,
+    ]
+    assert len(result.rows) == len(smco_rows)
+    assert result.rows[0].symbol == "AAPL"
+    assert result.rows[0].weight == Decimal("0.0125")
+    assert result.rows[2].holding_type == "fund"
+    assert result.rows[3].row_type == "cash"
+    assert result.rows[3].symbol is None
+    assert result.legal_metadata["source_provider"] == "hilton_capital_management"
+    assert result.legal_metadata["publisher"] == "hilton_etfs"
+    assert result.legal_metadata["parent_issuer"] == "hilton_capital_management"
+    assert result.legal_metadata["route_resolution"] == (
+        "hilton_product_page_declared_all_holdings_csv"
+    )
+    assert result.legal_metadata["snapshot_provenance"] == "hilton_native_all_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+
+
+@pytest.mark.asyncio
 async def test_beehive_adapter_fetches_official_declared_daily_holdings_csv(monkeypatch):
     adapter = get_holdings_adapter("beehive")
     assert adapter is not None
@@ -21858,7 +21937,10 @@ def test_stockanalysis_provider_continuation_batch_is_registered_and_audited():
 
 
 def test_stockanalysis_provider_second_continuation_batch_is_registered_and_audited():
-    expected = set(STOCKANALYSIS_PROVIDER_SECOND_CONTINUATION_ISSUER_HINTS) - {"cresalta"}
+    expected = set(STOCKANALYSIS_PROVIDER_SECOND_CONTINUATION_ISSUER_HINTS) - {
+        "cresalta",
+        "hilton",
+    }
 
     assert expected
     assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
@@ -21876,6 +21958,9 @@ def test_stockanalysis_provider_second_continuation_batch_is_registered_and_audi
         adapter = get_holdings_adapter(adapter_key)
         assert adapter is not None
         assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+    assert "hilton" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["hilton"].live_tested_default_route is True
+    assert type(get_holdings_adapter("hilton")).__name__ == "HiltonHoldingsAdapter"
 
 
 def test_stockanalysis_provider_third_continuation_batch_is_registered_and_audited():
@@ -25993,8 +26078,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 382
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 114
+    assert ledger["current_native_count"] == 383
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 113
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -26027,6 +26112,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "fundstrat",
         "gotham",
         "hexis",
+        "hilton",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))
