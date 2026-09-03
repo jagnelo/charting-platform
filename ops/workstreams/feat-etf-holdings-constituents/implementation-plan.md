@@ -2315,3 +2315,13 @@ non-executable, and 6 non-portfolio-publisher. Evidence refs:
 `web:pzena-current-etf-catalogue-2026-09-03`,
 `web:pzena-daily-holdings-disclosure-2026-09-03`, and
 `live:pzena-etf-page-shell-blocked-2026-09-03`.
+
+## Current promotion checkpoint — Quadratic / IVOL-BNDD native route — 2026-09-03
+
+The KFA IVOL/BNDD pages expose complete holdings downloads, and the verified
+KraneShares dated CSV route returned current September 2, 2026 rows. The
+Quadratic adapter strictly limits symbols to IVOL/BNDD, delegates to the tested
+KraneShares parser, and records publisher/provenance metadata. Counts are 496
+registered / 402 native / 94 fallback, with 32 queued and `rareview_funds` next.
+Evidence refs: `web:quadratic-kfa-current-holdings-2026-09-03` and
+`live:quadratic-kraneshares-current-csv-2026-09-03`.

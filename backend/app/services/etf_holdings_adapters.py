@@ -1702,6 +1702,7 @@ ETF_COM_BRAND_RECONCILIATION_NATIVE_ADAPTERS: frozenset[str] = frozenset(
         "meridian",
         "oakmark",
         "range",
+        "quadratic",
         "sp_funds",
         "touchstone",
         "tradr",
@@ -59573,6 +59574,46 @@ class KranesharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
             return None
 
 
+class QuadraticHoldingsAdapter(KranesharesHoldingsAdapter):
+    """Fetch Quadratic IVOL/BNDD through the verified KraneShares CSV route."""
+
+    supported_symbols = {"IVOL", "BNDD"}
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol not in self.supported_symbols:
+            raise ValueError(
+                "Quadratic's verified KraneShares route only supports "
+                f"{', '.join(sorted(self.supported_symbols))}; received {normalized_symbol}."
+            )
+        if source_url and "kraneshares.com" not in source_url.casefold():
+            raise ValueError("Quadratic holdings must use its verified KraneShares publisher route.")
+        if issuer_product_id and issuer_product_id.strip().upper() != normalized_symbol:
+            raise ValueError("Quadratic issuer product identity must match the requested ETF symbol.")
+
+        result = await super().fetch_latest(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "source_provider": self.source_provider,
+            "adapter_key": self.adapter_key,
+            "publisher": "kraneshares",
+            "route_resolution": "quadratic_kraneshares_dated_csv_lookback",
+        }
+        return result
+
+
 class CiccHoldingsAdapter(KranesharesHoldingsAdapter):
     """Fetch CICC's verified KWEB exposure from its KraneShares subsidiary route."""
 
@@ -65775,6 +65816,23 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         ),
         terms_note="Pzena public ETF pages advertise daily holdings and may be subject to issuer terms.",
     ),
+    "quadratic": IssuerCsvAdapterConfig(
+        adapter_key="quadratic",
+        source_provider="quadratic",
+        source_access="issuer_partner_dated_complete_holdings_csv",
+        product_page_templates=(
+            "https://kfafunds.com/etf/ivol/",
+            "https://kfafunds.com/etf/bndd/",
+        ),
+        url_templates=(
+            "https://kraneshares.com/csv/{MM_DD_YYYY}_{symbol_lower}_holdings.csv",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "Quadratic/KFA public product pages and KraneShares dated holdings CSVs may be "
+            "subject to issuer terms."
+        ),
+    ),
     "resolute": IssuerCsvAdapterConfig(
         adapter_key="resolute",
         source_provider="resolute_american_beacon",
@@ -69343,7 +69401,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "pzena",
         "performance_trust",
         "putnam",
-        "quadratic",
         "rareview_funds",
         "return_stacked",
         "riverfront",
@@ -72895,7 +72952,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "premise_capital": PremiseCapitalReconciledFallbackHoldingsAdapter,
         "putnam": PutnamReconciledFallbackHoldingsAdapter,
         "pzena": PzenaReconciledFallbackHoldingsAdapter,
-        "quadratic": QuadraticReconciledFallbackHoldingsAdapter,
+        "quadratic": QuadraticHoldingsAdapter,
         "q3": Q3AuditedFallbackHoldingsAdapter,
         "rareview_funds": RareviewFundsReconciledFallbackHoldingsAdapter,
         "return_stacked": ReturnStackedReconciledFallbackHoldingsAdapter,

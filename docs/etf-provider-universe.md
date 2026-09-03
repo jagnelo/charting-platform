@@ -1418,3 +1418,18 @@ route-discovery, 6 non-executable-public-source, and 6 non-portfolio-publisher.
 Evidence refs: `web:pzena-current-etf-catalogue-2026-09-03`,
 `web:pzena-daily-holdings-disclosure-2026-09-03`, and
 `live:pzena-etf-page-shell-blocked-2026-09-03`.
+
+## Current promotion checkpoint — Quadratic / IVOL-BNDD native route — 2026-09-03
+
+KFA's official IVOL and BNDD pages expose full-holdings downloads. The dated
+KraneShares CSV route returned complete parseable rows dated September 2, 2026
+for both symbols, including securities, cash, and option positions. A
+provider-specific adapter now enforces the IVOL/BNDD symbol set and KraneShares
+publisher route and records truthful Quadratic/KraneShares provenance.
+
+The current split is 496 registered / 402 native-live-backed / 94 fallback-only,
+with 32 queued records and `rareview_funds` next. Runtime fallback statuses are
+12 issuer-access-blocked, 71 route-discovery, 6 non-executable-public-source,
+and 6 non-portfolio-publisher. Evidence refs:
+`web:quadratic-kfa-current-holdings-2026-09-03` and
+`live:quadratic-kraneshares-current-csv-2026-09-03`.

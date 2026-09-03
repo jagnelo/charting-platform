@@ -37,6 +37,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "opus_capital_management",
     "pathfinder",
     "portfolio_building_block",
+    "quadratic",
     "amun",
     "1251_capital",
     "3fourteen",
@@ -1024,6 +1025,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             20,
+        ),
+        (
+            "quadratic",
+            "IVOL",
+            None,
+            {},
+            4,
         ),
         (
             "cicc",

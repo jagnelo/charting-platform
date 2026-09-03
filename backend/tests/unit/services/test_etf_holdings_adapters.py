@@ -15941,6 +15941,42 @@ async def test_kraneshares_adapter_parses_public_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_quadratic_adapter_parses_verified_kraneshares_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("quadratic")
+    assert adapter is not None
+    holdings_csv = "\n".join(
+        [
+            '"IVOL Holdings","As of 2026-09-02","Holdings Are Subject To Change"',
+            'Rank,"Company Name","% of Net Assets",Ticker,Identifier,"Shares Held","Market Value($)"',
+            '1,"SCHWAB U.S. TIPS ETF",76.07,SCHP,US8085248701,"7,728,177","199,541,530"',
+            '2,"Cash",15.64,–,–,"41,011,551","41,011,551"',
+        ]
+    )
+
+    def fake_get(url, **kwargs):
+        response = FakeResponse(text=holdings_csv, content_type="text/csv")
+        response.url = url
+        return response
+
+    monkeypatch.setattr("app.services.etf_holdings_adapters.requests.get", fake_get)
+    result = await adapter.fetch_latest(
+        symbol="IVOL",
+        source_url="https://kraneshares.com/csv/09_02_2026_ivol_holdings.csv",
+    )
+
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "SCHP"
+    assert result.rows[0].weight == Decimal("0.7607")
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["source_provider"] == "quadratic"
+    assert result.legal_metadata["publisher"] == "kraneshares"
+    assert result.legal_metadata["route_resolution"] == (
+        "quadratic_kraneshares_dated_csv_lookback"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+
+
+@pytest.mark.asyncio
 async def test_cicc_adapter_is_limited_to_its_verified_kraneshares_route(monkeypatch):
     adapter = get_holdings_adapter("cicc")
     assert adapter is not None
@@ -27233,8 +27269,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 401
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 95
+    assert ledger["current_native_count"] == 402
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 94
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -27286,6 +27322,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "opus_capital_management",
         "pathfinder",
         "portfolio_building_block",
+        "quadratic",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))

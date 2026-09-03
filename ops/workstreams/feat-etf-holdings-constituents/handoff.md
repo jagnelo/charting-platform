@@ -1040,6 +1040,20 @@ and 6 non-portfolio-publisher. Evidence refs:
 `web:pzena-daily-holdings-disclosure-2026-09-03`, and
 `live:pzena-etf-page-shell-blocked-2026-09-03`.
 
+## Current promotion checkpoint — Quadratic / IVOL-BNDD native route — 2026-09-03
+
+KFA's IVOL and BNDD product pages declare full holdings, and dated KraneShares
+CSV files for September 2, 2026 returned complete rows for both products. The
+new provider-specific adapter validates symbols and publisher route, parses
+securities/cash/options, and records Quadratic/KraneShares provenance.
+
+Runtime state is now 496 registered / 402 native-live-backed / 94 fallback-only
+providers, with 32 queued records and `rareview_funds` next. Runtime fallback
+statuses are 12 issuer-access-blocked, 71 route-discovery, 6
+non-executable-public-source, and 6 non-portfolio-publisher. Evidence refs:
+`web:quadratic-kfa-current-holdings-2026-09-03` and
+`live:quadratic-kraneshares-current-csv-2026-09-03`.
+
 ## Current audit checkpoint — North Square non-executable public source — 2026-09-03
 
 The ranked `north_square` audit verified official NSIV and NSIG product pages
