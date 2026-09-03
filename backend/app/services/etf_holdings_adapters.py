@@ -1703,6 +1703,7 @@ ETF_COM_BRAND_RECONCILIATION_NATIVE_ADAPTERS: frozenset[str] = frozenset(
         "oakmark",
         "range",
         "quadratic",
+        "return_stacked",
         "sp_funds",
         "touchstone",
         "tradr",
@@ -24132,6 +24133,63 @@ class TidalHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 )
             )
         return rows, composition_date
+
+
+class ReturnStackedHoldingsAdapter(TidalHoldingsAdapter):
+    """Fetch Return Stacked's issuer-published daily holdings CSVs."""
+
+    _PRODUCTS: dict[str, tuple[str, str]] = {
+        "RSST": (
+            "https://www.returnstackedetfs.com/rsst-return-stacked-us-stocks-managed-futures/",
+            "https://www.returnstackedetfs.com/rsst/holdings",
+        ),
+        "RSIT": (
+            "https://www.returnstackedetfs.com/rsit-international-stocks-managed-futures/",
+            "https://www.returnstackedetfs.com/rsit/holdings",
+        ),
+        "RSSY": (
+            "https://www.returnstackedetfs.com/rssy-return-stacked-us-stocks-futures-yield/",
+            "https://www.returnstackedetfs.com/rssy/holdings",
+        ),
+        "RSSX": (
+            "https://www.returnstackedetfs.com/rssx-return-stacked-us-stocks-gold-bitcoin/",
+            "https://www.returnstackedetfs.com/rssx-holdings",
+        ),
+        "RSBT": (
+            "https://www.returnstackedetfs.com/rsbt-return-stacked-bonds-managed-futures/",
+            "https://www.returnstackedetfs.com/rsbt/holdings",
+        ),
+        "RSBY": (
+            "https://www.returnstackedetfs.com/rsby-return-stacked-bonds-futures-yield/",
+            "https://www.returnstackedetfs.com/rsby/holdings",
+        ),
+        "RSBA": (
+            "https://www.returnstackedetfs.com/rsba-return-stacked-bonds-merger-arbitrage/",
+            "https://www.returnstackedetfs.com/rsba/holdings",
+        ),
+        "RSSB": (
+            "https://www.returnstackedetfs.com/rssb-return-stacked-global-stocks-bonds/",
+            "https://www.returnstackedetfs.com/rssb/holdings",
+        ),
+    }
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        result = await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        result.raw_json["source_format"] = "return_stacked_issuer_daily_holdings_csv"
+        result.legal_metadata["route_resolution"] = "return_stacked_issuer_daily_holdings_csv"
+        return result
 
 
 class LogiqHoldingsAdapter(TidalHoldingsAdapter):
@@ -65841,6 +65899,28 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=False,
         terms_note="Rareview Capital public ETF product pages and holdings tables may be subject to issuer terms.",
     ),
+    "return_stacked": IssuerCsvAdapterConfig(
+        adapter_key="return_stacked",
+        source_provider="return_stacked_etfs",
+        source_access="issuer_product_page_declared_daily_holdings_csv",
+        product_page_templates=(
+            "https://www.returnstackedetfs.com/rsst-return-stacked-us-stocks-managed-futures/",
+            "https://www.returnstackedetfs.com/rsit-international-stocks-managed-futures/",
+            "https://www.returnstackedetfs.com/rssy-return-stacked-us-stocks-futures-yield/",
+            "https://www.returnstackedetfs.com/rssx-return-stacked-us-stocks-gold-bitcoin/",
+            "https://www.returnstackedetfs.com/rsbt-return-stacked-bonds-managed-futures/",
+            "https://www.returnstackedetfs.com/rsby-return-stacked-bonds-futures-yield/",
+            "https://www.returnstackedetfs.com/rsba-return-stacked-bonds-merger-arbitrage/",
+            "https://www.returnstackedetfs.com/rssb-return-stacked-global-stocks-bonds/",
+        ),
+        url_templates=(
+            "https://www.returnstackedetfs.com/{symbol_lower}/holdings",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "Return Stacked public ETF product pages and daily holdings CSVs may be subject to issuer terms."
+        ),
+    ),
     "resolute": IssuerCsvAdapterConfig(
         adapter_key="resolute",
         source_provider="resolute_american_beacon",
@@ -69410,7 +69490,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "performance_trust",
         "putnam",
         "rareview_funds",
-        "return_stacked",
         "riverfront",
         "robo_global",
         "rockefeller_capital",
@@ -72963,7 +73042,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "quadratic": QuadraticHoldingsAdapter,
         "q3": Q3AuditedFallbackHoldingsAdapter,
         "rareview_funds": RareviewFundsReconciledFallbackHoldingsAdapter,
-        "return_stacked": ReturnStackedReconciledFallbackHoldingsAdapter,
+        "return_stacked": ReturnStackedHoldingsAdapter,
         "ridgeline": RidgelineAuditedFallbackHoldingsAdapter,
         "riverfront": RiverFrontReconciledFallbackHoldingsAdapter,
         "river1": River1ReconciledFallbackHoldingsAdapter,

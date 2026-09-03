@@ -15977,6 +15977,39 @@ async def test_quadratic_adapter_parses_verified_kraneshares_holdings_csv(monkey
 
 
 @pytest.mark.asyncio
+async def test_return_stacked_adapter_fetches_issuer_daily_holdings_csv(monkeypatch):
+    adapter = get_holdings_adapter("return_stacked")
+    assert adapter is not None
+    product_url = (
+        "https://www.returnstackedetfs.com/rsst-return-stacked-us-stocks-managed-futures/"
+    )
+    holdings_url = "https://www.returnstackedetfs.com/rsst/holdings"
+    holdings_csv = "\n".join(
+        [
+            "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits",
+            "09/02/2026,RSST,SPYM,78464A854,State Street SPDR Portfolio S&P 500 ETF,100,89.65,8965,74.07%,12000,1000,1",
+            "09/02/2026,RSST,Cash&Other,Cash&Other,Cash & Other,1000,1,1000,8.33%,12000,1000,1",
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text="<html><h1>RSST</h1></html>", url=product_url),
+        FakeResponse(text=holdings_csv, content_type="text/csv", url=holdings_url),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="RSST")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_url, holdings_url]
+    assert len(result.rows) == 2
+    assert result.rows[0].symbol == "SPYM"
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["source_provider"] == "return_stacked_etfs"
+    assert result.legal_metadata["route_resolution"] == "return_stacked_issuer_daily_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+
+
+@pytest.mark.asyncio
 async def test_cicc_adapter_is_limited_to_its_verified_kraneshares_route(monkeypatch):
     adapter = get_holdings_adapter("cicc")
     assert adapter is not None
@@ -27269,8 +27302,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 402
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 94
+    assert ledger["current_native_count"] == 403
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 93
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -27323,6 +27356,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "pathfinder",
         "portfolio_building_block",
         "quadratic",
+        "return_stacked",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))
