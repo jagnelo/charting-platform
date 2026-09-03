@@ -2359,6 +2359,7 @@ ISSUER_DOMAIN_HINTS.update(
         "wahed": ["wahed.com"],
         "yieldmax": ["yieldmaxetfs.com"],
         "opus_capital_management": ["aptusetfs.com", "opusetfs.com"],
+        "pathfinder": ["pathfinderetfs.com"],
     }
 )
 
@@ -56423,6 +56424,33 @@ class FMInvestmentsHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return bool(re.fullmatch(r"[A-Z][A-Z0-9.=-]{0,9}", value.strip().upper()))
 
 
+class PathfinderHoldingsAdapter(GraffHoldingsAdapter):
+    """Expose Pathfinder's PFDE route under its own provider identity."""
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        result = await super().fetch_latest(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "source_provider": self.source_provider,
+            "publisher": "Pathfinder ETFs",
+            "parent_issuer": "Opal Capital Management",
+            "route_resolution": "pathfinder_product_bundle_filepoint_complete_holdings_csv",
+            "snapshot_provenance": "pathfinder_native_pfde_filepoint_csv",
+        }
+        return result
+
 class OneTwoFiveOneCapitalHoldingsAdapter(FMInvestmentsHoldingsAdapter):
     """Fetch 1251 Capital ETFs through its owned F/M Investments issuer API."""
 
@@ -65560,6 +65588,20 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "may be subject to issuer terms."
         ),
     ),
+    "pathfinder": IssuerCsvAdapterConfig(
+        adapter_key="pathfinder",
+        source_provider="pathfinder",
+        source_access="issuer_public_product_page_declared_filepoint_complete_holdings_csv",
+        product_page_templates=(
+            "https://pathfinderetfs.com/pfde",
+            "https://pathfinderetfs.com/assets/js/app.js?version=4",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "Pathfinder public ETF product-page and FilePoint holdings routes may be "
+            "subject to issuer terms."
+        ),
+    ),
     "resolute": IssuerCsvAdapterConfig(
         adapter_key="resolute",
         source_provider="resolute_american_beacon",
@@ -69123,7 +69165,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "north_square",
         "pabrai",
         "panagram",
-        "pathfinder",
         "parnassus_investments",
         "premise_capital",
         "pzena",
@@ -72675,7 +72716,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "pabrai": PabraiReconciledFallbackHoldingsAdapter,
         "panagram": PanagramReconciledFallbackHoldingsAdapter,
         "parnassus_investments": ParnassusInvestmentsReconciledFallbackHoldingsAdapter,
-        "pathfinder": PathfinderReconciledFallbackHoldingsAdapter,
+        "pathfinder": PathfinderHoldingsAdapter,
         "performance_trust": PerformanceTrustReconciledFallbackHoldingsAdapter,
         "planrock": PlanRockAuditedFallbackHoldingsAdapter,
         "portfolio_building_block": PortfolioBuildingBlockReconciledFallbackHoldingsAdapter,

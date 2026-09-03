@@ -35,6 +35,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "nestyield",
     "norris_perne_french",
     "opus_capital_management",
+    "pathfinder",
     "amun",
     "1251_capital",
     "3fourteen",
@@ -499,6 +500,7 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ("albert_mason", "KNOW", None, {}, 50),
         ("focus_financial", "EBI", None, {}, 1000),
         ("graff", "PFDE", None, {}, 50),
+        ("pathfinder", "PFDE", None, {}, 50),
         ("resolute", "AHLT", None, {}, 200),
         ("american_beacon", "AHLT", None, {}, 200),
         (
