@@ -110,6 +110,12 @@ HSPX funds into corresponding Global X funds, with Global X assuming management
 and the Horizons target funds liquidated/terminated. Current QYLD, HSPX, and
 DAX holdings therefore belong to the existing `global_x` publisher route; no
 duplicate Horizons adapter is created.
+Hoya is recorded as an audited inactive/successor alias of the existing native
+`pettee` adapter: Hoya's official HOMZ and RIET product pages identify the two
+current ETFs and link complete holdings workbooks through the issuer-owned
+download route. The existing adapter validates both product identities and
+records Hoya Capital Real Estate publisher provenance, so the StockAnalysis
+`hoya` display identity does not warrant a duplicate adapter.
 Granite Group Advisors is recorded as a non-portfolio-publisher identity: its
 official wealth-management materials describe allocation to independent fund
 managers, disclaim proprietary fund products, and expose no sponsored U.S. ETF
@@ -657,6 +663,14 @@ Added adapter keys:
 - `genter_capital`
 - `river1`
 - `impact_shares`
+
+Additional disposition:
+
+- `Hoya Capital` -> `pettee`
+
+The Hoya Capital display identity is reconciled to the existing Pettee/Hoya
+native adapter, which owns the official HOMZ and RIET product-page-linked
+workbooks. This source reconciliation does not create a new provider key.
 
 Rows such as `Nicholas`, `Myriad Capital`, `Obra`, `ACV`, `The Future Fund`,
 `Absolute`, and `REX-Osprey` require separate alias or identity disposition

@@ -1547,3 +1547,28 @@ issuer-access-blocked, 96 needs-first-party-route-discovery, 3
 non-executable-public-source, and 6 non-portfolio-publisher. The exhaustive
 ledger retains all 140 historical records exactly once; 69 queued fallback
 records remain and the next ranked item is `hoya`.
+
+## 35. Current execution checkpoint — Hoya alias reconciliation — 2026-09-03
+
+The ranked `hoya` audit confirmed that Hoya Capital's official HOMZ and RIET
+product pages identify the current U.S.-listed ETFs, publish complete
+identifier/CUSIP/shares/market-value holdings tables, and link the complete
+fund workbooks through the issuer-owned
+`download-holdings-usbanks.php?fund={symbol}` route. The official pages report
+current holdings-as-of dates and identify Hoya Capital as the ETF issuer/adviser.
+
+The repository already has a native `pettee` adapter for this same Hoya route.
+It validates the symbol-specific product page, the page-declared workbook URL,
+the workbook identity and required schema, and canonical row mapping while
+preserving CUSIPs and Hoya Capital Real Estate provenance. The bounded opt-in
+live test now exercises both HOMZ and RIET and passed for both current
+workbooks.
+
+The StockAnalysis `hoya` provider key is consequently recorded in the audit
+ledger as an `inactive_or_successor_disposition` alias of `pettee`. The runtime
+alias and URL-domain hints resolve Hoya Capital display names and
+`hoyaetfs.com`/`hoyacapital.com` product URLs to the existing native adapter.
+No duplicate Hoya adapter is added, and no SEC-derived fallback is promoted.
+The code-derived split remains 496 registered, 383 native/live-backed, and 113
+fallback-only providers; the exhaustive ledger now has 68 queued records and
+the next ranked item is `jlens`.

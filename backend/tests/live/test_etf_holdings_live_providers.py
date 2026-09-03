@@ -3396,19 +3396,20 @@ async def test_live_little_harbor_mstb_product_page_linked_holdings_workbook():
 @pytest.mark.asyncio
 @pytest.mark.slow
 @_covers_live_provider("pettee")
-async def test_live_pettee_homz_product_page_linked_holdings_workbook():
+async def test_live_pettee_hoya_product_pages_cover_current_holdings_workbooks():
     adapter = get_holdings_adapter("pettee")
     assert adapter is not None
 
-    result = await adapter.fetch_latest(symbol="HOMZ")
+    for symbol in ("HOMZ", "RIET"):
+        result = await adapter.fetch_latest(symbol=symbol)
 
-    _assert_live_holdings_result(result, adapter_key="pettee", min_rows=50)
-    assert (
-        result.legal_metadata["route_resolution"]
-        == "pettee_hoya_product_page_linked_complete_holdings_xls"
-    )
-    assert result.legal_metadata["publisher"] == "Hoya Capital Real Estate"
-    assert any(row.cusip for row in result.rows)
+        _assert_live_holdings_result(result, adapter_key="pettee", min_rows=50)
+        assert (
+            result.legal_metadata["route_resolution"]
+            == "pettee_hoya_product_page_linked_complete_holdings_xls"
+        )
+        assert result.legal_metadata["publisher"] == "Hoya Capital Real Estate"
+        assert any(row.cusip for row in result.rows)
 
 
 @pytest.mark.asyncio

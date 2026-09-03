@@ -201,4 +201,30 @@ former Horizons U.S. funds reorganized into current Global X successor funds. Th
 has 69 queued fallback records; continue with `hoya`, and
 checkpoint each coherent provider changeset before moving to the next.
 
+## Current implementation checkpoint — Hoya alias reconciliation — 2026-09-03
+
+The ranked `hoya` audit confirmed that Hoya Capital's official HOMZ and RIET
+product pages identify the current ETFs, publish complete top-holdings tables,
+and link full holdings workbooks through the issuer-owned
+`download-holdings-usbanks.php` route. The existing native `pettee` adapter
+already validates those product identities and fetched both current workbooks
+successfully in the bounded opt-in live test, preserving CUSIPs and Hoya
+Capital Real Estate publisher provenance.
+
+The queued StockAnalysis `hoya` identity is therefore recorded as an
+`inactive_or_successor` alias of `pettee`, not as a new native adapter. The
+runtime alias map now resolves the Hoya Capital display name and
+`hoyaetfs.com`/`hoyacapital.com` product URLs to `pettee`; duplicate provider
+ownership is avoided while both HOMZ and RIET remain covered by the existing
+native route. No SEC-derived or generic fallback promotion is used.
+
+The code-derived split remains 496 registered, 383 native/live-backed, and 113
+fallback-only providers. The exhaustive ledger retains all 140 historical
+records exactly once; 68 queued fallback records remain and the next ranked
+item is `jlens`. The focused alias/parser checks and bounded opt-in Hoya live
+test passed. The complete opt-in provider matrix and Docker-backed integration
+gate remain pending at the 383-native baseline, with the known unrelated
+reproducible F8p-current-history Study Lab histogram timeout still recorded as
+the integration blocker.
+
 Update this handoff at every coherent implementation and operations boundary.

@@ -2966,17 +2966,25 @@ providers:
     display_name: hoya
     queue_rank: 64
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: inactive_or_successor_disposition
+    disposition: inactive_or_successor_disposition
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
-    estimated_us_etf_count: null
+    representative_symbols:
+      - HOMZ
+      - RIET
+    estimated_us_etf_count: 2
     estimated_us_etf_aum: null
-    us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    us_equity_breadth: 2
+    source_freshness: current_holdings_as_of_date
+    first_party_domains:
+      - hoyaetfs.com
+      - hoyacapital.com
+    candidate_routes:
+      - https://www.hoyaetfs.com/HOMZ
+      - https://www.hoyaetfs.com/RIET
+      - https://www.hoyaetfs.com/download-holdings-usbanks.php?fund=HOMZ
+      - https://www.hoyaetfs.com/download-holdings-usbanks.php?fund=RIET
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -2986,13 +2994,24 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.hoya"
       - "runtime:ISSUER_ADAPTER_CONFIGS.hoya"
+      - "runtime:ISSUER_ADAPTER_CONFIGS.pettee"
+      - "web:hoya-official-homz-riet-pages-2026-09-03"
+      - "live:pettee-hoya-current-holdings-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.hoya"
-    disposition_reason: "hoya: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate hoya first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-03
+        source: "https://www.hoyaetfs.com/HOMZ and https://www.hoyaetfs.com/RIET"
+        result: "Hoya's official product pages identify the current HOMZ and RIET ETFs, display complete top-holdings tables with identifier/CUSIP/shares/market-value columns, and link each fund's full holdings workbook through the issuer-owned download-holdings-usbanks.php route."
+        evidence_ref: "web:hoya-official-homz-riet-pages-2026-09-03"
+      - date: 2026-09-03
+        source: "backend/tests/live/test_etf_holdings_live_providers.py::test_live_pettee_hoya_product_pages_cover_current_holdings_workbooks"
+        result: "The existing native pettee adapter fetched both official Hoya workbooks, parsed at least 50 current rows per product, preserved CUSIPs, and passed route identity and Hoya Capital Real Estate publisher checks."
+        evidence_ref: "live:pettee-hoya-current-holdings-2026-09-03"
+    disposition_reason: "hoya: Hoya's official HOMZ and RIET pages and their linked complete holdings workbooks prove a current route, but the queued StockAnalysis Hoya identity is an alternate brand/provider spelling for the existing native pettee adapter and not a distinct portfolio publisher. The native route validates both symbols and records Hoya Capital Real Estate provenance; creating a duplicate hoya adapter would split ownership and misstate coverage."
+    next_action: "hoya: Keep fallback-only as an inactive_or_successor alias and resolve HOMZ and RIET references to the existing native pettee adapter; extend that native owner only when additional Hoya products gain equivalent identity-verified current holdings routes, and do not create a duplicate hoya adapter."
     implementation_sha: null
     validation_refs: []
   - adapter_key: jlens

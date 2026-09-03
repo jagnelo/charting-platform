@@ -2147,6 +2147,10 @@ ETFDB_ISSUER_LEAGUE_ALIAS_DISPOSITIONS: dict[str, tuple[str, str]] = {
 }
 
 STOCKANALYSIS_PROVIDER_ALIAS_DISPOSITIONS: dict[str, tuple[str, str]] = {
+    "Hoya Capital": (
+        "pettee",
+        "StockAnalysis provider display name for the existing Pettee/Hoya Capital adapter.",
+    ),
     "PIMCO": (
         "pacific_investments",
         "StockAnalysis provider display name for the existing PIMCO/Pacific Investments adapter.",
@@ -2340,6 +2344,7 @@ ISSUER_DOMAIN_HINTS.update(
         "gotham": ["gothametfs.com", "gothamassetmanagement.com"],
         "hexis": ["hexis.capital", "hexis.filepoint.live"],
         "hilton": ["hiltonetfs.com", "hiltonetfjson.com", "hiltoncapitalmanagement.com"],
+        "pettee": ["hoyaetfs.com", "hoyacapital.com"],
         "volatility_shares": ["volatilityshares.com"],
         "wahed": ["wahed.com"],
         "yieldmax": ["yieldmaxetfs.com"],
