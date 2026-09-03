@@ -2790,9 +2790,9 @@ providers:
         evidence_ref: "live:hexis-filepoint-nico-holdings-csv-2026-09-03"
     disposition_reason: "hexis: Hexis Capital Management publishes NICO's complete current holdings through an issuer-owned FilePoint application. The adapter strictly verifies the NICO product page, FilePoint iframe markers, declared application-script filename, official CSV host/path, one consistent as-of date, account identity, and complete schema; it preserves equity/exchange identifiers, fund, cash, and signed TRS derivative rows while recording Hexis Capital Management/FilePoint provenance."
     next_action: "hexis: Monitor the official NICO product page, FilePoint app, declared script, and daily holdings CSV; retain native status while the route remains complete, dated, identity-valid, and executable, and add any future Hexis product only after equivalent first-party evidence."
-    implementation_sha: null
+    implementation_sha: dabe2329965c704f93e3dbb21ec50a7da418ba6c
     validation_refs:
-      - "validation:2026-09-03T00:00:00Z"
+      - "validation:2026-09-03T01:10:27Z"
   - adapter_key: highland_capital
     display_name: highland_capital
     queue_rank: 61
