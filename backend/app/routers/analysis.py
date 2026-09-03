@@ -17,7 +17,12 @@ from sqlalchemy.orm import selectinload
 from app.auth.dependencies import get_current_user
 from app.database import get_db
 from app.models.data_source import DataSource
-from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+from app.models.etf_holdings import (
+    ETFHolding,
+    ETFHoldingsAdapterState,
+    ETFHoldingsSnapshot,
+    ETFProfile,
+)
 from app.models.instrument import Instrument
 from app.models.instrument_event import InstrumentEvent, InstrumentEventFetchState
 from app.models.market_map import MarketMapSnapshot
@@ -3588,6 +3593,20 @@ async def benchmark_family_coverage(
             )
         ).scalars()
     }
+    adapter_states = {}
+    profile_ids = [profile.id for profile in profiles.values()]
+    if profile_ids:
+        for state in (
+            await db.execute(
+                select(ETFHoldingsAdapterState)
+                .where(ETFHoldingsAdapterState.etf_profile_id.in_(profile_ids))
+                .order_by(
+                    ETFHoldingsAdapterState.last_checked_at.desc().nullslast(),
+                    ETFHoldingsAdapterState.id.desc(),
+                )
+            )
+        ).scalars():
+            adapter_states.setdefault(state.etf_profile_id, state)
 
     roles: list[BenchmarkFamilyCoverageRoleOut] = []
     exclusions: list[AnalysisWarning] = []
@@ -3599,6 +3618,7 @@ async def benchmark_family_coverage(
         symbol = str(mapping.get("symbol")).upper() if mapping.get("symbol") else None
         instrument = instruments.get(symbol) if symbol else None
         profile = profiles.get(instrument.id) if instrument is not None else None
+        adapter_state = adapter_states.get(profile.id) if profile is not None else None
         snapshots: list[BenchmarkFamilyCoverageSnapshotOut] = []
         member_bar_history = BenchmarkFamilyMemberBarHistoryOut(status="no_snapshot")
         continuity_status = "not_applicable"
@@ -3747,6 +3767,15 @@ async def benchmark_family_coverage(
                         instrument_id=instrument.id,
                     )
                 )
+        if source is None and adapter_state is not None:
+            source = sources.get(adapter_state.data_source_id)
+        if adapter_state is not None and source is not None:
+            if holdings_entitlement is None:
+                holdings_entitlement = entitlements.get(
+                    (source.id, ProviderCapability.UNIVERSE_DISCOVERY)
+                )
+            if price_entitlement is None:
+                price_entitlement = entitlements.get((source.id, ProviderCapability.PRICE_HISTORY))
         entitlement_candidates = [
             item for item in (holdings_entitlement, price_entitlement) if item
         ]
@@ -3832,6 +3861,23 @@ async def benchmark_family_coverage(
                 ),
                 entitlement_live_probe_status=(
                     entitlement_record.live_probe_status if entitlement_record else None
+                ),
+                holdings_refresh_status=(adapter_state.status if adapter_state else "not_attempted"),
+                holdings_refresh_provider=source.name if source else None,
+                holdings_refresh_last_checked_at=(
+                    adapter_state.last_checked_at if adapter_state else None
+                ),
+                holdings_refresh_last_success_at=(
+                    adapter_state.last_success_at if adapter_state else None
+                ),
+                holdings_refresh_last_failure_at=(
+                    adapter_state.last_failure_at if adapter_state else None
+                ),
+                holdings_refresh_failure_reason=(
+                    adapter_state.failure_reason if adapter_state else None
+                ),
+                holdings_refresh_composition_date=(
+                    adapter_state.composition_date if adapter_state else None
                 ),
                 point_in_time_supported=point_in_time_supported,
                 member_count=member_count,

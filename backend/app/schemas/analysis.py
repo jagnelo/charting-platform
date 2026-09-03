@@ -369,6 +369,13 @@ class BenchmarkFamilyCoverageRoleOut(BaseModel):
     entitlement_effective_at: datetime | None = None
     entitlement_review_due_at: datetime | None = None
     entitlement_live_probe_status: str | None = None
+    holdings_refresh_status: str = "not_attempted"
+    holdings_refresh_provider: str | None = None
+    holdings_refresh_last_checked_at: datetime | None = None
+    holdings_refresh_last_success_at: datetime | None = None
+    holdings_refresh_last_failure_at: datetime | None = None
+    holdings_refresh_failure_reason: str | None = None
+    holdings_refresh_composition_date: date | None = None
     point_in_time_supported: bool = False
     member_count: int = Field(default=0, ge=0)
     weighted_member_count: int = Field(default=0, ge=0)

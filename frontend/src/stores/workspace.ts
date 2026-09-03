@@ -565,6 +565,13 @@ export interface BenchmarkFamilyCoverageRoleState {
   entitlement_effective_at?: string | null
   entitlement_review_due_at?: string | null
   entitlement_live_probe_status?: string | null
+  holdings_refresh_status?: string
+  holdings_refresh_provider?: string | null
+  holdings_refresh_last_checked_at?: string | null
+  holdings_refresh_last_success_at?: string | null
+  holdings_refresh_last_failure_at?: string | null
+  holdings_refresh_failure_reason?: string | null
+  holdings_refresh_composition_date?: string | null
   point_in_time_supported?: boolean
   member_count?: number
   weighted_member_count?: number

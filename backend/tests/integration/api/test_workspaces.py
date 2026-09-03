@@ -493,7 +493,7 @@ class TestWorkspaces:
         from datetime import UTC, datetime
         from decimal import Decimal
 
-        from app.models.etf_holdings import ETFHoldingsSnapshot, ETFProfile
+        from app.models.etf_holdings import ETFHoldingsAdapterState, ETFHoldingsSnapshot, ETFProfile
         from app.models.instrument import Instrument
 
         seeded = client.get("/api/v1/market-groups", headers=auth_headers)
@@ -514,6 +514,17 @@ class TestWorkspaces:
             adapter_confidence=Decimal("0.9900"),
         )
         db.add(profile)
+        db.flush()
+        db.add(
+            ETFHoldingsAdapterState(
+                etf_profile_id=profile.id,
+                adapter_key="spdr",
+                status="failure",
+                last_checked_at=datetime(2026, 7, 2, tzinfo=UTC),
+                last_failure_at=datetime(2026, 7, 2, tzinfo=UTC),
+                failure_reason="issuer endpoint unavailable",
+            )
+        )
         db.flush()
         first = ETFHoldingsSnapshot(
             etf_profile_id=profile.id,
@@ -558,6 +569,8 @@ class TestWorkspaces:
         assert roles["cap_weight"]["adapter_status"] == "failure"
         assert Decimal(roles["cap_weight"]["adapter_confidence"]) == Decimal("0.9900")
         assert roles["cap_weight"]["entitlement_status"] == "unknown"
+        assert roles["cap_weight"]["holdings_refresh_status"] == "failure"
+        assert roles["cap_weight"]["holdings_refresh_failure_reason"] == "issuer endpoint unavailable"
         assert roles["cap_weight"]["composite_readiness_status"] == "partial"
         assert roles["cap_weight"]["point_in_time_supported"] is True
         assert [row["composition_date"] for row in roles["cap_weight"]["snapshots"]] == [
