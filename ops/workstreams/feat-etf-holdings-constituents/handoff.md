@@ -864,6 +864,27 @@ is `norris_perne_french`. The full opt-in live matrix and Docker-backed
 integration gate remain pending, with the known unrelated reproducible
 F8p-current-history Study Lab histogram timeout retained.
 
+## Current promotion checkpoint — Opus Capital Management / OSCV native route — 2026-09-03
+
+The ranked `opus_capital_management` audit verified the official Aptus OSCV
+product page and its declared WordPress holdings API. The page publishes a
+complete current holdings table; the native adapter restricts the route to
+OSCV, maps ticker/CUSIP/shares/value/weight fields, preserves the effective
+date, and records Opus publisher provenance without SEC-derived reconstruction.
+
+The durable ledger records `opus_capital_management` as `native_promoted`.
+Runtime state is now 496 registered / 399 native-live-backed / 97
+fallback-only providers; runtime fallback statuses are 9 issuer-access-
+blocked, 78 route-discovery, 4 non-executable-public-source, and 6
+non-portfolio-publisher. The ledger has 42 queued fallback records and the
+next ranked issuer is `pabrai`. Focused deterministic and bounded live checks
+pass; the full opt-in matrix and Docker-backed integration gate remain pending
+with the known unrelated F8p-current-history Study Lab histogram timeout
+retained. Evidence refs:
+`web:opus-capital-management-official-oscv-2026-09-03`,
+`web:opus-capital-management-sec-series-2026-09-03`, and
+`live:opus-capital-management-oscv-current-holdings-2026-09-03`.
+
 ## Current audit checkpoint — North Square non-executable public source — 2026-09-03
 
 The ranked `north_square` audit verified official NSIV and NSIG product pages

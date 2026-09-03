@@ -1178,6 +1178,23 @@ fallback-only providers. The ledger has 49 queued fallback records and
 full opt-in matrix and Docker integration gate remain pending, with the known
 unrelated F8p-current-history Study Lab histogram timeout retained.
 
+## Current promotion checkpoint — Opus Capital Management / OSCV — 2026-09-03
+
+The official Aptus OSCV product page identifies the Opus Small Cap Value ETF
+and publishes a complete current holdings table with ticker, CUSIP, shares,
+market value, weight, and effective date. The native adapter uses the page's
+declared WordPress API, restricts the route to OSCV, and records truthful
+current-date and publisher provenance. A bounded live request returned the
+current issuer table successfully.
+
+The current split is 496 registered, 399 native/live-backed, and 97
+fallback-only providers. Runtime statuses are 9 issuer-access-blocked, 78
+route-discovery, 4 non-executable, and 6 non-portfolio-publisher. The ledger
+has 42 queued records and `pabrai` is next. Evidence refs:
+`web:opus-capital-management-official-oscv-2026-09-03`,
+`web:opus-capital-management-sec-series-2026-09-03`, and
+`live:opus-capital-management-oscv-current-holdings-2026-09-03`.
+
 ## Current audit checkpoint — North Square non-executable public source — 2026-09-03
 
 North Square's official NSIV and NSIG pages identify current ETFs but state

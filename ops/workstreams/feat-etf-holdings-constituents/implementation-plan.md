@@ -2184,3 +2184,18 @@ with 43 queued records and `opus_capital_management` next. Evidence refs:
 `web:north-square-nsiv-non-executable-2026-09-03`,
 `web:north-square-nsig-filepoint-2026-09-03`, and
 `web:north-square-sec-disclosure-2026-09-03`.
+
+## 61. Current promotion checkpoint — Opus Capital Management / OSCV native route — 2026-09-03
+
+The official Aptus OSCV product page and its declared WordPress API provide a
+complete current holdings table. `OpusCapitalManagementHoldingsAdapter`
+restricts the route to OSCV, parses the issuer table through the shared Aptus
+parser, and adds provider-specific route and snapshot provenance. Deterministic
+fixture and opt-in live coverage are aligned with registry ownership and the
+ledger promotion.
+
+Current state is 496 registered / 399 native-live-backed / 97 fallback-only,
+with 42 queued records and `pabrai` next. Evidence refs:
+`web:opus-capital-management-official-oscv-2026-09-03`,
+`web:opus-capital-management-sec-series-2026-09-03`, and
+`live:opus-capital-management-oscv-current-holdings-2026-09-03`.

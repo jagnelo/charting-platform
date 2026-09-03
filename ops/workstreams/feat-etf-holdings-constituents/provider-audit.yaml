@@ -5,9 +5,9 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 398
-current_fallback_count: 98
-generated_at: 2026-09-03T09:30:00Z
+current_native_count: 399
+current_fallback_count: 97
+generated_at: 2026-09-03T10:00:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -4309,35 +4309,55 @@ providers:
     display_name: opus_capital_management
     queue_rank: 90
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-03
+    source_access_declared: issuer_product_page_declared_wordpress_holdings_table
+    representative_symbols: [OSCV]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    source_freshness: current_as_of_date
+    first_party_domains: [aptusetfs.com, sec.gov]
+    candidate_routes:
+      - "https://aptusetfs.com/oscv/"
+      - "https://aptusetfs.com/wp-json/wp/v2/pages?slug=oscv"
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_opus_capital_management_adapter_fetches_oscv_holdings
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_opus_capital_management_oscv_holdings
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.opus_capital_management"
       - "runtime:ISSUER_ADAPTER_CONFIGS.opus_capital_management"
+      - "web:opus-capital-management-official-oscv-2026-09-03"
+      - "web:opus-capital-management-sec-series-2026-09-03"
+      - "live:opus-capital-management-oscv-current-holdings-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.opus_capital_management"
-    disposition_reason: "opus_capital_management: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate opus_capital_management first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
-    implementation_sha: null
-    validation_refs: []
+      - date: 2026-09-03
+        source: "https://aptusetfs.com/oscv/"
+        result: "The official Aptus OSCV product page identifies Opus Small Cap Value ETF and publishes a complete current holdings table with ticker, CUSIP, shares, market value, weight, and effective date."
+        evidence_ref: "web:opus-capital-management-official-oscv-2026-09-03"
+      - date: 2026-09-03
+        source: "https://www.sec.gov/Archives/edgar/data/1540305/000089418926024149/opussmallcapvalueetfsummary.htm"
+        result: "The SEC summary prospectus independently confirms OSCV as the Opus Small Cap Value ETF in ETF Series Solutions and its Aptus adviser relationship."
+        evidence_ref: "web:opus-capital-management-sec-series-2026-09-03"
+      - date: 2026-09-03
+        source: "https://aptusetfs.com/wp-json/wp/v2/pages?slug=oscv"
+        result: "The bounded live route returned the issuer's WordPress page payload; the native adapter parsed the complete holdings table and preserved current/effective dates and canonical identifiers."
+        evidence_ref: "live:opus-capital-management-oscv-current-holdings-2026-09-03"
+    disposition_reason: "opus_capital_management: The official Aptus OSCV product page and its declared WordPress API expose a complete current holdings table. The native adapter restricts the route to OSCV, parses issuer rows with strict canonical mapping, and records truthful date/provenance metadata without SEC-derived reconstruction."
+    next_action: "opus_capital_management: Monitor the official OSCV page/API for schema and effective-date continuity; add future Opus ETFs only after equivalent first-party route and bounded live evidence."
+    implementation_sha: 53e4d579dae8ec8513bb2b73a3bf0a565cb61c52
+    validation_refs:
+      - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_opus_capital_management_adapter_fetches_oscv_holdings"
+      - "backend/tests/live/test_etf_holdings_live_providers.py::test_live_opus_capital_management_oscv_holdings"
+      - "validation:2026-09-03T10:00:00Z"
   - adapter_key: pabrai
     display_name: pabrai
     queue_rank: 91
