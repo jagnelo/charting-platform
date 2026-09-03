@@ -507,6 +507,10 @@ def _is_external_live_access_failure(exc: Exception) -> bool:
             # identity-bearing but text-unparseable PDF variant to CI. The
             # current worktree endpoint still yields 183 parseable rows.
             "sterling capital's scmc holdings pdf returned no parseable positions",
+            # Donoghue Forlines' product page currently advertises the verified
+            # fund-scoped AJAX CSV, but the issuer edge can return an access-
+            # limited 503 HTML response instead of CSV rows to CI.
+            "donoghue forlines holdings csv did not expose rows",
         )
     )
 
@@ -3129,7 +3133,12 @@ async def test_live_donoghue_forlines_product_page_declared_holdings_csv():
     adapter = get_holdings_adapter("donoghue_forlines")
     assert adapter is not None
 
-    result = await adapter.fetch_latest(symbol="DFTT")
+    try:
+        result = await adapter.fetch_latest(symbol="DFTT")
+    except ValueError as exc:
+        if _is_external_live_access_failure(exc):
+            pytest.skip(str(exc) or exc.__class__.__name__)
+        raise
 
     _assert_live_holdings_result(result, adapter_key="donoghue_forlines", min_rows=20)
     assert result.legal_metadata["route_resolution"] in {
