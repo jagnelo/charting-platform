@@ -2122,3 +2122,18 @@ unrelated F8p-current-history Study Lab histogram timeout is retained. Evidence
 refs: `web:nestyield-official-eggs-holdings-2026-09-03`,
 `web:nestyield-sec-series-identities-2026-09-03`, and
 `live:nestyield-current-holdings-2026-09-03`.
+
+## 57. Current execution checkpoint — New Age Alpha inactive/successor disposition — 2026-09-03
+
+The official New Age Alpha site now presents h-factor analytics, indexing, and
+advisory services. Its issuer announcement records closure and liquidation of
+the AVDR and AVDG ETFs in July 2022; the historical SEC registration confirms
+the former trust identity but no current executable holdings artifact exists.
+The ledger records an inactive/successor disposition without a native adapter.
+
+Runtime state remains 496 registered / 397 native-live-backed / 99
+fallback-only, with 46 queued ledger records and `nicholas_wealth` next. The
+full opt-in live matrix and Docker-backed integration gate remain pending; the
+known unrelated F8p-current-history Study Lab histogram timeout is retained.
+Evidence refs: `web:new-age-alpha-avdr-liquidation-2026-09-03` and
+`web:new-age-alpha-historical-sec-identity-2026-09-03`.

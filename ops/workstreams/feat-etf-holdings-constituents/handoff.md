@@ -824,3 +824,23 @@ F8p-current-history Study Lab histogram timeout retained. Evidence refs:
 `web:nestyield-official-eggs-holdings-2026-09-03`,
 `web:nestyield-sec-series-identities-2026-09-03`, and
 `live:nestyield-current-holdings-2026-09-03`.
+
+## Current audit checkpoint — New Age Alpha inactive/successor disposition — 2026-09-03
+
+The ranked `new_age_alpha` audit found no current issuer-owned ETF holdings
+route. New Age Alpha's current official site presents its h-factor analytics,
+indexing, and advisory business, while the issuer's public announcement records
+closure and liquidation of the AVDR US LargeCap Leading ETF and AVDR US
+LargeCap ESG ETF, with final trading July 11, 2022 and liquidation July 18,
+2022. The historical SEC registration confirms the former New Age Alpha Trust
+ETF identity but does not establish a current executable artifact.
+
+The durable ledger records `new_age_alpha` as
+`inactive_or_successor_disposition`; no native adapter, parser fixture, or live
+test is added. Runtime code remains 496 registered, 397 native/live-backed, and
+99 fallback-only providers. The ledger now has 46 queued fallback records; the
+next ranked issuer is `nicholas_wealth`. The full opt-in matrix and
+Docker-backed integration gate remain pending, with the known unrelated
+F8p-current-history Study Lab histogram timeout retained. Evidence refs:
+`web:new-age-alpha-avdr-liquidation-2026-09-03` and
+`web:new-age-alpha-historical-sec-identity-2026-09-03`.

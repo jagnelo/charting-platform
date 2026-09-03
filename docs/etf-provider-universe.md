@@ -1191,6 +1191,33 @@ fallback-only providers. The ledger has 47 queued fallback records and
 full opt-in matrix and Docker integration gate remain pending, with the known
 unrelated F8p-current-history Study Lab histogram timeout retained.
 
+## Current audit checkpoint — New Age Alpha inactive/successor disposition — 2026-09-03
+
+New Age Alpha's current official site presents h-factor analytics, indexing,
+and advisory services. Its issuer announcement records closure and liquidation
+of the AVDR and AVDG ETFs in July 2022; the historical SEC registration
+confirms the former trust identity but no current executable holdings artifact
+exists. The ledger records an inactive/successor disposition without a native
+adapter.
+
+Runtime state remains 496 registered / 397 native-live-backed / 99
+fallback-only, with 46 queued ledger records and `nicholas_wealth` next. The
+full opt-in live matrix and Docker-backed integration gate remain pending; the
+known unrelated F8p-current-history Study Lab histogram timeout is retained.
+
+## Current promotion checkpoint — NestYield / EGGQ-EGGY-EGGS — 2026-09-03
+
+NestYield's official product pages publish complete dated holdings tables for
+EGGQ, EGGY, and EGGS. The native route validates symbol-scoped identities,
+parses issuer rows and option positions, preserves dates/identifiers, and
+classifies funds, equities, derivatives, and cash.
+
+The current split is 496 registered, 397 native/live-backed, and 99
+fallback-only providers. The ledger has 47 queued fallback records and
+`new_age_alpha` is next. Focused deterministic and opt-in live checks pass; the
+full opt-in matrix and Docker integration gate remain pending, with the known
+unrelated F8p-current-history Study Lab histogram timeout retained.
+
 ## Current promotion checkpoint — Moonvest / MNVT — 2026-09-03
 
 Moonvest's official MNVT page publishes a complete dated WPDataTables holdings

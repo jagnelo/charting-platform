@@ -4111,17 +4111,22 @@ providers:
     display_name: new_age_alpha
     queue_rank: 86
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: inactive_or_successor_disposition
+    disposition: inactive_or_successor_disposition
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
     representative_symbols: []
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains:
+      - newagealpha.com
+      - sec.gov
+    candidate_routes:
+      - "https://newagealpha.com/ (current official adviser/indexing site; no current ETF holdings route found)"
+      - "https://www.businesswire.com/news/home/20220619005023/en/New-Age-Alpha-Announces-Closure-of-2-AVDR-ETFs (issuer announcement of AVDR/AVDG liquidation)"
+      - "https://www.sec.gov/Archives/edgar/data/1764795/000158064220004601/newagealphan1aa.htm (official historical New Age Alpha Trust ETF registration)"
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -4131,13 +4136,23 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.new_age_alpha"
       - "runtime:ISSUER_ADAPTER_CONFIGS.new_age_alpha"
+      - "web:new-age-alpha-avdr-liquidation-2026-09-03"
+      - "web:new-age-alpha-historical-sec-identity-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.new_age_alpha"
-    disposition_reason: "new_age_alpha: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate new_age_alpha first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-03
+        source: "https://www.businesswire.com/news/home/20220619005023/en/New-Age-Alpha-Announces-Closure-of-2-AVDR-ETFs"
+        result: "New Age Alpha Trust announced closure and liquidation of the AVDR US LargeCap Leading ETF and AVDR US LargeCap ESG ETF, with final trading July 11, 2022 and liquidation July 18, 2022. The current New Age Alpha site presents indexing/analytics services and no current issuer-owned ETF holdings route."
+        evidence_ref: "web:new-age-alpha-avdr-liquidation-2026-09-03"
+      - date: 2026-09-03
+        source: "https://www.sec.gov/Archives/edgar/data/1764795/000158064220004601/newagealphan1aa.htm"
+        result: "The official historical SEC registration identifies the former New Age Alpha Trust ETF series and its adviser relationship; it does not establish a current executable holdings artifact."
+        evidence_ref: "web:new-age-alpha-historical-sec-identity-2026-09-03"
+    disposition_reason: "new_age_alpha: The distinct AVDR ETFs were formally closed and liquidated in July 2022, and the current official New Age Alpha site exposes adviser/indexing services rather than a current ETF holdings route. No native adapter is warranted; the ledger records an inactive_or_successor_disposition pending any future relaunch with an executable first-party holdings source."
+    next_action: "new_age_alpha: Monitor the official adviser site and SEC trust filings for any future ETF relaunch or successor publisher; do not promote without a complete current first-party holdings route."
     implementation_sha: null
     validation_refs: []
   - adapter_key: nicholas_wealth
