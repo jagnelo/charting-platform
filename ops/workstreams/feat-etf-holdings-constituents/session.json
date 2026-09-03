@@ -43,12 +43,7 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-45bdf9bd8d"
   },
-  "dirty_paths": [
-    "ocs/etf-provider-universe.md",
-    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-    "ops/workstreams/feat-etf-holdings-constituents/provider-audit.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -85,12 +80,12 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "2f0065c25b1cbb0df515419111d27f55a1106c8a",
-  "implementation_sha": "5f8d0b9dacf7231ae9ea1a906d1360c798bd1812",
-  "last_checkpoint": "2026-09-03T01:16:25.277387+00:00",
+  "head": "3c7ee5afbc31db88bb1e609835d97da2ce139eb0",
+  "implementation_sha": "2f0065c25b1cbb0df515419111d27f55a1106c8a",
+  "last_checkpoint": "2026-09-03T01:43:32.359443+00:00",
   "last_human_progress_update": "2026-09-03T01:41:21.067746+00:00",
   "local_validation_profile": "docker_integration",
-  "next_action": "continue ranked issuer audit from hexis",
+  "next_action": "continue ranked issuer audit from horizons",
   "plan_hash": "8283b15b7e844fdaa0a34b9872c4ee15b6674c0c64786d7ca6207857101238bc",
   "planning_required": false,
   "planning_state": "ready",
