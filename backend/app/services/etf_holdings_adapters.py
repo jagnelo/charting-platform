@@ -25043,6 +25043,161 @@ class FitzgeraldHoldingsAdapter(TidalHoldingsAdapter):
         return cls._classify_rows(rows), composition_date
 
 
+class NorrisPerneFrenchHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch NPFE holdings from NPF's issuer-owned page and JSON download route."""
+
+    PRODUCT_PAGE_URL = "https://npfinvestetfs.com/etfs/npfe/"
+    HOLDINGS_API_URL = (
+        "https://npfinvestetfs.com/wp-admin/admin-ajax.php?action=get_holdings_json&slug=npfe"
+    )
+    _ISSUER_HOST = "npfinvestetfs.com"
+    _SYMBOL = "NPFE"
+
+    def probe(
+        self,
+        *,
+        symbol: str,
+        name: str,
+        identifiers: dict[str, str],
+    ) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        product_page_url = self.PRODUCT_PAGE_URL if normalized_symbol == self._SYMBOL else None
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if product_page_url else Decimal("0.5000"),
+            status=("ready" if product_page_url or has_sec_fallback else "needs_issuer_route"),
+            reason=(
+                "NPF Investment Advisors' official NPFE page declares a complete current holdings JSON download."
+                if product_page_url
+                else "No verified NPF product page is configured for this ETF; SEC EDGAR remains available as fallback."
+                if has_sec_fallback
+                else "No verified NPF product page is configured for this ETF."
+            ),
+            source_url=product_page_url,
+            issuer_product_id=_identifier(identifiers, "issuer_product_id", "product_id")
+            or normalized_symbol
+            or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del identifiers
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol != self._SYMBOL:
+            raise ValueError(
+                f"No verified NPF holdings route is configured for {normalized_symbol}."
+            )
+        product_url = source_url or self.PRODUCT_PAGE_URL
+        if not _domain_matches(_url_host(product_url) or "", self._ISSUER_HOST):
+            raise ValueError("NPF holdings must use its official issuer domain.")
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            page_response = await client.get(
+                product_url,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+            page_response.raise_for_status()
+            page_text = page_response.text
+            if "NPF Core Equity ETF" not in page_text or "NPFE" not in page_text:
+                raise ValueError("NPF product page identity did not match NPFE.")
+            api_response = await client.get(
+                self.HOLDINGS_API_URL,
+                headers={
+                    **_holdings_request_headers(accept="application/json,*/*"),
+                    "Referer": str(page_response.url),
+                },
+                follow_redirects=True,
+            )
+            api_response.raise_for_status()
+        payload = api_response.json()
+        rows, composition_date = self._parse_payload(payload, symbol=normalized_symbol)
+        if len(rows) < 10:
+            raise ValueError(f"NPF holdings JSON returned too few rows for {normalized_symbol}.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=api_response.text,
+            raw_json=payload,
+            source_url=str(api_response.url),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "json",
+                "route_resolution": "norris_perne_french_product_page_declared_holdings_json",
+                "snapshot_provenance": "norris_perne_french_native_current_holdings_json",
+                "product_page_url": str(page_response.url),
+                "composition_date": composition_date.isoformat() if composition_date else None,
+                "as_of_date": composition_date.isoformat() if composition_date else None,
+                "publisher": "norris_perne_french",
+                "parent_issuer": "norris_perne_french",
+                "issuer_relationship": "NPF Investment Advisors ETF publisher",
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_payload(
+        cls, payload: Any, *, symbol: str
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        if not isinstance(payload, dict) or payload.get("success") is not True:
+            raise ValueError("NPF holdings endpoint did not return a successful JSON payload.")
+        data = payload.get("data")
+        if not isinstance(data, dict):
+            raise ValueError("NPF holdings endpoint returned no data object.")
+        raw_rows = data.get("holdings")
+        if not isinstance(raw_rows, list):
+            raise ValueError("NPF holdings endpoint returned no holdings array.")
+        composition_date = None
+        as_of_text = _clean(data.get("asOfDate"))
+        if as_of_text:
+            for date_format in ("%m/%d/%Y", "%Y-%m-%d"):
+                try:
+                    composition_date = datetime.strptime(as_of_text, date_format).date()
+                    break
+                except ValueError:
+                    continue
+        rows: list[CanonicalHoldingRow] = []
+        for index, item in enumerate(raw_rows, start=1):
+            if not isinstance(item, dict):
+                continue
+            name = _clean(item.get("name"))
+            raw_symbol = _clean(item.get("hTicker") or item.get("ticker"))
+            cusip = _clean(item.get("cusip"))
+            if not any((name, raw_symbol, cusip)):
+                continue
+            source_text = " ".join(part.upper() for part in (name, raw_symbol) if part)
+            is_cash = "CASH" in source_text or "MONEY MARKET" in source_text
+            is_derivative = any(
+                token in source_text for token in (" OPTION", " FUTURE", " SWAP", " CVR")
+            )
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash or is_derivative else raw_symbol,
+                    name=name,
+                    cusip=cusip,
+                    shares=_decimal(item.get("sharesPar")),
+                    market_value=_decimal(item.get("marketValue")),
+                    weight=_decimal(item.get("weight")),
+                    holding_type="cash" if is_cash else "derivative" if is_derivative else "equity",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=f"{symbol}:{composition_date or 'unknown'}:{index}",
+                    extra_data={
+                        key: value for key, value in item.items() if value not in (None, "")
+                    },
+                )
+            )
+        return rows, composition_date
+
+
 class FrameworkDigitalAdvisorsHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Fetch BESO holdings from Framework/GSR's declared first-party API."""
 
@@ -68810,6 +68965,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "ALPS/Alerian public product pages and holdings proxy may be subject to issuer terms."
         ),
     ),
+    "norris_perne_french": IssuerCsvAdapterConfig(
+        adapter_key="norris_perne_french",
+        source_provider="norris_perne_french",
+        source_access="issuer_product_page_declared_holdings_json",
+        product_page_templates=("https://npfinvestetfs.com/etfs/npfe/",),
+        live_tested_default_route=True,
+        terms_note=(
+            "NPF Investment Advisors publishes NPFE's complete current holdings through its "
+            "public product page and declared holdings JSON endpoint; data may be subject to issuer terms."
+        ),
+    ),
 }
 
 for _adapter_key in sorted(ETFDB_RECOGNITION_ONLY_ISSUER_HINTS):
@@ -68893,7 +69059,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "new_age_alpha",
         "nicholas_wealth",
         "north_square",
-        "norris_perne_french",
         "opus_capital_management",
         "pabrai",
         "panagram",
@@ -72445,7 +72610,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "nestyield": NestYieldHoldingsAdapter,
         "nicholas_wealth": NicholasWealthReconciledFallbackHoldingsAdapter,
         "north_square": NorthSquareReconciledFallbackHoldingsAdapter,
-        "norris_perne_french": NorrisPerneFrenchReconciledFallbackHoldingsAdapter,
+        "norris_perne_french": NorrisPerneFrenchHoldingsAdapter,
         "orix": OrixAuditedFallbackHoldingsAdapter,
         "oshares": OSharesHoldingsAdapter,
         "opus_capital_management": OpusCapitalManagementReconciledFallbackHoldingsAdapter,

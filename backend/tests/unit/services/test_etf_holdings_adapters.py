@@ -19104,6 +19104,66 @@ async def test_fitzgerald_adapter_discovers_and_parses_nicholas_wealth_csv(monke
 
 
 @pytest.mark.asyncio
+async def test_norris_perne_french_adapter_fetches_declared_holdings_json(monkeypatch):
+    adapter = get_holdings_adapter("norris_perne_french")
+    assert adapter is not None
+    assert adapter.__class__.__name__ == "NorrisPerneFrenchHoldingsAdapter"
+    assert (
+        adapter.probe(symbol="NPFE", name="NPF Core Equity ETF", identifiers={}).status == "ready"
+    )
+    assert adapter.probe(symbol="OTHER", name="", identifiers={}).status == "needs_issuer_route"
+
+    payload = {
+        "success": True,
+        "data": {
+            "asOfDate": "09/03/2026",
+            "holdings": [
+                {
+                    "name": f"Security {index}",
+                    "hTicker": f"TKR{index}",
+                    "cusip": "037833100",
+                    "sharesPar": "1,000",
+                    "marketValue": "$10,000.00",
+                    "weight": "1.00%",
+                }
+                for index in range(1, 11)
+            ],
+        },
+    }
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<h1>NPF Core Equity ETF (NPFE)</h1>",
+            content_type="text/html",
+            url=adapter.PRODUCT_PAGE_URL,
+        ),
+        FakeResponse(
+            text=json.dumps(payload), content_type="application/json", url=adapter.HOLDINGS_API_URL
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="NPFE")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        adapter.PRODUCT_PAGE_URL,
+        adapter.HOLDINGS_API_URL,
+    ]
+    assert len(result.rows) == 10
+    assert result.rows[0].symbol == "TKR1"
+    assert result.rows[0].shares == Decimal("1000")
+    assert result.rows[0].market_value == Decimal("10000.00")
+    assert result.rows[0].weight == Decimal("0.01")
+    assert result.legal_metadata["route_resolution"] == (
+        "norris_perne_french_product_page_declared_holdings_json"
+    )
+    assert result.legal_metadata["snapshot_provenance"] == (
+        "norris_perne_french_native_current_holdings_json"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-03"
+
+
+@pytest.mark.asyncio
 async def test_framework_adapter_fetches_declared_gsr_beso_holdings_api(monkeypatch):
     adapter = get_holdings_adapter("framework_digital_advisors")
     assert adapter is not None
@@ -22147,6 +22207,7 @@ def test_etfdb_issuer_league_reconciliation_batch_is_registered_and_audited():
         "milliman",
         "moonvest",
         "nestyield",
+        "norris_perne_french",
     }
     fallback_expected = expected - promoted_native
 
@@ -27081,8 +27142,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 397
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 99
+    assert ledger["current_native_count"] == 398
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 98
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -27130,6 +27191,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "milliman",
         "moonvest",
         "nestyield",
+        "norris_perne_french",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))

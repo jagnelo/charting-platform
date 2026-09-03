@@ -33,6 +33,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "milliman",
     "moonvest",
     "nestyield",
+    "norris_perne_french",
     "amun",
     "1251_capital",
     "3fourteen",
@@ -3701,6 +3702,28 @@ async def test_live_nestyield_official_wpdatatable_holdings():
         assert result.legal_metadata["composition_date"]
         assert any(row.row_type == "cash" for row in result.rows)
     assert any(row.holding_type == "fund" for result in results for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("norris_perne_french")
+async def test_live_norris_perne_french_npfe_declared_holdings_json():
+    adapter = get_holdings_adapter("norris_perne_french")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="NPFE")
+
+    _assert_live_holdings_result(result, adapter_key="norris_perne_french", min_rows=100)
+    metadata = result.legal_metadata or {}
+    assert metadata["source_provider"] == "norris_perne_french"
+    assert metadata["publisher"] == "norris_perne_french"
+    assert metadata["parent_issuer"] == "norris_perne_french"
+    assert metadata["route_resolution"] == (
+        "norris_perne_french_product_page_declared_holdings_json"
+    )
+    assert metadata["snapshot_provenance"] == "norris_perne_french_native_current_holdings_json"
+    assert metadata["composition_date"]
+    assert any(row.symbol == "MSFT" for row in result.rows)
 
 
 @pytest.mark.asyncio
