@@ -105,7 +105,7 @@ progress:
   total: 10
   current_phase: R1_provider_readiness
   current_blocker: none
-  next_action: "Run bounded provider/history readiness probes against canonical data and add family-specific worker coverage where roles remain pending."
+  next_action: "Reconcile the fresh all-20 route evidence with persisted canonical snapshots, member-history continuity, and entitlement outcomes; add only family-specific hydration coverage where those checks remain pending."
 remaining_gaps:
   - "R0: baseline receipts are recorded; 11 Chromium flow failures and 21 visual screenshot diffs remain reproducible gaps for later phases."
   - "R1-R2: canonical family population/history/entitlement evidence and the live-data top-down trader workflow."

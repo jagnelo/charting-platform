@@ -294,3 +294,10 @@ The complementary SPDR route probe passed `16/16` in `5.86s`, including the nine
 proxies SPY/SPYG/SPYV/MDY/MDYG/MDYV/SLYG/SLYV/SPTM. Combined with the preceding 11/11 iShares,
 Invesco, and Direxion probe set, all 20 configured family proxy symbols now have fresh public-route
 evidence; this still does not establish persisted multi-date snapshots or complete member history.
+
+Two final mapped-symbol probes close the remaining route-evidence holes at this tip: the direct
+iShares IWM route and direct Invesco RSP route each passed `1/1` with parseable, identity-checked
+holdings. Together with the preceding SPDR/iShares/Invesco/Direxion runs, this gives a fresh
+public-route probe for every one of the 20 configured family proxy symbols. This remains provider
+route evidence only; persisted multi-date snapshots, entitlement verification, member-history
+continuity, and live authenticated workstation readiness are still open R1 requirements.
