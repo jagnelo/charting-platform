@@ -231,7 +231,12 @@ async def _do_fetch_and_store(
             data_source_id=0,
         ),
         response_items=lambda result: len(result),
-        treat_empty_as_failure=False,
+        # An empty result from a credentialed provider can mean "no access" or
+        # unsupported coverage, not a successful history fetch.  Treat it as a
+        # provider failure so the configured free-source chain can continue to
+        # Nasdaq/other independently entitled sources instead of stopping at an
+        # empty Alpaca response.
+        treat_empty_as_failure=True,
     )
     bars = _bars_through_end(execution.result, end)
     if not bars:

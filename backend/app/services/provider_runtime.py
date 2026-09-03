@@ -753,13 +753,19 @@ async def execute_provider_call(
                 response_items=0,
                 error=exc,
             )
+            # Price-history support is capability-wide, while provider
+            # coverage is often timeframe- or range-specific (for example,
+            # Nasdaq is D1-only).  A no-data result from one history request
+            # must therefore not poison the instrument's capability status and
+            # hide a provider from later timeframe requests in the same queue.
+            # Keep the dynamic downgrade for non-history capabilities and
+            # latest-price probes, whose operation is not a range repair.
             should_mark_unsupported = (
                 instrument_id is not None
                 and isinstance(exc, ProviderNoDataError)
                 and (
                     capability != ProviderCapability.PRICE_HISTORY
                     or operation.startswith("fetch_latest_ohlcv:")
-                    or operation.startswith("bulk_fetch:")
                 )
             )
             if should_mark_unsupported:

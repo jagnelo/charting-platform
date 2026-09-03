@@ -53,6 +53,37 @@ async def test_bulk_fetch_passes_historical_end_to_each_provider_request(monkeyp
     ]
 
 
+@pytest.mark.asyncio
+async def test_bulk_fetch_treats_empty_provider_result_as_chain_failure(monkeypatch):
+    calls = []
+
+    async def fake_execute(*_args, **kwargs):
+        calls.append(kwargs["treat_empty_as_failure"])
+        return SimpleNamespace(result=[], data_source=SimpleNamespace(id=1))
+
+    class Session:
+        async def commit(self):
+            return None
+
+    async def touch_state(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(bulk_fetch, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(bulk_fetch, "_touch_ohlcv_dataset_state", touch_state)
+
+    result = await bulk_fetch._do_fetch_and_store(
+        db=Session(),
+        instrument=SimpleNamespace(id=42, symbol="SPY"),
+        ticker_sym="SPY",
+        timeframe=Timeframe.D1,
+        adjusted=True,
+        end=bulk_fetch.datetime(2024, 1, 2, tzinfo=bulk_fetch.UTC),
+    )
+
+    assert result == 0
+    assert calls == [True]
+
+
 def test_bars_through_end_rejects_future_provider_rows():
     end = bulk_fetch.datetime(2024, 1, 2, tzinfo=bulk_fetch.UTC)
     bars = [

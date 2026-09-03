@@ -154,6 +154,55 @@ async def test_execute_provider_call_downgrades_and_recovers_provider_support(
 
 
 @pytest.mark.asyncio
+async def test_history_empty_result_does_not_poison_other_timeframes(db, instrument, monkeypatch):
+    """A timeframe-specific history miss must keep later history providers eligible."""
+    async_db = AsyncSessionAdapter(db)
+    primary = _resolved_provider(
+        db,
+        provider_name="alpaca",
+        capability=ProviderCapability.PRICE_HISTORY,
+        provider=_Provider([]),
+    )
+    fallback = _resolved_provider(
+        db,
+        provider_name="nasdaq",
+        capability=ProviderCapability.PRICE_HISTORY,
+        provider=_Provider(["d1-bar"]),
+    )
+
+    async def _fake_resolve(*_args, **_kwargs):
+        return [primary, fallback]
+
+    monkeypatch.setattr("app.services.provider_runtime.resolve_provider_chain", _fake_resolve)
+
+    result = await execute_provider_call(
+        async_db,
+        ProviderCapability.PRICE_HISTORY,
+        "bulk_fetch:MN",
+        instrument_id=instrument.id,
+        invoke=lambda provider, _provider_symbol: provider.run(),
+        response_items=len,
+        treat_empty_as_failure=True,
+    )
+
+    rows = (
+        db.execute(
+            select(InstrumentProviderCapabilityStatus).where(
+                InstrumentProviderCapabilityStatus.instrument_id == instrument.id,
+                InstrumentProviderCapabilityStatus.capability == ProviderCapability.PRICE_HISTORY,
+            )
+        )
+        .scalars()
+        .all()
+    )
+    status_by_source = {row.data_source_id: row.support_status for row in rows}
+
+    assert result.provider_name == "nasdaq"
+    assert primary.data_source.id not in status_by_source
+    assert status_by_source[fallback.data_source.id] == SUPPORT_STATUS_SUPPORTED
+
+
+@pytest.mark.asyncio
 async def test_resolve_provider_chain_prefers_supported_then_bound_provider(
     db, instrument, monkeypatch
 ):
