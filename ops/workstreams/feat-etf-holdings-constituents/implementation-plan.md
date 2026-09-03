@@ -1920,3 +1920,34 @@ ledger/workstream checks and diff validation remain required after this
 checkpoint; the full opt-in live matrix and Docker-backed integration gate
 remain pending with the known unrelated F8p-current-history Study Lab
 histogram timeout blocker.
+
+## 49. Current execution checkpoint — 6 Meridian / SIXH-SIXL-SIXA-SIXS-SXQG native promotion — 2026-09-03
+
+The ranked `meridian` audit verified the official 6 Meridian catalogue and
+five symbol-scoped product pages at `https://www.6meridianfunds.com/`. Each
+page identifies the requested ETF and publishes a complete holdings component
+in the Nuxt hydration payload. The shared schema includes company name, ticker,
+FIGI, shares, market value, percentage of NAV, and a current holdings date of
+September 1, 2026. SIXH additionally exposes an SPX option and an explicit Cash
+& Other row, demonstrating that the payload is not only a top-ten equity view.
+
+Implementation adds `SixMeridianHoldingsAdapter`, a provider-specific fetch and
+parser for the five official routes. It validates exact HTTPS host/path and
+product identity, resolves only the requested `sixmeridianetfs-{slug}-
+HoldingsComponent`, maps FIGI/source ticker and numeric fields, keeps source
+tickers when they are not tradable platform symbols, classifies cash,
+derivatives, funds, fixed income, and equities, and preserves the composition
+date and Exchange Traded Concepts / 6 Meridian legal publisher metadata. A
+bounded 403 retry uses the established browser-compatible requests path without
+introducing a second source.
+
+The registry, explicit config, ETF.com native-brand set, fallback audit tuple,
+adapter map, deterministic fixture, live-backed manifest, and bespoke live test
+are updated together. The durable ledger promotes `meridian`, bringing the
+derived split to 496 registered / 392 native / 104 fallback, reducing
+route-discovery runtime status to 87, and leaving 54 queued records with
+`merk` next. The implementation commit is
+`e055868d4922f7ae937d6e8dd8c0b78797865934`; focused deterministic checks and
+the bounded opt-in SIXH live route pass. The complete opt-in matrix and
+Docker-backed integration gate remain pending with the known unrelated
+F8p-current-history Study Lab histogram timeout blocker.

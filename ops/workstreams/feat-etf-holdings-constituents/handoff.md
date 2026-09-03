@@ -610,3 +610,34 @@ The full opt-in provider matrix and Docker-backed integration gate remain
 pending at the 391-native baseline, with the known unrelated reproducible
 F8p-current-history Study Lab histogram timeout retained as the integration
 blocker.
+
+## Current implementation checkpoint — 6 Meridian / SIXH-SIXL-SIXA-SIXS-SXQG native promotion — 2026-09-03
+
+The ranked `meridian` audit verified the official 6 Meridian catalogue and
+five symbol-scoped product pages at `https://www.6meridianfunds.com/`. Each
+page identifies the requested ETF and publishes a complete holdings component
+in the Nuxt hydration payload with company name, ticker, FIGI, shares, market
+value, percentage of NAV, and a current holdings date of September 1, 2026.
+The SIXH page also exposes an SPX option and an explicit Cash & Other row.
+
+Implementation adds `SixMeridianHoldingsAdapter` with exact HTTPS host/path and
+product identity validation, requested-component-only Nuxt extraction, FIGI and
+source-ticker preservation, numeric mapping, explicit cash/derivative/fund/
+fixed-income/equity classification, composition-date provenance, and the
+Exchange Traded Concepts / 6 Meridian legal publisher relationship. The
+registry/config, ETF.com native-brand set, fallback audit tuple, adapter map,
+deterministic fixture, live-backed manifest, and bespoke live test are aligned.
+
+The durable ledger records `meridian` as `native_promoted`, increasing the
+derived split to 496 registered, 392 native/live-backed, and 104 fallback-only
+providers. Runtime fallback statuses are 8 issuer-access-blocked, 87
+needs-first-party-route-discovery, 3 non-executable-public-source, and 6
+non-portfolio-publisher. The ledger now has 54 queued fallback records; the
+next ranked issuer is `merk`.
+
+Focused deterministic checks and the bounded opt-in SIXH live route pass at
+implementation SHA `e055868d4922f7ae937d6e8dd8c0b78797865934`; the complete
+opt-in provider matrix and Docker-backed integration gate remain pending with
+the known unrelated reproducible F8p-current-history Study Lab histogram
+timeout blocker. Evidence refs: `web:six-meridian-official-product-pages-2026-09-03`
+and `live:six-meridian-sixh-current-holdings-2026-09-03`.

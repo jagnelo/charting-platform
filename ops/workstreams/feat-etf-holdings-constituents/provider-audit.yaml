@@ -5,9 +5,9 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 391
-current_fallback_count: 105
-generated_at: 2026-09-03T04:32:56Z
+current_native_count: 392
+current_fallback_count: 104
+generated_at: 2026-09-03T04:48:51Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -3661,35 +3661,58 @@ providers:
     display_name: meridian
     queue_rank: 78
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
-    estimated_us_etf_count: null
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-03
+    source_access_declared: issuer_public_product_page_nuxt_complete_holdings_component
+    representative_symbols:
+      - SIXH
+      - SIXL
+      - SIXA
+      - SIXS
+      - SXQG
+    estimated_us_etf_count: 5
     estimated_us_etf_aum: null
-    us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    us_equity_breadth: 5
+    source_freshness: current_as_of_date
+    first_party_domains:
+      - 6meridianfunds.com
+    candidate_routes:
+      - https://www.6meridianfunds.com/
+      - https://www.6meridianfunds.com/sixh
+      - https://www.6meridianfunds.com/sixl
+      - https://www.6meridianfunds.com/sixa
+      - https://www.6meridianfunds.com/sixs
+      - https://www.6meridianfunds.com/sxqg
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_six_meridian_adapter_parses_nuxt_equity_option_and_cash_rows
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_six_meridian_sixh_nuxt_holdings_component
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.meridian"
       - "runtime:ISSUER_ADAPTER_CONFIGS.meridian"
+      - "web:six-meridian-official-product-pages-2026-09-03"
+      - "live:six-meridian-sixh-current-holdings-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.meridian"
-    disposition_reason: "meridian: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate meridian first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
-    implementation_sha: null
-    validation_refs: []
+      - date: 2026-09-03
+        source: "https://www.6meridianfunds.com/ and its SIXH, SIXL, SIXA, SIXS, and SXQG product pages"
+        result: "The official 6 Meridian catalogue identifies five current U.S. ETFs. Each symbol-scoped product page exposes a complete holdings component in the issuer's Nuxt hydration payload with company name, ticker, FIGI, shares, market value, percentage of NAV, and an as-of date of September 1, 2026."
+        evidence_ref: "web:six-meridian-official-product-pages-2026-09-03"
+      - date: 2026-09-03
+        source: "backend/tests/live/test_etf_holdings_live_providers.py::test_live_six_meridian_sixh_nuxt_holdings_component"
+        result: "The native 6 Meridian adapter fetched the official SIXH page, validated the symbol-scoped route and product identity, parsed 50 current rows dated September 1, 2026, classified the SPX option and Cash & Other row explicitly, and preserved FIGI/source ticker provenance without SEC-derived reconstruction."
+        evidence_ref: "live:six-meridian-sixh-current-holdings-2026-09-03"
+    disposition_reason: "meridian: 6 Meridian's official product pages provide complete executable Nuxt holdings payloads for SIXH, SIXL, SIXA, SIXS, and SXQG. The native adapter validates symbol-scoped HTTPS routes and product identity, extracts each requested HoldingsComponent only, maps FIGI/ticker/shares/market value/weight fields, classifies cash, derivatives, funds, fixed income, and equities, preserves the September 1, 2026 composition date, and records the Exchange Traded Concepts / 6 Meridian legal publisher relationship with deterministic and opt-in live coverage."
+    next_action: "meridian: Monitor all five official 6 Meridian product pages for complete dated Nuxt holdings payloads and schema continuity; retain native status while routes remain executable and identity-valid, and add any future 6 Meridian ETF only after equivalent route, parser, and bounded live evidence."
+    implementation_sha: e055868d4922f7ae937d6e8dd8c0b78797865934
+    validation_refs:
+      - "validation:2026-09-03T04:57:02Z"
   - adapter_key: merk
     display_name: merk
     queue_rank: 79

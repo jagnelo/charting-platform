@@ -28,8 +28,8 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `391`
-- Audited fallback-only providers: `105`
+- Native/live-backed providers: `392`
+- Audited fallback-only providers: `104`
 
 The current checkpoint promotes `guggenheim` through its public issuer-hosted
 ETF holdings table, reconciles `ars` to the existing ARS Investment Partners
@@ -80,6 +80,13 @@ Fundstrat is now covered through the official Granny Shots full-holdings pages
 for GRNY, GRNJ, and GRNI. Those pages publish complete server-rendered tables
 dated September 2, 2026; the native adapter preserves identifiers, weights,
 shares, and market values and classifies GRNI option positions as derivatives.
+6 Meridian is now covered natively for SIXH, SIXL, SIXA, SIXS, and SXQG through
+the official `6meridianfunds.com` product pages. Each page publishes a complete
+dated holdings component in the Nuxt hydration payload with company name, ticker,
+FIGI, shares, market value, and percentage of NAV. The native adapter validates
+the symbol-scoped route and page identity, preserves FIGI/source-ticker metadata,
+and classifies the SIXH SPX option and Cash & Other row explicitly while retaining
+the Exchange Traded Concepts / 6 Meridian legal publisher relationship.
 Gotham is now covered through the official GothamETFs product pages and their
 symbol-scoped `DownloadHoldings` CSV routes for GSPY, GVLU, and SHRT. The native
 adapter requires the declared schema and a consistent holdings-as-of date,
@@ -166,11 +173,11 @@ separate SNTQ live-green claim is made yet.
 
 The historical starting snapshot for this
 workstream was 356 native and 140 fallback; the provider-audit ledger retains
-that baseline record while tracking the current 391/105 split.
+that baseline record while tracking the current 392/104 split.
 
 The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
 `FALLBACK_ISSUER_AUDITS` at the current ETF-branch implementation checkpoint
-`e5567bec0ed53268195cf1866250e9e1a199143a` (Measured Risk Portfolios SNTH/SNTQ official SynthEquity product-page-declared daily holdings CSV routes; MAX ETNs CARD/CARU/JETD/JETU official product-page index constituents; McElhenny Sheffield MSMR official product-page holdings table; LSV LSVD official product-page-declared holdings CSV; Long Pond LPRE official product-page CMS holdings JSON; Logiq LCO official product-page-declared Tidal daily holdings CSV; Knowledge Leaders KNO official AXS/FilePoint dated holdings CSV; JLens TOV official product-page embedded holdings table; Hoya Capital display-name and URL alias reconciliation to the existing Pettee HOMZ/RIET native route; Hilton SMCO/HBDC product-page-declared AllHoldings CSV; Hexis/NICO FilePoint app-declared daily holdings CSV; Gotham GSPY/GVLU/SHRT DownloadHoldings CSV routes; Fundstrat Granny Shots GRNY/GRNJ/GRNI holdings routes; Freedom/FRDM product-page holdings route; Framework/GSR BESO route; Fitzgerald/Nicholas Wealth FITZ and FIZY routes; FalconX/21Shares ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN,
+`e055868d4922f7ae937d6e8dd8c0b78797865934` (6 Meridian SIXH/SIXL/SIXA/SIXS/SXQG official product-page Nuxt holdings components; Measured Risk Portfolios SNTH/SNTQ official SynthEquity product-page-declared daily holdings CSV routes; MAX ETNs CARD/CARU/JETD/JETU official product-page index constituents; McElhenny Sheffield MSMR official product-page holdings table; LSV LSVD official product-page-declared holdings CSV; Long Pond LPRE official product-page CMS holdings JSON; Logiq LCO official product-page-declared Tidal daily holdings CSV; Knowledge Leaders KNO official AXS/FilePoint dated holdings CSV; JLens TOV official product-page embedded holdings table; Hoya Capital display-name and URL alias reconciliation to the existing Pettee HOMZ/RIET native route; Hilton SMCO/HBDC product-page-declared AllHoldings CSV; Hexis/NICO FilePoint app-declared daily holdings CSV; Gotham GSPY/GVLU/SHRT DownloadHoldings CSV routes; Fundstrat Granny Shots GRNY/GRNJ/GRNI holdings routes; Freedom/FRDM product-page holdings route; Framework/GSR BESO route; Fitzgerald/Nicholas Wealth FITZ and FIZY routes; FalconX/21Shares ARKB, TETH, TOXR, TSOL, TDOG, TDOT, TSUI, TCAN,
 THYP, and TKNS native routes; Esoterica WUGI, Even Herd EHLS, and Everence/Praxis
 PRXG/PRXV/PRXI native routes; Framework/GSR BESO, Freedom/FRDM, and Fundstrat Granny Shots are now native through their
 declared details/holdings API; ETF Managers Group is recorded as an
@@ -181,7 +188,7 @@ as the existing Cygnet parent identity).
 The fallback audit statuses are:
 
 - `issuer_access_blocked`: `8`
-- `needs_first_party_route_discovery`: `90`
+- `needs_first_party_route_discovery`: `87`
 - `non_executable_public_source`: `3`
 - `provider_not_a_portfolio_publisher`: `6`
 
@@ -979,6 +986,38 @@ The complete opt-in provider matrix and Docker-backed integration gate remain
 pending at the 391-native baseline, with the known unrelated reproducible
 F8p-current-history Study Lab histogram timeout still recorded as the
 integration blocker.
+
+## Current audit checkpoint — 6 Meridian / SIXH-SIXL-SIXA-SIXS-SXQG native promotion — 2026-09-03
+
+The ranked `meridian` audit verified the official 6 Meridian catalogue and its
+five symbol-scoped product pages at `https://www.6meridianfunds.com/`. Each page
+identifies the matching ETF and publishes a complete holdings component in the
+Nuxt hydration payload. The payload schema includes company name, ticker, FIGI,
+shares, market value, percentage of NAV, and a current holdings date of
+September 1, 2026. The SIXH page also publishes an SPX option and an explicit
+Cash & Other row, proving that the source includes non-equity positions rather
+than only a top-ten equity preview.
+
+The native `meridian` adapter validates the exact HTTPS host/path for SIXH,
+SIXL, SIXA, SIXS, and SXQG, checks the product identity and requested Nuxt
+HoldingsComponent, maps FIGI/source ticker and numeric fields without inventing
+CUSIPs, classifies cash, derivatives, funds, fixed income, and equities, and
+preserves the issuer composition date and Exchange Traded Concepts / 6 Meridian
+legal publisher relationship. Deterministic parser/registry coverage and the
+bounded opt-in live SIXH route pass; no SEC-derived reconstruction is used.
+
+The exhaustive ledger records `meridian` as `native_promoted`, bringing the
+code-derived split to 496 registered, 392 native/live-backed, and 104
+fallback-only providers. Runtime fallback statuses are 8 issuer-access-blocked,
+87 needs-first-party-route-discovery, 3 non-executable-public-source, and 6
+non-portfolio-publisher. The 140-record ledger now has 54 queued fallback
+records; the next ranked issuer is `merk`.
+
+The complete opt-in provider matrix and Docker-backed integration gate remain
+pending at the 392-native baseline, with the known unrelated reproducible
+F8p-current-history Study Lab histogram timeout still recorded as the
+integration blocker. Evidence refs: `web:six-meridian-official-product-pages-2026-09-03`
+and `live:six-meridian-sixh-current-holdings-2026-09-03`.
 
 ## Current audit checkpoint — Merchant Investment Management disposition — 2026-09-03
 
