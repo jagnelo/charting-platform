@@ -5,8 +5,8 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 383
-current_fallback_count: 113
+current_native_count: 384
+current_fallback_count: 112
 generated_at: 2026-09-03T02:08:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
@@ -3019,33 +3019,46 @@ providers:
     display_name: jlens
     queue_rank: 65
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
-    estimated_us_etf_count: null
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-03
+    source_access_declared: issuer_public_product_page_complete_holdings_table
+    representative_symbols:
+      - TOV
+    estimated_us_etf_count: 1
     estimated_us_etf_aum: null
-    us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    us_equity_breadth: 1
+    source_freshness: current_page_effective_date
+    first_party_domains:
+      - investjewishly.org
+    candidate_routes:
+      - https://investjewishly.org/
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    source_format: html
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_jlens_adapter_parses_complete_tov_product_page_holdings
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_jlens_tov_product_page_embedded_holdings
     credential_required: false
     evidence_refs:
-      - "runtime:FALLBACK_ISSUER_AUDITS.jlens"
       - "runtime:ISSUER_ADAPTER_CONFIGS.jlens"
+      - "web:jlens-official-tov-holdings-page-2026-09-03"
+      - "live:jlens-tov-current-holdings-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
-        evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.jlens"
-    disposition_reason: "jlens: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate jlens first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+        evidence_ref: "runtime:ISSUER_ADAPTER_CONFIGS.jlens"
+      - date: 2026-09-03
+        source: "https://investjewishly.org/"
+        result: "JLens' official TOV product page identifies the JLens 500 Jewish Advocacy U.S. ETF and publishes a complete server-rendered Fund Holdings table with ticker, name, CUSIP, SEDOL, shares, price, market value in millions, and percentage-of-net-assets columns; its separate Fund Data & Pricing table reports an as-of date of 2026-09-02."
+        evidence_ref: "web:jlens-official-tov-holdings-page-2026-09-03"
+      - date: 2026-09-03
+        source: "backend/tests/live/test_etf_holdings_live_providers.py::test_live_jlens_tov_product_page_embedded_holdings"
+        result: "The native JLens adapter fetched the official TOV page, parsed 498 current holdings rows, preserved CUSIPs and weights, converted Market Value ($mm) to dollars, and retained the issuer fund-data as-of date and JLens/Empowered Funds provenance."
+        evidence_ref: "live:jlens-tov-current-holdings-2026-09-03"
+    disposition_reason: "jlens: JLens' official TOV product page provides a complete executable server-rendered holdings table with identity, CUSIP, shares, weights, market values, and a current fund-data date. The native adapter enforces the TOV/page identity, parses the full table, converts million-dollar values, preserves raw identifiers, and records JLens/Empowered Funds provenance; no SEC-derived reconstruction is used."
+    next_action: "jlens: Monitor the official JLens TOV page and its embedded holdings table; retain native status while the route remains complete, identity-valid, current, and executable, and add any future JLens product only after equivalent first-party evidence."
     implementation_sha: null
     validation_refs: []
   - adapter_key: knowledge_leaders

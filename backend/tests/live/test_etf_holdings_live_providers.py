@@ -20,6 +20,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "gotham",
     "hexis",
     "hilton",
+    "jlens",
     "amun",
     "1251_capital",
     "3fourteen",
@@ -3410,6 +3411,25 @@ async def test_live_pettee_hoya_product_pages_cover_current_holdings_workbooks()
         )
         assert result.legal_metadata["publisher"] == "Hoya Capital Real Estate"
         assert any(row.cusip for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("jlens")
+async def test_live_jlens_tov_product_page_embedded_holdings():
+    adapter = get_holdings_adapter("jlens")
+    assert adapter is not None
+
+    result = await adapter.fetch_latest(symbol="TOV")
+
+    _assert_live_holdings_result(result, adapter_key="jlens", min_rows=400)
+    assert (
+        result.legal_metadata["route_resolution"]
+        == "jlens_product_page_embedded_complete_holdings_table"
+    )
+    assert result.legal_metadata["publisher"] == "JLens"
+    assert result.legal_metadata["fund_data_as_of_date"]
+    assert any(row.cusip for row in result.rows)
 
 
 @pytest.mark.asyncio

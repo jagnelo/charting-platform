@@ -2345,6 +2345,7 @@ ISSUER_DOMAIN_HINTS.update(
         "hexis": ["hexis.capital", "hexis.filepoint.live"],
         "hilton": ["hiltonetfs.com", "hiltonetfjson.com", "hiltoncapitalmanagement.com"],
         "pettee": ["hoyaetfs.com", "hoyacapital.com"],
+        "jlens": ["investjewishly.org", "jlensnetwork.org"],
         "volatility_shares": ["volatilityshares.com"],
         "wahed": ["wahed.com"],
         "yieldmax": ["yieldmaxetfs.com"],
@@ -19643,6 +19644,174 @@ class LittleHarborHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 )
             )
         return rows, table
+
+
+class JLensHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Read JLens' current TOV holdings from its official product page."""
+
+    PRODUCT_PAGE_URL = "https://investjewishly.org/"
+    SUPPORTED_SYMBOL = "TOV"
+    _ISSUER_HOST = "investjewishly.org"
+    _REQUIRED_HEADERS = frozenset(
+        {
+            "ticker",
+            "name",
+            "cusip",
+            "shares",
+            "price",
+            "market value ($mm)",
+            "% of net assets",
+        }
+    )
+
+    def probe(
+        self,
+        *,
+        symbol: str,
+        name: str,
+        identifiers: dict[str, str],
+    ) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        supported = normalized_symbol == self.SUPPORTED_SYMBOL
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if supported else Decimal("0.5000"),
+            status="ready" if supported or has_sec_fallback else "needs_issuer_route",
+            reason=(
+                "JLens publishes TOV's complete current holdings table on its official ETF page."
+                if supported
+                else "No verified JLens product page is configured for this ETF; SEC EDGAR remains available as fallback."
+                if has_sec_fallback
+                else "No verified JLens product page is configured for this ETF."
+            ),
+            source_url=self.PRODUCT_PAGE_URL if supported else None,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol != self.SUPPORTED_SYMBOL:
+            raise ValueError("JLens' verified issuer route currently supports TOV only.")
+        if (
+            source_url
+            and source_url.rstrip("/").casefold() != self.PRODUCT_PAGE_URL.rstrip("/").casefold()
+        ):
+            raise ValueError("JLens holdings must use the verified TOV product page.")
+
+        response = await self._fetch_product_page(self.PRODUCT_PAGE_URL)
+        response_url = str(getattr(response, "url", self.PRODUCT_PAGE_URL))
+        if _url_host(response_url) != self._ISSUER_HOST:
+            raise ValueError("JLens holdings response left the official product-page host.")
+        raw_html = response.text
+        page = html.unescape(raw_html)
+        if not re.search(r"\bTOV\b", page, re.IGNORECASE) or not re.search(
+            r"JLens\s+500\s+Jewish\s+Advocacy\s+U\.S\.\s*ETF", page, re.IGNORECASE
+        ):
+            raise ValueError("JLens product page identity did not match requested ETF TOV.")
+        if not re.search(r"Fund\s+Holdings", page, re.IGNORECASE):
+            raise ValueError("JLens product page did not declare its holdings section.")
+
+        rows = parse_html_holdings_table_by_headers(
+            raw_html,
+            required_headers=self._REQUIRED_HEADERS,
+        )
+        if len(rows) < 100:
+            raise ValueError("JLens product page did not expose a complete TOV holdings table.")
+        fund_data_as_of_date = self._extract_fund_data_as_of_date(raw_html)
+        for index, row in enumerate(rows, start=1):
+            market_value_mm = _decimal(row.extra_data.get("Market Value ($mm)"))
+            if market_value_mm is not None:
+                row.market_value = market_value_mm * Decimal("1000000")
+            row.currency = "USD"
+            row.source_row_id = f"jlens-{normalized_symbol}-{index}"
+            row.extra_data = {
+                **row.extra_data,
+                "market_value_mm": _clean(row.extra_data.get("Market Value ($mm)")),
+                "fund_data_as_of_date": fund_data_as_of_date.isoformat()
+                if fund_data_as_of_date
+                else None,
+                "source": "jlens_product_page_embedded_complete_holdings_table",
+            }
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=raw_html,
+            raw_json={
+                "source_format": "html",
+                "row_count": len(rows),
+                "fund_data_as_of_date": fund_data_as_of_date.isoformat()
+                if fund_data_as_of_date
+                else None,
+            },
+            source_url=response_url,
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "jlens_product_page_embedded_complete_holdings_table",
+                "product_page_url": response_url,
+                "snapshot_provenance": "jlens_native_current_holdings_table",
+                "fund_data_as_of_date": fund_data_as_of_date.isoformat()
+                if fund_data_as_of_date
+                else None,
+                "freshness_semantics": "issuer_current_holdings_page",
+                "refresh_frequency": "issuer_published_current_holdings",
+                "publisher": "JLens",
+                "parent_issuer": "Empowered Funds",
+                "relationship": "JLens index provider and sub-adviser; Empowered Funds adviser",
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    async def _fetch_product_page(url: str) -> httpx.Response | requests.Response:
+        headers = _issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*")
+        try:
+            async with httpx.AsyncClient(
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
+            ) as client:
+                response = await client.get(url, headers=headers, follow_redirects=True)
+            response.raise_for_status()
+            return response
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 403:
+                raise
+        response = await asyncio.to_thread(
+            requests.get,
+            url,
+            headers=headers,
+            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+            allow_redirects=True,
+        )
+        response.raise_for_status()
+        return response
+
+    @staticmethod
+    def _extract_fund_data_as_of_date(raw_html: str) -> date | None:
+        parser = _HTMLTablesParser()
+        parser.feed(raw_html)
+        for table in parser.tables:
+            if not any(
+                len(row) >= 2 and str(row[1]).strip().casefold() == "fund data & pricing"
+                for row in table
+            ):
+                continue
+            for row in table:
+                if len(row) >= 3 and str(row[1]).strip().casefold() == "as of date":
+                    return _parse_issuer_date(str(row[2]))
+        return None
 
 
 class PetteeHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -64922,6 +65091,14 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note=("Pettee's Hoya Capital ETF pages publish complete current holdings workbooks."),
     ),
+    "jlens": IssuerCsvAdapterConfig(
+        adapter_key="jlens",
+        source_provider="jlens",
+        source_access="issuer_public_product_page_complete_holdings_table",
+        product_page_templates=("https://investjewishly.org/",),
+        live_tested_default_route=True,
+        terms_note="JLens' public TOV ETF product page publishes a complete current holdings table.",
+    ),
     "counterpoint": IssuerCsvAdapterConfig(
         adapter_key="counterpoint",
         source_provider="counterpoint",
@@ -66658,7 +66835,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "highland_capital",
         "horizons",
         "hoya",
-        "jlens",
         "knowledge_leaders",
         "logiq",
         "long_pond",
@@ -69743,7 +69919,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "horizons": HorizonsReconciledFallbackHoldingsAdapter,
         "hoya": HoyaReconciledFallbackHoldingsAdapter,
         "impact_shares": ImpactSharesHoldingsAdapter,
-        "jlens": JLensReconciledFallbackHoldingsAdapter,
+        "jlens": JLensHoldingsAdapter,
         "keating": KeatingHoldingsAdapter,
         "knowledge_leaders": KnowledgeLeadersReconciledFallbackHoldingsAdapter,
         "kovitz": KovitzHoldingsAdapter,

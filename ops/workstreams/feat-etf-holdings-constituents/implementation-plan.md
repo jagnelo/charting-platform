@@ -1572,3 +1572,31 @@ No duplicate Hoya adapter is added, and no SEC-derived fallback is promoted.
 The code-derived split remains 496 registered, 383 native/live-backed, and 113
 fallback-only providers; the exhaustive ledger now has 68 queued records and
 the next ranked item is `jlens`.
+
+## 36. Current execution checkpoint — JLens/TOV native promotion — 2026-09-03
+
+The ranked `jlens` audit verified the official JLens page at
+`https://investjewishly.org/`, which identifies TOV as the JLens 500 Jewish
+Advocacy U.S. ETF and exposes a complete server-rendered Fund Holdings table.
+The table includes ticker, name, CUSIP, SEDOL, shares, price, Market Value
+($mm), and percentage-of-net-assets columns; a separate Fund Data & Pricing
+table exposes the 2026-09-02 fund-data as-of date. The page is the first-party
+route of record; the adapter does not infer a holdings composition date from
+the pricing metadata.
+
+`JLensHoldingsAdapter` is registered as the native `jlens` owner. It enforces
+TOV and official-host identity, requires the complete holdings schema and a
+minimum-row completeness guard, converts Market Value ($mm) into dollars,
+preserves source identifiers/weights, and records JLens/Empowered Funds
+publisher provenance plus the fund-data date. Deterministic and bounded opt-in
+live tests cover parser mapping, value/date semantics, metadata, request
+routing, and the current 498-row page.
+
+The runtime fallback audit no longer contains `jlens`; the ledger record is
+`native_promoted`, with the official route and both parser/live evidence refs.
+The code-derived split is 496 registered, 384 native/live-backed, and 112
+fallback-only providers; runtime fallback status counts are 8 blocked, 95 route
+discovery, 3 non-executable, and 6 non-portfolio-publisher. The ledger has 67
+queued fallback records remaining, with `knowledge_leaders` next. The known
+unrelated F8p-current-history Study Lab histogram timeout remains the full
+Docker integration blocker.

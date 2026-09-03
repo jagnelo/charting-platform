@@ -227,4 +227,36 @@ gate remain pending at the 383-native baseline, with the known unrelated
 reproducible F8p-current-history Study Lab histogram timeout still recorded as
 the integration blocker.
 
+## Current implementation checkpoint — JLens/TOV native promotion — 2026-09-03
+
+The ranked `jlens` audit verified the official JLens product page at
+`https://investjewishly.org/`. The page identifies the JLens 500 Jewish
+Advocacy U.S. ETF (`TOV`) and publishes a complete server-rendered Fund
+Holdings table with ticker, name, CUSIP, SEDOL, shares, price, Market Value
+($mm), and percentage-of-net-assets columns. Its separate Fund Data & Pricing
+table reports an as-of date of 2026-09-02; the holdings table itself is treated
+as the current issuer page route without inventing a composition date.
+
+`JLensHoldingsAdapter` now validates the TOV/page identity and official host,
+parses the complete table, requires at least 100 rows as a completeness guard,
+converts Market Value ($mm) into dollars, preserves raw source identifiers and
+weights, and records JLens publisher plus Empowered Funds parent provenance and
+the fund-data as-of date. The deterministic fixture covers 100 rows, date and
+value conversion, metadata, request routing, and unsupported-symbol behavior;
+the opt-in live test exercises the current page and requires at least 400 rows.
+
+JLens is removed from the runtime fallback discovery audit and promoted in the
+exhaustive ledger. No SEC-derived reconstruction or duplicate fallback adapter
+is used. The code-derived split is now 496 registered, 384 native/live-backed,
+and 112 fallback-only providers. Runtime fallback status counts are 8
+issuer-access-blocked, 95 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The ledger retains
+all 140 historical records exactly once; 67 queued fallback records remain and
+the next ranked item is `knowledge_leaders`.
+
+The complete opt-in provider matrix and Docker-backed integration gate remain
+pending at the 384-native baseline, with the known unrelated reproducible
+F8p-current-history Study Lab histogram timeout still recorded as the integration
+blocker.
+
 Update this handoff at every coherent implementation and operations boundary.

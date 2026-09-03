@@ -21898,6 +21898,7 @@ def test_stockanalysis_provider_continuation_batch_is_registered_and_audited():
         "bushido",
         "castellan",
         "cresalta",
+        "jlens",
     }
     expected -= {"fairlead"}
 
@@ -21934,6 +21935,9 @@ def test_stockanalysis_provider_continuation_batch_is_registered_and_audited():
     assert ISSUER_ADAPTER_CONFIGS["fairlead"].live_tested_default_route is True
     assert type(get_holdings_adapter("fairlead")).__name__ == "CaryStreetHoldingsAdapter"
     assert "fairlead" not in FALLBACK_ISSUER_AUDITS
+    assert "jlens" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["jlens"].live_tested_default_route is True
+    assert type(get_holdings_adapter("jlens")).__name__ == "JLensHoldingsAdapter"
 
 
 def test_stockanalysis_provider_second_continuation_batch_is_registered_and_audited():
@@ -21995,6 +21999,7 @@ def test_stockanalysis_provider_fourth_continuation_batch_is_registered_and_audi
         "ballast",
         "blueprint",
         "bridgeway",
+        "jlens",
     }
 
     assert expected
@@ -22018,6 +22023,9 @@ def test_stockanalysis_provider_fourth_continuation_batch_is_registered_and_audi
     assert "impact_shares" not in FALLBACK_ISSUER_AUDITS
     assert ISSUER_ADAPTER_CONFIGS["impact_shares"].live_tested_default_route is True
     assert type(get_holdings_adapter("impact_shares")).__name__ == "ImpactSharesHoldingsAdapter"
+    assert "jlens" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["jlens"].live_tested_default_route is True
+    assert type(get_holdings_adapter("jlens")).__name__ == "JLensHoldingsAdapter"
 
 
 def test_redwood_has_a_verified_native_route_after_live_probe():
@@ -23831,6 +23839,64 @@ async def test_pettee_adapter_parses_only_homz_linked_complete_holdings_workbook
     )
 
     with pytest.raises(ValueError, match="no verified native holdings route"):
+        await adapter.fetch_latest(symbol="UNRELATED")
+
+
+@pytest.mark.asyncio
+async def test_jlens_adapter_parses_complete_tov_product_page_holdings(monkeypatch):
+    adapter = get_holdings_adapter("jlens")
+    assert adapter is not None
+
+    holdings_rows = "".join(
+        "<tr>"
+        f"<td>SYM{index}</td><td>Company {index}</td>"
+        f"<td>{index:09d}</td><td></td><td>{index * 10}</td>"
+        f"<td>10.00</td><td>1.25</td><td>0.50</td>"
+        "</tr>"
+        for index in range(1, 101)
+    )
+    raw_html = f"""
+        <html>
+          <h1>JLens 500 Jewish Advocacy U.S. ETF (TOV)</h1>
+          <h2>Fund Holdings</h2>
+          <table>
+            <tr><th>Ticker</th><th>Name</th><th>CUSIP</th><th>SEDOL</th>
+              <th>Shares</th><th>Price</th><th>Market Value ($mm)</th>
+              <th>% of Net Assets</th></tr>
+            {holdings_rows}
+          </table>
+          <table>
+            <tr><td>1</td><td>Fund Data &amp; Pricing</td><td></td></tr>
+            <tr><td>9</td><td>As of Date</td><td>2026-09-02</td></tr>
+          </table>
+        </html>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=raw_html,
+            content_type="text/html",
+            url="https://investjewishly.org/",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="TOV")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == ["https://investjewishly.org/"]
+    assert len(result.rows) == 100
+    assert result.rows[0].symbol == "SYM1"
+    assert result.rows[0].cusip == "000000001"
+    assert result.rows[0].weight == Decimal("0.005")
+    assert result.rows[0].market_value == Decimal("1250000.00")
+    assert result.legal_metadata["publisher"] == "JLens"
+    assert result.legal_metadata["parent_issuer"] == "Empowered Funds"
+    assert result.legal_metadata["fund_data_as_of_date"] == "2026-09-02"
+    assert result.legal_metadata["route_resolution"] == (
+        "jlens_product_page_embedded_complete_holdings_table"
+    )
+
+    with pytest.raises(ValueError, match="supports TOV only"):
         await adapter.fetch_latest(symbol="UNRELATED")
 
 
@@ -26078,8 +26144,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 383
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 113
+    assert ledger["current_native_count"] == 384
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 112
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -26113,6 +26179,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "gotham",
         "hexis",
         "hilton",
+        "jlens",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))
