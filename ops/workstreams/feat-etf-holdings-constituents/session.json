@@ -43,9 +43,7 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-45bdf9bd8d"
   },
-  "dirty_paths": [
-    "ops/workstreams/feat-etf-holdings-constituents/session.json"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -82,9 +80,9 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "10f84f775c69632b519e5756aec56c9880782bca",
+  "head": "bb2a46d78d2f035be2dfe121836c9f06def51339",
   "implementation_sha": "10f84f775c69632b519e5756aec56c9880782bca",
-  "last_checkpoint": "2026-09-03T16:00:27.843756+00:00",
+  "last_checkpoint": "2026-09-03T16:01:31.490249+00:00",
   "last_human_progress_update": "2026-09-03T14:40:04.134148+00:00",
   "local_validation_profile": "docker_integration",
   "next_action": "Human-authorize the intended remote push and CI synchronization, then run plan-ready and checkpoint before closure review",
