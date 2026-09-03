@@ -62208,6 +62208,180 @@ class RoboGlobalHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class SabaCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Saba Capital's complete CEFS holdings from its official Nuxt page."""
+
+    PRODUCT_PAGE_URLS = {"CEFS": "https://www.sabaetf.com/cefs"}
+    COMPONENT_IDS = {"CEFS": "sabaetf-temp-holdings-1"}
+    _ISSUER_HOSTS = {"sabaetf.com", "www.sabaetf.com"}
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        source_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=(
+                Decimal("0.9500")
+                if source_url
+                else Decimal("0.3000")
+                if has_sec_fallback
+                else Decimal("0.0000")
+            ),
+            status="ready" if source_url or has_sec_fallback else "unsupported_symbol",
+            reason=(
+                "Saba Capital publishes CEFS complete current holdings in its official Nuxt page."
+                if source_url
+                else "Saba Capital has no native route for this symbol; SEC EDGAR fallback is available."
+                if has_sec_fallback
+                else "Saba Capital's verified native route is limited to CEFS."
+            ),
+            source_url=source_url,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    def resolve_source_url(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> str | None:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        expected_url = self.PRODUCT_PAGE_URLS.get(normalized_symbol)
+        if expected_url is None:
+            return None
+        if source_url:
+            parsed = urlparse(source_url.strip())
+            expected = urlparse(expected_url)
+            if (
+                parsed.scheme != "https"
+                or parsed.netloc.lower() not in self._ISSUER_HOSTS
+                or parsed.path.rstrip("/").lower() != expected.path.rstrip("/").lower()
+                or parsed.query
+                or parsed.fragment
+            ):
+                return None
+        return expected_url
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        resolved_source_url = self.resolve_source_url(
+            symbol=normalized_symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        if resolved_source_url is None:
+            raise ValueError(f"Saba Capital has no verified native holdings route for {normalized_symbol}.")
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        page_text = html.unescape(response.text)
+        if "SABA" not in page_text.upper() or "CEFS" not in page_text.upper():
+            raise ValueError(f"Saba Capital product page identity did not match {normalized_symbol}.")
+        rows, composition_date = self._parse_product_page(page_text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError("Saba Capital's official CEFS product page did not expose holdings.")
+        composition_value = composition_date.isoformat() if composition_date else None
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "nuxt_hydration_json", "row_count": len(rows)},
+            source_url=str(response.url),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "nuxt_hydration_json",
+                "route_resolution": "saba_capital_product_page_nuxt_complete_holdings_component",
+                "composition_date": composition_value,
+                "as_of_date": composition_value,
+                "source_quality": "issuer_reported_current_holdings",
+                "snapshot_provenance": "saba_capital_native_product_page_nuxt_hydration",
+                "legal_publisher": "Exchange Traded Concepts / Saba Capital Management",
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_product_page(
+        cls,
+        raw_html: str,
+        *,
+        symbol: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        normalized_symbol = symbol.strip().upper()
+        component_id = cls.COMPONENT_IDS.get(normalized_symbol)
+        if component_id is None or not re.search(
+            r'data-preview-route="cefs"', raw_html, flags=re.IGNORECASE
+        ):
+            return [], None
+        hydrated_rows, composition_date = _extract_nuxt_hydration_holdings(
+            raw_html,
+            component_id=component_id,
+        )
+        rows: list[CanonicalHoldingRow] = []
+        for position, source_row in enumerate(hydrated_rows, start=1):
+            source_ticker = _clean(source_row.get("ticker"))
+            name = _clean(source_row.get("description"))
+            figi = _clean(source_row.get("figi"))
+            if not any((source_ticker, name, figi)):
+                continue
+            text = " ".join(value.upper() for value in (source_ticker, name) if value)
+            is_cash = any(marker in text for marker in ("CASH", "CURRENCY", "MONEY MARKET"))
+            is_derivative = bool(re.search(r"\b(?:OPTION|FUTURE|SWAP|CALL|PUT)\b", text))
+            ticker = source_ticker.upper() if source_ticker else None
+            tradable = (
+                ticker
+                if ticker and re.fullmatch(r"[A-Z][A-Z0-9.-]{0,11}", ticker) and not (is_cash or is_derivative)
+                else None
+            )
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=tradable,
+                    name=name,
+                    weight=_decimal(source_row.get("percent_of_nav")),
+                    shares=_decimal(source_row.get("quantity")),
+                    market_value=_decimal(source_row.get("market_value")),
+                    currency="USD",
+                    holding_type="cash" if is_cash else "derivative" if is_derivative else "equity",
+                    row_type="cash" if is_cash else "derivative" if is_derivative else "security",
+                    source_row_id=(
+                        f"saba-capital-{normalized_symbol.lower()}-"
+                        f"{composition_date.isoformat() if composition_date else 'current'}-{position}"
+                    ),
+                    extra_data={
+                        **{
+                            key: value
+                            for key, value in source_row.items()
+                            if key
+                            not in {"ticker", "description", "quantity", "market_value", "percent_of_nav"}
+                            and _clean(value) is not None
+                        },
+                        **({"source_ticker": source_ticker} if source_ticker else {}),
+                        **({"figi": figi} if figi else {}),
+                    },
+                )
+            )
+        return rows, composition_date
+
+
 class SummitGlobalHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Read Summit Global's disclosed tracking baskets from issuer product pages.
 
@@ -66274,6 +66448,16 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Rockefeller ETFs public product pages and daily holdings CSVs may be subject to issuer terms.",
     ),
+    "saba_capital": IssuerCsvAdapterConfig(
+        adapter_key="saba_capital",
+        source_provider="saba_etf",
+        source_access="issuer_product_page_nuxt_complete_holdings_component",
+        product_page_templates=("https://www.sabaetf.com/cefs",),
+        live_tested_default_route=True,
+        terms_note=(
+            "Saba Capital's public CEFS product page and embedded holdings payload may be subject to issuer terms."
+        ),
+    ),
     "resolute": IssuerCsvAdapterConfig(
         adapter_key="resolute",
         source_provider="resolute_american_beacon",
@@ -69845,7 +70029,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "putnam",
         "rareview_funds",
         "roc",
-        "saba_capital",
         "sammons_enterprises",
         "sapient",
         "saturna",
@@ -73400,7 +73583,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "roc": RocReconciledFallbackHoldingsAdapter,
         "rock_point": RockPointAuditedFallbackHoldingsAdapter,
         "rockefeller_capital": RockefellerHoldingsAdapter,
-        "saba_capital": SabaCapitalReconciledFallbackHoldingsAdapter,
+        "saba_capital": SabaCapitalHoldingsAdapter,
         "sammons_enterprises": SammonsEnterprisesReconciledFallbackHoldingsAdapter,
         "sapient": SapientReconciledFallbackHoldingsAdapter,
         "saturna": SaturnaReconciledFallbackHoldingsAdapter,

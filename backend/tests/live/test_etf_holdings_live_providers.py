@@ -42,6 +42,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "river1",
     "robo_global",
     "rockefeller_capital",
+    "saba_capital",
     "amun",
     "1251_capital",
     "3fourteen",
@@ -1060,6 +1061,7 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ("rockefeller_capital", "RMCA", None, {}, 20),
         ("rockefeller_capital", "RSMC", None, {}, 20),
         ("rockefeller_capital", "RGEF", None, {}, 20),
+        ("saba_capital", "CEFS", None, {}, 50),
         (
             "cicc",
             "KWEB",

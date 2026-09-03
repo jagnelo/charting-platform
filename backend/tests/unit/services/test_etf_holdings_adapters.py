@@ -1440,6 +1440,56 @@ async def test_rockefeller_adapter_fetches_fund_scoped_daily_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_saba_capital_adapter_parses_cefs_nuxt_holdings(monkeypatch):
+    adapter = get_holdings_adapter("saba_capital")
+    assert adapter is not None
+    payload = [
+        None,
+        "sabaetf-temp-holdings-1",
+        "09/01/2026",
+        [5],
+        {"componentId": 1, "date": 2, "finData": 3},
+        {
+            "figi": 6,
+            "ticker": 7,
+            "quantity": 8,
+            "description": 9,
+            "market_value": 10,
+            "percent_of_nav": 11,
+        },
+        "ECAT",
+        "ECAT",
+        1647143,
+        "BlackRock ESG Capital Allocation Term Trust",
+        "25744845",
+        "0.0586",
+    ]
+    page = (
+        '<div data-preview-route="cefs"></div>'
+        '<script type="application/json" id="__NUXT_DATA__">'
+        f"{json.dumps(payload)}"
+        "</script>"
+        "<h1>SABA Opportunistically Hedged Closed-End Funds ETF (CEFS)</h1>"
+    )
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page, content_type="text/html", url=adapter.PRODUCT_PAGE_URLS["CEFS"])
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="CEFS")
+
+    assert [row.symbol for row in result.rows] == ["ECAT"]
+    assert result.rows[0].shares == Decimal("1647143")
+    assert result.rows[0].market_value == Decimal("25744845")
+    assert result.rows[0].weight == Decimal("0.0586")
+    assert result.legal_metadata["source_provider"] == "saba_etf"
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+    assert result.legal_metadata["route_resolution"] == (
+        "saba_capital_product_page_nuxt_complete_holdings_component"
+    )
+
+
+@pytest.mark.asyncio
 async def test_eldridge_adapter_filters_combined_daily_holdings_and_preserves_cusips(monkeypatch):
     adapter = get_holdings_adapter("eldridge")
     assert adapter is not None
@@ -22462,7 +22512,7 @@ def test_etf_com_brand_reconciliation_batch_is_registered_and_audited():
 
 def test_etf_com_issuer_page_reconciliation_batch_is_registered_and_audited():
     expected = set(ETF_COM_ISSUER_PAGE_RECONCILIATION_ISSUER_HINTS)
-    promoted_native = {"emqq", "oshares", "esoterica", "knowledge_leaders"}
+    promoted_native = {"emqq", "oshares", "esoterica", "knowledge_leaders", "saba_capital"}
     terminal_dispositions = {"riverfront"}
     fallback_expected = expected - promoted_native - terminal_dispositions
 
