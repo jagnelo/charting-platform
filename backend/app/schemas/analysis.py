@@ -351,6 +351,9 @@ class BenchmarkFamilyCoverageRoleOut(BaseModel):
     adapter_key: str | None = None
     adapter_status: str | None = None
     adapter_confidence: Decimal | None = None
+    holdings_route_adapter_key: str | None = None
+    holdings_route_provider: str | None = None
+    holdings_route_status: str = "not_configured"
     available: bool = False
     status: str
     snapshots: list[BenchmarkFamilyCoverageSnapshotOut] = Field(default_factory=list)

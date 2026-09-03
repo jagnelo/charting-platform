@@ -551,6 +551,9 @@ export interface BenchmarkFamilyCoverageRoleState {
   instrument_id?: number | null
   available: boolean
   status: string
+  holdings_route_adapter_key?: string | null
+  holdings_route_provider?: string | null
+  holdings_route_status?: string
   snapshots: BenchmarkFamilyCoverageSnapshotState[]
   continuity_status?: 'not_applicable' | 'no_snapshot' | 'single_snapshot' | 'observed_continuity' | 'gapped' | string
   continuity_gap_count?: number

@@ -138,6 +138,7 @@ from app.services.breadth import (
     evaluate_breadth,
     evaluate_breadth_history,
 )
+from app.services.etf_holdings_adapters import get_holdings_adapter, known_etf_route_metadata
 from app.services.indicators import OHLCVSeries, get_latest_value
 from app.services.market_map import build_market_map, read_market_map_cache
 from app.services.parameter_validation import validate_parameter_values
@@ -3628,6 +3629,20 @@ async def benchmark_family_coverage(
         source: DataSource | None = None
         holdings_entitlement: ProviderEntitlement | None = None
         price_entitlement: ProviderEntitlement | None = None
+        route_adapter_key: str | None = None
+        route_provider: str | None = None
+        route_status = "not_configured"
+        if symbol:
+            route_metadata = known_etf_route_metadata(symbol)
+            route_aliases = route_metadata.get("provider_aliases") or {}
+            if isinstance(route_aliases, Mapping):
+                route_adapter_key = str(route_aliases.get("holdings_adapter") or "").strip() or None
+            route_adapter = get_holdings_adapter(route_adapter_key)
+            if route_adapter is not None:
+                route_provider = route_adapter.source_provider
+                route_status = "configured"
+            elif route_adapter_key:
+                route_status = "not_registered"
         point_in_time_supported = False
         if instrument is None:
             status = "mapping_unavailable"
@@ -3774,6 +3789,24 @@ async def benchmark_family_coverage(
                 )
         if source is None and adapter_state is not None:
             source = sources.get(adapter_state.data_source_id)
+        if profile is not None and profile.adapter_key:
+            route_adapter_key = profile.adapter_key
+            route_adapter = get_holdings_adapter(route_adapter_key)
+            if route_adapter is None:
+                route_provider = None
+                route_status = "not_registered"
+            else:
+                route_provider = route_adapter.source_provider
+                route_status = "configured"
+                if profile.adapter_status in {"success", "ready"}:
+                    route_status = "ready"
+                elif profile.adapter_status in {
+                    "failure",
+                    "needs_issuer_route",
+                    "adapter_not_registered",
+                    "holdings_adapter_unresolved",
+                }:
+                    route_status = profile.adapter_status
         if adapter_state is not None and source is not None:
             if holdings_entitlement is None:
                 holdings_entitlement = entitlements.get(
@@ -3841,6 +3874,9 @@ async def benchmark_family_coverage(
                 adapter_key=profile.adapter_key if profile else None,
                 adapter_status=profile.adapter_status if profile else None,
                 adapter_confidence=profile.adapter_confidence if profile else None,
+                holdings_route_adapter_key=route_adapter_key,
+                holdings_route_provider=route_provider,
+                holdings_route_status=route_status,
                 available=instrument is not None,
                 status=status,
                 snapshots=snapshots,

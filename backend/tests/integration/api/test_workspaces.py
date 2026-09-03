@@ -791,6 +791,9 @@ class TestWorkspaces:
         assert value_role["symbol"] == "SPYV"
         assert value_role["available"] is True
         assert value_role["status"] == "profile_not_loaded"
+        assert value_role["holdings_route_adapter_key"] == "spdr"
+        assert value_role["holdings_route_provider"] == "spdr"
+        assert value_role["holdings_route_status"] == "configured"
         assert value_role["snapshots"] == []
         assert any(
             warning["code"] == "family_role_profile_unavailable"
