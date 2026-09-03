@@ -395,3 +395,28 @@ The complete opt-in provider matrix and Docker-backed integration gate remain
 pending at the 388-native baseline, with the known unrelated reproducible
 F8p-current-history Study Lab histogram timeout still recorded as the
 integration blocker.
+
+## Current implementation checkpoint — M2 Financial / CapForce identity reconciliation — 2026-09-03
+
+The ranked `m2_financial` audit reconciled M2 Financial LLC to the existing
+native `capforce` publisher. Official Capital-Force pages publish complete
+current holdings for FFTY and BOUT, while the Capital-Force ETF Trust filings
+identify M2 Financial LLC as the investment adviser. M2 is therefore an adviser
+identity rather than a separate portfolio-publishing issuer; no duplicate M2
+native adapter or SEC-derived reconstruction is warranted.
+
+The ledger now records `m2_financial` as a dated
+`provider_not_a_portfolio_publisher` disposition with representative symbols
+FFTY/BOUT, CapForce and SEC route evidence, and a resolution to the existing
+CapForce adapter. The code-derived split remains 496 registered, 388
+native/live-backed, and 108 fallback-only providers. Runtime fallback statuses
+remain 8 issuer-access-blocked, 91 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher because the
+identity disposition remains represented by the existing code-derived fallback
+adapter. The ledger retains all 140 historical records exactly once, now with
+62 queued fallback records; the next ranked item is `m_d_sass`.
+
+The complete opt-in provider matrix and Docker-backed integration gate remain
+pending at the 388-native baseline, with the known unrelated reproducible
+F8p-current-history Study Lab histogram timeout still recorded as the
+integration blocker.

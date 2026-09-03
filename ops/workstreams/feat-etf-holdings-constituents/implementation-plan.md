@@ -1654,6 +1654,29 @@ fallback records remaining, with `long_pond` next. The known unrelated
 F8p-current-history Study Lab histogram timeout remains the Docker integration
 blocker.
 
+## 41. Current execution checkpoint — M2 Financial / CapForce identity reconciliation — 2026-09-03
+
+The ranked `m2_financial` audit established that M2 Financial LLC is the
+investment adviser named in the Capital-Force ETF Trust filings for FFTY and
+BOUT, while CapForce is the issuer-owned portfolio publisher whose official
+product pages expose the complete current holdings tables. The existing
+`CapForceHoldingsAdapter` already owns both routes and their deterministic and
+opt-in live coverage.
+
+No separate M2 holdings route is executable or necessary. The provider-audit
+ledger records M2 as `provider_not_a_portfolio_publisher`, preserves FFTY/BOUT
+representative symbols and dated CapForce/SEC evidence, and explicitly resolves
+the adviser identity to the native CapForce publisher. Runtime fallback code is
+unchanged so the code-derived status counts remain 8 blocked, 91 route
+discovery, 3 non-executable, and 6 non-portfolio-publisher; the ledger queue is
+now 62 records and the next ranked issuer is `m_d_sass`.
+
+The next implementation cycle should investigate `m_d_sass` first-party ETF
+product pages and complete holdings routes, update the runtime audit only when
+the repository’s code-derived status truly changes, and maintain the same
+focused/deterministic/live/workstream validation sequence before each durable
+checkpoint.
+
 ## 39. Current execution checkpoint — Long Pond/LPRE native promotion — 2026-09-03
 
 The ranked `long_pond` audit found an executable first-party route in the

@@ -804,3 +804,24 @@ step before code registration:
    entry before attempting native holdings route work.
 4. Promote a provider to native only after proving a first-party complete
    holdings source that backend requests can execute.
+
+## Current audit checkpoint — M2 Financial / CapForce identity reconciliation — 2026-09-03
+
+The ranked `m2_financial` audit found that M2 Financial LLC is identified in
+the Capital-Force ETF Trust filings as the investment adviser for the FFTY and
+BOUT funds, while the official CapForce product pages are the portfolio
+publisher and already expose the complete current holdings tables through the
+native `capforce` adapter. M2 therefore does not own a distinct first-party
+holdings publication route in this repository.
+
+The exhaustive ledger records `m2_financial` as a dated
+`provider_not_a_portfolio_publisher` disposition with FFTY/BOUT representative
+symbols, CapForce and SEC evidence, and an explicit resolution to the existing
+CapForce publisher. No duplicate M2 adapter or SEC-derived promotion is added.
+The code-derived split remains 496 registered, 388 native/live-backed, and 108
+fallback-only providers; runtime statuses remain 8 issuer-access-blocked, 91
+needs-first-party-route-discovery, 3 non-executable-public-source, and 6
+non-portfolio-publisher because this terminal ledger disposition, like other
+identity reconciliations, remains represented by its existing code-derived
+fallback adapter. The ledger now has 62 queued fallback records and the next
+ranked item is `m_d_sass`.

@@ -3266,17 +3266,24 @@ providers:
     display_name: m2_financial
     queue_rank: 70
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: provider_not_a_portfolio_publisher
+    disposition: provider_not_a_portfolio_publisher
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
-    estimated_us_etf_count: null
+    representative_symbols:
+      - FFTY
+      - BOUT
+    estimated_us_etf_count: 2
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    first_party_domains:
+      - capforceetf.com
+      - sec.gov
+    candidate_routes:
+      - https://www.capforceetf.com/ffty/details
+      - https://www.capforceetf.com/bout/details
+      - https://www.sec.gov/Archives/edgar/data/2104659/000121390026006524/ea0271727-01_n1a.htm
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -3286,13 +3293,18 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.m2_financial"
       - "runtime:ISSUER_ADAPTER_CONFIGS.m2_financial"
+      - "web:m2-financial-capforce-adviser-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.m2_financial"
-    disposition_reason: "m2_financial: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate m2_financial first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-03
+        source: "https://www.capforceetf.com/ffty/details, https://www.capforceetf.com/bout/details, and SEC Capital-Force ETF Trust filings"
+        result: "The official CapForce product pages publish complete current holdings for FFTY and BOUT, while the SEC filings identify M2 Financial LLC as investment adviser to the Capital-Force ETF Trust funds. M2 is therefore the adviser identity for the existing CapForce holdings publisher, not a distinct ETF portfolio publisher requiring a second native route."
+        evidence_ref: "web:m2-financial-capforce-adviser-2026-09-03"
+    disposition_reason: "m2_financial: Official Capital-Force pages publish the complete FFTY and BOUT holdings routes already owned by the native capforce adapter; SEC fund filings identify M2 Financial LLC as investment adviser rather than a separate holdings publisher. Retain M2 as an explicit non-portfolio-publisher fallback identity and avoid duplicate adapter ownership or SEC-derived promotion."
+    next_action: "m2_financial: Resolve any future M2-advised ETF to its actual portfolio-publishing fund sponsor (currently capforce); do not create a duplicate M2 adapter unless M2 publishes a distinct complete first-party holdings route."
     implementation_sha: null
     validation_refs: []
   - adapter_key: m_d_sass
