@@ -13686,6 +13686,48 @@ async def test_graff_adapter_verifies_pathfinder_bundle_and_parses_filepoint_csv
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("symbol", ["PBOG", "PBEU", "PBPH"])
+async def test_portfolio_building_block_adapter_fetches_declared_holdings_csv(monkeypatch, symbol):
+    adapter = get_holdings_adapter("portfolio_building_block")
+    assert adapter is not None
+    product_url = f"https://portfoliobuildingblocketfs.com/{symbol.lower()}/"
+    product_page = (
+        f"<html><body><h1>{symbol}</h1><span>Download All Holdings</span>"
+        "?download_holdings_csv=1</body></html>"
+    )
+    header = "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding"
+    rows = [
+        f"09/02/2026,{symbol},AAPL,037833100,Apple Inc,100,200,20000,1.00%,2000000,10000"
+        for _ in range(12)
+    ]
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=product_page, content_type="text/html", url=product_url),
+        FakeResponse(
+            text="\n".join([header, *rows]),
+            content_type="text/csv",
+            url=f"{product_url}?download_holdings_csv=1",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol=symbol)
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        product_url,
+        f"{product_url}?download_holdings_csv=1",
+    ]
+    assert len(result.rows) == 12
+    assert result.rows[0].symbol == "AAPL"
+    assert result.rows[0].cusip == "037833100"
+    assert result.legal_metadata["source_provider"] == "portfolio_building_block"
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+    assert result.legal_metadata["route_resolution"] == (
+        "portfolio_building_block_product_page_query_holdings_csv"
+    )
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("adapter_key", ["resolute", "american_beacon"])
 async def test_american_beacon_page_adapter_discovers_holdings_csv(
     monkeypatch,
@@ -22350,6 +22392,7 @@ def test_stockanalysis_provider_reconciliation_batch_is_registered_and_audited()
         "ershares",
         "kovitz",
         "mfs",
+        "portfolio_building_block",
         "range",
         "strategas",
     }
@@ -27190,8 +27233,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 400
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 96
+    assert ledger["current_native_count"] == 401
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 95
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -27242,6 +27285,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "norris_perne_french",
         "opus_capital_management",
         "pathfinder",
+        "portfolio_building_block",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))

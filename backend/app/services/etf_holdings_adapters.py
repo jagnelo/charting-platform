@@ -2360,6 +2360,7 @@ ISSUER_DOMAIN_HINTS.update(
         "yieldmax": ["yieldmaxetfs.com"],
         "opus_capital_management": ["aptusetfs.com", "opusetfs.com"],
         "pathfinder": ["pathfinderetfs.com"],
+        "portfolio_building_block": ["portfoliobuildingblocketfs.com"],
     }
 )
 
@@ -54727,7 +54728,12 @@ class GraffHoldingsAdapter(IssuerCsvHoldingsAdapter):
         )
 
     @classmethod
-    def _parse_holdings_csv(cls, raw_csv: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+    def _parse_holdings_csv(
+        cls,
+        raw_csv: str,
+        *,
+        expected_symbol: str | None = None,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
         rows = list(csv.DictReader(StringIO(raw_csv)))
         required_headers = {
             "Date",
@@ -54744,7 +54750,9 @@ class GraffHoldingsAdapter(IssuerCsvHoldingsAdapter):
         holdings: list[CanonicalHoldingRow] = []
         dates: list[date] = []
         for position, item in enumerate(rows, start=1):
-            if (_clean(item.get("Account")) or "").upper() != cls.SUPPORTED_SYMBOL:
+            if (_clean(item.get("Account")) or "").upper() != (
+                expected_symbol or cls.SUPPORTED_SYMBOL
+            ):
                 continue
             row_date = _parse_issuer_date(item.get("Date"))
             if row_date:
@@ -54775,7 +54783,7 @@ class GraffHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     currency="USD" if row_type == "cash" else None,
                     holding_type=holding_type,
                     row_type=row_type,
-                    source_row_id=f"{cls.SUPPORTED_SYMBOL}:{position}:{cusip or raw_symbol or name or 'holding'}",
+                    source_row_id=f"{expected_symbol or cls.SUPPORTED_SYMBOL}:{position}:{cusip or raw_symbol or name or 'holding'}",
                     extra_data={
                         key: value for key, value in item.items() if _clean(value) is not None
                     },
@@ -56450,6 +56458,131 @@ class PathfinderHoldingsAdapter(GraffHoldingsAdapter):
             "snapshot_provenance": "pathfinder_native_pfde_filepoint_csv",
         }
         return result
+
+class PortfolioBuildingBlockHoldingsAdapter(GraffHoldingsAdapter):
+    """Fetch Portfolio Building Block ETFs from their issuer CSV download route."""
+
+    PRODUCT_PAGES = {
+        "PBOG": "https://portfoliobuildingblocketfs.com/pbog/",
+        "PBEU": "https://portfoliobuildingblocketfs.com/pbeu/",
+        "PBPH": "https://portfoliobuildingblocketfs.com/pbph/",
+    }
+    DOWNLOAD_QUERY = "download_holdings_csv=1"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        requested_symbol = symbol.strip().upper()
+        if requested_symbol not in self.PRODUCT_PAGES:
+            has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.3000") if has_sec_fallback else Decimal("0"),
+                status="ready" if has_sec_fallback else "unsupported",
+                reason=(
+                    "Portfolio Building Block's configured native routes cover PBOG, PBEU, and PBPH only; SEC EDGAR remains available as fallback."
+                    if has_sec_fallback
+                    else "Portfolio Building Block's configured native routes cover PBOG, PBEU, and PBPH only."
+                ),
+            )
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500"),
+            status="ready",
+            reason="Portfolio Building Block's official product page declares a complete current holdings CSV download.",
+            source_url=self.PRODUCT_PAGES[requested_symbol],
+            issuer_product_id=requested_symbol,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, source_url, identifiers
+        requested_symbol = symbol.strip().upper()
+        product_url = self.PRODUCT_PAGES.get(requested_symbol)
+        if product_url is None:
+            raise ValueError(
+                "Portfolio Building Block's configured native routes cover PBOG, PBEU, and PBPH only."
+            )
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_response = await self._get_response(
+                client,
+                product_url,
+                headers=_issuer_page_request_headers(accept="text/html,application/xhtml+xml,*/*"),
+            )
+            product_response.raise_for_status()
+            product_text = product_response.text
+            if (
+                requested_symbol not in product_text
+                or "Download All Holdings" not in product_text
+                or self.DOWNLOAD_QUERY not in product_text
+            ):
+                raise ValueError(
+                    f"Portfolio Building Block {requested_symbol} page did not expose the verified holdings download route."
+                )
+            holdings_url = f"{product_url}?{self.DOWNLOAD_QUERY}"
+            holdings_response = await self._get_response(
+                client,
+                holdings_url,
+                headers={
+                    **_holdings_request_headers(accept="text/csv,application/csv,*/*"),
+                    "Referer": product_url,
+                },
+            )
+        holdings_response.raise_for_status()
+        rows, composition_date = self._parse_holdings_csv(
+            holdings_response.text, expected_symbol=requested_symbol
+        )
+        if len(rows) < 10 or composition_date is None:
+            raise ValueError(
+                f"Portfolio Building Block {requested_symbol} holdings CSV returned incomplete or undated rows."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=holdings_response.text,
+            source_url=str(holdings_response.url),
+            source_identifier=requested_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "portfolio_building_block_product_page_query_holdings_csv",
+                "product_page_url": product_url,
+                "holdings_download_url": holdings_url,
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+                "publisher": "Portfolio Building Block ETFs",
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_daily_holdings",
+                "snapshot_provenance": "portfolio_building_block_native_csv",
+            },
+        )
+
+    @staticmethod
+    async def _get_response(
+        client: httpx.AsyncClient,
+        url: str,
+        *,
+        headers: dict[str, str],
+    ) -> httpx.Response | requests.Response:
+        try:
+            response = await client.get(url, headers=headers, follow_redirects=True)
+            if response.status_code != 403:
+                return response
+        except (httpx.HTTPStatusError, httpx.TimeoutException, httpx.RemoteProtocolError):
+            pass
+        return await asyncio.to_thread(
+            requests.get,
+            url,
+            headers=headers,
+            timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+            allow_redirects=True,
+        )
 
 class OneTwoFiveOneCapitalHoldingsAdapter(FMInvestmentsHoldingsAdapter):
     """Fetch 1251 Capital ETFs through its owned F/M Investments issuer API."""
@@ -65602,6 +65735,21 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "subject to issuer terms."
         ),
     ),
+    "portfolio_building_block": IssuerCsvAdapterConfig(
+        adapter_key="portfolio_building_block",
+        source_provider="portfolio_building_block",
+        source_access="issuer_public_product_page_declared_holdings_csv_query",
+        product_page_templates=(
+            "https://portfoliobuildingblocketfs.com/pbog/",
+            "https://portfoliobuildingblocketfs.com/pbeu/",
+            "https://portfoliobuildingblocketfs.com/pbph/",
+        ),
+        live_tested_default_route=True,
+        terms_note=(
+            "Portfolio Building Block public ETF product pages and holdings CSV routes may be "
+            "subject to issuer terms."
+        ),
+    ),
     "resolute": IssuerCsvAdapterConfig(
         adapter_key="resolute",
         source_provider="resolute_american_beacon",
@@ -69169,7 +69317,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "premise_capital",
         "pzena",
         "performance_trust",
-        "portfolio_building_block",
         "putnam",
         "quadratic",
         "rareview_funds",
@@ -72719,7 +72866,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "pathfinder": PathfinderHoldingsAdapter,
         "performance_trust": PerformanceTrustReconciledFallbackHoldingsAdapter,
         "planrock": PlanRockAuditedFallbackHoldingsAdapter,
-        "portfolio_building_block": PortfolioBuildingBlockReconciledFallbackHoldingsAdapter,
+        "portfolio_building_block": PortfolioBuildingBlockHoldingsAdapter,
         "premise_capital": PremiseCapitalReconciledFallbackHoldingsAdapter,
         "putnam": PutnamReconciledFallbackHoldingsAdapter,
         "pzena": PzenaReconciledFallbackHoldingsAdapter,
