@@ -2327,6 +2327,11 @@ async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
                 and "official fund page did not declare its complete daily holdings csv"
                 in str(exc).lower()
             )
+            or (
+                adapter_key == "alexis"
+                and "alexis product page did not declare its complete lexi holdings csv"
+                in str(exc).lower()
+            )
             or _is_external_live_access_failure(exc)
         ):
             pytest.skip(str(exc))
