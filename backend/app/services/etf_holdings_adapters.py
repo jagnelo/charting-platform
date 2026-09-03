@@ -62382,6 +62382,124 @@ class SabaCapitalHoldingsAdapter(IssuerCsvHoldingsAdapter):
         return rows, composition_date
 
 
+class SammonsEnterprisesHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Beacon/Sammons ETFs through their declared first-party CSV routes."""
+
+    _FUNDS = {
+        "BTR": (
+            "https://beaconinvestingfunds.com/funds/tactical-risk",
+            "https://cdn.craft.cloud/019fb3dc-f507-725b-a261-893c424184c8/assets/ultimus-holdings/tactical-risk-holdings.csv",
+        ),
+        "BSR": (
+            "https://beaconinvestingfunds.com/funds/unified-catalyst",
+            "https://cdn.craft.cloud/019fb3dc-f507-725b-a261-893c424184c8/assets/ultimus-holdings/unified-catalyst-holdings.csv",
+        ),
+        "BTA": (
+            "https://beaconinvestingfunds.com/funds/tactical-alternatives",
+            "https://cdn.craft.cloud/019fb3dc-f507-725b-a261-893c424184c8/assets/ultimus-holdings/tactical-alternatives-holdings.csv",
+        ),
+    }
+    _CSV_LINK_PATTERN = re.compile(
+        r'<a[^>]+href=["\'](?P<href>[^"\']+\.csv)["\'][^>]*>\s*Holdings CSV',
+        re.IGNORECASE,
+    )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        fund = self._FUNDS.get(normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9500") if fund else Decimal("0.3000") if has_sec_fallback else Decimal("0.0000"),
+            status="ready" if fund or has_sec_fallback else "unsupported_symbol",
+            reason=(
+                "Beacon publishes complete current BTR, BSR, and BTA holdings CSVs from official product pages."
+                if fund
+                else "Sammons/Beacon has no native route for this symbol; SEC EDGAR fallback is available."
+                if has_sec_fallback
+                else "Sammons/Beacon's verified native route is limited to BTR, BSR, and BTA."
+            ),
+            source_url=fund[0] if fund else None,
+            issuer_product_id=normalized_symbol if fund else None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del source_url, identifiers
+        normalized_symbol = symbol.strip().upper()
+        fund = self._FUNDS.get(normalized_symbol)
+        if fund is None:
+            raise ValueError(f"Sammons/Beacon has no configured native holdings route for {symbol}.")
+        product_url, expected_csv_url = fund
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_response = await client.get(
+                product_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+            product_response.raise_for_status()
+            page_text = html.unescape(product_response.text)
+            if normalized_symbol not in page_text.upper():
+                raise ValueError(f"Beacon product page identity did not match {normalized_symbol}.")
+            link_match = self._CSV_LINK_PATTERN.search(page_text)
+            declared_csv_url = urljoin(product_url, link_match.group("href")) if link_match else None
+            if declared_csv_url != expected_csv_url:
+                raise ValueError(f"Beacon product page did not declare the verified {normalized_symbol} holdings CSV.")
+            holdings_response = await client.get(
+                expected_csv_url,
+                headers={**_holdings_request_headers(accept="text/csv,*/*"), "Referer": product_url},
+                follow_redirects=True,
+            )
+            holdings_response.raise_for_status()
+        rows, composition_date = self._parse_holdings_csv(holdings_response.text, symbol=normalized_symbol)
+        if not rows:
+            raise ValueError(f"Beacon holdings CSV did not expose complete current rows for {normalized_symbol}.")
+        composition_value = composition_date.isoformat() if composition_date else None
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=holdings_response.text,
+            raw_json={"source_format": "csv", "row_count": len(rows)},
+            source_url=str(getattr(holdings_response, "url", expected_csv_url)),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "beacon_product_page_declared_complete_holdings_csv",
+                "product_page_url": product_url,
+                "composition_date": composition_value,
+                "as_of_date": composition_value,
+                "source_quality": "issuer_reported_current_holdings",
+                "snapshot_provenance": "beacon_native_holdings_csv",
+                "legal_publisher": "Beacon Capital Management / Sammons Financial Group",
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @staticmethod
+    def _parse_holdings_csv(raw_csv: str, *, symbol: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+        source_rows = [row for row in csv.reader(raw_csv.strip().splitlines()) if any(_clean(cell) for cell in row)]
+        if len(source_rows) < 4 or "BEACON" not in (_clean(source_rows[0][0]) or "").upper():
+            return [], None
+        composition_date = _parse_issuer_date((_clean(source_rows[1][0]) or "").removeprefix("Fund Holdings Data as of "))
+        rows = parse_holdings_table(source_rows[2:])
+        for row in rows:
+            if row.symbol:
+                row.symbol = row.symbol.split()[0].upper()
+            raw_weight = row.extra_data.get("Net Assets %")
+            if raw_weight is not None:
+                row.weight = _decimal(raw_weight)
+        return rows, composition_date
+
+
 class SummitGlobalHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """Read Summit Global's disclosed tracking baskets from issuer product pages.
 
@@ -66458,6 +66576,23 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "Saba Capital's public CEFS product page and embedded holdings payload may be subject to issuer terms."
         ),
     ),
+    "sammons_enterprises": IssuerCsvAdapterConfig(
+        adapter_key="sammons_enterprises",
+        source_provider="beacon_investing_funds",
+        source_access="issuer_product_page_declared_complete_holdings_csv",
+        product_page_templates=(
+            "https://beaconinvestingfunds.com/funds/tactical-risk",
+            "https://beaconinvestingfunds.com/funds/unified-catalyst",
+            "https://beaconinvestingfunds.com/funds/tactical-alternatives",
+        ),
+        url_templates=(
+            "https://cdn.craft.cloud/019fb3dc-f507-725b-a261-893c424184c8/assets/ultimus-holdings/tactical-risk-holdings.csv",
+            "https://cdn.craft.cloud/019fb3dc-f507-725b-a261-893c424184c8/assets/ultimus-holdings/unified-catalyst-holdings.csv",
+            "https://cdn.craft.cloud/019fb3dc-f507-725b-a261-893c424184c8/assets/ultimus-holdings/tactical-alternatives-holdings.csv",
+        ),
+        live_tested_default_route=True,
+        terms_note="Beacon/Sammons public ETF product pages and daily holdings CSVs may be subject to issuer terms.",
+    ),
     "resolute": IssuerCsvAdapterConfig(
         adapter_key="resolute",
         source_provider="resolute_american_beacon",
@@ -70029,7 +70164,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "putnam",
         "rareview_funds",
         "roc",
-        "sammons_enterprises",
         "sapient",
         "saturna",
         "siren",
@@ -73584,7 +73718,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "rock_point": RockPointAuditedFallbackHoldingsAdapter,
         "rockefeller_capital": RockefellerHoldingsAdapter,
         "saba_capital": SabaCapitalHoldingsAdapter,
-        "sammons_enterprises": SammonsEnterprisesReconciledFallbackHoldingsAdapter,
+        "sammons_enterprises": SammonsEnterprisesHoldingsAdapter,
         "sapient": SapientReconciledFallbackHoldingsAdapter,
         "saturna": SaturnaReconciledFallbackHoldingsAdapter,
         "segall_bryant_hamill": SegallBryantHamillReconciledFallbackHoldingsAdapter,

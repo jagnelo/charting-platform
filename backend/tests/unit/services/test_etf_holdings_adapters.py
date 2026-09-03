@@ -1490,6 +1490,43 @@ async def test_saba_capital_adapter_parses_cefs_nuxt_holdings(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_sammons_enterprises_adapter_fetches_declared_beacon_csv(monkeypatch):
+    adapter = get_holdings_adapter("sammons_enterprises")
+    assert adapter is not None
+    product_url, holdings_url = adapter._FUNDS["BTR"]
+    page = (
+        '<h1>Beacon Tactical Risk ETF (BTR)</h1>'
+        f'<a href="{holdings_url}">Holdings CSV</a>'
+    )
+    holdings_csv = "\n".join(
+        [
+            "Beacon Tactical Risk ETF",
+            "Fund Holdings Data as of 09/01/2026",
+            "Name, Security Identifier, Symbol, Net Assets %, Market Price, Shares Held, Market Value, Market Value %",
+            "VANGUARD ENERGY ETF,92204A306,VDE US,11.70%,182.64,20904,3818534,11.70%",
+            "VANGUARD HEALTH CARE ETF,92204A504,VHT US,9.73%,321.47,9872,3174736,9.73%",
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page, content_type="text/html", url=product_url),
+        FakeResponse(text=holdings_csv, content_type="text/csv", url=holdings_url),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="BTR")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [product_url, holdings_url]
+    assert [row.symbol for row in result.rows] == ["VDE", "VHT"]
+    assert result.rows[0].weight == Decimal("0.1170")
+    assert result.legal_metadata["source_provider"] == "beacon_investing_funds"
+    assert result.legal_metadata["composition_date"] == "2026-09-01"
+    assert result.legal_metadata["route_resolution"] == (
+        "beacon_product_page_declared_complete_holdings_csv"
+    )
+
+
+@pytest.mark.asyncio
 async def test_eldridge_adapter_filters_combined_daily_holdings_and_preserves_cusips(monkeypatch):
     adapter = get_holdings_adapter("eldridge")
     assert adapter is not None
@@ -22552,6 +22589,7 @@ def test_etfdb_issuer_league_reconciliation_batch_is_registered_and_audited():
         "mig_capital",
         "milliman",
         "moonvest",
+        "sammons_enterprises",
         "nestyield",
         "norris_perne_french",
     }
@@ -22741,6 +22779,7 @@ def test_stockanalysis_provider_continuation_batch_is_registered_and_audited():
     assert ISSUER_ADAPTER_CONFIGS["jlens"].live_tested_default_route is True
     assert type(get_holdings_adapter("jlens")).__name__ == "JLensHoldingsAdapter"
     assert "max" not in FALLBACK_ISSUER_AUDITS
+    assert "sammons_enterprises" not in FALLBACK_ISSUER_AUDITS
     assert ISSUER_ADAPTER_CONFIGS["max"].live_tested_default_route is True
     assert type(get_holdings_adapter("max")).__name__ == "MaxHoldingsAdapter"
 
@@ -22966,6 +23005,7 @@ def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audit
         "logiq",
         "max",
         "moonvest",
+        "sammons_enterprises",
     }
 
     assert expected
@@ -22997,6 +23037,7 @@ def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audit
     assert "everence" not in FALLBACK_ISSUER_AUDITS
     assert "fitzgerald" not in FALLBACK_ISSUER_AUDITS
     assert "max" not in FALLBACK_ISSUER_AUDITS
+    assert "sammons_enterprises" not in FALLBACK_ISSUER_AUDITS
     assert ISSUER_ADAPTER_CONFIGS["max"].live_tested_default_route is True
     assert type(get_holdings_adapter("max")).__name__ == "MaxHoldingsAdapter"
     assert ISSUER_ADAPTER_CONFIGS["bufferlabs"].live_tested_default_route is True
@@ -27493,8 +27534,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 407
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 89
+    assert ledger["current_native_count"] == 408
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 88
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
