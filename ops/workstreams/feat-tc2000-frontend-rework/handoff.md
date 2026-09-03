@@ -603,3 +603,10 @@ without coverage instrumentation. This isolates the failure boundary to the comb
 run's resource interaction with the test PostgreSQL container; it is not reproduced by the full
 functional suite or the isolated radar file. No Makefile or oracle changes were made to mask the
 problem.
+
+The frontend stages that the gate did not reach were then run independently at the same tip.
+`make test-fe` passed `924/924` Vitest tests across `247/247` suites, the 48-file uPlot
+numerical-renderer contract, and all 26 unchanged visual-policy assertions. `npm run build`
+also passed `vue-tsc` and Vite's 490-module production build; its only diagnostic was the
+existing large-chunk warning. These receipts do not close the browser functional/visual gaps or
+the backend coverage-instrumentation blocker.
