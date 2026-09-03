@@ -289,3 +289,8 @@ IWD/IWF/IWN/IWO historical routes, Invesco QQQ SEC historical fallback, and Dire
 and SEC historical fallback all returned parseable, identity-checked holdings. This confirms the
 reviewed issuer/SEC routes, not complete database hydration, all-family population, member-bar
 continuity, entitlement verification, or live top-down browser readiness.
+
+The complementary SPDR route probe passed `16/16` in `5.86s`, including the nine mapped family
+proxies SPY/SPYG/SPYV/MDY/MDYG/MDYV/SLYG/SLYV/SPTM. Combined with the preceding 11/11 iShares,
+Invesco, and Direxion probe set, all 20 configured family proxy symbols now have fresh public-route
+evidence; this still does not establish persisted multi-date snapshots or complete member history.
