@@ -29,6 +29,7 @@ from app.models.instrument import Instrument
 from app.models.instrument_identity import InstrumentProviderSymbol
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.services.etf_holdings import ensure_etf_profile
+from app.services.etf_holdings_adapters import known_etf_route_metadata
 from app.services.etf_holdings_refresh import (
     USABLE_HOLDINGS_COMPLETENESS,
     bootstrap_etf_holdings_profile,
@@ -192,6 +193,17 @@ async def ensure_core_workstation_identities(db: AsyncSession) -> dict:
                 )
             ).scalar_one_or_none()
             existing_legal_metadata = profile_exists.legal_metadata if profile_exists else {}
+            existing_provider_aliases = profile_exists.provider_aliases if profile_exists else {}
+            route_metadata = known_etf_route_metadata(symbol)
+            route_aliases = route_metadata.get("provider_aliases") or {}
+            provider_aliases = {
+                **(
+                    existing_provider_aliases
+                    if isinstance(existing_provider_aliases, dict)
+                    else {}
+                ),
+                **(route_aliases if isinstance(route_aliases, dict) else {}),
+            }
             legal_metadata = {
                 **(existing_legal_metadata or {}),
                 "identity_bootstrap": CORE_WORKSTATION_REGISTRY,
@@ -200,6 +212,8 @@ async def ensure_core_workstation_identities(db: AsyncSession) -> dict:
             await ensure_etf_profile(
                 db,
                 instrument,
+                issuer=route_metadata.get("issuer"),
+                provider_aliases=provider_aliases or None,
                 legal_metadata=legal_metadata,
             )
             if profile_exists is None:

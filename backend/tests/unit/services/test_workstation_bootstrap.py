@@ -76,6 +76,16 @@ def test_core_workstation_identity_bootstrap_is_idempotent_and_not_fixture_data(
     assert all(
         profile.legal_metadata["holdings_membership_status"] == "not_loaded" for profile in profiles
     )
+    profiles_by_symbol = {
+        profile.instrument.symbol: profile
+        for profile in profiles
+        if profile.instrument is not None
+    }
+    assert profiles_by_symbol["SPY"].adapter_key == "spdr"
+    assert profiles_by_symbol["RSP"].adapter_key == "invesco"
+    assert profiles_by_symbol["QQQE"].adapter_key == "direxion"
+    assert profiles_by_symbol["IWB"].adapter_key == "ishares"
+    assert profiles_by_symbol["SPY"].provider_aliases["holdings_adapter"] == "spdr"
 
     groups = db.execute(select(MarketGroup)).scalars().all()
     members = db.execute(select(MarketGroupMember)).scalars().all()
