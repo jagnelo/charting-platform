@@ -351,3 +351,13 @@ The complete benchmark-family integration matrix remains green after the additiv
 deprecation warnings. This confirms the route-readiness disclosure is compatible with the family
 overview, coverage, point-in-time, breadth, ratios, ranking, rotation, concentration, and
 derived-equal contracts; it does not convert seeded/local evidence into provider-backed population.
+
+Provider entitlement reconciliation now follows the snapshot's declared `source_provider` (or the
+configured route provider when no snapshot exists) to locate persisted entitlement rows, instead
+of treating the internal holdings-ingestion source as the provider of record, at
+`50c614dd9ae13da89c4b404c8b70248f72d6dedd`. The API remains provider-free: missing provider rows
+remain `unknown`, while persisted free-source probe evidence can now report `verified` for both
+snapshot-backed and route-only roles. The focused entitlement regression passes `1/1`, the full
+benchmark-family matrix passes `21/21`, the exact-tip backend unit suite passes `1287/1287` with
+`67.44%` coverage, and Ruff plus `git diff --check` are clean. This closes entitlement lineage
+observability only; it does not populate snapshots, member bars, or historical continuity.
