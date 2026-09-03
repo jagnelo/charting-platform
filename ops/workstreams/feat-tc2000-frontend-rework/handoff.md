@@ -596,3 +596,10 @@ full-suite database crash still needs an environment or cumulative-test diagnosi
 exhaustive gate can be called green. The gate's prescribed cleanup completed successfully and
 removed only the assigned branch's test resources. No visual baseline, threshold, skip, provider
 fallback, integration, promotion, deployment, or other-worktree mutation was performed.
+
+The follow-up comparison `backend/.venv/bin/pytest backend/tests/unit backend/tests/integration
+--override-ini addopts= --no-header -q` passes the complete `1,670/1,670` suite in `236.36s`
+without coverage instrumentation. This isolates the failure boundary to the combined coverage
+run's resource interaction with the test PostgreSQL container; it is not reproduced by the full
+functional suite or the isolated radar file. No Makefile or oracle changes were made to mask the
+problem.
