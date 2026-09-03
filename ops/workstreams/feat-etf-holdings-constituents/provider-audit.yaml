@@ -5,9 +5,9 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 392
-current_fallback_count: 104
-generated_at: 2026-09-03T04:48:51Z
+current_native_count: 393
+current_fallback_count: 103
+generated_at: 2026-09-03T05:30:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -3837,35 +3837,53 @@ providers:
     display_name: mig_capital
     queue_rank: 81
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
-    estimated_us_etf_count: null
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-03
+    source_access_declared: issuer_public_product_page_nuxt_complete_holdings_component
+    representative_symbols:
+      - MIGO
+    estimated_us_etf_count: 1
     estimated_us_etf_aum: null
-    us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    us_equity_breadth: 1
+    source_freshness: current_as_of_date
+    first_party_domains:
+      - migcapitaletf.com
+      - migcap.com
+      - sec.gov
+    candidate_routes:
+      - https://www.migcapitaletf.com/
+      - https://www.migcap.com/about
+      - https://www.sec.gov/Archives/edgar/data/1452937/000204825126003486/0002048251-26-003486-index.htm
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_mig_capital_adapter_parses_migo_nuxt_holdings
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_mig_capital_migo_nuxt_holdings_component
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.mig_capital"
       - "runtime:ISSUER_ADAPTER_CONFIGS.mig_capital"
+      - "web:mig-capital-official-migo-holdings-2026-09-03"
+      - "live:mig-capital-migo-current-holdings-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.mig_capital"
-    disposition_reason: "mig_capital: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate mig_capital first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
-    implementation_sha: null
-    validation_refs: []
+      - date: 2026-09-03
+        source: "https://www.migcapitaletf.com/ and https://www.migcap.com/about"
+        result: "MIG Capital's official ETF site identifies MIGO as the MIG Core ETF and publishes a complete 50-row holdings component in the homepage Nuxt hydration payload, dated September 1, 2026; the firm page confirms MIG Capital launched the long-only ETF in 2026."
+        evidence_ref: "web:mig-capital-official-migo-holdings-2026-09-03"
+      - date: 2026-09-03
+        source: "backend/tests/live/test_etf_holdings_live_providers.py::test_live_mig_capital_migo_nuxt_holdings_component"
+        result: "The native MIG Capital adapter fetched the official MIGO page, validated its product identity and home route, parsed 50 current rows dated September 1, 2026, preserved FIGI/source ticker data, and classified ETF, equity, and cash rows without SEC-derived reconstruction."
+        evidence_ref: "live:mig-capital-migo-current-holdings-2026-09-03"
+    disposition_reason: "mig_capital: MIG Capital's official MIGO product page provides a complete executable Nuxt holdings payload dated September 1, 2026. The native adapter validates the exact HTTPS homepage and MIG Core ETF identity, extracts only migocap-home-HoldingsComponent-1, maps FIGI/ticker/shares/market value/weight fields, classifies cash/funds/equities, preserves the source composition date, and records the Exchange Traded Concepts / MIG Capital legal publisher relationship with deterministic and opt-in live coverage."
+    next_action: "mig_capital: Monitor the official MIGO homepage and firm disclosures for complete dated Nuxt holdings payloads and schema continuity; retain native status while the route remains executable and identity-valid, and add any future MIG Capital ETF only after equivalent route, parser, and bounded live evidence."
+    implementation_sha: 590d0f4de26a8c89171f0d9842eef82ac7bff394
+    validation_refs:
+      - "validation:2026-09-03T05:30:00Z"
   - adapter_key: militia
     display_name: militia
     queue_rank: 82

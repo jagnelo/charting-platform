@@ -1105,3 +1105,35 @@ pending at the 392-native baseline, with the known unrelated reproducible
 F8p-current-history Study Lab histogram timeout retained as the integration
 blocker. Evidence refs: `web:merlyn-ai-liquidation-2026-09-03` and
 `web:merlyn-ai-sec-fund-series-2026-09-03`.
+
+## Current promotion checkpoint — MIG Capital / MIGO native route — 2026-09-03
+
+The ranked `mig_capital` audit verified MIG Capital's official ETF site at
+`https://www.migcapitaletf.com/` and the firm's about page. The homepage
+identifies MIGO as the MIG Core ETF and publishes a complete 50-row holdings
+component in the Nuxt hydration payload, dated September 1, 2026. The firm
+page confirms that MIG Capital launched the long-only ETF in 2026; the current
+SEC index independently identifies the MIGO series.
+
+Implementation adds `MigCapitalHoldingsAdapter`, scoped to the exact HTTPS
+homepage and `migocap-home-HoldingsComponent-1`. It validates the MIG Core ETF
+identity, extracts only the complete holdings component, preserves FIGI and
+source ticker values, maps numeric holdings fields, classifies ETF funds,
+equities, and cash rows, and records the Exchange Traded Concepts / MIG Capital
+publisher relationship. Config, registry, fallback audit removal, deterministic
+fixture, live-backed manifest, and bespoke opt-in MIGO live coverage are aligned.
+
+The durable ledger records `mig_capital` as `native_promoted`, increasing the
+code-derived split to 496 registered, 393 native/live-backed, and 103
+fallback-only providers. Runtime fallback statuses are 8 issuer-access-blocked,
+86 needs-first-party-route-discovery, 3 non-executable-public-source, and 6
+non-portfolio-publisher. The 140-record ledger now has 51 queued fallback
+records; the next ranked issuer is `militia`.
+
+The focused deterministic adapter checks and bounded opt-in MIGO live route pass
+at implementation SHA `590d0f4de26a8c89171f0d9842eef82ac7bff394`. The complete
+opt-in provider matrix and Docker-backed integration gate remain pending at the
+393-native baseline, with the known unrelated reproducible F8p-current-history
+Study Lab histogram timeout retained as the integration blocker. Evidence refs:
+`web:mig-capital-official-migo-holdings-2026-09-03` and
+`live:mig-capital-migo-current-holdings-2026-09-03`.
