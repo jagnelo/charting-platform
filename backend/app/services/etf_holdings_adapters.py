@@ -65986,6 +65986,20 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="River1's public RVER page and fund-scoped XLS holdings export may be subject to issuer terms.",
     ),
+    "riverfront": IssuerCsvAdapterConfig(
+        adapter_key="riverfront",
+        source_provider="first_trust_riverfront_successor",
+        source_access="legal_issuer_first_trust_subadvised_holdings_table",
+        product_page_templates=(
+            "https://www.riverfrontig.com/investment-solutions/products/sub-advised-etfs/",
+            "https://www.ftportfolios.com/Retail/Etf/EtfHoldings.aspx?Ticker=RFDI",
+            "https://www.ftportfolios.com/Retail/Etf/EtfHoldings.aspx?Ticker=RFEM",
+        ),
+        live_tested_default_route=False,
+        terms_note=(
+            "RiverFront sub-advised ETFs are legally published by First Trust; successor holdings pages may be subject to issuer terms."
+        ),
+    ),
     "resolute": IssuerCsvAdapterConfig(
         adapter_key="resolute",
         source_provider="resolute_american_beacon",
@@ -69506,6 +69520,7 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "msc_group",
         "orix",
         "rock_point",
+        "riverfront",
     ),
     "needs_first_party_route_discovery": (
         "advisors_asset_management",
@@ -69555,7 +69570,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "performance_trust",
         "putnam",
         "rareview_funds",
-        "riverfront",
         "robo_global",
         "rockefeller_capital",
         "roc",

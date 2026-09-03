@@ -7,7 +7,7 @@ baseline_fallback_count: 140
 current_registered_count: 496
 current_native_count: 404
 current_fallback_count: 92
-generated_at: 2026-09-03T17:00:00Z
+generated_at: 2026-09-03T18:00:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -4968,20 +4968,23 @@ providers:
   - adapter_key: riverfront
     display_name: riverfront
     queue_rank: 104
-    starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    starting_status: provider_not_a_portfolio_publisher
+    current_status: provider_not_a_portfolio_publisher
+    disposition: provider_not_a_portfolio_publisher
+    last_checked: 2026-09-03
+    source_access_declared: legal_issuer_first_trust_subadvised_holdings_table
+    representative_symbols: [RFDI, RFEM]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    source_freshness: daily
+    first_party_domains: [riverfrontig.com, ftportfolios.com]
+    candidate_routes:
+      - "https://www.riverfrontig.com/investment-solutions/products/sub-advised-etfs/"
+      - "https://www.ftportfolios.com/Retail/Etf/EtfHoldings.aspx?Ticker=RFDI"
+      - "https://www.ftportfolios.com/Retail/Etf/EtfHoldings.aspx?Ticker=RFEM"
     route_complete: false
-    symbol_mapping_proven: false
+    symbol_mapping_proven: true
     current_holdings_proven: false
     parser_fixture: null
     live_test: null
@@ -4989,13 +4992,19 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.riverfront"
       - "runtime:ISSUER_ADAPTER_CONFIGS.riverfront"
+      - "web:riverfront-subadvised-first-trust-2026-09-03"
+      - "web:riverfront-rfdi-rfem-current-first-trust-holdings-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.riverfront"
-    disposition_reason: "riverfront: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate riverfront first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-03
+        source: "RiverFront sub-advised ETF page and First Trust successor holdings pages"
+        result: "RiverFront's official page identifies RFDI and RFEM as sub-advised ETFs offered through a partnership with First Trust; First Trust hosts the current full holdings tables. RFEU is terminated and RFDA no longer has RiverFront as sub-adviser. RiverFront is not the legal portfolio publisher."
+        evidence_ref: "web:riverfront-subadvised-first-trust-2026-09-03"
+    disposition_reason: "riverfront: RiverFront is the sub-adviser, while First Trust is the legal adviser/distributor and holdings publisher for RFDI/RFEM. Preserve the existing RiverFront fallback identity without duplicating a First Trust native adapter or reconstructing through SEC data."
+    next_action: "Resolve RiverFront requests to the First Trust native adapter; monitor sub-adviser/product identity changes and do not create a duplicate RiverFront publisher integration."
     implementation_sha: null
     validation_refs: []
   - adapter_key: robo_global

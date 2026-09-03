@@ -22384,7 +22384,8 @@ def test_etf_com_brand_reconciliation_batch_is_registered_and_audited():
 def test_etf_com_issuer_page_reconciliation_batch_is_registered_and_audited():
     expected = set(ETF_COM_ISSUER_PAGE_RECONCILIATION_ISSUER_HINTS)
     promoted_native = {"emqq", "oshares", "esoterica", "knowledge_leaders"}
-    fallback_expected = expected - promoted_native
+    terminal_dispositions = {"riverfront"}
+    fallback_expected = expected - promoted_native - terminal_dispositions
 
     assert expected
     assert expected.isdisjoint(set(ETF_COM_BRAND_RECONCILIATION_ISSUER_HINTS))
@@ -22394,6 +22395,12 @@ def test_etf_com_issuer_page_reconciliation_batch_is_registered_and_audited():
     for adapter_key in fallback_expected:
         audit = FALLBACK_ISSUER_AUDITS[adapter_key]
         assert audit.status == "needs_first_party_route_discovery"
+        adapter = get_holdings_adapter(adapter_key)
+        assert adapter is not None
+        assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+    for adapter_key in terminal_dispositions:
+        audit = FALLBACK_ISSUER_AUDITS[adapter_key]
+        assert audit.status == "provider_not_a_portfolio_publisher"
         adapter = get_holdings_adapter(adapter_key)
         assert adapter is not None
         assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
