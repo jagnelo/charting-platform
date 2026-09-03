@@ -1515,3 +1515,35 @@ is `horizons`.
 The complete opt-in provider matrix and Docker-backed integration gate remain
 pending at the 383-native baseline; the known unrelated reproducible
 F8p-current-history Study Lab histogram timeout remains an AC7 gap.
+
+## 34. Current execution checkpoint — Horizons inactive/successor disposition — 2026-09-03
+
+The ranked `horizons` audit found no current independent Horizons U.S. ETF
+publisher to promote. The official SEC reorganization document maps the former
+Horizons DAX Germany ETF, Horizons NASDAQ 100 Covered Call ETF, and Horizons
+S&P 500 Covered Call ETF into corresponding Global X DAX (`DAX`), Global X
+Nasdaq 100 Covered Call (`QYLD`), and Global X S&P 500 Covered Call (`HSPX`)
+funds. It states that Global X Management Company becomes adviser and that
+the Horizons target funds are transferred in complete liquidation and
+termination. Current Global X product pages expose the successor products and
+their holdings sections. The legacy Horizons USA URL now redirects to the
+Global X Canada site, and the last Horizons ETF Trust I financial statements
+are historical.
+
+Because the successor mapping is explicit and the current portfolio routes are
+already owned by the existing `global_x` identity, a separate Horizons native
+adapter would duplicate publisher ownership and misstate provenance. The
+ledger therefore records `horizons` as a dated
+`inactive_or_successor_disposition`, preserves the historical representative
+symbols and SEC/Global X routes, and leaves the runtime fallback class intact.
+No Holdings adapter, deterministic parser test, or live-provider entry is
+added for Horizons; future work should reopen only if Horizons independently
+sponsors a current U.S.-listed ETF and publishes a distinct complete
+first-party holdings route.
+
+The code-derived split remains 496 registered, 383 native/live-backed, and 113
+fallback-only providers. Runtime fallback status counts remain 8
+issuer-access-blocked, 96 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher. The exhaustive
+ledger retains all 140 historical records exactly once; 69 queued fallback
+records remain and the next ranked item is `hoya`.

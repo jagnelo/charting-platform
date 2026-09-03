@@ -2908,19 +2908,31 @@ providers:
     display_name: horizons
     queue_rank: 63
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: inactive_or_successor_disposition
+    disposition: inactive_or_successor_disposition
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
-    estimated_us_etf_count: null
+    representative_symbols:
+      - QYLD
+      - HSPX
+      - DAX
+    estimated_us_etf_count: 3
     estimated_us_etf_aum: null
-    us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    us_equity_breadth: 3
+    source_freshness: successor_reorganization
+    first_party_domains:
+      - horizonsetfs.com
+      - globalxetfs.com
+      - sec.gov
+    candidate_routes:
+      - https://www.horizonsetfs.com/USA
+      - https://www.sec.gov/Archives/edgar/data/1432353/000143235318000142/horizonsglobalxreorganizdoc.htm
+      - https://www.globalxetfs.com/funds/qyld
+      - https://www.globalxetfs.com/funds/hspx
+      - https://www.globalxetfs.com/funds/dax
+      - https://www.sec.gov/Archives/edgar/data/1551030/000089418919000455/e2858ncsr.htm
     route_complete: false
-    symbol_mapping_proven: false
+    symbol_mapping_proven: true
     current_holdings_proven: false
     parser_fixture: null
     live_test: null
@@ -2933,10 +2945,23 @@ providers:
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.horizons"
-    disposition_reason: "horizons: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate horizons first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-03
+        source: "https://www.sec.gov/Archives/edgar/data/1432353/000143235318000142/horizonsglobalxreorganizdoc.htm"
+        result: "The official SEC reorganization document maps Horizons DAX, Horizons NASDAQ 100 Covered Call, and Horizons S&P 500 Covered Call ETFs to corresponding Global X DAX, QYLD, and HSPX funds, with Global X Management Company becoming adviser and the Horizons target funds being completely liquidated/terminated on completion."
+        evidence_ref: "web:horizons-globalx-reorganization-2018"
+      - date: 2026-09-03
+        source: "https://www.globalxetfs.com/funds/qyld, https://www.globalxetfs.com/funds/hspx, and https://www.globalxetfs.com/funds/dax"
+        result: "The current Global X product catalogue exposes QYLD, HSPX, and DAX successor fund pages and current holdings sections; these routes belong to the existing global_x publisher identity rather than a distinct Horizons U.S. portfolio publisher."
+        evidence_ref: "web:globalx-horizons-successor-products-2026-09-03"
+      - date: 2026-09-03
+        source: "https://www.sec.gov/Archives/edgar/data/1551030/000089418919000455/e2858ncsr.htm and https://www.horizonsetfs.com/USA"
+        result: "The final Horizons ETF Trust I financial statements are historical (October 31, 2018 reporting), while the legacy Horizons USA URL redirects to the current Global X Canada site; no current standalone Horizons U.S. catalogue or holdings route was found."
+        evidence_ref: "web:horizons-current-route-disposition-2026-09-03"
+    disposition_reason: "horizons: The former Horizons U.S. ETFs were reorganized into corresponding Global X funds under the official SEC plan, with Global X assuming management and the Horizons target funds liquidated/terminated. Current QYLD, HSPX, and DAX holdings belong to the existing global_x publisher route; creating a duplicate Horizons adapter would misstate ownership, so this identity remains fallback-only as an inactive_or_successor_disposition."
+    next_action: "horizons: Keep fallback-only as an inactive_or_successor_disposition resolved to the existing global_x identity; reopen only if Horizons independently sponsors a current U.S.-listed ETF and publishes a distinct complete executable first-party holdings route."
     implementation_sha: null
-    validation_refs: []
+    validation_refs:
+      - "validation:2026-09-03T01:47:23Z"
   - adapter_key: hoya
     display_name: hoya
     queue_rank: 64

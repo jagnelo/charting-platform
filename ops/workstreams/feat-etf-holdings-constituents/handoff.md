@@ -103,8 +103,8 @@ opt-in SMCO/HBDC live route, Ruff, workstream validation, and diff-check.
 The current code-derived split is 496 registered, 383 native/live-backed, and
 113 fallback-only providers. Runtime fallback status counts are 8
 access-blocked, 96 discovery, 3 non-executable public source, and 6
-non-portfolio-publisher. The ledger has 70 queued records and the next ranked
-item is `horizons`.
+non-portfolio-publisher. The ledger has 69 queued records and the next ranked
+item is `hoya`.
 
 ## Historical continuity
 
@@ -196,7 +196,9 @@ declared daily holdings CSV. Highland Capital is recorded as a dated non-executa
 source because the official AQLG CSV omits all ticker symbols and AQLV has no assigned ticker
 or current route. Hilton/SMCO-HBDC is now native-promoted through the official Hilton ETFs
 product pages and declared AllHoldings CSV, with account-scoped equity, fixed-income, fund,
-and cash parsing. The ledger has 70 queued fallback records; continue with `horizons`, and
+and cash parsing. Horizons is recorded as an inactive/successor disposition because the
+former Horizons U.S. funds reorganized into current Global X successor funds. The ledger
+has 69 queued fallback records; continue with `hoya`, and
 checkpoint each coherent provider changeset before moving to the next.
 
 Update this handoff at every coherent implementation and operations boundary.

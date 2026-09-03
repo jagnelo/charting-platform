@@ -104,6 +104,12 @@ quantities, and weights, but every ticker field is blank, while the AQLV
 prospectus identity has no assigned ticker/current holdings route. The source is
 not promoted or reconstructed through SEC/CUSIP lookups because canonical symbol
 mapping is unproven.
+Horizons is recorded as an audited `inactive_or_successor_disposition`: the
+official SEC reorganization document maps the former Horizons DAX, QYLD, and
+HSPX funds into corresponding Global X funds, with Global X assuming management
+and the Horizons target funds liquidated/terminated. Current QYLD, HSPX, and
+DAX holdings therefore belong to the existing `global_x` publisher route; no
+duplicate Horizons adapter is created.
 Granite Group Advisors is recorded as a non-portfolio-publisher identity: its
 official wealth-management materials describe allocation to independent fund
 managers, disclaim proprietary fund products, and expose no sponsored U.S. ETF
