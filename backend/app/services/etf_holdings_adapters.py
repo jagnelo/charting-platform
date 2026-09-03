@@ -66761,6 +66761,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Hennessy's public STNC product page and holdings table may be subject to issuer terms.",
     ),
+    "stratified": IssuerCsvAdapterConfig(
+        adapter_key="stratified",
+        source_provider="stratified_funds",
+        source_access="issuer_product_page_nuxt_complete_holdings_component",
+        product_page_templates=(
+            "https://www.stratifiedfunds.com/sspy",
+            "https://www.stratifiedfunds.com/shus",
+        ),
+        live_tested_default_route=True,
+        terms_note="Stratified Funds public SSPY and SHUS product pages and holdings payloads may be subject to issuer terms.",
+    ),
     "resolute": IssuerCsvAdapterConfig(
         adapter_key="resolute",
         source_provider="resolute_american_beacon",
@@ -70337,7 +70348,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "suncoast",
         "segall_bryant_hamill",
         "sophus",
-        "stratified",
         "strategy_shares",
         "subversive",
         "swedish_export_credit",
@@ -73074,8 +73084,80 @@ class BlueprintReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """StockAnalysis provider-table fallback adapter pending Blueprint discovery."""
 
 
-class StratifiedReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """StockAnalysis provider-table fallback adapter pending Stratified discovery."""
+class StratifiedHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Fetch Stratified's complete current holdings from official Nuxt pages."""
+
+    PRODUCT_PAGE_SLUGS = {"SSPY": "sspy", "SHUS": "shus"}
+    PRODUCT_PAGE_BASE = "https://www.stratifiedfunds.com"
+    _ISSUER_HOSTS = {"stratifiedfunds.com", "www.stratifiedfunds.com"}
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        source_url = self.resolve_source_url(symbol=normalized_symbol)
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9600") if source_url else Decimal("0.3000") if has_sec_fallback else Decimal("0.0000"),
+            status="ready" if source_url or has_sec_fallback else "unsupported_symbol",
+            reason=(
+                "Stratified publishes complete dated holdings in its official Nuxt fund-page payload."
+                if source_url
+                else "Stratified has no native route for this symbol; SEC EDGAR fallback is available."
+                if has_sec_fallback
+                else "Stratified's verified native route is limited to SSPY and SHUS."
+            ),
+            source_url=source_url,
+            issuer_product_id=normalized_symbol if source_url else None,
+        )
+
+    def resolve_source_url(self, *, symbol: str, issuer_product_id: str | None = None, source_url: str | None = None, identifiers: dict[str, str] | None = None) -> str | None:
+        del identifiers
+        normalized_symbol = (issuer_product_id or symbol).strip().upper()
+        slug = self.PRODUCT_PAGE_SLUGS.get(normalized_symbol)
+        if slug is None:
+            return None
+        expected_url = f"{self.PRODUCT_PAGE_BASE}/{slug}"
+        if source_url:
+            parsed = urlparse(source_url.strip())
+            if parsed.scheme != "https" or parsed.netloc.lower() not in self._ISSUER_HOSTS or parsed.path.rstrip("/").lower() != f"/{slug}":
+                return None
+            return source_url.strip()
+        return expected_url
+
+    async def fetch_latest(self, *, symbol: str, issuer_product_id: str | None = None, source_url: str | None = None, identifiers: dict[str, str] | None = None) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        resolved_source_url = self.resolve_source_url(symbol=normalized_symbol, issuer_product_id=issuer_product_id, source_url=source_url, identifiers=identifiers)
+        if resolved_source_url is None:
+            raise ValueError(f"Stratified has no verified native holdings route for {normalized_symbol}.")
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(resolved_source_url, headers=_issuer_page_request_headers(accept="text/html,*/*"), follow_redirects=True)
+        response.raise_for_status()
+        component_id = f"stratified-{self.PRODUCT_PAGE_SLUGS[normalized_symbol]}-HoldingsComponent-1"
+        source_rows, composition_date = _extract_nuxt_hydration_holdings(response.text, component_id=component_id)
+        rows = _canonical_nuxt_holdings_rows(source_rows, source_row_prefix=f"stratified-{normalized_symbol.lower()}")
+        if not rows:
+            raise ValueError(f"Stratified's official product page did not expose holdings for {normalized_symbol}.")
+        composition_value = composition_date.isoformat() if composition_date else None
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"source_format": "nuxt_hydration_json", "row_count": len(rows)},
+            source_url=str(response.url),
+            source_identifier=issuer_product_id or normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "nuxt_hydration_json",
+                "route_resolution": "stratified_official_fund_page_nuxt_complete_holdings_component",
+                "composition_date": composition_value,
+                "as_of_date": composition_value,
+                "source_quality": "issuer_reported_current_holdings",
+                "snapshot_provenance": "stratified_native_product_page_nuxt_hydration",
+                "terms_note": self.config.terms_note,
+            },
+        )
 
 
 class HoyaReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -74218,7 +74300,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "sp_funds": SpFundsHoldingsAdapter,
         "stance": StanceHoldingsAdapter,
         "strategas": StrategasHoldingsAdapter,
-        "stratified": StratifiedReconciledFallbackHoldingsAdapter,
+        "stratified": StratifiedHoldingsAdapter,
         "strategy_shares": StrategySharesReconciledFallbackHoldingsAdapter,
         "srh": SrhHoldingsAdapter,
         "subversive": SubversiveReconciledFallbackHoldingsAdapter,

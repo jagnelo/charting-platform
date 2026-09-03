@@ -1656,6 +1656,39 @@ async def test_stance_adapter_parses_current_hennessy_holdings_table(monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_stratified_adapter_parses_nuxt_holdings_payload(monkeypatch):
+    adapter = get_holdings_adapter("stratified")
+    assert adapter is not None
+    payload = [
+        None,
+        {"componentId": 2, "finData": 3, "date": 4},
+        "stratified-sspy-HoldingsComponent-1",
+        [5, 6],
+        "09/02/2026",
+        {"ticker": 7, "description": 8, "quantity": 9, "market_value": 10, "percent_of_nav": 11, "figi": 12},
+        {"ticker": 13, "description": 14, "quantity": 15, "market_value": 16, "percent_of_nav": 17, "figi": 18},
+        "MSFT", "Microsoft Corp", 100, "50000.00", "1.25%", "BBG000BPH459",
+        "CASH", "CASH & OTHER", 1, "1.00", "0.01%", "BBG0013HGBT3",
+    ]
+    page = '<script type="application/json" id="__NUXT_DATA__">' + json.dumps(payload) + "</script>"
+    FakeAsyncClient.queue = [
+        FakeResponse(text=page, content_type="text/html", url="https://www.stratifiedfunds.com/sspy")
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="SSPY")
+
+    assert [row.symbol for row in result.rows] == ["MSFT", None]
+    assert result.rows[0].weight == Decimal("0.0125")
+    assert result.rows[0].shares == Decimal("100")
+    assert result.rows[1].row_type == "cash"
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+    assert result.legal_metadata["route_resolution"] == (
+        "stratified_official_fund_page_nuxt_complete_holdings_component"
+    )
+
+
+@pytest.mark.asyncio
 async def test_eldridge_adapter_filters_combined_daily_holdings_and_preserves_cusips(monkeypatch):
     adapter = get_holdings_adapter("eldridge")
     assert adapter is not None
@@ -22996,7 +23029,9 @@ def test_stockanalysis_provider_fourth_continuation_batch_is_registered_and_audi
         "lsv",
         "mcelhenny_sheffield",
         "river1",
+        "stratified",
         "stance",
+        "stratified",
     }
 
     assert expected
@@ -23032,6 +23067,9 @@ def test_stockanalysis_provider_fourth_continuation_batch_is_registered_and_audi
     assert "stance" not in FALLBACK_ISSUER_AUDITS
     assert ISSUER_ADAPTER_CONFIGS["stance"].live_tested_default_route is True
     assert type(get_holdings_adapter("stance")).__name__ == "StanceHoldingsAdapter"
+    assert "stratified" not in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["stratified"].live_tested_default_route is True
+    assert type(get_holdings_adapter("stratified")).__name__ == "StratifiedHoldingsAdapter"
 
 
 def test_redwood_has_a_verified_native_route_after_live_probe():
@@ -27674,8 +27712,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 412
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 84
+    assert ledger["current_native_count"] == 413
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 83
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -27738,6 +27776,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "smi_funds",
         "srh",
         "stance",
+        "stratified",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))

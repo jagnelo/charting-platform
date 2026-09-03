@@ -48,6 +48,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "smi_funds",
     "srh",
     "stance",
+    "stratified",
     "amun",
     "1251_capital",
     "3fourteen",
@@ -1076,6 +1077,8 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
         ("srh", "SRHQ", None, {}, 50),
         ("srh", "SRHR", None, {}, 30),
         ("stance", "STNC", None, {}, 40),
+        ("stratified", "SSPY", None, {}, 100),
+        ("stratified", "SHUS", None, {}, 4),
         (
             "cicc",
             "KWEB",
