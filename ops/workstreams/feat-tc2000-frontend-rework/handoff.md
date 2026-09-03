@@ -308,3 +308,11 @@ retains `queue_errors`, `queue_error_count`, bounded snapshot IDs, and legacy er
 preserving the refreshed holdings result. The focused ARQ worker suite remains green at `23/23`,
 with Ruff and `git diff --check` passing. This is queue-evidence consistency only; it does not
 claim persisted member-bar hydration or historical continuity.
+
+The dated holdings refresh now preserves adapter-declared evidence at
+`7cc2bf6c4d88a6e1d1145d63d818e74eb02ebf1e`: snapshot provenance, source quality, completeness,
+parser version, and SEC-filing notes flow into the canonical snapshot instead of being replaced
+by dated-route defaults. A focused bootstrap/service regression passes `15/15`, with Ruff and
+`git diff --check` green. This keeps filing-reconstructed and issuer-dated snapshots
+machine-readable; it does not claim that those snapshots or member bars have been populated in
+the deployment database.
