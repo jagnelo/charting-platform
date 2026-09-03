@@ -5,9 +5,9 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 399
-current_fallback_count: 97
-generated_at: 2026-09-03T10:00:00Z
+current_native_count: 400
+current_fallback_count: 96
+generated_at: 2026-09-03T11:00:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -4365,7 +4365,7 @@ providers:
     current_status: non_executable_public_source
     disposition: non_executable_public_source
     last_checked: 2026-09-03
-    source_access_declared: issuer_investor_resources_periodic_holdings_pdf
+    source_access_declared: issuer_public_holdings_file
     representative_symbols: [WAGN]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
@@ -4411,7 +4411,7 @@ providers:
     current_status: inactive_or_successor_disposition
     disposition: inactive_or_successor_disposition
     last_checked: 2026-09-03
-    source_access_declared: successor_issuer_eldridge_daily_holdings_csv
+    source_access_declared: issuer_public_holdings_file
     representative_symbols: [CLOX, CLOZ]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
@@ -4457,7 +4457,7 @@ providers:
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
     last_checked: 2026-09-03
-    source_access_declared: issuer_daily_holdings_page
+    source_access_declared: issuer_public_holdings_file
     representative_symbols: [PRCS, PRVS]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
@@ -4499,35 +4499,56 @@ providers:
     display_name: pathfinder
     queue_rank: 94
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-03
+    source_access_declared: issuer_public_product_page_declared_filepoint_complete_holdings_csv
+    representative_symbols: [PFDE]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    source_freshness: current_as_of_date
+    first_party_domains: [pathfinderetfs.com, sec.gov]
+    candidate_routes:
+      - "https://pathfinderetfs.com/pfde"
+      - "https://pathfinderetfs.com/assets/js/app.js?version=4"
+      - "https://pathfinderetfs.com/assets/data/FilepointOpalCap.40O6.O6_ETF_Holdings.csv"
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_graff_adapter_verifies_pathfinder_bundle_and_parses_filepoint_csv
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.pathfinder"
       - "runtime:ISSUER_ADAPTER_CONFIGS.pathfinder"
+      - "web:pathfinder-official-pfde-2026-09-03"
+      - "web:pathfinder-sec-daily-disclosure-2026-09-03"
+      - "live:pathfinder-pfde-current-holdings-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.pathfinder"
-    disposition_reason: "pathfinder: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate pathfinder first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
-    implementation_sha: null
-    validation_refs: []
+      - date: 2026-09-03
+        source: "https://pathfinderetfs.com/pfde"
+        result: "The official Pathfinder PFDE product page identifies the ETF and links an app bundle that declares the complete FilePoint holdings CSV route."
+        evidence_ref: "web:pathfinder-official-pfde-2026-09-03"
+      - date: 2026-09-03
+        source: "https://www.sec.gov/Archives/edgar/data/1618627/000199937126011954/opal-485apos_060326.htm"
+        result: "The SEC prospectus confirms PFDE/PFOE identities and states that full holdings are disclosed daily on pathfinderetf.com."
+        evidence_ref: "web:pathfinder-sec-daily-disclosure-2026-09-03"
+      - date: 2026-09-03
+        source: "https://pathfinderetfs.com/assets/data/FilepointOpalCap.40O6.O6_ETF_Holdings.csv"
+        result: "The bounded live route returned the current PFDE holdings CSV; the native adapter validated the page and app declaration, parsed dated rows, and preserved ticker/CUSIP/shares/value/weight semantics."
+        evidence_ref: "live:pathfinder-pfde-current-holdings-2026-09-03"
+    disposition_reason: "pathfinder: Pathfinder's official PFDE product page and declared FilePoint CSV provide a complete current holdings route. The native adapter validates the page/app declarations, parses PFDE rows with strict mapping and current dates, and records Pathfinder/Opal provenance without SEC-derived reconstruction."
+    next_action: "pathfinder: Monitor the PFDE page/app/CSV for schema and date continuity; add PFOE only after its own executable complete holdings route is proven."
+    implementation_sha: 4063289f8d6ba6e8349ad3b5dca3d9d03d3bc528
+    validation_refs:
+      - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_graff_adapter_verifies_pathfinder_bundle_and_parses_filepoint_csv"
+      - "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows"
+      - "validation:2026-09-03T11:00:00Z"
   - adapter_key: performance_trust
     display_name: performance_trust
     queue_rank: 95

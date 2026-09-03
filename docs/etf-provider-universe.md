@@ -1330,3 +1330,17 @@ fallback-only providers. The ledger has 48 queued fallback records and
 `nestyield` is next. Focused deterministic and opt-in MNVT live checks pass; the
 full opt-in matrix and Docker integration gate remain pending, with the known
 unrelated F8p-current-history Study Lab histogram timeout retained.
+
+## Current promotion checkpoint — Pathfinder / PFDE native route — 2026-09-03
+
+Pathfinder's official PFDE product page and declared FilePoint bundle provide a
+complete current holdings route. The native adapter validates the product,
+bundle, and CSV chain, parses PFDE rows through the strict FilePoint parser, and
+records Pathfinder ETFs / Opal Capital Management provenance. PFDE is native;
+PFOE is not promoted until its own executable complete route is proven.
+
+The current split is 496 registered / 400 native-live-backed / 96 fallback-only,
+with 38 queued records and `performance_trust` next. Evidence refs:
+`web:pathfinder-official-pfde-2026-09-03`,
+`web:pathfinder-sec-daily-disclosure-2026-09-03`, and
+`live:pathfinder-pfde-current-holdings-2026-09-03`.

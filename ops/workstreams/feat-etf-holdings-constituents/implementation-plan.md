@@ -2237,3 +2237,15 @@ Current state is 496 registered / 399 native-live-backed / 97 fallback-only,
 with 39 queued records and `pathfinder` next. Evidence refs:
 `web:parnassus-official-daily-holdings-routes-2026-09-03` and
 `web:parnassus-sec-etf-identity-2026-09-03`.
+
+## Current promotion checkpoint — Pathfinder / PFDE native route — 2026-09-03
+
+The official PFDE page, JavaScript bundle, and issuer-hosted FilePoint CSV form
+a complete current first-party route. Pathfinder is promoted through a
+provider-specific adapter with strict identity and parsing checks and truthful
+Pathfinder ETFs / Opal Capital Management provenance. PFOE remains pending a
+separate executable route proof. Counts are 496 registered / 400 native / 96
+fallback, with 38 queued records and `performance_trust` next. Evidence refs:
+`web:pathfinder-official-pfde-2026-09-03`,
+`web:pathfinder-sec-daily-disclosure-2026-09-03`, and
+`live:pathfinder-pfde-current-holdings-2026-09-03`.

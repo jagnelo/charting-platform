@@ -941,6 +941,24 @@ Lab histogram timeout remains the integration blocker. Evidence refs:
 `web:parnassus-official-daily-holdings-routes-2026-09-03` and
 `web:parnassus-sec-etf-identity-2026-09-03`.
 
+## Current promotion checkpoint — Pathfinder / PFDE native route — 2026-09-03
+
+The ranked `pathfinder` audit verified Pathfinder ETFs' official PFDE product
+page, JavaScript bundle declaration, and issuer-hosted FilePoint complete-
+holdings CSV. The bounded live route returned parseable current PFDE rows; the
+native adapter validates the product/bundle/CSV chain and records Pathfinder
+ETFs / Opal Capital Management provenance. PFDE is promoted; PFOE remains out
+of scope until its own complete executable route is proven.
+
+Runtime state is now 496 registered / 400 native-live-backed / 96 fallback-only
+providers, with 38 queued records and `performance_trust` next. Deterministic
+adapter tests (548), bounded Pathfinder live coverage, Ruff, workstream
+validation, and diff-check pass; the known unrelated F8p-current-history Study
+Lab histogram timeout remains the integration blocker. Evidence refs:
+`web:pathfinder-official-pfde-2026-09-03`,
+`web:pathfinder-sec-daily-disclosure-2026-09-03`, and
+`live:pathfinder-pfde-current-holdings-2026-09-03`.
+
 ## Current audit checkpoint — North Square non-executable public source — 2026-09-03
 
 The ranked `north_square` audit verified official NSIV and NSIG product pages
