@@ -1096,7 +1096,7 @@ ledger retains all 140 historical records exactly once, with `gotham` marked
 `native_promoted`; 74 queued fallback records remain and the next ranked item is
 `granite_group_advisors`.
 
-Implementation checkpoint SHA: `31a6f1728e92619bbf273effd4e4a49c4654d08b`.
+Implementation checkpoint SHA: `5f8d0b9dacf7231ae9ea1a906d1360c798bd1812`.
 The provider-audit ledger and documentation checkpoint must reference this SHA
 and the dated Gotham evidence. The focused Gotham unit and opt-in live checks
 passed; the complete deterministic adapter suite, full opt-in provider matrix,

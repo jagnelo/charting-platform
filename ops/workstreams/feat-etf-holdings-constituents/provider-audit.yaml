@@ -2638,7 +2638,7 @@ providers:
         evidence_ref: "live:gotham-product-download-holdings-csv-2026-09-03"
     disposition_reason: "gotham: Gotham Asset Management's GothamETFs catalogue and current SAI identify three active U.S. ETF products with symbol-scoped, issuer-hosted complete DownloadHoldings CSVs. The native adapter strictly scopes GSPY, GVLU, and SHRT to their official product paths, requires the declared CSV schema and one consistent as-of date, preserves identifiers/weights/values/signed positions, classifies cash and SHRT TRS rows, and records Gotham ETFs publisher / Gotham Asset Management parent provenance."
     next_action: "gotham: Monitor the official GSPY, GVLU, and SHRT product pages and DownloadHoldings routes; retain native status while each export remains complete, dated, identity-valid, and executable, and add any future Gotham product only after equivalent first-party evidence."
-    implementation_sha: 31a6f1728e92619bbf273effd4e4a49c4654d08b
+    implementation_sha: 5f8d0b9dacf7231ae9ea1a906d1360c798bd1812
     validation_refs:
       - "validation:2026-09-03T00:46:04Z"
   - adapter_key: granite_group_advisors
