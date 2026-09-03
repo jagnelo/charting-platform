@@ -53,7 +53,7 @@
   "goal_unavailable_reason": null,
   "head": "da78591c0f75626d584e0bc691cd939f80addc27",
   "implementation_sha": "8af62e9d91c926b15d4da4cfd5682f4b820d4da6",
-  "last_human_progress_update": "2026-09-03T16:53:54.145575+00:00",
+  "last_human_progress_update": "2026-09-03T17:33:51.000302+00:00",
   "local_validation_profile": "pending_agent_assessment",
   "next_action": "create the session-local Codex goal from goal_request, then record it as active",
   "plan_hash": "dd5ab02f65f83dbe33924c958fc3b1a5265210e558cabc179abd95abc82b60b0",
@@ -63,10 +63,10 @@
   "progress": {
     "completed": [],
     "current_blocker": "none",
-    "current_phase": "R0_baseline",
-    "next_action": "Run backend unit/static checks and frontend type-check/build/test baseline; then reproduce Golden Layout behavior.",
+    "current_phase": "R1_provider_readiness",
+    "next_action": "Run bounded provider/history readiness probes against canonical data and add family-specific worker coverage where roles remain pending.",
     "total": 10,
-    "updated_at": "2026-09-03T16:53:54.145458+00:00"
+    "updated_at": "2026-09-03T17:33:51.000188+00:00"
   },
   "remote": "da78591c0f75626d584e0bc691cd939f80addc27",
   "remote_sha": "8af62e9d91c926b15d4da4cfd5682f4b820d4da6",

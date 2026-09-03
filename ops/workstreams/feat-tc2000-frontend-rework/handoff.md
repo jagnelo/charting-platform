@@ -75,3 +75,28 @@ R0 baseline receipts from the synchronized tip:
 
 The next product boundary is R1: inspect the existing family coverage contracts and add the
 provider-neutral canonical readiness matrix without weakening current role/source semantics.
+
+## 2026-09-03 — R1 provider-neutral readiness matrix
+
+The first R1 product slice is published at `5eec07edcb2b1bb0b443e4b95f4e432c5c871f58`.
+Coverage roles now retain persisted provider entitlement/probe fields, point-in-time support,
+member-history readiness, and conservative composite status/reasons. The additive authenticated
+`GET /api/v1/analysis/benchmark-families/readiness` contract enumerates every registry family and
+all four independent roles without provider calls, proxy substitution, or fabricated data. Missing
+market groups remain visible as registry-only unavailable roles. The benchmark-list surface loads
+and displays the all-family readiness counts, while the family coverage rows show role readiness
+and entitlement states.
+
+Fresh evidence at this checkpoint:
+
+- Backend unit suite: `1278 passed` with `67.35%` total coverage (`backend/.venv/bin/pytest backend/tests/unit --no-header -q`).
+- Benchmark-family integration contract: `19 passed` (`uv run --project backend pytest -q backend/tests/integration/api/test_workspaces.py -k benchmark_family --override-ini addopts=`).
+- Backend Ruff on changed files: pass.
+- Frontend type-check and production build: pass; Vite retained only the existing large-chunk warning.
+- Frontend Vitest: `108` files, `924 passed`, `0 failed`; the readiness store test is included.
+
+The matrix is intentionally a readiness/lineage surface, not proof that provider-backed population
+or historical continuity is complete. Session progress is now `R1_provider_readiness`; the next
+slice is bounded provider/history readiness evidence and family-specific worker coverage for roles
+that remain pending. No visual threshold, baseline, mask, provider entitlement, integration, or
+deployment policy was changed.
