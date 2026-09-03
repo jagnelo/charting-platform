@@ -5047,7 +5047,7 @@ providers:
         evidence_ref: "web:robo-global-current-robo-htec-thnq-pages-2026-09-03"
     disposition_reason: "robo_global: ROBO Global's official ROBO, HTEC, and THNQ pages expose complete current holdings in issuer-controlled Nuxt hydration payloads. The provider-specific adapter validates page route/component identity, normalizes ticker/date/position rows, and records issuer provenance without SEC reconstruction."
     next_action: "robo_global: Monitor the three product pages for component/schema/date continuity; add future ROBO Global products only after equivalent parser and live evidence."
-    implementation_sha: null
+    implementation_sha: 2ae7aa51618a43caaa9a0077b6ae1f22e0d912bc
     validation_refs:
       - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_robo_global_adapter_parses_nuxt_holdings"
       - "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows"

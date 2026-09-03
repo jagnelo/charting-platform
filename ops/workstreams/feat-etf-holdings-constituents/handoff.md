@@ -1119,6 +1119,22 @@ issuer-access-blocked, 66 route-discovery, 7 non-executable-public-source, and
 `web:riverfront-subadvised-first-trust-2026-09-03` and
 `web:riverfront-rfdi-rfem-current-first-trust-holdings-2026-09-03`.
 
+## Current promotion checkpoint — ROBO Global / ROBO-HTEC-THNQ Nuxt routes — 2026-09-03
+
+ROBO Global's official ROBO, HTEC, and THNQ product pages server-publish
+complete holdings components in their Nuxt hydration payloads, each dated
+September 1, 2026. The native adapter validates ticker-specific page routes and
+component IDs, normalizes the issuer rows, and preserves ROBO Global / Exchange
+Traded Concepts provenance.
+
+The durable ledger records `robo_global` as `native_promoted` with no SEC
+reconstruction. Runtime state is now 496 registered / 405 native-live-backed /
+91 fallback-only providers, with 27 queued records and `roc` next. Runtime
+fallback statuses are 12 issuer-access-blocked, 65 route-discovery, 7
+non-executable-public-source, and 7 non-portfolio-publisher. Evidence refs:
+`web:robo-global-current-robo-htec-thnq-pages-2026-09-03` and
+`live:robo-global-current-nuxt-holdings-2026-09-03`.
+
 ## Current audit checkpoint — North Square non-executable public source — 2026-09-03
 
 The ranked `north_square` audit verified official NSIV and NSIG product pages

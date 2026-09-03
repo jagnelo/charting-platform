@@ -1494,3 +1494,18 @@ native-live-backed / 92 fallback-only, with 28 queued records and
 66 route-discovery, 7 non-executable-public-source, and 7 non-portfolio-
 publisher. Evidence refs: `web:riverfront-subadvised-first-trust-2026-09-03`
 and `web:riverfront-rfdi-rfem-current-first-trust-holdings-2026-09-03`.
+
+## Current promotion checkpoint — ROBO Global / ROBO-HTEC-THNQ Nuxt routes — 2026-09-03
+
+ROBO Global's official ROBO, HTEC, and THNQ product pages server-publish
+complete holdings components in their Nuxt hydration payloads. Each payload is
+dated September 1, 2026 and exposes parseable current rows; the route and
+component identity are specific to the requested ticker.
+
+The ledger records `robo_global` as `native_promoted` through the strict
+provider-specific Nuxt adapter, with no SEC reconstruction. Current state is
+496 registered / 405 native-live-backed / 91 fallback-only, with 27 queued
+records and `roc` next. Runtime fallback statuses are 12 issuer-access-blocked,
+65 route-discovery, 7 non-executable-public-source, and 7 non-portfolio-
+publisher. Evidence refs: `web:robo-global-current-robo-htec-thnq-pages-2026-09-03`
+and `live:robo-global-current-nuxt-holdings-2026-09-03`.

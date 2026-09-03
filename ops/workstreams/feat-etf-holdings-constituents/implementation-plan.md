@@ -2371,3 +2371,17 @@ records and `robo_global` next. Runtime statuses are 12 blocked, 66
 route-discovery, 7 non-executable, and 7 non-portfolio-publisher. Evidence
 refs: `web:riverfront-subadvised-first-trust-2026-09-03` and
 `web:riverfront-rfdi-rfem-current-first-trust-holdings-2026-09-03`.
+
+## Current promotion checkpoint — ROBO Global / ROBO-HTEC-THNQ Nuxt routes — 2026-09-03
+
+The official ROBO Global ROBO, HTEC, and THNQ pages expose complete current
+holdings through issuer-controlled Nuxt hydration components dated September 1,
+2026. The native adapter is limited to those three verified symbols, checks the
+route and component identity, normalizes ticker/exchange rows without inventing
+symbols, and records issuer/legal-publisher provenance.
+
+Counts are 496 registered / 405 native / 91 fallback, with 27 queued and `roc`
+next. Runtime statuses are 12 blocked, 65 route-discovery, 7 non-executable,
+and 7 non-portfolio-publisher. Evidence refs:
+`web:robo-global-current-robo-htec-thnq-pages-2026-09-03` and
+`live:robo-global-current-nuxt-holdings-2026-09-03`.
