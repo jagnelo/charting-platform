@@ -1375,3 +1375,17 @@ fallback-only providers, with 14 queued records and `stratified` next. Runtime
 fallback statuses are 16 issuer-access-blocked, 54 route-discovery, 10
 non-executable-public-source, and 7 non-portfolio-publisher. Evidence ref:
 `live:subversive-current-gop-nanc-holdings-pages-2026-09-04-blocked`.
+
+## Current promotion checkpoint — Stratified / SSPY-SHUS Nuxt routes — 2026-09-04
+
+Stratified's official SSPY and SHUS pages expose complete current holdings in
+Nuxt hydration payloads. The native adapter validates the requested component,
+maps ticker/FIGI/quantity/market value/weight fields, preserves cash rows, and
+records dated issuer provenance. Both bounded live probes passed.
+
+The durable split is now 496 registered / 413 native-live-backed / 83
+fallback-only providers, with 13 queued records and `hoya` next. Runtime
+fallback statuses are 16 issuer-access-blocked, 53 route-discovery, 10
+non-executable-public-source, and 7 non-portfolio-publisher. Evidence refs:
+`web:stratified-current-sspy-shus-holdings-pages-2026-09-04` and
+`live:stratified-current-sspy-shus-holdings-pages-2026-09-04`.

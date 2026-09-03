@@ -5,8 +5,8 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 412
-current_fallback_count: 84
+current_native_count: 413
+current_fallback_count: 83
 generated_at: 2026-09-04T09:00:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
@@ -5606,35 +5606,42 @@ providers:
     display_name: stratified
     queue_rank: 119
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
-    source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-04
+    source_access_declared: issuer_product_page_nuxt_complete_holdings_component
+    representative_symbols: [SSPY, SHUS]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    source_freshness: daily
+    first_party_domains: [stratifiedfunds.com]
+    candidate_routes:
+      - "https://www.stratifiedfunds.com/sspy"
+      - "https://www.stratifiedfunds.com/shus"
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: "backend/tests/unit/services/test_etf_holdings_adapters.py::test_stratified_adapter_parses_nuxt_holdings_payload"
+    live_test: "backend/tests/live/test_etf_holdings_live_providers.py::test_live_etf_holdings_provider[ stratified-SSPY ]"
     credential_required: false
     evidence_refs:
-      - "runtime:FALLBACK_ISSUER_AUDITS.stratified"
-      - "runtime:ISSUER_ADAPTER_CONFIGS.stratified"
+      - "web:stratified-current-sspy-shus-holdings-pages-2026-09-04"
+      - "live:stratified-current-sspy-shus-holdings-pages-2026-09-04"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.stratified"
-    disposition_reason: "stratified: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate stratified first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
-    implementation_sha: null
-    validation_refs: []
+      - date: 2026-09-04
+        source: "Stratified official SSPY and SHUS product pages"
+        result: "Nuxt hydration payloads expose complete dated holdings components for both products; bounded live probes passed."
+        evidence_ref: "live:stratified-current-sspy-shus-holdings-pages-2026-09-04"
+    disposition_reason: "stratified: Stratified's official SSPY and SHUS pages expose complete current holdings in Nuxt hydration payloads with issuer dates and stable symbol mapping."
+    next_action: "stratified: Re-test the official SSPY and SHUS Nuxt holdings components periodically and preserve complete-row/date validation."
+    implementation_sha: "b817432885772548bc9e8d8396f3e8bd064fab4b"
+    validation_refs:
+      - "validation.jsonl:2026-09-04T11:00:00Z"
   - adapter_key: subversive
     display_name: subversive
     queue_rank: 120

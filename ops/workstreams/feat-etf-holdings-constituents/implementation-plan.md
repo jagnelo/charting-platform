@@ -2561,3 +2561,17 @@ executable native route is promoted, so `subversive` remains an explicit
 Counts remain 496 registered / 412 native / 84 fallback, with 14 queued and
 `stratified` next. Evidence ref:
 `live:subversive-current-gop-nanc-holdings-pages-2026-09-04-blocked`.
+
+## Current promotion checkpoint — Stratified / SSPY-SHUS Nuxt routes — 2026-09-04
+
+Stratified's official SSPY and SHUS product pages expose complete current
+holdings in the Nuxt `__NUXT_DATA__` hydration payload, with issuer-reported
+dates and stable ticker/FIGI/quantity/market-value/weight fields. The native
+adapter resolves only SSPY and SHUS, dereferences the requested holdings
+component, preserves cash rows, and records the issuer-page provenance. The
+bounded live probes passed for both products.
+
+Counts are 496 registered / 413 native / 83 fallback, with 13 queued and
+`hoya` next. Evidence refs:
+`web:stratified-current-sspy-shus-holdings-pages-2026-09-04` and
+`live:stratified-current-sspy-shus-holdings-pages-2026-09-04`.
