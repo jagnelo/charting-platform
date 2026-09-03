@@ -2638,3 +2638,13 @@ promoted. The next queued issuer is `vistashares`; counts remain 496 registered
 / 414 native / 82 fallback with 4 queued records.
 
 Evidence ref: `web:vega-shares-current-product-pages-2026-09-04`.
+
+## Current audit checkpoint — VistaShares non-executable complete route — 2026-09-04
+
+VistaShares' official RTOO, AIS, AMMO, QUSA, OMAH, ACKY, and DRKY pages expose
+current top-ten holdings and a Download All Holdings affordance, but the bounded
+response does not declare a resolvable complete artifact. No native route is
+promoted. The next queued issuer is `wellesley_asset_management`; counts remain
+496 registered / 414 native / 82 fallback with 3 queued records.
+
+Evidence ref: `web:vistashares-current-product-pages-2026-09-04`.

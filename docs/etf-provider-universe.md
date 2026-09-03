@@ -1732,3 +1732,9 @@ VegaShares' official product pages publish current top-ten holdings and a
 full-holdings affordance, but no resolvable complete artifact is declared in
 the bounded response. Current split: 496 registered / 414 native/live-backed /
 82 fallback-only, with 4 queued records and `vistashares` next.
+## Current audit checkpoint — VistaShares non-executable complete route — 2026-09-04
+
+VistaShares' official pages expose current top-ten holdings and a Download All
+Holdings affordance, but no resolvable complete artifact is declared in the
+bounded response. Current split: 496 registered / 414 native/live-backed /
+82 fallback-only, with 3 queued records and `wellesley_asset_management` next.

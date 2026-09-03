@@ -1465,3 +1465,11 @@ affordance, but no resolvable complete artifact is declared in the bounded
 response. The durable split remains 496 registered / 414 native-live-backed /
 82 fallback-only providers, with 4 queued records and `vistashares` next.
 Evidence ref: `web:vega-shares-current-product-pages-2026-09-04`.
+## Current audit checkpoint — VistaShares non-executable complete route — 2026-09-04
+
+VistaShares' official pages expose current top-ten holdings and a Download All
+Holdings affordance, but no resolvable complete artifact is declared in the
+bounded response. The durable split remains 496 registered / 414
+native-live-backed / 82 fallback-only providers, with 3 queued records and
+`wellesley_asset_management` next. Evidence ref:
+`web:vistashares-current-product-pages-2026-09-04`.

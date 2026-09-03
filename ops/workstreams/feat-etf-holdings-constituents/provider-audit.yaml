@@ -5979,17 +5979,19 @@ providers:
     display_name: vistashares
     queue_rank: 128
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: non_executable_public_source
+    disposition: non_executable_public_source
+    last_checked: 2026-09-04
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
+    representative_symbols: [RTOO, AIS, AMMO, QUSA, OMAH, ACKY, DRKY]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    source_freshness: daily
+    first_party_domains: [vistashares.com]
+    candidate_routes:
+      - "https://www.vistashares.com/etf/rtoo/"
+      - "https://www.vistashares.com/etf/ais/"
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -5999,13 +6001,18 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.vistashares"
       - "runtime:ISSUER_ADAPTER_CONFIGS.vistashares"
+      - "web:vistashares-current-product-pages-2026-09-04"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.vistashares"
-    disposition_reason: "vistashares: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate vistashares first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-04
+        source: "VistaShares official ETF product pages"
+        result: "Official pages expose current top-ten holdings and a Download All Holdings affordance, but the bounded page response does not declare a resolvable complete holdings artifact."
+        evidence_ref: "web:vistashares-current-product-pages-2026-09-04"
+    disposition_reason: "vistashares: Official product pages expose current top-ten data but no resolvable complete executable holdings artifact in the bounded route, so native promotion is not justified."
+    next_action: "vistashares: Re-test official product pages and resolve the Download All Holdings endpoint before considering native promotion."
     implementation_sha: null
     validation_refs: []
   - adapter_key: wellesley_asset_management
