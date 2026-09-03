@@ -846,3 +846,25 @@ needs-first-party-route-discovery, 3 non-executable-public-source, and 6
 non-portfolio-publisher because this terminal ledger disposition remains
 represented by its existing code-derived fallback adapter. The ledger now has
 61 queued fallback records and the next ranked item is `madison_avenue`.
+
+## Current audit checkpoint — Madison Avenue / 6 Meridian identity reconciliation — 2026-09-03
+
+The ranked `madison_avenue` audit identified Madison Avenue Financial
+Solutions LLC (doing business as 6 Meridian) as the sub-adviser for the ETC 6
+Meridian ETF family. The official `6meridianfunds.com` catalogue identifies
+SIXH, SIXL, SIXA, SIXS, and SXQG and their pages expose current holdings
+sections, while SEC filings identify Exchange Traded Concepts as the fund
+adviser/trust publisher. Madison Avenue is therefore not a distinct portfolio
+publisher requiring a duplicate native adapter.
+
+The exhaustive ledger records `madison_avenue` as a dated
+`provider_not_a_portfolio_publisher` disposition with the five representative
+symbols, official 6 Meridian routes, SEC sub-adviser evidence, and explicit
+resolution to the actual publisher identity. No duplicate Madison Avenue
+adapter or SEC-derived promotion is added. The code-derived split remains 496
+registered, 388 native/live-backed, and 108 fallback-only providers; runtime
+statuses remain 8 issuer-access-blocked, 91 needs-first-party-route-discovery,
+3 non-executable-public-source, and 6 non-portfolio-publisher because this
+terminal ledger disposition remains represented by its existing code-derived
+fallback adapter. The ledger now has 60 queued fallback records and the next
+ranked item is `matrix`.

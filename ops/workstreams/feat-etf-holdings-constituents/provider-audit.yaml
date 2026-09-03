@@ -3355,33 +3355,53 @@ providers:
     display_name: madison_avenue
     queue_rank: 72
     starting_status: needs_first_party_route_discovery
-    current_status: queued
-    disposition: needs_first_party_route_discovery
-    last_checked: 2026-07-26
+    current_status: provider_not_a_portfolio_publisher
+    disposition: provider_not_a_portfolio_publisher
+    last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
-    representative_symbols: []
-    estimated_us_etf_count: null
+    representative_symbols:
+      - SIXH
+      - SIXL
+      - SIXA
+      - SIXS
+      - SXQG
+    estimated_us_etf_count: 5
     estimated_us_etf_aum: null
-    us_equity_breadth: null
-    source_freshness: null
-    first_party_domains: []
-    candidate_routes: []
+    us_equity_breadth: 1
+    source_freshness: daily
+    first_party_domains:
+      - 6meridianfunds.com
+      - sec.gov
+    candidate_routes:
+      - https://www.6meridianfunds.com/
+      - https://www.6meridianfunds.com/sixh
+      - https://www.6meridianfunds.com/sixl
+      - https://www.6meridianfunds.com/sixa
+      - https://www.6meridianfunds.com/sixs
+      - https://www.6meridianfunds.com/sxqg
+      - https://www.sec.gov/Archives/edgar/data/1452937/000121390026036348/ea0282657-05_497k.htm
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
+    source_format: html_table
     parser_fixture: null
     live_test: null
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.madison_avenue"
       - "runtime:ISSUER_ADAPTER_CONFIGS.madison_avenue"
+      - "web:madison-avenue-6meridian-subadvisor-2026-09-03"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
         result: "Runtime baseline records no verified issuer-owned complete holdings route."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.madison_avenue"
-    disposition_reason: "madison_avenue: Runtime baseline records no verified issuer-owned complete holdings route. Issuer-specific first-party route evidence is still required before native promotion or terminal closure."
-    next_action: "Investigate madison_avenue first-party ETF product pages, downloads, and declared holdings routes; record representative symbols and route evidence."
+      - date: 2026-09-03
+        source: "https://www.6meridianfunds.com/ and SEC Exchange Traded Concepts Trust filings"
+        result: "The official 6 Meridian catalogue identifies SIXH, SIXL, SIXA, SIXS, and SXQG and their product pages expose issuer holdings sections. SEC filings identify Madison Avenue Financial Solutions LLC (doing business as 6 Meridian) as sub-adviser, while Exchange Traded Concepts is the ETF adviser/trust publisher; Madison Avenue is therefore not a distinct portfolio publisher for a second native adapter."
+        evidence_ref: "web:madison-avenue-6meridian-subadvisor-2026-09-03"
+    disposition_reason: "madison_avenue: Official 6 Meridian pages publish the current ETF holdings routes for SIXH, SIXL, SIXA, SIXS, and SXQG, but SEC filings identify Madison Avenue Financial Solutions LLC as sub-adviser to Exchange Traded Concepts funds rather than a separate holdings publisher. Retain Madison Avenue as an explicit non-portfolio-publisher identity and avoid duplicate adapter ownership or SEC-derived promotion."
+    next_action: "madison_avenue: Resolve future Madison Avenue/6 Meridian identities to the actual ETF publisher (currently Exchange Traded Concepts/6 Meridian); add a distinct native route only if Madison Avenue publishes a separate complete first-party holdings artifact."
     implementation_sha: null
     validation_refs: []
   - adapter_key: matrix

@@ -1753,3 +1753,27 @@ non-executable, and 6 non-portfolio-publisher. The ledger has 63 queued
 fallback records remaining, with `m2_financial` next. The known unrelated
 F8p-current-history Study Lab histogram timeout remains the Docker integration
 blocker.
+## 43. Current execution checkpoint — Madison Avenue / 6 Meridian identity reconciliation — 2026-09-03
+
+The ranked `madison_avenue` audit established that Madison Avenue Financial
+Solutions LLC (doing business as 6 Meridian) is the sub-adviser for the ETC 6
+Meridian ETF family. The official 6 Meridian catalogue identifies SIXH, SIXL,
+SIXA, SIXS, and SXQG and their pages expose current holdings sections, while
+SEC filings identify Exchange Traded Concepts as the fund adviser/trust
+publisher. The Madison Avenue identity therefore does not own a distinct
+portfolio-publishing route for a duplicate native adapter.
+
+The ledger records `madison_avenue` as `provider_not_a_portfolio_publisher`,
+preserves the five representative symbols and dated 6 Meridian/SEC evidence,
+and resolves the sub-adviser identity to the actual publisher. No duplicate
+adapter or SEC-derived promotion is added. Runtime code remains unchanged at
+496 registered, 388 native/live-backed, and 108 fallback-only; runtime statuses
+remain 8 blocked, 91 route discovery, 3 non-executable, and 6
+non-portfolio-publisher, while the ledger queue is 60 records and the next
+ranked issuer is `matrix`.
+
+The next cycle should investigate `matrix` first-party ETF product pages and
+complete holdings routes, preserving the distinction between issuer-published
+current artifacts and sub-adviser or regulatory identity evidence. Repeat
+focused invariants, deterministic/live checks, Ruff, workstream validation,
+and the durable checkpoint before any promotion.
