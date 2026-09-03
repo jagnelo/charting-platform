@@ -92,6 +92,12 @@ application script. The native adapter validates that declaration and the
 issuer-owned host/path, preserves dated equity and exchange-suffixed symbols,
 signed TRS derivatives, the FXFXX money-market fund, and Cash&Other, and records
 Hexis Capital Management/FilePoint publisher provenance.
+Highland Capital is recorded as an audited `non_executable_public_source`:
+its official AQLG page exposes a complete 130-row CSV with names, CUSIPs,
+quantities, and weights, but every ticker field is blank, while the AQLV
+prospectus identity has no assigned ticker/current holdings route. The source is
+not promoted or reconstructed through SEC/CUSIP lookups because canonical symbol
+mapping is unproven.
 Granite Group Advisors is recorded as a non-portfolio-publisher identity: its
 official wealth-management materials describe allocation to independent fund
 managers, disclaim proprietary fund products, and expose no sponsored U.S. ETF

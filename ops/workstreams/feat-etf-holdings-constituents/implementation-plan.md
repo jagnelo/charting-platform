@@ -1439,3 +1439,38 @@ resulting Hexis adapter/config/test SHA and dated Hexis product, FilePoint, SEC,
 and live CSV evidence. The complete opt-in provider matrix and Docker-backed
 integration gate remain pending at the 382-native baseline; the known unrelated
 reproducible F8p-current-history Study Lab histogram timeout remains an AC7 gap.
+
+## 32. Current execution checkpoint — Highland Capital non-executable source — 2026-09-03
+
+The ranked `highland_capital` audit found a reachable issuer-owned holdings
+artifact but no complete canonical symbol mapping. Highland Capital's official
+ETF page at `https://www.highlandcap.com/etf/` identifies the HCM Large Cap
+Growth ETF (`AQLG`) and links the current CSV
+`https://www.highlandcap.com/wp-content/uploads/etf-holdings/AQLG_holdings_current.csv`.
+The live file returned 130 rows with names, CUSIPs, quantities, and percentage
+weights. Every row's `Ticker` field is blank. The same page identifies holdings
+as of August 25, 2026, while the second Highland Capital Large Cap Value ETF
+described in the current prospectus still has no assigned ticker or current
+holdings route.
+
+The official SEC prospectus at
+`https://www.sec.gov/Archives/edgar/data/1771146/000177114626000253/ck0001771146-20260129.htm`
+corroborates the AQLG product identity and directs investors to Highland's
+website for daily holdings, but it does not repair the missing ticker-bearing
+artifact. Third-party 13F/portfolio pages and external CUSIP lookups are not
+acceptable substitutes for issuer-published constituent mapping. Highland is
+therefore recorded as `non_executable_public_source`, with route completeness
+and symbol mapping unproven; no runtime adapter or false native promotion is
+added.
+
+The ledger preserves the issuer page, CSV, and SEC evidence, records AQLG as
+the representative symbol, and leaves the runtime fallback adapter unchanged.
+The ledger now has 71 queued records; runtime fallback status counts remain
+8 issuer-access-blocked, 97 needs-first-party-route-discovery, 3
+non-executable-public-source, and 6 non-portfolio-publisher because the
+code-derived Highland audit entry remains discovery while its ledger
+disposition is more specific. The next ranked queue item is `hilton`.
+
+The complete deterministic/live matrix and Docker-backed integration gate remain
+pending at the 382-native baseline; the known unrelated reproducible
+F8p-current-history Study Lab histogram timeout remains an AC7 gap.

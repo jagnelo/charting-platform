@@ -169,7 +169,9 @@ for GSPY, GVLU, and SHRT through its official symbol-scoped DownloadHoldings CSV
 including cash and SHRT TRS derivative semantics. Granite Group Advisors is now
 recorded as a non-portfolio-publisher wealth adviser with no sponsored ETF route.
 Hexis/NICO is now native-promoted through the official Hexis FilePoint application and its
-declared daily holdings CSV. The ledger has 72 queued fallback records; continue with
-`highland_capital`, and checkpoint each coherent provider changeset before moving to the next.
+declared daily holdings CSV. Highland Capital is recorded as a dated non-executable public
+source because the official AQLG CSV omits all ticker symbols and AQLV has no assigned ticker
+or current route. The ledger has 71 queued fallback records; continue with `hilton`, and
+checkpoint each coherent provider changeset before moving to the next.
 
 Update this handoff at every coherent implementation and operations boundary.
