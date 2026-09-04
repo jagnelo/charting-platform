@@ -14,6 +14,7 @@ from app.models.instrument_identity import (
 )
 from app.models.provider_runtime import ProviderCapability, ProviderHealthState, ProviderPolicy
 from app.services.provider_runtime import (
+    ProviderNoDataError,
     ResolvedProvider,
     execute_provider_call,
     resolve_provider_chain,
@@ -200,6 +201,42 @@ async def test_history_empty_result_does_not_poison_other_timeframes(db, instrum
     assert result.provider_name == "nasdaq"
     assert primary.data_source.id not in status_by_source
     assert status_by_source[fallback.data_source.id] == SUPPORT_STATUS_SUPPORTED
+    assert primary.health.failure_streak == 0
+    assert primary.health.circuit_open_until is None
+
+
+@pytest.mark.asyncio
+async def test_repeated_history_empty_results_do_not_open_provider_circuit(
+    db, instrument, monkeypatch
+):
+    """Repeated range gaps must not suppress a provider for another timeframe."""
+    async_db = AsyncSessionAdapter(db)
+    primary = _resolved_provider(
+        db,
+        provider_name="nasdaq",
+        capability=ProviderCapability.PRICE_HISTORY,
+        provider=_Provider([]),
+    )
+
+    async def _fake_resolve(*_args, **_kwargs):
+        return [primary]
+
+    monkeypatch.setattr("app.services.provider_runtime.resolve_provider_chain", _fake_resolve)
+
+    for _ in range(3):
+        with pytest.raises(ProviderNoDataError, match="no usable data"):
+            await execute_provider_call(
+                async_db,
+                ProviderCapability.PRICE_HISTORY,
+                "bulk_fetch:MN",
+                instrument_id=instrument.id,
+                invoke=lambda provider, _provider_symbol: provider.run(),
+                response_items=len,
+                treat_empty_as_failure=True,
+            )
+
+    assert primary.health.failure_streak == 0
+    assert primary.health.circuit_open_until is None
 
 
 @pytest.mark.asyncio

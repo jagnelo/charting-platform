@@ -617,6 +617,7 @@ async def _record_result(
     latency_ms: int,
     response_items: int | None = None,
     error: Exception | None = None,
+    update_health: bool = True,
 ) -> None:
     health = resolved.health
     policy = resolved.policy
@@ -629,6 +630,15 @@ async def _record_result(
     if error is not None:
         log_row.error_type = error.__class__.__name__
         log_row.error_message = str(error)
+
+    # A provider can legitimately return no rows for one symbol, timeframe, or
+    # historical range while remaining healthy for the capability overall (for
+    # example, Nasdaq is D1-only). Keep that request failure auditable in the
+    # log, but do not let an expected coverage gap trip the shared circuit or
+    # distort capability-wide health scoring.
+    if not update_health:
+        await db.flush()
+        return
 
     health.ewma_latency_ms = _ewma(health.ewma_latency_ms, Decimal(str(latency_ms)))
     health.ewma_success_rate = _ewma(
@@ -752,6 +762,10 @@ async def execute_provider_call(
                 latency_ms=latency_ms,
                 response_items=0,
                 error=exc,
+                update_health=not (
+                    capability == ProviderCapability.PRICE_HISTORY
+                    and isinstance(exc, ProviderNoDataError)
+                ),
             )
             # Price-history support is capability-wide, while provider
             # coverage is often timeframe- or range-specific (for example,
