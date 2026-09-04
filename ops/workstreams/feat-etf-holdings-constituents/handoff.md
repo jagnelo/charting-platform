@@ -1997,3 +1997,24 @@ The implementation context remains limited to the live-test contract and
 branch-owned handoff/validation records; strict adapter behavior is unchanged,
 and no integration, promotion, deployment, or other-worktree mutation was
 performed.
+
+## Toews guard exact-head CI green — 2026-09-04
+
+Exact-head CI run `33841007122` at
+`711ccfd0f02b8e5821a9103ece248875fd790b8e` passed Backend Tests, Frontend
+Unit Tests, and the complete branch-declared suite. The deterministic adapter
+suite reported 567 passed; the default live contract reported 2 passed and
+504 skipped; the opt-in live matrix reported 493 passed and 13
+evidence-backed skips; Ruff and workstream validation passed. Playwright
+completed with 150 passed and 109 skipped after stack startup and backend
+health. The protected staging/master-only Exhaustive Integration Gate was
+skipped as designed for this feature branch.
+
+The Toews HRSK HTTP 500 variant is now covered by the narrow external
+transport guard, with strict adapter behavior unchanged. The required local
+`docker_integration` gate still retains the unrelated fresh-stack
+`F8p-current-history` Study Lab missing-histogram failure reproduced at
+`flows.spec.ts:2602`; the prior post-repair gate at `a696277b` passed. The
+feature branch is clean and synchronized at the latest exact green CI SHA;
+no integration, promotion, deployment, or other-worktree mutation was
+performed, and explicit human closure authorization remains pending.
