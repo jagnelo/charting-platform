@@ -65,6 +65,7 @@ from app.services.instrument_mastering import (
     register_identifier,
     store_profile_snapshot,
 )
+from app.services.provider_observations import store_search_snapshot
 
 ETF_HOLDINGS_INTERNAL_PROVIDER = "etf_holdings_internal"
 
@@ -417,7 +418,30 @@ async def _provider_enriched_constituent_instrument(
             search_providers = []
         for search_provider in search_providers:
             try:
-                search_results.extend(search_provider.search_instruments(row.name, limit=8) or [])
+                provider_results = search_provider.search_instruments(row.name, limit=8) or []
+                search_results.extend(provider_results)
+                # Preserve each successful bounded observation so maintenance
+                # decisions remain auditable after the provider call has
+                # completed. Providers supplied by focused tests or local
+                # adapters may not be registered descriptors; those results
+                # still participate in this row's decision, but are not
+                # persisted as if they were a canonical provider source.
+                provider_name = str(getattr(search_provider, "name", "") or "").strip()
+                if provider_name:
+                    try:
+                        data_source = await ensure_data_source(db, provider_name)
+                        await store_search_snapshot(
+                            db,
+                            data_source_id=data_source.id,
+                            query=row.name,
+                            results=provider_results,
+                        )
+                    except Exception:
+                        # Observation persistence must not turn a valid
+                        # maintenance result into a failed reconciliation.
+                        # The provider result remains bounded and is still
+                        # evaluated in-memory for this row.
+                        pass
             except Exception:
                 # Provider outages are row-local maintenance failures. Continue
                 # through the reviewed chain and leave the row unresolved when

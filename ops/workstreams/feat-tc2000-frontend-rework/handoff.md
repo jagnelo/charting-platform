@@ -1034,3 +1034,17 @@ fallback, or fabricated timeframe bars were added. Focused resolver and registry
 30 tests with `--no-cov`; the repository-wide coverage threshold is not treated as a slice-level
 signal. A fresh, separately authorized classification batch is still required to measure whether
 the configured chain changes the persisted QQQ 80-placeholder gap.
+
+## 2026-09-04 — Persist bounded search observations
+
+Successful responses from registered providers in the maintenance-only name-search bridge are now
+written to the canonical `instrument_search_snapshot` observation store. Each row keeps the exact
+issuer query, provider source, bounded result payload, hash, and observation/fetch timestamps. The
+write is best-effort: a persistence failure cannot turn an otherwise valid in-memory search result
+into a promotion failure, and unregistered test/local adapters remain non-persisted. The promotion
+policy is unchanged; the observation is evidence, not identity proof.
+
+The focused resolver/registry suite passes `31` tests with `--no-cov`, Ruff check/format pass, and
+the corrected-stack runtime receipt from the immediately preceding slice remains intentionally
+separate because it predates this persistence change. A fresh bounded disposable classification
+run is required before counting any new provider reach or placeholder promotion.

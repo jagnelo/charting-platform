@@ -14,10 +14,14 @@
 - [x] Add focused resolver and registry coverage for ordered fallback, duplicate suppression,
       and default-provider retention (`30` tests pass with `--no-cov`; the focused command's
       repository-wide coverage gate is intentionally not used as a slice-level signal).
+- [x] Persist each successful registered-provider search response in the canonical
+      `instrument_search_snapshot` observation store, retaining the bounded issuer query and
+      result payload without making observation persistence a promotion prerequisite. The focused
+      resolver/registry suite now passes `31` tests with `--no-cov`.
 - [ ] Re-run a separately authorized disposable QQQ classification batch with the configured
       chain and record whether any additional placeholders promote; do not count provider
       search reachability as canonical readiness until the persisted snapshot and history
-      coverage are re-measured.
+      coverage are re-measured after this observation-persistence slice.
 
 ### 2026-09-04 — Bounded canonical QQQ reconciliation and history handoff
 

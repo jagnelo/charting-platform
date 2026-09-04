@@ -9,6 +9,7 @@ from sqlalchemy import select
 from app.models.etf_holdings import ETFHolding
 from app.models.instrument import EquityDetail, Instrument
 from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
+from app.models.provider_observation import InstrumentSearchSnapshot
 from app.providers.base import (
     IdentifierRecord,
     InstrumentProfile,
@@ -163,6 +164,12 @@ class FakeNameSearchProvider:
     def search_instruments(self, query: str, *, limit: int = 10) -> list[ProviderSearchResult]:
         self.calls.append((query, limit))
         return self.results[:limit]
+
+
+class NamedFakeNameSearchProvider(FakeNameSearchProvider):
+    """Registered-provider-shaped fake used to verify durable search evidence."""
+
+    name = "edgar"
 
 
 class NameSearchMetadataProvider:
@@ -941,6 +948,65 @@ async def test_resolver_uses_next_configured_search_provider_after_empty_result(
     assert note == "Matched through unique provider-backed name search."
     assert first_provider.calls == [("AstraZeneca PLC", 8)]
     assert second_provider.calls == [("AstraZeneca PLC", 8)]
+
+
+@pytest.mark.asyncio
+async def test_resolver_persists_bounded_search_observation_for_registered_provider(
+    db, monkeypatch
+):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr("app.services.etf_holdings.settings.APP_ENV", "development")
+    search_provider = NamedFakeNameSearchProvider(
+        [ProviderSearchResult(symbol="AZN", name="AstraZeneca PLC", instrument_type="EQUITY")]
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_search_provider_chain",
+        lambda: [search_provider],
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_default_metadata_provider",
+        lambda: NameSearchMetadataProvider(),
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_identifier_providers",
+        lambda: [],
+    )
+
+    instrument, confidence, _ = await _resolve_or_create_constituent(
+        async_db,
+        CanonicalHoldingRow(
+            symbol=None,
+            name="AstraZeneca PLC",
+            isin="US0463531089",
+            currency="USD",
+            holding_type="equity",
+            row_type="security",
+        ),
+        source_provider="sec",
+    )
+    db.flush()
+
+    assert instrument is not None
+    assert confidence == Decimal("0.8600")
+    snapshots = (
+        db.execute(
+            select(InstrumentSearchSnapshot).where(
+                InstrumentSearchSnapshot.data_source_id.is_not(None),
+                InstrumentSearchSnapshot.query == "AstraZeneca PLC",
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert len(snapshots) == 1
+    assert snapshots[0].payload["results"] == [
+        {
+            "symbol": "AZN",
+            "name": "AstraZeneca PLC",
+            "exchange": "",
+            "instrument_type": "EQUITY",
+        }
+    ]
 
 
 @pytest.mark.asyncio
