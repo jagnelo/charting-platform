@@ -11,7 +11,20 @@ records in `docs/project-todos.md`, `docs/tc2000-parity.md`,
 evidence ledgers. If a summary here conflicts with a dated test receipt or the current code, the
 current code and fresh evidence win.
 
-The latest product commit is `4026d8d3` (`fix(tc2000): show benchmark route readiness`).
+The latest product commit is `a6301f0f` (`feat(tc2000): promote latest study series values`).
+Persisted Research Results now offers a latest-value watchlist-column target for numeric `series`
+artifacts when a finite observation exists. The frontend sends an explicit
+`latest_series_to_scalar` adapter with the selected output name and complete Study run lineage;
+the API accepts that adapter only when source validation observes a series contract, and the
+isolated runner projects the latest finite observation into the typed scalar column. Series plots
+remain available, unsupported shapes are unchanged, and no lossy promotion or provider fallback is
+introduced. Focused Results/capability coverage passed `32/32`; the targeted backend runner/API
+slice passed `135/135` with two existing NumPy warnings; full frontend Vitest passed `945/945`
+across `109` files; type-check, production build, and diff checks passed. Authenticated
+`F8t-results` browser coverage passed `1/1` against the rebuilt branch-scoped Docker stack,
+including the latest-column action, with clean teardown and complete resource accounting.
+
+The preceding product commit is `4026d8d3` (`fix(tc2000): show benchmark route readiness`).
 Market Map now surfaces the existing provider-neutral canonical readiness contract for each
 benchmark-family source: all four independently mapped roles, dated-holdings coverage, route and
 member-history state, selected-timeframe analysis-ready counts, and explicit pending/unavailable

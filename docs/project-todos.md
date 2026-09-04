@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-09-05 — Promote finite Study series observations into watchlist columns
+
+- [x] Extend the persisted Research Results promotion matrix with an explicit latest-value
+      watchlist-column target for numeric `series` artifacts. The control appears only when the
+      artifact contains at least one finite observation, declares the `latest_series_to_scalar`
+      adapter, and keeps the immutable Study source/output/run lineage visible; series plots remain
+      available as chart plots and incompatible shapes are untouched.
+- [x] Enforce the adapter at the code-asset API boundary only when validation observes a numeric
+      series output, and cover the persisted runner handoff plus authenticated `F8t-results` UI
+      request. Focused Results/capability coverage passed `32/32`; the targeted backend runner/API
+      slice passed `135/135` (two existing NumPy deprecation warnings); full frontend Vitest passed
+      `945/945` across `109` files; TypeScript type-check, production build, and `git diff --check`
+      passed. Authenticated `F8t-results` browser coverage passed `1/1` on the rebuilt
+      branch-scoped Docker stack, including the new `Save latest column: trend` action; teardown
+      and resource accounting reported zero containers, volumes, known bytes, and test-container
+      sessions. Product commit `a6301f0f` is pushed to `origin/feat/tc2000-frontend-rework`.
+- [ ] Continue canonical provider/history enrichment (including unresolved QQQ/QQQE and W1/MN
+      evidence), richer compatible Study Lab targets, native-window/accessibility/security
+      evidence, dense-data budgets, and visual-oracle review.
+
 ### 2026-09-05 — Surface canonical benchmark readiness in Market Map
 
 - [x] Connect benchmark-family Market Map sources to the existing provider-neutral readiness

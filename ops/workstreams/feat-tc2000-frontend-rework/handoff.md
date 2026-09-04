@@ -10,6 +10,26 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Promote finite Study series observations into watchlist columns
+
+Product commit `a6301f0f` (`feat(tc2000): promote latest study series values`) extends the
+persisted Research Results compatibility matrix with a latest-value watchlist-column target for
+numeric `series` artifacts. The control is offered only when the payload has a finite observation;
+the request selects the named output and declares the explicit `latest_series_to_scalar` adapter.
+The code-asset API accepts that adapter only when source validation observes a series output, and
+the isolated runner keeps the latest finite observation as a typed scalar cell. Chart-series
+promotion, immutable source/output/run lineage, unsupported-shape boundaries, and provider
+fallback policy remain unchanged.
+
+Evidence: focused Results/capability coverage passed `32/32`; the targeted backend runner/API
+slice passed `135/135` with two existing NumPy deprecation warnings; full frontend Vitest passed
+`945/945` across `109` files; TypeScript type-check, production build, and `git diff --check`
+passed. Authenticated `F8t-results` browser coverage passed `1/1` against the rebuilt
+branch-scoped Docker stack, asserting `Save latest column: trend` and its adapter/lineage request.
+Teardown and resource accounting reported zero containers, volumes, known bytes, and test-container
+sessions. The commit is pushed to `origin/feat/tc2000-frontend-rework`; the exhaustive gate remains
+open with the existing unchanged six visual diffs and canonical provider/history gaps.
+
 ## 2026-09-05 — Surface canonical benchmark readiness in Market Map
 
 Product commit `7a24dd4b` (`feat(tc2000): surface benchmark readiness in market map`) connects
