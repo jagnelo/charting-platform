@@ -813,7 +813,7 @@ async def record_core_daily_coverage(
     }
     instrument_rows = (
         await db.execute(
-            select(Instrument.id, InstrumentListing.exchange_id)
+            select(Instrument.id, func.min(InstrumentListing.exchange_id))
             .outerjoin(
                 InstrumentListing,
                 (InstrumentListing.instrument_id == Instrument.id)
@@ -821,6 +821,7 @@ async def record_core_daily_coverage(
                 & InstrumentListing.is_active.is_(True),
             )
             .where(Instrument.is_active.is_(True), Instrument.is_synthetic.is_(False))
+            .group_by(Instrument.id)
         )
     ).all()
     exchange_ids = {exchange_id for _, exchange_id in instrument_rows if exchange_id is not None}
