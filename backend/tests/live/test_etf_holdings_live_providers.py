@@ -538,12 +538,30 @@ _KNOWN_ISSUER_LIVE_VARIANT_MARKERS = {
         "ABEQ",
     ): "absolute investment advisers' abeq page did not declare a financial-statement pdf",
     ("idx", "GLDB"): "idx shares product page identity did not match requested etf gldb",
-    ("trimtabs", "ABFL"): "abacus fcf product page did not declare a complete holdings csv for abfl",
-    ("trimtabs", "ABLG"): "abacus fcf product page did not declare a complete holdings csv for ablg",
-    ("trimtabs", "ABLD"): "abacus fcf product page did not declare a complete holdings csv for abld",
-    ("trimtabs", "ABOT"): "abacus fcf product page did not declare a complete holdings csv for abot",
-    ("trimtabs", "ABLS"): "abacus fcf product page did not declare a complete holdings csv for abls",
-    ("trimtabs", "ABXB"): "abacus fcf product page did not declare a complete holdings csv for abxb",
+    (
+        "trimtabs",
+        "ABFL",
+    ): "abacus fcf product page did not declare a complete holdings csv for abfl",
+    (
+        "trimtabs",
+        "ABLG",
+    ): "abacus fcf product page did not declare a complete holdings csv for ablg",
+    (
+        "trimtabs",
+        "ABLD",
+    ): "abacus fcf product page did not declare a complete holdings csv for abld",
+    (
+        "trimtabs",
+        "ABOT",
+    ): "abacus fcf product page did not declare a complete holdings csv for abot",
+    (
+        "trimtabs",
+        "ABLS",
+    ): "abacus fcf product page did not declare a complete holdings csv for abls",
+    (
+        "trimtabs",
+        "ABXB",
+    ): "abacus fcf product page did not declare a complete holdings csv for abxb",
     ("bahl_gaynor", "BGIG"): "bahl_gaynor did not expose a holdings csv link for bgig",
     (
         "defiance",
@@ -557,7 +575,10 @@ _KNOWN_ISSUER_LIVE_VARIANT_MARKERS = {
     ("yieldmax", "TSLY"): "yieldmax holdings csv did not expose the expected account schema.",
     ("golden_eagle", "HYP"): "golden eagle product page identity did not match hyp",
     ("waverly", "GGM"): "waverly's product page did not declare ggm's complete holdings csv.",
-    ("srn", "BLCN"): "srn advisors' siren product page did not declare the complete daily holdings csv.",
+    (
+        "srn",
+        "BLCN",
+    ): "srn advisors' siren product page did not declare the complete daily holdings csv.",
     ("hilton", "SMCO"): "hilton's smco holdings csv did not expose complete dated holdings.",
     ("abacus_global", "ABLG"): "abacus fcf product page identity did not match requested etf ablg",
     ("shelton", "SEPI"): "shelton holdings page identity did not match requested etf sepi",
@@ -2393,8 +2414,7 @@ async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
             or (
                 adapter_key == "swan_global"
                 and symbol == "HEGD"
-                and "swan global holdings csv did not expose rows for hegd"
-                in str(exc).lower()
+                and "swan global holdings csv did not expose rows for hegd" in str(exc).lower()
             )
             or (
                 adapter_key == "ironhorse"
