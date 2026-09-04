@@ -10,6 +10,30 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-04 — Generic event-artifact occurrence filtering
+
+The next bounded R4 slice applies the existing Research Results occurrence controls to generic
+`events` artifacts. Users can filter by symbol and dynamically discovered event kind, see a
+bounded result count and explicit empty state, and publish the selected event through the existing
+occurrence bus with its canonical instrument ID when present. The immutable runner payload and
+export path remain unchanged.
+
+Evidence for this boundary:
+
+- Focused Research Results component suite passed `20/20`; full frontend Vitest passed `929/929`
+  across `108` files.
+- Frontend type-check and production build passed; the build retains only the existing large-chunk
+  warning. `git diff --check` passed. No provider call, visual-policy change, fallback, integration,
+  promotion, deployment, or other-worktree mutation occurred.
+
+The remaining event-artifact promotion fan-out and the existing six unchanged visual-oracle diffs
+remain open.
+
+Implementation commit `a0514cc4` (`feat(tc2000): filter persisted event artifacts`) was created
+and pushed after the focused, full frontend, type-check, build, and diff validations above. The
+branch was clean and synchronized at this pre-record checkpoint; the following metadata commit
+will capture the exact workflow receipt.
+
 ## 2026-09-04 — Reopened implementation and synchronized the reference-universe slice
 
 The human explicitly authorized reopening implementation after the review-gate stall and
