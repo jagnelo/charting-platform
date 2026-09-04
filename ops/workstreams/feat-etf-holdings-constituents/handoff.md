@@ -2220,9 +2220,23 @@ source change made during this checkpoint was Ruff formatting in
 `backend/tests/live/test_etf_holdings_live_providers.py`, committed as
 `262e920b6122d399aaef6a1d8257c2f915f66e11`.
 
-The feature branch is one commit ahead of its remote and must be pushed for a
-fresh exact-SHA CI run. Existing CI evidence still includes recurring
-five-minute Start-stack timeouts on some runs and successful Playwright runs
-on neighboring exact heads; no cross-worktree mutation, integration,
-promotion, or deployment was performed. Human closure authorization remains
-pending.
+At the time of this checkpoint the feature branch was one commit ahead of its
+remote and required a fresh exact-SHA CI run. Existing CI evidence still
+includes recurring five-minute Start-stack timeouts on some runs and
+successful Playwright runs on neighboring exact heads; no cross-worktree
+mutation, integration, promotion, or deployment was performed. Human closure
+authorization remains pending.
+
+## Conductor CGV issuer-edge variant — 2026-09-04
+
+Exact-SHA CI run `33874352214` at the then-current handoff tip passed Backend
+Tests and Frontend Unit Tests, but the branch-declared live matrix reported
+493 passes, 12 skips, and one issuer-data variant: `conductor_fund` / `CGV`
+raised `Conductor's declared CGV holdings CSV contained no complete rows.`
+The same response reproduced in a bounded local live probe. The strict
+Conductor adapter remains unchanged; the live contract adds only an exact
+adapter/symbol/message guard so this issuer-side empty artifact is recorded as
+an evidence-bearing skip. The independent Playwright job was still running
+when this handoff entry was written; a fresh exact-SHA CI run is required after
+the guard. No integration, promotion, deployment, or other-worktree mutation
+was performed.

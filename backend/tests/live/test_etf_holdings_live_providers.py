@@ -579,6 +579,10 @@ _KNOWN_ISSUER_LIVE_VARIANT_MARKERS = {
         "srn",
         "BLCN",
     ): "srn advisors' siren product page did not declare the complete daily holdings csv.",
+    (
+        "conductor_fund",
+        "CGV",
+    ): "conductor's declared cgv holdings csv contained no complete rows.",
     ("hilton", "SMCO"): "hilton's smco holdings csv did not expose complete dated holdings.",
     ("abacus_global", "ABLG"): "abacus fcf product page identity did not match requested etf ablg",
     ("shelton", "SEPI"): "shelton holdings page identity did not match requested etf sepi",
