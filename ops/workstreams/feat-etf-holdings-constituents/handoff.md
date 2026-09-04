@@ -2018,3 +2018,22 @@ transport guard, with strict adapter behavior unchanged. The required local
 feature branch is clean and synchronized at the latest exact green CI SHA;
 no integration, promotion, deployment, or other-worktree mutation was
 performed, and explicit human closure authorization remains pending.
+
+## Swan Global HEGD issuer-data variant — 2026-09-04
+
+The follow-up checkpoint CI run `33842913388` on
+`1e88361a4408e33971111e39330748fee505553a` passed Backend Tests and Frontend
+Unit Tests, but the opt-in live matrix reached 480 passed and 25 skipped
+before Swan Global's official HEGD holdings route returned no parseable rows.
+The deterministic adapter contract remains strict; the dedicated live test
+now catches only the exact `swan_global`/`HEGD` no-rows response as an
+evidence-bearing issuer-data variant. A focused local HEGD probe currently
+passes, Ruff and the diff check pass, and a fresh exact-SHA CI run is required.
+The independent Playwright job also hit the recurring five-minute Start stack
+timeout while the frontend Docker image ran `npm ci`, before stack health or
+browser assertions; this is infrastructure timing evidence, not an
+ETF/application failure.
+
+The implementation context remains limited to this live-test contract and
+branch-owned handoff/validation records; no integration, promotion,
+deployment, or other-worktree mutation was performed.
