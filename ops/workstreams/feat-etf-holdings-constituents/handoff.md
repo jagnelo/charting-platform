@@ -2037,3 +2037,24 @@ ETF/application failure.
 The implementation context remains limited to this live-test contract and
 branch-owned handoff/validation records; no integration, promotion,
 deployment, or other-worktree mutation was performed.
+
+## Swan guard exact-head branch validation — 2026-09-04
+
+Follow-up CI run `33844078467` on
+`e39d5aa14fb313ba2b0ce0721e610dd3ce06789d` passed Backend Tests, Frontend
+Unit Tests, and the complete branch-declared suite. The deterministic adapter
+suite reported 567 passed; the default live contract reported 2 passed and
+504 skipped; the opt-in live matrix reported 481 passed and 25
+evidence-backed skips after the exact Swan Global HEGD no-rows guard; Ruff
+and workstream validation passed. The independent Playwright job failed at
+the recurring five-minute Start stack timeout while the frontend Docker image
+ran `npm ci`, before stack health or browser assertions. The protected
+staging/master-only Exhaustive Integration Gate was skipped as designed for
+this feature branch.
+
+The Swan guard is now validated at the exact pushed implementation SHA. The
+required local `docker_integration` gate still retains the unrelated
+fresh-stack `F8p-current-history` Study Lab missing-histogram failure at
+`flows.spec.ts:2602`; the prior post-repair gate at `a696277b` passed. No
+integration, promotion, deployment, or other-worktree mutation was
+performed, and explicit human closure authorization remains pending.
