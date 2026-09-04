@@ -903,3 +903,25 @@ rule, or protected worktree changed.
 This closes the runtime recheck requested by the provider-health boundary only. The remaining
 QQQ identifier enrichment, canonical member-bar continuity, MN/W1 support, QQQE/SPDR dated
 sources, and six unchanged visual-oracle diffs remain open for a separately evidenced slice.
+
+## 2026-09-04 — Identifier-only holdings receive a conservative search bridge
+
+SEC N-PORT rows often expose stable identifiers and issuer names without a ticker. The bounded
+reconciliation path now consults the configured instrument-search provider only after stable
+identifier profile providers return no result and only when the row has no symbol. A candidate is
+promoted only when it is the unique highest-scoring name match, its full metadata profile is
+available and quote-type eligible, and the profile name remains compatible with the filing row.
+The existing `ingest_provider_profile` and internal CUSIP/ISIN registration path records the
+provider-backed identity and provenance. Ambiguous, weak, unavailable, or incompatible matches
+remain `HOLDING-*` placeholders; no symbol is guessed and no latest-only fallback is introduced.
+
+Evidence at this implementation boundary:
+
+- The ETF resolver unit module passes `18/18`, including unique name-search promotion and tied
+  candidate refusal; the full backend unit suite passes `1,301/1,301`.
+- The Docker-backed ETF holdings integration module passes `65/65`; repository lint, Ruff format,
+  TypeScript, compileall, and diff checks pass.
+- The provider-search bridge is deliberately not counted as live population evidence. It runs only
+  from bounded opt-in reconciliation, and the prior disposable QQQ run still requires external,
+  auditable provider results before its 101 placeholder identities can count toward canonical
+  history. The six unchanged visual diffs and QQQE/SPDR/MN/W1 gaps remain open.

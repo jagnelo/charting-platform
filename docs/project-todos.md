@@ -20,6 +20,20 @@
 - [ ] Retain the explicit unsupported/coverage result and continue identifier enrichment only with
       auditable provider evidence; do not guess symbols or use latest-only fallback.
 
+### 2026-09-04 — Identifier-only holdings use a conservative search bridge
+
+- [x] After stable-identifier providers return no profile, bounded reconciliation may query the
+      configured instrument-search provider for symbol-less issuer names. Promotion requires one
+      unique best token match, a full compatible metadata profile, an allowed equity-like quote
+      type, and the existing provenance/identifier registration path. Tied or weak matches remain
+      `HOLDING-*` placeholders; existing symbol- and stable-identifier-first resolution is unchanged.
+- [x] Add focused unique-match and ambiguity regressions. The resolver module passes `18/18`, the
+      full backend unit suite passes `1,301/1,301`, the Docker-backed ETF holdings integration
+      module passes `65/65`, and repository lint/format/type checks pass. No visual oracle,
+      threshold, mask, skip, fallback rule, or protected worktree changed.
+- [ ] Use this bridge only from the bounded, opt-in reconciliation worker and collect live provider
+      evidence before counting any QQQ member as canonical or queuing its D1/W1/MN history.
+
 ### 2026-09-04 — Placeholder holdings stay outside canonical history readiness
 
 - [x] Keep internal `HOLDING-*` instruments visible as unresolved reconciliation evidence, but
