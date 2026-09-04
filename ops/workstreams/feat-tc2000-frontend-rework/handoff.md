@@ -815,6 +815,9 @@ Evidence at this checkpoint:
   passed `23/23`.
 - Ruff, compileall, and diff checks passed for the resolver and tests. No visual oracle, threshold,
   mask, skip, provider fallback, or protected worktree changed.
+- The append-only evidence is recorded in
+  `ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl`; session progress remains in
+  `ops/workstreams/feat-tc2000-frontend-rework/session.json`.
 
 Remaining provider/history gaps are unchanged: 76 QQQ placeholders still require auditable
 identifier enrichment, QQQE/SPDR dated sources and MN/W1 continuity remain open, and the six
