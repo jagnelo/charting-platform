@@ -129,6 +129,13 @@ route. The native adapter filters the shared export by account, requires one
 dated complete schema, preserves CUSIPs and percentage-point weights, and
 classifies SMCO equities/funds/cash plus HBDC fixed-income/fund/cash rows with
 Hilton ETFs publisher and Hilton Capital Management parent provenance.
+
+The post-integration production acceptance procedure for Tier 0 canary
+observations is documented in
+[`docs/etf-holdings-shadow-gate.md`](etf-holdings-shadow-gate.md). It uses the
+same per-symbol capability and source-audit contract described above; a
+successful transport check alone never promotes an unresolved symbol to
+current support.
 Highland Capital is recorded as an audited `non_executable_public_source`:
 its official AQLG page exposes a complete 130-row CSV with names, CUSIPs,
 quantities, and weights, but every ticker field is blank, while the AQLV

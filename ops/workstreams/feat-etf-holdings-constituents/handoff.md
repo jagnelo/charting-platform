@@ -2395,7 +2395,7 @@ outcome is `unknown`, `unavailable`, `stale`, `degraded`, or
 `usable_for_current_analysis`; only an explicitly current symbol audit can
 unlock current analysis. This closes the path where a successful fetch could
 silently override an unresolved source investigation. The ledger/runtime Tier
-0 consistency assertion also covers all ten audited symbols and the reconciled
+0 consistency assertion also covers all fifteen audited symbols and the reconciled
 F/m adapter alias.
 
 Finalized focused validation passed 629 ETF backend tests, the ETF refresh/API
@@ -2414,3 +2414,29 @@ The feature branch remains clean and synchronized. AC10 still awaits the
 provider-platform staging merge; AC11 is complete for Tier 0 but remains open
 for the remaining fallback symbols; and AC14 remains a post-integration and
 post-deployment shadow gate.
+
+## Tier 0 shadow-gate history and acceptance runbook — 2026-09-04
+
+The ETF canary now retains a bounded 90-observation `canary_history` in each
+adapter-state JSON payload. Each observation records timestamp, route status,
+capability availability, source/transport tier, identity verification,
+symbol-audit outcome, composition/freshness dates, row/completeness/schema
+evidence, latency, failure class/streak, circuit state, and recovery. This is
+bounded deliberately so daily checks can cover a 30-day production window
+without creating an unbounded state payload. The circuit-open path also writes
+an observation rather than silently disappearing from the shadow record.
+
+`evaluate_tier0_shadow_gate` provides the machine-readable post-deployment gate:
+30 UTC days, at least 95% passing eligible checks, no two consecutive freshness
+misses for any Tier 0 symbol, and zero silent identity/schema/completeness
+violations. A passing check must be current, identity-verified, complete,
+current-analysis-usable, freshness-valid, and backed by issuer-native,
+successor-native, or licensed-vendor evidence; successful transport alone is
+not sufficient when symbol audit evidence is unresolved. The operational
+procedure and escalation rules are documented in `docs/etf-holdings-shadow-gate.md`.
+
+Focused capability/refresh validation passed 24 tests, Ruff, and diff check.
+This slice is branch-local and does not claim AC14 completion: the gate remains
+post-integration/deployment and requires real production observations plus
+human closure authorization. AC10 still awaits the provider-platform staging
+merge, and AC11 remains open for symbol-level evidence beyond Tier 0.

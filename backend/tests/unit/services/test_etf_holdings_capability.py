@@ -6,8 +6,10 @@ from app.services.etf_holdings_capability import (
     DEGRADED,
     SEC_FILING,
     STALE,
+    UNAVAILABLE,
     UNKNOWN,
     evaluate_capability,
+    evaluate_tier0_shadow_gate,
     freshness_deadline,
     infer_expected_cadence,
     symbol_audit_for_profile,
@@ -259,3 +261,113 @@ def test_terminal_non_publisher_identity_is_not_applicable_at_symbol_boundary():
     assert result.tier == 1
     assert result.outcome == "not_applicable"
     assert result.evidence_state == "identity_level_terminal_disposition"
+
+
+def _shadow_observation(
+    observed_at: str,
+    *,
+    status: str = "success",
+    availability: str = CURRENT,
+    identity_verified: bool = True,
+    completeness_status: str = "complete",
+    source_tier: str = "issuer_native",
+    usable_for_current_analysis: bool = True,
+    freshness_deadline: str = "2026-10-01",
+    symbol_audit_outcome: str = CURRENT,
+):
+    return {
+        "observed_at": observed_at,
+        "status": status,
+        "availability": availability,
+        "identity_verified": identity_verified,
+        "completeness_status": completeness_status,
+        "source_tier": source_tier,
+        "usable_for_current_analysis": usable_for_current_analysis,
+        "freshness_deadline": freshness_deadline,
+        "symbol_audit_outcome": symbol_audit_outcome,
+    }
+
+
+def test_tier_zero_shadow_gate_requires_a_current_usable_observation():
+    observations = [
+        _shadow_observation(f"2026-09-{day:02d}T12:00:00+00:00") for day in range(1, 19)
+    ]
+    observations.extend(
+        [
+            _shadow_observation(
+                "2026-09-19T12:00:00+00:00",
+                availability=UNAVAILABLE,
+                usable_for_current_analysis=False,
+                symbol_audit_outcome=UNAVAILABLE,
+            ),
+            _shadow_observation(
+                "2026-09-20T12:00:00+00:00",
+                availability=UNAVAILABLE,
+                usable_for_current_analysis=False,
+                symbol_audit_outcome=UNAVAILABLE,
+            ),
+        ]
+    )
+
+    result = evaluate_tier0_shadow_gate(
+        {"DXJ": observations},
+        now=date(2026, 9, 20),
+        eligible_symbols=["DXJ"],
+    )
+
+    assert result["status"] == "fail"
+    assert result["eligible_checks"] == 20
+    assert result["passing_checks"] == 18
+    assert result["success_rate"] == 0.9
+    assert result["silent_violation_count"] == 0
+
+
+def test_tier_zero_shadow_gate_rejects_silent_violations_and_two_freshness_misses():
+    observations = [
+        _shadow_observation(
+            "2026-09-18T12:00:00+00:00",
+            availability=STALE,
+            usable_for_current_analysis=False,
+            freshness_deadline="2026-09-17",
+        ),
+        _shadow_observation(
+            "2026-09-19T12:00:00+00:00",
+            availability=STALE,
+            usable_for_current_analysis=False,
+            freshness_deadline="2026-09-17",
+        ),
+        _shadow_observation(
+            "2026-09-20T12:00:00+00:00",
+            identity_verified=False,
+        ),
+    ]
+
+    result = evaluate_tier0_shadow_gate(
+        {"DXJ": observations},
+        now=date(2026, 9, 20),
+        eligible_symbols=["DXJ"],
+    )
+
+    assert result["status"] == "fail"
+    assert result["max_consecutive_missed_freshness_deadlines"] == 2
+    assert result["silent_violation_count"] == 1
+    assert any("silent" in reason for reason in result["failure_reasons"])
+
+
+def test_tier_zero_shadow_gate_requires_observations_in_the_window():
+    result = evaluate_tier0_shadow_gate(
+        {
+            "DXJ": [
+                _shadow_observation(
+                    "2026-08-01T12:00:00+00:00",
+                )
+            ]
+        },
+        now=date(2026, 9, 20),
+        eligible_symbols=["DXJ"],
+    )
+
+    assert result["status"] == "fail"
+    assert result["eligible_checks"] == 0
+    assert result["passing_checks"] == 0
+    assert any("no eligible Tier 0 observations" in reason for reason in result["failure_reasons"])

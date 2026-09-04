@@ -64,6 +64,23 @@ SEC_FUND_TICKERS_URL = "https://www.sec.gov/files/company_tickers_mf.json"
 
 _BENCHMARK_FAMILY_ROLES = ("cap_weight", "equal_weight", "value", "growth")
 USABLE_HOLDINGS_COMPLETENESS = frozenset({"complete", "filing_reconstructed"})
+_CANARY_HISTORY_KEY = "canary_history"
+_CANARY_HISTORY_LIMIT = 90
+
+
+def _append_canary_observation(
+    metadata: dict[str, Any], observation: dict[str, Any]
+) -> dict[str, Any]:
+    """Keep a bounded, JSON-safe history for shadow-gate evaluation."""
+
+    existing = metadata.get(_CANARY_HISTORY_KEY)
+    history = (
+        [item for item in existing if isinstance(item, dict)] if isinstance(existing, list) else []
+    )
+    return {
+        **metadata,
+        _CANARY_HISTORY_KEY: [*history, observation][-_CANARY_HISTORY_LIMIT:],
+    }
 
 
 def holdings_snapshot_is_bootstrap_ready(snapshot: ETFHoldingsSnapshot | None) -> bool:
@@ -732,11 +749,32 @@ async def run_etf_holdings_capability_canaries(
             if state is not None:
                 state.status = "circuit_open"
                 state.last_checked_at = now
-                state.extra_data = {
-                    **metadata,
-                    "last_canary_at": now.isoformat(),
-                    "last_canary_status": "circuit_open",
-                }
+                circuit_capability = evaluate_capability(profile, None, state, now=now)
+                state.extra_data = _append_canary_observation(
+                    {
+                        **metadata,
+                        "last_canary_at": now.isoformat(),
+                        "last_canary_status": "circuit_open",
+                    },
+                    {
+                        "observed_at": now.isoformat(),
+                        "status": "circuit_open",
+                        "availability": circuit_capability.availability,
+                        "usable_for_current_analysis": False,
+                        "source_tier": circuit_capability.source_tier,
+                        "source_provider": metadata.get("source_provider"),
+                        "source_url": getattr(state, "source_url", None),
+                        "source_identifier": getattr(state, "source_identifier", None),
+                        "transport_kind": circuit_capability.transport_kind,
+                        "identity_verified": circuit_capability.identity_verified,
+                        "symbol_audit_outcome": circuit_capability.symbol_audit.outcome,
+                        "failure_streak": int(metadata.get("consecutive_failures") or 0),
+                        "failure_class": metadata.get("last_canary_failure_class"),
+                        "failure_reason": state.failure_reason,
+                        "circuit_state": "open",
+                        "recovered": False,
+                    },
+                )
             reports.append(
                 {
                     "symbol": symbol,
@@ -793,6 +831,49 @@ async def run_etf_holdings_capability_canaries(
         if status != "success" and failures >= max(1, failure_threshold):
             circuit_state = "open"
             circuit_open_until = datetime.now(UTC) + timedelta(seconds=max(1, cooldown_seconds))
+        observation_now = datetime.now(UTC)
+        capability = evaluate_capability(profile, snapshot, state, now=observation_now)
+        observation = {
+            "observed_at": observation_now.isoformat(),
+            "status": status,
+            "availability": capability.availability,
+            "usable_for_current_analysis": capability.usable_for_current_analysis,
+            "source_tier": capability.source_tier,
+            "source_provider": capability.source_provider,
+            "source_url": (
+                snapshot.source_url if snapshot is not None else getattr(state, "source_url", None)
+            ),
+            "source_identifier": (
+                snapshot.source_identifier
+                if snapshot is not None
+                else getattr(state, "source_identifier", None)
+            ),
+            "transport_kind": capability.transport_kind,
+            "identity_verified": capability.identity_verified,
+            "symbol_audit_outcome": capability.symbol_audit.outcome,
+            "composition_date": (
+                capability.composition_date.isoformat() if capability.composition_date else None
+            ),
+            "freshness_deadline": (
+                capability.freshness_deadline.isoformat() if capability.freshness_deadline else None
+            ),
+            "row_count": capability.row_count,
+            "resolved_count": capability.resolved_count,
+            "unresolved_count": capability.unresolved_count,
+            "completeness_status": capability.completeness_status,
+            "schema_fingerprint": capability.schema_fingerprint,
+            "parser_version": (
+                snapshot.parser_version
+                if snapshot is not None
+                else getattr(state, "parser_version", None)
+            ),
+            "latency_ms": elapsed_ms,
+            "failure_class": failure_class,
+            "failure_reason": failure_text or capability.failure_reason,
+            "failure_streak": failures,
+            "circuit_state": circuit_state,
+            "recovered": recovered,
+        }
         state.extra_data = {
             **current_metadata,
             "last_canary_at": datetime.now(UTC).isoformat(),
@@ -804,11 +885,12 @@ async def run_etf_holdings_capability_canaries(
             "circuit_state": circuit_state,
             "circuit_open_until": circuit_open_until.isoformat() if circuit_open_until else None,
         }
+        state.extra_data = _append_canary_observation(state.extra_data, observation)
         reports.append(
             {
                 "symbol": symbol,
                 "status": status,
-                "availability": evaluate_capability(profile, snapshot, state).availability,
+                "availability": capability.availability,
                 "latency_ms": elapsed_ms,
                 "failure_class": failure_class,
                 "recovered": recovered,

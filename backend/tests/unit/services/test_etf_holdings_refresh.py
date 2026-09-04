@@ -125,6 +125,12 @@ async def test_canary_success_records_latency_recovery_and_symbol_gated_capabili
     assert report["latency_ms"] >= 0
     assert state.extra_data["last_canary_status"] == "success"
     assert state.extra_data["last_canary_failure_class"] is None
+    assert len(state.extra_data["canary_history"]) == 1
+    assert state.extra_data["canary_history"][0]["status"] == "success"
+    assert state.extra_data["canary_history"][0]["availability"] == "unavailable"
+    assert state.extra_data["canary_history"][0]["symbol_audit_outcome"] == "unavailable"
+    assert state.extra_data["canary_history"][0]["source_provider"] == "wisdomtree"
+    assert state.extra_data["canary_history"][0]["source_url"].endswith("DXJ.csv")
     assert db.flushes == 1
 
 
@@ -206,3 +212,13 @@ async def test_canary_reports_missing_profiles_without_creating_generic_runtime_
     assert result["missing_profiles"] == 1
     assert result["reports"] == [{"symbol": "DXJ", "status": "missing_profile"}]
     assert db.flushes == 1
+
+
+def test_canary_history_is_bounded_for_long_running_shadow_windows():
+    metadata = {"canary_history": [{"sequence": index} for index in range(90)]}
+
+    result = refresh._append_canary_observation(metadata, {"sequence": 90})
+
+    assert len(result["canary_history"]) == 90
+    assert result["canary_history"][0]["sequence"] == 1
+    assert result["canary_history"][-1]["sequence"] == 90

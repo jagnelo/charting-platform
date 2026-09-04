@@ -2789,7 +2789,7 @@ freshness and identity checks. Tier 0 and identity-level fallback records with
 non-current outcomes (`unknown`, `unavailable`, `stale`, `degraded`, or
 `not_applicable`) cannot mark a complete snapshot usable for current analysis;
 only an explicitly current symbol audit can unlock that path. A ledger/runtime
-consistency assertion covers all ten Tier 0 symbols and the reconciled F/m
+consistency assertion covers all fifteen Tier 0 symbols and the reconciled F/m
 adapter alias.
 
 Finalized focused validation passed 629 ETF backend tests, the ETF refresh/API
@@ -2806,3 +2806,21 @@ the full gate green.
 
 AC10 remains gated on provider-platform staging, AC11 remains open for
 non-Tier-0 fallback symbols, and AC14 remains post-integration/deployment.
+
+## Tier 0 shadow-gate history and acceptance runbook — 2026-09-04
+
+The canary state now stores a bounded 90-entry `canary_history` containing the
+route, capability, source, transport, identity, symbol-audit,
+composition/freshness, row/completeness/schema, latency, failure, circuit, and
+recovery evidence needed for later shadow analysis. Circuit-open observations
+are retained as explicit checks. The new
+`evaluate_tier0_shadow_gate` function evaluates a rolling 30-day UTC window and
+requires at least 95% current/usable eligible checks, no two consecutive missed
+freshness deadlines per symbol, and no silent identity/schema/completeness
+violations. The dedicated operational runbook is
+`docs/etf-holdings-shadow-gate.md`.
+
+Focused capability/refresh validation passed 24 tests, Ruff, and diff check.
+This is preparatory AC14 implementation only; it does not claim production
+shadow evidence or human closure. AC10 remains dependent on provider-platform
+staging and AC11 remains open beyond Tier 0.

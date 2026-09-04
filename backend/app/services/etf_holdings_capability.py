@@ -8,6 +8,7 @@ snapshots remain visible but never become current issuer support implicitly.
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
@@ -65,6 +66,10 @@ _CADENCE_WINDOWS = {
     "filing": timedelta(days=120),
     "unspecified": timedelta(days=7),
 }
+
+_SHADOW_GATE_WINDOW_DAYS = 30
+_SHADOW_GATE_MINIMUM_SUCCESS_RATE = 0.95
+_SHADOW_GATE_MAX_CONSECUTIVE_MISSED_FRESHNESS = 1
 
 
 @dataclass(frozen=True, slots=True)
@@ -378,6 +383,158 @@ def symbol_audit_for_profile(profile: ETFProfile) -> ETFHoldingsSymbolAudit:
         investigated_at=None,
         next_action="Record a symbol-scoped first-party source investigation before claiming support.",
     )
+
+
+def evaluate_tier0_shadow_gate(
+    observations_by_symbol: Mapping[str, Sequence[Mapping[str, Any]]],
+    *,
+    now: date | datetime | None = None,
+    window_days: int = _SHADOW_GATE_WINDOW_DAYS,
+    eligible_symbols: Sequence[str] | None = None,
+) -> dict[str, Any]:
+    """Evaluate the post-deployment Tier 0 shadow acceptance criteria.
+
+    Observations are the bounded records persisted by the ETF canary.  A check
+    is eligible when it has a parseable observation timestamp and is not a
+    missing-profile report.  A passing check must be a successful, current,
+    identity-verified, complete, current-analysis-usable observation whose
+    freshness deadline has not elapsed.  This deliberately treats an otherwise
+    successful fetch as a failure when the symbol audit is unresolved.
+    """
+
+    if isinstance(now, datetime):
+        end_date = _as_utc(now).date() if _as_utc(now) is not None else date.today()
+    else:
+        end_date = now or date.today()
+    days = max(1, int(window_days))
+    start_date = end_date - timedelta(days=days - 1)
+    requested_symbols = {
+        str(symbol).strip().upper()
+        for symbol in (eligible_symbols or _TIER_0_SYMBOL_AUDITS)
+        if str(symbol).strip()
+    }
+    silent_violations: list[dict[str, Any]] = []
+    eligible_checks = 0
+    passing_checks = 0
+    observed_symbols: set[str] = set()
+    max_consecutive_missed = 0
+    missed_by_symbol: dict[str, int] = {}
+
+    for raw_symbol in sorted(requested_symbols):
+        symbol = raw_symbol.upper()
+        observations = (
+            observations_by_symbol.get(symbol) or observations_by_symbol.get(raw_symbol) or ()
+        )
+        parsed: list[tuple[date, Mapping[str, Any]]] = []
+        for observation in observations:
+            if not isinstance(observation, Mapping):
+                continue
+            observed_at = observation.get("observed_at") or observation.get("last_canary_at")
+            try:
+                observed_date = datetime.fromisoformat(str(observed_at)).date()
+            except (TypeError, ValueError):
+                continue
+            if observed_date < start_date or observed_date > end_date:
+                continue
+            if str(observation.get("status") or "").lower() == "missing_profile":
+                continue
+            parsed.append((observed_date, observation))
+        if not parsed:
+            continue
+        observed_symbols.add(symbol)
+        parsed.sort(key=lambda item: item[0])
+        consecutive_missed = 0
+        for observed_date, observation in parsed:
+            eligible_checks += 1
+            status = str(observation.get("status") or "").lower()
+            availability = str(observation.get("availability") or "").lower()
+            completeness = str(observation.get("completeness_status") or "").lower()
+            source_tier = str(observation.get("source_tier") or "").lower()
+            identity_verified = observation.get("identity_verified") is True
+            usable = observation.get("usable_for_current_analysis") is True
+            deadline_value = observation.get("freshness_deadline")
+            try:
+                deadline = date.fromisoformat(str(deadline_value)) if deadline_value else None
+            except ValueError:
+                deadline = None
+            missed_freshness = availability == STALE or (
+                deadline is not None and observed_date > deadline
+            )
+            if missed_freshness:
+                consecutive_missed += 1
+                max_consecutive_missed = max(max_consecutive_missed, consecutive_missed)
+            else:
+                consecutive_missed = 0
+
+            symbol_audit_outcome = str(observation.get("symbol_audit_outcome") or "").lower()
+            violation: str | None = None
+            if availability == CURRENT and (
+                not identity_verified
+                or completeness not in _COMPLETE_STATUSES
+                or source_tier not in {ISSUER_NATIVE, SUCCESSOR_NATIVE, LICENSED_VENDOR}
+                or symbol_audit_outcome != CURRENT
+            ):
+                violation = "current_observation_failed_identity_completeness_or_source_gate"
+            elif usable and availability != CURRENT:
+                violation = "non_current_observation_marked_current_analysis_usable"
+            if violation:
+                silent_violations.append(
+                    {
+                        "symbol": symbol,
+                        "observed_at": str(observation.get("observed_at") or ""),
+                        "reason": violation,
+                    }
+                )
+
+            is_passing = (
+                status == "success"
+                and availability == CURRENT
+                and identity_verified
+                and completeness in _COMPLETE_STATUSES
+                and source_tier in {ISSUER_NATIVE, SUCCESSOR_NATIVE, LICENSED_VENDOR}
+                and usable
+                and deadline is not None
+                and not missed_freshness
+                and symbol_audit_outcome == CURRENT
+            )
+            if is_passing:
+                passing_checks += 1
+        missed_by_symbol[symbol] = consecutive_missed
+
+    success_rate = passing_checks / eligible_checks if eligible_checks else 0.0
+    reasons: list[str] = []
+    if eligible_checks == 0:
+        reasons.append("no eligible Tier 0 observations in the shadow window")
+    elif success_rate < _SHADOW_GATE_MINIMUM_SUCCESS_RATE:
+        reasons.append(
+            f"eligible-check success rate {success_rate:.3f} is below "
+            f"{_SHADOW_GATE_MINIMUM_SUCCESS_RATE:.2f}"
+        )
+    if max_consecutive_missed > _SHADOW_GATE_MAX_CONSECUTIVE_MISSED_FRESHNESS:
+        reasons.append(
+            f"maximum consecutive missed freshness deadlines is {max_consecutive_missed}"
+        )
+    if silent_violations:
+        reasons.append(f"{len(silent_violations)} silent identity/schema/completeness violation(s)")
+
+    return {
+        "status": "pass" if not reasons else "fail",
+        "window_start": start_date.isoformat(),
+        "window_end": end_date.isoformat(),
+        "window_days": days,
+        "eligible_symbols": sorted(requested_symbols),
+        "observed_symbols": sorted(observed_symbols),
+        "eligible_checks": eligible_checks,
+        "passing_checks": passing_checks,
+        "success_rate": round(success_rate, 4),
+        "minimum_success_rate": _SHADOW_GATE_MINIMUM_SUCCESS_RATE,
+        "max_consecutive_missed_freshness_deadlines": max_consecutive_missed,
+        "max_allowed_consecutive_missed_freshness_deadlines": _SHADOW_GATE_MAX_CONSECUTIVE_MISSED_FRESHNESS,
+        "silent_violation_count": len(silent_violations),
+        "silent_violations": silent_violations,
+        "failure_reasons": reasons,
+        "missed_freshness_by_symbol": missed_by_symbol,
+    }
 
 
 def evaluate_capability(
