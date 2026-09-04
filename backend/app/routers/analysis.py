@@ -7283,15 +7283,21 @@ async def queue_python_breadth(
         resolved_condition_tree, _ = await _resolve_python_condition_tree(
             body.condition_tree, db, current_user.id
         )
-        if (
-            _python_condition_tree_requires_benchmark(resolved_condition_tree)
-            and not body.benchmark
-        ):
+        requires_benchmark = _python_condition_tree_requires_benchmark(resolved_condition_tree)
+        if requires_benchmark and body.benchmark and body.reference_universe is not None:
+            raise HTTPException(
+                422,
+                detail={
+                    "code": "python_series_reference_conflict",
+                    "message": "Choose either a benchmark symbol or a canonical reference universe.",
+                },
+            )
+        if requires_benchmark and not body.benchmark and body.reference_universe is None:
             raise HTTPException(
                 422,
                 detail={
                     "code": "python_series_benchmark_required",
-                    "message": "A benchmark symbol is required when a Python series comparison targets the benchmark dataset.",
+                    "message": "A benchmark symbol or canonical reference universe is required when a Python series comparison targets the benchmark dataset.",
                 },
             )
         if body.series_target is not None:
@@ -7299,6 +7305,56 @@ async def queue_python_breadth(
                 422,
                 detail={"code": "python_condition_tree_series_target_conflict"},
             )
+    elif body.reference_universe is not None:
+        raise HTTPException(
+            422,
+            detail={
+                "code": "reference_universe_requires_python_comparison",
+                "message": "A reference universe is only meaningful for a Python series comparison tree.",
+            },
+        )
+
+    reference_member_ids: list[int] = []
+    reference_provenance: dict[str, object] = {}
+    reference_warnings: list[AnalysisWarning] = []
+    if body.reference_universe is not None:
+        # Resolve membership through the same canonical, point-in-time source
+        # resolver used by generic breadth.  No provider fan-out or ad-hoc
+        # symbols are admitted into the isolated comparison dataset.
+        reference_definition = BreadthDefinitionRequest(
+            universe=body.reference_universe,
+            condition=BreadthConditionRequest(
+                kind="series_comparison",
+                params={"field": "return"},
+            ),
+            timeframe=timeframe.value,
+            adjusted=body.adjusted,
+            as_of=body.as_of,
+        )
+        (
+            _reference_members,
+            reference_member_ids,
+            reference_warnings,
+            resolved_reference_provenance,
+            reference_membership_payload,
+        ) = await _resolve_generic_breadth_universe(reference_definition, db, current_user.id)
+        if not reference_member_ids:
+            raise HTTPException(
+                422,
+                detail={
+                    "code": "python_reference_universe_unavailable",
+                    "message": "The canonical reference universe has no resolved members.",
+                    "warnings": [warning.model_dump() for warning in reference_warnings],
+                },
+            )
+        reference_provenance = {
+            **resolved_reference_provenance,
+            "membership_version": _generic_membership_version(reference_membership_payload),
+            "requested_count": len(reference_member_ids) + len(reference_warnings),
+            "warnings": [warning.model_dump() for warning in reference_warnings],
+            "target": "derived_equal_weight_return_index",
+            "alignment": "exact_timestamp_no_forward_fill",
+        }
     series_target = body.series_target
     if body.output_contract == "series":
         if not isinstance(series_target, dict):
@@ -7365,6 +7421,9 @@ async def queue_python_breadth(
     )
     if resolved_condition_tree is not None:
         condition_metadata["condition_tree"] = resolved_condition_tree
+    if body.reference_universe is not None:
+        condition_metadata["reference_universe"] = body.reference_universe.model_dump(mode="json")
+        condition_metadata["reference_target"] = reference_provenance
     execution_mode = "breadth_history" if body.history else "breadth_current"
     definition_payload = {
         "universe": universe_provenance,
@@ -7380,6 +7439,12 @@ async def queue_python_breadth(
         "output_contract": body.output_contract,
         "series_target": series_target,
         "condition_tree": resolved_condition_tree,
+        "reference_universe": (
+            body.reference_universe.model_dump(mode="json")
+            if body.reference_universe is not None
+            else None
+        ),
+        "reference_target": reference_provenance,
     }
     run_config = {
         "symbols": [member.symbol for member in members],
@@ -7404,6 +7469,13 @@ async def queue_python_breadth(
         "output_contract": body.output_contract,
         "series_target": series_target,
         "condition_tree": resolved_condition_tree,
+        "reference_universe": (
+            body.reference_universe.model_dump(mode="json")
+            if body.reference_universe is not None
+            else None
+        ),
+        "reference_instrument_ids": reference_member_ids,
+        "reference_target": reference_provenance,
     }
     from app.routers.research import _materialize_declared_dataset
 
@@ -7413,6 +7485,10 @@ async def queue_python_breadth(
             "universe": universe_provenance,
             "membership_version": membership_version,
             "requested_count": len(member_ids) + len(universe_warnings),
+            "reference_universe": body.reference_universe.model_dump(mode="json")
+            if body.reference_universe is not None
+            else None,
+            "reference_target": reference_provenance,
         },
         run_config,
         lookback=version.lookback,

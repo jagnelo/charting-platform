@@ -960,6 +960,10 @@ class BreadthPythonRunRequest(BaseModel):
     session: Literal["regular", "all"] = "regular"
     as_of: datetime | None = None
     benchmark: str | None = Field(default=None, max_length=80)
+    # A Python comparison may use a canonical peer/reference universe instead
+    # of a single benchmark symbol.  The API materializes this as an explicit
+    # equal-weight return index before the isolated runner executes user code.
+    reference_universe: BreadthUniverseRequest | None = None
     history: bool = False
     history_limit: int = Field(default=500, ge=1, le=5_000)
 

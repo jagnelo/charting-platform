@@ -944,11 +944,11 @@ async function resolvePythonBreadthRun() {
   const benchmark = referenceNeeded.value && !referenceSourceId.value
     ? referenceSymbol.value.trim().toUpperCase()
     : ''
-  if (referenceNeeded.value && referenceSourceId.value) {
-    throw new Error('Python breadth comparisons currently require a benchmark symbol, not a reference universe.')
-  }
-  if (referenceNeeded.value && !benchmark) {
-    throw new Error('Python breadth comparisons require a benchmark symbol; select a symbol reference.')
+  const referenceUniverse = referenceNeeded.value && referenceSourceId.value
+    ? marketMapPythonUniverse(referenceSourceId.value)
+    : null
+  if (referenceNeeded.value && !benchmark && !referenceUniverse) {
+    throw new Error('Python breadth comparisons require a benchmark symbol or canonical reference universe.')
   }
   const queued = await api.post<{ run_id: number }>('/analysis/breadth/python', {
     code_version_id: anchor,
@@ -960,6 +960,7 @@ async function resolvePythonBreadthRun() {
     adjusted: true,
     session: 'regular',
     ...(benchmark ? { benchmark } : {}),
+    ...(referenceUniverse ? { reference_universe: referenceUniverse } : {}),
     history: false,
   })
   pythonRunLoading.value = true

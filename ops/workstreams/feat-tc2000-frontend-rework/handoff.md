@@ -10,14 +10,40 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-04 — Python breadth comparisons accept canonical reference universes
+
+The next bounded R3/R4 slice closes the explicit reference-universe gap for Python breadth
+comparisons. Market Map now sends a selected canonical source as `reference_universe` when a
+`python_series_comparison` tree has `right_scope=benchmark`; the symbol benchmark path remains
+available and the API rejects sending both targets together. The API resolves the reference
+membership through the existing point-in-time canonical source resolver, records its membership
+version and warnings, and materializes an equal-weight return index from local bars with exact
+timestamp alignment and no forward-fill. The isolated runner receives that labelled aggregate as
+the read-only benchmark dataset; close-only semantics are explicit and missing history remains an
+unavailable/excluded result.
+
+Evidence for this boundary:
+
+- Docker-backed `test_python_breadth_queues_isolated_current_and_history_and_promotes_to_scan`
+  passed `1/1`, including the new canonical reference-universe request, aggregate provenance, and
+  isolated comparison execution.
+- Research runner unit suite passed `104/104`; Market Map component suite passed `35/35`.
+- Ruff check/format and `git diff --check` passed. No provider call, fallback, visual-policy change,
+  baseline/mask/threshold/skip change, integration, promotion, deployment, or other-worktree
+  mutation occurred.
+
+The remaining richer derived-series composition, promotion fan-out, canonical provider/history,
+visual-oracle, and R6 resilience gaps remain open. The exact-tip exhaustive gate still needs to be
+rerun after checkpointing and is expected to retain the six unchanged visual diffs already recorded.
+
 ## 2026-09-04 — Isolated Python breadth trees are now Market Map colour inputs
 
 The next bounded R3/R5 implementation slice is complete in the assigned worktree. The advanced
 Market Map breadth editor now loads owned numeric-series condition assets and, when the selected
 tree contains `python_series` or `python_series_comparison`, queues a current Boolean breadth run
-through the existing isolated worker before requesting the map. Benchmark-target comparisons are
-explicitly limited to a benchmark symbol because the breadth worker does not yet accept a reference
-universe target.
+through the existing isolated worker before requesting the map. Benchmark-target comparisons
+accept either an explicit benchmark symbol or the canonical reference-universe adapter recorded
+in the newer boundary below.
 
 The backend Market Map path remains provider-free and non-executing: it consumes only the completed
 user-owned run's immutable `batch_cells` artifact, requires `execution_mode=breadth_current` and

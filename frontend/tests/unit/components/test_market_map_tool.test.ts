@@ -772,6 +772,60 @@ describe('MarketMapTool', () => {
     expect(mapRequest).toEqual(expect.objectContaining({ color_metric: 'breadth', python_run_id: 42 }))
   })
 
+  it('passes a canonical reference universe to Python breadth comparisons', async () => {
+    const previousSources = sourceState.sources
+    sourceState.sources = [
+      ...previousSources,
+      { ...previousSources[0], source_id: 'watchlist:reference', source_kind: 'personal', name: 'Reference group', locked: false },
+    ]
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/code/assets') return Promise.resolve([
+        { kind: 'condition', name: 'Momentum score', versions: [{ id: 17, version_number: 1, output_contract: 'series' }] },
+        { kind: 'condition', name: 'Reference score', versions: [{ id: 18, version_number: 1, output_contract: 'series' }] },
+      ])
+      if (path === '/analysis/breadth/python/runs/42') return Promise.resolve({ status: 'completed' })
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string, body?: Record<string, unknown>) => {
+      if (path === '/analysis/breadth/python') return Promise.resolve({ run_id: 42 })
+      if (path === '/analysis/market-map') return Promise.resolve({ ...response, color_metric: body?.color_metric, condition: body?.condition, python_run_id: body?.python_run_id })
+      return Promise.resolve([])
+    })
+
+    const wrapper = mount(MarketMapTool, {
+      props: {
+        configuration: {
+          source_id: 'market-group:sp500',
+          color_metric: 'breadth',
+          advanced_breadth_editor: true,
+          reference_source_id: 'watchlist:reference',
+          condition: {
+            kind: 'python_series_comparison',
+            params: {
+              left_code_version_id: 17,
+              right_code_version_id: 18,
+              right_scope: 'benchmark',
+              relation: 'difference',
+              operator: 'gte',
+              threshold: 0,
+            },
+          },
+        },
+      },
+    })
+    await flushPromises()
+    await wrapper.get('.market-map-tool__run').trigger('click')
+    await flushPromises()
+
+    const request = apiPost.mock.calls.find(call => call[0] === '/analysis/breadth/python')?.[1]
+    expect(request).toEqual(expect.objectContaining({
+      reference_universe: { kind: 'watchlist', key: 'watchlist:reference', point_in_time: true },
+    }))
+    expect(request).not.toHaveProperty('benchmark')
+    wrapper.unmount()
+    sourceState.sources = previousSources
+  })
+
   it('uses the same Python breadth source contract for derived and explicit watchlists', async () => {
     const previousSources = sourceState.sources
     sourceState.sources = [{ ...previousSources[0], source_id: 'combo:tech-leaders', source_kind: 'combo', name: 'Tech leaders', locked: true }]

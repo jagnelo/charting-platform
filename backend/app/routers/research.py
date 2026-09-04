@@ -14,6 +14,7 @@ from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.research import CodeAsset, CodeVersion, ResearchRun
 from app.models.user import User
 from app.schemas.code import ResearchBatchResultOut, ResearchRunCreate, ResearchRunOut
+from app.services.breadth import build_equal_reference_series
 from app.services.parameter_validation import validate_parameter_values
 from app.services.research_jobs import (
     cancel_research_run,
@@ -284,6 +285,134 @@ async def _materialize_benchmark_dataset(
     }
 
 
+async def _load_bars_for_ids(
+    db: AsyncSession, instrument_ids: list[int], options: dict, *, limit: int
+) -> dict[int, list[OHLCVBar]]:
+    """Load a bounded, per-instrument bar window for derived reference targets."""
+    if not instrument_ids:
+        return {}
+    conditions = [
+        OHLCVBar.instrument_id.in_(instrument_ids),
+        OHLCVBar.timeframe == options["timeframe"],
+        OHLCVBar.is_adjusted.is_(options["is_adjusted"]),
+    ]
+    if options["session"] == "regular":
+        conditions.append(OHLCVBar.session == "regular")
+    if options["start"]:
+        conditions.append(OHLCVBar.ts >= options["start"])
+    if options["end"]:
+        conditions.append(OHLCVBar.ts <= options["end"])
+    ranked_bars = (
+        select(
+            OHLCVBar.id.label("bar_id"),
+            func.row_number()
+            .over(
+                partition_by=OHLCVBar.instrument_id,
+                order_by=OHLCVBar.ts.desc(),
+            )
+            .label("bar_rank"),
+        )
+        .where(*conditions)
+        .subquery()
+    )
+    bars = (
+        await db.execute(
+            select(OHLCVBar)
+            .join(ranked_bars, OHLCVBar.id == ranked_bars.c.bar_id)
+            .where(ranked_bars.c.bar_rank <= limit)
+            .order_by(OHLCVBar.instrument_id, OHLCVBar.ts)
+        )
+    ).scalars()
+    result: dict[int, list[OHLCVBar]] = {}
+    for bar in bars:
+        result.setdefault(bar.instrument_id, []).append(bar)
+    return result
+
+
+async def _materialize_reference_dataset(
+    db: AsyncSession,
+    options: dict,
+    run_config: dict,
+    *,
+    history_limit: int,
+) -> dict | None:
+    """Materialize a canonical equal-weight peer index for Python comparisons."""
+    raw_ids = run_config.get("reference_instrument_ids")
+    if raw_ids is None:
+        return None
+    if not isinstance(raw_ids, list):
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "invalid_reference_universe_membership"},
+        )
+    instrument_ids = list(
+        dict.fromkeys(
+            value
+            for value in raw_ids
+            if isinstance(value, int) and not isinstance(value, bool) and value > 0
+        )
+    )
+    if not instrument_ids:
+        return {
+            "status": "unavailable",
+            "reason": "reference_universe_empty",
+            "target": "derived_equal_weight_return_index",
+        }
+    if len(instrument_ids) > MAX_BATCH_SYMBOLS:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "reference_universe_too_large",
+                "maximum": MAX_BATCH_SYMBOLS,
+            },
+        )
+    bars_by_id = await _load_bars_for_ids(
+        db, instrument_ids, options, limit=max(1, min(history_limit, MAX_HISTORY_LIMIT))
+    )
+    series, summary = build_equal_reference_series(bars_by_id)
+    target = run_config.get("reference_target")
+    target = dict(target) if isinstance(target, dict) else {}
+    summary = {
+        **summary,
+        "requested_member_count": len(instrument_ids),
+        "covered_member_count": sum(bool(bars) for bars in bars_by_id.values()),
+        "universe": run_config.get("reference_universe"),
+        "provenance": target,
+    }
+    if not series:
+        return {
+            "status": "unavailable",
+            "reason": "reference_history_unavailable",
+            "target": "derived_equal_weight_return_index",
+            "summary": summary,
+        }
+    timestamps = [point.ts.isoformat() for point in series]
+    closes = [float(point.close) for point in series]
+    return {
+        "status": "ready",
+        "source": "canonical_database",
+        "symbol": "REFERENCE:EQUAL_WEIGHT",
+        "instrument_id": None,
+        "metadata": {
+            "name": "Derived equal-weight reference index",
+            "reference_target": summary,
+        },
+        "timeframe": options["timeframe"].value,
+        "adjustment": options["adjustment"],
+        "session": options["session"],
+        "timestamps": timestamps,
+        # The aggregate is a close-only return index.  Non-close fields remain
+        # explicit and unavailable rather than being inferred from members.
+        "opens": closes,
+        "highs": closes,
+        "lows": closes,
+        "closes": closes,
+        "volumes": [None] * len(closes),
+        "vwaps": [None] * len(closes),
+        "sessions": [options["session"]] * len(closes),
+    }
+
+
 async def _materialize_declared_dataset(
     db: AsyncSession,
     manifest: dict,
@@ -318,6 +447,10 @@ async def _materialize_declared_dataset(
     benchmark_dataset = await _materialize_benchmark_dataset(
         db, options, history_limit=benchmark_history_limit
     )
+    reference_dataset = await _materialize_reference_dataset(
+        db, options, run_config, history_limit=benchmark_history_limit
+    )
+    comparison_dataset = reference_dataset if reference_dataset is not None else benchmark_dataset
     source_metadata: dict[str, object] = {}
     source_id_value = run_config.get("universe_source_id")
     if source_id_value not in (None, ""):
@@ -486,8 +619,8 @@ async def _materialize_declared_dataset(
                     "timestamps": [bar.ts.isoformat() for bar in bars],
                     **_bar_series(bars),
                     **(
-                        {"benchmark_dataset": benchmark_dataset}
-                        if benchmark_dataset and benchmark_dataset.get("status") == "ready"
+                        {"benchmark_dataset": comparison_dataset}
+                        if comparison_dataset and comparison_dataset.get("status") == "ready"
                         else {}
                     ),
                 }
@@ -502,6 +635,8 @@ async def _materialize_declared_dataset(
         }
         if benchmark_dataset is not None:
             result["benchmark_coverage"] = benchmark_dataset
+        if reference_dataset is not None:
+            result["reference_coverage"] = reference_dataset
         return result
     symbol = str(run_config.get("symbol") or manifest.get("symbol") or "").upper()
     if not symbol:
@@ -525,6 +660,10 @@ async def _materialize_declared_dataset(
         result["benchmark_coverage"] = benchmark_dataset
         if benchmark_dataset.get("status") == "ready":
             result["benchmark_dataset"] = benchmark_dataset
+    if reference_dataset is not None:
+        result["reference_coverage"] = reference_dataset
+        if reference_dataset.get("status") == "ready":
+            result["benchmark_dataset"] = reference_dataset
     return result
 
 

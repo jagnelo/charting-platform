@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-04 — Python breadth reference-universe comparison slice
+
+- [x] Allow a Python breadth `python_series_comparison` tree to select either a benchmark symbol or
+      a canonical reference universe. Market Map passes the selected source through the existing
+      canonical membership resolver; the API records membership/provenance and materializes a
+      close-only equal-weight return index from local bars with exact timestamp alignment.
+- [x] Keep the isolated runner provider-free: the derived reference index is handed in as the
+      read-only benchmark dataset, with missing history and unsupported fields remaining explicit
+      exclusions. Focused frontend, runner, and Docker-backed API regressions pass.
+- [ ] Continue richer multi-stage derived-series composition and the remaining compatible promotion
+      fan-out; reference-universe support now exists for Python comparison trees, but broader
+      promotion and exact Version 25 promotion-row visuals remain open.
+
 ### 2026-09-04 — Exact-tip exhaustive integration gate after Python breadth-tree slice
 
 - [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at synchronized

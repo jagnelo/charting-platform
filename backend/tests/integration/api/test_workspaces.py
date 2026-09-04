@@ -3984,6 +3984,46 @@ class TestWorkspaces:
             comparison_tree_result["artifacts"]["batch_cells"]["value"]["cells"][0]["value"] is True
         )
 
+        reference_tree_queued = client.post(
+            "/api/v1/analysis/breadth/python",
+            headers=auth_headers,
+            json={
+                "code_version_id": version_id,
+                "universe": {"kind": "symbols", "symbols": [instrument.symbol]},
+                "output_contract": "boolean",
+                "condition_tree": {
+                    "kind": "python_series_comparison",
+                    "params": {
+                        "left_code_version_id": version_id,
+                        "right_code_version_id": comparison_version_id,
+                        "relation": "difference",
+                        "right_scope": "benchmark",
+                        "operator": "gte",
+                        "threshold": -1_000_000_000,
+                    },
+                },
+                "reference_universe": {
+                    "kind": "symbols",
+                    "symbols": [instrument.symbol],
+                },
+                "session": "all",
+            },
+        )
+        assert reference_tree_queued.status_code == 202, reference_tree_queued.text
+        reference_run_id = reference_tree_queued.json()["run_id"]
+        reference_job = json.loads((tmp_path / "jobs" / f"{reference_run_id}.json").read_text())
+        reference_dataset = reference_job["dataset"]["benchmark_dataset"]
+        assert reference_dataset["status"] == "ready"
+        assert reference_dataset["symbol"] == "REFERENCE:EQUAL_WEIGHT"
+        assert reference_dataset["metadata"]["reference_target"]["method"] == (
+            "derived_equal_weight_return_index"
+        )
+        assert reference_job["dataset"]["reference_coverage"]["status"] == "ready"
+        reference_result = execute_job(reference_job)
+        assert reference_result["status"] == "completed", reference_result
+        reference_cells = reference_result["artifacts"]["batch_cells"]["value"]["cells"]
+        assert reference_cells[0]["value"] is True
+
         cross_queued = client.post(
             "/api/v1/analysis/breadth/python",
             headers=auth_headers,

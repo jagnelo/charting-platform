@@ -101,7 +101,7 @@ run, not a claim that the old counts still pass unchanged.
 | Seeded top-down trader path | Benchmark → sector → ratio/indicator/drawing → industry → constituent → restored state passed | Fixture-backed; canonical live-source equivalent remains open |
 | Eight-family entry matrix | Seeded Market Map, breadth, and rotation paths passed | Identity/fixture coverage is not complete provider population |
 | Market Map | Recursive sector → industry geometry, source polymorphism, selection, follow/pin/clone, and cross-tab Breadth/Study handoff implemented | Exact nested typography/gutters/hover density and point-in-time data completeness remain open |
-| Breadth and Study Lab | Recursive conditions, benchmark comparisons, historical contracts, Python isolation, reusable immutable definitions, and some Boolean-column promotion implemented | Richer history and complete promotion fan-out remain open |
+| Breadth and Study Lab | Recursive conditions, symbol/reference-universe comparisons, historical contracts, Python isolation, reusable immutable definitions, and some typed promotion adapters implemented | Richer history and complete promotion fan-out remain open |
 | Visual regression | Four deterministic environments historically passed 26/26 each, 104/104 total | Board-guided product baseline, not exact V25 approval |
 | Frontend static/unit checks | Last ledger reports 918/918 Vitest plus type-check and build | Historical receipt; rerun required after branch synchronization |
 | Branch ancestry | HEAD `4668e342`; local staging `8b885a2f`; branch has 2 unique commits and is 14 commits behind staging | Verified 2026-09-03; no merge/rebase performed during roadmap reconciliation |
