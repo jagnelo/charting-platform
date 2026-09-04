@@ -175,6 +175,7 @@
             <span>{{ role.label }}{{ role.symbol ? ` (${role.symbol})` : '' }}</span>
             <span>{{ role.composite_readiness_status }}</span>
             <span>{{ benchmarkRoleCoverageLabel(role) }}</span>
+            <small>Route: {{ role.holdings_route_status ?? 'not configured' }}{{ role.holdings_route_provider ? ` · ${role.holdings_route_provider}` : '' }} · Refresh: {{ role.holdings_refresh_status ?? 'not attempted' }}</small>
             <small v-if="role.composite_readiness_reasons?.length">{{ role.composite_readiness_reasons.join(' · ') }}</small>
           </li>
         </ul>
@@ -1431,6 +1432,8 @@ watch(timeframe, () => {
   historyRefreshMessage.value = ''
   historyError.value = ''
   if (sourceId.value) void loadHistoryStatus()
+})
+watch([period, endDate], () => {
   if (benchmarkFamilyKey.value) void loadBenchmarkCoverage()
 })
 watch(sourceId, () => {
