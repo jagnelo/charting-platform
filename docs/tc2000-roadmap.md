@@ -26,6 +26,16 @@ accounting. The exact-tip exhaustive gate has now rerun at product tip `397c554a
 and functional stages passed, while the unchanged visual matrix remains `98/104` with the same
 six diffs recorded below.
 
+The next product commit is `95b12a0f` (`feat(tc2000): expose study artifact capability matrix`).
+Persisted Research Results now makes the compatible promotion matrix explicit: scalar, Boolean,
+numeric-series, range-center, and structured-event artifacts state their safe workstation targets;
+table, categorical bar, histogram, scatter, heatmap, dashboard, and historical-breadth shapes are
+marked view/export-only. Range-center promotion is offered only when the artifact contains an
+aligned finite center series, while lower/upper bounds remain source-only. Focused capability and
+Research Results coverage passed `31/31`; full frontend Vitest passed `943/943` across `109` files;
+type-check, production build, and diff checks passed. This slice does not alter the backend contract,
+visual policy, provider fallback rules, or the unchanged exact-tip visual result (`98/104`).
+
 The prior exact-tip gate at product tip `6f575a34` passed all non-visual stages and the functional
 browser suite (`155` passed, `106` documented skips across `261` specs). A first invocation's single
 F8t-results-open lookup failure was not reproducible in an isolated `3/3` rerun and did not recur
@@ -371,7 +381,7 @@ The TC2000 frontend rework is ready for human review only when all of the follow
 ## Immediate next checkpoint
 
 Continue with the next canonical provider/history slice and compatible chart/list/gauge consumers
-with authenticated evidence. The exact-tip gate has now been rerun at product tip `68856251`; all
+with authenticated evidence. The exact-tip gate has now been rerun at product tip `397c554a`; all
 non-visual and functional stages pass, while the unchanged six visual diffs remain explicit. Preserve
 the declared provider fallback boundaries and all existing acceptance policy while expanding the
 remaining richer Study Lab targets, native-window/accessibility/security evidence, and dense-data

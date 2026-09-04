@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-09-05 — Explicit Study artifact capability matrix
+
+- [x] Publish the persisted Research Results promotion matrix in a shared frontend capability
+      module. Scalar, Boolean, numeric-series, range-center, and structured-event artifacts now
+      state their compatible watchlist/chart/filter/scan/gauge/alert targets; table, categorical
+      bar, histogram, scatter, heatmap, dashboard, and historical-breadth shapes explicitly remain
+      view/export-only rather than being flattened through a lossy adapter.
+- [x] Guard range-center promotion on the actual artifact payload. A range without an aligned,
+      finite center series no longer offers a chart promotion control and instead reports that its
+      bounds remain source-only. Focused capability and Research Results coverage passed `31/31`,
+      full frontend Vitest passed `943/943` across `109` files, TypeScript type-check and
+      production build passed, and `git diff --check` passed. Product commit `95b12a0f` is pushed
+      to `origin/feat/tc2000-frontend-rework`.
+- [ ] Continue canonical provider/history enrichment, richer compatible Study Lab targets,
+      native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review;
+      no visual policy or provider fallback rule changed.
+
 ### 2026-09-05 — Structured range-center chart promotion and exact-tip gate
 
 - [x] Add an explicit `range_center_to_series` adapter for named structured `range` Study

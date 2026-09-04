@@ -10,6 +10,23 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Explicit Study artifact capability matrix
+
+Product commit `95b12a0f` (`feat(tc2000): expose study artifact capability matrix`) makes the
+persisted Research Results compatibility boundary visible. Scalar, Boolean, numeric-series,
+range-center, and structured-event artifacts state their safe watchlist/chart/filter/scan/gauge/
+alert targets. Table, categorical bar, histogram, scatter, heatmap, dashboard, and historical
+breadth shapes remain view/export-only; no lossy conversion is offered. Range-center promotion is
+offered only when the payload contains an aligned finite center series, with lower/upper bounds
+remaining source-only.
+
+Evidence: focused capability and Research Results coverage passed `31/31`; full frontend Vitest
+passed `943/943` across `109` files; TypeScript type-check and production build passed; and
+`git diff --check` passed. The commit is pushed to `origin/feat/tc2000-frontend-rework`. The
+visual policy, provider fallback boundaries, and exact-tip visual result (`98/104`, six unchanged
+diffs) are untouched. Canonical provider/history, native-window/accessibility/security, dense-data,
+and final visual-oracle gaps remain open.
+
 ## 2026-09-05 — Structured range-center chart promotion and exact-tip exhaustive gate
 
 Product commit `397c554a` (`feat(tc2000): promote structured range centers`) adds an explicit
