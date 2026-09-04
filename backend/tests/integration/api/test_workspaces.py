@@ -897,6 +897,116 @@ class TestWorkspaces:
             for warning in response.json()["exclusions"]
         )
 
+    def test_benchmark_family_coverage_uses_historical_profile_snapshot_for_classification(
+        self, client, auth_headers, db, instrument_type, instrument, instrument_b
+    ):
+        from datetime import UTC, datetime
+
+        from app.models.data_source import DataSource
+        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import EquityDetail, Instrument
+        from app.models.provider_observation import InstrumentProfileSnapshot
+
+        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
+        assert seeded.status_code == 200
+        spy = Instrument(
+            symbol="SPY",
+            name="SPDR S&P 500 ETF Trust",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add(spy)
+        db.flush()
+        profile = ETFProfile(instrument_id=spy.id, adapter_key="spdr", adapter_status="resolved")
+        db.add(profile)
+        db.flush()
+        snapshot = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=datetime(2025, 12, 31, tzinfo=UTC).date(),
+            known_at=datetime(2026, 1, 2, tzinfo=UTC),
+            provenance="issuer_native",
+            source_provider="issuer",
+            source_quality="issuer_disclosed",
+            completeness_status="complete",
+            row_count=2,
+            resolved_count=2,
+            unresolved_count=0,
+            total_weight=1.0,
+            snapshot_hash="test-family-historical-profile",
+        )
+        db.add(snapshot)
+        db.flush()
+        db.add_all(
+            [
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=instrument.id,
+                    position=0,
+                    reported_symbol=instrument.symbol,
+                    reported_name=instrument.name,
+                    weight=0.6,
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_hash="historical-profile-a",
+                    is_resolved=True,
+                ),
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=instrument_b.id,
+                    position=1,
+                    reported_symbol=instrument_b.symbol,
+                    reported_name=instrument_b.name,
+                    weight=0.4,
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_hash="historical-profile-b",
+                    is_resolved=True,
+                ),
+                EquityDetail(
+                    instrument_id=instrument.id,
+                    industry="Current Technology",
+                    field_provenance={"industry": {"observed_at": "2027-01-01T00:00:00Z"}},
+                ),
+                EquityDetail(
+                    instrument_id=instrument_b.id,
+                    industry="Current Software",
+                    field_provenance={"industry": {"observed_at": "2027-01-01T00:00:00Z"}},
+                ),
+            ]
+        )
+        profile_source = DataSource(
+            name="historical-family-profile",
+            base_url="controlled://historical-family-profile",
+            description="Historical family classification fixture",
+            is_active=True,
+        )
+        db.add(profile_source)
+        db.flush()
+        db.add(
+            InstrumentProfileSnapshot(
+                instrument_id=instrument.id,
+                data_source_id=profile_source.id,
+                provider_symbol=instrument.symbol,
+                observed_at=datetime(2025, 12, 30, tzinfo=UTC),
+                fetched_at=datetime(2026, 1, 3, tzinfo=UTC),
+                profile_hash="historical-family-profile-a",
+                payload={"extra": {"industry": "Historical Technology"}},
+            )
+        )
+        db.flush()
+
+        response = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/coverage",
+            headers=auth_headers,
+            params={"as_of": "2026-12-31T00:00:00Z"},
+        )
+        assert response.status_code == 200, response.text
+        cap = next(role for role in response.json()["roles"] if role["role"] == "cap_weight")
+        assert cap["member_count"] == 2
+        assert cap["classified_member_count"] == 1
+        assert cap["classification_status"] == "partial"
+
     def test_benchmark_family_coverage_does_not_infer_point_in_time_from_requested_cutoff(
         self, client, auth_headers, db, instrument_type
     ):

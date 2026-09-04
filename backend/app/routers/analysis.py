@@ -27,7 +27,11 @@ from app.models.instrument import Instrument
 from app.models.instrument_event import InstrumentEvent, InstrumentEventFetchState
 from app.models.market_map import MarketMapSnapshot
 from app.models.ohlcv import OHLCVBar, Timeframe
-from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+from app.models.provider_observation import (
+    DatasetStatus,
+    InstrumentDatasetState,
+    InstrumentProfileSnapshot,
+)
 from app.models.provider_runtime import ProviderCapability, ProviderEntitlement
 from app.models.research import CodeAsset, CodeVersion, ResearchRun
 from app.models.screener import ScreenerDefinition, ScreenerResult
@@ -319,13 +323,57 @@ async def _family_member_metadata_readiness(
     if not member_count:
         return 0, 0, "unavailable", 0, "unavailable"
 
+    historical_profile_industry: set[int] = set()
+    if as_of is not None:
+        # EquityDetail is a current read model.  Historical family readiness must
+        # prefer the latest provider profile that was both observed and fetched
+        # by the requested cutoff, matching the point-in-time Market Map policy.
+        profile_rows = (
+            (
+                await db.execute(
+                    select(InstrumentProfileSnapshot)
+                    .where(
+                        InstrumentProfileSnapshot.instrument_id.in_(
+                            [row.constituent_instrument_id for row in rows]
+                        ),
+                        InstrumentProfileSnapshot.observed_at <= evaluation_at,
+                        InstrumentProfileSnapshot.fetched_at <= evaluation_at,
+                    )
+                    .order_by(
+                        InstrumentProfileSnapshot.instrument_id,
+                        InstrumentProfileSnapshot.observed_at.desc(),
+                        InstrumentProfileSnapshot.id.desc(),
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        seen_profile_ids: set[int] = set()
+        for profile_snapshot in profile_rows:
+            instrument_id = profile_snapshot.instrument_id
+            if instrument_id in seen_profile_ids:
+                continue
+            seen_profile_ids.add(instrument_id)
+            payload = profile_snapshot.payload if isinstance(profile_snapshot.payload, dict) else {}
+            extra = payload.get("extra")
+            extra = extra if isinstance(extra, dict) else {}
+            industry = payload.get("industry") or extra.get("industry")
+            if isinstance(industry, str) and industry.strip():
+                historical_profile_industry.add(instrument_id)
+
     weighted_count = sum(row.weight is not None for row in rows)
     classified_count = 0
     for row in rows:
         detail = row.constituent_instrument.equity_detail if row.constituent_instrument else None
         if detail is None or not detail.industry:
+            if as_of is not None and row.constituent_instrument_id in historical_profile_industry:
+                classified_count += 1
             continue
         if evaluation_at is None:
+            classified_count += 1
+            continue
+        if row.constituent_instrument_id in historical_profile_industry:
             classified_count += 1
             continue
         evidence = (detail.field_provenance or {}).get("industry")
