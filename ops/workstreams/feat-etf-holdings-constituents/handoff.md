@@ -1839,3 +1839,20 @@ The feature work is now at the human-review boundary. The local
 the prior post-repair gate at `a696277b` passed. No integration, promotion,
 deployment, or other-worktree mutation is authorized or performed. Explicit
 human closure authorization remains required before any integration attempt.
+## Final-head external variants and CI timeout — 2026-09-04
+
+Final synchronized-head CI run `33828029923` at
+`5b79b69b0a4424ae9869afec207986f293fee882` passed Backend Tests and Frontend
+Unit Tests, but its branch-declared matrix reported 481 live cases passed and
+22 skipped before three external variants: Capital Group's current CGGR
+page-backed API returned issuer-host HTTP 404, NOA's USAF route returned a TLS
+handshake error, and Donoghue Forlines encountered temporary DNS resolution
+failure. The adapter remains strict; the live contract now guards only those
+exact provider/response or transport conditions. Local focused probes passed
+NOA and Donoghue and reproduced the Capital Group 404 against the current
+issuer page/API pair.
+
+The same run's Playwright job failed before tests began because the five-minute
+`Start stack` step timed out while the frontend Docker image's `npm ci` layer
+was still running. This is infrastructure timing evidence, not an ETF or
+application failure. A fresh exact-SHA CI run is required after the guards.
