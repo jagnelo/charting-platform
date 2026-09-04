@@ -1,5 +1,35 @@
 # Project TODO Memory
 
+### 2026-09-04 — Chart renderer readiness performance guard
+
+- [x] Add a chart-root readiness marker that remains busy while data-bearing uPlot charts are
+      initializing, while allowing empty/no-data charts to settle. The workstation performance
+      guards now wait on this explicit state rather than racing the renderer.
+- [x] Run the seeded Docker-backed performance suite with five bounded pop-out churn rounds;
+      both performance specs passed (`2/2`). No visual baseline, mask, threshold, skip, provider,
+      fallback, or protected-worktree policy changed.
+- [ ] Continue the broader R1-R6 evidence work and diagnose the six unchanged visual-oracle diffs.
+
+### 2026-09-04 — Event artifact Strategy signal browser coverage
+
+- [x] Extend the Study Results browser fixture with a completed generic `events` artifact and
+      assert the authenticated `Save events as Strategy signal` action, user-scoped promotion
+      request, and created signal lineage result. The focused Playwright flow passed (`1/1`) on
+      the healthy branch-scoped Docker stack.
+- [ ] Continue occurrence promotion across compatible chart/list/filter/gauge, alert, and Study
+      Lab targets with source-run and dataset lineage preserved.
+
+### 2026-09-04 — Exact-tip gate after renderer readiness
+
+- [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at product
+      tip `8ddcb7b8`. Backend units (`1,307/1,307`), integration (`380/380`, existing `54`
+      warnings), combined coverage (`80.91%`), frontend Vitest (`930/930` across `108` files),
+      static/build/compose/provider checks, stack health, runner isolation, and functional
+      Playwright (`154` passed, `106` documented skips across `260`) all passed.
+- [ ] Obtain human review of the unchanged six visual diffs: `watchlist-column-editor-open` at
+      the two 1080p projects and `workspace-floating` at all four projects (`98/104` visual
+      cases passed). Do not alter baselines, masks, thresholds, skips, or fallback oracles.
+
 ### 2026-09-04 — Persisted event artifacts promote to Strategy signals
 
 - [x] Add a user-scoped promotion endpoint for completed runs whose immutable CodeVersion

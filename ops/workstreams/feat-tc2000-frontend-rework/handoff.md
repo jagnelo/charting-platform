@@ -1254,3 +1254,49 @@ implementation checks. No provider call, visual baseline/mask/threshold/skip cha
 integration, deployment, or other-worktree mutation occurred. The remaining compatible event
 promotion fan-out and the six unchanged visual-oracle diffs remain open; rerun the integration
 regression when Docker is available.
+
+## 2026-09-04 — Chart renderer readiness performance guard
+
+The chart renderer now exposes `aria-busy` on each `.chart-root` while a data-bearing uPlot chart
+is still initializing. Empty/no-data charts are allowed to settle, so readiness does not hang on
+legitimate empty states. The workstation performance specs wait for all chart roots to report
+ready after their existing layout-ratio guard.
+
+Evidence for this boundary:
+
+- Seeded Docker-backed performance Playwright passed `2/2` with five bounded pop-out churn rounds.
+- The focused change passed `git diff --check`; no visual baseline, mask, threshold, skip, provider,
+  fallback, or protected-worktree policy changed.
+
+Implementation commit `8ddcb7b8a517d7ce63762c8d48a9cf6e1e52d803` (`test(tc2000): wait for chart
+renderer readiness`) was pushed to `origin/feat/tc2000-frontend-rework`.
+
+## 2026-09-04 — Exact-tip exhaustive gate after renderer readiness
+
+At exact product tip `8ddcb7b8`, `make validate-integration
+INTEGRATION_BRANCH=feat/tc2000-frontend-rework` passed all stages through the authenticated
+functional browser suite. Backend units passed `1,307/1,307`; integration passed `380/380` with
+the repository's existing `54` warnings; combined backend coverage was `80.91%`; frontend Vitest
+passed `930/930` across `108` files; and functional Playwright passed `154` with `106` documented
+skips across `260` specs. Static/build, compose/provider-policy, stack-health, and research-runner
+isolation checks also passed.
+
+The gate stopped only at the unchanged visual matrix: `98/104` passed and six screenshots failed.
+`watchlist-column-editor-open` failed at visual-1080p-100 and visual-1080p-125 (`13,844` pixels),
+while `workspace-floating` failed at all four projects (`4,257` or `4,453` pixels). These counts
+match the prior exact-tip blocker and were unaffected by the readiness marker. No baseline, mask,
+threshold, skip, fallback oracle, provider rule, or protected worktree changed. Gate cleanup
+removed the assigned stack, images, volumes, and network; the Docker resource audit was clean.
+
+## 2026-09-04 — Event artifact Strategy signal browser coverage
+
+The focused authenticated Study Results browser flow now includes a completed generic `events`
+artifact fixture (run `884`), invokes the `Save events as Strategy signal` action, and asserts the
+created signal response and user-visible lineage message. Against a healthy branch-scoped Docker
+stack the test passed `1/1`; teardown removed its containers, volumes, network, and generated
+images.
+
+The test-only commit `b0d27cf2` (`test(tc2000): cover event signal promotion flow`) was pushed to
+`origin/feat/tc2000-frontend-rework`. This adds browser evidence for the direct Strategy target;
+compatible chart/list/filter/gauge, alert, and Study Lab fan-out remains open, as do the canonical
+provider/history gaps and six unchanged visual diffs.

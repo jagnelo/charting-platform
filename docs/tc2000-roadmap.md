@@ -3,13 +3,22 @@
 Status: active implementation roadmap  
 Branch: `feat/tc2000-frontend-rework`  
 Parent: `staging`  
-Last reconciled: 2026-09-03
+Last reconciled: 2026-09-04
 
 This is the concise, branch-owned execution map for the TC2000 frontend rework. The chronological
 records in `docs/project-todos.md`, `docs/tc2000-parity.md`,
 `docs/tc2000-acceptance-governance.md`, and `docs/tc2000-visual-parity.md` remain the detailed
 evidence ledgers. If a summary here conflicts with a dated test receipt or the current code, the
 current code and fresh evidence win.
+
+The latest exact-tip receipt is anchored at product commit `8ddcb7b8` (the subsequent
+`b0d27cf2` commit adds only browser coverage). The renderer-readiness guard passed its focused
+seeded performance suite (`2/2`, five bounded churn rounds). The exhaustive gate then passed all
+stages through functional Playwright—backend units `1,307/1,307`, integration `380/380` with the
+existing `54` warnings, combined coverage `80.91%`, frontend Vitest `930/930`, and functional
+Playwright `154` passes with `106` documented skips across `260` specs—before stopping at the
+unchanged visual matrix (`98/104`, six known screenshot diffs). Docker stack cleanup and resource
+accounting were clean; no visual oracle or provider fallback policy was changed.
 
 The work is one continuous delivery stint, not an MVP followed by optional phases. The workstreams
 below are dependency-ordered checkpoints so correctness, data lineage, and visual evidence can be
@@ -102,9 +111,9 @@ run, not a claim that the old counts still pass unchanged.
 | Eight-family entry matrix | Seeded Market Map, breadth, and rotation paths passed | Identity/fixture coverage is not complete provider population |
 | Market Map | Recursive sector → industry geometry, source polymorphism, selection, follow/pin/clone, and cross-tab Breadth/Study handoff implemented | Exact nested typography/gutters/hover density and point-in-time data completeness remain open |
 | Breadth and Study Lab | Recursive conditions, symbol/reference-universe comparisons, historical contracts, Python isolation, reusable immutable definitions, and some typed promotion adapters implemented | Richer history and complete promotion fan-out remain open |
-| Visual regression | Four deterministic environments historically passed 26/26 each, 104/104 total | Board-guided product baseline, not exact V25 approval |
-| Frontend static/unit checks | Last ledger reports 918/918 Vitest plus type-check and build | Historical receipt; rerun required after branch synchronization |
-| Branch ancestry | HEAD `4668e342`; local staging `8b885a2f`; branch has 2 unique commits and is 14 commits behind staging | Verified 2026-09-03; no merge/rebase performed during roadmap reconciliation |
+| Visual regression | Exact-tip four-project run at `8ddcb7b8` passed 98/104; six unchanged screenshot diffs remain | Board-guided product baseline, not exact V25 approval; do not weaken the visual policy |
+| Frontend static/unit checks | Exact-tip gate passed 930/930 Vitest across 108 files, plus type-check and build | Fresh receipt at `8ddcb7b8`; existing large-chunk build warning remains |
+| Branch ancestry | Feature HEAD `b0d27cf2`; local staging `8b885a2f`; staging is an ancestor, feature is 235 commits ahead and 0 behind | Verified 2026-09-04; no merge/rebase performed during this checkpoint |
 | Public visual corpus | 230 indexed media assets reconstructed and the board/manifest validators passed | Verified 2026-09-03 in an ephemeral inspection directory |
 
 The earlier concern that Market Map → Breadth/Study handoff was still failing is superseded by the

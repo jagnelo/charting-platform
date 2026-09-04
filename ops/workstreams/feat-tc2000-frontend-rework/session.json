@@ -53,8 +53,8 @@
   },
   "dirty_paths": [],
   "docker": {
-    "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
+    "available": true,
+    "reason": "Docker Desktop branch-scoped stack is available"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -93,13 +93,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "407181d83987f46c0a25bf8537eedc7c4e9b4e45",
-  "implementation_sha": "407181d83987f46c0a25bf8537eedc7c4e9b4e45",
+  "head": "b0d27cf24cad92da3856a5de04cd2d7aca4d3bc7",
+  "implementation_sha": "8ddcb7b8a517d7ce63762c8d48a9cf6e1e52d803",
   "interrupted": false,
-  "last_checkpoint": "2026-09-04T10:33:10.000000+00:00",
-  "last_human_progress_update": "2026-09-04T10:32:01.811705+00:00",
+  "last_checkpoint": "2026-09-04T13:41:03.000000+00:00",
+  "last_human_progress_update": "2026-09-04T13:41:03.000000+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Rerun the Docker-backed event-artifact Strategy promotion regression when Docker is available, then continue the remaining compatible chart/list/filter/gauge, alert, and Study Lab promotion fan-out without changing visual policy or provider fallback rules.",
+  "next_action": "Continue the remaining compatible chart/list/filter/gauge, alert, and Study Lab promotion fan-out, canonical provider/history enrichment, and visual-oracle diagnosis without changing visual policy or provider fallback rules.",
   "plan_hash": "4b79ebcf00972a204e61ef08c3b48eb009aada4089815982139b7f68b084089d",
   "planning_required": false,
   "planning_state": "ready",
@@ -108,14 +108,14 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "The exact-tip exhaustive gate at 2eb93854 remains blocked by six unchanged visual diffs (98/104), while the functional browser suite passed 154/260 with 106 documented skips. Canonical provider/history gaps remain open (80 QQQ HOLDING-* placeholders, W1/MN history, QQQE/SPDR dated sources). The Docker-backed event-artifact promotion regression is recorded but the local Docker daemon is unavailable.",
-    "current_phase": "R4_event_artifact_signal_promotion",
-    "next_action": "Rerun the Docker-backed event-artifact Strategy promotion regression when Docker is available, then continue the remaining compatible chart/list/filter/gauge, alert, and Study Lab promotion fan-out without changing visual policy or provider fallback rules.",
+    "current_blocker": "The exact-tip exhaustive gate at 8ddcb7b8 remains blocked by six unchanged visual diffs (98/104), while the functional browser suite passed 154/260 with 106 documented skips. Canonical provider/history gaps remain open (80 QQQ HOLDING-* placeholders, W1/MN history, QQQE/SPDR dated sources). The Docker-backed event-artifact promotion regression now passes in the healthy branch-scoped stack.",
+    "current_phase": "R4_event_artifact_strategy_browser_coverage",
+    "next_action": "Continue the remaining compatible chart/list/filter/gauge, alert, and Study Lab promotion fan-out without changing visual policy or provider fallback rules.",
     "total": 10,
-    "updated_at": "2026-09-04T10:32:01.811507+00:00"
+      "updated_at": "2026-09-04T13:41:03.000000+00:00"
   },
-  "remote": "407181d83987f46c0a25bf8537eedc7c4e9b4e45",
-  "remote_sha": "407181d83987f46c0a25bf8537eedc7c4e9b4e45",
+  "remote": "b0d27cf24cad92da3856a5de04cd2d7aca4d3bc7",
+  "remote_sha": "b0d27cf24cad92da3856a5de04cd2d7aca4d3bc7",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
