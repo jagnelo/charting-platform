@@ -1,5 +1,7 @@
 """Backend-only market-data governance and diagnostics endpoints."""
 
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,13 +14,17 @@ from app.models.market_data_foundation import (
     ExchangeSessionRule,
     FundamentalFact,
     InstrumentIdentityQuarantine,
+    MarketCoverageSnapshot,
+    MarketDataAnomaly,
     MarketEvent,
     MarketSeries,
     ProviderQuotaWindow,
     ProviderRoutingDecision,
+    ProviderShadowObservation,
     ShortInterestObservation,
 )
 from app.models.user import User
+from app.services.market_data_monitoring import build_shadow_report
 
 router = APIRouter(prefix="/market-data", tags=["market-data-admin"])
 
@@ -285,6 +291,113 @@ async def list_short_interest(
             "source": row.source,
             "source_identifier": row.source_identifier,
             "payload": row.payload,
+        }
+        for row in rows
+    ]
+
+
+@router.get("/coverage")
+async def list_market_coverage(
+    instrument_id: int | None = None,
+    status: str | None = None,
+    limit: int = Query(default=100, ge=1, le=500),
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    query = select(MarketCoverageSnapshot).order_by(
+        MarketCoverageSnapshot.evaluated_at.desc()
+    ).limit(limit)
+    if instrument_id is not None:
+        query = query.where(MarketCoverageSnapshot.instrument_id == instrument_id)
+    if status:
+        query = query.where(MarketCoverageSnapshot.status == status)
+    rows = (await db.execute(query)).scalars().all()
+    return [
+        {
+            "id": row.id,
+            "instrument_id": row.instrument_id,
+            "market_series_id": row.market_series_id,
+            "timeframe": row.timeframe,
+            "expected_start": row.expected_start,
+            "expected_end": row.expected_end,
+            "expected_bars": row.expected_bars,
+            "observed_bars": row.observed_bars,
+            "coverage_ratio": row.coverage_ratio,
+            "status": row.status,
+            "missing_slices": row.missing_slices,
+            "evaluated_at": row.evaluated_at,
+            "provenance": row.provenance,
+        }
+        for row in rows
+    ]
+
+
+@router.get("/shadow")
+async def get_market_data_shadow_report(
+    since: datetime | None = None,
+    capability: str | None = None,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    return await build_shadow_report(db, since=since, capability=capability)
+
+
+@router.get("/shadow/observations")
+async def list_shadow_observations(
+    capability: str | None = None,
+    limit: int = Query(default=100, ge=1, le=500),
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    query = select(ProviderShadowObservation).order_by(
+        ProviderShadowObservation.observed_at.desc()
+    ).limit(limit)
+    if capability:
+        query = query.where(ProviderShadowObservation.capability == capability)
+    rows = (await db.execute(query)).scalars().all()
+    return [
+        {
+            "id": row.id,
+            "request_key": row.request_key,
+            "capability": row.capability,
+            "instrument_id": row.instrument_id,
+            "primary_data_source_id": row.primary_data_source_id,
+            "alternate_data_source_id": row.alternate_data_source_id,
+            "comparison_status": row.comparison_status,
+            "discrepancy_metrics": row.discrepancy_metrics,
+            "routing_enabled": row.routing_enabled,
+            "observed_at": row.observed_at,
+            "provenance": row.provenance,
+        }
+        for row in rows
+    ]
+
+
+@router.get("/anomalies")
+async def list_market_data_anomalies(
+    status: str | None = Query(default="open"),
+    severity: str | None = None,
+    limit: int = Query(default=100, ge=1, le=500),
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    query = select(MarketDataAnomaly).order_by(MarketDataAnomaly.detected_at.desc()).limit(limit)
+    if status:
+        query = query.where(MarketDataAnomaly.status == status)
+    if severity:
+        query = query.where(MarketDataAnomaly.severity == severity)
+    rows = (await db.execute(query)).scalars().all()
+    return [
+        {
+            "id": row.id,
+            "instrument_id": row.instrument_id,
+            "market_series_id": row.market_series_id,
+            "anomaly_type": row.anomaly_type,
+            "severity": row.severity,
+            "status": row.status,
+            "detected_at": row.detected_at,
+            "details": row.details,
+            "source": row.source,
         }
         for row in rows
     ]

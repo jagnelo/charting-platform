@@ -54,6 +54,10 @@ symbol APIs:
   `provider_routing_decision` make reservations and routing explanations
   durable across workers; administrators can inspect them through the
   backend-only `/api/v1/market-data/*` diagnostics routes.
+- `market_coverage_snapshot`, `provider_shadow_observation`, and
+  `market_data_anomaly` retain coverage gaps, disabled-routing comparisons, and
+  reviewable provider disagreements. `/coverage`, `/shadow`, and `/anomalies`
+  expose these records to backend operators without enabling a route.
 - QuantLib American-option calculations are labeled with model/version/input
   provenance and fall back explicitly to the legacy Black-Scholes estimator
   when the model cannot be evaluated.

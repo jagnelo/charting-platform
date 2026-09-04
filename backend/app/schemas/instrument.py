@@ -74,9 +74,6 @@ class InstrumentListingOut(BaseModel):
     effective_at: datetime | None = None
     known_at: datetime | None = None
     delisted_at: datetime | None = None
-    last_verified_at: datetime | None = None
-    source: str | None = None
-    provenance: dict | None = None
     exchange: ExchangeOut | None = None
 
 

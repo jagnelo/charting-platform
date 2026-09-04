@@ -74,7 +74,7 @@ user
 
 **Provider routing is DB-controlled at runtime** — env vars seed the initial provider chain, rate limits, and freshness windows, but day-to-day ordering, pinning, and auto-weighting live in `provider_policy` and `provider_health_state`.
 
-**Quota-aware routing is durable and explainable** — workers reserve units in `provider_quota_window`, receive a short-lived `provider_workload_lease`, and write a `provider_routing_decision` explaining accepted/rejected candidates. Optional provider descriptors are visible to administrators but remain disabled until reviewed.
+**Quota-aware routing is durable and explainable** — workers reserve units in `provider_quota_window`, receive a short-lived `provider_workload_lease`, and write a `provider_routing_decision` explaining accepted/rejected candidates. Coverage snapshots, shadow comparisons, and anomaly records are also durable; shadow rows default to `routing_enabled=false`. Optional provider descriptors are visible to administrators but remain disabled until reviewed.
 
 ---
 

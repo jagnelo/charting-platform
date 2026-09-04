@@ -11,6 +11,7 @@ from app.database import AsyncSessionLocal
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.services.market_data import fetch_ohlcv
+from app.services.market_data_monitoring import build_shadow_report
 from app.services.market_refresh_queue import (
     claim_refresh_jobs,
     complete_refresh_job,
@@ -140,3 +141,17 @@ async def process_refresh_jobs(ctx: dict, limit: int = 50) -> dict:
                 retried += 1
         await db.commit()
         return {"claimed": len(jobs), "completed": completed, "retried": retried}
+
+
+async def run_market_data_shadow_report(ctx: dict) -> dict:
+    """Produce the daily operator report without changing routing behavior."""
+
+    async with AsyncSessionLocal() as db:
+        report = await build_shadow_report(db)
+        logger.info(
+            "market-data shadow report: observations=%s discrepancies=%s rate=%.4f",
+            report["observations"],
+            report["discrepancies"],
+            report["discrepancy_rate"],
+        )
+        return report

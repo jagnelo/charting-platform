@@ -59,6 +59,15 @@ def representative_request(capability: ProviderCapability) -> dict[str, Any]:
         ProviderCapability.UNIVERSE_DISCOVERY: {"quote_type": "EQUITY", "offset": 0},
         ProviderCapability.OPTION_CHAIN: {"symbol": "SPY"},
         ProviderCapability.OPTION_QUOTE_HISTORY: {"symbol": "SPY", "days": 5},
+        ProviderCapability.CORPORATE_ACTIONS: {"symbol": "SPY"},
+        ProviderCapability.EARNINGS: {"symbol": "SPY"},
+        ProviderCapability.FUNDAMENTALS: {"symbol": "SPY", "cik": "0000320193"},
+        ProviderCapability.SHORT_INTEREST: {"symbol": "SPY"},
+        ProviderCapability.MARKET_CALENDAR: {"symbol": "SPY"},
+        ProviderCapability.FUTURES_HISTORY: {"symbol": "ES=F", "timeframe": "D1", "limit": 5},
+        ProviderCapability.CRYPTO_HISTORY: {"symbol": "BTC-USD", "timeframe": "D1", "limit": 5},
+        ProviderCapability.OPTIONS_CURRENT: {"symbol": "SPY"},
+        ProviderCapability.MARKET_EVENTS: {"symbol": "SPY"},
     }
     return dict(values[capability])
 
@@ -125,6 +134,14 @@ async def default_probe(
         ProviderCapability.UNIVERSE_DISCOVERY: "discover_universe_page",
         ProviderCapability.OPTION_CHAIN: "fetch_option_chain",
         ProviderCapability.OPTION_QUOTE_HISTORY: "fetch_option_quote_history",
+        ProviderCapability.CORPORATE_ACTIONS: "fetch_instrument_events",
+        ProviderCapability.EARNINGS: "fetch_instrument_events",
+        ProviderCapability.FUNDAMENTALS: "fetch_fundamental_facts",
+        ProviderCapability.SHORT_INTEREST: "fetch_short_interest",
+        ProviderCapability.FUTURES_HISTORY: "fetch_latest_ohlcv",
+        ProviderCapability.CRYPTO_HISTORY: "fetch_latest_ohlcv",
+        ProviderCapability.OPTIONS_CURRENT: "fetch_option_chain",
+        ProviderCapability.MARKET_EVENTS: "fetch_market_events",
     }.get(capability)
     if method_name is None:
         raise RuntimeError(f"no representative probe contract for {capability.value}")
@@ -141,12 +158,25 @@ async def default_probe(
         ProviderCapability.INSTRUMENT_IDENTIFIERS,
         ProviderCapability.OPTION_CHAIN,
         ProviderCapability.OPTION_QUOTE_HISTORY,
+        ProviderCapability.CORPORATE_ACTIONS,
+        ProviderCapability.EARNINGS,
+        ProviderCapability.SHORT_INTEREST,
+        ProviderCapability.OPTIONS_CURRENT,
+        ProviderCapability.MARKET_EVENTS,
     }:
         args = {"symbol": request["symbol"]}
     if capability == ProviderCapability.PRICE_HISTORY:
         args = {"symbol": request["symbol"], "timeframe": Timeframe.D1, "limit": request["limit"]}
     if capability == ProviderCapability.UNIVERSE_DISCOVERY:
         args = {"quote_type": request["quote_type"], "offset": request["offset"]}
+    if capability == ProviderCapability.FUNDAMENTALS:
+        args = {"cik": request["cik"]}
+    if capability in {ProviderCapability.FUTURES_HISTORY, ProviderCapability.CRYPTO_HISTORY}:
+        args = {
+            "symbol": request["symbol"],
+            "timeframe": Timeframe.D1,
+            "limit": request["limit"],
+        }
     if capability == ProviderCapability.OPTION_QUOTE_HISTORY:
         now = datetime.now(UTC)
         args = {

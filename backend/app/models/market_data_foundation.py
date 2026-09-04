@@ -360,3 +360,82 @@ class ShortInterestObservation(Base, TimestampMixin):
             "instrument_id", "settlement_date", "source", name="uq_short_interest_observation"
         ),
     )
+
+
+class MarketCoverageSnapshot(Base):
+    """Point-in-time coverage measurement for one explicitly scoped series."""
+
+    __tablename__ = "market_coverage_snapshot"
+
+    id: Mapped[int] = mapped_column(BIGINT_ID, primary_key=True, autoincrement=True)
+    instrument_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("instrument.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    market_series_id: Mapped[int | None] = mapped_column(
+        BIGINT_ID, ForeignKey("market_series.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    timeframe: Mapped[str] = mapped_column(String(12), nullable=False)
+    expected_start: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    expected_end: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    expected_bars: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    observed_bars: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    coverage_ratio: Mapped[Decimal] = mapped_column(Numeric(12, 8), nullable=False, default=0)
+    status: Mapped[str] = mapped_column(String(24), nullable=False, default="unavailable", index=True)
+    missing_slices: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    evaluated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    provenance: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "market_series_id", "timeframe", "evaluated_at", name="uq_market_coverage_snapshot"
+        ),
+        Index("ix_market_coverage_snapshot_evaluated", "evaluated_at"),
+    )
+
+
+class ProviderShadowObservation(Base):
+    """Comparison evidence captured while a candidate route is still shadowed."""
+
+    __tablename__ = "provider_shadow_observation"
+
+    id: Mapped[int] = mapped_column(BIGINT_ID, primary_key=True, autoincrement=True)
+    request_key: Mapped[str] = mapped_column(String(180), nullable=False, index=True)
+    capability: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    instrument_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("instrument.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    primary_data_source_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("data_source.id", ondelete="SET NULL"), nullable=True
+    )
+    alternate_data_source_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("data_source.id", ondelete="SET NULL"), nullable=True
+    )
+    comparison_status: Mapped[str] = mapped_column(String(24), nullable=False, index=True)
+    discrepancy_metrics: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    routing_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    provenance: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+
+    __table_args__ = (
+        Index("ix_provider_shadow_observation_observed", "observed_at"),
+    )
+
+
+class MarketDataAnomaly(Base):
+    """Reviewable anomaly or provider disagreement, never silently discarded."""
+
+    __tablename__ = "market_data_anomaly"
+
+    id: Mapped[int] = mapped_column(BIGINT_ID, primary_key=True, autoincrement=True)
+    instrument_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("instrument.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    market_series_id: Mapped[int | None] = mapped_column(
+        BIGINT_ID, ForeignKey("market_series.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    anomaly_type: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    severity: Mapped[str] = mapped_column(String(16), nullable=False, default="info", index=True)
+    status: Mapped[str] = mapped_column(String(24), nullable=False, default="open", index=True)
+    detected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    details: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    source: Mapped[str] = mapped_column(String(80), nullable=False)

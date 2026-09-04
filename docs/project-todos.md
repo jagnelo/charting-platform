@@ -22,6 +22,9 @@
       durable persistence helpers, and explicit crypto/futures/options capability
       labels. Additive queue workers now separate broad D1 scheduling from
       provider I/O and retry leases.
+- [x] Add durable coverage snapshots, shadow observations, and reviewable
+      anomaly records plus backend-only reports; these remain observational and
+      cannot enable routing by themselves.
 - [ ] Continue concrete optional adapters, full US universe/lifecycle
       reconciliation, coverage/shadow reporting, and the separate post-merge
       30-day observation run. New routing remains disabled until the workstream
