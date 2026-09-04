@@ -301,6 +301,36 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.text()).toContain('Alert created from event filter “Breakout event filter”')
   })
 
+  it('exposes named filter and alert actions for structured-study event artifacts', async () => {
+    apiGet.mockResolvedValue([{ id: 30, status: 'completed', code_version_id: 14, output_contract: 'study', run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [
+      {
+        id: 19,
+        name: 'occurrences',
+        artifact_type: 'events',
+        payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-02T00:00:00Z', kind: 'breakout', instrument_id: 7 }] },
+      },
+    ] }])
+    apiPost.mockImplementation((path: string, body: unknown) => {
+      if (path === '/research/runs/30/promote-event-filter') return Promise.resolve({ id: 64, name: 'Occurrences filter' })
+      if (path === '/alerts/screener') return Promise.resolve({ id: 65 })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    const saveFilter = wrapper.get('[aria-label="Save filter: occurrences"]')
+    const promoteAlert = wrapper.get('[aria-label="Promote alert: occurrences"]')
+    await saveFilter.trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/research/runs/30/promote-event-filter', { artifact_name: 'occurrences' })
+    expect(wrapper.text()).toContain('Saved event artifact “occurrences” as a reusable watchlist filter.')
+
+    await promoteAlert.trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 64, trigger_type: 'both', repeat: true, notes: 'Created from structured event research run 30' })
+    expect(wrapper.text()).toContain('Promoted event artifact “occurrences” to an active alert.')
+  })
+
   it('promotes only a completed Python breadth history and reports the lineage-preserving scan', async () => {
     apiGet.mockResolvedValue([{ id: 20, status: 'completed', code_version_id: 4, run_config: { execution_mode: 'breadth_history' }, dataset_manifest: {}, diagnostics: [], artifacts: [
       { id: 11, name: 'breadth_history', artifact_type: 'breadth_history', payload: { value: { points: [{ timestamp: '2026-01-01T00:00:00Z', percentage: 1, requested_count: 1, eligible_count: 1, pass_count: 1, excluded_count: 0, coverage: 1 }], occurrences: [] } } },

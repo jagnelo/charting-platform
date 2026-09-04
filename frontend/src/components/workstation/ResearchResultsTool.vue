@@ -75,6 +75,10 @@
               <label>Type <select v-model="occurrenceKindFilter" :aria-label="`${artifact.name} event type filter`"><option value="all">All</option><option v-for="kind in eventKinds(artifact)" :key="kind" :value="kind">{{ kind.replace(/_/g, ' ') }}</option></select></label>
               <span role="status" aria-live="polite">{{ filteredEventRows(artifact).length }} shown</span>
             </div>
+            <div v-if="canPromoteStructuredEventArtifact(selectedRun, artifact)" class="research-results-tool__event-promotions" role="group" :aria-label="`${artifact.name} promotions`">
+              <button type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save filter: ${artifact.name}`" @click="promoteEventArtifact(selectedRun, artifact.name, 'filter')">{{ promoting ? 'Promoting…' : `Save filter: ${artifact.name}` }}</button>
+              <button type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Promote alert: ${artifact.name}`" @click="promoteEventArtifact(selectedRun, artifact.name, 'alert')">{{ promoting ? 'Promoting…' : `Promote alert: ${artifact.name}` }}</button>
+            </div>
             <div class="research-results-tool__events" role="list" :aria-label="`${artifact.name} filtered occurrences`">
               <button v-for="(event, index) in filteredEventRows(artifact)" :key="`${event.symbol}-${event.timestamp}-${index}`" type="button" role="listitem" :aria-label="`${event.symbol} ${event.timestamp} occurrence`" @click="emit('occurrence', event)"><strong>{{ event.symbol }}</strong><span>{{ event.kind ? `${event.kind.replace(/_/g, ' ')} · ` : '' }}{{ event.timestamp }}</span></button>
               <small v-if="!filteredEventRows(artifact).length">No events match the current filters.</small>
@@ -381,12 +385,20 @@ function canPromoteBreadthBoolean(run: ResearchRunSummary) {
       || (run.run_config?.output_contract === 'series' && (!target || typeof target !== 'object' || String((target as Record<string, unknown>).scope ?? 'member') === 'member')))
 }
 function canPromoteEventSignal(run: ResearchRunSummary) {
-  return run.status === 'completed' && run.artifacts.some(artifact => artifact.artifact_type === 'events')
+  return run.status === 'completed'
+    && (!run.output_contract || run.output_contract === 'events')
+    && run.artifacts.some(artifact => artifact.artifact_type === 'events')
 }
 function canPromoteEventFilter(run: ResearchRunSummary) {
   return run.status === 'completed'
     && run.output_contract === 'events'
     && run.artifacts.some(artifact => artifact.artifact_type === 'events')
+}
+function canPromoteStructuredEventArtifact(run: ResearchRunSummary | null, artifact: ResearchRunSummary['artifacts'][number]) {
+  return Boolean(run)
+    && run?.status === 'completed'
+    && run.output_contract === 'study'
+    && artifact.artifact_type === 'events'
 }
 function canPromoteBreadthStudy(run: ResearchRunSummary) {
   return run.status === 'completed'
@@ -569,6 +581,23 @@ async function promoteEventAlert(run: ResearchRunSummary) {
     promoting.value = false
   }
 }
+async function promoteEventArtifact(run: ResearchRunSummary, artifactName: string, target: 'filter' | 'alert') {
+  promoting.value = true
+  promotionMessage.value = ''
+  try {
+    const promoted = await api.post<{ id: number; name: string }>(`/research/runs/${run.id}/promote-event-filter`, { artifact_name: artifactName })
+    if (target === 'alert') {
+      await api.post('/alerts/screener', { screener_id: promoted.id, trigger_type: 'both', repeat: true, notes: `Created from structured event research run ${run.id}` })
+      promotionMessage.value = `Promoted event artifact “${artifactName}” to an active alert.`
+    } else {
+      promotionMessage.value = `Saved event artifact “${artifactName}” as a reusable watchlist filter.`
+    }
+  } catch (cause: any) {
+    promotionMessage.value = cause?.message ?? `Unable to promote the structured event artifact to a ${target}`
+  } finally {
+    promoting.value = false
+  }
+}
 async function promoteStudy(run: ResearchRunSummary) {
   promoting.value = true
   promotionMessage.value = ''
@@ -640,4 +669,5 @@ onBeforeUnmount(() => {
 .research-results-tool__run-guidance { margin:3px 0; color:#91a8b4; line-height:1.35; }.research-results-tool__status--failed,.research-results-tool__status--canceled { color:#ed9696; }
 .research-results-tool__events small { grid-column:2; color:#91a8b4; }.research-results-tool__breadth-history { display:grid; gap:3px; }.research-results-tool__breadth-history :deep(.generic-breadth-history) { height:150px; }
 .research-results-tool__occurrence-filters { display:flex; align-items:center; flex-wrap:wrap; gap:5px; color:#91a8b4; }.research-results-tool__occurrence-filters label { display:flex; align-items:center; gap:3px; }.research-results-tool__occurrence-filters input,.research-results-tool__occurrence-filters select { min-width:80px; border:1px solid #3a4954; background:#121a20; color:#dce6ed; font:inherit; padding:2px 3px; }.research-results-tool__occurrence-filters span { margin-left:auto; }
+.research-results-tool__event-promotions { display:flex; flex-wrap:wrap; gap:4px; }.research-results-tool__event-promotions button { padding:2px 4px; }
 </style>

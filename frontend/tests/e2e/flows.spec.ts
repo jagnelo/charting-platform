@@ -2967,6 +2967,16 @@ test.describe('TC2000 workstation', () => {
         reproducibility_hash: 'sha256:event-signal',
         artifact_count: 1,
         artifacts: [{ id: 4, name: 'breakout_events', artifact_type: 'events', payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-02', kind: 'breakout' }] } }],
+      }, {
+        id: 885,
+        status: 'completed',
+        code_version_id: 885,
+        output_contract: 'study',
+        run_config: { execution_mode: 'study', output_contract: 'study', symbol: 'SPY' },
+        dataset_manifest: { source: 'canonical_database', timeframe: 'D1' },
+        reproducibility_hash: 'sha256:structured-event-results',
+        artifact_count: 1,
+        artifacts: [{ id: 5, name: 'occurrences', artifact_type: 'events', payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-02', kind: 'breakout' }] } }],
       }]) })
     })
     await page.route(/\/api\/v1\/research\/runs\/883$/, async route => {
@@ -3002,6 +3012,18 @@ test.describe('TC2000 workstation', () => {
     await page.route(/\/api\/v1\/research\/runs\/884\/promote-event-signal$/, async route => {
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 43, name: 'Breakout events signal' }) })
     })
+    await page.route(/\/api\/v1\/research\/runs\/885\/promote-event-filter$/, async route => {
+      expect(route.request().method()).toBe('POST')
+      expect(await route.request().postDataJSON()).toEqual({ artifact_name: 'occurrences' })
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 44, name: 'Structured occurrences filter' }) })
+    })
+    await page.route(/\/api\/v1\/alerts\/screener$/, async route => {
+      if (route.request().method() !== 'POST') return route.continue()
+      const body = route.request().postDataJSON()
+      if (body?.screener_id !== 44) return route.continue()
+      expect(body).toMatchObject({ screener_id: 44, trigger_type: 'both', repeat: true, notes: 'Created from structured event research run 885' })
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 45 }) })
+    })
     await page.goto('/chart')
     await expect(page.locator('.workstation')).toBeVisible()
     const studyLayoutTab = page.locator('.workstation__tabs > button').filter({ hasText: 'Study Lab' }).last()
@@ -3029,6 +3051,13 @@ test.describe('TC2000 workstation', () => {
     await expect(results.getByRole('button', { name: 'Save events as Strategy signal' })).toBeVisible()
     await results.getByRole('button', { name: 'Save events as Strategy signal' }).click()
     await expect(results).toContainText('Saved event artifact as Strategy signal “Breakout events signal” (#43)')
+    await results.locator('.research-results-tool__run').filter({ hasText: 'Run #885' }).click()
+    await expect(results.getByRole('button', { name: 'Save filter: occurrences' })).toBeVisible()
+    await expect(results.getByRole('button', { name: 'Promote alert: occurrences' })).toBeVisible()
+    await results.getByRole('button', { name: 'Save filter: occurrences' }).click()
+    await expect(results).toContainText('Saved event artifact “occurrences” as a reusable watchlist filter.')
+    await results.getByRole('button', { name: 'Promote alert: occurrences' }).click()
+    await expect(results).toContainText('Promoted event artifact “occurrences” to an active alert.')
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
