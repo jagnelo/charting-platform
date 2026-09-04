@@ -1,6 +1,6 @@
 {
   "acceptance_criteria": [],
-  "active_session_id": "3761b3fd-d526-4630-a0e4-47d630f3d50c",
+  "active_session_id": "f8c05214-15b2-4724-af76-e65b53440639",
   "branch": "feat/market-data-provider-platform",
   "dirty_paths": [],
   "docker": {
@@ -30,16 +30,18 @@
     "objective": "Advance feat/market-data-provider-platform: Implement the approved US-first multi-provider market-data platform plan: canonical FIGI-based identity and issuer model; exchange/session calendars; market-series scoped raw/canonical OHLCV with local rollups and adjustments; provider capability/entitlement/quota routing; US universe/lifecycle, events, SEC fundamentals, FINRA short interest, current options with local high-fidelity Greeks, optional futures and crypto providers; backend admin/diagnostic APIs; and disabled 30-day shadow monitoring. Backend/data only; do not modify frontend or ETF constituent provider work.. Acceptance criteria: complete the durable branch plan first. Required local profile: pending_agent_assessment. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
   "goal_request_state": "planning_required",
-  "goal_state": "planning_required",
+  "goal_state": "resumed_after_takeover",
   "head": "890ceed3b7efb2fc3856aa75cbc30e90e7867b96",
   "implementation_sha": "8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35",
   "local_validation_profile": "pending_agent_assessment",
-  "next_action": "run make agent-session-start",
+  "next_action": "resume from the durable handoff and inspect displaced session state",
   "parent_branch": "staging",
   "plan_hash": "fa1d4f507996771946df6e5031bf14decc3f60df7a0c144375f3ac9506f5ec1b",
   "planning_required": true,
   "planning_state": "draft",
-  "previous_session_ids": [],
+  "previous_session_ids": [
+    "3761b3fd-d526-4630-a0e4-47d630f3d50c"
+  ],
   "progress": {
     "completed": [],
     "current_blocker": "none",
@@ -52,6 +54,14 @@
   "retained_docker_resources": [],
   "schema": 2,
   "session_id": "3761b3fd-d526-4630-a0e4-47d630f3d50c",
+  "takeover_history": [
+    {
+      "at": "2026-09-04T16:15:49.067134+00:00",
+      "displaced_session_id": "3761b3fd-d526-4630-a0e4-47d630f3d50c",
+      "new_session_id": "f8c05214-15b2-4724-af76-e65b53440639",
+      "reason": "Human authorized implementation in the current request: proceed with the approved market-data-provider-platform plan in this exact feature worktree."
+    }
+  ],
   "validation_tier": "full_integration",
   "workstream": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-market-data-provider-platform/ops/workstreams/feat-market-data-provider-platform",
   "workstream_files": [
