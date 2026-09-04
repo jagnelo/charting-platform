@@ -8,6 +8,7 @@ from app.providers.registry import (
     get_option_chain_provider,
     get_price_history_provider,
     get_provider,
+    get_search_provider_chain,
     list_provider_capabilities,
 )
 
@@ -42,6 +43,18 @@ class TestProviderRegistry:
         assert get_default_metadata_provider().name == "edgar"
         assert get_default_event_provider().name == "alpaca"
         assert get_default_discovery_provider().name == "alpaca"
+
+    def test_search_provider_chain_is_bounded_ordered_and_keeps_default(self, monkeypatch):
+        from app.config import settings
+
+        monkeypatch.setattr(
+            settings,
+            "PROVIDER_CHAIN_SEEDS",
+            {**settings.PROVIDER_CHAIN_SEEDS, "instrument_search": ["massive", "massive"]},
+        )
+        monkeypatch.setattr(settings, "DEFAULT_METADATA_PROVIDER", "edgar")
+
+        assert [provider.name for provider in get_search_provider_chain()] == ["massive", "edgar"]
 
     def test_yfinance_exposes_price_and_options_capabilities(self):
         capabilities = set(list_provider_capabilities("yfinance"))

@@ -176,6 +176,36 @@ def get_default_search_provider() -> InstrumentSearchProvider:
     return get_search_provider(settings.DEFAULT_METADATA_PROVIDER)
 
 
+def get_search_provider_chain() -> list[InstrumentSearchProvider]:
+    """Return the bounded, ordered providers configured for instrument search.
+
+    ETF maintenance may need to reconcile issuer names that are absent from the
+    default metadata provider's search index.  Keep that fallback explicit and
+    bounded by the reviewed ``instrument_search`` chain; never discover or fan
+    out to every registered adapter.  The default metadata provider is appended
+    when an operator supplies a custom chain that omits it, preserving the
+    historical default behaviour.
+    """
+    configured = list(settings.PROVIDER_CHAIN_SEEDS.get("instrument_search", []))
+    default_name = settings.DEFAULT_METADATA_PROVIDER
+    if default_name and default_name not in configured:
+        configured.append(default_name)
+
+    providers: list[InstrumentSearchProvider] = []
+    seen: set[str] = set()
+    for name in configured:
+        if not name or name in seen:
+            continue
+        seen.add(name)
+        try:
+            providers.append(get_search_provider(name))
+        except KeyError:
+            # A stale deployment setting must not make maintenance fail; the
+            # provider capability matrix will surface the configuration gap.
+            continue
+    return providers
+
+
 def get_default_event_provider() -> EventProvider:
     return get_event_provider(settings.DEFAULT_EVENT_PROVIDER)
 

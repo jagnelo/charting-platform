@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-09-04 — Bounded provider-search chain for canonical maintenance
+
+- [x] Extend identifier-only ETF constituent maintenance to use the reviewed,
+      ordered `instrument_search` provider chain (deduplicated and capability-checked),
+      appending the configured metadata provider when an operator supplies a custom chain
+      that omits it. Each provider remains row-local and bounded (`limit=8`); outages are
+      isolated, and promotion still requires one unique name match plus a full compatible
+      metadata profile.
+- [x] Keep the chain maintenance-only: interactive canonical search and source resolution
+      remain provider-free, and no symbol guessing, latest-only fallback, or fabricated bars
+      are introduced.
+- [x] Add focused resolver and registry coverage for ordered fallback, duplicate suppression,
+      and default-provider retention (`30` tests pass with `--no-cov`; the focused command's
+      repository-wide coverage gate is intentionally not used as a slice-level signal).
+- [ ] Re-run a separately authorized disposable QQQ classification batch with the configured
+      chain and record whether any additional placeholders promote; do not count provider
+      search reachability as canonical readiness until the persisted snapshot and history
+      coverage are re-measured.
+
 ### 2026-09-04 — Bounded canonical QQQ reconciliation and history handoff
 
 - [x] Re-run the dated `nasdaq100`/`cap_weight` holdings maintenance on a fresh,

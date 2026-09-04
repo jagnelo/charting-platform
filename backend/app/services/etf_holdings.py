@@ -25,8 +25,8 @@ from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdent
 from app.providers import (
     ensure_data_source,
     get_default_metadata_provider,
-    get_default_search_provider,
     get_identifier_providers,
+    get_search_provider_chain,
 )
 from app.providers.base import IdentifierRecord, InstrumentProfile, ListingRecord
 from app.schemas.etf_holdings import (
@@ -402,18 +402,27 @@ async def _provider_enriched_constituent_instrument(
         )
 
     # SEC N-PORT holdings frequently carry a CUSIP/ISIN and issuer name but no
-    # ticker.  Once stable-identifier mappings are exhausted, use the configured
-    # search provider as a conservative symbol bridge.  The search result is
-    # never treated as sufficient identity evidence: a unique best name match
-    # must still hydrate a full metadata profile before the placeholder can be
-    # promoted.  This keeps the operation auditable and prevents arbitrary
-    # symbol guessing or ambiguous cross-listed promotion.
+    # ticker. Once stable-identifier mappings are exhausted, use the bounded,
+    # configured search chain as a conservative symbol bridge. Search results
+    # are merged only for this maintenance row; they are never exposed as an
+    # interactive workstation lookup or treated as sufficient identity evidence.
+    # A unique best name match must still hydrate a full metadata profile before
+    # the placeholder can be promoted. This keeps the operation auditable and
+    # prevents arbitrary symbol guessing or ambiguous cross-listed promotion.
     if row.name and not _normalize_symbol(row.symbol):
+        search_results = []
         try:
-            search_provider = get_default_search_provider()
-            search_results = search_provider.search_instruments(row.name, limit=8)
+            search_providers = get_search_provider_chain()
         except Exception:
-            search_results = []
+            search_providers = []
+        for search_provider in search_providers:
+            try:
+                search_results.extend(search_provider.search_instruments(row.name, limit=8) or [])
+            except Exception:
+                # Provider outages are row-local maintenance failures. Continue
+                # through the reviewed chain and leave the row unresolved when
+                # no provider supplies auditable identity evidence.
+                continue
 
         scored_candidates: dict[str, tuple[int, str]] = {}
         for result in search_results or []:

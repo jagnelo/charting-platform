@@ -1017,3 +1017,20 @@ The gate removed its assigned containers, volumes, network, and generated images
 after teardown reports zero containers, zero volumes, zero known image bytes, and complete
 ownership accounting. This is the current review receipt; the 80 QQQ placeholders, W1/MN and
 QQQE/SPDR data gaps, and broader R1-R7 work remain open.
+
+## 2026-09-04 — Maintenance search chain extension
+
+The identifier-only ETF reconciliation bridge now consumes the reviewed, ordered
+`instrument_search` provider chain instead of only the default search adapter. The registry
+deduplicates configured names, skips stale providers that do not expose the search capability,
+and appends the configured metadata provider when a custom chain omits it. The reconciliation
+path remains bounded per row (`limit=8` per provider), catches provider-local failures, and merges
+results only for the current maintenance decision; interactive canonical search and source reads
+remain provider-free.
+
+Promotion policy is unchanged: one unique highest-scoring name match must still hydrate a full
+compatible metadata profile before a placeholder is promoted. No symbol guessing, latest-only
+fallback, or fabricated timeframe bars were added. Focused resolver and registry coverage passes
+30 tests with `--no-cov`; the repository-wide coverage threshold is not treated as a slice-level
+signal. A fresh, separately authorized classification batch is still required to measure whether
+the configured chain changes the persisted QQQ 80-placeholder gap.

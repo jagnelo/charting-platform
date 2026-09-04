@@ -856,8 +856,8 @@ async def test_resolver_promotes_identifier_only_row_through_unique_name_search(
         [ProviderSearchResult(symbol="AZN", name="AstraZeneca PLC", instrument_type="EQUITY")]
     )
     monkeypatch.setattr(
-        "app.services.etf_holdings.get_default_search_provider",
-        lambda: search_provider,
+        "app.services.etf_holdings.get_search_provider_chain",
+        lambda: [search_provider],
     )
     monkeypatch.setattr(
         "app.services.etf_holdings.get_default_metadata_provider",
@@ -901,6 +901,49 @@ async def test_resolver_promotes_identifier_only_row_through_unique_name_search(
 
 
 @pytest.mark.asyncio
+async def test_resolver_uses_next_configured_search_provider_after_empty_result(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr("app.services.etf_holdings.settings.APP_ENV", "development")
+    first_provider = FakeNameSearchProvider([])
+    second_provider = FakeNameSearchProvider(
+        [ProviderSearchResult(symbol="AZN", name="AstraZeneca PLC", instrument_type="EQUITY")]
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_search_provider_chain",
+        lambda: [first_provider, second_provider],
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_default_metadata_provider",
+        lambda: NameSearchMetadataProvider(),
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_identifier_providers",
+        lambda: [],
+    )
+
+    instrument, confidence, note = await _resolve_or_create_constituent(
+        async_db,
+        CanonicalHoldingRow(
+            symbol=None,
+            name="AstraZeneca PLC",
+            isin="US0463531089",
+            currency="USD",
+            holding_type="equity",
+            row_type="security",
+        ),
+        source_provider="sec",
+    )
+    db.flush()
+
+    assert instrument is not None
+    assert instrument.symbol == "AZN"
+    assert confidence == Decimal("0.8600")
+    assert note == "Matched through unique provider-backed name search."
+    assert first_provider.calls == [("AstraZeneca PLC", 8)]
+    assert second_provider.calls == [("AstraZeneca PLC", 8)]
+
+
+@pytest.mark.asyncio
 async def test_resolver_keeps_ambiguous_name_search_as_placeholder(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     monkeypatch.setattr("app.services.etf_holdings.settings.APP_ENV", "development")
@@ -911,8 +954,8 @@ async def test_resolver_keeps_ambiguous_name_search_as_placeholder(db, monkeypat
         ]
     )
     monkeypatch.setattr(
-        "app.services.etf_holdings.get_default_search_provider",
-        lambda: search_provider,
+        "app.services.etf_holdings.get_search_provider_chain",
+        lambda: [search_provider],
     )
     metadata_calls: list[str] = []
 
@@ -965,8 +1008,8 @@ async def test_resolver_keeps_weak_name_search_as_placeholder(db, monkeypatch):
         ]
     )
     monkeypatch.setattr(
-        "app.services.etf_holdings.get_default_search_provider",
-        lambda: search_provider,
+        "app.services.etf_holdings.get_search_provider_chain",
+        lambda: [search_provider],
     )
     metadata_calls: list[str] = []
 
@@ -1224,10 +1267,16 @@ async def test_classification_maintenance_reports_name_search_promotions(db, mon
         lambda: [],
     )
     monkeypatch.setattr(
-        "app.services.etf_holdings.get_default_search_provider",
-        lambda: FakeNameSearchProvider(
-            [ProviderSearchResult(symbol="AZN", name="AstraZeneca PLC", instrument_type="EQUITY")]
-        ),
+        "app.services.etf_holdings.get_search_provider_chain",
+        lambda: [
+            FakeNameSearchProvider(
+                [
+                    ProviderSearchResult(
+                        symbol="AZN", name="AstraZeneca PLC", instrument_type="EQUITY"
+                    )
+                ]
+            )
+        ],
     )
     monkeypatch.setattr(
         "app.services.etf_holdings.get_default_metadata_provider",

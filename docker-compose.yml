@@ -107,7 +107,7 @@ services:
       DEFAULT_DISCOVERY_PROVIDER: ${DEFAULT_DISCOVERY_PROVIDER:-alpaca}
       DEFAULT_OPTIONS_PROVIDER: ${DEFAULT_OPTIONS_PROVIDER:-yfinance}
       IDENTIFIER_PROVIDER_PRIORITY: ${IDENTIFIER_PROVIDER_PRIORITY:-["openfigi"]}
-      PROVIDER_CHAIN_SEEDS:      ${PROVIDER_CHAIN_SEEDS:-{"price_history":["alpaca","nasdaq","alpha_vantage","binance","fred"],"latest_price":["alpaca","nasdaq","alpha_vantage","binance","fred"],"universe_discovery":["alpaca","massive","alpha_vantage","binance","coingecko"],"instrument_events":["alpaca","edgar"],"instrument_metadata":["edgar","coingecko"],"instrument_search":["edgar","alpaca","massive","alpha_vantage","coingecko"],"option_chain":["yfinance"]}}
+      PROVIDER_CHAIN_SEEDS:      ${PROVIDER_CHAIN_SEEDS:-{"price_history":["alpaca","nasdaq","alpha_vantage","binance","fred"],"latest_price":["alpaca","nasdaq","alpha_vantage","binance","fred"],"universe_discovery":["alpaca","massive","alpha_vantage","binance","coingecko"],"instrument_events":["alpaca","edgar"],"instrument_metadata":["edgar","coingecko"],"instrument_search":["edgar","massive","alpha_vantage"],"option_chain":["yfinance"]}}
       OPENFIGI_API_KEY:        ${OPENFIGI_API_KEY:-}
       OPENFIGI_TIMEOUT_SECONDS: ${OPENFIGI_TIMEOUT_SECONDS:-10}
       MASSIVE_API_KEY:          ${MASSIVE_API_KEY:-}
@@ -188,7 +188,7 @@ services:
       DEFAULT_DISCOVERY_PROVIDER: ${DEFAULT_DISCOVERY_PROVIDER:-alpaca}
       DEFAULT_OPTIONS_PROVIDER: ${DEFAULT_OPTIONS_PROVIDER:-yfinance}
       IDENTIFIER_PROVIDER_PRIORITY: ${IDENTIFIER_PROVIDER_PRIORITY:-["openfigi"]}
-      PROVIDER_CHAIN_SEEDS:      ${PROVIDER_CHAIN_SEEDS:-{"price_history":["alpaca","nasdaq","alpha_vantage","binance","fred"],"latest_price":["alpaca","nasdaq","alpha_vantage","binance","fred"],"universe_discovery":["alpaca","massive","alpha_vantage","binance","coingecko"],"instrument_events":["alpaca","edgar"],"instrument_metadata":["edgar","coingecko"],"instrument_search":["edgar","alpaca","massive","alpha_vantage","coingecko"],"option_chain":["yfinance"]}}
+      PROVIDER_CHAIN_SEEDS:      ${PROVIDER_CHAIN_SEEDS:-{"price_history":["alpaca","nasdaq","alpha_vantage","binance","fred"],"latest_price":["alpaca","nasdaq","alpha_vantage","binance","fred"],"universe_discovery":["alpaca","massive","alpha_vantage","binance","coingecko"],"instrument_events":["alpaca","edgar"],"instrument_metadata":["edgar","coingecko"],"instrument_search":["edgar","massive","alpha_vantage"],"option_chain":["yfinance"]}}
       OPENFIGI_API_KEY:        ${OPENFIGI_API_KEY:-}
       OPENFIGI_TIMEOUT_SECONDS: ${OPENFIGI_TIMEOUT_SECONDS:-10}
       MASSIVE_API_KEY:          ${MASSIVE_API_KEY:-}
