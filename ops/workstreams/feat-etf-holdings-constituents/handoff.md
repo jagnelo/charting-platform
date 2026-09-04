@@ -2038,6 +2038,26 @@ The implementation context remains limited to this live-test contract and
 branch-owned handoff/validation records; no integration, promotion,
 deployment, or other-worktree mutation was performed.
 
+## Documentation checkpoint CI startup timeout — 2026-09-04
+
+The documentation-only checkpoint tip `f30b004e323ee9aa4b55d64dcc7559a1171e58a1`
+was verified by CI run `33853696053`. Backend Tests, Frontend Unit Tests, and
+the complete branch-declared suite passed: 567 deterministic tests, 2
+default-live contract passes with 504 skips, and 492 opt-in live passes with 14
+evidence-backed skips. The independent Playwright job did not reach stack
+health or browser assertions: its five-minute `Start stack` step timed out
+while the frontend Docker image was running `npm ci`, which completed only
+after the timeout. The protected staging/master-only Exhaustive Integration
+Gate was skipped as designed for this feature branch.
+
+This repeats the known CI infrastructure timing limitation and is not an
+ETF/application failure. The prior exact-head implementation checkpoint
+`33851087285` at `b0e7814f` passed Playwright (151 passed, 109 skipped), while
+the required local `docker_integration` gate still retains only the unrelated
+fresh-stack Study Lab `F8p-current-history` missing-histogram failure at
+`flows.spec.ts:2602`; the post-repair gate at `a696277b` passed. A fresh
+exact-SHA CI run remains required before closure.
+
 ## Swan guard exact-head branch validation — 2026-09-04
 
 Follow-up CI run `33844078467` on
