@@ -1888,3 +1888,15 @@ Study Lab `F8p-current-history` missing-histogram failure; the prior post-repair
 gate at `a696277b` passed. The workstream remains at the human-review boundary:
 no integration, promotion, deployment, or other-worktree mutation is authorized
 or performed, and explicit human closure authorization remains pending.
+
+## Pictet issuer HTTP 403 variant — 2026-09-04
+
+Exact-head CI run `33832326796` at `d83f5082` passed Backend Tests and
+Frontend Unit Tests, but the opt-in live matrix reached 492 passes and 13
+skips before the official Pictet `etf.am.pictet.com/PQUS` product page returned
+HTTP 403 to the CI runner. A bounded local probe of the same live test passed,
+confirming an issuer-edge/runner access variant rather than adapter or parser
+drift. The adapter remains strict; the dedicated Pictet live test now catches
+only external HTTP transport/access failures via the existing evidence-bearing
+helper. Playwright was still running when this variant was recorded, so a fresh
+exact-SHA CI run is required after the guard.

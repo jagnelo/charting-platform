@@ -3354,6 +3354,10 @@ async def test_live_pictet_public_fund_allocation_api():
         if _is_external_live_access_failure(exc):
             pytest.skip(str(exc))
         raise
+    except (httpx.HTTPError, requests.RequestException, TimeoutError) as exc:
+        if _is_external_live_access_failure(exc):
+            pytest.skip(str(exc) or exc.__class__.__name__)
+        raise
     _assert_live_holdings_result(result, adapter_key="pictet", min_rows=100)
     assert result.legal_metadata["route_resolution"] == "pictet_public_kurtosys_fund_allocations"
     assert result.legal_metadata["composition_date"]
