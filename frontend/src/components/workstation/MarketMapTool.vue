@@ -113,7 +113,12 @@
         </select>
       </label>
       <label v-if="colorMetric === 'breadth'" class="market-map-tool__advanced-toggle"><input v-model="advancedBreadthEditor" type="checkbox" aria-label="Use advanced Market Map breadth condition editor" /> Advanced condition editor</label>
-      <BreadthConditionTreeEditor v-if="colorMetric === 'breadth' && advancedBreadthEditor" v-model="breadthConditionTree" />
+      <BreadthConditionTreeEditor
+        v-if="colorMetric === 'breadth' && advancedBreadthEditor"
+        v-model="breadthConditionTree"
+        :python-series-assets="pythonAssets"
+        :python-series-assets-loading="pythonAssetsLoading"
+      />
       <label v-if="colorMetric === 'breadth' && !advancedBreadthEditor && breadthConditionKind === 'above_moving_average'">Period
         <input v-model.number="breadthConditionPeriod" aria-label="Market Map breadth moving average period" type="number" min="2" max="252" />
       </label>
@@ -137,8 +142,8 @@
           <option v-for="asset in pythonAssets.filter(item => areaMetric !== 'python' || item.outputContract === 'series')" :key="asset.versionId" :value="asset.versionId">{{ asset.name }} · {{ asset.outputContract }}</option>
         </select>
       </label>
-      <span v-if="colorMetric === 'python' && pythonRunLoading" class="market-map-tool__status">Evaluating isolated Python…</span>
-      <span v-if="colorMetric === 'python' && pythonRunError" class="market-map-tool__status--error" role="alert">{{ pythonRunError }}</span>
+      <span v-if="(colorMetric === 'python' || breadthUsesPython) && pythonRunLoading" class="market-map-tool__status">Evaluating isolated Python…</span>
+      <span v-if="(colorMetric === 'python' || breadthUsesPython) && pythonRunError" class="market-map-tool__status--error" role="alert">{{ pythonRunError }}</span>
       <button type="button" class="market-map-tool__run" :disabled="loading || (!sourceId && !explicitSymbols.trim())" @click="run">{{ loading ? 'Loading…' : 'Refresh' }}</button>
       <label>Snapshot
         <select v-model="snapshotSelectionId" aria-label="Market Map snapshot" :disabled="snapshotLoading">
@@ -839,13 +844,44 @@ const breadthCondition = computed<Record<string, unknown> | null>(() => {
   if (breadthConditionKind.value === 'event') return { kind: 'event', params: { event_type: breadthEventType.value, lookback_days: breadthEventLookback.value, include_estimates: false } }
   return { kind: 'relative_strength', params: { lookback: breadthConditionPeriod.value, operator: 'gte', threshold: 0 } }
 })
+function findPythonConditionLeaf(node: unknown): Record<string, unknown> | null {
+  if (!node || typeof node !== 'object' || Array.isArray(node)) return null
+  const candidate = node as Record<string, unknown>
+  const kind = String(candidate.kind ?? '').toLowerCase()
+  if (kind === 'python_series' || kind === 'python_series_comparison') return candidate
+  const params = candidate.params
+  if (!params || typeof params !== 'object' || Array.isArray(params)) return null
+  const children = (params as Record<string, unknown>).conditions
+  if (!Array.isArray(children)) return null
+  for (const child of children) {
+    const found = findPythonConditionLeaf(child)
+    if (found) return found
+  }
+  return null
+}
+const breadthPythonLeaf = computed(() => breadthCondition.value ? findPythonConditionLeaf(breadthCondition.value) : null)
+const breadthUsesPython = computed(() => breadthPythonLeaf.value !== null)
+function pythonConditionAnchorId(leaf: Record<string, unknown> | null): number | null {
+  if (!leaf) return null
+  const params = leaf.params && typeof leaf.params === 'object' && !Array.isArray(leaf.params)
+    ? leaf.params as Record<string, unknown>
+    : {}
+  const raw = String(leaf.kind ?? '').toLowerCase() === 'python_series_comparison'
+    ? params.left_code_version_id
+    : params.code_version_id
+  const value = Number(raw)
+  return Number.isInteger(value) && value > 0 ? value : null
+}
 function conditionNeedsReference(node: BreadthConditionNode | null): boolean {
   if (!node) return false
-  if (node.kind === 'relative_strength' || node.kind === 'series_comparison') return true
+  if (node.kind === 'relative_strength' || node.kind === 'series_comparison' || node.kind === 'python_series_comparison') {
+    const params = node.params ?? {}
+    return node.kind !== 'python_series_comparison' || params.right_scope === 'benchmark'
+  }
   const children = node.params?.conditions
   return Array.isArray(children) && children.some(child => conditionNeedsReference(child as BreadthConditionNode))
 }
-const referenceNeeded = computed(() => colorMetric.value === 'breadth' && conditionNeedsReference(breadthConditionTree.value))
+const referenceNeeded = computed(() => colorMetric.value === 'breadth' && conditionNeedsReference(breadthCondition.value as BreadthConditionNode | null))
 const colorLabel = computed(() => colorMetric.value.replace(/_/g, ' '))
 const canvasStyle = computed(() => ({ transform: `translate(${panX.value}%, ${panY.value}%) scale(${viewportZoom.value})` }))
 
@@ -895,6 +931,49 @@ async function resolvePythonRun() {
       await new Promise(resolve => setTimeout(resolve, 250))
     }
     throw new Error('Python colour run did not finish within 60 seconds; its run remains available for retry.')
+  } finally {
+    pythonRunLoading.value = false
+  }
+}
+
+async function resolvePythonBreadthRun() {
+  pythonRunError.value = ''
+  const condition = breadthCondition.value
+  const anchor = pythonConditionAnchorId(breadthPythonLeaf.value)
+  if (!condition || !anchor) throw new Error('Select an owned Python series condition asset first.')
+  const benchmark = referenceNeeded.value && !referenceSourceId.value
+    ? referenceSymbol.value.trim().toUpperCase()
+    : ''
+  if (referenceNeeded.value && referenceSourceId.value) {
+    throw new Error('Python breadth comparisons currently require a benchmark symbol, not a reference universe.')
+  }
+  if (referenceNeeded.value && !benchmark) {
+    throw new Error('Python breadth comparisons require a benchmark symbol; select a symbol reference.')
+  }
+  const queued = await api.post<{ run_id: number }>('/analysis/breadth/python', {
+    code_version_id: anchor,
+    universe: pythonUniverse(),
+    parameters: {},
+    output_contract: 'boolean',
+    condition_tree: condition,
+    timeframe: timeframe.value,
+    adjusted: true,
+    session: 'regular',
+    ...(benchmark ? { benchmark } : {}),
+    history: false,
+  })
+  pythonRunLoading.value = true
+  try {
+    for (let attempt = 0; attempt < 240; attempt += 1) {
+      const result = await api.get<{ status: string }>(`/analysis/breadth/python/runs/${queued.run_id}`)
+      if (result.status === 'completed') {
+        pythonRunId.value = queued.run_id
+        return
+      }
+      if (result.status === 'failed' || result.status === 'canceled') throw new Error(`Python breadth condition run ${result.status}.`)
+      await new Promise(resolve => setTimeout(resolve, 250))
+    }
+    throw new Error('Python breadth condition run did not finish within 60 seconds; its run remains available for retry.')
   } finally {
     pythonRunLoading.value = false
   }
@@ -1266,8 +1345,9 @@ async function run() {
       }
     }
     if (!componentMounted || generation !== runGeneration) return
-    if (colorMetric.value === 'python' || areaMetric.value === 'python') await resolvePythonRun()
-    const nextMap = await fetchMarketMap({ source_id: requestSourceId, group_by: groupBy.value, period: period.value, start: period.value === 'CUSTOM' && startDate.value ? startDate.value : null, end: period.value === 'CUSTOM' && endDate.value ? `${endDate.value}T23:59:59Z` : null, area_metric: areaMetric.value, area_field: areaMetric.value === 'field' ? areaField.value : null, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, python_run_id: colorMetric.value === 'python' || areaMetric.value === 'python' ? pythonRunId.value : null, reference_symbol: (colorMetric.value === 'relative_return' || referenceNeeded.value) && !referenceSourceId.value ? referenceSymbol.value.toUpperCase() : null, reference_source_id: (colorMetric.value === 'relative_return' || referenceNeeded.value) && referenceSourceId.value ? referenceSourceId.value : null, timeframe: timeframe.value, adjusted: true })
+    if (colorMetric.value === 'breadth' && breadthUsesPython.value) await resolvePythonBreadthRun()
+    else if (colorMetric.value === 'python' || areaMetric.value === 'python') await resolvePythonRun()
+    const nextMap = await fetchMarketMap({ source_id: requestSourceId, group_by: groupBy.value, period: period.value, start: period.value === 'CUSTOM' && startDate.value ? startDate.value : null, end: period.value === 'CUSTOM' && endDate.value ? `${endDate.value}T23:59:59Z` : null, area_metric: areaMetric.value, area_field: areaMetric.value === 'field' ? areaField.value : null, color_metric: colorMetric.value, condition: colorMetric.value === 'breadth' ? breadthCondition.value : null, python_run_id: colorMetric.value === 'python' || areaMetric.value === 'python' || (colorMetric.value === 'breadth' && breadthUsesPython.value) ? pythonRunId.value : null, reference_symbol: (colorMetric.value === 'relative_return' || referenceNeeded.value) && !referenceSourceId.value ? referenceSymbol.value.toUpperCase() : null, reference_source_id: (colorMetric.value === 'relative_return' || referenceNeeded.value) && referenceSourceId.value ? referenceSourceId.value : null, timeframe: timeframe.value, adjusted: true })
     if (!componentMounted || generation !== runGeneration) return
     map.value = nextMap
     snapshotSelectionId.value = ''

@@ -242,6 +242,75 @@ def _is_cross_sectional_condition(condition: object) -> bool:
     )
 
 
+def _contains_python_condition(condition: object) -> bool:
+    if not isinstance(condition, dict):
+        return False
+    if str(condition.get("kind", "")).lower() in {
+        "python_series",
+        "python_series_comparison",
+    }:
+        return True
+    params = condition.get("params")
+    if not isinstance(params, dict):
+        return False
+    children = params.get("conditions")
+    return isinstance(children, list) and any(
+        _contains_python_condition(child) for child in children
+    )
+
+
+_PYTHON_CONDITION_RUNTIME_PARAMS = {
+    "source",
+    "output_name",
+    "left_source",
+    "right_source",
+    "left_output_name",
+    "right_output_name",
+    "left_asset_key",
+    "right_asset_key",
+    "parameters",
+    "left_parameters",
+    "right_parameters",
+}
+
+
+def _condition_tree_matches_declared(requested: object, resolved: object) -> bool:
+    """Compare a requested tree with its API-resolved immutable counterpart.
+
+    The isolated breadth API adds owned source text, output names, and empty
+    parameter maps to Python leaves. Those execution details are intentionally
+    ignored here; the user-authored predicate, asset IDs, target scopes, and
+    operators must still match before a completed run can colour a map.
+    """
+
+    if not isinstance(requested, dict) or not isinstance(resolved, dict):
+        return False
+    if str(requested.get("kind", "")).lower() != str(resolved.get("kind", "")).lower():
+        return False
+    kind = str(requested.get("kind", "")).lower()
+    requested_params = requested.get("params") if isinstance(requested.get("params"), dict) else {}
+    resolved_params = resolved.get("params") if isinstance(resolved.get("params"), dict) else {}
+    if kind in {"all", "any", "not"}:
+        requested_children = requested_params.get("conditions")
+        resolved_children = resolved_params.get("conditions")
+        if not isinstance(requested_children, list) or not isinstance(resolved_children, list):
+            return False
+        return len(requested_children) == len(resolved_children) and all(
+            _condition_tree_matches_declared(requested_child, resolved_child)
+            for requested_child, resolved_child in zip(requested_children, resolved_children)
+        )
+    if "target_scope" in requested and requested.get("target_scope") != resolved.get(
+        "target_scope"
+    ):
+        return False
+    for key, value in requested_params.items():
+        if key in _PYTHON_CONDITION_RUNTIME_PARAMS or key == "conditions":
+            continue
+        if key not in resolved_params or resolved_params.get(key) != value:
+            return False
+    return True
+
+
 async def _events_by_instrument(
     db: AsyncSession,
     instrument_ids: list[int],
@@ -367,6 +436,96 @@ async def _python_colour_values(
         else:
             values[instrument_id] = (numeric_value, None, None, numeric_value)
     return values, output_contract
+
+
+async def _python_breadth_condition_values(
+    db: AsyncSession,
+    user_id: int,
+    run_id: int,
+    condition: object,
+    member_ids: list[int],
+) -> dict[int, tuple[float | None, str | None, bool | None, float | None]]:
+    """Read one completed isolated Boolean breadth run for Market Map colour.
+
+    Market Map never executes user Python. It consumes only the immutable
+    ``batch_cells`` artifact produced by the dedicated breadth worker and
+    requires the persisted tree and declared universe to match the request.
+    """
+
+    run = (
+        await db.execute(
+            select(ResearchRun)
+            .options(selectinload(ResearchRun.artifacts))
+            .where(ResearchRun.id == run_id, ResearchRun.user_id == user_id)
+        )
+    ).scalar_one_or_none()
+    if run is None:
+        raise ValueError("python_run_not_found")
+    if run.status != "completed":
+        raise ValueError("python_run_not_completed")
+    config = run.run_config if isinstance(run.run_config, dict) else {}
+    if config.get("execution_mode") != "breadth_current":
+        raise ValueError("python_breadth_condition_requires_current_run")
+    if config.get("output_contract") != "boolean":
+        raise ValueError("python_breadth_condition_requires_boolean")
+    resolved_condition = config.get("condition_tree")
+    if not _condition_tree_matches_declared(condition, resolved_condition):
+        raise ValueError("python_breadth_condition_mismatch")
+    artifact = next(
+        (
+            item
+            for item in run.artifacts
+            if item.name == "batch_cells" and isinstance(item.payload, dict)
+        ),
+        None,
+    )
+    if artifact is None or not isinstance(artifact.payload.get("value"), dict):
+        raise ValueError("python_breadth_condition_artifact_unavailable")
+    raw_cells = artifact.payload["value"].get("cells")
+    if not isinstance(raw_cells, list):
+        raise ValueError("python_breadth_condition_artifact_unavailable")
+    cells_by_id = {
+        raw.get("instrument_id"): raw
+        for raw in raw_cells
+        if isinstance(raw, dict) and isinstance(raw.get("instrument_id"), int)
+    }
+    if set(cells_by_id) != set(member_ids):
+        raise ValueError("python_breadth_condition_universe_mismatch")
+    values: dict[int, tuple[float | None, str | None, bool | None, float | None]] = {}
+    for instrument_id in member_ids:
+        raw = cells_by_id[instrument_id]
+        metric = raw.get("metric")
+        numeric_metric = (
+            float(metric)
+            if isinstance(metric, int | float)
+            and not isinstance(metric, bool)
+            and math.isfinite(float(metric))
+            else None
+        )
+        if raw.get("status") != "completed":
+            values[instrument_id] = (
+                None,
+                str(raw.get("error") or "python_condition_cell_excluded"),
+                None,
+                numeric_metric,
+            )
+            continue
+        condition_value = raw.get("value")
+        if not isinstance(condition_value, bool):
+            values[instrument_id] = (
+                None,
+                "python_condition_value_invalid",
+                None,
+                numeric_metric,
+            )
+            continue
+        values[instrument_id] = (
+            1.0 if condition_value else -1.0,
+            None,
+            condition_value,
+            numeric_metric,
+        )
+    return values
 
 
 def _node_metric(cells: list[MarketMapCell], area_metric: str) -> tuple[float | None, str]:
@@ -818,6 +977,12 @@ async def read_market_map_cache(
 async def build_market_map(
     db: AsyncSession, user_id: int, request: MarketMapRequest
 ) -> MarketMapOut:
+    if (
+        request.color_metric == "breadth"
+        and _contains_python_condition(request.condition)
+        and request.python_run_id is None
+    ):
+        raise ValueError("breadth_python_condition_requires_python_run_id")
     # Imported lazily to avoid the analysis router/service import cycle.  The
     # existing helper is intentionally reused so freshness semantics stay
     # identical across batch analysis surfaces.
@@ -1134,8 +1299,24 @@ async def build_market_map(
         if request.color_metric == "breadth" and _condition_requires_events(request.condition)
         else ({}, None)
     )
-    cross_sectional_condition = request.color_metric == "breadth" and _is_cross_sectional_condition(
+    python_breadth_condition = request.color_metric == "breadth" and _contains_python_condition(
         request.condition
+    )
+    python_breadth_values: dict[
+        int, tuple[float | None, str | None, bool | None, float | None]
+    ] = {}
+    if python_breadth_condition and request.python_run_id is not None:
+        python_breadth_values = await _python_breadth_condition_values(
+            db,
+            user_id,
+            request.python_run_id,
+            request.condition,
+            member_ids,
+        )
+    cross_sectional_condition = (
+        request.color_metric == "breadth"
+        and not python_breadth_condition
+        and _is_cross_sectional_condition(request.condition)
     )
     cross_sectional_results = {}
     if cross_sectional_condition:
@@ -1191,7 +1372,12 @@ async def build_market_map(
         warnings: list[MarketMapWarning] = []
         if code:
             warnings.append(_warning(code, message or code, instrument_id=instrument_id))
-        if cross_sectional_condition:
+        if python_breadth_condition:
+            colour, colour_code, condition_value, condition_metric = python_breadth_values.get(
+                instrument_id,
+                (None, "python_breadth_member_missing", None, None),
+            )
+        elif cross_sectional_condition:
             cross_sectional_result = cross_sectional_results.get(instrument_id)
             if cross_sectional_result is None:
                 colour, colour_code, condition_value, condition_metric = (
@@ -1230,6 +1416,8 @@ async def build_market_map(
                 if cross_sectional_condition
                 else "The isolated Python colour output is unavailable for this member."
                 if request.color_metric == "python"
+                else "The isolated Python breadth condition is unavailable for this member."
+                if python_breadth_condition
                 else "The requested colour metric is not covered by available local data."
             )
             warnings.append(_warning(colour_code, message, instrument_id=instrument_id))

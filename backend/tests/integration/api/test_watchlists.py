@@ -3349,6 +3349,157 @@ class TestWatchlistsCrud:
         )
         assert invalid.status_code == 404
 
+    def test_market_map_consumes_isolated_python_breadth_condition_tree(
+        self, client, auth_headers, db, user, watchlist, instrument, instrument_b
+    ):
+        from app.models.research import CodeAsset, CodeVersion, ResearchArtifact, ResearchRun
+        from app.models.watchlist import WatchlistItem
+
+        db.add_all(
+            [
+                WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument.id, position=0),
+                WatchlistItem(watchlist_id=watchlist.id, instrument_id=instrument_b.id, position=1),
+            ]
+        )
+        asset = CodeAsset(
+            user_id=user.id,
+            stable_key="map-breadth-condition",
+            name="Map breadth",
+            kind="condition",
+        )
+        db.add(asset)
+        db.flush()
+        version = CodeVersion(
+            code_asset_id=asset.id,
+            version_number=1,
+            source="output.series('score', market.close())",
+            output_contract="series",
+            parameter_schema={},
+            default_parameters={},
+        )
+        db.add(version)
+        db.flush()
+        condition = {
+            "kind": "all",
+            "params": {
+                "conditions": [
+                    {
+                        "kind": "python_series",
+                        "params": {
+                            "code_version_id": version.id,
+                            "scope": "cross_sectional",
+                            "statistic": "median",
+                            "operator": "gte",
+                            "threshold": 0,
+                        },
+                    },
+                    {
+                        "kind": "comparison",
+                        "params": {"field": "close", "operator": "gte", "threshold": 100},
+                    },
+                ]
+            },
+        }
+        run = ResearchRun(
+            user_id=user.id,
+            code_version_id=version.id,
+            status="completed",
+            run_config={
+                "execution_mode": "breadth_current",
+                "output_contract": "boolean",
+                "condition_tree": {
+                    "kind": "all",
+                    "params": {
+                        "conditions": [
+                            {
+                                "kind": "python_series",
+                                "params": {
+                                    "code_version_id": version.id,
+                                    "source": version.source,
+                                    "output_name": None,
+                                    "scope": "cross_sectional",
+                                    "statistic": "median",
+                                    "operator": "gte",
+                                    "threshold": 0.0,
+                                    "parameters": {},
+                                },
+                            },
+                            {
+                                "kind": "comparison",
+                                "target_scope": "member",
+                                "params": {"field": "close", "operator": "gte", "threshold": 100},
+                            },
+                        ]
+                    },
+                },
+            },
+            dataset_manifest={"dataset_version": "test"},
+        )
+        run.artifacts.append(
+            ResearchArtifact(
+                artifact_type="batch",
+                name="batch_cells",
+                payload={
+                    "value": {
+                        "cells": [
+                            {
+                                "instrument_id": instrument.id,
+                                "status": "completed",
+                                "value": True,
+                                "metric": 0.5,
+                            },
+                            {
+                                "instrument_id": instrument_b.id,
+                                "status": "completed",
+                                "value": False,
+                                "metric": -0.5,
+                            },
+                        ]
+                    }
+                },
+            )
+        )
+        db.add(run)
+        db.flush()
+
+        response = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": f"watchlist:{watchlist.id}",
+                "group_by": "none",
+                "period": "1D",
+                "area_metric": "equal",
+                "color_metric": "breadth",
+                "condition": condition,
+                "python_run_id": run.id,
+            },
+        )
+
+        assert response.status_code == 200, response.text
+        body = response.json()
+        cells = {cell["instrument_id"]: cell for cell in body["cells"]}
+        assert cells[instrument.id]["condition_value"] is True
+        assert cells[instrument.id]["condition_metric"] == 0.5
+        assert cells[instrument.id]["color_value"] == 1
+        assert cells[instrument_b.id]["condition_value"] is False
+        assert cells[instrument_b.id]["color_value"] == -1
+
+        missing_run = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": f"watchlist:{watchlist.id}",
+                "color_metric": "breadth",
+                "condition": condition,
+            },
+        )
+        assert missing_run.status_code == 422
+        assert (
+            missing_run.json()["detail"]["code"]
+            == "breadth_python_condition_requires_python_run_id"
+        )
+
     def test_market_map_uses_provenance_aware_numeric_area_fields(
         self, client, auth_headers, db, user, watchlist, instrument, instrument_b, monkeypatch
     ):

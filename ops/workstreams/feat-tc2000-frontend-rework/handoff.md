@@ -10,6 +10,41 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-04 — Isolated Python breadth trees are now Market Map colour inputs
+
+The next bounded R3/R5 implementation slice is complete in the assigned worktree. The advanced
+Market Map breadth editor now loads owned numeric-series condition assets and, when the selected
+tree contains `python_series` or `python_series_comparison`, queues a current Boolean breadth run
+through the existing isolated worker before requesting the map. Benchmark-target comparisons are
+explicitly limited to a benchmark symbol because the breadth worker does not yet accept a reference
+universe target.
+
+The backend Market Map path remains provider-free and non-executing: it consumes only the completed
+user-owned run's immutable `batch_cells` artifact, requires `execution_mode=breadth_current` and
+`output_contract=boolean`, compares the requested tree with the API-resolved tree while ignoring
+only runner-injected source/output/parameter metadata, and requires an exact member-ID set. The
+worker's Boolean/metric/error values preserve cross-sectional and mixed-tree semantics; any run
+status, artifact, tree, universe, or per-cell problem is surfaced as an explicit error or coverage
+warning rather than re-evaluated in the map service.
+
+Evidence for this boundary:
+
+- Market Map component suite: `34/34` tests passed, including the Python breadth-tree queue and
+  run-ID handoff.
+- Backend Market Map unit suite: `7/7` passed; full backend unit suite: `1,307/1,307` passed with
+  the repository's existing NumPy/Pandas deprecation warnings.
+- Docker-backed `test_watchlists.py`: `50/50` passed, including the new mixed/cross-sectional tree
+  artifact regression and structured missing-run validation.
+- Frontend type-check and production build passed; the Vite build retains only the existing
+  large-chunk warning. No visual baseline, mask, threshold, skip, provider fallback, or protected
+  worktree changed.
+
+The exact-tip exhaustive integration profile remains required after checkpointing. Its known
+unchanged blocker is the six screenshot diffs in `watchlist-column-editor-open` and
+`workspace-floating`; canonical provider population/history and the remaining R1/R4/R6 gaps also
+remain open. No integration, promotion, deployment, or other-worktree mutation is authorized from
+this feature session.
+
 ## 2026-09-03 — Prior session and media reconciled
 
 The prior Codex rollout `019fa949-e419-77c1-8d7d-188b5235029c` was streamed and reconciled rather

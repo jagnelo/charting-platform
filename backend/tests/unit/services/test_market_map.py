@@ -3,7 +3,11 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.services.market_map import _profile_field_conflict, _return
+from app.services.market_map import (
+    _condition_tree_matches_declared,
+    _profile_field_conflict,
+    _return,
+)
 
 
 def _snapshot(snapshot_id: int, source_id: int, provider: str, observed_at: datetime, value: float):
@@ -103,3 +107,68 @@ def test_market_map_mtd_does_not_fall_back_to_first_in_window_bar():
     assert observed == datetime(2024, 1, 2, tzinfo=UTC)
     assert code == "insufficient_history"
     assert message == "MTD requires more aligned history."
+
+
+def test_python_breadth_tree_match_ignores_only_runner_metadata():
+    requested = {
+        "kind": "all",
+        "params": {
+            "conditions": [
+                {
+                    "kind": "python_series",
+                    "params": {
+                        "code_version_id": 11,
+                        "scope": "cross_sectional",
+                        "statistic": "median",
+                        "operator": "gte",
+                        "threshold": 0.1,
+                    },
+                },
+                {
+                    "kind": "comparison",
+                    "params": {"field": "close", "operator": "gte", "threshold": 100},
+                },
+            ]
+        },
+    }
+    resolved = {
+        "kind": "all",
+        "params": {
+            "conditions": [
+                {
+                    "kind": "python_series",
+                    "params": {
+                        "code_version_id": 11,
+                        "source": "output.series('score', market.close())",
+                        "output_name": "score",
+                        "scope": "cross_sectional",
+                        "statistic": "median",
+                        "operator": "gte",
+                        "threshold": 0.1,
+                        "parameters": {},
+                    },
+                },
+                {
+                    "kind": "comparison",
+                    "target_scope": "member",
+                    "params": {"field": "close", "operator": "gte", "threshold": 100},
+                },
+            ]
+        },
+    }
+
+    assert _condition_tree_matches_declared(requested, resolved)
+
+    changed = {
+        **requested,
+        "params": {
+            "conditions": [
+                requested["params"]["conditions"][0],
+                {
+                    "kind": "comparison",
+                    "params": {"field": "close", "operator": "gte", "threshold": 101},
+                },
+            ]
+        },
+    }
+    assert not _condition_tree_matches_declared(changed, resolved)

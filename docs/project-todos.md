@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-09-04 — Python breadth condition trees feed Market Map colours
+
+- [x] Connect the advanced Market Map breadth editor to the existing isolated Python breadth
+      runner. A tree containing `python_series` or `python_series_comparison` leaves now queues a
+      bounded current Boolean run before requesting the map; the selected source, timeframe, and
+      benchmark-symbol context remain explicit in the request.
+- [x] Make the Market Map backend consume only the completed runner `batch_cells` artifact. It
+      requires a user-owned current Boolean breadth run, compares the persisted resolved tree with
+      the requested predicate while ignoring only runner-injected source metadata, and requires an
+      exact member-ID set. Missing, excluded, invalid, mismatched, or foreign runs remain explicit
+      errors/coverage gaps; the map never executes Python or fans out a provider.
+- [x] Preserve cross-sectional and mixed-tree semantics by using the isolated run's final tri-state
+      member values and metrics, while keeping the existing native evaluator for non-Python breadth
+      conditions. Add focused editor, backend unit, and Docker-backed Market Map regressions.
+- [ ] Continue richer multi-stage derived-series composition and the remaining compatible promotion
+      fan-out; Python benchmark comparisons in Market Map currently require a benchmark symbol (a
+      reference-universe adapter remains a separate contract gap).
+
 ### 2026-09-04 — Bounded canonical enrichment and D1 history runtime
 
 - [x] Rerun five bounded one-profile classification passes at exact feature tip `09ecb4b8`.

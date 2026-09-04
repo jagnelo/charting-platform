@@ -740,6 +740,38 @@ describe('MarketMapTool', () => {
     expect(areaRequest).toEqual(expect.objectContaining({ area_metric: 'python', python_run_id: 42 }))
   })
 
+  it('runs a Python breadth condition tree before colouring the map', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/code/assets') return Promise.resolve([{ kind: 'condition', name: 'Momentum score', versions: [{ id: 17, version_number: 1, output_contract: 'series' }] }])
+      if (path === '/analysis/breadth/python/runs/42') return Promise.resolve({ status: 'completed' })
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string, body?: Record<string, unknown>) => {
+      if (path === '/analysis/breadth/python') return Promise.resolve({ run_id: 42 })
+      if (path === '/analysis/market-map') return Promise.resolve({ ...response, color_metric: body?.color_metric, condition: body?.condition, python_run_id: body?.python_run_id })
+      return Promise.resolve([])
+    })
+
+    const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: 'market-group:sp500' } } })
+    await flushPromises()
+
+    await wrapper.get('select[aria-label="Market Map colour metric"]').setValue('breadth')
+    await wrapper.get('input[aria-label="Use advanced Market Map breadth condition editor"]').setValue(true)
+    await wrapper.get('select[aria-label="Breadth condition type 1"]').setValue('python_series')
+    await wrapper.get('[aria-label="Breadth Python series condition asset 1"]').setValue('17')
+    await wrapper.get('.market-map-tool__run').trigger('click')
+    await flushPromises()
+
+    const pythonRequest = apiPost.mock.calls.find(call => call[0] === '/analysis/breadth/python')?.[1] as Record<string, any>
+    expect(pythonRequest).toEqual(expect.objectContaining({
+      code_version_id: 17,
+      output_contract: 'boolean',
+      condition_tree: { kind: 'python_series', params: expect.objectContaining({ code_version_id: 17 }) },
+    }))
+    const mapRequest = apiPost.mock.calls.find(call => call[0] === '/analysis/market-map' && call[1]?.color_metric === 'breadth')?.[1]
+    expect(mapRequest).toEqual(expect.objectContaining({ color_metric: 'breadth', python_run_id: 42 }))
+  })
+
   it('uses the same Python breadth source contract for derived and explicit watchlists', async () => {
     const previousSources = sourceState.sources
     sourceState.sources = [{ ...previousSources[0], source_id: 'combo:tech-leaders', source_kind: 'combo', name: 'Tech leaders', locked: true }]
