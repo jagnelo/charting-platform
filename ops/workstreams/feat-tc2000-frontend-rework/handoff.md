@@ -836,3 +836,23 @@ not among the remaining offenders. The gate did not reach coverage, frontend tes
 health, browser, or visual stages at this tip; the previously recorded visual result remains
 98/104 with the same six unchanged diffs. This is a repository-format debt blocker, not a source
 resolver regression, and no broad formatter cleanup is authorized in this feature slice.
+
+## 2026-09-04 — Exact-tip gate after formatter cleanup
+
+The formatter-only cleanup is now committed at `8de21f53` and pushed to the assigned feature
+branch. The exact-tip `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework`
+run passed Git/workstream validation, locked dependency and migration checks, frontend dependency
+installation, Ruff check/format, TypeScript, split backend coverage, frontend checks/build, compose
+contract, assigned-stack health, research-runner isolation probes, and the authenticated functional
+browser suite. Functional Playwright completed `260` specs as `154` passes and `106` documented
+skips; the seeded branch stack was cleaned up by the gate.
+
+The gate stopped only at the unchanged four-project visual matrix. It completed `104` visual cases:
+`98` passed and six screenshot assertions failed, exactly the concentrated cases previously
+recorded: `watchlist-column-editor-open` at visual-1080p-100 and visual-1080p-125, and
+`workspace-floating` at visual-1080p-100, visual-1080p-125, visual-1440p-100, and
+visual-1440p-125. The observed diffs were 13,844 pixels for the two watchlist-editor captures,
+4,257 pixels for the floating-workspace captures at 1080p-100/125 and 1440p-100, and 4,453 pixels
+on 1440p-125. No baseline, mask, threshold, skip, fallback oracle, provider rule, or protected
+worktree changed. The formatter debt is resolved; the six visual diffs and canonical provider/
+history gaps remain open for human review and the next bounded implementation slice.
