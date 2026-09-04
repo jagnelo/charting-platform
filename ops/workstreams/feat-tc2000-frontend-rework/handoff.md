@@ -10,6 +10,29 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-04 — Persisted Study Results Boolean promotion matrix
+
+Product commit `68856251` (`feat(tc2000): promote structured boolean results`) completes the
+named Boolean promotion matrix on persisted Research Results for completed multi-output Study
+runs. Boolean artifacts can be saved as typed watchlist columns, converted into scoped EasyScan
+filters or reusable scans, exposed as Market Gauges, and promoted to alerts. The adapter selects
+the named output from the immutable source CodeVersion, preserves run/configuration/manifest/hash
+lineage, carries declared canonical member IDs, and refuses promotion when the study has no
+canonical members instead of widening the universe.
+
+Evidence for this slice:
+
+- Research Results component coverage passed `26/26`; full frontend Vitest passed `938/938` across
+  `108` files; TypeScript type-check and production build passed.
+- Authenticated `F8t-results` browser coverage passed `1/1` against the rebuilt branch-scoped
+  Docker stack, exercising Boolean column, filter, scan, gauge, and alert controls. Teardown and
+  resource accounting reported zero containers, volumes, known image bytes, and test-container
+  sessions.
+- The exact-tip exhaustive gate is queued at `68856251`; the prior exact gate at `f8d68d3f`
+  passed every non-visual and functional stage and retained the six unchanged visual diffs. No
+  visual baseline, mask, threshold, skip, fallback oracle, provider rule, or acceptance policy
+  changed. The workstream remains active.
+
 ## 2026-09-04 — Exact-tip exhaustive gate after structured scalar and series promotions
 
 The exact-tip exhaustive integration profile was rerun at product commit `f8d68d3f`

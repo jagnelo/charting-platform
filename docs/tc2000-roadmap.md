@@ -11,17 +11,19 @@ records in `docs/project-todos.md`, `docs/tc2000-parity.md`,
 evidence ledgers. If a summary here conflicts with a dated test receipt or the current code, the
 current code and fresh evidence win.
 
-The latest product commit is `f8d68d3f` (`feat(tc2000): promote structured scalar and series
-results`). Persisted Research Results now exposes named `Save filter: <artifact>` and `Promote
-alert: <artifact>` actions for events artifacts plus `Save column: <artifact>` and `Save chart
-plot: <artifact>` actions for scalar and numeric-series artifacts in completed multi-output Study
-runs. Direct event Strategy-signal promotion remains limited to explicit/legacy single-output
-events contracts. The focused Research Results component suite passed `24/24`, the full frontend
-suite passed `936/936` across `108` files, TypeScript type-check passed, and the authenticated
-`F8t-results` browser flow passed `1/1` against the branch-scoped Docker stack with clean teardown
-and resource accounting. The exact-tip exhaustive gate has now rerun at product tip `f8d68d3f`:
-all non-visual and functional stages passed, while the unchanged visual matrix remains `98/104`
-with the same six diffs recorded below.
+The latest product commit is `68856251` (`feat(tc2000): promote structured boolean results`).
+Persisted Research Results now exposes named `Save filter: <artifact>` and `Promote alert:
+<artifact>` actions for events artifacts, `Save column: <artifact>` and `Save chart plot:
+<artifact>` actions for scalar and numeric-series artifacts, and the complete Boolean matrix
+(`Save column`, `Save filter`, `Promote scan`, `Use Gauge`, `Promote alert`) in completed
+multi-output Study runs. Direct event Strategy-signal promotion remains limited to explicit/legacy
+single-output events contracts. The focused Research Results component suite passed `26/26`, the
+full frontend suite passed `938/938` across `108` files, TypeScript type-check and production
+build passed, and the authenticated `F8t-results` browser flow passed `1/1` against the rebuilt
+branch-scoped Docker stack with clean teardown and resource accounting. The exact-tip exhaustive
+gate is queued at product tip `68856251`; the prior gate through `f8d68d3f` passed all non-visual
+and functional stages, while the unchanged visual matrix remains `98/104` with the same six diffs
+recorded below.
 
 The prior exact-tip gate at product tip `6f575a34` passed all non-visual stages and the functional
 browser suite (`155` passed, `106` documented skips across `261` specs). A first invocation's single

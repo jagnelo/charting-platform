@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-09-04 — Persisted Study Results Boolean promotion matrix
+
+- [x] Complete the named Boolean promotion matrix on persisted Research Results for completed
+      multi-output Study runs: save a typed watchlist column, create a scoped EasyScan-backed
+      watchlist filter or reusable scan, expose the scan as a Market Gauge, and create an alert.
+      Each adapter selects the named Boolean output, retrieves the immutable source CodeVersion,
+      preserves run/configuration/manifest/hash lineage, and carries the declared canonical member
+      IDs; missing IDs refuse promotion rather than widening the universe.
+- [x] Add regression coverage for the five controls, lineage and output contract, EasyScan reuse
+      across filter/scan/gauge/alert targets, and the no-canonical-member safety refusal. Focused
+      Research Results coverage passed `26/26`; full frontend Vitest passed `938/938` across
+      `108` files; TypeScript type-check and production build passed; authenticated F8t-results
+      browser coverage passed `1/1` against the rebuilt branch-scoped Docker stack; teardown and
+      resource accounting reported zero containers, volumes, known image bytes, and test-container
+      sessions. Product commit `68856251` contains the implementation and coverage.
+- [ ] Rerun the exact-tip exhaustive gate at `68856251`, then continue compatible richer Study Lab
+      targets, canonical provider/history enrichment, native-window/accessibility/security
+      evidence, dense-data budgets, and visual-oracle review. The feature goal remains active and
+      is not yet ready for human review.
+
 ### 2026-09-04 — Exact-tip exhaustive gate after structured scalar and series promotions
 
 - [x] Reran `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at
