@@ -77,3 +77,51 @@ def test_benchmark_family_dated_refresh_fans_out_idempotent_units(monkeypatch):
     assert all(call[1][1] == "2026-07-31" for call in calls)
     assert all(call[1][2] == result["roles"] for call in calls)
     assert all(call[2]["_expires"] == 86_400 for call in calls)
+
+
+def test_etf_capability_canary_is_disabled_by_default(monkeypatch):
+    monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_ENABLED", False)
+
+    result = asyncio.run(etf_holdings_tasks.etf_holdings_capability_canary_task({}))
+
+    assert result == {"skipped": True, "reason": "capability canary disabled"}
+
+
+def test_etf_capability_canary_passes_bounded_configuration(monkeypatch):
+    class Session:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def commit(self):
+            return None
+
+    calls: list[dict] = []
+
+    async def fake_canary(_db, **kwargs):
+        calls.append(kwargs)
+        return {"checked": 1}
+
+    monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_ENABLED", True)
+    monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_SYMBOLS", "DXJ, NTSX")
+    monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_MAX_SYMBOLS", 2)
+    monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_FAILURE_THRESHOLD", 3)
+    monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_COOLDOWN_SECONDS", 600)
+    monkeypatch.setattr("app.database.AsyncSessionLocal", lambda: Session())
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.run_etf_holdings_capability_canaries", fake_canary
+    )
+
+    result = asyncio.run(etf_holdings_tasks.etf_holdings_capability_canary_task({}))
+
+    assert result == {"checked": 1}
+    assert calls == [
+        {
+            "symbols": ["DXJ", "NTSX"],
+            "max_symbols": 2,
+            "failure_threshold": 3,
+            "cooldown_seconds": 600,
+        }
+    ]

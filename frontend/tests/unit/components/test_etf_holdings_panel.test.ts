@@ -74,7 +74,16 @@ describe('ETFHoldingsPanel', () => {
   })
 
   it('renders latest holdings and emits selected constituent symbols', async () => {
-    vi.mocked(api.get).mockResolvedValue(snapshot)
+    vi.mocked(api.get)
+      .mockResolvedValueOnce(snapshot)
+      .mockResolvedValueOnce({
+        availability: 'current',
+        source_tier: 'issuer_native',
+        usable_for_current_analysis: true,
+        displayable_last_known: true,
+        consecutive_failures: 0,
+        reason: 'A complete holdings snapshot passed the latest adapter check.',
+      })
     const wrapper = mount(ETFHoldingsPanel, {
       props: { symbol: 'SPY' },
     })
@@ -115,5 +124,29 @@ describe('ETFHoldingsPanel', () => {
     })
 
     expect(wrapper.html()).toBe('<!--v-if-->')
+  })
+
+  it('shows last-known holdings without advertising current usability when capability is degraded', async () => {
+    vi.mocked(api.get)
+      .mockResolvedValueOnce(snapshot)
+      .mockResolvedValueOnce({
+        availability: 'degraded',
+        source_tier: 'sec_filing',
+        usable_for_current_analysis: false,
+        displayable_last_known: true,
+        composition_date: snapshot.composition_date,
+        consecutive_failures: 1,
+        reason: 'Holdings are reconstructed from SEC filings and are not issuer-current support.',
+      })
+
+    const wrapper = mount(ETFHoldingsPanel, { props: { symbol: 'SPY' } })
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('degraded')
+      expect(wrapper.text()).toContain('not issuer-current support')
+    })
+
+    expect(wrapper.emitted('availability')?.at(-1)).toEqual([false])
+    expect(wrapper.text()).toContain('A last-known snapshot may be displayed')
   })
 })

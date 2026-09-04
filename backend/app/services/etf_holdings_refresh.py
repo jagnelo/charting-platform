@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import csv
+import time
 import zipfile
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from io import BytesIO, StringIO
 from typing import Any
@@ -41,6 +42,7 @@ from app.services.etf_holdings_adapters import (
     parse_etf_discovery_table,
     parse_xlsx_table,
 )
+from app.services.etf_holdings_capability import evaluate_capability, infer_expected_cadence
 from app.services.instrument_mastering import register_identifier
 from app.services.top_down_taxonomy import BENCHMARK_FAMILY_REGISTRY
 
@@ -636,6 +638,188 @@ async def refresh_all_known_etf_holdings(db: AsyncSession) -> dict:
     }
 
 
+def _canary_failure_class(failure: Exception | str) -> str:
+    text = str(failure).lower()
+    if "identity" in text or "mismatch" in text:
+        return "identity_mismatch"
+    if "parseable rows" in text or "complete rows" in text or "empty" in text:
+        return "empty_or_partial_source"
+    if isinstance(failure, httpx.HTTPStatusError):
+        return f"http_{failure.response.status_code}"
+    if isinstance(failure, httpx.HTTPError | TimeoutError | ConnectionError):
+        return "transport_error"
+    if "parse" in text or "schema" in text or "column" in text:
+        return "parser_or_schema_error"
+    return "provider_error"
+
+
+async def run_etf_holdings_capability_canaries(
+    db: AsyncSession,
+    *,
+    symbols: list[str],
+    max_symbols: int,
+    failure_threshold: int = 3,
+    cooldown_seconds: int = 3600,
+) -> dict[str, Any]:
+    """Run a bounded, opt-in route sweep and persist operational evidence.
+
+    Canaries use the existing ETF adapter contract and state row. They do not
+    create generic provider health or entitlement records; the shared provider
+    platform bridge will consume this observation once it reaches staging.
+    """
+
+    requested = []
+    for symbol in symbols:
+        normalized = str(symbol).strip().upper()
+        if normalized and normalized not in requested:
+            requested.append(normalized)
+    requested = requested[: max(0, max_symbols)]
+    profiles = (
+        (
+            await db.execute(
+                select(ETFProfile)
+                .options(selectinload(ETFProfile.instrument))
+                .join(Instrument, Instrument.id == ETFProfile.instrument_id)
+                .where(Instrument.symbol.in_(requested))
+            )
+        )
+        .scalars()
+        .all()
+    )
+    by_symbol = {
+        str(profile.instrument.symbol).strip().upper(): profile
+        for profile in profiles
+        if profile.instrument is not None
+    }
+    reports: list[dict[str, Any]] = []
+    summary = {
+        "requested": len(requested),
+        "checked": 0,
+        "recovered": 0,
+        "skipped": 0,
+        "failed": 0,
+        "missing_profiles": 0,
+    }
+    now = datetime.now(UTC)
+
+    for symbol in requested:
+        profile = by_symbol.get(symbol)
+        if profile is None:
+            summary["missing_profiles"] += 1
+            reports.append({"symbol": symbol, "status": "missing_profile"})
+            continue
+        adapter_key = profile.adapter_key or "unresolved"
+        state = (
+            await db.execute(
+                select(ETFHoldingsAdapterState).where(
+                    ETFHoldingsAdapterState.etf_profile_id == profile.id,
+                    ETFHoldingsAdapterState.adapter_key == adapter_key,
+                )
+            )
+        ).scalar_one_or_none()
+        metadata = (state.extra_data or {}) if state is not None else {}
+        open_until_text = metadata.get("circuit_open_until")
+        open_until = None
+        if open_until_text:
+            try:
+                open_until = datetime.fromisoformat(str(open_until_text))
+                if open_until.tzinfo is None:
+                    open_until = open_until.replace(tzinfo=UTC)
+            except ValueError:
+                open_until = None
+        if open_until is not None and open_until > now:
+            summary["skipped"] += 1
+            if state is not None:
+                state.status = "circuit_open"
+                state.last_checked_at = now
+                state.extra_data = {
+                    **metadata,
+                    "last_canary_at": now.isoformat(),
+                    "last_canary_status": "circuit_open",
+                }
+            reports.append(
+                {
+                    "symbol": symbol,
+                    "status": "circuit_open",
+                    "circuit_open_until": open_until.isoformat(),
+                }
+            )
+            continue
+
+        started = time.perf_counter()
+        previous_failures = int(metadata.get("consecutive_failures") or 0)
+        try:
+            snapshot = await _refresh_adapter_route(db, profile)
+        except ETFHoldingsRouteNotReadyError as exc:
+            summary["skipped"] += 1
+            await _record_skip(db, profile, "needs_issuer_route", str(exc))
+            status = "needs_issuer_route"
+            failure_class = "route_not_ready"
+            snapshot = None
+            failure_text = str(exc)
+        except Exception as exc:  # noqa: BLE001 - canary records provider-specific failure.
+            summary["failed"] += 1
+            await _record_failure(db, profile, exc)
+            status = "failure"
+            failure_class = _canary_failure_class(exc)
+            snapshot = None
+            failure_text = str(exc)
+        else:
+            summary["checked"] += 1
+            await _record_success(db, profile, snapshot=snapshot)
+            status = "success"
+            failure_class = None
+            failure_text = None
+
+        elapsed_ms = round((time.perf_counter() - started) * 1000, 2)
+        state = (
+            await db.execute(
+                select(ETFHoldingsAdapterState).where(
+                    ETFHoldingsAdapterState.etf_profile_id == profile.id,
+                    ETFHoldingsAdapterState.adapter_key == adapter_key,
+                )
+            )
+        ).scalar_one_or_none()
+        if state is None:
+            reports.append({"symbol": symbol, "status": status})
+            continue
+        current_metadata = state.extra_data or {}
+        failures = int(current_metadata.get("consecutive_failures") or 0)
+        recovered = status == "success" and previous_failures > 0
+        if recovered:
+            summary["recovered"] += 1
+        circuit_state = "closed"
+        circuit_open_until = None
+        if status != "success" and failures >= max(1, failure_threshold):
+            circuit_state = "open"
+            circuit_open_until = datetime.now(UTC) + timedelta(seconds=max(1, cooldown_seconds))
+        state.extra_data = {
+            **current_metadata,
+            "last_canary_at": datetime.now(UTC).isoformat(),
+            "last_canary_status": status,
+            "last_canary_latency_ms": elapsed_ms,
+            "last_canary_failure_class": failure_class,
+            "last_canary_failure_reason": failure_text,
+            "last_canary_recovered": recovered,
+            "circuit_state": circuit_state,
+            "circuit_open_until": circuit_open_until.isoformat() if circuit_open_until else None,
+        }
+        reports.append(
+            {
+                "symbol": symbol,
+                "status": status,
+                "availability": evaluate_capability(profile, snapshot, state).availability,
+                "latency_ms": elapsed_ms,
+                "failure_class": failure_class,
+                "recovered": recovered,
+                "circuit_state": circuit_state,
+            }
+        )
+
+    await db.flush()
+    return {**summary, "reports": reports}
+
+
 async def reconcile_all_etf_holdings_classifications(
     db: AsyncSession,
     *,
@@ -947,6 +1131,14 @@ async def refresh_etf_holdings_for_date(
         _ensure_artifact_identity_is_safe(artifact_identity_validation)
 
         result_metadata = fetch_result.legal_metadata or {}
+        result_metadata = {
+            **result_metadata,
+            "expected_cadence": result_metadata.get("expected_cadence")
+            or infer_expected_cadence(
+                source_access=getattr(getattr(adapter, "config", None), "source_access", None),
+                metadata=result_metadata,
+            ),
+        }
         source_format = str(result_metadata.get("source_format") or "csv")
         source_provider = (
             _first_alias(aliases, "holdings_source_provider", "source_provider")
@@ -1725,6 +1917,14 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
     _ensure_artifact_identity_is_safe(artifact_identity_validation)
 
     result_metadata = fetch_result.legal_metadata or {}
+    result_metadata = {
+        **result_metadata,
+        "expected_cadence": result_metadata.get("expected_cadence")
+        or infer_expected_cadence(
+            source_access=getattr(getattr(adapter, "config", None), "source_access", None),
+            metadata=result_metadata,
+        ),
+    }
     source_format = str(result_metadata.get("source_format") or "csv")
     source_provider = (
         _first_alias(aliases, "holdings_source_provider", "source_provider")
@@ -1808,6 +2008,11 @@ async def _record_skip(
     state.status = status
     state.failure_reason = failure_reason or "No concrete free issuer adapter route is configured."
     state.last_checked_at = datetime.now(UTC)
+    state.extra_data = {
+        **(state.extra_data or {}),
+        "consecutive_failures": int((state.extra_data or {}).get("consecutive_failures") or 0) + 1,
+        "last_error_class": "RouteNotReady",
+    }
 
 
 async def _record_probe(
@@ -1838,6 +2043,9 @@ async def _record_probe(
         **(state.extra_data or {}),
         "probe_confidence": str(probe.confidence),
         "required_identifiers": probe.required_identifiers,
+        "consecutive_failures": 0
+        if probe.status == "ready"
+        else int((state.extra_data or {}).get("consecutive_failures") or 0) + 1,
     }
 
 
@@ -1861,6 +2069,21 @@ async def _record_success(db: AsyncSession, profile: ETFProfile, snapshot=None) 
     state.rate_limit_state = None
     state.last_success_at = now
     state.last_checked_at = now
+    observation_metadata = snapshot.extra_data if snapshot is not None else {}
+    state.extra_data = {
+        **(state.extra_data or {}),
+        **{
+            key: observation_metadata.get(key)
+            for key in (
+                "source_tier",
+                "transport_kind",
+                "expected_cadence",
+                "schema_fingerprint",
+            )
+            if observation_metadata.get(key) is not None
+        },
+        "consecutive_failures": 0,
+    }
     if snapshot is not None:
         state.source_url = snapshot.source_url
         state.source_identifier = snapshot.source_identifier
@@ -1903,3 +2126,8 @@ async def _record_failure(db: AsyncSession, profile: ETFProfile, failure: Except
     state.rate_limit_state = _rate_limit_state_for_failure(failure)
     state.last_failure_at = datetime.now(UTC)
     state.last_checked_at = state.last_failure_at
+    state.extra_data = {
+        **(state.extra_data or {}),
+        "consecutive_failures": int((state.extra_data or {}).get("consecutive_failures") or 0) + 1,
+        "last_error_class": type(failure).__name__ if isinstance(failure, Exception) else "Error",
+    }

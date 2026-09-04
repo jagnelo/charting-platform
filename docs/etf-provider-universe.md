@@ -36,6 +36,15 @@ Inspire ETF Engine, and Fidelity named-zero-weight-row repairs. The remaining
 Vident and MM VAM aliases stay fallback-only because the shared Vident issuer
 route returns a Cloudflare challenge to the application client.
 
+Provider identity is not the same as symbol-level usability. The branch now
+exposes a per-symbol capability contract that labels current, degraded, stale,
+unavailable, not-applicable, and unknown outcomes. A complete SEC reconstruction,
+stale snapshot, partial parse, failed route, or unreviewed source remains
+displayable as last-known evidence but is never advertised as current constituent
+analysis. The Tier 0 symbol ledger and free-first canary policy live in
+`ops/workstreams/feat-etf-holdings-constituents/provider-audit.yaml`; it covers
+WisdomTree DXJ/NTSX, PIMCO MINT/BOND/GEME, and the F/m U.S. Benchmark Series.
+
 The current checkpoint promotes `guggenheim` through its public issuer-hosted
 ETF holdings table, reconciles `ars` to the existing ARS Investment Partners
 ACEP/AFOS product-page adapter, adds Avory's complete AVRY product-page

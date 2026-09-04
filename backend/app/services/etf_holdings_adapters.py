@@ -2609,6 +2609,7 @@ class IssuerCsvAdapterConfig:
     adapter_key: str
     source_provider: str
     source_access: str = "issuer_public_holdings_file"
+    expected_cadence: str | None = None
     url_templates: tuple[str, ...] = ()
     product_page_templates: tuple[str, ...] = ()
     required_identifiers: tuple[str, ...] = ()
@@ -75072,6 +75073,7 @@ def holdings_adapter_catalog() -> list[dict[str, Any]]:
                 "adapter_key": config.adapter_key,
                 "source_provider": config.source_provider,
                 "source_access": config.source_access,
+                "expected_cadence": config.expected_cadence,
                 "required_identifiers": list(config.required_identifiers),
                 "route_identifiers": [
                     f"{adapter_key}_discovery_feed_url",

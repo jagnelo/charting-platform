@@ -55,6 +55,15 @@ const profile = {
   latest_snapshot_id: 55,
   resolved_count: 2,
   unresolved_count: 0,
+  holdings_capability: {
+    availability: 'current',
+    source_tier: 'issuer_native',
+    identity_verified: true,
+    usable_for_current_analysis: true,
+    displayable_last_known: true,
+    consecutive_failures: 0,
+    reason: 'A complete holdings snapshot passed the latest adapter check.',
+  },
 }
 
 const overlapProfile = {
@@ -67,6 +76,15 @@ const overlapProfile = {
   latest_snapshot_id: 77,
   resolved_count: 2,
   unresolved_count: 0,
+  holdings_capability: {
+    availability: 'current',
+    source_tier: 'issuer_native',
+    identity_verified: true,
+    usable_for_current_analysis: true,
+    displayable_last_known: true,
+    consecutive_failures: 0,
+    reason: 'A complete holdings snapshot passed the latest adapter check.',
+  },
 }
 
 const dates = [

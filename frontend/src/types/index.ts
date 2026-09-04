@@ -176,6 +176,32 @@ export interface ETFHoldingsSnapshot {
   holdings: ETFHolding[]
 }
 
+export interface ETFHoldingsCapability {
+  availability: 'current' | 'degraded' | 'stale' | 'unavailable' | 'not_applicable' | 'unknown' | string
+  source_tier: 'issuer_native' | 'successor_native' | 'licensed_vendor' | 'sec_filing' | 'none' | string
+  identity_verified: boolean
+  usable_for_current_analysis: boolean
+  displayable_last_known: boolean
+  adapter_key?: string | null
+  source_provider?: string | null
+  transport_kind?: string | null
+  expected_cadence?: string | null
+  composition_date?: string | null
+  published_at?: string | null
+  last_checked_at?: string | null
+  last_success_at?: string | null
+  last_failure_at?: string | null
+  freshness_deadline?: string | null
+  row_count?: number | null
+  resolved_count?: number | null
+  unresolved_count?: number | null
+  completeness_status?: string | null
+  failure_reason?: string | null
+  consecutive_failures: number
+  schema_fingerprint?: string | null
+  reason: string
+}
+
 export interface ETFHoldingsPage {
   snapshot: ETFHoldingsSnapshot
   holdings: ETFHolding[]
@@ -390,6 +416,7 @@ export interface ETFProfile {
   latest_snapshot_id?: number | null
   resolved_count: number
   unresolved_count: number
+  holdings_capability?: ETFHoldingsCapability | null
 }
 
 export interface EquityDetail {

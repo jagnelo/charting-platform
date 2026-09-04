@@ -39,7 +39,13 @@
               <small>{{ profile.latest_composition_date || 'No date' }}</small>
             </span>
             <span>{{ profile.name }}</span>
-            <em>{{ profile.resolved_count }} ready · {{ profile.unresolved_count }} review</em>
+            <em>
+              <span
+                class="capability-pill"
+                :class="capabilityClass(profile.holdings_capability)"
+              >{{ capabilityLabel(profile.holdings_capability) }}</span>
+              · {{ profile.resolved_count }} ready · {{ profile.unresolved_count }} review
+            </em>
           </button>
         </template>
       </div>
@@ -59,10 +65,28 @@
             <span>{{ page.snapshot.source_provider }}</span>
             <span>{{ page.snapshot.source_quality }}</span>
             <span>{{ page.total }} rows</span>
+            <span
+              class="capability-pill"
+              :class="capabilityClass(selectedCapability)"
+            >{{ capabilityLabel(selectedCapability) }}</span>
           </div>
         </div>
 
         <div v-if="loadError" class="notice notice--error">{{ loadError }}</div>
+
+        <div
+          v-if="selectedCapability && !selectedCapability.usable_for_current_analysis"
+          class="notice notice--capability"
+          :class="capabilityClass(selectedCapability)"
+          role="status"
+        >
+          <strong>Current holdings are not verified.</strong>
+          {{ selectedCapability.reason }}
+          <span v-if="selectedCapability.composition_date">
+            Last composition: {{ selectedCapability.composition_date }}.
+          </span>
+          Historical snapshots remain available, but this data must not be treated as current.
+        </div>
 
         <div v-if="selectedProfile" class="toolbar">
           <label>
@@ -560,6 +584,7 @@ import type {
   ETFHoldingsTransitionTimeline,
   ETFHoldingsWeightEvolution,
   ETFHoldingsWeightEvolutionSeries,
+  ETFHoldingsCapability,
   ETFProfile,
 } from '@/types'
 
@@ -585,6 +610,7 @@ interface ETFProfileBootstrapResponse {
   }
   refresh_attempted: boolean
   refresh_succeeded: boolean
+  capability?: ETFHoldingsCapability | null
   message?: string | null
 }
 
@@ -616,6 +642,17 @@ const overlapFamilyLimit = ref(25)
 const loadingProfiles = ref(false)
 const loadingOverlap = ref(false)
 const loadError = ref('')
+
+const selectedCapability = computed(() => selectedProfile.value?.holdings_capability ?? null)
+
+function capabilityLabel(capability: ETFHoldingsCapability | null | undefined): string {
+  if (!capability) return 'Capability not checked'
+  return capability.availability.replace(/_/g, ' ')
+}
+
+function capabilityClass(capability: ETFHoldingsCapability | null | undefined): string {
+  return `capability--${capability?.availability || 'unknown'}`
+}
 
 const pageEnd = computed(() => {
   if (!page.value) return 0
@@ -1054,6 +1091,11 @@ function statusClass(row: ETFHolding) {
 }
 
 function openableSymbol(row: ETFHolding) {
+  if (!selectedCapability.value?.identity_verified
+    || selectedCapability.value.availability !== 'current'
+    || !selectedCapability.value.usable_for_current_analysis) {
+    return ''
+  }
   if (!isTradableHolding(row)) return ''
   const constituent = isSyntheticHoldingSymbol(row.constituent_symbol) ? '' : row.constituent_symbol
   return constituent || row.reported_symbol || ''
@@ -1223,6 +1265,18 @@ onMounted(loadProfiles)
   font-style: normal;
   font-size: 10px;
 }
+.capability-pill {
+  border: 1px solid #3a3a3a;
+  border-radius: 999px;
+  padding: 2px 6px;
+  text-transform: capitalize;
+}
+.capability--current { color: #8fe3a1; border-color: #2b6b3a; }
+.capability--degraded { color: #f0cb7a; border-color: #806326; }
+.capability--stale,
+.capability--unavailable { color: #ff9d9d; border-color: #693333; }
+.capability--not_applicable,
+.capability--unknown { color: #b5b5b5; border-color: #4a4a4a; }
 .holdings-main {
   min-width: 0;
   min-height: 0;
@@ -1941,6 +1995,24 @@ button.holding-row:hover,
   color: #ff9d9d;
   background: #1b0f0f;
   padding: 10px 12px;
+}
+.notice--capability {
+  border: 1px solid #806326;
+  border-radius: 8px;
+  color: #ddc58d;
+  background: #1b160d;
+  padding: 10px 12px;
+  line-height: 1.5;
+}
+.notice--capability strong {
+  color: #f0d493;
+  margin-right: 4px;
+}
+.notice--capability.capability--unavailable,
+.notice--capability.capability--stale {
+  border-color: #693333;
+  color: #ffb2b2;
+  background: #1b0f0f;
 }
 .empty-state {
   border: 1px dashed #292929;

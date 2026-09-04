@@ -107,6 +107,19 @@ def test_admin_can_refresh_ark_provider_route(client, admin_headers, auth_header
     assert body["source_provider"] == "ark"
     assert body["row_count"] == 2
 
+    capability = client.get("/api/v1/etf-holdings/ARKK/capability", headers=auth_headers)
+    assert capability.status_code == 200
+    capability_body = capability.json()
+    assert capability_body["availability"] == "degraded"
+    assert capability_body["source_tier"] == "issuer_native"
+    assert capability_body["identity_verified"] is True
+    assert capability_body["usable_for_current_analysis"] is False
+    assert capability_body["displayable_last_known"] is True
+    assert "incomplete" in capability_body["reason"]
+    assert capability_body["expected_cadence"] == "unspecified"
+    assert capability_body["transport_kind"] == "file_export"
+    assert capability_body["schema_fingerprint"]
+
 
 def test_admin_family_history_refresh_queues_deduplicated_local_members(
     client, admin_headers, monkeypatch

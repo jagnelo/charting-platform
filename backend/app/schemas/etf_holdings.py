@@ -4,6 +4,34 @@ from decimal import Decimal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class ETFHoldingsCapabilityOut(BaseModel):
+    """Current, per-symbol holdings capability; separate from immutable snapshots."""
+
+    availability: str
+    source_tier: str
+    identity_verified: bool
+    usable_for_current_analysis: bool
+    displayable_last_known: bool
+    adapter_key: str | None = None
+    source_provider: str | None = None
+    transport_kind: str | None = None
+    expected_cadence: str | None = None
+    composition_date: date | None = None
+    published_at: datetime | None = None
+    last_checked_at: datetime | None = None
+    last_success_at: datetime | None = None
+    last_failure_at: datetime | None = None
+    freshness_deadline: date | None = None
+    row_count: int | None = None
+    resolved_count: int | None = None
+    unresolved_count: int | None = None
+    completeness_status: str | None = None
+    failure_reason: str | None = None
+    consecutive_failures: int = 0
+    schema_fingerprint: str | None = None
+    reason: str
+
+
 class ETFProfileOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -28,6 +56,7 @@ class ETFProfileOut(BaseModel):
     latest_snapshot_id: int | None = None
     resolved_count: int = 0
     unresolved_count: int = 0
+    holdings_capability: ETFHoldingsCapabilityOut | None = None
 
 
 class ETFProfileUpdateRequest(BaseModel):
@@ -51,6 +80,7 @@ class ETFProfileBootstrapOut(BaseModel):
     profile: ETFProfileOut
     latest_snapshot: "ETFHoldingsSnapshotOut | None" = None
     probe: "ETFHoldingsAdapterProbeOut"
+    capability: ETFHoldingsCapabilityOut | None = None
     refresh_attempted: bool = False
     refresh_succeeded: bool = False
     message: str | None = None

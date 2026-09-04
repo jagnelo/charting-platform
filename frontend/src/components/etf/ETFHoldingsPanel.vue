@@ -10,16 +10,28 @@
       </button>
       <div class="header-main">
         <strong>Holdings</strong>
-        <small>{{ snapshot?.etf_symbol }} · {{ formatDate(snapshot?.composition_date) }}</small>
+        <small>{{ snapshot?.etf_symbol || props.symbol }} · {{ formatDate(snapshot?.composition_date || capability?.composition_date) }}</small>
       </div>
       <div class="header-meta">
-        <span>{{ snapshot?.source_provider }}</span>
-        <span>{{ snapshot?.source_quality }}</span>
-        <span>{{ snapshot?.resolved_count ?? 0 }}/{{ snapshot?.row_count ?? 0 }} ready</span>
+        <span v-if="capability" class="capability-pill" :class="capabilityClass(capability)">
+          {{ capabilityLabel(capability) }}
+        </span>
+        <span>{{ snapshot?.source_provider || capability?.source_provider || 'No source' }}</span>
+        <span v-if="snapshot">{{ snapshot.source_quality }}</span>
+        <span>{{ snapshot ? `${snapshot.resolved_count ?? 0}/${snapshot.row_count ?? 0} ready` : 'No current snapshot' }}</span>
       </div>
     </header>
 
     <div v-if="!collapsed" class="holdings-body">
+      <div v-if="capability && !capability.usable_for_current_analysis" class="capability-notice">
+        <strong>{{ capabilityLabel(capability) }}</strong>
+        <span>{{ capability.reason || 'Current constituent analysis is not supported for this symbol.' }}</span>
+        <small v-if="capability.displayable_last_known">
+          A last-known snapshot may be displayed for historical context, but it must not be treated as current.
+        </small>
+      </div>
+
+      <template v-if="snapshot">
       <div class="summary-strip">
         <div>
           <span>Provenance</span>
@@ -172,6 +184,10 @@
           No holdings match this filter.
         </div>
       </div>
+      </template>
+      <div v-else class="empty-state">
+        No current holdings snapshot is available for this ETF.
+      </div>
     </div>
   </section>
 </template>
@@ -179,7 +195,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { api } from '@/lib/api'
-import type { ETFHolding, ETFHoldingsSnapshot } from '@/types'
+import type { ETFHolding, ETFHoldingsCapability, ETFHoldingsSnapshot } from '@/types'
 
 const props = defineProps<{ symbol: string | null }>()
 const emit = defineEmits<{
@@ -188,13 +204,17 @@ const emit = defineEmits<{
 }>()
 
 const snapshot = ref<ETFHoldingsSnapshot | null>(null)
+const capability = ref<ETFHoldingsCapability | null>(null)
 const filter = ref('')
 const sortMode = ref<'weight' | 'symbol' | 'name' | 'unresolved'>('weight')
 const collapsed = ref(false)
 const selectedHoldingId = ref<number | null>(null)
 let loadSeq = 0
 
-const visible = computed(() => !!snapshot.value)
+const visible = computed(() => !!snapshot.value || !!capability.value)
+const capabilityLabel = (value: ETFHoldingsCapability) =>
+  String(value.availability || 'unknown').replace(/_/g, ' ')
+const capabilityClass = (value: ETFHoldingsCapability) => `capability--${value.availability || 'unknown'}`
 const provenanceLabel = computed(() =>
   String(snapshot.value?.provenance || '').replace(/_/g, ' ') || '—'
 )
@@ -293,6 +313,9 @@ function holdingName(row: ETFHolding) {
 }
 
 function openableSymbol(row: ETFHolding) {
+  if (!capability.value?.usable_for_current_analysis || capability.value.availability !== 'current') {
+    return ''
+  }
   if (!isTradableHolding(row)) return ''
   return preferredHoldingSymbol(row)
 }
@@ -359,17 +382,23 @@ async function load() {
   selectedHoldingId.value = null
   if (!symbol) {
     snapshot.value = null
+    capability.value = null
     emit('availability', false)
     return
   }
   try {
-    const loaded = await api.get<ETFHoldingsSnapshot>(`/etf-holdings/${encodeURIComponent(symbol)}/latest`)
+    const [loaded, capabilityResult] = await Promise.all([
+      api.get<ETFHoldingsSnapshot>(`/etf-holdings/${encodeURIComponent(symbol)}/latest`).catch(() => null),
+      api.get<ETFHoldingsCapability>(`/etf-holdings/${encodeURIComponent(symbol)}/capability`).catch(() => null),
+    ])
     if (seq !== loadSeq) return
     snapshot.value = loaded
-    emit('availability', true)
+    capability.value = capabilityResult
+    emit('availability', Boolean(capabilityResult?.usable_for_current_analysis && capabilityResult.availability === 'current'))
   } catch {
     if (seq !== loadSeq) return
     snapshot.value = null
+    capability.value = null
     emit('availability', false)
   }
 }
@@ -446,6 +475,20 @@ watch(visibleHoldings, rows => {
   min-width: 0;
   white-space: nowrap;
 }
+.capability-pill {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #27323d;
+  border-radius: 999px;
+  padding: 3px 7px;
+  text-transform: capitalize;
+}
+.capability--current { color: #7bdc9a; border-color: #28583a; }
+.capability--degraded,
+.capability--stale { color: #f3c969; border-color: #625025; }
+.capability--unavailable,
+.capability--unknown { color: #f09a9a; border-color: #613535; }
+.capability--not_applicable { color: #9ca3af; border-color: #3b4148; }
 .holdings-body {
   min-height: 0;
   display: grid;
@@ -453,6 +496,21 @@ watch(visibleHoldings, rows => {
   gap: 8px;
   padding: 10px 12px 12px;
 }
+.capability-notice {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #5a4820;
+  border-radius: 8px;
+  background: #17130a;
+  color: #f3d98a;
+  padding: 9px 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  line-height: 1.4;
+}
+.capability-notice strong { text-transform: capitalize; }
+.capability-notice span { color: #d7c17d; }
+.capability-notice small { color: #aa9862; }
 .summary-strip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

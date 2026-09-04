@@ -363,6 +363,30 @@ def test_worker_registers_etf_classification_refresh_function():
 
 
 @pytest.mark.asyncio
+async def test_etf_capability_canary_delegates_to_bounded_task(monkeypatch):
+    from app.tasks import etf_holdings_tasks
+
+    calls = []
+
+    async def fake_canary(ctx):
+        calls.append(ctx)
+        return {"checked": 2}
+
+    monkeypatch.setattr(etf_holdings_tasks, "etf_holdings_capability_canary_task", fake_canary)
+
+    result = await arq_worker.scheduled_etf_holdings_capability_canary({"redis": "test"})
+
+    assert result == {"checked": 2}
+    assert calls == [{"redis": "test"}]
+
+
+def test_worker_registers_etf_capability_canary_function():
+    assert (
+        arq_worker.scheduled_etf_holdings_capability_canary in arq_worker.WorkerSettings.functions
+    )
+
+
+@pytest.mark.asyncio
 async def test_core_workstation_bootstrap_delegates_when_enabled(monkeypatch):
     monkeypatch.setattr(settings, "CORE_WORKSTATION_BOOTSTRAP_ENABLED", True)
     calls = []

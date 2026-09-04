@@ -25,6 +25,33 @@ async def refresh_etf_holdings_task(ctx: dict) -> dict:
         return summary
 
 
+async def etf_holdings_capability_canary_task(ctx: dict) -> dict:
+    """Run the disabled-by-default, bounded Tier 0 ETF route canary sweep."""
+
+    if not getattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_ENABLED", False):
+        logger.info("ETF holdings capability canary disabled; skipping")
+        return {"skipped": True, "reason": "capability canary disabled"}
+
+    from app.database import AsyncSessionLocal
+    from app.services.etf_holdings_refresh import run_etf_holdings_capability_canaries
+
+    symbols = [
+        value.strip().upper()
+        for value in str(settings.ETF_HOLDINGS_CAPABILITY_CANARY_SYMBOLS).split(",")
+        if value.strip()
+    ]
+    async with AsyncSessionLocal() as db:
+        summary = await run_etf_holdings_capability_canaries(
+            db,
+            symbols=symbols,
+            max_symbols=settings.ETF_HOLDINGS_CAPABILITY_CANARY_MAX_SYMBOLS,
+            failure_threshold=settings.ETF_HOLDINGS_CAPABILITY_CANARY_FAILURE_THRESHOLD,
+            cooldown_seconds=settings.ETF_HOLDINGS_CAPABILITY_CANARY_COOLDOWN_SECONDS,
+        )
+        await db.commit()
+        return summary
+
+
 async def backfill_sec_nport_holdings_task(ctx: dict) -> dict:
     """Scheduled SEC N-PORT backfill entry point for ETF profiles with CIKs."""
 

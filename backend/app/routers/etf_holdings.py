@@ -24,6 +24,7 @@ from app.schemas.etf_holdings import (
     ETFHoldingsAdapterProbeOut,
     ETFHoldingsAdapterStateOut,
     ETFHoldingsBackfillJobOut,
+    ETFHoldingsCapabilityOut,
     ETFHoldingsCoverageRequest,
     ETFHoldingsCoverageSummary,
     ETFHoldingsCSVIngestRequest,
@@ -77,6 +78,7 @@ from app.services.etf_holdings import (
     get_nearest_snapshot,
     get_unresolved_holdings,
     get_weight_evolution,
+    holdings_capability_for_profile,
     ingest_holdings_snapshot,
     list_available_dates,
     list_etfs_with_holdings,
@@ -491,6 +493,7 @@ async def bootstrap_holdings_profile(
         ),
         refresh_attempted=result.refresh_attempted,
         refresh_succeeded=result.refresh_succeeded,
+        capability=profile.holdings_capability,
         message=result.message,
     )
 
@@ -500,6 +503,19 @@ async def holdings_adapter_catalog_endpoint(
     current_user: User = Depends(require_admin),
 ):
     return holdings_adapter_catalog()
+
+
+@router.get("/{symbol}/capability", response_model=ETFHoldingsCapabilityOut)
+async def holdings_capability(
+    symbol: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return truthful current holdings capability without triggering a fetch."""
+
+    instrument = await ensure_lightweight_etf_instrument(db, symbol=symbol)
+    profile = await ensure_etf_profile(db, instrument)
+    return await holdings_capability_for_profile(db, profile)
 
 
 @router.get("/{symbol_or_id}/latest", response_model=ETFHoldingsSnapshotOut)
