@@ -68,8 +68,13 @@ and the Ridgeline identity for ACVF as `not_applicable` because ACV is the
 identified holdings publisher. These outcomes are non-usable and include
 evidence references plus the next re-test or identity reconciliation action;
 they do not promote a generic fallback or SEC filing to current support. The
-remaining fallback symbols stay in the explicit identity-level `unknown`
-boundary until their own symbol-scoped investigation is recorded.
+third cohort covers AVOS (Avos Global Equities) and BGGG/BGIA/BGEG/BGUS (Baillie
+Gifford); AVOS is `unavailable` because backend-equivalent access is blocked,
+while the Baillie Gifford symbols are `unavailable` because the public artifact
+contains only top-ten holdings without a complete constituent universe or
+stable identifiers. The remaining fallback symbols stay in the explicit
+identity-level `unknown` boundary until their own symbol-scoped investigation
+is recorded.
 
 The current checkpoint promotes `guggenheim` through its public issuer-hosted
 ETF holdings table, reconciles `ars` to the existing ARS Investment Partners

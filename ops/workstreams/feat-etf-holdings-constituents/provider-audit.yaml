@@ -316,6 +316,46 @@ symbol_audit_ledger:
       investigated_at: 2026-09-02
       evidence_refs: [web:arin-attr-holdings-cloudflare-2026-09-02]
       next_action: "Re-test the ATTR page or identify an issuer-published machine-readable export accessible without challenge state; promote only after parser and bounded live evidence."
+    - symbol: AVOS
+      tier: 1
+      provider_identity: avos
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-04
+      evidence_refs: [web:avos-current-holdings-page-2026-09-04, live:avos-current-holdings-page-2026-09-04-blocked]
+      next_action: "Periodically re-test the official AVOS page; promote only after backend access returns complete current rows with proven mapping."
+    - symbol: BGGG
+      tier: 1
+      provider_identity: baillie_gifford
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-02
+      evidence_refs: [web:baillie-gifford-top-ten-only-2026-09-02]
+      next_action: "Locate a complete constituent export for each U.S. ETF, prove symbol mapping and identifiers, then add a provider-specific parser and live route test."
+    - symbol: BGIA
+      tier: 1
+      provider_identity: baillie_gifford
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-02
+      evidence_refs: [web:baillie-gifford-top-ten-only-2026-09-02]
+      next_action: "Locate a complete constituent export for each U.S. ETF, prove symbol mapping and identifiers, then add a provider-specific parser and live route test."
+    - symbol: BGEG
+      tier: 1
+      provider_identity: baillie_gifford
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-02
+      evidence_refs: [web:baillie-gifford-top-ten-only-2026-09-02]
+      next_action: "Locate a complete constituent export for each U.S. ETF, prove symbol mapping and identifiers, then add a provider-specific parser and live route test."
+    - symbol: BGUS
+      tier: 1
+      provider_identity: baillie_gifford
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-02
+      evidence_refs: [web:baillie-gifford-top-ten-only-2026-09-02]
+      next_action: "Locate a complete constituent export for each U.S. ETF, prove symbol mapping and identifiers, then add a provider-specific parser and live route test."
 providers:
   - adapter_key: aegon
     display_name: aegon

@@ -218,14 +218,15 @@ def test_tier_zero_symbol_audit_accepts_reconciled_provider_aliases():
     assert result.provider_identity == "fm_investments"
 
 
-def test_identity_only_fallback_symbols_remain_unknown_until_symbol_route_evidence():
+def test_ranked_fallback_non_executable_symbols_remain_unavailable():
     result = symbol_audit_for_profile(profile_with_symbol("BGGG", "baillie_gifford"))
 
     assert result.tier == 1
-    assert result.outcome == "unknown"
-    assert result.evidence_state == "identity_level_only"
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "non_executable_public_source"
     assert result.provider_identity == "baillie_gifford"
-    assert result.investigated_at == date(2026, 7, 26)
+    assert result.investigated_at == date(2026, 9, 2)
+    assert result.evidence_refs == ("web:baillie-gifford-top-ten-only-2026-09-02",)
 
 
 def test_ranked_fallback_symbol_audit_uses_explicit_issuer_evidence():
@@ -292,9 +293,23 @@ def test_follow_on_ranked_fallback_non_executable_symbol_is_not_current():
     assert result.symbol_audit.evidence_state == "non_executable_public_source"
 
 
+def test_follow_on_ranked_fallback_avos_symbol_preserves_blocked_route_evidence():
+    result = symbol_audit_for_profile(profile_with_symbol("AVOS", "avos"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "issuer_route_access_blocked"
+    assert result.provider_identity == "avos"
+    assert result.investigated_at == date(2026, 9, 4)
+    assert result.evidence_refs == (
+        "web:avos-current-holdings-page-2026-09-04",
+        "live:avos-current-holdings-page-2026-09-04-blocked",
+    )
+
+
 def test_unreviewed_fallback_symbol_cannot_be_marked_current_from_a_snapshot_alone():
     result = evaluate_capability(
-        profile_with_symbol("BGGG", "baillie_gifford"),
+        profile_with_symbol("MAVF", "matrix"),
         snapshot(),
         state(),
         now=NOW,

@@ -543,6 +543,33 @@ _register_non_tier_0_audits(
         "without challenge state; promote only after parser and bounded live evidence."
     ),
 )
+_register_non_tier_0_audits(
+    ("AVOS",),
+    outcome=UNAVAILABLE,
+    evidence_state="issuer_route_access_blocked",
+    provider_identity="avos",
+    investigated_at=date(2026, 9, 4),
+    evidence_refs=(
+        "web:avos-current-holdings-page-2026-09-04",
+        "live:avos-current-holdings-page-2026-09-04-blocked",
+    ),
+    next_action=(
+        "Periodically re-test the official AVOS page; promote only after backend access "
+        "returns complete current rows with proven mapping."
+    ),
+)
+_register_non_tier_0_audits(
+    ("BGGG", "BGIA", "BGEG", "BGUS"),
+    outcome=UNAVAILABLE,
+    evidence_state="non_executable_public_source",
+    provider_identity="baillie_gifford",
+    investigated_at=date(2026, 9, 2),
+    evidence_refs=("web:baillie-gifford-top-ten-only-2026-09-02",),
+    next_action=(
+        "Locate a complete constituent export for each U.S. ETF, prove symbol mapping and "
+        "identifiers, then add a provider-specific parser and live route test."
+    ),
+)
 
 
 def symbol_audit_for_profile(profile: ETFProfile) -> ETFHoldingsSymbolAudit:
