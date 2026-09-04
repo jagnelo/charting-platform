@@ -1,5 +1,33 @@
 # Project TODO Memory
 
+### 2026-09-05 — Structured range-center chart promotion and exact-tip gate
+
+- [x] Add an explicit `range_center_to_series` adapter for named structured `range` Study
+      artifacts. Research Results now offers `Save center chart plot: <artifact>`; the adapter
+      projects only the aligned finite center values into a chart `series`, preserves immutable
+      source/run/configuration/manifest/hash lineage, and leaves lower/upper bounds in the source.
+      Categorical, table, matrix, dashboard, and other unsupported shapes remain non-promotable.
+- [x] Verify the slice: focused runner range coverage passed `3/3`, the combined runner/jobs
+      unit slice passed `115/115`, the selected code API contract passed `1/1` (two existing
+      NumPy warnings), Research Results component coverage passed `27/27`, full frontend Vitest
+      passed `939/939` across `108` files, Ruff/type-check/build passed, and the authenticated
+      F8t-results browser flow passed `1/1` against the branch-scoped Docker stack. Teardown and
+      resource accounting reported zero containers, volumes, known bytes, and test-container
+      sessions. Product commit `397c554a` contains the implementation and coverage.
+- [x] Reran the exact-tip exhaustive gate at product tip `397c554a`. Backend units passed
+      `1,315/1,315`, integration `382/382` with the existing `54` warnings, combined coverage
+      remained `80.90%`, frontend Vitest passed `939/939`, type/build/contracts, provider policy,
+      runner probes, stack health, and functional Playwright (`155` passed and `106` documented
+      skips across `261` specs) all passed. The unchanged visual matrix remains `98/104` with
+      six concentrated diffs: `watchlist-column-editor-open` at visual-1080p-100/125 (`13,844`
+      pixels each), and `workspace-floating` at visual-1080p-100/125/1440p-100/1440p-125
+      (`9,770`/`5,512`/`12,097`/`12,097`). No visual baseline, mask, threshold, skip, fallback,
+      provider rule, or acceptance policy changed; Docker teardown and resource accounting were
+      clean.
+- [ ] Continue richer Study Lab targets, canonical provider/history enrichment, native-window/
+      accessibility/security evidence, dense-data budgets, and visual-oracle review. The feature
+      goal remains active and is not yet ready for human review.
+
 ### 2026-09-04 — Exact-tip exhaustive gate after structured Boolean promotions
 
 - [x] Reran `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at

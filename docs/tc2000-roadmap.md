@@ -3,7 +3,7 @@
 Status: active implementation roadmap  
 Branch: `feat/tc2000-frontend-rework`  
 Parent: `staging`  
-Last reconciled: 2026-09-04
+Last reconciled: 2026-09-05
 
 This is the concise, branch-owned execution map for the TC2000 frontend rework. The chronological
 records in `docs/project-todos.md`, `docs/tc2000-parity.md`,
@@ -11,18 +11,20 @@ records in `docs/project-todos.md`, `docs/tc2000-parity.md`,
 evidence ledgers. If a summary here conflicts with a dated test receipt or the current code, the
 current code and fresh evidence win.
 
-The latest product commit is `68856251` (`feat(tc2000): promote structured boolean results`).
+The latest product commit is `397c554a` (`feat(tc2000): promote structured range centers`).
 Persisted Research Results now exposes named `Save filter: <artifact>` and `Promote alert:
 <artifact>` actions for events artifacts, `Save column: <artifact>` and `Save chart plot:
-<artifact>` actions for scalar and numeric-series artifacts, and the complete Boolean matrix
-(`Save column`, `Save filter`, `Promote scan`, `Use Gauge`, `Promote alert`) in completed
-multi-output Study runs. Direct event Strategy-signal promotion remains limited to explicit/legacy
-single-output events contracts. The focused Research Results component suite passed `26/26`, the
-full frontend suite passed `938/938` across `108` files, TypeScript type-check and production
-build passed, and the authenticated `F8t-results` browser flow passed `1/1` against the rebuilt
-branch-scoped Docker stack with clean teardown and resource accounting. The exact-tip exhaustive
-gate has now rerun at product tip `68856251`: all non-visual and functional stages passed, while
-the unchanged visual matrix remains `98/104` with the same six diffs recorded below.
+<artifact>` actions for scalar and numeric-series artifacts, the complete Boolean matrix
+(`Save column`, `Save filter`, `Promote scan`, `Use Gauge`, `Promote alert`), and an explicit
+`Save center chart plot: <artifact>` action for structured range artifacts in completed multi-output
+Study runs. The range adapter projects aligned finite center values only; lower/upper bounds stay
+in the immutable source and unsupported shapes are not coerced. The focused Research Results
+component suite passed `27/27`, the full frontend suite passed `939/939` across `108` files,
+TypeScript type-check and production build passed, and the authenticated `F8t-results` browser
+flow passed `1/1` against the rebuilt branch-scoped Docker stack with clean teardown and resource
+accounting. The exact-tip exhaustive gate has now rerun at product tip `397c554a`: all non-visual
+and functional stages passed, while the unchanged visual matrix remains `98/104` with the same
+six diffs recorded below.
 
 The prior exact-tip gate at product tip `6f575a34` passed all non-visual stages and the functional
 browser suite (`155` passed, `106` documented skips across `261` specs). A first invocation's single
@@ -31,8 +33,8 @@ in the complete gate.
 
 The unchanged visual matrix remains the only failing stage: `98/104` passed and six screenshot
 diffs remain—`watchlist-column-editor-open` at visual-1080p-100/125 (`13,844` differing pixels
-each), and `workspace-floating` at visual-1080p-100 (`12,097`), visual-1080p-125 (`9,770`),
-visual-1440p-100 (`12,097`), and visual-1440p-125 (`9,770`). No visual oracle, provider fallback,
+each), and `workspace-floating` at visual-1080p-100 (`9,770`), visual-1080p-125 (`5,512`),
+visual-1440p-100 (`12,097`), and visual-1440p-125 (`12,097`). No visual oracle, provider fallback,
 or acceptance policy changed. The branch remains active while the visual review blocker and the
 remaining canonical provider/history, richer promotion, native-window, accessibility/security,
 and dense-data gaps are addressed.

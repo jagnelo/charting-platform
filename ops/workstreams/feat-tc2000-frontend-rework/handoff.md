@@ -10,6 +10,33 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Structured range-center chart promotion and exact-tip exhaustive gate
+
+Product commit `397c554a` (`feat(tc2000): promote structured range centers`) adds an explicit
+`range_center_to_series` adapter for named structured `range` Study artifacts. Research Results
+offers `Save center chart plot: <artifact>`; the backend validates and executes only the aligned
+finite center series as a chart-compatible `series`, preserving immutable source/run/configuration/
+manifest/hash lineage while leaving lower/upper bounds in the source. Categorical, table, matrix,
+dashboard, and other unsupported shapes remain non-promotable.
+
+Evidence for this slice:
+
+- Focused runner range coverage passed `3/3`; the combined runner/jobs unit slice passed `115/115`;
+  the selected code API contract passed `1/1` (two existing NumPy warnings); Research Results
+  component coverage passed `27/27`; full frontend Vitest passed `939/939` across `108` files;
+  Ruff, type-check, and production build passed.
+- Authenticated `F8t-results` browser coverage passed `1/1` against the rebuilt branch-scoped Docker
+  stack, exercising the range-center control and API lineage assertions. Teardown and resource
+  accounting reported zero containers, volumes, known bytes, and test-container sessions.
+- The exact-tip exhaustive gate reran at `397c554a`: backend units `1,315/1,315`, integration
+  `382/382` with the existing `54` warnings, combined coverage `80.90%`, frontend Vitest `939/939`,
+  all static/build/contract/provider/runner/health stages, and functional Playwright `155` passed
+  with `106` documented skips across `261` specs. The unchanged visual matrix remains `98/104`
+  with six diffs: watchlist-column-editor-open at visual-1080p-100/125 (`13,844` each), and
+  workspace-floating at visual-1080p-100/125/1440p-100/1440p-125 (`9,770`/`5,512`/`12,097`/
+  `12,097`). No visual baseline, mask, threshold, skip, fallback, provider rule, or acceptance
+  policy changed. The workstream remains active.
+
 ## 2026-09-04 — Exact-tip exhaustive gate after structured Boolean promotions
 
 The exact-tip exhaustive integration profile was rerun at product commit `68856251`
