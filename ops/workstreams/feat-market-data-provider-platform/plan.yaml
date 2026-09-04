@@ -75,7 +75,7 @@ branch_tests_reason: Application models, migrations, providers, workers, Redis q
 live_test_impact: opt-in provider probes and a separately approved post-deployment 30-day disabled shadow run; no deployment or activation is authorized in this implementation session
 migration_impact: multiple additive/transformational PostgreSQL migrations for issuers, domain identities, series scope, sessions, facts/events/short interest, provider runtime budgets, and shadow telemetry; old symbol/OHLCV rows require deterministic compatibility backfill
 deployment_impact: new backend/worker configuration, optional provider credentials, QuantLib dependency, Redis-backed quota state, scheduled shadow-report jobs, and feature flags; deployment remains a separate human-authorized master workflow
-status: authorized
+status: ready_for_human_review
 remaining_gaps:
   - concrete adapters for the optional paid/low-cost roster remain disabled pending credentials, terms, and fixtures
   - full US venue universe reconciliation, delisting/new-listing detector, and coverage/shadow reporting are not yet activated
