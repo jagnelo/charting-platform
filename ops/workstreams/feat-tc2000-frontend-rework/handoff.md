@@ -660,3 +660,18 @@ screenshot assertions failed in `watchlist-column-editor-open` at 1080p 100/125%
 `workspace-floating` at all four projects. The failures match the prior matrix and remain an
 explicit review blocker; no visual oracle was weakened or updated. The prescribed cleanup removed
 only the assigned containers, volumes, network, and branch images.
+
+## 2026-09-04 — Historical family classification uses eligible profile snapshots
+
+The family coverage readiness path now consults the latest `InstrumentProfileSnapshot` for each
+resolved constituent when an explicit `as_of` cutoff is requested. A profile is eligible only when
+both its provider-observed and fetched timestamps are no later than that cutoff, matching the
+point-in-time Market Map policy. Current `EquityDetail` remains the fallback for current reads and
+for historical fields whose own provenance is already eligible; future-only current classifications
+cannot leak into a historical readiness count.
+
+The new Docker-backed regression proves one member classified from a historical profile snapshot
+while a second member with only a future-observed flattened detail remains pending. The complete
+benchmark-family integration matrix passes `22/22`; Ruff and `git diff --check` pass. This closes a
+classification-readiness leakage case only; QQQ placeholder bindings, member-bar continuity,
+MN/W1 coverage, QQQE/SPDR dated holdings, and the visual matrix remain open.
