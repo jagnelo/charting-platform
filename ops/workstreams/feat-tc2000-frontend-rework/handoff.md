@@ -20,7 +20,10 @@ remain local-contract reads: they do not fan out to providers or substitute anot
 
 Evidence: focused Market Map, Research Results, and capability coverage passed `67/67`; full
 frontend Vitest passed `944/944` across `109` files; TypeScript type-check, production build, and
-`git diff --check` passed. The commit is pushed to `origin/feat/tc2000-frontend-rework`. Canonical
+`git diff --check` passed. Authenticated `F8s-family-map-drilldown` browser coverage passed `1/1`
+against the seeded branch-scoped Docker stack; teardown and resource accounting reported zero
+containers, volumes, known bytes, and test-container sessions. Product commit `19896f1e` adds the
+browser regression; both commits are pushed to `origin/feat/tc2000-frontend-rework`. Canonical
 provider/history, richer compatible Study Lab targets, native-window/accessibility/security,
 dense-data, and final visual-oracle gaps remain open.
 

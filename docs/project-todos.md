@@ -10,7 +10,10 @@
 - [x] Add regression coverage for partial, pending, and unavailable roles. Focused Market Map,
       Research Results, and capability-matrix coverage passed `67/67`; full frontend Vitest passed
       `944/944` across `109` files; TypeScript type-check, production build, and `git diff --check`
-      passed. Product commit `7a24dd4b` is pushed to `origin/feat/tc2000-frontend-rework`.
+      passed. Authenticated `F8s-family-map-drilldown` browser coverage passed `1/1` against the
+      seeded branch-scoped Docker stack; teardown and resource accounting reported zero
+      containers, volumes, known bytes, and test-container sessions. Product commits `7a24dd4b`
+      and `19896f1e` are pushed to `origin/feat/tc2000-frontend-rework`.
 - [ ] Continue canonical provider/history enrichment (including unresolved QQQ/QQQE and W1/MN
       evidence), richer compatible Study Lab targets, native-window/accessibility/security
       evidence, dense-data budgets, and visual-oracle review.

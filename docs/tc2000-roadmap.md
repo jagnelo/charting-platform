@@ -18,6 +18,9 @@ member-history state, selected-timeframe analysis-ready counts, and explicit pen
 reasons. The frontend makes no interactive provider calls and never substitutes a neighboring
 proxy. Focused Market Map, Research Results, and capability coverage passed `67/67`; full frontend
 Vitest passed `944/944` across `109` files; type-check, production build, and diff checks passed.
+Authenticated `F8s-family-map-drilldown` browser coverage passed `1/1` against the seeded
+branch-scoped Docker stack, with clean teardown and complete resource accounting. Product commit
+`19896f1e` adds the browser regression.
 
 The preceding range-center product commit is `397c554a` (`feat(tc2000): promote structured range centers`).
 Persisted Research Results now exposes named `Save filter: <artifact>` and `Promote alert:
