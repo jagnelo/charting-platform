@@ -198,6 +198,24 @@ def test_tier_zero_symbol_audit_preserves_unavailable_evidence_and_next_action()
     assert "identity-verified" in result.next_action
 
 
+def test_tier_zero_symbol_audit_rejects_a_mismatched_provider_identity():
+    result = symbol_audit_for_profile(profile_with_symbol("DXJ", "other_provider"))
+
+    assert result.tier == 0
+    assert result.outcome == UNKNOWN
+    assert result.evidence_state == "profile_provider_identity_mismatch"
+    assert result.provider_identity == "other_provider"
+    assert "Reconcile" in result.next_action
+
+
+def test_tier_zero_symbol_audit_accepts_reconciled_provider_aliases():
+    result = symbol_audit_for_profile(profile_with_symbol("UTWO", "us_benchmark_series"))
+
+    assert result.tier == 0
+    assert result.outcome == "unavailable"
+    assert result.provider_identity == "fm_investments"
+
+
 def test_identity_only_fallback_symbols_remain_unknown_until_symbol_route_evidence():
     result = symbol_audit_for_profile(profile_with_symbol("TALV", "aegon"))
 

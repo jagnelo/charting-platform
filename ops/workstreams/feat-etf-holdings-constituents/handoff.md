@@ -2358,3 +2358,30 @@ AC14 remains a post-integration/deployment shadow-gate acceptance step. The
 next action is the required full Docker-backed validation of this context,
 followed by a separate operational checkpoint; no integration, promotion,
 deployment, or other-worktree mutation is authorized.
+
+## Capability identity-boundary hardening and full-gate checkpoint — 2026-09-04
+
+The symbol-audit evaluator now requires the assigned profile adapter to match
+the audited Tier 0 provider identity (or an explicitly reconciled alias such
+as `us_benchmark_series` for the F/m `fm_investments` publisher). A mismatched
+profile is returned as Tier 0 `unknown` with
+`profile_provider_identity_mismatch` evidence and a reconciliation action; it
+cannot inherit another provider's route evidence. The guard has deterministic
+coverage for both rejection and the approved F/m alias.
+
+The focused capability/canary validation passed 18 tests, and Ruff plus
+`git diff --check` passed. The required Docker-backed integration gate built
+the branch-scoped stack, reached healthy containers, and completed the browser
+suite with 153 passed and 106 skipped. It failed one unrelated existing
+Python Library lifecycle case (`F8x-library`,
+`frontend/tests/e2e/flows.spec.ts:4511`, where `.code-library-tool:visible`
+never appeared at line 4520); teardown removed all branch-scoped containers,
+volumes, network, and images successfully. No ETF test or assertion failed.
+
+The failure is recorded as an external/unrelated gate limitation rather than
+relabeled green. AC12 remains complete for the ETF-local canary contract;
+AC10 remains dependent on the shared provider-platform branch reaching staging;
+AC11 remains partial beyond the completed Tier 0 evidence; and AC14 remains a
+post-integration/deployment shadow-gate acceptance step. The next action is to
+checkpoint this evidence on the synchronized feature branch and then await the
+provider-platform staging dependency, without touching another worktree.

@@ -2758,3 +2758,26 @@ symbols' free-first investigations; AC10 remains dependent on the provider
 platform reaching staging; AC14 remains a post-integration/deployment shadow
 gate. Expanded focused validation passed 624 backend tests, the ETF API
 contract, 8 frontend tests, type-check, and build.
+
+## Capability identity-boundary hardening and full-gate checkpoint — 2026-09-04
+
+The symbol-audit evaluator now binds Tier 0 evidence to the profile's assigned
+provider identity. Mismatches return an explicit Tier 0 `unknown` outcome with
+`profile_provider_identity_mismatch` evidence and reconciliation guidance;
+approved aliases preserve the F/m `us_benchmark_series` to
+`fm_investments` publisher relationship. This prevents route evidence for one
+issuer from being presented for a symbol assigned to another issuer.
+
+The focused capability/canary suite passed 18 tests, Ruff passed, and
+`git diff --check` passed. The full Docker-backed gate built and started the
+branch-scoped stack successfully, then completed 153 Playwright tests with 106
+skips before one unrelated `F8x-library` Python Library lifecycle test failed
+because `.code-library-tool:visible` did not appear at
+`frontend/tests/e2e/flows.spec.ts:4520`. Cleanup completed successfully and no
+ETF assertion failed. The gate is retained as failed external/unrelated
+evidence, not claimed as green.
+
+AC10 remains gated on provider-platform staging, AC11 remains partial beyond
+the completed Tier 0 symbol evidence, and AC14 remains post-integration and
+post-deployment. The operational checkpoint should record this exact result
+and preserve the clean branch boundary.

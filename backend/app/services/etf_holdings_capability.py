@@ -293,6 +293,13 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
     ),
 }
 
+_TIER_0_ADAPTER_ALIASES: dict[str, frozenset[str]] = {
+    # The F/m product family is represented by the reconciled
+    # ``us_benchmark_series`` adapter while the publisher identity is
+    # ``fm_investments`` in the audit ledger.
+    "fm_investments": frozenset({"fm_investments", "us_benchmark_series"}),
+}
+
 for _symbol in (
     "TBIL",
     "XBIL",
@@ -324,10 +331,25 @@ def symbol_audit_for_profile(profile: ETFProfile) -> ETFHoldingsSymbolAudit:
     instrument = getattr(profile, "instrument", None)
     symbol = str(getattr(instrument, "symbol", "") or "").strip().upper()
     tier_0 = _TIER_0_SYMBOL_AUDITS.get(symbol)
-    if tier_0 is not None:
-        return tier_0
-
     adapter_key = str(getattr(profile, "adapter_key", "") or "").strip().lower()
+    if tier_0 is not None:
+        provider_identity = (tier_0.provider_identity or "").strip().lower()
+        expected_adapter_keys = _TIER_0_ADAPTER_ALIASES.get(
+            provider_identity, frozenset({provider_identity})
+        )
+        if adapter_key in expected_adapter_keys:
+            return tier_0
+        return ETFHoldingsSymbolAudit(
+            tier=0,
+            outcome=UNKNOWN,
+            evidence_state="profile_provider_identity_mismatch",
+            provider_identity=adapter_key or None,
+            investigated_at=tier_0.investigated_at,
+            next_action=(
+                f"Reconcile the {symbol} ETF profile with the audited "
+                f"{tier_0.provider_identity} identity before using its source evidence."
+            ),
+        )
     fallback = FALLBACK_ISSUER_AUDITS.get(adapter_key)
     if fallback is not None:
         if fallback.status in {
