@@ -1923,3 +1923,24 @@ local Docker gate still retains the unrelated fresh-stack `F8p-current-history`
 Study Lab missing-histogram failure. No integration, promotion, deployment, or
 other-worktree mutation is authorized or performed; explicit human closure
 authorization remains pending.
+
+## Current-head exact-SHA CI green — 2026-09-04
+
+Exact-head CI run `33834871751` at `7e9db5dd6d86f7515561a50a2b068c144ae14dc3`
+passed Backend Tests, Frontend Unit Tests, and the complete branch-declared
+suite. The branch-declared live matrix completed with 491 passed and 15
+evidence-backed skips; Ruff and workstream validation also passed. Playwright
+completed its full browser suite with 151 passed and 109 skipped after the
+stack started and backend health succeeded. The protected
+staging/master-only Exhaustive Integration Gate was skipped as designed for
+this feature branch.
+
+The exact feature-head CI evidence is green. The required local
+`docker_integration` gate still has the unrelated fresh-stack Study Lab
+`F8p-current-history` missing-histogram failure reproduced at
+`flows.spec.ts:2602`; the prior post-repair gate at `a696277b` passed. This
+non-ETF repository baseline defect remains explicitly recorded rather than
+changing ETF behavior or weakening validation. The branch is clean and
+synchronized at the review boundary; no integration, promotion, deployment,
+or other-worktree mutation was performed, and explicit human closure
+authorization remains pending.
