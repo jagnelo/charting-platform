@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-05 — Surface canonical benchmark readiness in Market Map
+
+- [x] Connect benchmark-family Market Map sources to the existing provider-neutral readiness
+      contract. The tool now shows all four independent roles, dated-holdings coverage, route and
+      member-history state, and explicit analysis-ready counts for the selected D1/W1/MN timeframe.
+      Pending and unavailable roles remain visible with machine-readable reasons; no provider is
+      contacted from the interactive read and no proxy substitution is introduced.
+- [x] Add regression coverage for partial, pending, and unavailable roles. Focused Market Map,
+      Research Results, and capability-matrix coverage passed `67/67`; full frontend Vitest passed
+      `944/944` across `109` files; TypeScript type-check, production build, and `git diff --check`
+      passed. Product commit `7a24dd4b` is pushed to `origin/feat/tc2000-frontend-rework`.
+- [ ] Continue canonical provider/history enrichment (including unresolved QQQ/QQQE and W1/MN
+      evidence), richer compatible Study Lab targets, native-window/accessibility/security
+      evidence, dense-data budgets, and visual-oracle review.
+
 ### 2026-09-05 — Explicit Study artifact capability matrix
 
 - [x] Publish the persisted Research Results promotion matrix in a shared frontend capability

@@ -11,7 +11,15 @@ records in `docs/project-todos.md`, `docs/tc2000-parity.md`,
 evidence ledgers. If a summary here conflicts with a dated test receipt or the current code, the
 current code and fresh evidence win.
 
-The latest product commit is `397c554a` (`feat(tc2000): promote structured range centers`).
+The latest product commit is `7a24dd4b` (`feat(tc2000): surface benchmark readiness in market map`).
+Market Map now surfaces the existing provider-neutral canonical readiness contract for each
+benchmark-family source: all four independently mapped roles, dated-holdings coverage, route and
+member-history state, selected-timeframe analysis-ready counts, and explicit pending/unavailable
+reasons. The frontend makes no interactive provider calls and never substitutes a neighboring
+proxy. Focused Market Map, Research Results, and capability coverage passed `67/67`; full frontend
+Vitest passed `944/944` across `109` files; type-check, production build, and diff checks passed.
+
+The preceding range-center product commit is `397c554a` (`feat(tc2000): promote structured range centers`).
 Persisted Research Results now exposes named `Save filter: <artifact>` and `Promote alert:
 <artifact>` actions for events artifacts, `Save column: <artifact>` and `Save chart plot:
 <artifact>` actions for scalar and numeric-series artifacts, the complete Boolean matrix
@@ -26,7 +34,7 @@ accounting. The exact-tip exhaustive gate has now rerun at product tip `397c554a
 and functional stages passed, while the unchanged visual matrix remains `98/104` with the same
 six diffs recorded below.
 
-The next product commit is `95b12a0f` (`feat(tc2000): expose study artifact capability matrix`).
+The preceding capability-matrix product commit is `95b12a0f` (`feat(tc2000): expose study artifact capability matrix`).
 Persisted Research Results now makes the compatible promotion matrix explicit: scalar, Boolean,
 numeric-series, range-center, and structured-event artifacts state their safe workstation targets;
 table, categorical bar, histogram, scatter, heatmap, dashboard, and historical-breadth shapes are

@@ -10,6 +10,20 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Surface canonical benchmark readiness in Market Map
+
+Product commit `7a24dd4b` (`feat(tc2000): surface benchmark readiness in market map`) connects
+benchmark-family Market Map sources to the existing provider-neutral coverage endpoint. The UI now
+shows all four independent roles, dated-holdings coverage, holdings route/refresh state, selected
+D1/W1/MN analysis-ready member counts, and explicit pending/unavailable reasons. Interactive reads
+remain local-contract reads: they do not fan out to providers or substitute another proxy.
+
+Evidence: focused Market Map, Research Results, and capability coverage passed `67/67`; full
+frontend Vitest passed `944/944` across `109` files; TypeScript type-check, production build, and
+`git diff --check` passed. The commit is pushed to `origin/feat/tc2000-frontend-rework`. Canonical
+provider/history, richer compatible Study Lab targets, native-window/accessibility/security,
+dense-data, and final visual-oracle gaps remain open.
+
 ## 2026-09-05 — Explicit Study artifact capability matrix
 
 Product commit `95b12a0f` (`feat(tc2000): expose study artifact capability matrix`) makes the
