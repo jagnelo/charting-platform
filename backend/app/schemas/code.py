@@ -105,6 +105,7 @@ class ResearchRunOut(BaseModel):
 
     id: int
     code_version_id: int
+    output_contract: str | None = None
     status: str
     run_config: dict
     dataset_manifest: dict

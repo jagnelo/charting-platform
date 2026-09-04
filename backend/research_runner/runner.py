@@ -14,6 +14,7 @@ import resource
 import signal
 import time
 from collections.abc import Callable
+from datetime import UTC, datetime
 from hashlib import sha256
 from pathlib import Path
 
@@ -298,6 +299,65 @@ def _series_artifact(
         ):
             return float(value), None
     return None, "Series output has no finite value at the observation timestamp."
+
+
+def _events_to_boolean(
+    result: dict, dataset: dict, output_name: str | None
+) -> tuple[bool | None, str | None, float | None]:
+    """Adapt one event artifact into current-observation Boolean semantics.
+
+    The adapter is deliberately explicit: an event output is not silently treated as a
+    Boolean by ordinary execution. A member matches only when at least one event from the
+    selected artifact occurs at the member's latest observation timestamp (or on the same
+    UTC calendar date when the event is date-only). Future-dated events never match.
+    """
+    matches = [
+        artifact
+        for name, artifact in result.get("artifacts", {}).items()
+        if isinstance(artifact, dict)
+        and artifact.get("type") == "events"
+        and (output_name is None or name == output_name)
+    ]
+    if len(matches) != 1:
+        return (
+            None,
+            f"Expected exactly one events output{f' named {output_name!r}' if output_name else ''}.",
+            None,
+        )
+    events = matches[0].get("value")
+    if not isinstance(events, list):
+        return None, "Events output must contain a list.", None
+    timestamps = dataset.get("timestamps")
+    if not isinstance(timestamps, list) or not timestamps:
+        return None, "Event Boolean adapter requires an observation timestamp.", None
+    observation = _parse_event_timestamp(timestamps[-1])
+    if observation is None:
+        return None, "Event Boolean adapter received an invalid observation timestamp.", None
+    observed_count = 0
+    for event in events:
+        if not isinstance(event, dict):
+            continue
+        event_time = _parse_event_timestamp(event.get("timestamp"))
+        if event_time is None or event_time > observation:
+            continue
+        # Date-only event feeds are common for daily disclosures. Treat an event on
+        # the same UTC day as the daily observation as current, while still rejecting
+        # a future event with an explicit time.
+        if event_time == observation or event_time.date() == observation.date():
+            observed_count += 1
+    return observed_count > 0, None, float(observed_count)
+
+
+def _parse_event_timestamp(value: object) -> datetime | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
 
 
 def _series_target_value(
@@ -1064,6 +1124,8 @@ def _execute_batch(
                     and output_contract in {"scalar", "boolean"}
                     else output_contract
                 )
+                if output_adapter == "events_to_boolean" and output_contract == "boolean":
+                    requested_contract = "events"
                 result = _execute_single(
                     source,
                     candidate,
@@ -1104,6 +1166,10 @@ def _execute_batch(
                         extracted_metric, hash_input.get("series_target")
                     )
                     error = extraction_error or target_error
+                elif output_adapter == "events_to_boolean":
+                    value, error, extracted_metric = _events_to_boolean(
+                        result, candidate, output_name
+                    )
                 elif output_contract == "boolean":
                     value, error, extracted_metric = _boolean_artifact(result, output_name)
                 elif output_contract == "series":

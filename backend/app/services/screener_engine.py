@@ -673,8 +673,15 @@ async def queue_python_screener_run(
     version = (
         await db.execute(select(CodeVersion).where(CodeVersion.id == code_version_id))
     ).scalar_one_or_none()
-    if version is None or version.output_contract != "boolean":
-        raise ValueError("Python screener condition version is unavailable or not Boolean")
+    output_adapter = condition.get("output_adapter")
+    events_adapter = output_adapter == "events_to_boolean"
+    if version is None or (
+        version.output_contract != "boolean"
+        and not (events_adapter and version.output_contract == "events")
+    ):
+        raise ValueError(
+            "Python screener condition version is unavailable or not Boolean-compatible"
+        )
 
     from app.routers.research import _materialize_declared_dataset
 
@@ -699,6 +706,8 @@ async def queue_python_screener_run(
             "screener_id": screener.id,
             "timeframe": screener.timeframe.value,
             "output_contract": "boolean",
+            "output_name": condition.get("output_name"),
+            "output_adapter": output_adapter,
             "condition_tree": (
                 condition.get("condition_tree")
                 if isinstance(condition.get("condition_tree"), dict)

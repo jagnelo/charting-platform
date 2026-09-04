@@ -123,6 +123,111 @@ class TestStrategyLabAPI:
         assert promotion_res.status_code == 201
         assert promotion_res.json()["metadata"]["code_version_id"] == version_id
 
+    def test_research_event_artifact_promotes_to_scoped_python_filter(
+        self, client, auth_headers, db, user
+    ):
+        import hashlib
+        import json
+
+        from app.models.research import CodeAsset, CodeVersion, ResearchArtifact, ResearchRun
+
+        asset = CodeAsset(
+            user_id=user.id,
+            stable_key="event-filter-promotion",
+            name="Breakout Study",
+            kind="study",
+        )
+        db.add(asset)
+        db.flush()
+        version = CodeVersion(
+            code_asset_id=asset.id,
+            version_number=1,
+            source="output.events('breakout', [])",
+            output_contract="events",
+            parameter_schema={},
+            default_parameters={},
+        )
+        db.add(version)
+        db.flush()
+        run = ResearchRun(
+            user_id=user.id,
+            code_version_id=version.id,
+            status="completed",
+            run_config={"symbols": ["SPY", "XLK"], "timeframe": "D1"},
+            dataset_manifest={
+                "source": "canonical_database",
+                "timeframe": "D1",
+                "datasets": [
+                    {"instrument_id": 7, "symbol": "SPY"},
+                    {"instrument_id": 8, "symbol": "XLK"},
+                ],
+            },
+            reproducibility_hash="event-filter-hash",
+        )
+        run.artifacts.append(
+            ResearchArtifact(
+                artifact_type="events",
+                name="breakout_events",
+                payload={
+                    "value": [{"symbol": "SPY", "timestamp": "2026-01-02", "kind": "breakout"}]
+                },
+            )
+        )
+        db.add(run)
+        db.flush()
+
+        response = client.post(
+            f"/api/v1/research/runs/{run.id}/promote-event-filter",
+            headers=auth_headers,
+            json={"name": "Breakout event filter", "description": "Scoped event adapter"},
+        )
+
+        assert response.status_code == 201, response.text
+        payload = response.json()
+        assert payload["name"] == "Breakout event filter"
+        assert payload["universe_type"] == "custom"
+        assert payload["universe_instrument_ids"] == [7, 8]
+        assert payload["timeframe"] == "D1"
+        assert payload["semantics"] == "event_presence_at_current_observation"
+        assert payload["conditions"] == {
+            "type": "python_condition",
+            "code_version_id": version.id,
+            "output_name": "breakout_events",
+            "output_adapter": "events_to_boolean",
+            "provenance": {
+                "origin": "research_run_event_filter_promotion",
+                "source_run_id": run.id,
+                "source_code_asset_id": asset.id,
+                "source_code_version_id": version.id,
+                "source_artifact_id": run.artifacts[0].id,
+                "source_artifact_name": "breakout_events",
+                "source_reproducibility_hash": "event-filter-hash",
+                "source_dataset_manifest_sha256": hashlib.sha256(
+                    json.dumps(
+                        {
+                            "source": "canonical_database",
+                            "timeframe": "D1",
+                            "datasets": [
+                                {"instrument_id": 7, "symbol": "SPY"},
+                                {"instrument_id": 8, "symbol": "XLK"},
+                            ],
+                        },
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ).encode()
+                ).hexdigest(),
+                "source_dataset_manifest": {
+                    "source": "canonical_database",
+                    "timeframe": "D1",
+                },
+                "source_run_config": {"symbols": ["SPY", "XLK"], "timeframe": "D1"},
+                "output_contract": "events",
+                "output_adapter": "events_to_boolean",
+                "semantics": "event_presence_at_current_observation",
+                "point_in_time_source_preserved": False,
+            },
+        }
+
     def test_study_lab_signal_promotion_creates_strategy_definition_reference(
         self, client, auth_headers
     ):

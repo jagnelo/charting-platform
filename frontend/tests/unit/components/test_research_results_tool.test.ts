@@ -273,6 +273,34 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.text()).toContain('Current-data re-evaluation and source lineage are preserved.')
   })
 
+  it('promotes an events run to a scoped watchlist filter and alert through one adapter', async () => {
+    apiGet.mockResolvedValue([{ id: 29, status: 'completed', code_version_id: 13, output_contract: 'events', run_config: { symbols: ['SPY', 'XLK'], timeframe: 'D1' }, dataset_manifest: {}, diagnostics: [], artifacts: [
+      {
+        id: 18,
+        name: 'breakout_events',
+        artifact_type: 'events',
+        payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-02T00:00:00Z', kind: 'breakout', instrument_id: 7 }] },
+      },
+    ] }])
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/research/runs/29/promote-event-filter') return Promise.resolve({ id: 62, name: 'Breakout event filter' })
+      if (path === '/alerts/screener') return Promise.resolve({ id: 63 })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.findAll('button').find(button => button.text() === 'Save events as watchlist filter')!.trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/research/runs/29/promote-event-filter', {})
+    expect(wrapper.text()).toContain('Watchlist filter “Breakout event filter” (#62) created')
+
+    await wrapper.findAll('button').find(button => button.text() === 'Promote events to alert')!.trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 62, trigger_type: 'both', repeat: true, notes: 'Created from event research run 29' })
+    expect(wrapper.text()).toContain('Alert created from event filter “Breakout event filter”')
+  })
+
   it('promotes only a completed Python breadth history and reports the lineage-preserving scan', async () => {
     apiGet.mockResolvedValue([{ id: 20, status: 'completed', code_version_id: 4, run_config: { execution_mode: 'breadth_history' }, dataset_manifest: {}, diagnostics: [], artifacts: [
       { id: 11, name: 'breadth_history', artifact_type: 'breadth_history', payload: { value: { points: [{ timestamp: '2026-01-01T00:00:00Z', percentage: 1, requested_count: 1, eligible_count: 1, pass_count: 1, excluded_count: 0, coverage: 1 }], occurrences: [] } } },

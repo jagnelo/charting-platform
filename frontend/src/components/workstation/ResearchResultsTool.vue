@@ -34,7 +34,7 @@
       <div><span>Reproducibility</span><b :class="comparisonClass('reproducibility_hash')">{{ comparisonRuns[0].reproducibility_hash ?? '—' }} / {{ comparisonRuns[1].reproducibility_hash ?? '—' }}</b></div>
     </section>
     <article v-if="selectedRun" class="research-results-tool__detail" :aria-label="`Research run ${selectedRun.id} details`">
-      <div class="research-results-tool__detail-header"><strong>Run #{{ selectedRun.id }}</strong><button v-if="canCancel(selectedRun)" type="button" :disabled="canceling" @click="cancel(selectedRun)">Cancel</button><button v-if="canPromoteBreadth(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteScan(selectedRun)">{{ promoting ? 'Promoting…' : 'Promote to EasyScan' }}</button><button v-if="canPromoteBreadthBoolean(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteAlert(selectedRun)">{{ promoting ? 'Promoting…' : 'Promote to alert' }}</button><button v-if="canPromoteBreadthBoolean(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteGauge(selectedRun)">{{ promoting ? 'Promoting…' : 'Use as Market Gauge' }}</button><button v-if="canPromoteBreadthBoolean(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteSignal(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as Strategy signal' }}</button><button v-if="canPromoteEventSignal(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteEventSignal(selectedRun)">{{ promoting ? 'Promoting…' : 'Save events as Strategy signal' }}</button><button v-if="canPromoteBreadthStudy(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteStudy(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as Study Lab study' }}</button><button v-if="canPromoteBreadthPlot(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promotePlot(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as chart plot' }}</button><button v-if="canPromoteBreadthAggregatePlot(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteAggregatePlot(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as aggregate chart plot' }}</button><button v-if="canPromoteBreadthColumn(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteColumn(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as watchlist column' }}</button><button type="button" :disabled="rerunning || canceling || promoting" @click="rerun(selectedRun, true)">Rerun snapshot</button><button type="button" :disabled="rerunning || canceling || promoting" @click="rerun(selectedRun, false)">Rerun latest</button></div>
+      <div class="research-results-tool__detail-header"><strong>Run #{{ selectedRun.id }}</strong><button v-if="canCancel(selectedRun)" type="button" :disabled="canceling" @click="cancel(selectedRun)">Cancel</button><button v-if="canPromoteBreadth(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteScan(selectedRun)">{{ promoting ? 'Promoting…' : 'Promote to EasyScan' }}</button><button v-if="canPromoteBreadthBoolean(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteAlert(selectedRun)">{{ promoting ? 'Promoting…' : 'Promote to alert' }}</button><button v-if="canPromoteBreadthBoolean(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteGauge(selectedRun)">{{ promoting ? 'Promoting…' : 'Use as Market Gauge' }}</button><button v-if="canPromoteBreadthBoolean(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteSignal(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as Strategy signal' }}</button><button v-if="canPromoteEventSignal(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteEventSignal(selectedRun)">{{ promoting ? 'Promoting…' : 'Save events as Strategy signal' }}</button><button v-if="canPromoteEventFilter(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteEventFilter(selectedRun)">{{ promoting ? 'Promoting…' : 'Save events as watchlist filter' }}</button><button v-if="canPromoteEventFilter(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteEventAlert(selectedRun)">{{ promoting ? 'Promoting…' : 'Promote events to alert' }}</button><button v-if="canPromoteBreadthStudy(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteStudy(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as Study Lab study' }}</button><button v-if="canPromoteBreadthPlot(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promotePlot(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as chart plot' }}</button><button v-if="canPromoteBreadthAggregatePlot(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteAggregatePlot(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as aggregate chart plot' }}</button><button v-if="canPromoteBreadthColumn(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteColumn(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as watchlist column' }}</button><button type="button" :disabled="rerunning || canceling || promoting" @click="rerun(selectedRun, true)">Rerun snapshot</button><button type="button" :disabled="rerunning || canceling || promoting" @click="rerun(selectedRun, false)">Rerun latest</button></div>
       <p class="research-results-tool__run-guidance" role="status" aria-live="polite" aria-atomic="true">{{ statusGuidance(selectedRun.status) }}</p>
       <p v-if="promotionMessage" class="research-results-tool__run-guidance" role="status" aria-live="polite" aria-atomic="true">{{ promotionMessage }}</p>
       <small v-if="selectedRun.reproducibility_hash">{{ selectedRun.reproducibility_hash }}</small>
@@ -109,6 +109,7 @@ interface ResearchRunSummary {
   id: number
   status: string
   code_version_id: number
+  output_contract?: string | null
   run_config: Record<string, unknown>
   dataset_manifest: Record<string, unknown>
   reproducibility_hash?: string | null
@@ -131,6 +132,7 @@ const canceling = ref(false)
 const promoting = ref(false)
 const promotionMessage = ref('')
 const promotedScans = ref<Record<number, { id: number; name: string; codeVersionId: number | null }>>({})
+const promotedEventFilters = ref<Record<number, { id: number; name: string }>>({})
 const occurrenceSymbolFilter = ref('')
 const occurrenceKindFilter = ref<'all' | 'member_entered' | 'member_exited'>('all')
 const emit = defineEmits<{ occurrence: [event: { symbol: string; timestamp: string; kind?: string; instrument_id?: number }] }>()
@@ -381,6 +383,11 @@ function canPromoteBreadthBoolean(run: ResearchRunSummary) {
 function canPromoteEventSignal(run: ResearchRunSummary) {
   return run.status === 'completed' && run.artifacts.some(artifact => artifact.artifact_type === 'events')
 }
+function canPromoteEventFilter(run: ResearchRunSummary) {
+  return run.status === 'completed'
+    && run.output_contract === 'events'
+    && run.artifacts.some(artifact => artifact.artifact_type === 'events')
+}
 function canPromoteBreadthStudy(run: ResearchRunSummary) {
   return run.status === 'completed'
     && run.run_config?.execution_mode === 'breadth_history'
@@ -525,6 +532,39 @@ async function promoteEventSignal(run: ResearchRunSummary) {
     promotionMessage.value = `Saved event artifact as Strategy signal “${promoted.name}” (#${promoted.id}). Current-data re-evaluation and source lineage are preserved.`
   } catch (cause: any) {
     promotionMessage.value = cause?.message ?? 'Unable to promote the event artifact to a Strategy signal'
+  } finally {
+    promoting.value = false
+  }
+}
+async function ensurePromotedEventFilter(run: ResearchRunSummary) {
+  const existing = promotedEventFilters.value[run.id]
+  if (existing) return existing
+  const promoted = await api.post<{ id: number; name: string }>(`/research/runs/${run.id}/promote-event-filter`, {})
+  const result = { id: promoted.id, name: promoted.name }
+  promotedEventFilters.value = { ...promotedEventFilters.value, [run.id]: result }
+  return result
+}
+async function promoteEventFilter(run: ResearchRunSummary) {
+  promoting.value = true
+  promotionMessage.value = ''
+  try {
+    const promoted = await ensurePromotedEventFilter(run)
+    promotionMessage.value = `Watchlist filter “${promoted.name}” (#${promoted.id}) created. It checks event presence at the current observation over the declared canonical members; source lineage is preserved.`
+  } catch (cause: any) {
+    promotionMessage.value = cause?.message ?? 'Unable to promote the event artifact to a watchlist filter'
+  } finally {
+    promoting.value = false
+  }
+}
+async function promoteEventAlert(run: ResearchRunSummary) {
+  promoting.value = true
+  promotionMessage.value = ''
+  try {
+    const promoted = await ensurePromotedEventFilter(run)
+    await api.post('/alerts/screener', { screener_id: promoted.id, trigger_type: 'both', repeat: true, notes: `Created from event research run ${run.id}` })
+    promotionMessage.value = `Alert created from event filter “${promoted.name}”; current-observation event semantics and source lineage are preserved.`
+  } catch (cause: any) {
+    promotionMessage.value = cause?.message ?? 'Unable to promote the event artifact to an alert'
   } finally {
     promoting.value = false
   }
