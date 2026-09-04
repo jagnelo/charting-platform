@@ -334,8 +334,26 @@ def _events_to_boolean(
     if observation is None:
         return None, "Event Boolean adapter received an invalid observation timestamp.", None
     observed_count = 0
+    candidate_symbol = str(dataset.get("symbol") or "").strip().upper()
+    candidate_instrument_id = dataset.get("instrument_id")
     for event in events:
         if not isinstance(event, dict):
+            continue
+        event_symbol = event.get("symbol")
+        if (
+            isinstance(event_symbol, str)
+            and event_symbol.strip()
+            and event_symbol.strip().upper() != candidate_symbol
+        ):
+            continue
+        event_instrument_id = event.get("instrument_id")
+        if (
+            isinstance(event_instrument_id, int)
+            and not isinstance(event_instrument_id, bool)
+            and isinstance(candidate_instrument_id, int)
+            and not isinstance(candidate_instrument_id, bool)
+            and event_instrument_id != candidate_instrument_id
+        ):
             continue
         event_time = _parse_event_timestamp(event.get("timestamp"))
         if event_time is None or event_time > observation:

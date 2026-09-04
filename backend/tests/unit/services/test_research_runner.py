@@ -187,6 +187,48 @@ def test_runner_event_boolean_adapter_rejects_future_events_and_preserves_false(
     ]
 
 
+def test_runner_event_boolean_adapter_keeps_symbol_and_instrument_lineage_scoped():
+    result = execute_job(
+        {
+            "source": (
+                "output.events('signals', [{"
+                "'symbol': dataset['symbol'], 'instrument_id': 1, "
+                "'timestamp': market.timestamps()[-1], 'kind': 'signal'}])"
+            ),
+            "output_contract": "boolean",
+            "output_name": "signals",
+            "output_adapter": "events_to_boolean",
+            "dataset": {
+                "datasets": [
+                    {
+                        "instrument_id": 1,
+                        "symbol": "SPY",
+                        "timestamps": [
+                            "2024-01-01T00:00:00+00:00",
+                            "2024-01-02T00:00:00+00:00",
+                        ],
+                        "closes": [100, 101],
+                    },
+                    {
+                        "instrument_id": 2,
+                        "symbol": "XLK",
+                        "timestamps": [
+                            "2024-01-01T00:00:00+00:00",
+                            "2024-01-02T00:00:00+00:00",
+                        ],
+                        "closes": [200, 202],
+                    },
+                ],
+            },
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["batch_cells"]["value"]["cells"] == [
+        {"instrument_id": 1, "symbol": "SPY", "status": "completed", "value": True, "metric": 1.0},
+        {"instrument_id": 2, "symbol": "XLK", "status": "completed", "value": False, "metric": 0.0},
+    ]
+
+
 def test_runner_rejects_non_object_parameters():
     result = execute_job({"source": "output.scalar('x', 1)", "parameters": [1], "dataset": {}})
     assert result["status"] == "failed"
