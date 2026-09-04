@@ -2929,26 +2929,6 @@ symbols remain identity-level `unknown` until individually investigated. The
 provider platform is still a separate staging dependency for AC10, and AC14
 still requires production shadow observations and human closure authorization.
 
-## Seventh ranked Tier-1 symbol-audit cohort — 2026-09-04
-
-This slice binds FFTY/BOUT (M2 Financial), SASS (M.D. Sass),
-SIXH/SIXL/SIXA/SIXS/SXQG (Madison Avenue/6 Meridian), and MAVF (Matrix
-Advisors) to explicit symbol-level outcomes. M2 Financial and Madison Avenue
-are `not_applicable` because they are adviser/sub-adviser identities and the
-complete holdings routes are owned by the existing CapForce and Exchange
-Traded Concepts publishers. SASS remains `unavailable` because its official
-page contains placeholder holdings values without an executable current
-portfolio artifact. MAVF remains `unavailable` because its complete official
-table is blocked by Cloudflare for backend-equivalent access. No SEC or indexed
-content is promoted as current support.
-
-The runtime symbol-audit map, YAML `symbol_audit_ledger`, documentation, and
-parity tests are updated together. The seven ranked cohorts now cover 75
-explicit non-Tier-0 symbols; remaining symbols stay identity-level `unknown`
-until individually investigated. AC10 remains dependent on provider-platform
-staging, and AC14 still requires production shadow observations and human
-closure authorization.
-
 Validation for this follow-on slice reached the full Docker-backed gate. All
 pre-browser stages passed, including backend coverage (1,750 passed; 81.05%
 total coverage; 86 warnings), frontend unit coverage (924 passed across 108
@@ -3032,3 +3012,39 @@ updated together. The six ranked cohorts now cover 66 explicit non-Tier-0
 symbols; remaining symbols stay identity-level `unknown` until individually
 investigated. AC10 remains dependent on provider-platform staging, and AC14
 still requires production shadow observations and human closure authorization.
+
+## Seventh ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+This slice binds FFTY/BOUT (M2 Financial), SASS (M.D. Sass),
+SIXH/SIXL/SIXA/SIXS/SXQG (Madison Avenue/6 Meridian), and MAVF (Matrix
+Advisors) to explicit symbol-level outcomes. M2 Financial and Madison Avenue
+are `not_applicable` because they are adviser/sub-adviser identities and the
+complete holdings routes are owned by the existing CapForce and Exchange
+Traded Concepts publishers. SASS remains `unavailable` because its official
+page contains placeholder holdings values without an executable current
+portfolio artifact. MAVF remains `unavailable` because its complete official
+table is blocked by Cloudflare for backend-equivalent access. No SEC or indexed
+content is promoted as current support.
+
+The runtime symbol-audit map, YAML `symbol_audit_ledger`, documentation, and
+parity tests are updated together. The seven ranked cohorts now cover 75
+explicit non-Tier-0 symbols; remaining symbols stay identity-level `unknown`
+until individually investigated. AC10 remains dependent on provider-platform
+staging, and AC14 still requires production shadow observations and human
+closure authorization.
+
+## Eighth ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+This slice binds STGF and OUNZ (Merk) and WIZ/SNUG/BOB/DUDE (Merlyn.AI) to
+explicit symbol-level outcomes. All six are `not_applicable`: STGF was
+liquidated in December 2023, OUNZ is the current VanEck Merk Gold Trust
+relationship, and the four Merlyn.AI series were liquidated in 2022–2023.
+Historical liquidation evidence and successor ownership remain visible, but
+no stale basket or successor route is promoted under the fallback identities.
+
+The runtime symbol-audit map, YAML `symbol_audit_ledger`, documentation, and
+parity tests are updated together. The eight ranked cohorts now cover 81
+explicit non-Tier-0 symbols; remaining symbols stay identity-level `unknown`
+until individually investigated. AC10 remains dependent on provider-platform
+staging, and AC14 still requires production shadow observations and human
+closure authorization.

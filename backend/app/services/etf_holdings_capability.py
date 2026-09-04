@@ -821,6 +821,49 @@ _register_non_tier_0_audits(
         "plus bounded live parser coverage is added."
     ),
 )
+_register_non_tier_0_audits(
+    ("STGF",),
+    outcome=NOT_APPLICABLE,
+    evidence_state="inactive_or_successor_disposition",
+    provider_identity="merk",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=(
+        "web:merk-stgf-liquidation-2026-09-03",
+        "web:merk-stgf-sec-fund-identity-2026-09-03",
+    ),
+    next_action=(
+        "Keep STGF as historical liquidation context; reopen only if Merk launches a distinct "
+        "current U.S.-listed ETF with a complete executable first-party holdings route."
+    ),
+)
+_register_non_tier_0_audits(
+    ("OUNZ",),
+    outcome=NOT_APPLICABLE,
+    evidence_state="inactive_or_successor_disposition",
+    provider_identity="merk",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=("web:merk-ounz-vaneck-successor-2026-09-03",),
+    next_action=(
+        "Resolve OUNZ references to the existing VanEck publisher relationship; do not create a "
+        "duplicate Merk route unless Merk publishes a distinct complete first-party artifact."
+    ),
+)
+_register_non_tier_0_audits(
+    ("WIZ", "SNUG", "BOB", "DUDE"),
+    outcome=NOT_APPLICABLE,
+    evidence_state="inactive_or_successor_disposition",
+    provider_identity="merlyn_ai",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=(
+        "web:merlyn-ai-liquidation-2026-09-03",
+        "web:merlyn-ai-sec-fund-series-2026-09-03",
+    ),
+    next_action=(
+        "Keep the Merlyn.AI symbols as historical liquidation context; reopen only if Merlyn.AI "
+        "launches a distinct current U.S.-listed ETF with a complete executable first-party "
+        "holdings route."
+    ),
+)
 
 
 def symbol_audit_for_profile(profile: ETFProfile) -> ETFHoldingsSymbolAudit:

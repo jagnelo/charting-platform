@@ -112,6 +112,13 @@ otherwise complete official table is Cloudflare-blocked to the adapter
 transport. These outcomes retain publisher ownership boundaries and do not
 promote SEC or indexed content as current support.
 
+The eighth cohort covers STGF and OUNZ (the Merk identity) and WIZ/SNUG/BOB/
+DUDE (Merlyn.AI). These six symbols are `not_applicable`: STGF and the four
+Merlyn.AI series were liquidated, while current OUNZ is the VanEck Merk Gold
+Trust relationship. Historical liquidation evidence remains visible, but no
+stale basket or successor publisher is promoted as a current Merk or Merlyn.AI
+route.
+
 The current checkpoint promotes `guggenheim` through its public issuer-hosted
 ETF holdings table, reconciles `ars` to the existing ARS Investment Partners
 ACEP/AFOS product-page adapter, adds Avory's complete AVRY product-page

@@ -467,6 +467,41 @@ def test_seventh_ranked_fallback_matrix_remains_unavailable_when_cloudflare_bloc
     )
 
 
+def test_eighth_ranked_fallback_merk_liquidation_is_not_applicable():
+    result = symbol_audit_for_profile(profile_with_symbol("STGF", "merk"))
+
+    assert result.tier == 1
+    assert result.outcome == "not_applicable"
+    assert result.evidence_state == "inactive_or_successor_disposition"
+    assert result.provider_identity == "merk"
+    assert result.evidence_refs == (
+        "web:merk-stgf-liquidation-2026-09-03",
+        "web:merk-stgf-sec-fund-identity-2026-09-03",
+    )
+
+
+def test_eighth_ranked_fallback_merk_vaneck_successor_is_not_applicable():
+    result = symbol_audit_for_profile(profile_with_symbol("OUNZ", "merk"))
+
+    assert result.tier == 1
+    assert result.outcome == "not_applicable"
+    assert result.evidence_state == "inactive_or_successor_disposition"
+    assert result.provider_identity == "merk"
+
+
+def test_eighth_ranked_fallback_merlyn_liquidated_series_are_not_applicable():
+    result = symbol_audit_for_profile(profile_with_symbol("WIZ", "merlyn_ai"))
+
+    assert result.tier == 1
+    assert result.outcome == "not_applicable"
+    assert result.evidence_state == "inactive_or_successor_disposition"
+    assert result.provider_identity == "merlyn_ai"
+    assert result.evidence_refs == (
+        "web:merlyn-ai-liquidation-2026-09-03",
+        "web:merlyn-ai-sec-fund-series-2026-09-03",
+    )
+
+
 def test_unreviewed_fallback_symbol_cannot_be_marked_current_from_a_snapshot_alone():
     result = evaluate_capability(
         profile_with_symbol("UNREVIEWED", "matrix"),

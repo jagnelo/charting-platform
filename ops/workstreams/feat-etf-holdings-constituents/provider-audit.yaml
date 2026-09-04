@@ -708,6 +708,54 @@ symbol_audit_ledger:
       investigated_at: 2026-09-03
       evidence_refs: ["web:matrix-mavf-official-page-2026-09-03", "live:matrix-mavf-cloudflare-block-2026-09-03"]
       next_action: "Re-test the official MAVF page from an allowed backend path; promote only after the complete table is executable, identity/date semantics are captured, and deterministic plus bounded live parser coverage is added."
+    - symbol: STGF
+      tier: 1
+      provider_identity: merk
+      current_outcome: not_applicable
+      evidence_state: inactive_or_successor_disposition
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:merk-stgf-liquidation-2026-09-03", "web:merk-stgf-sec-fund-identity-2026-09-03"]
+      next_action: "Keep STGF as historical liquidation context; reopen only if Merk launches a distinct current U.S.-listed ETF with a complete executable first-party holdings route."
+    - symbol: OUNZ
+      tier: 1
+      provider_identity: merk
+      current_outcome: not_applicable
+      evidence_state: inactive_or_successor_disposition
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:merk-ounz-vaneck-successor-2026-09-03"]
+      next_action: "Resolve OUNZ references to the existing VanEck publisher relationship; do not create a duplicate Merk route unless Merk publishes a distinct complete first-party artifact."
+    - symbol: WIZ
+      tier: 1
+      provider_identity: merlyn_ai
+      current_outcome: not_applicable
+      evidence_state: inactive_or_successor_disposition
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:merlyn-ai-liquidation-2026-09-03", "web:merlyn-ai-sec-fund-series-2026-09-03"]
+      next_action: "Keep the Merlyn.AI symbols as historical liquidation context; reopen only if Merlyn.AI launches a distinct current U.S.-listed ETF with a complete executable first-party holdings route."
+    - symbol: SNUG
+      tier: 1
+      provider_identity: merlyn_ai
+      current_outcome: not_applicable
+      evidence_state: inactive_or_successor_disposition
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:merlyn-ai-liquidation-2026-09-03", "web:merlyn-ai-sec-fund-series-2026-09-03"]
+      next_action: "Keep the Merlyn.AI symbols as historical liquidation context; reopen only if Merlyn.AI launches a distinct current U.S.-listed ETF with a complete executable first-party holdings route."
+    - symbol: BOB
+      tier: 1
+      provider_identity: merlyn_ai
+      current_outcome: not_applicable
+      evidence_state: inactive_or_successor_disposition
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:merlyn-ai-liquidation-2026-09-03", "web:merlyn-ai-sec-fund-series-2026-09-03"]
+      next_action: "Keep the Merlyn.AI symbols as historical liquidation context; reopen only if Merlyn.AI launches a distinct current U.S.-listed ETF with a complete executable first-party holdings route."
+    - symbol: DUDE
+      tier: 1
+      provider_identity: merlyn_ai
+      current_outcome: not_applicable
+      evidence_state: inactive_or_successor_disposition
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:merlyn-ai-liquidation-2026-09-03", "web:merlyn-ai-sec-fund-series-2026-09-03"]
+      next_action: "Keep the Merlyn.AI symbols as historical liquidation context; reopen only if Merlyn.AI launches a distinct current U.S.-listed ETF with a complete executable first-party holdings route."
 providers:
   - adapter_key: aegon
     display_name: aegon

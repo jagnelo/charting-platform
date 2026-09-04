@@ -2653,3 +2653,19 @@ fallback symbols retain the identity-level `unknown` boundary until their own
 symbol-scoped evidence is recorded. AC10 remains gated on provider-platform
 staging and AC14 remains a post-integration production-observation gate
 requiring human closure authorization.
+
+## Eighth ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+The next ranked slice is now explicit in runtime and the durable ledger: STGF
+and OUNZ (Merk) plus WIZ/SNUG/BOB/DUDE (Merlyn.AI). All six are
+`not_applicable`. STGF was liquidated in December 2023, current OUNZ belongs to
+the existing VanEck publisher relationship, and the four Merlyn.AI series were
+liquidated in 2022–2023. Historical liquidation and successor evidence is
+retained, but no stale basket or successor publisher is promoted as current
+support.
+
+The eight ranked cohorts now cover 81 explicit non-Tier-0 symbols. Remaining
+fallback symbols retain the identity-level `unknown` boundary until their own
+symbol-scoped evidence is recorded. AC10 remains gated on provider-platform
+staging and AC14 remains a post-integration production-observation gate
+requiring human closure authorization.
