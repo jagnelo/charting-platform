@@ -2111,6 +2111,27 @@ The implementation context remains limited to the live-test contract and
 branch-owned handoff/validation records; no integration, promotion,
 deployment, or other-worktree mutation was performed.
 
+## Exact-tip validation reconciliation — 2026-09-04
+
+Exact-tip CI run `33858104597` at
+`1c794ef551300f99365c0af16a4c39b3417e7ff4` passed Backend Tests, Frontend
+Unit Tests, and the complete branch-declared suite. The branch matrix reported
+567 deterministic passed, 2 default-live passed with 504 skipped, and 492
+opt-in live passed with 14 evidence-backed skips; Ruff and workstream
+validation also passed. The protected staging/master-only Exhaustive
+Integration Gate was skipped as designed for this feature branch.
+
+Playwright failed only at the five-minute `Start stack` timeout while building
+the frontend Docker image: frontend `npm ci` was still running when the step
+expired, before stack health or browser assertions. This repeats the known CI
+infrastructure timing limitation and is not an ETF/application test failure.
+The local `docker_integration` gate still retains only the unrelated fresh-stack
+Study Lab `F8p-current-history` missing-histogram failure at
+`flows.spec.ts:2602`; the prior post-repair gate at `a696277b` passed. A
+repository-admin-authorized rerun or equivalent fresh exact-SHA Playwright
+evidence remains required before closure review; no application/provider
+behavior should be changed for this infrastructure timeout.
+
 ## Dedicated route guards exact-head CI green — 2026-09-04
 
 Exact-head CI run `33851087285` at
