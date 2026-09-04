@@ -1763,3 +1763,16 @@ matching the earlier `33811430864` timeout, not an ETF or application failure;
 Playwright had passed in the preceding exact-SHA run `33813104738` at the
 validated code state. The protected staging/master-only exhaustive gate was
 skipped as intended for this feature branch.
+
+## Synchronized metadata checkpoint and repeated CI timeout — 2026-09-04
+
+The session metadata was synchronized and pushed at `a4033351`. Exact-SHA CI
+run `33819499960` passed Backend Tests, Frontend Unit Tests, and
+Branch-declared Tests. Playwright again failed before any test began: the
+workflow's five-minute `Start stack` step expired while the frontend Docker
+image's `npm ci` layer was still running. The terminal log records the timeout
+at approximately five minutes after the step began. This repeats the same
+infrastructure limitation seen in `33811430864` and `33817619636`; no ETF or
+application test failed. Exact-SHA run `33813104738` at `792682a2` remains the
+latest complete feature-matrix receipt with Playwright green. The protected
+staging/master-only exhaustive gate was skipped as intended.
