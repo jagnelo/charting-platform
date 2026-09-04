@@ -25,7 +25,9 @@ against the seeded branch-scoped Docker stack; teardown and resource accounting 
 containers, volumes, known bytes, and test-container sessions. Product commit `19896f1e` adds the
 browser regression; both commits are pushed to `origin/feat/tc2000-frontend-rework`. Canonical
 provider/history, richer compatible Study Lab targets, native-window/accessibility/security,
-dense-data, and final visual-oracle gaps remain open.
+dense-data, and final visual-oracle gaps remain open. Follow-up commit `4026d8d3` makes each
+role's route/provider and holdings-refresh state explicit in the panel; its focused Market Map
+suite passed `36/36` and the commit is pushed to the feature branch.
 
 ## 2026-09-05 — Explicit Study artifact capability matrix
 

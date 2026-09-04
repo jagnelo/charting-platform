@@ -13,7 +13,8 @@
       passed. Authenticated `F8s-family-map-drilldown` browser coverage passed `1/1` against the
       seeded branch-scoped Docker stack; teardown and resource accounting reported zero
       containers, volumes, known bytes, and test-container sessions. Product commits `7a24dd4b`
-      and `19896f1e` are pushed to `origin/feat/tc2000-frontend-rework`.
+      and `19896f1e` are pushed to `origin/feat/tc2000-frontend-rework`. A follow-up refinement
+      in `4026d8d3` also renders each role's route/provider and holdings-refresh state explicitly.
 - [ ] Continue canonical provider/history enrichment (including unresolved QQQ/QQQE and W1/MN
       evidence), richer compatible Study Lab targets, native-window/accessibility/security
       evidence, dense-data budgets, and visual-oracle review.

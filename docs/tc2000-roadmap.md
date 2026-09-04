@@ -11,7 +11,7 @@ records in `docs/project-todos.md`, `docs/tc2000-parity.md`,
 evidence ledgers. If a summary here conflicts with a dated test receipt or the current code, the
 current code and fresh evidence win.
 
-The latest product commit is `7a24dd4b` (`feat(tc2000): surface benchmark readiness in market map`).
+The latest product commit is `4026d8d3` (`fix(tc2000): show benchmark route readiness`).
 Market Map now surfaces the existing provider-neutral canonical readiness contract for each
 benchmark-family source: all four independently mapped roles, dated-holdings coverage, route and
 member-history state, selected-timeframe analysis-ready counts, and explicit pending/unavailable
@@ -21,6 +21,8 @@ Vitest passed `944/944` across `109` files; type-check, production build, and di
 Authenticated `F8s-family-map-drilldown` browser coverage passed `1/1` against the seeded
 branch-scoped Docker stack, with clean teardown and complete resource accounting. Product commit
 `19896f1e` adds the browser regression.
+The follow-up `4026d8d3` refinement renders each role's route/provider and holdings-refresh state
+explicitly, with the focused Market Map suite still green (`36/36`).
 
 The preceding range-center product commit is `397c554a` (`feat(tc2000): promote structured range centers`).
 Persisted Research Results now exposes named `Save filter: <artifact>` and `Promote alert:
