@@ -226,6 +226,36 @@ def test_code_asset_kind_and_declared_output_contract_must_match(client, auth_he
     assert selected.status_code == 201
     assert selected.json()["versions"][0]["output_name"] == "trend"
 
+    selected_range = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "selected-study-range-center",
+            "name": "Selected study range center",
+            "kind": "plot",
+            "initial_version": {
+                "source": "output.range('band', [1, 2], [3, 4], [2, 3])",
+                "output_contract": "series",
+                "output_name": "band",
+                "lineage": {
+                    "source_run_id": 91,
+                    "source_code_version_id": 43,
+                    "target": "plot",
+                    "output_adapter": "range_center_to_series",
+                    "semantics": "study_range_center_result_as_chart_plot",
+                },
+            },
+        },
+    )
+    assert selected_range.status_code == 201, selected_range.text
+    range_version = selected_range.json()["versions"][0]
+    assert range_version["output_contract"] == "series"
+    assert range_version["output_name"] == "band"
+    range_lineage = next(
+        item for item in range_version["diagnostics"] if item["code"] == "promotion_lineage"
+    )
+    assert range_lineage["lineage"]["output_adapter"] == "range_center_to_series"
+
     invalid_selected = client.post(
         "/api/v1/code/assets",
         headers=auth_headers,

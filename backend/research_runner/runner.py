@@ -211,7 +211,13 @@ def execute_job(
             progress_callback=progress_callback,
             cancellation_check=cancellation_check,
         )
-    return _execute_single(source, job.get("dataset", {}), job)
+    result = _execute_single(source, job.get("dataset", {}), job)
+    if (
+        result.get("status") == "completed"
+        and str(job.get("output_adapter") or "") == "range_center_to_series"
+    ):
+        return _adapt_range_center_to_series(result, str(job.get("output_name") or "") or None)
+    return result
 
 
 def _truncate_dataset(dataset: dict, index: int) -> dict:
@@ -299,6 +305,105 @@ def _series_artifact(
         ):
             return float(value), None
     return None, "Series output has no finite value at the observation timestamp."
+
+
+def _range_center_artifact(
+    result: dict, output_name: str | None
+) -> tuple[float | None, str | None]:
+    """Extract the latest finite center from one structured range output.
+
+    Range outputs are not silently treated as ordinary series. The caller must
+    opt into the explicit ``range_center_to_series`` promotion adapter so the
+    loss of the lower/upper band remains visible in lineage and diagnostics.
+    """
+    matches = [
+        artifact
+        for name, artifact in result.get("artifacts", {}).items()
+        if isinstance(artifact, dict)
+        and artifact.get("type") == "range"
+        and (output_name is None or name == output_name)
+    ]
+    if len(matches) != 1:
+        return (
+            None,
+            f"Expected exactly one range output{f' named {output_name!r}' if output_name else ''}.",
+        )
+    raw = matches[0].get("value")
+    center = raw.get("center") if isinstance(raw, dict) else None
+    if not isinstance(center, list):
+        return None, "Range output has no center series to promote."
+    for value in reversed(center):
+        if (
+            isinstance(value, int | float)
+            and not isinstance(value, bool)
+            and math.isfinite(float(value))
+        ):
+            return float(value), None
+    return None, "Range center series has no finite value at the observation timestamp."
+
+
+def _adapt_range_center_to_series(result: dict, output_name: str | None) -> dict:
+    """Project one named range artifact into a chart-compatible center series."""
+    matches = [
+        (name, artifact)
+        for name, artifact in result.get("artifacts", {}).items()
+        if isinstance(artifact, dict)
+        and artifact.get("type") == "range"
+        and (output_name is None or name == output_name)
+    ]
+    if len(matches) != 1:
+        return {
+            "status": "failed",
+            "diagnostics": [{
+                "code": "range_center_adapter_output_missing",
+                "message": f"Expected exactly one range output{f' named {output_name!r}' if output_name else ''}.",
+            }],
+        }
+    name, artifact = matches[0]
+    raw = artifact.get("value")
+    if not isinstance(raw, dict):
+        return {
+            "status": "failed",
+            "diagnostics": [{
+                "code": "range_center_adapter_invalid_payload",
+                "message": "Range output must contain an object payload.",
+            }],
+        }
+    timestamps = raw.get("timestamps")
+    center = raw.get("center")
+    if not isinstance(timestamps, list) or not isinstance(center, list) or len(timestamps) != len(center):
+        return {
+            "status": "failed",
+            "diagnostics": [{
+                "code": "range_center_adapter_unaligned",
+                "message": "Range center and timestamps must be aligned lists.",
+            }],
+        }
+    if not all(
+        isinstance(value, int | float)
+        and not isinstance(value, bool)
+        and math.isfinite(float(value))
+        for value in center
+    ):
+        return {
+            "status": "failed",
+            "diagnostics": [{
+                "code": "range_center_adapter_non_numeric",
+                "message": "Range center values must be finite numbers.",
+            }],
+        }
+    return {
+        **result,
+        "artifacts": {
+            name: {
+                "type": "series",
+                "value": {
+                    "timestamps": [str(timestamp) for timestamp in timestamps],
+                    "values": [float(value) for value in center],
+                },
+            }
+        },
+    }
 
 
 def _events_to_boolean(
@@ -1188,6 +1293,9 @@ def _execute_batch(
                     value, error, extracted_metric = _events_to_boolean(
                         result, candidate, output_name
                     )
+                elif output_adapter == "range_center_to_series":
+                    extracted_metric, error = _range_center_artifact(result, output_name)
+                    value = extracted_metric
                 elif output_contract == "boolean":
                     value, error, extracted_metric = _boolean_artifact(result, output_name)
                 elif output_contract == "series":

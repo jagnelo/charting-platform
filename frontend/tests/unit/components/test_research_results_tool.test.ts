@@ -370,6 +370,40 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.text()).toContain('Saved series artifact “trend” as chart plot')
   })
 
+  it('promotes a structured range center through an explicit chart-series adapter', async () => {
+    const source = "output.range('confidence', [1, 2], [3, 4], [2, 3])"
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve([{ id: 34, status: 'completed', code_version_id: 82, output_contract: 'study', run_config: { symbol: 'SPY' }, dataset_manifest: { source: 'canonical_database' }, reproducibility_hash: 'hash-34', diagnostics: [], artifacts: [
+        { id: 24, name: 'confidence', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], lower: [1, 2], upper: [3, 4], center: [2, 3] } } },
+      ] }])
+      if (path === '/code/assets') return Promise.resolve([{ name: 'Study 34', versions: [{ id: 82, source, output_contract: 'study', parameter_schema: { properties: {} }, default_parameters: {} }] }])
+      return Promise.resolve([])
+    })
+    apiPost.mockResolvedValue({ id: 83, name: 'confidence center plot' })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.find('button[aria-label="Save center chart plot: confidence"]').trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'plot',
+      initial_version: expect.objectContaining({
+        source,
+        output_contract: 'series',
+        output_name: 'confidence',
+        lineage: expect.objectContaining({
+          source_run_id: 34,
+          source_output_name: 'confidence',
+          target: 'plot',
+          output_adapter: 'range_center_to_series',
+          semantics: 'study_range_center_result_as_chart_plot',
+        }),
+      }),
+    }))
+    expect(wrapper.text()).toContain('Saved range center “confidence” as chart plot')
+  })
+
   it('exposes the complete lineage-preserving Boolean promotion matrix for structured results', async () => {
     const source = "output.boolean('qualifies', True)\noutput.scalar('sample_size', 4)"
     apiGet.mockImplementation((path: string) => {

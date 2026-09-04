@@ -46,6 +46,18 @@ def enqueue_research_run(run: ResearchRun) -> None:
                 ),
                 None,
             )
+            if output_adapter is None:
+                output_adapter = next(
+                    (
+                        item.get("lineage", {}).get("output_adapter")
+                        for item in diagnostics
+                        if isinstance(item, dict)
+                        and item.get("code") == "promotion_lineage"
+                        and isinstance(item.get("lineage"), dict)
+                        and isinstance(item.get("lineage", {}).get("output_adapter"), str)
+                    ),
+                    None,
+                )
     payload = {
         "run_id": run.id,
         "source": run.code_version.source,

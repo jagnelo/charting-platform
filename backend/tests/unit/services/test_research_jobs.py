@@ -37,6 +37,35 @@ def test_enqueue_prepares_both_shared_volumes_and_job_file(tmp_path, monkeypatch
     assert stat.S_IMODE(job.stat().st_mode) == 0o666
 
 
+def test_enqueue_recovers_explicit_promotion_adapter_from_lineage(tmp_path, monkeypatch):
+    job_directory = tmp_path / "jobs"
+    result_directory = tmp_path / "results"
+    result_directory.mkdir()
+    monkeypatch.setattr(research_jobs.settings, "RESEARCH_JOB_DIR", str(job_directory))
+    monkeypatch.setattr(research_jobs.settings, "RESEARCH_RESULT_DIR", str(result_directory))
+    run = SimpleNamespace(
+        id=8,
+        dataset_manifest={"symbol": "SPY"},
+        run_config={"parameters": {}},
+        code_version=SimpleNamespace(
+            source="output.range('band', [1], [3], [2])",
+            output_contract="series",
+            output_name="band",
+            diagnostics=[
+                {
+                    "code": "promotion_lineage",
+                    "lineage": {"output_adapter": "range_center_to_series"},
+                }
+            ],
+        ),
+    )
+
+    research_jobs.enqueue_research_run(run)
+
+    payload = json.loads((job_directory / "8.json").read_text())
+    assert payload["output_adapter"] == "range_center_to_series"
+
+
 def test_collect_projects_breadth_history_occurrences_into_persisted_artifact(
     tmp_path, monkeypatch
 ):

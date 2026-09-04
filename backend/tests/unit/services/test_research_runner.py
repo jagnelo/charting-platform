@@ -1675,6 +1675,69 @@ def test_runner_emits_typed_range_band_with_aligned_timestamps():
     }
 
 
+def test_runner_adapts_explicit_range_center_to_chart_series():
+    result = execute_job(
+        {
+            "source": "output.range('band', [1, 2], [3, 4], [2, 3])",
+            "output_contract": "series",
+            "output_name": "band",
+            "output_adapter": "range_center_to_series",
+            "dataset": {"timestamps": ["2026-01-01", "2026-01-02"]},
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"] == {
+        "band": {
+            "type": "series",
+            "value": {
+                "timestamps": ["2026-01-01", "2026-01-02"],
+                "values": [2.0, 3.0],
+            },
+        }
+    }
+
+
+def test_runner_adapts_range_center_to_numeric_batch_cells():
+    result = execute_job(
+        {
+            "source": "output.range('band', [1, 2], [3, 4], [2, 3])",
+            "output_contract": "series",
+            "output_name": "band",
+            "output_adapter": "range_center_to_series",
+            "dataset": {"datasets": [{"instrument_id": 1, "symbol": "SPY", "closes": [10, 11]}]},
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["batch_cells"]["value"]["cells"] == [
+        {
+            "instrument_id": 1,
+            "symbol": "SPY",
+            "status": "completed",
+            "value": 3.0,
+            "metric": 3.0,
+        }
+    ]
+
+
+def test_runner_reports_stable_range_center_adapter_error():
+    result = execute_job(
+        {
+            "source": "output.range('band', [1, 2], [3, 4])",
+            "output_contract": "series",
+            "output_name": "band",
+            "output_adapter": "range_center_to_series",
+            "dataset": {"timestamps": ["2026-01-01", "2026-01-02"]},
+        }
+    )
+    assert result["status"] == "failed"
+    assert result["diagnostics"] == [
+        {
+            "code": "range_center_adapter_unaligned",
+            "message": "Range center and timestamps must be aligned lists.",
+        }
+    ]
+
+
 def test_runner_emits_typed_scatter_points_for_study_relationships():
     result = execute_job(
         {"source": "output.scatter('relationship', [1, 2, 3], [2, 4, 9])", "dataset": {}}

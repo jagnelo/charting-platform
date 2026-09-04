@@ -83,10 +83,18 @@ def _validate_asset_contract(kind: str, body: CodeVersionCreate, validation) -> 
                 "observed": list(validation.output_contracts),
             },
         )
+    explicit_range_center_adapter = (
+        body.output_contract == "series"
+        and body.output_name is not None
+        and isinstance(body.lineage, dict)
+        and body.lineage.get("output_adapter") == "range_center_to_series"
+        and "range" in validation.output_contracts
+    )
     if (
         body.output_contract != "study"
         and body.output_name is not None
         and body.output_contract not in validation.output_contracts
+        and not explicit_range_center_adapter
     ):
         raise HTTPException(
             status_code=422,

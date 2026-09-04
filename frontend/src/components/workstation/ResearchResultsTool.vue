@@ -48,6 +48,7 @@
           <div v-if="canPromoteStructuredArtifact(selectedRun, artifact)" class="research-results-tool__artifact-promotions" role="group" :aria-label="`${artifact.name} promotions`">
             <button v-if="artifact.artifact_type === 'scalar'" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save column: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'column')">{{ promoting ? 'Promoting…' : `Save column: ${artifact.name}` }}</button>
             <button v-if="artifact.artifact_type === 'series'" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save chart plot: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'plot')">{{ promoting ? 'Promoting…' : `Save chart plot: ${artifact.name}` }}</button>
+            <button v-if="artifact.artifact_type === 'range'" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save center chart plot: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'plot')">{{ promoting ? 'Promoting…' : `Save center chart plot: ${artifact.name}` }}</button>
             <template v-if="artifact.artifact_type === 'boolean'">
               <button v-for="target in structuredBooleanPromotionTargets" :key="`${artifact.id}-${target}`" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`${structuredBooleanPromotionLabel(target)}: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, target)">{{ promoting ? 'Promoting…' : `${structuredBooleanPromotionLabel(target)}: ${artifact.name}` }}</button>
             </template>
@@ -412,7 +413,7 @@ function canPromoteStructuredArtifact(run: ResearchRunSummary | null, artifact: 
   return Boolean(run)
     && run?.status === 'completed'
     && run.output_contract === 'study'
-    && (artifact.artifact_type === 'scalar' || artifact.artifact_type === 'series' || artifact.artifact_type === 'boolean')
+    && (artifact.artifact_type === 'scalar' || artifact.artifact_type === 'series' || artifact.artifact_type === 'boolean' || artifact.artifact_type === 'range')
 }
 type StructuredBooleanPromotionTarget = 'column' | 'filter' | 'scan' | 'gauge' | 'alert'
 const structuredBooleanPromotionTargets: StructuredBooleanPromotionTarget[] = ['column', 'filter', 'scan', 'gauge', 'alert']
@@ -716,6 +717,7 @@ async function promoteStructuredArtifact(run: ResearchRunSummary, artifact: Rese
     if (!sourceVersion?.source) throw new Error('The immutable source code version for this research run is unavailable.')
     const contract = artifact.artifact_type === 'scalar' ? 'scalar' : artifact.artifact_type === 'boolean' ? 'boolean' : 'series'
     const kind = target === 'column' ? 'column' : 'plot'
+    const outputAdapter = artifact.artifact_type === 'range' ? 'range_center_to_series' : undefined
     const lineage = {
       type: 'study_run_promotion',
       source_run_id: run.id,
@@ -725,9 +727,10 @@ async function promoteStructuredArtifact(run: ResearchRunSummary, artifact: Rese
       source_run_config: run.run_config,
       source_output_name: artifact.name,
       target,
+      output_adapter: outputAdapter,
       semantics: target === 'column'
         ? (artifact.artifact_type === 'boolean' ? 'study_boolean_result_as_typed_watchlist_column' : 'study_scalar_result_as_watchlist_column')
-        : 'study_series_result_as_chart_plot',
+        : artifact.artifact_type === 'range' ? 'study_range_center_result_as_chart_plot' : 'study_series_result_as_chart_plot',
     }
     const promoted = await api.post<{ id: number; name: string }>('/code/assets', {
       stable_key: `${run.id}-${artifact.name}-${kind}-${Date.now().toString(36)}`.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80) || `study-${kind}`,
@@ -746,7 +749,9 @@ async function promoteStructuredArtifact(run: ResearchRunSummary, artifact: Rese
       ? artifact.artifact_type === 'boolean'
         ? `Saved Boolean artifact “${artifact.name}” as watchlist column “${promoted.name}”.`
         : `Saved scalar artifact “${artifact.name}” as watchlist column “${promoted.name}”.`
-      : `Saved series artifact “${artifact.name}” as chart plot “${promoted.name}”.`
+      : artifact.artifact_type === 'range'
+        ? `Saved range center “${artifact.name}” as chart plot “${promoted.name}”.`
+        : `Saved series artifact “${artifact.name}” as chart plot “${promoted.name}”.`
   } catch (cause: any) {
     promotionMessage.value = cause?.message ?? `Unable to promote the ${artifact.artifact_type} artifact`
   } finally {
