@@ -79,7 +79,7 @@ status: authorized
 remaining_gaps: []
 progress:
   completed: []
-  total: 7
+  total: 11
   current_phase: identity_and_series_foundation
   current_blocker: none
   next_action: run make agent-session-start again after this plan is committed, then implement identity/issuer/market-series foundations first
