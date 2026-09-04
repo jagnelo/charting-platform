@@ -393,6 +393,23 @@ const activeSource = computed(() => sources.value.find(source => source.source_i
 const sourceFollowed = computed(() => Boolean(activeSource.value && userSettingsStore.followedSourceIds.includes(activeSource.value.source_id)))
 const sourcePinned = computed(() => Boolean(activeSource.value && userSettingsStore.pinnedSourceIds.includes(activeSource.value.source_id)))
 const LARGE_MAP_CANVAS_THRESHOLD = 1500
+// The backend treats an explicit map ``end`` as a historical membership
+// cutoff only for these system-managed source families.  Keep history-status
+// and history-refresh on that same point-in-time contract; personal/combo
+// sources intentionally retain current membership unless they receive an
+// explicit ``as_of`` from another surface.
+const POINT_IN_TIME_SOURCE_PREFIXES = [
+  'benchmark-family:',
+  'etf-holdings:',
+  'market-group:',
+  'explicit-list:',
+]
+
+const historyAsOf = computed<string | null>(() => {
+  if (period.value !== 'CUSTOM' || !endDate.value) return null
+  if (!POINT_IN_TIME_SOURCE_PREFIXES.some(prefix => sourceId.value.startsWith(prefix))) return null
+  return `${endDate.value}T23:59:59Z`
+})
 
 function isSourceSelectable(source: WatchlistSource): boolean {
   return sourceAvailability(source) !== 'unavailable'
@@ -553,7 +570,7 @@ async function loadHistoryStatus(schedulePoll = false) {
   historyLoading.value = true
   historyError.value = ''
   try {
-    const result = await fetchWatchlistSourceHistoryStatus(sourceId.value, [timeframe.value])
+    const result = await fetchWatchlistSourceHistoryStatus(sourceId.value, [timeframe.value], 5000, historyAsOf.value)
     historyStatus.value = result && !Array.isArray(result) ? result : null
     await loadHistoryRun()
     if (schedulePoll) scheduleHistoryPoll()
@@ -571,7 +588,7 @@ async function refreshHistory() {
   historyRefreshMessage.value = ''
   historyRefreshError.value = ''
   try {
-    const result = await refreshWatchlistSourceHistory(sourceId.value, [timeframe.value])
+    const result = await refreshWatchlistSourceHistory(sourceId.value, [timeframe.value], 5000, historyAsOf.value)
     historyRun.value = result.run_id ? await fetchWatchlistHistoryRefreshRun(result.run_id) : null
     const jobs = result.queued + result.already_queued
     historyRefreshMessage.value = result.queue_unavailable

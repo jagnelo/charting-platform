@@ -689,3 +689,22 @@ assigned-stack health, research-runner probes, and functional Playwright (`154` 
 The six diffs match the prior concentrated visual blocker; no baseline, mask, threshold, skip,
 provider fallback, or acceptance rule was changed. Cleanup removed only the assigned branch
 containers, volumes, network, and images.
+
+## 2026-09-04 — Market Map custom-end history readiness remains point-in-time
+
+Market Map now carries a custom historical end through the source history-status and explicit
+history-refresh clients for system-managed source families (`benchmark-family`, `etf-holdings`,
+`market-group`, and saved `explicit-list`). This mirrors the backend Market Map resolver, where a
+system-source `end` is the disclosed membership evaluation timestamp, so local adjusted-OHLCV
+coverage, membership exclusions, and bounded worker hydration are evaluated against the same
+cutoff as the visible map. Personal/combo sources retain their current membership semantics unless
+another surface supplies an explicit `as_of`.
+
+The Market Map component regression proves the exact `as_of=2026-08-07T23:59:59Z` status query and
+refresh payload alongside the existing custom map end. The focused component suite passes `33/33`;
+full frontend Vitest passes `925/925` across `108/108` files with `82.01%` statement coverage;
+`npm run type-check`, `npm run build` (490 Vite modules), the uPlot renderer contract (`48` files),
+and visual acceptance policy (`26` assertions; unchanged thresholds) pass. No visual baseline,
+mask, threshold, skip, provider fallback, or backend contract was changed. The exhaustive gate
+still needs a fresh exact-tip run and retains the six concentrated visual diffs plus canonical
+provider/history gaps as review blockers.

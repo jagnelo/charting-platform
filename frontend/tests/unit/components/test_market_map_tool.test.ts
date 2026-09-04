@@ -270,6 +270,47 @@ describe('MarketMapTool', () => {
     expect(wrapper.text()).toContain('Locked source')
   })
 
+  it('bounds system-source history readiness and refresh to a custom map end', async () => {
+    const historyStatus = {
+      source_id: 'market-group:sp500',
+      source_kind: 'index_membership',
+      name: 'S&P 500',
+      locked: true,
+      membership_version: 'v1',
+      as_of: '2026-08-07T23:59:59Z',
+      max_instruments: 5000,
+      available_instrument_count: 2,
+      selected_instrument_count: 2,
+      limited: false,
+      excluded_count: 0,
+      overall_status: 'ready',
+      timeframes: [{ timeframe: 'D1', member_count: 2, covered_member_count: 2, coverage_percent: 100, bar_count: 6, in_progress_count: 0, complete_count: 2, failed_count: 0, pending_count: 0 }],
+    }
+    apiGet.mockImplementation((path: string) => path.includes('/history-status/') ? Promise.resolve(historyStatus) : Promise.resolve([]))
+    apiPost.mockImplementation((path: string) => path === '/analysis/market-map'
+      ? Promise.resolve(response)
+      : Promise.resolve({ run_id: 77, source_ids: ['market-group:sp500'], timeframes: ['D1'], as_of: '2026-08-07T23:59:59Z', max_instruments: 5000, available_instrument_count: 2, selected_instrument_count: 2, limited: false, queued: 2, already_queued: 0, queue_unavailable: false }))
+
+    const wrapper = mount(MarketMapTool, {
+      props: { configuration: { source_id: 'market-group:sp500', period: 'CUSTOM', start_date: '2026-08-01', end_date: '2026-08-07' } },
+    })
+    await flushPromises()
+
+    const statusCall = apiGet.mock.calls.find(([path]) => String(path).includes('/history-status/'))
+    expect(statusCall?.[1]).toEqual({ timeframes: ['D1'], max_instruments: 5000, as_of: '2026-08-07T23:59:59Z' })
+    expect(apiPost.mock.calls.find(([path]) => path === '/analysis/market-map')?.[1]).toEqual(expect.objectContaining({ end: '2026-08-07T23:59:59Z' }))
+
+    await wrapper.get('[aria-label="Refresh Market Map history"]').trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/watchlists/sources/history-refresh', {
+      source_ids: ['market-group:sp500'],
+      timeframes: ['D1'],
+      max_instruments: 5000,
+      as_of: '2026-08-07T23:59:59Z',
+    })
+  })
+
   it('keeps unmapped family legs unavailable but lets mapped pending sources remain followable', async () => {
     const previousSources = sourceState.sources
     const pendingSource = {

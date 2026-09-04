@@ -78,10 +78,11 @@ export function fetchWatchlistSourceHistoryStatus(
   sourceId: string,
   timeframes: string[] = ['D1'],
   maxInstruments = 5000,
+  asOf?: string | null,
 ): Promise<WatchlistSourceHistoryStatus> {
   return api.get<WatchlistSourceHistoryStatus>(
     `/watchlists/sources/history-status/${encodeURIComponent(sourceId)}`,
-    { timeframes, max_instruments: maxInstruments },
+    { timeframes, max_instruments: maxInstruments, ...(asOf ? { as_of: asOf } : {}) },
   )
 }
 
@@ -89,11 +90,13 @@ export function refreshWatchlistSourceHistory(
   sourceId: string,
   timeframes: string[] = ['D1'],
   maxInstruments = 5000,
+  asOf?: string | null,
 ): Promise<WatchlistSourceHistoryRefreshResult> {
   return api.post<WatchlistSourceHistoryRefreshResult>('/watchlists/sources/history-refresh', {
     source_ids: [sourceId],
     timeframes,
     max_instruments: maxInstruments,
+    ...(asOf ? { as_of: asOf } : {}),
   })
 }
 
