@@ -11,17 +11,21 @@ records in `docs/project-todos.md`, `docs/tc2000-parity.md`,
 evidence ledgers. If a summary here conflicts with a dated test receipt or the current code, the
 current code and fresh evidence win.
 
-The latest exact-tip receipt is anchored at product commit `b142729a` (`fix(tc2000): scope popout
-market hydration`). The late benchmark pop-out path now hydrates missing shared market-analysis
-inputs once, while chart pop-outs remain display-only; focused bindings passed `26/26`, the full
-frontend suite passed `933/933`, and the seeded benchmark pop-out flow passed `1/1`. The exhaustive
-gate passed all stages through functional Playwright—backend units `1,307/1,307`, integration
-`380/380` with the existing `54` warnings, combined coverage `80.91%`, frontend Vitest `933/933`,
-and functional Playwright `155` passes with `106` documented skips across `261` specs—before
-stopping at the unchanged visual matrix (`98/104`, six screenshot diffs). The Study Results
-open-flow failure seen at the previous tip was not reproduced in isolated repetitions (`1/1`,
-`5/5`, and `6/6`) and passed in the full functional run. Docker stack cleanup and resource
-accounting were clean; no visual oracle, provider fallback, or acceptance policy was changed.
+The latest exact-tip receipt remains anchored at product commit `b142729a` (`fix(tc2000): scope
+popout market hydration`); the next product slice is committed as `0da00e08` (`feat(tc2000):
+promote event artifacts to filters and alerts`). The late benchmark pop-out path still hydrates
+missing shared market-analysis inputs once, while chart pop-outs remain display-only. The event
+slice adds an explicit `events_to_boolean` adapter and lineage-preserving watchlist-filter/alert
+fan-out for completed single-output event runs. Focused runner tests passed `7/7`, Strategy Lab
+integration passed `2/2`, the frontend component regression passed `22/22`, and the full
+frontend suite passed `934/934` across `108` files; type-check, build, compileall, Ruff,
+format, and diff checks passed. The previous exhaustive gate remains green through functional
+Playwright at `b142729a`—backend units `1,307/1,307`, integration `380/380` with the existing
+`54` warnings, combined coverage `80.91%`, and functional Playwright `155` passes with
+`106` documented skips across `261` specs—before stopping at the unchanged visual matrix
+(`98/104`, six screenshot diffs). The new product tip still needs the exhaustive gate rerun.
+Docker stack cleanup and resource accounting were clean; no visual oracle, provider fallback, or
+acceptance policy was changed.
 
 The work is one continuous delivery stint, not an MVP followed by optional phases. The workstreams
 below are dependency-ordered checkpoints so correctness, data lineage, and visual evidence can be

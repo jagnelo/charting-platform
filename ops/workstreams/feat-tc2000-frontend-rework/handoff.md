@@ -10,6 +10,37 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-04 — Event artifact filter and alert fan-out
+
+The next compatible promotion boundary is implemented in the assigned worktree and committed
+as `0da00e08` (`feat(tc2000): promote event artifacts to filters and alerts`). A completed
+single-output `events` research run can now create a custom watchlist condition whose universe is
+limited to the run's declared canonical member IDs. The isolated runner evaluates the explicit
+`events_to_boolean` adapter at each member's latest observation, accepts same-UTC-day date-only
+events, rejects future/invalid timestamps, and reports the observed-event count as a metric.
+Creating an alert reuses that filter; both actions preserve source code/artifact, run hash,
+dataset-manifest fingerprint/summary, run configuration, and explicit current-observation
+semantics. Ordinary Boolean execution and chart pop-outs are unchanged.
+
+Evidence for this boundary:
+
+- Isolated runner event tests passed `7/7`; Strategy Lab integration passed `2/2` (including
+  the new filter promotion); frontend Research Results tests passed `22/22`; full frontend
+  Vitest passed `934/934` across `108` files; type-check, production build, compileall,
+  Ruff, format, and diff checks passed.
+- The new UI actions are shown only for completed runs whose exposed immutable output contract is
+  `events` and which contain an events artifact. The backend rejects incomplete/non-owned/
+  multi-contract sources and runs without declared canonical IDs instead of widening the filter
+  universe.
+- The previous exact gate remains the latest exhaustive receipt: product tip `b142729a` passed
+  all stages through functional Playwright and stopped at the unchanged visual matrix (`98/104`,
+  six diffs). The exhaustive gate has not yet been rerun at `0da00e08`; no visual baseline,
+  mask, threshold, skip, fallback oracle, provider rule, or acceptance policy changed.
+
+The branch is pushed and synchronized at `0da00e08`. Remaining work includes compatible
+chart/list/gauge and Study Lab promotion targets, canonical provider/history readiness, native
+window/accessibility/security evidence, visual-oracle review, and the final exact-tip gate.
+
 ## 2026-09-04 — Late benchmark pop-out hydration and exact-tip gate
 
 The bounded multi-window fix is complete in the assigned worktree. A benchmark/watchlist pop-out

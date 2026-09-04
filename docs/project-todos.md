@@ -1,5 +1,28 @@
 # Project TODO Memory
 
+### 2026-09-04 — Event artifact filter and alert fan-out
+
+- [x] Add an explicit `events_to_boolean` adapter in the isolated runner. It evaluates event
+      presence at the candidate's latest observation, accepts same-UTC-day date-only events,
+      rejects future/invalid timestamps, and reports a bounded observed-event metric without
+      guessing across symbols or widening the source contract.
+- [x] Add a user-scoped `POST /research/runs/{run_id}/promote-event-filter` endpoint. It accepts
+      only completed, owned, single-output `events` sources, requires declared canonical member
+      IDs, preserves the source run/code/artifact/reproducibility/manifest lineage, and creates
+      a custom Python condition with the explicit adapter. The existing screener queue now
+      accepts this adapter only for an `events` CodeVersion.
+- [x] Surface both `Save events as watchlist filter` and `Promote events to alert` in Research
+      Results. Alert creation reuses the lineage-preserving filter and states the current-
+      observation semantics; no event artifact is silently relabelled as Boolean.
+- [x] Verify the slice: isolated runner event tests passed `7/7`, Strategy Lab integration
+      coverage passed `2/2` (including the new filter promotion), frontend component tests
+      passed `22/22`, full frontend Vitest passed `934/934` across `108` files, type-check,
+      production build, compileall, Ruff, format, and diff checks passed.
+- [ ] Extend the same explicit capability matrix to remaining compatible chart/list/gauge and
+      Study Lab targets, then rerun the exhaustive branch gate at the new product tip. The
+      existing visual review item remains unchanged: six diffs are preserved and no baseline,
+      mask, threshold, skip, fallback oracle, provider rule, or acceptance policy may change.
+
 ### 2026-09-04 — Late benchmark pop-out hydration and exact-tip gate
 
 - [x] Hydrate missing shared market-analysis inputs when a benchmark/watchlist pop-out opens
