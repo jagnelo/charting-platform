@@ -1,0 +1,20 @@
+{
+  "schema": 2,
+  "branch": "feat/market-data-provider-platform",
+  "parent_branch": "staging",
+  "implementation_sha": "8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35",
+  "remote_sha": null,
+  "active_session_id": null,
+  "previous_session_ids": [],
+  "goal_state": "not_started",
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "planning_state": "draft",
+  "progress": {
+    "completed": [],
+    "total": 0,
+    "current_phase": "plan",
+    "current_blocker": "none"
+  },
+  "next_action": "run make agent-session-start",
+  "retained_docker_resources": []
+}
