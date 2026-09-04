@@ -586,6 +586,14 @@ _KNOWN_ISSUER_LIVE_VARIANT_MARKERS = {
     ("hilton", "SMCO"): "hilton's smco holdings csv did not expose complete dated holdings.",
     ("abacus_global", "ABLG"): "abacus fcf product page identity did not match requested etf ablg",
     ("shelton", "SEPI"): "shelton holdings page identity did not match requested etf sepi",
+    (
+        "nomura",
+        "FRWD",
+    ): "nomura product page did not expose complete daily holdings for frwd.",
+    (
+        "delaware",
+        "LRGG",
+    ): "delaware/macquarie successor product page did not expose complete daily holdings for lrgg.",
 }
 
 
