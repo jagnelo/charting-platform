@@ -226,6 +226,33 @@ def test_identity_only_fallback_symbols_remain_unknown_until_symbol_route_eviden
     assert result.investigated_at == date(2026, 7, 26)
 
 
+def test_unreviewed_fallback_symbol_cannot_be_marked_current_from_a_snapshot_alone():
+    result = evaluate_capability(
+        profile_with_symbol("TALV", "aegon"),
+        snapshot(),
+        state(),
+        now=NOW,
+    )
+
+    assert result.availability == UNKNOWN
+    assert result.usable_for_current_analysis is False
+    assert result.displayable_last_known is True
+    assert "symbol-level source audit" in result.reason
+
+
+def test_unavailable_tier_zero_audit_blocks_current_analysis_even_with_a_snapshot():
+    result = evaluate_capability(
+        profile_with_symbol("DXJ", "wisdomtree"),
+        snapshot(),
+        state(),
+        now=NOW,
+    )
+
+    assert result.availability == "unavailable"
+    assert result.usable_for_current_analysis is False
+    assert result.symbol_audit.outcome == "unavailable"
+
+
 def test_terminal_non_publisher_identity_is_not_applicable_at_symbol_boundary():
     result = symbol_audit_for_profile(profile_with_symbol("ABEQ", "epiris"))
 

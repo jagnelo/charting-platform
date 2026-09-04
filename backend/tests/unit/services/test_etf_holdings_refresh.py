@@ -82,7 +82,7 @@ def _snapshot():
 
 
 @pytest.mark.asyncio
-async def test_canary_success_records_latency_recovery_and_current_capability(monkeypatch):
+async def test_canary_success_records_latency_recovery_and_symbol_gated_capability(monkeypatch):
     profile = _profile()
     state = _state(status="failure", extra_data={"consecutive_failures": 2})
     db = _Session(
@@ -118,7 +118,8 @@ async def test_canary_success_records_latency_recovery_and_current_capability(mo
     assert result["failed"] == 0
     report = result["reports"][0]
     assert report["status"] == "success"
-    assert report["availability"] == "current"
+    # A successful fetch cannot override the unresolved Tier 0 source audit.
+    assert report["availability"] == "unavailable"
     assert report["recovered"] is True
     assert report["circuit_state"] == "closed"
     assert report["latency_ms"] >= 0

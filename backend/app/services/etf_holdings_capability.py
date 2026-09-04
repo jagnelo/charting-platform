@@ -458,12 +458,27 @@ def evaluate_capability(
             "A stored snapshot exists, but the route has not completed a current capability check."
         )
 
+    symbol_audit = symbol_audit_for_profile(profile)
+    if availability == CURRENT and symbol_audit.tier in {0, 1} and symbol_audit.outcome != CURRENT:
+        audit_availability = symbol_audit.outcome
+        if audit_availability not in {
+            DEGRADED,
+            STALE,
+            UNAVAILABLE,
+            NOT_APPLICABLE,
+            UNKNOWN,
+        }:
+            audit_availability = UNKNOWN
+        availability = audit_availability
+        reason = (
+            "The symbol-level source audit is not current support "
+            f"({symbol_audit.evidence_state}); showing last-known data only."
+        )
     usable = availability == CURRENT and source_tier in {
         ISSUER_NATIVE,
         SUCCESSOR_NATIVE,
         LICENSED_VENDOR,
     }
-    symbol_audit = symbol_audit_for_profile(profile)
     return ETFHoldingsCapability(
         availability=availability,
         source_tier=source_tier,

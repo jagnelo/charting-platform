@@ -2781,3 +2781,28 @@ AC10 remains gated on provider-platform staging, AC11 remains partial beyond
 the completed Tier 0 symbol evidence, and AC14 remains post-integration and
 post-deployment. The operational checkpoint should record this exact result
 and preserve the clean branch boundary.
+
+## Symbol-audit current-use gate and finalized Docker validation — 2026-09-04
+
+Capability evaluation now applies symbol-level audit evidence after snapshot
+freshness and identity checks. Tier 0 and identity-level fallback records with
+non-current outcomes (`unknown`, `unavailable`, `stale`, `degraded`, or
+`not_applicable`) cannot mark a complete snapshot usable for current analysis;
+only an explicitly current symbol audit can unlock that path. A ledger/runtime
+consistency assertion covers all ten Tier 0 symbols and the reconciled F/m
+adapter alias.
+
+Finalized focused validation passed 629 ETF backend tests, the ETF refresh/API
+contract, 8 focused frontend tests, Vue type-check, production build, Ruff,
+format, diff, and workstream validation. The required Docker gate passed
+dependency, migration, lint, backend coverage, frontend coverage (924 tests),
+visual policy, build, compose, provider-probe, stack-health, and
+research-runner stages. Functional Playwright completed 153 passed and 106
+skipped, with one unrelated `F8r-breadth-narrow` setup failure at
+`frontend/tests/e2e/flows.spec.ts:3153` because the Market Breadth tool window
+did not appear. Teardown completed cleanly; no ETF assertion failed. Preserve
+this as narrowly evidenced external/unrelated E2E failure rather than claiming
+the full gate green.
+
+AC10 remains gated on provider-platform staging, AC11 remains open for
+non-Tier-0 fallback symbols, and AC14 remains post-integration/deployment.

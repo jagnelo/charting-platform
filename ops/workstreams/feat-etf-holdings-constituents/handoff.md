@@ -2385,3 +2385,32 @@ AC11 remains partial beyond the completed Tier 0 evidence; and AC14 remains a
 post-integration/deployment shadow-gate acceptance step. The next action is to
 checkpoint this evidence on the synchronized feature branch and then await the
 provider-platform staging dependency, without touching another worktree.
+
+## Symbol-audit current-use gate and finalized Docker validation — 2026-09-04
+
+Capability evaluation now applies symbol-level audit evidence after snapshot
+freshness and identity checks. A Tier 0 or identity-level fallback record whose
+outcome is `unknown`, `unavailable`, `stale`, `degraded`, or
+`not_applicable` downgrades an otherwise complete snapshot and disables
+`usable_for_current_analysis`; only an explicitly current symbol audit can
+unlock current analysis. This closes the path where a successful fetch could
+silently override an unresolved source investigation. The ledger/runtime Tier
+0 consistency assertion also covers all ten audited symbols and the reconciled
+F/m adapter alias.
+
+Finalized focused validation passed 629 ETF backend tests, the ETF refresh/API
+contract, 8 focused frontend tests, Vue type-check, production build, Ruff,
+format, diff, and workstream validation. The rerun of the required Docker gate
+passed dependency, migration, lint, backend coverage, frontend coverage (924
+tests), visual policy, build, compose, provider-probe, stack-health, and
+research-runner stages. Its 260-test browser run completed 153 passed and 106
+skipped, with one unrelated `F8r-breadth-narrow` setup failure at
+`frontend/tests/e2e/flows.spec.ts:3153` because the Market Breadth tool window
+did not appear. The branch-scoped stack and all resources were torn down
+cleanly; no ETF assertion failed. This remains narrowly recorded as an
+external/unrelated E2E limitation, not as a green full-gate claim.
+
+The feature branch remains clean and synchronized. AC10 still awaits the
+provider-platform staging merge; AC11 is complete for Tier 0 but remains open
+for the remaining fallback symbols; and AC14 remains a post-integration and
+post-deployment shadow gate.

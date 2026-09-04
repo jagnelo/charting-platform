@@ -62,6 +62,7 @@ from app.services.etf_holdings_adapters import (
     parse_xlsx_table,
     registered_adapter_keys,
 )
+from app.services.etf_holdings_capability import _TIER_0_SYMBOL_AUDITS
 
 
 class MockDate(date):
@@ -28020,3 +28021,28 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         assert key.casefold() in record["disposition_reason"].casefold()
         assert key.casefold() in record["next_action"].casefold()
         assert record["attempt_history"]
+
+
+def test_symbol_priority_ledger_matches_runtime_tier_zero_audits():
+    ledger_path = (
+        Path(__file__).resolve().parents[4]
+        / "ops"
+        / "workstreams"
+        / "feat-etf-holdings-constituents"
+        / "provider-audit.yaml"
+    )
+    ledger = yaml.safe_load(ledger_path.read_text())
+    rows = ledger["symbol_priority_ledger"]["symbols"]
+
+    assert {row["symbol"] for row in rows} == set(_TIER_0_SYMBOL_AUDITS)
+    for row in rows:
+        audit = _TIER_0_SYMBOL_AUDITS[row["symbol"]]
+        assert row["tier"] == audit.tier
+        assert row["provider_identity"] == audit.provider_identity
+        assert row["current_outcome"] == audit.outcome
+        assert row["evidence_state"] == audit.evidence_state
+        assert (
+            date.fromisoformat(str(row.get("investigated_at", "2026-09-04")))
+            == audit.investigated_at
+        )
+        assert row["next_action"]

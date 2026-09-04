@@ -164,5 +164,5 @@ progress:
     - AC12
   total: 14
   current_phase: symbol_audit_canary_checkpoint
-  current_blocker: "The shared provider-platform branch has not yet reached staging; generic entitlement/quota/budget/health integration remains intentionally deferred until its synchronized staging merge. The current-tree Docker gate reached a healthy stack and completed 153 functional browser tests with 106 skips, but failed one unrelated Python Library lifecycle test at frontend/tests/e2e/flows.spec.ts:4520; teardown completed cleanly and no ETF assertion failed."
-  next_action: "Checkpoint the identity-boundary hardening and exact Docker gate result; after provider-platform reaches staging, reconcile AC10 and continue symbol-level Tier 0 evidence for AC11 and the post-deployment AC14 shadow gate."
+  current_blocker: "The shared provider-platform branch has not yet reached staging; generic entitlement/quota/budget/health integration remains intentionally deferred until its synchronized staging merge. The finalized Docker gate reached a healthy stack and completed 153 functional browser tests with 106 skips, but failed one unrelated F8r-breadth-narrow setup test at frontend/tests/e2e/flows.spec.ts:3153; teardown completed cleanly and no ETF assertion failed."
+  next_action: "Checkpoint the symbol-audit current-use gate and finalized Docker evidence; after provider-platform reaches staging, reconcile AC10, complete non-Tier-0 symbol evidence for AC11, and execute the post-deployment AC14 shadow gate."
