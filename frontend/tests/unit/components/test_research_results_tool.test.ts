@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { apiGet, apiPost } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn() }))
 vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost } }))
 vi.mock('@/components/workstation/StudyBarsUPlot.vue', () => ({ default: { template: '<div class="bars-chart" />', props: ['name', 'labels', 'values'] } }))
+vi.mock('@/components/workstation/StudySeriesUPlot.vue', () => ({ default: { template: '<div class="series-chart" />', props: ['name', 'timestamps', 'values'] } }))
 vi.mock('@/components/workstation/StudyHistogramUPlot.vue', () => ({ default: { template: '<div class="histogram-chart" />', props: ['name', 'bins', 'current'] } }))
 vi.mock('@/components/workstation/StudyRangeUPlot.vue', () => ({ default: { template: '<div class="range-chart" />', props: ['name', 'timestamps', 'lower', 'upper', 'center'] } }))
 vi.mock('@/components/workstation/StudyScatterUPlot.vue', () => ({ default: { template: '<div class="scatter-chart" />', props: ['name', 'x', 'y'] } }))
@@ -329,6 +330,44 @@ describe('ResearchResultsTool', () => {
     await flushPromises()
     expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 64, trigger_type: 'both', repeat: true, notes: 'Created from structured event research run 30' })
     expect(wrapper.text()).toContain('Promoted event artifact “occurrences” to an active alert.')
+  })
+
+  it('exposes lineage-preserving column and chart promotions for structured scalar and series artifacts', async () => {
+    const source = "output.scalar('sample_size', 4)\noutput.series('trend', [1, 2])"
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve([{ id: 31, status: 'completed', code_version_id: 77, output_contract: 'study', run_config: { symbol: 'SPY' }, dataset_manifest: { source: 'canonical_database' }, reproducibility_hash: 'hash-31', diagnostics: [], artifacts: [
+        { id: 20, name: 'sample_size', artifact_type: 'scalar', payload: { value: 4 } },
+        { id: 21, name: 'trend', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], values: [1, 2] } } },
+      ] }])
+      if (path === '/code/assets') return Promise.resolve([{ name: 'Study 31', versions: [{ id: 77, source, output_contract: 'study', parameter_schema: { properties: {} }, default_parameters: {} }] }])
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string) => path === '/code/assets'
+      ? Promise.resolve({ id: 71, name: 'sample_size column' })
+      : Promise.resolve({}))
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.find('button[aria-label="Save column: sample_size"]').trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        source,
+        output_contract: 'scalar',
+        output_name: 'sample_size',
+        lineage: expect.objectContaining({ source_run_id: 31, source_code_version_id: 77, source_output_name: 'sample_size', target: 'column' }),
+      }),
+    }))
+    expect(wrapper.text()).toContain('Saved scalar artifact “sample_size” as watchlist column')
+
+    await wrapper.find('button[aria-label="Save chart plot: trend"]').trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'plot',
+      initial_version: expect.objectContaining({ source, output_contract: 'series', output_name: 'trend' }),
+    }))
+    expect(wrapper.text()).toContain('Saved series artifact “trend” as chart plot')
   })
 
   it('promotes only a completed Python breadth history and reports the lineage-preserving scan', async () => {

@@ -2975,9 +2975,24 @@ test.describe('TC2000 workstation', () => {
         run_config: { execution_mode: 'study', output_contract: 'study', symbol: 'SPY' },
         dataset_manifest: { source: 'canonical_database', timeframe: 'D1' },
         reproducibility_hash: 'sha256:structured-event-results',
-        artifact_count: 1,
-        artifacts: [{ id: 5, name: 'occurrences', artifact_type: 'events', payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-02', kind: 'breakout' }] } }],
+        artifact_count: 3,
+        artifacts: [
+          { id: 5, name: 'occurrences', artifact_type: 'events', payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-02', kind: 'breakout' }] } },
+          { id: 6, name: 'sample_size', artifact_type: 'scalar', payload: { value: 4 } },
+          { id: 7, name: 'trend', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], values: [1, 2] } } },
+        ],
       }]) })
+    })
+    await page.route(/\/api\/v1\/code\/assets$/, async route => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ name: 'Structured study 885', versions: [{ id: 885, source: "output.scalar('sample_size', 4)\noutput.series('trend', [1, 2])", output_contract: 'study', parameter_schema: {}, default_parameters: {} }] }]) })
+        return
+      }
+      expect(route.request().method()).toBe('POST')
+      const body = route.request().postDataJSON()
+      expect(body).toMatchObject({ initial_version: { source: "output.scalar('sample_size', 4)\noutput.series('trend', [1, 2])" } })
+      const outputName = body?.initial_version?.output_name
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: outputName === 'sample_size' ? 46 : 47, name: outputName === 'sample_size' ? 'Sample size column' : 'Trend plot' }) })
     })
     await page.route(/\/api\/v1\/research\/runs\/883$/, async route => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
@@ -3058,6 +3073,12 @@ test.describe('TC2000 workstation', () => {
     await expect(results).toContainText('Saved event artifact “occurrences” as a reusable watchlist filter.')
     await results.getByRole('button', { name: 'Promote alert: occurrences' }).click()
     await expect(results).toContainText('Promoted event artifact “occurrences” to an active alert.')
+    await expect(results.getByRole('button', { name: 'Save column: sample_size' })).toBeVisible()
+    await expect(results.getByRole('button', { name: 'Save chart plot: trend' })).toBeVisible()
+    await results.getByRole('button', { name: 'Save column: sample_size' }).click()
+    await expect(results).toContainText('Saved scalar artifact “sample_size” as watchlist column “Sample size column”.')
+    await results.getByRole('button', { name: 'Save chart plot: trend' }).click()
+    await expect(results).toContainText('Saved series artifact “trend” as chart plot “Trend plot”.')
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

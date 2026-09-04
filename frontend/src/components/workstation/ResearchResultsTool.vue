@@ -45,6 +45,10 @@
       <div v-if="selectedRun.artifacts.length" class="research-results-tool__artifacts">
         <article v-for="artifact in selectedRun.artifacts" :key="artifact.id" :aria-label="`${artifact.name} ${artifact.artifact_type} result`">
           <div class="research-results-tool__artifact-header"><strong>{{ artifact.name }}</strong><small>{{ artifact.artifact_type }}</small><button type="button" :title="`Export ${artifact.name}`" @click="exportArtifact(selectedRun!, artifact)">Export</button></div>
+          <div v-if="canPromoteStructuredArtifact(selectedRun, artifact)" class="research-results-tool__artifact-promotions" role="group" :aria-label="`${artifact.name} promotions`">
+            <button v-if="artifact.artifact_type === 'scalar'" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save column: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'column')">{{ promoting ? 'Promoting…' : `Save column: ${artifact.name}` }}</button>
+            <button v-if="artifact.artifact_type === 'series'" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save chart plot: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'plot')">{{ promoting ? 'Promoting…' : `Save chart plot: ${artifact.name}` }}</button>
+          </div>
           <strong v-if="artifact.artifact_type === 'scalar' || artifact.artifact_type === 'boolean'" :class="{ 'research-results-tool__boolean--true': artifact.artifact_type === 'boolean' && artifact.payload.value === true, 'research-results-tool__boolean--false': artifact.artifact_type === 'boolean' && artifact.payload.value === false }">{{ formatMetric(artifact) }}</strong>
           <table v-else-if="artifact.artifact_type === 'table' && tableRows(artifact).length"><caption class="sr-only">{{ artifact.name }} table</caption><thead><tr><th v-for="column in tableColumns(artifact)" :key="column" scope="col">{{ column }}</th></tr></thead><tbody><tr v-for="(row, index) in tableRows(artifact)" :key="index"><td v-for="column in tableColumns(artifact)" :key="column">{{ formatCell(row[column]) }}</td></tr></tbody></table>
           <StudySeriesUPlot v-else-if="artifact.artifact_type === 'series' && seriesData(artifact)" :name="artifact.name" :timestamps="seriesData(artifact)!.timestamps" :values="seriesData(artifact)!.values" />
@@ -400,6 +404,12 @@ function canPromoteStructuredEventArtifact(run: ResearchRunSummary | null, artif
     && run.output_contract === 'study'
     && artifact.artifact_type === 'events'
 }
+function canPromoteStructuredArtifact(run: ResearchRunSummary | null, artifact: ResearchRunSummary['artifacts'][number]) {
+  return Boolean(run)
+    && run?.status === 'completed'
+    && run.output_contract === 'study'
+    && (artifact.artifact_type === 'scalar' || artifact.artifact_type === 'series')
+}
 function canPromoteBreadthStudy(run: ResearchRunSummary) {
   return run.status === 'completed'
     && run.run_config?.execution_mode === 'breadth_history'
@@ -598,6 +608,49 @@ async function promoteEventArtifact(run: ResearchRunSummary, artifactName: strin
     promoting.value = false
   }
 }
+async function promoteStructuredArtifact(run: ResearchRunSummary, artifact: ResearchRunSummary['artifacts'][number], target: 'column' | 'plot') {
+  if (!canPromoteStructuredArtifact(run, artifact) || promoting.value) return
+  promoting.value = true
+  promotionMessage.value = ''
+  try {
+    const assets = await api.get<Array<{ name: string; versions?: Array<{ id?: number; source?: string; output_contract?: string; output_name?: string | null; parameter_schema?: Record<string, unknown>; default_parameters?: Record<string, unknown> }> }>>('/code/assets')
+    const sourceVersion = (assets ?? []).flatMap(asset => asset.versions ?? []).find(version => version.id === run.code_version_id)
+    if (!sourceVersion?.source) throw new Error('The immutable source code version for this research run is unavailable.')
+    const contract = artifact.artifact_type === 'scalar' ? 'scalar' : 'series'
+    const kind = target === 'column' ? 'column' : 'plot'
+    const lineage = {
+      type: 'study_run_promotion',
+      source_run_id: run.id,
+      source_code_version_id: run.code_version_id,
+      source_reproducibility_hash: run.reproducibility_hash ?? null,
+      source_dataset_manifest: run.dataset_manifest,
+      source_run_config: run.run_config,
+      source_output_name: artifact.name,
+      target,
+      semantics: target === 'column' ? 'study_scalar_result_as_watchlist_column' : 'study_series_result_as_chart_plot',
+    }
+    const promoted = await api.post<{ id: number; name: string }>('/code/assets', {
+      stable_key: `${run.id}-${artifact.name}-${kind}-${Date.now().toString(36)}`.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80) || `study-${kind}`,
+      name: `${artifact.name} ${target === 'column' ? 'column' : 'plot'}`,
+      kind,
+      initial_version: {
+        source: sourceVersion.source,
+        output_contract: contract,
+        output_name: artifact.name,
+        parameter_schema: sourceVersion.parameter_schema ?? {},
+        default_parameters: sourceVersion.default_parameters ?? {},
+        lineage,
+      },
+    })
+    promotionMessage.value = target === 'column'
+      ? `Saved scalar artifact “${artifact.name}” as watchlist column “${promoted.name}”.`
+      : `Saved series artifact “${artifact.name}” as chart plot “${promoted.name}”.`
+  } catch (cause: any) {
+    promotionMessage.value = cause?.message ?? `Unable to promote the ${artifact.artifact_type} artifact`
+  } finally {
+    promoting.value = false
+  }
+}
 async function promoteStudy(run: ResearchRunSummary) {
   promoting.value = true
   promotionMessage.value = ''
@@ -670,4 +723,5 @@ onBeforeUnmount(() => {
 .research-results-tool__events small { grid-column:2; color:#91a8b4; }.research-results-tool__breadth-history { display:grid; gap:3px; }.research-results-tool__breadth-history :deep(.generic-breadth-history) { height:150px; }
 .research-results-tool__occurrence-filters { display:flex; align-items:center; flex-wrap:wrap; gap:5px; color:#91a8b4; }.research-results-tool__occurrence-filters label { display:flex; align-items:center; gap:3px; }.research-results-tool__occurrence-filters input,.research-results-tool__occurrence-filters select { min-width:80px; border:1px solid #3a4954; background:#121a20; color:#dce6ed; font:inherit; padding:2px 3px; }.research-results-tool__occurrence-filters span { margin-left:auto; }
 .research-results-tool__event-promotions { display:flex; flex-wrap:wrap; gap:4px; }.research-results-tool__event-promotions button { padding:2px 4px; }
+.research-results-tool__artifact-promotions { display:flex; flex-wrap:wrap; gap:4px; }.research-results-tool__artifact-promotions button { padding:2px 4px; }
 </style>
