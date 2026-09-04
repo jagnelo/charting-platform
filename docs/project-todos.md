@@ -11,8 +11,14 @@
       runtime tests pass `5/5`; the full backend unit suite passes `1,299/1,299`; Ruff, format,
       compileall, TypeScript, and diff checks pass. No provider entitlement, fallback order,
       visual oracle, threshold, baseline, or protected worktree changed.
-- [ ] Re-run bounded canonical QQQ D1/W1/MN maintenance after this health-boundary fix; retain
-      explicit unsupported/coverage evidence where public providers return no usable bars.
+- [x] Re-run bounded canonical QQQ D1/W1/MN maintenance after this health-boundary fix. In the
+      isolated branch stack, the dated NASDAQ-100 holdings run completed (`1/1`) and produced a
+      QQQ snapshot with 101 raw SEC rows; the exact D1/W1/MN history handoff queued `0` jobs and
+      reported `101` unresolved placeholder instruments. The direct point-in-time history planner
+      remained `pending` at the historical cutoff because the newly fetched snapshot was learned
+      after that cutoff. No public-provider bar coverage was claimed and no visual oracle changed.
+- [ ] Retain the explicit unsupported/coverage result and continue identifier enrichment only with
+      auditable provider evidence; do not guess symbols or use latest-only fallback.
 
 ### 2026-09-04 — Placeholder holdings stay outside canonical history readiness
 

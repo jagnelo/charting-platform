@@ -877,3 +877,29 @@ Evidence at this implementation boundary:
 No provider entitlement, chain ordering, visual oracle, threshold, baseline, fallback oracle, or
 protected worktree changed. The next bounded runtime task is to re-run canonical QQQ D1/W1/MN
 maintenance and retain explicit coverage/unsupported evidence for any public-provider gaps.
+
+## 2026-09-04 — Bounded canonical QQQ maintenance after provider health fix
+
+The assigned branch-scoped disposable stack was built and reached healthy state for all six
+services. An isolated temporary admin user was used only inside that stack; the stack, volumes,
+network, and images were removed immediately after the check. No protected worktree or external
+deployment was touched.
+
+The authenticated dated holdings maintenance request for `nasdaq100`/`cap_weight` at
+`2025-12-31` completed `1/1`: the provider-backed SEC path refreshed one QQQ snapshot with 101
+raw holdings rows. Its exact `MN`, `W1`, and `D1` history handoff selected zero canonical
+instruments and queued zero jobs because all 101 materialized constituent identities were the
+internal `HOLDING-*` placeholder form. The snapshot rows carried issuer names plus CUSIP/ISIN
+values but no reported symbols; the database therefore retains them as reconciliation evidence,
+not usable market-data identities.
+
+A direct bounded history-refresh request at the same point-in-time cutoff returned an explicit
+`pending` benchmark-family leg (`member_count=0`, `selected_count=0`, `excluded_count=1`) with the
+message `holdings_snapshot_not_available_at_as_of`: the snapshot was fetched after the historical
+cutoff and must not leak into an as-of source. No D1/W1/MN bars were claimed, no latest-only or
+symbol-guess fallback was used, and no visual baseline, threshold, mask, skip, provider fallback
+rule, or protected worktree changed.
+
+This closes the runtime recheck requested by the provider-health boundary only. The remaining
+QQQ identifier enrichment, canonical member-bar continuity, MN/W1 support, QQQE/SPDR dated
+sources, and six unchanged visual-oracle diffs remain open for a separately evidenced slice.
