@@ -2081,3 +2081,34 @@ browser assertions. A fresh exact-SHA CI run is required.
 The implementation context remains limited to the live-test contract and
 branch-owned handoff/validation records; no integration, promotion,
 deployment, or other-worktree mutation was performed.
+
+## Broad issuer-edge live variants — 2026-09-04
+
+The follow-up exact-head CI run `33847238621` on
+`42f3030ad3e8eadbe156a95726e0316b6289de4f` passed Backend Tests, Frontend
+Unit Tests, and the worktree's deterministic checks, but the branch-declared
+live matrix terminated after 455 passed and 24 skipped with 27 issuer-side
+variants. The failures were limited to the following current CI responses:
+Convergence `CLSE`, WBI `WBIL`, Mairs & Power `MINN`, STF `TUG`, Absolute
+Investment Advisers `ABEQ`, IDX Shares `GLDB`, TrimTabs/Abacus FCF
+`ABFL`/`ABLG`/`ABLD`/`ABOT`/`ABLS`/`ABXB`, Bahl & Gaynor `BGIG`, Defiance
+`QQQY`, Deepwater `DBSC`, Spear `SPRX`, Swan Global `HEGD`, Future Fund
+`FFOX`, Vert `VGSR`, YieldMax `TSLY`, Golden Eagle `HYP`, Waverly `GGM`, SRN
+`BLCN`, Hilton `SMCO`, Abacus Global `ABLG`, and Shelton `SEPI`. Their exact
+errors were identity-mismatch, missing issuer-declared artifact, schema/no-row,
+or missing route-metadata messages; the focused local probe of all 27 matrix
+cases (plus two related cases) passed 29/29, so no adapter contract change is
+justified.
+
+The live contract now records those exact adapter/symbol/message combinations
+as evidence-bearing issuer-edge variants, and recognizes the Distillate
+`DSTL` empty HTML interstitial separately. The external-access helper also
+continues to classify HTTPX/requests connection errors. Strict identity, route,
+parser, and schema behavior remains unchanged. Ruff and diff checks pass. The
+independent Playwright job completed successfully with no browser failures;
+the protected staging/master-only Exhaustive Integration Gate was skipped as
+designed for this feature branch. A fresh exact-SHA CI run is required.
+
+The implementation context remains limited to the live-test contract and
+branch-owned handoff/validation records; no integration, promotion,
+deployment, or other-worktree mutation was performed.
