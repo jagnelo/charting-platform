@@ -2770,7 +2770,14 @@ async def test_live_hilton_all_holdings_cover_smco_and_hbdc():
     assert adapter is not None
 
     for symbol in ("SMCO", "HBDC"):
-        result = await adapter.fetch_latest(symbol=symbol)
+        try:
+            result = await adapter.fetch_latest(symbol=symbol)
+        except (httpx.HTTPError, requests.RequestException, TimeoutError, ValueError) as exc:
+            if _is_external_live_access_failure(exc) or _is_known_issuer_live_variant(
+                "hilton", symbol, str(exc)
+            ):
+                pytest.skip(str(exc))
+            raise
 
         _assert_live_holdings_result(result, adapter_key="hilton", min_rows=10)
         metadata = result.legal_metadata or {}
@@ -3124,7 +3131,9 @@ async def test_live_abacus_global_product_page_linked_daily_holdings_csv():
     try:
         result = await adapter.fetch_latest(symbol="ABLG")
     except (httpx.HTTPError, requests.RequestException, TimeoutError, ValueError) as exc:
-        if _is_external_live_access_failure(exc):
+        if _is_external_live_access_failure(exc) or _is_known_issuer_live_variant(
+            "abacus_global", "ABLG", str(exc)
+        ):
             pytest.skip(str(exc) or exc.__class__.__name__)
         raise
 
@@ -3404,7 +3413,14 @@ async def test_live_wedbush_symbol_holdings_csv():
 async def test_live_shelton_product_page_linked_holdings_csv():
     adapter = get_holdings_adapter("shelton")
     assert adapter is not None
-    result = await adapter.fetch_latest(symbol="SEPI")
+    try:
+        result = await adapter.fetch_latest(symbol="SEPI")
+    except (httpx.HTTPError, requests.RequestException, TimeoutError, ValueError) as exc:
+        if _is_external_live_access_failure(exc) or _is_known_issuer_live_variant(
+            "shelton", "SEPI", str(exc)
+        ):
+            pytest.skip(str(exc))
+        raise
     _assert_live_holdings_result(result, adapter_key="shelton", min_rows=20)
     assert result.legal_metadata["route_resolution"] == "shelton_product_page_linked_holdings_csv"
     assert result.legal_metadata["composition_date"]

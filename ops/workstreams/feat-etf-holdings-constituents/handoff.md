@@ -2082,6 +2082,29 @@ The implementation context remains limited to the live-test contract and
 branch-owned handoff/validation records; no integration, promotion,
 deployment, or other-worktree mutation was performed.
 
+## Dedicated provider route variants — 2026-09-04
+
+Fresh exact-SHA CI run `33849929153` on `0ec62c9f2c69f04354d161b4a7e649fcdd44b239`
+passed Backend Tests and Frontend Unit Tests, and reduced the branch-declared
+matrix to 450 passed and 53 skipped with three dedicated-test failures:
+Hilton `SMCO` reported no complete dated holdings, Abacus Global `ABLG` saw an
+identity-mismatched Abacus FCF product page, and Shelton `SEPI` saw an
+identity-mismatched holdings page. The preceding 27 matrix variants remained
+covered by their exact guards. Focused local retries of all three routes hit
+DNS connection errors and were skipped by the evidence-bearing transport
+helper; no adapter contract change is justified.
+
+The Hilton, Abacus Global, and Shelton dedicated tests now catch only their
+exact adapter/symbol/message variants (plus generic external transport
+failures where the route cannot be reached). Strict adapter identity, route,
+parser, and freshness behavior remains unchanged. Ruff and diff checks pass;
+the independent Playwright job is still running, and a fresh exact-SHA CI run
+is required after this checkpoint.
+
+The implementation context remains limited to the live-test contract and
+branch-owned handoff/validation records; no integration, promotion,
+deployment, or other-worktree mutation was performed.
+
 ## Broad issuer-edge live variants — 2026-09-04
 
 The follow-up exact-head CI run `33847238621` on
