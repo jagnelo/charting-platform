@@ -15,5 +15,6 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 - Delivered in this boundary: additive FIGI/issuer identity, series and session/calendar models, durable quota/routing/refresh queue primitives, SEC facts/FINRA/event records, optional provider roster descriptors, explicit crypto/futures/options capability labels, QuantLib Greeks, and backend diagnostics.
 - Next: run migration compatibility against the previous release, then continue US universe/lifecycle reconciliation and coverage/shadow reporting.
 - The root worktree has unrelated user changes in `docs/etf-provider-universe.md`; they are intentionally preserved and out of scope.
+- The workflow session record `ops/workstreams/feat-market-data-provider-platform/session.json` is intentionally updated by session lifecycle commands and may be dirty at checkpoint time.
 
 Update this handoff at each coherent boundary.
