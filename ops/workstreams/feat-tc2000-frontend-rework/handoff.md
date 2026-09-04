@@ -22,7 +22,10 @@ remaining source-only.
 
 Evidence: focused capability and Research Results coverage passed `31/31`; full frontend Vitest
 passed `943/943` across `109` files; TypeScript type-check and production build passed; and
-`git diff --check` passed. The commit is pushed to `origin/feat/tc2000-frontend-rework`. The
+`git diff --check` passed. Authenticated `F8t-results` browser coverage passed `1/1` against the
+seeded branch-scoped Docker stack; teardown and resource accounting reported zero containers,
+volumes, known bytes, and test-container sessions. The commit is pushed to
+`origin/feat/tc2000-frontend-rework`. The
 visual policy, provider fallback boundaries, and exact-tip visual result (`98/104`, six unchanged
 diffs) are untouched. Canonical provider/history, native-window/accessibility/security, dense-data,
 and final visual-oracle gaps remain open.

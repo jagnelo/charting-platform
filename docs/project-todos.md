@@ -11,8 +11,10 @@
       finite center series no longer offers a chart promotion control and instead reports that its
       bounds remain source-only. Focused capability and Research Results coverage passed `31/31`,
       full frontend Vitest passed `943/943` across `109` files, TypeScript type-check and
-      production build passed, and `git diff --check` passed. Product commit `95b12a0f` is pushed
-      to `origin/feat/tc2000-frontend-rework`.
+      production build passed, and `git diff --check` passed. Authenticated `F8t-results` browser
+      coverage passed `1/1` against the seeded branch-scoped Docker stack; teardown and resource
+      accounting reported zero containers, volumes, known bytes, and test-container sessions.
+      Product commit `95b12a0f` is pushed to `origin/feat/tc2000-frontend-rework`.
 - [ ] Continue canonical provider/history enrichment, richer compatible Study Lab targets,
       native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review;
       no visual policy or provider fallback rule changed.

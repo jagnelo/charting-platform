@@ -33,7 +33,9 @@ table, categorical bar, histogram, scatter, heatmap, dashboard, and historical-b
 marked view/export-only. Range-center promotion is offered only when the artifact contains an
 aligned finite center series, while lower/upper bounds remain source-only. Focused capability and
 Research Results coverage passed `31/31`; full frontend Vitest passed `943/943` across `109` files;
-type-check, production build, and diff checks passed. This slice does not alter the backend contract,
+type-check, production build, and diff checks passed. Authenticated `F8t-results` browser coverage
+passed `1/1` against the seeded branch-scoped Docker stack, with clean teardown and complete
+resource accounting. This slice does not alter the backend contract,
 visual policy, provider fallback rules, or the unchanged exact-tip visual result (`98/104`).
 
 The prior exact-tip gate at product tip `6f575a34` passed all non-visual stages and the functional
