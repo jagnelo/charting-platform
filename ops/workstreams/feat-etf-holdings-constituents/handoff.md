@@ -1941,6 +1941,25 @@ contract and its handoff/validation records; no ETF adapter behavior was
 weakened, and no integration, promotion, deployment, or other-worktree
 mutation was performed.
 
+## Sterling guard exact-head CI green — 2026-09-04
+
+Exact-head CI run `33837894102` at
+`5fdb9229e08304bee42468cd0fc54fc9ca497806` passed Backend Tests, Frontend
+Unit Tests, and the complete branch-declared suite after the narrow SCNM/SCEP
+guards. The live matrix completed with 488 passed and 18 evidence-backed
+skips; Ruff and workstream validation passed. Playwright completed after stack
+startup and backend health with 151 passed and 109 skipped. The protected
+staging/master-only Exhaustive Integration Gate was skipped as designed for
+this feature branch.
+
+The latest exact-head feature evidence is green. The required local
+`docker_integration` gate still retains the unrelated fresh-stack Study Lab
+`F8p-current-history` missing-histogram failure reproduced at
+`flows.spec.ts:2602`; the prior post-repair gate at `a696277b` passed. The
+feature branch is clean and synchronized at the human-review boundary; no
+integration, promotion, deployment, or other-worktree mutation was performed,
+and explicit human closure authorization remains pending.
+
 ## Current-head exact-SHA CI green — 2026-09-04
 
 Exact-head CI run `33834871751` at `7e9db5dd6d86f7515561a50a2b068c144ae14dc3`
