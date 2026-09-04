@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-09-04 — Structured Study Lab events in persisted Research Results
+
+- [x] Expose named `Save filter: <artifact>` and `Promote alert: <artifact>` actions beside
+      events artifacts in the persisted Research Results surface for completed multi-output
+      Study runs. Each request includes the selected artifact name, and the alert reuses the
+      lineage-preserving event filter with current-observation semantics.
+- [x] Keep direct `Save events as Strategy signal` guarded to explicit/legacy single-output
+      events contracts while retaining compatibility for older compact responses that omit the
+      contract field. Structured-study event artifacts are no longer offered an invalid direct
+      signal action.
+- [x] Verify the slice: focused Research Results component coverage passed `23/23`; full
+      frontend Vitest passed `935/935` across `108` files; TypeScript type-check passed; the
+      authenticated `F8t-results` browser flow passed `1/1` against the branch-scoped Docker
+      stack; teardown and resource accounting reported zero containers, volumes, known image
+      bytes, and test-container sessions. Product commit `24287f3c` contains the implementation.
+- [ ] Rerun the exact-tip exhaustive integration gate at product commit `24287f3c`; preserve the
+      six unchanged visual diffs and do not alter visual or provider fallback policy.
+
 ### 2026-09-04 — Exact-tip exhaustive gate after structured Study Lab browser coverage
 
 - [x] Rerun `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at

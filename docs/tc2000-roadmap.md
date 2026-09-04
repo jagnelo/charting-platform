@@ -11,14 +11,19 @@ records in `docs/project-todos.md`, `docs/tc2000-parity.md`,
 evidence ledgers. If a summary here conflicts with a dated test receipt or the current code, the
 current code and fresh evidence win.
 
-The latest product commit is `6f575a34` (`test(tc2000): cover structured event promotions`). The
-authenticated F8o Study Lab flow exercises both named structured-event actions through the real
-API—saving `occurrences` as a watchlist filter and promoting it to an active alert—and passed
-`1/1` on the branch-scoped Docker stack. The exact-tip exhaustive gate was then rerun at this
-product tip: all non-visual stages and the functional browser suite passed (`155` passed, `106`
-documented skips across `261` specs), with clean teardown/resource accounting. A prior invocation's
-single F8t-results-open lookup failure was not reproducible in an isolated `3/3` rerun and did not
-recur in the complete gate.
+The latest product commit is `24287f3c` (`feat(tc2000): expose structured event result promotions`).
+Persisted Research Results now exposes named `Save filter: <artifact>` and `Promote alert:
+<artifact>` actions for events artifacts in completed multi-output Study runs, while direct event
+Strategy-signal promotion remains limited to explicit/legacy single-output events contracts. The
+focused Research Results component suite passed `23/23`, the full frontend suite passed `935/935`
+across `108` files, TypeScript type-check passed, and the authenticated `F8t-results` browser flow
+passed `1/1` against the branch-scoped Docker stack with clean teardown/resource accounting. The
+exact-tip exhaustive gate is queued at this new product tip.
+
+The prior exact-tip gate at product tip `6f575a34` passed all non-visual stages and the functional
+browser suite (`155` passed, `106` documented skips across `261` specs). A first invocation's single
+F8t-results-open lookup failure was not reproducible in an isolated `3/3` rerun and did not recur
+in the complete gate.
 
 The unchanged visual matrix remains the only failing stage: `98/104` passed and six screenshot
 diffs remain—`watchlist-column-editor-open` at visual-1080p-100/125 (`13,844` differing pixels

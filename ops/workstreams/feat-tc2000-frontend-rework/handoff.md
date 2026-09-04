@@ -10,6 +10,28 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-04 — Structured Study Lab events in persisted Research Results
+
+Product commit `24287f3c` (`feat(tc2000): expose structured event result promotions`) adds named
+`Save filter: <artifact>` and `Promote alert: <artifact>` controls beside events artifacts in the
+persisted Research Results surface for completed multi-output Study runs. Each request carries the
+selected artifact name to the lineage-preserving event-filter adapter; alert creation reuses that
+filter with current-observation semantics. Direct `Save events as Strategy signal` remains limited
+to explicit/legacy single-output events contracts, so structured studies are not offered an invalid
+direct signal action.
+
+Evidence for this slice:
+
+- Research Results component coverage passed `23/23`; full frontend Vitest passed `935/935` across
+  `108` files; TypeScript type-check passed.
+- Authenticated `F8t-results` browser coverage passed `1/1` against the rebuilt branch-scoped Docker
+  stack, including both named structured-event actions; teardown and resource accounting reported
+  zero containers, volumes, known image bytes, and test-container sessions.
+- The next exhaustive branch gate is queued at product tip `24287f3c`. No visual baseline, mask,
+  threshold, skip, fallback oracle, provider rule, or acceptance policy changed. The visual review
+  blocker and remaining provider/history, richer promotion, native-window, accessibility/security,
+  and dense-data gaps remain open.
+
 ## 2026-09-04 — Exact-tip exhaustive gate after structured Study Lab browser coverage
 
 The exact-tip exhaustive integration profile was rerun at product commit `6f575a34`
