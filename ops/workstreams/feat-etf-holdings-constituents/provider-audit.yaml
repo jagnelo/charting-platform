@@ -11,6 +11,100 @@ generated_at: 2026-09-04T21:30:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
+symbol_priority_ledger:
+  policy: "Tier 0 symbols are high-relevance U.S.-listed ETFs selected from benchmark/proxy roles, platform usage, and the approved WisdomTree, PIMCO, and F/m priority families. Outcomes are symbol-level observations and must not be inferred from an identity-level adapter registration."
+  free_first_monthly_budget: "20 EUR/USD-equivalent platform-wide; no paid source activation or credentials are authorized by this ledger."
+  symbols:
+    - symbol: DXJ
+      tier: 0
+      provider_identity: wisdomtree
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      next_action: "Re-test the official WisdomTree route; promote only after complete identity-verified current rows and live evidence."
+    - symbol: NTSX
+      tier: 0
+      provider_identity: wisdomtree
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      next_action: "Re-test the official WisdomTree route; promote only after complete identity-verified current rows and live evidence."
+    - symbol: MINT
+      tier: 0
+      provider_identity: pacific_investments
+      current_outcome: unavailable
+      evidence_state: no_complete_executable_public_artifact
+      next_action: "Re-check PIMCO's official holdings/download surfaces; do not treat top-ten or factsheet data as a complete basket."
+    - symbol: BOND
+      tier: 0
+      provider_identity: pacific_investments
+      current_outcome: unavailable
+      evidence_state: no_complete_executable_public_artifact
+      next_action: "Re-check PIMCO's official holdings/download surfaces; do not treat top-ten or factsheet data as a complete basket."
+    - symbol: GEME
+      tier: 0
+      provider_identity: pacific_investments
+      current_outcome: not_applicable
+      evidence_state: identity_requires_reconciliation
+      next_action: "Resolve the GEME sponsor/publisher identity before selecting a holdings route."
+    - symbol: TBIL
+      tier: 0
+      provider_identity: fm_investments
+      current_outcome: unavailable
+      evidence_state: route_requires_bounded_canary
+      next_action: "Run the opt-in F/m symbol-scoped canary and record source, schema, completeness, and freshness evidence."
+    - symbol: XBIL
+      tier: 0
+      provider_identity: fm_investments
+      current_outcome: unavailable
+      evidence_state: route_requires_bounded_canary
+      next_action: "Run the opt-in F/m symbol-scoped canary and record source, schema, completeness, and freshness evidence."
+    - symbol: OBIL
+      tier: 0
+      provider_identity: fm_investments
+      current_outcome: unavailable
+      evidence_state: route_requires_bounded_canary
+      next_action: "Run the opt-in F/m symbol-scoped canary and record source, schema, completeness, and freshness evidence."
+    - symbol: UTWO
+      tier: 0
+      provider_identity: fm_investments
+      current_outcome: unavailable
+      evidence_state: route_requires_bounded_canary
+      next_action: "Run the opt-in F/m symbol-scoped canary and record source, schema, completeness, and freshness evidence."
+    - symbol: UTRE
+      tier: 0
+      provider_identity: fm_investments
+      current_outcome: unavailable
+      evidence_state: route_requires_bounded_canary
+      next_action: "Run the opt-in F/m symbol-scoped canary and record source, schema, completeness, and freshness evidence."
+    - symbol: UFIV
+      tier: 0
+      provider_identity: fm_investments
+      current_outcome: unavailable
+      evidence_state: route_requires_bounded_canary
+      next_action: "Run the opt-in F/m symbol-scoped canary and record source, schema, completeness, and freshness evidence."
+    - symbol: USVN
+      tier: 0
+      provider_identity: fm_investments
+      current_outcome: unavailable
+      evidence_state: route_requires_bounded_canary
+      next_action: "Run the opt-in F/m symbol-scoped canary and record source, schema, completeness, and freshness evidence."
+    - symbol: UTEN
+      tier: 0
+      provider_identity: fm_investments
+      current_outcome: unavailable
+      evidence_state: route_requires_bounded_canary
+      next_action: "Run the opt-in F/m symbol-scoped canary and record source, schema, completeness, and freshness evidence."
+    - symbol: UTWY
+      tier: 0
+      provider_identity: fm_investments
+      current_outcome: unavailable
+      evidence_state: route_requires_bounded_canary
+      next_action: "Run the opt-in F/m symbol-scoped canary and record source, schema, completeness, and freshness evidence."
+    - symbol: UTHY
+      tier: 0
+      provider_identity: fm_investments
+      current_outcome: unavailable
+      evidence_state: route_requires_bounded_canary
+      next_action: "Run the opt-in F/m symbol-scoped canary and record source, schema, completeness, and freshness evidence."
 providers:
   - adapter_key: aegon
     display_name: aegon

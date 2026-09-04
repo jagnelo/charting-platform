@@ -2260,3 +2260,65 @@ four-viewport visual evidence; its first visual mismatch was transient and
 did not reproduce on the fresh branch-scoped retry. No integration,
 promotion, deployment, or other-worktree mutation was performed. Human
 closure authorization remains pending.
+
+## Truthful holdings capability and bounded canary checkpoint — 2026-09-04
+
+The ETF-local capability context is implemented and pushed at
+`712db8c2514764368dc7204f5b6e4febd87fef7e` on
+`origin/feat-etf-holdings-constituents`. The implementation is intentionally
+limited to this feature worktree and does not integrate, promote, deploy, or
+modify the separate provider-platform worktree.
+
+The new capability contract is evaluated per ETF symbol from the latest stored
+snapshot and adapter state. It exposes `current`, `degraded`, `stale`,
+`unavailable`, `not_applicable`, and `unknown`, together with source tier,
+identity verification, transport, expected cadence, freshness deadline, row
+coverage, schema fingerprint, failure streak, and current-analysis usability.
+Only complete, fresh, explicitly identity-verified issuer-native,
+successor-native, or separately licensed-vendor observations can be current
+and usable. SEC/filing reconstructions, incomplete or unverified artifacts,
+stale snapshots, failed routes, and unchecked data remain displayable only as
+last-known evidence and cannot open current constituent analysis flows.
+
+The API now includes capability in ETF profile/bootstrap responses and exposes
+an authenticated no-fetch `/{symbol}/capability` endpoint. The ETF holdings
+panel and view render truthful status/degradation notices and gate chart-opening
+actions on current, identity-verified capability. Snapshot ingestion and
+adapter state retain value-free schema fingerprints, source/transport/cadence
+metadata, failure streaks, and error classes. A disabled-by-default, bounded
+Saturday canary task covers the approved Tier 0 symbols and records route
+success/failure, latency, recovery, circuit-open state, and capability outcome
+without creating a duplicate generic provider runtime. The aggregate 20
+EUR/USD-equivalent platform budget and entitlement/health bridge remain
+deferred until `feat/market-data-provider-platform` reaches staging, as
+required by the workstream dependency.
+
+Final focused validation passed: 617 ETF backend tests, the ETF API refresh and
+capability integration contract, 8 focused frontend tests, Vue type-check,
+frontend production build, Ruff check/format, and the branch workstream
+validator. The required local Docker-backed gate was rerun against this source
+state. Its workstream, dependency, migration, and lint stages passed; backend
+coverage reached 1,465 passed tests before the branch-scoped PostgreSQL test
+server terminated unexpectedly, after which 262 integration tests reported
+server-closed/connection-refused errors. The gate cleaned up its resources and
+no ETF assertion failed. Earlier full local-gate and exact-SHA CI green
+receipts remain recorded above and in `validation.jsonl`; this rerun is
+retained as an external runtime failure, not relabelled green.
+
+Remaining implementation contexts are explicit: reconcile the ETF capability
+bridge with the shared provider-platform contracts after its staging merge;
+complete symbol-level free-first reassessment/canary evidence for the full 82
+fallback identities beyond the documented Tier 0 ledger; add/validate shared
+provider health, entitlement, quota, and budget integration; and document the
+post-deployment 30-day Tier 0 shadow gate. AC10–AC12 and AC14 therefore remain
+open, while AC1–AC9 and AC13 are recorded complete for this checkpoint.
+
+Changeset closure: implementation context `truthful-etf-capability` owns the
+20 product/config/API/service/task/worker/test/frontend/documentation paths in
+commit `712db8c2514764368dc7204f5b6e4febd87fef7e`; it was pushed successfully
+to the same-named remote branch. The remaining dirty paths are the separate
+branch-owned operational records (`plan.yaml`, `implementation-plan.md`,
+`provider-audit.yaml`, `session.json`, and `validation.jsonl`), which are being
+closed as a distinct `docs(ops)` checkpoint. The permitted next action is to
+commit and push that operational checkpoint, then wait at human review while
+the provider-platform staging dependency is unresolved.

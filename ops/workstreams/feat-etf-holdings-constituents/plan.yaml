@@ -12,26 +12,49 @@ human_closure_authorization: pending
 closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human requested continued product development from staging; all application/provider changes use the complete integration gate."
-local_validation_profile: docker_integration
-local_validation_reason: "The owned scope changes external ETF provider adapters, live HTTP contracts, provider freshness/provenance behavior, and backend runtime integration; repository classification therefore requires Docker-backed integration evidence in addition to deterministic and opt-in live provider tests."
+local_validation_profile: full_stack_browser
+local_validation_reason: "The owned scope changes frontend ETF capability status presentation in addition to provider adapters, live HTTP contracts, freshness/provenance behavior, worker scheduling, and backend runtime integration; repository classification therefore requires the full Docker-backed browser profile in addition to deterministic and opt-in live provider tests."
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
 previous_branch: feat/etf-holdings-constituents
 previous_tip: a8d618995fbd928c66117271bb7ac9152a935ab5
-goal: "Exhaustively audit the remaining ETF holdings issuers, promote every proven first-party executable holdings source to a truthful native adapter, preserve explicit evidence-backed fallback dispositions for all others, and bring code, tests, live coverage, documentation, and durable workstream records into exact agreement."
+goal: "Make ETF constituent availability truthful, cost-governed, resilient, and observable per symbol; integrate ETF holdings with the shared provider platform after it reaches staging; remediate the full fallback inventory in relevance order; and deliver tested monitoring and user-visible degradation behavior without silently treating SEC, stale, partial, or unverified data as current support."
 scope:
-  - "Repair stale branch-owned ETF workstream and provider-universe documentation so they report the current 496 registered, 356 native/live-backed, and 140 fallback-only provider baseline."
+  - "Keep branch-owned ETF workstream and provider-universe documentation code-derived; the current reconciled baseline is 496 registered, 414 native/live-backed, and 82 fallback-only providers."
   - "Create and maintain a branch-owned exhaustive provider audit ledger covering all 140 current fallback-only adapter keys, with deterministic prioritization, source evidence, attempt dates, route disposition, and next action."
   - "Investigate every current fallback issuer against first-party public or already-entitled holdings sources; promote only complete, executable, provider-owned routes and retain evidence-backed fallback classifications otherwise."
   - "Implement provider-specific adapters with strict symbol mapping, parsing, provenance, freshness, error behavior, and no silent SEC-fallback promotion."
   - "Add deterministic unit/parser/registry coverage and bounded opt-in live-route coverage for every native promotion, including matrix assertions that prevent false native classification."
   - "Keep ISSUER_ADAPTER_CONFIGS, FALLBACK_ISSUER_AUDITS, provider tests, live-provider manifest, provider-universe documentation, and the audit ledger mutually consistent."
   - "Run focused checks throughout, then the complete deterministic adapter suite, full opt-in live provider matrix, Ruff, repository full-integration gate, and exact-SHA CI before human review."
+  - "Consume the shared provider-platform capability, entitlement, quota, budget, health, and shadow-observation contracts after that branch reaches staging; do not create a competing ETF-only provider runtime."
+  - "Add ETF holdings capability truth per symbol, including current/degraded/stale/unavailable/not-applicable/unknown status, source tier, freshness deadline, and explicit current-analysis usability."
+  - "Enforce one platform-wide recurring provider budget of 20 EUR/USD-equivalent units per month, with free and zero-incremental-cost sources first; paid activation remains separately human-authorized."
+  - "Prioritize active US ETFs by AUM, configured benchmark/proxy role, and platform usage, beginning with WisdomTree DXJ/NTSX, PIMCO MINT/BOND/GEME, and the F/m U.S. Benchmark Series."
+  - "Add bounded, opt-in ETF route canaries, schema/content-drift detection, stale-data visibility, failure classification, recovery, and shared provider-health integration."
+  - "Assess licensed/vendor sources only after compliant free and already-entitled options, recording coverage, terms, freshness, quota, and cost without purchasing or enabling a paid source in this session."
   - "Stop at ready_for_human_review with a clean, synchronized feature branch; do not integrate, promote, deploy, or modify another worktree."
 owned_paths:
   - backend/app/services/etf_holdings_adapters.py
+  - backend/app/services/etf_holdings.py
+  - backend/app/services/etf_holdings_refresh.py
+  - backend/app/config.py
+  - backend/.env.example
+  - backend/app/services/etf_holdings_capability.py
+  - backend/app/models/etf_holdings.py
+  - backend/app/models/provider_runtime.py
+  - backend/app/routers/etf_holdings.py
+  - backend/app/schemas/etf_holdings.py
+  - backend/app/tasks/etf_holdings_tasks.py
+  - backend/app/workers/arq_worker.py
+  - backend/alembic/versions/
+  - frontend/src/views/ETFHoldingsView.vue
+  - frontend/src/components/etf/ETFHoldingsPanel.vue
+  - frontend/src/stores/workspace.ts
   - backend/tests/unit/services/test_etf_holdings_adapters.py
   - backend/tests/live/test_etf_holdings_live_providers.py
+  - backend/tests/unit/tasks/test_etf_holdings_tasks.py
+  - backend/tests/unit/workers/test_arq_worker.py
   - docs/etf-provider-universe.md
   - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
   - ops/workstreams/feat-etf-holdings-constituents/implementation-plan.md
@@ -41,6 +64,9 @@ owned_paths:
   - ops/workstreams/feat-etf-holdings-constituents/session.json
 dependencies:
   - "Reviewed public, free, or already-entitled first-party issuer routes; no new paid entitlement is implied."
+  - "feat/market-data-provider-platform must first reach staging; its shared provider runtime is the owner of generic capability, entitlement, quota, cost, health, and shadow contracts."
+  - "The ETF branch may add the ETF_HOLDINGS capability bridge and holdings-specific state after the provider-platform merge, but must not fork generic provider governance."
+  - "A paid source may be researched and tested only with fixtures until the human separately approves purchase, credentials, terms, and activation."
   - "External provider availability is evidence for route disposition, not permission to weaken deterministic contracts."
   - "Docker must be available for the required local docker_integration profile and final full-integration gate."
 acceptance_criteria:
@@ -60,17 +86,32 @@ acceptance_criteria:
     text: "Focused checks, the complete deterministic adapter suite, default live contracts, the complete opt-in live provider matrix, Ruff, the Docker-backed full-integration gate, and exact-SHA CI are green or any genuine external outage is narrowly evidenced without misrepresenting validation."
   - id: AC8
     text: "The feature branch is clean and synchronized at an exact reviewed SHA, durable handoff and validation records are complete, and the workstream stops at ready_for_human_review without integration, promotion, deployment, or cross-worktree mutation."
+  - id: AC9
+    text: "Every tracked ETF symbol exposes an additive capability outcome; only complete, fresh, identity-verified current or successor-native data is marked usable_for_current_analysis, while SEC, stale, partial, failed, unreviewed, and unknown routes are explicit."
+  - id: AC10
+    text: "ETF holdings consumes the shared provider-platform entitlement, quota, health, availability, and aggregate 20 EUR/USD-equivalent monthly budget contracts; no duplicate generic provider runtime or unapproved paid activation exists."
+  - id: AC11
+    text: "The 82 fallback identities are reassessed at symbol level in relevance order, with Tier 0 US ETFs receiving a completed free/zero-cost/cheap-source investigation and an explicit current, degraded, stale, unavailable, successor, or not-applicable outcome."
+  - id: AC12
+    text: "Bounded opt-in ETF canaries persist source, transport, schema, completeness, freshness, latency, failure-streak, circuit, and recovery evidence; route drift and stale data cannot silently serve as current holdings."
+  - id: AC13
+    text: "ETF API and UI surfaces distinguish current, degraded, stale, unavailable, not-applicable, and unknown holdings; historical snapshots remain inspectable with provenance and current-analysis flows reject non-current data unless a user explicitly selects historical evidence."
+  - id: AC14
+    text: "A 30-day production shadow gate is documented as a post-integration/deployment acceptance step, targeting at least 95% eligible Tier 0 checks, no two consecutive missed freshness deadlines, and zero silent identity/schema/completeness violations."
 branch_tests:
   - "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_adapters.py -q --no-cov"
   - "uv run --project backend pytest backend/tests/live/test_etf_holdings_live_providers.py -q --no-cov"
   - "RUN_LIVE_ETF_HOLDINGS_TESTS=1 uv run --project backend pytest backend/tests/live/test_etf_holdings_live_providers.py -q --no-cov"
   - "uv run --project backend ruff check backend/app/services/etf_holdings_adapters.py backend/tests/unit/services/test_etf_holdings_adapters.py backend/tests/live/test_etf_holdings_live_providers.py"
   - "uv run --project backend python scripts/validate-workstream.py ops/workstreams/feat-etf-holdings-constituents"
+  - "npm --prefix frontend run type-check"
+  - "npm --prefix frontend test -- --run tests/unit/components/test_etf_holdings_panel.test.ts tests/unit/views/test_etf_holdings_view.test.ts"
+  - "npm --prefix frontend run build"
 branch_tests_reason: "Provider adapters require deterministic parser/registry contracts, opt-in real-route probes, static analysis, durable workstream validation, and the repository-selected Docker integration gate."
 live_test_impact: "Live calls are opt-in, bounded, rate-conscious, and restricted to reviewed public/free or already-entitled provider routes. Live failures must distinguish route drift, issuer blocking, entitlement, network, parser, and source-data failures."
-migration_impact: none
-deployment_impact: "none; feature implementation stops before integration or deployment"
-status: ready_for_human_review
+migration_impact: "Additive ETF capability/freshness/schema-observation state and the ETF_HOLDINGS shared-capability seed; preserve existing snapshots and compatibility reads."
+deployment_impact: "New disabled-by-default ETF canary configuration, shared provider-platform capability/entitlement/budget integration, and post-deployment 30-day shadow evidence; no paid activation or deployment in this session."
+status: authorized
 remaining_gaps:
   - "Starting baseline was 496 registered providers, 356 native/live-backed providers, and 140 fallback-only providers; after the documented native promotions through ROBO Global/ROBO-HTEC-THNQ, Rockefeller/RMOP-RMNY-RMCA-RSMC-RGEF, Saba/CEFS, Beacon/Sammons BTR-BSR-BTA, Sapient/SQS, SMI Funds/RAA-FCTE, SRH Funds/SRHQ-SRHR, Stance/STNC, Stratified/SSPY-SHUS, and TrimTabs/Abacus FCF, current code and provider-universe documentation report 496/414/82 and future counts must remain derived."
   - "The 140 starting fallback providers have a baseline ledger snapshot; all verified native promotions through ROBO Global/ROBO-HTEC-THNQ, Rockefeller/RMOP-RMNY-RMCA-RSMC-RGEF, Saba/CEFS, Beacon/Sammons BTR-BSR-BTA, Sapient/SQS, SMI Funds/RAA-FCTE, SRH Funds/SRHQ-SRHR, Stance/STNC, Stratified/SSPY-SHUS, and TrimTabs/Abacus FCF are recorded explicitly. The ledger has zero queued records, and the 17 legacy entries were refreshed with dated issuer-specific route, identity, or access evidence on 2026-09-03. Current code-derived FALLBACK_ISSUER_AUDITS statuses are 8 issuer-access-blocked, 64 route-discovery, 3 non-executable, and 7 non-portfolio-publisher; the ledger preserves more specific evidence-backed classifications."
@@ -118,7 +159,9 @@ progress:
     - AC6
     - AC7
     - AC8
-  total: 8
-  current_phase: handoff
-  current_blocker: "No technical blocker remains. Human closure authorization remains pending; the feature branch is ready for human review and must not be integrated, promoted, or deployed by this session."
-  next_action: "Review the synchronized feature branch and its durable handoff/validation records. Keep all work scoped to feat/etf-holdings-constituents; do not alter strict adapter behavior or modify another worktree."
+    - AC9
+    - AC13
+  total: 14
+  current_phase: capability_local_checkpoint
+  current_blocker: "The shared provider-platform branch has not yet reached staging; generic entitlement/quota/budget/health integration remains intentionally deferred until its synchronized staging merge. The current-tree local Docker gate also hit a branch-scoped PostgreSQL termination after 1465 passed tests, so the earlier green full-gate and exact-SHA CI receipts remain the valid broader evidence."
+  next_action: "Commit and push the separate operational checkpoint for implementation 712db8c, then wait at human review; after provider-platform reaches staging, reconcile AC10 and continue Tier 0 canary evidence for AC11–AC12 and the post-deployment AC14 shadow gate."

@@ -52,22 +52,22 @@ never maintain them as an independent implementation constant.
 | Classification | Count |
 |---|---:|
 | Registered issuer adapter configurations | 496 |
-| Native/live-backed providers | 381 |
-| Audited fallback-only providers | 115 |
+| Native/live-backed providers | 414 |
+| Audited fallback-only providers | 82 |
 | Native plus fallback | 496 |
 
-The current 115 fallback audits divide into:
+The current 82 fallback audits divide into:
 
 | Audit status | Count |
 |---|---:|
 | `issuer_access_blocked` | 8 |
-| `needs_first_party_route_discovery` | 98 |
+| `needs_first_party_route_discovery` | 64 |
 | `non_executable_public_source` | 3 |
-| `provider_not_a_portfolio_publisher` | 6 |
+| `provider_not_a_portfolio_publisher` | 7 |
 
 The approved plan began from a 356-native/140-fallback baseline. The current
 checkpoint has reconciled `docs/etf-provider-universe.md` and the branch-owned
-ledger to 381 native and 115 fallback providers; code-derived counts remain the
+ledger to 414 native and 82 fallback providers; code-derived counts remain the
 authoritative truth and must be re-derived at every subsequent checkpoint.
 
 ### 2.3 Historical continuity
@@ -2708,3 +2708,34 @@ synchronization and human closure authorization remain pending.
 
 Evidence refs: `web:federated-hermes-current-etf-api-2026-09-03`,
 `live:federated-hermes-ftrb-current-holdings-2026-09-03`.
+
+## Current capability checkpoint — 2026-09-04
+
+The ETF-local capability context is implemented in commit
+`712db8c2514764368dc7204f5b6e4febd87fef7e`, pushed to the same-named remote
+branch. It adds a per-symbol capability evaluator and API/UI contract for
+`current`, `degraded`, `stale`, `unavailable`, `not_applicable`, and `unknown`
+states; explicit identity, completeness, source-tier, transport, cadence,
+freshness, schema, failure-streak, and current-analysis usability metadata;
+value-free schema fingerprints; and disabled-by-default bounded route canaries
+with circuit/recovery evidence. Current/usable requires complete, fresh,
+identity-verified issuer-native, successor-native, or licensed-vendor data.
+SEC, stale, partial, failed, unchecked, and unverified observations remain
+last-known evidence only.
+
+The shared provider-platform entitlement, quota, health, shadow, and aggregate
+20 EUR/USD-equivalent budget bridge remains intentionally deferred until that
+branch reaches staging. Symbol-level reassessment is complete for the recorded
+Tier 0 ledger entries and remains open for the rest of the 82 fallback
+identities. The 30-day production shadow gate is a post-integration acceptance
+step, not a claim for this branch.
+
+Final focused checks passed (617 backend tests; ETF API contract; 8 frontend
+tests; type-check; build; Ruff; workstream validator). The current-tree local
+Docker gate passed through workstream/dependency/migration/lint, then suffered
+a branch-scoped PostgreSQL termination after 1,465 backend tests passed; 262
+later tests errored on the dead server. This is retained as external runtime
+evidence, while the earlier green local gate and exact-SHA CI receipts remain
+the broader successful validation evidence. The operational checkpoint records
+this distinction and the next action is to wait for provider-platform staging
+before opening the shared bridge context.
