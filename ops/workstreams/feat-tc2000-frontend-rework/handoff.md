@@ -10,6 +10,23 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-04 — Event adapter identity scoping repair
+
+The event-to-Boolean adapter received a focused lineage repair and is committed as `7c930fd1`
+(`fix(tc2000): scope event adapter by instrument`). When a persisted event includes a symbol or
+canonical `instrument_id`, the isolated runner now matches it only to the corresponding candidate;
+an explicit identity mismatch becomes a false/excluded result instead of leaking a same-day event
+across the prepared universe. Symbol-less events remain candidate-local because each isolated
+source invocation is bound to its candidate dataset.
+
+Evidence for this boundary:
+
+- Event-focused runner tests passed `8/8`; the full runner unit suite passed `107/107`.
+- Event-promotion integration coverage passed `2/2`; compileall, Ruff, and diff checks passed.
+- The commit is pushed to `origin/feat/tc2000-frontend-rework`. The next action is an exhaustive
+  gate at `7c930fd1`; the prior exact receipt at `0da00e08` remains `98/104` visual passes with
+  the six unchanged screenshot diffs.
+
 ## 2026-09-04 — Exact-tip exhaustive gate after event filter and alert fan-out
 
 The exhaustive integration profile was rerun at product commit `0da00e08` after the explicit

@@ -12,7 +12,11 @@ evidence ledgers. If a summary here conflicts with a dated test receipt or the c
 current code and fresh evidence win.
 
 The latest exhaustive gate ran at product commit `0da00e08` (`feat(tc2000): promote event
-artifacts to filters and alerts`). All stages through authenticated functional Playwright passed:
+artifacts to filters and alerts`). A follow-up product fix is now committed as `7c930fd1`
+(`fix(tc2000): scope event adapter by instrument`): event rows carrying a symbol or canonical
+instrument ID can no longer match a different candidate. The focused event suite passed `8/8`, the
+full runner unit suite `107/107`, event-promotion integration passed `2/2`, and compileall/Ruff/
+diff checks passed. All stages through authenticated functional Playwright passed at `0da00e08`:
 backend units `1,309/1,309`, integration `381/381` with the existing `54` warnings, combined
 coverage `80.90%`, frontend Vitest `934/934` across `108` files, and functional Playwright
 `155` passes with `106` documented skips across `261` specs. Static/type/build/compile, compose,
@@ -116,7 +120,7 @@ run, not a claim that the old counts still pass unchanged.
 | Breadth and Study Lab | Recursive conditions, symbol/reference-universe comparisons, historical contracts, Python isolation, reusable immutable definitions, and some typed promotion adapters implemented | Richer history and complete promotion fan-out remain open |
 | Visual regression | Exact-tip four-project run at `0da00e08` passed 98/104; six board-state diffs remain: `watchlist-column-editor-open` at both 1080p projects (`13,844` pixels) and `workspace-floating` at all four projects (latest captures `11,901`, `9,770`, `12,097`, `12,097`) | Board-guided product baseline, not exact V25 approval; canonical late-popout hydration now makes the floating state data-bearing; do not weaken or silently rewrite the visual policy |
 | Frontend static/unit checks | Exact-tip gate passed 934/934 Vitest across 108 files, plus type-check and build | Fresh receipt at `0da00e08`; existing large-chunk build warning remains |
-| Branch ancestry | Feature product tip `0da00e08`; local staging `8b885a2f`; staging is an ancestor, feature remains staging-derived | Verified 2026-09-04; no merge/rebase performed during this checkpoint |
+| Branch ancestry | Feature product tip `7c930fd1`; local staging `8b885a2f`; staging is an ancestor, feature remains staging-derived | Verified 2026-09-04; no merge/rebase performed during this checkpoint |
 | Public visual corpus | 230 indexed media assets reconstructed and the board/manifest validators passed | Verified 2026-09-03 in an ephemeral inspection directory |
 
 The earlier concern that Market Map → Breadth/Study handoff was still failing is superseded by the

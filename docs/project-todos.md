@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-04 — Event adapter preserves per-member lineage
+
+- [x] Close a scope defect in `events_to_boolean`: persisted events carrying a symbol or canonical
+      `instrument_id` are now matched only to the candidate with the same identity. Symbol-less
+      events remain candidate-local because the isolated source is executed against that candidate;
+      explicit identity mismatches are excluded rather than leaking a same-day event to another
+      member.
+- [x] Verify the repair with the event-focused runner suite (`8/8`), the full runner unit suite
+      (`107/107`), event-promotion integration coverage (`2/2`), compileall, Ruff, and diff checks.
+      Product commit `7c930fd1` is pushed to the feature branch.
+- [ ] Rerun the exhaustive branch gate at `7c930fd1`, then continue the remaining compatible
+      chart/list/gauge and Study Lab promotion targets, canonical provider/history enrichment,
+      native-window/accessibility/security evidence, and the six preserved visual diffs. No
+      baseline, mask, threshold, skip, fallback oracle, provider rule, or acceptance policy may
+      change to make the matrix green.
+
 ### 2026-09-04 — Exact-tip exhaustive gate after event filter/alert fan-out
 
 - [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at
