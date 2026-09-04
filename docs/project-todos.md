@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-04 — Timeframe-specific history gaps no longer poison provider health
+
+- [x] Keep a provider's expected empty history response scoped to the requested symbol/timeframe/
+      range. The request remains a failed, auditable `ProviderRequestLog` entry and still allows
+      the provider chain to try an independently entitled fallback, but a `ProviderNoDataError`
+      on `price_history` no longer increments capability-wide health failure streaks or opens the
+      shared provider circuit (for example, Nasdaq's D1-only public route receiving an MN/W1 ask).
+- [x] Cover both the single-miss fallback path and three repeated MN misses. Focused provider
+      runtime tests pass `5/5`; the full backend unit suite passes `1,299/1,299`; Ruff, format,
+      compileall, TypeScript, and diff checks pass. No provider entitlement, fallback order,
+      visual oracle, threshold, baseline, or protected worktree changed.
+- [ ] Re-run bounded canonical QQQ D1/W1/MN maintenance after this health-boundary fix; retain
+      explicit unsupported/coverage evidence where public providers return no usable bars.
+
 ### 2026-09-04 — Placeholder holdings stay outside canonical history readiness
 
 - [x] Keep internal `HOLDING-*` instruments visible as unresolved reconciliation evidence, but

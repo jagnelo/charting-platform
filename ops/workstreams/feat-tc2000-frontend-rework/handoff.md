@@ -856,3 +856,24 @@ visual-1440p-125. The observed diffs were 13,844 pixels for the two watchlist-ed
 on 1440p-125. No baseline, mask, threshold, skip, fallback oracle, provider rule, or protected
 worktree changed. The formatter debt is resolved; the six visual diffs and canonical provider/
 history gaps remain open for human review and the next bounded implementation slice.
+
+## 2026-09-04 — Timeframe-specific history gaps do not poison provider health
+
+The provider runtime previously treated every `ProviderNoDataError` as a capability-wide health
+failure even when the miss was expected for one symbol, timeframe, or historical range. That made
+an MN/W1 miss capable of opening the shared provider circuit and suppressing a later D1 request
+from the same provider. At `25f59f84`, `price_history` no-data responses remain failed and fully
+auditable in `ProviderRequestLog`, still fall through to independently entitled providers, but no
+longer update capability-wide EWMA health, failure streak, or circuit state. Other capability
+classes and latest-price no-data behavior retain their existing health downgrade semantics.
+
+Evidence at this implementation boundary:
+
+- Focused provider-runtime tests pass `5/5`, including fallback after one empty history result and
+  three repeated MN misses with no circuit opening.
+- The full backend unit suite passes `1,299/1,299`.
+- Repository `make lint`, Ruff format/compileall, and `git diff --check` pass.
+
+No provider entitlement, chain ordering, visual oracle, threshold, baseline, fallback oracle, or
+protected worktree changed. The next bounded runtime task is to re-run canonical QQQ D1/W1/MN
+maintenance and retain explicit coverage/unsupported evidence for any public-provider gaps.
