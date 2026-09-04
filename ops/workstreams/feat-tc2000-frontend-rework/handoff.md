@@ -10,6 +10,19 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-04 — Reopened implementation and synchronized the reference-universe slice
+
+The human explicitly authorized reopening implementation after the review-gate stall and
+authorized committing the staged TC2000 reference-universe work. The bounded implementation
+slice was committed and pushed as `d3782bef` (`feat(tc2000): support canonical reference-universe
+breadth comparisons`) to `origin/feat/tc2000-frontend-rework`. The branch is synchronized and
+clean at this checkpoint. The six unchanged visual-oracle diffs remain recorded; no baseline,
+mask, threshold, skip, fallback, integration, promotion, deployment, or other-worktree mutation
+was made.
+
+The next context is a bounded R3/R4 derived-series or promotion gap, with the existing canonical
+provider/history limitations and visual blocker preserved as explicit evidence.
+
 ## 2026-09-04 — Python breadth comparisons accept canonical reference universes
 
 The next bounded R3/R4 slice closes the explicit reference-universe gap for Python breadth
