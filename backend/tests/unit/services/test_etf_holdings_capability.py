@@ -633,6 +633,42 @@ def test_eleventh_ranked_fallback_strategy_shares_is_top_ten_only():
     assert result.provider_identity == "strategy_shares"
 
 
+def test_twelfth_ranked_fallback_subversive_routes_are_blocked():
+    result = symbol_audit_for_profile(profile_with_symbol("GOP", "subversive"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "issuer_route_access_blocked"
+    assert result.provider_identity == "subversive"
+
+
+def test_twelfth_ranked_fallback_suncoast_route_is_blocked():
+    result = symbol_audit_for_profile(profile_with_symbol("SEMG", "suncoast"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "issuer_route_access_blocked"
+    assert result.provider_identity == "suncoast"
+
+
+def test_twelfth_ranked_fallback_towle_route_is_blocked():
+    result = symbol_audit_for_profile(profile_with_symbol("TCV", "towle"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "issuer_route_access_blocked"
+    assert result.provider_identity == "towle"
+
+
+def test_twelfth_ranked_fallback_tweedy_browne_artifact_is_stale():
+    result = symbol_audit_for_profile(profile_with_symbol("COPY", "tweedy_browne"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "non_executable_public_source"
+    assert result.provider_identity == "tweedy_browne"
+
+
 def test_unreviewed_fallback_symbol_cannot_be_marked_current_from_a_snapshot_alone():
     result = evaluate_capability(
         profile_with_symbol("UNREVIEWED", "matrix"),

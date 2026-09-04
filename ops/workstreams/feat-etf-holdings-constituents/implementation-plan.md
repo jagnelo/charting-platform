@@ -3103,3 +3103,18 @@ explicit non-Tier-0 symbols; remaining symbols stay identity-level `unknown`
 until individually investigated. AC10 remains dependent on provider-platform
 staging, and AC14 still requires production shadow observations and human
 closure authorization.
+
+## Twelfth ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+This slice binds GOP/NANC (Subversive), SEMG (Suncoast), TCV (Towle), and COPY
+(Tweedy Browne) to explicit outcomes. Subversive, Suncoast, and Towle remain
+`unavailable` with issuer-access-blocked routes; Tweedy Browne remains
+`unavailable` because its public artifact is stale and has no current dated
+basket. No blocked or stale page is promoted as current support.
+
+The runtime symbol-audit map, YAML `symbol_audit_ledger`, documentation, and
+parity tests are updated together. The twelve ranked cohorts now cover 135
+explicit non-Tier-0 symbols; remaining symbols stay identity-level `unknown`
+until individually investigated. AC10 remains dependent on provider-platform
+staging, and AC14 still requires production shadow observations and human
+closure authorization.

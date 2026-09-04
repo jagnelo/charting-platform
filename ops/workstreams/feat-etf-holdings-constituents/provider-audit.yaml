@@ -1156,6 +1156,46 @@ symbol_audit_ledger:
       investigated_at: 2026-09-04
       evidence_refs: ["web:strategy-shares-current-goly-hndl-mply-romo-pages-2026-09-04"]
       next_action: "Re-audit the official GOLY, HNDL, MPLY, and ROMO pages for a declared complete current holdings artifact; promote only after executable route, mapping, and freshness are proven."
+    - symbol: GOP
+      tier: 1
+      provider_identity: subversive
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-04
+      evidence_refs: ["web:subversive-current-gop-nanc-holdings-pages-2026-09-04", "live:subversive-current-gop-nanc-holdings-pages-2026-09-04-blocked"]
+      next_action: "Periodically re-test the official GOP and NANC pages and declared downloads; promote only after bounded backend access returns complete current rows with proven mapping."
+    - symbol: NANC
+      tier: 1
+      provider_identity: subversive
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-04
+      evidence_refs: ["web:subversive-current-gop-nanc-holdings-pages-2026-09-04", "live:subversive-current-gop-nanc-holdings-pages-2026-09-04-blocked"]
+      next_action: "Periodically re-test the official GOP and NANC pages and declared downloads; promote only after bounded backend access returns complete current rows with proven mapping."
+    - symbol: SEMG
+      tier: 1
+      provider_identity: suncoast
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-04
+      evidence_refs: ["web:suncoast-current-semg-holdings-page-2026-09-04", "live:suncoast-current-semg-holdings-page-2026-09-04-blocked"]
+      next_action: "Periodically re-test the official SEMG page; promote only after bounded backend access returns complete current rows with proven mapping."
+    - symbol: TCV
+      tier: 1
+      provider_identity: towle
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-04
+      evidence_refs: ["web:towle-current-tcv-holdings-page-2026-09-04", "live:towle-current-tcv-holdings-page-2026-09-04-blocked"]
+      next_action: "Periodically re-test the official TCV page; promote only after bounded backend access returns complete current rows with proven mapping."
+    - symbol: COPY
+      tier: 1
+      provider_identity: tweedy_browne
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-04
+      evidence_refs: ["web:tweedy-browne-current-copy-holdings-page-2026-09-04"]
+      next_action: "Re-test the official ETF overview and FilePoint holdings page for a current complete artifact before considering native promotion."
 providers:
   - adapter_key: aegon
     display_name: aegon

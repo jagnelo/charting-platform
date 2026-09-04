@@ -2722,3 +2722,18 @@ fallback symbols retain the identity-level `unknown` boundary until their own
 symbol-scoped evidence is recorded. AC10 remains gated on provider-platform
 staging and AC14 remains a post-integration production-observation gate
 requiring human closure authorization.
+
+## Twelfth ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+The next ranked slice is now explicit in runtime and the durable ledger:
+GOP/NANC (Subversive), SEMG (Suncoast), TCV (Towle), and COPY (Tweedy Browne).
+Subversive, Suncoast, and Towle remain `unavailable` with issuer-access-blocked
+routes; Tweedy Browne remains `unavailable` because its public artifact is
+stale and has no current dated basket. No blocked or stale page is promoted as
+current support.
+
+The twelve ranked cohorts now cover 135 explicit non-Tier-0 symbols. Remaining
+fallback symbols retain the identity-level `unknown` boundary until their own
+symbol-scoped evidence is recorded. AC10 remains gated on provider-platform
+staging and AC14 remains a post-integration production-observation gate
+requiring human closure authorization.

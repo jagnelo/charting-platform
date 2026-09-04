@@ -127,14 +127,6 @@ Cloudflare-blocked to backend-equivalent access; North Square and Pabrai are
 do not expose executable current baskets. SEC identity evidence is retained
 without promoting filings as current constituent data.
 
-The eleventh cohort covers RFDI/RFEM (RiverFront sub-advised by First Trust),
-ROCI (liquidated ROC Investments), AMEI/AMGR/AMEM/AMSU (Saturna), EMEM/EMSC
-(Sophus), and GOLY/HNDL/MPLY/ROMO (Strategy Shares). RiverFront and ROCI are
-`not_applicable` because holdings ownership is with First Trust or the product
-was liquidated. Saturna and Sophus remain `unavailable` while issuer routes are
-blocked, and Strategy Shares remains `unavailable` because only top-ten or
-periodic disclosures are public. No SEC-derived current basket is promoted.
-
 The tenth cohort covers CLOX/CLOZ (Panagram), PRCS/PRVS (Parnassus), STBF
 (Performance Trust), TCTL (Premise Capital), PFRX/SYNB/PGRO/PHYD/PBDC/PCRB/
 PLDR/PFUT/PULT/PEMX/PVAL/PPIE/PPEM/PGRI (Putnam), and PZIV/PZLV (Pzena).
@@ -143,6 +135,21 @@ and Pzena remain `unavailable` while their advertised routes are blocked;
 Performance Trust and Putnam remain `unavailable` because accessible reports
 are stale or periodic; and Premise remains `unavailable` while its issuer
 domain is unreachable. No SEC reconstruction is promoted as current data.
+
+The eleventh cohort covers RFDI/RFEM (RiverFront sub-advised by First Trust),
+ROCI (liquidated ROC Investments), AMEI/AMGR/AMEM/AMSU (Saturna), EMEM/EMSC
+(Sophus), and GOLY/HNDL/MPLY/ROMO (Strategy Shares). RiverFront and ROCI are
+`not_applicable` because holdings ownership is with First Trust or the product
+was liquidated. Saturna and Sophus remain `unavailable` while issuer routes are
+blocked, and Strategy Shares remains `unavailable` because only top-ten or
+periodic disclosures are public. No SEC-derived current basket is promoted.
+
+The twelfth cohort covers GOP/NANC (Subversive), SEMG (Suncoast), TCV
+(Towle), and COPY (Tweedy Browne). Subversive, Suncoast, and Towle remain
+`unavailable` because their complete official pages are blocked to backend
+transport; Tweedy Browne remains `unavailable` because its public artifact is
+stale and has no current dated basket. No blocked or stale page is promoted as
+current support.
 
 The current checkpoint promotes `guggenheim` through its public issuer-hosted
 ETF holdings table, reconciles `ars` to the existing ARS Investment Partners

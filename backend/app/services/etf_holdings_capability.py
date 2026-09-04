@@ -1087,6 +1087,63 @@ _register_non_tier_0_audits(
         "holdings artifact; promote only after executable route, mapping, and freshness are proven."
     ),
 )
+_register_non_tier_0_audits(
+    ("GOP", "NANC"),
+    outcome=UNAVAILABLE,
+    evidence_state="issuer_route_access_blocked",
+    provider_identity="subversive",
+    investigated_at=date(2026, 9, 4),
+    evidence_refs=(
+        "web:subversive-current-gop-nanc-holdings-pages-2026-09-04",
+        "live:subversive-current-gop-nanc-holdings-pages-2026-09-04-blocked",
+    ),
+    next_action=(
+        "Periodically re-test the official GOP and NANC pages and declared downloads; promote "
+        "only after bounded backend access returns complete current rows with proven mapping."
+    ),
+)
+_register_non_tier_0_audits(
+    ("SEMG",),
+    outcome=UNAVAILABLE,
+    evidence_state="issuer_route_access_blocked",
+    provider_identity="suncoast",
+    investigated_at=date(2026, 9, 4),
+    evidence_refs=(
+        "web:suncoast-current-semg-holdings-page-2026-09-04",
+        "live:suncoast-current-semg-holdings-page-2026-09-04-blocked",
+    ),
+    next_action=(
+        "Periodically re-test the official SEMG page; promote only after bounded backend access "
+        "returns complete current rows with proven mapping."
+    ),
+)
+_register_non_tier_0_audits(
+    ("TCV",),
+    outcome=UNAVAILABLE,
+    evidence_state="issuer_route_access_blocked",
+    provider_identity="towle",
+    investigated_at=date(2026, 9, 4),
+    evidence_refs=(
+        "web:towle-current-tcv-holdings-page-2026-09-04",
+        "live:towle-current-tcv-holdings-page-2026-09-04-blocked",
+    ),
+    next_action=(
+        "Periodically re-test the official TCV page; promote only after bounded backend access "
+        "returns complete current rows with proven mapping."
+    ),
+)
+_register_non_tier_0_audits(
+    ("COPY",),
+    outcome=UNAVAILABLE,
+    evidence_state="non_executable_public_source",
+    provider_identity="tweedy_browne",
+    investigated_at=date(2026, 9, 4),
+    evidence_refs=("web:tweedy-browne-current-copy-holdings-page-2026-09-04",),
+    next_action=(
+        "Re-test the official ETF overview and FilePoint holdings page for a current complete "
+        "artifact before considering native promotion."
+    ),
+)
 
 
 def symbol_audit_for_profile(profile: ETFProfile) -> ETFHoldingsSymbolAudit:
