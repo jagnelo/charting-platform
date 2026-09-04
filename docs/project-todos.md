@@ -25,6 +25,25 @@
       toward canonical readiness. Do not use symbol guesses, latest-only fallback, or fabricated
       timeframe bars.
 
+### 2026-09-04 — Exact-tip gate after bounded canonical runtime
+
+- [x] Re-run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at the
+      synchronized evidence tip. Git/workstream validation, locked dependency and migration
+      checks, Ruff, TypeScript, split backend coverage (`1,303` unit and `378` integration tests,
+      combined coverage `80.92%`), frontend Vitest/build, compose contracts, stack health,
+      research-runner isolation probes, and the authenticated functional browser suite (`154`
+      passes, `106` documented skips across `260`) all completed successfully.
+- [x] Preserve the unchanged visual-policy blocker: the four-project visual matrix passed `98/104`
+      and failed only `watchlist-column-editor-open` at 1080p-100/125 and `workspace-floating` at
+      all four projects. The watchlist diffs remain `13,844` pixels; floating diffs are `4,257`
+      at 1080p-100 and `4,453` at 1080p-125/1440p-100/1440p-125. No baseline, mask, threshold,
+      skip, or fallback oracle changed.
+- [x] Confirm the gate removed its assigned containers, volumes, network, and generated images;
+      the resource audit reports zero containers, volumes, and known image bytes.
+- [ ] Keep the visual six-diff blocker and the R1 provider/history gaps explicit while continuing
+      separately authorized work; do not treat this gate as product completion or integrate,
+      promote, or deploy from the feature session.
+
 ### 2026-09-04 — Bounded name-search reconciliation runtime evidence
 
 - [x] Exercise the new identifier-only name-search bridge on a fresh, branch-scoped stack with

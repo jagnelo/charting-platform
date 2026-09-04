@@ -994,3 +994,26 @@ the checks; resource status reports zero containers, volumes, and known image by
 bounded readiness receipt, not complete QQQ population/history or eight-family product readiness.
 The remaining 80 placeholders, W1/MN support, QQQE/SPDR dated sources, and six unchanged visual
 oracle diffs remain open.
+
+## 2026-09-04 — Exact-tip integration gate after bounded canonical runtime
+
+At synchronized tip `eb6e3c05`, `make validate-integration
+INTEGRATION_BRANCH=feat/tc2000-frontend-rework` passed every stage through the authenticated
+functional browser suite: Git/workstream validation, locked dependency and migration checks,
+Ruff check/format, TypeScript, split backend coverage (`1,303` unit tests and `378` integration
+tests; combined coverage `80.92%`), frontend Vitest/build, compose contracts, assigned-stack
+health, research-runner isolation probes, and Playwright (`154` passes with `106` documented skips
+across `260` specs).
+
+The gate stopped only at the unchanged four-project visual matrix: `98/104` passed and six
+screenshots failed. `watchlist-column-editor-open` failed at visual-1080p-100 and
+visual-1080p-125 with `13,844` differing pixels. `workspace-floating` failed at all four projects;
+the observed differences were `4,257` pixels at visual-1080p-100 and `4,453` pixels at
+visual-1080p-125, visual-1440p-100, and visual-1440p-125. These remain deterministic enough to
+retain as an explicit blocker, but no baseline, mask, threshold, skip, or fallback oracle was
+changed.
+
+The gate removed its assigned containers, volumes, network, and generated images. Resource status
+after teardown reports zero containers, zero volumes, zero known image bytes, and complete
+ownership accounting. This is the current review receipt; the 80 QQQ placeholders, W1/MN and
+QQQE/SPDR data gaps, and broader R1-R7 work remain open.
