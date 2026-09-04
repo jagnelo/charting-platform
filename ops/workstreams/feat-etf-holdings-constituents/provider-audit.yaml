@@ -1052,6 +1052,110 @@ symbol_audit_ledger:
       investigated_at: 2026-09-03
       evidence_refs: ["web:pzena-current-etf-catalogue-2026-09-03", "web:pzena-daily-holdings-disclosure-2026-09-03", "live:pzena-etf-page-shell-blocked-2026-09-03"]
       next_action: "Re-test the official Pzena /etfs and product pages with an issuer-supported backend-readable holdings payload; promote only after complete symbol-scoped parsing and live validation."
+    - symbol: RFDI
+      tier: 1
+      provider_identity: riverfront
+      current_outcome: not_applicable
+      evidence_state: identity_not_portfolio_publisher
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:riverfront-subadvised-first-trust-2026-09-03", "web:riverfront-rfdi-rfem-current-first-trust-holdings-2026-09-03"]
+      next_action: "Resolve RiverFront requests to the existing First Trust native adapter; monitor sub-adviser/product identity changes and do not create a duplicate publisher route."
+    - symbol: RFEM
+      tier: 1
+      provider_identity: riverfront
+      current_outcome: not_applicable
+      evidence_state: identity_not_portfolio_publisher
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:riverfront-subadvised-first-trust-2026-09-03", "web:riverfront-rfdi-rfem-current-first-trust-holdings-2026-09-03"]
+      next_action: "Resolve RiverFront requests to the existing First Trust native adapter; monitor sub-adviser/product identity changes and do not create a duplicate publisher route."
+    - symbol: ROCI
+      tier: 1
+      provider_identity: roc
+      current_outcome: not_applicable
+      evidence_state: inactive_or_successor_disposition
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:roc-roci-liquidation-2023-10-11"]
+      next_action: "Keep ROCI inactive unless ROC Investments launches a new U.S.-listed ETF with a distinct current first-party holdings route."
+    - symbol: AMEI
+      tier: 1
+      provider_identity: saturna
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-04
+      evidence_refs: ["web:saturna-current-amana-etf-holdings-pages-2026-09-04", "live:saturna-current-amana-etf-holdings-pages-2026-09-04-blocked"]
+      next_action: "Periodically re-test the official Amana ETF pages and declared holdings downloads; promote only after bounded backend access returns complete current rows with proven mapping."
+    - symbol: AMGR
+      tier: 1
+      provider_identity: saturna
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-04
+      evidence_refs: ["web:saturna-current-amana-etf-holdings-pages-2026-09-04", "live:saturna-current-amana-etf-holdings-pages-2026-09-04-blocked"]
+      next_action: "Periodically re-test the official Amana ETF pages and declared holdings downloads; promote only after bounded backend access returns complete current rows with proven mapping."
+    - symbol: AMEM
+      tier: 1
+      provider_identity: saturna
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-04
+      evidence_refs: ["web:saturna-current-amana-etf-holdings-pages-2026-09-04", "live:saturna-current-amana-etf-holdings-pages-2026-09-04-blocked"]
+      next_action: "Periodically re-test the official Amana ETF pages and declared holdings downloads; promote only after bounded backend access returns complete current rows with proven mapping."
+    - symbol: AMSU
+      tier: 1
+      provider_identity: saturna
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-04
+      evidence_refs: ["web:saturna-current-amana-etf-holdings-pages-2026-09-04", "live:saturna-current-amana-etf-holdings-pages-2026-09-04-blocked"]
+      next_action: "Periodically re-test the official Amana ETF pages and declared holdings downloads; promote only after bounded backend access returns complete current rows with proven mapping."
+    - symbol: EMEM
+      tier: 1
+      provider_identity: sophus
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-04
+      evidence_refs: ["live:sophus-current-emem-emsc-holdings-pages-2026-09-04-blocked"]
+      next_action: "Periodically re-test the official EMEM and EMSC pages and declared downloads; promote only after bounded backend access returns complete current rows with proven mapping."
+    - symbol: EMSC
+      tier: 1
+      provider_identity: sophus
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-04
+      evidence_refs: ["live:sophus-current-emem-emsc-holdings-pages-2026-09-04-blocked"]
+      next_action: "Periodically re-test the official EMEM and EMSC pages and declared downloads; promote only after bounded backend access returns complete current rows with proven mapping."
+    - symbol: GOLY
+      tier: 1
+      provider_identity: strategy_shares
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-04
+      evidence_refs: ["web:strategy-shares-current-goly-hndl-mply-romo-pages-2026-09-04"]
+      next_action: "Re-audit the official GOLY, HNDL, MPLY, and ROMO pages for a declared complete current holdings artifact; promote only after executable route, mapping, and freshness are proven."
+    - symbol: HNDL
+      tier: 1
+      provider_identity: strategy_shares
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-04
+      evidence_refs: ["web:strategy-shares-current-goly-hndl-mply-romo-pages-2026-09-04"]
+      next_action: "Re-audit the official GOLY, HNDL, MPLY, and ROMO pages for a declared complete current holdings artifact; promote only after executable route, mapping, and freshness are proven."
+    - symbol: MPLY
+      tier: 1
+      provider_identity: strategy_shares
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-04
+      evidence_refs: ["web:strategy-shares-current-goly-hndl-mply-romo-pages-2026-09-04"]
+      next_action: "Re-audit the official GOLY, HNDL, MPLY, and ROMO pages for a declared complete current holdings artifact; promote only after executable route, mapping, and freshness are proven."
+    - symbol: ROMO
+      tier: 1
+      provider_identity: strategy_shares
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-04
+      evidence_refs: ["web:strategy-shares-current-goly-hndl-mply-romo-pages-2026-09-04"]
+      next_action: "Re-audit the official GOLY, HNDL, MPLY, and ROMO pages for a declared complete current holdings artifact; promote only after executable route, mapping, and freshness are proven."
 providers:
   - adapter_key: aegon
     display_name: aegon

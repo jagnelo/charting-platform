@@ -2705,3 +2705,20 @@ fallback symbols retain the identity-level `unknown` boundary until their own
 symbol-scoped evidence is recorded. AC10 remains gated on provider-platform
 staging and AC14 remains a post-integration production-observation gate
 requiring human closure authorization.
+
+## Eleventh ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+The next ranked slice is now explicit in runtime and the durable ledger:
+RFDI/RFEM (RiverFront sub-advised by First Trust), ROCI (liquidated ROC
+Investments), AMEI/AMGR/AMEM/AMSU (Saturna), EMEM/EMSC (Sophus), and
+GOLY/HNDL/MPLY/ROMO (Strategy Shares). RiverFront and ROCI are `not_applicable`
+because ownership belongs to First Trust or the product was liquidated.
+Saturna and Sophus remain `unavailable` while issuer routes are blocked, and
+Strategy Shares remains `unavailable` because only top-ten or periodic
+disclosures are public. No SEC-derived current basket is promoted.
+
+The eleven ranked cohorts now cover 130 explicit non-Tier-0 symbols. Remaining
+fallback symbols retain the identity-level `unknown` boundary until their own
+symbol-scoped evidence is recorded. AC10 remains gated on provider-platform
+staging and AC14 remains a post-integration production-observation gate
+requiring human closure authorization.

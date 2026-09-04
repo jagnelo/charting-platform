@@ -588,6 +588,51 @@ def test_tenth_ranked_fallback_pzena_pages_are_blocked():
     assert result.provider_identity == "pzena"
 
 
+def test_eleventh_ranked_fallback_riverfront_subadviser_resolves_to_first_trust():
+    result = symbol_audit_for_profile(profile_with_symbol("RFDI", "riverfront"))
+
+    assert result.tier == 1
+    assert result.outcome == "not_applicable"
+    assert result.evidence_state == "identity_not_portfolio_publisher"
+    assert result.provider_identity == "riverfront"
+
+
+def test_eleventh_ranked_fallback_roc_liquidation_is_not_applicable():
+    result = symbol_audit_for_profile(profile_with_symbol("ROCI", "roc"))
+
+    assert result.tier == 1
+    assert result.outcome == "not_applicable"
+    assert result.evidence_state == "inactive_or_successor_disposition"
+    assert result.provider_identity == "roc"
+
+
+def test_eleventh_ranked_fallback_saturna_routes_are_blocked():
+    result = symbol_audit_for_profile(profile_with_symbol("AMEI", "saturna"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "issuer_route_access_blocked"
+    assert result.provider_identity == "saturna"
+
+
+def test_eleventh_ranked_fallback_sophus_routes_are_blocked():
+    result = symbol_audit_for_profile(profile_with_symbol("EMEM", "sophus"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "issuer_route_access_blocked"
+    assert result.provider_identity == "sophus"
+
+
+def test_eleventh_ranked_fallback_strategy_shares_is_top_ten_only():
+    result = symbol_audit_for_profile(profile_with_symbol("GOLY", "strategy_shares"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "non_executable_public_source"
+    assert result.provider_identity == "strategy_shares"
+
+
 def test_unreviewed_fallback_symbol_cannot_be_marked_current_from_a_snapshot_alone():
     result = evaluate_capability(
         profile_with_symbol("UNREVIEWED", "matrix"),

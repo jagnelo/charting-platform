@@ -1021,6 +1021,72 @@ _register_non_tier_0_audits(
         "holdings payload; promote only after complete symbol-scoped parsing and live validation."
     ),
 )
+_register_non_tier_0_audits(
+    ("RFDI", "RFEM"),
+    outcome=NOT_APPLICABLE,
+    evidence_state="identity_not_portfolio_publisher",
+    provider_identity="riverfront",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=(
+        "web:riverfront-subadvised-first-trust-2026-09-03",
+        "web:riverfront-rfdi-rfem-current-first-trust-holdings-2026-09-03",
+    ),
+    next_action=(
+        "Resolve RiverFront requests to the existing First Trust native adapter; monitor "
+        "sub-adviser/product identity changes and do not create a duplicate publisher route."
+    ),
+)
+_register_non_tier_0_audits(
+    ("ROCI",),
+    outcome=NOT_APPLICABLE,
+    evidence_state="inactive_or_successor_disposition",
+    provider_identity="roc",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=("web:roc-roci-liquidation-2023-10-11",),
+    next_action=(
+        "Keep ROCI inactive unless ROC Investments launches a new U.S.-listed ETF with a distinct "
+        "current first-party holdings route."
+    ),
+)
+_register_non_tier_0_audits(
+    ("AMEI", "AMGR", "AMEM", "AMSU"),
+    outcome=UNAVAILABLE,
+    evidence_state="issuer_route_access_blocked",
+    provider_identity="saturna",
+    investigated_at=date(2026, 9, 4),
+    evidence_refs=(
+        "web:saturna-current-amana-etf-holdings-pages-2026-09-04",
+        "live:saturna-current-amana-etf-holdings-pages-2026-09-04-blocked",
+    ),
+    next_action=(
+        "Periodically re-test the official Amana ETF pages and declared holdings downloads; promote "
+        "only after bounded backend access returns complete current rows with proven mapping."
+    ),
+)
+_register_non_tier_0_audits(
+    ("EMEM", "EMSC"),
+    outcome=UNAVAILABLE,
+    evidence_state="issuer_route_access_blocked",
+    provider_identity="sophus",
+    investigated_at=date(2026, 9, 4),
+    evidence_refs=("live:sophus-current-emem-emsc-holdings-pages-2026-09-04-blocked",),
+    next_action=(
+        "Periodically re-test the official EMEM and EMSC pages and declared downloads; promote "
+        "only after bounded backend access returns complete current rows with proven mapping."
+    ),
+)
+_register_non_tier_0_audits(
+    ("GOLY", "HNDL", "MPLY", "ROMO"),
+    outcome=UNAVAILABLE,
+    evidence_state="non_executable_public_source",
+    provider_identity="strategy_shares",
+    investigated_at=date(2026, 9, 4),
+    evidence_refs=("web:strategy-shares-current-goly-hndl-mply-romo-pages-2026-09-04",),
+    next_action=(
+        "Re-audit the official GOLY, HNDL, MPLY, and ROMO pages for a declared complete current "
+        "holdings artifact; promote only after executable route, mapping, and freshness are proven."
+    ),
+)
 
 
 def symbol_audit_for_profile(profile: ETFProfile) -> ETFHoldingsSymbolAudit:

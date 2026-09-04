@@ -127,6 +127,14 @@ Cloudflare-blocked to backend-equivalent access; North Square and Pabrai are
 do not expose executable current baskets. SEC identity evidence is retained
 without promoting filings as current constituent data.
 
+The eleventh cohort covers RFDI/RFEM (RiverFront sub-advised by First Trust),
+ROCI (liquidated ROC Investments), AMEI/AMGR/AMEM/AMSU (Saturna), EMEM/EMSC
+(Sophus), and GOLY/HNDL/MPLY/ROMO (Strategy Shares). RiverFront and ROCI are
+`not_applicable` because holdings ownership is with First Trust or the product
+was liquidated. Saturna and Sophus remain `unavailable` while issuer routes are
+blocked, and Strategy Shares remains `unavailable` because only top-ten or
+periodic disclosures are public. No SEC-derived current basket is promoted.
+
 The tenth cohort covers CLOX/CLOZ (Panagram), PRCS/PRVS (Parnassus), STBF
 (Performance Trust), TCTL (Premise Capital), PFRX/SYNB/PGRO/PHYD/PBDC/PCRB/
 PLDR/PFUT/PULT/PEMX/PVAL/PPIE/PPEM/PGRI (Putnam), and PZIV/PZLV (Pzena).
