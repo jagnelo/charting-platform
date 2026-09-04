@@ -45,6 +45,24 @@ unchanged blocker is the six screenshot diffs in `watchlist-column-editor-open` 
 remain open. No integration, promotion, deployment, or other-worktree mutation is authorized from
 this feature session.
 
+## 2026-09-04 — Exact-tip exhaustive gate after Python breadth-tree slice
+
+At synchronized tip `2eb93854`, `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework`
+completed every stage through the authenticated functional browser suite and stopped only at the
+unchanged visual matrix. Locked backend dependencies and migrations, full Ruff/format and TypeScript
+checks, combined backend coverage (`1,307` unit tests and the integration suite), frontend tests/build,
+compose contracts, provider-probe policy, stack health, research-runner isolation, and functional
+Playwright all passed. Functional Playwright reported `154` passes and `106` documented skips across
+`260` specs; the runner's four deny/containment probes remained green.
+
+The four-project visual run completed `104` cases with `98` passes and six unchanged screenshot diffs:
+`watchlist-column-editor-open` at visual-1080p-100 and visual-1080p-125 (`13,844` differing pixels),
+and `workspace-floating` at all four projects (`4,257` or `4,453` differing pixels depending on
+capture). The failures are the same visual-oracle blocker recorded at prior exact tips, with no
+baseline, mask, threshold, skip, fallback oracle, provider rule, or test policy change. The gate's
+cleanup trap removed the assigned stack, images, volumes, and network; the subsequent resource audit
+was clean. No integration, promotion, deployment, or other-worktree mutation occurred.
+
 ## 2026-09-03 — Prior session and media reconciled
 
 The prior Codex rollout `019fa949-e419-77c1-8d7d-188b5235029c` was streamed and reconciled rather

@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-04 — Exact-tip exhaustive integration gate after Python breadth-tree slice
+
+- [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at synchronized
+      tip `2eb93854`. All stages through the authenticated functional browser suite passed, including
+      locked dependencies/migrations, combined backend coverage, frontend checks/build, compose and
+      provider policy, stack health, runner isolation, and `154` functional passes with `106`
+      documented skips across `260` specs.
+- [ ] Obtain human review of the unchanged six visual-oracle diffs: `watchlist-column-editor-open`
+      at 1080p-100/125 and `workspace-floating` at all four projects. Do not alter baselines, masks,
+      thresholds, skips, or fallback oracles to make the matrix green.
+
 ### 2026-09-04 — Python breadth condition trees feed Market Map colours
 
 - [x] Connect the advanced Market Map breadth editor to the existing isolated Python breadth
