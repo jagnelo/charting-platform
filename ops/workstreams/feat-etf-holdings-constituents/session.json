@@ -74,7 +74,7 @@
   },
   "goal_budget_policy": "unbounded_unless_human_authorized",
   "goal_objective": "Advance feat/etf-holdings-constituents: Exhaustively audit the remaining ETF holdings issuers, promote every proven first-party executable holdings source to a truthful native adapter, preserve explicit evidence-backed fallback dispositions for all others, and bring code, tests, live coverage, documentation, and durable workstream records into exact agreement.. Acceptance criteria: AC1: Durable ETF workstream state is current and internally consistent: the plan, handoff, provider-universe document, registry counts, audit counts, and next action agree at every checkpoint.; AC2: A complete provider-audit ledger accounts for every current fallback-only adapter key exactly once, uses the approved deterministic ranking, and records issuer-specific dated source evidence, disposition, and next action.; AC3: Every provider counted as native has a concrete provider-owned holdings route, provider-specific fetch entry point, strict parsing/mapping, truthful provenance and freshness, deterministic tests, and concrete opt-in live coverage.; AC4: Every provider remaining fallback-only has a current issuer-specific audit disposition; no fallback is silently promoted through SEC data and no generic unattempted discovery note is accepted as final evidence.; AC5: All 140 providers in the starting fallback population have been processed to either a verified native promotion or a defensible dated terminal/blocked disposition, with no missing, duplicate, or stale ledger entries.; AC6: ISSUER_ADAPTER_CONFIGS, FALLBACK_ISSUER_AUDITS, native/fallback counts, native adapter ownership, deterministic tests, live-provider coverage, documentation, and the provider-audit ledger satisfy exhaustive matrix invariants.; AC7: Focused checks, the complete deterministic adapter suite, default live contracts, the complete opt-in live provider matrix, Ruff, the Docker-backed full-integration gate, and exact-SHA CI are green or any genuine external outage is narrowly evidenced without misrepresenting validation.; AC8: The feature branch is clean and synchronized at an exact reviewed SHA, durable handoff and validation records are complete, and the workstream stops at ready_for_human_review without integration, promotion, deployment, or cross-worktree mutation.. Required local profile: docker_integration. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
-  "goal_recorded_at": "2026-09-04T00:47:41.325836+00:00",
+  "goal_recorded_at": "2026-09-04T01:14:32.657988+00:00",
   "goal_request": {
     "objective": "Advance feat/etf-holdings-constituents: Exhaustively audit the remaining ETF holdings issuers, promote every proven first-party executable holdings source to a truthful native adapter, preserve explicit evidence-backed fallback dispositions for all others, and bring code, tests, live coverage, documentation, and durable workstream records into exact agreement.. Acceptance criteria: AC1: Durable ETF workstream state is current and internally consistent: the plan, handoff, provider-universe document, registry counts, audit counts, and next action agree at every checkpoint.; AC2: A complete provider-audit ledger accounts for every current fallback-only adapter key exactly once, uses the approved deterministic ranking, and records issuer-specific dated source evidence, disposition, and next action.; AC3: Every provider counted as native has a concrete provider-owned holdings route, provider-specific fetch entry point, strict parsing/mapping, truthful provenance and freshness, deterministic tests, and concrete opt-in live coverage.; AC4: Every provider remaining fallback-only has a current issuer-specific audit disposition; no fallback is silently promoted through SEC data and no generic unattempted discovery note is accepted as final evidence.; AC5: All 140 providers in the starting fallback population have been processed to either a verified native promotion or a defensible dated terminal/blocked disposition, with no missing, duplicate, or stale ledger entries.; AC6: ISSUER_ADAPTER_CONFIGS, FALLBACK_ISSUER_AUDITS, native/fallback counts, native adapter ownership, deterministic tests, live-provider coverage, documentation, and the provider-audit ledger satisfy exhaustive matrix invariants.; AC7: Focused checks, the complete deterministic adapter suite, default live contracts, the complete opt-in live provider matrix, Ruff, the Docker-backed full-integration gate, and exact-SHA CI are green or any genuine external outage is narrowly evidenced without misrepresenting validation.; AC8: The feature branch is clean and synchronized at an exact reviewed SHA, durable handoff and validation records are complete, and the workstream stops at ready_for_human_review without integration, promotion, deployment, or cross-worktree mutation.. Required local profile: docker_integration. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
@@ -82,12 +82,12 @@
   "goal_state": "active",
   "goal_unavailable_reason": null,
   "head": "07b31bc2a6500d74bcd0460d9890f7fd032574a6",
-  "implementation_sha": "80ffd096baebd61d9f53c81bec28dd77dcab96b7",
+  "implementation_sha": "2c43ab288b1ed0f6b4150c8ed53c3a43b1619931",
   "last_checkpoint": "2026-09-03T22:06:12.663699+00:00",
-  "last_human_progress_update": "2026-09-04T00:47:50.428963+00:00",
+  "last_human_progress_update": "2026-09-04T01:14:44.239465+00:00",
   "local_validation_profile": "docker_integration",
   "next_action": "continue implementation from the branch workstream",
-  "plan_hash": "3aeb439658664ce092764f1cad349668ea83f887b0aaf917edb6a2db797d4bcd",
+  "plan_hash": "7be6975915c549b784959cb0de082a0cc3e9f41ef1a20177acfb8470044b1238",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [],
@@ -100,14 +100,14 @@
       "AC5",
       "AC6"
     ],
-    "current_blocker": "Exact-SHA CI 33822107891 at f8fa2362 passed backend, frontend, and branch-declared tests after the narrow live guards but Playwright timed out in the five-minute Start stack npm ci step; local Docker retains only the unrelated F8p-current-history histogram failure and human closure authorization is pending.",
+    "current_blocker": "Fresh exact-SHA CI for 2c43ab28 is pending after the narrow Reflection issuer-404 guard; prior backend/frontend/branch and Playwright evidence is green, while local Docker retains only the unrelated F8p-current-history histogram failure and human closure authorization is pending.",
     "current_phase": "final_validation",
-    "next_action": "Keep the final evidence checkpoint synchronized, retain the repeated CI timeout and unrelated Docker failure as explicit review blockers, and request human closure authorization before ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+    "next_action": "Await final exact-SHA CI, record its terminal result, keep any genuine external or infrastructure limitation explicit, and request human closure authorization before ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
     "total": 8,
-    "updated_at": "2026-09-04T00:47:50.428849+00:00"
+    "updated_at": "2026-09-04T01:14:44.239177+00:00"
   },
   "remote": "07b31bc2a6500d74bcd0460d9890f7fd032574a6",
-  "remote_sha": "80ffd096baebd61d9f53c81bec28dd77dcab96b7",
+  "remote_sha": "2c43ab288b1ed0f6b4150c8ed53c3a43b1619931",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "197b239d-3322-4fc6-bf4b-0d0aecebf5e0",
