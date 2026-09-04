@@ -18,10 +18,15 @@
       `instrument_search_snapshot` observation store, retaining the bounded issuer query and
       result payload without making observation persistence a promotion prerequisite. The focused
       resolver/registry suite now passes `31` tests with `--no-cov`.
-- [ ] Re-run a separately authorized disposable QQQ classification batch with the configured
-      chain and record whether any additional placeholders promote; do not count provider
-      search reachability as canonical readiness until the persisted snapshot and history
-      coverage are re-measured after this observation-persistence slice.
+- [x] Re-run a separately authorized disposable QQQ classification batch with the configured
+      chain and record whether any additional placeholders promote; the exact-tip batch
+      completed `enriched=14, remaining=87, failed=0` with no additional promotions. The
+      persisted observation audit retained 96 bounded rows (`edgar=32`, 15 non-empty;
+      `massive=32`, empty; `alpha_vantage=32`, empty), while authenticated coverage remains
+      partial (`coverage=0.25`, one of four roles covered, `history_ready=false`). Provider
+      reachability is still not counted as canonical readiness until member history and the
+      remaining family/role sources are complete. The stack teardown/resource audit reported
+      zero containers, volumes, and known image bytes.
 
 ### 2026-09-04 — Bounded canonical QQQ reconciliation and history handoff
 

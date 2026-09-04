@@ -1048,3 +1048,26 @@ The focused resolver/registry suite passes `31` tests with `--no-cov`, Ruff chec
 the corrected-stack runtime receipt from the immediately preceding slice remains intentionally
 separate because it predates this persistence change. A fresh bounded disposable classification
 run is required before counting any new provider reach or placeholder promotion.
+
+## 2026-09-04 — Persisted provider-search observation runtime
+
+At exact tip `4a621d4c`, the branch-scoped disposable stack reached healthy state for all six
+services. The authenticated `nasdaq100`/`cap_weight` refresh for `2025-12-31` completed `1/1`
+and produced one QQQ snapshot with 101 raw SEC rows. One bounded classification batch
+(`max_profiles=1`, `max_enrichments_per_profile=32`) completed with `enriched=14`,
+`remaining=87`, and `failed=0`; authenticated coverage reported `member_count=14`,
+`classified_member_count=14`, `placeholder_member_count=87`, `classification_status=ready`,
+`history_ready=false`, and overall coverage `0.25` (one of four roles covered).
+
+The maintenance bridge retained 96 bounded `instrument_search_snapshot` observations: 32 EDGAR
+queries (15 non-empty), 32 Massive queries (empty because `MASSIVE_API_KEY` is not configured),
+and 32 Alpha Vantage queries (empty because `ALPHA_VANTAGE_API_KEY` is not configured). Each
+payload preserves the exact issuer query and bounded provider result list. The frontend served
+successfully, no CoinGecko request occurred, and the observation write remained best-effort and
+maintenance-only; no symbol guessing, latest-only fallback, or fabricated bars were introduced.
+
+The stack, volumes, network, and generated images were removed immediately after validation;
+`agent-resource-status` reports zero containers, zero volumes, zero known image bytes, and
+complete accounting. This receipt confirms observation persistence, not complete QQQ population,
+member history, or eight-family readiness. The 87 placeholders, W1/MN history, QQQE/SPDR dated
+sources, and six unchanged visual-oracle diffs remain open.
