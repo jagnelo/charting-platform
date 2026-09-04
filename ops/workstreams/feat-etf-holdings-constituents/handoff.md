@@ -1801,3 +1801,13 @@ five-minute `Start stack` step expired while the frontend Docker image's
 seen in `33811430864`, `33817619636`, and `33819499960`; no ETF or application
 test failed. The earlier exact-SHA run `33813104738` at `792682a2` remains the
 latest complete feature-matrix receipt with Playwright green.
+
+## Reflection issuer 404 variant — 2026-09-04
+
+Final-head CI run `33823253570` at
+`7d85908265407c5796d0ee46494e95dad2c887e6` passed Backend Tests, Frontend
+Unit Tests, and Playwright. Its branch-declared matrix failed one current
+Reflection direct-route case because the issuer's `nowserver.co.uk` RAM
+holdings URL returned HTTP 404. The adapter remains strict; the live test now
+skips only a Reflection 404 whose URL is on that issuer host. A fresh
+exact-SHA CI run is required to validate this final narrow guard.

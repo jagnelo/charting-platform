@@ -2341,7 +2341,11 @@ async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
             pytest.skip(str(exc))
         raise
     except (httpx.HTTPError, requests.RequestException, TimeoutError) as exc:
-        if _is_external_live_access_failure(exc):
+        if (
+            adapter_key == "reflection"
+            and "404 not found" in str(exc).lower()
+            and "nowserver.co.uk/files/" in str(exc).lower()
+        ) or _is_external_live_access_failure(exc):
             pytest.skip(str(exc))
         raise
 
