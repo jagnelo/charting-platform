@@ -230,6 +230,19 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
+  it('does not hydrate market analysis for a chart pop-out', async () => {
+    routeState.path = '/popout/chart-main'
+    routeState.params = { windowKey: 'chart-main' }
+
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(harness.workspace.refreshMarketAnalysis).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+
   it('resolves a canonical identity when a proxy action does not include a row id', async () => {
     routeState.path = '/popout/benchmark-list'
     routeState.params = { windowKey: 'benchmark-list' }

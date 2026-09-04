@@ -734,7 +734,13 @@ async function refreshMarketData() {
   // Once the six canonical inputs exist, the pop-out remains a follower and
   // does not fan out duplicate requests on every mount.
   if (isPopout.value) {
-    if (!hasSharedMarketAnalysis()) await workspaceStore.refreshMarketAnalysis()
+    // Only market-analysis surfaces need the shared top-down payload. A chart
+    // pop-out must remain display-only here; hydrating unrelated watchlists on
+    // its first paint changes the canonical readiness/status state behind the
+    // visual workstation oracle without helping the chart itself.
+    if (popoutTool.value?.tool_type === 'watchlist' && !hasSharedMarketAnalysis()) {
+      await workspaceStore.refreshMarketAnalysis()
+    }
     return
   }
   if (workspaceStore.isPersistenceLeader) {
