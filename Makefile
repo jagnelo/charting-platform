@@ -154,12 +154,21 @@ test-backend: test-unit test-int
 test-backend-coverage:
 	@echo "▶  Combined backend unit + integration coverage (Docker required)..."
 	@$(MAKE) agent-docker-ready
+# Keep the unit and Docker-backed integration runs in separate Python processes.
+# The coverage database is appended so the reported result is still the complete
+# unit-plus-integration total, while PostgreSQL is not kept alive through the
+# cumulative memory/resource pressure of one instrumented process.
 	@set -e; \
 	status=0; \
 	trap 'status=$$?; $(MAKE) agent-resource-cleanup || true; exit $$status' EXIT INT TERM; \
-	($(RUNTIME_ENV) cd backend && $(BACKEND_ENV) uv run pytest tests/unit tests/integration \
+	($(RUNTIME_ENV) cd backend && $(BACKEND_ENV) uv run pytest tests/unit \
 	  --override-ini addopts= \
 	  --cov=app --cov-report=term-missing --cov-report=html:coverage_html \
+	  --cov-fail-under=0 \
+	  --no-header -q); \
+	($(RUNTIME_ENV) cd backend && $(BACKEND_ENV) uv run pytest tests/integration \
+	  --override-ini addopts= \
+	  --cov=app --cov-append --cov-report=term-missing --cov-report=html:coverage_html \
 	  --cov-report=xml:coverage-combined.xml --cov-fail-under=75 \
 	  --no-header -q)
 

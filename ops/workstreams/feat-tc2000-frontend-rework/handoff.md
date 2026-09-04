@@ -626,3 +626,18 @@ the current dense columns versus the older two-column snapshot. This is recorded
 not waived: no baseline, mask, threshold, or skip was changed. All other visual loading,
 freshness, Study Lab, validation-error, and shell states passed, and the assigned stack was fully
 cleaned afterward.
+
+## 2026-09-04 — Coverage gate resource hardening
+
+The combined backend coverage failure was isolated to one instrumented Python process carrying the
+unit suite into the Docker-backed integration suite: the PostgreSQL container terminated after
+`1,506` passes and `165` connection errors. The same integration suite with coverage passed
+`374/374`, and the complete unit-plus-integration suite without coverage passed `1,670/1,670`.
+
+`Makefile` now runs the unit and integration suites in separate processes, with the second process
+using `--cov-append`; the final XML/HTML report and the unchanged `--cov-fail-under=75` threshold
+therefore still represent the complete combined total. The updated `make test-backend-coverage`
+passed `1,296/1,296` unit tests and `374/374` integration tests at `80.88%` combined coverage.
+No test, threshold, visual oracle, provider fallback, or acceptance rule was changed. The next
+gate run must use this tip and is expected to proceed beyond backend coverage; the six visual
+snapshot diffs and canonical provider/history gaps remain open.
