@@ -570,6 +570,53 @@ _register_non_tier_0_audits(
         "identifiers, then add a provider-specific parser and live route test."
     ),
 )
+_register_non_tier_0_audits(
+    ("CHRG",),
+    outcome=NOT_APPLICABLE,
+    evidence_state="inactive_or_successor_disposition",
+    provider_identity="elements",
+    investigated_at=date(2026, 9, 2),
+    evidence_refs=(
+        "web:elements-chrg-liquidation-2026-09-02",
+        "web:elements-successor-no-etf-route-2026-09-02",
+    ),
+    next_action=(
+        "Keep fallback-only as an inactive_or_successor_disposition; resolve any historical "
+        "CHRG references to the Energy & Minerals Group successor only if a current U.S.-listed "
+        "ETF is re-established with a complete executable first-party holdings route."
+    ),
+)
+_register_non_tier_0_audits(
+    ("USSE",),
+    outcome=NOT_APPLICABLE,
+    evidence_state="identity_not_portfolio_publisher",
+    provider_identity="emirate_abu_dhabi",
+    investigated_at=date(2026, 9, 2),
+    evidence_refs=(
+        "web:sec-usse-segall-bryant-2026-09-02",
+        "web:ci-sbh-usse-page-2026-09-02",
+    ),
+    next_action=(
+        "Keep fallback-only as a non-publisher identity; resolve USSE references to the "
+        "separately tracked Segall Bryant & Hamill/CI SBH identity and do not create a duplicate route."
+    ),
+)
+_register_non_tier_0_audits(
+    ("AIEQ", "AWAY", "BDRY", "BWET"),
+    outcome=NOT_APPLICABLE,
+    evidence_state="inactive_or_successor_disposition",
+    provider_identity="etf_managers_group",
+    investigated_at=date(2026, 9, 2),
+    evidence_refs=(
+        "web:amplify-etfmg-acquisition-complete-2026-09-02",
+        "web:etfmg-domain-unreachable-successor-amplify-2026-09-02",
+    ),
+    next_action=(
+        "Keep fallback-only as an inactive_or_successor_disposition; resolve historical ETFMG "
+        "symbols to their Amplify successor or actual current sponsor and reopen only if ETFMG "
+        "resumes a distinct U.S.-listed ETF portfolio with an executable first-party route."
+    ),
+)
 
 
 def symbol_audit_for_profile(profile: ETFProfile) -> ETFHoldingsSymbolAudit:

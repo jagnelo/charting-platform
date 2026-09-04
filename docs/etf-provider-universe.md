@@ -75,6 +75,13 @@ contains only top-ten holdings without a complete constituent universe or
 stable identifiers. The remaining fallback symbols stay in the explicit
 identity-level `unknown` boundary until their own symbol-scoped investigation
 is recorded.
+The fourth cohort covers CHRG (Elements), USSE (the misattributed Emirate of
+Abu Dhabi identity), and AIEQ/AWAY/BDRY/BWET (the historical ETF Managers Group
+identity). These are `not_applicable`: CHRG is liquidated without a current
+successor route, USSE belongs to the separately tracked Segall Bryant & Hamill/
+CI SBH publisher, and ETFMG's portfolios transferred to Amplify or other
+successor sponsors. These identity dispositions do not mark the actual current
+publisher routes as supported.
 
 The current checkpoint promotes `guggenheim` through its public issuer-hosted
 ETF holdings table, reconciles `ars` to the existing ARS Investment Partners

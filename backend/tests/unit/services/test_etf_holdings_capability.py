@@ -307,6 +307,41 @@ def test_follow_on_ranked_fallback_avos_symbol_preserves_blocked_route_evidence(
     )
 
 
+def test_third_ranked_fallback_terminal_symbol_preserves_liquidation_evidence():
+    result = symbol_audit_for_profile(profile_with_symbol("CHRG", "elements"))
+
+    assert result.tier == 1
+    assert result.outcome == "not_applicable"
+    assert result.evidence_state == "inactive_or_successor_disposition"
+    assert result.provider_identity == "elements"
+    assert result.evidence_refs == (
+        "web:elements-chrg-liquidation-2026-09-02",
+        "web:elements-successor-no-etf-route-2026-09-02",
+    )
+
+
+def test_third_ranked_fallback_non_publisher_symbol_is_not_applicable():
+    result = symbol_audit_for_profile(profile_with_symbol("USSE", "emirate_abu_dhabi"))
+
+    assert result.tier == 1
+    assert result.outcome == "not_applicable"
+    assert result.evidence_state == "identity_not_portfolio_publisher"
+    assert result.provider_identity == "emirate_abu_dhabi"
+
+
+def test_third_ranked_fallback_successor_symbols_preserve_etfmg_evidence():
+    result = symbol_audit_for_profile(profile_with_symbol("AIEQ", "etf_managers_group"))
+
+    assert result.tier == 1
+    assert result.outcome == "not_applicable"
+    assert result.evidence_state == "inactive_or_successor_disposition"
+    assert result.provider_identity == "etf_managers_group"
+    assert result.evidence_refs == (
+        "web:amplify-etfmg-acquisition-complete-2026-09-02",
+        "web:etfmg-domain-unreachable-successor-amplify-2026-09-02",
+    )
+
+
 def test_unreviewed_fallback_symbol_cannot_be_marked_current_from_a_snapshot_alone():
     result = evaluate_capability(
         profile_with_symbol("MAVF", "matrix"),
