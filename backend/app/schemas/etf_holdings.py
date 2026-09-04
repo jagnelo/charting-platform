@@ -4,6 +4,17 @@ from decimal import Decimal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class ETFHoldingsSymbolAuditOut(BaseModel):
+    """Symbol-level source investigation, separate from provider identity."""
+
+    tier: int
+    outcome: str
+    evidence_state: str
+    provider_identity: str | None = None
+    investigated_at: date | None = None
+    next_action: str
+
+
 class ETFHoldingsCapabilityOut(BaseModel):
     """Current, per-symbol holdings capability; separate from immutable snapshots."""
 
@@ -30,6 +41,7 @@ class ETFHoldingsCapabilityOut(BaseModel):
     consecutive_failures: int = 0
     schema_fingerprint: str | None = None
     reason: str
+    symbol_audit: ETFHoldingsSymbolAuditOut
 
 
 class ETFProfileOut(BaseModel):

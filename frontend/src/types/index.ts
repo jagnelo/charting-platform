@@ -176,6 +176,15 @@ export interface ETFHoldingsSnapshot {
   holdings: ETFHolding[]
 }
 
+export interface ETFHoldingsSymbolAudit {
+  tier: number
+  outcome: string
+  evidence_state: string
+  provider_identity?: string | null
+  investigated_at?: string | null
+  next_action: string
+}
+
 export interface ETFHoldingsCapability {
   availability: 'current' | 'degraded' | 'stale' | 'unavailable' | 'not_applicable' | 'unknown' | string
   source_tier: 'issuer_native' | 'successor_native' | 'licensed_vendor' | 'sec_filing' | 'none' | string
@@ -200,6 +209,7 @@ export interface ETFHoldingsCapability {
   consecutive_failures: number
   schema_fingerprint?: string | null
   reason: string
+  symbol_audit: ETFHoldingsSymbolAudit
 }
 
 export interface ETFHoldingsPage {

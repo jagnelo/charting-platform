@@ -119,6 +119,9 @@ def test_admin_can_refresh_ark_provider_route(client, admin_headers, auth_header
     assert capability_body["expected_cadence"] == "unspecified"
     assert capability_body["transport_kind"] == "file_export"
     assert capability_body["schema_fingerprint"]
+    assert capability_body["symbol_audit"]["tier"] == 2
+    assert capability_body["symbol_audit"]["outcome"] == "unknown"
+    assert capability_body["symbol_audit"]["evidence_state"] == "no_symbol_audit_record"
 
 
 def test_admin_family_history_refresh_queues_deduplicated_local_members(

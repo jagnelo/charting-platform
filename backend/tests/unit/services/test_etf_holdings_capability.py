@@ -10,6 +10,7 @@ from app.services.etf_holdings_capability import (
     evaluate_capability,
     freshness_deadline,
     infer_expected_cadence,
+    symbol_audit_for_profile,
 )
 from app.services.etf_holdings_refresh import _canary_failure_class
 
@@ -18,6 +19,13 @@ NOW = datetime(2026, 9, 4, 12, tzinfo=UTC)
 
 def profile(adapter_key: str | None = "issuer"):
     return SimpleNamespace(adapter_key=adapter_key)
+
+
+def profile_with_symbol(symbol: str, adapter_key: str = "issuer"):
+    return SimpleNamespace(
+        adapter_key=adapter_key,
+        instrument=SimpleNamespace(symbol=symbol),
+    )
 
 
 def snapshot(
@@ -177,3 +185,32 @@ def test_canary_failure_classification_keeps_provider_edges_explicit():
         == "empty_or_partial_source"
     )
     assert _canary_failure_class(TimeoutError("timed out")) == "transport_error"
+
+
+def test_tier_zero_symbol_audit_preserves_unavailable_evidence_and_next_action():
+    result = symbol_audit_for_profile(profile_with_symbol("DXJ", "wisdomtree"))
+
+    assert result.tier == 0
+    assert result.outcome == "unavailable"
+    assert result.evidence_state == "issuer_route_access_blocked"
+    assert result.provider_identity == "wisdomtree"
+    assert result.investigated_at == date(2026, 9, 4)
+    assert "identity-verified" in result.next_action
+
+
+def test_identity_only_fallback_symbols_remain_unknown_until_symbol_route_evidence():
+    result = symbol_audit_for_profile(profile_with_symbol("TALV", "aegon"))
+
+    assert result.tier == 1
+    assert result.outcome == "unknown"
+    assert result.evidence_state == "identity_level_only"
+    assert result.provider_identity == "aegon"
+    assert result.investigated_at == date(2026, 7, 26)
+
+
+def test_terminal_non_publisher_identity_is_not_applicable_at_symbol_boundary():
+    result = symbol_audit_for_profile(profile_with_symbol("ABEQ", "epiris"))
+
+    assert result.tier == 1
+    assert result.outcome == "not_applicable"
+    assert result.evidence_state == "identity_level_terminal_disposition"

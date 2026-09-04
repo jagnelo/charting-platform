@@ -29,6 +29,9 @@
         <small v-if="capability.displayable_last_known">
           A last-known snapshot may be displayed for historical context, but it must not be treated as current.
         </small>
+        <small v-if="capability.symbol_audit?.next_action" class="capability-next-action">
+          Next source-review action: {{ capability.symbol_audit.next_action }}
+        </small>
       </div>
 
       <template v-if="snapshot">
@@ -511,6 +514,7 @@ watch(visibleHoldings, rows => {
 .capability-notice strong { text-transform: capitalize; }
 .capability-notice span { color: #d7c17d; }
 .capability-notice small { color: #aa9862; }
+.capability-notice .capability-next-action { color: #b9c6d8; }
 .summary-strip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

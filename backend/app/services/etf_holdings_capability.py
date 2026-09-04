@@ -13,6 +13,7 @@ from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 from app.models.etf_holdings import ETFHoldingsAdapterState, ETFHoldingsSnapshot, ETFProfile
+from app.services.etf_holdings_adapters import FALLBACK_ISSUER_AUDITS
 
 CURRENT = "current"
 DEGRADED = "degraded"
@@ -26,6 +27,34 @@ SUCCESSOR_NATIVE = "successor_native"
 LICENSED_VENDOR = "licensed_vendor"
 SEC_FILING = "sec_filing"
 NO_SOURCE = "none"
+
+
+@dataclass(frozen=True, slots=True)
+class ETFHoldingsSymbolAudit:
+    """Symbol-scoped source investigation metadata.
+
+    Provider identity evidence is deliberately not promoted to symbol evidence:
+    an identity-only fallback entry remains ``unknown`` until a symbol-scoped
+    route or terminal product disposition is recorded.
+    """
+
+    tier: int
+    outcome: str
+    evidence_state: str
+    provider_identity: str | None
+    investigated_at: date | None
+    next_action: str
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "tier": self.tier,
+            "outcome": self.outcome,
+            "evidence_state": self.evidence_state,
+            "provider_identity": self.provider_identity,
+            "investigated_at": self.investigated_at,
+            "next_action": self.next_action,
+        }
+
 
 _COMPLETE_STATUSES = {"complete", "issuer_current", "issuer_reported", "self_snapshotted"}
 _CADENCE_WINDOWS = {
@@ -65,6 +94,7 @@ class ETFHoldingsCapability:
     consecutive_failures: int
     schema_fingerprint: str | None
     reason: str
+    symbol_audit: ETFHoldingsSymbolAudit
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -91,6 +121,7 @@ class ETFHoldingsCapability:
             "consecutive_failures": self.consecutive_failures,
             "schema_fingerprint": self.schema_fingerprint,
             "reason": self.reason,
+            "symbol_audit": self.symbol_audit.as_dict(),
         }
 
 
@@ -207,6 +238,126 @@ def freshness_deadline(composition_date: date | None, cadence: str) -> date | No
     return composition_date + _CADENCE_WINDOWS.get(cadence, _CADENCE_WINDOWS["unspecified"])
 
 
+_TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
+    "DXJ": ETFHoldingsSymbolAudit(
+        tier=0,
+        outcome=UNAVAILABLE,
+        evidence_state="issuer_route_access_blocked",
+        provider_identity="wisdomtree",
+        investigated_at=date(2026, 9, 4),
+        next_action=(
+            "Re-test WisdomTree's official DXJ route; promote only after complete, "
+            "identity-verified current rows and live evidence."
+        ),
+    ),
+    "NTSX": ETFHoldingsSymbolAudit(
+        tier=0,
+        outcome=UNAVAILABLE,
+        evidence_state="issuer_route_access_blocked",
+        provider_identity="wisdomtree",
+        investigated_at=date(2026, 9, 4),
+        next_action=(
+            "Re-test WisdomTree's official NTSX route; promote only after complete, "
+            "identity-verified current rows and live evidence."
+        ),
+    ),
+    "MINT": ETFHoldingsSymbolAudit(
+        tier=0,
+        outcome=UNAVAILABLE,
+        evidence_state="no_complete_executable_public_artifact",
+        provider_identity="pacific_investments",
+        investigated_at=date(2026, 9, 4),
+        next_action=(
+            "Re-check PIMCO's official MINT holdings/download surfaces; do not treat "
+            "top-ten or factsheet data as a complete basket."
+        ),
+    ),
+    "BOND": ETFHoldingsSymbolAudit(
+        tier=0,
+        outcome=UNAVAILABLE,
+        evidence_state="no_complete_executable_public_artifact",
+        provider_identity="pacific_investments",
+        investigated_at=date(2026, 9, 4),
+        next_action=(
+            "Re-check PIMCO's official BOND holdings/download surfaces; do not treat "
+            "top-ten or factsheet data as a complete basket."
+        ),
+    ),
+    "GEME": ETFHoldingsSymbolAudit(
+        tier=0,
+        outcome=NOT_APPLICABLE,
+        evidence_state="identity_requires_reconciliation",
+        provider_identity="pacific_investments",
+        investigated_at=date(2026, 9, 4),
+        next_action="Resolve GEME's sponsor/publisher identity before selecting a holdings route.",
+    ),
+}
+
+for _symbol in (
+    "TBIL",
+    "XBIL",
+    "OBIL",
+    "UTWO",
+    "UTRE",
+    "UFIV",
+    "USVN",
+    "UTEN",
+    "UTWY",
+    "UTHY",
+):
+    _TIER_0_SYMBOL_AUDITS[_symbol] = ETFHoldingsSymbolAudit(
+        tier=0,
+        outcome=UNAVAILABLE,
+        evidence_state="route_requires_bounded_canary",
+        provider_identity="fm_investments",
+        investigated_at=date(2026, 9, 4),
+        next_action=(
+            "Run the opt-in F/m symbol-scoped canary and record source, schema, "
+            "completeness, and freshness evidence."
+        ),
+    )
+
+
+def symbol_audit_for_profile(profile: ETFProfile) -> ETFHoldingsSymbolAudit:
+    """Return conservative symbol-level source evidence for an ETF profile."""
+
+    instrument = getattr(profile, "instrument", None)
+    symbol = str(getattr(instrument, "symbol", "") or "").strip().upper()
+    tier_0 = _TIER_0_SYMBOL_AUDITS.get(symbol)
+    if tier_0 is not None:
+        return tier_0
+
+    adapter_key = str(getattr(profile, "adapter_key", "") or "").strip().lower()
+    fallback = FALLBACK_ISSUER_AUDITS.get(adapter_key)
+    if fallback is not None:
+        if fallback.status in {
+            "inactive_or_successor_disposition",
+            "provider_not_a_portfolio_publisher",
+        }:
+            outcome = NOT_APPLICABLE
+            evidence_state = "identity_level_terminal_disposition"
+        else:
+            outcome = UNKNOWN
+            evidence_state = "identity_level_only"
+        return ETFHoldingsSymbolAudit(
+            tier=1,
+            outcome=outcome,
+            evidence_state=evidence_state,
+            provider_identity=adapter_key or None,
+            investigated_at=fallback.last_checked,
+            next_action=fallback.next_action,
+        )
+
+    return ETFHoldingsSymbolAudit(
+        tier=2,
+        outcome=UNKNOWN,
+        evidence_state="no_symbol_audit_record",
+        provider_identity=adapter_key or None,
+        investigated_at=None,
+        next_action="Record a symbol-scoped first-party source investigation before claiming support.",
+    )
+
+
 def evaluate_capability(
     profile: ETFProfile,
     snapshot: ETFHoldingsSnapshot | None,
@@ -290,6 +441,7 @@ def evaluate_capability(
         SUCCESSOR_NATIVE,
         LICENSED_VENDOR,
     }
+    symbol_audit = symbol_audit_for_profile(profile)
     return ETFHoldingsCapability(
         availability=availability,
         source_tier=source_tier,
@@ -328,4 +480,5 @@ def evaluate_capability(
         ),
         schema_fingerprint=str(schema_fingerprint) if schema_fingerprint else None,
         reason=reason,
+        symbol_audit=symbol_audit,
     )

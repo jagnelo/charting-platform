@@ -85,6 +85,9 @@
           <span v-if="selectedCapability.composition_date">
             Last composition: {{ selectedCapability.composition_date }}.
           </span>
+          <span v-if="selectedCapability.symbol_audit?.next_action" class="capability-next-action">
+            Next source-review action: {{ selectedCapability.symbol_audit.next_action }}
+          </span>
           Historical snapshots remain available, but this data must not be treated as current.
         </div>
 
@@ -2013,6 +2016,10 @@ button.holding-row:hover,
   border-color: #693333;
   color: #ffb2b2;
   background: #1b0f0f;
+}
+.notice--capability .capability-next-action {
+  display: block;
+  color: #b9c6d8;
 }
 .empty-state {
   border: 1px dashed #292929;

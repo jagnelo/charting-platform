@@ -45,6 +45,16 @@ analysis. The Tier 0 symbol ledger and free-first canary policy live in
 `ops/workstreams/feat-etf-holdings-constituents/provider-audit.yaml`; it covers
 WisdomTree DXJ/NTSX, PIMCO MINT/BOND/GEME, and the F/m U.S. Benchmark Series.
 
+The capability response also carries a `symbol_audit` object. Tier 0 entries
+contain the dated symbol-specific investigation outcome and next source-review
+action. Remaining fallback identities are intentionally surfaced as
+`identity_level_only`/`unknown` until a symbol-scoped artifact or a terminal
+product disposition is proven; provider-level registration is never treated as
+symbol-level current support. Non-portfolio-publisher or inactive/successor
+identities can be explicitly `not_applicable`, while blocked or incomplete
+routes remain unavailable or unknown until a bounded canary supplies fresh
+evidence.
+
 The current checkpoint promotes `guggenheim` through its public issuer-hosted
 ETF holdings table, reconciles `ars` to the existing ARS Investment Partners
 ACEP/AFOS product-page adapter, adds Avory's complete AVRY product-page
