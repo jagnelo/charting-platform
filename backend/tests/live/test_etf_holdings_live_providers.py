@@ -3103,7 +3103,12 @@ async def test_live_toews_product_page_linked_holdings_csv():
     adapter = get_holdings_adapter("toews")
     assert adapter is not None
 
-    result = await adapter.fetch_latest(symbol="HRSK")
+    try:
+        result = await adapter.fetch_latest(symbol="HRSK")
+    except (httpx.HTTPError, requests.RequestException, TimeoutError) as exc:
+        if _is_external_live_access_failure(exc):
+            pytest.skip(str(exc) or exc.__class__.__name__)
+        raise
 
     _assert_live_holdings_result(result, adapter_key="toews", min_rows=20)
     assert result.legal_metadata["route_resolution"] == "toews_product_page_linked_holdings_csv"

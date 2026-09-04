@@ -1980,3 +1980,20 @@ changing ETF behavior or weakening validation. The branch is clean and
 synchronized at the review boundary; no integration, promotion, deployment,
 or other-worktree mutation was performed, and explicit human closure
 authorization remains pending.
+
+## Toews HRSK issuer HTTP 500 variant — 2026-09-04
+
+Checkpoint CI run `33839877863` on
+`25a346aa4f96c32066aa0966c24b8404583deb5b` passed Backend Tests and Frontend
+Unit Tests, but its opt-in live matrix reached 491 passed and 14 skipped before
+the official Toews `toewsetfs.com/hrsk/` page returned HTTP 500. The generic
+external-failure helper already treats issuer 5xx responses as evidence-bearing
+access failures; the dedicated Toews live test now catches only those HTTP
+transport failures. A focused local probe reproduced the exact skip, the
+deterministic adapter suite remains 567 passed, and Ruff passes. A fresh
+exact-SHA CI run is required after this test-contract-only catch.
+
+The implementation context remains limited to the live-test contract and
+branch-owned handoff/validation records; strict adapter behavior is unchanged,
+and no integration, promotion, deployment, or other-worktree mutation was
+performed.
