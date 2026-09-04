@@ -184,6 +184,43 @@ describe('MarketMapTool', () => {
     sourceState.sources = previousSources
   })
 
+  it('surfaces canonical benchmark role readiness beside the Market Map', async () => {
+    const previousSources = sourceState.sources
+    sourceState.sources = [{
+      ...previousSources[0],
+      source_id: 'benchmark-family:sp500:cap_weight',
+      source_kind: 'index_membership',
+      name: 'S&P 500 — Cap weight constituents',
+      member_count: 500,
+      provenance: { availability: 'available', membership_semantics: 'etf_proxy_holdings' },
+    }]
+    apiGet.mockImplementation((path: string) => path === '/analysis/benchmark-families/sp500/coverage'
+      ? Promise.resolve({
+          family_key: 'sp500', name: 'S&P 500', official_index_symbol: 'SPX', coverage: 0.25, freshness: 'coverage_limited',
+          roles: [
+            { role: 'cap_weight', symbol: 'SPY', label: 'Cap weight', available: true, status: 'available', member_bar_history: { status: 'partial', placeholder_member_count: 80, timeframes: [{ timeframe: 'D1', member_count: 101, covered_member_count: 21, coverage_percent: 20.8, analysis_ready_member_count: 21, analysis_ready_percent: 20.8, bar_count: 1000 }] }, point_in_time_supported: true, member_count: 101, placeholder_member_count: 80, weighted_member_count: 101, weights_status: 'ready', classified_member_count: 21, classification_status: 'partial', history_ready: false, composite_readiness_status: 'partial', composite_readiness_reasons: ['member_bar_history_incomplete'] },
+            { role: 'equal_weight', symbol: 'RSP', label: 'Equal weight', available: true, status: 'no_snapshot', member_bar_history: { status: 'no_snapshot', placeholder_member_count: 0, timeframes: [] }, point_in_time_supported: false, member_count: 0, placeholder_member_count: 0, weighted_member_count: 0, weights_status: 'unavailable', classified_member_count: 0, classification_status: 'unavailable', history_ready: false, composite_readiness_status: 'pending', composite_readiness_reasons: ['no_dated_holdings'] },
+            { role: 'value', symbol: null, label: 'Value', available: false, status: 'mapping_unavailable', member_bar_history: { status: 'unavailable', placeholder_member_count: 0, timeframes: [] }, point_in_time_supported: false, member_count: 0, placeholder_member_count: 0, weighted_member_count: 0, weights_status: 'unavailable', classified_member_count: 0, classification_status: 'unavailable', history_ready: false, composite_readiness_status: 'unavailable', composite_readiness_reasons: ['benchmark_role_mapping_unavailable'] },
+            { role: 'growth', symbol: null, label: 'Growth', available: false, status: 'mapping_unavailable', member_bar_history: { status: 'unavailable', placeholder_member_count: 0, timeframes: [] }, point_in_time_supported: false, member_count: 0, placeholder_member_count: 0, weighted_member_count: 0, weights_status: 'unavailable', classified_member_count: 0, classification_status: 'unavailable', history_ready: false, composite_readiness_status: 'unavailable', composite_readiness_reasons: ['benchmark_role_mapping_unavailable'] },
+          ],
+        })
+      : Promise.resolve([]))
+
+    const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: 'benchmark-family:sp500:cap_weight' } } })
+    await flushPromises()
+
+    const readiness = wrapper.get('[aria-label="Benchmark family canonical readiness"]')
+    expect(readiness.text()).toContain('25% of roles have dated holdings')
+    expect(readiness.text()).toContain('Cap weight (SPY)')
+    expect(readiness.text()).toContain('21/101 D1 analysis-ready')
+    expect(readiness.text()).toContain('member_bar_history_incomplete')
+    expect(readiness.text()).toContain('Value')
+    expect(apiGet).toHaveBeenCalledWith('/analysis/benchmark-families/sp500/coverage', { limit: 256 })
+
+    wrapper.unmount()
+    sourceState.sources = previousSources
+  })
+
   it('explicitly bootstraps an arbitrary ETF into the locked source catalog', async () => {
     const previousSources = sourceState.sources
     const pendingEtf = {

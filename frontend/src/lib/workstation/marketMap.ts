@@ -1,6 +1,55 @@
 import { api } from '@/lib/api'
 import type { MarketMap, MarketMapCell, MarketMapRequest, MarketMapSnapshot, MarketMapSnapshotSummary } from '@/types'
 
+export type BenchmarkFamilyRole = 'cap_weight' | 'equal_weight' | 'value' | 'growth'
+
+export interface BenchmarkFamilyMemberBarHistoryTimeframe {
+  timeframe: string
+  member_count: number
+  covered_member_count: number
+  coverage_percent: number
+  analysis_ready_member_count: number
+  analysis_ready_percent: number
+  bar_count: number
+  oldest?: string | null
+  newest?: string | null
+}
+
+export interface BenchmarkFamilyCoverageRole {
+  role: BenchmarkFamilyRole
+  symbol?: string | null
+  label: string
+  available: boolean
+  status: string
+  holdings_route_provider?: string | null
+  holdings_route_status?: string | null
+  holdings_refresh_status?: string | null
+  member_bar_history?: {
+    status: string
+    placeholder_member_count: number
+    timeframes: BenchmarkFamilyMemberBarHistoryTimeframe[]
+  }
+  point_in_time_supported: boolean
+  member_count: number
+  placeholder_member_count: number
+  weighted_member_count: number
+  weights_status: string
+  classified_member_count: number
+  classification_status: string
+  history_ready: boolean
+  composite_readiness_status: string
+  composite_readiness_reasons: string[]
+}
+
+export interface BenchmarkFamilyCoverage {
+  family_key: string
+  name: string
+  official_index_symbol: string
+  coverage: number
+  roles: BenchmarkFamilyCoverageRole[]
+  freshness: string
+}
+
 export type WatchlistHistoryStatusKind = 'pending' | 'partial' | 'fetching' | 'failed' | 'ready' | 'unavailable'
 
 export interface WatchlistHistoryTimeframeStatus {
@@ -72,6 +121,17 @@ export interface WatchlistHistoryRefreshRun {
 
 export function fetchMarketMap(request: MarketMapRequest): Promise<MarketMap> {
   return api.post<MarketMap>('/analysis/market-map', request)
+}
+
+export function fetchBenchmarkFamilyCoverage(
+  familyKey: string,
+  asOf?: string | null,
+  limit = 256,
+): Promise<BenchmarkFamilyCoverage> {
+  return api.get<BenchmarkFamilyCoverage>(
+    `/analysis/benchmark-families/${encodeURIComponent(familyKey)}/coverage`,
+    { limit, ...(asOf ? { as_of: asOf } : {}) },
+  )
 }
 
 export function fetchWatchlistSourceHistoryStatus(

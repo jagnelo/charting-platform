@@ -164,6 +164,22 @@
     <div v-if="map" class="market-map-tool__summary">
       <span>{{ map.source.name }}</span><span>{{ map.evaluated_count }}/{{ map.requested_count }} combined covered</span><span>Colour {{ coveragePercent(map.color_coverage, map.coverage) }}%</span><span>Area {{ coveragePercent(map.area_coverage, map.coverage) }}%</span><span>{{ formatFreshness(map.freshness) }}</span><span v-if="activeSnapshotName">Snapshot · {{ activeSnapshotName }}</span><span v-else-if="map.cache_hit">Cached result · {{ map.cached_at ? new Date(map.cached_at).toLocaleTimeString() : 'saved' }}</span><span v-if="map.source.locked">Locked source · {{ map.source.membership_version }}</span>
     </div>
+    <div v-if="benchmarkFamilyKey || benchmarkCoverageLoading || benchmarkCoverageError" class="market-map-tool__benchmark-readiness" aria-label="Benchmark family canonical readiness">
+      <strong>Canonical readiness</strong>
+      <span v-if="benchmarkCoverageLoading">Checking dated holdings, weights, classifications, and member bars…</span>
+      <span v-else-if="benchmarkCoverageError" class="market-map-tool__status--error" role="alert">{{ benchmarkCoverageError }}</span>
+      <template v-else-if="benchmarkCoverage">
+        <span>{{ benchmarkCoverage.name }} · {{ coveragePercent(benchmarkCoverage.coverage, 0) }}% of roles have dated holdings</span>
+        <ul class="market-map-tool__benchmark-readiness-list">
+          <li v-for="role in benchmarkCoverage.roles" :key="role.role" :data-readiness="role.composite_readiness_status">
+            <span>{{ role.label }}{{ role.symbol ? ` (${role.symbol})` : '' }}</span>
+            <span>{{ role.composite_readiness_status }}</span>
+            <span>{{ benchmarkRoleCoverageLabel(role) }}</span>
+            <small v-if="role.composite_readiness_reasons?.length">{{ role.composite_readiness_reasons.join(' · ') }}</small>
+          </li>
+        </ul>
+      </template>
+    </div>
     <div v-if="sourceId || historyLoading || historyError" class="market-map-tool__history-status" aria-label="Market Map history readiness">
       <strong>History</strong>
       <span v-if="historyLoading">Checking local bars…</span>
@@ -273,7 +289,7 @@ import { invalidateCodeAssets } from '@/lib/workstation/libraryQueries'
 import { resolveCanonicalSymbols } from '@/lib/instruments'
 import BreadthConditionTreeEditor, { type BreadthConditionNode } from './BreadthConditionTreeEditor.vue'
 import { marketMapPythonUniverse } from '@/lib/workstation/marketMapPublication'
-import { cancelWatchlistHistoryRefreshRun, deleteMarketMapSnapshot, fetchMarketMap, fetchMarketMapSnapshot, fetchMarketMapSnapshots, fetchWatchlistHistoryRefreshRun, fetchWatchlistSourceHistoryStatus, layoutMarketMapCells, layoutMarketMapGroupsFromLayout, refreshWatchlistSourceHistory, saveMarketMapSnapshot, type MarketMapLayoutCell, type MarketMapLayoutGroup, type WatchlistHistoryRefreshRun, type WatchlistSourceHistoryStatus } from '@/lib/workstation/marketMap'
+import { cancelWatchlistHistoryRefreshRun, deleteMarketMapSnapshot, fetchBenchmarkFamilyCoverage, fetchMarketMap, fetchMarketMapSnapshot, fetchMarketMapSnapshots, fetchWatchlistHistoryRefreshRun, fetchWatchlistSourceHistoryStatus, layoutMarketMapCells, layoutMarketMapGroupsFromLayout, refreshWatchlistSourceHistory, saveMarketMapSnapshot, type BenchmarkFamilyCoverage, type BenchmarkFamilyCoverageRole, type MarketMapLayoutCell, type MarketMapLayoutGroup, type WatchlistHistoryRefreshRun, type WatchlistSourceHistoryStatus } from '@/lib/workstation/marketMap'
 import type { MarketMap, MarketMapAreaMetric, MarketMapCell, MarketMapColorMetric, MarketMapGroupBy, MarketMapNumericAreaField, MarketMapSnapshotSummary, Timeframe, WatchlistSource, WatchlistSourceKind } from '@/types'
 
 type MarketMapSort = 'area_desc' | 'color_desc' | 'symbol_asc'
@@ -380,6 +396,9 @@ const historyRefreshMessage = ref('')
 const historyRefreshError = ref('')
 const historyRun = ref<WatchlistHistoryRefreshRun | null>(null)
 const historyRunLoading = ref(false)
+const benchmarkCoverage = ref<BenchmarkFamilyCoverage | null>(null)
+const benchmarkCoverageLoading = ref(false)
+const benchmarkCoverageError = ref('')
 let historyPollTimer: ReturnType<typeof setTimeout> | null = null
 // Source changes can overlap while Golden Layout is opening/closing repeated
 // Market Map tools.  Fence each request so a slower response from the prior
@@ -414,6 +433,10 @@ const historyAsOf = computed<string | null>(() => {
   if (period.value !== 'CUSTOM' || !endDate.value) return null
   if (!POINT_IN_TIME_SOURCE_PREFIXES.some(prefix => sourceId.value.startsWith(prefix))) return null
   return `${endDate.value}T23:59:59Z`
+})
+const benchmarkFamilyKey = computed(() => {
+  const match = /^benchmark-family:([^:]+):[^:]+$/.exec(sourceId.value)
+  return match?.[1] ?? null
 })
 
 function isSourceSelectable(source: WatchlistSource): boolean {
@@ -585,6 +608,39 @@ async function loadHistoryStatus(schedulePoll = false) {
   } finally {
     historyLoading.value = false
   }
+}
+
+async function loadBenchmarkCoverage() {
+  const familyKey = benchmarkFamilyKey.value
+  if (!familyKey) {
+    benchmarkCoverage.value = null
+    benchmarkCoverageError.value = ''
+    benchmarkCoverageLoading.value = false
+    return
+  }
+  const requestSourceId = sourceId.value
+  benchmarkCoverageLoading.value = true
+  benchmarkCoverageError.value = ''
+  try {
+    const result = await fetchBenchmarkFamilyCoverage(familyKey, historyAsOf.value)
+    if (sourceId.value !== requestSourceId) return
+    benchmarkCoverage.value = result && typeof result === 'object' && Array.isArray(result.roles) ? result : null
+  } catch (cause) {
+    if (sourceId.value === requestSourceId) {
+      benchmarkCoverage.value = null
+      benchmarkCoverageError.value = cause instanceof Error ? cause.message : 'Unable to read benchmark family readiness'
+    }
+  } finally {
+    if (sourceId.value === requestSourceId) benchmarkCoverageLoading.value = false
+  }
+}
+
+function benchmarkRoleCoverageLabel(role: BenchmarkFamilyCoverageRole): string {
+  if (!role.available) return 'mapping unavailable'
+  const history = role.member_bar_history?.timeframes?.find(item => item.timeframe === timeframe.value)
+  if (history) return `${history.analysis_ready_member_count}/${history.member_count} ${history.timeframe} analysis-ready`
+  if (role.member_bar_history?.status) return role.member_bar_history.status.replace(/_/g, ' ')
+  return role.history_ready ? 'member history ready' : 'member history incomplete'
 }
 
 async function refreshHistory() {
@@ -1375,6 +1431,7 @@ watch(timeframe, () => {
   historyRefreshMessage.value = ''
   historyError.value = ''
   if (sourceId.value) void loadHistoryStatus()
+  if (benchmarkFamilyKey.value) void loadBenchmarkCoverage()
 })
 watch(sourceId, () => {
   clearHistoryPoll()
@@ -1382,14 +1439,21 @@ watch(sourceId, () => {
   historyRun.value = null
   historyRefreshMessage.value = ''
   historyError.value = ''
+  benchmarkCoverage.value = null
+  benchmarkCoverageError.value = ''
+  benchmarkCoverageLoading.value = false
   if (skipNextSourceRun.value) {
     skipNextSourceRun.value = false
-    if (sourceId.value) void loadHistoryStatus()
+    if (sourceId.value) {
+      void loadHistoryStatus()
+      void loadBenchmarkCoverage()
+    }
     return
   }
   if (sourceId.value) {
     void run()
     void loadHistoryStatus()
+    void loadBenchmarkCoverage()
   }
 })
 watch(snapshotSelectionId, () => { void loadSnapshot() })
@@ -1420,6 +1484,7 @@ onMounted(async () => {
   if (sourceId.value || explicitSymbols.value.trim()) await run()
   if (!componentMounted) return
   if (sourceId.value) await loadHistoryStatus()
+  if (sourceId.value) await loadBenchmarkCoverage()
 })
 onUnmounted(() => {
   componentMounted = false
@@ -1455,6 +1520,14 @@ onUnmounted(() => {
 .market-map-tool__history-status button { cursor: pointer; }
 .market-map-tool__history-status button:disabled { cursor: default; opacity: .55; }
 .market-map-tool__history-status--ready { color: #82e2ac; }.market-map-tool__history-status--partial,.market-map-tool__history-status--pending { color: #f7d87b; }.market-map-tool__history-status--fetching { color: #70b4ff; }.market-map-tool__history-status--failed,.market-map-tool__history-status--unavailable { color: #ff9a9a; }
+.market-map-tool__benchmark-readiness { display: grid; gap: 5px; padding: 5px 8px; color: #9eabbb; border-top: 1px solid #303a48; border-bottom: 1px solid #303a48; background: #151c25; }
+.market-map-tool__benchmark-readiness strong { color: #dce5ee; }
+.market-map-tool__benchmark-readiness-list { display: grid; gap: 3px; margin: 0; padding: 0; list-style: none; }
+.market-map-tool__benchmark-readiness-list li { display: grid; grid-template-columns: minmax(130px, 1.4fr) minmax(75px, .8fr) minmax(120px, 1fr); gap: 6px; align-items: baseline; }
+.market-map-tool__benchmark-readiness-list li[data-readiness="ready"] { color: #82e2ac; }
+.market-map-tool__benchmark-readiness-list li[data-readiness="partial"], .market-map-tool__benchmark-readiness-list li[data-readiness="pending"] { color: #f7d87b; }
+.market-map-tool__benchmark-readiness-list li[data-readiness="unavailable"] { color: #ff9a9a; }
+.market-map-tool__benchmark-readiness-list small { grid-column: 1 / -1; color: #8b98a7; }
 .market-map-tool__source-analysis-actions { padding-top: 2px; padding-bottom: 2px; }
 .market-map-tool__source-analysis-actions button, .market-map-tool__definition-actions button { cursor: pointer; }
 .market-map-tool__definition-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; padding: 2px 8px; }
