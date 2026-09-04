@@ -250,6 +250,29 @@ describe('ResearchResultsTool', () => {
     })
   })
 
+  it('promotes a completed event artifact to a Strategy signal with an explicit lineage message', async () => {
+    apiGet.mockResolvedValue([{ id: 28, status: 'completed', code_version_id: 12, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [
+      {
+        id: 17,
+        name: 'breakout_events',
+        artifact_type: 'events',
+        payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-02T00:00:00Z', kind: 'breakout', instrument_id: 7 }] },
+      },
+    ] }])
+    apiPost.mockResolvedValue({ id: 61, name: 'Breakout events signal' })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    const promoteButton = wrapper.findAll('button').find(button => button.text() === 'Save events as Strategy signal')
+    expect(promoteButton).toBeDefined()
+    await promoteButton!.trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/research/runs/28/promote-event-signal', {})
+    expect(wrapper.text()).toContain('Saved event artifact as Strategy signal “Breakout events signal” (#61)')
+    expect(wrapper.text()).toContain('Current-data re-evaluation and source lineage are preserved.')
+  })
+
   it('promotes only a completed Python breadth history and reports the lineage-preserving scan', async () => {
     apiGet.mockResolvedValue([{ id: 20, status: 'completed', code_version_id: 4, run_config: { execution_mode: 'breadth_history' }, dataset_manifest: {}, diagnostics: [], artifacts: [
       { id: 11, name: 'breadth_history', artifact_type: 'breadth_history', payload: { value: { points: [{ timestamp: '2026-01-01T00:00:00Z', percentage: 1, requested_count: 1, eligible_count: 1, pass_count: 1, excluded_count: 0, coverage: 1 }], occurrences: [] } } },

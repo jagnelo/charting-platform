@@ -1,8 +1,11 @@
 """Study Lab run lifecycle; only the isolated runner executes source."""
 
+import hashlib
+import json
 from datetime import UTC, date, datetime, time
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -12,8 +15,10 @@ from app.database import get_db
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.research import CodeAsset, CodeVersion, ResearchRun
+from app.models.strategy import StrategyDefinition, StrategyVersion
 from app.models.user import User
 from app.schemas.code import ResearchBatchResultOut, ResearchRunCreate, ResearchRunOut
+from app.schemas.strategy import StrategyDefinitionDetailOut
 from app.services.breadth import build_equal_reference_series
 from app.services.parameter_validation import validate_parameter_values
 from app.services.research_jobs import (
@@ -39,6 +44,47 @@ BATCH_HISTORY_LIMIT = 500
 MAX_HISTORY_LIMIT = 5_000
 BATCH_QUERY_SIZE = 500
 RESEARCH_ADJUSTMENTS = {"split_adjusted": True, "raw": False}
+
+
+class ResearchEventSignalPromotionRequest(BaseModel):
+    """Optional naming metadata for a lineage-preserving event promotion."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    description: str | None = Field(default=None, max_length=500)
+
+
+def _research_manifest_fingerprint(manifest: object) -> str:
+    """Fingerprint the exact persisted dataset manifest used by one research run."""
+
+    try:
+        encoded = json.dumps(
+            manifest if isinstance(manifest, dict) else {},
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+        )
+    except (TypeError, ValueError):
+        encoded = "{}"
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def _research_manifest_summary(manifest: dict) -> dict:
+    """Keep small, human-readable manifest fields beside the immutable run link."""
+
+    keys = (
+        "source",
+        "timeframe",
+        "adjustment",
+        "session",
+        "start_date",
+        "end_date",
+        "as_of",
+        "membership_version",
+        "requested_symbols",
+        "batch_history_limit",
+        "exclusions",
+    )
+    return {key: manifest[key] for key in keys if key in manifest}
 
 
 def _parse_dataset_bound(value: object, *, end: bool) -> datetime | None:
@@ -785,6 +831,173 @@ async def get_run(
     run.progress = read_research_progress(run.id)
     await db.flush()
     return run
+
+
+@router.post(
+    "/runs/{run_id}/promote-event-signal",
+    response_model=StrategyDefinitionDetailOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def promote_event_artifact_to_strategy_signal(
+    run_id: int,
+    body: ResearchEventSignalPromotionRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Promote one completed event artifact while retaining its research lineage.
+
+    This target is intentionally limited to a source CodeVersion whose declared contract is
+    ``events``.  A multi-output ``study`` that happens to contain an events artifact must use an
+    explicit adapter first; relabelling it as a signal would hide the other outputs and could
+    change the runner's contract.  Strategy execution re-evaluates the immutable source code on
+    current canonical data, so the originating run's manifest and reproducibility hash are
+    disclosed as lineage rather than misrepresented as a snapshot replay.
+    """
+    run = (
+        await db.execute(
+            select(ResearchRun)
+            .options(
+                selectinload(ResearchRun.artifacts),
+                selectinload(ResearchRun.code_version).selectinload(CodeVersion.asset),
+            )
+            .where(ResearchRun.id == run_id, ResearchRun.user_id == current_user.id)
+        )
+    ).scalar_one_or_none()
+    if run is None:
+        raise HTTPException(status_code=404, detail="Research run not found")
+    if run.status != "completed":
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "research_signal_promotion_requires_completed_run",
+                "status": run.status,
+            },
+        )
+    event_artifact = next(
+        (item for item in run.artifacts if item.artifact_type == "events"),
+        None,
+    )
+    if event_artifact is None:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "research_signal_promotion_events_artifact_required",
+                "message": "The completed run does not contain an events artifact.",
+            },
+        )
+    event_value = (
+        event_artifact.payload.get("value") if isinstance(event_artifact.payload, dict) else None
+    )
+    if not isinstance(event_value, list):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "research_signal_promotion_events_artifact_invalid",
+                "message": "The events artifact does not contain a persisted event list.",
+            },
+        )
+    source_version = run.code_version
+    source_asset = source_version.asset if source_version is not None else None
+    if (
+        source_version is None
+        or source_asset is None
+        or source_asset.user_id != current_user.id
+        or source_asset.is_archived
+        or source_asset.kind not in {"signal", "study"}
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "research_signal_promotion_source_unavailable"},
+        )
+    if source_version.output_contract != "events":
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "research_signal_promotion_requires_events_contract",
+                "message": "Only an events CodeVersion can be promoted directly to a Strategy signal; multi-output studies require an explicit adapter.",
+                "output_contract": source_version.output_contract,
+            },
+        )
+
+    base_name = body.name or f"{source_asset.name} Events Signal"
+    name = base_name[:120]
+    suffix = 2
+    while (
+        await db.execute(
+            select(func.count())
+            .select_from(StrategyDefinition)
+            .where(
+                StrategyDefinition.user_id == current_user.id,
+                func.lower(StrategyDefinition.name) == name.lower(),
+            )
+        )
+    ).scalar_one():
+        suffix_text = f" ({suffix})"
+        name = f"{base_name[:120 - len(suffix_text)]}{suffix_text}"
+        suffix += 1
+
+    manifest = run.dataset_manifest if isinstance(run.dataset_manifest, dict) else {}
+    run_config = run.run_config if isinstance(run.run_config, dict) else {}
+    lineage = {
+        "origin": "research_run_event_promotion",
+        "source_run_id": run.id,
+        "source_code_asset_id": source_asset.id,
+        "source_code_version_id": source_version.id,
+        "source_artifact_id": event_artifact.id,
+        "source_artifact_name": event_artifact.name,
+        "source_reproducibility_hash": run.reproducibility_hash,
+        "source_dataset_manifest_sha256": _research_manifest_fingerprint(manifest),
+        "source_dataset_manifest": _research_manifest_summary(manifest),
+        "source_run_config": run_config,
+        "output_contract": source_version.output_contract,
+        "semantics": "re_evaluate_current_data_event_source",
+        "point_in_time_source_preserved": False,
+    }
+    strategy = StrategyDefinition(
+        user_id=current_user.id,
+        name=name,
+        description=body.description
+        or f"Event signal promoted from research run #{run.id}; current-data re-evaluation and source lineage are explicit.",
+        source_type="custom",
+        definition_type="python",
+        is_active=True,
+        tags=["study-lab", "python-signal", "events"],
+        metadata_json={**lineage, "code_version_id": source_version.id},
+    )
+    strategy.versions.append(
+        StrategyVersion(
+            version_number=1,
+            definition_snapshot={
+                "kind": "python_event_signal",
+                "code_version_id": source_version.id,
+                "output_contract": "events",
+                "source_run_id": run.id,
+                "source_artifact_name": event_artifact.name,
+                "source_dataset_manifest_sha256": lineage["source_dataset_manifest_sha256"],
+                "semantics": lineage["semantics"],
+            },
+            parameter_schema=source_version.parameter_schema or {},
+            default_parameters=source_version.default_parameters or {},
+            notes="Event artifact promoted from a completed research run; execution re-evaluates current canonical data.",
+            is_current=True,
+        )
+    )
+    db.add(strategy)
+    await db.commit()
+    return (
+        await db.execute(
+            select(StrategyDefinition)
+            .options(
+                selectinload(StrategyDefinition.versions),
+                selectinload(StrategyDefinition.run_batches),
+                selectinload(StrategyDefinition.runs),
+            )
+            .where(
+                StrategyDefinition.id == strategy.id,
+                StrategyDefinition.user_id == current_user.id,
+            )
+        )
+    ).scalar_one()
 
 
 @router.get("/runs/{run_id}/batch-results", response_model=ResearchBatchResultOut)

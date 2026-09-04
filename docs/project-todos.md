@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-04 — Persisted event artifacts promote to Strategy signals
+
+- [x] Add a user-scoped promotion endpoint for completed runs whose immutable CodeVersion
+      contract is `events`. The Strategy definition/version retains the source run, code asset/version,
+      event artifact, reproducibility hash, compact dataset-manifest summary and fingerprint, run
+      configuration, and explicit current-data re-evaluation semantics. Multi-output `study` versions
+      are rejected rather than silently relabelled as signals.
+- [x] Surface the promotion action in Research Results only when a completed run contains an events
+      artifact, and report the created Strategy signal plus its lineage semantics. Frontend Vitest
+      passes `930/930`, type-check/build pass, backend units pass `1,307/1,307`, Ruff/format,
+      compileall, and diff checks pass. The Docker-backed integration regression is present but could
+      not start because the local Docker daemon was unavailable.
+- [ ] Continue occurrence promotion across compatible chart/list/filter/gauge, alert, and Study Lab
+      targets, and rerun the backend integration regression when Docker is available.
+
 ### 2026-09-04 — Research Results filters generic event artifacts
 
 - [x] Apply the persisted Research Results occurrence controls to generic `events` artifacts as
@@ -10,7 +25,8 @@
       timestamp, kind, and canonical instrument ID when present. The focused component regression,
       full frontend Vitest suite (`929/929`), type-check, production build, and diff checks pass.
 - [ ] Continue occurrence promotion for event artifacts into compatible chart/list/filter/gauge,
-      alert, Study Lab, and Strategy Lab targets with source-run and dataset lineage preserved.
+      alert, and Study Lab targets with source-run and dataset lineage preserved; the direct
+      Strategy Lab signal target is now covered by the section above.
 
 ### 2026-09-04 — Python breadth reference-universe comparison slice
 

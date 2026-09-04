@@ -1,4 +1,102 @@
 class TestStrategyLabAPI:
+    def test_research_event_artifact_promotes_with_lineage(self, client, auth_headers, db, user):
+        import hashlib
+        import json
+
+        from app.models.research import CodeAsset, CodeVersion, ResearchArtifact, ResearchRun
+
+        manifest = {
+            "source": "canonical_database",
+            "instrument_ids": [7],
+            "timeframe": "D1",
+            "as_of": "2026-01-03T00:00:00Z",
+        }
+        asset = CodeAsset(
+            user_id=user.id,
+            stable_key="event-run-promotion",
+            name="Breakout Study",
+            kind="study",
+        )
+        db.add(asset)
+        db.flush()
+        version = CodeVersion(
+            code_asset_id=asset.id,
+            version_number=1,
+            source="output.events('breakout', [])",
+            output_contract="events",
+            parameter_schema={"lookback": {"type": "integer"}},
+            default_parameters={"lookback": 20},
+        )
+        db.add(version)
+        db.flush()
+        run = ResearchRun(
+            user_id=user.id,
+            code_version_id=version.id,
+            status="completed",
+            run_config={"symbols": ["SPY"], "timeframe": "D1"},
+            dataset_manifest=manifest,
+            reproducibility_hash="run-hash",
+        )
+        run.artifacts.append(
+            ResearchArtifact(
+                artifact_type="events",
+                name="breakout_events",
+                payload={
+                    "value": [
+                        {
+                            "symbol": "SPY",
+                            "timestamp": "2026-01-02T00:00:00Z",
+                            "kind": "breakout",
+                            "instrument_id": 7,
+                        }
+                    ]
+                },
+            )
+        )
+        db.add(run)
+        db.flush()
+
+        response = client.post(
+            f"/api/v1/research/runs/{run.id}/promote-event-signal",
+            headers=auth_headers,
+            json={"name": "Promoted event signal", "description": "Event lineage test"},
+        )
+
+        assert response.status_code == 201, response.text
+        payload = response.json()
+        assert payload["name"] == "Promoted event signal"
+        assert payload["definition_type"] == "python"
+        metadata = payload["metadata"]
+        assert metadata["origin"] == "research_run_event_promotion"
+        assert metadata["source_run_id"] == run.id
+        assert metadata["source_code_asset_id"] == asset.id
+        assert metadata["source_code_version_id"] == version.id
+        assert metadata["source_artifact_name"] == "breakout_events"
+        assert metadata["source_reproducibility_hash"] == "run-hash"
+        assert (
+            metadata["source_dataset_manifest_sha256"]
+            == hashlib.sha256(
+                json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode()
+            ).hexdigest()
+        )
+        assert metadata["source_dataset_manifest"] == {
+            "source": "canonical_database",
+            "timeframe": "D1",
+            "as_of": "2026-01-03T00:00:00Z",
+        }
+        assert metadata["source_run_config"] == {"symbols": ["SPY"], "timeframe": "D1"}
+        assert metadata["semantics"] == "re_evaluate_current_data_event_source"
+        assert metadata["point_in_time_source_preserved"] is False
+        assert payload["versions"][0]["definition_snapshot"] == {
+            "kind": "python_event_signal",
+            "code_version_id": version.id,
+            "output_contract": "events",
+            "source_run_id": run.id,
+            "source_artifact_name": "breakout_events",
+            "source_dataset_manifest_sha256": metadata["source_dataset_manifest_sha256"],
+            "semantics": "re_evaluate_current_data_event_source",
+        }
+
     def test_study_code_version_can_be_reused_as_strategy_signal(self, client, auth_headers):
         asset_res = client.post(
             "/api/v1/code/assets",
