@@ -2961,3 +2961,21 @@ now cover 31 explicit non-Tier-0 symbols; remaining symbols stay identity-level
 `unknown` until individually investigated. AC10 remains dependent on
 provider-platform staging, and AC14 still requires production shadow
 observations and human closure authorization.
+
+## Fourth ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+This slice binds CHRG (Elements), USSE (the misattributed Emirate of Abu Dhabi
+identity), and AIEQ/AWAY/BDRY/BWET (the historical ETF Managers Group identity)
+to explicit `not_applicable` outcomes. CHRG's official liquidation evidence and
+the absence of a current successor route make it inactive; SEC and CI SBH
+evidence show that USSE belongs to the separately tracked Segall Bryant &
+Hamill/CI SBH publisher; and Amplify's acquisition evidence shows that ETFMG's
+funds moved to successor sponsors. No duplicate provider route is promoted, and
+the actual successor identities remain subject to their own evidence.
+
+The runtime symbol-audit map, YAML `symbol_audit_ledger`, documentation, and
+parity tests are updated together. The four ranked cohorts now cover 37 explicit
+non-Tier-0 symbols; remaining symbols stay identity-level `unknown` until
+individually investigated. AC10 remains dependent on provider-platform
+staging, and AC14 still requires production shadow observations and human
+closure authorization.

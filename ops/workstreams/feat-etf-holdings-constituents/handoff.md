@@ -2576,3 +2576,22 @@ fallback symbols retain the identity-level `unknown` boundary until their own
 symbol-scoped evidence is recorded. AC10 remains gated on the separate
 provider-platform staging merge, and AC14 remains a post-integration,
 production-observation gate requiring human closure authorization.
+
+## Fourth ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+The next ranked symbol-bearing identities are now explicit in runtime and the
+durable ledger: CHRG (Elements), USSE under the misattributed Emirate of Abu
+Dhabi identity, and AIEQ/AWAY/BDRY/BWET under the historical ETF Managers Group
+identity. All six are `not_applicable`. CHRG is liquidated and has no current
+successor holdings route; USSE is owned by the separately tracked Segall Bryant
+& Hamill/CI SBH publisher rather than the Emirate identity; and ETFMG's funds
+were transferred to Amplify or other successor sponsors. These records prevent
+duplicate native ownership and do not mark the actual successor routes as
+supported. Dated issuer/SEC evidence and bounded reconciliation actions are
+retained for every symbol.
+
+The four ranked cohorts now cover 37 explicit non-Tier-0 symbols. Remaining
+fallback symbols retain the identity-level `unknown` boundary until their own
+symbol-scoped evidence is recorded. AC10 remains gated on provider-platform
+staging and AC14 remains a post-integration production-observation gate
+requiring human closure authorization.
