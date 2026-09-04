@@ -55,19 +55,21 @@ identities can be explicitly `not_applicable`, while blocked or incomplete
 routes remain unavailable or unknown until a bounded canary supplies fresh
 evidence.
 
-The first ranked fallback cohort now has explicit symbol-level records in the
-branch ledger under `symbol_audit_ledger`: TALV/TABD (Aegon/Transamerica), ADFI
-(Anfield), GAUD/GAID (Guinness Atkinson), UDIV/UDEF/GEDG (Manulife), QVOY (Q3),
-ACVF (Ridgeline identity), MDST (Westwood), and SPDV/BDIV/TRFM/PFLD (Advisors
-Asset Management). Their dated issuer-specific evidence currently classifies
-blocked or incomplete routes as `unavailable`, the closed ADFI product as
-`not_applicable`, and the Ridgeline identity for ACVF as `not_applicable`
-because ACV is the identified holdings publisher. These outcomes are
-non-usable and include evidence references plus the next re-test or identity
-reconciliation action; they do not promote a generic fallback or SEC filing to
-current support. The remaining fallback symbols stay in the explicit
-identity-level `unknown` boundary until their own symbol-scoped investigation
-is recorded.
+The ranked fallback cohorts now have explicit symbol-level records in the
+branch ledger under `symbol_audit_ledger`. The first cohort covers TALV/TABD
+(Aegon/Transamerica), ADFI (Anfield), GAUD/GAID (Guinness Atkinson),
+UDIV/UDEF/GEDG (Manulife), QVOY (Q3), ACVF (Ridgeline identity), MDST
+(Westwood), and SPDV/BDIV/TRFM/PFLD (Advisors Asset Management). The follow-on
+cohort covers ALFA/ALFS/ALFD/ALFV (AlphaClone), SMCP (AlphaMark), AAAA
+(Amplius), NDOW (Anydrus), AMID/ABIG/ALIL (Argent), and ATTR (Arin). Their
+dated issuer-specific evidence classifies blocked or incomplete routes as
+`unavailable`, inactive or successor-dependent products as `not_applicable`,
+and the Ridgeline identity for ACVF as `not_applicable` because ACV is the
+identified holdings publisher. These outcomes are non-usable and include
+evidence references plus the next re-test or identity reconciliation action;
+they do not promote a generic fallback or SEC filing to current support. The
+remaining fallback symbols stay in the explicit identity-level `unknown`
+boundary until their own symbol-scoped investigation is recorded.
 
 The current checkpoint promotes `guggenheim` through its public issuer-hosted
 ETF holdings table, reconciles `ars` to the existing ARS Investment Partners

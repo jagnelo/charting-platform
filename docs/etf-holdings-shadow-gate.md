@@ -44,7 +44,7 @@ counts, success rate, per-symbol freshness streaks, missing-symbol coverage,
 and violation details.
 
 The same capability response carries dated `symbol_audit.evidence_refs` for
-the Tier 0 ledger and the first ranked Tier 1 fallback cohort. Those references
+the Tier 0 ledger and the ranked Tier 1 fallback cohorts processed so far. Those references
 are explanatory audit evidence only: an `unavailable`, `not_applicable`, or
 `unknown` audit outcome remains non-usable for current analysis, even if a
 stored snapshot or SEC reconstruction is present. New cohort entries must be

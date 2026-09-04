@@ -257,6 +257,41 @@ def test_ranked_fallback_terminal_symbol_is_not_applicable():
     assert result.evidence_state == "inactive_or_successor_disposition"
 
 
+def test_follow_on_ranked_fallback_terminal_symbol_preserves_successor_evidence():
+    result = symbol_audit_for_profile(profile_with_symbol("ALFA", "alphaclone"))
+
+    assert result.tier == 1
+    assert result.outcome == "not_applicable"
+    assert result.evidence_state == "inactive_or_successor_disposition"
+    assert result.provider_identity == "alphaclone"
+    assert result.investigated_at == date(2026, 9, 2)
+    assert result.evidence_refs == ("web:alphaclone-domain-unrelated-content-2026-09-02",)
+
+
+def test_follow_on_ranked_fallback_blocked_symbol_remains_unavailable():
+    result = symbol_audit_for_profile(profile_with_symbol("AAAA", "amplius"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "issuer_route_access_blocked"
+    assert result.provider_identity == "amplius"
+    assert result.evidence_refs == ("web:amplius-aaaa-holdings-cloudflare-2026-09-02",)
+
+
+def test_follow_on_ranked_fallback_non_executable_symbol_is_not_current():
+    result = evaluate_capability(
+        profile_with_symbol("NDOW", "anydrus"),
+        snapshot(),
+        state(),
+        now=NOW,
+    )
+
+    assert result.availability == UNAVAILABLE
+    assert result.usable_for_current_analysis is False
+    assert result.symbol_audit.outcome == UNAVAILABLE
+    assert result.symbol_audit.evidence_state == "non_executable_public_source"
+
+
 def test_unreviewed_fallback_symbol_cannot_be_marked_current_from_a_snapshot_alone():
     result = evaluate_capability(
         profile_with_symbol("BGGG", "baillie_gifford"),

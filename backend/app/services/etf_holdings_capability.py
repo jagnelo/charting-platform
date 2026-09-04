@@ -470,6 +470,79 @@ _register_non_tier_0_audits(
         "bounded live coverage."
     ),
 )
+_register_non_tier_0_audits(
+    ("ALFA", "ALFS", "ALFD", "ALFV"),
+    outcome=NOT_APPLICABLE,
+    evidence_state="inactive_or_successor_disposition",
+    provider_identity="alphaclone",
+    investigated_at=date(2026, 9, 2),
+    evidence_refs=("web:alphaclone-domain-unrelated-content-2026-09-02",),
+    next_action=(
+        "Confirm liquidation or successor disposition for the historical AlphaClone symbols "
+        "through current fund records; reopen only if a legitimate successor publishes "
+        "complete holdings."
+    ),
+)
+_register_non_tier_0_audits(
+    ("SMCP",),
+    outcome=NOT_APPLICABLE,
+    evidence_state="inactive_or_successor_disposition",
+    provider_identity="alphamark_advisors",
+    investigated_at=date(2026, 9, 2),
+    evidence_refs=("web:alphamark-redirect-2026-09-02",),
+    next_action=(
+        "Verify whether EP Wealth publishes a current complete SMCP successor holdings route; "
+        "promote only after a stable issuer-owned executable artifact and live parser evidence exist."
+    ),
+)
+_register_non_tier_0_audits(
+    ("AAAA",),
+    outcome=UNAVAILABLE,
+    evidence_state="issuer_route_access_blocked",
+    provider_identity="amplius",
+    investigated_at=date(2026, 9, 2),
+    evidence_refs=("web:amplius-aaaa-holdings-cloudflare-2026-09-02",),
+    next_action=(
+        "Re-test the issuer page or identify an issuer-published machine-readable route that is "
+        "executable without browser challenge state; promote only after fixture and bounded live evidence."
+    ),
+)
+_register_non_tier_0_audits(
+    ("NDOW",),
+    outcome=UNAVAILABLE,
+    evidence_state="non_executable_public_source",
+    provider_identity="anydrus",
+    investigated_at=date(2026, 9, 2),
+    evidence_refs=("web:anydrus-ndow-placeholder-holdings-2026-09-02",),
+    next_action=(
+        "Re-test the NDOW page for a populated complete download; promote only after current rows, "
+        "symbol mapping, parser fixtures, and bounded live evidence are available."
+    ),
+)
+_register_non_tier_0_audits(
+    ("AMID", "ABIG", "ALIL"),
+    outcome=UNAVAILABLE,
+    evidence_state="issuer_route_access_blocked",
+    provider_identity="argent",
+    investigated_at=date(2026, 9, 2),
+    evidence_refs=("web:argent-etf-holdings-cloudflare-2026-09-02",),
+    next_action=(
+        "Re-test symbol-scoped pages or identify an issuer-published machine-readable export accessible "
+        "without challenge state; promote only after parser and bounded live evidence."
+    ),
+)
+_register_non_tier_0_audits(
+    ("ATTR",),
+    outcome=UNAVAILABLE,
+    evidence_state="issuer_route_access_blocked",
+    provider_identity="arin",
+    investigated_at=date(2026, 9, 2),
+    evidence_refs=("web:arin-attr-holdings-cloudflare-2026-09-02",),
+    next_action=(
+        "Re-test the ATTR page or identify an issuer-published machine-readable export accessible "
+        "without challenge state; promote only after parser and bounded live evidence."
+    ),
+)
 
 
 def symbol_audit_for_profile(profile: ETFProfile) -> ETFHoldingsSymbolAudit:

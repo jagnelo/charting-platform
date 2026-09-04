@@ -106,7 +106,7 @@ symbol_priority_ledger:
       evidence_state: route_requires_bounded_canary
       next_action: "Run the opt-in F/m symbol-scoped canary and record source, schema, completeness, and freshness evidence."
 symbol_audit_ledger:
-  policy: "Tier 1 records are explicit symbol-scoped outcomes for the first ranked fallback cohort. They carry issuer-specific dated evidence and never promote a symbol to current support; unavailable and not-applicable outcomes remain non-usable until a new investigation proves otherwise."
+  policy: "Tier 1 records are explicit symbol-scoped outcomes for the ranked fallback cohorts processed so far. They carry issuer-specific dated evidence and never promote a symbol to current support; unavailable and not-applicable outcomes remain non-usable until a new investigation proves otherwise."
   symbols:
     - symbol: TALV
       tier: 1
@@ -228,6 +228,94 @@ symbol_audit_ledger:
       investigated_at: 2026-09-02
       evidence_refs: [web:aam-etf-detail-empty-backend-response-2026-09-02]
       next_action: "Re-test AAM's symbol-scoped detail/export route from an allowed network path; promote only after capturing a complete artifact, mapping symbols, and adding parser plus bounded live coverage."
+    - symbol: ALFA
+      tier: 1
+      provider_identity: alphaclone
+      current_outcome: not_applicable
+      evidence_state: inactive_or_successor_disposition
+      investigated_at: 2026-09-02
+      evidence_refs: [web:alphaclone-domain-unrelated-content-2026-09-02]
+      next_action: "Confirm liquidation or successor disposition for the historical AlphaClone symbols through current fund records; reopen only if a legitimate successor publishes complete holdings."
+    - symbol: ALFS
+      tier: 1
+      provider_identity: alphaclone
+      current_outcome: not_applicable
+      evidence_state: inactive_or_successor_disposition
+      investigated_at: 2026-09-02
+      evidence_refs: [web:alphaclone-domain-unrelated-content-2026-09-02]
+      next_action: "Confirm liquidation or successor disposition for the historical AlphaClone symbols through current fund records; reopen only if a legitimate successor publishes complete holdings."
+    - symbol: ALFD
+      tier: 1
+      provider_identity: alphaclone
+      current_outcome: not_applicable
+      evidence_state: inactive_or_successor_disposition
+      investigated_at: 2026-09-02
+      evidence_refs: [web:alphaclone-domain-unrelated-content-2026-09-02]
+      next_action: "Confirm liquidation or successor disposition for the historical AlphaClone symbols through current fund records; reopen only if a legitimate successor publishes complete holdings."
+    - symbol: ALFV
+      tier: 1
+      provider_identity: alphaclone
+      current_outcome: not_applicable
+      evidence_state: inactive_or_successor_disposition
+      investigated_at: 2026-09-02
+      evidence_refs: [web:alphaclone-domain-unrelated-content-2026-09-02]
+      next_action: "Confirm liquidation or successor disposition for the historical AlphaClone symbols through current fund records; reopen only if a legitimate successor publishes complete holdings."
+    - symbol: SMCP
+      tier: 1
+      provider_identity: alphamark_advisors
+      current_outcome: not_applicable
+      evidence_state: inactive_or_successor_disposition
+      investigated_at: 2026-09-02
+      evidence_refs: [web:alphamark-redirect-2026-09-02]
+      next_action: "Verify whether EP Wealth publishes a current complete SMCP successor holdings route; promote only after a stable issuer-owned executable artifact and live parser evidence exist."
+    - symbol: AAAA
+      tier: 1
+      provider_identity: amplius
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-02
+      evidence_refs: [web:amplius-aaaa-holdings-cloudflare-2026-09-02]
+      next_action: "Re-test the issuer page or identify an issuer-published machine-readable route that is executable without browser challenge state; promote only after fixture and bounded live evidence."
+    - symbol: NDOW
+      tier: 1
+      provider_identity: anydrus
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-02
+      evidence_refs: [web:anydrus-ndow-placeholder-holdings-2026-09-02]
+      next_action: "Re-test the NDOW page for a populated complete download; promote only after current rows, symbol mapping, parser fixtures, and bounded live evidence are available."
+    - symbol: AMID
+      tier: 1
+      provider_identity: argent
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-02
+      evidence_refs: [web:argent-etf-holdings-cloudflare-2026-09-02]
+      next_action: "Re-test symbol-scoped pages or identify an issuer-published machine-readable export accessible without challenge state; promote only after parser and bounded live evidence."
+    - symbol: ABIG
+      tier: 1
+      provider_identity: argent
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-02
+      evidence_refs: [web:argent-etf-holdings-cloudflare-2026-09-02]
+      next_action: "Re-test symbol-scoped pages or identify an issuer-published machine-readable export accessible without challenge state; promote only after parser and bounded live evidence."
+    - symbol: ALIL
+      tier: 1
+      provider_identity: argent
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-02
+      evidence_refs: [web:argent-etf-holdings-cloudflare-2026-09-02]
+      next_action: "Re-test symbol-scoped pages or identify an issuer-published machine-readable export accessible without challenge state; promote only after parser and bounded live evidence."
+    - symbol: ATTR
+      tier: 1
+      provider_identity: arin
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-02
+      evidence_refs: [web:arin-attr-holdings-cloudflare-2026-09-02]
+      next_action: "Re-test the ATTR page or identify an issuer-published machine-readable export accessible without challenge state; promote only after parser and bounded live evidence."
 providers:
   - adapter_key: aegon
     display_name: aegon
