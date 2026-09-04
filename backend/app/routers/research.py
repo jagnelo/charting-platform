@@ -683,6 +683,12 @@ async def _materialize_declared_dataset(
             result["benchmark_coverage"] = benchmark_dataset
         if reference_dataset is not None:
             result["reference_coverage"] = reference_dataset
+        if comparison_dataset is not None and comparison_dataset.get("status") == "ready":
+            # Batch members consume the selected comparison source through the
+            # per-member ``benchmark_dataset`` field, while callers also need
+            # the same immutable source at the manifest level for inspection
+            # and provenance assertions.
+            result["benchmark_dataset"] = comparison_dataset
         return result
     symbol = str(run_config.get("symbol") or manifest.get("symbol") or "").upper()
     if not symbol:

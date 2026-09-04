@@ -7474,7 +7474,14 @@ async def queue_python_breadth(
             if body.reference_universe is not None
             else None
         ),
-        "reference_instrument_ids": reference_member_ids,
+        # Keep the absence of a reference universe distinct from an explicitly
+        # declared (possibly unavailable) reference universe.  The dataset
+        # materializer uses ``None`` to select the ordinary benchmark path;
+        # passing the default empty list otherwise creates an unavailable
+        # reference dataset that shadows a ready benchmark dataset.
+        "reference_instrument_ids": (
+            reference_member_ids if body.reference_universe is not None else None
+        ),
         "reference_target": reference_provenance,
     }
     from app.routers.research import _materialize_declared_dataset
