@@ -2924,6 +2924,15 @@ test.describe('TC2000 workstation', () => {
         reproducibility_hash: 'sha256:breadth-plot',
         artifact_count: 0,
         artifacts: [],
+      }, {
+        id: 884,
+        status: 'completed',
+        code_version_id: 884,
+        run_config: { execution_mode: 'study', output_contract: 'events', symbol: 'SPY' },
+        dataset_manifest: { source: 'canonical_database', timeframe: 'D1' },
+        reproducibility_hash: 'sha256:event-signal',
+        artifact_count: 1,
+        artifacts: [{ id: 4, name: 'breakout_events', artifact_type: 'events', payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-02', kind: 'breakout' }] } }],
       }]) })
     })
     await page.route(/\/api\/v1\/research\/runs\/883$/, async route => {
@@ -2938,11 +2947,26 @@ test.describe('TC2000 workstation', () => {
         artifacts: [],
       }) })
     })
+    await page.route(/\/api\/v1\/research\/runs\/884$/, async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        id: 884,
+        status: 'completed',
+        code_version_id: 884,
+        run_config: { execution_mode: 'study', output_contract: 'events', symbol: 'SPY' },
+        dataset_manifest: { source: 'canonical_database', timeframe: 'D1' },
+        reproducibility_hash: 'sha256:event-signal',
+        artifact_count: 1,
+        artifacts: [{ id: 4, name: 'breakout_events', artifact_type: 'events', payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-02', kind: 'breakout' }] } }],
+      }) })
+    })
     await page.route(/\/api\/v1\/analysis\/breadth\/python\/runs\/883\/promote-plot$/, async route => {
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 41, name: 'Member breadth plot 883', kind: 'plot', versions: [{ id: 41, output_contract: 'series', diagnostics: [] }] }) })
     })
     await page.route(/\/api\/v1\/analysis\/breadth\/python\/runs\/883\/promote-column$/, async route => {
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 42, name: 'Member breadth column 883', kind: 'column', versions: [{ id: 42, output_contract: 'scalar', diagnostics: [{ output_adapter: 'latest_series_to_scalar' }] }] }) })
+    })
+    await page.route(/\/api\/v1\/research\/runs\/884\/promote-event-signal$/, async route => {
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 43, name: 'Breakout events signal' }) })
     })
     await page.goto('/chart')
     await expect(page.locator('.workstation')).toBeVisible()
@@ -2967,6 +2991,10 @@ test.describe('TC2000 workstation', () => {
     await expect(results).toContainText('Chart plot “Member breadth plot 883” (#41) created')
     await results.getByRole('button', { name: 'Save as watchlist column' }).click()
     await expect(results).toContainText('Watchlist column “Member breadth column 883” (#42) created')
+    await results.locator('.research-results-tool__run').filter({ hasText: 'Run #884' }).click()
+    await expect(results.getByRole('button', { name: 'Save events as Strategy signal' })).toBeVisible()
+    await results.getByRole('button', { name: 'Save events as Strategy signal' }).click()
+    await expect(results).toContainText('Saved event artifact as Strategy signal “Breakout events signal” (#43)')
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
