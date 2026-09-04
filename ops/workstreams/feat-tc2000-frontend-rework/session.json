@@ -51,9 +51,7 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [
-    "ps/workstreams/feat-tc2000-frontend-rework/session.json"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -89,9 +87,9 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "ce43f7f5a6af75f0d047360c2bee7e793627e4a6",
-  "implementation_sha": "ce43f7f5a6af75f0d047360c2bee7e793627e4a6",
-  "last_checkpoint": "2026-09-04T00:48:45.904573+00:00",
+  "head": "67006e1d7bac7cb62d71781452f07ed268a22790",
+  "implementation_sha": "f6068a06a282dcebfefb819136be0c1cced1027a",
+  "last_checkpoint": "2026-09-04T00:56:16.375952+00:00",
   "last_human_progress_update": "2026-09-04T00:49:03.633833+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
@@ -107,7 +105,7 @@
     "total": 10,
     "updated_at": "2026-09-04T00:49:03.633707+00:00"
   },
-  "remote": "ce43f7f5a6af75f0d047360c2bee7e793627e4a6",
+  "remote": "67006e1d7bac7cb62d71781452f07ed268a22790",
   "remote_sha": "ce43f7f5a6af75f0d047360c2bee7e793627e4a6",
   "remote_synchronized": true,
   "schema": 2,
