@@ -74,7 +74,7 @@ class RelativeRotationOut(AnalysisResponseMetadata):
     sampling: int = Field(default=1, ge=1, le=30)
     lookback: int
     tail_length: int
-    history_length: int = Field(default=0, ge=0, le=1000)
+    history_length: int = Field(default=0, ge=0, le=5_000)
     membership_version: int
     universe_provenance: dict[str, object] = Field(default_factory=dict)
     rows: list[RelativeRotationRow]
@@ -115,7 +115,7 @@ class BenchmarkFamilyRotationOut(AnalysisResponseMetadata):
     sampling: int = Field(default=1, ge=1, le=30)
     lookback: int
     tail_length: int
-    history_length: int = Field(default=0, ge=0, le=1000)
+    history_length: int = Field(default=0, ge=0, le=5_000)
     membership_version: int
     universe_provenance: dict[str, object] = Field(default_factory=dict)
     roles: list[BenchmarkFamilyRotationRoleOut] = Field(default_factory=list)

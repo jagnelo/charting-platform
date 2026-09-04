@@ -1678,7 +1678,7 @@ async def benchmark_family_relative_rotation(
     sampling: int = Query(default=1, ge=1, le=30),
     lookback: int = Query(default=20, ge=2, le=252),
     tail_length: int = Query(default=10, ge=1, le=100),
-    history_length: int = Query(default=0, ge=0, le=1000),
+    history_length: int = Query(default=0, ge=0, le=5_000),
     _: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -1871,7 +1871,7 @@ async def group_relative_rotation(
     sampling: int = Query(default=1, ge=1, le=30),
     lookback: int = Query(default=20, ge=2, le=252),
     tail_length: int = Query(default=10, ge=1, le=100),
-    history_length: int = Query(default=0, ge=0, le=1000),
+    history_length: int = Query(default=0, ge=0, le=5_000),
     _: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):

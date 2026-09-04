@@ -2639,6 +2639,19 @@ class TestWorkspaces:
         assert len(row["history"]) == 8
         assert row["coverage"] == 1
 
+        extended = client.get(
+            "/api/v1/analysis/groups/breadth-history-test/relative-rotation",
+            headers=auth_headers,
+            params={
+                "benchmark": instrument.symbol,
+                "lookback": 20,
+                "tail_length": 3,
+                "history_length": 1001,
+            },
+        )
+        assert extended.status_code == 200
+        assert extended.json()["history_length"] == 1001
+
     def test_relative_rotation_respects_point_in_time_membership_and_bars(
         self, client, auth_headers, db, instrument, ohlcv_bars
     ):

@@ -68,6 +68,13 @@ describe('RelativeRotationTool', () => {
     expect(wrapper.text()).toContain('120 history points')
   })
 
+  it('accepts an extended history window above the former thousand-point cap', async () => {
+    vi.mocked(api.get).mockResolvedValue({ freshness: 'current', rows: [] })
+    const wrapper = mountTool({ props: { configuration: { history_length: 1200 } } })
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/relative-rotation', expect.objectContaining({ history_length: 1200 })))
+    expect(wrapper.find('input[aria-label="Rotation history length"]').element).toHaveProperty('value', '1200')
+  })
+
   it('uses the benchmark-family role rotation contract without borrowing SPY', async () => {
     vi.mocked(api.get).mockResolvedValue({ freshness: 'coverage_limited', benchmark: 'MDY', roles: [
       { role: 'cap_weight', instrument_id: 1, symbol: 'MDY', label: 'MDY', verification_state: 'verified', available: true, state: 'leading', trend: 0, momentum: 0, coverage: 1, tail: [] },

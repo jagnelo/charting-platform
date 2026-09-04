@@ -741,3 +741,17 @@ available. The focused integration test passes `1/1`, the full watchlist integra
 call, fallback oracle, visual threshold, baseline, mask, or other worktree was changed. The
 remaining canonical provider/history gaps and six unchanged visual diffs remain open for the next
 bounded slice.
+
+## 2026-09-04 — Relative Rotation supports extended bounded history
+
+The family and generic group relative-rotation contracts now accept up to `5,000` requested history
+points instead of rejecting values above `1,000`. The response schemas, query validation, and
+workstation History control share the same bounded ceiling; the existing shorter tail remains
+independent, and aligned/as-of/no-forward-fill semantics are unchanged. This makes long historical
+curves usable while retaining a hard response-size bound.
+
+The Docker-backed rotation regression accepts `history_length=1001`, the focused router unit slice
+passes `2/2`, and the focused Relative Rotation component suite passes `9/9`. Frontend type-check
+and the 490-module production build pass (only the existing large-chunk warning remains); Ruff and
+diff checks pass. No visual oracle, provider rule, fallback, or protected worktree changed. Exact
+V25 long-curve geometry and canonical family history remain open.
