@@ -47,6 +47,17 @@
   ],
   "active_session_id": "f8c05214-15b2-4724-af76-e65b53440639",
   "branch": "feat/market-data-provider-platform",
+  "claim": {
+    "branch": "feat/market-data-provider-platform",
+    "displaced_session_id": "3761b3fd-d526-4630-a0e4-47d630f3d50c",
+    "host": "Joaos-MacBook-Air-M4.local",
+    "session_id": "f8c05214-15b2-4724-af76-e65b53440639",
+    "started_at": "2026-09-04T16:12:46.563261+00:00",
+    "taken_over_at": "2026-09-04T16:15:49.067134+00:00",
+    "takeover_request": "Human authorized implementation in the current request: proceed with the approved market-data-provider-platform plan in this exact feature worktree.",
+    "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-market-data-provider-platform",
+    "worktree_id": "feat-market-data-provider-platform-252f410b51"
+  },
   "dirty_paths": [
     "ps/workstreams/feat-market-data-provider-platform/session.json"
   ],
@@ -59,7 +70,7 @@
       "charting-dev-feat-market-data-provider-platform-252f410b-postgres-1",
       "charting-dev-feat-market-data-provider-platform-252f410b-redis-1"
     ],
-    "known_bytes": 74750063,
+    "known_bytes": 74960063,
     "over_budget": false,
     "projects": [
       "charting-dev-feat-market-data-provider-platform-252f410b",
@@ -70,7 +81,7 @@
     "unattributed_shared_layers_excluded": true,
     "unique_image_bytes": 0,
     "unknown_components": [],
-    "volume_bytes": 74750000,
+    "volume_bytes": 74960000,
     "volume_count": 2,
     "worktree_id": "feat-market-data-provider-platform-252f410b51"
   },
@@ -88,10 +99,10 @@
   "goal_request_state": "planning_required",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "021eb09860f712cd5208ddc14415b5dd493fea65",
+  "head": "78b8430d5e3c8e6931152602cde3e716a358ad55",
   "implementation_sha": "9065b6b90af6971697a22beeaa6ecf5b48906e74",
-  "last_checkpoint": "2026-09-04T17:01:45.089181+00:00",
-  "last_human_progress_update": "2026-09-04T16:57:19.542039+00:00",
+  "last_checkpoint": "2026-09-04T17:23:17.114670+00:00",
+  "last_human_progress_update": "2026-09-04T17:23:08.610022+00:00",
   "local_validation_profile": "docker_integration",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -105,11 +116,11 @@
     "completed": [],
     "current_blocker": "none",
     "current_phase": "foundation_and_governance",
-    "next_action": "Run migration compatibility against the previous release, then expand US universe/lifecycle coverage and backend shadow diagnostics",
+    "next_action": "Human review of the pushed backend-only foundation; optional adapters and the separately approved 30-day shadow deployment remain open gaps",
     "total": 11,
-    "updated_at": "2026-09-04T16:57:19.541471+00:00"
+    "updated_at": "2026-09-04T17:23:08.609654+00:00"
   },
-  "remote": "021eb09860f712cd5208ddc14415b5dd493fea65",
+  "remote": "78b8430d5e3c8e6931152602cde3e716a358ad55",
   "remote_sha": "9065b6b90af6971697a22beeaa6ecf5b48906e74",
   "remote_synchronized": true,
   "retained_docker_resources": [],
