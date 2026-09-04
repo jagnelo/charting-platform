@@ -50,6 +50,10 @@ test.describe('TC2000 workstation performance guards', () => {
     if (await ratioTools.count()) {
       await expect.poll(() => page.locator('.ratio-chart[aria-busy="false"]').count(), { timeout: 30_000 }).toBe(await ratioTools.count())
     }
+    const chartRoots = page.locator('.chart-root')
+    if (await chartRoots.count()) {
+      await expect.poll(() => page.locator('.chart-root[aria-busy="false"]').count(), { timeout: 30_000 }).toBe(await chartRoots.count())
+    }
     const rotationTools = page.locator('.rotation-tool')
     if (await rotationTools.count()) {
       await expect.poll(() => page.locator('.rotation-tool[aria-busy="false"]').count(), { timeout: 30_000 }).toBe(await rotationTools.count())
@@ -133,6 +137,10 @@ test.describe('TC2000 workstation performance guards', () => {
     const ratioTools = page.locator('.ratio-chart')
     if (await ratioTools.count()) {
       await expect.poll(() => page.locator('.ratio-chart[aria-busy="false"]').count(), { timeout: 30_000 }).toBe(await ratioTools.count())
+    }
+    const chartRoots = page.locator('.chart-root')
+    if (await chartRoots.count()) {
+      await expect.poll(() => page.locator('.chart-root[aria-busy="false"]').count(), { timeout: 30_000 }).toBe(await chartRoots.count())
     }
     const rotationTools = page.locator('.rotation-tool')
     if (await rotationTools.count()) {
