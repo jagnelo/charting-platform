@@ -2082,6 +2082,25 @@ The implementation context remains limited to the live-test contract and
 branch-owned handoff/validation records; no integration, promotion,
 deployment, or other-worktree mutation was performed.
 
+## Dedicated route guards exact-head CI green — 2026-09-04
+
+Exact-head CI run `33851087285` at
+`b0e7814fbaf83ee9419153a1d771083bb55fb449` passed Backend Tests, Frontend Unit
+Tests, the complete branch-declared suite, Ruff, and workstream validation.
+The branch suite reported 567 deterministic tests passed, 2 default-live
+contract tests passed with 504 skips, and 492 opt-in live cases passed with 14
+evidence-backed skips. Playwright completed with 151 passed and 109 skipped
+after stack startup and backend health; the protected staging/master-only
+Exhaustive Integration Gate was skipped as designed for this feature branch.
+
+This validates the exact dedicated Hilton/Abacus Global/Shelton guards and all
+prior issuer-edge guards at the pushed implementation SHA. Strict adapter
+identity, route, parser, and freshness behavior remains unchanged. The local
+`docker_integration` gate still retains only the unrelated fresh-stack Study
+Lab `F8p-current-history` missing-histogram failure at `flows.spec.ts:2602`;
+the prior post-repair gate at `a696277b` passed. Human closure authorization
+remains pending.
+
 ## Dedicated provider route variants — 2026-09-04
 
 Fresh exact-SHA CI run `33849929153` on `0ec62c9f2c69f04354d161b4a7e649fcdd44b239`
