@@ -10,6 +10,27 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-04 — Exact-tip exhaustive gate after structured Boolean promotions
+
+The exact-tip exhaustive integration profile was rerun at product commit `68856251`
+(`feat(tc2000): promote structured boolean results`). Locked dependencies/migrations, Ruff/format,
+TypeScript, backend units (`1,311/1,311`), integration (`382/382` with the existing `54` warnings),
+combined coverage (`80.90%`), frontend Vitest (`938/938` across `108` files), production build,
+compose/provider policy, assigned-stack health, research-runner isolation, and authenticated
+functional Playwright (`155` passed with `106` documented skips across `261` specs) all passed. The
+branch-scoped Docker stack was torn down and resource accounting reported zero containers, volumes,
+known image bytes, test-container sessions, and complete accounting.
+
+The unchanged four-project visual matrix remains the only failing stage: `98/104` passed and six
+assertions failed. `watchlist-column-editor-open` reported `13,844` differing pixels at
+visual-1080p-100 and visual-1080p-125. `workspace-floating` reported `12,097` at
+visual-1080p-100, `9,770` at visual-1080p-125, `12,097` at visual-1440p-100, and `9,770` at
+visual-1440p-125. The floating actual intentionally contains canonical benchmark rows after late
+popout hydration. These remain explicit review blockers; no baseline, mask, threshold, skip,
+fallback oracle, provider rule, or acceptance policy changed. The next work remains richer Study
+Lab targets, canonical provider/history enrichment, native-window/accessibility/security evidence,
+dense-data budgets, and visual-oracle review.
+
 ## 2026-09-04 — Persisted Study Results Boolean promotion matrix
 
 Product commit `68856251` (`feat(tc2000): promote structured boolean results`) completes the

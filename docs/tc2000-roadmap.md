@@ -21,9 +21,8 @@ single-output events contracts. The focused Research Results component suite pas
 full frontend suite passed `938/938` across `108` files, TypeScript type-check and production
 build passed, and the authenticated `F8t-results` browser flow passed `1/1` against the rebuilt
 branch-scoped Docker stack with clean teardown and resource accounting. The exact-tip exhaustive
-gate is queued at product tip `68856251`; the prior gate through `f8d68d3f` passed all non-visual
-and functional stages, while the unchanged visual matrix remains `98/104` with the same six diffs
-recorded below.
+gate has now rerun at product tip `68856251`: all non-visual and functional stages passed, while
+the unchanged visual matrix remains `98/104` with the same six diffs recorded below.
 
 The prior exact-tip gate at product tip `6f575a34` passed all non-visual stages and the functional
 browser suite (`155` passed, `106` documented skips across `261` specs). A first invocation's single
