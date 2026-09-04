@@ -85,4 +85,4 @@ progress:
   total: 11
   current_phase: foundation_and_governance
   current_blocker: none
-  next_action: run migration compatibility against the previous release, then expand US universe/lifecycle coverage and backend shadow diagnostics
+  next_action: human review of the pushed backend-only foundation; optional adapters, full US lifecycle reconciliation, and the separately approved 30-day shadow deployment remain open gaps
