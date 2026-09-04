@@ -9,7 +9,7 @@ observation/detail fields but are not guessed into a canonical exchange.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, time
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.exchange import Exchange
 from app.models.instrument import Instrument
 from app.models.listing import InstrumentListing
+from app.models.market_data_foundation import ExchangeSessionRule
 
 
 @dataclass(frozen=True)
@@ -115,7 +116,45 @@ async def ensure_exchange(db: AsyncSession, value: str | None) -> Exchange | Non
         exchange.market_open = definition.market_open
         exchange.market_close = definition.market_close
         exchange.currency = definition.currency
+    await ensure_default_session_rules(db, exchange)
     return exchange
+
+
+async def ensure_default_session_rules(db: AsyncSession, exchange: Exchange) -> None:
+    """Seed the versioned weekday regular session for a known US venue.
+
+    Holidays and early closes are separate exception rows and must be supplied
+    by a reviewed exchange-calendar source; this helper only establishes the
+    baseline rule needed for session-aware coverage calculations.
+    """
+
+    valid_from = date(1970, 1, 1)
+    existing = (
+        await db.execute(
+            select(ExchangeSessionRule).where(
+                ExchangeSessionRule.exchange_id == exchange.id,
+                ExchangeSessionRule.session_code == "regular",
+                ExchangeSessionRule.valid_from == valid_from,
+            )
+        )
+    ).scalars().all()
+    weekdays = {row.weekday for row in existing}
+    for weekday in range(5):
+        if weekday in weekdays:
+            continue
+        db.add(
+            ExchangeSessionRule(
+                exchange_id=exchange.id,
+                session_code="regular",
+                weekday=weekday,
+                opens_at=time(9, 30),
+                closes_at=time(16, 0),
+                valid_from=valid_from,
+                provenance={"source": "exchange_catalog_default", "review_required": True},
+            )
+        )
+    if len(weekdays) < 5:
+        await db.flush()
 
 
 async def upsert_instrument_listing(

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 import pytest
 from sqlalchemy import select
@@ -12,6 +12,7 @@ from app.services.exchange_catalog import (
     normalize_exchange_mic,
     upsert_instrument_listing,
 )
+from app.services.exchange_sessions import resolve_session_window
 from tests.unit.conftest import AsyncSessionAdapter
 
 
@@ -108,3 +109,14 @@ async def test_listing_persistence_retains_lifecycle_timestamps(db, instrument):
     assert as_utc(listing.known_at) == known_at
     assert as_utc(listing.delisted_at) == delisted_at
     assert listing.is_active is True
+
+
+@pytest.mark.asyncio
+async def test_known_exchange_gets_versioned_weekday_session_baseline(db, instrument):
+    async_db = AsyncSessionAdapter(db)
+    await upsert_instrument_listing(async_db, instrument, instrument.symbol, exchange_code="NASDAQ")
+    exchange = db.execute(select(Exchange).where(Exchange.mic == "XNAS")).scalar_one()
+    window = await resolve_session_window(async_db, exchange.id, date(2026, 9, 4))
+    assert window is not None
+    assert window.opens_at.hour == 13
+    assert window.closes_at.hour == 20
