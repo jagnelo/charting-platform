@@ -947,3 +947,22 @@ was claimed, and no latest-only or symbol-guess fallback was used. This is audit
 provider evidence, not complete QQQ canonical population, point-in-time membership continuity, or
 member-history readiness. The 87 remaining placeholders, QQQE/SPDR dated sources, MN/W1 support,
 and the six unchanged visual-oracle diffs remain open.
+
+## 2026-09-04 — Exact-tip exhaustive gate after name-search bridge
+
+At synchronized tip `b38fb5ce`, `make validate-integration
+INTEGRATION_BRANCH=feat/tc2000-frontend-rework` passed Git/workstream validation, locked
+dependency and migration checks, Ruff check/format, TypeScript, split backend coverage, frontend
+tests/build, compose contracts, assigned-stack health, research-runner isolation probes, and the
+authenticated functional browser suite (`154` passes and `106` documented skips across `260`
+specs). The gate stopped only at the unchanged four-project visual matrix: `98/104` passed and six
+screenshots failed in `watchlist-column-editor-open` at visual-1080p-100 and visual-1080p-125, and
+`workspace-floating` at visual-1080p-100, visual-1080p-125, visual-1440p-100, and
+visual-1440p-125. The observed diff counts remain 13,844 pixels for the watchlist-editor captures,
+4,257 pixels for the floating-workspace captures at 1080p-100/125 and 1440p-100, and 4,453 pixels
+on 1440p-125. No baseline, mask, threshold, skip, fallback oracle, provider rule, or protected
+worktree changed; branch-scoped containers, volumes, network, and images were removed by the gate.
+
+This current gate receipt satisfies the review handoff boundary, not product completion. The
+remaining 87 QQQ placeholders, canonical member-history/provider gaps, QQQE/SPDR dated holdings,
+MN/W1 coverage, and six visual diffs require subsequent human-directed work.
