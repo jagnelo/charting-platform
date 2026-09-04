@@ -142,7 +142,7 @@ from app.services.breadth import (
     evaluate_breadth,
     evaluate_breadth_history,
 )
-from app.services.etf_holdings import EQUITY_HOLDING_TYPE_VALUES
+from app.services.etf_holdings import EQUITY_HOLDING_TYPE_VALUES, is_placeholder_symbol
 from app.services.etf_holdings_adapters import get_holdings_adapter, known_etf_route_metadata
 from app.services.indicators import OHLCVSeries, get_latest_value
 from app.services.market_map import build_market_map, read_market_map_cache
@@ -194,7 +194,8 @@ async def _family_member_bar_history(
 
     member_rows = (
         await db.execute(
-            select(ETFHolding.constituent_instrument_id)
+            select(ETFHolding.constituent_instrument_id, Instrument.symbol)
+            .join(Instrument, Instrument.id == ETFHolding.constituent_instrument_id)
             .where(
                 ETFHolding.snapshot_id == snapshot.id,
                 ETFHolding.row_type == "security",
@@ -205,12 +206,24 @@ async def _family_member_bar_history(
             .distinct()
         )
     ).all()
-    member_ids = [int(row[0]) for row in member_rows if row[0] is not None]
+    member_ids = [
+        int(instrument_id)
+        for instrument_id, symbol in member_rows
+        if instrument_id is not None and not is_placeholder_symbol(symbol)
+    ]
+    placeholder_member_count = len(
+        {
+            int(instrument_id)
+            for instrument_id, symbol in member_rows
+            if instrument_id is not None and is_placeholder_symbol(symbol)
+        }
+    )
     if not member_ids:
         return BenchmarkFamilyMemberBarHistoryOut(
             status="unavailable",
             snapshot_id=snapshot.id,
             composition_date=snapshot.composition_date,
+            placeholder_member_count=placeholder_member_count,
         )
 
     bars_query = (
@@ -276,6 +289,7 @@ async def _family_member_bar_history(
         status=status,
         snapshot_id=snapshot.id,
         composition_date=snapshot.composition_date,
+        placeholder_member_count=placeholder_member_count,
         timeframes=timeframes,
     )
 
@@ -319,6 +333,12 @@ async def _family_member_metadata_readiness(
         .scalars()
         .all()
     )
+    rows = [
+        row
+        for row in rows
+        if row.constituent_instrument is not None
+        and not is_placeholder_symbol(row.constituent_instrument.symbol)
+    ]
     member_count = len(rows)
     if not member_count:
         return 0, 0, "unavailable", 0, "unavailable"
@@ -4038,6 +4058,7 @@ async def benchmark_family_coverage(
                 ),
                 point_in_time_supported=point_in_time_supported,
                 member_count=member_count,
+                placeholder_member_count=member_bar_history.placeholder_member_count,
                 weighted_member_count=weighted_member_count,
                 weights_status=weights_status,
                 classified_member_count=classified_member_count,

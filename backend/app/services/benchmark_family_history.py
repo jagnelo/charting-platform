@@ -16,8 +16,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.etf_holdings import ETFHolding
+from app.models.instrument import Instrument
 from app.models.ohlcv import Timeframe
-from app.services.etf_holdings import is_equity_holding_type
+from app.services.etf_holdings import is_equity_holding_type, is_placeholder_symbol
 from app.services.top_down_taxonomy import BENCHMARK_FAMILY_REGISTRY
 from app.services.watchlist_sources import (
     PENDING_SOURCE_AVAILABILITIES,
@@ -263,7 +264,9 @@ async def queue_snapshot_member_history(
                 ETFHolding.row_type,
                 ETFHolding.holding_type,
                 ETFHolding.is_resolved,
+                Instrument.symbol,
             )
+            .outerjoin(Instrument, Instrument.id == ETFHolding.constituent_instrument_id)
             .where(ETFHolding.snapshot_id.in_(normalized_snapshots))
             .order_by(ETFHolding.snapshot_id, ETFHolding.position)
         )
@@ -271,12 +274,15 @@ async def queue_snapshot_member_history(
     instrument_ids: list[int] = []
     seen: set[int] = set()
     unresolved_count = 0
-    for _snapshot_id, instrument_id, row_type, holding_type, is_resolved in rows:
+    for row in rows:
+        _snapshot_id, instrument_id, row_type, holding_type, is_resolved = row[:5]
+        symbol = row[5] if len(row) > 5 else None
         if (
             row_type != "security"
             or not is_equity_holding_type(holding_type)
             or not is_resolved
             or instrument_id is None
+            or is_placeholder_symbol(symbol)
         ):
             unresolved_count += 1
             continue

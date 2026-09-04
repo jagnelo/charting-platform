@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-09-04 — Placeholder holdings stay outside canonical history readiness
+
+- [x] Keep internal `HOLDING-*` instruments visible as unresolved reconciliation evidence, but
+      exclude them from benchmark-family member-bar denominators and weight/classification
+      readiness counts. A materialized placeholder is not canonical market data and must not make
+      a role appear analysis-ready.
+- [x] Stop bounded snapshot-history queueing from submitting provider jobs for placeholder
+      instruments. The queue now reports those rows through its existing `unresolved_count` while
+      preserving canonical instrument ordering, dated end bounds, idempotence, and per-member
+      queue-error evidence.
+- [x] Surface the placeholder count in the authenticated family coverage row and member-history
+      readiness payload so the operator can distinguish canonical coverage from identifier
+      enrichment still required. Focused queue coverage passes `10/10`, the Docker-backed
+      benchmark-family integration matrix passes `23/23`, backend units pass `1298/1298`,
+      frontend Vitest passes `926/926`, type-check, compileall, Ruff, and diff checks pass.
+- [ ] Continue bounded identifier enrichment for the remaining QQQ placeholders only with
+      auditable provider evidence; no symbol guess or latest-only fallback is acceptable.
+
 ### 2026-09-03 — Prior-session evidence reconciled into the active TC2000 roadmap
 
 - [x] Reconcile the staging-derived feature worktree, the durable August implementation ledgers,

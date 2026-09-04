@@ -768,3 +768,31 @@ The new worker regression proves the same cutoff reaches each instrument in a tw
 the full ARQ worker unit module passes `26/26`, with Ruff, compilation, and diff checks green. The
 remaining provider population, member-bar continuity, and deployment maintenance evidence remain
 open.
+
+## 2026-09-04 — Placeholder holdings are excluded from canonical readiness
+
+The family readiness and history-maintenance paths previously treated internal `HOLDING-*`
+instruments as canonical members because the reconciliation layer materializes a placeholder row
+while identifier enrichment is pending. This could inflate weight/classification counts, dilute the
+member-bar denominator, and submit provider history jobs that can only use the placeholder symbol.
+
+The new public `is_placeholder_symbol` predicate keeps that distinction explicit. Benchmark-family
+member-bar history now joins the instrument identity, excludes placeholders from canonical
+coverage/analysis-ready denominators, and reports `placeholder_member_count` on both the history
+payload and coverage role. Weight and point-in-time classification readiness use the same canonical
+filter. Snapshot-member history queueing applies the filter before deduplication and increments the
+existing `unresolved_count` instead of enqueueing a placeholder job; dated end bounds and queue
+idempotence remain unchanged. Existing snapshot `resolved_count` values are preserved as raw
+materialization evidence for reconciliation, not reinterpreted in this slice.
+
+Evidence at this boundary:
+
+- The focused queue/history unit module passes `10/10`.
+- The Docker-backed benchmark-family integration matrix passes `23/23`.
+- The full backend unit suite passes `1,298/1,298`.
+- Frontend Vitest passes `926/926`; `vue-tsc`, compileall, Ruff, and `git diff --check` pass.
+
+This closes a canonical-readiness accounting and queue-efficiency defect only. The 76 remaining
+QQQ placeholder bindings, full member-bar continuity, MN/W1 coverage, QQQE/SPDR dated sources,
+and the six unchanged visual-oracle diffs remain open. No provider fallback, visual baseline,
+threshold, mask, skip, integration, promotion, deployment, or protected worktree changed.

@@ -540,6 +540,7 @@ export interface BenchmarkFamilyMemberBarHistoryState {
   status: string
   snapshot_id?: number | null
   composition_date?: string | null
+  placeholder_member_count?: number
   timeframes: BenchmarkFamilyMemberBarHistoryTimeframeState[]
 }
 
@@ -577,6 +578,7 @@ export interface BenchmarkFamilyCoverageRoleState {
   holdings_refresh_composition_date?: string | null
   point_in_time_supported?: boolean
   member_count?: number
+  placeholder_member_count?: number
   weighted_member_count?: number
   weights_status?: string
   classified_member_count?: number

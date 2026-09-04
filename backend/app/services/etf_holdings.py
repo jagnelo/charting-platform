@@ -180,6 +180,17 @@ def _is_placeholder_symbol(symbol: str | None) -> bool:
     return bool(normalized and normalized.startswith("HOLDING-"))
 
 
+def is_placeholder_symbol(symbol: str | None) -> bool:
+    """Return whether a symbol is an internal unresolved-holding placeholder.
+
+    Placeholder instruments preserve issuer rows while identifier enrichment is
+    pending.  They are useful for reconciliation, but are not canonical market
+    data instruments and must not be queued or counted as analysis-ready.
+    """
+
+    return _is_placeholder_symbol(symbol)
+
+
 def _identifier_type(name: str) -> InstrumentIdentifierType | None:
     try:
         return InstrumentIdentifierType[name.upper()]

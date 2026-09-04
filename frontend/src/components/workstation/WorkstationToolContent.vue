@@ -766,7 +766,7 @@
           <label>As of <select :value="familyAsOf" aria-label="Family analysis as of" @change="setBreadthConfiguration({ as_of: (($event.target as HTMLSelectElement).value || null) })"><option value="">Latest</option><option v-for="date in familyCoverageDates" :key="date" :value="familyAsOfValue(date)">{{ date }}</option></select></label>
           <div class="breadth-tool__family-coverage-roles">
             <span v-for="role in familyCoverage.roles" :key="role.role">
-              <b>{{ familyRoleLabel(role.role) }}</b> {{ role.symbol ?? role.label }} · {{ role.status }} · {{ role.snapshots.length }} date{{ role.snapshots.length === 1 ? '' : 's' }} · {{ familyContinuityLabel(role) }} · bars {{ familyMemberBarHistoryLabel(role) }} · readiness {{ role.composite_readiness_status ?? 'unknown' }} · entitlement {{ role.entitlement_status ?? 'unknown' }} · refresh {{ role.holdings_refresh_status ?? 'not_attempted' }} · weights {{ role.weights_status ?? 'unknown' }} · classification {{ role.classification_status ?? 'unknown' }}
+          <b>{{ familyRoleLabel(role.role) }}</b> {{ role.symbol ?? role.label }} · {{ role.status }} · {{ role.snapshots.length }} date{{ role.snapshots.length === 1 ? '' : 's' }} · {{ familyContinuityLabel(role) }} · bars {{ familyMemberBarHistoryLabel(role) }} · readiness {{ role.composite_readiness_status ?? 'unknown' }} · entitlement {{ role.entitlement_status ?? 'unknown' }} · refresh {{ role.holdings_refresh_status ?? 'not_attempted' }} · weights {{ role.weights_status ?? 'unknown' }} · classification {{ role.classification_status ?? 'unknown' }}{{ role.placeholder_member_count ? ` · placeholders ${role.placeholder_member_count}` : '' }}
             </span>
           </div>
         </div>
@@ -2333,13 +2333,14 @@ function familyContinuityLabel(role: { continuity_status?: string; continuity_ga
   const label = labels[status] ?? status
   return role.continuity_snapshot_limit_reached ? `${label} · window capped` : label
 }
-function familyMemberBarHistoryLabel(role: { member_bar_history?: { status?: string; timeframes?: Array<{ timeframe: string; covered_member_count: number; member_count: number; analysis_ready_member_count: number }> } }) {
+function familyMemberBarHistoryLabel(role: { member_bar_history?: { status?: string; placeholder_member_count?: number; timeframes?: Array<{ timeframe: string; covered_member_count: number; member_count: number; analysis_ready_member_count: number }> } }) {
   const history = role.member_bar_history
   if (!history || history.status === 'no_snapshot') return 'no member bars'
   if (!history.timeframes?.length) return history.status
   const daily = history.timeframes.find(item => item.timeframe === 'D1')
   if (!daily) return history.status
-  return `${history.status} ${daily.covered_member_count}/${daily.member_count} · ready ${daily.analysis_ready_member_count}/${daily.member_count}`
+  const placeholders = history.placeholder_member_count ? ` · placeholders ${history.placeholder_member_count}` : ''
+  return `${history.status} ${daily.covered_member_count}/${daily.member_count} · ready ${daily.analysis_ready_member_count}/${daily.member_count}${placeholders}`
 }
 function latestFamilyRatio(ratio: { points: Array<{ value: number }> }) {
   const value = ratio.points.length ? ratio.points[ratio.points.length - 1]?.value : undefined

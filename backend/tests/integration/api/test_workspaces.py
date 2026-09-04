@@ -860,6 +860,98 @@ class TestWorkspaces:
         assert weekly["covered_member_count"] == 0
         assert weekly["analysis_ready_member_count"] == 0
 
+    def test_benchmark_family_readiness_excludes_placeholder_members_from_canonical_counts(
+        self, client, auth_headers, db, instrument_type, instrument
+    ):
+        from datetime import UTC, datetime
+
+        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import Instrument
+
+        seeded = client.get("/api/v1/market-groups", headers=auth_headers)
+        assert seeded.status_code == 200
+        spy = Instrument(
+            symbol="SPY",
+            name="SPDR S&P 500 ETF Trust",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        placeholder = Instrument(
+            symbol="HOLDING-ABC123",
+            name="Unresolved example security",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add_all([spy, placeholder])
+        db.flush()
+        profile = ETFProfile(instrument_id=spy.id, adapter_key="spdr", adapter_status="resolved")
+        db.add(profile)
+        db.flush()
+        snapshot = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=datetime(2025, 12, 31, tzinfo=UTC).date(),
+            known_at=datetime(2026, 1, 2, tzinfo=UTC),
+            provenance="issuer_native",
+            source_provider="issuer",
+            source_quality="issuer_disclosed",
+            completeness_status="partial",
+            row_count=2,
+            # The ingestion count preserves the materialized placeholder row;
+            # readiness must still expose only canonical members.
+            resolved_count=2,
+            unresolved_count=0,
+            total_weight=1.0,
+            snapshot_hash="test-family-placeholder-readiness",
+        )
+        db.add(snapshot)
+        db.flush()
+        db.add_all(
+            [
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=instrument.id,
+                    position=0,
+                    reported_symbol=instrument.symbol,
+                    reported_name=instrument.name,
+                    weight=0.75,
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_hash="placeholder-readiness-canonical",
+                    is_resolved=True,
+                ),
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=placeholder.id,
+                    position=1,
+                    reported_name=placeholder.name,
+                    weight=0.25,
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_hash="placeholder-readiness-placeholder",
+                    is_resolved=True,
+                ),
+            ]
+        )
+        db.flush()
+
+        response = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/coverage",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200, response.text
+        cap = next(role for role in response.json()["roles"] if role["role"] == "cap_weight")
+        assert cap["member_count"] == 1
+        assert cap["placeholder_member_count"] == 1
+        assert cap["weighted_member_count"] == 1
+        assert cap["weights_status"] == "ready"
+        history = cap["member_bar_history"]
+        assert history["placeholder_member_count"] == 1
+        daily = next(item for item in history["timeframes"] if item["timeframe"] == "D1")
+        assert daily["member_count"] == 1
+
+
     def test_benchmark_family_coverage_marks_canonical_role_without_profile_as_pending(
         self, client, auth_headers, db, instrument_type
     ):

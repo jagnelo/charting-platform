@@ -337,6 +337,7 @@ class BenchmarkFamilyMemberBarHistoryOut(BaseModel):
     status: str = "unavailable"
     snapshot_id: int | None = None
     composition_date: date | None = None
+    placeholder_member_count: int = Field(default=0, ge=0)
     timeframes: list[BenchmarkFamilyMemberBarHistoryTimeframeOut] = Field(default_factory=list)
 
 
@@ -381,6 +382,7 @@ class BenchmarkFamilyCoverageRoleOut(BaseModel):
     holdings_refresh_composition_date: date | None = None
     point_in_time_supported: bool = False
     member_count: int = Field(default=0, ge=0)
+    placeholder_member_count: int = Field(default=0, ge=0)
     weighted_member_count: int = Field(default=0, ge=0)
     weights_status: str = "unavailable"
     classified_member_count: int = Field(default=0, ge=0)
