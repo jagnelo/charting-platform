@@ -18,7 +18,13 @@ Strategy-signal promotion remains limited to explicit/legacy single-output event
 focused Research Results component suite passed `23/23`, the full frontend suite passed `935/935`
 across `108` files, TypeScript type-check passed, and the authenticated `F8t-results` browser flow
 passed `1/1` against the branch-scoped Docker stack with clean teardown/resource accounting. The
-exact-tip exhaustive gate is queued at this new product tip.
+exact-tip exhaustive gate has now run at this new product tip: locked dependencies/migrations,
+Ruff/format, TypeScript, backend units (`1,311/1,311`), integration (`382/382` with the existing
+`54` warnings), combined coverage (`80.90%`), frontend Vitest (`935/935` across `108` files),
+production build, compose/provider policy, assigned-stack health, research-runner isolation, and
+authenticated functional Playwright (`155` passed, `106` documented skips across `261` specs) all
+passed. The branch-scoped Docker stack was torn down and resource accounting reported zero
+containers, volumes, known image bytes, and test-container sessions with complete accounting.
 
 The prior exact-tip gate at product tip `6f575a34` passed all non-visual stages and the functional
 browser suite (`155` passed, `106` documented skips across `261` specs). A first invocation's single
@@ -27,7 +33,7 @@ in the complete gate.
 
 The unchanged visual matrix remains the only failing stage: `98/104` passed and six screenshot
 diffs remain—`watchlist-column-editor-open` at visual-1080p-100/125 (`13,844` differing pixels
-each), and `workspace-floating` at visual-1080p-100 (`12,097`), visual-1080p-125 (`11,901`),
+each), and `workspace-floating` at visual-1080p-100 (`12,097`), visual-1080p-125 (`9,770`),
 visual-1440p-100 (`12,097`), and visual-1440p-125 (`9,770`). No visual oracle, provider fallback,
 or acceptance policy changed. The branch remains active while the visual review blocker and the
 remaining canonical provider/history, richer promotion, native-window, accessibility/security,

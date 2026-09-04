@@ -1,5 +1,27 @@
 # Project TODO Memory
 
+### 2026-09-04 — Exact-tip exhaustive gate after structured Study Lab result promotions
+
+- [x] Reran `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at
+      product tip `24287f3c`. Locked dependencies/migrations, Ruff/format, TypeScript, backend
+      units (`1,311/1,311`), integration (`382/382` with the existing `54` warnings), combined
+      coverage (`80.90%`), frontend Vitest (`935/935` across `108` files), production build,
+      compose/provider policy, assigned-stack health, research-runner isolation, and authenticated
+      functional Playwright (`155` passed and `106` documented skips across `261` specs) all
+      passed. The branch-scoped Docker stack was torn down and the resource audit reported zero
+      containers, volumes, known image bytes, test-container sessions, and complete accounting.
+- [x] Preserve the unchanged visual result as an explicit blocker: the four-project matrix
+      completed `104` cases with `98` passes and six failures—`watchlist-column-editor-open` at
+      visual-1080p-100/125 (`13,844` differing pixels each), and `workspace-floating` at
+      visual-1080p-100 (`12,097`), visual-1080p-125 (`9,770`), visual-1440p-100 (`12,097`),
+      and visual-1440p-125 (`9,770`). No baseline, mask, threshold, skip, fallback oracle,
+      provider rule, or acceptance policy changed; the floating actual intentionally includes
+      canonical benchmark rows after late-popout hydration.
+- [ ] Continue the remaining compatible chart/list/gauge and richer Study Lab promotion targets,
+      canonical provider/history enrichment, native-window/accessibility/security evidence,
+      dense-data budgets, and visual-oracle review. The feature goal remains active and is not yet
+      ready for human review.
+
 ### 2026-09-04 — Structured Study Lab events in persisted Research Results
 
 - [x] Expose named `Save filter: <artifact>` and `Promote alert: <artifact>` actions beside
@@ -15,8 +37,9 @@
       authenticated `F8t-results` browser flow passed `1/1` against the branch-scoped Docker
       stack; teardown and resource accounting reported zero containers, volumes, known image
       bytes, and test-container sessions. Product commit `24287f3c` contains the implementation.
-- [ ] Rerun the exact-tip exhaustive integration gate at product commit `24287f3c`; preserve the
-      six unchanged visual diffs and do not alter visual or provider fallback policy.
+- [x] Reran the exact-tip exhaustive integration gate at product commit `24287f3c`; the receipt is
+      recorded immediately above with all non-visual and functional stages green and the six
+      unchanged visual diffs preserved. Visual or provider fallback policy was not altered.
 
 ### 2026-09-04 — Exact-tip exhaustive gate after structured Study Lab browser coverage
 
