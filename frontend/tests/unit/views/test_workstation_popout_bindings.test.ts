@@ -44,6 +44,9 @@ const harness = vi.hoisted(() => {
     error: null,
     constituentETF: null,
     marketGroups: { 'us-benchmarks': { members: [] }, 'sp500-sectors': { members: [] } },
+    groupSnapshots: {},
+    breadth: {},
+    breadthHistory: {},
     marketAnalysisRefreshing: false,
     connect: vi.fn(),
     disconnect: vi.fn(),
@@ -148,6 +151,9 @@ describe('WorkstationView pop-out bindings', () => {
     apiGet.mockResolvedValue([])
     harness.workspace.loadDefault = vi.fn().mockResolvedValue(undefined)
     harness.workspace.marketGroups = { 'us-benchmarks': { members: [] }, 'sp500-sectors': { members: [] } }
+    harness.workspace.groupSnapshots = {}
+    harness.workspace.breadth = {}
+    harness.workspace.breadthHistory = {}
     harness.recent.recent = [{ symbol: 'XLK', name: 'Technology Select Sector SPDR Fund', viewedAt: 2 }]
   })
 
@@ -191,6 +197,36 @@ describe('WorkstationView pop-out bindings', () => {
     expect(harness.workspace.scheduleSnapshot).toHaveBeenCalled()
     expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'XLK', group: 'blue', sourceWindowKey: 'workstation' }))
     expect(harness.workspace.symbolForLinkGroup).toHaveBeenCalledWith('blue', null)
+    wrapper.unmount()
+  })
+
+  it('hydrates missing shared market analysis when a pop-out opens after the leader refresh', async () => {
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+
+    await vi.waitFor(() => expect(harness.workspace.refreshMarketAnalysis).toHaveBeenCalledTimes(1))
+    wrapper.unmount()
+  })
+
+  it('does not refetch shared market analysis when a pop-out already has the canonical inputs', async () => {
+    harness.workspace.marketGroups = {
+      'us-benchmarks': { members: [] },
+      'sp500-sectors': { members: [] },
+    }
+    harness.workspace.groupSnapshots = {
+      'us-benchmarks': { rows: [] },
+      'sp500-sectors': { rows: [] },
+    }
+    harness.workspace.breadth = { 'sp500-sectors': {} }
+    harness.workspace.breadthHistory = { 'sp500-sectors': {} }
+
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(harness.workspace.refreshMarketAnalysis).not.toHaveBeenCalled()
     wrapper.unmount()
   })
 

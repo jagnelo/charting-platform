@@ -1071,6 +1071,30 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8b-a — a benchmark pop-out hydrates shared market analysis when opened late', async ({ page, context, browserDiagnostics }) => {
+    await page.goto('/chart')
+    const sourceTool = page.locator('.tool-window').filter({ has: page.getByRole('region', { name: 'Major US benchmarks' }) }).first()
+    await expect(sourceTool).toBeVisible({ timeout: 15_000 })
+    if (process.env.E2E_SEED_MARKET_DATA === 'true') {
+      await expect(sourceTool.locator('.watchlist__row')).toHaveCount(5, { timeout: 15_000 })
+    }
+
+    const popupPromise = context.waitForEvent('page')
+    await sourceTool.locator('button[title="Float"]').click()
+    const popup = await popupPromise
+    await popup.waitForLoadState('domcontentloaded')
+    const popoutTool = popup.locator('.workstation__popout .tool-window')
+    await expect(popoutTool).toBeVisible({ timeout: 25_000 })
+    await expect(popoutTool.getByRole('region', { name: 'Major US benchmarks' })).toBeVisible()
+    if (process.env.E2E_SEED_MARKET_DATA === 'true') {
+      await expect(popoutTool.locator('.watchlist__row')).toHaveCount(5, { timeout: 25_000 })
+    }
+
+    await closePopupWhenOpen(popup)
+    await expect(sourceTool).toBeVisible()
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8f — repeated float/close cycles do not accumulate source tools', async ({ page, context, browserDiagnostics }) => {
     test.setTimeout(120_000)
     await page.goto('/chart')

@@ -715,8 +715,28 @@ const marketAnalysisQuery = useQuery({
   refetchIntervalInBackground: false,
 })
 
+function hasSharedMarketAnalysis() {
+  const groups = workspaceStore.marketGroups ?? {}
+  const snapshots = workspaceStore.groupSnapshots ?? {}
+  const breadth = workspaceStore.breadth ?? {}
+  const breadthHistory = workspaceStore.breadthHistory ?? {}
+  return ['us-benchmarks', 'sp500-sectors'].every(key => Boolean(groups[key] && snapshots[key]))
+    && Boolean(breadth['sp500-sectors'])
+    && Boolean(breadthHistory['sp500-sectors'])
+}
+
 async function refreshMarketData() {
-  if (isPopout.value || !documentVisible.value) return
+  if (!documentVisible.value) return
+  // A pop-out does not own the periodic refresh timer, but it can be opened
+  // after the leader has already announced its refresh. In that case the
+  // BroadcastChannel event has already been missed and the local store is
+  // empty, so hydrate the shared analysis once before rendering the tool.
+  // Once the six canonical inputs exist, the pop-out remains a follower and
+  // does not fan out duplicate requests on every mount.
+  if (isPopout.value) {
+    if (!hasSharedMarketAnalysis()) await workspaceStore.refreshMarketAnalysis()
+    return
+  }
   if (workspaceStore.isPersistenceLeader) {
     await marketAnalysisQuery.refetch()
   } else {
