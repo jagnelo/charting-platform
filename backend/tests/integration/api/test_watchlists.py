@@ -939,8 +939,7 @@ class TestWatchlistsCrud:
             item["code"] == "historical_area_field_unavailable" for item in field_cell["warnings"]
         )
         assert any(
-            item["code"] == "historical_area_field_unavailable"
-            for item in field_body["warnings"]
+            item["code"] == "historical_area_field_unavailable" for item in field_body["warnings"]
         )
 
     def test_market_map_rejects_relative_colour_without_reference(

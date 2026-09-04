@@ -951,7 +951,6 @@ class TestWorkspaces:
         daily = next(item for item in history["timeframes"] if item["timeframe"] == "D1")
         assert daily["member_count"] == 1
 
-
     def test_benchmark_family_coverage_marks_canonical_role_without_profile_as_pending(
         self, client, auth_headers, db, instrument_type
     ):
