@@ -1,5 +1,28 @@
 # Project TODO Memory
 
+### 2026-09-04 — Exact-tip exhaustive gate after structured scalar and series promotions
+
+- [x] Reran `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at
+      product tip `f8d68d3f`. Locked dependencies/migrations, Ruff/format, TypeScript, backend
+      units (`1,311/1,311`), integration (`382/382` with the existing `54` warnings), combined
+      coverage (`80.90%`), frontend Vitest (`936/936` across `108` files), production build,
+      compose/provider policy, assigned-stack health, research-runner isolation, and authenticated
+      functional Playwright (`155` passed and `106` documented skips across `261` specs) all
+      passed. The branch-scoped Docker stack was torn down and resource accounting reported zero
+      containers, volumes, known image bytes, test-container sessions, and complete accounting.
+- [x] Preserve the unchanged visual result as an explicit blocker: the four-project matrix
+      completed `104` cases with `98` passes and six failures—`watchlist-column-editor-open` at
+      visual-1080p-100/125 (`13,844` differing pixels each), and `workspace-floating` at
+      visual-1080p-100 (`12,097`), visual-1080p-125 (`9,770`), visual-1440p-100 (`12,097`),
+      and visual-1440p-125 (`9,770`). No baseline, mask, threshold, skip, fallback oracle,
+      provider rule, or acceptance policy changed; the floating actual intentionally includes
+      canonical benchmark rows after late-popout hydration.
+- [ ] Continue the remaining Boolean structured-result promotion matrix (filter, scan, gauge,
+      alert, and typed column), compatible chart/list/gauge and richer Study Lab targets, canonical
+      provider/history enrichment, native-window/accessibility/security evidence, dense-data
+      budgets, and visual-oracle review. The feature goal remains active and is not yet ready for
+      human review.
+
 ### 2026-09-04 — Persisted Study Results scalar and series promotions
 
 - [x] Add explicit named promotions to the persisted Research Results surface for completed

@@ -19,8 +19,9 @@ runs. Direct event Strategy-signal promotion remains limited to explicit/legacy 
 events contracts. The focused Research Results component suite passed `24/24`, the full frontend
 suite passed `936/936` across `108` files, TypeScript type-check passed, and the authenticated
 `F8t-results` browser flow passed `1/1` against the branch-scoped Docker stack with clean teardown
-and resource accounting. The exact-tip exhaustive gate last ran successfully through all
-non-visual and functional stages at product tip `24287f3c`; it must be rerun at `f8d68d3f`.
+and resource accounting. The exact-tip exhaustive gate has now rerun at product tip `f8d68d3f`:
+all non-visual and functional stages passed, while the unchanged visual matrix remains `98/104`
+with the same six diffs recorded below.
 
 The prior exact-tip gate at product tip `6f575a34` passed all non-visual stages and the functional
 browser suite (`155` passed, `106` documented skips across `261` specs). A first invocation's single
