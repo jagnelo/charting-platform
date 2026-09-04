@@ -708,3 +708,17 @@ and visual acceptance policy (`26` assertions; unchanged thresholds) pass. No vi
 mask, threshold, skip, provider fallback, or backend contract was changed. The exhaustive gate
 still needs a fresh exact-tip run and retains the six concentrated visual diffs plus canonical
 provider/history gaps as review blockers.
+
+## 2026-09-04 — Exact-tip exhaustive gate after Market Map custom-end history bound
+
+At the synchronized `a56a3087` tip, `make validate-integration
+INTEGRATION_BRANCH=feat/tc2000-frontend-rework` passed Git/workstream/dependency/migration
+checks, `npm ci`, Ruff, TypeScript, split combined backend coverage (`1,296` unit plus `375`
+integration at `80.89%`), frontend tests/build, compose contracts, the provider-probe skip,
+assigned-stack health, research-runner probes, and functional Playwright (`154` executed passes,
+`106` documented skips). The unchanged four-project visual matrix then stopped the gate at
+`e2e-visual`: `98/104` passed and six screenshot assertions failed in
+`watchlist-column-editor-open` at 1080p 100/125% and `workspace-floating` at all four projects.
+These are the same concentrated stale-oracle diffs previously reproduced; no visual baseline,
+mask, threshold, skip, provider fallback, or acceptance rule was changed. Cleanup removed only
+the assigned branch containers, volumes, network, and images.
