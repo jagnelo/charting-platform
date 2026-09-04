@@ -2756,3 +2756,14 @@ provider-level terminal or non-publisher disposition; no symbol is silently
 treated as current. AC10 remains gated on provider-platform staging and AC14
 remains a post-integration production-observation gate requiring human closure
 authorization.
+
+## Synchronized implementation checkpoint — 2026-09-04
+
+The thirteenth-cohort implementation and its durable audit updates were
+committed as `ee82c0d2e88cb8cabc304d08864466576c812433` and pushed to
+`origin/feat/etf-holdings-constituents`. The deterministic matrix passed 686
+tests, with Ruff, formatting, diff, and workstream validation green. The
+session record in this operational checkpoint records that pre-record commit
+as the last known synchronized SHA; after the operational-record commit is
+pushed, verify the enclosing commit and branch parity externally with
+`git rev-parse`.
