@@ -10,6 +10,29 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-04 — Exact-tip exhaustive gate after event identity scoping
+
+The exact integration profile was rerun at product commit `7c930fd1` after the event adapter
+identity repair. Locked dependencies/migrations, Ruff/format, TypeScript, backend units
+(`1,310/1,310`), integration (`381/381` with the existing `54` warnings), combined coverage
+(`80.90%`), frontend Vitest (`934/934` across `108` files), production build, compose/provider
+policy, assigned-stack health, research-runner isolation, and authenticated functional Playwright
+(`155` passed with `106` documented skips across `261` specs) all passed. Teardown and the
+post-gate resource audit were clean.
+
+The unchanged four-project visual matrix remains the only failing stage: `98/104` passed and six
+assertions failed. `watchlist-column-editor-open` reported `13,844` differing pixels at
+visual-1080p-100 and visual-1080p-125. `workspace-floating` reported `9,770` at visual-1080p-100,
+`12,097` at visual-1080p-125, `9,770` at visual-1440p-100, and `12,097` at visual-1440p-125. No
+baseline, mask, threshold, skip, fallback oracle, provider rule, or acceptance policy changed;
+the floating actual intentionally includes canonical benchmark rows after late-popout hydration.
+
+The workstream remains active. Compatible chart/list/gauge and Study Lab promotion targets,
+canonical provider/history readiness, native-window/accessibility/security evidence, and visual
+oracle review remain open. Product and metadata commits are pushed to
+`origin/feat/tc2000-frontend-rework`; no protected worktree, integration, promotion, or deployment
+was touched.
+
 ## 2026-09-04 — Event adapter identity scoping repair
 
 The event-to-Boolean adapter received a focused lineage repair and is committed as `7c930fd1`

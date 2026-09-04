@@ -1,5 +1,26 @@
 # Project TODO Memory
 
+### 2026-09-04 — Exact-tip exhaustive gate after event identity scoping
+
+- [x] Rerun `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at
+      product tip `7c930fd1`. Locked dependencies/migrations, Ruff/format, TypeScript, backend
+      units (`1,310/1,310`), integration (`381/381` with the existing `54` warnings), combined
+      coverage (`80.90%`), frontend Vitest (`934/934` across `108` files), production build,
+      compose/provider policy, assigned-stack health, research-runner isolation, and authenticated
+      functional Playwright (`155` passed and `106` documented skips across `261` specs) all
+      passed. The stack was torn down and the post-gate resource audit reported zero containers,
+      volumes, known image bytes, and test-container sessions.
+- [x] Preserve the unchanged visual result as an explicit blocker: the four-project matrix
+      completed `104` cases with `98` passes and six failures—`watchlist-column-editor-open` at
+      visual-1080p-100/125 (`13,844` differing pixels each), and `workspace-floating` at
+      visual-1080p-100 (`9,770`), visual-1080p-125 (`12,097`), visual-1440p-100 (`9,770`), and
+      visual-1440p-125 (`12,097`). No baseline, mask, threshold, skip, fallback oracle, provider
+      rule, or acceptance policy changed; the intentional canonical-row state in the floating
+      window remains part of the review evidence.
+- [ ] Continue the remaining compatible chart/list/gauge and Study Lab promotion targets,
+      canonical provider/history enrichment, native-window/accessibility/security evidence, and
+      visual-oracle review. The feature goal remains active and is not yet ready for human review.
+
 ### 2026-09-04 — Event adapter preserves per-member lineage
 
 - [x] Close a scope defect in `events_to_boolean`: persisted events carrying a symbol or canonical
@@ -10,11 +31,12 @@
 - [x] Verify the repair with the event-focused runner suite (`8/8`), the full runner unit suite
       (`107/107`), event-promotion integration coverage (`2/2`), compileall, Ruff, and diff checks.
       Product commit `7c930fd1` is pushed to the feature branch.
-- [ ] Rerun the exhaustive branch gate at `7c930fd1`, then continue the remaining compatible
-      chart/list/gauge and Study Lab promotion targets, canonical provider/history enrichment,
-      native-window/accessibility/security evidence, and the six preserved visual diffs. No
-      baseline, mask, threshold, skip, fallback oracle, provider rule, or acceptance policy may
-      change to make the matrix green.
+- [x] Rerun the exhaustive branch gate at `7c930fd1`; the exact receipt is recorded in the
+      checkpoint immediately above, with the six preserved visual diffs unchanged. No baseline,
+      mask, threshold, skip, fallback oracle, provider rule, or acceptance policy changed to make
+      the matrix green.
+- [ ] Continue the remaining compatible chart/list/gauge and Study Lab promotion targets,
+      canonical provider/history enrichment, and native-window/accessibility/security evidence.
 
 ### 2026-09-04 — Exact-tip exhaustive gate after event filter/alert fan-out
 
