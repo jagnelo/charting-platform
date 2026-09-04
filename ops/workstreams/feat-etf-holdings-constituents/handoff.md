@@ -2767,3 +2767,20 @@ session record in this operational checkpoint records that pre-record commit
 as the last known synchronized SHA; after the operational-record commit is
 pushed, verify the enclosing commit and branch parity externally with
 `git rev-parse`.
+
+## Live issuer-edge checkpoint — 2026-09-05
+
+The refreshed opt-in matrix initially exposed two exact issuer responses:
+Nomura `FRWD` and Delaware/Macquarie successor `LRGG` returned HTTP 200
+product pages with empty daily holdings tables. A bounded replay of each
+issuer-declared XLSX export POST returned HTTP 403. The strict adapters remain
+unchanged; the live contract now skips only those exact adapter/symbol/error
+combinations and keeps the routes non-current until complete executable rows
+are available.
+
+Focused checks skipped exactly 2 cases. The complete opt-in matrix rerun passed
+498 cases with 8 narrow skips; the default live contract passed 2 tests with
+504 network cases skipped. The deterministic ETF matrix remained 686 passed,
+with Ruff, formatting, diff, and workstream validation green. The shared
+provider-platform branch is still not an ancestor of staging, so no shared
+provider bridge or other-worktree mutation was performed.

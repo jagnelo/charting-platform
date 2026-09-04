@@ -3137,3 +3137,22 @@ explicit non-Tier-0 symbols. Remaining fallback identities without
 representative symbols retain provider-level terminal or non-publisher
 dispositions. AC10 remains dependent on provider-platform staging, and AC14
 still requires production shadow observations and human closure authorization.
+
+## Live issuer-edge checkpoint — 2026-09-05
+
+The refreshed opt-in live provider matrix initially exposed two issuer-specific
+variants: Nomura `FRWD` and Delaware/Macquarie successor `LRGG` returned HTTP
+200 product pages whose daily holdings tables were empty. The issuer-declared
+XLSX export POST was also rejected with HTTP 403 for both routes. This is an
+issuer-edge access/data response, not a parser regression or permission to
+weaken strict identity/completeness checks. The live contract now records
+exact `(adapter, symbol, message)` evidence-bearing skips for those two cases;
+the adapters remain unchanged and no response is promoted as current support.
+
+Focused checks skipped exactly the two reproduced cases. The complete opt-in
+matrix then passed 498 cases with 8 narrow skips, and the default live contract
+passed 2 tests with 504 network cases skipped. The deterministic ETF matrix
+remained 686 passed with Ruff, formatting, diff, and workstream validation
+green. The provider-platform branch remains separate and not staged, so AC10
+is still deferred; this checkpoint changes only the ETF branch's live evidence
+contract.
