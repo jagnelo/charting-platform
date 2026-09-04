@@ -2557,3 +2557,22 @@ transient harness characterization. Teardown removed all branch-scoped
 containers, volumes, network, and images cleanly. The full gate therefore
 remains recorded as an external/unrelated failure rather than relabelled green;
 AC10, the remaining AC11 symbols, and AC14 remain open as stated above.
+
+## Third ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+The next relevance-ranked slice is now explicit in both runtime and the durable
+audit ledger: AVOS (Avos Global Equities) and BGGG/BGIA/BGEG/BGUS (Baillie
+Gifford). AVOS is `unavailable` because the official page exposes current
+holdings in browser-facing evidence but the bounded backend-equivalent route
+returns HTTP 403. All four Baillie Gifford symbols are `unavailable` with a
+`non_executable_public_source` evidence state because the official spreadsheet
+endpoint exposes only ten top holdings and omits the complete constituent
+universe and stable identifiers. Each record carries dated evidence references
+and a bounded next action; none is current-analysis usable or promoted through
+SEC fallback.
+
+The three ranked cohorts now cover 31 explicit non-Tier-0 symbols. Remaining
+fallback symbols retain the identity-level `unknown` boundary until their own
+symbol-scoped evidence is recorded. AC10 remains gated on the separate
+provider-platform staging merge, and AC14 remains a post-integration,
+production-observation gate requiring human closure authorization.

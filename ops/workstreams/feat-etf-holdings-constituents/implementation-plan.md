@@ -2942,3 +2942,22 @@ narrow external/unrelated failure rather than claimed green. Teardown removed
 all branch-scoped resources successfully. AC10 remains dependent on
 provider-platform staging, AC11 remains open for the remaining symbols, and
 AC14 remains a post-integration/deployment production shadow gate.
+
+## Third ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+This slice binds the next relevance-ranked fallback symbols to explicit runtime
+and durable-ledger outcomes. It covers AVOS (Avos Global Equities) and
+BGGG/BGIA/BGEG/BGUS (Baillie Gifford). AVOS remains `unavailable` because the
+issuer's browser-facing holdings page is blocked to backend-equivalent access
+with HTTP 403. The four Baillie Gifford symbols remain `unavailable` with a
+`non_executable_public_source` state because the official spreadsheet only
+contains top-ten holdings and omits complete constituents and stable
+identifiers. Dated evidence references and bounded remediation actions are
+retained for every symbol; no route is promoted as current support.
+
+The runtime symbol-audit map, YAML `symbol_audit_ledger`, response schema,
+documentation, and parity tests are updated together. The three ranked cohorts
+now cover 31 explicit non-Tier-0 symbols; remaining symbols stay identity-level
+`unknown` until individually investigated. AC10 remains dependent on
+provider-platform staging, and AC14 still requires production shadow
+observations and human closure authorization.
