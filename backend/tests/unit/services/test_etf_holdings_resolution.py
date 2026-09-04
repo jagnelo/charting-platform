@@ -195,6 +195,10 @@ class NameSearchMetadataProvider:
                 )
             ],
             raw_payload={"ticker": "AZN", "name": "AstraZeneca PLC"},
+            extra={
+                "industry": "Pharmaceutical Preparations",
+                "classification_system": "SEC_SIC",
+            },
         )
 
 
@@ -948,6 +952,60 @@ async def test_resolver_keeps_ambiguous_name_search_as_placeholder(db, monkeypat
 
 
 @pytest.mark.asyncio
+async def test_resolver_keeps_weak_name_search_as_placeholder(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr("app.services.etf_holdings.settings.APP_ENV", "development")
+    search_provider = FakeNameSearchProvider(
+        [
+            ProviderSearchResult(
+                symbol="AZN",
+                name="AstraZeneca Oncology Research Therapeutics",
+                instrument_type="EQUITY",
+            )
+        ]
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_default_search_provider",
+        lambda: search_provider,
+    )
+    metadata_calls: list[str] = []
+
+    class UnexpectedMetadataProvider(NameSearchMetadataProvider):
+        def get_instrument_profile(self, symbol: str) -> InstrumentProfile | None:
+            metadata_calls.append(symbol)
+            return super().get_instrument_profile(symbol)
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_default_metadata_provider",
+        lambda: UnexpectedMetadataProvider(),
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_identifier_providers",
+        lambda: [],
+    )
+
+    instrument, confidence, note = await _resolve_or_create_constituent(
+        async_db,
+        CanonicalHoldingRow(
+            symbol=None,
+            name="AstraZeneca Oncology Research Ventures",
+            isin="US0463531089",
+            currency="USD",
+            holding_type="equity",
+            row_type="security",
+        ),
+        source_provider="sec",
+    )
+    db.flush()
+
+    assert instrument is not None
+    assert instrument.symbol.startswith("HOLDING-")
+    assert confidence == Decimal("0.5000")
+    assert note is None
+    assert metadata_calls == []
+
+
+@pytest.mark.asyncio
 async def test_resolver_promotes_existing_placeholder_when_identifier_profile_resolves(
     db, monkeypatch
 ):
@@ -1131,3 +1189,63 @@ async def test_classification_maintenance_is_bounded_per_profile(db, monkeypatch
     assert summary["processed"] == 1
     assert summary["max_enrichments_per_profile"] == 7
     assert calls == [(async_db, snapshot.id, 7)]
+
+
+@pytest.mark.asyncio
+async def test_classification_maintenance_reports_name_search_promotions(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr("app.services.etf_holdings.settings.APP_ENV", "test")
+    etf = await ensure_lightweight_etf_instrument(async_db, symbol="QQQ", name="Invesco QQQ Trust")
+    await ensure_etf_profile(async_db, etf, issuer="Invesco")
+    snapshot = await ingest_holdings_snapshot(
+        async_db,
+        etf_instrument=etf,
+        rows=[
+            CanonicalHoldingRow(
+                symbol=None,
+                name="AstraZeneca PLC",
+                isin="US0463531089",
+                weight=Decimal("0.10"),
+                holding_type="equity",
+                row_type="security",
+            )
+        ],
+        composition_date=date(2026, 8, 12),
+        provenance="sec_nport",
+        source_provider="sec",
+        allow_provider_enrichment=False,
+    )
+    db.flush()
+    assert snapshot.rows[0].constituent_instrument.symbol.startswith("HOLDING-")
+
+    monkeypatch.setattr("app.services.etf_holdings.settings.APP_ENV", "development")
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_identifier_providers",
+        lambda: [],
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_default_search_provider",
+        lambda: FakeNameSearchProvider(
+            [ProviderSearchResult(symbol="AZN", name="AstraZeneca PLC", instrument_type="EQUITY")]
+        ),
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_default_metadata_provider",
+        lambda: NameSearchMetadataProvider(),
+    )
+
+    summary = await reconcile_all_etf_holdings_classifications(
+        async_db,
+        max_profiles=1,
+        max_enrichments_per_profile=1,
+    )
+
+    assert summary["profiles"] == 1
+    assert summary["processed"] == 1
+    assert summary["enriched"] == 1
+    assert summary["remaining"] == 0
+    refreshed = db.execute(select(Instrument).where(Instrument.symbol == "AZN")).scalar_one()
+    detail = db.execute(
+        select(EquityDetail).where(EquityDetail.instrument_id == refreshed.id)
+    ).scalar_one()
+    assert detail.industry == "Pharmaceutical Preparations"

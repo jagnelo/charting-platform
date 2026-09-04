@@ -917,11 +917,33 @@ remain `HOLDING-*` placeholders; no symbol is guessed and no latest-only fallbac
 
 Evidence at this implementation boundary:
 
-- The ETF resolver unit module passes `18/18`, including unique name-search promotion and tied
-  candidate refusal; the full backend unit suite passes `1,301/1,301`.
+- The ETF resolver unit module passes `20/20`, including unique name-search promotion, tied
+  candidate refusal, and weak-match refusal; the full backend unit suite passes `1,303/1,303`.
 - The Docker-backed ETF holdings integration module passes `65/65`; repository lint, Ruff format,
   TypeScript, compileall, and diff checks pass.
 - The provider-search bridge is deliberately not counted as live population evidence. It runs only
   from bounded opt-in reconciliation, and the prior disposable QQQ run still requires external,
   auditable provider results before its 101 placeholder identities can count toward canonical
   history. The six unchanged visual diffs and QQQE/SPDR/MN/W1 gaps remain open.
+
+## 2026-09-04 — Bounded name-search reconciliation runtime
+
+The new bridge was exercised on a fresh branch-scoped disposable stack with
+`IDENTIFIER_PROVIDER_PRIORITY=[]`. This intentionally kept OpenFIGI out of the run: only the
+configured public SEC search and metadata path was available for symbol-less rows. The
+authenticated Nasdaq-100 `cap_weight` holdings request for `2025-12-31` completed `1/1` and
+created a QQQ snapshot with 101 raw SEC rows.
+
+A single bounded maintenance batch (`max_profiles=1`, `max_enrichments_per_profile=32`) then
+promoted 14 rows to canonical provider symbols and retained provider-backed classification and
+filing-identifier evidence. The other 87 rows remain internal `HOLDING-*` placeholders. The
+maintenance summary was corrected to re-query persisted foreign-key, symbol, industry, and
+sector columns after reconciliation; it therefore reports the durable 14/87 split instead of
+depending on stale eager-loaded relationships.
+
+The stack, volumes, network, and generated images were removed with `make test-stack-down` after
+the bounded check. Placeholder rows were not sent to history providers, no D1/W1/MN bar coverage
+was claimed, and no latest-only or symbol-guess fallback was used. This is auditable bounded
+provider evidence, not complete QQQ canonical population, point-in-time membership continuity, or
+member-history readiness. The 87 remaining placeholders, QQQE/SPDR dated sources, MN/W1 support,
+and the six unchanged visual-oracle diffs remain open.

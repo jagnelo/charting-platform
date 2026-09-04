@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-09-04 — Bounded name-search reconciliation runtime evidence
+
+- [x] Exercise the new identifier-only name-search bridge on a fresh, branch-scoped stack with
+      `IDENTIFIER_PROVIDER_PRIORITY=[]`, so the bounded run used the public SEC search/metadata
+      path without sending identifiers to OpenFIGI. The authenticated Nasdaq-100
+      `cap_weight` holdings run completed `1/1` for `2025-12-31` and produced a QQQ snapshot with
+      101 raw SEC rows.
+- [x] Run one bounded reconciliation profile batch (`max_profiles=1`,
+      `max_enrichments_per_profile=32`). Fourteen rows promoted to canonical provider symbols
+      and retained provider-backed classification/identifier evidence; 87 rows remain explicit
+      `HOLDING-*` placeholders. The maintenance receipt now re-queries persisted columns after
+      reconciliation, so `enriched` and `remaining` counts cannot be understated by stale
+      SQLAlchemy relationships.
+- [x] Tear down the disposable stack, volumes, network, and images with the branch-scoped helper.
+      No D1/W1/MN history jobs were queued from placeholders, no bar coverage was claimed, and
+      no latest-only or symbol-guess fallback was used. This is bounded provider evidence, not
+      complete QQQ canonical readiness or point-in-time history.
+- [ ] Continue with separately authorized, auditable provider batches for the 87 remaining
+      placeholders before counting them toward canonical history or analysis readiness.
+
 ### 2026-09-04 — Timeframe-specific history gaps no longer poison provider health
 
 - [x] Keep a provider's expected empty history response scoped to the requested symbol/timeframe/
@@ -27,8 +47,8 @@
       unique best token match, a full compatible metadata profile, an allowed equity-like quote
       type, and the existing provenance/identifier registration path. Tied or weak matches remain
       `HOLDING-*` placeholders; existing symbol- and stable-identifier-first resolution is unchanged.
-- [x] Add focused unique-match and ambiguity regressions. The resolver module passes `18/18`, the
-      full backend unit suite passes `1,301/1,301`, the Docker-backed ETF holdings integration
+- [x] Add focused unique-match, ambiguity, and weak-match regressions. The resolver module passes
+      `20/20`, the full backend unit suite passes `1,303/1,303`, the Docker-backed ETF holdings integration
       module passes `65/65`, and repository lint/format/type checks pass. No visual oracle,
       threshold, mask, skip, fallback rule, or protected worktree changed.
 - [ ] Use this bridge only from the bounded, opt-in reconciliation worker and collect live provider

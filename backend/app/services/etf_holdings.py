@@ -422,7 +422,11 @@ async def _provider_enriched_constituent_instrument(
             if not candidate_symbol or _is_placeholder_symbol(candidate_symbol):
                 continue
             score = _name_search_match_score(row.name, candidate_name)
-            if score <= 0:
+            # A single high-overlap score is still too weak for identity
+            # promotion: it can describe a related product or business line.
+            # Require exact token equality or containment, then use the full
+            # metadata profile as the second identity check below.
+            if score < 2:
                 continue
             previous = scored_candidates.get(candidate_symbol)
             if previous is None or score > previous[0]:
@@ -1356,6 +1360,11 @@ async def reconcile_snapshot_constituents(
                 source_provider=source_provider,
             )
             row.constituent_instrument_id = instrument.id if instrument is not None else None
+            # Keep the eagerly loaded relationship in sync with the foreign-key
+            # update. The bounded maintenance summary and subsequent rows rely
+            # on the in-memory object to report canonical promotion and
+            # classification counts accurately before the next DB refresh.
+            row.constituent_instrument = instrument
             row.is_resolved = instrument is not None
             row.resolution_confidence = confidence
             row.resolution_note = note

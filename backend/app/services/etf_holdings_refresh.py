@@ -21,7 +21,7 @@ from app.models.etf_holdings import (
     ETFHoldingsSnapshot,
     ETFProfile,
 )
-from app.models.instrument import Instrument
+from app.models.instrument import EquityDetail, Instrument
 from app.providers.base import IdentifierRecord
 from app.services.etf_holdings import (
     ETF_HOLDINGS_INTERNAL_PROVIDER,
@@ -30,6 +30,7 @@ from app.services.etf_holdings import (
     get_etf_profile_for_instrument,
     get_latest_snapshot,
     ingest_holdings_snapshot,
+    is_placeholder_symbol,
     reconcile_snapshot_constituents,
 )
 from app.services.etf_holdings_adapters import (
@@ -721,29 +722,36 @@ async def reconcile_all_etf_holdings_classifications(
             await _record_failure(db, profile, exc)
             await db.flush()
             continue
+        # Re-load the rows after reconciliation. Assigning a new instrument
+        # foreign key does not guarantee that an already-eager-loaded
+        # relationship exposes the newly created profile/detail in every
+        # SQLAlchemy session mode. Counting the refreshed rows keeps the
+        # maintenance receipt truthful for both identifier promotion and
+        # classification enrichment.
+        refreshed_rows = (
+            await db.execute(
+                select(
+                    ETFHolding.constituent_instrument_id,
+                    Instrument.symbol,
+                    EquityDetail.industry,
+                    EquityDetail.sector,
+                )
+                .outerjoin(Instrument, Instrument.id == ETFHolding.constituent_instrument_id)
+                .outerjoin(EquityDetail, EquityDetail.instrument_id == Instrument.id)
+                .where(ETFHolding.snapshot_id == snapshot.id)
+            )
+        ).all()
         after = sum(
             1
-            for row in snapshot.rows
-            if row.constituent_instrument is not None
-            and row.constituent_instrument.equity_detail is not None
-            and (
-                row.constituent_instrument.equity_detail.industry
-                or row.constituent_instrument.equity_detail.sector
-            )
+            for row in refreshed_rows
+            if row[0] is not None and not is_placeholder_symbol(row[1]) and (row[2] or row[3])
         )
         processed += 1
         enriched += max(0, after - before)
         remaining += sum(
             1
-            for row in snapshot.rows
-            if row.constituent_instrument is not None
-            and (
-                row.constituent_instrument.equity_detail is None
-                or not (
-                    row.constituent_instrument.equity_detail.industry
-                    or row.constituent_instrument.equity_detail.sector
-                )
-            )
+            for row in refreshed_rows
+            if row[0] is None or is_placeholder_symbol(row[1]) or not (row[2] or row[3])
         )
     await db.flush()
     return {
