@@ -1906,3 +1906,20 @@ that Pictet live-matrix HTTP 403. Its Playwright job had successfully started
 the stack and browser suite but was canceled by workflow failure before any
 independent E2E assertion failed. The narrow catch is committed and pushed at
 `baee55c2`; fresh exact-SHA run `33833511113` is queued.
+
+## Current-head branch green with E2E startup timeout — 2026-09-04
+
+Current-head CI run `33833644935` at `2dd2ff26` passed Backend Tests,
+Frontend Unit Tests, and the complete branch-declared matrix after the Pictet
+guard. Playwright failed before stack health or browser tests because the
+workflow's five-minute `Start stack` step expired while the frontend Docker
+image's `npm ci` layer was running. This repeats the documented infrastructure
+timing limitation; no ETF or application E2E assertion failed. Prior exact-SHA
+run `33830519331` at `526db81f` passed Playwright, and the current branch matrix
+is green with the Pictet HTTP-403 variant handled narrowly.
+
+The feature branch remains clean and synchronized at the review boundary. The
+local Docker gate still retains the unrelated fresh-stack `F8p-current-history`
+Study Lab missing-histogram failure. No integration, promotion, deployment, or
+other-worktree mutation is authorized or performed; explicit human closure
+authorization remains pending.
