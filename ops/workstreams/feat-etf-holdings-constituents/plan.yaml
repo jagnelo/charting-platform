@@ -70,7 +70,7 @@ branch_tests_reason: "Provider adapters require deterministic parser/registry co
 live_test_impact: "Live calls are opt-in, bounded, rate-conscious, and restricted to reviewed public/free or already-entitled provider routes. Live failures must distinguish route drift, issuer blocking, entitlement, network, parser, and source-data failures."
 migration_impact: none
 deployment_impact: "none; feature implementation stops before integration or deployment"
-status: in_progress
+status: ready_for_human_review
 remaining_gaps:
   - "Starting baseline was 496 registered providers, 356 native/live-backed providers, and 140 fallback-only providers; after the documented native promotions through ROBO Global/ROBO-HTEC-THNQ, Rockefeller/RMOP-RMNY-RMCA-RSMC-RGEF, Saba/CEFS, Beacon/Sammons BTR-BSR-BTA, Sapient/SQS, SMI Funds/RAA-FCTE, SRH Funds/SRHQ-SRHR, Stance/STNC, Stratified/SSPY-SHUS, and TrimTabs/Abacus FCF, current code and provider-universe documentation report 496/414/82 and future counts must remain derived."
   - "The 140 starting fallback providers have a baseline ledger snapshot; all verified native promotions through ROBO Global/ROBO-HTEC-THNQ, Rockefeller/RMOP-RMNY-RMCA-RSMC-RGEF, Saba/CEFS, Beacon/Sammons BTR-BSR-BTA, Sapient/SQS, SMI Funds/RAA-FCTE, SRH Funds/SRHQ-SRHR, Stance/STNC, Stratified/SSPY-SHUS, and TrimTabs/Abacus FCF are recorded explicitly. The ledger has zero queued records, and the 17 legacy entries were refreshed with dated issuer-specific route, identity, or access evidence on 2026-09-03. Current code-derived FALLBACK_ISSUER_AUDITS statuses are 8 issuer-access-blocked, 64 route-discovery, 3 non-executable, and 7 non-portfolio-publisher; the ledger preserves more specific evidence-backed classifications."
@@ -106,6 +106,8 @@ remaining_gaps:
   - "Fresh exact-SHA CI run 33849929153 on 0ec62c9f2c69f04354d161b4a7e649fcdd44b239 passed Backend Tests and Frontend Unit Tests and reduced the branch-declared live matrix to 450 passed and 53 skipped, but three dedicated tests failed: Hilton SMCO no complete dated holdings, Abacus Global ABLG identity mismatch, and Shelton SEPI identity mismatch. Focused local retries hit DNS connection errors and were skipped by the external transport helper; the exact dedicated adapter/symbol/message guards are now added, with strict adapters unchanged. Ruff and diff-check pass; the independent Playwright job remains pending and a fresh exact-SHA CI run is required."
   - "Exact-head CI run 33851087285 on b0e7814fbaf83ee9419153a1d771083bb55fb449 passed Backend Tests, Frontend Unit Tests, the complete branch-declared suite, Ruff, and workstream validation. The branch suite reported 567 deterministic passed, 2 default-live passed with 504 skipped, and 492 opt-in live passed with 14 evidence-backed skips; Playwright passed 151 with 109 skipped after stack startup and backend health. The protected staging/master-only Exhaustive Integration Gate was skipped as designed. This validates the dedicated Hilton/Abacus Global/Shelton guards and all prior issuer-edge guards; the local docker_integration gate still retains only the unrelated F8p-current-history Study Lab missing-histogram failure at flows.spec.ts:2602."
   - "Exact-SHA CI run 33874352214 on 31f29234 passed Backend Tests and Frontend Unit Tests, but the branch-declared live matrix reached 493 passed and 12 skipped before conductor_fund/CGV raised the exact issuer-data variant `Conductor's declared CGV holdings CSV contained no complete rows.` The same response reproduced in a bounded local probe; the strict adapter is unchanged and an exact provider/symbol/message live-contract guard is now added. Its Playwright job was independent and still running when this record was captured; a fresh exact-SHA CI run is required after the guard."
+  - "Exact-SHA CI run 33876577643 on cdbbf4d970642d9119f5f3e99955e7ea774ac064 passed Frontend Unit Tests, Backend Tests, the complete branch-declared provider matrix, and Playwright E2E (all setup, stack health, browser tests, teardown, and post steps successful). The protected staging/master-only Exhaustive Integration Gate was skipped as designed for this feature branch. The Conductor CGV issuer-edge guard is validated; no ETF/application failure was reported."
+  - "The feature branch's local Docker-backed gate remains evidenced by passing deterministic, dependency, migration, lint, coverage, frontend, build, compose, provider-probe, branch-stack health, research-runner, functional E2E, and isolated four-viewport visual checks. The first full visual matrix recorded one transient workspace-floating mismatch that passed on a fresh branch-scoped retry; this is retained as historical evidence and is not an ETF or application regression."
 progress:
   completed:
     - AC1
@@ -114,7 +116,9 @@ progress:
     - AC4
     - AC5
     - AC6
+    - AC7
+    - AC8
   total: 8
-  current_phase: final_validation
-  current_blocker: "Exact-SHA CI run 33874352214 at 31f29234 passed Backend Tests and Frontend Unit Tests but exposed the exact conductor_fund/CGV issuer no-complete-rows variant; a narrow live-contract guard is now present in the working tree and bounded local probe. Its Playwright job is still running independently. The local docker_integration gate's only visual mismatch was transient and passed all four isolated retries. Human closure authorization remains pending."
-  next_action: "Commit and push the narrow Conductor CGV live-contract guard with its issuer-edge evidence, then obtain a fresh exact-SHA CI result and present the clean synchronized branch for human review. Do not alter strict adapter behavior or modify another worktree."
+  current_phase: handoff
+  current_blocker: "No technical blocker remains. Human closure authorization remains pending; the feature branch is ready for human review and must not be integrated, promoted, or deployed by this session."
+  next_action: "Review the synchronized feature branch and its durable handoff/validation records. Keep all work scoped to feat/etf-holdings-constituents; do not alter strict adapter behavior or modify another worktree."

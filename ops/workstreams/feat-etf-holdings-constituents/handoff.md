@@ -2240,3 +2240,23 @@ an evidence-bearing skip. The independent Playwright job was still running
 when this handoff entry was written; a fresh exact-SHA CI run is required after
 the guard. No integration, promotion, deployment, or other-worktree mutation
 was performed.
+
+## Conductor guard exact-SHA CI green and review readiness — 2026-09-04
+
+Fresh exact-SHA CI run `33876577643` on
+`cdbbf4d970642d9119f5f3e99955e7ea774ac064` passed Frontend Unit Tests,
+Backend Tests, the complete branch-declared provider matrix, and Playwright
+E2E. Playwright started the branch-scoped stack, passed backend health, ran
+the browser suite successfully, and completed teardown; the protected
+staging/master-only Exhaustive Integration Gate was skipped as designed for
+this feature branch. The Conductor `CGV` exact issuer-edge live-contract
+guard is therefore validated without changing strict adapter behavior.
+
+The durable plan now records AC1–AC8 complete and `ready_for_human_review`.
+The local Docker-backed gate remains supported by its passing deterministic,
+dependency, migration, lint, coverage, frontend, build, compose,
+provider-probe, stack-health, research-runner, functional E2E, and isolated
+four-viewport visual evidence; its first visual mismatch was transient and
+did not reproduce on the fresh branch-scoped retry. No integration,
+promotion, deployment, or other-worktree mutation was performed. Human
+closure authorization remains pending.
