@@ -371,3 +371,20 @@ def test_tier_zero_shadow_gate_requires_observations_in_the_window():
     assert result["eligible_checks"] == 0
     assert result["passing_checks"] == 0
     assert any("no eligible Tier 0 observations" in reason for reason in result["failure_reasons"])
+
+
+def test_tier_zero_shadow_gate_rejects_missing_eligible_symbol_coverage():
+    result = evaluate_tier0_shadow_gate(
+        {
+            "DXJ": [_shadow_observation("2026-09-20T12:00:00+00:00")],
+            "NTSX": [],
+        },
+        now=date(2026, 9, 20),
+        eligible_symbols=["DXJ", "NTSX"],
+    )
+
+    assert result["status"] == "fail"
+    assert result["missing_symbols"] == ["NTSX"]
+    assert any(
+        "missing eligible Tier 0 observations" in reason for reason in result["failure_reasons"]
+    )

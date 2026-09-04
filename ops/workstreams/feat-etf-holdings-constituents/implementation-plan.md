@@ -2843,3 +2843,19 @@ production observations required by AC14. AC10 remains gated on the shared
 provider-platform branch reaching staging; AC11 remains open for non-Tier-0
 symbol evidence; and AC14 remains post-integration/deployment with human
 closure authorization pending.
+
+## Shadow-gate coverage hardening — 2026-09-04
+
+The Tier 0 shadow evaluator now fails explicitly when any eligible symbol has
+no non-missing-profile observation in the rolling 30-day window. This prevents
+an absent canary stream from being silently excluded from the aggregate
+success-rate calculation. The machine-readable response exposes
+`missing_symbols`, and the operational runbook now treats that condition as a
+coverage failure.
+
+Focused capability/refresh validation passed 25 tests, the complete
+deterministic ETF backend matrix passed 634 tests, and Ruff, formatting,
+diff-check, and workstream validation passed. This is preparatory AC14 work
+only; AC10 remains gated on provider-platform staging, AC11 remains open for
+non-Tier-0 symbols, and production shadow evidence plus human closure are
+still required.

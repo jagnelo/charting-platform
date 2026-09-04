@@ -29,7 +29,10 @@ The gate passes only when all of the following are true:
    and an unexpired freshness deadline.
 3. No symbol has two consecutive observations with a missed freshness deadline
    (`availability=stale` or an observation date after its recorded deadline).
-4. There are zero silent identity/schema/completeness violations. In
+4. Every eligible Tier 0 symbol has at least one non-missing-profile
+   observation in the window. A symbol with no observation is a coverage gap,
+   not an uncounted success.
+5. There are zero silent identity/schema/completeness violations. In
    particular, an observation must never claim `current` or current-analysis
    usability while identity, completeness, source tier, or symbol-level audit
    evidence is non-current.
@@ -37,7 +40,8 @@ The gate passes only when all of the following are true:
 The service function
 `app.services.etf_holdings_capability.evaluate_tier0_shadow_gate` returns the
 machine-readable result, including the exact window, eligible and passing
-counts, success rate, per-symbol freshness streaks, and violation details.
+counts, success rate, per-symbol freshness streaks, missing-symbol coverage,
+and violation details.
 
 ## Operational procedure
 

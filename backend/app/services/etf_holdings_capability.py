@@ -417,6 +417,7 @@ def evaluate_tier0_shadow_gate(
     eligible_checks = 0
     passing_checks = 0
     observed_symbols: set[str] = set()
+    missing_symbols: list[str] = []
     max_consecutive_missed = 0
     missed_by_symbol: dict[str, int] = {}
 
@@ -440,6 +441,7 @@ def evaluate_tier0_shadow_gate(
                 continue
             parsed.append((observed_date, observation))
         if not parsed:
+            missing_symbols.append(symbol)
             continue
         observed_symbols.add(symbol)
         parsed.sort(key=lambda item: item[0])
@@ -516,6 +518,10 @@ def evaluate_tier0_shadow_gate(
         )
     if silent_violations:
         reasons.append(f"{len(silent_violations)} silent identity/schema/completeness violation(s)")
+    if missing_symbols:
+        reasons.append(
+            "missing eligible Tier 0 observations for: " + ", ".join(sorted(missing_symbols))
+        )
 
     return {
         "status": "pass" if not reasons else "fail",
@@ -524,6 +530,7 @@ def evaluate_tier0_shadow_gate(
         "window_days": days,
         "eligible_symbols": sorted(requested_symbols),
         "observed_symbols": sorted(observed_symbols),
+        "missing_symbols": sorted(missing_symbols),
         "eligible_checks": eligible_checks,
         "passing_checks": passing_checks,
         "success_rate": round(success_rate, 4),
