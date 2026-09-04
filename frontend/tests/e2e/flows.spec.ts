@@ -2999,7 +2999,10 @@ test.describe('TC2000 workstation', () => {
         return
       }
       if (outputName === 'confidence') expect(body?.initial_version).toMatchObject({ output_contract: 'series', output_name: 'confidence', lineage: { output_adapter: 'range_center_to_series', semantics: 'study_range_center_result_as_chart_plot' } })
-      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: outputName === 'sample_size' ? 46 : outputName === 'trend' ? 47 : outputName === 'confidence' ? 48 : 49, name: outputName === 'sample_size' ? 'Sample size column' : outputName === 'trend' ? 'Trend plot' : outputName === 'confidence' ? 'Confidence center plot' : 'Qualifies column', versions: [{ id: outputName === 'sample_size' ? 46 : outputName === 'trend' ? 47 : outputName === 'confidence' ? 48 : 49 }] }) })
+      if (outputName === 'trend' && body?.kind === 'column') expect(body?.initial_version).toMatchObject({ output_contract: 'scalar', output_name: 'trend', lineage: { output_adapter: 'latest_series_to_scalar', semantics: 'study_series_latest_result_as_watchlist_column' } })
+      const id = outputName === 'sample_size' ? 46 : outputName === 'trend' ? (body?.kind === 'column' ? 49 : 47) : outputName === 'confidence' ? 48 : 50
+      const name = outputName === 'sample_size' ? 'Sample size column' : outputName === 'trend' ? (body?.kind === 'column' ? 'Trend latest column' : 'Trend plot') : outputName === 'confidence' ? 'Confidence center plot' : 'Qualifies column'
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id, name, versions: [{ id }] }) })
     })
     await page.route(/\/api\/v1\/research\/runs\/883$/, async route => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
@@ -3099,6 +3102,8 @@ test.describe('TC2000 workstation', () => {
     await expect(results).toContainText('Saved scalar artifact “sample_size” as watchlist column “Sample size column”.')
     await results.getByRole('button', { name: 'Save chart plot: trend' }).click()
     await expect(results).toContainText('Saved series artifact “trend” as chart plot “Trend plot”.')
+    await results.getByRole('button', { name: 'Save latest column: trend' }).click()
+    await expect(results).toContainText('Saved series artifact “trend” as watchlist column “Trend latest column”.')
     await expect(results.getByRole('button', { name: 'Save center chart plot: confidence' })).toBeVisible()
     await results.getByRole('button', { name: 'Save center chart plot: confidence' }).click()
     await expect(results).toContainText('Saved range center “confidence” as chart plot “Confidence center plot”.')

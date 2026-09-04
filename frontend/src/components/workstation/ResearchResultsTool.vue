@@ -48,6 +48,7 @@
           <div v-if="canPromoteStructuredArtifact(selectedRun, artifact)" class="research-results-tool__artifact-promotions" role="group" :aria-label="`${artifact.name} promotions`">
             <button v-if="artifact.artifact_type === 'scalar'" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save column: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'column')">{{ promoting ? 'Promoting…' : `Save column: ${artifact.name}` }}</button>
             <button v-if="artifact.artifact_type === 'series'" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save chart plot: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'plot')">{{ promoting ? 'Promoting…' : `Save chart plot: ${artifact.name}` }}</button>
+            <button v-if="artifact.artifact_type === 'series' && latestSeriesValue(artifact) != null" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save latest column: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'column')">{{ promoting ? 'Promoting…' : `Save latest column: ${artifact.name}` }}</button>
             <button v-if="artifact.artifact_type === 'range'" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save center chart plot: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'plot')">{{ promoting ? 'Promoting…' : `Save center chart plot: ${artifact.name}` }}</button>
             <template v-if="artifact.artifact_type === 'boolean'">
               <button v-for="target in structuredBooleanPromotionTargets" :key="`${artifact.id}-${target}`" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`${structuredBooleanPromotionLabel(target)}: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, target)">{{ promoting ? 'Promoting…' : `${structuredBooleanPromotionLabel(target)}: ${artifact.name}` }}</button>
@@ -223,6 +224,9 @@ function artifactCapabilityNote(artifact: ResearchRunSummary['artifacts'][number
   if (artifact.artifact_type === 'range' && rangeData(artifact)?.center == null) {
     return 'View/export only: this range has no aligned finite center series to promote; bounds remain source-only.'
   }
+  if (artifact.artifact_type === 'series' && latestSeriesValue(artifact) == null) {
+    return 'View/export only: this series has no finite observation to promote as a latest-value watchlist column.'
+  }
   return capability?.note ?? ''
 }
 function tableRows(artifact: ResearchRunSummary['artifacts'][number]): Array<Record<string, unknown>> {
@@ -236,6 +240,14 @@ function seriesData(artifact: ResearchRunSummary['artifacts'][number]): { timest
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
   const candidate = value as { timestamps?: unknown; values?: unknown }
   return Array.isArray(candidate.timestamps) && candidate.timestamps.every(item => typeof item === 'string') && Array.isArray(candidate.values) && candidate.timestamps.length === candidate.values.length && candidate.values.every(item => item == null || typeof item === 'number') ? { timestamps: candidate.timestamps, values: candidate.values } : null
+}
+function latestSeriesValue(artifact: ResearchRunSummary['artifacts'][number]): number | null {
+  const values = seriesData(artifact)?.values
+  if (!values) return null
+  for (const value of values.slice().reverse()) {
+    if (typeof value === 'number' && Number.isFinite(value)) return value
+  }
+  return null
 }
 function barData(artifact: ResearchRunSummary['artifacts'][number]): { labels: string[]; values: number[] } | null {
   const value = artifact.payload.value
@@ -725,9 +737,12 @@ async function promoteStructuredArtifact(run: ResearchRunSummary, artifact: Rese
     const assets = await api.get<Array<{ name: string; versions?: Array<{ id?: number; source?: string; output_contract?: string; output_name?: string | null; parameter_schema?: Record<string, unknown>; default_parameters?: Record<string, unknown> }> }>>('/code/assets')
     const sourceVersion = (assets ?? []).flatMap(asset => asset.versions ?? []).find(version => version.id === run.code_version_id)
     if (!sourceVersion?.source) throw new Error('The immutable source code version for this research run is unavailable.')
-    const contract = artifact.artifact_type === 'scalar' ? 'scalar' : artifact.artifact_type === 'boolean' ? 'boolean' : 'series'
+    const latestSeriesColumn = artifact.artifact_type === 'series' && target === 'column'
+    const contract = artifact.artifact_type === 'scalar' ? 'scalar' : artifact.artifact_type === 'boolean' ? 'boolean' : latestSeriesColumn ? 'scalar' : 'series'
     const kind = target === 'column' ? 'column' : 'plot'
-    const outputAdapter = artifact.artifact_type === 'range' ? 'range_center_to_series' : undefined
+    const outputAdapter = artifact.artifact_type === 'range'
+      ? 'range_center_to_series'
+      : latestSeriesColumn ? 'latest_series_to_scalar' : undefined
     const lineage = {
       type: 'study_run_promotion',
       source_run_id: run.id,
@@ -739,8 +754,12 @@ async function promoteStructuredArtifact(run: ResearchRunSummary, artifact: Rese
       target,
       output_adapter: outputAdapter,
       semantics: target === 'column'
-        ? (artifact.artifact_type === 'boolean' ? 'study_boolean_result_as_typed_watchlist_column' : 'study_scalar_result_as_watchlist_column')
-        : artifact.artifact_type === 'range' ? 'study_range_center_result_as_chart_plot' : 'study_series_result_as_chart_plot',
+        ? artifact.artifact_type === 'boolean'
+          ? 'study_boolean_result_as_typed_watchlist_column'
+          : latestSeriesColumn ? 'study_series_latest_result_as_watchlist_column' : 'study_scalar_result_as_watchlist_column'
+        : artifact.artifact_type === 'range'
+          ? 'study_range_center_result_as_chart_plot'
+          : 'study_series_result_as_chart_plot',
     }
     const promoted = await api.post<{ id: number; name: string }>('/code/assets', {
       stable_key: `${run.id}-${artifact.name}-${kind}-${Date.now().toString(36)}`.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80) || `study-${kind}`,
@@ -758,7 +777,9 @@ async function promoteStructuredArtifact(run: ResearchRunSummary, artifact: Rese
     promotionMessage.value = target === 'column'
       ? artifact.artifact_type === 'boolean'
         ? `Saved Boolean artifact “${artifact.name}” as watchlist column “${promoted.name}”.`
-        : `Saved scalar artifact “${artifact.name}” as watchlist column “${promoted.name}”.`
+        : latestSeriesColumn
+          ? `Saved series artifact “${artifact.name}” as watchlist column “${promoted.name}”.`
+          : `Saved scalar artifact “${artifact.name}” as watchlist column “${promoted.name}”.`
       : artifact.artifact_type === 'range'
         ? `Saved range center “${artifact.name}” as chart plot “${promoted.name}”.`
         : `Saved series artifact “${artifact.name}” as chart plot “${promoted.name}”.`

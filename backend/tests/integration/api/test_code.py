@@ -256,6 +256,36 @@ def test_code_asset_kind_and_declared_output_contract_must_match(client, auth_he
     )
     assert range_lineage["lineage"]["output_adapter"] == "range_center_to_series"
 
+    selected_series_column = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "selected-study-series-column",
+            "name": "Selected study series column",
+            "kind": "column",
+            "initial_version": {
+                "source": "output.scalar('sample', 1)\noutput.series('trend', [1, 2])",
+                "output_contract": "scalar",
+                "output_name": "trend",
+                "lineage": {
+                    "source_run_id": 92,
+                    "source_code_version_id": 44,
+                    "target": "column",
+                    "output_adapter": "latest_series_to_scalar",
+                    "semantics": "study_series_latest_result_as_watchlist_column",
+                },
+            },
+        },
+    )
+    assert selected_series_column.status_code == 201, selected_series_column.text
+    series_column_version = selected_series_column.json()["versions"][0]
+    assert series_column_version["output_contract"] == "scalar"
+    assert series_column_version["output_name"] == "trend"
+    series_column_lineage = next(
+        item for item in series_column_version["diagnostics"] if item["code"] == "promotion_lineage"
+    )
+    assert series_column_lineage["lineage"]["output_adapter"] == "latest_series_to_scalar"
+
     invalid_selected = client.post(
         "/api/v1/code/assets",
         headers=auth_headers,

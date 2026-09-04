@@ -417,6 +417,40 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.text()).toContain('Saved range center “confidence” as chart plot')
   })
 
+  it('promotes a finite numeric series latest value into a typed watchlist column', async () => {
+    const source = "output.series('trend', market.close())"
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve([{ id: 36, status: 'completed', code_version_id: 84, output_contract: 'study', run_config: { symbol: 'SPY' }, dataset_manifest: { source: 'canonical_database' }, reproducibility_hash: 'hash-36', diagnostics: [], artifacts: [
+        { id: 26, name: 'trend', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], values: [1, 2] } } },
+      ] }])
+      if (path === '/code/assets') return Promise.resolve([{ name: 'Study 36', versions: [{ id: 84, source, output_contract: 'study', parameter_schema: { properties: {} }, default_parameters: {} }] }])
+      return Promise.resolve([])
+    })
+    apiPost.mockResolvedValue({ id: 85, name: 'trend latest column' })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.get('[aria-label="Save latest column: trend"]').trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        source,
+        output_contract: 'scalar',
+        output_name: 'trend',
+        lineage: expect.objectContaining({
+          source_run_id: 36,
+          source_output_name: 'trend',
+          target: 'column',
+          output_adapter: 'latest_series_to_scalar',
+          semantics: 'study_series_latest_result_as_watchlist_column',
+        }),
+      }),
+    }))
+    expect(wrapper.text()).toContain('Saved series artifact “trend” as watchlist column “trend latest column”')
+  })
+
   it('exposes the complete lineage-preserving Boolean promotion matrix for structured results', async () => {
     const source = "output.boolean('qualifies', True)\noutput.scalar('sample_size', 4)"
     apiGet.mockImplementation((path: string) => {

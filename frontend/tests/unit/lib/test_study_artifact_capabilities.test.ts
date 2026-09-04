@@ -11,7 +11,7 @@ describe('study artifact promotion capabilities', () => {
       'Market Gauge',
       'alert',
     ])
-    expect(studyArtifactCapability('series')?.targets).toEqual(['chart plot'])
+    expect(studyArtifactCapability('series')?.targets).toEqual(['chart plot', 'latest-value watchlist column'])
     expect(studyArtifactCapability('range')?.note).toContain('bounds remain source-only')
   })
 
