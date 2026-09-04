@@ -1300,3 +1300,16 @@ The test-only commit `b0d27cf2` (`test(tc2000): cover event signal promotion flo
 `origin/feat/tc2000-frontend-rework`. This adds browser evidence for the direct Strategy target;
 compatible chart/list/filter/gauge, alert, and Study Lab fan-out remains open, as do the canonical
 provider/history gaps and six unchanged visual diffs.
+
+## 2026-09-04 — Multi-window endurance beyond 100 rounds
+
+The seeded workstation lifecycle guard was run with `TC2000_POP_OUT_CHURN_ROUNDS=105`. Both
+performance specs passed (`2/2`, 2.6 minutes): the initial two-popout recovery stayed within its
+tool/canvas and elapsed-time bounds, and the repeated guard completed 105 rounds of opening and
+closing two pop-outs while asserting page convergence, stable tool/canvas counts, and the available
+browser heap ceilings.
+
+The branch-scoped stack was torn down immediately afterward. The cleanup receipt removed all six
+services, four generated images, four volumes, and the network; no test-container sessions or
+retained resource bytes remained. Native multi-monitor behavior, dense-data budgets, accessibility,
+security, logging, and the six unchanged visual diffs remain separate R5-R6 gaps.

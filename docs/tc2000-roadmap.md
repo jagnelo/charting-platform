@@ -13,7 +13,8 @@ current code and fresh evidence win.
 
 The latest exact-tip receipt is anchored at product commit `8ddcb7b8` (the subsequent
 `b0d27cf2` commit adds only browser coverage). The renderer-readiness guard passed its focused
-seeded performance suite (`2/2`, five bounded churn rounds). The exhaustive gate then passed all
+seeded performance suite (`2/2`, five bounded churn rounds), and the same guard subsequently
+passed `2/2` after `105` two-popout churn rounds. The exhaustive gate then passed all
 stages through functional Playwright—backend units `1,307/1,307`, integration `380/380` with the
 existing `54` warnings, combined coverage `80.91%`, frontend Vitest `930/930`, and functional
 Playwright `154` passes with `106` documented skips across `260` specs—before stopping at the

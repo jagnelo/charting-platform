@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-04 — Multi-window endurance beyond 100 rounds
+
+- [x] Run the seeded workstation lifecycle guard with `TC2000_POP_OUT_CHURN_ROUNDS=105`.
+      Both performance specs passed (`2/2`) after 105 rounds of opening two pop-outs, verifying
+      page convergence, tool/canvas bounds, and the available browser heap ceilings.
+- [x] Tear down the branch-scoped stack and verify that its containers, volumes, network, images,
+      and test-container sessions were removed.
+- [ ] Extend R6 evidence to native-window behavior, dense-data budgets, accessibility/security,
+      logging, and the remaining visual/state gaps.
+
 ### 2026-09-04 — Chart renderer readiness performance guard
 
 - [x] Add a chart-root readiness marker that remains busy while data-bearing uPlot charts are
