@@ -27,29 +27,26 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Validation tier: `full_integration`.
 - Local validation profile: `docker_integration`.
 - The latest complete `make validate-integration` run on the current working
-  changes reached healthy branch-scoped stack, backend/frontend checks,
-  research-runner probes, and visual E2E (104/104), but functional E2E failed
-  only the unrelated Study Lab browser case `F8p-current-history` (153 passed,
-  106 skipped). A fresh-stack targeted retry reproduced the missing histogram
-  element at `flows.spec.ts:2602`; the earlier post-repair gate at
-  `a696277b` passed. ETF holdings tests and routes were not implicated.
+  changes passed healthy branch-scoped stack, backend/frontend checks,
+  research-runner probes, and functional E2E (154 passed, 106 skipped).
+  Visual E2E initially reported 103/104 because the `workspace-floating`
+  snapshot at `visual-1080p-125` exceeded its strict threshold; an isolated
+  fresh-stack retry passed all four workspace-floating viewport variants. The
+  mismatch was transient and did not implicate ETF holdings tests or routes.
 - Planning session: `197b239d-3322-4fc6-bf4b-0d0aecebf5e0`.
-- Latest committed checkpoint is `405b2947266c1f41bce46e18ed68fa5877f87412`; it
-  includes Beacon's current Craft CSV routes and probe fix, Fundsmith/Eighth
-  Wonder `Sept` date parsing, Pictet canonical/WAF handling, Redwood
-  empty-download detection, issuer/SEC fallback error preservation, and the
-  follow-up issuer-edge resilience/date parsing corrections documented below.
+- Latest implementation checkpoint is `405b2947266c1f41bce46e18ed68fa5877f87412`; subsequent
+  commits `262e920b`, `05c0b17c`, `e67c9fb5`, and `a4465d2f` contain only
+  formatting and branch-owned validation/session-record updates. The provider
+  implementation remains at the reconciled 496/414/82 state described above.
   Earlier
   checkpoints include `dabe2329965c704f93e3dbb21ec50a7da418ba6c` (Hexis/NICO
   native FilePoint route and synchronized records) and the named provider
   promotions retained in the historical record below.
-- Product implementation is underway; current changes add Guggenheim, ARS,
-  Avory, Ballast, Bancreek, BeeHive, Blueprint, Bridgeway, Brookstone, BufferLABS,
-  Bushido, CapForce, Castellan, Conductor, and CresAlta
-  native coverage and issuer-specific audit dispositions for the ranked fallback
-  records reviewed so far.
-  The Elm implementation reuses the proven official product-page-declared full
-  holdings CSV under an explicit `elm` adapter, with Elm Partners Management
+- The exhaustive provider implementation and audit are complete for the current
+  496 registered symbols: all 140 starting fallback records have terminal
+  native or evidence-backed fallback dispositions, and the ranked queue is
+  empty. The Elm implementation reuses the proven official product-page-declared
+  full holdings CSV under an explicit `elm` adapter, with Elm Partners Management
   provenance and a dated source audit; it is not a generic alias to SEC data.
   The Esoterica implementation promotes WUGI through the official AXS product/
   data pages and the declared FilePoint dated aggregate CSV, with explicit
