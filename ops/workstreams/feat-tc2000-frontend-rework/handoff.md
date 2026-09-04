@@ -722,3 +722,22 @@ assigned-stack health, research-runner probes, and functional Playwright (`154` 
 These are the same concentrated stale-oracle diffs previously reproduced; no visual baseline,
 mask, threshold, skip, provider fallback, or acceptance rule was changed. Cleanup removed only
 the assigned branch containers, volumes, network, and images.
+
+## 2026-09-04 — Historical Market Map area metrics do not use current metadata
+
+Historical/system-managed Market Maps no longer fall back to the current `Instrument.stats`
+market-cap or numeric-field values when no eligible point-in-time profile snapshot contains the
+requested area value. The cell now reports `area_value: null`, an explicit
+`point_in_time_unavailable` provenance record, zero area coverage, and a bounded warning; the
+aggregate response repeats the warning for callers that do not inspect individual cells. Current
+personal-list behavior remains unchanged, including its documented latest-stats fallback when no
+historical `as_of` is requested.
+
+The Docker-backed regression
+`test_historical_market_map_does_not_use_current_area_metadata_fallback` covers both market-cap
+and `avg_volume_30d` field sizing against a dated `market-group:` source with only current stats
+available. The focused integration test passes `1/1`, the full watchlist integration module passes
+`48/48`, the Market Map unit suite passes `5/5`, and compilation/Ruff/diff checks pass. No provider
+call, fallback oracle, visual threshold, baseline, mask, or other worktree was changed. The
+remaining canonical provider/history gaps and six unchanged visual diffs remain open for the next
+bounded slice.

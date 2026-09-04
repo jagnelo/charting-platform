@@ -1348,20 +1348,34 @@ async def build_market_map(
                         )
                     )
             else:
-                area, area_provenance, area_code = _numeric_area_field(
-                    instrument, request.area_field
-                )
-                if area is not None and isinstance(area_provenance, dict):
+                if historical_grouping:
+                    area = None
                     area_provenance = {
-                        **area_provenance,
-                        "point_in_time": bool(area_provenance.get("point_in_time", False)),
-                        "selection": "current_stats_fallback",
+                        "kind": "point_in_time_unavailable",
+                        "field": request.area_field or "unknown",
+                        "evaluation_at": end_hint.isoformat(),
                     }
+                    area_code = "historical_area_field_unavailable"
+                else:
+                    area, area_provenance, area_code = _numeric_area_field(
+                        instrument, request.area_field
+                    )
+                    if area is not None and isinstance(area_provenance, dict):
+                        area_provenance = {
+                            **area_provenance,
+                            "point_in_time": bool(area_provenance.get("point_in_time", False)),
+                            "selection": "current_stats_fallback",
+                        }
                 if area_code:
                     warnings.append(
                         _warning(
                             area_code,
-                            f"The provider numeric field {request.area_field or 'unknown'} is unavailable or unproven.",
+                            (
+                                f"No eligible point-in-time profile snapshot contains the numeric area field "
+                                f"{request.area_field or 'unknown'}."
+                                if historical_grouping
+                                else f"The provider numeric field {request.area_field or 'unknown'} is unavailable or unproven."
+                            ),
                             instrument_id=instrument_id,
                         )
                     )
@@ -1414,28 +1428,43 @@ async def build_market_map(
                         )
                     )
             else:
-                area = (
-                    float(instrument.stats.market_cap)
-                    if instrument.stats and instrument.stats.market_cap is not None
-                    else None
-                )
-                if area is not None:
-                    market_cap_provenance = (
-                        (instrument.stats.field_provenance or {}).get("market_cap")
-                        if instrument.stats
+                if historical_grouping:
+                    area = None
+                    area_provenance = {
+                        "kind": "point_in_time_unavailable",
+                        "field": "market_cap",
+                        "evaluation_at": end_hint.isoformat(),
+                    }
+                    warnings.append(
+                        _warning(
+                            "historical_market_cap_unavailable",
+                            "No eligible point-in-time profile snapshot contains market-cap area data.",
+                            instrument_id=instrument_id,
+                        )
+                    )
+                else:
+                    area = (
+                        float(instrument.stats.market_cap)
+                        if instrument.stats and instrument.stats.market_cap is not None
                         else None
                     )
-                    area_provenance = (
-                        market_cap_provenance
-                        if isinstance(market_cap_provenance, dict)
-                        else {
-                            "kind": "current_metadata",
-                            "field": "market_cap",
-                            "source": "local_instrument_stats",
-                            "point_in_time": False,
-                        }
-                    )
-                if area is None:
+                    if area is not None:
+                        market_cap_provenance = (
+                            (instrument.stats.field_provenance or {}).get("market_cap")
+                            if instrument.stats
+                            else None
+                        )
+                        area_provenance = (
+                            market_cap_provenance
+                            if isinstance(market_cap_provenance, dict)
+                            else {
+                                "kind": "current_metadata",
+                                "field": "market_cap",
+                                "source": "local_instrument_stats",
+                                "point_in_time": False,
+                            }
+                        )
+                if area is None and not historical_grouping:
                     warnings.append(
                         _warning(
                             "missing_market_cap",
@@ -1443,7 +1472,7 @@ async def build_market_map(
                             instrument_id=instrument_id,
                         )
                     )
-                else:
+                elif area is not None and not historical_grouping:
                     warnings.append(
                         _warning(
                             "current_market_cap",
@@ -1724,6 +1753,40 @@ async def build_market_map(
                     if request.area_metric == "field"
                     and any(
                         any(item.code == "current_area_field_fallback" for item in cell.warnings)
+                        for cell in cells
+                    )
+                    else []
+                ),
+                *(
+                    [
+                        _warning(
+                            "historical_market_cap_unavailable",
+                            "Some historical cells have no eligible point-in-time market-cap area data; current metadata was not used.",
+                        )
+                    ]
+                    if request.area_metric == "market_cap"
+                    and any(
+                        any(
+                            item.code == "historical_market_cap_unavailable"
+                            for item in cell.warnings
+                        )
+                        for cell in cells
+                    )
+                    else []
+                ),
+                *(
+                    [
+                        _warning(
+                            "historical_area_field_unavailable",
+                            "Some historical cells have no eligible point-in-time numeric area field; current metadata was not used.",
+                        )
+                    ]
+                    if request.area_metric == "field"
+                    and any(
+                        any(
+                            item.code == "historical_area_field_unavailable"
+                            for item in cell.warnings
+                        )
                         for cell in cells
                     )
                     else []

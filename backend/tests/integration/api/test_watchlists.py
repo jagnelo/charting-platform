@@ -845,6 +845,104 @@ class TestWatchlistsCrud:
         assert body["coverage"] == 0
         assert body["cells"][0]["warnings"][0]["code"] == "no_bars"
 
+    def test_historical_market_map_does_not_use_current_area_metadata_fallback(
+        self, client, auth_headers, db, instrument
+    ):
+        from app.models.instrument_stats import InstrumentStats
+
+        evaluation = datetime(2024, 1, 3, tzinfo=UTC)
+        membership_at = datetime(2024, 1, 1, tzinfo=UTC)
+        group = MarketGroup(
+            stable_key="historical-area-no-profile",
+            group_type="test",
+            name="Historical area without profile",
+            source="controlled_fixture",
+            effective_at=membership_at,
+            known_at=membership_at,
+        )
+        db.add(group)
+        db.flush()
+        db.add_all(
+            [
+                MarketGroupMember(
+                    market_group_id=group.id,
+                    instrument_id=instrument.id,
+                    position=0,
+                    source="controlled_fixture",
+                    verification_state="verified",
+                    effective_at=membership_at,
+                    known_at=membership_at,
+                ),
+                InstrumentStats(
+                    instrument_id=instrument.id,
+                    market_cap=123,
+                    avg_volume_30d=456,
+                    field_provenance={
+                        "avg_volume_30d": {
+                            "kind": "current_metadata",
+                            "source": "controlled_fixture",
+                            "point_in_time": False,
+                        }
+                    },
+                ),
+            ]
+        )
+        db.flush()
+
+        market_cap = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": "market-group:historical-area-no-profile",
+                "group_by": "none",
+                "period": "1D",
+                "area_metric": "market_cap",
+                "color_metric": "return",
+                "end": evaluation.isoformat().replace("+00:00", "Z"),
+            },
+        )
+        assert market_cap.status_code == 200, market_cap.text
+        market_cap_body = market_cap.json()
+        market_cap_cell = market_cap_body["cells"][0]
+        assert market_cap_cell["area_value"] is None
+        assert market_cap_cell["area_provenance"]["kind"] == "point_in_time_unavailable"
+        assert market_cap_cell["area_coverage"] == 0
+        assert any(
+            item["code"] == "historical_market_cap_unavailable"
+            for item in market_cap_cell["warnings"]
+        )
+        assert any(
+            item["code"] == "historical_market_cap_unavailable"
+            for item in market_cap_body["warnings"]
+        )
+
+        field = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": "market-group:historical-area-no-profile",
+                "group_by": "none",
+                "period": "1D",
+                "area_metric": "field",
+                "area_field": "avg_volume_30d",
+                "color_metric": "return",
+                "end": evaluation.isoformat().replace("+00:00", "Z"),
+            },
+        )
+        assert field.status_code == 200, field.text
+        field_body = field.json()
+        field_cell = field_body["cells"][0]
+        assert field_cell["area_value"] is None
+        assert field_cell["area_provenance"]["kind"] == "point_in_time_unavailable"
+        assert field_cell["area_coverage"] == 0
+        assert any(
+            item["code"] == "historical_area_field_unavailable" for item in field_cell["warnings"]
+        )
+        assert any(
+            item["code"] == "historical_area_field_unavailable"
+            for item in field_body["warnings"]
+        )
+
     def test_market_map_rejects_relative_colour_without_reference(
         self, client, auth_headers, watchlist
     ):
