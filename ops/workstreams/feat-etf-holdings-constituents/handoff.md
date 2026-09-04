@@ -1822,3 +1822,20 @@ strict adapter error `F/M Investments holdings API did not expose rows for
 UTWO.` The adapter remains strict; the bespoke 1251 Capital live test now
 skips only that exact issuer response. Playwright was still running when this
 variant was captured, and a fresh exact-SHA CI run is required.
+## Final exact-SHA CI green after F/M Investments guard — 2026-09-04
+
+Exact-SHA CI run `33826263043` at
+`b38a25f1deb4e331b97208474be089c6abcd95af` passed Backend Tests, Frontend
+Unit Tests, the branch-declared test suite, and Playwright. The branch matrix
+completed with 483 live cases passed and 22 narrowly evidenced skips,
+including the exact F/M Investments UTWO no-rows response; no deterministic
+adapter or application contract was weakened. The protected
+staging/master-only exhaustive integration job was skipped as intended for
+this feature branch.
+
+The feature work is now at the human-review boundary. The local
+`docker_integration` run still retains the unrelated Study Lab
+`F8p-current-history` missing-histogram failure reproduced on a fresh stack;
+the prior post-repair gate at `a696277b` passed. No integration, promotion,
+deployment, or other-worktree mutation is authorized or performed. Explicit
+human closure authorization remains required before any integration attempt.
