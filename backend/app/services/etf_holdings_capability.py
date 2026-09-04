@@ -617,6 +617,72 @@ _register_non_tier_0_audits(
         "resumes a distinct U.S.-listed ETF portfolio with an executable first-party route."
     ),
 )
+_register_non_tier_0_audits(
+    ("ABFL", "ABLG", "ABLD", "ABOT", "ABLS", "ABXB"),
+    outcome=NOT_APPLICABLE,
+    evidence_state="inactive_or_successor_disposition",
+    provider_identity="fcf_advisors",
+    investigated_at=date(2026, 9, 2),
+    evidence_refs=(
+        "web:abacus-fcf-rebrand-2026-09-02",
+        "web:abacus-fcf-catalogue-2026-09-02",
+        "web:abacus-fcf-current-holdings-2026-09-02",
+    ),
+    next_action=(
+        "Keep fallback-only as an inactive_or_successor_disposition; resolve historical FCF "
+        "Advisors symbols to the existing Abacus FCF/abacus_global adapter and reopen only if "
+        "FCF Advisors resumes a distinct U.S.-listed ETF portfolio with an executable route."
+    ),
+)
+_register_non_tier_0_audits(
+    ("FMCX", "FMCE"),
+    outcome=UNAVAILABLE,
+    evidence_state="non_executable_public_source",
+    provider_identity="first_manhattan",
+    investigated_at=date(2026, 9, 2),
+    evidence_refs=(
+        "web:first-manhattan-official-etf-catalogue-2026-09-02",
+        "web:first-manhattan-daily-holdings-disclosure-2026-09-02",
+        "web:first-manhattan-fmcx-prospectus-2026-09-02",
+    ),
+    next_action=(
+        "Re-test only if First Manhattan publishes a complete executable current holdings "
+        "artifact for FMCX and FMCE; then prove symbol mapping, current-date provenance, "
+        "parser fixtures, and bounded live coverage before native promotion."
+    ),
+)
+_register_non_tier_0_audits(
+    ("FFHG", "FFSG", "FFTG", "FFTI"),
+    outcome=NOT_APPLICABLE,
+    evidence_state="inactive_or_successor_disposition",
+    provider_identity="formula_folio",
+    investigated_at=date(2026, 9, 2),
+    evidence_refs=(
+        "web:formula-folios-official-liquidation-supplement-2026-09-02",
+        "web:brookstone-formulafolios-successor-2026-09-02",
+    ),
+    next_action=(
+        "Keep fallback-only as an inactive_or_successor_disposition; resolve historical FormulaFolios "
+        "symbols to their October 2023 liquidation and Brookstone successor context, and reopen "
+        "only if a distinct current FormulaFolios portfolio is re-established."
+    ),
+)
+_register_non_tier_0_audits(
+    ("FPAG", "FPAS", "FPAA"),
+    outcome=NOT_APPLICABLE,
+    evidence_state="identity_requires_reconciliation",
+    provider_identity="fpa",
+    investigated_at=date(2026, 9, 2),
+    evidence_refs=(
+        "web:fpa-official-etf-catalogue-2026-09-02",
+        "live:fpa-first-pacific-fpag-daily-route-2026-09-02",
+    ),
+    next_action=(
+        "Resolve the abbreviated FPA identity to the existing native first_pacific adapter; "
+        "monitor FPAG/FPAS/FPAA and extend that native owner only after each product exposes "
+        "a complete executable current route and bounded live proof."
+    ),
+)
 
 
 def symbol_audit_for_profile(profile: ETFProfile) -> ETFHoldingsSymbolAudit:

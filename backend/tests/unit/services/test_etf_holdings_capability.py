@@ -342,6 +342,51 @@ def test_third_ranked_fallback_successor_symbols_preserve_etfmg_evidence():
     )
 
 
+def test_fifth_ranked_fallback_first_manhattan_symbols_remain_unavailable():
+    result = symbol_audit_for_profile(profile_with_symbol("FMCX", "first_manhattan"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "non_executable_public_source"
+    assert result.provider_identity == "first_manhattan"
+    assert result.evidence_refs == (
+        "web:first-manhattan-official-etf-catalogue-2026-09-02",
+        "web:first-manhattan-daily-holdings-disclosure-2026-09-02",
+        "web:first-manhattan-fmcx-prospectus-2026-09-02",
+    )
+
+
+def test_fifth_ranked_fallback_successor_alias_preserves_fcf_evidence():
+    result = symbol_audit_for_profile(profile_with_symbol("ABFL", "fcf_advisors"))
+
+    assert result.tier == 1
+    assert result.outcome == "not_applicable"
+    assert result.evidence_state == "inactive_or_successor_disposition"
+    assert result.provider_identity == "fcf_advisors"
+    assert result.evidence_refs == (
+        "web:abacus-fcf-rebrand-2026-09-02",
+        "web:abacus-fcf-catalogue-2026-09-02",
+        "web:abacus-fcf-current-holdings-2026-09-02",
+    )
+
+
+def test_fifth_ranked_fallback_formula_folio_is_not_applicable():
+    result = symbol_audit_for_profile(profile_with_symbol("FFHG", "formula_folio"))
+
+    assert result.tier == 1
+    assert result.outcome == "not_applicable"
+    assert result.evidence_state == "inactive_or_successor_disposition"
+
+
+def test_fifth_ranked_fallback_fpa_alias_requires_identity_reconciliation():
+    result = symbol_audit_for_profile(profile_with_symbol("FPAG", "fpa"))
+
+    assert result.tier == 1
+    assert result.outcome == "not_applicable"
+    assert result.evidence_state == "identity_requires_reconciliation"
+    assert result.provider_identity == "fpa"
+
+
 def test_unreviewed_fallback_symbol_cannot_be_marked_current_from_a_snapshot_alone():
     result = evaluate_capability(
         profile_with_symbol("MAVF", "matrix"),

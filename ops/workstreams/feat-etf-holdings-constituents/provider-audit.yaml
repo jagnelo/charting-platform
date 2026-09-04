@@ -404,6 +404,126 @@ symbol_audit_ledger:
       investigated_at: 2026-09-02
       evidence_refs: [web:amplify-etfmg-acquisition-complete-2026-09-02, web:etfmg-domain-unreachable-successor-amplify-2026-09-02]
       next_action: "Keep fallback-only as an inactive_or_successor_disposition; resolve historical ETFMG symbols to their Amplify successor or actual current sponsor and reopen only if ETFMG resumes a distinct U.S.-listed ETF portfolio with an executable first-party route."
+    - symbol: ABFL
+      tier: 1
+      provider_identity: fcf_advisors
+      current_outcome: not_applicable
+      evidence_state: inactive_or_successor_disposition
+      investigated_at: 2026-09-02
+      evidence_refs: [web:abacus-fcf-rebrand-2026-09-02, web:abacus-fcf-catalogue-2026-09-02, web:abacus-fcf-current-holdings-2026-09-02]
+      next_action: "Keep fallback-only as an inactive_or_successor_disposition; resolve historical FCF Advisors symbols to the existing Abacus FCF/abacus_global adapter and reopen only if FCF Advisors resumes a distinct U.S.-listed ETF portfolio with an executable route."
+    - symbol: ABLG
+      tier: 1
+      provider_identity: fcf_advisors
+      current_outcome: not_applicable
+      evidence_state: inactive_or_successor_disposition
+      investigated_at: 2026-09-02
+      evidence_refs: [web:abacus-fcf-rebrand-2026-09-02, web:abacus-fcf-catalogue-2026-09-02, web:abacus-fcf-current-holdings-2026-09-02]
+      next_action: "Keep fallback-only as an inactive_or_successor_disposition; resolve historical FCF Advisors symbols to the existing Abacus FCF/abacus_global adapter and reopen only if FCF Advisors resumes a distinct U.S.-listed ETF portfolio with an executable route."
+    - symbol: ABLD
+      tier: 1
+      provider_identity: fcf_advisors
+      current_outcome: not_applicable
+      evidence_state: inactive_or_successor_disposition
+      investigated_at: 2026-09-02
+      evidence_refs: [web:abacus-fcf-rebrand-2026-09-02, web:abacus-fcf-catalogue-2026-09-02, web:abacus-fcf-current-holdings-2026-09-02]
+      next_action: "Keep fallback-only as an inactive_or_successor_disposition; resolve historical FCF Advisors symbols to the existing Abacus FCF/abacus_global adapter and reopen only if FCF Advisors resumes a distinct U.S.-listed ETF portfolio with an executable route."
+    - symbol: ABOT
+      tier: 1
+      provider_identity: fcf_advisors
+      current_outcome: not_applicable
+      evidence_state: inactive_or_successor_disposition
+      investigated_at: 2026-09-02
+      evidence_refs: [web:abacus-fcf-rebrand-2026-09-02, web:abacus-fcf-catalogue-2026-09-02, web:abacus-fcf-current-holdings-2026-09-02]
+      next_action: "Keep fallback-only as an inactive_or_successor_disposition; resolve historical FCF Advisors symbols to the existing Abacus FCF/abacus_global adapter and reopen only if FCF Advisors resumes a distinct U.S.-listed ETF portfolio with an executable route."
+    - symbol: ABLS
+      tier: 1
+      provider_identity: fcf_advisors
+      current_outcome: not_applicable
+      evidence_state: inactive_or_successor_disposition
+      investigated_at: 2026-09-02
+      evidence_refs: [web:abacus-fcf-rebrand-2026-09-02, web:abacus-fcf-catalogue-2026-09-02, web:abacus-fcf-current-holdings-2026-09-02]
+      next_action: "Keep fallback-only as an inactive_or_successor_disposition; resolve historical FCF Advisors symbols to the existing Abacus FCF/abacus_global adapter and reopen only if FCF Advisors resumes a distinct U.S.-listed ETF portfolio with an executable route."
+    - symbol: ABXB
+      tier: 1
+      provider_identity: fcf_advisors
+      current_outcome: not_applicable
+      evidence_state: inactive_or_successor_disposition
+      investigated_at: 2026-09-02
+      evidence_refs: [web:abacus-fcf-rebrand-2026-09-02, web:abacus-fcf-catalogue-2026-09-02, web:abacus-fcf-current-holdings-2026-09-02]
+      next_action: "Keep fallback-only as an inactive_or_successor_disposition; resolve historical FCF Advisors symbols to the existing Abacus FCF/abacus_global adapter and reopen only if FCF Advisors resumes a distinct U.S.-listed ETF portfolio with an executable route."
+    - symbol: FMCX
+      tier: 1
+      provider_identity: first_manhattan
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-02
+      evidence_refs: [web:first-manhattan-official-etf-catalogue-2026-09-02, web:first-manhattan-daily-holdings-disclosure-2026-09-02, web:first-manhattan-fmcx-prospectus-2026-09-02]
+      next_action: "Re-test only if First Manhattan publishes a complete executable current holdings artifact for FMCX and FMCE; then prove symbol mapping, current-date provenance, parser fixtures, and bounded live coverage before native promotion."
+    - symbol: FMCE
+      tier: 1
+      provider_identity: first_manhattan
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-02
+      evidence_refs: [web:first-manhattan-official-etf-catalogue-2026-09-02, web:first-manhattan-daily-holdings-disclosure-2026-09-02, web:first-manhattan-fmcx-prospectus-2026-09-02]
+      next_action: "Re-test only if First Manhattan publishes a complete executable current holdings artifact for FMCX and FMCE; then prove symbol mapping, current-date provenance, parser fixtures, and bounded live coverage before native promotion."
+    - symbol: FFHG
+      tier: 1
+      provider_identity: formula_folio
+      current_outcome: not_applicable
+      evidence_state: inactive_or_successor_disposition
+      investigated_at: 2026-09-02
+      evidence_refs: [web:formula-folios-official-liquidation-supplement-2026-09-02, web:brookstone-formulafolios-successor-2026-09-02]
+      next_action: "Keep fallback-only as an inactive_or_successor_disposition; resolve historical FormulaFolios symbols to their October 2023 liquidation and Brookstone successor context, and reopen only if a distinct current FormulaFolios portfolio is re-established."
+    - symbol: FFSG
+      tier: 1
+      provider_identity: formula_folio
+      current_outcome: not_applicable
+      evidence_state: inactive_or_successor_disposition
+      investigated_at: 2026-09-02
+      evidence_refs: [web:formula-folios-official-liquidation-supplement-2026-09-02, web:brookstone-formulafolios-successor-2026-09-02]
+      next_action: "Keep fallback-only as an inactive_or_successor_disposition; resolve historical FormulaFolios symbols to their October 2023 liquidation and Brookstone successor context, and reopen only if a distinct current FormulaFolios portfolio is re-established."
+    - symbol: FFTG
+      tier: 1
+      provider_identity: formula_folio
+      current_outcome: not_applicable
+      evidence_state: inactive_or_successor_disposition
+      investigated_at: 2026-09-02
+      evidence_refs: [web:formula-folios-official-liquidation-supplement-2026-09-02, web:brookstone-formulafolios-successor-2026-09-02]
+      next_action: "Keep fallback-only as an inactive_or_successor_disposition; resolve historical FormulaFolios symbols to their October 2023 liquidation and Brookstone successor context, and reopen only if a distinct current FormulaFolios portfolio is re-established."
+    - symbol: FFTI
+      tier: 1
+      provider_identity: formula_folio
+      current_outcome: not_applicable
+      evidence_state: inactive_or_successor_disposition
+      investigated_at: 2026-09-02
+      evidence_refs: [web:formula-folios-official-liquidation-supplement-2026-09-02, web:brookstone-formulafolios-successor-2026-09-02]
+      next_action: "Keep fallback-only as an inactive_or_successor_disposition; resolve historical FormulaFolios symbols to their October 2023 liquidation and Brookstone successor context, and reopen only if a distinct current FormulaFolios portfolio is re-established."
+    - symbol: FPAG
+      tier: 1
+      provider_identity: fpa
+      current_outcome: not_applicable
+      evidence_state: identity_requires_reconciliation
+      investigated_at: 2026-09-02
+      evidence_refs: [web:fpa-official-etf-catalogue-2026-09-02, live:fpa-first-pacific-fpag-daily-route-2026-09-02]
+      next_action: "Resolve the abbreviated FPA identity to the existing native first_pacific adapter; monitor FPAG/FPAS/FPAA and extend that native owner only after each product exposes a complete executable current route and bounded live proof."
+    - symbol: FPAS
+      tier: 1
+      provider_identity: fpa
+      current_outcome: not_applicable
+      evidence_state: identity_requires_reconciliation
+      investigated_at: 2026-09-02
+      evidence_refs: [web:fpa-official-etf-catalogue-2026-09-02, live:fpa-first-pacific-fpag-daily-route-2026-09-02]
+      next_action: "Resolve the abbreviated FPA identity to the existing native first_pacific adapter; monitor FPAG/FPAS/FPAA and extend that native owner only after each product exposes a complete executable current route and bounded live proof."
+    - symbol: FPAA
+      tier: 1
+      provider_identity: fpa
+      current_outcome: not_applicable
+      evidence_state: identity_requires_reconciliation
+      investigated_at: 2026-09-02
+      evidence_refs: [web:fpa-official-etf-catalogue-2026-09-02, live:fpa-first-pacific-fpag-daily-route-2026-09-02]
+      next_action: "Resolve the abbreviated FPA identity to the existing native first_pacific adapter; monitor FPAG/FPAS/FPAA and extend that native owner only after each product exposes a complete executable current route and bounded live proof."
 providers:
   - adapter_key: aegon
     display_name: aegon
