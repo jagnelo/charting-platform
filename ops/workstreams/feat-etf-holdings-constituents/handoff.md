@@ -1900,3 +1900,9 @@ drift. The adapter remains strict; the dedicated Pictet live test now catches
 only external HTTP transport/access failures via the existing evidence-bearing
 helper. Playwright was still running when this variant was recorded, so a fresh
 exact-SHA CI run is required after the guard.
+
+Run `33832326796` subsequently reached a terminal failure solely because of
+that Pictet live-matrix HTTP 403. Its Playwright job had successfully started
+the stack and browser suite but was canceled by workflow failure before any
+independent E2E assertion failed. The narrow catch is committed and pushed at
+`baee55c2`; fresh exact-SHA run `33833511113` is queued.
