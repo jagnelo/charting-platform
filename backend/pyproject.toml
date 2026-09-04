@@ -40,6 +40,7 @@ dependencies = [
     "aiofiles>=23.2",
     "greenlet>=3.0",
     "pypdf>=5.0",
+    "quantlib==1.36",
 ]
 
 [project.optional-dependencies]

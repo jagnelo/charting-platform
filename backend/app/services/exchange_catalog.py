@@ -130,6 +130,8 @@ async def upsert_instrument_listing(
     effective_at: datetime | None = None,
     known_at: datetime | None = None,
     delisted_at: datetime | None = None,
+    source: str | None = None,
+    provenance: dict | None = None,
 ) -> InstrumentListing:
     """Create/update one canonical listing without merging venue-distinct rows.
 
@@ -170,6 +172,9 @@ async def upsert_instrument_listing(
             effective_at=effective_at,
             known_at=known_at,
             delisted_at=delisted_at,
+            last_verified_at=datetime.now(UTC),
+            source=source,
+            provenance=provenance or {},
         )
         db.add(listing)
     else:
@@ -185,6 +190,11 @@ async def upsert_instrument_listing(
             listing.known_at = known_at
         if delisted_at is not None:
             listing.delisted_at = delisted_at
+        listing.last_verified_at = datetime.now(UTC)
+        if source:
+            listing.source = source
+        if provenance:
+            listing.provenance = {**(listing.provenance or {}), **provenance}
     return listing
 
 

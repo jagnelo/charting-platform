@@ -3,7 +3,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import JSON, Boolean, Date, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy import BIGINT, JSON, Boolean, Date, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -52,14 +52,23 @@ class Instrument(Base, TimestampMixin):
         String(80), nullable=True, index=True
     )
     field_provenance: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    # ``id`` remains the hidden relational surrogate; this stable domain key
+    # survives ticker changes and allows future non-US markets.
+    domain_key: Mapped[str | None] = mapped_column(String(120), nullable=True, unique=True, index=True)
+    identity_status: Mapped[str] = mapped_column(String(24), nullable=False, default="provisional")
+    issuer_id: Mapped[int | None] = mapped_column(
+        BIGINT, ForeignKey("issuer.id", ondelete="SET NULL"), nullable=True, index=True
+    )
 
     # Synthetic/expression instruments
     is_synthetic: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     expression: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     instrument_type: Mapped["InstrumentType"] = relationship(back_populates="instruments")
+    issuer: Mapped[Optional["Issuer"]] = relationship(back_populates="instruments")
     listings: Mapped[list["InstrumentListing"]] = relationship(back_populates="instrument")
     ohlcv_bars: Mapped[list["OHLCVBar"]] = relationship(back_populates="instrument")
+    market_series: Mapped[list["MarketSeries"]] = relationship(back_populates="instrument")
     drawings: Mapped[list["ChartDrawing"]] = relationship(back_populates="instrument")
     price_alerts: Mapped[list["PriceAlert"]] = relationship(back_populates="instrument")
     indicator_alerts: Mapped[list["IndicatorAlert"]] = relationship(back_populates="instrument")

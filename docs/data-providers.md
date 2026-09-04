@@ -23,6 +23,45 @@ reflect `base_priority` seeding; the runtime's EWMA health scores refine orderin
 | massive    | Optional reference corroboration | Optional API key | Free tier / quota |
 | alpha_vantage | Optional daily-history corroboration | Optional API key | Free tier / quota |
 
+The registry also records optional, disabled-by-default descriptors for `tiingo`,
+`twelve_data`, `finnhub`, `marketstack`, `eodhd`, `fmp`, `tradier`, `ibkr`,
+`coinbase`, and `kraken`.  `finra` has a schema-tolerant concrete adapter, but
+it remains disabled until `FINRA_SHORT_INTEREST_URL`, quota, terms, and an
+environment review are recorded. A descriptor is deliberately not a usable
+adapter: it becomes routable only after a concrete adapter, credentials, quota,
+terms, and an environment review are recorded by the provider governance API.
+
+## Market-data platform boundary
+
+The market-data foundation is provider-agnostic and additive to the existing
+symbol APIs:
+
+- `instrument.domain_key` is a namespaced stable identifier (`figi:...` where
+  available), while the integer `instrument.id` remains the hidden relational
+  surrogate.  Issuers/legal entities live in `issuer`; CIK/LEI and ticker
+  changes are retained as evidence rather than used as implicit merges.
+- Candidates without an unambiguous stable identifier are written to
+  `instrument_identity_quarantine` for review.  The OpenFIGI ticker mapper
+  refuses ambiguous venue/type results instead of selecting the first row.
+- `market_series` scopes every future canonical/raw series by venue, provider
+  feed, session, timeframe, and adjustment basis/version.  Existing
+  `ohlcv_bar` and `market_bar_observation` rows remain readable through nullable
+  compatibility columns.
+- `exchange_session_rule` and `exchange_calendar_exception` retain versioned
+  sessions, holidays, early closes, overnight trade-date rules, and source
+  provenance.
+- `provider_quota_window`, `provider_workload_lease`, and
+  `provider_routing_decision` make reservations and routing explanations
+  durable across workers; administrators can inspect them through the
+  backend-only `/api/v1/market-data/*` diagnostics routes.
+- QuantLib American-option calculations are labeled with model/version/input
+  provenance and fall back explicitly to the legacy Black-Scholes estimator
+  when the model cannot be evaluated.
+
+The optional provider descriptors and new routing tables do not enable broad
+polling by themselves.  New defaults remain disabled until entitlement and
+coverage evidence meets the workstream activation bar.
+
 ---
 
 ## Providers
@@ -202,6 +241,25 @@ without notice. Should be deprioritized via provider policy once primary provide
 
 **Capabilities**: `instrument_identifiers`
 
+### FINRA (`finra`)
+
+**Role**: Periodic consolidated short-interest observations for US securities.
+The adapter accepts the configured FINRA dataset endpoint, preserves each raw
+row, and normalises settlement/publication dates, short position, percent float,
+and days-to-cover values. It does not infer missing values or treat publication
+dates as real-time quotes.
+
+**Configuration**: Set `FINRA_SHORT_INTEREST_URL` only after validating the
+endpoint's current request schema and terms. Leave it blank to keep the adapter
+non-routable.
+
+### SEC Company Facts (`edgar`)
+
+The EDGAR adapter exposes raw Company Facts observations with namespace, fact,
+unit, period, filing/acceptance timestamps, accession, and the original payload.
+Curated ratios and statement mappings remain a separate downstream concern so
+point-in-time consumers can choose an explicit filed/accepted knowledge boundary.
+
 ---
 
 ## Configuration Reference
@@ -225,6 +283,9 @@ EDGAR_USER_AGENT=charting-platform your.email@example.com
 
 # OpenFIGI (optional)
 OPENFIGI_API_KEY=your_openfigi_key
+
+# FINRA short-interest endpoint (blank keeps the adapter disabled)
+FINRA_SHORT_INTEREST_URL=
 
 # Pre-existing paid provider slots (not yet implemented)
 MARKETDATA_API_KEY=           # MarketData.app — US options with real greeks

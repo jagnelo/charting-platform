@@ -31,6 +31,15 @@ class ProviderCapability(str, enum.Enum):
     UNIVERSE_DISCOVERY = "universe_discovery"
     OPTION_CHAIN = "option_chain"
     OPTION_QUOTE_HISTORY = "option_quote_history"
+    CORPORATE_ACTIONS = "corporate_actions"
+    EARNINGS = "earnings"
+    FUNDAMENTALS = "fundamentals"
+    SHORT_INTEREST = "short_interest"
+    MARKET_CALENDAR = "market_calendar"
+    FUTURES_HISTORY = "futures_history"
+    CRYPTO_HISTORY = "crypto_history"
+    OPTIONS_CURRENT = "options_current"
+    MARKET_EVENTS = "market_events"
 
 
 class ProviderPolicy(Base, TimestampMixin):

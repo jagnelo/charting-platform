@@ -3,6 +3,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import (
+    BIGINT,
     JSON,
     Date,
     DateTime,
@@ -150,6 +151,9 @@ class MarketBarObservation(Base):
     data_source_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
     )
+    market_series_id: Mapped[int | None] = mapped_column(
+        BIGINT, ForeignKey("market_series.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     provider_symbol: Mapped[str | None] = mapped_column(String(80), nullable=True)
     timeframe: Mapped[Timeframe] = mapped_column(SAEnum(Timeframe), nullable=False, index=True)
     ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
@@ -161,9 +165,14 @@ class MarketBarObservation(Base):
     volume: Mapped[Decimal | None] = mapped_column(Numeric(30, 4), nullable=True)
     vwap: Mapped[Decimal | None] = mapped_column(Numeric(20, 8), nullable=True)
     is_adjusted: Mapped[bool] = mapped_column(nullable=False, default=True)
+    adjustment_basis: Mapped[str] = mapped_column(String(32), nullable=False, default="raw")
+    adjustment_version: Mapped[str] = mapped_column(String(80), nullable=False, default="legacy")
+    provider_timestamp: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    source_payload: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     instrument: Mapped["Instrument"] = relationship()
     data_source: Mapped["DataSource"] = relationship(back_populates="bar_observations")
+    market_series: Mapped["MarketSeries | None"] = relationship()
 
     __table_args__ = (
         UniqueConstraint(

@@ -23,13 +23,15 @@ from __future__ import annotations
 
 import logging
 import time
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
+from decimal import Decimal
 
 import httpx
 
 from app.config import settings
 from app.models.instrument_event import EventTimeHint, InstrumentEventType
 from app.providers.base import (
+    FundamentalFactRecord,
     InstrumentEventRecord,
     InstrumentProfile,
     ListingRecord,
@@ -272,6 +274,57 @@ class EdgarProvider:
 
         return events
 
+    def fetch_fundamental_facts(self, cik: str) -> list[FundamentalFactRecord]:
+        """Return raw SEC Company Facts observations with filing dates intact."""
+
+        digits = "".join(character for character in str(cik) if character.isdigit())
+        if not digits:
+            return []
+        try:
+            response = httpx.get(
+                f"https://data.sec.gov/api/xbrl/companyfacts/CIK{int(digits):010d}.json",
+                headers=self._headers(),
+                timeout=30,
+            )
+            response.raise_for_status()
+            payload = response.json()
+        except Exception as exc:
+            logger.warning("edgar company facts %s: %s", cik, exc)
+            return []
+        facts = payload.get("facts") if isinstance(payload, dict) else None
+        if not isinstance(facts, dict):
+            return []
+        records: list[FundamentalFactRecord] = []
+        for namespace, namespace_facts in facts.items():
+            if not isinstance(namespace_facts, dict):
+                continue
+            for key, definition in namespace_facts.items():
+                units = definition.get("units") if isinstance(definition, dict) else None
+                if not isinstance(units, dict):
+                    continue
+                for unit, observations in units.items():
+                    if not isinstance(observations, list):
+                        continue
+                    for observation in observations:
+                        if not isinstance(observation, dict):
+                            continue
+                        records.append(
+                            FundamentalFactRecord(
+                                namespace=str(namespace),
+                                key=str(key),
+                                unit=str(unit),
+                                value_numeric=_parse_numeric(observation.get("val")),
+                                value_text=_parse_text(observation.get("val")),
+                                period_start=_parse_date(observation.get("start")),
+                                period_end=_parse_date(observation.get("end")),
+                                filed_at=_parse_date(observation.get("filed")),
+                                accepted_at=_parse_datetime(observation.get("acceptanceDateTime")),
+                                source_identifier=str(observation.get("accn") or "") or None,
+                                raw_payload=observation,
+                            )
+                        )
+        return records
+
 
 # ── Module helpers ────────────────────────────────────────────────────────────
 
@@ -280,6 +333,36 @@ def _resolve_cik(symbol: str, headers: dict) -> dict | None:
     """Return {"cik": int, "title": str} for the given ticker, or None."""
     _ensure_ticker_map(headers)
     return _ticker_map.get(symbol.upper())
+
+
+def _parse_date(value: object) -> date | None:
+    try:
+        return date.fromisoformat(str(value)) if value else None
+    except ValueError:
+        return None
+
+
+def _parse_datetime(value: object) -> datetime | None:
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00")) if value else None
+    except ValueError:
+        return None
+
+
+def _parse_numeric(value: object) -> Decimal | None:
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        return Decimal(str(value).replace(",", "").strip())
+    except Exception:
+        return None
+
+
+def _parse_text(value: object) -> str | None:
+    if value is None or _parse_numeric(value) is not None:
+        return None
+    text = str(value).strip()
+    return text or None
 
 
 def _ensure_ticker_map(headers: dict) -> None:

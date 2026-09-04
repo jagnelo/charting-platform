@@ -23,17 +23,36 @@ class OpenFigiProvider:
     base_url = "https://api.openfigi.com"
     description = "OpenFIGI mapping API for stable instrument identifiers"
 
-    def fetch_stable_identifiers(self, symbol: str) -> list[IdentifierRecord]:
+    def fetch_stable_identifiers(
+        self,
+        symbol: str,
+        *,
+        exchange_code: str | None = None,
+        security_type: str | None = None,
+    ) -> list[IdentifierRecord]:
+        """Map a ticker only when the returned venue/type evidence is unambiguous."""
+
+        ticker = str(symbol or "").strip().upper()
+        if not ticker:
+            return []
         try:
             results = self._mapping_results(
-                [{"idType": _OPENFIGI_ID_TYPES["ticker"], "idValue": symbol}]
+                [{"idType": _OPENFIGI_ID_TYPES["ticker"], "idValue": ticker}]
             )
             if not results:
                 return []
-            first_result = results[0]
-            if not first_result:
+            rows = [row for row in results[0] if isinstance(row, dict)]
+            if exchange_code:
+                expected_exchange = str(exchange_code).strip().upper()
+                rows = [row for row in rows if str(row.get("exchCode") or "").upper() == expected_exchange]
+            if security_type:
+                expected_type = str(security_type).strip().upper()
+                rows = [row for row in rows if str(row.get("securityType") or "").upper() == expected_type]
+            # A ticker can map to several venue listings.  Without an exchange
+            # filter we refuse to pick one silently and quarantine upstream.
+            if len(rows) != 1:
                 return []
-            return self._identifier_records_from_mapping(first_result[0])
+            return self._identifier_records_from_mapping(rows[0])
         except Exception as exc:
             logger.debug("OpenFIGI lookup failed for %s: %s", symbol, exc)
             return []

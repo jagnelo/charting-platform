@@ -59,6 +59,9 @@ class InstrumentIdentifierOut(BaseModel):
     identifier_value: str
     is_primary: bool
     is_active: bool
+    effective_at: datetime | None = None
+    known_at: datetime | None = None
+    retired_at: datetime | None = None
     extra_data: dict | None = None
 
 
@@ -71,6 +74,9 @@ class InstrumentListingOut(BaseModel):
     effective_at: datetime | None = None
     known_at: datetime | None = None
     delisted_at: datetime | None = None
+    last_verified_at: datetime | None = None
+    source: str | None = None
+    provenance: dict | None = None
     exchange: ExchangeOut | None = None
 
 
@@ -107,6 +113,9 @@ class InstrumentOut(BaseModel):
     description: str | None = None
     currency: str | None = None
     is_active: bool
+    domain_key: str | None = None
+    identity_status: str = "provisional"
+    issuer_id: int | None = None
     is_synthetic: bool = False
     expression: str | None = None
     primary_identifier_type: str | None = None
@@ -135,6 +144,8 @@ class InstrumentSearchResult(BaseModel):
     type: str
     is_synthetic: bool = False
     instrument_id: int | None = None
+    domain_key: str | None = None
+    identity_status: str | None = None
 
 
 class InstrumentMembership(BaseModel):

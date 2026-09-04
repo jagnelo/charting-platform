@@ -75,6 +75,44 @@ class InstrumentEventRecord:
 
 
 @dataclass(slots=True)
+class FundamentalFactRecord:
+    namespace: str
+    key: str
+    unit: str | None
+    value_numeric: Decimal | None
+    value_text: str | None
+    period_start: date | None
+    period_end: date | None
+    filed_at: date | None
+    accepted_at: datetime | None
+    source_identifier: str | None
+    raw_payload: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class ShortInterestRecord:
+    settlement_date: date
+    publication_date: date | None
+    short_position: Decimal | None
+    short_percent_float: Decimal | None
+    days_to_cover: Decimal | None
+    source_identifier: str | None
+    raw_payload: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class MarketEventRecord:
+    event_type: str
+    event_key: str
+    event_time: datetime | None
+    effective_date: date | None
+    title: str
+    source_version: str | None = None
+    is_provisional: bool = False
+    raw_payload: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
 class OptionContractRecord:
     provider_symbol: str
     underlying_symbol: str
@@ -167,6 +205,32 @@ class EventProvider(ProviderDescriptor, Protocol):
 @runtime_checkable
 class IdentifierProvider(ProviderDescriptor, Protocol):
     def fetch_stable_identifiers(self, symbol: str) -> list[IdentifierRecord]: ...
+
+
+@runtime_checkable
+class FundamentalsProvider(ProviderDescriptor, Protocol):
+    def fetch_fundamental_facts(self, cik: str) -> list[FundamentalFactRecord]: ...
+
+
+@runtime_checkable
+class ShortInterestProvider(ProviderDescriptor, Protocol):
+    def fetch_short_interest(
+        self,
+        symbol: str,
+        *,
+        start: date | None = None,
+        end: date | None = None,
+    ) -> list[ShortInterestRecord]: ...
+
+
+@runtime_checkable
+class MarketEventProvider(ProviderDescriptor, Protocol):
+    def fetch_market_events(
+        self,
+        *,
+        start: date | None = None,
+        end: date | None = None,
+    ) -> list[MarketEventRecord]: ...
 
 
 @runtime_checkable

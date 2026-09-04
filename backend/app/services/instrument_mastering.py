@@ -22,6 +22,7 @@ from app.models.provider_runtime import ProviderCapability
 from app.providers import ensure_data_source, provider_symbol_for_instrument
 from app.providers.base import IdentifierRecord, InstrumentProfile
 from app.services.exchange_catalog import coerce_listing_lifecycle_at, upsert_instrument_listing
+from app.services.market_data_identity import apply_domain_identity
 from app.services.provider_observations import store_identifier_snapshot
 from app.services.provider_runtime import execute_provider_call, resolve_provider_chain
 
@@ -473,6 +474,8 @@ async def register_provider_symbol(
         effective_at=effective_at,
         known_at=known_at,
         delisted_at=delisted_at,
+        source=provider_name,
+        provenance={"provider_instrument_type": provider_instrument_type},
     )
 
 
@@ -616,6 +619,17 @@ async def ensure_external_identifier(
     instrument: Instrument,
 ) -> bool:
     if has_external_identifier(instrument):
+        if not instrument.domain_key:
+            await apply_domain_identity(
+                db,
+                instrument,
+                provider_name="existing_identifier",
+                provider_symbol=instrument.symbol,
+                candidate_payload={
+                    "identifier_type": instrument.primary_identifier_type,
+                    "identifier_value": instrument.primary_identifier_value,
+                },
+            )
         return False
 
     def _symbol_for_provider(provider_name: str) -> str:
@@ -654,6 +668,22 @@ async def ensure_external_identifier(
     for identifier in identifiers:
         await register_identifier(db, instrument, execution.provider_name, identifier)
         identifier_added = True
+    await apply_domain_identity(
+        db,
+        instrument,
+        provider_name=execution.provider_name,
+        provider_symbol=provider_symbol,
+        candidate_payload={
+            "identifiers": [
+                {
+                    "identifier_type": item.identifier_type,
+                    "identifier_value": item.identifier_value,
+                    "source": item.source,
+                }
+                for item in identifiers
+            ]
+        },
+    )
     if has_external_identifier(instrument):
         _mark_field_provenance(
             instrument,
@@ -810,6 +840,14 @@ async def apply_profile_to_instrument(
 
     await ensure_internal_identifier(db, instrument)
     await ensure_external_identifier(db, instrument)
+    await apply_domain_identity(
+        db,
+        instrument,
+        provider_name=profile.provider,
+        provider_symbol=profile.symbol,
+        exchange_mic=profile.exchange,
+        candidate_payload=build_profile_snapshot_payload(profile),
+    )
     await upsert_instrument_stats(
         db,
         instrument,

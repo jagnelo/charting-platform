@@ -14,6 +14,8 @@ class WorkerSettings:
     functions = [
         data_tasks.fetch_instrument_history,
         data_tasks.fetch_all_instruments_history,
+        data_tasks.enqueue_core_refresh_jobs,
+        data_tasks.process_refresh_jobs,
         instrument_sync_tasks.seed_universe_task,
         instrument_sync_tasks.sync_instruments_task,
         instrument_sync_tasks.bootstrap_ids_task,

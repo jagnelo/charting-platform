@@ -1,5 +1,32 @@
 # Project TODO Memory
 
+### 2026-09-04 — US-first market-data provider platform foundation
+
+- [x] Add additive, provider-agnostic identity primitives: a namespaced
+      `instrument.domain_key` (FIGI preferred), separate `issuer` legal-entity
+      records with CIK/LEI, effective-dated identifier/listing evidence, and an
+      explicit `instrument_identity_quarantine` for ambiguous or unresolved
+      candidates. OpenFIGI ticker mapping now refuses ambiguous venue/type rows.
+- [x] Add `market_series` scope for venue/feed/session/timeframe/adjustment
+      basis and preserve provenance on raw observations and canonical OHLCV
+      rows. Local rollups emit only observed buckets and never fabricate missing
+      daily sessions.
+- [x] Add versioned exchange session rules and calendar exceptions, durable
+      provider quota windows/workload leases/routing decisions, and backend-only
+      diagnostics under `/api/v1/market-data/*`.
+- [x] Add the practical optional-provider roster as disabled descriptors and
+      add QuantLib American-option Greeks with explicit model/input provenance
+      and the existing Black-Scholes fallback.
+- [x] Add the first concrete non-price paths: raw SEC Company Facts, FINRA
+      short-interest normalisation, Alpha Vantage market-event calendar records,
+      durable persistence helpers, and explicit crypto/futures/options capability
+      labels. Additive queue workers now separate broad D1 scheduling from
+      provider I/O and retry leases.
+- [ ] Continue concrete optional adapters, full US universe/lifecycle
+      reconciliation, coverage/shadow reporting, and the separate post-merge
+      30-day observation run. New routing remains disabled until the workstream
+      activation bar is met.
+
 ### 2026-08-19 — Generic breadth predicates can be reused as Study Lab definitions
 
 - [x] Add a direct persistence action to the authenticated Breadth tool for a completed

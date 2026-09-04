@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -31,6 +31,9 @@ class InstrumentListing(Base, TimestampMixin):
     effective_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     known_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     delisted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    source: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    provenance: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     instrument: Mapped["Instrument"] = relationship(back_populates="listings")
     exchange: Mapped["Exchange"] = relationship(back_populates="listings")

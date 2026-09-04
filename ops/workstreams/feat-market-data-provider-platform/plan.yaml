@@ -76,10 +76,13 @@ live_test_impact: opt-in provider probes and a separately approved post-deployme
 migration_impact: multiple additive/transformational PostgreSQL migrations for issuers, domain identities, series scope, sessions, facts/events/short interest, provider runtime budgets, and shadow telemetry; old symbol/OHLCV rows require deterministic compatibility backfill
 deployment_impact: new backend/worker configuration, optional provider credentials, QuantLib dependency, Redis-backed quota state, scheduled shadow-report jobs, and feature flags; deployment remains a separate human-authorized master workflow
 status: authorized
-remaining_gaps: []
+remaining_gaps:
+  - concrete adapters for the optional paid/low-cost roster remain disabled pending credentials, terms, and fixtures
+  - full US venue universe reconciliation, delisting/new-listing detector, and coverage/shadow reporting are not yet activated
+  - production deployment and the separately approved 30-day shadow run remain out of scope for this session
 progress:
   completed: []
   total: 11
-  current_phase: identity_and_series_foundation
+  current_phase: foundation_and_governance
   current_blocker: none
-  next_action: run make agent-session-start again after this plan is committed, then implement identity/issuer/market-series foundations first
+  next_action: run migration compatibility against the previous release, then expand US universe/lifecycle coverage and backend shadow diagnostics

@@ -160,6 +160,7 @@ async def _upsert_listing(
     effective_at: datetime | None = None,
     known_at: datetime | None = None,
     delisted_at: datetime | None = None,
+    source: str | None = None,
 ) -> None:
     await upsert_instrument_listing(
         db,
@@ -172,6 +173,8 @@ async def _upsert_listing(
         effective_at=effective_at,
         known_at=known_at,
         delisted_at=delisted_at,
+        source=source,
+        provenance={"lifecycle_observation": True} if source else None,
     )
 
 
@@ -397,6 +400,7 @@ async def seed_universe(db: AsyncSession) -> dict:
                         effective_at=coerce_listing_lifecycle_at(q.get("ipo_date")),
                         known_at=fetched_at,
                         delisted_at=coerce_listing_lifecycle_at(q.get("delisting_date")),
+                        source=page_provider_name,
                     )
                     listing_evidence = _listing_evidence(
                         q,

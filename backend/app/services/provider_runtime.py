@@ -10,7 +10,7 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any, TypeVar
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -123,6 +123,7 @@ class ResolvedProvider:
     health: ProviderHealthState
     support_status: str = SUPPORT_STATUS_UNKNOWN
     has_symbol_binding: bool = False
+    entitlement: ProviderEntitlement | None = None
 
 
 @dataclass(slots=True)
@@ -532,7 +533,10 @@ async def resolve_provider_chain(
             .where(
                 ProviderPolicy.capability == capability,
                 ProviderPolicy.is_enabled.is_(True),
-                ProviderEntitlement.is_free.is_(True),
+                or_(
+                    ProviderEntitlement.is_free.is_(True),
+                    settings.ALLOW_PAID_PROVIDER_ROUTING,
+                ),
             )
         )
     ).all()
@@ -593,6 +597,7 @@ async def resolve_provider_chain(
                 health=health,
                 support_status=effective_support,
                 has_symbol_binding=data_source.id in binding_ids,
+                entitlement=entitlement,
             )
         )
     resolved.sort(

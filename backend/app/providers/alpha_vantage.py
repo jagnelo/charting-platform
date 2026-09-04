@@ -5,14 +5,14 @@ from __future__ import annotations
 import csv
 import io
 import logging
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 import httpx
 
 from app.config import settings
 from app.models.ohlcv import OHLCVBar, Timeframe
-from app.providers.base import ProviderSearchResult
+from app.providers.base import MarketEventRecord, ProviderSearchResult
 
 logger = logging.getLogger(__name__)
 _BASE = "https://www.alphavantage.co/query"
@@ -169,3 +169,43 @@ class AlphaVantageProvider:
 
     def supported_discovery_types(self) -> list[str]:
         return ["EQUITY"]
+
+    def fetch_market_events(
+        self,
+        *,
+        start: date | None = None,
+        end: date | None = None,
+    ) -> list[MarketEventRecord]:
+        """Fetch the provider's forward/historical IPO calendar as normalized events."""
+
+        text = self._get_text("IPO_CALENDAR")
+        if not text:
+            return []
+        try:
+            rows = list(csv.DictReader(io.StringIO(text)))
+        except csv.Error:
+            return []
+        result: list[MarketEventRecord] = []
+        for row in rows:
+            try:
+                event_date = date.fromisoformat(str(row.get("ipoDate") or ""))
+            except ValueError:
+                continue
+            if start and event_date < start or end and event_date > end:
+                continue
+            symbol = str(row.get("symbol") or "").strip().upper()
+            if not symbol:
+                continue
+            result.append(
+                MarketEventRecord(
+                    event_type="ipo",
+                    event_key=f"alpha_vantage:ipo:{symbol}:{event_date.isoformat()}",
+                    event_time=datetime.combine(event_date, datetime.min.time(), tzinfo=UTC),
+                    effective_date=event_date,
+                    title=str(row.get("name") or symbol),
+                    source_version="IPO_CALENDAR",
+                    is_provisional=True,
+                    raw_payload=row,
+                )
+            )
+        return result

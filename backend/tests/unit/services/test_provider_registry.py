@@ -48,6 +48,11 @@ class TestProviderRegistry:
         assert "price_history" in capabilities
         assert "instrument_metadata" in capabilities
         assert "option_chain" in capabilities
+        assert "options_current" in capabilities
+        assert "futures_history" in capabilities
+
+    def test_crypto_provider_exposes_explicit_crypto_history_capability(self):
+        assert "crypto_history" in list_provider_capabilities("binance")
 
     def test_openfigi_is_registered_as_identifier_provider(self):
         provider = get_identifier_provider("openfigi")

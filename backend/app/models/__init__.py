@@ -38,6 +38,23 @@ from app.models.instrument_reconciliation import InstrumentReconciliationIssue
 from app.models.instrument_stats import InstrumentStats
 from app.models.instrument_sync_run import InstrumentSyncRun
 from app.models.listing import InstrumentListing
+from app.models.market_data_foundation import (
+    AdjustmentBasis,
+    CalendarExceptionKind,
+    ExchangeCalendarException,
+    ExchangeSessionRule,
+    FundamentalFact,
+    IdentityStatus,
+    InstrumentIdentityQuarantine,
+    Issuer,
+    MarketEvent,
+    MarketRefreshJob,
+    MarketSeries,
+    ProviderQuotaWindow,
+    ProviderRoutingDecision,
+    ProviderWorkloadLease,
+    ShortInterestObservation,
+)
 from app.models.market_map import MarketMapCache, MarketMapSnapshot
 from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
 from app.models.price_alert import AlertCondition, AlertStatus, PriceAlert
@@ -110,6 +127,21 @@ __all__ = [
     "TimestampMixin",
     "User",
     "Exchange",
+    "Issuer",
+    "IdentityStatus",
+    "InstrumentIdentityQuarantine",
+    "MarketSeries",
+    "AdjustmentBasis",
+    "ExchangeSessionRule",
+    "ExchangeCalendarException",
+    "CalendarExceptionKind",
+    "ProviderQuotaWindow",
+    "ProviderWorkloadLease",
+    "ProviderRoutingDecision",
+    "MarketEvent",
+    "MarketRefreshJob",
+    "FundamentalFact",
+    "ShortInterestObservation",
     "AssetClass",
     "InstrumentType",
     "Basket",

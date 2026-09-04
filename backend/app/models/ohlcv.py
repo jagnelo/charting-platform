@@ -2,7 +2,7 @@ import enum
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, Numeric, String
+from sqlalchemy import BIGINT, JSON, Boolean, DateTime, ForeignKey, Index, Integer, Numeric, String
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -69,6 +69,9 @@ class OHLCVBar(Base):
     data_source_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("data_source.id"), nullable=True
     )
+    market_series_id: Mapped[int | None] = mapped_column(
+        BIGINT, ForeignKey("market_series.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     timeframe: Mapped[Timeframe] = mapped_column(SAEnum(Timeframe), nullable=False)
     ts: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
@@ -85,9 +88,13 @@ class OHLCVBar(Base):
     vwap: Mapped[Decimal] = mapped_column(Numeric(20, 8), nullable=True)  # if provided by source
 
     is_adjusted: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    adjustment_basis: Mapped[str] = mapped_column(String(32), nullable=False, default="raw")
+    adjustment_version: Mapped[str] = mapped_column(String(80), nullable=False, default="legacy")
+    provenance: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     instrument: Mapped["Instrument"] = relationship(back_populates="ohlcv_bars")
     data_source: Mapped["DataSource"] = relationship(back_populates="ohlcv_bars")
+    market_series: Mapped["MarketSeries | None"] = relationship(overlaps="market_series")
 
     __table_args__ = (
         # Primary query pattern: get all bars for an instrument at a timeframe in a date range
@@ -108,6 +115,7 @@ class OHLCVBar(Base):
             "is_adjusted",
             unique=True,
         ),
+        Index("ix_ohlcv_series_tf_ts", "market_series_id", "timeframe", "ts"),
     )
 
     def __repr__(self) -> str:

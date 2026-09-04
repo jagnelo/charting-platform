@@ -14,19 +14,24 @@ from app.providers.alpha_vantage import AlphaVantageProvider
 from app.providers.base import (
     DiscoveryProvider,
     EventProvider,
+    FundamentalsProvider,
     IdentifierProvider,
     InstrumentMetadataProvider,
     InstrumentSearchProvider,
     LatestPriceProvider,
+    MarketEventProvider,
     OptionChainProvider,
     OptionQuoteHistoryProvider,
     PriceHistoryProvider,
     ProviderDescriptor,
+    ShortInterestProvider,
 )
 from app.providers.binance import BinanceProvider
 from app.providers.coingecko import CoinGeckoProvider
+from app.providers.configured import OPTIONAL_PROVIDER_DESCRIPTORS
 from app.providers.edgar import EdgarProvider
 from app.providers.etf_holdings_internal import ETFHoldingsInternalProvider
+from app.providers.finra import FINRAProvider
 from app.providers.fred import FREDProvider
 from app.providers.massive import MassiveProvider
 from app.providers.nasdaq import NasdaqProvider
@@ -49,7 +54,9 @@ _PROVIDERS: dict[str, ProviderDescriptor] = {
     "massive": MassiveProvider(),  # Reference ticker universe corroboration
     "nasdaq": NasdaqProvider(),  # Public US EOD historical quote fallback
     "alpha_vantage": AlphaVantageProvider(),  # Quota-limited daily-history corroboration
+    "finra": FINRAProvider(),  # Consolidated short-interest datasets (endpoint configurable)
 }
+_PROVIDERS.update(OPTIONAL_PROVIDER_DESCRIPTORS)
 
 _DEFAULT_PROVIDER_USAGE_PROFILES: dict[str, dict] = {
     name: {
@@ -73,13 +80,29 @@ def _capability_names(provider: ProviderDescriptor) -> list[str]:
         (("get_current_price",), "latest_price"),
         (("fetch_instrument_events",), "instrument_events"),
         (("fetch_stable_identifiers",), "instrument_identifiers"),
+        (("fetch_fundamental_facts",), "fundamentals"),
+        (("fetch_short_interest",), "short_interest"),
+        (("fetch_market_events",), "market_events"),
         (("discover_universe_page", "supported_discovery_types"), "universe_discovery"),
         (("list_option_expirations", "fetch_option_chain"), "option_chain"),
         (("fetch_option_quote_history",), "option_quote_history"),
     ]
-    return [
+    capabilities = [
         name for required_methods, name in capabilities if _supports(provider, *required_methods)
     ]
+    provider_name = str(getattr(provider, "name", "")).lower()
+    if "price_history" in capabilities and provider_name in {"binance", "coingecko", "coinbase", "kraken"}:
+        capabilities.append("crypto_history")
+    if "price_history" in capabilities and provider_name in {"yfinance", "ibkr"}:
+        capabilities.append("futures_history")
+    if "option_chain" in capabilities:
+        capabilities.append("options_current")
+    if "instrument_events" in capabilities:
+        if provider_name in {"alpaca", "yfinance"}:
+            capabilities.append("corporate_actions")
+        if provider_name in {"edgar", "yfinance"}:
+            capabilities.append("earnings")
+    return capabilities
 
 
 def list_provider_capabilities(name: str) -> list[str]:
@@ -142,6 +165,18 @@ def get_discovery_provider(name: str) -> DiscoveryProvider:
 
 def get_identifier_provider(name: str) -> IdentifierProvider:
     return _require_capability(name, ("fetch_stable_identifiers",), "instrument identifiers")
+
+
+def get_fundamentals_provider(name: str) -> FundamentalsProvider:
+    return _require_capability(name, ("fetch_fundamental_facts",), "fundamental facts")
+
+
+def get_short_interest_provider(name: str) -> ShortInterestProvider:
+    return _require_capability(name, ("fetch_short_interest",), "short interest")
+
+
+def get_market_event_provider(name: str) -> MarketEventProvider:
+    return _require_capability(name, ("fetch_market_events",), "market events")
 
 
 def get_option_chain_provider(name: str) -> OptionChainProvider:

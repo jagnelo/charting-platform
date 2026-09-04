@@ -90,6 +90,9 @@ class Settings(BaseSettings):
     # but must not be appended automatically to new workstation capability
     # chains. This keeps the default platform path free-source/API-first.
     ENABLE_LEGACY_YFINANCE_FALLBACK: bool = False
+    # Paid adapters may be configured and audited without entering normal
+    # routing.  An explicit deployment setting is required to opt them in.
+    ALLOW_PAID_PROVIDER_ROUTING: bool = False
     IDENTIFIER_PROVIDER_PRIORITY: list[str] = ["openfigi"]
     OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY: list[str] = []
     PROVIDER_CHAIN_SEEDS: dict[str, list[str]] = {
@@ -194,6 +197,15 @@ class Settings(BaseSettings):
             "venue_coverage": "CoinGecko asset universe",
             "freshness_semantics": "Delayed/current endpoint response",
         },
+        "finra": {
+            "configured_plan": "public-dataset",
+            "is_free": True,
+            "authentication_required": False,
+            "usage_terms": "FINRA public datasets subject to published access and use terms.",
+            "history_depth": "Publication-dependent short-interest history",
+            "venue_coverage": "US securities covered by FINRA consolidated short interest",
+            "freshness_semantics": "Periodic publication; not real-time",
+        },
         "yfinance": {
             "configured_plan": "legacy-explicit",
             "is_free": True,
@@ -210,6 +222,15 @@ class Settings(BaseSettings):
     ALPHA_VANTAGE_API_KEY: str = ""
     MARKETDATA_API_KEY: str = ""
     FMP_API_KEY: str = ""
+    TIINGO_API_KEY: str = ""
+    TWELVE_DATA_API_KEY: str = ""
+    FINNHUB_API_KEY: str = ""
+    MARKETSTACK_API_KEY: str = ""
+    EODHD_API_KEY: str = ""
+    TRADIER_API_KEY: str = ""
+    IBKR_READ_ONLY_URL: str = ""
+    COINBASE_API_KEY: str = ""
+    KRAKEN_API_KEY: str = ""
     # Alpaca Markets — US equity + crypto OHLCV, corporate actions, universe
     ALPACA_API_KEY: str = ""
     ALPACA_SECRET_KEY: str = ""
@@ -224,6 +245,7 @@ class Settings(BaseSettings):
     COINGECKO_API_KEY: str = ""
     # SEC EDGAR — no key required; User-Agent identifies your app to SEC servers
     EDGAR_USER_AGENT: str = "charting-platform contact@example.com"
+    FINRA_SHORT_INTEREST_URL: str = ""
     INSTRUMENT_DISCOVERY_PAGE_DELAY_SECONDS: float = 0.75
     INSTRUMENT_METADATA_DELAY_SECONDS: float = 1.0
     INSTRUMENT_IDENTIFIER_DELAY_SECONDS: float = 1.0

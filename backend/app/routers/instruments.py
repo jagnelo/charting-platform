@@ -162,6 +162,8 @@ async def search_instruments(
             exchange=_instrument_search_exchange(i),
             type=i.instrument_type.name if i.instrument_type else "",
             instrument_id=i.id,
+            domain_key=i.domain_key,
+            identity_status=i.identity_status,
         )
         for i in local
     ]:
@@ -273,6 +275,8 @@ async def browse_instruments(
                 "id": inst.id,
                 "symbol": inst.symbol,
                 "name": inst.name,
+                "domain_key": inst.domain_key,
+                "identity_status": inst.identity_status,
                 "currency": inst.currency,
                 "type": inst.instrument_type.name if inst.instrument_type else None,
                 "sector": eq.sector if eq else None,

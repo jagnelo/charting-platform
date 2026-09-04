@@ -17,6 +17,7 @@ class InstrumentIdentifierType(str, enum.Enum):
     CUSIP = "cusip"
     SEDOL = "sedol"
     LEI = "lei"
+    CIK = "cik"
     INTERNAL = "internal"
 
 
@@ -38,6 +39,9 @@ class InstrumentIdentifier(Base, TimestampMixin):
     identifier_value: Mapped[str] = mapped_column(String(80), nullable=False)
     is_primary: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    effective_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    known_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    retired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     extra_data: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     instrument: Mapped["Instrument"] = relationship(back_populates="identifiers")

@@ -22,6 +22,7 @@ from app.routers import (
     indicators,
     instrument_indicators,
     instruments,
+    market_data_admin,
     market_groups,
     notes,
     ohlcv,
@@ -124,6 +125,7 @@ app.include_router(code.router, prefix=PREFIX)
 app.include_router(research.router, prefix=PREFIX)
 app.include_router(workspaces.router, prefix=PREFIX)
 app.include_router(market_groups.router, prefix=PREFIX)
+app.include_router(market_data_admin.router, prefix=PREFIX)
 app.include_router(notes.router, prefix=PREFIX)
 
 
