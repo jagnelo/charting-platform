@@ -49,10 +49,10 @@ Evidence for this slice:
   Docker stack, exercising Boolean column, filter, scan, gauge, and alert controls. Teardown and
   resource accounting reported zero containers, volumes, known image bytes, and test-container
   sessions.
-- The exact-tip exhaustive gate is queued at `68856251`; the prior exact gate at `f8d68d3f`
-  passed every non-visual and functional stage and retained the six unchanged visual diffs. No
-  visual baseline, mask, threshold, skip, fallback oracle, provider rule, or acceptance policy
-  changed. The workstream remains active.
+- The exact-tip exhaustive gate has now rerun at `68856251`; every non-visual and functional stage
+  passed and the unchanged visual matrix retained the six documented diffs. No visual baseline,
+  mask, threshold, skip, fallback oracle, provider rule, or acceptance policy changed. The
+  workstream remains active.
 
 ## 2026-09-04 — Exact-tip exhaustive gate after structured scalar and series promotions
 

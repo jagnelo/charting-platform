@@ -368,7 +368,9 @@ The TC2000 frontend rework is ready for human review only when all of the follow
 
 ## Immediate next checkpoint
 
-Run the exact-tip exhaustive gate at product tip `f8d68d3f`, then continue with the remaining Boolean
-structured-result promotion matrix and the next canonical provider/history slice. Preserve the six
-visual diffs, the declared provider fallback boundaries, and all existing acceptance policy while
-expanding compatible chart/list/gauge consumers and their authenticated evidence.
+Continue with the next canonical provider/history slice and compatible chart/list/gauge consumers
+with authenticated evidence. The exact-tip gate has now been rerun at product tip `68856251`; all
+non-visual and functional stages pass, while the unchanged six visual diffs remain explicit. Preserve
+the declared provider fallback boundaries and all existing acceptance policy while expanding the
+remaining richer Study Lab targets, native-window/accessibility/security evidence, and dense-data
+budgets.

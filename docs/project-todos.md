@@ -36,10 +36,11 @@
       browser coverage passed `1/1` against the rebuilt branch-scoped Docker stack; teardown and
       resource accounting reported zero containers, volumes, known image bytes, and test-container
       sessions. Product commit `68856251` contains the implementation and coverage.
-- [ ] Rerun the exact-tip exhaustive gate at `68856251`, then continue compatible richer Study Lab
-      targets, canonical provider/history enrichment, native-window/accessibility/security
-      evidence, dense-data budgets, and visual-oracle review. The feature goal remains active and
-      is not yet ready for human review.
+- [x] Reran the exact-tip exhaustive gate at `68856251`; all non-visual and functional stages
+      passed, while the unchanged visual matrix remains `98/104` with the six documented diffs
+      recorded above. Continue compatible richer Study Lab targets, canonical provider/history
+      enrichment, native-window/accessibility/security evidence, dense-data budgets, and
+      visual-oracle review. The feature goal remains active and is not yet ready for human review.
 
 ### 2026-09-04 — Exact-tip exhaustive gate after structured scalar and series promotions
 
