@@ -1227,3 +1227,30 @@ The disposable stack, volumes, network, and generated images were removed immedi
 resource status reports zero containers, zero volumes, zero known image bytes, and complete
 accounting. This receipt advances canonical QQQ D1 readiness but does not close the 80 placeholders,
 W1/MN history, QQQE/SPDR dated sources, the six visual diffs, or the wider R1-R6 roadmap.
+
+## 2026-09-04 — Persisted event artifacts promote to Strategy signals
+
+The Research Results workstation now offers a direct Strategy Lab promotion for a completed run
+with a persisted `events` artifact. The user-scoped endpoint only accepts an immutable source
+CodeVersion whose declared contract is `events`; a multi-output `study` is rejected instead of
+being silently relabelled. The created Strategy definition/version references the source code,
+run, event artifact, compact dataset-manifest summary and SHA-256 fingerprint, reproducibility
+hash, run configuration, and explicit `re_evaluate_current_data_event_source` semantics. The
+historical artifact remains queryable by its source IDs; promotion does not claim point-in-time
+execution of the current Strategy signal.
+
+Evidence for this boundary:
+
+- Focused Research Results component tests passed `21/21`; full frontend Vitest passed `930/930`
+  across `108` files; frontend type-check and production build passed with only the existing
+  large-chunk warning.
+- Backend unit tests passed `1,307/1,307`; Ruff check/format, Python compileall, and `git diff
+  --check` passed. The Docker-backed `test_research_event_artifact_promotes_with_lineage`
+  regression was added but could not start because the local Docker daemon was unavailable.
+
+Implementation commit `407181d83987f46c0a25bf8537eedc7c4e9b4e45` (`feat(tc2000): promote persisted
+event artifacts`) was pushed to `origin/feat/tc2000-frontend-rework` immediately after the
+implementation checks. No provider call, visual baseline/mask/threshold/skip change, fallback,
+integration, deployment, or other-worktree mutation occurred. The remaining compatible event
+promotion fan-out and the six unchanged visual-oracle diffs remain open; rerun the integration
+regression when Docker is available.
