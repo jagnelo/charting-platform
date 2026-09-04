@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-09-04 — Bounded canonical enrichment and D1 history runtime
+
+- [x] Rerun five bounded one-profile classification passes at exact feature tip `09ecb4b8`.
+      The passes completed `enriched=14,6,1,0,0` with `failed=0`, advancing the dated QQQ
+      snapshot from 14 to 21 canonical members and reducing explicit `HOLDING-*` placeholders
+      from 87 to 80. The configured `edgar,massive,alpha_vantage` chain remained maintenance-only;
+      missing-key providers were skipped and no CoinGecko or symbol-guess path was used.
+- [x] Queue the authenticated `nasdaq100`/`cap_weight` member-history handoff for `D1`, `W1`,
+      and `MN`. It selected all 21 canonical members and excluded all 80 placeholders. After the
+      bounded queue drained, SQL reported 46,566 D1 bars across 21/21 members, each meeting the
+      252-bar analysis floor; W1/MN had no provider-backed bars and no derived bars were claimed.
+- [x] Verify the UI-facing contract after history hydration: cap-weight reports 21 canonical,
+      80 placeholders, D1 analysis-ready 21/21, W1/MN 0/21, and `history_ready=false`; the full
+      Nasdaq-100 role matrix remains 0.25 coverage because QQQE and value/growth roles are still
+      unavailable.
+- [ ] Continue separately authorized enrichment only where a supported provider can add auditable
+      identity evidence; resolve W1/MN and QQQE/SPDR dated-source gaps before counting more roles
+      toward canonical readiness. Preserve the six visual-oracle failures as an explicit blocker.
+
 ### 2026-09-04 — Bounded provider-search chain for canonical maintenance
 
 - [x] Extend identifier-only ETF constituent maintenance to use the reviewed,

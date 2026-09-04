@@ -1071,3 +1071,39 @@ The stack, volumes, network, and generated images were removed immediately after
 complete accounting. This receipt confirms observation persistence, not complete QQQ population,
 member history, or eight-family readiness. The 87 placeholders, W1/MN history, QQQE/SPDR dated
 sources, and six unchanged visual-oracle diffs remain open.
+
+## 2026-09-04 — Exact-tip exhaustive gate after search-observation persistence
+
+At synchronized tip `09ecb4b8`, `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework`
+passed Git/workstream validation, dependency and migration checks, Ruff, TypeScript, backend
+coverage, compose/stack health, research-runner isolation probes, and the authenticated functional
+Playwright suite (`154` passes, `106` documented skips across `260` specs). The unchanged visual
+matrix completed `104` cases with `98` passes and six failures: `watchlist-column-editor-open` at
+the two 1080p projects (`13,844` differing pixels), and `workspace-floating` at all four projects
+(`4,257` or `4,453` differing pixels depending on capture). The HTML reporter held the TTY after
+the completed visual run; interrupting only that report server allowed the cleanup trap to remove
+the assigned resources. No visual baseline, mask, threshold, skip, provider rule, or protected
+worktree changed. This is an explicit visual blocker, not a product-completion claim.
+
+## 2026-09-04 — Bounded canonical enrichment and D1 history runtime
+
+At the same exact tip, a fresh branch-scoped six-service stack completed the dated QQQ refresh
+`1/1` for `2025-12-31` with `101` SEC rows. Five bounded one-profile classification passes
+completed with `enriched=14,6,1,0,0`, all `failed=0`, advancing the snapshot to `21` canonical
+members and `80` explicit `HOLDING-*` placeholders. The authenticated history handoff for
+`nasdaq100`/`cap_weight` selected and queued all `21` canonical members for `D1`, `W1`, and `MN`,
+excluding all `80` placeholders. Once the queue drained, SQL reported `46,566` D1 bars across
+`21/21` members, with each meeting the `252`-bar floor; W1/MN had no provider-backed bars.
+
+The authenticated coverage response reports `member_count=21`, `classified_member_count=21`,
+`placeholder_member_count=80`, `classification_status=ready`, `history_ready=false`, and D1
+analysis-ready coverage `21/21`; W1/MN remain `0/21`, QQQE has no snapshot, and value/growth are
+mapping-unavailable, leaving overall family-role coverage at `0.25`. Repeated maintenance searches
+retained `156` bounded observations (`edgar=52`, `24` non-empty; `massive=52` empty;
+`alpha_vantage=52` empty). Missing-key paths were skipped locally; no symbol guess, latest-only
+fallback, derived/fabricated bars, or CoinGecko request occurred.
+
+The disposable stack, volumes, network, and generated images were removed immediately afterward;
+resource status reports zero containers, zero volumes, zero known image bytes, and complete
+accounting. This receipt advances canonical QQQ D1 readiness but does not close the 80 placeholders,
+W1/MN history, QQQE/SPDR dated sources, the six visual diffs, or the wider R1-R6 roadmap.
