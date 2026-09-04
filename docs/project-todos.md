@@ -1,15 +1,37 @@
 # Project TODO Memory
 
+### 2026-09-04 — Exact-tip exhaustive gate after structured Study Lab browser coverage
+
+- [x] Rerun `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at
+      product tip `6f575a34`. Locked dependencies/migrations, Ruff/format, TypeScript, backend
+      units (`1,311/1,311`), integration (`382/382` with the existing `54` warnings), combined
+      coverage (`80.90%`), frontend Vitest (`934/934` across `108` files), production build,
+      compose/provider policy, assigned-stack health, research-runner isolation, and authenticated
+      functional Playwright (`155` passed and `106` documented skips across `261` specs) all
+      passed. The first exhaustive invocation had one non-reproducible F8t-results-open lookup
+      failure; a fresh isolated three-run reproduction passed `3/3`, and the complete rerun passed
+      the functional suite. Stack teardown and resource accounting were clean.
+- [x] Preserve the unchanged visual result as an explicit blocker: the four-project matrix
+      completed `104` cases with `98` passes and six failures—`watchlist-column-editor-open` at
+      visual-1080p-100/125 (`13,844` differing pixels each), and `workspace-floating` at
+      visual-1080p-100 (`12,097`), visual-1080p-125 (`11,901`), visual-1440p-100 (`12,097`),
+      and visual-1440p-125 (`9,770`). No baseline, mask, threshold, skip, fallback oracle,
+      provider rule, or acceptance policy changed; the floating actual intentionally includes
+      canonical benchmark rows after late-popout hydration.
+- [ ] Continue the remaining compatible chart/list/gauge and richer Study Lab promotion targets,
+      canonical provider/history enrichment, native-window/accessibility/security evidence, and
+      visual-oracle review. The feature goal remains active and is not yet ready for human review.
+
 ### 2026-09-04 — Structured Study Lab event promotions browser coverage
 
 - [x] Extend the authenticated F8o Study Lab flow to exercise both named structured-event
       actions through the real API: `Save filter: occurrences` and `Promote alert: occurrences`.
       The focused branch-scoped Docker run passed `1/1`; the stack teardown and resource audit
       reported zero containers, volumes, known image bytes, and test-container sessions.
-- [ ] Rerun the exact-tip exhaustive integration gate at product commit `6f575a34`; the prior
-      structured-study gate remains the baseline and its six unchanged visual diffs remain
-      explicit review blockers. No visual baseline, mask, threshold, skip, fallback oracle,
-      provider rule, or acceptance policy changed.
+- [x] Rerun the exact-tip exhaustive integration gate at product commit `6f575a34`; the complete
+      receipt is recorded immediately above. Its six unchanged visual diffs remain explicit review
+      blockers. No visual baseline, mask, threshold, skip, fallback oracle, provider rule, or
+      acceptance policy changed.
 
 ### 2026-09-04 — Exact-tip exhaustive gate after structured Study Lab event adapters
 

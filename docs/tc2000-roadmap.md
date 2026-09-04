@@ -12,11 +12,21 @@ evidence ledgers. If a summary here conflicts with a dated test receipt or the c
 current code and fresh evidence win.
 
 The latest product commit is `6f575a34` (`test(tc2000): cover structured event promotions`). The
-authenticated F8o Study Lab flow now exercises both named structured-event actions through the
-real API—saving `occurrences` as a watchlist filter and promoting it to an active alert—and passed
-`1/1` on the branch-scoped Docker stack. The stack teardown and resource audit were clean. The
-exact-tip exhaustive gate is queued at this new tip; the preceding gate at `1918ca81` remains the
-current full-stack baseline with six unchanged visual diffs.
+authenticated F8o Study Lab flow exercises both named structured-event actions through the real
+API—saving `occurrences` as a watchlist filter and promoting it to an active alert—and passed
+`1/1` on the branch-scoped Docker stack. The exact-tip exhaustive gate was then rerun at this
+product tip: all non-visual stages and the functional browser suite passed (`155` passed, `106`
+documented skips across `261` specs), with clean teardown/resource accounting. A prior invocation's
+single F8t-results-open lookup failure was not reproducible in an isolated `3/3` rerun and did not
+recur in the complete gate.
+
+The unchanged visual matrix remains the only failing stage: `98/104` passed and six screenshot
+diffs remain—`watchlist-column-editor-open` at visual-1080p-100/125 (`13,844` differing pixels
+each), and `workspace-floating` at visual-1080p-100 (`12,097`), visual-1080p-125 (`11,901`),
+visual-1440p-100 (`12,097`), and visual-1440p-125 (`9,770`). No visual oracle, provider fallback,
+or acceptance policy changed. The branch remains active while the visual review blocker and the
+remaining canonical provider/history, richer promotion, native-window, accessibility/security,
+and dense-data gaps are addressed.
 
 The latest exhaustive gate ran at product commit `7c930fd1` (`fix(tc2000): scope event adapter by
 instrument`). Event rows carrying a symbol or canonical instrument ID can no longer match a

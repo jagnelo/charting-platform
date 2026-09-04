@@ -96,11 +96,11 @@
   "head": "6f575a346339cabbfcee7efe27016d5e89fcb874",
   "implementation_sha": "6f575a346339cabbfcee7efe27016d5e89fcb874",
   "interrupted": false,
-  "last_checkpoint": "2026-09-04T18:58:06.000000+00:00",
-  "last_human_progress_update": "2026-09-04T18:58:06.000000+00:00",
+  "last_checkpoint": "2026-09-04T19:53:31.000000+00:00",
+  "last_human_progress_update": "2026-09-04T19:53:31.000000+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Run the exact-tip exhaustive integration gate at product tip 6f575a34, preserve any visual diffs honestly, then continue the remaining compatible chart/list/gauge and richer Study Lab promotion targets, canonical provider/history enrichment, native-window/accessibility/security evidence, and visual-oracle review without changing visual policy or provider fallback rules.",
-  "plan_hash": "4b79ebcf00972a204e61ef08c3b48eb009aada4089815982139b7f68b084089d",
+  "next_action": "Continue the remaining compatible chart/list/gauge and richer Study Lab promotion targets, canonical provider/history enrichment, native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review without changing visual policy or provider fallback rules.",
+  "plan_hash": "8c8e3185055f75a0d1f836c99e685c5c6fe6bacc7a80b4cf8439da4500fdb18a",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [],
@@ -108,11 +108,11 @@
     "completed": [
       "AC1"
     ],
-      "current_blocker": "The latest full-stack gate at product tip 1918ca81 passed all non-visual stages and remained blocked only by six unchanged visual diffs: watchlist-column-editor-open at visual-1080p-100/125 (13,844 pixels each) and workspace-floating at visual-1080p-100 (12,097), visual-1080p-125 (11,901), visual-1440p-100 (12,097), and visual-1440p-125 (5,512). Product commit 6f575a34 adds authenticated F8o coverage for both structured-event filter and alert actions; the focused branch-scoped run passed 1/1 with clean teardown/resource accounting. The exhaustive gate is pending at 6f575a34. Native-window, dense-data, accessibility/security, provider/history, and richer promotion gaps remain open. No baseline, mask, threshold, skip, fallback oracle, provider rule, or acceptance policy changed.",
+      "current_blocker": "The exact-tip exhaustive gate was rerun at product tip 6f575a34 after structured Study Lab event-promotion browser coverage. Locked dependencies/migrations, Ruff/format, TypeScript, backend units 1,311/1,311, integration 382/382 with 54 warnings, combined coverage 80.90%, frontend Vitest 934/934, production build, compose/provider policy, stack health, runner isolation, and functional Playwright 155/261 with 106 documented skips all pass. A first invocation's F8t-results-open lookup failure was not reproducible in an isolated 3/3 rerun and did not recur in the complete gate. The unchanged visual matrix is the only failure: 98/104 with six diffs—watchlist-column-editor-open at visual-1080p-100/125 (13,844 differing pixels each), and workspace-floating at visual-1080p-100 (12,097), visual-1080p-125 (11,901), visual-1440p-100 (12,097), and visual-1440p-125 (9,770). The floating actual intentionally contains canonical benchmark rows because late benchmark pop-outs hydrate missing shared market-analysis inputs once; chart pop-outs remain display-only. Native-window, dense-data, accessibility/security, provider/history, and richer promotion gaps remain open. No baseline, mask, threshold, skip, fallback oracle, provider rule, or acceptance policy changed.",
       "current_phase": "R7_exact_tip_audit",
-      "next_action": "Run make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework at exact product tip 6f575a34, then continue the remaining roadmap gaps without changing visual policy or provider fallback rules.",
+      "next_action": "Continue the remaining roadmap gaps without changing visual policy or provider fallback rules.",
     "total": 10,
-      "updated_at": "2026-09-04T18:58:06.000000+00:00"
+      "updated_at": "2026-09-04T19:53:31.000000+00:00"
   },
   "remote": "6f575a346339cabbfcee7efe27016d5e89fcb874",
   "remote_sha": "6f575a346339cabbfcee7efe27016d5e89fcb874",
