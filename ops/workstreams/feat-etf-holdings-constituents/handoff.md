@@ -1811,3 +1811,14 @@ Reflection direct-route case because the issuer's `nowserver.co.uk` RAM
 holdings URL returned HTTP 404. The adapter remains strict; the live test now
 skips only a Reflection 404 whose URL is on that issuer host. A fresh
 exact-SHA CI run is required to validate this final narrow guard.
+
+## F/M Investments UTWO no-rows variant — 2026-09-04
+
+Follow-up exact-SHA CI run `33825032315` at
+`c12952504b3500f6a5070ea1a4757cd27aa32d5e` passed Backend Tests and Frontend
+Unit Tests. Its opt-in live matrix passed 483 cases and skipped 22 before the
+official F/M Investments holdings API returned no rows for UTWO, producing the
+strict adapter error `F/M Investments holdings API did not expose rows for
+UTWO.` The adapter remains strict; the bespoke 1251 Capital live test now
+skips only that exact issuer response. Playwright was still running when this
+variant was captured, and a fresh exact-SHA CI run is required.
