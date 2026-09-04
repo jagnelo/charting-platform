@@ -1,5 +1,28 @@
 # Project TODO Memory
 
+### 2026-09-04 — Structured Study Lab event promotion adapters
+
+- [x] Extend Study Lab promotion controls so named `events` artifacts from a multi-output
+      `study` run can be explicitly saved as a current-data watchlist filter or promoted to an
+      active alert. The filter endpoint requires the selected artifact name, preserves the source
+      run/code/artifact/manifest lineage, scopes the custom universe to declared canonical member
+      IDs, and records the `events_to_boolean` adapter; the alert reuses that filter. Existing
+      single-output event-to-Strategy-signal behavior remains unchanged.
+- [x] Allow the screener queue to execute the explicit adapter against a structured-study source
+      while keeping ordinary Boolean contract validation strict. Add regression coverage for
+      named-output extraction, missing-artifact selection, output-contract lineage, filter/alert
+      requests, and the Study Lab controls.
+- [x] Verify the slice: full research-runner units passed `108/108`; event-focused runner tests
+      passed `9/9`; Strategy Lab event integration passed `3/3`; screener Python-condition
+      integration passed `3/3`; Study Lab component tests passed `24/24`; full frontend Vitest
+      passed `934/934` across `108` files; type-check, production build, compileall, Ruff,
+      format, and diff checks passed. Product commit `1918ca81` contains the implementation.
+- [ ] Rerun the exhaustive branch gate at product tip `1918ca81`, then continue the remaining
+      chart/list/gauge and richer Study Lab promotion targets, canonical provider/history
+      enrichment, native-window/accessibility/security evidence, and visual-oracle review. No
+      visual baseline, mask, threshold, skip, fallback oracle, provider rule, or acceptance
+      policy may change to hide a regression.
+
 ### 2026-09-04 — Exact-tip exhaustive gate after event identity scoping
 
 - [x] Rerun `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at

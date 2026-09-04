@@ -26,6 +26,11 @@ differing pixels each), and `workspace-floating` at visual-1080p-100 (`9,770`), 
 and resource accounting were clean; no visual oracle, provider fallback, or acceptance policy
 was changed.
 
+Since that gate, product commit `1918ca81` (`feat(tc2000): promote structured study events`)
+adds explicit named-event promotion from multi-output Study Lab studies to scoped current-data
+watchlist filters and alerts. Its focused and full frontend/backend checks are green; the
+exhaustive gate is queued at this new tip and the six visual diffs remain unchanged until rerun.
+
 The work is one continuous delivery stint, not an MVP followed by optional phases. The workstreams
 below are dependency-ordered checkpoints so correctness, data lineage, and visual evidence can be
 verified without weakening the end goal.

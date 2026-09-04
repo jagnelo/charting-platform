@@ -10,6 +10,29 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-04 — Structured Study Lab event promotion adapters
+
+Product commit `1918ca81` (`feat(tc2000): promote structured study events`) extends the
+lineage-preserving event adapter boundary to named events artifacts emitted by multi-output
+Study Lab (`output_contract: study`) runs. The completed-run filter endpoint accepts an explicit
+`artifact_name`, records `source_output_name`, and refuses an unselected structured-study output;
+the resulting custom screener remains scoped to the run's declared canonical member IDs and
+executes through `events_to_boolean`. Study Lab now exposes `Save filter` and `Promote alert` for
+each named events artifact; alert creation reuses the promoted filter with current-observation
+semantics. Existing events-to-Strategy-signal promotion and ordinary Boolean execution remain
+unchanged.
+
+Evidence for this boundary:
+
+- Full research-runner units passed `108/108`; event-focused runner tests passed `9/9`.
+- Strategy Lab event integration passed `3/3`; screener Python-condition integration passed
+  `3/3`; Study Lab component tests passed `24/24`; full frontend Vitest passed `934/934` across
+  `108` files; type-check, production build, compileall, Ruff, format, and diff checks passed.
+- The next exhaustive branch gate is queued at `1918ca81`. No visual baseline, mask, threshold,
+  skip, fallback oracle, provider rule, or acceptance policy changed. The six known visual diffs,
+  canonical provider/history gaps, richer promotion targets, and native-window/accessibility/
+  security evidence remain open.
+
 ## 2026-09-04 — Exact-tip exhaustive gate after event identity scoping
 
 The exact integration profile was rerun at product commit `7c930fd1` after the event adapter
