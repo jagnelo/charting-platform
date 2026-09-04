@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-04 — Research Results filters generic event artifacts
+
+- [x] Apply the persisted Research Results occurrence controls to generic `events` artifacts as
+      well as Python breadth history. Symbol matching and dynamically discovered event kinds are
+      explicit, bounded client-side filters over the immutable runner payload; no event is hidden
+      from the export or occurrence bus and no new execution path is introduced.
+- [x] Preserve occurrence identity when a filtered generic event is selected, including symbol,
+      timestamp, kind, and canonical instrument ID when present. The focused component regression,
+      full frontend Vitest suite (`929/929`), type-check, production build, and diff checks pass.
+- [ ] Continue occurrence promotion for event artifacts into compatible chart/list/filter/gauge,
+      alert, Study Lab, and Strategy Lab targets with source-run and dataset lineage preserved.
+
 ### 2026-09-04 — Python breadth reference-universe comparison slice
 
 - [x] Allow a Python breadth `python_series_comparison` tree to select either a benchmark symbol or

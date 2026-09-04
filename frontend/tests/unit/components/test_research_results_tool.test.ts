@@ -218,6 +218,38 @@ describe('ResearchResultsTool', () => {
     })
   })
 
+  it('filters generic event artifacts and publishes the selected event identity', async () => {
+    apiGet.mockResolvedValue([{ id: 27, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [
+      {
+        id: 16,
+        name: 'signal_events',
+        artifact_type: 'events',
+        payload: {
+          value: [
+            { symbol: 'SPY', timestamp: '2026-01-02T00:00:00Z', kind: 'member_entered', instrument_id: 7 },
+            { symbol: 'AAPL', timestamp: '2026-01-03T00:00:00Z', kind: 'member_exited', instrument_id: 8 },
+          ],
+        },
+      },
+    ] }])
+    const wrapper = mountTool()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('2 shown')
+    await wrapper.get('[aria-label="signal_events symbol filter"]').setValue('spy')
+    expect(wrapper.text()).toContain('1 shown')
+    expect(wrapper.text()).not.toContain('AAPL')
+    await wrapper.get('[aria-label="signal_events event type filter"]').setValue('member_entered')
+    const event = wrapper.get('[aria-label="SPY 2026-01-02T00:00:00Z occurrence"]')
+    await event.trigger('click')
+    expect(wrapper.emitted('occurrence')?.[0]?.[0]).toMatchObject({
+      symbol: 'SPY',
+      timestamp: '2026-01-02T00:00:00Z',
+      instrument_id: 7,
+      kind: 'member_entered',
+    })
+  })
+
   it('promotes only a completed Python breadth history and reports the lineage-preserving scan', async () => {
     apiGet.mockResolvedValue([{ id: 20, status: 'completed', code_version_id: 4, run_config: { execution_mode: 'breadth_history' }, dataset_manifest: {}, diagnostics: [], artifacts: [
       { id: 11, name: 'breadth_history', artifact_type: 'breadth_history', payload: { value: { points: [{ timestamp: '2026-01-01T00:00:00Z', percentage: 1, requested_count: 1, eligible_count: 1, pass_count: 1, excluded_count: 0, coverage: 1 }], occurrences: [] } } },

@@ -69,7 +69,17 @@
               <small v-if="!filteredBreadthHistoryOccurrences(artifact).length">No member state changes match the current filters.</small>
             </div>
           </section>
-          <div v-else-if="artifact.artifact_type === 'events'" class="research-results-tool__events" role="list" :aria-label="`${artifact.name} occurrences`"><button v-for="(event, index) in eventRows(artifact)" :key="`${event.symbol}-${event.timestamp}-${index}`" type="button" role="listitem" :aria-label="`${event.symbol} ${event.timestamp} occurrence`" @click="emit('occurrence', event)"><strong>{{ event.symbol }}</strong><span>{{ event.timestamp }}</span></button></div>
+          <section v-else-if="artifact.artifact_type === 'events'" class="research-results-tool__event-artifact" :aria-label="`${artifact.name} occurrences`">
+            <div class="research-results-tool__occurrence-filters" role="group" :aria-label="`${artifact.name} occurrence filters`">
+              <label>Symbol <input v-model="occurrenceSymbolFilter" type="search" :aria-label="`${artifact.name} symbol filter`" placeholder="All symbols" /></label>
+              <label>Type <select v-model="occurrenceKindFilter" :aria-label="`${artifact.name} event type filter`"><option value="all">All</option><option v-for="kind in eventKinds(artifact)" :key="kind" :value="kind">{{ kind.replace(/_/g, ' ') }}</option></select></label>
+              <span role="status" aria-live="polite">{{ filteredEventRows(artifact).length }} shown</span>
+            </div>
+            <div class="research-results-tool__events" role="list" :aria-label="`${artifact.name} filtered occurrences`">
+              <button v-for="(event, index) in filteredEventRows(artifact)" :key="`${event.symbol}-${event.timestamp}-${index}`" type="button" role="listitem" :aria-label="`${event.symbol} ${event.timestamp} occurrence`" @click="emit('occurrence', event)"><strong>{{ event.symbol }}</strong><span>{{ event.kind ? `${event.kind.replace(/_/g, ' ')} · ` : '' }}{{ event.timestamp }}</span></button>
+              <small v-if="!filteredEventRows(artifact).length">No events match the current filters.</small>
+            </div>
+          </section>
           <pre v-else>{{ artifactText(artifact.payload) }}</pre>
         </article>
       </div>
@@ -317,9 +327,29 @@ function filteredBreadthHistoryOccurrences(artifact: ResearchRunSummary['artifac
     && (occurrenceKindFilter.value === 'all' || event.kind === occurrenceKindFilter.value)
   ))
 }
-function eventRows(artifact: ResearchRunSummary['artifacts'][number]): Array<{ symbol: string; timestamp: string; kind?: string }> {
+type EventRow = { symbol: string; timestamp: string; kind?: string; instrument_id?: number }
+function eventRows(artifact: ResearchRunSummary['artifacts'][number]): EventRow[] {
   const value = artifact.payload.value
-  return Array.isArray(value) ? value.filter((item): item is { symbol: string; timestamp: string; kind?: string } => Boolean(item) && typeof item === 'object' && typeof (item as Record<string, unknown>).symbol === 'string' && typeof (item as Record<string, unknown>).timestamp === 'string') : []
+  if (!Array.isArray(value)) return []
+  return value
+    .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object' && !Array.isArray(item) && typeof (item as Record<string, unknown>).symbol === 'string' && typeof (item as Record<string, unknown>).timestamp === 'string')
+    .map(item => ({
+      symbol: item.symbol as string,
+      timestamp: item.timestamp as string,
+      kind: typeof item.kind === 'string' ? item.kind : undefined,
+      instrument_id: typeof item.instrument_id === 'number' && Number.isInteger(item.instrument_id) ? item.instrument_id : undefined,
+    }))
+}
+function eventKinds(artifact: ResearchRunSummary['artifacts'][number]): string[] {
+  return [...new Set(eventRows(artifact).map(event => event.kind).filter((kind): kind is string => Boolean(kind)))].sort()
+}
+function filteredEventRows(artifact: ResearchRunSummary['artifacts'][number]): EventRow[] {
+  const symbol = occurrenceSymbolFilter.value.trim().toUpperCase()
+  const kind = occurrenceKindFilter.value
+  return eventRows(artifact).filter(event => (
+    (!symbol || event.symbol.toUpperCase().includes(symbol))
+    && (kind === 'all' || event.kind === kind)
+  ))
 }
 function exportArtifact(run: ResearchRunSummary, artifact: ResearchRunSummary['artifacts'][number]) {
   const payload = JSON.stringify({ run_id: run.id, reproducibility_hash: run.reproducibility_hash ?? null, artifact }, null, 2)
