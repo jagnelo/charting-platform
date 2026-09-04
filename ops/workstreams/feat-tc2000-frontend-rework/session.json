@@ -52,7 +52,8 @@
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
   "dirty_paths": [
-    "ps/workstreams/feat-tc2000-frontend-rework/session.json"
+    "ps/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json"
   ],
   "docker": {
     "accounting_complete": true,
@@ -89,25 +90,27 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "1fa2fc49977f4a8a2a6ee783bb3beaf272468cb0",
+  "head": "b4087e88493b6fd73710a2e64362c5b4fcedac90",
   "implementation_sha": "1fa2fc49977f4a8a2a6ee783bb3beaf272468cb0",
   "last_checkpoint": "2026-09-04T06:14:30.965467+00:00",
-  "last_human_progress_update": "2026-09-04T05:36:22.242334+00:00",
+  "last_human_progress_update": "2026-09-04T06:41:32.506896+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
-  "plan_hash": "51ed9f3a14e2978111a41d448fceaf00dfd9afa2aee3d750f45e734c6edd5df4",
+  "plan_hash": "c07f26de57380f93b8e9a2d3b468c7652c28a16b0edb8d927f5d92046704e0f8",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [],
   "progress": {
-    "completed": [],
-    "current_blocker": "The latest exact-tip gate remains blocked by six unchanged visual diffs (98/104). Four bounded SEC-search passes leave 80 of 101 QQQ rows as HOLDING-* placeholders; 21 canonical members meet the D1 technical floor, while W1/MN history and complete provider readiness remain open.",
+    "completed": [
+      "AC1"
+    ],
+    "current_blocker": "QQQ remains 14 canonical and 87 placeholders; W1/MN and QQQE/SPDR dated sources remain open, and exact-tip visual gate remains blocked by six unchanged diffs",
     "current_phase": "R1_provider_readiness",
-    "next_action": "Review the six unchanged visual-oracle diffs without weakening policy; continue separately authorized bounded provider reconciliation for the 80 placeholders, investigate supported W1/MN history and QQQE/SPDR dated sources, then repeat the exact-tip gate.",
+    "next_action": "Continue authorized bounded provider enrichment and supported W1/MN/QQQE/SPDR investigation; do not count search reachability as canonical readiness, and preserve visual-policy blocker without baseline changes",
     "total": 10,
-    "updated_at": "2026-09-04T05:36:22.241976+00:00"
+    "updated_at": "2026-09-04T06:41:32.505866+00:00"
   },
-  "remote": "1fa2fc49977f4a8a2a6ee783bb3beaf272468cb0",
+  "remote": "b4087e88493b6fd73710a2e64362c5b4fcedac90",
   "remote_sha": "1fa2fc49977f4a8a2a6ee783bb3beaf272468cb0",
   "remote_synchronized": true,
   "schema": 2,
