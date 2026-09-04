@@ -1871,3 +1871,20 @@ not an ETF or application failure. Exact-SHA run `33826263043` at `b38a25f1`
 passed Playwright on the same feature behavior. The branch remains ready for
 human review, with the repeated CI startup timeout and unrelated local
 Study Lab F8p histogram failure retained as explicit review blockers.
+
+## Final synchronized-head CI green — 2026-09-04
+
+Latest exact-SHA CI run `33830519331` at
+`526db81fb26fa5921cc8fae60846d222c4383223` passed Frontend Unit Tests,
+Backend Tests, the complete branch-declared matrix, and Playwright E2E. The
+Playwright job completed in 19m24s after successfully starting and health-checking
+the stack. The protected staging/master-only exhaustive integration gate was
+skipped as designed for this feature branch, and no ETF provider or application
+failure was reported.
+
+The feature branch is clean and synchronized at `526db81f`. The local
+`docker_integration` gate still retains the unrelated, fresh-stack-reproduced
+Study Lab `F8p-current-history` missing-histogram failure; the prior post-repair
+gate at `a696277b` passed. The workstream remains at the human-review boundary:
+no integration, promotion, deployment, or other-worktree mutation is authorized
+or performed, and explicit human closure authorization remains pending.
