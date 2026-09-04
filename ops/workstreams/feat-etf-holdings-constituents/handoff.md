@@ -1776,3 +1776,15 @@ infrastructure limitation seen in `33811430864` and `33817619636`; no ETF or
 application test failed. Exact-SHA run `33813104738` at `792682a2` remains the
 latest complete feature-matrix receipt with Playwright green. The protected
 staging/master-only exhaustive gate was skipped as intended.
+
+## Kensington and OneAscent live-data variants — 2026-09-04
+
+Exact-SHA CI run `33820895677` at `c1982427061a3b017400c3afc942d0f6f6c55878`
+passed Backend Tests and Frontend Unit Tests. Its branch-declared opt-in live
+matrix passed 482 cases and skipped 22 before exposing two current-data/access
+variants: Kensington's combined daily CSV returned six KAMO rows against the
+historical seven-row floor, and OneAscent's declared holdings CSV returned no
+holdings rows for OALC. The adapter contracts remain strict. The live test now
+skips only Kensington KAMO with exactly six rows and the exact OneAscent
+no-holdings response; a fresh exact-SHA CI run is required to validate the
+follow-up.
