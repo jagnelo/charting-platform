@@ -2322,3 +2322,39 @@ branch-owned operational records (`plan.yaml`, `implementation-plan.md`,
 closed as a distinct `docs(ops)` checkpoint. The permitted next action is to
 wait at human review on the clean synchronized branch while the
 provider-platform staging dependency is unresolved.
+
+## Symbol-level audit and canary service checkpoint — 2026-09-04
+
+The second ETF implementation context is committed and pushed at
+`92474686545bb87eccafc7249ae0c675a4a57816` on
+`origin/feat-etf-holdings-constituents`. It extends the capability response
+with a `symbol_audit` object containing priority tier, symbol-level outcome,
+evidence state, provider identity, investigation date, and next source-review
+action. The approved Tier 0 findings for DXJ/NTSX, MINT/BOND/GEME, and the F/m
+U.S. Benchmark Series are now represented in runtime responses. Remaining
+fallback identities stay explicitly `identity_level_only`/`unknown` unless a
+symbol-scoped artifact or terminal product disposition is proven; inactive or
+non-portfolio-publisher identities can be `not_applicable` without implying
+current holdings support.
+
+The UI displays the next source-review action alongside non-current capability
+notices. Four new service tests cover bounded symbol deduplication, successful
+canary recovery and latency evidence, failure classification and circuit
+opening, open-circuit no-fetch behavior, and missing-profile reporting without
+creating generic provider-runtime records.
+
+Validation for this context passed: 624 focused ETF backend tests, the ETF API
+integration contract, 8 focused frontend tests, Vue type-check, and production
+build. Ruff formatting/checks passed. The full Docker gate has not yet been
+rerun after this context; the prior current-tree run remains recorded as a
+PostgreSQL termination after 1,465 passed tests, while earlier full-gate and
+exact-SHA CI receipts remain the broader green evidence.
+
+AC12 is now complete for the ETF-local bounded canary contract and persistence
+behavior. AC11 remains partial: Tier 0 evidence is recorded, but the remaining
+fallback symbols still need symbol-scoped free-first investigation. AC10 is
+still blocked by the provider-platform branch not yet reaching staging, and
+AC14 remains a post-integration/deployment shadow-gate acceptance step. The
+next action is the required full Docker-backed validation of this context,
+followed by a separate operational checkpoint; no integration, promotion,
+deployment, or other-worktree mutation is authorized.

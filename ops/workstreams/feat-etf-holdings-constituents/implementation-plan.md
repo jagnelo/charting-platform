@@ -2739,3 +2739,22 @@ evidence, while the earlier green local gate and exact-SHA CI receipts remain
 the broader successful validation evidence. The operational checkpoint records
 this distinction and the next action is to wait for provider-platform staging
 before opening the shared bridge context.
+
+## Symbol-level audit and canary checkpoint — 2026-09-04
+
+Commit `92474686545bb87eccafc7249ae0c675a4a57816` adds the symbol-scoped
+`symbol_audit` response object and the runtime Tier 0 findings for DXJ, NTSX,
+MINT, BOND, GEME, and the F/m U.S. Benchmark Series. It deliberately leaves
+all other fallback symbols at `identity_level_only`/`unknown` unless their
+evidence is symbol-specific, while terminal inactive/non-publisher identities
+may be `not_applicable`. The frontend now displays each next source-review
+action.
+
+The bounded canary service now has direct tests for deduplication, successful
+recovery/latency, failure classes, circuit opening, open-circuit no-fetch, and
+missing-profile behavior. AC12 is complete for the ETF-local canary and
+persistence contract. AC11 remains partial pending the rest of the fallback
+symbols' free-first investigations; AC10 remains dependent on the provider
+platform reaching staging; AC14 remains a post-integration/deployment shadow
+gate. Expanded focused validation passed 624 backend tests, the ETF API
+contract, 8 frontend tests, type-check, and build.
