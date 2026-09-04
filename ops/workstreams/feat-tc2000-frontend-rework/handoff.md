@@ -675,3 +675,17 @@ while a second member with only a future-observed flattened detail remains pendi
 benchmark-family integration matrix passes `22/22`; Ruff and `git diff --check` pass. This closes a
 classification-readiness leakage case only; QQQ placeholder bindings, member-bar continuity,
 MN/W1 coverage, QQQE/SPDR dated holdings, and the visual matrix remain open.
+
+## 2026-09-04 — Exact-tip exhaustive gate after historical classification fix
+
+At the synchronized `cb5ac57d` tip, `make validate-integration
+INTEGRATION_BRANCH=feat/tc2000-frontend-rework` passed Git/workstream/dependency/migration
+checks, `npm ci`, Ruff, TypeScript, split combined backend coverage (`1,296` unit plus `375`
+integration at `80.89%`), frontend tests/build, compose contracts, the provider-probe skip,
+assigned-stack health, research-runner probes, and functional Playwright (`154` executed passes,
+`106` documented skips). The unchanged four-project visual matrix then stopped the gate at
+`e2e-visual`: `98/104` passed and six screenshot assertions failed in
+`watchlist-column-editor-open` at 1080p 100/125% and `workspace-floating` at all four projects.
+The six diffs match the prior concentrated visual blocker; no baseline, mask, threshold, skip,
+provider fallback, or acceptance rule was changed. Cleanup removed only the assigned branch
+containers, volumes, network, and images.
