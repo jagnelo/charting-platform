@@ -2972,27 +2972,32 @@ test.describe('TC2000 workstation', () => {
         status: 'completed',
         code_version_id: 885,
         output_contract: 'study',
-        run_config: { execution_mode: 'study', output_contract: 'study', symbol: 'SPY' },
-        dataset_manifest: { source: 'canonical_database', timeframe: 'D1' },
+        run_config: { execution_mode: 'study', output_contract: 'study', symbol: 'SPY', timeframe: 'D1' },
+        dataset_manifest: { source: 'canonical_database', timeframe: 'D1', datasets: [{ instrument_id: 7, symbol: 'SPY' }] },
         reproducibility_hash: 'sha256:structured-event-results',
-        artifact_count: 3,
+        artifact_count: 4,
         artifacts: [
           { id: 5, name: 'occurrences', artifact_type: 'events', payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-02', kind: 'breakout' }] } },
           { id: 6, name: 'sample_size', artifact_type: 'scalar', payload: { value: 4 } },
           { id: 7, name: 'trend', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], values: [1, 2] } } },
+          { id: 8, name: 'qualifies', artifact_type: 'boolean', payload: { value: true } },
         ],
       }]) })
     })
     await page.route(/\/api\/v1\/code\/assets$/, async route => {
       if (route.request().method() === 'GET') {
-        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ name: 'Structured study 885', versions: [{ id: 885, source: "output.scalar('sample_size', 4)\noutput.series('trend', [1, 2])", output_contract: 'study', parameter_schema: {}, default_parameters: {} }] }]) })
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ name: 'Structured study 885', versions: [{ id: 885, source: "output.scalar('sample_size', 4)\noutput.series('trend', [1, 2])\noutput.boolean('qualifies', True)", output_contract: 'study', parameter_schema: {}, default_parameters: {} }] }]) })
         return
       }
       expect(route.request().method()).toBe('POST')
       const body = route.request().postDataJSON()
-      expect(body).toMatchObject({ initial_version: { source: "output.scalar('sample_size', 4)\noutput.series('trend', [1, 2])" } })
+      expect(body).toMatchObject({ initial_version: { source: "output.scalar('sample_size', 4)\noutput.series('trend', [1, 2])\noutput.boolean('qualifies', True)" } })
       const outputName = body?.initial_version?.output_name
-      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: outputName === 'sample_size' ? 46 : 47, name: outputName === 'sample_size' ? 'Sample size column' : 'Trend plot' }) })
+      if (body?.kind === 'condition') {
+        await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 49, name: 'Qualifies condition', versions: [{ id: 49, output_contract: 'boolean' }] }) })
+        return
+      }
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: outputName === 'sample_size' ? 46 : outputName === 'trend' ? 47 : 48, name: outputName === 'sample_size' ? 'Sample size column' : outputName === 'trend' ? 'Trend plot' : 'Qualifies column', versions: [{ id: outputName === 'sample_size' ? 46 : outputName === 'trend' ? 47 : 48 }] }) })
     })
     await page.route(/\/api\/v1\/research\/runs\/883$/, async route => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
@@ -3032,12 +3037,25 @@ test.describe('TC2000 workstation', () => {
       expect(await route.request().postDataJSON()).toEqual({ artifact_name: 'occurrences' })
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 44, name: 'Structured occurrences filter' }) })
     })
+    await page.route(/\/api\/v1\/screeners\/from-python-condition\/49$/, async route => {
+      expect(route.request().method()).toBe('POST')
+      expect(await route.request().postDataJSON()).toMatchObject({ name: 'qualifies Filter 885', universe_type: 'custom', universe_instrument_ids: [7], timeframe: 'D1', provenance: { source_run_id: 885, source_output_name: 'qualifies' } })
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 50, name: 'Qualifies scan' }) })
+    })
     await page.route(/\/api\/v1\/alerts\/screener$/, async route => {
       if (route.request().method() !== 'POST') return route.continue()
       const body = route.request().postDataJSON()
-      if (body?.screener_id !== 44) return route.continue()
-      expect(body).toMatchObject({ screener_id: 44, trigger_type: 'both', repeat: true, notes: 'Created from structured event research run 885' })
-      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 45 }) })
+      if (body?.screener_id === 44) {
+        expect(body).toMatchObject({ screener_id: 44, trigger_type: 'both', repeat: true, notes: 'Created from structured event research run 885' })
+        await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 45 }) })
+        return
+      }
+      if (body?.screener_id === 50) {
+        expect(body).toMatchObject({ screener_id: 50, trigger_type: 'entered', repeat: true, notes: 'Created from structured Boolean research run 885 (qualifies)' })
+        await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 51 }) })
+        return
+      }
+      await route.continue()
     })
     await page.goto('/chart')
     await expect(page.locator('.workstation')).toBeVisible()
@@ -3079,6 +3097,17 @@ test.describe('TC2000 workstation', () => {
     await expect(results).toContainText('Saved scalar artifact “sample_size” as watchlist column “Sample size column”.')
     await results.getByRole('button', { name: 'Save chart plot: trend' }).click()
     await expect(results).toContainText('Saved series artifact “trend” as chart plot “Trend plot”.')
+    for (const label of ['Save column: qualifies', 'Save filter: qualifies', 'Promote scan: qualifies', 'Use Gauge: qualifies', 'Promote alert: qualifies']) await expect(results.getByRole('button', { name: label })).toBeVisible()
+    await results.getByRole('button', { name: 'Save column: qualifies' }).click()
+    await expect(results).toContainText('Saved Boolean artifact “qualifies” as watchlist column “Qualifies column”.')
+    await results.getByRole('button', { name: 'Save filter: qualifies' }).click()
+    await expect(results).toContainText('Saved Boolean artifact “qualifies” as a reusable watchlist filter through EasyScan.')
+    await results.getByRole('button', { name: 'Promote scan: qualifies' }).click()
+    await expect(results).toContainText('Promoted Boolean artifact “qualifies” to a reusable scan.')
+    await results.getByRole('button', { name: 'Use Gauge: qualifies' }).click()
+    await expect(results).toContainText('Boolean artifact “qualifies” is available as a Market Gauge')
+    await results.getByRole('button', { name: 'Promote alert: qualifies' }).click()
+    await expect(results).toContainText('Promoted Boolean artifact “qualifies” to an active scan alert.')
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

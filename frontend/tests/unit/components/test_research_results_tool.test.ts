@@ -370,6 +370,76 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.text()).toContain('Saved series artifact “trend” as chart plot')
   })
 
+  it('exposes the complete lineage-preserving Boolean promotion matrix for structured results', async () => {
+    const source = "output.boolean('qualifies', True)\noutput.scalar('sample_size', 4)"
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve([{ id: 32, status: 'completed', code_version_id: 78, output_contract: 'study', run_config: { symbol: 'SPY', timeframe: 'D1' }, dataset_manifest: { source: 'canonical_database', datasets: [{ instrument_id: 7, symbol: 'SPY' }] }, reproducibility_hash: 'hash-32', diagnostics: [], artifacts: [
+        { id: 22, name: 'qualifies', artifact_type: 'boolean', payload: { value: true } },
+      ] }])
+      if (path === '/code/assets') return Promise.resolve([{ name: 'Study 32', versions: [{ id: 78, source, output_contract: 'study', parameter_schema: { properties: {} }, default_parameters: {} }] }])
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string, body: unknown) => {
+      if (path === '/code/assets') {
+        const payload = body as { kind?: string }
+        return Promise.resolve({ id: payload.kind === 'column' ? 79 : 80, name: payload.kind === 'column' ? 'Qualifies column' : 'Qualifies condition', versions: [{ id: payload.kind === 'column' ? 79 : 80 }] })
+      }
+      if (path === '/screeners/from-python-condition/80') return Promise.resolve({ id: 81, name: 'Qualifies scan' })
+      if (path === '/alerts/screener') return Promise.resolve({ id: 82 })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    for (const label of ['Save column: qualifies', 'Save filter: qualifies', 'Promote scan: qualifies', 'Use Gauge: qualifies', 'Promote alert: qualifies']) {
+      expect(wrapper.find(`[aria-label="${label}"]`).exists()).toBe(true)
+    }
+    await wrapper.get('[aria-label="Save column: qualifies"]').trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        source,
+        output_contract: 'boolean',
+        output_name: 'qualifies',
+        lineage: expect.objectContaining({ source_run_id: 32, source_code_version_id: 78, source_output_name: 'qualifies', target: 'column', semantics: 'study_boolean_result_as_typed_watchlist_column' }),
+      }),
+    }))
+
+    await wrapper.get('[aria-label="Save filter: qualifies"]').trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/80', expect.objectContaining({
+      name: 'qualifies Filter 32',
+      universe_type: 'custom',
+      universe_instrument_ids: [7],
+      timeframe: 'D1',
+      provenance: expect.objectContaining({ source_run_id: 32, source_output_name: 'qualifies', source_instrument_ids: [7], point_in_time_source_preserved: false }),
+    }))
+    await wrapper.get('[aria-label="Promote scan: qualifies"]').trigger('click')
+    await flushPromises()
+    await wrapper.get('[aria-label="Use Gauge: qualifies"]').trigger('click')
+    await flushPromises()
+    await wrapper.get('[aria-label="Promote alert: qualifies"]').trigger('click')
+    await flushPromises()
+    expect(apiPost.mock.calls.filter(call => String(call[0]).startsWith('/screeners/from-python-condition/'))).toHaveLength(1)
+    expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 81, trigger_type: 'entered', repeat: true, notes: 'Created from structured Boolean research run 32 (qualifies)' })
+    expect(wrapper.text()).toContain('Promoted Boolean artifact “qualifies” to an active scan alert.')
+  })
+
+  it('refuses structured Boolean scan promotion when canonical members are absent', async () => {
+    apiGet.mockImplementation((path: string) => path === '/research/runs'
+      ? Promise.resolve([{ id: 33, status: 'completed', code_version_id: 79, output_contract: 'study', run_config: {}, dataset_manifest: {}, artifacts: [{ id: 23, name: 'qualifies', artifact_type: 'boolean', payload: { value: true } }] }])
+      : Promise.resolve([{ name: 'Study 33', versions: [{ id: 79, source: "output.boolean('qualifies', True)", output_contract: 'study' }] }]))
+    apiPost.mockResolvedValue({})
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.get('[aria-label="Save filter: qualifies"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.text()).toContain('refusing to widen the promoted scan universe')
+    expect(apiPost.mock.calls.filter(call => String(call[0]).startsWith('/screeners/from-python-condition/'))).toHaveLength(0)
+  })
+
   it('promotes only a completed Python breadth history and reports the lineage-preserving scan', async () => {
     apiGet.mockResolvedValue([{ id: 20, status: 'completed', code_version_id: 4, run_config: { execution_mode: 'breadth_history' }, dataset_manifest: {}, diagnostics: [], artifacts: [
       { id: 11, name: 'breadth_history', artifact_type: 'breadth_history', payload: { value: { points: [{ timestamp: '2026-01-01T00:00:00Z', percentage: 1, requested_count: 1, eligible_count: 1, pass_count: 1, excluded_count: 0, coverage: 1 }], occurrences: [] } } },

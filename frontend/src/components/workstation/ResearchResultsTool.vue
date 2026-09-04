@@ -48,6 +48,9 @@
           <div v-if="canPromoteStructuredArtifact(selectedRun, artifact)" class="research-results-tool__artifact-promotions" role="group" :aria-label="`${artifact.name} promotions`">
             <button v-if="artifact.artifact_type === 'scalar'" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save column: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'column')">{{ promoting ? 'Promoting…' : `Save column: ${artifact.name}` }}</button>
             <button v-if="artifact.artifact_type === 'series'" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save chart plot: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'plot')">{{ promoting ? 'Promoting…' : `Save chart plot: ${artifact.name}` }}</button>
+            <template v-if="artifact.artifact_type === 'boolean'">
+              <button v-for="target in structuredBooleanPromotionTargets" :key="`${artifact.id}-${target}`" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`${structuredBooleanPromotionLabel(target)}: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, target)">{{ promoting ? 'Promoting…' : `${structuredBooleanPromotionLabel(target)}: ${artifact.name}` }}</button>
+            </template>
           </div>
           <strong v-if="artifact.artifact_type === 'scalar' || artifact.artifact_type === 'boolean'" :class="{ 'research-results-tool__boolean--true': artifact.artifact_type === 'boolean' && artifact.payload.value === true, 'research-results-tool__boolean--false': artifact.artifact_type === 'boolean' && artifact.payload.value === false }">{{ formatMetric(artifact) }}</strong>
           <table v-else-if="artifact.artifact_type === 'table' && tableRows(artifact).length"><caption class="sr-only">{{ artifact.name }} table</caption><thead><tr><th v-for="column in tableColumns(artifact)" :key="column" scope="col">{{ column }}</th></tr></thead><tbody><tr v-for="(row, index) in tableRows(artifact)" :key="index"><td v-for="column in tableColumns(artifact)" :key="column">{{ formatCell(row[column]) }}</td></tr></tbody></table>
@@ -140,6 +143,7 @@ const canceling = ref(false)
 const promoting = ref(false)
 const promotionMessage = ref('')
 const promotedScans = ref<Record<number, { id: number; name: string; codeVersionId: number | null }>>({})
+const promotedStructuredBooleanScans = ref<Record<string, { id: number; name: string; codeVersionId: number }>>({})
 const promotedEventFilters = ref<Record<number, { id: number; name: string }>>({})
 const occurrenceSymbolFilter = ref('')
 const occurrenceKindFilter = ref<'all' | 'member_entered' | 'member_exited'>('all')
@@ -408,7 +412,40 @@ function canPromoteStructuredArtifact(run: ResearchRunSummary | null, artifact: 
   return Boolean(run)
     && run?.status === 'completed'
     && run.output_contract === 'study'
-    && (artifact.artifact_type === 'scalar' || artifact.artifact_type === 'series')
+    && (artifact.artifact_type === 'scalar' || artifact.artifact_type === 'series' || artifact.artifact_type === 'boolean')
+}
+type StructuredBooleanPromotionTarget = 'column' | 'filter' | 'scan' | 'gauge' | 'alert'
+const structuredBooleanPromotionTargets: StructuredBooleanPromotionTarget[] = ['column', 'filter', 'scan', 'gauge', 'alert']
+function structuredBooleanPromotionLabel(target: StructuredBooleanPromotionTarget) {
+  return target === 'column' ? 'Save column' : target === 'filter' ? 'Save filter' : target === 'scan' ? 'Promote scan' : target === 'gauge' ? 'Use Gauge' : 'Promote alert'
+}
+function structuredBooleanScanKey(run: ResearchRunSummary, artifact: ResearchRunSummary['artifacts'][number]) {
+  return `${run.id}:${artifact.id}:${artifact.name}`
+}
+function declaredStudyInstrumentIds(run: ResearchRunSummary) {
+  const manifest = run.dataset_manifest ?? {}
+  const datasets = Array.isArray(manifest.datasets) ? manifest.datasets : []
+  return [...new Set([
+    ...(typeof manifest.instrument_id === 'number' ? [manifest.instrument_id] : []),
+    ...datasets
+      .filter(item => item && typeof item === 'object')
+      .map(item => (item as Record<string, unknown>).instrument_id)
+      .filter((item): item is number => typeof item === 'number' && Number.isInteger(item) && item > 0),
+  ])]
+}
+function structuredStudyTimeframe(run: ResearchRunSummary) {
+  const configured = run.run_config?.timeframe ?? run.dataset_manifest?.timeframe
+  return typeof configured === 'string' && configured.trim() ? configured : 'D1'
+}
+function structuredStudySourceId(run: ResearchRunSummary) {
+  const configured = run.run_config?.universe_source_id
+  if (typeof configured === 'string' && configured.trim()) return configured
+  const manifest = run.dataset_manifest?.universe_source_id
+  return typeof manifest === 'string' && manifest.trim() ? manifest : null
+}
+function structuredStudyMembershipVersion(run: ResearchRunSummary) {
+  const membership = run.dataset_manifest?.universe_membership_version
+  return typeof membership === 'string' && membership.trim() ? membership : null
 }
 function canPromoteBreadthStudy(run: ResearchRunSummary) {
   return run.status === 'completed'
@@ -608,15 +645,76 @@ async function promoteEventArtifact(run: ResearchRunSummary, artifactName: strin
     promoting.value = false
   }
 }
-async function promoteStructuredArtifact(run: ResearchRunSummary, artifact: ResearchRunSummary['artifacts'][number], target: 'column' | 'plot') {
+async function promoteStructuredArtifact(run: ResearchRunSummary, artifact: ResearchRunSummary['artifacts'][number], target: 'column' | 'plot' | StructuredBooleanPromotionTarget) {
   if (!canPromoteStructuredArtifact(run, artifact) || promoting.value) return
   promoting.value = true
   promotionMessage.value = ''
   try {
+    if (artifact.artifact_type === 'boolean' && target !== 'column' && target !== 'plot') {
+      const scanKey = structuredBooleanScanKey(run, artifact)
+      let promotedScan = promotedStructuredBooleanScans.value[scanKey]
+      if (!promotedScan) {
+        const declaredInstrumentIds = declaredStudyInstrumentIds(run)
+        if (!declaredInstrumentIds.length) throw new Error('The study dataset has no declared canonical members; refusing to widen the promoted scan universe.')
+        const assets = await api.get<Array<{ versions?: Array<{ id?: number; source?: string; output_contract?: string; output_name?: string | null; parameter_schema?: Record<string, unknown>; default_parameters?: Record<string, unknown> }> }>>('/code/assets')
+        const sourceVersion = (assets ?? []).flatMap(asset => asset.versions ?? []).find(version => version.id === run.code_version_id)
+        if (!sourceVersion?.source) throw new Error('The immutable source code version for this research run is unavailable.')
+        const sourceManifest = run.dataset_manifest ?? {}
+        const sourceRunConfig = run.run_config ?? {}
+        const lineage = {
+          type: 'study_run_promotion',
+          source_run_id: run.id,
+          source_code_version_id: run.code_version_id,
+          source_reproducibility_hash: run.reproducibility_hash ?? null,
+          source_dataset_manifest: sourceManifest,
+          source_run_config: sourceRunConfig,
+          source_output_name: artifact.name,
+          target,
+          semantics: 'current_data_re_evaluation_over_declared_study_members',
+          source_universe_source_id: structuredStudySourceId(run),
+          source_membership_version: structuredStudyMembershipVersion(run),
+          source_instrument_ids: declaredInstrumentIds,
+          point_in_time_source_preserved: false,
+        }
+        const condition = await api.post<{ id?: number; name?: string; versions?: Array<{ id?: number }> }>('/code/assets', {
+          stable_key: `${run.id}-${artifact.name}-condition-${Date.now().toString(36)}`.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80) || `study-${run.id}-condition`,
+          name: `${artifact.name} condition`,
+          kind: 'condition',
+          initial_version: {
+            source: sourceVersion.source,
+            output_contract: 'boolean',
+            output_name: artifact.name,
+            parameter_schema: sourceVersion.parameter_schema ?? {},
+            default_parameters: sourceVersion.default_parameters ?? {},
+            lineage,
+          },
+        })
+        const codeVersionId = condition.versions?.[0]?.id ?? condition.id
+        if (typeof codeVersionId !== 'number') throw new Error('Boolean promotion did not return an immutable code version.')
+        const screener = await api.post<{ id: number; name?: string }>(`/screeners/from-python-condition/${codeVersionId}`, {
+          name: `${artifact.name} ${target === 'scan' ? 'Scan' : 'Filter'} ${run.id}`,
+          description: `Current-data EasyScan promoted from structured Study run #${run.id}; source membership and snapshot lineage are retained in the condition provenance.`,
+          universe_type: 'custom',
+          universe_instrument_ids: declaredInstrumentIds,
+          timeframe: structuredStudyTimeframe(run),
+          provenance: lineage,
+        })
+        promotedScan = { id: screener.id, name: screener.name ?? `${artifact.name} scan`, codeVersionId }
+        promotedStructuredBooleanScans.value = { ...promotedStructuredBooleanScans.value, [scanKey]: promotedScan }
+      }
+      if (target === 'filter') promotionMessage.value = `Saved Boolean artifact “${artifact.name}” as a reusable watchlist filter through EasyScan.`
+      else if (target === 'scan') promotionMessage.value = `Promoted Boolean artifact “${artifact.name}” to a reusable scan.`
+      else if (target === 'gauge') promotionMessage.value = `Boolean artifact “${artifact.name}” is available as a Market Gauge from the saved EasyScan.`
+      else {
+        await api.post('/alerts/screener', { screener_id: promotedScan.id, trigger_type: 'entered', repeat: true, notes: `Created from structured Boolean research run ${run.id} (${artifact.name})` })
+        promotionMessage.value = `Promoted Boolean artifact “${artifact.name}” to an active scan alert.`
+      }
+      return
+    }
     const assets = await api.get<Array<{ name: string; versions?: Array<{ id?: number; source?: string; output_contract?: string; output_name?: string | null; parameter_schema?: Record<string, unknown>; default_parameters?: Record<string, unknown> }> }>>('/code/assets')
     const sourceVersion = (assets ?? []).flatMap(asset => asset.versions ?? []).find(version => version.id === run.code_version_id)
     if (!sourceVersion?.source) throw new Error('The immutable source code version for this research run is unavailable.')
-    const contract = artifact.artifact_type === 'scalar' ? 'scalar' : 'series'
+    const contract = artifact.artifact_type === 'scalar' ? 'scalar' : artifact.artifact_type === 'boolean' ? 'boolean' : 'series'
     const kind = target === 'column' ? 'column' : 'plot'
     const lineage = {
       type: 'study_run_promotion',
@@ -627,7 +725,9 @@ async function promoteStructuredArtifact(run: ResearchRunSummary, artifact: Rese
       source_run_config: run.run_config,
       source_output_name: artifact.name,
       target,
-      semantics: target === 'column' ? 'study_scalar_result_as_watchlist_column' : 'study_series_result_as_chart_plot',
+      semantics: target === 'column'
+        ? (artifact.artifact_type === 'boolean' ? 'study_boolean_result_as_typed_watchlist_column' : 'study_scalar_result_as_watchlist_column')
+        : 'study_series_result_as_chart_plot',
     }
     const promoted = await api.post<{ id: number; name: string }>('/code/assets', {
       stable_key: `${run.id}-${artifact.name}-${kind}-${Date.now().toString(36)}`.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80) || `study-${kind}`,
@@ -643,7 +743,9 @@ async function promoteStructuredArtifact(run: ResearchRunSummary, artifact: Rese
       },
     })
     promotionMessage.value = target === 'column'
-      ? `Saved scalar artifact “${artifact.name}” as watchlist column “${promoted.name}”.`
+      ? artifact.artifact_type === 'boolean'
+        ? `Saved Boolean artifact “${artifact.name}” as watchlist column “${promoted.name}”.`
+        : `Saved scalar artifact “${artifact.name}” as watchlist column “${promoted.name}”.`
       : `Saved series artifact “${artifact.name}” as chart plot “${promoted.name}”.`
   } catch (cause: any) {
     promotionMessage.value = cause?.message ?? `Unable to promote the ${artifact.artifact_type} artifact`
