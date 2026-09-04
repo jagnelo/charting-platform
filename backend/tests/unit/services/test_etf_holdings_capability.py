@@ -534,6 +534,60 @@ def test_ninth_ranked_fallback_pabrai_periodic_report_is_non_executable():
     assert result.provider_identity == "pabrai"
 
 
+def test_tenth_ranked_fallback_panagram_symbols_resolve_to_eldridge():
+    result = symbol_audit_for_profile(profile_with_symbol("CLOX", "panagram"))
+
+    assert result.tier == 1
+    assert result.outcome == "not_applicable"
+    assert result.evidence_state == "inactive_or_successor_disposition"
+    assert result.provider_identity == "panagram"
+
+
+def test_tenth_ranked_fallback_parnassus_routes_are_blocked():
+    result = symbol_audit_for_profile(profile_with_symbol("PRCS", "parnassus_investments"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "issuer_route_access_blocked"
+    assert result.provider_identity == "parnassus_investments"
+
+
+def test_tenth_ranked_fallback_performance_trust_pdf_is_not_current():
+    result = symbol_audit_for_profile(profile_with_symbol("STBF", "performance_trust"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "non_executable_public_source"
+    assert result.provider_identity == "performance_trust"
+
+
+def test_tenth_ranked_fallback_premise_route_is_unreachable():
+    result = symbol_audit_for_profile(profile_with_symbol("TCTL", "premise_capital"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "issuer_route_access_blocked"
+    assert result.provider_identity == "premise_capital"
+
+
+def test_tenth_ranked_fallback_putnam_successor_snapshots_are_not_current():
+    result = symbol_audit_for_profile(profile_with_symbol("PFRX", "putnam"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "non_executable_public_source"
+    assert result.provider_identity == "putnam"
+
+
+def test_tenth_ranked_fallback_pzena_pages_are_blocked():
+    result = symbol_audit_for_profile(profile_with_symbol("PZIV", "pzena"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "issuer_route_access_blocked"
+    assert result.provider_identity == "pzena"
+
+
 def test_unreviewed_fallback_symbol_cannot_be_marked_current_from_a_snapshot_alone():
     result = evaluate_capability(
         profile_with_symbol("UNREVIEWED", "matrix"),

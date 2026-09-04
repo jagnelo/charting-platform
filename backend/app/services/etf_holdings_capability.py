@@ -911,6 +911,116 @@ _register_non_tier_0_audits(
         "when a public complete holdings artifact, executable route, and current date are proven."
     ),
 )
+_register_non_tier_0_audits(
+    ("CLOX", "CLOZ"),
+    outcome=NOT_APPLICABLE,
+    evidence_state="inactive_or_successor_disposition",
+    provider_identity="panagram",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=(
+        "web:panagram-eldridge-successor-2026-09-03",
+        "web:panagram-eldridge-sec-name-change-2026-09-03",
+    ),
+    next_action=(
+        "Resolve CLOX/CLOZ references to the existing Eldridge successor holdings route; reopen "
+        "only if a distinct active Panagram ETF and first-party route reappear."
+    ),
+)
+_register_non_tier_0_audits(
+    ("PRCS", "PRVS"),
+    outcome=UNAVAILABLE,
+    evidence_state="issuer_route_access_blocked",
+    provider_identity="parnassus_investments",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=(
+        "web:parnassus-official-daily-holdings-routes-2026-09-03",
+        "web:parnassus-sec-etf-identity-2026-09-03",
+    ),
+    next_action=(
+        "Re-test the official PRCS/PRVS daily-holdings pages and resolve their data endpoint when "
+        "backend access returns a usable payload; promote only after complete rows and current "
+        "dates are proven."
+    ),
+)
+_register_non_tier_0_audits(
+    ("STBF",),
+    outcome=UNAVAILABLE,
+    evidence_state="non_executable_public_source",
+    provider_identity="performance_trust",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=(
+        "web:performance-trust-ptam-resources-2026-09-03",
+        "web:performance-trust-current-holdings-pdf-2026-09-03",
+        "live:performance-trust-holdings-pdf-stale-2026-09-03",
+    ),
+    next_action=(
+        "Recheck the PTAM resources page for a refreshed current STBF artifact; promote only after "
+        "a current symbol-scoped route and parser/live proof are available."
+    ),
+)
+_register_non_tier_0_audits(
+    ("TCTL",),
+    outcome=UNAVAILABLE,
+    evidence_state="issuer_route_access_blocked",
+    provider_identity="premise_capital",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=(
+        "web:premise-tctl-current-identity-2026-09-03",
+        "live:premise-tctl-domain-unreachable-2026-09-03",
+    ),
+    next_action=(
+        "Recheck tctl.us and current trust disclosures for a reachable TCTL issuer route; do not "
+        "promote from SEC filings alone."
+    ),
+)
+_register_non_tier_0_audits(
+    (
+        "PFRX",
+        "SYNB",
+        "PGRO",
+        "PHYD",
+        "PBDC",
+        "PCRB",
+        "PLDR",
+        "PFUT",
+        "PULT",
+        "PEMX",
+        "PVAL",
+        "PPIE",
+        "PPEM",
+        "PGRI",
+    ),
+    outcome=UNAVAILABLE,
+    evidence_state="non_executable_public_source",
+    provider_identity="putnam",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=(
+        "web:putnam-franklin-current-etf-catalogue-2026-09-03",
+        "web:putnam-quarterly-holdings-disclosure-2026-09-03",
+        "live:putnam-franklin-api-stale-or-empty-2026-09-03",
+    ),
+    next_action=(
+        "Recheck Franklin Templeton product/API holdings for a complete current snapshot across "
+        "the mapped Putnam symbols; promote only after current-date coverage, parser fixtures, and "
+        "bounded live tests pass."
+    ),
+)
+_register_non_tier_0_audits(
+    ("PZIV", "PZLV"),
+    outcome=UNAVAILABLE,
+    evidence_state="issuer_route_access_blocked",
+    provider_identity="pzena",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=(
+        "web:pzena-current-etf-catalogue-2026-09-03",
+        "web:pzena-daily-holdings-disclosure-2026-09-03",
+        "live:pzena-etf-page-shell-blocked-2026-09-03",
+    ),
+    next_action=(
+        "Re-test the official Pzena /etfs and product pages with an issuer-supported backend-readable "
+        "holdings payload; promote only after complete symbol-scoped parsing and live validation."
+    ),
+)
 
 
 def symbol_audit_for_profile(profile: ETFProfile) -> ETFHoldingsSymbolAudit:

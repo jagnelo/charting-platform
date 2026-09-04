@@ -2687,3 +2687,21 @@ fallback symbols retain the identity-level `unknown` boundary until their own
 symbol-scoped evidence is recorded. AC10 remains gated on provider-platform
 staging and AC14 remains a post-integration production-observation gate
 requiring human closure authorization.
+
+## Tenth ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+The next ranked slice is now explicit in runtime and the durable ledger:
+CLOX/CLOZ (Panagram), PRCS/PRVS (Parnassus), STBF (Performance Trust), TCTL
+(Premise Capital), PFRX/SYNB/PGRO/PHYD/PBDC/PCRB/PLDR/PFUT/PULT/PEMX/PVAL/
+PPIE/PPEM/PGRI (Putnam), and PZIV/PZLV (Pzena). Panagram is `not_applicable`
+after the Eldridge successor rename. Parnassus and Pzena remain `unavailable`
+while their advertised routes are blocked; Performance Trust and Putnam remain
+`unavailable` because accessible reports are stale or periodic; and Premise is
+`unavailable` while its issuer domain is unreachable. No SEC reconstruction is
+promoted as current data.
+
+The ten ranked cohorts now cover 117 explicit non-Tier-0 symbols. Remaining
+fallback symbols retain the identity-level `unknown` boundary until their own
+symbol-scoped evidence is recorded. AC10 remains gated on provider-platform
+staging and AC14 remains a post-integration production-observation gate
+requiring human closure authorization.

@@ -127,6 +127,15 @@ Cloudflare-blocked to backend-equivalent access; North Square and Pabrai are
 do not expose executable current baskets. SEC identity evidence is retained
 without promoting filings as current constituent data.
 
+The tenth cohort covers CLOX/CLOZ (Panagram), PRCS/PRVS (Parnassus), STBF
+(Performance Trust), TCTL (Premise Capital), PFRX/SYNB/PGRO/PHYD/PBDC/PCRB/
+PLDR/PFUT/PULT/PEMX/PVAL/PPIE/PPEM/PGRI (Putnam), and PZIV/PZLV (Pzena).
+Panagram is `not_applicable` after the Eldridge successor rename. Parnassus
+and Pzena remain `unavailable` while their advertised routes are blocked;
+Performance Trust and Putnam remain `unavailable` because accessible reports
+are stale or periodic; and Premise remains `unavailable` while its issuer
+domain is unreachable. No SEC reconstruction is promoted as current data.
+
 The current checkpoint promotes `guggenheim` through its public issuer-hosted
 ETF holdings table, reconciles `ars` to the existing ARS Investment Partners
 ACEP/AFOS product-page adapter, adds Avory's complete AVRY product-page

@@ -3067,3 +3067,21 @@ explicit non-Tier-0 symbols; remaining symbols stay identity-level `unknown`
 until individually investigated. AC10 remains dependent on provider-platform
 staging, and AC14 still requires production shadow observations and human
 closure authorization.
+
+## Tenth ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+This slice binds CLOX/CLOZ (Panagram), PRCS/PRVS (Parnassus), STBF (Performance
+Trust), TCTL (Premise Capital), PFRX/SYNB/PGRO/PHYD/PBDC/PCRB/PLDR/PFUT/PULT/
+PEMX/PVAL/PPIE/PPEM/PGRI (Putnam), and PZIV/PZLV (Pzena) to explicit outcomes.
+Panagram is `not_applicable` after the Eldridge successor rename. Parnassus and
+Pzena remain `unavailable` while their advertised routes are blocked;
+Performance Trust and Putnam remain `unavailable` because accessible reports
+are stale or periodic; and Premise remains `unavailable` while its issuer
+domain is unreachable. No SEC reconstruction is promoted as current data.
+
+The runtime symbol-audit map, YAML `symbol_audit_ledger`, documentation, and
+parity tests are updated together. The ten ranked cohorts now cover 117
+explicit non-Tier-0 symbols; remaining symbols stay identity-level `unknown`
+until individually investigated. AC10 remains dependent on provider-platform
+staging, and AC14 still requires production shadow observations and human
+closure authorization.

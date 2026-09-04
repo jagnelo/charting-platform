@@ -876,6 +876,182 @@ symbol_audit_ledger:
       investigated_at: 2026-09-03
       evidence_refs: ["web:pabrai-wagons-investor-resources-2026-09-03", "web:pabrai-wagons-current-report-2026-09-03"]
       next_action: "Re-audit the official WAGN investor resources after a new reporting cycle; promote only when a public complete holdings artifact, executable route, and current date are proven."
+    - symbol: CLOX
+      tier: 1
+      provider_identity: panagram
+      current_outcome: not_applicable
+      evidence_state: inactive_or_successor_disposition
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:panagram-eldridge-successor-2026-09-03", "web:panagram-eldridge-sec-name-change-2026-09-03"]
+      next_action: "Resolve CLOX/CLOZ references to the existing Eldridge successor holdings route; reopen only if a distinct active Panagram ETF and first-party route reappear."
+    - symbol: CLOZ
+      tier: 1
+      provider_identity: panagram
+      current_outcome: not_applicable
+      evidence_state: inactive_or_successor_disposition
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:panagram-eldridge-successor-2026-09-03", "web:panagram-eldridge-sec-name-change-2026-09-03"]
+      next_action: "Resolve CLOX/CLOZ references to the existing Eldridge successor holdings route; reopen only if a distinct active Panagram ETF and first-party route reappear."
+    - symbol: PRCS
+      tier: 1
+      provider_identity: parnassus_investments
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:parnassus-official-daily-holdings-routes-2026-09-03", "web:parnassus-sec-etf-identity-2026-09-03"]
+      next_action: "Re-test the official PRCS/PRVS daily-holdings pages and resolve their data endpoint when backend access returns a usable payload; promote only after complete rows and current dates are proven."
+    - symbol: PRVS
+      tier: 1
+      provider_identity: parnassus_investments
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:parnassus-official-daily-holdings-routes-2026-09-03", "web:parnassus-sec-etf-identity-2026-09-03"]
+      next_action: "Re-test the official PRCS/PRVS daily-holdings pages and resolve their data endpoint when backend access returns a usable payload; promote only after complete rows and current dates are proven."
+    - symbol: STBF
+      tier: 1
+      provider_identity: performance_trust
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:performance-trust-ptam-resources-2026-09-03", "web:performance-trust-current-holdings-pdf-2026-09-03", "live:performance-trust-holdings-pdf-stale-2026-09-03"]
+      next_action: "Recheck the PTAM resources page for a refreshed current STBF artifact; promote only after a current symbol-scoped route and parser/live proof are available."
+    - symbol: TCTL
+      tier: 1
+      provider_identity: premise_capital
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:premise-tctl-current-identity-2026-09-03", "live:premise-tctl-domain-unreachable-2026-09-03"]
+      next_action: "Recheck tctl.us and current trust disclosures for a reachable TCTL issuer route; do not promote from SEC filings alone."
+    - symbol: PFRX
+      tier: 1
+      provider_identity: putnam
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03"]
+      next_action: "Recheck Franklin Templeton product/API holdings for a complete current snapshot across the mapped Putnam symbols; promote only after current-date coverage, parser fixtures, and bounded live tests pass."
+    - symbol: SYNB
+      tier: 1
+      provider_identity: putnam
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03"]
+      next_action: "Recheck Franklin Templeton product/API holdings for a complete current snapshot across the mapped Putnam symbols; promote only after current-date coverage, parser fixtures, and bounded live tests pass."
+    - symbol: PGRO
+      tier: 1
+      provider_identity: putnam
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03"]
+      next_action: "Recheck Franklin Templeton product/API holdings for a complete current snapshot across the mapped Putnam symbols; promote only after current-date coverage, parser fixtures, and bounded live tests pass."
+    - symbol: PHYD
+      tier: 1
+      provider_identity: putnam
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03"]
+      next_action: "Recheck Franklin Templeton product/API holdings for a complete current snapshot across the mapped Putnam symbols; promote only after current-date coverage, parser fixtures, and bounded live tests pass."
+    - symbol: PBDC
+      tier: 1
+      provider_identity: putnam
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03"]
+      next_action: "Recheck Franklin Templeton product/API holdings for a complete current snapshot across the mapped Putnam symbols; promote only after current-date coverage, parser fixtures, and bounded live tests pass."
+    - symbol: PCRB
+      tier: 1
+      provider_identity: putnam
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03"]
+      next_action: "Recheck Franklin Templeton product/API holdings for a complete current snapshot across the mapped Putnam symbols; promote only after current-date coverage, parser fixtures, and bounded live tests pass."
+    - symbol: PLDR
+      tier: 1
+      provider_identity: putnam
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03"]
+      next_action: "Recheck Franklin Templeton product/API holdings for a complete current snapshot across the mapped Putnam symbols; promote only after current-date coverage, parser fixtures, and bounded live tests pass."
+    - symbol: PFUT
+      tier: 1
+      provider_identity: putnam
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03"]
+      next_action: "Recheck Franklin Templeton product/API holdings for a complete current snapshot across the mapped Putnam symbols; promote only after current-date coverage, parser fixtures, and bounded live tests pass."
+    - symbol: PULT
+      tier: 1
+      provider_identity: putnam
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03"]
+      next_action: "Recheck Franklin Templeton product/API holdings for a complete current snapshot across the mapped Putnam symbols; promote only after current-date coverage, parser fixtures, and bounded live tests pass."
+    - symbol: PEMX
+      tier: 1
+      provider_identity: putnam
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03"]
+      next_action: "Recheck Franklin Templeton product/API holdings for a complete current snapshot across the mapped Putnam symbols; promote only after current-date coverage, parser fixtures, and bounded live tests pass."
+    - symbol: PVAL
+      tier: 1
+      provider_identity: putnam
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03"]
+      next_action: "Recheck Franklin Templeton product/API holdings for a complete current snapshot across the mapped Putnam symbols; promote only after current-date coverage, parser fixtures, and bounded live tests pass."
+    - symbol: PPIE
+      tier: 1
+      provider_identity: putnam
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03"]
+      next_action: "Recheck Franklin Templeton product/API holdings for a complete current snapshot across the mapped Putnam symbols; promote only after current-date coverage, parser fixtures, and bounded live tests pass."
+    - symbol: PPEM
+      tier: 1
+      provider_identity: putnam
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03"]
+      next_action: "Recheck Franklin Templeton product/API holdings for a complete current snapshot across the mapped Putnam symbols; promote only after current-date coverage, parser fixtures, and bounded live tests pass."
+    - symbol: PGRI
+      tier: 1
+      provider_identity: putnam
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03"]
+      next_action: "Recheck Franklin Templeton product/API holdings for a complete current snapshot across the mapped Putnam symbols; promote only after current-date coverage, parser fixtures, and bounded live tests pass."
+    - symbol: PZIV
+      tier: 1
+      provider_identity: pzena
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:pzena-current-etf-catalogue-2026-09-03", "web:pzena-daily-holdings-disclosure-2026-09-03", "live:pzena-etf-page-shell-blocked-2026-09-03"]
+      next_action: "Re-test the official Pzena /etfs and product pages with an issuer-supported backend-readable holdings payload; promote only after complete symbol-scoped parsing and live validation."
+    - symbol: PZLV
+      tier: 1
+      provider_identity: pzena
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:pzena-current-etf-catalogue-2026-09-03", "web:pzena-daily-holdings-disclosure-2026-09-03", "live:pzena-etf-page-shell-blocked-2026-09-03"]
+      next_action: "Re-test the official Pzena /etfs and product pages with an issuer-supported backend-readable holdings payload; promote only after complete symbol-scoped parsing and live validation."
 providers:
   - adapter_key: aegon
     display_name: aegon
