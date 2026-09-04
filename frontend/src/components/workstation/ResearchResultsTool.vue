@@ -53,6 +53,7 @@
               <button v-for="target in structuredBooleanPromotionTargets" :key="`${artifact.id}-${target}`" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`${structuredBooleanPromotionLabel(target)}: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, target)">{{ promoting ? 'Promoting…' : `${structuredBooleanPromotionLabel(target)}: ${artifact.name}` }}</button>
             </template>
           </div>
+          <small v-if="artifactCapabilityNote(artifact)" class="research-results-tool__artifact-capability" role="note">{{ artifactCapabilityNote(artifact) }}</small>
           <strong v-if="artifact.artifact_type === 'scalar' || artifact.artifact_type === 'boolean'" :class="{ 'research-results-tool__boolean--true': artifact.artifact_type === 'boolean' && artifact.payload.value === true, 'research-results-tool__boolean--false': artifact.artifact_type === 'boolean' && artifact.payload.value === false }">{{ formatMetric(artifact) }}</strong>
           <table v-else-if="artifact.artifact_type === 'table' && tableRows(artifact).length"><caption class="sr-only">{{ artifact.name }} table</caption><thead><tr><th v-for="column in tableColumns(artifact)" :key="column" scope="col">{{ column }}</th></tr></thead><tbody><tr v-for="(row, index) in tableRows(artifact)" :key="index"><td v-for="column in tableColumns(artifact)" :key="column">{{ formatCell(row[column]) }}</td></tr></tbody></table>
           <StudySeriesUPlot v-else-if="artifact.artifact_type === 'series' && seriesData(artifact)" :name="artifact.name" :timestamps="seriesData(artifact)!.timestamps" :values="seriesData(artifact)!.values" />
@@ -107,6 +108,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import { normalizeStudyDashboardPanels } from '@/lib/workstation/studyArtifacts'
+import { studyArtifactCapability } from '@/lib/workstation/studyArtifactCapabilities'
 import StudyBarsUPlot from './StudyBarsUPlot.vue'
 import StudyHistogramUPlot from './StudyHistogramUPlot.vue'
 import StudySeriesUPlot from './StudySeriesUPlot.vue'
@@ -216,6 +218,13 @@ function statusGuidance(status: string) {
 function formatMessages(messages: unknown[]) { return messages.map(message => typeof message === 'string' ? message : JSON.stringify(message)).join('\n') }
 function formatObject(value: Record<string, unknown> | undefined) { return JSON.stringify(value ?? {}, null, 2) }
 function formatMetric(artifact: ResearchRunSummary['artifacts'][number]) { return artifact.artifact_type === 'boolean' ? artifact.payload.value === true ? 'True' : artifact.payload.value === false ? 'False' : '—' : artifact.payload.value ?? '—' }
+function artifactCapabilityNote(artifact: ResearchRunSummary['artifacts'][number]) {
+  const capability = studyArtifactCapability(artifact.artifact_type)
+  if (artifact.artifact_type === 'range' && rangeData(artifact)?.center == null) {
+    return 'View/export only: this range has no aligned finite center series to promote; bounds remain source-only.'
+  }
+  return capability?.note ?? ''
+}
 function tableRows(artifact: ResearchRunSummary['artifacts'][number]): Array<Record<string, unknown>> {
   const value = artifact.payload.value
   return Array.isArray(value) && value.every(row => row && typeof row === 'object' && !Array.isArray(row)) ? value as Array<Record<string, unknown>> : []
@@ -413,7 +422,8 @@ function canPromoteStructuredArtifact(run: ResearchRunSummary | null, artifact: 
   return Boolean(run)
     && run?.status === 'completed'
     && run.output_contract === 'study'
-    && (artifact.artifact_type === 'scalar' || artifact.artifact_type === 'series' || artifact.artifact_type === 'boolean' || artifact.artifact_type === 'range')
+    && (artifact.artifact_type === 'scalar' || artifact.artifact_type === 'series' || artifact.artifact_type === 'boolean'
+      || (artifact.artifact_type === 'range' && rangeData(artifact)?.center != null))
 }
 type StructuredBooleanPromotionTarget = 'column' | 'filter' | 'scan' | 'gauge' | 'alert'
 const structuredBooleanPromotionTargets: StructuredBooleanPromotionTarget[] = ['column', 'filter', 'scan', 'gauge', 'alert']

@@ -147,6 +147,19 @@ describe('ResearchResultsTool', () => {
 
     expect(wrapper.find('.scatter-chart').exists()).toBe(true)
     expect(wrapper.find('.heatmap-chart').exists()).toBe(true)
+    expect(wrapper.text()).toContain('View/export only: paired x/y observations have no compatible watchlist or chart-plot target.')
+    expect(wrapper.text()).toContain('View/export only: matrix dimensions and cell meaning must remain intact.')
+  })
+
+  it('keeps a range without a finite center view-only instead of offering a lossy promotion', async () => {
+    apiGet.mockResolvedValue([{ id: 35, status: 'completed', code_version_id: 4, output_contract: 'study', run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [
+      { id: 25, name: 'confidence_band', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-01'], lower: [1], upper: [3] } } },
+    ] }])
+    const wrapper = mountTool()
+    await flushPromises()
+
+    expect(wrapper.find('[aria-label="Save center chart plot: confidence_band"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('View/export only: this range has no aligned finite center series to promote; bounds remain source-only.')
   })
 
   it('renders persisted dashboard artifacts as structured panels', async () => {
