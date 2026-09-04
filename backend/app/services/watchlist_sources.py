@@ -1198,7 +1198,8 @@ async def resolve_watchlist_source(
         rows = (
             (
                 await db.execute(
-                    select(ETFHolding).options(selectinload(ETFHolding.constituent_instrument))
+                    select(ETFHolding)
+                    .options(selectinload(ETFHolding.constituent_instrument))
                     .where(ETFHolding.snapshot_id == snapshot.id)
                     .order_by(ETFHolding.position)
                 )
@@ -1370,7 +1371,8 @@ async def resolve_watchlist_source(
         rows = (
             (
                 await db.execute(
-                    select(ETFHolding).options(selectinload(ETFHolding.constituent_instrument))
+                    select(ETFHolding)
+                    .options(selectinload(ETFHolding.constituent_instrument))
                     .where(ETFHolding.snapshot_id == snapshot.id)
                     .order_by(ETFHolding.position)
                 )
