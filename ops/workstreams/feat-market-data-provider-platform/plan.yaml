@@ -5,30 +5,81 @@ parent_branch: staging
 parent_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "Implement the approved US-first multi-provider market-data platform plan: canonical FIGI-based identity and issuer model; exchange/session calendars; market-series scoped raw/canonical OHLCV with local rollups and adjustments; provider capability/entitlement/quota routing; US universe/lifecycle, events, SEC fundamentals, FINRA short interest, current options with local high-fidelity Greeks, optional futures and crypto providers; backend admin/diagnostic APIs; and disabled 30-day shadow monitoring. Backend/data only; do not modify frontend or ETF constituent provider work."
-planning_state: draft
+planning_state: ready
 human_closure_authorization: pending
 closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
-local_validation_profile: pending_agent_assessment
-local_validation_reason: pending agent assessment from changed paths and runtime impact
+local_validation_profile: docker_integration
+local_validation_reason: backend application, database migrations, provider adapters, Redis-backed runtime controls, and worker scheduling require the backend integration stack; no frontend files are in scope.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
 goal: "Implement the approved US-first multi-provider market-data platform plan: canonical FIGI-based identity and issuer model; exchange/session calendars; market-series scoped raw/canonical OHLCV with local rollups and adjustments; provider capability/entitlement/quota routing; US universe/lifecycle, events, SEC fundamentals, FINRA short interest, current options with local high-fidelity Greeks, optional futures and crypto providers; backend admin/diagnostic APIs; and disabled 30-day shadow monitoring. Backend/data only; do not modify frontend or ETF constituent provider work."
-scope: []
-owned_paths: []
-dependencies: []
-acceptance_criteria: []
-branch_tests: []
-branch_tests_reason: pending agent assessment
-live_test_impact: none
-migration_impact: none
-deployment_impact: none
+scope:
+  - canonical FIGI-domain identity, issuer/legal-entity separation, effective-dated listings and provider symbols, and unresolved-identity quarantine
+  - market-series scoped OHLCV observations and canonical bars with session, feed, adjustment, local aggregation, and coverage provenance
+  - versioned exchange sessions, holidays, early closes, timezone projections, and exchange-aware freshness
+  - provider capability/entitlement descriptors, durable quota reservations, usage accounting, health, routing, workload leases, and shadow telemetry
+  - US universe/lifecycle reconciliation and backend data ingestion for events, SEC facts, earnings, FINRA short interest, options, futures, and crypto providers
+  - QuantLib-backed calculated option Greeks with explicit model/input provenance and existing Black-Scholes fallback
+  - backend-only coverage, provider-admin, identity-quarantine, market-session, and shadow-report APIs; symbol compatibility aliases remain additive
+  - automated shadow-mode reporting and post-deployment activation evidence; no frontend or ETF constituent adapter implementation
+owned_paths:
+  - backend/app/models/
+  - backend/app/providers/
+  - backend/app/services/
+  - backend/app/routers/
+  - backend/app/schemas/
+  - backend/app/tasks/
+  - backend/app/workers/
+  - backend/alembic/
+  - backend/tests/
+  - docs/architecture.md
+  - docs/data-providers.md
+  - docs/project-todos.md
+  - ops/workstreams/feat-market-data-provider-platform/
+dependencies:
+  - staging baseline at 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
+  - feat/etf-holdings-constituents owns ETF constituent provider adapters; this branch consumes compatible canonical identities only
+  - configured provider credentials and terms are optional; unavailable providers remain disabled and do not block unrelated providers
+acceptance_criteria:
+  - id: AC-IDENTITY
+    text: New and reconciled US-listed securities use stable FIGI-domain keys where applicable, issuer identity is separate from security identity, effective-dated listing/provider-symbol history is retained, and unresolved candidates are quarantined without silent merges.
+  - id: AC-SERIES
+    text: Canonical bars distinguish instrument, market/feed scope, session, timeframe, adjustment basis/version, and provenance; existing OHLCV reads remain compatible through a default series mapping.
+  - id: AC-CALENDAR
+    text: Exchange sessions, timezones, holidays, early closes, overnight trade-date rules, and user-local projections are versioned and used by freshness and daily-completion logic.
+  - id: AC-ROUTING
+    text: Provider routing filters by capability, asset/venue/session/interval/history/feed/terms entitlement, health, quota, and workload budget; quota reservations are safe across workers and every decision is observable.
+  - id: AC-REFRESH
+    text: Whole-universe core-session D1 refresh, tiered intraday polling, local rollups, exact missing-slice repair, request coalescing, deferred broad-evaluator runs, and automatic retry are implemented without provider calls inside evaluation loops.
+  - id: AC-DATA
+    text: Provider adapters cover the approved practical roster, with US identity/lifecycle, OHLCV, corporate actions, market events, SEC facts/core fundamentals, earnings, FINRA short interest, crypto, current options, and optional futures paths represented honestly by capability and provenance.
+  - id: AC-OPTIONS
+    text: Current option chains and quotes are retained; QuantLib-backed American-option Greeks and the existing fallback are labeled with model/version/input provenance and tested against numerical edge cases.
+  - id: AC-OPS
+    text: Backend-only admin and diagnostic APIs expose capabilities, entitlements, quota/cost usage, routing decisions, coverage, identity quarantine, sessions, queue/degradation state, anomalies, and detailed shadow reports.
+  - id: AC-SHADOW
+    text: New routing defaults remain disabled until a separately approved deployed 30-day shadow run produces automated daily/final reports, at least 99% eligible core-session D1 coverage before the next regular session, no silent identity/license/quota violations, and AI-readable discrepancy evidence.
+  - id: AC-COMPAT
+    text: Existing symbol-based API aliases and legacy yfinance-dependent paths remain functional only through explicit compatibility behavior; yfinance is absent from default and acceptance routing.
+  - id: AC-TEST
+    text: Focused unit, adapter-fixture, migration, PostgreSQL/Redis integration, worker, API, numerical, point-in-time, and full backend integration validation pass; no frontend files are modified.
+branch_tests:
+  - backend unit and provider fixture suites for identity, routing, calendars, coverage, events, adjustments, options, and anomaly handling
+  - backend migration compatibility and PostgreSQL/Redis integration tests
+  - worker scheduling, quota reservation, request coalescing, deferred-run retry, and provider health tests
+  - backend API contract tests for canonical IDs, compatibility symbol aliases, coverage, provider admin, sessions, quarantine, and shadow reports
+  - opt-in live provider probes plus full backend integration validation when credentials and infrastructure are available
+branch_tests_reason: Application models, migrations, providers, workers, Redis quota controls, and backend APIs are all changed; full backend integration is required. Frontend/browser validation is out of scope by explicit authorization.
+live_test_impact: opt-in provider probes and a separately approved post-deployment 30-day disabled shadow run; no deployment or activation is authorized in this implementation session
+migration_impact: multiple additive/transformational PostgreSQL migrations for issuers, domain identities, series scope, sessions, facts/events/short interest, provider runtime budgets, and shadow telemetry; old symbol/OHLCV rows require deterministic compatibility backfill
+deployment_impact: new backend/worker configuration, optional provider credentials, QuantLib dependency, Redis-backed quota state, scheduled shadow-report jobs, and feature flags; deployment remains a separate human-authorized master workflow
 status: authorized
 remaining_gaps: []
 progress:
   completed: []
-  total: 0
-  current_phase: plan
+  total: 7
+  current_phase: identity_and_series_foundation
   current_blocker: none
-  next_action: complete the branch-owned plan before creating a goal
+  next_action: run make agent-session-start again after this plan is committed, then implement identity/issuer/market-series foundations first
