@@ -10,6 +10,26 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-04 — Persisted Study Results scalar and series promotions
+
+Product commit `f8d68d3f` (`feat(tc2000): promote structured scalar and series results`) adds
+named controls to persisted Research Results for completed multi-output Study runs. Scalar
+artifacts can be saved as typed watchlist columns and numeric series artifacts as chart plots;
+each promotion retrieves the immutable source CodeVersion, selects the named output, preserves
+run/configuration/manifest/hash lineage, and keeps the declared output contract intact.
+
+Evidence for this slice:
+
+- Research Results component coverage passed `24/24`; full frontend Vitest passed `936/936` across
+  `108` files; TypeScript type-check passed.
+- Authenticated `F8t-results` browser coverage passed `1/1`, exercising both named controls and
+  asserting the source-version/output-name API payloads. Stack teardown and resource accounting
+  reported zero containers, volumes, known image bytes, and test-container sessions.
+- The remaining Boolean structured-result promotion matrix (filter, scan, gauge, alert, typed
+  column), richer chart/list/gauge targets, provider/history gaps, native-window/accessibility/
+  security evidence, dense-data budgets, and six unchanged visual diffs remain open. No visual
+  baseline, mask, threshold, skip, fallback oracle, provider rule, or acceptance policy changed.
+
 ## 2026-09-04 — Exact-tip exhaustive gate after structured Study Lab result promotions
 
 The exact-tip exhaustive integration profile was rerun at product commit `24287f3c`

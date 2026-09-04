@@ -11,20 +11,16 @@ records in `docs/project-todos.md`, `docs/tc2000-parity.md`,
 evidence ledgers. If a summary here conflicts with a dated test receipt or the current code, the
 current code and fresh evidence win.
 
-The latest product commit is `24287f3c` (`feat(tc2000): expose structured event result promotions`).
-Persisted Research Results now exposes named `Save filter: <artifact>` and `Promote alert:
-<artifact>` actions for events artifacts in completed multi-output Study runs, while direct event
-Strategy-signal promotion remains limited to explicit/legacy single-output events contracts. The
-focused Research Results component suite passed `23/23`, the full frontend suite passed `935/935`
-across `108` files, TypeScript type-check passed, and the authenticated `F8t-results` browser flow
-passed `1/1` against the branch-scoped Docker stack with clean teardown/resource accounting. The
-exact-tip exhaustive gate has now run at this new product tip: locked dependencies/migrations,
-Ruff/format, TypeScript, backend units (`1,311/1,311`), integration (`382/382` with the existing
-`54` warnings), combined coverage (`80.90%`), frontend Vitest (`935/935` across `108` files),
-production build, compose/provider policy, assigned-stack health, research-runner isolation, and
-authenticated functional Playwright (`155` passed, `106` documented skips across `261` specs) all
-passed. The branch-scoped Docker stack was torn down and resource accounting reported zero
-containers, volumes, known image bytes, and test-container sessions with complete accounting.
+The latest product commit is `f8d68d3f` (`feat(tc2000): promote structured scalar and series
+results`). Persisted Research Results now exposes named `Save filter: <artifact>` and `Promote
+alert: <artifact>` actions for events artifacts plus `Save column: <artifact>` and `Save chart
+plot: <artifact>` actions for scalar and numeric-series artifacts in completed multi-output Study
+runs. Direct event Strategy-signal promotion remains limited to explicit/legacy single-output
+events contracts. The focused Research Results component suite passed `24/24`, the full frontend
+suite passed `936/936` across `108` files, TypeScript type-check passed, and the authenticated
+`F8t-results` browser flow passed `1/1` against the branch-scoped Docker stack with clean teardown
+and resource accounting. The exact-tip exhaustive gate last ran successfully through all
+non-visual and functional stages at product tip `24287f3c`; it must be rerun at `f8d68d3f`.
 
 The prior exact-tip gate at product tip `6f575a34` passed all non-visual stages and the functional
 browser suite (`155` passed, `106` documented skips across `261` specs). A first invocation's single
@@ -370,7 +366,7 @@ The TC2000 frontend rework is ready for human review only when all of the follow
 
 ## Immediate next checkpoint
 
-Execute R0 only far enough to synchronize the feature with a selected green staging checkpoint and
-produce a fresh baseline. Then begin R1 with the root/role/provider/entitlement matrix and use it to
-choose the first real population/history slice. Do not start opportunistic visual polishing before
-the current runtime and canonical-data prerequisites are known.
+Run the exact-tip exhaustive gate at product tip `f8d68d3f`, then continue with the remaining Boolean
+structured-result promotion matrix and the next canonical provider/history slice. Preserve the six
+visual diffs, the declared provider fallback boundaries, and all existing acceptance policy while
+expanding compatible chart/list/gauge consumers and their authenticated evidence.

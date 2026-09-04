@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-09-04 — Persisted Study Results scalar and series promotions
+
+- [x] Add explicit named promotions to the persisted Research Results surface for completed
+      multi-output Study runs: scalar artifacts can be saved as typed watchlist columns and numeric
+      series artifacts can be saved as chart plots. The adapter retrieves the immutable source code
+      version, preserves the selected output name, run/configuration/manifest/hash lineage, and
+      uses the declared output contract without coercing incompatible shapes.
+- [x] Extend the authenticated F8t-results browser fixture to exercise both controls through the
+      real UI/API route, with source-version and output-name assertions. Focused Research Results
+      coverage passed `24/24`; full frontend Vitest passed `936/936` across `108` files; TypeScript
+      type-check passed; the authenticated F8t-results flow passed `1/1`; teardown and resource
+      accounting reported zero containers, volumes, known image bytes, and test-container sessions.
+      Product commit `f8d68d3f` contains the implementation and coverage.
+- [ ] Continue the remaining Boolean structured-result promotion matrix (filter, scan, gauge,
+      alert, and typed column), compatible chart/list/gauge and richer Study Lab targets, canonical
+      provider/history enrichment, native-window/accessibility/security evidence, dense-data
+      budgets, and visual-oracle review. The feature goal remains active and is not yet ready for
+      human review.
+
 ### 2026-09-04 — Exact-tip exhaustive gate after structured Study Lab result promotions
 
 - [x] Reran `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at
