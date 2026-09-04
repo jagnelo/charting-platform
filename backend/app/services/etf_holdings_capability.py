@@ -683,6 +683,144 @@ _register_non_tier_0_audits(
         "a complete executable current route and bounded live proof."
     ),
 )
+_register_non_tier_0_audits(
+    ("FEGE", "FEOE", "USFE", "FEMD"),
+    outcome=NOT_APPLICABLE,
+    evidence_state="identity_not_portfolio_publisher",
+    provider_identity="gc_ferry_parent",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=(
+        "web:gc-ferry-parent-sec-transaction-2026-09-03",
+        "web:gc-ferry-parent-first-eagle-ownership-2026-09-03",
+        "web:gc-ferry-parent-first-eagle-etf-catalogue-2026-09-03",
+    ),
+    next_action=(
+        "Keep fallback-only as a non-publisher identity and resolve GC Ferry Parent references "
+        "to the existing first_eagle publisher/adapter; reopen only if GC Ferry Parent exposes "
+        "a distinct ETF portfolio route separate from First Eagle."
+    ),
+)
+_register_non_tier_0_audits(
+    ("GENT", "GEND", "GENM", "GENW"),
+    outcome=NOT_APPLICABLE,
+    evidence_state="identity_requires_reconciliation",
+    provider_identity="genter_capital",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=(
+        "live:genter-mcivy-gend-current-holdings-2026-09-03",
+        "web:genter-mcivy-fund-settings-2026-09-03",
+        "web:genter-mcivy-issuer-alias-2026-09-03",
+    ),
+    next_action=(
+        "Resolve the queued Genter identity to the existing native mcivy adapter; extend that "
+        "native owner only when additional products gain equivalent identity-verified current "
+        "holdings routes, and do not create a duplicate genter_capital adapter."
+    ),
+)
+_register_non_tier_0_audits(
+    ("AQLG",),
+    outcome=UNAVAILABLE,
+    evidence_state="non_executable_public_source",
+    provider_identity="highland_capital",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=(
+        "web:highland-aqlg-page-and-csv-2026-09-03",
+        "web:highland-sec-prospectus-2026-09-03",
+    ),
+    next_action=(
+        "Re-test the official AQLG/AQLV pages for a ticker-bearing complete export or an "
+        "issuer-declared mapping; promote only after symbol mapping, current-date semantics, "
+        "parser fixtures, and bounded live evidence are all proven."
+    ),
+)
+_register_non_tier_0_audits(
+    ("QYLD", "HSPX", "DAX"),
+    outcome=NOT_APPLICABLE,
+    evidence_state="inactive_or_successor_disposition",
+    provider_identity="horizons",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=(
+        "web:horizons-globalx-reorganization-2018",
+        "web:globalx-horizons-successor-products-2026-09-03",
+        "web:horizons-current-route-disposition-2026-09-03",
+    ),
+    next_action=(
+        "Keep fallback-only as an inactive_or_successor_disposition resolved to the existing "
+        "global_x identity; reopen only if Horizons independently sponsors a current U.S.-listed "
+        "ETF and publishes a distinct complete executable first-party route."
+    ),
+)
+_register_non_tier_0_audits(
+    ("HOMZ", "RIET"),
+    outcome=NOT_APPLICABLE,
+    evidence_state="identity_requires_reconciliation",
+    provider_identity="hoya",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=(
+        "web:hoya-official-homz-riet-pages-2026-09-03",
+        "live:pettee-hoya-current-holdings-2026-09-03",
+    ),
+    next_action=(
+        "Resolve the queued Hoya identity to the existing native pettee adapter; extend that "
+        "native owner only when additional Hoya products gain equivalent identity-verified "
+        "current holdings routes, and do not create a duplicate hoya adapter."
+    ),
+)
+_register_non_tier_0_audits(
+    ("FFTY", "BOUT"),
+    outcome=NOT_APPLICABLE,
+    evidence_state="identity_not_portfolio_publisher",
+    provider_identity="m2_financial",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=("web:m2-financial-capforce-adviser-2026-09-03",),
+    next_action=(
+        "Resolve M2-advised products to the actual CapForce portfolio publisher and existing "
+        "capforce adapter; reopen only if M2 publishes a distinct complete first-party holdings "
+        "route separate from CapForce."
+    ),
+)
+_register_non_tier_0_audits(
+    ("SASS",),
+    outcome=UNAVAILABLE,
+    evidence_state="non_executable_public_source",
+    provider_identity="m_d_sass",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=("web:m-d-sass-official-page-placeholder-holdings-2026-09-03",),
+    next_action=(
+        "Re-test the official SASS page for a populated complete holdings export or table with "
+        "current date and ticker/identifier mapping; promote only after parser fixtures and "
+        "bounded live evidence are added."
+    ),
+)
+_register_non_tier_0_audits(
+    ("SIXH", "SIXL", "SIXA", "SIXS", "SXQG"),
+    outcome=NOT_APPLICABLE,
+    evidence_state="identity_not_portfolio_publisher",
+    provider_identity="madison_avenue",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=("web:madison-avenue-6meridian-subadvisor-2026-09-03",),
+    next_action=(
+        "Resolve Madison Avenue/6 Meridian references to the actual Exchange Traded Concepts "
+        "publisher and existing route; do not create a duplicate adapter unless Madison Avenue "
+        "publishes a distinct complete first-party holdings artifact."
+    ),
+)
+_register_non_tier_0_audits(
+    ("MAVF",),
+    outcome=UNAVAILABLE,
+    evidence_state="issuer_route_access_blocked",
+    provider_identity="matrix",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=(
+        "web:matrix-mavf-official-page-2026-09-03",
+        "live:matrix-mavf-cloudflare-block-2026-09-03",
+    ),
+    next_action=(
+        "Re-test the official MAVF page from an allowed backend path; promote only after the "
+        "complete table is executable, identity/date semantics are captured, and deterministic "
+        "plus bounded live parser coverage is added."
+    ),
+)
 
 
 def symbol_audit_for_profile(profile: ETFProfile) -> ETFHoldingsSymbolAudit:

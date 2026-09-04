@@ -2615,3 +2615,41 @@ fallback symbols retain the identity-level `unknown` boundary until their own
 symbol-scoped evidence is recorded. AC10 remains gated on provider-platform
 staging and AC14 remains a post-integration production-observation gate
 requiring human closure authorization.
+
+## Sixth ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+The next ranked slice is now explicit in runtime and the durable ledger:
+FEGE/FEOE/USFE/FEMD (GC Ferry Parent), GENT/GEND/GENM/GENW (Genter Capital),
+AQLG (Highland Capital), QYLD/HSPX/DAX (Horizons), and HOMZ/RIET (Hoya). The
+GC Ferry, Genter, Horizons, and Hoya records are `not_applicable` parent,
+alias, or successor identities whose actual routes belong to separately tracked
+native publishers. AQLG is `unavailable` with a `non_executable_public_source`
+state because the issuer's otherwise complete CSV omits ticker mapping. Dated
+evidence and bounded reconciliation actions are retained for all 14 symbols;
+none is current-analysis usable under the audited identity.
+
+The six ranked cohorts now cover 66 explicit non-Tier-0 symbols. Remaining
+fallback symbols retain the identity-level `unknown` boundary until their own
+symbol-scoped evidence is recorded. AC10 remains gated on provider-platform
+staging and AC14 remains a post-integration production-observation gate
+requiring human closure authorization.
+
+## Seventh ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+The next ranked slice is now explicit in runtime and the durable ledger:
+FFTY/BOUT (M2 Financial), SASS (M.D. Sass), SIXH/SIXL/SIXA/SIXS/SXQG (Madison
+Avenue/6 Meridian), and MAVF (Matrix Advisors). M2 Financial and Madison Avenue
+are `not_applicable` adviser/sub-adviser identities whose actual holdings
+publishers are already represented by CapForce and Exchange Traded Concepts.
+SASS is `unavailable` with a `non_executable_public_source` state because the
+official page exposes placeholder values rather than a complete dated basket.
+MAVF is `unavailable` with an `issuer_route_access_blocked` state because the
+official holdings table is Cloudflare-blocked to backend-equivalent transport.
+No symbol is current-analysis usable, and no SEC or indexed artifact is
+promoted as current support.
+
+The seven ranked cohorts now cover 75 explicit non-Tier-0 symbols. Remaining
+fallback symbols retain the identity-level `unknown` boundary until their own
+symbol-scoped evidence is recorded. AC10 remains gated on provider-platform
+staging and AC14 remains a post-integration production-observation gate
+requiring human closure authorization.

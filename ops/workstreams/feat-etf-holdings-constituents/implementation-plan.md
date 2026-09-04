@@ -2929,6 +2929,26 @@ symbols remain identity-level `unknown` until individually investigated. The
 provider platform is still a separate staging dependency for AC10, and AC14
 still requires production shadow observations and human closure authorization.
 
+## Seventh ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+This slice binds FFTY/BOUT (M2 Financial), SASS (M.D. Sass),
+SIXH/SIXL/SIXA/SIXS/SXQG (Madison Avenue/6 Meridian), and MAVF (Matrix
+Advisors) to explicit symbol-level outcomes. M2 Financial and Madison Avenue
+are `not_applicable` because they are adviser/sub-adviser identities and the
+complete holdings routes are owned by the existing CapForce and Exchange
+Traded Concepts publishers. SASS remains `unavailable` because its official
+page contains placeholder holdings values without an executable current
+portfolio artifact. MAVF remains `unavailable` because its complete official
+table is blocked by Cloudflare for backend-equivalent access. No SEC or indexed
+content is promoted as current support.
+
+The runtime symbol-audit map, YAML `symbol_audit_ledger`, documentation, and
+parity tests are updated together. The seven ranked cohorts now cover 75
+explicit non-Tier-0 symbols; remaining symbols stay identity-level `unknown`
+until individually investigated. AC10 remains dependent on provider-platform
+staging, and AC14 still requires production shadow observations and human
+closure authorization.
+
 Validation for this follow-on slice reached the full Docker-backed gate. All
 pre-browser stages passed, including backend coverage (1,750 passed; 81.05%
 total coverage; 86 warnings), frontend unit coverage (924 passed across 108
@@ -2993,6 +3013,22 @@ SEC-derived current support is introduced.
 
 The runtime map, YAML `symbol_audit_ledger`, documentation, and parity tests are
 updated together. The five ranked cohorts now cover 52 explicit non-Tier-0
+symbols; remaining symbols stay identity-level `unknown` until individually
+investigated. AC10 remains dependent on provider-platform staging, and AC14
+still requires production shadow observations and human closure authorization.
+
+## Sixth ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+This slice binds FEGE/FEOE/USFE/FEMD (GC Ferry Parent), GENT/GEND/GENM/GENW
+(Genter Capital), AQLG (Highland Capital), QYLD/HSPX/DAX (Horizons), and
+HOMZ/RIET (Hoya) to explicit symbol-level outcomes. Parent, alias, and successor
+identities are `not_applicable` because current holdings ownership is already
+represented by First Eagle, McIvy, Global X, or Pettee. Highland AQLG remains
+`unavailable` because the issuer CSV omits provider-published ticker mapping;
+SEC or third-party CUSIP reconstruction is not promoted.
+
+The runtime map, YAML `symbol_audit_ledger`, documentation, and parity tests are
+updated together. The six ranked cohorts now cover 66 explicit non-Tier-0
 symbols; remaining symbols stay identity-level `unknown` until individually
 investigated. AC10 remains dependent on provider-platform staging, and AC14
 still requires production shadow observations and human closure authorization.

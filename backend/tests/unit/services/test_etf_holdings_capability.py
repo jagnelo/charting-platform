@@ -387,9 +387,89 @@ def test_fifth_ranked_fallback_fpa_alias_requires_identity_reconciliation():
     assert result.provider_identity == "fpa"
 
 
+def test_sixth_ranked_fallback_parent_identity_is_not_a_publisher():
+    result = symbol_audit_for_profile(profile_with_symbol("FEGE", "gc_ferry_parent"))
+
+    assert result.tier == 1
+    assert result.outcome == "not_applicable"
+    assert result.evidence_state == "identity_not_portfolio_publisher"
+    assert result.provider_identity == "gc_ferry_parent"
+
+
+def test_sixth_ranked_fallback_highland_symbol_remains_unavailable_without_mapping():
+    result = symbol_audit_for_profile(profile_with_symbol("AQLG", "highland_capital"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "non_executable_public_source"
+    assert result.provider_identity == "highland_capital"
+    assert result.evidence_refs == (
+        "web:highland-aqlg-page-and-csv-2026-09-03",
+        "web:highland-sec-prospectus-2026-09-03",
+    )
+
+
+def test_sixth_ranked_fallback_successor_identity_is_not_applicable():
+    result = symbol_audit_for_profile(profile_with_symbol("QYLD", "horizons"))
+
+    assert result.tier == 1
+    assert result.outcome == "not_applicable"
+    assert result.evidence_state == "inactive_or_successor_disposition"
+    assert result.provider_identity == "horizons"
+
+
+def test_sixth_ranked_fallback_hoya_alias_requires_identity_reconciliation():
+    result = symbol_audit_for_profile(profile_with_symbol("HOMZ", "hoya"))
+
+    assert result.tier == 1
+    assert result.outcome == "not_applicable"
+    assert result.evidence_state == "identity_requires_reconciliation"
+    assert result.provider_identity == "hoya"
+
+
+def test_seventh_ranked_fallback_m2_adviser_is_not_a_publisher():
+    result = symbol_audit_for_profile(profile_with_symbol("FFTY", "m2_financial"))
+
+    assert result.tier == 1
+    assert result.outcome == "not_applicable"
+    assert result.evidence_state == "identity_not_portfolio_publisher"
+    assert result.provider_identity == "m2_financial"
+
+
+def test_seventh_ranked_fallback_m_d_sass_placeholder_remains_unavailable():
+    result = symbol_audit_for_profile(profile_with_symbol("SASS", "m_d_sass"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "non_executable_public_source"
+    assert result.provider_identity == "m_d_sass"
+
+
+def test_seventh_ranked_fallback_madison_alias_is_not_a_publisher():
+    result = symbol_audit_for_profile(profile_with_symbol("SIXH", "madison_avenue"))
+
+    assert result.tier == 1
+    assert result.outcome == "not_applicable"
+    assert result.evidence_state == "identity_not_portfolio_publisher"
+    assert result.provider_identity == "madison_avenue"
+
+
+def test_seventh_ranked_fallback_matrix_remains_unavailable_when_cloudflare_blocked():
+    result = symbol_audit_for_profile(profile_with_symbol("MAVF", "matrix"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "issuer_route_access_blocked"
+    assert result.provider_identity == "matrix"
+    assert result.evidence_refs == (
+        "web:matrix-mavf-official-page-2026-09-03",
+        "live:matrix-mavf-cloudflare-block-2026-09-03",
+    )
+
+
 def test_unreviewed_fallback_symbol_cannot_be_marked_current_from_a_snapshot_alone():
     result = evaluate_capability(
-        profile_with_symbol("MAVF", "matrix"),
+        profile_with_symbol("UNREVIEWED", "matrix"),
         snapshot(),
         state(),
         now=NOW,

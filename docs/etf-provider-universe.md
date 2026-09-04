@@ -93,6 +93,25 @@ disclosures rather than a complete executable current holdings artifact. None
 of these records promotes SEC filings or a successor's route as current under
 the wrong provider identity.
 
+The sixth cohort covers FEGE/FEOE/USFE/FEMD (the GC Ferry parent identity),
+GENT/GEND/GENM/GENW (the Genter alias), AQLG (Highland Capital), QYLD/HSPX/DAX
+(the historical Horizons identity), and HOMZ/RIET (the Hoya alias). The
+parent/alias and successor records are `not_applicable`; AQLG is `unavailable`
+because its issuer CSV omits ticker mapping. These outcomes preserve ownership
+	boundaries and do not promote the existing First Eagle, McIvy, Global X, or
+	Pettee routes under duplicate identities.
+
+The seventh cohort covers FFTY/BOUT (the M2 Financial adviser identity), SASS
+(M.D. Sass), SIXH/SIXL/SIXA/SIXS/SXQG (the Madison Avenue/6 Meridian
+sub-adviser identity), and MAVF (Matrix Advisors). M2 Financial and Madison
+Avenue are `not_applicable` because their products' holdings routes belong to
+the separately identified CapForce and Exchange Traded Concepts publishers;
+SASS is `unavailable` because the official page exposes placeholders rather
+than an executable current basket; and MAVF is `unavailable` because the
+otherwise complete official table is Cloudflare-blocked to the adapter
+transport. These outcomes retain publisher ownership boundaries and do not
+promote SEC or indexed content as current support.
+
 The current checkpoint promotes `guggenheim` through its public issuer-hosted
 ETF holdings table, reconciles `ars` to the existing ARS Investment Partners
 ACEP/AFOS product-page adapter, adds Avory's complete AVRY product-page
