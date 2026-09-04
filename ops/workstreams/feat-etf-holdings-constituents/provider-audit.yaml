@@ -756,6 +756,126 @@ symbol_audit_ledger:
       investigated_at: 2026-09-03
       evidence_refs: ["web:merlyn-ai-liquidation-2026-09-03", "web:merlyn-ai-sec-fund-series-2026-09-03"]
       next_action: "Keep the Merlyn.AI symbols as historical liquidation context; reopen only if Merlyn.AI launches a distinct current U.S.-listed ETF with a complete executable first-party holdings route."
+    - symbol: DRMY
+      tier: 1
+      provider_identity: nicholas_wealth
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:nicholas-wealth-official-xfunds-2026-09-03", "web:nicholas-wealth-sec-series-identities-2026-09-03", "web:nicholas-wealth-access-blocked-2026-09-03"]
+      next_action: "Re-test the issuer-owned XFUNDS product pages when access permits; promote only after a complete executable current holdings artifact is proven for each symbol."
+    - symbol: GLDN
+      tier: 1
+      provider_identity: nicholas_wealth
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:nicholas-wealth-official-xfunds-2026-09-03", "web:nicholas-wealth-sec-series-identities-2026-09-03", "web:nicholas-wealth-access-blocked-2026-09-03"]
+      next_action: "Re-test the issuer-owned XFUNDS product pages when access permits; promote only after a complete executable current holdings artifact is proven for each symbol."
+    - symbol: NUKX
+      tier: 1
+      provider_identity: nicholas_wealth
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:nicholas-wealth-official-xfunds-2026-09-03", "web:nicholas-wealth-sec-series-identities-2026-09-03", "web:nicholas-wealth-access-blocked-2026-09-03"]
+      next_action: "Re-test the issuer-owned XFUNDS product pages when access permits; promote only after a complete executable current holdings artifact is proven for each symbol."
+    - symbol: WEPN
+      tier: 1
+      provider_identity: nicholas_wealth
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:nicholas-wealth-official-xfunds-2026-09-03", "web:nicholas-wealth-sec-series-identities-2026-09-03", "web:nicholas-wealth-access-blocked-2026-09-03"]
+      next_action: "Re-test the issuer-owned XFUNDS product pages when access permits; promote only after a complete executable current holdings artifact is proven for each symbol."
+    - symbol: SLVX
+      tier: 1
+      provider_identity: nicholas_wealth
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:nicholas-wealth-official-xfunds-2026-09-03", "web:nicholas-wealth-sec-series-identities-2026-09-03", "web:nicholas-wealth-access-blocked-2026-09-03"]
+      next_action: "Re-test the issuer-owned XFUNDS product pages when access permits; promote only after a complete executable current holdings artifact is proven for each symbol."
+    - symbol: GIAX
+      tier: 1
+      provider_identity: nicholas_wealth
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:nicholas-wealth-official-xfunds-2026-09-03", "web:nicholas-wealth-sec-series-identities-2026-09-03", "web:nicholas-wealth-access-blocked-2026-09-03"]
+      next_action: "Re-test the issuer-owned XFUNDS product pages when access permits; promote only after a complete executable current holdings artifact is proven for each symbol."
+    - symbol: BHDG
+      tier: 1
+      provider_identity: nicholas_wealth
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:nicholas-wealth-official-xfunds-2026-09-03", "web:nicholas-wealth-sec-series-identities-2026-09-03", "web:nicholas-wealth-access-blocked-2026-09-03"]
+      next_action: "Re-test the issuer-owned XFUNDS product pages when access permits; promote only after a complete executable current holdings artifact is proven for each symbol."
+    - symbol: BLOX
+      tier: 1
+      provider_identity: nicholas_wealth
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:nicholas-wealth-official-xfunds-2026-09-03", "web:nicholas-wealth-sec-series-identities-2026-09-03", "web:nicholas-wealth-access-blocked-2026-09-03"]
+      next_action: "Re-test the issuer-owned XFUNDS product pages when access permits; promote only after a complete executable current holdings artifact is proven for each symbol."
+    - symbol: NGHT
+      tier: 1
+      provider_identity: nicholas_wealth
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:nicholas-wealth-official-xfunds-2026-09-03", "web:nicholas-wealth-sec-series-identities-2026-09-03", "web:nicholas-wealth-access-blocked-2026-09-03"]
+      next_action: "Re-test the issuer-owned XFUNDS product pages when access permits; promote only after a complete executable current holdings artifact is proven for each symbol."
+    - symbol: FIAX
+      tier: 1
+      provider_identity: nicholas_wealth
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:nicholas-wealth-official-xfunds-2026-09-03", "web:nicholas-wealth-sec-series-identities-2026-09-03", "web:nicholas-wealth-access-blocked-2026-09-03"]
+      next_action: "Re-test the issuer-owned XFUNDS product pages when access permits; promote only after a complete executable current holdings artifact is proven for each symbol."
+    - symbol: XCSH
+      tier: 1
+      provider_identity: nicholas_wealth
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:nicholas-wealth-official-xfunds-2026-09-03", "web:nicholas-wealth-sec-series-identities-2026-09-03", "web:nicholas-wealth-access-blocked-2026-09-03"]
+      next_action: "Re-test the issuer-owned XFUNDS product pages when access permits; promote only after a complete executable current holdings artifact is proven for each symbol."
+    - symbol: NSIV
+      tier: 1
+      provider_identity: north_square
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:north-square-nsiv-non-executable-2026-09-03", "web:north-square-nsig-filepoint-2026-09-03", "web:north-square-sec-disclosure-2026-09-03"]
+      next_action: "Re-audit the official North Square product and FilePoint pages after the next reporting cycle; promote only when executable current rows and dates are proven."
+    - symbol: NSIG
+      tier: 1
+      provider_identity: north_square
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:north-square-nsiv-non-executable-2026-09-03", "web:north-square-nsig-filepoint-2026-09-03", "web:north-square-sec-disclosure-2026-09-03"]
+      next_action: "Re-audit the official North Square product and FilePoint pages after the next reporting cycle; promote only when executable current rows and dates are proven."
+    - symbol: QTPI
+      tier: 1
+      provider_identity: north_square
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:north-square-nsiv-non-executable-2026-09-03", "web:north-square-nsig-filepoint-2026-09-03", "web:north-square-sec-disclosure-2026-09-03"]
+      next_action: "Re-audit the official North Square product and FilePoint pages after the next reporting cycle; promote only when executable current rows and dates are proven."
+    - symbol: WAGN
+      tier: 1
+      provider_identity: pabrai
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:pabrai-wagons-investor-resources-2026-09-03", "web:pabrai-wagons-current-report-2026-09-03"]
+      next_action: "Re-audit the official WAGN investor resources after a new reporting cycle; promote only when a public complete holdings artifact, executable route, and current date are proven."
 providers:
   - adapter_key: aegon
     display_name: aegon

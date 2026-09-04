@@ -502,6 +502,38 @@ def test_eighth_ranked_fallback_merlyn_liquidated_series_are_not_applicable():
     )
 
 
+def test_ninth_ranked_fallback_nicholas_wealth_route_is_blocked():
+    result = symbol_audit_for_profile(profile_with_symbol("DRMY", "nicholas_wealth"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "issuer_route_access_blocked"
+    assert result.provider_identity == "nicholas_wealth"
+    assert result.evidence_refs == (
+        "web:nicholas-wealth-official-xfunds-2026-09-03",
+        "web:nicholas-wealth-sec-series-identities-2026-09-03",
+        "web:nicholas-wealth-access-blocked-2026-09-03",
+    )
+
+
+def test_ninth_ranked_fallback_north_square_disclosure_is_non_executable():
+    result = symbol_audit_for_profile(profile_with_symbol("NSIV", "north_square"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "non_executable_public_source"
+    assert result.provider_identity == "north_square"
+
+
+def test_ninth_ranked_fallback_pabrai_periodic_report_is_non_executable():
+    result = symbol_audit_for_profile(profile_with_symbol("WAGN", "pabrai"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "non_executable_public_source"
+    assert result.provider_identity == "pabrai"
+
+
 def test_unreviewed_fallback_symbol_cannot_be_marked_current_from_a_snapshot_alone():
     result = evaluate_capability(
         profile_with_symbol("UNREVIEWED", "matrix"),

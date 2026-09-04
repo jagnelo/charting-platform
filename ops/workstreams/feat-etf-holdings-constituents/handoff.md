@@ -2669,3 +2669,21 @@ fallback symbols retain the identity-level `unknown` boundary until their own
 symbol-scoped evidence is recorded. AC10 remains gated on provider-platform
 staging and AC14 remains a post-integration production-observation gate
 requiring human closure authorization.
+
+## Ninth ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+The next ranked slice is now explicit in runtime and the durable ledger:
+DRMY/GLDN/NUKX/WEPN/SLVX/GIAX/BHDG/BLOX/NGHT/FIAX/XCSH (Nicholas Wealth),
+NSIV/NSIG/QTPI (North Square), and WAGN (Pabrai). Nicholas Wealth is
+`unavailable` with an `issuer_route_access_blocked` state because its current
+XFUNDS pages are Cloudflare-blocked to backend-equivalent access. North Square
+and Pabrai are `unavailable` with `non_executable_public_source` because their
+public disclosures are quarterly or periodic and do not expose executable
+current baskets. SEC identity evidence is retained without promoting filings
+as current constituent data.
+
+The nine ranked cohorts now cover 96 explicit non-Tier-0 symbols. Remaining
+fallback symbols retain the identity-level `unknown` boundary until their own
+symbol-scoped evidence is recorded. AC10 remains gated on provider-platform
+staging and AC14 remains a post-integration production-observation gate
+requiring human closure authorization.

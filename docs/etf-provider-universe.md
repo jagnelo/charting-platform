@@ -98,8 +98,8 @@ GENT/GEND/GENM/GENW (the Genter alias), AQLG (Highland Capital), QYLD/HSPX/DAX
 (the historical Horizons identity), and HOMZ/RIET (the Hoya alias). The
 parent/alias and successor records are `not_applicable`; AQLG is `unavailable`
 because its issuer CSV omits ticker mapping. These outcomes preserve ownership
-	boundaries and do not promote the existing First Eagle, McIvy, Global X, or
-	Pettee routes under duplicate identities.
+boundaries and do not promote the existing First Eagle, McIvy, Global X, or
+Pettee routes under duplicate identities.
 
 The seventh cohort covers FFTY/BOUT (the M2 Financial adviser identity), SASS
 (M.D. Sass), SIXH/SIXL/SIXA/SIXS/SXQG (the Madison Avenue/6 Meridian
@@ -118,6 +118,14 @@ Merlyn.AI series were liquidated, while current OUNZ is the VanEck Merk Gold
 Trust relationship. Historical liquidation evidence remains visible, but no
 stale basket or successor publisher is promoted as a current Merk or Merlyn.AI
 route.
+
+The ninth cohort covers DRMY/GLDN/NUKX/WEPN/SLVX/GIAX/BHDG/BLOX/NGHT/FIAX/
+XCSH (Nicholas Wealth), NSIV/NSIG/QTPI (North Square), and WAGN (Pabrai).
+Nicholas Wealth is `unavailable` while its current XFUNDS product pages are
+Cloudflare-blocked to backend-equivalent access; North Square and Pabrai are
+`unavailable` because their public disclosures are quarterly or periodic and
+do not expose executable current baskets. SEC identity evidence is retained
+without promoting filings as current constituent data.
 
 The current checkpoint promotes `guggenheim` through its public issuer-hosted
 ETF holdings table, reconciles `ars` to the existing ARS Investment Partners

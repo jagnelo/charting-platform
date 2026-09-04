@@ -156,6 +156,7 @@ remaining_gaps:
   - "The sixth ranked Tier-1 symbol-audit cohort adds FEGE/FEOE/USFE/FEMD, GENT/GEND/GENM/GENW, AQLG, QYLD/HSPX/DAX, and HOMZ/RIET. Parent, alias, and successor identities are not_applicable; AQLG is unavailable because its otherwise complete issuer CSV omits ticker mapping. The six ranked cohorts now cover 66 explicit non-Tier-0 symbols."
   - "The seventh ranked Tier-1 symbol-audit cohort adds FFTY/BOUT, SASS, SIXH/SIXL/SIXA/SIXS/SXQG, and MAVF. M2 Financial and Madison Avenue are not_applicable adviser identities; SASS is unavailable because its official page contains placeholders; and MAVF is unavailable while the official table is Cloudflare-blocked. The seven ranked cohorts now cover 75 explicit non-Tier-0 symbols."
   - "The eighth ranked Tier-1 symbol-audit cohort adds STGF/OUNZ and WIZ/SNUG/BOB/DUDE. Merk's distinct STGF and all Merlyn.AI series are liquidated, while OUNZ belongs to VanEck's current relationship; all six are not_applicable. The eight ranked cohorts now cover 81 explicit non-Tier-0 symbols."
+  - "The ninth ranked Tier-1 symbol-audit cohort adds DRMY/GLDN/NUKX/WEPN/SLVX/GIAX/BHDG/BLOX/NGHT/FIAX/XCSH, NSIV/NSIG/QTPI, and WAGN. Nicholas Wealth remains issuer_access_blocked; North Square and Pabrai remain non_executable_public_source. The nine ranked cohorts now cover 96 explicit non-Tier-0 symbols."
 progress:
   completed:
     - AC1
@@ -170,6 +171,6 @@ progress:
     - AC13
     - AC12
   total: 14
-current_phase: tier1_symbol_audit_eighth_cohort
-current_blocker: "The shared provider-platform branch has not yet reached staging; generic entitlement/quota/budget/health integration remains intentionally deferred until its synchronized staging merge. The first eight ranked Tier-1 fallback cohorts now have explicit runtime and ledger outcomes for 81 symbols; remaining non-Tier-0 symbols still require symbol-scoped evidence before AC11 can close. The required full Docker gate also retained one unrelated F8u functional E2E failure, although its isolated retry passed; visual validation was therefore not run by that gate."
+current_phase: tier1_symbol_audit_ninth_cohort
+current_blocker: "The shared provider-platform branch has not yet reached staging; generic entitlement/quota/budget/health integration remains intentionally deferred until its synchronized staging merge. The first nine ranked Tier-1 fallback cohorts now have explicit runtime and ledger outcomes for 96 symbols; remaining non-Tier-0 symbols still require symbol-scoped evidence before AC11 can close. The required full Docker gate also retained one unrelated F8u functional E2E failure, although its isolated retry passed; visual validation was therefore not run by that gate."
 next_action: "Continue the next ranked symbol slice; after provider-platform reaches staging, reconcile AC10 and eventually run the documented 30-day production AC14 shadow gate. If a fully green local gate is required, rerun the complete branch-scoped integration gate after the isolated F8u retry evidence."

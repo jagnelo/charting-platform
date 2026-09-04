@@ -864,6 +864,53 @@ _register_non_tier_0_audits(
         "holdings route."
     ),
 )
+_register_non_tier_0_audits(
+    ("DRMY", "GLDN", "NUKX", "WEPN", "SLVX", "GIAX", "BHDG", "BLOX", "NGHT", "FIAX", "XCSH"),
+    outcome=UNAVAILABLE,
+    evidence_state="issuer_route_access_blocked",
+    provider_identity="nicholas_wealth",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=(
+        "web:nicholas-wealth-official-xfunds-2026-09-03",
+        "web:nicholas-wealth-sec-series-identities-2026-09-03",
+        "web:nicholas-wealth-access-blocked-2026-09-03",
+    ),
+    next_action=(
+        "Re-test the issuer-owned XFUNDS product pages when access permits; promote only after "
+        "a complete executable current holdings artifact is proven for each symbol."
+    ),
+)
+_register_non_tier_0_audits(
+    ("NSIV", "NSIG", "QTPI"),
+    outcome=UNAVAILABLE,
+    evidence_state="non_executable_public_source",
+    provider_identity="north_square",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=(
+        "web:north-square-nsiv-non-executable-2026-09-03",
+        "web:north-square-nsig-filepoint-2026-09-03",
+        "web:north-square-sec-disclosure-2026-09-03",
+    ),
+    next_action=(
+        "Re-audit the official North Square product and FilePoint pages after the next reporting "
+        "cycle; promote only when executable current rows and dates are proven."
+    ),
+)
+_register_non_tier_0_audits(
+    ("WAGN",),
+    outcome=UNAVAILABLE,
+    evidence_state="non_executable_public_source",
+    provider_identity="pabrai",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=(
+        "web:pabrai-wagons-investor-resources-2026-09-03",
+        "web:pabrai-wagons-current-report-2026-09-03",
+    ),
+    next_action=(
+        "Re-audit the official WAGN investor resources after a new reporting cycle; promote only "
+        "when a public complete holdings artifact, executable route, and current date are proven."
+    ),
+)
 
 
 def symbol_audit_for_profile(profile: ETFProfile) -> ETFHoldingsSymbolAudit:

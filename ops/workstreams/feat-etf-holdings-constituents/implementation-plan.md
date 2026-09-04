@@ -3048,3 +3048,22 @@ explicit non-Tier-0 symbols; remaining symbols stay identity-level `unknown`
 until individually investigated. AC10 remains dependent on provider-platform
 staging, and AC14 still requires production shadow observations and human
 closure authorization.
+
+## Ninth ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+This slice binds DRMY/GLDN/NUKX/WEPN/SLVX/GIAX/BHDG/BLOX/NGHT/FIAX/XCSH
+(Nicholas Wealth), NSIV/NSIG/QTPI (North Square), and WAGN (Pabrai) to
+explicit symbol-level outcomes. Nicholas Wealth is `unavailable` with an
+`issuer_route_access_blocked` state because its current XFUNDS pages are
+Cloudflare-blocked to backend-equivalent access. North Square and Pabrai are
+`unavailable` with `non_executable_public_source` because their public
+disclosures are quarterly or periodic and do not expose executable current
+baskets. SEC identity evidence is retained without promoting filings as
+current constituent data.
+
+The runtime symbol-audit map, YAML `symbol_audit_ledger`, documentation, and
+parity tests are updated together. The nine ranked cohorts now cover 96
+explicit non-Tier-0 symbols; remaining symbols stay identity-level `unknown`
+until individually investigated. AC10 remains dependent on provider-platform
+staging, and AC14 still requires production shadow observations and human
+closure authorization.
