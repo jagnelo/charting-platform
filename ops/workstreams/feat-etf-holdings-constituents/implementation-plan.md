@@ -2979,3 +2979,20 @@ non-Tier-0 symbols; remaining symbols stay identity-level `unknown` until
 individually investigated. AC10 remains dependent on provider-platform
 staging, and AC14 still requires production shadow observations and human
 closure authorization.
+
+## Fifth ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+This slice binds the historical FCF Advisors symbols ABFL/ABLG/ABLD/ABOT/ABLS/
+ABXB, active First Manhattan symbols FMCX/FMCE, FormulaFolios symbols
+FFHG/FFSG/FFTG/FFTI, and abbreviated FPA symbols FPAG/FPAS/FPAA to explicit
+outcomes. FCF Advisors, FormulaFolios, and FPA are `not_applicable` successor
+or alias identities with current ownership resolved elsewhere. First Manhattan
+is `unavailable` because its official disclosures are periodic and no complete
+executable current holdings artifact is available. No duplicate native route or
+SEC-derived current support is introduced.
+
+The runtime map, YAML `symbol_audit_ledger`, documentation, and parity tests are
+updated together. The five ranked cohorts now cover 52 explicit non-Tier-0
+symbols; remaining symbols stay identity-level `unknown` until individually
+investigated. AC10 remains dependent on provider-platform staging, and AC14
+still requires production shadow observations and human closure authorization.

@@ -2595,3 +2595,23 @@ fallback symbols retain the identity-level `unknown` boundary until their own
 symbol-scoped evidence is recorded. AC10 remains gated on provider-platform
 staging and AC14 remains a post-integration production-observation gate
 requiring human closure authorization.
+
+## Fifth ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+The next ranked slice is now explicit in runtime and the durable ledger:
+ABFL/ABLG/ABLD/ABOT/ABLS/ABXB (FCF Advisors), FMCX/FMCE (First Manhattan),
+FFHG/FFSG/FFTG/FFTI (FormulaFolios), and FPAG/FPAS/FPAA (FPA). The FCF,
+FormulaFolios, and FPA records are `not_applicable` because they are historical
+successor or abbreviated identities already resolved to distinct current
+publishers. FMCX and FMCE are `unavailable` with a
+`non_executable_public_source` state because First Manhattan's public
+disclosures are periodic and do not provide a complete executable current
+holdings artifact. Dated evidence and bounded next actions are retained for
+all 15 symbols; no symbol is current-analysis usable or promoted through SEC
+fallback.
+
+The five ranked cohorts now cover 52 explicit non-Tier-0 symbols. Remaining
+fallback symbols retain the identity-level `unknown` boundary until their own
+symbol-scoped evidence is recorded. AC10 remains gated on provider-platform
+staging and AC14 remains a post-integration production-observation gate
+requiring human closure authorization.
