@@ -111,7 +111,7 @@
   "head": "3783fbfa652942cc9c021b7c5023c6e4800bb482",
   "implementation_sha": "3783fbfa652942cc9c021b7c5023c6e4800bb482",
   "last_checkpoint": "2026-09-04T19:43:51.186155+00:00",
-  "last_human_progress_update": "2026-09-04T21:04:58.500445+00:00",
+  "last_human_progress_update": "2026-09-04T21:39:28.047152+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "plan_hash": "f1a95d9b1e936ff2cde9525e725ba13a341ef9c83bb628b3b6fe82d6a2368a32",
@@ -134,11 +134,11 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "Provider-platform branch feat/market-data-provider-platform remains separate and has not reached staging, so AC10 shared capability/entitlement/quota/budget/health integration is deferred. The first 15-symbol Tier-1 fallback cohort now has explicit runtime and ledger outcomes; the fresh full Docker gate is green (backend 1747, frontend 924, functional 154 passed/106 skipped, visual 104 passed) with clean branch-scoped teardown.",
-    "current_phase": "tier1_symbol_audit_cohort",
-    "next_action": "After provider-platform reaches staging, reconcile AC10 against the shared contracts, continue symbol-level evidence and remediation for the remaining non-Tier-0 fallback inventory under AC11, and then run the documented 30-day production AC14 shadow gate.",
+    "current_blocker": "Provider-platform branch feat/market-data-provider-platform remains separate and has not reached staging, so AC10 shared capability/entitlement/quota/budget/health integration is deferred. The first two ranked Tier-1 cohorts now have explicit runtime and ledger outcomes for 26 symbols; remaining non-Tier-0 symbols require symbol-scoped evidence for AC11. The full Docker gate retained one unrelated F8u functional E2E failure, while an isolated retry passed; visual validation did not run in that gate.",
+    "current_phase": "tier1_symbol_audit_follow_on_cohort",
+    "next_action": "Continue the next ranked symbol slice and, if a fully green local gate is required, rerun the complete branch-scoped integration gate after the isolated F8u retry evidence; after provider-platform reaches staging, reconcile AC10 and eventually run the documented 30-day production AC14 shadow gate.",
     "total": 14,
-    "updated_at": "2026-09-04T21:04:58.500093+00:00"
+    "updated_at": "2026-09-04T21:39:28.046655+00:00"
   },
   "remote": "3783fbfa652942cc9c021b7c5023c6e4800bb482",
   "remote_sha": "3783fbfa652942cc9c021b7c5023c6e4800bb482",

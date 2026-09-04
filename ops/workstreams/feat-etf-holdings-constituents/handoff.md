@@ -2524,3 +2524,36 @@ removed all branch-scoped containers, volumes, network, and four images.
 This checkpoint is still branch-local. AC10 remains gated on the separate
 provider-platform branch reaching staging, and AC14 still requires integrated
 deployment observations plus human closure authorization.
+
+## Follow-on ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+The next ranked non-Tier-0 fallback slice is now explicit in both runtime and
+the durable audit ledger: ALFA/ALFS/ALFD/ALFV (AlphaClone), SMCP (AlphaMark),
+AAAA (Amplius), NDOW (Anydrus), AMID/ABIG/ALIL (Argent), and ATTR (Arin).
+AlphaClone and AlphaMark are recorded as `not_applicable` pending
+liquidation/successor confirmation. Amplius, Argent, and Arin are
+`unavailable` because issuer routes are Cloudflare-blocked; Anydrus is
+`unavailable` because its public holdings artifact exposes placeholders and no
+current download rows. Dated evidence references and bounded next actions are
+retained for every symbol, and no symbol is current-analysis usable.
+
+The two ranked cohorts now cover 26 explicit non-Tier-0 symbols. The remaining
+fallback symbols retain the conservative identity-level `unknown` boundary
+until symbol-scoped evidence is recorded. AC10 remains gated on the separate
+provider-platform staging merge, and AC14 remains a post-integration,
+production-observation gate requiring human closure authorization.
+
+The fresh full Docker-backed gate for this follow-on cohort passed every stage
+through stack health and research-runner isolation, including backend coverage
+(1,750 passed; 81.05% total coverage; 86 warnings), frontend unit coverage
+(924 passed across 108 files), lint, format, build, compose, and provider
+probes. Its functional Playwright stage passed 153 tests and skipped 106
+documented cases, but failed the unrelated existing F8u workstation drag/drop
+case at `frontend/tests/e2e/flows.spec.ts:4386` when the RSI header did not
+appear after bounded retries; no ETF assertion failed, and visual Playwright
+did not run because the gate stops after a functional failure. A subsequent
+isolated rerun of F8u passed against the same branch-scoped stack, supporting a
+transient harness characterization. Teardown removed all branch-scoped
+containers, volumes, network, and images cleanly. The full gate therefore
+remains recorded as an external/unrelated failure rather than relabelled green;
+AC10, the remaining AC11 symbols, and AC14 remain open as stated above.

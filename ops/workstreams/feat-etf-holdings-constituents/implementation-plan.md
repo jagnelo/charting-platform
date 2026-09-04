@@ -2908,3 +2908,37 @@ branch-scoped teardown removed all resources and four images. AC10 remains
 dependent on provider-platform staging, AC11 remains open for the remaining
 non-Tier-0 symbols, and AC14 remains a post-integration/deployment production
 shadow gate requiring human closure authorization.
+
+## Follow-on ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+The next ranked non-Tier-0 fallback slice is now bound to explicit runtime and
+durable-ledger outcomes. It covers ALFA/ALFS/ALFD/ALFV (AlphaClone), SMCP
+(AlphaMark), AAAA (Amplius), NDOW (Anydrus), AMID/ABIG/ALIL (Argent), and ATTR
+(Arin). AlphaClone and AlphaMark symbols are `not_applicable` pending
+liquidation/successor confirmation. AAAA, AMID, ABIG, ALIL, and ATTR are
+`unavailable` because issuer routes are Cloudflare-blocked. NDOW is
+`unavailable` because the public artifact is non-executable (placeholder dates,
+empty holdings/download). Every record retains its dated issuer evidence and
+the exact next re-test or successor action; none can be treated as
+current-analysis usable or promoted through SEC fallback.
+
+The runtime symbol-audit map, YAML `symbol_audit_ledger`, response schema,
+documentation, and parity tests are updated together. The first and follow-on
+cohorts now cover 26 explicit non-Tier-0 symbols; the remaining fallback
+symbols remain identity-level `unknown` until individually investigated. The
+provider platform is still a separate staging dependency for AC10, and AC14
+still requires production shadow observations and human closure authorization.
+
+Validation for this follow-on slice reached the full Docker-backed gate. All
+pre-browser stages passed, including backend coverage (1,750 passed; 81.05%
+total coverage; 86 warnings), frontend unit coverage (924 passed across 108
+files), lint, format, build, compose, provider probes, healthy branch-scoped
+stack, and research-runner isolation. Functional Playwright passed 153 tests
+with 106 documented skips, then failed only the unrelated existing F8u
+workstation drag/drop case at `frontend/tests/e2e/flows.spec.ts:4386`; no ETF
+assertion failed and visual Playwright did not run. The exact F8u case passed on
+an isolated retry against the same stack, so the full gate is retained as a
+narrow external/unrelated failure rather than claimed green. Teardown removed
+all branch-scoped resources successfully. AC10 remains dependent on
+provider-platform staging, AC11 remains open for the remaining symbols, and
+AC14 remains a post-integration/deployment production shadow gate.
