@@ -71,7 +71,10 @@ async def task_bulk_fetch_instrument(
 
 
 async def task_refresh_benchmark_family_history(
-    ctx: dict, instrument_ids: list[int], timeframes: list[str] | None = None
+    ctx: dict,
+    instrument_ids: list[int],
+    timeframes: list[str] | None = None,
+    end: str | None = None,
 ):
     """Compatibility task for callers that submit a bounded family batch.
 
@@ -82,7 +85,11 @@ async def task_refresh_benchmark_family_history(
 
     results = []
     for instrument_id in instrument_ids:
-        results.append(await task_bulk_fetch_instrument(ctx, instrument_id, timeframes=timeframes))
+        results.append(
+            await task_bulk_fetch_instrument(
+                ctx, instrument_id, timeframes=timeframes, end=end
+            )
+        )
     return {"instrument_count": len(instrument_ids), "results": results}
 
 

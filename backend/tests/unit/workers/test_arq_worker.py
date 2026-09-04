@@ -98,6 +98,30 @@ async def test_bulk_history_worker_eager_loads_provider_bindings(monkeypatch):
     assert calls and len(calls[0]) == 2
 
 
+@pytest.mark.asyncio
+async def test_batch_history_worker_preserves_inclusive_end_bound(monkeypatch):
+    calls = []
+
+    async def fake_bulk_fetch(ctx, instrument_id, *, timeframes=None, end=None):
+        calls.append((ctx, instrument_id, timeframes, end))
+        return {"D1": 1}
+
+    monkeypatch.setattr(arq_worker, "task_bulk_fetch_instrument", fake_bulk_fetch)
+
+    result = await arq_worker.task_refresh_benchmark_family_history(
+        {"redis": "redis"},
+        [10, 20],
+        ["D1", "W1"],
+        end="2024-01-31T23:59:59.999999+00:00",
+    )
+
+    assert result == {"instrument_count": 2, "results": [{"D1": 1}, {"D1": 1}]}
+    assert calls == [
+        ({"redis": "redis"}, 10, ["D1", "W1"], "2024-01-31T23:59:59.999999+00:00"),
+        ({"redis": "redis"}, 20, ["D1", "W1"], "2024-01-31T23:59:59.999999+00:00"),
+    ]
+
+
 def test_worker_registers_history_refresh_function():
     assert arq_worker.scheduled_daily_history_refresh in arq_worker.WorkerSettings.functions
 

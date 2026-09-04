@@ -755,3 +755,16 @@ passes `2/2`, and the focused Relative Rotation component suite passes `9/9`. Fr
 and the 490-module production build pass (only the existing large-chunk warning remains); Ruff and
 diff checks pass. No visual oracle, provider rule, fallback, or protected worktree changed. Exact
 V25 long-curve geometry and canonical family history remain open.
+
+## 2026-09-04 — Batch history workers preserve dated cutoffs
+
+The compatibility `task_refresh_benchmark_family_history` worker now accepts and forwards an
+optional inclusive `end` timestamp to every per-instrument bulk-history task. This closes a
+point-in-time propagation hole for callers that use the bounded batch entry point instead of the
+scheduled family/date worker; provider selection remains in the worker's existing canonical path,
+and no interactive read performs provider fan-out.
+
+The new worker regression proves the same cutoff reaches each instrument in a two-member batch;
+the full ARQ worker unit module passes `26/26`, with Ruff, compilation, and diff checks green. The
+remaining provider population, member-bar continuity, and deployment maintenance evidence remain
+open.
