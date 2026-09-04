@@ -36,6 +36,14 @@ from app.providers.fred import FREDProvider
 from app.providers.massive import MassiveProvider
 from app.providers.nasdaq import NasdaqProvider
 from app.providers.openfigi import OpenFigiProvider
+from app.providers.optional_market_data import (
+    EODHDProvider,
+    FinnhubProvider,
+    FMPProvider,
+    MarketstackProvider,
+    TiingoProvider,
+    TwelveDataProvider,
+)
 from app.providers.yfinance import YFinanceProvider
 
 ProviderT = TypeVar("ProviderT", bound=ProviderDescriptor)
@@ -55,8 +63,20 @@ _PROVIDERS: dict[str, ProviderDescriptor] = {
     "nasdaq": NasdaqProvider(),  # Public US EOD historical quote fallback
     "alpha_vantage": AlphaVantageProvider(),  # Quota-limited daily-history corroboration
     "finra": FINRAProvider(),  # Consolidated short-interest datasets (endpoint configurable)
+    # Optional low-cost adapters. They remain absent from default chains and
+    # entitlement seeds until credentials, quotas, and redistribution terms
+    # are reviewed by operations.
+    "tiingo": TiingoProvider(),
+    "twelve_data": TwelveDataProvider(),
+    "finnhub": FinnhubProvider(),
+    "marketstack": MarketstackProvider(),
+    "eodhd": EODHDProvider(),
+    "fmp": FMPProvider(),
 }
-_PROVIDERS.update(OPTIONAL_PROVIDER_DESCRIPTORS)
+# Keep descriptor-only entries visible for broker/crypto integrations that do
+# not yet have a concrete adapter. ``setdefault`` preserves concrete classes.
+for _name, _descriptor in OPTIONAL_PROVIDER_DESCRIPTORS.items():
+    _PROVIDERS.setdefault(_name, _descriptor)
 
 _DEFAULT_PROVIDER_USAGE_PROFILES: dict[str, dict] = {
     name: {
@@ -91,7 +111,12 @@ def _capability_names(provider: ProviderDescriptor) -> list[str]:
         name for required_methods, name in capabilities if _supports(provider, *required_methods)
     ]
     provider_name = str(getattr(provider, "name", "")).lower()
-    if "price_history" in capabilities and provider_name in {"binance", "coingecko", "coinbase", "kraken"}:
+    if "price_history" in capabilities and provider_name in {
+        "binance",
+        "coingecko",
+        "coinbase",
+        "kraken",
+    }:
         capabilities.append("crypto_history")
     if "price_history" in capabilities and provider_name in {"yfinance", "ibkr"}:
         capabilities.append("futures_history")

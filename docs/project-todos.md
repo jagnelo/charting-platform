@@ -16,7 +16,9 @@
       diagnostics under `/api/v1/market-data/*`.
 - [x] Add the practical optional-provider roster as disabled descriptors and
       add QuantLib American-option Greeks with explicit model/input provenance
-      and the existing Black-Scholes fallback.
+      and the existing Black-Scholes fallback. Concrete opt-in REST adapters
+      now normalize Tiingo, Twelve Data, Finnhub, Marketstack, EODHD, and FMP
+      history/profile surfaces without entering default routing.
 - [x] Add the first concrete non-price paths: raw SEC Company Facts, FINRA
       short-interest normalisation, Alpha Vantage market-event calendar records,
       durable persistence helpers, and explicit crypto/futures/options capability
@@ -25,8 +27,13 @@
 - [x] Add durable coverage snapshots, shadow observations, and reviewable
       anomaly records plus backend-only reports; these remain observational and
       cannot enable routing by themselves.
-- [ ] Continue concrete optional adapters, full US universe/lifecycle
-      reconciliation, coverage/shadow reporting, and the separate post-merge
+- [x] Add a worker-only US universe/lifecycle reconciliation path with durable
+      complete-run counts, provider symbol/venue presence, conservative
+      repeated-missing confirmation, lifecycle events, identity issues, and
+      core D1 coverage snapshots. Nasdaq public directory discovery is retained
+      as venue evidence alongside SEC/Alpaca/Massive/Alpha Vantage.
+- [ ] Activate reviewed optional-provider entitlements, reconcile the complete
+      US venue universe in production, and complete the separate post-merge
       30-day observation run. New routing remains disabled until the workstream
       activation bar is met.
 

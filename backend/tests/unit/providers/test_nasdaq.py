@@ -192,3 +192,43 @@ def test_nasdaq_is_registered_as_price_and_quote_provider():
 
     assert get_price_history_provider("nasdaq").name == "nasdaq"
     assert get_quote_provider("nasdaq").name == "nasdaq"
+
+
+def test_nasdaq_symbol_directory_parses_equity_and_etf_rows():
+    response = MagicMock()
+    response.raise_for_status.return_value = None
+    response.json.return_value = {
+        "data": {
+            "totalRecords": 2,
+            "rows": [
+                {"symbol": "AAPL", "name": "Apple Inc.", "assetType": "Common Stock"},
+                {"symbol": "SPY", "name": "SPDR S&P 500 ETF", "assetType": "ETF"},
+            ],
+        }
+    }
+    with patch("app.providers.nasdaq.httpx.get", return_value=response):
+        provider = NasdaqProvider()
+        equities = provider.discover_universe_page("EQUITY", 0)
+        etfs = provider.discover_universe_page("ETF", 0)
+    assert [row["symbol"] for row in equities["quotes"]] == ["AAPL"]
+    assert [row["symbol"] for row in etfs["quotes"]] == ["SPY"]
+    assert provider.supported_discovery_types() == ["EQUITY", "ETF"]
+
+
+def test_nasdaq_symbol_directory_exposes_raw_cursor_for_filtered_pages():
+    response = MagicMock()
+    response.raise_for_status.return_value = None
+    response.json.return_value = {
+        "data": {
+            "totalRecords": 4,
+            "rows": [
+                {"symbol": "AAPL", "name": "Apple Inc.", "assetType": "Common Stock"},
+                {"symbol": "SPY", "name": "SPDR S&P 500 ETF", "assetType": "ETF"},
+            ],
+        }
+    }
+    with patch("app.providers.nasdaq.httpx.get", return_value=response):
+        page = NasdaqProvider().discover_universe_page("ETF", 0)
+
+    assert [row["symbol"] for row in page["quotes"]] == ["SPY"]
+    assert page["next_offset"] == 2

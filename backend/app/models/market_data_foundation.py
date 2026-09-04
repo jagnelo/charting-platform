@@ -84,7 +84,9 @@ class ExchangeSessionRule(Base, TimestampMixin):
     opens_at: Mapped[time | None] = mapped_column(Time, nullable=True)
     closes_at: Mapped[time | None] = mapped_column(Time, nullable=True)
     crosses_midnight: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    trade_date_rule: Mapped[str] = mapped_column(String(32), nullable=False, default="local_open_date")
+    trade_date_rule: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="local_open_date"
+    )
     valid_from: Mapped[date] = mapped_column(Date, nullable=False)
     valid_to: Mapped[date | None] = mapped_column(Date, nullable=True)
     provenance: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
@@ -93,7 +95,10 @@ class ExchangeSessionRule(Base, TimestampMixin):
 
     __table_args__ = (
         UniqueConstraint(
-            "exchange_id", "session_code", "weekday", "valid_from",
+            "exchange_id",
+            "session_code",
+            "weekday",
+            "valid_from",
             name="uq_exchange_session_rule_version",
         ),
         Index("ix_exchange_session_rule_lookup", "exchange_id", "session_code", "valid_from"),
@@ -146,7 +151,9 @@ class MarketSeries(Base, TimestampMixin):
     feed_scope: Mapped[str] = mapped_column(String(40), nullable=False, default="consolidated")
     session_code: Mapped[str] = mapped_column(String(24), nullable=False, default="regular")
     timeframe: Mapped[str] = mapped_column(String(12), nullable=False)
-    adjustment_basis: Mapped[AdjustmentBasis] = mapped_column(nullable=False, default=AdjustmentBasis.RAW)
+    adjustment_basis: Mapped[AdjustmentBasis] = mapped_column(
+        nullable=False, default=AdjustmentBasis.RAW
+    )
     adjustment_version: Mapped[str] = mapped_column(String(80), nullable=False, default="v1")
     is_canonical: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
@@ -159,8 +166,14 @@ class MarketSeries(Base, TimestampMixin):
 
     __table_args__ = (
         UniqueConstraint(
-            "instrument_id", "exchange_id", "data_source_id", "feed_scope", "session_code",
-            "timeframe", "adjustment_basis", "adjustment_version",
+            "instrument_id",
+            "exchange_id",
+            "data_source_id",
+            "feed_scope",
+            "session_code",
+            "timeframe",
+            "adjustment_basis",
+            "adjustment_version",
             name="uq_market_series_scope",
         ),
         Index("ix_market_series_instrument_lookup", "instrument_id", "timeframe", "session_code"),
@@ -211,7 +224,10 @@ class ProviderQuotaWindow(Base, TimestampMixin):
 
     __table_args__ = (
         UniqueConstraint(
-            "data_source_id", "capability", "window_started_at", "window_seconds",
+            "data_source_id",
+            "capability",
+            "window_started_at",
+            "window_seconds",
             name="uq_provider_quota_window",
         ),
     )
@@ -274,10 +290,94 @@ class MarketRefreshJob(Base, TimestampMixin):
     priority: Mapped[int] = mapped_column(Integer, nullable=False, default=100, index=True)
     status: Mapped[str] = mapped_column(String(24), nullable=False, default="queued", index=True)
     attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    next_attempt_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    next_attempt_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
     leased_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     metadata_payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+
+
+class MarketUniverseReconciliationRun(Base, TimestampMixin):
+    """One complete provider/venue universe observation and its outcome."""
+
+    __tablename__ = "market_universe_reconciliation_run"
+
+    id: Mapped[int] = mapped_column(BIGINT_ID, primary_key=True, autoincrement=True)
+    data_source_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    quote_type: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    status: Mapped[str] = mapped_column(String(24), nullable=False, default="running", index=True)
+    expected_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    observed_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    new_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    updated_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    missing_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    deactivated_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    quarantined_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    provenance: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+
+
+class MarketUniverseLifecycleObservation(Base, TimestampMixin):
+    """Current provider observation used for conservative listing lifecycle."""
+
+    __tablename__ = "market_universe_lifecycle_observation"
+
+    id: Mapped[int] = mapped_column(BIGINT_ID, primary_key=True, autoincrement=True)
+    data_source_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    run_id: Mapped[int | None] = mapped_column(
+        BIGINT_ID,
+        ForeignKey("market_universe_reconciliation_run.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    instrument_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("instrument.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    listing_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("instrument_listing.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    provider_symbol: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    exchange_mic: Mapped[str | None] = mapped_column(String(10), nullable=True, index=True)
+    quote_type: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    present: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    lifecycle_status: Mapped[str] = mapped_column(
+        String(24), nullable=False, default="active", index=True
+    )
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_missing_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    consecutive_seen: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    consecutive_missing: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "data_source_id",
+            "provider_symbol",
+            "exchange_mic",
+            "quote_type",
+            name="uq_market_universe_lifecycle_observation",
+        ),
+        Index(
+            "ix_market_universe_lifecycle_provider_status",
+            "data_source_id",
+            "quote_type",
+            "lifecycle_status",
+            "present",
+        ),
+    )
 
 
 class MarketEvent(Base, TimestampMixin):
@@ -294,7 +394,9 @@ class MarketEvent(Base, TimestampMixin):
     )
     event_type: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
     event_key: Mapped[str] = mapped_column(String(180), nullable=False, index=True)
-    event_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    event_time: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
     effective_date: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
     announced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     source: Mapped[str] = mapped_column(String(80), nullable=False)
@@ -302,9 +404,7 @@ class MarketEvent(Base, TimestampMixin):
     payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     is_provisional: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
-    __table_args__ = (
-        UniqueConstraint("event_key", "source", name="uq_market_event_source_key"),
-    )
+    __table_args__ = (UniqueConstraint("event_key", "source", name="uq_market_event_source_key"),)
 
 
 class FundamentalFact(Base, TimestampMixin):
@@ -380,7 +480,9 @@ class MarketCoverageSnapshot(Base):
     expected_bars: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     observed_bars: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     coverage_ratio: Mapped[Decimal] = mapped_column(Numeric(12, 8), nullable=False, default=0)
-    status: Mapped[str] = mapped_column(String(24), nullable=False, default="unavailable", index=True)
+    status: Mapped[str] = mapped_column(
+        String(24), nullable=False, default="unavailable", index=True
+    )
     missing_slices: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
     evaluated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     provenance: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
@@ -416,9 +518,7 @@ class ProviderShadowObservation(Base):
     observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     provenance: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
 
-    __table_args__ = (
-        Index("ix_provider_shadow_observation_observed", "observed_at"),
-    )
+    __table_args__ = (Index("ix_provider_shadow_observation_observed", "observed_at"),)
 
 
 class MarketDataAnomaly(Base):

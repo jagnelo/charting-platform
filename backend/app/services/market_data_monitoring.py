@@ -41,8 +41,15 @@ async def record_coverage_snapshot(
     expected = max(0, int(expected_bars))
     observed = max(0, int(observed_bars))
     ratio = min(Decimal("1"), Decimal(observed) / Decimal(expected)) if expected else Decimal("0")
-    status = "complete" if expected and observed >= expected else "partial" if observed else "unavailable"
+    status = (
+        "complete"
+        if expected and observed >= expected
+        else "partial"
+        if observed
+        else "unavailable"
+    )
     query = select(MarketCoverageSnapshot).where(
+        MarketCoverageSnapshot.instrument_id == instrument_id,
         MarketCoverageSnapshot.market_series_id == market_series_id,
         MarketCoverageSnapshot.timeframe == timeframe,
         MarketCoverageSnapshot.evaluated_at == evaluated,
@@ -165,7 +172,9 @@ async def build_shadow_report(
     statuses: dict[str, int] = {}
     for row in rows:
         statuses[row.comparison_status] = statuses.get(row.comparison_status, 0) + 1
-    discrepancies = sum(value for key, value in statuses.items() if key in {"discrepancy", "mismatch"})
+    discrepancies = sum(
+        value for key, value in statuses.items() if key in {"discrepancy", "mismatch"}
+    )
     return {
         "mode": "shadow_only",
         "routing_enabled": any(row.routing_enabled for row in rows),

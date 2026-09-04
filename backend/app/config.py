@@ -52,6 +52,8 @@ class Settings(BaseSettings):
     INSTRUMENT_SYNC_SCHEDULE_ENABLED: bool = False
     MARKET_DATA_REFRESH_SCHEDULE_ENABLED: bool = False
     MARKET_DATA_SHADOW_REPORT_ENABLED: bool = False
+    MARKET_UNIVERSE_RECONCILIATION_ENABLED: bool = False
+    MARKET_UNIVERSE_MISSING_CONFIRMATIONS: int = 3
     ETF_HOLDINGS_REFRESH_ENABLED: bool = False
     ETF_HOLDINGS_CLASSIFICATION_REFRESH_ENABLED: bool = False
     ETF_HOLDINGS_CLASSIFICATION_MAX_PROFILES: int = 50
@@ -107,7 +109,7 @@ class Settings(BaseSettings):
         "instrument_events": ["alpaca", "edgar"],
         # SEC adds official US issuer/ticker/exchange evidence across venues;
         # it does not replace authenticated or market-data discovery routes.
-        "universe_discovery": ["alpaca", "edgar", "massive", "alpha_vantage"],
+        "universe_discovery": ["alpaca", "edgar", "massive", "nasdaq", "alpha_vantage"],
     }
     PROVIDER_RATE_LIMIT_SEEDS: dict[str, dict[str, int]] = {}
     PROVIDER_FRESHNESS_SEEDS: dict[str, int] = {}

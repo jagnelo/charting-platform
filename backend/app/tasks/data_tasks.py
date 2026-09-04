@@ -18,6 +18,7 @@ from app.services.market_refresh_queue import (
     enqueue_refresh_job,
     retry_refresh_job,
 )
+from app.services.market_universe import reconcile_us_universe, record_core_daily_coverage
 
 logger = logging.getLogger(__name__)
 
@@ -101,8 +102,10 @@ async def enqueue_core_refresh_jobs(ctx: dict) -> dict:
 
     async with AsyncSessionLocal() as db:
         instruments = (
-            await db.execute(select(Instrument).where(Instrument.is_active.is_(True)))
-        ).scalars().all()
+            (await db.execute(select(Instrument).where(Instrument.is_active.is_(True))))
+            .scalars()
+            .all()
+        )
         for instrument in instruments:
             await enqueue_refresh_job(
                 db,
@@ -155,3 +158,13 @@ async def run_market_data_shadow_report(ctx: dict) -> dict:
             report["discrepancy_rate"],
         )
         return report
+
+
+async def reconcile_market_universe(ctx: dict) -> dict:
+    """Reconcile complete US discovery feeds, then record core D1 coverage."""
+
+    async with AsyncSessionLocal() as db:
+        reconciliation = await reconcile_us_universe(db)
+        coverage = await record_core_daily_coverage(db)
+        await db.commit()
+        return {"reconciliation": reconciliation, "coverage": coverage}

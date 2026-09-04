@@ -22,14 +22,18 @@ reflect `base_priority` seeding; the runtime's EWMA health scores refine orderin
 | openfigi   | Supplementary | Optional API key      | Free     |
 | massive    | Optional reference corroboration | Optional API key | Free tier / quota |
 | alpha_vantage | Optional daily-history corroboration | Optional API key | Free tier / quota |
+| tiingo / twelve_data | Optional EOD/intraday history | API key | Free/low-cost quota |
+| finnhub | Optional intraday/profile/search | API key | Free/low-cost quota |
+| marketstack / eodhd / fmp | Optional EOD/history/profile | API key | Free/low-cost quota |
 
-The registry also records optional, disabled-by-default descriptors for `tiingo`,
-`twelve_data`, `finnhub`, `marketstack`, `eodhd`, `fmp`, `tradier`, `ibkr`,
-`coinbase`, and `kraken`.  `finra` has a schema-tolerant concrete adapter, but
-it remains disabled until `FINRA_SHORT_INTEREST_URL`, quota, terms, and an
-environment review are recorded. A descriptor is deliberately not a usable
-adapter: it becomes routable only after a concrete adapter, credentials, quota,
-terms, and an environment review are recorded by the provider governance API.
+The registry also records optional, disabled-by-default descriptors for
+`tradier`, `ibkr`, `coinbase`, and `kraken`. Concrete adapters now exist for
+`tiingo`, `twelve_data`, `finnhub`, `marketstack`, `eodhd`, and `fmp`; each is
+still opt-in because credentials, quota, and redistribution terms are not
+assumed from the mere presence of an API key. `finra` has a schema-tolerant
+concrete adapter, but remains disabled until `FINRA_SHORT_INTEREST_URL`, quota,
+terms, and an environment review are recorded. A descriptor becomes routable
+only after the provider governance API records the reviewed entitlement.
 
 ## Market-data platform boundary
 
@@ -58,6 +62,12 @@ symbol APIs:
   `market_data_anomaly` retain coverage gaps, disabled-routing comparisons, and
   reviewable provider disagreements. `/coverage`, `/shadow`, and `/anomalies`
   expose these records to backend operators without enabling a route.
+- `market_universe_reconciliation_run` and
+  `market_universe_lifecycle_observation` retain complete discovery-run counts,
+  provider symbol/venue presence, repeated missing confirmations, and
+  provisional listing-discovered/delisted-candidate events. The opt-in worker
+  `reconcile_market_universe` never treats an empty/failed provider response as
+  a complete universe and records core D1 coverage after a successful run.
 - QuantLib American-option calculations are labeled with model/version/input
   provenance and fall back explicitly to the legacy Black-Scholes estimator
   when the model cannot be evaluated.
@@ -291,9 +301,18 @@ OPENFIGI_API_KEY=your_openfigi_key
 # FINRA short-interest endpoint (blank keeps the adapter disabled)
 FINRA_SHORT_INTEREST_URL=
 
-# Pre-existing paid provider slots (not yet implemented)
+# Optional adapters (disabled until governance records reviewed entitlements)
+TIINGO_API_KEY=
+TWELVE_DATA_API_KEY=
+FINNHUB_API_KEY=
+MARKETSTACK_API_KEY=
+EODHD_API_KEY=
 MARKETDATA_API_KEY=           # MarketData.app — US options with real greeks
 FMP_API_KEY=                  # Financial Modeling Prep — fundamentals, forward estimates
+
+# Optional complete US universe/lifecycle reconciliation (worker only)
+MARKET_UNIVERSE_RECONCILIATION_ENABLED=false
+MARKET_UNIVERSE_MISSING_CONFIRMATIONS=3
 ```
 
 ---
@@ -304,7 +323,7 @@ The default provider chain can be overridden per capability via `PROVIDER_CHAIN_
 (JSON dict in `.env.dev`). The free-source-first new-workstation baseline is:
 
 ```env
-PROVIDER_CHAIN_SEEDS={"instrument_search":["edgar","alpaca","massive","alpha_vantage"],"instrument_metadata":["edgar"],"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"instrument_events":["alpaca","edgar"],"universe_discovery":["alpaca","massive","alpha_vantage"]}
+PROVIDER_CHAIN_SEEDS={"instrument_search":["edgar","alpaca","massive","alpha_vantage"],"instrument_metadata":["edgar"],"price_history":["alpaca","alpha_vantage"],"latest_price":["alpaca","alpha_vantage"],"instrument_events":["alpaca","edgar"],"universe_discovery":["alpaca","edgar","massive","nasdaq","alpha_vantage"]}
 ```
 
 Adding `yfinance` requires an explicit legacy/options deployment decision and must never
@@ -321,7 +340,7 @@ receiving equity symbols) will be naturally deprioritised by the circuit-breaker
 | Data type                    | Primary provider  | Fallback        |
 |------------------------------|-------------------|-----------------|
 | US equity OHLCV              | alpaca            | alpha_vantage (quota-limited) |
-| US equity universe discovery | alpaca            | massive / alpha_vantage |
+| US equity/ETF universe discovery | alpaca / SEC directory | massive / Nasdaq / alpha_vantage |
 | US splits + dividends        | alpaca            | edgar           |
 | Crypto OHLCV                 | binance           | —               |
 | Crypto universe discovery    | binance + coingecko | —             |
@@ -331,8 +350,8 @@ receiving equity symbols) will be naturally deprioritised by the circuit-breaker
 | Macro indicators             | fred              | —               |
 | US company profile           | edgar             | —               |
 | Historical earnings dates    | edgar             | —               |
-| US options chains            | *(excluded)*      | *(capability stub)* |
-| Futures / commodities        | *(excluded)*      | *(capability stub)* |
+| US options chains            | yfinance (explicit legacy) | *(no default current-chain route)* |
+| Futures / commodities        | yfinance (explicit legacy) | optional IBKR descriptor |
 | Forward earnings estimates   | *(excluded)*      | *(capability stub)* |
 | Analyst price targets        | *(excluded)*      | *(capability stub)* |
 

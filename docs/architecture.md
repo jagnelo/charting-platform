@@ -32,6 +32,8 @@ provider_policy / provider_health_state / provider_request_log
 provider_quota_window / provider_workload_lease / provider_routing_decision
 instrument_profile_snapshot / market_bar_observation / instrument_dataset_state
 market_event / fundamental_fact / short_interest_observation
+market_universe_reconciliation_run / market_universe_lifecycle_observation
+market_coverage_snapshot / provider_shadow_observation / market_data_anomaly
 option_chain_snapshot / option_quote_point
 
 ohlcv_bar
@@ -75,6 +77,16 @@ user
 **Provider routing is DB-controlled at runtime** — env vars seed the initial provider chain, rate limits, and freshness windows, but day-to-day ordering, pinning, and auto-weighting live in `provider_policy` and `provider_health_state`.
 
 **Quota-aware routing is durable and explainable** — workers reserve units in `provider_quota_window`, receive a short-lived `provider_workload_lease`, and write a `provider_routing_decision` explaining accepted/rejected candidates. Coverage snapshots, shadow comparisons, and anomaly records are also durable; shadow rows default to `routing_enabled=false`. Optional provider descriptors are visible to administrators but remain disabled until reviewed.
+
+**Universe lifecycle is observation-based** — complete discovery pages are
+retained as provider snapshots and summarized in
+`market_universe_reconciliation_run`. Per-symbol/venue presence is tracked in
+`market_universe_lifecycle_observation`; a failed or empty provider response
+never counts as a complete absence, and listing/instrument retirement requires
+repeated missing confirmations. SEC CIK values are retained on the issuer and
+never used alone to merge a new security; a security-level key or review is
+required. Core D1 coverage is recorded after successful reconciliation with
+exchange holiday exceptions applied.
 
 ---
 

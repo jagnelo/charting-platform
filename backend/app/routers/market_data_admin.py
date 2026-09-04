@@ -18,6 +18,8 @@ from app.models.market_data_foundation import (
     MarketDataAnomaly,
     MarketEvent,
     MarketSeries,
+    MarketUniverseLifecycleObservation,
+    MarketUniverseReconciliationRun,
     ProviderQuotaWindow,
     ProviderRoutingDecision,
     ProviderShadowObservation,
@@ -36,7 +38,11 @@ async def list_identity_quarantine(
     db: AsyncSession = Depends(get_db),
     _admin: User = Depends(require_admin),
 ):
-    query = select(InstrumentIdentityQuarantine).order_by(InstrumentIdentityQuarantine.created_at.desc()).limit(limit)
+    query = (
+        select(InstrumentIdentityQuarantine)
+        .order_by(InstrumentIdentityQuarantine.created_at.desc())
+        .limit(limit)
+    )
     if status:
         query = query.where(InstrumentIdentityQuarantine.status == status)
     rows = (await db.execute(query)).scalars().all()
@@ -64,12 +70,16 @@ async def list_market_series(
     _admin: User = Depends(require_admin),
 ):
     rows = (
-        await db.execute(
-            select(MarketSeries)
-            .where(MarketSeries.instrument_id == instrument_id)
-            .order_by(MarketSeries.timeframe, MarketSeries.session_code, MarketSeries.id)
+        (
+            await db.execute(
+                select(MarketSeries)
+                .where(MarketSeries.instrument_id == instrument_id)
+                .order_by(MarketSeries.timeframe, MarketSeries.session_code, MarketSeries.id)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     return [
         {
             "id": row.id,
@@ -98,19 +108,27 @@ async def list_exchange_sessions(
     if exchange is None:
         return {"exchange_id": exchange_id, "rules": [], "exceptions": []}
     rules = (
-        await db.execute(
-            select(ExchangeSessionRule)
-            .where(ExchangeSessionRule.exchange_id == exchange_id)
-            .order_by(ExchangeSessionRule.valid_from, ExchangeSessionRule.weekday)
+        (
+            await db.execute(
+                select(ExchangeSessionRule)
+                .where(ExchangeSessionRule.exchange_id == exchange_id)
+                .order_by(ExchangeSessionRule.valid_from, ExchangeSessionRule.weekday)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     exceptions = (
-        await db.execute(
-            select(ExchangeCalendarException)
-            .where(ExchangeCalendarException.exchange_id == exchange_id)
-            .order_by(ExchangeCalendarException.session_date)
+        (
+            await db.execute(
+                select(ExchangeCalendarException)
+                .where(ExchangeCalendarException.exchange_id == exchange_id)
+                .order_by(ExchangeCalendarException.session_date)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     return {
         "exchange": {"id": exchange.id, "mic": exchange.mic, "timezone": exchange.timezone},
         "rules": [
@@ -150,7 +168,11 @@ async def list_provider_quota(
     db: AsyncSession = Depends(get_db),
     _admin: User = Depends(require_admin),
 ):
-    query = select(ProviderQuotaWindow).order_by(ProviderQuotaWindow.window_started_at.desc()).limit(limit)
+    query = (
+        select(ProviderQuotaWindow)
+        .order_by(ProviderQuotaWindow.window_started_at.desc())
+        .limit(limit)
+    )
     if provider_id is not None:
         query = query.where(ProviderQuotaWindow.data_source_id == provider_id)
     rows = (await db.execute(query)).scalars().all()
@@ -177,7 +199,11 @@ async def list_routing_decisions(
     db: AsyncSession = Depends(get_db),
     _admin: User = Depends(require_admin),
 ):
-    query = select(ProviderRoutingDecision).order_by(ProviderRoutingDecision.created_at.desc()).limit(limit)
+    query = (
+        select(ProviderRoutingDecision)
+        .order_by(ProviderRoutingDecision.created_at.desc())
+        .limit(limit)
+    )
     if request_key:
         query = query.where(ProviderRoutingDecision.request_key == request_key)
     rows = (await db.execute(query)).scalars().all()
@@ -237,7 +263,9 @@ async def list_fundamental_facts(
     db: AsyncSession = Depends(get_db),
     _admin: User = Depends(require_admin),
 ):
-    query = select(FundamentalFact).order_by(FundamentalFact.filed_at.desc().nullslast()).limit(limit)
+    query = (
+        select(FundamentalFact).order_by(FundamentalFact.filed_at.desc().nullslast()).limit(limit)
+    )
     if issuer_id is not None:
         query = query.where(FundamentalFact.issuer_id == issuer_id)
     if instrument_id is not None:
@@ -274,13 +302,17 @@ async def list_short_interest(
     _admin: User = Depends(require_admin),
 ):
     rows = (
-        await db.execute(
-            select(ShortInterestObservation)
-            .where(ShortInterestObservation.instrument_id == instrument_id)
-            .order_by(ShortInterestObservation.settlement_date.desc())
-            .limit(limit)
+        (
+            await db.execute(
+                select(ShortInterestObservation)
+                .where(ShortInterestObservation.instrument_id == instrument_id)
+                .order_by(ShortInterestObservation.settlement_date.desc())
+                .limit(limit)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     return [
         {
             "settlement_date": row.settlement_date,
@@ -304,9 +336,11 @@ async def list_market_coverage(
     db: AsyncSession = Depends(get_db),
     _admin: User = Depends(require_admin),
 ):
-    query = select(MarketCoverageSnapshot).order_by(
-        MarketCoverageSnapshot.evaluated_at.desc()
-    ).limit(limit)
+    query = (
+        select(MarketCoverageSnapshot)
+        .order_by(MarketCoverageSnapshot.evaluated_at.desc())
+        .limit(limit)
+    )
     if instrument_id is not None:
         query = query.where(MarketCoverageSnapshot.instrument_id == instrument_id)
     if status:
@@ -332,6 +366,88 @@ async def list_market_coverage(
     ]
 
 
+@router.get("/universe/runs")
+async def list_universe_reconciliation_runs(
+    provider_id: int | None = None,
+    status: str | None = None,
+    limit: int = Query(default=100, ge=1, le=500),
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    query = (
+        select(MarketUniverseReconciliationRun)
+        .order_by(MarketUniverseReconciliationRun.observed_at.desc())
+        .limit(limit)
+    )
+    if provider_id is not None:
+        query = query.where(MarketUniverseReconciliationRun.data_source_id == provider_id)
+    if status:
+        query = query.where(MarketUniverseReconciliationRun.status == status)
+    rows = (await db.execute(query)).scalars().all()
+    return [
+        {
+            "id": row.id,
+            "data_source_id": row.data_source_id,
+            "quote_type": row.quote_type,
+            "observed_at": row.observed_at,
+            "finished_at": row.finished_at,
+            "status": row.status,
+            "expected_count": row.expected_count,
+            "observed_count": row.observed_count,
+            "new_count": row.new_count,
+            "updated_count": row.updated_count,
+            "missing_count": row.missing_count,
+            "deactivated_count": row.deactivated_count,
+            "quarantined_count": row.quarantined_count,
+            "error": row.error,
+            "provenance": row.provenance,
+        }
+        for row in rows
+    ]
+
+
+@router.get("/universe/lifecycle")
+async def list_universe_lifecycle(
+    provider_id: int | None = None,
+    lifecycle_status: str | None = None,
+    limit: int = Query(default=200, ge=1, le=1000),
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    query = (
+        select(MarketUniverseLifecycleObservation)
+        .order_by(MarketUniverseLifecycleObservation.observed_at.desc())
+        .limit(limit)
+    )
+    if provider_id is not None:
+        query = query.where(MarketUniverseLifecycleObservation.data_source_id == provider_id)
+    if lifecycle_status:
+        query = query.where(MarketUniverseLifecycleObservation.lifecycle_status == lifecycle_status)
+    rows = (await db.execute(query)).scalars().all()
+    return [
+        {
+            "id": row.id,
+            "data_source_id": row.data_source_id,
+            "run_id": row.run_id,
+            "instrument_id": row.instrument_id,
+            "listing_id": row.listing_id,
+            "provider_symbol": row.provider_symbol,
+            "exchange_mic": row.exchange_mic,
+            "quote_type": row.quote_type,
+            "observed_at": row.observed_at,
+            "present": row.present,
+            "lifecycle_status": row.lifecycle_status,
+            "first_seen_at": row.first_seen_at,
+            "last_seen_at": row.last_seen_at,
+            "last_missing_at": row.last_missing_at,
+            "consecutive_seen": row.consecutive_seen,
+            "consecutive_missing": row.consecutive_missing,
+            "payload": row.payload,
+        }
+        for row in rows
+    ]
+
+
 @router.get("/shadow")
 async def get_market_data_shadow_report(
     since: datetime | None = None,
@@ -349,9 +465,11 @@ async def list_shadow_observations(
     db: AsyncSession = Depends(get_db),
     _admin: User = Depends(require_admin),
 ):
-    query = select(ProviderShadowObservation).order_by(
-        ProviderShadowObservation.observed_at.desc()
-    ).limit(limit)
+    query = (
+        select(ProviderShadowObservation)
+        .order_by(ProviderShadowObservation.observed_at.desc())
+        .limit(limit)
+    )
     if capability:
         query = query.where(ProviderShadowObservation.capability == capability)
     rows = (await db.execute(query)).scalars().all()

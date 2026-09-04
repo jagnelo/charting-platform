@@ -104,7 +104,12 @@ class MassiveProvider:
             next_cursor = parse_qs(urlparse(next_url).query).get("cursor", [None])[0]
             if next_cursor:
                 self._cursor_by_page[page + 1] = next_cursor
-        return {"total": len(quotes), "quotes": quotes, "next_url": next_url}
+        return {
+            "total": len(quotes),
+            "quotes": quotes,
+            "next_url": next_url,
+            "next_offset": offset + _PAGE_SIZE if next_url else None,
+        }
 
     def supported_discovery_types(self) -> list[str]:
         return ["EQUITY"]

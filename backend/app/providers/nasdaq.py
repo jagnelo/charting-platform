@@ -27,6 +27,7 @@ from app.models.ohlcv import OHLCVBar, Timeframe
 logger = logging.getLogger(__name__)
 
 _BASE = "https://api.nasdaq.com/api/quote"
+_SCREENER_URL = "https://api.nasdaq.com/api/screener/stocks"
 _PAGE_SIZE = 5_000
 _MAX_PAGES = 4
 _US_DATE = "%Y-%m-%d"
@@ -212,3 +213,77 @@ class NasdaqProvider:
     def get_current_price(self, symbol: str) -> float | None:
         bars = self.fetch_latest_ohlcv(symbol, Timeframe.D1, 1)
         return float(bars[-1].close) if bars else None
+
+    def discover_universe_page(self, quote_type: str, offset: int) -> dict[str, Any]:
+        """Read Nasdaq's public symbol directory as venue evidence.
+
+        The screener includes Nasdaq-listed equities and exchange-traded funds;
+        the provider does not expose a stable all-venue count, so the returned
+        ``total`` is the endpoint's reported row count and every page is kept as
+        an observation for later reconciliation.
+        """
+        normalized = quote_type.strip().upper()
+        if normalized not in {"EQUITY", "ETF"} or offset < 0:
+            return {"total": 0, "quotes": []}
+        try:
+            response = httpx.get(
+                _SCREENER_URL,
+                params={"tableonly": "true", "limit": _PAGE_SIZE, "offset": offset},
+                headers=self._headers(),
+                timeout=30,
+            )
+            response.raise_for_status()
+            payload = response.json()
+        except (httpx.HTTPError, ValueError, TypeError) as exc:
+            logger.warning("nasdaq universe discovery offset=%d failed: %s", offset, exc)
+            return {"total": 0, "quotes": []}
+
+        data = payload.get("data") if isinstance(payload, dict) else None
+        rows = data.get("rows") if isinstance(data, dict) else None
+        if not isinstance(rows, list):
+            return {"total": 0, "quotes": []}
+        quotes: list[dict[str, Any]] = []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            symbol = str(row.get("symbol") or row.get("ticker") or "").strip().upper()
+            if not symbol:
+                continue
+            asset_type = str(row.get("assetType") or row.get("securityType") or "EQUITY").upper()
+            inferred = (
+                "ETF"
+                if "ETF" in asset_type or str(row.get("etf") or "").lower() == "yes"
+                else "EQUITY"
+            )
+            if inferred != normalized:
+                continue
+            quotes.append(
+                {
+                    "symbol": symbol,
+                    "longName": row.get("name") or row.get("securityName") or symbol,
+                    "shortName": row.get("name") or row.get("securityName") or symbol,
+                    "exchange": row.get("exchange") or "Nasdaq",
+                    "currency": "USD",
+                    "quoteType": inferred,
+                    "status": "active",
+                    "source_record": row,
+                }
+            )
+        total = data.get("totalRecords") if isinstance(data, dict) else None
+        try:
+            total_count = int(total)
+        except (TypeError, ValueError):
+            total_count = offset + len(rows)
+        # ``offset`` addresses unfiltered screener rows. The reconciler needs
+        # the raw-page cursor rather than the number of rows matching EQUITY
+        # versus ETF on this page.
+        return {
+            "total": total_count,
+            "quotes": quotes,
+            "next_offset": (
+                offset + len(rows) if rows and offset + len(rows) < total_count else None
+            ),
+        }
+
+    def supported_discovery_types(self) -> list[str]:
+        return ["EQUITY", "ETF"]

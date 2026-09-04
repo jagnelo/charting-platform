@@ -11,9 +11,11 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 
 ## Current implementation boundary
 
-- Phase: foundation and provider governance.
-- Delivered in this boundary: additive FIGI/issuer identity, series and session/calendar models, durable quota/routing/refresh queue primitives, SEC facts/FINRA/event records, optional provider roster descriptors, explicit crypto/futures/options capability labels, QuantLib Greeks, and backend diagnostics.
-- Next: human review of the pushed backend-only foundation; optional adapters, full US lifecycle reconciliation, and the separately approved 30-day shadow deployment remain open gaps.
+- Phase: implementation and integration validation.
+- Delivered in this boundary: additive FIGI/issuer identity, series and session/calendar models, durable quota/routing/refresh queue primitives, SEC facts/FINRA/event records, QuantLib Greeks, and backend diagnostics; concrete opt-in Tiingo/Twelve Data/Finnhub/Marketstack/EODHD/FMP adapters; Nasdaq equity/ETF directory evidence; conservative worker-only US universe lifecycle reconciliation; exchange-aware core D1 coverage snapshots; and migration `4d5e6f708192`.
+- CIK is retained as issuer evidence rather than a security key. New symbols without a security-level identifier remain provisional/quarantined instead of being silently merged, while provider symbol/listing history and repeated-missing evidence remain durable.
+- Validation: final combined backend unit + PostgreSQL/Redis integration gate passed (`1673 passed`, `80.13%` coverage, requirement `75%`). Focused adapter/lifecycle/monitoring checks also pass (`21/21`); no frontend files were changed.
+- Next: human review of the backend-only branch. Operators must separately record reviewed optional-provider entitlements, confirm authoritative US venue feeds, and run the separately approved production/30-day shadow activation; those actions remain disabled and out of scope here.
 - The root worktree has unrelated user changes in `docs/etf-provider-universe.md`; they are intentionally preserved and out of scope.
 - The workflow session record `ops/workstreams/feat-market-data-provider-platform/session.json` is intentionally updated by session lifecycle commands and may be dirty at checkpoint time.
 

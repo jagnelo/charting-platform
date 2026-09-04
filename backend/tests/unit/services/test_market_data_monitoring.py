@@ -37,6 +37,37 @@ async def test_coverage_snapshot_reports_partial_without_fabricating_bars(db, in
 
 
 @pytest.mark.asyncio
+async def test_coverage_snapshots_without_series_remain_per_instrument(
+    db, instrument, instrument_type
+):
+    from app.models.instrument import Instrument
+
+    second = Instrument(
+        symbol="MSFT",
+        name="Microsoft Corp.",
+        currency="USD",
+        instrument_type_id=instrument_type.id,
+        is_active=True,
+    )
+    db.add(second)
+    db.flush()
+    async_db = AsyncSessionAdapter(db)
+    at = datetime(2026, 9, 4, 16, tzinfo=UTC)
+    for current in (instrument, second):
+        await record_coverage_snapshot(
+            async_db,
+            instrument_id=current.id,
+            market_series_id=None,
+            timeframe="D1",
+            expected_bars=1,
+            observed_bars=1,
+            evaluated_at=at,
+        )
+
+    assert db.query(MarketCoverageSnapshot).count() == 2
+
+
+@pytest.mark.asyncio
 async def test_shadow_report_is_explicitly_observational(db):
     async_db = AsyncSessionAdapter(db)
     at = datetime(2026, 9, 4, 16, tzinfo=UTC)
