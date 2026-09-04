@@ -1788,3 +1788,16 @@ holdings rows for OALC. The adapter contracts remain strict. The live test now
 skips only Kensington KAMO with exactly six rows and the exact OneAscent
 no-holdings response; a fresh exact-SHA CI run is required to validate the
 follow-up.
+
+## Corrected live matrix and terminal CI timeout — 2026-09-04
+
+Exact-SHA CI run `33822107891` at
+`f8fa2362b0cb7fd6220fc598de7508079f4ec9a9` passed Backend Tests, Frontend
+Unit Tests, and Branch-declared Tests after the exact Kensington/OneAscent
+guards. The branch-declared matrix therefore completed without provider test
+failures. Playwright again failed before any test began: the workflow's
+five-minute `Start stack` step expired while the frontend Docker image's
+`npm ci` layer was still running. This repeats the infrastructure limitation
+seen in `33811430864`, `33817619636`, and `33819499960`; no ETF or application
+test failed. The earlier exact-SHA run `33813104738` at `792682a2` remains the
+latest complete feature-matrix receipt with Playwright green.
