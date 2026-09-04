@@ -2553,6 +2553,16 @@ test.describe('TC2000 workstation', () => {
     await expect(study).toContainText('Available as a Market Gauge from the saved EasyScan.', { timeout: 30_000 })
     await study.getByRole('button', { name: 'Promote alert: qualifies' }).click()
     await expect(study).toContainText('Promoted to an active scan alert.', { timeout: 30_000 })
+    // A structured Study Lab run must require an explicit named events output
+    // before adapting it to current-data filter/alert semantics. Exercise both
+    // actions through the real API so the multi-output boundary is browser-
+    // covered rather than only unit/integration tested.
+    await expect(study.getByRole('button', { name: 'Save filter: occurrences' })).toBeVisible()
+    await expect(study.getByRole('button', { name: 'Promote alert: occurrences' })).toBeVisible()
+    await study.getByRole('button', { name: 'Save filter: occurrences' }).click()
+    await expect(study).toContainText('Saved event artifact “occurrences” as a reusable watchlist filter.', { timeout: 30_000 })
+    await study.getByRole('button', { name: 'Promote alert: occurrences' }).click()
+    await expect(study).toContainText('Promoted event artifact “occurrences” to an active alert.', { timeout: 30_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
