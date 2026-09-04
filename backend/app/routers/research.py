@@ -48,10 +48,11 @@ RESEARCH_ADJUSTMENTS = {"split_adjusted": True, "raw": False}
 
 
 class ResearchEventSignalPromotionRequest(BaseModel):
-    """Optional naming metadata for a lineage-preserving event promotion."""
+    """Naming and output selection metadata for a lineage-preserving event promotion."""
 
     name: str | None = Field(default=None, min_length=1, max_length=120)
     description: str | None = Field(default=None, max_length=500)
+    artifact_name: str | None = Field(default=None, min_length=1, max_length=128)
 
 
 def _research_manifest_fingerprint(manifest: object) -> str:
@@ -1060,8 +1061,13 @@ async def promote_event_artifact_to_screener(
                 "status": run.status,
             },
         )
+    event_artifacts = [item for item in run.artifacts if item.artifact_type == "events"]
     event_artifact = next(
-        (item for item in run.artifacts if item.artifact_type == "events"),
+        (
+            item
+            for item in event_artifacts
+            if body.artifact_name is None or item.name == body.artifact_name
+        ),
         None,
     )
     if event_artifact is None:
@@ -1069,7 +1075,11 @@ async def promote_event_artifact_to_screener(
             status_code=422,
             detail={
                 "code": "research_filter_promotion_events_artifact_required",
-                "message": "The completed run does not contain an events artifact.",
+                "message": (
+                    "The completed run does not contain the requested events artifact."
+                    if body.artifact_name
+                    else "The completed run does not contain an events artifact."
+                ),
             },
         )
     event_value = (
@@ -1091,13 +1101,21 @@ async def promote_event_artifact_to_screener(
         or source_asset.user_id != current_user.id
         or source_asset.is_archived
         or source_asset.kind not in {"signal", "study"}
-        or source_version.output_contract != "events"
+        or source_version.output_contract not in {"events", "study"}
     ):
         raise HTTPException(
             status_code=422,
             detail={
                 "code": "research_filter_promotion_source_unavailable",
-                "message": "Only a user-owned single-output events source can become a watchlist condition.",
+                "message": "Only a user-owned events or explicitly selected multi-output study source can become a watchlist condition.",
+            },
+        )
+    if source_version.output_contract == "study" and not body.artifact_name:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "research_filter_promotion_artifact_name_required",
+                "message": "A multi-output study must select the events artifact to adapt.",
             },
         )
 
@@ -1161,6 +1179,7 @@ async def promote_event_artifact_to_screener(
         "source_code_version_id": source_version.id,
         "source_artifact_id": event_artifact.id,
         "source_artifact_name": event_artifact.name,
+        "source_output_name": event_artifact.name,
         "source_reproducibility_hash": run.reproducibility_hash,
         "source_dataset_manifest_sha256": _research_manifest_fingerprint(manifest),
         "source_dataset_manifest": _research_manifest_summary(manifest),

@@ -300,6 +300,7 @@ describe('StudyLabTool', () => {
         { id: 11, name: 'matrix', artifact_type: 'heatmap', payload: { value: { rows: ['A', 'B'], columns: ['X', 'Y'], values: [[1, 2], [3, 4]] } } },
         { id: 12, name: 'overview', artifact_type: 'dashboard', payload: { value: { panels: [{ artifact: 'current_streak', title: 'Current streak', span: 4 }] } } },
       ] })
+      if (path === '/research/runs/9/promote-event-filter') return Promise.resolve({ id: 88, name: 'signals Filter' })
       return Promise.resolve({})
     })
     const wrapper = mountTool({ activeSymbol: 'SPY' })
@@ -386,6 +387,14 @@ describe('StudyLabTool', () => {
     await wrapper.findAll('button').find(button => button.text() === 'Promote alert: qualifies')!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Promoted to an active scan alert.'))
     expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/42', expect.any(Object))
+    expect(wrapper.findAll('button').some(button => button.text() === 'Save filter: signals')).toBe(true)
+    expect(wrapper.findAll('button').some(button => button.text() === 'Promote alert: signals')).toBe(true)
+    await wrapper.findAll('button').find(button => button.text() === 'Save filter: signals')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved event artifact “signals” as a reusable watchlist filter.'))
+    expect(apiPost).toHaveBeenCalledWith('/research/runs/9/promote-event-filter', { artifact_name: 'signals' })
+    await wrapper.findAll('button').find(button => button.text() === 'Promote alert: signals')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Promoted event artifact “signals” to an active alert.'))
+    expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 88, trigger_type: 'both', repeat: true, notes: 'Created from event study run 9' })
     await wrapper.find('.study-lab-tool__events button').trigger('click')
     expect(wrapper.emitted('occurrence')?.[0]).toEqual([{ symbol: 'SPY', timestamp: '2026-01-02', kind: 'positive_close' }])
   })

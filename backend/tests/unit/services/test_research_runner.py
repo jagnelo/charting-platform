@@ -229,6 +229,45 @@ def test_runner_event_boolean_adapter_keeps_symbol_and_instrument_lineage_scoped
     ]
 
 
+def test_runner_adapts_named_event_output_from_structured_study():
+    result = execute_job(
+        {
+            "source": (
+                "output.scalar('sample_size', 1)\n"
+                "output.events('signals', [{"
+                "'symbol': dataset['symbol'], 'instrument_id': dataset['instrument_id'], "
+                "'timestamp': market.timestamps()[-1], 'kind': 'signal'}])"
+            ),
+            # The source is a multi-output Study Lab program, while the screener
+            # contract is the explicit event-to-Boolean adapter result.
+            "output_contract": "boolean",
+            "output_name": "signals",
+            "output_adapter": "events_to_boolean",
+            "dataset": {
+                "datasets": [
+                    {
+                        "instrument_id": 1,
+                        "symbol": "SPY",
+                        "timestamps": ["2024-01-01T00:00:00+00:00", "2024-01-02T00:00:00+00:00"],
+                        "closes": [100, 101],
+                    },
+                    {
+                        "instrument_id": 2,
+                        "symbol": "XLK",
+                        "timestamps": ["2024-01-01T00:00:00+00:00", "2024-01-02T00:00:00+00:00"],
+                        "closes": [200, 202],
+                    },
+                ],
+            },
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["batch_cells"]["value"]["cells"] == [
+        {"instrument_id": 1, "symbol": "SPY", "status": "completed", "value": True, "metric": 1.0},
+        {"instrument_id": 2, "symbol": "XLK", "status": "completed", "value": True, "metric": 1.0},
+    ]
+
+
 def test_runner_rejects_non_object_parameters():
     result = execute_job({"source": "output.scalar('x', 1)", "parameters": [1], "dataset": {}})
     assert result["status"] == "failed"

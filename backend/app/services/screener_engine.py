@@ -677,7 +677,7 @@ async def queue_python_screener_run(
     events_adapter = output_adapter == "events_to_boolean"
     if version is None or (
         version.output_contract != "boolean"
-        and not (events_adapter and version.output_contract == "events")
+        and not (events_adapter and version.output_contract in {"events", "study"})
     ):
         raise ValueError(
             "Python screener condition version is unavailable or not Boolean-compatible"

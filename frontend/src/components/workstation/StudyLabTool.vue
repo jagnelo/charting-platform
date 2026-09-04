@@ -383,7 +383,13 @@ const artifactPromotions = computed<ArtifactPromotion[]>(() => {
         { artifact, target: 'gauge', label: 'Use Gauge' },
         { artifact, target: 'alert', label: 'Promote alert' },
       )
-    } else if (artifact.artifact_type === 'events') promotions.push({ artifact, target: 'signal', label: 'Save signal' })
+    } else if (artifact.artifact_type === 'events') {
+      promotions.push(
+        { artifact, target: 'signal', label: 'Save signal' },
+        { artifact, target: 'filter', label: 'Save filter' },
+        { artifact, target: 'alert', label: 'Promote alert' },
+      )
+    }
   }
   return promotions
 })
@@ -663,6 +669,19 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
   promotionBusy.value = true
   promotionStatus.value = ''
   try {
+    if (selectedArtifact?.artifact_type === 'events' && (target === 'filter' || target === 'alert')) {
+      if (!selectedOutputName || run.value?.id == null) throw new Error('Select a named event artifact before creating a current-data filter.')
+      const promoted = await api.post<{ id: number; name: string }>(`/research/runs/${run.value.id}/promote-event-filter`, {
+        artifact_name: selectedOutputName,
+      })
+      if (target === 'alert') {
+        await api.post('/alerts/screener', { screener_id: promoted.id, trigger_type: 'both', repeat: true, notes: `Created from event study run ${run.value.id}` })
+        promotionStatus.value = `Promoted event artifact “${selectedOutputName}” to an active alert.`
+      } else {
+        promotionStatus.value = `Saved event artifact “${selectedOutputName}” as a reusable watchlist filter.`
+      }
+      return
+    }
     const isBooleanTarget = target === 'filter' || target === 'scan' || target === 'gauge' || target === 'alert'
     const requiredContract = isBooleanTarget ? 'boolean' : contract
     // A column is a separately typed library asset even when the study has a

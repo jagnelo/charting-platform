@@ -201,6 +201,7 @@ class TestStrategyLabAPI:
                 "source_code_version_id": version.id,
                 "source_artifact_id": run.artifacts[0].id,
                 "source_artifact_name": "breakout_events",
+                "source_output_name": "breakout_events",
                 "source_reproducibility_hash": "event-filter-hash",
                 "source_dataset_manifest_sha256": hashlib.sha256(
                     json.dumps(
@@ -227,6 +228,89 @@ class TestStrategyLabAPI:
                 "point_in_time_source_preserved": False,
             },
         }
+
+    def test_multi_output_study_event_artifact_promotes_to_scoped_python_filter(
+        self, client, auth_headers, db, user
+    ):
+        """A named event output from a structured Study Lab run uses the explicit adapter."""
+        from app.models.research import CodeAsset, CodeVersion, ResearchArtifact, ResearchRun
+
+        asset = CodeAsset(
+            user_id=user.id,
+            stable_key="structured-event-filter-promotion",
+            name="Structured event study",
+            kind="study",
+        )
+        db.add(asset)
+        db.flush()
+        version = CodeVersion(
+            code_asset_id=asset.id,
+            version_number=1,
+            source=(
+                "output.scalar('sample_size', 1)\n"
+                "output.events('signals', [{'symbol': dataset['symbol'], 'timestamp': "
+                "market.timestamps()[-1], 'kind': 'signal'}])"
+            ),
+            output_contract="study",
+        )
+        db.add(version)
+        db.flush()
+        run = ResearchRun(
+            user_id=user.id,
+            code_version_id=version.id,
+            status="completed",
+            run_config={"symbols": ["SPY"], "timeframe": "D1"},
+            dataset_manifest={
+                "source": "canonical_database",
+                "timeframe": "D1",
+                "datasets": [{"instrument_id": 7, "symbol": "SPY"}],
+            },
+            reproducibility_hash="structured-event-filter-hash",
+        )
+        run.artifacts.append(
+            ResearchArtifact(
+                artifact_type="events",
+                name="signals",
+                payload={
+                    "value": [
+                        {
+                            "symbol": "SPY",
+                            "timestamp": "2026-01-02",
+                            "kind": "signal",
+                            "instrument_id": 7,
+                        }
+                    ]
+                },
+            )
+        )
+        db.add(run)
+        db.flush()
+
+        response = client.post(
+            f"/api/v1/research/runs/{run.id}/promote-event-filter",
+            headers=auth_headers,
+            json={"artifact_name": "signals", "name": "Structured event filter"},
+        )
+
+        assert response.status_code == 201, response.text
+        payload = response.json()
+        assert payload["universe_instrument_ids"] == [7]
+        assert payload["conditions"]["code_version_id"] == version.id
+        assert payload["conditions"]["output_name"] == "signals"
+        assert payload["conditions"]["output_adapter"] == "events_to_boolean"
+        assert payload["conditions"]["provenance"]["output_contract"] == "study"
+        assert payload["conditions"]["provenance"]["source_output_name"] == "signals"
+
+        missing_name = client.post(
+            f"/api/v1/research/runs/{run.id}/promote-event-filter",
+            headers=auth_headers,
+            json={"name": "Missing event name"},
+        )
+        assert missing_name.status_code == 422
+        assert (
+            missing_name.json()["detail"]["code"]
+            == "research_filter_promotion_artifact_name_required"
+        )
 
     def test_study_lab_signal_promotion_creates_strategy_definition_reference(
         self, client, auth_headers
