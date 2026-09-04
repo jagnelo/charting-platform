@@ -2058,6 +2058,15 @@ fresh-stack Study Lab `F8p-current-history` missing-histogram failure at
 `flows.spec.ts:2602`; the post-repair gate at `a696277b` passed. A fresh
 exact-SHA CI run remains required before closure.
 
+The follow-up exact-SHA run `33855800464` at the synchronized tip
+`4e621f8b9e3898bb4f165aa7698a5ba0ae00b266` reproduced the same result: backend,
+frontend, and branch-declared tests passed (567 deterministic, 2 default-live
+with 504 skips, and 492 opt-in live with 14 evidence-backed skips), while the
+Playwright `Start stack` action timed out at five minutes before stack health
+or browser assertions. An administrator-authorized rerun is required because
+the current GitHub credential cannot rerun jobs (`Must have admin rights to
+Repository`).
+
 ## Swan guard exact-head branch validation — 2026-09-04
 
 Follow-up CI run `33844078467` on
