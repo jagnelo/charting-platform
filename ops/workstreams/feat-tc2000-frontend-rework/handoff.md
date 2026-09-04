@@ -822,3 +822,17 @@ Evidence at this checkpoint:
 Remaining provider/history gaps are unchanged: 76 QQQ placeholders still require auditable
 identifier enrichment, QQQE/SPDR dated sources and MN/W1 continuity remain open, and the six
 unchanged visual-oracle diffs remain a human-review blocker.
+
+## 2026-09-04 — Exact-tip gate after shared source-resolver checkpoint
+
+The exact-tip `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` run at
+`1dd53dd5` passed Git/workstream validation, locked backend dependencies, migration-head checks,
+migration compatibility (no migration changes), frontend dependency installation, and Ruff's
+semantic checks. It stopped at the repository-wide Ruff formatter check because three existing
+files would be reformatted: `backend/app/workers/arq_worker.py`,
+`backend/tests/integration/api/test_watchlists.py`, and
+`backend/tests/integration/api/test_workspaces.py`. The touched resolver file is formatted and is
+not among the remaining offenders. The gate did not reach coverage, frontend tests/build, stack
+health, browser, or visual stages at this tip; the previously recorded visual result remains
+98/104 with the same six unchanged diffs. This is a repository-format debt blocker, not a source
+resolver regression, and no broad formatter cleanup is authorized in this feature slice.
