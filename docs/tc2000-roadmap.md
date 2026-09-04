@@ -26,10 +26,16 @@ differing pixels each), and `workspace-floating` at visual-1080p-100 (`9,770`), 
 and resource accounting were clean; no visual oracle, provider fallback, or acceptance policy
 was changed.
 
-Since that gate, product commit `1918ca81` (`feat(tc2000): promote structured study events`)
-adds explicit named-event promotion from multi-output Study Lab studies to scoped current-data
-watchlist filters and alerts. Its focused and full frontend/backend checks are green; the
-exhaustive gate is queued at this new tip and the six visual diffs remain unchanged until rerun.
+The exact-tip exhaustive gate was then rerun at product commit `1918ca81` (`feat(tc2000): promote
+structured study events`). Backend units passed `1,311/1,311`, integration `382/382` with the
+existing `54` warnings, combined coverage remained `80.90%`, frontend Vitest passed `934/934`,
+and all static/build/compose/provider/runner and functional Playwright stages passed (`155` with
+`106` documented skips across `261`). The unchanged visual matrix remains the only failure:
+`98/104` passed and six screenshot diffs remain—`watchlist-column-editor-open` at
+visual-1080p-100/125 (`13,844` each), and `workspace-floating` at visual-1080p-100 (`12,097`),
+visual-1080p-125 (`11,901`), visual-1440p-100 (`12,097`), and visual-1440p-125 (`5,512`).
+Docker teardown and resource accounting were clean; no visual oracle, provider fallback, or
+acceptance policy was changed.
 
 The work is one continuous delivery stint, not an MVP followed by optional phases. The workstreams
 below are dependency-ordered checkpoints so correctness, data lineage, and visual evidence can be

@@ -10,6 +10,24 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-04 — Exact-tip exhaustive gate after structured Study Lab event adapters
+
+The exhaustive integration profile was rerun at product tip `1918ca81` after the structured-study
+event promotion slice. Locked dependencies/migrations, Ruff/format, TypeScript, backend units
+(`1,311/1,311`), integration (`382/382` with the existing `54` warnings), combined coverage
+(`80.90%`), frontend Vitest (`934/934` across `108` files), production build, compose/provider
+policy, assigned-stack health, research-runner isolation, and authenticated functional Playwright
+(`155` passes with `106` documented skips across `261` specs) all passed. Teardown removed the
+assigned stack and the resource audit reported zero containers, volumes, known image bytes, and
+test-container sessions.
+
+The unchanged four-project visual matrix remains the only failing stage: `98/104` passed and six
+assertions failed. `watchlist-column-editor-open` reported `13,844` differing pixels at
+visual-1080p-100 and visual-1080p-125. `workspace-floating` reported `12,097` at
+visual-1080p-100, `11,901` at visual-1080p-125, `12,097` at visual-1440p-100, and `5,512` at
+visual-1440p-125. These remain explicit review blockers; no baseline, mask, threshold, skip,
+fallback oracle, provider rule, or acceptance policy changed. The workstream remains active.
+
 ## 2026-09-04 — Structured Study Lab event promotion adapters
 
 Product commit `1918ca81` (`feat(tc2000): promote structured study events`) extends the

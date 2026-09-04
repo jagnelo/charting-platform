@@ -1,5 +1,26 @@
 # Project TODO Memory
 
+### 2026-09-04 — Exact-tip exhaustive gate after structured Study Lab event adapters
+
+- [x] Rerun `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at
+      product tip `1918ca81`. Locked dependencies/migrations, Ruff/format, TypeScript, backend
+      units (`1,311/1,311`), integration (`382/382` with the existing `54` warnings), combined
+      coverage (`80.90%`), frontend Vitest (`934/934` across `108` files), production build,
+      compose/provider policy, assigned-stack health, research-runner isolation, and authenticated
+      functional Playwright (`155` passed and `106` documented skips across `261` specs) all
+      passed. The stack was torn down and the resource audit reported zero containers, volumes,
+      known image bytes, and test-container sessions.
+- [x] Preserve the unchanged visual result as an explicit blocker: the four-project matrix
+      completed `104` cases with `98` passes and six failures—`watchlist-column-editor-open` at
+      visual-1080p-100/125 (`13,844` differing pixels each), and `workspace-floating` at
+      visual-1080p-100 (`12,097`), visual-1080p-125 (`11,901`), visual-1440p-100 (`12,097`),
+      and visual-1440p-125 (`5,512`). No baseline, mask, threshold, skip, fallback oracle,
+      provider rule, or acceptance policy changed; the intentional canonical-row state in the
+      floating window remains part of the review evidence.
+- [ ] Continue the remaining compatible chart/list/gauge and richer Study Lab promotion targets,
+      canonical provider/history enrichment, native-window/accessibility/security evidence, and
+      visual-oracle review. The feature goal remains active and is not yet ready for human review.
+
 ### 2026-09-04 — Structured Study Lab event promotion adapters
 
 - [x] Extend Study Lab promotion controls so named `events` artifacts from a multi-output
@@ -17,7 +38,8 @@
       integration passed `3/3`; Study Lab component tests passed `24/24`; full frontend Vitest
       passed `934/934` across `108` files; type-check, production build, compileall, Ruff,
       format, and diff checks passed. Product commit `1918ca81` contains the implementation.
-- [ ] Rerun the exhaustive branch gate at product tip `1918ca81`, then continue the remaining
+- [x] Rerun the exhaustive branch gate at product tip `1918ca81`; the exact receipt is recorded
+      immediately above and preserves the six visual blockers. Continue the remaining
       chart/list/gauge and richer Study Lab promotion targets, canonical provider/history
       enrichment, native-window/accessibility/security evidence, and visual-oracle review. No
       visual baseline, mask, threshold, skip, fallback oracle, provider rule, or acceptance
