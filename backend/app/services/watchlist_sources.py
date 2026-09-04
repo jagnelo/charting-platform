@@ -20,7 +20,11 @@ from app.models.user import User
 from app.models.watchlist import Watchlist
 from app.models.workstation import MarketGroup, WorkspaceLibraryItem
 from app.schemas.watchlist import WatchlistSourceRead
-from app.services.etf_holdings import is_equity_holding_type, normalize_holding_type
+from app.services.etf_holdings import (
+    is_equity_holding_type,
+    is_placeholder_symbol,
+    normalize_holding_type,
+)
 
 PENDING_SOURCE_AVAILABILITIES = frozenset(
     {
@@ -63,6 +67,29 @@ class ResolvedWatchlistSource:
     descriptor: WatchlistSourceRead
     members: tuple[ResolvedWatchlistMember, ...]
     exclusions: tuple[dict, ...] = ()
+
+
+def _canonical_member_descriptor(
+    descriptor: WatchlistSourceRead,
+    *,
+    member_count: int,
+    placeholder_member_count: int,
+) -> WatchlistSourceRead:
+    """Align a locked holdings descriptor with publishable canonical members."""
+
+    provenance = {
+        **(descriptor.provenance or {}),
+        "canonical_member_count": member_count,
+        "placeholder_member_count": placeholder_member_count,
+    }
+    if member_count == 0 and descriptor.member_count:
+        provenance["availability"] = "holdings_snapshot_unresolved"
+    return descriptor.model_copy(
+        update={
+            "member_count": member_count,
+            "provenance": provenance,
+        }
+    )
 
 
 def _version(prefix: str, identifier: object, effective_at: datetime | None = None) -> str:
@@ -1171,7 +1198,7 @@ async def resolve_watchlist_source(
         rows = (
             (
                 await db.execute(
-                    select(ETFHolding)
+                    select(ETFHolding).options(selectinload(ETFHolding.constituent_instrument))
                     .where(ETFHolding.snapshot_id == snapshot.id)
                     .order_by(ETFHolding.position)
                 )
@@ -1186,10 +1213,13 @@ async def resolve_watchlist_source(
             and is_equity_holding_type(holding.holding_type)
             and holding.is_resolved
             and holding.constituent_instrument_id is not None
+            and holding.constituent_instrument is not None
+            and not is_placeholder_symbol(holding.constituent_instrument.symbol)
         ]
         equal_weight = 1.0 / len(valid_rows) if derived and valid_rows else None
         members: list[ResolvedWatchlistMember] = []
         exclusions: list[dict] = []
+        placeholder_ids: set[int] = set()
         for holding in rows:
             holding_type = normalize_holding_type(holding.holding_type)
             row_type = normalize_holding_type(holding.row_type)
@@ -1203,6 +1233,12 @@ async def resolve_watchlist_source(
                 exclusions.append({"holding_id": holding.id, "reason": "non_equity_holding"})
                 continue
             if not holding.is_resolved or holding.constituent_instrument_id is None:
+                exclusions.append({"holding_id": holding.id, "reason": "unresolved_holding"})
+                continue
+            if holding.constituent_instrument is None or is_placeholder_symbol(
+                holding.constituent_instrument.symbol
+            ):
+                placeholder_ids.add(holding.constituent_instrument_id)
                 exclusions.append({"holding_id": holding.id, "reason": "unresolved_holding"})
                 continue
             members.append(
@@ -1221,7 +1257,11 @@ async def resolve_watchlist_source(
                 )
             )
         return ResolvedWatchlistSource(
-            descriptor=descriptor,
+            descriptor=_canonical_member_descriptor(
+                descriptor,
+                member_count=len(members),
+                placeholder_member_count=len(placeholder_ids),
+            ),
             members=tuple(members),
             exclusions=tuple(exclusions),
         )
@@ -1330,7 +1370,7 @@ async def resolve_watchlist_source(
         rows = (
             (
                 await db.execute(
-                    select(ETFHolding)
+                    select(ETFHolding).options(selectinload(ETFHolding.constituent_instrument))
                     .where(ETFHolding.snapshot_id == snapshot.id)
                     .order_by(ETFHolding.position)
                 )
@@ -1340,6 +1380,7 @@ async def resolve_watchlist_source(
         )
         members: list[ResolvedWatchlistMember] = []
         exclusions: list[dict] = []
+        placeholder_ids: set[int] = set()
         for holding in rows:
             holding_type = normalize_holding_type(holding.holding_type)
             row_type = normalize_holding_type(holding.row_type)
@@ -1355,6 +1396,12 @@ async def resolve_watchlist_source(
             if not holding.is_resolved or holding.constituent_instrument_id is None:
                 exclusions.append({"holding_id": holding.id, "reason": "unresolved_holding"})
                 continue
+            if holding.constituent_instrument is None or is_placeholder_symbol(
+                holding.constituent_instrument.symbol
+            ):
+                placeholder_ids.add(holding.constituent_instrument_id)
+                exclusions.append({"holding_id": holding.id, "reason": "unresolved_holding"})
+                continue
             members.append(
                 ResolvedWatchlistMember(
                     instrument_id=holding.constituent_instrument_id,
@@ -1367,7 +1414,11 @@ async def resolve_watchlist_source(
                 )
             )
         return ResolvedWatchlistSource(
-            descriptor=_etf_descriptor(profile, instrument, snapshot),
+            descriptor=_canonical_member_descriptor(
+                _etf_descriptor(profile, instrument, snapshot),
+                member_count=len(members),
+                placeholder_member_count=len(placeholder_ids),
+            ),
             members=tuple(members),
             exclusions=tuple(exclusions),
         )

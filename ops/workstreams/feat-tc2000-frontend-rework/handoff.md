@@ -796,3 +796,26 @@ This closes a canonical-readiness accounting and queue-efficiency defect only. T
 QQQ placeholder bindings, full member-bar continuity, MN/W1 coverage, QQQE/SPDR dated sources,
 and the six unchanged visual-oracle diffs remain open. No provider fallback, visual baseline,
 threshold, mask, skip, integration, promotion, deployment, or protected worktree changed.
+
+## 2026-09-04 — Shared source resolver excludes placeholder members
+
+The common `resolve_watchlist_source` path now applies the same canonical-member boundary for both
+`etf-holdings:<symbol>` and `benchmark-family:<family>:<role>` sources. It eagerly loads the linked
+instrument, excludes internal `HOLDING-*` rows from returned members and derived equal-weight
+denominators, and retains each excluded row as an `unresolved_holding` diagnostic. The resolved
+descriptor reports `canonical_member_count` and `placeholder_member_count`; a snapshot containing
+only placeholders is marked `holdings_snapshot_unresolved` rather than available. This closes the
+admin/core history-planner path that could otherwise reintroduce placeholders after the coverage
+and worker fixes.
+
+Evidence at this checkpoint:
+
+- ETF and benchmark-family resolver regressions passed `2/2` in Docker-backed focused integration.
+- The complete watchlists integration module passed `49/49`; the benchmark-family workspace matrix
+  passed `23/23`.
+- Ruff, compileall, and diff checks passed for the resolver and tests. No visual oracle, threshold,
+  mask, skip, provider fallback, or protected worktree changed.
+
+Remaining provider/history gaps are unchanged: 76 QQQ placeholders still require auditable
+identifier enrichment, QQQE/SPDR dated sources and MN/W1 continuity remain open, and the six
+unchanged visual-oracle diffs remain a human-review blocker.

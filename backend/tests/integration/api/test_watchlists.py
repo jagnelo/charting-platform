@@ -1601,7 +1601,14 @@ class TestWatchlistsCrud:
             instrument_type_id=instrument_type.id,
             is_active=True,
         )
-        db.add(mdy)
+        placeholder = Instrument(
+            symbol="HOLDING-MDY-PLACEHOLDER",
+            name="Unresolved MDY holding",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add_all([mdy, placeholder])
         db.flush()
         profile = ETFProfile(instrument_id=mdy.id, adapter_status="resolved")
         db.add(profile)
@@ -1614,8 +1621,8 @@ class TestWatchlistsCrud:
             source_provider="controlled_fixture",
             source_quality="issuer_disclosed",
             completeness_status="complete",
-            row_count=1,
-            resolved_count=1,
+            row_count=2,
+            resolved_count=2,
             unresolved_count=0,
             total_weight=1.0,
             snapshot_hash="family-derived-equal-source",
@@ -1633,6 +1640,20 @@ class TestWatchlistsCrud:
                 holding_type="equity",
                 row_type="security",
                 source_row_hash="family-derived-equal-row",
+                is_resolved=True,
+            )
+        )
+        db.add(
+            ETFHolding(
+                snapshot_id=snapshot.id,
+                constituent_instrument_id=placeholder.id,
+                position=1,
+                reported_symbol=placeholder.symbol,
+                reported_name=placeholder.name,
+                weight=0.25,
+                holding_type="equity",
+                row_type="security",
+                source_row_hash="family-derived-placeholder-row",
                 is_resolved=True,
             )
         )
@@ -1661,11 +1682,18 @@ class TestWatchlistsCrud:
         assert resolved.status_code == 200, resolved.text
         resolved_payload = resolved.json()
         assert resolved_payload["source"]["provenance"]["derived"] is True
+        assert resolved_payload["source"]["member_count"] == 1
+        assert resolved_payload["source"]["provenance"]["canonical_member_count"] == 1
+        assert resolved_payload["source"]["provenance"]["placeholder_member_count"] == 1
+        assert resolved_payload["members"]
+        assert len(resolved_payload["members"]) == 1
         assert resolved_payload["members"][0]["instrument_id"] == instrument.id
         assert resolved_payload["members"][0]["weight"] == 1.0
         assert resolved_payload["members"][0]["relationship_type"] == (
             "derived_equal_weight_constituent"
         )
+        assert len(resolved_payload["exclusions"]) == 1
+        assert resolved_payload["exclusions"][0]["reason"] == "unresolved_holding"
 
         market_map = client.post(
             "/api/v1/analysis/market-map",
@@ -2224,6 +2252,90 @@ class TestWatchlistsCrud:
         assert body["source"]["locked"] is True
         assert body["cells"][0]["area_value"] == 1.0
         assert body["cells"][0]["area_provenance"]["kind"] == "point_in_time_membership"
+
+    def test_etf_holdings_resolver_excludes_internal_placeholder_members(
+        self, client, auth_headers, db, instrument, instrument_b, instrument_type
+    ):
+        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import Instrument
+
+        placeholder = Instrument(
+            symbol="HOLDING-ETF-PLACEHOLDER",
+            name="Unresolved ETF holding",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add(placeholder)
+        db.flush()
+        profile = ETFProfile(
+            instrument_id=instrument.id,
+            issuer="Controlled issuer",
+            adapter_key="controlled_fixture",
+            adapter_status="resolved",
+        )
+        db.add(profile)
+        db.flush()
+        snapshot = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=datetime(2024, 1, 1, tzinfo=UTC).date(),
+            known_at=datetime(2024, 1, 2, tzinfo=UTC),
+            provenance="issuer_native",
+            source_provider="controlled_fixture",
+            source_quality="issuer_disclosed",
+            completeness_status="complete",
+            row_count=2,
+            resolved_count=2,
+            unresolved_count=0,
+            total_weight=1.0,
+            snapshot_hash="etf-placeholder-resolver-fixture",
+        )
+        db.add(snapshot)
+        db.flush()
+        db.add_all(
+            [
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=instrument_b.id,
+                    position=0,
+                    reported_symbol=instrument_b.symbol,
+                    reported_name=instrument_b.name,
+                    weight=0.75,
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_hash="etf-placeholder-canonical-row",
+                    is_resolved=True,
+                ),
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=placeholder.id,
+                    position=1,
+                    reported_symbol=placeholder.symbol,
+                    reported_name=placeholder.name,
+                    weight=0.25,
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_hash="etf-placeholder-placeholder-row",
+                    is_resolved=True,
+                ),
+            ]
+        )
+        db.flush()
+
+        source_id = f"etf-holdings:{instrument.symbol}"
+        resolved = client.get(
+            f"/api/v1/watchlists/sources/{source_id}",
+            headers=auth_headers,
+            params={"as_of": "2024-01-03T00:00:00Z"},
+        )
+        assert resolved.status_code == 200, resolved.text
+        payload = resolved.json()
+        assert payload["source"]["member_count"] == 1
+        assert payload["source"]["provenance"]["canonical_member_count"] == 1
+        assert payload["source"]["provenance"]["placeholder_member_count"] == 1
+        assert [member["instrument_id"] for member in payload["members"]] == [instrument_b.id]
+        assert len(payload["exclusions"]) == 1
+        assert payload["exclusions"][0]["reason"] == "unresolved_holding"
 
     def test_combo_source_is_locked_derived_universe_for_the_same_market_map_contract(
         self, client, auth_headers, db, instrument, instrument_b

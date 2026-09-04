@@ -15,6 +15,11 @@
       enrichment still required. Focused queue coverage passes `10/10`, the Docker-backed
       benchmark-family integration matrix passes `23/23`, backend units pass `1298/1298`,
       frontend Vitest passes `926/926`, type-check, compileall, Ruff, and diff checks pass.
+- [x] Apply the same canonical-member filter to the shared ETF and benchmark-family source
+      resolver used by watchlist routes, Market Map, breadth, research, and history planning.
+      Resolved descriptors now report canonical and placeholder counts, all-placeholder snapshots
+      remain unresolved, and both source paths are covered by the complete watchlists integration
+      module (`49/49`) plus the benchmark-family matrix (`23/23`).
 - [ ] Continue bounded identifier enrichment for the remaining QQQ placeholders only with
       auditable provider evidence; no symbol guess or latest-only fallback is acceptable.
 
