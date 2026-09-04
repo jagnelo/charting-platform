@@ -43,6 +43,14 @@ machine-readable result, including the exact window, eligible and passing
 counts, success rate, per-symbol freshness streaks, missing-symbol coverage,
 and violation details.
 
+The same capability response carries dated `symbol_audit.evidence_refs` for
+the Tier 0 ledger and the first ranked Tier 1 fallback cohort. Those references
+are explanatory audit evidence only: an `unavailable`, `not_applicable`, or
+`unknown` audit outcome remains non-usable for current analysis, even if a
+stored snapshot or SEC reconstruction is present. New cohort entries must be
+added to the branch ledger and runtime map together, with an exact provider
+identity match; an identity mismatch falls back to `unknown` until reconciled.
+
 ## Operational procedure
 
 1. Confirm that the shared provider-platform entitlement, quota, health, and

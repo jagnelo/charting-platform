@@ -219,18 +219,47 @@ def test_tier_zero_symbol_audit_accepts_reconciled_provider_aliases():
 
 
 def test_identity_only_fallback_symbols_remain_unknown_until_symbol_route_evidence():
-    result = symbol_audit_for_profile(profile_with_symbol("TALV", "aegon"))
+    result = symbol_audit_for_profile(profile_with_symbol("BGGG", "baillie_gifford"))
 
     assert result.tier == 1
     assert result.outcome == "unknown"
     assert result.evidence_state == "identity_level_only"
-    assert result.provider_identity == "aegon"
+    assert result.provider_identity == "baillie_gifford"
     assert result.investigated_at == date(2026, 7, 26)
+
+
+def test_ranked_fallback_symbol_audit_uses_explicit_issuer_evidence():
+    result = symbol_audit_for_profile(profile_with_symbol("TALV", "aegon"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "issuer_route_access_blocked"
+    assert result.provider_identity == "aegon"
+    assert result.investigated_at == date(2026, 9, 3)
+    assert result.evidence_refs == ("web:aegonam-us-asset-management-capabilities-2026-09-03",)
+
+
+def test_ranked_fallback_symbol_audit_rejects_provider_identity_mismatch():
+    result = symbol_audit_for_profile(profile_with_symbol("TALV", "other_provider"))
+
+    assert result.tier == 1
+    assert result.outcome == UNKNOWN
+    assert result.evidence_state == "profile_provider_identity_mismatch"
+    assert result.provider_identity == "other_provider"
+    assert result.evidence_refs == ("web:aegonam-us-asset-management-capabilities-2026-09-03",)
+
+
+def test_ranked_fallback_terminal_symbol_is_not_applicable():
+    result = symbol_audit_for_profile(profile_with_symbol("ADFI", "anfield"))
+
+    assert result.tier == 1
+    assert result.outcome == "not_applicable"
+    assert result.evidence_state == "inactive_or_successor_disposition"
 
 
 def test_unreviewed_fallback_symbol_cannot_be_marked_current_from_a_snapshot_alone():
     result = evaluate_capability(
-        profile_with_symbol("TALV", "aegon"),
+        profile_with_symbol("BGGG", "baillie_gifford"),
         snapshot(),
         state(),
         now=NOW,

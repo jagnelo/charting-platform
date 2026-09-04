@@ -183,6 +183,7 @@ export interface ETFHoldingsSymbolAudit {
   provider_identity?: string | null
   investigated_at?: string | null
   next_action: string
+  evidence_refs?: string[]
 }
 
 export interface ETFHoldingsCapability {

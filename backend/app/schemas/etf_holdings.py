@@ -13,6 +13,7 @@ class ETFHoldingsSymbolAuditOut(BaseModel):
     provider_identity: str | None = None
     investigated_at: date | None = None
     next_action: str
+    evidence_refs: list[str] = Field(default_factory=list)
 
 
 class ETFHoldingsCapabilityOut(BaseModel):

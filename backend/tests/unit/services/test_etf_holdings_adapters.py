@@ -62,7 +62,10 @@ from app.services.etf_holdings_adapters import (
     parse_xlsx_table,
     registered_adapter_keys,
 )
-from app.services.etf_holdings_capability import _TIER_0_SYMBOL_AUDITS
+from app.services.etf_holdings_capability import (
+    _NON_TIER_0_SYMBOL_AUDITS,
+    _TIER_0_SYMBOL_AUDITS,
+)
 
 
 class MockDate(date):
@@ -28046,3 +28049,26 @@ def test_symbol_priority_ledger_matches_runtime_tier_zero_audits():
             == audit.investigated_at
         )
         assert row["next_action"]
+
+
+def test_symbol_audit_ledger_matches_runtime_ranked_fallback_cohort():
+    ledger_path = (
+        Path(__file__).resolve().parents[4]
+        / "ops"
+        / "workstreams"
+        / "feat-etf-holdings-constituents"
+        / "provider-audit.yaml"
+    )
+    ledger = yaml.safe_load(ledger_path.read_text())
+    rows = ledger["symbol_audit_ledger"]["symbols"]
+
+    assert {row["symbol"] for row in rows} == set(_NON_TIER_0_SYMBOL_AUDITS)
+    assert all(row["tier"] == 1 for row in rows)
+    for row in rows:
+        audit = _NON_TIER_0_SYMBOL_AUDITS[row["symbol"]]
+        assert row["provider_identity"] == audit.provider_identity
+        assert row["current_outcome"] == audit.outcome
+        assert row["evidence_state"] == audit.evidence_state
+        assert date.fromisoformat(str(row["investigated_at"])) == audit.investigated_at
+        assert tuple(row["evidence_refs"]) == audit.evidence_refs
+        assert row["next_action"] == audit.next_action

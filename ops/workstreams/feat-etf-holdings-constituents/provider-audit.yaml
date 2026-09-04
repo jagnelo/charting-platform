@@ -12,7 +12,7 @@ ranking_method: "Lexicographic descending estimated US ETF count, descending est
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
 symbol_priority_ledger:
-  policy: "Tier 0 symbols are high-relevance U.S.-listed ETFs selected from benchmark/proxy roles, platform usage, and the approved WisdomTree, PIMCO, and F/m priority families. Outcomes are symbol-level observations and must not be inferred from an identity-level adapter registration."
+  policy: "Tier 0 symbols are high-relevance U.S.-listed ETFs selected from benchmark/proxy roles, platform usage, and the approved WisdomTree, PIMCO, and F/m priority families. Tier 1 entries below are the first ranked fallback cohort. Outcomes are symbol-level observations and must not be inferred from an identity-level adapter registration."
   free_first_monthly_budget: "20 EUR/USD-equivalent platform-wide; no paid source activation or credentials are authorized by this ledger."
   symbols:
     - symbol: DXJ
@@ -105,6 +105,129 @@ symbol_priority_ledger:
       current_outcome: unavailable
       evidence_state: route_requires_bounded_canary
       next_action: "Run the opt-in F/m symbol-scoped canary and record source, schema, completeness, and freshness evidence."
+symbol_audit_ledger:
+  policy: "Tier 1 records are explicit symbol-scoped outcomes for the first ranked fallback cohort. They carry issuer-specific dated evidence and never promote a symbol to current support; unavailable and not-applicable outcomes remain non-usable until a new investigation proves otherwise."
+  symbols:
+    - symbol: TALV
+      tier: 1
+      provider_identity: aegon
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-03
+      evidence_refs: [web:aegonam-us-asset-management-capabilities-2026-09-03]
+      next_action: "Re-test the official Transamerica TALV/TABD product and holdings routes; promote only after complete current rows, symbol mapping, parser coverage, and bounded live evidence are proven."
+    - symbol: TABD
+      tier: 1
+      provider_identity: aegon
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-03
+      evidence_refs: [web:aegonam-us-asset-management-capabilities-2026-09-03]
+      next_action: "Re-test the official Transamerica TALV/TABD product and holdings routes; promote only after complete current rows, symbol mapping, parser coverage, and bounded live evidence are proven."
+    - symbol: ADFI
+      tier: 1
+      provider_identity: anfield
+      current_outcome: not_applicable
+      evidence_state: inactive_or_successor_disposition
+      investigated_at: 2026-09-03
+      evidence_refs: [web:anfield-adfi-current-close-notice-2026-09-03]
+      next_action: "Confirm the ADFI closure/successor record; reopen only if a current successor issuer publishes a complete executable holdings artifact."
+    - symbol: GAUD
+      tier: 1
+      provider_identity: guinness_atkinson
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-03
+      evidence_refs: [web:guinness-atkinson-fund-resources-2026-09-03]
+      next_action: "Re-test the official Fund Resources and symbol-scoped ETF routes; promote only after complete rows, mapping, parser fixtures, and bounded live evidence are available."
+    - symbol: GAID
+      tier: 1
+      provider_identity: guinness_atkinson
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-03
+      evidence_refs: [web:guinness-atkinson-fund-resources-2026-09-03]
+      next_action: "Re-test the official Fund Resources and symbol-scoped ETF routes; promote only after complete rows, mapping, parser fixtures, and bounded live evidence are available."
+    - symbol: UDIV
+      tier: 1
+      provider_identity: manulife
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-03
+      evidence_refs: [web:manulife-canadian-etf-catalogue-2026-09-03]
+      next_action: "Re-test Manulife/John Hancock symbol-scoped routes; promote only if a complete U.S.-listed holdings artifact, mapping, parser fixture, and live proof are established."
+    - symbol: UDEF
+      tier: 1
+      provider_identity: manulife
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-03
+      evidence_refs: [web:manulife-canadian-etf-catalogue-2026-09-03]
+      next_action: "Re-test Manulife/John Hancock symbol-scoped routes; promote only if a complete U.S.-listed holdings artifact, mapping, parser fixture, and live proof are established."
+    - symbol: GEDG
+      tier: 1
+      provider_identity: manulife
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-03
+      evidence_refs: [web:manulife-canadian-etf-catalogue-2026-09-03]
+      next_action: "Re-test Manulife/John Hancock symbol-scoped routes; promote only if a complete U.S.-listed holdings artifact, mapping, parser fixture, and live proof are established."
+    - symbol: QVOY
+      tier: 1
+      provider_identity: q3
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-03
+      evidence_refs: [web:q3-qvoy-official-etf-page-2026-09-03]
+      next_action: "Re-test the QVOY page and declared holdings route after the issuer throttle clears; promote only after complete rows, mapping, parser fixtures, and live evidence are available."
+    - symbol: ACVF
+      tier: 1
+      provider_identity: ridgeline
+      current_outcome: not_applicable
+      evidence_state: identity_not_portfolio_publisher
+      investigated_at: 2026-09-03
+      evidence_refs: [web:ridgeline-acvf-adviser-identity-2026-09-03]
+      next_action: "Keep ACVF under its existing ACV publisher route; reopen Ridgeline only if a distinct issuer-owned ETF holdings publisher is identified."
+    - symbol: MDST
+      tier: 1
+      provider_identity: westwood
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-03
+      evidence_refs: [web:westwood-mdst-current-holdings-2026-09-03]
+      next_action: "Periodically re-test the official MDST page and declared CSV; promote only after complete rows, mapping, parser fixtures, and bounded live evidence are available."
+    - symbol: SPDV
+      tier: 1
+      provider_identity: advisors_asset_management
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-02
+      evidence_refs: [web:aam-etf-detail-empty-backend-response-2026-09-02]
+      next_action: "Re-test AAM's symbol-scoped detail/export route from an allowed network path; promote only after capturing a complete artifact, mapping symbols, and adding parser plus bounded live coverage."
+    - symbol: BDIV
+      tier: 1
+      provider_identity: advisors_asset_management
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-02
+      evidence_refs: [web:aam-etf-detail-empty-backend-response-2026-09-02]
+      next_action: "Re-test AAM's symbol-scoped detail/export route from an allowed network path; promote only after capturing a complete artifact, mapping symbols, and adding parser plus bounded live coverage."
+    - symbol: TRFM
+      tier: 1
+      provider_identity: advisors_asset_management
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-02
+      evidence_refs: [web:aam-etf-detail-empty-backend-response-2026-09-02]
+      next_action: "Re-test AAM's symbol-scoped detail/export route from an allowed network path; promote only after capturing a complete artifact, mapping symbols, and adding parser plus bounded live coverage."
+    - symbol: PFLD
+      tier: 1
+      provider_identity: advisors_asset_management
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-02
+      evidence_refs: [web:aam-etf-detail-empty-backend-response-2026-09-02]
+      next_action: "Re-test AAM's symbol-scoped detail/export route from an allowed network path; promote only after capturing a complete artifact, mapping symbols, and adding parser plus bounded live coverage."
 providers:
   - adapter_key: aegon
     display_name: aegon

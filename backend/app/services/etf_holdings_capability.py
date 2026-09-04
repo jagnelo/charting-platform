@@ -45,6 +45,7 @@ class ETFHoldingsSymbolAudit:
     provider_identity: str | None
     investigated_at: date | None
     next_action: str
+    evidence_refs: tuple[str, ...] = ()
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -54,6 +55,7 @@ class ETFHoldingsSymbolAudit:
             "provider_identity": self.provider_identity,
             "investigated_at": self.investigated_at,
             "next_action": self.next_action,
+            "evidence_refs": list(self.evidence_refs),
         }
 
 
@@ -254,6 +256,10 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "Re-test WisdomTree's official DXJ route; promote only after complete, "
             "identity-verified current rows and live evidence."
         ),
+        evidence_refs=(
+            "web:wisdomtree-current-fund-holdings-2026-09-03",
+            "live:wisdomtree-current-fund-holdings-2026-09-03-blocked",
+        ),
     ),
     "NTSX": ETFHoldingsSymbolAudit(
         tier=0,
@@ -264,6 +270,10 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
         next_action=(
             "Re-test WisdomTree's official NTSX route; promote only after complete, "
             "identity-verified current rows and live evidence."
+        ),
+        evidence_refs=(
+            "web:wisdomtree-current-fund-holdings-2026-09-03",
+            "live:wisdomtree-current-fund-holdings-2026-09-03-blocked",
         ),
     ),
     "MINT": ETFHoldingsSymbolAudit(
@@ -276,6 +286,7 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "Re-check PIMCO's official MINT holdings/download surfaces; do not treat "
             "top-ten or factsheet data as a complete basket."
         ),
+        evidence_refs=("web:pacific-investments-geme-pimco-mint-2026-09-03",),
     ),
     "BOND": ETFHoldingsSymbolAudit(
         tier=0,
@@ -287,6 +298,7 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "Re-check PIMCO's official BOND holdings/download surfaces; do not treat "
             "top-ten or factsheet data as a complete basket."
         ),
+        evidence_refs=("web:pacific-investments-geme-pimco-mint-2026-09-03",),
     ),
     "GEME": ETFHoldingsSymbolAudit(
         tier=0,
@@ -295,6 +307,7 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
         provider_identity="pacific_investments",
         investigated_at=date(2026, 9, 4),
         next_action="Resolve GEME's sponsor/publisher identity before selecting a holdings route.",
+        evidence_refs=("web:pacific-investments-geme-pimco-mint-2026-09-03",),
     ),
 }
 
@@ -327,7 +340,136 @@ for _symbol in (
             "Run the opt-in F/m symbol-scoped canary and record source, schema, "
             "completeness, and freshness evidence."
         ),
+        evidence_refs=("web:us-benchmark-series-current-fm-pages-2026-09-04",),
     )
+
+
+_NON_TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {}
+
+
+def _register_non_tier_0_audits(
+    symbols: Sequence[str],
+    *,
+    outcome: str,
+    evidence_state: str,
+    provider_identity: str,
+    investigated_at: date,
+    evidence_refs: tuple[str, ...],
+    next_action: str,
+) -> None:
+    for raw_symbol in symbols:
+        symbol = raw_symbol.strip().upper()
+        if not symbol:
+            continue
+        _NON_TIER_0_SYMBOL_AUDITS[symbol] = ETFHoldingsSymbolAudit(
+            tier=1,
+            outcome=outcome,
+            evidence_state=evidence_state,
+            provider_identity=provider_identity,
+            investigated_at=investigated_at,
+            next_action=next_action,
+            evidence_refs=evidence_refs,
+        )
+
+
+_register_non_tier_0_audits(
+    ("TALV", "TABD"),
+    outcome=UNAVAILABLE,
+    evidence_state="issuer_route_access_blocked",
+    provider_identity="aegon",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=("web:aegonam-us-asset-management-capabilities-2026-09-03",),
+    next_action=(
+        "Re-test the official Transamerica TALV/TABD product and holdings routes; promote "
+        "only after complete current rows, symbol mapping, parser coverage, and bounded "
+        "live evidence are proven."
+    ),
+)
+_register_non_tier_0_audits(
+    ("ADFI",),
+    outcome=NOT_APPLICABLE,
+    evidence_state="inactive_or_successor_disposition",
+    provider_identity="anfield",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=("web:anfield-adfi-current-close-notice-2026-09-03",),
+    next_action=(
+        "Confirm the ADFI closure/successor record; reopen only if a current successor "
+        "issuer publishes a complete executable holdings artifact."
+    ),
+)
+_register_non_tier_0_audits(
+    ("GAUD", "GAID"),
+    outcome=UNAVAILABLE,
+    evidence_state="issuer_route_access_blocked",
+    provider_identity="guinness_atkinson",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=("web:guinness-atkinson-fund-resources-2026-09-03",),
+    next_action=(
+        "Re-test the official Fund Resources and symbol-scoped ETF routes; promote only "
+        "after complete rows, mapping, parser fixtures, and bounded live evidence are available."
+    ),
+)
+_register_non_tier_0_audits(
+    ("UDIV", "UDEF", "GEDG"),
+    outcome=UNAVAILABLE,
+    evidence_state="issuer_route_access_blocked",
+    provider_identity="manulife",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=("web:manulife-canadian-etf-catalogue-2026-09-03",),
+    next_action=(
+        "Re-test Manulife/John Hancock symbol-scoped routes; promote only if a complete "
+        "U.S.-listed holdings artifact, mapping, parser fixture, and live proof are established."
+    ),
+)
+_register_non_tier_0_audits(
+    ("QVOY",),
+    outcome=UNAVAILABLE,
+    evidence_state="issuer_route_access_blocked",
+    provider_identity="q3",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=("web:q3-qvoy-official-etf-page-2026-09-03",),
+    next_action=(
+        "Re-test the QVOY page and declared holdings route after the issuer throttle clears; "
+        "promote only after complete rows, mapping, parser fixtures, and live evidence are available."
+    ),
+)
+_register_non_tier_0_audits(
+    ("ACVF",),
+    outcome=NOT_APPLICABLE,
+    evidence_state="identity_not_portfolio_publisher",
+    provider_identity="ridgeline",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=("web:ridgeline-acvf-adviser-identity-2026-09-03",),
+    next_action=(
+        "Keep ACVF under its existing ACV publisher route; reopen Ridgeline only if a distinct "
+        "issuer-owned ETF holdings publisher is identified."
+    ),
+)
+_register_non_tier_0_audits(
+    ("MDST",),
+    outcome=UNAVAILABLE,
+    evidence_state="issuer_route_access_blocked",
+    provider_identity="westwood",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=("web:westwood-mdst-current-holdings-2026-09-03",),
+    next_action=(
+        "Periodically re-test the official MDST page and declared CSV; promote only after "
+        "complete rows, mapping, parser fixtures, and bounded live evidence are available."
+    ),
+)
+_register_non_tier_0_audits(
+    ("SPDV", "BDIV", "TRFM", "PFLD"),
+    outcome=UNAVAILABLE,
+    evidence_state="issuer_route_access_blocked",
+    provider_identity="advisors_asset_management",
+    investigated_at=date(2026, 9, 2),
+    evidence_refs=("web:aam-etf-detail-empty-backend-response-2026-09-02",),
+    next_action=(
+        "Re-test AAM's symbol-scoped detail/export route from an allowed network path; promote "
+        "only after capturing a complete artifact, mapping symbols, and adding parser plus "
+        "bounded live coverage."
+    ),
+)
 
 
 def symbol_audit_for_profile(profile: ETFProfile) -> ETFHoldingsSymbolAudit:
@@ -354,6 +496,24 @@ def symbol_audit_for_profile(profile: ETFProfile) -> ETFHoldingsSymbolAudit:
                 f"Reconcile the {symbol} ETF profile with the audited "
                 f"{tier_0.provider_identity} identity before using its source evidence."
             ),
+            evidence_refs=tier_0.evidence_refs,
+        )
+    explicit = _NON_TIER_0_SYMBOL_AUDITS.get(symbol)
+    if explicit is not None:
+        provider_identity = (explicit.provider_identity or "").strip().lower()
+        if adapter_key == provider_identity:
+            return explicit
+        return ETFHoldingsSymbolAudit(
+            tier=explicit.tier,
+            outcome=UNKNOWN,
+            evidence_state="profile_provider_identity_mismatch",
+            provider_identity=adapter_key or None,
+            investigated_at=explicit.investigated_at,
+            next_action=(
+                f"Reconcile the {symbol} ETF profile with the audited "
+                f"{provider_identity} identity before using its source evidence."
+            ),
+            evidence_refs=explicit.evidence_refs,
         )
     fallback = FALLBACK_ISSUER_AUDITS.get(adapter_key)
     if fallback is not None:
