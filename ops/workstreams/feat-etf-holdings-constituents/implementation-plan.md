@@ -2859,3 +2859,22 @@ diff-check, and workstream validation passed. This is preparatory AC14 work
 only; AC10 remains gated on provider-platform staging, AC11 remains open for
 non-Tier-0 symbols, and production shadow evidence plus human closure are
 still required.
+
+## Current Docker gate checkpoint — 2026-09-04 (post-coverage hardening)
+
+The required full Docker-backed validation was rerun after the
+missing-symbol shadow-gate coverage hardening and completed successfully.
+Backend coverage passed 1,743 tests with 81.04% total coverage and 86 warnings;
+frontend unit coverage passed 924 tests across 108 files. Dependency,
+migration, lint, visual policy, production build, compose contract, provider
+probes, healthy branch-scoped stack, and research-runner sandbox/resource
+checks all passed. Functional Playwright passed 154 tests with 106 skips, and
+the complete visual suite passed 104 tests. Teardown removed all branch-scoped
+resources cleanly, with no ETF or application assertion failure.
+
+This current local gate is green. It does not close the protected
+staging/master-only exhaustive integration check or provide the production
+observations required by AC14. AC10 remains gated on the shared
+provider-platform branch reaching staging; AC11 remains open for non-Tier-0
+symbol evidence; and AC14 remains post-integration/deployment with human
+closure authorization pending.
