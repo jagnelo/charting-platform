@@ -2204,3 +2204,28 @@ designed for this feature branch. A fresh exact-SHA CI run is required.
 The implementation context remains limited to the live-test contract and
 branch-owned handoff/validation records; no integration, promotion,
 deployment, or other-worktree mutation was performed.
+## Local Docker gate resumed after storage recovery — 2026-09-04
+
+With Docker storage recovered, the full local `docker_integration` gate was
+rerun. Workstream/dependency/migration/lint checks, backend coverage (1,713
+passed; 80.93%), frontend unit tests (923 passed; 81.99%), production build,
+compose contract, provider probes, branch-scoped stack health,
+research-runner policy probes, and functional Playwright (154 passed, 106
+skipped) all passed. The visual matrix initially reported 103/104 because
+`workspace-floating.png` at `visual-1080p-125` exceeded its strict threshold;
+the stack and all resources were cleaned up by the gate.
+
+The exact visual test was then rerun against a fresh branch-scoped stack at
+the current source state. All four workspace-floating variants passed
+(1080p/100%, 1080p/125%, 1440p/100%, 1440p/125%), establishing a transient
+snapshot mismatch rather than an ETF or application regression. The only
+source change made during this checkpoint was Ruff formatting in
+`backend/tests/live/test_etf_holdings_live_providers.py`, committed as
+`262e920b6122d399aaef6a1d8257c2f915f66e11`.
+
+The feature branch is one commit ahead of its remote and must be pushed for a
+fresh exact-SHA CI run. Existing CI evidence still includes recurring
+five-minute Start-stack timeouts on some runs and successful Playwright runs
+on neighboring exact heads; no cross-worktree mutation, integration,
+promotion, or deployment was performed. Human closure authorization remains
+pending.
