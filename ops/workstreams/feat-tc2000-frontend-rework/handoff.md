@@ -10,6 +10,40 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-04 — Late benchmark pop-out hydration and exact-tip gate
+
+The bounded multi-window fix is complete in the assigned worktree. A benchmark/watchlist pop-out
+that opens after the leader window has already refreshed now hydrates the missing shared
+market-analysis inputs once; chart pop-outs remain display-only and do not perform unrelated
+market-analysis work. Existing leader ownership and periodic refresh behavior are unchanged.
+
+Evidence for this boundary:
+
+- Focused pop-out binding tests passed `26/26`; the full frontend Vitest suite passed `933/933`
+  across `108` files; type-check and production build passed; and the seeded F8b-a benchmark
+  pop-out flow passed `1/1`.
+- The earlier Study Results open-flow failure was not reproducible: isolated repetitions passed
+  `1/1`, `5/5`, and `6/6`, and the full authenticated functional suite passed `155` with `106`
+  documented skips across `261` specs.
+- The exact gate at product tip `b142729a` passed backend units (`1,307/1,307`), integration
+  (`380/380` with the existing `54` warnings), combined coverage (`80.91%`), frontend checks,
+  build, compose/provider policy, assigned-stack health, runner isolation, and functional
+  Playwright. It stopped only at the four-project visual matrix: `98/104` passed and six
+  assertions failed.
+
+The remaining visual failures are `watchlist-column-editor-open` at visual-1080p-100 and
+visual-1080p-125 (`13,844` differing pixels), plus `workspace-floating` at all four projects
+(`12,097` pixels at the 100% projects and `9,770` pixels at the 125% projects). The floating
+actual now contains canonical benchmark rows because late-popout hydration is intentional; this
+is a state/oracle review item, not a reason to hide the behavior. No baseline, mask, threshold,
+skip, fallback oracle, provider rule, or acceptance policy changed. The gate cleanup removed the
+branch-scoped stack and generated images/volumes/network; the post-run resource audit was clean.
+
+Implementation commit `b142729a` (`fix(tc2000): scope popout market hydration`) is pushed to
+`origin/feat/tc2000-frontend-rework`. The branch is synchronized and clean at this checkpoint.
+The workstream remains active and is not yet `ready_for_human_review`; canonical provider/history,
+compatible promotion fan-out, native-window/accessibility/security, and visual/state gaps remain.
+
 ## 2026-09-04 — Generic event-artifact occurrence filtering
 
 The next bounded R4 slice applies the existing Research Results occurrence controls to generic

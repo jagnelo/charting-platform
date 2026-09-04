@@ -1,5 +1,28 @@
 # Project TODO Memory
 
+### 2026-09-04 — Late benchmark pop-out hydration and exact-tip gate
+
+- [x] Hydrate missing shared market-analysis inputs when a benchmark/watchlist pop-out opens
+      after the leader window has already refreshed. The path runs once only when the canonical
+      group snapshots and breadth inputs are absent; chart pop-outs remain display-only and do
+      not trigger unrelated market-analysis work.
+- [x] Verify the boundary with focused bindings (`26/26`), the full frontend Vitest suite
+      (`933/933` across `108` files), type-check/build, and the seeded F8b-a benchmark pop-out
+      flow (`1/1`). The previously observed Study Results open-flow failure was transient: its
+      isolated repetitions passed `1/1`, `5/5`, and `6/6`, and the full functional run passed
+      `155` with `106` documented skips across `261` specs.
+- [x] Re-run the exact exhaustive gate at product tip `b142729a`. Backend units passed
+      `1,307/1,307`, integration passed `380/380` with the existing `54` warnings, combined
+      coverage was `80.91%`, and all non-visual stages passed. Docker teardown and resource
+      accounting were clean.
+- [ ] Obtain review of the six visual diffs: `watchlist-column-editor-open` at the two 1080p
+      projects (`13,844` pixels) and `workspace-floating` at all four projects (`12,097` or
+      `9,770` pixels). The floating actual now contains canonical benchmark rows because of the
+      late-popout fix. Do not change baselines, masks, thresholds, skips, fallback oracles, or
+      acceptance policy without separately reviewed evidence.
+- [ ] Continue canonical provider/history enrichment, compatible event promotion fan-out,
+      native-window/accessibility/security evidence, and the remaining R1-R6 gaps.
+
 ### 2026-09-04 — Multi-window endurance beyond 100 rounds
 
 - [x] Run the seeded workstation lifecycle guard with `TC2000_POP_OUT_CHURN_ROUNDS=105`.
