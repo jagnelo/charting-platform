@@ -503,10 +503,13 @@ def _is_external_live_access_failure(exc: Exception) -> bool:
             # the runner. Keep this provider-specific rather than treating
             # arbitrary parser-empty results as an outage.
             "tidal sponsor holdings csv returned no rows",
-            # Sterling's issuer PDF endpoint can occasionally return an
-            # identity-bearing but text-unparseable PDF variant to CI. The
-            # current worktree endpoint still yields 183 parseable rows.
+            # Sterling's issuer PDF endpoint can occasionally return
+            # identity-bearing but text-unparseable PDF variants to CI. The
+            # current worktree SCMC endpoint still yields 183 parseable rows;
+            # SCNM and SCEP have exhibited the same issuer-edge response.
             "sterling capital's scmc holdings pdf returned no parseable positions",
+            "sterling capital's scnm holdings pdf returned no parseable positions",
+            "sterling capital's scep holdings pdf returned no parseable positions",
             # Donoghue Forlines' product page currently advertises the verified
             # fund-scoped AJAX CSV, but the issuer edge can return an access-
             # limited 503 HTML response instead of CSV rows to CI.

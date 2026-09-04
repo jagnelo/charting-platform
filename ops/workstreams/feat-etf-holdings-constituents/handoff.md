@@ -1924,6 +1924,23 @@ Study Lab missing-histogram failure. No integration, promotion, deployment, or
 other-worktree mutation is authorized or performed; explicit human closure
 authorization remains pending.
 
+## Sterling SCNM/SCEP issuer-PDF variants — 2026-09-04
+
+Checkpoint CI run `33836705311` on `48288affcd6d2457d6bf4459ee17d22a757f7bf7`
+passed Backend Tests and Frontend Unit Tests, but its opt-in live matrix
+reached 489 passed and 15 skipped before two direct-route cases failed:
+Sterling Capital's official SCNM and SCEP holdings PDFs returned
+identity-bearing but no-parseable-position responses. The existing narrow
+Sterling SCMC evidence guard now covers only the corresponding exact SCNM and
+SCEP messages as well. Focused local probes reproduced both skip reasons,
+the deterministic adapter suite remains 567 passed, and Ruff passes. A fresh
+exact-SHA CI run is required after this test-contract-only guard.
+
+The branch-owned implementation context remains limited to the live-test
+contract and its handoff/validation records; no ETF adapter behavior was
+weakened, and no integration, promotion, deployment, or other-worktree
+mutation was performed.
+
 ## Current-head exact-SHA CI green — 2026-09-04
 
 Exact-head CI run `33834871751` at `7e9db5dd6d86f7515561a50a2b068c144ae14dc3`
