@@ -1,5 +1,30 @@
 # Project TODO Memory
 
+### 2026-09-04 — Bounded canonical QQQ reconciliation and history handoff
+
+- [x] Re-run the dated `nasdaq100`/`cap_weight` holdings maintenance on a fresh,
+      branch-scoped disposable stack with `IDENTIFIER_PROVIDER_PRIORITY=[]`. The request for
+      `2025-12-31` completed `1/1` and retained one QQQ snapshot with 101 raw SEC rows.
+- [x] Exercise four bounded classification batches (`tc2000-classification-batch-2` through
+      `-5`, one profile per pass, at most 32 enrichments per pass). The same persisted snapshot
+      advanced from 14 to 21 canonical provider symbols; 80 rows remain explicit `HOLDING-*`
+      placeholders and every batch completed without a worker failure.
+- [x] Submit the authenticated point-in-time history handoff for `D1`, `W1`, and `MN`. It
+      selected and queued all 21 canonical members and explicitly excluded the 80 placeholders.
+      The database now has D1 bars for 21/21 canonical members (each has at least 252 bars),
+      while W1/MN have no provider-backed bars; the provider logs record those timeframe-specific
+      no-data results rather than fabricating or deriving bars.
+- [x] Verify the UI-facing coverage contract after the handoff: `nasdaq100`/`cap_weight` is
+      `partial`, with `member_count=21`, `placeholder_member_count=80`, `history_ready=false`,
+      and explicit W1/MN incompleteness. The other roles remain unavailable/pending as reported
+      by their source contracts.
+- [x] Remove the disposable stack, volumes, network, and generated images with the branch-scoped
+      teardown helper; resource status reports zero containers, volumes, and known image bytes.
+- [ ] Continue separately authorized, auditable provider batches for the remaining 80 placeholders,
+      and investigate supported W1/MN and QQQE/SPDR dated sources before counting those members
+      toward canonical readiness. Do not use symbol guesses, latest-only fallback, or fabricated
+      timeframe bars.
+
 ### 2026-09-04 — Bounded name-search reconciliation runtime evidence
 
 - [x] Exercise the new identifier-only name-search bridge on a fresh, branch-scoped stack with

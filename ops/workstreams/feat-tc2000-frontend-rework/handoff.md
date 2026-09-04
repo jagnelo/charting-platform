@@ -966,3 +966,31 @@ worktree changed; branch-scoped containers, volumes, network, and images were re
 This current gate receipt satisfies the review handoff boundary, not product completion. The
 remaining 87 QQQ placeholders, canonical member-history/provider gaps, QQQE/SPDR dated holdings,
 MN/W1 coverage, and six visual diffs require subsequent human-directed work.
+
+## 2026-09-04 — Bounded canonical QQQ reconciliation and history handoff
+
+The provider-search bridge was exercised again on a fresh branch-scoped disposable stack with
+`IDENTIFIER_PROVIDER_PRIORITY=[]`, keeping OpenFIGI disabled and retaining the public SEC
+search/metadata path as the only configured route. The authenticated dated
+`nasdaq100`/`cap_weight` holdings request for `2025-12-31` completed `1/1` and produced one QQQ
+snapshot with 101 raw SEC rows.
+
+Four bounded worker jobs (`tc2000-classification-batch-2` through `-5`) processed the same
+snapshot. Their durable results were, respectively, `enriched=14, remaining=87`,
+`enriched=6, remaining=81`, `enriched=1, remaining=80`, and `enriched=0, remaining=80`, with
+`failed=0` for every job. The persisted snapshot therefore contains 21 canonical provider
+symbols and 80 explicit `HOLDING-*` placeholders. The placeholder rows remain reconciliation
+evidence only; no symbol was guessed and no latest-only fallback was introduced.
+
+The authenticated history handoff for `D1`, `W1`, and `MN` selected and queued all 21 canonical
+members and excluded the 80 placeholders. Database inspection found D1 bars for 21/21 canonical
+members, with every member meeting the 252-bar technical floor (minimum 881 bars); no W1 or MN
+bars were present. Provider request logs record the W1/MN no-data/exhaustion path, so no derived or
+fabricated bars were claimed. The authenticated coverage endpoint reports the QQQ cap-weight role
+as `partial`, with `member_count=21`, `placeholder_member_count=80`, and `history_ready=false`.
+
+The branch-scoped stack, volumes, network, and generated images were removed immediately after
+the checks; resource status reports zero containers, volumes, and known image bytes. This is a
+bounded readiness receipt, not complete QQQ population/history or eight-family product readiness.
+The remaining 80 placeholders, W1/MN support, QQQE/SPDR dated sources, and six unchanged visual
+oracle diffs remain open.
