@@ -164,4 +164,4 @@ progress:
   total: 14
   current_phase: capability_local_checkpoint
   current_blocker: "The shared provider-platform branch has not yet reached staging; generic entitlement/quota/budget/health integration remains intentionally deferred until its synchronized staging merge. The current-tree local Docker gate also hit a branch-scoped PostgreSQL termination after 1465 passed tests, so the earlier green full-gate and exact-SHA CI receipts remain the valid broader evidence."
-  next_action: "Commit and push the separate operational checkpoint for implementation 712db8c, then wait at human review; after provider-platform reaches staging, reconcile AC10 and continue Tier 0 canary evidence for AC11–AC12 and the post-deployment AC14 shadow gate."
+  next_action: "Wait at human review on the clean synchronized branch; after provider-platform reaches staging, reconcile AC10 and continue Tier 0 canary evidence for AC11–AC12 and the post-deployment AC14 shadow gate."

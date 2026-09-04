@@ -2320,5 +2320,5 @@ to the same-named remote branch. The remaining dirty paths are the separate
 branch-owned operational records (`plan.yaml`, `implementation-plan.md`,
 `provider-audit.yaml`, `session.json`, and `validation.jsonl`), which are being
 closed as a distinct `docs(ops)` checkpoint. The permitted next action is to
-commit and push that operational checkpoint, then wait at human review while
-the provider-platform staging dependency is unresolved.
+wait at human review on the clean synchronized branch while the
+provider-platform staging dependency is unresolved.
