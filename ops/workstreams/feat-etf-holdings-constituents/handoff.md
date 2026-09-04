@@ -2440,3 +2440,21 @@ This slice is branch-local and does not claim AC14 completion: the gate remains
 post-integration/deployment and requires real production observations plus
 human closure authorization. AC10 still awaits the provider-platform staging
 merge, and AC11 remains open for symbol-level evidence beyond Tier 0.
+
+## Current Docker gate checkpoint — 2026-09-04
+
+The post-shadow-gate-history Docker-backed integration run completed green on
+the branch-scoped stack. Backend coverage passed 1,742 tests with 81.04% total
+coverage (86 warnings); frontend unit coverage passed 924 tests across 108
+files. Dependency, migration, lint, visual-policy, production-build, compose,
+provider-probe, stack-health, and research-runner sandbox/resource checks all
+passed. Functional Playwright passed 154 tests with 106 documented skips, and
+visual Playwright passed all 104 tests. Teardown removed the branch-scoped
+containers, volumes, network, and images successfully.
+
+No ETF or application assertion failed. This is a current green local gate;
+the protected staging/master-only exhaustive gate remains intentionally
+unavailable on this feature branch. AC10 still awaits the shared
+provider-platform staging merge, AC11 remains open for non-Tier-0 symbol
+evidence, and AC14 remains a post-integration/deployment production shadow
+acceptance step requiring human closure authorization.
