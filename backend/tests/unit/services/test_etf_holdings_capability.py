@@ -669,6 +669,78 @@ def test_twelfth_ranked_fallback_tweedy_browne_artifact_is_stale():
     assert result.provider_identity == "tweedy_browne"
 
 
+def test_final_ranked_fallback_rareview_artifacts_are_stale():
+    result = symbol_audit_for_profile(profile_with_symbol("RMME", "rareview_funds"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "non_executable_public_source"
+    assert result.provider_identity == "rareview_funds"
+
+
+def test_final_ranked_fallback_vega_shares_is_top_ten_only():
+    result = symbol_audit_for_profile(profile_with_symbol("ODTE", "vega_financial"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "non_executable_public_source"
+    assert result.provider_identity == "vega_financial"
+
+
+def test_final_ranked_fallback_vistashares_download_is_unresolved():
+    result = symbol_audit_for_profile(profile_with_symbol("RTOO", "vistashares"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "non_executable_public_source"
+    assert result.provider_identity == "vistashares"
+
+
+def test_final_ranked_fallback_wellesley_is_not_a_publisher():
+    result = symbol_audit_for_profile(profile_with_symbol("MCRT", "wellesley_asset_management"))
+
+    assert result.tier == 1
+    assert result.outcome == "not_applicable"
+    assert result.evidence_state == "identity_not_portfolio_publisher"
+    assert result.provider_identity == "wellesley_asset_management"
+
+
+def test_final_ranked_fallback_worth_route_is_blocked():
+    result = symbol_audit_for_profile(profile_with_symbol("WRTH", "worth_charting"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "issuer_route_access_blocked"
+    assert result.provider_identity == "worth_charting"
+
+
+def test_final_ranked_fallback_yoke_route_is_blocked():
+    result = symbol_audit_for_profile(profile_with_symbol("YOKE", "yoke"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "issuer_route_access_blocked"
+    assert result.provider_identity == "yoke"
+
+
+def test_final_ranked_fallback_epwa_route_is_non_executable():
+    result = symbol_audit_for_profile(profile_with_symbol("FUNL", "epwa"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "non_executable_public_source"
+    assert result.provider_identity == "epwa"
+
+
+def test_final_ranked_fallback_planrock_download_is_non_executable():
+    result = symbol_audit_for_profile(profile_with_symbol("PRAE", "planrock"))
+
+    assert result.tier == 1
+    assert result.outcome == UNAVAILABLE
+    assert result.evidence_state == "non_executable_public_source"
+    assert result.provider_identity == "planrock"
+
+
 def test_unreviewed_fallback_symbol_cannot_be_marked_current_from_a_snapshot_alone():
     result = evaluate_capability(
         profile_with_symbol("UNREVIEWED", "matrix"),

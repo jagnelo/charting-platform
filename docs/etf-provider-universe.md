@@ -1891,3 +1891,15 @@ provider-not-a-portfolio-publisher. Evidence refs:
 `live:worth-charting-current-wrth-holdings-csv-2026-09-04-blocked`,
 `web:yoke-current-holdings-page-2026-09-04`, and
 `live:yoke-current-holdings-page-2026-09-04-blocked`.
+
+## Thirteenth ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+The thirteenth ranked symbol-audit cohort covers RMME/BEGS/RSEE/RTRE/RDFI/
+RTAI (Rareview), ODTE/VAIE/XSPC/CGPT/COOL (VegaShares),
+RTOO/AIS/AMMO/QUSA/OMAH/ACKY/DRKY (VistaShares), MCRT (Wellesley), WRTH
+(Worth Charting), YOKE, FUNL (EPWA), and PRAE/PRMN (PlanRock). Rareview,
+VegaShares, VistaShares, EPWA, and PlanRock remain `unavailable` because
+their public artifacts are stale, top-ten-only, unresolved, or non-executable;
+Wellesley is `not_applicable` as an adviser identity; and Worth Charting and
+Yoke remain issuer-route blocked. No stale, blocked, or unresolved artifact is
+promoted as current support.

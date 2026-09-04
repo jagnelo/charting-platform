@@ -2737,3 +2737,22 @@ fallback symbols retain the identity-level `unknown` boundary until their own
 symbol-scoped evidence is recorded. AC10 remains gated on provider-platform
 staging and AC14 remains a post-integration production-observation gate
 requiring human closure authorization.
+
+## Thirteenth ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+The final ranked symbol-bearing slice is now explicit in runtime and the
+durable ledger: RMME/BEGS/RSEE/RTRE/RDFI/RTAI (Rareview), ODTE/VAIE/XSPC/CGPT/
+COOL (VegaShares), RTOO/AIS/AMMO/QUSA/OMAH/ACKY/DRKY (VistaShares), MCRT
+(Wellesley), WRTH (Worth Charting), YOKE, FUNL (EPWA), and PRAE/PRMN
+(PlanRock). Rareview, VegaShares, VistaShares, EPWA, and PlanRock remain
+`unavailable` because their public artifacts are stale, top-ten-only,
+unresolved, or non-executable. Wellesley is `not_applicable` as an adviser
+identity; Worth Charting and Yoke remain `issuer_access_blocked`. No stale,
+blocked, or unresolved artifact is promoted as current support.
+
+The thirteen ranked cohorts now cover 160 explicit non-Tier-0 symbols. Every
+remaining fallback identity without a representative symbol retains its
+provider-level terminal or non-publisher disposition; no symbol is silently
+treated as current. AC10 remains gated on provider-platform staging and AC14
+remains a post-integration production-observation gate requiring human closure
+authorization.

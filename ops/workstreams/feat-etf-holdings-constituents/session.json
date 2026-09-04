@@ -70,7 +70,17 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-45bdf9bd8d"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ackend/app/services/etf_holdings_capability.py",
+    "backend/tests/unit/services/test_etf_holdings_capability.py",
+    "docs/etf-provider-universe.md",
+    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
+    "ops/workstreams/feat-etf-holdings-constituents/implementation-plan.md",
+    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
+    "ops/workstreams/feat-etf-holdings-constituents/provider-audit.yaml",
+    "ops/workstreams/feat-etf-holdings-constituents/session.json",
+    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -106,13 +116,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "e32490b4ed7bdcd4ce8e5a6b5e5d7f88feaa06ea",
+  "head": "6972e6cb3f86bf64b0f94415bd99fbc482ddfdc3",
   "implementation_sha": "3783fbfa652942cc9c021b7c5023c6e4800bb482",
   "last_checkpoint": "2026-09-04T19:43:51.186155+00:00",
-  "last_human_progress_update": "2026-09-04T22:40:10.212695+00:00",
+  "last_human_progress_update": "2026-09-04T22:49:27.533468+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
-  "plan_hash": "9d5ac7db8486e8ebd1340ff338297fa0f8fad888a6d7b0580bcb1f64c3471a51",
+  "plan_hash": "0579f6e12fd9fbfa8df460cc536eebf8185393b2c7e03e4631372b30301d0037",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -132,13 +142,13 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "Provider-platform branch feat/market-data-provider-platform remains separate and has not reached staging, so AC10 shared capability/entitlement/quota/budget/health integration is deferred. The first twelve ranked Tier-1 cohorts now have explicit runtime and ledger outcomes for 135 symbols; remaining non-Tier-0 symbols require symbol-scoped evidence for AC11. The full Docker gate retained one unrelated F8u functional E2E failure, while an isolated retry passed; visual validation did not run in that gate.",
-    "current_phase": "tier1_symbol_audit_twelfth_cohort",
-    "next_action": "Continue the next ranked symbol slice; after provider-platform reaches staging, reconcile AC10 and eventually run the documented 30-day production AC14 shadow gate. If a fully green local gate is required, rerun the complete branch-scoped integration gate after the isolated F8u retry evidence.",
+    "current_blocker": "Provider-platform branch feat/market-data-provider-platform remains separate and has not reached staging, so AC10 shared capability/entitlement/quota/budget/health integration is deferred. Thirteen ranked Tier-1 cohorts now have explicit runtime and ledger outcomes for 160 symbols, plus 15 separate Tier-0 outcomes; fallback identities without representative symbols retain provider-level terminal or non-publisher dispositions. AC11 still requires Tier-0 canary/source closure and any remaining symbol-level evidence. The full Docker gate retains one unrelated F8u functional E2E failure while an isolated retry passed; visual validation did not run in that gate.",
+    "current_phase": "tier1_symbol_audit_thirteenth_cohort",
+    "next_action": "Continue any remaining symbol-scoped Tier-0 review; after provider-platform reaches staging, reconcile AC10 and run the documented 30-day production AC14 shadow gate. Keep the isolated F8u characterization and rerun the full branch-scoped gate only if a fully green local gate is required.",
     "total": 14,
-    "updated_at": "2026-09-04T22:40:10.212546+00:00"
+    "updated_at": "2026-09-04T22:49:27.533328+00:00"
   },
-  "remote": "e32490b4ed7bdcd4ce8e5a6b5e5d7f88feaa06ea",
+  "remote": "6972e6cb3f86bf64b0f94415bd99fbc482ddfdc3",
   "remote_sha": "3783fbfa652942cc9c021b7c5023c6e4800bb482",
   "remote_synchronized": true,
   "schema": 2,

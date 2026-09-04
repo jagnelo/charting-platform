@@ -3118,3 +3118,22 @@ explicit non-Tier-0 symbols; remaining symbols stay identity-level `unknown`
 until individually investigated. AC10 remains dependent on provider-platform
 staging, and AC14 still requires production shadow observations and human
 closure authorization.
+
+## Thirteenth ranked Tier-1 symbol-audit cohort — 2026-09-04
+
+This final ranked symbol-bearing slice binds RMME/BEGS/RSEE/RTRE/RDFI/RTAI
+(Rareview), ODTE/VAIE/XSPC/CGPT/COOL (VegaShares), RTOO/AIS/AMMO/QUSA/OMAH/
+ACKY/DRKY (VistaShares), MCRT (Wellesley), WRTH (Worth Charting), YOKE, FUNL
+(EPWA), and PRAE/PRMN (PlanRock) to explicit symbol-level outcomes. Rareview,
+VegaShares, VistaShares, EPWA, and PlanRock remain `unavailable` because their
+public artifacts are stale, top-ten-only, unresolved, or non-executable.
+Wellesley is `not_applicable` as an adviser identity; Worth Charting and Yoke
+remain `issuer_access_blocked`. No stale, blocked, or unresolved artifact is
+promoted as current support.
+
+The runtime symbol-audit map, YAML `symbol_audit_ledger`, documentation, and
+parity tests are updated together. The thirteen ranked cohorts now cover 160
+explicit non-Tier-0 symbols. Remaining fallback identities without
+representative symbols retain provider-level terminal or non-publisher
+dispositions. AC10 remains dependent on provider-platform staging, and AC14
+still requires production shadow observations and human closure authorization.

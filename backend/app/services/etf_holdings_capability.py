@@ -1144,6 +1144,111 @@ _register_non_tier_0_audits(
         "artifact before considering native promotion."
     ),
 )
+_register_non_tier_0_audits(
+    ("RMME", "BEGS", "RSEE", "RTRE", "RDFI", "RTAI"),
+    outcome=UNAVAILABLE,
+    evidence_state="non_executable_public_source",
+    provider_identity="rareview_funds",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=(
+        "web:rareview-current-etf-catalogue-2026-09-03",
+        "web:rareview-stale-holdings-pages-2026-09-03",
+    ),
+    next_action=(
+        "Recheck Rareview ETF product pages for a current complete holdings route; promote only "
+        "after current rows, strict parsing, and bounded live validation are proven."
+    ),
+)
+_register_non_tier_0_audits(
+    ("ODTE", "VAIE", "XSPC", "CGPT", "COOL"),
+    outcome=UNAVAILABLE,
+    evidence_state="non_executable_public_source",
+    provider_identity="vega_financial",
+    investigated_at=date(2026, 9, 4),
+    evidence_refs=("web:vega-shares-current-product-pages-2026-09-04",),
+    next_action=(
+        "Re-test VegaShares product pages and resolve the full-holdings download/API before "
+        "considering native promotion."
+    ),
+)
+_register_non_tier_0_audits(
+    ("RTOO", "AIS", "AMMO", "QUSA", "OMAH", "ACKY", "DRKY"),
+    outcome=UNAVAILABLE,
+    evidence_state="non_executable_public_source",
+    provider_identity="vistashares",
+    investigated_at=date(2026, 9, 4),
+    evidence_refs=("web:vistashares-current-product-pages-2026-09-04",),
+    next_action=(
+        "Re-test official VistaShares product pages and resolve the Download All Holdings endpoint "
+        "before considering native promotion."
+    ),
+)
+_register_non_tier_0_audits(
+    ("MCRT",),
+    outcome=NOT_APPLICABLE,
+    evidence_state="identity_not_portfolio_publisher",
+    provider_identity="wellesley_asset_management",
+    investigated_at=date(2026, 9, 4),
+    evidence_refs=("web:wellesley-asset-management-current-identity-pages-2026-09-04",),
+    next_action=(
+        "Preserve Wellesley as an adviser/sub-adviser identity and revisit only if a legally "
+        "published distinct ETF catalogue and holdings route is identified."
+    ),
+)
+_register_non_tier_0_audits(
+    ("WRTH",),
+    outcome=UNAVAILABLE,
+    evidence_state="issuer_route_access_blocked",
+    provider_identity="worth_charting",
+    investigated_at=date(2026, 9, 4),
+    evidence_refs=(
+        "web:worth-charting-current-wrth-holdings-page-2026-09-04",
+        "live:worth-charting-current-wrth-holdings-csv-2026-09-04-blocked",
+    ),
+    next_action=(
+        "Periodically re-test the official WRTH page and CSV; promote only after complete artifact "
+        "access succeeds through the application client."
+    ),
+)
+_register_non_tier_0_audits(
+    ("YOKE",),
+    outcome=UNAVAILABLE,
+    evidence_state="issuer_route_access_blocked",
+    provider_identity="yoke",
+    investigated_at=date(2026, 9, 4),
+    evidence_refs=(
+        "web:yoke-current-holdings-page-2026-09-04",
+        "live:yoke-current-holdings-page-2026-09-04-blocked",
+    ),
+    next_action=(
+        "Periodically re-test the official YOKE page; promote only after complete table access "
+        "succeeds through the application client."
+    ),
+)
+_register_non_tier_0_audits(
+    ("FUNL",),
+    outcome=UNAVAILABLE,
+    evidence_state="non_executable_public_source",
+    provider_identity="epwa",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=("web:epwa-cornercap-funl-route-audit-2026-09-03",),
+    next_action=(
+        "Re-test the official FUNL domains after access recovery; promote only after a complete "
+        "current artifact, mapping, parser fixture, and bounded live proof are available."
+    ),
+)
+_register_non_tier_0_audits(
+    ("PRAE", "PRMN"),
+    outcome=UNAVAILABLE,
+    evidence_state="non_executable_public_source",
+    provider_identity="planrock",
+    investigated_at=date(2026, 9, 3),
+    evidence_refs=("web:planrock-prae-prmn-current-pages-2026-09-03",),
+    next_action=(
+        "Re-test PlanRock fund-details and declared download routes; promote only after a complete "
+        "current artifact, symbol mapping, parser fixture, and live evidence are available."
+    ),
+)
 
 
 def symbol_audit_for_profile(profile: ETFProfile) -> ETFHoldingsSymbolAudit:

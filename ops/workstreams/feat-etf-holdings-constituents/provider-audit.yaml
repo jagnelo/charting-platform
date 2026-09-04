@@ -1196,6 +1196,198 @@ symbol_audit_ledger:
       investigated_at: 2026-09-04
       evidence_refs: ["web:tweedy-browne-current-copy-holdings-page-2026-09-04"]
       next_action: "Re-test the official ETF overview and FilePoint holdings page for a current complete artifact before considering native promotion."
+    - symbol: RMME
+      tier: 1
+      provider_identity: rareview_funds
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:rareview-current-etf-catalogue-2026-09-03", "web:rareview-stale-holdings-pages-2026-09-03"]
+      next_action: "Recheck Rareview ETF product pages for a current complete holdings route; promote only after current rows, strict parsing, and bounded live validation are proven."
+    - symbol: BEGS
+      tier: 1
+      provider_identity: rareview_funds
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:rareview-current-etf-catalogue-2026-09-03", "web:rareview-stale-holdings-pages-2026-09-03"]
+      next_action: "Recheck Rareview ETF product pages for a current complete holdings route; promote only after current rows, strict parsing, and bounded live validation are proven."
+    - symbol: RSEE
+      tier: 1
+      provider_identity: rareview_funds
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:rareview-current-etf-catalogue-2026-09-03", "web:rareview-stale-holdings-pages-2026-09-03"]
+      next_action: "Recheck Rareview ETF product pages for a current complete holdings route; promote only after current rows, strict parsing, and bounded live validation are proven."
+    - symbol: RTRE
+      tier: 1
+      provider_identity: rareview_funds
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:rareview-current-etf-catalogue-2026-09-03", "web:rareview-stale-holdings-pages-2026-09-03"]
+      next_action: "Recheck Rareview ETF product pages for a current complete holdings route; promote only after current rows, strict parsing, and bounded live validation are proven."
+    - symbol: RDFI
+      tier: 1
+      provider_identity: rareview_funds
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:rareview-current-etf-catalogue-2026-09-03", "web:rareview-stale-holdings-pages-2026-09-03"]
+      next_action: "Recheck Rareview ETF product pages for a current complete holdings route; promote only after current rows, strict parsing, and bounded live validation are proven."
+    - symbol: RTAI
+      tier: 1
+      provider_identity: rareview_funds
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:rareview-current-etf-catalogue-2026-09-03", "web:rareview-stale-holdings-pages-2026-09-03"]
+      next_action: "Recheck Rareview ETF product pages for a current complete holdings route; promote only after current rows, strict parsing, and bounded live validation are proven."
+    - symbol: ODTE
+      tier: 1
+      provider_identity: vega_financial
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-04
+      evidence_refs: ["web:vega-shares-current-product-pages-2026-09-04"]
+      next_action: "Re-test VegaShares product pages and resolve the full-holdings download/API before considering native promotion."
+    - symbol: VAIE
+      tier: 1
+      provider_identity: vega_financial
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-04
+      evidence_refs: ["web:vega-shares-current-product-pages-2026-09-04"]
+      next_action: "Re-test VegaShares product pages and resolve the full-holdings download/API before considering native promotion."
+    - symbol: XSPC
+      tier: 1
+      provider_identity: vega_financial
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-04
+      evidence_refs: ["web:vega-shares-current-product-pages-2026-09-04"]
+      next_action: "Re-test VegaShares product pages and resolve the full-holdings download/API before considering native promotion."
+    - symbol: CGPT
+      tier: 1
+      provider_identity: vega_financial
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-04
+      evidence_refs: ["web:vega-shares-current-product-pages-2026-09-04"]
+      next_action: "Re-test VegaShares product pages and resolve the full-holdings download/API before considering native promotion."
+    - symbol: COOL
+      tier: 1
+      provider_identity: vega_financial
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-04
+      evidence_refs: ["web:vega-shares-current-product-pages-2026-09-04"]
+      next_action: "Re-test VegaShares product pages and resolve the full-holdings download/API before considering native promotion."
+    - symbol: RTOO
+      tier: 1
+      provider_identity: vistashares
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-04
+      evidence_refs: ["web:vistashares-current-product-pages-2026-09-04"]
+      next_action: "Re-test official VistaShares product pages and resolve the Download All Holdings endpoint before considering native promotion."
+    - symbol: AIS
+      tier: 1
+      provider_identity: vistashares
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-04
+      evidence_refs: ["web:vistashares-current-product-pages-2026-09-04"]
+      next_action: "Re-test official VistaShares product pages and resolve the Download All Holdings endpoint before considering native promotion."
+    - symbol: AMMO
+      tier: 1
+      provider_identity: vistashares
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-04
+      evidence_refs: ["web:vistashares-current-product-pages-2026-09-04"]
+      next_action: "Re-test official VistaShares product pages and resolve the Download All Holdings endpoint before considering native promotion."
+    - symbol: QUSA
+      tier: 1
+      provider_identity: vistashares
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-04
+      evidence_refs: ["web:vistashares-current-product-pages-2026-09-04"]
+      next_action: "Re-test official VistaShares product pages and resolve the Download All Holdings endpoint before considering native promotion."
+    - symbol: OMAH
+      tier: 1
+      provider_identity: vistashares
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-04
+      evidence_refs: ["web:vistashares-current-product-pages-2026-09-04"]
+      next_action: "Re-test official VistaShares product pages and resolve the Download All Holdings endpoint before considering native promotion."
+    - symbol: ACKY
+      tier: 1
+      provider_identity: vistashares
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-04
+      evidence_refs: ["web:vistashares-current-product-pages-2026-09-04"]
+      next_action: "Re-test official VistaShares product pages and resolve the Download All Holdings endpoint before considering native promotion."
+    - symbol: DRKY
+      tier: 1
+      provider_identity: vistashares
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-04
+      evidence_refs: ["web:vistashares-current-product-pages-2026-09-04"]
+      next_action: "Re-test official VistaShares product pages and resolve the Download All Holdings endpoint before considering native promotion."
+    - symbol: MCRT
+      tier: 1
+      provider_identity: wellesley_asset_management
+      current_outcome: not_applicable
+      evidence_state: identity_not_portfolio_publisher
+      investigated_at: 2026-09-04
+      evidence_refs: ["web:wellesley-asset-management-current-identity-pages-2026-09-04"]
+      next_action: "Preserve Wellesley as an adviser/sub-adviser identity and revisit only if a legally published distinct ETF catalogue and holdings route is identified."
+    - symbol: WRTH
+      tier: 1
+      provider_identity: worth_charting
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-04
+      evidence_refs: ["web:worth-charting-current-wrth-holdings-page-2026-09-04", "live:worth-charting-current-wrth-holdings-csv-2026-09-04-blocked"]
+      next_action: "Periodically re-test the official WRTH page and CSV; promote only after complete artifact access succeeds through the application client."
+    - symbol: YOKE
+      tier: 1
+      provider_identity: yoke
+      current_outcome: unavailable
+      evidence_state: issuer_route_access_blocked
+      investigated_at: 2026-09-04
+      evidence_refs: ["web:yoke-current-holdings-page-2026-09-04", "live:yoke-current-holdings-page-2026-09-04-blocked"]
+      next_action: "Periodically re-test the official YOKE page; promote only after complete table access succeeds through the application client."
+    - symbol: FUNL
+      tier: 1
+      provider_identity: epwa
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:epwa-cornercap-funl-route-audit-2026-09-03"]
+      next_action: "Re-test the official FUNL domains after access recovery; promote only after a complete current artifact, mapping, parser fixture, and bounded live proof are available."
+    - symbol: PRAE
+      tier: 1
+      provider_identity: planrock
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:planrock-prae-prmn-current-pages-2026-09-03"]
+      next_action: "Re-test PlanRock fund-details and declared download routes; promote only after a complete current artifact, symbol mapping, parser fixture, and live evidence are available."
+    - symbol: PRMN
+      tier: 1
+      provider_identity: planrock
+      current_outcome: unavailable
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-03
+      evidence_refs: ["web:planrock-prae-prmn-current-pages-2026-09-03"]
+      next_action: "Re-test PlanRock fund-details and declared download routes; promote only after a complete current artifact, symbol mapping, parser fixture, and live evidence are available."
 providers:
   - adapter_key: aegon
     display_name: aegon
