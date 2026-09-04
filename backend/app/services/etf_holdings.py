@@ -25,6 +25,7 @@ from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdent
 from app.providers import (
     ensure_data_source,
     get_default_metadata_provider,
+    get_default_search_provider,
     get_identifier_providers,
 )
 from app.providers.base import IdentifierRecord, InstrumentProfile, ListingRecord
@@ -258,6 +259,29 @@ def _names_look_compatible(reported_name: str | None, provider_name: str | None)
     return left_text in right_text or right_text in left_text
 
 
+def _name_search_match_score(reported_name: str | None, provider_name: str | None) -> int:
+    """Return a conservative score for a provider name-search candidate.
+
+    Name search is only a bridge to a real provider profile; it is not an identity
+    assertion by itself.  Requiring one token set to contain the other avoids
+    promoting a loosely related issuer while still accepting harmless legal-name
+    suffix differences such as ``Inc``/``PLC``.
+    """
+
+    left = _normalized_name_tokens(reported_name)
+    right = _normalized_name_tokens(provider_name)
+    if not left or not right:
+        return 0
+    if left == right:
+        return 3
+    if left <= right or right <= left:
+        return 2
+    overlap = left & right
+    if overlap and (len(overlap) / len(left) >= 0.75 or len(overlap) / len(right) >= 0.75):
+        return 1
+    return 0
+
+
 async def _find_instrument_for_identifier_records(
     db: AsyncSession,
     identifiers: list[IdentifierRecord],
@@ -376,6 +400,92 @@ async def _provider_enriched_constituent_instrument(
             Decimal("0.9400"),
             "Matched through stable identifier profile enrichment.",
         )
+
+    # SEC N-PORT holdings frequently carry a CUSIP/ISIN and issuer name but no
+    # ticker.  Once stable-identifier mappings are exhausted, use the configured
+    # search provider as a conservative symbol bridge.  The search result is
+    # never treated as sufficient identity evidence: a unique best name match
+    # must still hydrate a full metadata profile before the placeholder can be
+    # promoted.  This keeps the operation auditable and prevents arbitrary
+    # symbol guessing or ambiguous cross-listed promotion.
+    if row.name and not _normalize_symbol(row.symbol):
+        try:
+            search_provider = get_default_search_provider()
+            search_results = search_provider.search_instruments(row.name, limit=8)
+        except Exception:
+            search_results = []
+
+        scored_candidates: dict[str, tuple[int, str]] = {}
+        for result in search_results or []:
+            candidate_symbol = _normalize_symbol(getattr(result, "symbol", None))
+            candidate_name = str(getattr(result, "name", "") or "").strip()
+            if not candidate_symbol or _is_placeholder_symbol(candidate_symbol):
+                continue
+            score = _name_search_match_score(row.name, candidate_name)
+            if score <= 0:
+                continue
+            previous = scored_candidates.get(candidate_symbol)
+            if previous is None or score > previous[0]:
+                scored_candidates[candidate_symbol] = (score, candidate_name)
+
+        if scored_candidates:
+            highest_score = max(score for score, _name in scored_candidates.values())
+            best_symbols = sorted(
+                symbol
+                for symbol, (score, _name) in scored_candidates.items()
+                if score == highest_score
+            )
+            # A tied name match is not enough to decide between listings or
+            # similarly named issuers. Leave the placeholder for a stronger
+            # identifier source rather than silently selecting one.
+            if len(best_symbols) == 1:
+                candidate_symbol = best_symbols[0]
+                try:
+                    profile = get_default_metadata_provider().get_instrument_profile(
+                        candidate_symbol
+                    )
+                except Exception:
+                    profile = None
+                if (
+                    profile is not None
+                    and profile.canonical_symbol
+                    and not _is_placeholder_symbol(profile.canonical_symbol)
+                    and _constituent_quote_type_allowed(profile)
+                    and _names_look_compatible(row.name, profile.name)
+                ):
+                    instrument = existing_instrument
+                    if instrument is None:
+                        instrument = await _find_instrument_for_identifier_records(
+                            db, profile.identifiers
+                        )
+                    if instrument is None:
+                        instrument = await _load_instrument_by_symbol_or_id(
+                            db, profile.canonical_symbol
+                        )
+                    instrument = await ingest_provider_profile(db, profile, instrument=instrument)
+                    for identifier_type, value in [
+                        ("isin", row.isin),
+                        ("cusip", row.cusip),
+                        ("sedol", row.sedol),
+                    ]:
+                        normalized_value = _normalize_holding_identifier_value(value)
+                        if normalized_value:
+                            await register_identifier(
+                                db,
+                                instrument,
+                                ETF_HOLDINGS_INTERNAL_PROVIDER,
+                                IdentifierRecord(
+                                    identifier_type=identifier_type,
+                                    identifier_value=normalized_value,
+                                    is_primary=identifier_type == "isin",
+                                    source=source_provider,
+                                ),
+                            )
+                    return (
+                        instrument,
+                        Decimal("0.8600"),
+                        "Matched through unique provider-backed name search.",
+                    )
 
     symbol = _normalize_symbol(row.symbol)
     if not symbol:

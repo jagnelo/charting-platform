@@ -9,7 +9,12 @@ from sqlalchemy import select
 from app.models.etf_holdings import ETFHolding
 from app.models.instrument import EquityDetail, Instrument
 from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
-from app.providers.base import IdentifierRecord, InstrumentProfile, ListingRecord
+from app.providers.base import (
+    IdentifierRecord,
+    InstrumentProfile,
+    ListingRecord,
+    ProviderSearchResult,
+)
 from app.services.etf_holdings import (
     _enrich_existing_constituent_classification,
     _holding_needs_reconcile,
@@ -147,6 +152,49 @@ class FakeIdentifierProvider:
                 )
             ],
             raw_payload={"ticker": "TXN", "name": "Texas Instruments Incorporated"},
+        )
+
+
+class FakeNameSearchProvider:
+    def __init__(self, results: list[ProviderSearchResult]):
+        self.results = results
+        self.calls: list[tuple[str, int]] = []
+
+    def search_instruments(self, query: str, *, limit: int = 10) -> list[ProviderSearchResult]:
+        self.calls.append((query, limit))
+        return self.results[:limit]
+
+
+class NameSearchMetadataProvider:
+    def get_instrument_profile(self, symbol: str) -> InstrumentProfile | None:
+        if symbol != "AZN":
+            return None
+        return InstrumentProfile(
+            provider="edgar",
+            symbol="AZN",
+            canonical_symbol="AZN",
+            name="AstraZeneca PLC",
+            currency="USD",
+            quote_type="EQUITY",
+            exchange="NASDAQ",
+            identifiers=[
+                IdentifierRecord(
+                    identifier_type="ISIN",
+                    identifier_value="US0463531089",
+                    is_primary=True,
+                    source="edgar",
+                )
+            ],
+            listings=[
+                ListingRecord(
+                    provider_symbol="AZN",
+                    exchange_code="NASDAQ",
+                    currency="USD",
+                    provider_instrument_type="EQUITY",
+                    is_primary=True,
+                )
+            ],
+            raw_payload={"ticker": "AZN", "name": "AstraZeneca PLC"},
         )
 
 
@@ -794,6 +842,109 @@ async def test_resolver_materializes_real_symbol_from_cusip_only_rows(db, monkey
     assert instrument.name == "Texas Instruments Incorporated"
     assert confidence == Decimal("0.9400")
     assert note == "Matched through stable identifier profile enrichment."
+
+
+@pytest.mark.asyncio
+async def test_resolver_promotes_identifier_only_row_through_unique_name_search(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr("app.services.etf_holdings.settings.APP_ENV", "development")
+    search_provider = FakeNameSearchProvider(
+        [ProviderSearchResult(symbol="AZN", name="AstraZeneca PLC", instrument_type="EQUITY")]
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_default_search_provider",
+        lambda: search_provider,
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_default_metadata_provider",
+        lambda: NameSearchMetadataProvider(),
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_identifier_providers",
+        lambda: [],
+    )
+
+    instrument, confidence, note = await _resolve_or_create_constituent(
+        async_db,
+        CanonicalHoldingRow(
+            symbol=None,
+            name="AstraZeneca PLC",
+            isin="US0463531089",
+            currency="USD",
+            holding_type="equity",
+            row_type="security",
+        ),
+        source_provider="sec",
+    )
+    db.flush()
+
+    assert instrument is not None
+    assert instrument.symbol == "AZN"
+    assert confidence == Decimal("0.8600")
+    assert note == "Matched through unique provider-backed name search."
+    assert search_provider.calls == [("AstraZeneca PLC", 8)]
+    identifiers = (
+        db.execute(
+            select(InstrumentIdentifier).where(
+                InstrumentIdentifier.instrument_id == instrument.id,
+                InstrumentIdentifier.identifier_type == InstrumentIdentifierType.ISIN,
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert {row.identifier_value for row in identifiers} >= {"US0463531089"}
+
+
+@pytest.mark.asyncio
+async def test_resolver_keeps_ambiguous_name_search_as_placeholder(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr("app.services.etf_holdings.settings.APP_ENV", "development")
+    search_provider = FakeNameSearchProvider(
+        [
+            ProviderSearchResult(symbol="AZN", name="AstraZeneca PLC", instrument_type="EQUITY"),
+            ProviderSearchResult(symbol="AZN1", name="AstraZeneca PLC", instrument_type="EQUITY"),
+        ]
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_default_search_provider",
+        lambda: search_provider,
+    )
+    metadata_calls: list[str] = []
+
+    class UnexpectedMetadataProvider(NameSearchMetadataProvider):
+        def get_instrument_profile(self, symbol: str) -> InstrumentProfile | None:
+            metadata_calls.append(symbol)
+            return super().get_instrument_profile(symbol)
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_default_metadata_provider",
+        lambda: UnexpectedMetadataProvider(),
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_identifier_providers",
+        lambda: [],
+    )
+
+    instrument, confidence, note = await _resolve_or_create_constituent(
+        async_db,
+        CanonicalHoldingRow(
+            symbol=None,
+            name="AstraZeneca PLC",
+            isin="US0463531089",
+            currency="USD",
+            holding_type="equity",
+            row_type="security",
+        ),
+        source_provider="sec",
+    )
+    db.flush()
+
+    assert instrument is not None
+    assert instrument.symbol.startswith("HOLDING-")
+    assert confidence == Decimal("0.5000")
+    assert note is None
+    assert metadata_calls == []
 
 
 @pytest.mark.asyncio
