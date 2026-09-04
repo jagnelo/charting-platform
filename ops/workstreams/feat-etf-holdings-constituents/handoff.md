@@ -1856,3 +1856,18 @@ The same run's Playwright job failed before tests began because the five-minute
 `Start stack` step timed out while the frontend Docker image's `npm ci` layer
 was still running. This is infrastructure timing evidence, not an ETF or
 application failure. A fresh exact-SHA CI run is required after the guards.
+## Follow-up branch-green CI and repeated Playwright startup timeout — 2026-09-04
+
+Follow-up exact-SHA CI run `33829417441` at
+`ef1c80a49eb9a15901d3024c9e59f8da5665e13a` passed Backend Tests, Frontend
+Unit Tests, and the complete branch-declared suite; the live matrix completed
+without provider failures after the Capital Group, NOA, and Donoghue guards.
+
+Playwright again failed before any browser test began: the workflow's
+five-minute `Start stack` step expired while the frontend Docker image's
+`npm ci` layer was running. This repeats the infrastructure timing limitation
+seen in runs `33817619636`, `33819499960`, `33822107891`, and `33828029923`,
+not an ETF or application failure. Exact-SHA run `33826263043` at `b38a25f1`
+passed Playwright on the same feature behavior. The branch remains ready for
+human review, with the repeated CI startup timeout and unrelated local
+Study Lab F8p histogram failure retained as explicit review blockers.
