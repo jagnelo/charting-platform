@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-04 — Structured Study Lab event promotions browser coverage
+
+- [x] Extend the authenticated F8o Study Lab flow to exercise both named structured-event
+      actions through the real API: `Save filter: occurrences` and `Promote alert: occurrences`.
+      The focused branch-scoped Docker run passed `1/1`; the stack teardown and resource audit
+      reported zero containers, volumes, known image bytes, and test-container sessions.
+- [ ] Rerun the exact-tip exhaustive integration gate at product commit `6f575a34`; the prior
+      structured-study gate remains the baseline and its six unchanged visual diffs remain
+      explicit review blockers. No visual baseline, mask, threshold, skip, fallback oracle,
+      provider rule, or acceptance policy changed.
+
 ### 2026-09-04 — Exact-tip exhaustive gate after structured Study Lab event adapters
 
 - [x] Rerun `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at

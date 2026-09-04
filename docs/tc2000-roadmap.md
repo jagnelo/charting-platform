@@ -11,6 +11,13 @@ records in `docs/project-todos.md`, `docs/tc2000-parity.md`,
 evidence ledgers. If a summary here conflicts with a dated test receipt or the current code, the
 current code and fresh evidence win.
 
+The latest product commit is `6f575a34` (`test(tc2000): cover structured event promotions`). The
+authenticated F8o Study Lab flow now exercises both named structured-event actions through the
+real API—saving `occurrences` as a watchlist filter and promoting it to an active alert—and passed
+`1/1` on the branch-scoped Docker stack. The stack teardown and resource audit were clean. The
+exact-tip exhaustive gate is queued at this new tip; the preceding gate at `1918ca81` remains the
+current full-stack baseline with six unchanged visual diffs.
+
 The latest exhaustive gate ran at product commit `7c930fd1` (`fix(tc2000): scope event adapter by
 instrument`). Event rows carrying a symbol or canonical instrument ID can no longer match a
 different candidate. The focused event suite passed `8/8`, the full runner unit suite `107/107`,

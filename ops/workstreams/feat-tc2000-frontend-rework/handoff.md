@@ -10,6 +10,20 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-04 — Structured Study Lab event promotions browser coverage
+
+Product commit `6f575a34` (`test(tc2000): cover structured event promotions`) extends the
+authenticated F8o Study Lab browser flow to exercise the named `occurrences` events artifact
+through both real API actions: saving a reusable current-data watchlist filter and promoting an
+active alert. The focused branch-scoped Docker run passed `1/1`; teardown removed the stack and
+the resource audit reported zero containers, volumes, known image bytes, and test-container
+sessions.
+
+The exact-tip exhaustive gate is queued at `6f575a34`. The prior structured-study receipt remains
+the full-stack baseline with all non-visual stages green and six unchanged visual diffs. No visual
+baseline, mask, threshold, skip, fallback oracle, provider rule, or acceptance policy changed.
+The workstream remains active.
+
 ## 2026-09-04 — Exact-tip exhaustive gate after structured Study Lab event adapters
 
 The exhaustive integration profile was rerun at product tip `1918ca81` after the structured-study
