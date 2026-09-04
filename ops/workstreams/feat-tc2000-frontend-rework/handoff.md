@@ -10,6 +10,28 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-04 — Exact-tip exhaustive gate after event filter and alert fan-out
+
+The exhaustive integration profile was rerun at product commit `0da00e08` after the explicit
+event-artifact promotion slice. Every stage through authenticated functional Playwright passed:
+backend units `1,309/1,309`, integration `381/381` with the existing `54` warnings, combined
+coverage `80.90%`, frontend Vitest `934/934` across `108` files, and functional Playwright
+`155` passes with `106` documented skips across `261` specs. Static/type/build/compile, compose,
+provider-policy, assigned-stack health, and research-runner isolation also passed.
+
+The unchanged four-project visual matrix is the only failing stage: `98/104` passed and six
+assertions failed. `watchlist-column-editor-open` remains `13,844` differing pixels at
+visual-1080p-100 and visual-1080p-125. `workspace-floating` failed at all four projects; the
+latest captures reported `11,901` (1080p-100), `9,770` (1080p-125), `12,097` (1440p-100), and
+`12,097` (1440p-125) differing pixels. These are preserved as review blockers; no baseline,
+mask, threshold, skip, fallback oracle, provider rule, or acceptance policy changed.
+
+The assigned stack teardown removed its containers, volumes, network, and generated images. The
+post-gate resource audit reported zero containers, volumes, known image bytes, and test-container
+sessions with complete accounting. The workstream remains active: compatible chart/list/gauge and
+Study Lab promotion targets, canonical provider/history readiness, native-window/accessibility/
+security evidence, and the visual/state gaps remain open.
+
 ## 2026-09-04 — Event artifact filter and alert fan-out
 
 The next compatible promotion boundary is implemented in the assigned worktree and committed

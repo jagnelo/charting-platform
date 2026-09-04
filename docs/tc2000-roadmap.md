@@ -11,21 +11,17 @@ records in `docs/project-todos.md`, `docs/tc2000-parity.md`,
 evidence ledgers. If a summary here conflicts with a dated test receipt or the current code, the
 current code and fresh evidence win.
 
-The latest exact-tip receipt remains anchored at product commit `b142729a` (`fix(tc2000): scope
-popout market hydration`); the next product slice is committed as `0da00e08` (`feat(tc2000):
-promote event artifacts to filters and alerts`). The late benchmark pop-out path still hydrates
-missing shared market-analysis inputs once, while chart pop-outs remain display-only. The event
-slice adds an explicit `events_to_boolean` adapter and lineage-preserving watchlist-filter/alert
-fan-out for completed single-output event runs. Focused runner tests passed `7/7`, Strategy Lab
-integration passed `2/2`, the frontend component regression passed `22/22`, and the full
-frontend suite passed `934/934` across `108` files; type-check, build, compileall, Ruff,
-format, and diff checks passed. The previous exhaustive gate remains green through functional
-Playwright at `b142729a`—backend units `1,307/1,307`, integration `380/380` with the existing
-`54` warnings, combined coverage `80.91%`, and functional Playwright `155` passes with
-`106` documented skips across `261` specs—before stopping at the unchanged visual matrix
-(`98/104`, six screenshot diffs). The new product tip still needs the exhaustive gate rerun.
-Docker stack cleanup and resource accounting were clean; no visual oracle, provider fallback, or
-acceptance policy was changed.
+The latest exhaustive gate ran at product commit `0da00e08` (`feat(tc2000): promote event
+artifacts to filters and alerts`). All stages through authenticated functional Playwright passed:
+backend units `1,309/1,309`, integration `381/381` with the existing `54` warnings, combined
+coverage `80.90%`, frontend Vitest `934/934` across `108` files, and functional Playwright
+`155` passes with `106` documented skips across `261` specs. Static/type/build/compile, compose,
+provider-policy, stack-health, and runner-isolation checks also passed. The unchanged visual
+matrix remains the only gate failure: `98/104` passed and six screenshot diffs remain—
+`watchlist-column-editor-open` at visual-1080p-100/125 (`13,844` differing pixels), and
+`workspace-floating` at all four projects (latest captures: `11,901`, `9,770`, `12,097`, and
+`12,097` differing pixels). Docker stack teardown and resource accounting were clean; no visual
+oracle, provider fallback, or acceptance policy was changed.
 
 The work is one continuous delivery stint, not an MVP followed by optional phases. The workstreams
 below are dependency-ordered checkpoints so correctness, data lineage, and visual evidence can be
@@ -118,9 +114,9 @@ run, not a claim that the old counts still pass unchanged.
 | Eight-family entry matrix | Seeded Market Map, breadth, and rotation paths passed | Identity/fixture coverage is not complete provider population |
 | Market Map | Recursive sector → industry geometry, source polymorphism, selection, follow/pin/clone, and cross-tab Breadth/Study handoff implemented | Exact nested typography/gutters/hover density and point-in-time data completeness remain open |
 | Breadth and Study Lab | Recursive conditions, symbol/reference-universe comparisons, historical contracts, Python isolation, reusable immutable definitions, and some typed promotion adapters implemented | Richer history and complete promotion fan-out remain open |
-| Visual regression | Exact-tip four-project run at `b142729a` passed 98/104; six board-state diffs remain: `watchlist-column-editor-open` at both 1080p projects (`13,844` pixels) and `workspace-floating` at all four projects (`12,097` or `9,770` pixels) | Board-guided product baseline, not exact V25 approval; canonical late-popout hydration now makes the floating state data-bearing; do not weaken or silently rewrite the visual policy |
-| Frontend static/unit checks | Exact-tip gate passed 933/933 Vitest across 108 files, plus type-check and build | Fresh receipt at `b142729a`; existing large-chunk build warning remains |
-| Branch ancestry | Feature HEAD `b142729a`; local staging `8b885a2f`; staging is an ancestor, feature is 242 commits ahead and 0 behind | Verified 2026-09-04; no merge/rebase performed during this checkpoint |
+| Visual regression | Exact-tip four-project run at `0da00e08` passed 98/104; six board-state diffs remain: `watchlist-column-editor-open` at both 1080p projects (`13,844` pixels) and `workspace-floating` at all four projects (latest captures `11,901`, `9,770`, `12,097`, `12,097`) | Board-guided product baseline, not exact V25 approval; canonical late-popout hydration now makes the floating state data-bearing; do not weaken or silently rewrite the visual policy |
+| Frontend static/unit checks | Exact-tip gate passed 934/934 Vitest across 108 files, plus type-check and build | Fresh receipt at `0da00e08`; existing large-chunk build warning remains |
+| Branch ancestry | Feature product tip `0da00e08`; local staging `8b885a2f`; staging is an ancestor, feature remains staging-derived | Verified 2026-09-04; no merge/rebase performed during this checkpoint |
 | Public visual corpus | 230 indexed media assets reconstructed and the board/manifest validators passed | Verified 2026-09-03 in an ephemeral inspection directory |
 
 The earlier concern that Market Map → Breadth/Study handoff was still failing is superseded by the

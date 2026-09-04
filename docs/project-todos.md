@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-09-04 — Exact-tip exhaustive gate after event filter/alert fan-out
+
+- [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at
+      product tip `0da00e08`. Backend units passed `1,309/1,309`, integration passed `381/381`
+      with the existing `54` warnings, combined coverage was `80.90%`, frontend Vitest passed
+      `934/934` across `108` files, and authenticated functional Playwright passed `155` with
+      `106` documented skips across `261` specs. Static/type/build/compile, compose,
+      provider-policy, stack-health, and research-runner isolation stages passed.
+- [x] Preserve the visual result honestly: the unchanged four-project matrix passed `98/104`
+      and failed only the six known board-state assertions—`watchlist-column-editor-open` at
+      visual-1080p-100/125 (`13,844` differing pixels) and `workspace-floating` at all four
+      projects (latest captures `11,901`, `9,770`, `12,097`, and `12,097`). Teardown removed the
+      branch-scoped stack and the resource audit reported zero containers, volumes, images, and
+      test-container sessions.
+- [ ] Obtain review of the six visual diffs and continue compatible chart/list/gauge and Study
+      Lab promotion targets, canonical provider/history enrichment, native-window/accessibility/
+      security evidence, and the remaining R1-R6 gaps. No baseline, mask, threshold, skip,
+      fallback oracle, provider rule, or acceptance policy may change to make the matrix green.
+
 ### 2026-09-04 — Event artifact filter and alert fan-out
 
 - [x] Add an explicit `events_to_boolean` adapter in the isolated runner. It evaluates event

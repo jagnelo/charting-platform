@@ -96,10 +96,10 @@
   "head": "0da00e086045aa67f2982fac45b50072cfec169f",
   "implementation_sha": "0da00e086045aa67f2982fac45b50072cfec169f",
   "interrupted": false,
-  "last_checkpoint": "2026-09-04T17:35:00.000000+00:00",
-  "last_human_progress_update": "2026-09-04T17:35:00.000000+00:00",
+  "last_checkpoint": "2026-09-04T18:05:00.000000+00:00",
+  "last_human_progress_update": "2026-09-04T18:05:00.000000+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Rerun the exhaustive gate at 0da00e08, then continue the remaining compatible chart/list/gauge and Study Lab promotion targets, canonical provider/history enrichment, native-window/accessibility/security evidence, and visual-oracle review without changing visual policy or provider fallback rules; retain the explicit late-popout state change for human review.",
+  "next_action": "Continue the remaining compatible chart/list/gauge and Study Lab promotion targets, canonical provider/history enrichment, native-window/accessibility/security evidence, and visual-oracle review without changing visual policy or provider fallback rules; retain the explicit late-popout state change for human review and rerun the exact gate after the next product slice.",
   "plan_hash": "4b79ebcf00972a204e61ef08c3b48eb009aada4089815982139b7f68b084089d",
   "planning_required": false,
   "planning_state": "ready",
@@ -108,11 +108,11 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "The latest product slice is 0da00e08 (event artifact filter/alert fan-out); focused runner tests (7/7), Strategy Lab integration (2/2), frontend component tests (22/22), full frontend Vitest (934/934), type-check/build, compileall, Ruff/format, and diff checks pass. The exhaustive gate has not yet been rerun at this tip. The latest exhaustive receipt at b142729a remains blocked by six visual-oracle diffs (98/104): watchlist-column-editor-open at visual-1080p-100/125 (13,844 differing pixels) and workspace-floating at all four projects (12,097 pixels at the 100% projects; 9,770 at the 125% projects). The floating actual now contains canonical benchmark rows because late benchmark pop-outs hydrate missing shared market-analysis inputs once; chart pop-outs remain display-only. The full functional browser suite passed 155/261 with 106 documented skips, and the earlier Study Results open-flow failure passed isolated repetitions (1/1, 5/5, 6/6) and the full run. The 105-round two-popout endurance guard remains green, but native-window, dense-data budgets, accessibility/security, and other R5-R6 evidence remain incomplete. Canonical provider/history gaps remain open (80 QQQ HOLDING-* placeholders, W1/MN history, QQQE/SPDR dated sources). No baseline, mask, threshold, skip, fallback oracle, provider rule, or acceptance policy changed.",
+    "current_blocker": "The exhaustive gate ran at product tip 0da00e08. Backend units passed 1,309/1,309, integration passed 381/381 with the existing 54 warnings, combined coverage was 80.90%, frontend Vitest passed 934/934 across 108 files, and authenticated functional Playwright passed 155/261 with 106 documented skips. Static/type/build/compile, compose, provider-policy, stack-health, and research-runner isolation passed. The unchanged visual matrix is the only failing stage: 98/104 passed and six diffs remain—watchlist-column-editor-open at visual-1080p-100/125 (13,844 differing pixels), and workspace-floating at all four projects (latest captures 11,901, 9,770, 12,097, and 12,097 differing pixels). The floating actual now contains canonical benchmark rows because late benchmark pop-outs hydrate missing shared market-analysis inputs once; chart pop-outs remain display-only. The 105-round two-popout endurance guard remains green, but native-window, dense-data budgets, accessibility/security, and other R5-R6 evidence remain incomplete. Canonical provider/history gaps remain open (80 QQQ HOLDING-* placeholders, W1/MN history, QQQE/SPDR dated sources). No baseline, mask, threshold, skip, fallback oracle, provider rule, or acceptance policy changed.",
     "current_phase": "R6_multi_window_endurance",
-    "next_action": "Rerun the exhaustive gate at 0da00e08, then continue the remaining compatible chart/list/gauge and Study Lab promotion targets, canonical provider/history enrichment, native-window/accessibility/security evidence, and visual-oracle review without changing visual policy or provider fallback rules; retain the explicit late-popout state change for human review.",
+    "next_action": "Continue the remaining compatible chart/list/gauge and Study Lab promotion targets, canonical provider/history enrichment, native-window/accessibility/security evidence, and visual-oracle review without changing visual policy or provider fallback rules; retain the explicit late-popout state change for human review and rerun the exact gate after the next product slice.",
     "total": 10,
-      "updated_at": "2026-09-04T16:05:00.000000+00:00"
+      "updated_at": "2026-09-04T18:05:00.000000+00:00"
   },
   "remote": "0da00e086045aa67f2982fac45b50072cfec169f",
   "remote_sha": "0da00e086045aa67f2982fac45b50072cfec169f",
