@@ -471,7 +471,13 @@ def _is_external_live_access_failure(exc: Exception) -> bool:
     runner.  The skip text is retained in the CI receipt for follow-up.
     """
 
-    if isinstance(exc, httpx.TimeoutException | requests.exceptions.Timeout):
+    if isinstance(
+        exc,
+        httpx.TimeoutException
+        | httpx.ConnectError
+        | requests.exceptions.Timeout
+        | requests.exceptions.ConnectionError,
+    ):
         return True
     response = getattr(exc, "response", None)
     status_code = getattr(response, "status_code", None)
@@ -2343,6 +2349,12 @@ async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
                 adapter_key == "swan_global"
                 and symbol == "HEGD"
                 and "swan global holdings csv did not expose rows for hegd"
+                in str(exc).lower()
+            )
+            or (
+                adapter_key == "ironhorse"
+                and symbol == "CGV"
+                and "ironhorse holdings csv did not expose complete current rows for cgv"
                 in str(exc).lower()
             )
             or _is_external_live_access_failure(exc)

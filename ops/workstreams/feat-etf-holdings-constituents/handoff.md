@@ -2058,3 +2058,26 @@ fresh-stack `F8p-current-history` Study Lab missing-histogram failure at
 `flows.spec.ts:2602`; the prior post-repair gate at `a696277b` passed. No
 integration, promotion, deployment, or other-worktree mutation was
 performed, and explicit human closure authorization remains pending.
+
+## Multi-provider transport and IronHorse route variants — 2026-09-04
+
+Operational checkpoint CI run `33845452163` on
+`4a0a5d266d4145dda8d42265def1d00c2ede0e37` passed Backend Tests and Frontend
+Unit Tests, but its opt-in live matrix reported 477 passed, 23 skipped, and
+six failures. IronHorse `CGV` returned the exact no-current-rows message;
+Build `BFIX`, First Eagle `FEGE`, F/M Investments `TBIL`, MFS `MFSB`, and the
+1251-owned F/M Investments `UTWO` probe failed at the issuer connection layer
+(`httpx.ConnectError` or requests connection reset). A focused local probe of
+all five route families passed 11 selected cases, indicating runner-side
+external transport conditions for those connection errors. The existing
+external-access helper now classifies HTTPX and requests connection errors as
+evidence-bearing access failures, while the live contract catches only the
+exact IronHorse/CGV no-rows message; strict adapter behavior is unchanged.
+
+The independent Playwright job again failed at the recurring five-minute
+Start stack timeout during frontend Docker `npm ci`, before stack health or
+browser assertions. A fresh exact-SHA CI run is required.
+
+The implementation context remains limited to the live-test contract and
+branch-owned handoff/validation records; no integration, promotion,
+deployment, or other-worktree mutation was performed.
