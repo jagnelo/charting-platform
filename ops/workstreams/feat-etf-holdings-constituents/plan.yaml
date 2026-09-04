@@ -163,6 +163,6 @@ progress:
     - AC13
     - AC12
   total: 14
-  current_phase: tier0_shadow_gate_coverage_hardening
-  current_blocker: "The shared provider-platform branch has not yet reached staging; generic entitlement/quota/budget/health integration remains intentionally deferred until its synchronized staging merge. The current Docker-backed gate is green through backend/frontend coverage, stack health, functional E2E (154 passed/106 skipped), and visual E2E (104 passed), with clean branch-scoped teardown."
-  next_action: "After provider-platform reaches staging, reconcile AC10 against the shared contracts, complete non-Tier-0 symbol evidence for AC11, and run the documented 30-day production AC14 shadow gate."
+current_phase: tier1_symbol_audit_cohort
+current_blocker: "The shared provider-platform branch has not yet reached staging; generic entitlement/quota/budget/health integration remains intentionally deferred until its synchronized staging merge. The first 15-symbol Tier-1 fallback cohort now has explicit runtime and ledger outcomes; the fresh Docker-backed gate is green through backend/frontend coverage, stack health, functional E2E (154 passed/106 skipped), and visual E2E (104 passed), with clean branch-scoped teardown."
+next_action: "After provider-platform reaches staging, reconcile AC10 against the shared contracts, continue symbol-level evidence and remediation for the remaining non-Tier-0 fallback inventory under AC11, and then run the documented 30-day production AC14 shadow gate."

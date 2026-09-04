@@ -2878,3 +2878,33 @@ observations required by AC14. AC10 remains gated on the shared
 provider-platform branch reaching staging; AC11 remains open for non-Tier-0
 symbol evidence; and AC14 remains post-integration/deployment with human
 closure authorization pending.
+
+## Tier-1 ranked fallback symbol-audit cohort — 2026-09-04
+
+This implementation slice binds the first ranked non-Tier-0 fallback symbols to
+explicit runtime outcomes and the durable provider audit ledger. The 15-symbol
+cohort is TALV/TABD, ADFI, GAUD/GAID, UDIV/UDEF/GEDG, QVOY, ACVF, MDST, and
+SPDV/BDIV/TRFM/PFLD. Runtime responses now include dated evidence references;
+exact provider identity is required, provider mismatches remain unknown, and
+unavailable/not-applicable/unknown outcomes are excluded from current-analysis
+usability. ADFI is recorded as inactive/closed pending successor confirmation;
+ACVF is recorded as a portfolio-publisher identity mismatch; the other cohort
+routes remain unavailable because issuer access is blocked. No SEC fallback is
+promoted by this work.
+
+The YAML `symbol_audit_ledger`, runtime map, response schema, frontend type,
+unit tests, and provider-universe/shadow-gate documentation were updated
+together. The ledger-parity test prevents drift between durable evidence and
+runtime capability. The bounded cohort is not a claim that all 82 fallback-only
+providers are supported; all symbols outside the explicit ledger remain subject
+to the existing identity-level unknown behavior until individually evidenced.
+
+Validation checkpoint: the fresh full Docker-backed gate passed backend 1,747
+tests (81.04% total coverage, 86 warnings), frontend unit 924 tests across 108
+files, functional Playwright 154 passed/106 documented skips, and visual
+Playwright 104 passed. Dependency, migration, lint, visual policy, build,
+compose, provider probes, stack health, and research-runner isolation passed;
+branch-scoped teardown removed all resources and four images. AC10 remains
+dependent on provider-platform staging, AC11 remains open for the remaining
+non-Tier-0 symbols, and AC14 remains a post-integration/deployment production
+shadow gate requiring human closure authorization.

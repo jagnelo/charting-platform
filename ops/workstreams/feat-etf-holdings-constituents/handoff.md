@@ -2493,3 +2493,34 @@ feature branch. AC10 still awaits the shared provider-platform staging merge,
 AC11 remains open for non-Tier-0 symbol evidence, and AC14 remains the
 post-integration/deployment production shadow acceptance step requiring human
 closure authorization.
+
+## Tier-1 ranked fallback symbol-audit cohort — 2026-09-04
+
+The runtime and provider audit ledger now share explicit symbol-level outcomes
+for the first ranked non-Tier-0 fallback cohort: TALV/TABD (Aegon), ADFI
+(Anfield), GAUD/GAID (Guinness Atkinson), UDIV/UDEF/GEDG (Manulife), QVOY
+(Q3), ACVF (Ridgeline identity), MDST (Westwood), and
+SPDV/BDIV/TRFM/PFLD (Advisors Asset Management). Each record carries its
+issuer-specific dated evidence reference, outcome, evidence state, and a
+bounded next action. Issuer-route access blocks are explicitly unavailable;
+ADFI's closure/successor disposition and ACVF's identity-not-portfolio-
+publisher disposition are explicitly not applicable. Provider identity must
+match exactly; mismatches remain unknown and cannot be treated as usable.
+
+The public schema exposes `evidence_refs`, and deterministic tests assert that
+the runtime ledger and YAML audit ledger are identical for all 15 symbols. The
+remaining fallback inventory is still not promoted: symbols without explicit
+symbol-level evidence remain identity-level unknown and are not current-
+analysis usable. AC11 therefore remains open beyond this bounded cohort.
+
+The fresh branch-scoped Docker gate completed green after this slice. Backend
+coverage passed 1,747 tests with 81.04% total coverage (86 warnings), frontend
+unit coverage passed 924 tests across 108 files, functional Playwright passed
+154 tests with 106 documented skips, and visual Playwright passed all 104
+tests. Dependency, migration, lint, visual-policy, production-build, compose,
+provider-probe, stack-health, and research-runner checks passed; teardown
+removed all branch-scoped containers, volumes, network, and four images.
+
+This checkpoint is still branch-local. AC10 remains gated on the separate
+provider-platform branch reaching staging, and AC14 still requires integrated
+deployment observations plus human closure authorization.
