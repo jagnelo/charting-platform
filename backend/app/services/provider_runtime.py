@@ -552,6 +552,15 @@ async def resolve_provider_chain(
     resolved: list[ResolvedProvider] = []
     current_environment = settings.APP_ENV.strip().lower()
     for policy, health, data_source, entitlement in rows:
+        # ``ALLOW_PAID_PROVIDER_ROUTING`` only controls whether a *reviewed*
+        # paid plan may participate.  It must never turn an unreviewed
+        # descriptor (the default for optional adapters) into a usable route.
+        # Keep this guard in the resolver rather than relying only on the
+        # ``is_free`` query predicate so a broad paid-routing switch cannot
+        # bypass the operator entitlement review boundary.
+        configured_plan = str(entitlement.configured_plan or "").strip().lower()
+        if not configured_plan or configured_plan == "unreviewed":
+            continue
         if (
             data_source.name == "yfinance"
             and capability

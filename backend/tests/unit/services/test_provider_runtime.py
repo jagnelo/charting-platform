@@ -87,6 +87,32 @@ async def test_unreviewed_provider_entitlement_is_not_runtime_usable(db, monkeyp
 
 
 @pytest.mark.asyncio
+async def test_paid_routing_switch_does_not_bypass_unreviewed_entitlement(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    seeds = {
+        name: value
+        for name, value in settings.PROVIDER_ENTITLEMENT_SEEDS.items()
+        if name != "alpaca"
+    }
+    monkeypatch.setattr(settings, "PROVIDER_ENTITLEMENT_SEEDS", seeds)
+    monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", True)
+
+    await seed_provider_runtime(async_db)
+    data_source = db.execute(select(DataSource).where(DataSource.name == "alpaca")).scalar_one()
+    entitlement = db.execute(
+        select(ProviderEntitlement).where(
+            ProviderEntitlement.data_source_id == data_source.id,
+            ProviderEntitlement.capability == ProviderCapability.PRICE_HISTORY,
+        )
+    ).scalar_one()
+    assert entitlement.configured_plan == "unreviewed"
+    assert entitlement.is_free is False
+
+    chain = await resolve_provider_chain(async_db, ProviderCapability.PRICE_HISTORY)
+    assert all(item.provider_name != "alpaca" for item in chain)
+
+
+@pytest.mark.asyncio
 async def test_runtime_seeding_is_idempotent_for_entitlement_revisions(db):
     async_db = AsyncSessionAdapter(db)
     await seed_provider_runtime(async_db)

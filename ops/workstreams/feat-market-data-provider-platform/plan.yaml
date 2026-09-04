@@ -41,6 +41,7 @@ owned_paths:
 dependencies:
   - staging baseline at 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
   - feat/etf-holdings-constituents owns ETF constituent provider adapters; this branch consumes compatible canonical identities only
+  - feat/etf-holdings-constituents is active in parallel and may overlap on ETF identity/discovery evidence; reconcile contracts at integration without changing its adapter ownership
   - configured provider credentials and terms are optional; unavailable providers remain disabled and do not block unrelated providers
 acceptance_criteria:
   - id: AC-IDENTITY
@@ -85,6 +86,7 @@ progress:
     - concrete opt-in adapters for Tiingo, Twelve Data, Finnhub, Marketstack, EODHD, and FMP with fixture normalization
     - Nasdaq equity/ETF directory evidence with raw-page pagination and conservative CIK/issuer reconciliation
     - worker-only universe lifecycle observations, repeated-missing deactivation, and exchange-aware core D1 coverage
+    - paid-routing switches cannot bypass blank or unreviewed provider entitlements
     - final combined backend unit and PostgreSQL/Redis integration validation
   total: 11
   current_phase: implementation_and_integration_validation
