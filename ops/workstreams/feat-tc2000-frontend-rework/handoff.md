@@ -639,5 +639,24 @@ using `--cov-append`; the final XML/HTML report and the unchanged `--cov-fail-un
 therefore still represent the complete combined total. The updated `make test-backend-coverage`
 passed `1,296/1,296` unit tests and `374/374` integration tests at `80.88%` combined coverage.
 No test, threshold, visual oracle, provider fallback, or acceptance rule was changed. The next
-gate run must use this tip and is expected to proceed beyond backend coverage; the six visual
-snapshot diffs and canonical provider/history gaps remain open.
+gate run used this tip and proceeded beyond backend coverage. It passed the frontend checks/build,
+compose contract, assigned-stack health, research-runner probes, and functional Playwright flows
+(`154` executed passes and `106` documented skips), then stopped at the unchanged four-project
+visual matrix: `98/104` passed and six screenshot assertions failed in
+`watchlist-column-editor-open` at 1080p 100/125% and `workspace-floating` at all four projects.
+No baseline, mask, threshold, skip, provider fallback, or acceptance rule was changed; the six
+visual diffs and canonical provider/history gaps remain open. Gate cleanup removed only the
+assigned branch resources.
+
+## 2026-09-04 — Exact-tip exhaustive gate after coverage hardening
+
+At the synchronized `f180ed95` tip, `make validate-integration
+INTEGRATION_BRANCH=feat/tc2000-frontend-rework` passed Git/workstream checks, dependency locks,
+migrations, `npm ci`, Ruff, TypeScript, split combined backend coverage (`1,296` unit plus `374`
+integration at `80.88%`), frontend checks/build, the compose contract, provider-probe skip,
+assigned-stack health, research-runner probes, and functional Playwright (`154` executed passes,
+`106` documented skips). It stopped only at `e2e-visual`: `98/104` passed and six unchanged
+screenshot assertions failed in `watchlist-column-editor-open` at 1080p 100/125% and
+`workspace-floating` at all four projects. The failures match the prior matrix and remain an
+explicit review blocker; no visual oracle was weakened or updated. The prescribed cleanup removed
+only the assigned containers, volumes, network, and branch images.
