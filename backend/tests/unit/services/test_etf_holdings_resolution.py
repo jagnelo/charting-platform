@@ -11,6 +11,7 @@ from app.models.instrument import EquityDetail, Instrument
 from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
 from app.providers.base import IdentifierRecord, InstrumentProfile, ListingRecord
 from app.services.etf_holdings import (
+    _capability_source_tier,
     _enrich_existing_constituent_classification,
     _holding_needs_reconcile,
     _resolve_or_create_constituent,
@@ -95,6 +96,62 @@ class SectorOnlyMetadataProvider:
             exchange="NASDAQ",
             extra={"sector": "Information Technology", "classification_system": "provider_native"},
         )
+
+
+def test_capability_source_tier_does_not_default_unclassified_ingest_to_issuer_native():
+    assert (
+        _capability_source_tier(
+            provenance="controlled_fixture",
+            source_provider="unclassified_provider",
+        )
+        == "none"
+    )
+    assert (
+        _capability_source_tier(
+            provenance="issuer_self_snapshotted_holdings",
+            source_provider="example_issuer",
+        )
+        == "issuer_native"
+    )
+    assert (
+        _capability_source_tier(
+            provenance="unclassified_artifact",
+            source_provider="unknown",
+            legal_metadata={"source_tier": "licensed_vendor"},
+        )
+        == "licensed_vendor"
+    )
+
+
+@pytest.mark.asyncio
+async def test_ingest_persists_none_for_unclassified_source_tier(db):
+    async_db = AsyncSessionAdapter(db)
+    etf_instrument = await ensure_lightweight_etf_instrument(
+        async_db,
+        symbol="UNCL",
+        name="Unclassified ETF",
+    )
+
+    snapshot = await ingest_holdings_snapshot(
+        async_db,
+        etf_instrument=etf_instrument,
+        rows=[
+            CanonicalHoldingRow(
+                symbol="AAPL",
+                name="Apple Inc.",
+                weight=Decimal("1"),
+                currency="USD",
+                holding_type="equity",
+                row_type="security",
+            )
+        ],
+        composition_date=date(2026, 9, 5),
+        provenance="controlled_fixture",
+        source_provider="unclassified_provider",
+        completeness_status="complete",
+    )
+
+    assert snapshot.extra_data["source_tier"] == "none"
 
 
 class FakeIdentifierProvider:

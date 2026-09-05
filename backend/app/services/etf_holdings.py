@@ -143,6 +143,15 @@ def _capability_source_tier(
     legal_metadata: dict[str, Any] | None = None,
 ) -> str:
     legal_metadata = legal_metadata or {}
+    explicit = str(legal_metadata.get("source_tier") or "").strip().lower()
+    if explicit in {
+        "issuer_native",
+        "successor_native",
+        "licensed_vendor",
+        "sec_filing",
+        "none",
+    }:
+        return explicit
     text = " ".join(
         str(value or "").lower()
         for value in (
@@ -158,7 +167,9 @@ def _capability_source_tier(
         return "successor_native"
     if any(token in text for token in ("vendor", "licensed", "aggregator")):
         return "licensed_vendor"
-    return "issuer_native"
+    if any(token in text for token in ("issuer", "native", "self_snapshotted")):
+        return "issuer_native"
+    return "none"
 
 
 def _capability_transport_kind(*, source_url: str | None, legal_metadata: dict[str, Any]) -> str:
