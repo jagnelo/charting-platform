@@ -3313,3 +3313,15 @@ checks. The task-focused suite passes 6 tests, Ruff, formatting, and
 diff-check pass. No provider, route, entitlement, paid activation, or source
 disposition changed; the shared provider-platform staging dependency and AC14
 remain open.
+
+## Tier-0 canary truncation guard — 2026-09-05
+
+Implementation checkpoint `fix(etf): reject truncated tier0 canary runs` makes
+the scheduled canary fail closed when its configured symbol set contains the
+canonical Tier-0 universe but `ETF_HOLDINGS_CAPABILITY_CANARY_MAX_SYMBOLS`
+would truncate it. The task now returns an explicit configuration error before
+opening a database session or making provider calls; smaller custom canary
+lists remain supported for bounded tests or deliberate operator use. Focused
+task coverage passes 7 tests, Ruff, formatting, and diff-check pass. This is
+ETF-local monitoring hardening only; no provider, route, entitlement, paid
+activation, or source disposition changed.
