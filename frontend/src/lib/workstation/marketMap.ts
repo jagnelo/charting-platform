@@ -13,22 +13,59 @@ export interface BenchmarkFamilyMemberBarHistoryTimeframe {
   bar_count: number
   oldest?: string | null
   newest?: string | null
+  required_bar_count?: number
+}
+
+export interface BenchmarkFamilyCoverageSnapshot {
+  snapshot_id: number
+  composition_date: string
+  as_of_date?: string | null
+  known_at?: string | null
+  provenance?: string | null
+  source_provider?: string | null
+  source_quality?: string | null
+  completeness_status?: string | null
+  row_count: number
+  resolved_count: number
+  unresolved_count: number
 }
 
 export interface BenchmarkFamilyCoverageRole {
   role: BenchmarkFamilyRole
   symbol?: string | null
   label: string
+  verification_state?: string | null
+  instrument_id?: number | null
+  adapter_key?: string | null
+  adapter_status?: string | null
+  adapter_confidence?: string | null
   available: boolean
   status: string
+  snapshots?: BenchmarkFamilyCoverageSnapshot[]
+  continuity_status?: string | null
+  continuity_gap_count?: number
+  continuity_max_interval_days?: number | null
+  continuity_snapshot_limit_reached?: boolean
   holdings_route_provider?: string | null
   holdings_route_status?: string | null
   holdings_refresh_status?: string | null
+  holdings_refresh_last_checked_at?: string | null
+  holdings_refresh_last_success_at?: string | null
+  holdings_refresh_last_failure_at?: string | null
+  holdings_refresh_failure_reason?: string | null
+  holdings_refresh_composition_date?: string | null
   member_bar_history?: {
     status: string
     placeholder_member_count: number
     timeframes: BenchmarkFamilyMemberBarHistoryTimeframe[]
   }
+  entitlement_status?: string | null
+  entitlement_provider?: string | null
+  entitlement_capabilities?: Record<string, string>
+  entitlement_revision?: number | null
+  entitlement_effective_at?: string | null
+  entitlement_review_due_at?: string | null
+  entitlement_live_probe_status?: string | null
   point_in_time_supported: boolean
   member_count: number
   placeholder_member_count: number
