@@ -110,7 +110,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "2d325a2f19dec2ccc77429224c15b78bd85d5515",
+  "head": "87313f8708c9b5c8da48b37ffd35d93624916513",
   "implementation_sha": "a6301f0fbd50e4df26e1ef79ce0f8f72dbcea726",
   "interrupted": false,
   "last_checkpoint": "2026-09-05T00:26:04.737030+00:00",
@@ -131,7 +131,7 @@
     "total": 10,
     "updated_at": "2026-09-04T23:58:29.524805+00:00"
   },
-  "remote": "2d325a2f19dec2ccc77429224c15b78bd85d5515",
+  "remote": "87313f8708c9b5c8da48b37ffd35d93624916513",
   "remote_sha": "a6301f0fbd50e4df26e1ef79ce0f8f72dbcea726",
   "remote_synchronized": true,
   "retained_docker_resources": [],
