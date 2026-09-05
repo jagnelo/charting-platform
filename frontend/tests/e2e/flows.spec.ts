@@ -3715,7 +3715,7 @@ test.describe('TC2000 workstation', () => {
     await page.route('**/api/v1/analysis/benchmark-families/sp500/coverage*', async route => {
       const role = (name: string, symbol: string | null, status: string, readiness: string) => ({
         role: name, symbol, label: name.replace('_', ' '), available: Boolean(symbol), status,
-        member_bar_history: { status: readiness, placeholder_member_count: 0, timeframes: [{ timeframe: 'D1', member_count: 1, covered_member_count: 1, coverage_percent: 100, analysis_ready_member_count: 1, analysis_ready_percent: 100, bar_count: 4 }] },
+        member_bar_history: { status: readiness, placeholder_member_count: 0, timeframes: [{ timeframe: 'D1', member_count: 1, covered_member_count: 1, coverage_percent: 100, analysis_ready_member_count: 1, analysis_ready_percent: 100, bar_count: 4, oldest: '2025-01-01T00:00:00Z', newest: '2026-06-30T00:00:00Z' }] },
         point_in_time_supported: Boolean(symbol), member_count: symbol ? 1 : 0, placeholder_member_count: 0, weighted_member_count: symbol ? 1 : 0, weights_status: symbol ? 'ready' : 'unavailable', classified_member_count: symbol ? 1 : 0, classification_status: symbol ? 'ready' : 'unavailable', history_ready: Boolean(symbol), composite_readiness_status: readiness, composite_readiness_reasons: symbol ? [] : ['benchmark_role_mapping_unavailable'],
       })
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ family_key: 'sp500', name: 'S&P 500', official_index_symbol: 'SPX', coverage: 0.5, freshness: 'coverage_limited', roles: [role('cap_weight', 'SPY', 'available', 'ready'), role('equal_weight', 'RSP', 'available', 'ready'), role('value', null, 'mapping_unavailable', 'unavailable'), role('growth', null, 'mapping_unavailable', 'unavailable')] }) })
@@ -3770,7 +3770,7 @@ test.describe('TC2000 workstation', () => {
     await expect.poll(() => requestedSources.at(-1), { timeout: 15_000 }).toBe('benchmark-family:sp500:equal_weight')
     await expect(mapWindow.locator('.market-map-tool__summary')).toContainText('Locked source', { timeout: 15_000 })
     await expect(mapWindow.locator('[aria-label="Benchmark family canonical readiness"]')).toContainText('50% of roles have dated holdings', { timeout: 15_000 })
-    await expect(mapWindow.locator('[aria-label="Benchmark family canonical readiness"]')).toContainText('History: D1 1/1 ready · 1 covered · 4 bars', { timeout: 15_000 })
+    await expect(mapWindow.locator('[aria-label="Benchmark family canonical readiness"]')).toContainText('History: D1 1/1 ready · 1 covered · 4 bars · range 2025-01-01 → 2026-06-30', { timeout: 15_000 })
     await expect(mapWindow.locator('.market-map-tool__tile')).toHaveCount(1)
     await browserDiagnostics.expectNoCriticalIssues()
   })

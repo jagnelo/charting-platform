@@ -653,7 +653,10 @@ function benchmarkRoleHistoryLabel(role: BenchmarkFamilyCoverageRole): string {
   const histories = role.member_bar_history?.timeframes ?? []
   return histories.map(history => {
     const floor = history.required_bar_count ? ` · floor ${history.required_bar_count}` : ''
-    return `${history.timeframe} ${history.analysis_ready_member_count}/${history.member_count} ready · ${history.covered_member_count} covered · ${history.bar_count} bars${floor}`
+    const oldest = history.oldest ? history.oldest.slice(0, 10) : null
+    const newest = history.newest ? history.newest.slice(0, 10) : null
+    const range = oldest || newest ? ` · range ${oldest ?? 'unknown'} → ${newest ?? 'unknown'}` : ''
+    return `${history.timeframe} ${history.analysis_ready_member_count}/${history.member_count} ready · ${history.covered_member_count} covered · ${history.bar_count} bars${floor}${range}`
   }).join(' · ')
 }
 
