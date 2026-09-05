@@ -99,7 +99,7 @@
   "head": "b2f8d264b047a9425b2bba549ccb44313013e3fd",
   "implementation_sha": "b2f8d264b047a9425b2bba549ccb44313013e3fd",
   "last_checkpoint": "2026-09-04T19:10:58.010419+00:00",
-  "last_human_progress_update": "2026-09-04T18:22:05.782371+00:00",
+  "last_human_progress_update": "2026-09-05T15:50:16.209761+00:00",
   "local_validation_profile": "docker_integration",
   "next_action": "resume from the durable handoff and inspect displaced session state",
   "parent_branch": "staging",
@@ -121,13 +121,15 @@
       "AC-OPTIONS",
       "AC-OPS",
       "AC-COMPAT",
-      "AC-TEST"
+      "AC-TEST",
+      "AC-QUOTA-SAFETY",
+      "AC-RATE-FAILURE"
     ],
-    "current_blocker": "none",
-    "current_phase": "implementation_and_integration_validation",
-    "next_action": "human review of pushed backend-only branch; after approval seed reviewed entitlements and run the separate production/30-day shadow activation",
-    "total": 11,
-    "updated_at": "2026-09-04T18:22:05.782100+00:00"
+    "current_blocker": "credentialed live probes require operator-populated ignored backend/.env.dev values; production NMS/OTC reconciliation and shadow activation remain gated",
+    "current_phase": "credentialed_live_validation",
+    "next_action": "populate provider credentials, run every credentialed probe, resolve failures, and obtain an approved OTC source/quota before review",
+    "total": 14,
+    "updated_at": "2026-09-05T15:50:16.209607+00:00"
   },
   "remote": "b2f8d264b047a9425b2bba549ccb44313013e3fd",
   "remote_sha": "b2f8d264b047a9425b2bba549ccb44313013e3fd",
