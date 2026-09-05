@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-05 — Exact-tip gate after configurable family ranking horizons
+
+- [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at metadata
+      tip `d64c9c78` (product tip `bbe011db`): all locked checks, backend/frontend suites,
+      combined coverage (`80.93%`), build, stack health, runner isolation, and functional
+      Playwright (`157/157`, `106` documented skips) passed; visual matrix completed `104` cases.
+- [ ] Preserve and separately resolve the same six visual state-oracle diffs (`98/104`):
+      `watchlist-column-editor-open` at both 1080p scales and `workspace-floating` at all four
+      1080p/1440p scales. Do not alter baselines, masks, thresholds, skips, fallbacks, provider,
+      or acceptance policy to make the gate green.
+- [x] Teardown and resource accounting were clean; continue the next canonical analytics/provider
+      slice without integrating, promoting, deploying, or mutating another worktree.
+
 ### 2026-09-05 — Expose configurable family ranking horizons
 
 - [x] Persist and expose the canonical benchmark-family ranking-period contract (`1D`, `1W`,
@@ -11,9 +24,10 @@
 - [x] Run focused frontend coverage (`136/136`), TypeScript, production build, and authenticated
       Chromium `F8s-breadth-family-ratio` (`1/1`) asserting a `3M` request and rendered labels on a
       rebuilt branch-scoped stack; teardown and resource accounting were clean.
-- [ ] Rerun the exact-tip exhaustive gate at the next coherent documentation tip; preserve the six
-      known visual state-oracle diffs and all provider, fallback, baseline, threshold, mask, skip,
-      and acceptance policy.
+- [x] Rerun the exact-tip exhaustive gate at the coherent documentation tip; all non-visual stages
+      and functional browser checks passed, while the unchanged visual matrix remains `98/104` with
+      the six known state-oracle diffs recorded above. Preserve provider, fallback, baseline,
+      threshold, mask, skip, and acceptance policy.
 
 ### 2026-09-05 — Exact-tip gate after cross-family rank history
 
