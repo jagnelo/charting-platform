@@ -3653,3 +3653,46 @@ budget overrun. This checkpoint is therefore recorded as
 staging branch, or other worktree was mutated. AC10 remains deferred, the four
 unresolved Tier-0 symbols remain non-current, and AC14 remains the post-
 integration production shadow gate.
+
+## Capability failure-classification checkpoint — 2026-09-05
+
+Implementation commit `cba32600b2593e184772af888357348225edbc8e` promotes the
+latest route/canary failure class to a machine-readable capability field. ETF
+refresh state now persists `last_failure_class` (while retaining the legacy
+canary key for compatibility), capability evaluation returns `failure_class`
+through the API and current-analysis error detail, and the ETF panel and view
+render the classification in degraded/unavailable notices. Success clears the
+classification; route skips and probes record `route_not_ready`; existing
+adapter/canary classification continues to distinguish issuer blocking,
+schema drift, incomplete sources, and other failure categories.
+
+Focused validation passed 97 backend unit tests, 66 ETF API integration tests,
+13 frontend ETF component/view tests, and frontend type-check. The complete
+deterministic ETF adapter/refresh/capability slice passed 672 tests; Ruff,
+formatting, and diff-check passed.
+
+## Full Docker gate after capability classification — 2026-09-05
+
+The repository-mandated `make validate-integration
+INTEGRATION_BRANCH=feat-etf-holdings-constituents` completed successfully at
+the implementation commit. Workstream, dependency, migration, Ruff/format,
+type-check, combined backend coverage (`1831 passed`, `81.15%` total), frontend
+coverage (`929 passed`, `82.05%`), uPlot/visual-policy checks, production build,
+compose contracts, provider probes, branch-scoped stack health, and
+research-runner isolation all passed.
+
+Functional Playwright ran all `260` scheduled cases with `154 passed` and `106
+skipped`; visual Playwright ran `104/104` cases successfully. All eight
+branch-declared tests passed: 575 adapter tests, 2 default-live contract tests
+with 514 skips, 497 opt-in live-provider tests with 19 skips, Ruff/workstream
+validation, frontend type-check, targeted frontend tests (`13 passed`), and
+frontend production build. Automatic teardown removed all branch-scoped
+containers, images, volumes, and network. The post-gate resource audit reported
+zero containers, volumes, testcontainer sessions, known bytes, unknown
+components, and budget overrun.
+
+This checkpoint is green for the current branch scope. It does not close the
+documented dependency: provider-platform remains unstaged, DXJ/NTSX/MINT/BOND
+remain unavailable for current analysis, AC10 remains deferred, and AC14
+remains the post-integration 30-day production shadow gate. No paid source,
+credential, other branch, or other worktree was modified.
