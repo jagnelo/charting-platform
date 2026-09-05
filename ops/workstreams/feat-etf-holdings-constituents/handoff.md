@@ -4121,3 +4121,23 @@ unstaged; DXJ/NTSX/MINT/BOND remain unavailable for current analysis; AC10
 remains deferred; and AC14 remains the post-integration 30-day production
 shadow gate. No paid source, credential, other branch, or other worktree was
 modified.
+
+## Access and quota failure classification checkpoint — 2026-09-05
+
+Implementation commit `64359f51` extends the canary classifier introduced by
+the authentication-boundary checkpoint. Non-challenge HTTP 403 responses now
+persist as `access_denied`, and HTTP 429 responses now persist as
+`quota_rate_limited`. This makes access/entitlement denial and quota throttling
+distinct from generic upstream HTTP failures. WisdomTree/Cloudflare challenge
+evidence remains `issuer_access_blocked`, and the adapter-state
+`rate_limit_state` values (`http_403`/`http_429`) remain unchanged for existing
+operational consumers.
+
+The focused task/refresh/capability/worker suite passed `137` tests. Ruff
+check, Ruff formatting, and `git diff --check` passed. No route, provider
+entitlement, paid source, or UI contract changed; the new classes flow through
+the already persisted capability failure field and existing humanized
+degradation surfaces. Provider-platform remains unstaged; DXJ/NTSX/MINT/BOND
+remain unavailable for current analysis; AC10 remains deferred; and AC14
+remains the post-integration 30-day production shadow gate. No other branch or
+worktree was modified.
