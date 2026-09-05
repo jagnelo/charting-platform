@@ -5,6 +5,24 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-05
 
+## 2026-09-05 — Expose per-role benchmark breadth-history analysis readiness
+
+Benchmark-family breadth history now reports role-local readiness instead of exposing only
+aligned-point coverage. Each available role includes its member count, count and percentage of
+members meeting the canonical D1/W1/MN analysis floors (252/52/24 bars), the required floor, and a
+`ready`/`partial`/`pending`/`unavailable` status. The workstation keeps the aligned-point summary
+and adds the per-role analysis-ready summary, so partial historical coverage is visible without
+claiming that the family is study-ready. Missing roles remain explicit and no provider fallback or
+fabricated history was introduced.
+
+Product commit `6b4d47d1` (`feat(tc2000): expose family breadth history readiness`) is pushed to
+`origin/feat/tc2000-frontend-rework`. Ruff/format, TypeScript, focused Market Map component
+coverage (`36/36`), and the focused benchmark-family history integration assertion (`1/1`) pass;
+authenticated Chromium `F8s-breadth-family-ratio` passes `1/1` on a rebuilt branch-scoped stack.
+Teardown removed the assigned containers, volumes, network, images, and temporary builder. The
+exact-tip exhaustive gate after this product commit is pending; preserve the six unchanged visual
+state-oracle diffs and rerun that gate at the next coherent tip.
+
 ## 2026-09-05 — Promote compatible structured Study outputs to Strategy signals
 
 R4 now closes the structured-result Strategy-signal fan-out for compatible shapes. Persisted

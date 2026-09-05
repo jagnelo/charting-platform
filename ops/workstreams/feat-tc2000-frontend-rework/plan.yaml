@@ -106,7 +106,16 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
-    Current slice product tip a5dc4957 completes structured Study signal promotion and the
+    Current slice product tip 6b4d47d1 adds per-role benchmark-family breadth-history analysis
+    readiness. Each available role now reports member count, analysis-ready member count and
+    percentage, canonical D1/W1/MN required floor (252/52/24), and ready/partial/pending/unavailable
+    status; the workstation preserves aligned-point history while surfacing the role-aware summary.
+    Ruff/format, TypeScript, focused Market Map coverage 36/36, and the focused benchmark-family
+    history integration assertion 1/1 passed. Rebuilt authenticated Chromium F8s-breadth-family-ratio
+    passed 1/1; stack teardown removed assigned resources. The exact-tip exhaustive gate at this
+    product tip is pending. Preserve the six unchanged visual state-oracle diffs and unchanged
+    provider/fallback acceptance policy, then rerun the exact-tip gate at the next coherent tip.
+    Prior slice product tip a5dc4957 completes structured Study signal promotion and the
     exact-tip full_stack_browser gate. All non-visual stages and functional Playwright passed
     (157/157 with 106 documented skips across 263 specs); combined backend coverage was 80.92%
     and frontend Vitest was 952/952 across 109 files. The unchanged visual matrix remains 98/104

@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-05 — Benchmark-family breadth history exposes per-role readiness
+
+- [x] Add role-local benchmark-family breadth-history readiness fields for member count,
+      analysis-ready member count/percentage, canonical D1/W1/MN floor, and explicit
+      `ready`/`partial`/`pending`/`unavailable` status; preserve role lineage and missing-role
+      visibility without fallback or fabricated data.
+- [x] Surface the role-aware analysis-ready summary in the workstation while retaining the
+      aligned-point history summary. Ruff/format, TypeScript, focused Market Map coverage `36/36`,
+      and the focused benchmark-family history integration assertion `1/1` passed.
+- [x] Product commit `6b4d47d1` (`feat(tc2000): expose family breadth history readiness`) is
+      pushed to `origin/feat/tc2000-frontend-rework`; rebuilt authenticated Chromium
+      `F8s-breadth-family-ratio` passed `1/1` and assigned stack resources were removed.
+- [ ] Re-run the exact-tip exhaustive gate at `6b4d47d1`; preserve the six unchanged visual
+      state-oracle diffs and all existing provider/fallback acceptance policy.
+
 ### 2026-09-05 — Structured Study outputs promote to Strategy signals
 
 - [x] Extend persisted Research Results so compatible structured Boolean artifacts can be saved as
