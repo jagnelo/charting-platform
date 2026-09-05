@@ -3039,3 +3039,21 @@ unit matrix passes 716 tests; Ruff, formatting, and diff-check are green. No
 provider, source tier, entitlement, paid activation, or Tier-0 disposition
 changed. Shared provider-platform staging and the post-integration AC14 gate
 remain open.
+
+## Direct backend-equivalent WisdomTree re-test — 2026-09-05
+
+The follow-up direct requests from the ETF integration environment independently
+confirmed the issuer-edge boundary: WisdomTree DXJ and NTSX product routes both
+returned HTTP 403 (`text/html`, Cloudflare challenge content). The browser-visible
+top-ten tables observed during the first-party review therefore cannot be used
+as an application holdings route, and no complete basket, identity contract, or
+stable downloadable artifact was proven. DXJ/NTSX remain explicitly
+non-current; no browser automation, SEC reconstruction, credential, paid
+entitlement, or provider promotion was introduced.
+
+PIMCO MINT/BOND remain unchanged: daily-disclosure language is not a complete
+public basket, and the declared fund-detail route remains authentication-gated.
+The next executable ETF-owned action is still the shared provider-platform
+staging reconciliation; any Alpha Vantage, EODHD, FMP, or other vendor path must
+first satisfy shared entitlement, quota, licensing, and the aggregate
+20 EUR/USD-equivalent budget gate.
