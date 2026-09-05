@@ -17,7 +17,8 @@ The shared watchlist source-history status now reports analysis-ready members an
 the canonical D1/W1/MN floors (252/52/24 bars), alongside the existing covered-member, bar-count,
 date-range, and worker-progress fields. Market Map labels surface the distinction without changing
 the compatibility-oriented overall status or any provider entitlement/fallback behavior. Product
-commit `8490f2dd` (`feat(tc2000): expose history analysis-ready floors`) is committed locally.
+commit `8490f2dd` (`feat(tc2000): expose history analysis-ready floors`) is pushed to
+`origin/feat/tc2000-frontend-rework`.
 Backend units passed `1,318/1,318`; the focused history unit/API checks passed `5/5` and `1/1` (the
 selected API invocation has the expected coverage-floor caveat); frontend component coverage passed
 `36/36`, full frontend Vitest `952/952` across `109` files, TypeScript, Ruff/format, and diff checks
