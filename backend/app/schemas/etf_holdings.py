@@ -1,5 +1,6 @@
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -43,6 +44,28 @@ class ETFHoldingsCapabilityOut(BaseModel):
     schema_fingerprint: str | None = None
     reason: str
     symbol_audit: ETFHoldingsSymbolAuditOut
+
+
+class ETFHoldingsShadowGateOut(BaseModel):
+    """Machine-readable Tier 0 shadow-gate result for operational review."""
+
+    status: str
+    window_start: date
+    window_end: date
+    window_days: int
+    eligible_symbols: list[str]
+    observed_symbols: list[str]
+    missing_symbols: list[str]
+    eligible_checks: int
+    passing_checks: int
+    success_rate: float
+    minimum_success_rate: float
+    max_consecutive_missed_freshness_deadlines: int
+    max_allowed_consecutive_missed_freshness_deadlines: int
+    silent_violation_count: int
+    silent_violations: list[dict[str, Any]]
+    failure_reasons: list[str]
+    missed_freshness_by_symbol: dict[str, int]
 
 
 class ETFProfileOut(BaseModel):

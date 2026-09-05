@@ -17,6 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.etf_holdings import ETFHoldingsAdapterState, ETFHoldingsSnapshot, ETFProfile
+from app.models.instrument import Instrument
 from app.services.etf_holdings_adapters import FALLBACK_ISSUER_AUDITS
 
 CURRENT = "current"
@@ -57,6 +58,55 @@ async def load_latest_adapter_state(
             .limit(1)
         )
     ).scalar_one_or_none()
+
+
+def tier0_symbols() -> tuple[str, ...]:
+    """Return the canonical Tier 0 symbol set used by the shadow gate."""
+
+    return tuple(sorted(_TIER_0_SYMBOL_AUDITS))
+
+
+async def load_tier0_shadow_observations(
+    db: AsyncSession,
+    *,
+    eligible_symbols: Sequence[str] | None = None,
+) -> dict[str, list[Mapping[str, Any]]]:
+    """Collect bounded canary histories for the Tier 0 symbols.
+
+    Adapter state is the ETF-owned persistence boundary for canary evidence.
+    This read intentionally returns only recorded observations; it never probes
+    an issuer route or synthesizes a passing observation for a missing symbol.
+    """
+
+    requested_symbols = {
+        str(symbol).strip().upper()
+        for symbol in (eligible_symbols or tier0_symbols())
+        if str(symbol).strip()
+    }
+    observations_by_symbol: dict[str, list[Mapping[str, Any]]] = {
+        symbol: [] for symbol in requested_symbols
+    }
+    if not requested_symbols:
+        return observations_by_symbol
+
+    rows = (
+        await db.execute(
+            select(ETFHoldingsAdapterState, Instrument.symbol)
+            .join(ETFProfile, ETFProfile.id == ETFHoldingsAdapterState.etf_profile_id)
+            .join(Instrument, Instrument.id == ETFProfile.instrument_id)
+            .where(Instrument.symbol.in_(requested_symbols))
+        )
+    ).all()
+    for state, raw_symbol in rows:
+        symbol = str(raw_symbol).strip().upper()
+        metadata = state.extra_data if isinstance(state.extra_data, dict) else {}
+        history = metadata.get("canary_history")
+        if not isinstance(history, list):
+            continue
+        observations_by_symbol.setdefault(symbol, []).extend(
+            observation for observation in history if isinstance(observation, Mapping)
+        )
+    return observations_by_symbol
 
 
 def current_analysis_error_detail(capability: ETFHoldingsCapability) -> dict[str, Any]:

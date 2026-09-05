@@ -45,6 +45,7 @@ from app.schemas.etf_holdings import (
     ETFHoldingsSECBulkBackfillSummary,
     ETFHoldingsSECIngestRequest,
     ETFHoldingsSECLegacyIngestRequest,
+    ETFHoldingsShadowGateOut,
     ETFHoldingsSnapshotOut,
     ETFHoldingsTransitionTimelineOut,
     ETFHoldingsWeightEvolutionOut,
@@ -93,6 +94,11 @@ from app.services.etf_holdings_adapters import (
     get_holdings_adapter,
     holdings_adapter_catalog,
     parse_holdings_csv,
+)
+from app.services.etf_holdings_capability import (
+    evaluate_tier0_shadow_gate,
+    load_tier0_shadow_observations,
+    tier0_symbols,
 )
 from app.services.etf_holdings_edgar import (
     backfill_all_sec_legacy_holdings,
@@ -507,6 +513,22 @@ async def holdings_adapter_catalog_endpoint(
     current_user: User = Depends(require_admin),
 ):
     return holdings_adapter_catalog()
+
+
+@router.get("/shadow-gate", response_model=ETFHoldingsShadowGateOut)
+async def tier0_shadow_gate(
+    as_of: date | None = Query(default=None),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Evaluate the persisted Tier 0 canary window without triggering fetches."""
+
+    observations = await load_tier0_shadow_observations(db, eligible_symbols=tier0_symbols())
+    return evaluate_tier0_shadow_gate(
+        observations,
+        now=as_of,
+        eligible_symbols=tier0_symbols(),
+    )
 
 
 @router.get("/{symbol}/capability", response_model=ETFHoldingsCapabilityOut)

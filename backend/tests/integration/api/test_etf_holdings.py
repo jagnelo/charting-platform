@@ -124,6 +124,28 @@ def test_admin_can_refresh_ark_provider_route(client, admin_headers, auth_header
     assert capability_body["symbol_audit"]["evidence_state"] == "no_symbol_audit_record"
 
 
+def test_admin_shadow_gate_reports_missing_tier0_observations(client, admin_headers):
+    response = client.get(
+        "/api/v1/etf-holdings/shadow-gate",
+        headers=admin_headers,
+        params={"as_of": "2026-09-05"},
+    )
+
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["status"] == "fail"
+    assert payload["window_start"] == "2026-08-07"
+    assert payload["window_end"] == "2026-09-05"
+    assert payload["eligible_checks"] == 0
+    assert payload["passing_checks"] == 0
+    assert payload["success_rate"] == 0.0
+    assert payload["missing_symbols"] == payload["eligible_symbols"]
+    assert any(
+        reason.startswith("no eligible Tier 0 observations")
+        for reason in payload["failure_reasons"]
+    )
+
+
 def test_admin_family_history_refresh_queues_deduplicated_local_members(
     client, admin_headers, monkeypatch
 ):
