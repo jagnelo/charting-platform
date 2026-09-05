@@ -3024,3 +3024,18 @@ deterministic ETF unit matrix passes 715 tests; Ruff, formatting, and
 diff-check are green. No source tier, provider count, entitlement, paid
 activation, or Tier-0 disposition changed. Shared provider-platform staging,
 the four unresolved Tier-0 routes, and AC14 remain open.
+
+## Shadow-gate symbol-key normalization — 2026-09-05
+
+Implementation checkpoint `ef165913df1f02be0a9a1ff3e486eaed557f7e0b` hardens
+the Tier 0 shadow evaluator's telemetry boundary. Observation-map keys are now
+normalized and merged case-insensitively before coverage evaluation, so valid
+lowercase or mixed-case symbol telemetry cannot be misclassified as missing
+coverage. Observation eligibility, source-tier rules, freshness thresholds, and
+silent-violation checks are unchanged.
+
+The focused capability suite passes 79 tests and the complete deterministic ETF
+unit matrix passes 716 tests; Ruff, formatting, and diff-check are green. No
+provider, source tier, entitlement, paid activation, or Tier-0 disposition
+changed. Shared provider-platform staging and the post-integration AC14 gate
+remain open.
