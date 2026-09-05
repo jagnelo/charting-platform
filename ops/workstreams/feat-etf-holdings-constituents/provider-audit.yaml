@@ -5,8 +5,8 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 414
-current_fallback_count: 82
+current_native_count: 415
+current_fallback_count: 81
 generated_at: 2026-09-05T04:25:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
@@ -306,14 +306,6 @@ symbol_audit_ledger:
       investigated_at: 2026-09-05
       evidence_refs: [web:amplius-aaaa-current-holdings-page-2026-09-05, live:amplius-aaaa-application-200-2026-09-05, live:amplius-aaaa-future-effective-date-2026-09-05]
       next_action: "Re-test AAAA after the issuer effective date is no longer in the future; retain the provider-specific parser and add bounded live evidence before native promotion."
-    - symbol: NDOW
-      tier: 1
-      provider_identity: anydrus
-      current_outcome: unavailable
-      evidence_state: non_executable_public_source
-      investigated_at: 2026-09-02
-      evidence_refs: [web:anydrus-ndow-placeholder-holdings-2026-09-02]
-      next_action: "Re-test the NDOW page for a populated complete download; promote only after current rows, symbol mapping, parser fixtures, and bounded live evidence are available."
     - symbol: AMID
       tier: 1
       provider_identity: argent
@@ -2042,29 +2034,33 @@ providers:
     display_name: anydrus
     queue_rank: 14
     starting_status: needs_first_party_route_discovery
-    current_status: non_executable_public_source
-    disposition: non_executable_public_source
-    last_checked: 2026-09-02
-    source_access_declared: issuer_public_holdings_file
+    current_status: native_promoted
+    disposition: native_promoted
+    last_checked: 2026-09-05
+    source_access_declared: issuer_product_page_declared_filepoint_holdings_json
     representative_symbols:
       - NDOW
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: unavailable_placeholder_date
+    source_freshness: 2026-09-03
     first_party_domains:
       - www.anydrusfunds.com
     candidate_routes:
       - https://www.anydrusfunds.com/
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_anydrus_ndow_adapter_discovers_dated_filepoint_payload
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_anydrus_ndow_page_declared_filepoint_holdings_json
     credential_required: false
     evidence_refs:
-      - "runtime:FALLBACK_ISSUER_AUDITS.anydrus"
       - "runtime:ISSUER_ADAPTER_CONFIGS.anydrus"
+      - "runtime:AnydrusHoldingsAdapter"
+      - "web:anydrus-ndow-official-page-2026-09-05"
+      - "live:anydrus-ndow-application-200-2026-09-05"
+      - "live:anydrus-ndow-dated-filepoint-json-2026-09-03"
+      - "live:anydrus-ndow-complete-84-rows-2026-09-05"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -2074,10 +2070,16 @@ providers:
         source: "https://www.anydrusfunds.com/"
         result: "The issuer page identifies NDOW but displays placeholder dates, dashes, and an empty Top 10 Holdings table; its Download All control yields no current portfolio artifact."
         evidence_ref: "web:anydrus-ndow-placeholder-holdings-2026-09-02"
-    disposition_reason: "anydrus: The issuer's NDOW page is currently non-executable for holdings because dates and values are placeholders and the advertised download has no current rows."
-    next_action: "anydrus: Re-test the NDOW page for a populated complete download; promote only after current rows, symbol mapping, parser fixtures, and bounded live evidence are available."
-    implementation_sha: null
-    validation_refs: []
+      - date: 2026-09-05
+        source: "https://www.anydrusfunds.com/"
+        result: "The official page returned HTTP 200 and its application script declared the primary FilePoint route plus dated JSON fallback. The bounded search found a complete NDOW payload dated 2026-09-03 with 84 declared and 84 parsed constituents, including provider-published symbols and cash."
+        evidence_ref: "live:anydrus-ndow-complete-84-rows-2026-09-05"
+    disposition_reason: "anydrus: The prior placeholder page was superseded by a repeatable official route: the page-declared application exposes a bounded dated FilePoint JSON artifact with complete NDOW rows, strict identity/count validation, deterministic parsing, and opt-in live evidence."
+    next_action: "anydrus: Keep the bounded dated-route canary active; revalidate after route drift or when no artifact is found within the 16-day search window."
+    implementation_sha: 93a488ea8da77f7acf056e52f695787c69243f17
+    validation_refs:
+      - backend/tests/unit/services/test_etf_holdings_adapters.py::test_anydrus_ndow_adapter_discovers_dated_filepoint_payload
+      - backend/tests/live/test_etf_holdings_live_providers.py::test_live_anydrus_ndow_page_declared_filepoint_holdings_json
   - adapter_key: argent
     display_name: argent
     queue_rank: 15

@@ -3254,3 +3254,16 @@ matrix passes 714 tests; Ruff, formatting, and diff-check are green. No source
 tier, provider count, entitlement, paid activation, or Tier-0 disposition
 changed. Shared provider-platform staging and the four unresolved Tier-0
 routes remain open gates.
+## Implementation checkpoint — Anydrus NDOW native route — 2026-09-05
+
+Anydrus' official product page and application bundle now expose a verified
+page-declared FilePoint route. The bounded dated fallback search found the
+2026-09-03 JSON artifact with exactly 84 declared and parsed NDOW constituents.
+The provider-specific adapter validates issuer identity, declared primary and
+dated fallback routes, fund ticker, composition date, and full row count; its
+deterministic fixture and opt-in live route test pass. This promotion reduces
+the current code-derived split to 496 registered / 415 native-live-backed / 81
+fallback-only providers. Keep the 16-day dated search and route canary bounded;
+implementation checkpoint `93a488ea8da77f7acf056e52f695787c69243f17`; do not
+infer current support if the issuer route drifts or the completeness
+contract fails.

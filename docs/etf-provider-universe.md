@@ -28,13 +28,14 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `414`
-- Audited fallback-only providers: `82`
+- Native/live-backed providers: `415`
+- Audited fallback-only providers: `81`
 
 This is the current branch-derived split after the Warren WCAP request-profile,
-Inspire ETF Engine, and Fidelity named-zero-weight-row repairs. The remaining
-Vident and MM VAM aliases stay fallback-only because the shared Vident issuer
-route returns a Cloudflare challenge to the application client.
+Inspire ETF Engine, Fidelity named-zero-weight-row, and Anydrus NDOW
+page-declared FilePoint JSON repairs. The remaining Vident and MM VAM aliases
+stay fallback-only because the shared Vident issuer route returns a Cloudflare
+challenge to the application client.
 
 Provider identity is not the same as symbol-level usability. The branch now
 exposes a per-symbol capability contract that labels current, degraded, stale,
@@ -61,7 +62,7 @@ branch ledger under `symbol_audit_ledger`. The first cohort covers TALV/TABD
 UDIV/UDEF/GEDG (Manulife), QVOY (Q3), ACVF (Ridgeline identity), MDST
 (Westwood), and SPDV/BDIV/TRFM/PFLD (Advisors Asset Management). The follow-on
 cohort covers ALFA/ALFS/ALFD/ALFV (AlphaClone), SMCP (AlphaMark), AAAA
-(Amplius), NDOW (Anydrus), AMID/ABIG/ALIL (Argent), and ATTR (Arin). Their
+(Amplius), AMID/ABIG/ALIL (Argent), and ATTR (Arin). Their
 dated issuer-specific evidence classifies blocked or incomplete routes as
 `unavailable`, inactive or successor-dependent products as `not_applicable`,
 and the Ridgeline identity for ACVF as `not_applicable` because ACV is the
@@ -300,7 +301,7 @@ separate SNTQ live-green claim is made yet.
 
 The historical starting snapshot for this
 workstream was 356 native and 140 fallback; the provider-audit ledger retains
-that baseline record while tracking the current 414/82 split.
+that baseline record while tracking the current 415/81 split.
 
 The current split is derived from `ISSUER_ADAPTER_CONFIGS` and
 `FALLBACK_ISSUER_AUDITS` at provider-repair implementation checkpoint
@@ -315,7 +316,7 @@ as the existing Cygnet parent identity).
 The fallback audit statuses are:
 
 - `issuer_access_blocked`: `8`
-- `needs_first_party_route_discovery`: `64`
+- `needs_first_party_route_discovery`: `63`
 - `non_executable_public_source`: `3`
 - `provider_not_a_portfolio_publisher`: `7`
 
@@ -337,8 +338,8 @@ backend export can be captured; `alphamark_advisors` now redirects to an EP
 Wealth successor page; `amg_national` is a bank/wealth manager rather than an
 ETF portfolio publisher; `amplius` now exposes a complete executable AAAA table
 through the application request, but the observed effective date is future-dated
-relative to the check and the provider remains fallback-only; `anydrus` shows
-placeholder holdings; and
+relative to the check and the provider remains fallback-only; `anydrus` is now
+native-promoted through its page-declared dated FilePoint JSON route; and
 `baillie_gifford` exposes only top-ten spreadsheets. `alphaclone` currently
 serves unrelated content, while `argent` and `arin` expose holdings pages that
 are likewise blocked to backend requests. These records remain fallback-only
@@ -906,7 +907,6 @@ Added adapter keys:
 - `siren`
 - `bufferlabs` (now native-promoted through its official BFLB fund page)
 - `performance_trust`
-- `anydrus`
 - `sammons_enterprises`
 - `moonvest`
 - `avory`
@@ -2074,3 +2074,23 @@ support without a complete executable artifact, strict symbol mapping, and
 bounded live proof. Evidence refs:
 `web:aam-spdv-current-paginated-holdings-2026-09-05` and
 `live:aam-spdv-application-empty-reply-2026-09-05`.
+
+## Anydrus NDOW native route promotion — 2026-09-05
+
+Anydrus' official page returned HTTP 200 and its application script declared
+both the primary FilePoint endpoint and a dated JSON fallback. The bounded
+application-client search found the `2026-09-03` artifact with exactly 84
+issuer-declared and parsed NDOW constituents, including provider-published
+symbols and cash. `AnydrusHoldingsAdapter` now validates the page identity,
+script-declared routes, fund ticker, dated payload, and declared row count;
+deterministic and opt-in live tests cover the parser and route.
+
+Anydrus is therefore native/live-backed, reducing the current split to 496
+registered / 415 native-live-backed / 81 fallback-only providers. The NDOW
+route remains bounded to the issuer-declared 16-day date search and should be
+revalidated when the application route or completeness contract drifts.
+Implementation checkpoint: `93a488ea8da77f7acf056e52f695787c69243f17`.
+Evidence refs: `web:anydrus-ndow-official-page-2026-09-05`,
+`live:anydrus-ndow-application-200-2026-09-05`,
+`live:anydrus-ndow-dated-filepoint-json-2026-09-03`, and
+`live:anydrus-ndow-complete-84-rows-2026-09-05`.

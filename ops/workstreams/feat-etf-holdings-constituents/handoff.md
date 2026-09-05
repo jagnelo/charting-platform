@@ -16,14 +16,14 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 - Latest staging merge: `9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4`
 - Incorporated staging SHA: `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`
-- Current code-derived state: 496 registered, 414 native/live-backed, 82
+- Current code-derived state: 496 registered, 415 native/live-backed, 81
   fallback-only.
-- Current fallback status split: 8 issuer-access-blocked, 64
+- Current fallback status split: 8 issuer-access-blocked, 63
   needs-first-party-route-discovery, 3 non-executable public source, and 7
   non-portfolio-publisher. The ledger retains dated terminal dispositions for
   every fallback key; all 140 historical records are represented exactly once.
 - `docs/etf-provider-universe.md` is reconciled from code to the current
-  496/414/82 snapshot; future updates must remain code-derived.
+  496/415/81 snapshot; future updates must remain code-derived.
 - Validation tier: `full_integration`.
 - Local validation profile: `docker_integration`.
 - The latest complete `make validate-integration` run on the current working
@@ -149,9 +149,10 @@ exhaustive invariant test proves its key/count/rank alignment with runtime code.
 `guggenheim`, `ars`, `avory`, `ballast`, `bancreek`, `beehive`, `blueprint`, `bridgeway`, `brookstone`, `bufferlabs`, `bushido`, `capforce`, `castellan`, `conductor_fund`, `cresalta`, `elm`, `esoterica`, `even_herd`, `everence`, `falconx`, and `gotham` are native-promoted; `advisors_asset_management` remains
 issuer-access-blocked; `amplius` now has a complete executable AAAA parser but
 its observed effective date is future-dated, so it remains fallback-only and
-unavailable for current analysis; `alphamark_advisors` is classified as an
+unavailable for current analysis; `anydrus` is now native-promoted through its
+page-declared dated FilePoint JSON route; `alphamark_advisors` is classified as an
 inactive/successor disposition; `amg_national` is a non-portfolio publisher;
-and `anydrus`, `baillie_gifford`, and `discipline_funds` are non-executable public sources;
+and `baillie_gifford` and `discipline_funds` are non-executable public sources;
 `alphaclone` and `elements` are inactive/successor dispositions; `argent` and `arin` are
 issuer-access-blocked; `azimut`, `desjardins`, `dvx_ventures`, `ea_series_trust`, and
 `emirate_abu_dhabi` are dated non-portfolio-publisher dispositions. The Emirate
@@ -4569,3 +4570,16 @@ AAM remains `issuer_access_blocked` and all four symbols remain unavailable.
 The paginated browser UI is evidence of a candidate route, not application
 support; promotion still requires a complete executable artifact, strict
 symbol mapping, and bounded live proof.
+
+## Current implementation checkpoint — Anydrus NDOW — 2026-09-05
+
+The Anydrus official page and application bundle now provide a repeatable,
+issuer-declared route for NDOW: the bounded date search found a 2026-09-03
+FilePoint JSON artifact with exactly 84 declared and parsed constituents. The
+new provider-specific adapter validates page identity, application-declared
+primary/fallback routes, fund ticker, composition date, and full row count;
+the deterministic fixture and opt-in live route test pass. Anydrus is now
+native/live-backed. The current code-derived split is 496 registered / 415
+native-live-backed / 81 fallback-only, with the 16-day date search retained as
+the route canary boundary. Implementation checkpoint:
+`93a488ea8da77f7acf056e52f695787c69243f17`.
