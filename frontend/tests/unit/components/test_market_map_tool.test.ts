@@ -281,7 +281,7 @@ describe('MarketMapTool', () => {
       limited: false,
       excluded_count: 0,
       overall_status: 'partial',
-      timeframes: [{ timeframe: 'D1', member_count: 2, covered_member_count: 1, coverage_percent: 50, bar_count: 3, oldest: '2025-01-01T00:00:00Z', newest: '2026-06-30T00:00:00Z', in_progress_count: 0, complete_count: 1, failed_count: 0, pending_count: 1 }],
+      timeframes: [{ timeframe: 'D1', member_count: 2, covered_member_count: 1, coverage_percent: 50, analysis_ready_member_count: 0, analysis_ready_percent: 0, required_bar_count: 252, bar_count: 3, oldest: '2025-01-01T00:00:00Z', newest: '2026-06-30T00:00:00Z', in_progress_count: 0, complete_count: 1, failed_count: 0, pending_count: 1 }],
     }
     const historyRun = { id: 42, source_ids: ['market-group:sp500'], timeframes: ['D1'], max_instruments: 5000, available_instrument_count: 2, selected_instrument_count: 2, queued_count: 1, already_queued_count: 1, status: 'running', cancel_requested: false, progress: { complete: 1, in_progress: 1 }, created_at: '2026-08-19T00:00:00Z', updated_at: '2026-08-19T00:00:00Z' }
     apiGet.mockImplementation((path: string) => path.includes('/history-status/') ? Promise.resolve(historyStatus) : path.includes('/history-refresh-runs/') ? Promise.resolve(historyRun) : Promise.resolve([]))
@@ -296,6 +296,7 @@ describe('MarketMapTool', () => {
 
     expect(wrapper.find('[aria-label="Market Map history readiness"]').text()).toContain('partial')
     expect(wrapper.find('[aria-label="Market Map history readiness"]').text()).toContain('1/2 D1 members covered')
+    expect(wrapper.find('[aria-label="Market Map history readiness"]').text()).toContain('analysis-ready 0/2 (floor 252)')
     expect(wrapper.find('[aria-label="Market Map history readiness"]').text()).toContain('3 bars · range 2025-01-01 → 2026-06-30')
     await wrapper.get('[aria-label="Refresh Market Map history"]').trigger('click')
     await flushPromises()

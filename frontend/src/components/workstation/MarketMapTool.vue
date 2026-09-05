@@ -664,7 +664,10 @@ function watchlistHistoryTimeframeLabel(history: WatchlistSourceHistoryStatus['t
   const oldest = history.oldest ? history.oldest.slice(0, 10) : null
   const newest = history.newest ? history.newest.slice(0, 10) : null
   const range = oldest || newest ? ` · range ${oldest ?? 'unknown'} → ${newest ?? 'unknown'}` : ''
-  return `${history.covered_member_count}/${history.member_count} ${history.timeframe} members covered · ${history.bar_count} bars${range}`
+  const ready = typeof history.analysis_ready_member_count === 'number'
+    ? ` · analysis-ready ${history.analysis_ready_member_count}/${history.member_count}${history.required_bar_count ? ` (floor ${history.required_bar_count})` : ''}`
+    : ''
+  return `${history.covered_member_count}/${history.member_count} ${history.timeframe} members covered${ready} · ${history.bar_count} bars${range}`
 }
 
 function benchmarkRoleLatestSnapshotLabel(role: BenchmarkFamilyCoverageRole): string {

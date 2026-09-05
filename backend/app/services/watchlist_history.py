@@ -25,6 +25,16 @@ DEFAULT_HISTORY_TIMEFRAMES = (Timeframe.MN.value, Timeframe.W1.value, Timeframe.
 MAX_HISTORY_INSTRUMENTS = 5000
 MAX_HISTORY_SOURCES = 256
 
+# Match the technical-history floors used by benchmark-family readiness. The
+# generic source contract should expose the same distinction between one usable
+# observation and enough local history for the workstation's historical
+# studies, while retaining its existing covered/worker status semantics.
+ANALYSIS_REQUIRED_BAR_COUNTS = {
+    Timeframe.D1.value: 252,
+    Timeframe.W1.value: 52,
+    Timeframe.MN.value: 24,
+}
+
 
 def normalize_source_ids(source_ids: list[str] | None) -> list[str]:
     """Deduplicate explicit source IDs while preserving the caller's order."""
@@ -216,28 +226,46 @@ async def build_watchlist_source_history_status(
     covered_rows = (
         (
             await db.execute(
-                select(OHLCVBar.instrument_id, OHLCVBar.timeframe)
+                select(
+                    OHLCVBar.instrument_id,
+                    OHLCVBar.timeframe,
+                    func.count(OHLCVBar.id).label("bar_count"),
+                )
                 .where(
                     OHLCVBar.instrument_id.in_(instrument_ids),
                     OHLCVBar.timeframe.in_(normalized_timeframes),
                     OHLCVBar.is_adjusted.is_(True),
                     *([OHLCVBar.ts <= as_of] if as_of is not None else []),
                 )
-                .distinct()
+                .group_by(OHLCVBar.instrument_id, OHLCVBar.timeframe)
             )
         ).all()
         if instrument_ids
         else []
     )
     covered_instruments_by_timeframe: dict[str, set[int]] = {}
-    for instrument_id, timeframe in covered_rows:
+    analysis_ready_instruments_by_timeframe: dict[str, set[int]] = {}
+    for row in covered_rows:
+        # Keep compatibility with lightweight test doubles and older callers
+        # that return the pre-floor two-column shape. Production SQL returns
+        # the grouped count needed for analysis readiness.
+        instrument_id, timeframe = row[0], row[1]
         covered_instruments_by_timeframe.setdefault(timeframe.value, set()).add(instrument_id)
+        bar_count = int(row[2]) if len(row) > 2 and row[2] is not None else None
+        required = ANALYSIS_REQUIRED_BAR_COUNTS.get(timeframe.value)
+        if bar_count is not None and required is not None and bar_count >= required:
+            analysis_ready_instruments_by_timeframe.setdefault(timeframe.value, set()).add(
+                instrument_id
+            )
     progress_by_instrument = progress_by_instrument or {}
     timeframe_statuses: list[dict[str, Any]] = []
     for timeframe in normalized_timeframes:
         row = bars_by_timeframe.get(timeframe.value)
         covered_count = int(row.covered_count) if row is not None else 0
         covered_instruments = covered_instruments_by_timeframe.get(timeframe.value, set())
+        analysis_ready_count = len(
+            analysis_ready_instruments_by_timeframe.get(timeframe.value, set())
+        )
         progress_counts = {"in_progress": 0, "complete": 0, "failed": 0, "pending": 0}
         for instrument_id in instrument_ids:
             progress = progress_by_instrument.get(instrument_id)
@@ -259,6 +287,13 @@ async def build_watchlist_source_history_status(
                 "member_count": len(instrument_ids),
                 "covered_member_count": covered_count,
                 "coverage_percent": coverage_percent,
+                "analysis_ready_member_count": analysis_ready_count,
+                "analysis_ready_percent": (
+                    round((analysis_ready_count / len(instrument_ids)) * 100, 2)
+                    if instrument_ids
+                    else 0.0
+                ),
+                "required_bar_count": ANALYSIS_REQUIRED_BAR_COUNTS.get(timeframe.value),
                 "bar_count": int(row.bar_count) if row is not None else 0,
                 "oldest": row.oldest if row is not None else None,
                 "newest": row.newest if row is not None else None,

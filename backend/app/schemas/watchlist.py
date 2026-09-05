@@ -170,6 +170,9 @@ class WatchlistSourceHistoryTimeframeStatus(BaseModel):
     member_count: int = 0
     covered_member_count: int = 0
     coverage_percent: float = 0.0
+    analysis_ready_member_count: int = 0
+    analysis_ready_percent: float = 0.0
+    required_bar_count: int | None = Field(default=None, ge=1)
     bar_count: int = 0
     oldest: datetime | None = None
     newest: datetime | None = None

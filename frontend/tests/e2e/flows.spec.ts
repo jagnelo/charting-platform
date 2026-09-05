@@ -3684,7 +3684,7 @@ test.describe('TC2000 workstation', () => {
         const historySourceId = decodeURIComponent(pathname.split('/history-status/').pop() ?? '')
         if (['market-group:us-benchmarks', 'watchlist:7', 'combo:analysis-combo'].includes(historySourceId)) {
           const historySource = sources.find(item => item.source_id === historySourceId) ?? sources[0]
-          await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ source_id: historySource.source_id, source_kind: historySource.source_kind, name: historySource.name, locked: historySource.locked, membership_version: historySource.membership_version, max_instruments: 5000, available_instrument_count: 2, selected_instrument_count: 2, limited: false, excluded_count: 0, overall_status: 'ready', timeframes: [{ timeframe: 'D1', member_count: 2, covered_member_count: 2, coverage_percent: 100, bar_count: 4, oldest: '2025-01-01T00:00:00Z', newest: '2026-06-30T00:00:00Z', in_progress_count: 0, complete_count: 2, failed_count: 0, pending_count: 0 }] }) })
+          await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ source_id: historySource.source_id, source_kind: historySource.source_kind, name: historySource.name, locked: historySource.locked, membership_version: historySource.membership_version, max_instruments: 5000, available_instrument_count: 2, selected_instrument_count: 2, limited: false, excluded_count: 0, overall_status: 'ready', timeframes: [{ timeframe: 'D1', member_count: 2, covered_member_count: 2, coverage_percent: 100, analysis_ready_member_count: 0, analysis_ready_percent: 0, required_bar_count: 252, bar_count: 4, oldest: '2025-01-01T00:00:00Z', newest: '2026-06-30T00:00:00Z', in_progress_count: 0, complete_count: 2, failed_count: 0, pending_count: 0 }] }) })
           return
         }
       }
@@ -3745,6 +3745,7 @@ test.describe('TC2000 workstation', () => {
     const universe = mapWindow.getByRole('combobox', { name: 'Market Map universe' })
     await expect(universe).toHaveValue('market-group:us-benchmarks')
     await expect(mapWindow.locator('.market-map-tool__summary')).toContainText('Locked source', { timeout: 15_000 })
+    await expect(mapWindow.locator('[aria-label="Market Map history readiness"]')).toContainText('analysis-ready 0/2 (floor 252)', { timeout: 15_000 })
     await mapWindow.getByRole('button', { name: 'Clone US benchmark constituents snapshot' }).click()
     await expect(mapWindow.locator('[aria-label="Market Map source preferences"] [role="status"]')).toContainText('1/2 members cloned', { timeout: 15_000 })
     await mapWindow.getByRole('button', { name: 'Retry failed source clone members' }).click()

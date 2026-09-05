@@ -185,7 +185,7 @@ async def test_watchlist_history_status_uses_local_coverage_and_worker_progress(
                                 newest=datetime(2025, 1, 2, tzinfo=UTC),
                             )
                         ]
-                    return [(10, SimpleNamespace(value="D1"))]
+                    return [(10, SimpleNamespace(value="D1"), 250)]
 
             return FakeResult()
 
@@ -207,6 +207,9 @@ async def test_watchlist_history_status_uses_local_coverage_and_worker_progress(
             "member_count": 2,
             "covered_member_count": 1,
             "coverage_percent": 50.0,
+            "analysis_ready_member_count": 0,
+            "analysis_ready_percent": 0.0,
+            "required_bar_count": 252,
             "bar_count": 250,
             "oldest": datetime(2024, 1, 2, tzinfo=UTC),
             "newest": datetime(2025, 1, 2, tzinfo=UTC),
