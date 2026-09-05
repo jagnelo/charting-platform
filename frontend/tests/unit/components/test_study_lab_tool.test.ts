@@ -357,6 +357,23 @@ describe('StudyLabTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
       initial_version: expect.objectContaining({ output_contract: 'series', output_name: 'trend' }),
     }))
+    const latestColumnButton = wrapper.findAll('button').find(button => button.text() === 'Save latest column: trend')
+    expect(latestColumnButton).toBeDefined()
+    await latestColumnButton!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable watchlist column.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        output_contract: 'scalar',
+        output_name: 'trend',
+        lineage: expect.objectContaining({
+          source_run_id: 9,
+          source_output_name: 'trend',
+          output_adapter: 'latest_series_to_scalar',
+          semantics: 'study_series_latest_result_as_watchlist_column',
+        }),
+      }),
+    }))
     await wrapper.findAll('button').find(button => button.text() === 'Save column: qualifies')!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable watchlist column.'))
     expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({

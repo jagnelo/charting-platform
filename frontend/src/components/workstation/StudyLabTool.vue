@@ -66,6 +66,7 @@
       <div v-if="promotableKind || artifactPromotions.length" class="study-lab-tool__promotions" aria-label="Promote study result">
         <button v-if="promotableKind === 'scalar'" type="button" :disabled="promotionBusy" @click="promote('column')">{{ promotionBusy ? 'Promoting…' : 'Save as column' }}</button>
         <button v-if="promotableKind === 'series'" type="button" :disabled="promotionBusy" @click="promote('plot')">{{ promotionBusy ? 'Promoting…' : 'Save as chart plot' }}</button>
+        <button v-if="promotableKind === 'series' && latestSeriesObservation != null" type="button" :disabled="promotionBusy" @click="promote('column')">{{ promotionBusy ? 'Promoting…' : 'Save latest column' }}</button>
         <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('filter')">{{ promotionBusy ? 'Promoting…' : 'Save as watchlist filter' }}</button>
         <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('column')">{{ promotionBusy ? 'Promoting…' : 'Save as Boolean column' }}</button>
         <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('scan')">{{ promotionBusy ? 'Promoting…' : 'Promote to scan' }}</button>
@@ -362,6 +363,11 @@ const progressLabel = computed(() => {
   const total = Number(progress.total_cells ?? 0)
   return total > 0 ? `running ${Number(progress.completed_cells ?? 0)}/${total}` : 'runner active'
 })
+const latestSeriesObservation = computed(() => {
+  if (runContract.value !== 'series') return null
+  const artifact = run.value?.artifacts?.find(item => item.artifact_type === 'series')
+  return artifact ? latestSeriesValue(artifact) : null
+})
 const metricArtifacts = computed(() => (run.value?.artifacts ?? []).filter(artifact => ['scalar', 'boolean'].includes(artifact.artifact_type)))
 const nonScalarArtifacts = computed(() => (run.value?.artifacts ?? []).filter(artifact => !['scalar', 'boolean'].includes(artifact.artifact_type)))
 type PromotionTarget = 'column' | 'plot' | 'filter' | 'scan' | 'gauge' | 'alert' | 'signal'
@@ -373,7 +379,10 @@ const artifactPromotions = computed<ArtifactPromotion[]>(() => {
   if (runContract.value && runContract.value !== 'study') return []
   const promotions: ArtifactPromotion[] = []
   for (const artifact of run.value.artifacts ?? []) {
-    if (artifact.artifact_type === 'series') promotions.push({ artifact, target: 'plot', label: 'Save plot' })
+    if (artifact.artifact_type === 'series') {
+      promotions.push({ artifact, target: 'plot', label: 'Save plot' })
+      if (latestSeriesValue(artifact) != null) promotions.push({ artifact, target: 'column', label: 'Save latest column' })
+    }
     else if (artifact.artifact_type === 'scalar') promotions.push({ artifact, target: 'column', label: 'Save column' })
     else if (artifact.artifact_type === 'boolean') {
       promotions.push(
@@ -531,6 +540,14 @@ function seriesData(artifact: Artifact): { timestamps: string[]; values: Array<n
   if (!Array.isArray(candidate.timestamps) || !candidate.timestamps.every(item => typeof item === 'string') || !Array.isArray(candidate.values) || candidate.timestamps.length !== candidate.values.length || !candidate.values.every(item => item == null || typeof item === 'number')) return null
   return { timestamps: candidate.timestamps, values: candidate.values }
 }
+function latestSeriesValue(artifact: Artifact): number | null {
+  const values = seriesData(artifact)?.values
+  if (!values) return null
+  for (const value of values.slice().reverse()) {
+    if (typeof value === 'number' && Number.isFinite(value)) return value
+  }
+  return null
+}
 function barData(artifact: Artifact): { labels: string[]; values: number[] } | null {
   const value = artifact.payload.value
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
@@ -683,7 +700,15 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
       return
     }
     const isBooleanTarget = target === 'filter' || target === 'scan' || target === 'gauge' || target === 'alert'
-    const requiredContract = isBooleanTarget ? 'boolean' : contract
+    const latestSeriesColumn = target === 'column' && (
+      selectedArtifact?.artifact_type === 'series'
+        ? latestSeriesValue(selectedArtifact) != null
+        : contract === 'series' && latestSeriesObservation.value != null
+    )
+    if (target === 'column' && contract === 'series' && !latestSeriesColumn) {
+      throw new Error('A numeric Study series needs a finite observation before it can become a latest-value column.')
+    }
+    const requiredContract = isBooleanTarget ? 'boolean' : latestSeriesColumn ? 'scalar' : contract
     // A column is a separately typed library asset even when the study has a
     // compatible scalar/Boolean output. This keeps the target kind explicit
     // and lets its immutable promotion lineage survive independently of the
@@ -713,9 +738,12 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
             source_run_config: sourceRunConfig,
             source_output_name: selectedOutputName ?? null,
             target,
+            output_adapter: latestSeriesColumn ? 'latest_series_to_scalar' : undefined,
             semantics: target === 'column' && requiredContract === 'boolean'
               ? 'study_boolean_result_as_typed_watchlist_column'
-              : 'study_result_promotion',
+              : latestSeriesColumn
+                ? 'study_series_latest_result_as_watchlist_column'
+                : 'study_result_promotion',
           },
         },
       })

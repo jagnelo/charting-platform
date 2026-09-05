@@ -922,6 +922,9 @@ test.describe('Chart', () => {
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
     await study.getByRole('button', { name: 'Save as chart plot' }).click()
     await expect(study).toContainText('Saved as a reusable chart plot.', { timeout: 15_000 })
+    await expect(study.getByRole('button', { name: 'Save latest column: reusable_series' })).toBeVisible()
+    await study.getByRole('button', { name: 'Save latest column: reusable_series' }).click()
+    await expect(study).toContainText('Saved as a reusable watchlist column.', { timeout: 15_000 })
 
     await page.locator('.workstation__tabs > button').filter({ hasText: 'US Top Down' }).click()
     // Returning from Study Lab can leave the chart component mounted in a
