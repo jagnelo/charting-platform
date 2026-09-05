@@ -922,8 +922,8 @@ test.describe('Chart', () => {
     await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
     await study.getByRole('button', { name: 'Save as chart plot' }).click()
     await expect(study).toContainText('Saved as a reusable chart plot.', { timeout: 15_000 })
-    await expect(study.getByRole('button', { name: 'Save latest column: reusable_series' })).toBeVisible()
-    await study.getByRole('button', { name: 'Save latest column: reusable_series' }).click()
+    await expect(study.getByRole('button', { name: 'Save latest column', exact: true })).toBeVisible()
+    await study.getByRole('button', { name: 'Save latest column', exact: true }).click()
     await expect(study).toContainText('Saved as a reusable watchlist column.', { timeout: 15_000 })
 
     await page.locator('.workstation__tabs > button').filter({ hasText: 'US Top Down' }).click()

@@ -542,7 +542,9 @@ function seriesData(artifact: Artifact): { timestamps: string[]; values: Array<n
   return { timestamps: candidate.timestamps, values: candidate.values }
 }
 function latestSeriesValue(artifact: Artifact): number | null {
-  const values = seriesData(artifact)?.values
+  const structuredValues = seriesData(artifact)?.values
+  const rawValue = artifact.payload.value
+  const values = structuredValues ?? (Array.isArray(rawValue) ? rawValue : null)
   if (!values) return null
   for (const value of values.slice().reverse()) {
     if (typeof value === 'number' && Number.isFinite(value)) return value
@@ -713,6 +715,9 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
     if (target === 'plot' && contract === 'range' && !rangeCenterPlot) {
       throw new Error('A Study range needs an aligned finite center series before it can become a chart plot.')
     }
+    const promotionOutputName = selectedOutputName ?? (latestSeriesColumn
+      ? run.value?.artifacts?.find(artifact => artifact.artifact_type === 'series')?.name
+      : undefined)
     const requiredContract = isBooleanTarget ? 'boolean' : latestSeriesColumn ? 'scalar' : rangeCenterPlot ? 'series' : contract
     // A column is a separately typed library asset even when the study has a
     // compatible scalar/Boolean output. This keeps the target kind explicit
@@ -732,7 +737,7 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
         initial_version: {
           source: runSource.value,
           output_contract: requiredContract,
-          ...(selectedOutputName ? { output_name: selectedOutputName } : {}),
+          ...(promotionOutputName ? { output_name: promotionOutputName } : {}),
           parameter_schema: parsedParameterSchema.value ?? {},
           default_parameters: buildParameters(),
           lineage: {
@@ -741,7 +746,7 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
             source_reproducibility_hash: run.value?.reproducibility_hash ?? null,
             source_dataset_manifest: sourceManifest,
             source_run_config: sourceRunConfig,
-            source_output_name: selectedOutputName ?? null,
+            source_output_name: promotionOutputName ?? null,
             target,
             output_adapter: latestSeriesColumn ? 'latest_series_to_scalar' : rangeCenterPlot ? 'range_center_to_series' : undefined,
             semantics: target === 'column' && requiredContract === 'boolean'
@@ -750,7 +755,7 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
                 ? 'study_series_latest_result_as_watchlist_column'
                 : rangeCenterPlot
                   ? 'study_range_center_result_as_chart_plot'
-                : 'study_result_promotion',
+                  : 'study_result_promotion',
           },
         },
       })

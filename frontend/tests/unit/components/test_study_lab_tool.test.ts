@@ -649,6 +649,33 @@ describe('StudyLabTool', () => {
     expect(apiPost.mock.calls.filter(call => String(call[0]).startsWith('/screeners/from-python-condition/'))).toHaveLength(0)
   })
 
+  it('offers the latest-value column for a single-output raw numeric series', async () => {
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['series'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 146 }] })
+      if (path === '/research/runs') return Promise.resolve({ id: 147, code_version_id: 146, status: 'completed', artifacts: [{ id: 1, name: 'trend', artifact_type: 'series', payload: { value: [null, 4, 6] } }] })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    await wrapper.find('[aria-label="Study Python source"]').setValue("output.series('trend', [None, 4, 6])")
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button')[1].trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #147'))
+    const latestColumn = wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Save latest column')
+    expect(latestColumn).toBeDefined()
+    await latestColumn!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable watchlist column.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        output_contract: 'scalar',
+        output_name: 'trend',
+        lineage: expect.objectContaining({ output_adapter: 'latest_series_to_scalar', semantics: 'study_series_latest_result_as_watchlist_column' }),
+      }),
+    }))
+  })
+
   it('promotes a completed event study without coercing its event contract', async () => {
     apiPost.mockImplementation((path: string) => {
       if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['market', 'output'], lookback_hint: 1, output_contracts: ['events'] })
