@@ -20,7 +20,7 @@ policy, stack health, runner isolation, and authenticated functional Playwright 
 `106` documented skips across `261` specs) passed. The only failing stage is the unchanged
 four-project visual matrix: `98/104` passed, with `watchlist-column-editor-open` at 1080p-100/125
 (`13,844` pixels each) and `workspace-floating` at 1080p-100/125/1440p-100/1440p-125
-(`11,901`/`9,770`/`9,770`/`12,097` pixels). No visual policy, fallback rule, baseline, mask,
+(`11,901`/`9,770`/`9,770`/`9,770` pixels). No visual policy, fallback rule, baseline, mask,
 threshold, or skip changed; the floating actual still intentionally contains canonical benchmark
 rows after late-popout hydration. Teardown removed the assigned stack and generated resources;
 resource accounting was clean.

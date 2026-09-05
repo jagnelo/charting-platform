@@ -12,7 +12,7 @@
 - [x] Preserve the unchanged visual acceptance result: `98/104` passed. The six failures remain
       `watchlist-column-editor-open` at visual-1080p-100/125 (`13,844` pixels each) and
       `workspace-floating` at visual-1080p-100/125/1440p-100/1440p-125 (`11,901`/`9,770`/
-      `9,770`/`12,097` pixels). The workspace-floating actual still intentionally contains
+      `9,770`/`9,770` pixels). The workspace-floating actual still intentionally contains
       canonical benchmark rows after late-popout hydration. No baseline, mask, threshold, skip,
       fallback, provider rule, or acceptance policy changed; gate teardown and resource
       accounting were clean.

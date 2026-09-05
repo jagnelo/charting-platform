@@ -28,7 +28,7 @@ compose/provider policy, stack health, runner isolation, and authenticated funct
 (`155` passed, `106` documented skips across `261` specs) all passed. The four-project visual
 matrix remains the only failing stage at `98/104`: `watchlist-column-editor-open` differs by
 `13,844` pixels at 1080p-100/125, and `workspace-floating` differs by `11,901`/`9,770`/
-`9,770`/`12,097` pixels at 1080p-100/125 and 1440p-100/125. No visual baseline, mask, threshold,
+`9,770`/`9,770` pixels at 1080p-100/125 and 1440p-100/125. No visual baseline, mask, threshold,
 skip, fallback oracle, provider rule, or acceptance policy changed; the workspace-floating actual
 still intentionally contains canonical benchmark rows after late-popout hydration. Teardown and
 resource accounting were clean. The goal remains active while canonical provider/history, richer
