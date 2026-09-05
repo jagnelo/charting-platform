@@ -256,6 +256,36 @@ def test_code_asset_kind_and_declared_output_contract_must_match(client, auth_he
     )
     assert range_lineage["lineage"]["output_adapter"] == "range_center_to_series"
 
+    selected_range_column = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "selected-study-range-center-column",
+            "name": "Selected study range center column",
+            "kind": "column",
+            "initial_version": {
+                "source": "output.range('band', [1, 2], [3, 4], [2, 3])",
+                "output_contract": "scalar",
+                "output_name": "band",
+                "lineage": {
+                    "source_run_id": 94,
+                    "source_code_version_id": 46,
+                    "target": "column",
+                    "output_adapter": "range_center_to_scalar",
+                    "semantics": "study_range_center_result_as_latest_watchlist_column",
+                },
+            },
+        },
+    )
+    assert selected_range_column.status_code == 201, selected_range_column.text
+    range_column_version = selected_range_column.json()["versions"][0]
+    assert range_column_version["output_contract"] == "scalar"
+    assert range_column_version["output_name"] == "band"
+    range_column_lineage = next(
+        item for item in range_column_version["diagnostics"] if item["code"] == "promotion_lineage"
+    )
+    assert range_column_lineage["lineage"]["output_adapter"] == "range_center_to_scalar"
+
     selected_series_column = client.post(
         "/api/v1/code/assets",
         headers=auth_headers,

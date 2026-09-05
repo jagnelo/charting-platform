@@ -394,6 +394,24 @@ describe('StudyLabTool', () => {
         }),
       }),
     }))
+    const rangeCenterColumnButton = wrapper.findAll('button').find(button => button.text() === 'Save latest center column: confidence')
+    expect(rangeCenterColumnButton).toBeDefined()
+    await rangeCenterColumnButton!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable watchlist column.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        output_contract: 'scalar',
+        output_name: 'confidence',
+        lineage: expect.objectContaining({
+          source_run_id: 9,
+          source_output_name: 'confidence',
+          target: 'column',
+          output_adapter: 'range_center_to_scalar',
+          semantics: 'study_range_center_result_as_latest_watchlist_column',
+        }),
+      }),
+    }))
     await wrapper.findAll('button').find(button => button.text() === 'Save column: qualifies')!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable watchlist column.'))
     expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({

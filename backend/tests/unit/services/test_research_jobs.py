@@ -66,6 +66,35 @@ def test_enqueue_recovers_explicit_promotion_adapter_from_lineage(tmp_path, monk
     assert payload["output_adapter"] == "range_center_to_series"
 
 
+def test_enqueue_recovers_range_center_scalar_adapter_from_lineage(tmp_path, monkeypatch):
+    job_directory = tmp_path / "jobs"
+    result_directory = tmp_path / "results"
+    result_directory.mkdir()
+    monkeypatch.setattr(research_jobs.settings, "RESEARCH_JOB_DIR", str(job_directory))
+    monkeypatch.setattr(research_jobs.settings, "RESEARCH_RESULT_DIR", str(result_directory))
+    run = SimpleNamespace(
+        id=9,
+        dataset_manifest={"datasets": [{"instrument_id": 1, "symbol": "SPY"}]},
+        run_config={"parameters": {}},
+        code_version=SimpleNamespace(
+            source="output.range('band', [1], [3], [2])",
+            output_contract="scalar",
+            output_name="band",
+            diagnostics=[
+                {
+                    "code": "promotion_lineage",
+                    "lineage": {"output_adapter": "range_center_to_scalar"},
+                }
+            ],
+        ),
+    )
+
+    research_jobs.enqueue_research_run(run)
+
+    payload = json.loads((job_directory / "9.json").read_text())
+    assert payload["output_adapter"] == "range_center_to_scalar"
+
+
 def test_collect_projects_breadth_history_occurrences_into_persisted_artifact(
     tmp_path, monkeypatch
 ):

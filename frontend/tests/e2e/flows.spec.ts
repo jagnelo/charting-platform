@@ -3062,14 +3062,15 @@ test.describe('TC2000 workstation', () => {
         await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 49, name: 'Qualifies condition', versions: [{ id: 49, output_contract: 'boolean' }] }) })
         return
       }
-      if (outputName === 'confidence') expect(body?.initial_version).toMatchObject({ output_contract: 'series', output_name: 'confidence', lineage: { output_adapter: 'range_center_to_series', semantics: 'study_range_center_result_as_chart_plot' } })
+      if (outputName === 'confidence' && body?.kind === 'column') expect(body?.initial_version).toMatchObject({ output_contract: 'scalar', output_name: 'confidence', lineage: { output_adapter: 'range_center_to_scalar', semantics: 'study_range_center_result_as_latest_watchlist_column' } })
+      if (outputName === 'confidence' && body?.kind === 'plot') expect(body?.initial_version).toMatchObject({ output_contract: 'series', output_name: 'confidence', lineage: { output_adapter: 'range_center_to_series', semantics: 'study_range_center_result_as_chart_plot' } })
       if (outputName === 'trend' && body?.kind === 'column') expect(body?.initial_version).toMatchObject({ output_contract: 'scalar', output_name: 'trend', lineage: { output_adapter: 'latest_series_to_scalar', semantics: 'study_series_latest_result_as_watchlist_column' } })
       if (body?.kind === 'signal' && outputName === 'occurrences') {
         await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 52, name: 'Occurrences signal asset', versions: [{ id: 52 }] }) })
         return
       }
-      const id = outputName === 'sample_size' ? 46 : outputName === 'trend' ? (body?.kind === 'column' ? 49 : 47) : outputName === 'confidence' ? 48 : 50
-      const name = outputName === 'sample_size' ? 'Sample size column' : outputName === 'trend' ? (body?.kind === 'column' ? 'Trend latest column' : 'Trend plot') : outputName === 'confidence' ? 'Confidence center plot' : 'Qualifies column'
+      const id = outputName === 'sample_size' ? 46 : outputName === 'trend' ? (body?.kind === 'column' ? 49 : 47) : outputName === 'confidence' ? (body?.kind === 'column' ? 54 : 48) : 50
+      const name = outputName === 'sample_size' ? 'Sample size column' : outputName === 'trend' ? (body?.kind === 'column' ? 'Trend latest column' : 'Trend plot') : outputName === 'confidence' ? (body?.kind === 'column' ? 'Confidence latest column' : 'Confidence center plot') : 'Qualifies column'
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id, name, versions: [{ id }] }) })
     })
     await page.route(/\/api\/v1\/research\/runs\/883$/, async route => {
@@ -3180,6 +3181,9 @@ test.describe('TC2000 workstation', () => {
     await expect(results.getByRole('button', { name: 'Save center chart plot: confidence' })).toBeVisible()
     await results.getByRole('button', { name: 'Save center chart plot: confidence' }).click()
     await expect(results).toContainText('Saved range center “confidence” as chart plot “Confidence center plot”.')
+    await expect(results.getByRole('button', { name: 'Save latest center column: confidence' })).toBeVisible()
+    await results.getByRole('button', { name: 'Save latest center column: confidence' }).click()
+    await expect(results).toContainText('Saved range center “confidence” as watchlist column “Confidence latest column”.')
     for (const label of ['Save column: qualifies', 'Save filter: qualifies', 'Promote scan: qualifies', 'Use Gauge: qualifies', 'Promote alert: qualifies']) await expect(results.getByRole('button', { name: label })).toBeVisible()
     await results.getByRole('button', { name: 'Save column: qualifies' }).click()
     await expect(results).toContainText('Saved Boolean artifact “qualifies” as watchlist column “Qualifies column”.')

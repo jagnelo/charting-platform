@@ -457,6 +457,40 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.text()).toContain('Saved range center “confidence” as chart plot')
   })
 
+  it('promotes a structured range center latest value into a typed watchlist column', async () => {
+    const source = "output.range('confidence', [1, 2], [3, 4], [2, 3])"
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve([{ id: 35, status: 'completed', code_version_id: 83, output_contract: 'study', run_config: { symbol: 'SPY' }, dataset_manifest: { source: 'canonical_database' }, reproducibility_hash: 'hash-35', diagnostics: [], artifacts: [
+        { id: 25, name: 'confidence', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], lower: [1, 2], upper: [3, 4], center: [2, 3] } } },
+      ] }])
+      if (path === '/code/assets') return Promise.resolve([{ name: 'Study 35', versions: [{ id: 83, source, output_contract: 'study', parameter_schema: { properties: {} }, default_parameters: {} }] }])
+      return Promise.resolve([])
+    })
+    apiPost.mockResolvedValue({ id: 84, name: 'confidence latest column' })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.get('[aria-label="Save latest center column: confidence"]').trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        source,
+        output_contract: 'scalar',
+        output_name: 'confidence',
+        lineage: expect.objectContaining({
+          source_run_id: 35,
+          source_output_name: 'confidence',
+          target: 'column',
+          output_adapter: 'range_center_to_scalar',
+          semantics: 'study_range_center_result_as_latest_watchlist_column',
+        }),
+      }),
+    }))
+    expect(wrapper.text()).toContain('Saved range center “confidence” as watchlist column “confidence latest column”')
+  })
+
   it('promotes a finite numeric series latest value into a typed watchlist column', async () => {
     const source = "output.series('trend', market.close())"
     apiGet.mockImplementation((path: string) => {

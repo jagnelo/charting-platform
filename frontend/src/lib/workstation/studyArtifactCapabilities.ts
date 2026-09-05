@@ -23,8 +23,8 @@ export const STUDY_ARTIFACT_CAPABILITIES: Readonly<Record<string, StudyArtifactC
     note: 'Compatible targets: chart plot, latest-value watchlist column, or a thresholded Boolean condition when a finite observation is present.',
   },
   range: {
-    targets: ['center chart plot'],
-    note: 'Compatible target: center chart plot when an aligned finite center series is present; bounds remain source-only.',
+    targets: ['center chart plot', 'latest center watchlist column'],
+    note: 'Compatible targets: center chart plot or latest center watchlist column when an aligned finite center series is present; bounds remain source-only.',
   },
   events: {
     targets: ['watchlist filter', 'alert', 'Strategy signal'],

@@ -1719,6 +1719,28 @@ def test_runner_adapts_range_center_to_numeric_batch_cells():
     ]
 
 
+def test_runner_adapts_range_center_to_latest_numeric_batch_cells():
+    result = execute_job(
+        {
+            "source": "output.range('band', [1, 2], [3, 4], [2, 3])",
+            "output_contract": "scalar",
+            "output_name": "band",
+            "output_adapter": "range_center_to_scalar",
+            "dataset": {"datasets": [{"instrument_id": 1, "symbol": "SPY", "closes": [10, 11]}]},
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["batch_cells"]["value"]["cells"] == [
+        {
+            "instrument_id": 1,
+            "symbol": "SPY",
+            "status": "completed",
+            "value": 3.0,
+            "metric": 3.0,
+        }
+    ]
+
+
 def test_runner_reports_stable_range_center_adapter_error():
     result = execute_job(
         {

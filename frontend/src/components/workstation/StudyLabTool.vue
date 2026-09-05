@@ -422,7 +422,10 @@ const artifactPromotions = computed<ArtifactPromotion[]>(() => {
       promotions.push({ artifact, target: 'plot', label: 'Save plot' })
       if (latestSeriesValue(artifact) != null) promotions.push({ artifact, target: 'column', label: 'Save latest column' })
     }
-    else if (artifact.artifact_type === 'range' && rangeData(artifact)?.center != null) promotions.push({ artifact, target: 'plot', label: 'Save center plot' })
+    else if (artifact.artifact_type === 'range' && rangeData(artifact)?.center != null) {
+      promotions.push({ artifact, target: 'plot', label: 'Save center plot' })
+      if (rangeData(artifact)?.center?.some(value => Number.isFinite(value))) promotions.push({ artifact, target: 'column', label: 'Save latest center column' })
+    }
     else if (artifact.artifact_type === 'scalar') promotions.push({ artifact, target: 'column', label: 'Save column' })
     else if (artifact.artifact_type === 'boolean') {
       promotions.push(
@@ -800,16 +803,20 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
         : contract === 'series' && latestSeriesObservation.value != null
     )
     const rangeCenterPlot = target === 'plot' && selectedArtifact?.artifact_type === 'range' && rangeData(selectedArtifact)?.center != null
+    const rangeCenterColumn = target === 'column' && selectedArtifact?.artifact_type === 'range' && rangeData(selectedArtifact)?.center?.some(value => Number.isFinite(value)) === true
     if (target === 'column' && contract === 'series' && !latestSeriesColumn) {
       throw new Error('A numeric Study series needs a finite observation before it can become a latest-value column.')
     }
     if (target === 'plot' && contract === 'range' && !rangeCenterPlot) {
       throw new Error('A Study range needs an aligned finite center series before it can become a chart plot.')
     }
+    if (target === 'column' && contract === 'range' && !rangeCenterColumn) {
+      throw new Error('A Study range needs an aligned finite center series before it can become a latest-value column.')
+    }
     const promotionOutputName = selectedOutputName ?? (latestSeriesColumn
       ? run.value?.artifacts?.find(artifact => artifact.artifact_type === 'series')?.name
       : undefined)
-    const requiredContract = isBooleanTarget ? 'boolean' : latestSeriesColumn ? 'scalar' : rangeCenterPlot ? 'series' : contract
+    const requiredContract = isBooleanTarget ? 'boolean' : latestSeriesColumn || rangeCenterColumn ? 'scalar' : rangeCenterPlot ? 'series' : contract
     // A column is a separately typed library asset even when the study has a
     // compatible scalar/Boolean output. This keeps the target kind explicit
     // and lets its immutable promotion lineage survive independently of the
@@ -839,11 +846,13 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
             source_run_config: sourceRunConfig,
             source_output_name: promotionOutputName ?? null,
             target,
-            output_adapter: latestSeriesColumn ? 'latest_series_to_scalar' : rangeCenterPlot ? 'range_center_to_series' : undefined,
+            output_adapter: latestSeriesColumn ? 'latest_series_to_scalar' : rangeCenterColumn ? 'range_center_to_scalar' : rangeCenterPlot ? 'range_center_to_series' : undefined,
             semantics: target === 'column' && requiredContract === 'boolean'
               ? 'study_boolean_result_as_typed_watchlist_column'
               : latestSeriesColumn
                 ? 'study_series_latest_result_as_watchlist_column'
+                : rangeCenterColumn
+                  ? 'study_range_center_result_as_latest_watchlist_column'
                 : rangeCenterPlot
                   ? 'study_range_center_result_as_chart_plot'
                   : 'study_result_promotion',

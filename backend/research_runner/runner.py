@@ -313,8 +313,8 @@ def _range_center_artifact(
     """Extract the latest finite center from one structured range output.
 
     Range outputs are not silently treated as ordinary series. The caller must
-    opt into the explicit ``range_center_to_series`` promotion adapter so the
-    loss of the lower/upper band remains visible in lineage and diagnostics.
+    opt into an explicit range-center promotion adapter so the loss of the
+    lower/upper band remains visible in lineage and diagnostics.
     """
     matches = [
         artifact
@@ -1245,6 +1245,8 @@ def _execute_batch(
                     "series"
                     if output_adapter in {"latest_series_to_scalar", "series_target_to_boolean"}
                     and output_contract in {"scalar", "boolean"}
+                    else "range"
+                    if output_adapter == "range_center_to_scalar" and output_contract == "scalar"
                     else output_contract
                 )
                 if output_adapter == "events_to_boolean" and output_contract == "boolean":
@@ -1294,6 +1296,9 @@ def _execute_batch(
                         result, candidate, output_name
                     )
                 elif output_adapter == "range_center_to_series":
+                    extracted_metric, error = _range_center_artifact(result, output_name)
+                    value = extracted_metric
+                elif output_adapter == "range_center_to_scalar":
                     extracted_metric, error = _range_center_artifact(result, output_name)
                     value = extracted_metric
                 elif output_contract == "boolean":
