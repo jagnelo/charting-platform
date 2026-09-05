@@ -45,10 +45,16 @@ RUN_LIVE_PROVIDER_TESTS=1 rtk uv run --project backend pytest \
 
 The backend deterministic gates pass on the current corrective revision:
 
-- unit suite: `1324 passed`
-- Docker-backed integration suite: `369 passed`
-- focused provider quota/routing/runtime/router tests: `36 passed`
+- unit suite: `1326 passed`
+- Docker-backed integration suite: `370 passed`
+- focused capacity/quota/runtime/provider-support tests: `17 passed`; capacity-admin plus provider API integration: `8 passed`
 - migration compatibility: passed against the previous release head
+
+429/418/quota responses now create durable `provider_capacity_event` records
+with provider scope, status, filtered reset headers, retry time, and the
+originating request-log link. The backend-only
+`/api/v1/market-data/capacity-events` endpoint exposes this evidence to
+administrators.
 
 The full matrix correctly exposed the remaining credentialed blockers (Alpaca,
 Massive, Alpha Vantage, CoinGecko, FRED, FINRA OAuth (short interest and OTC
