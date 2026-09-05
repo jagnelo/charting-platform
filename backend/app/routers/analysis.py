@@ -130,6 +130,11 @@ from app.services.breadth import (
     evaluate_breadth,
     evaluate_breadth_history,
 )
+from app.services.etf_holdings_capability import (
+    current_analysis_error_detail,
+    evaluate_capability,
+    load_latest_adapter_state,
+)
 from app.services.indicators import OHLCVSeries, get_latest_value
 from app.services.market_map import build_market_map, read_market_map_cache
 from app.services.parameter_validation import validate_parameter_values
@@ -149,6 +154,31 @@ _FAMILY_MEMBER_BAR_REQUIREMENTS = {
     Timeframe.W1: 52,
     Timeframe.MN: 24,
 }
+
+
+async def _current_etf_capability(
+    db: AsyncSession,
+    profile: ETFProfile,
+    snapshot: ETFHoldingsSnapshot,
+):
+    state = await load_latest_adapter_state(db, profile.id)
+    return evaluate_capability(profile, snapshot, state)
+
+
+async def _require_current_etf_snapshot(
+    db: AsyncSession,
+    profile: ETFProfile,
+    snapshot: ETFHoldingsSnapshot,
+    *,
+    as_of: datetime | None,
+):
+    """Reject non-current holdings unless the caller selected an explicit date."""
+
+    capability = await _current_etf_capability(db, profile, snapshot)
+    if as_of is None and not capability.usable_for_current_analysis:
+        raise HTTPException(409, detail=current_analysis_error_detail(capability))
+    return capability
+
 
 _HOLDING_EXCLUSION_MESSAGES = {
     "cash_holding": "Cash, collateral, or currency exposure is excluded from equity analysis.",
@@ -2112,6 +2142,7 @@ async def etf_constituent_snapshot(
         raise HTTPException(
             404, detail={"code": "etf_holdings_snapshot_not_found", "symbol": etf.symbol}
         )
+    await _require_current_etf_snapshot(db, profile, snapshot, as_of=as_of)
     # Preserve the full disclosure universe for denominator and exclusion
     # reporting.  Filtering before this point made cash, derivatives, and
     # unresolved rows disappear from the constituent response, which could
@@ -3515,11 +3546,26 @@ async def benchmark_family_coverage(
                 )
                 for gap in continuity.gaps
             ]
-            resolved_snapshots = [snapshot for snapshot in snapshots if snapshot.resolved_count > 0]
+            latest_capability = (
+                await _current_etf_capability(db, profile, snapshot_rows[0])
+                if snapshot_rows
+                else None
+            )
+            current_snapshot_usable = as_of is not None or bool(
+                latest_capability and latest_capability.usable_for_current_analysis
+            )
+            has_resolved_snapshot = any(snapshot.resolved_count > 0 for snapshot in snapshots)
+            resolved_snapshots = [
+                snapshot
+                for snapshot in snapshots
+                if snapshot.resolved_count > 0 and current_snapshot_usable
+            ]
             selected_snapshot = next(
                 (row for row in snapshot_rows if row.resolved_count > 0),
                 None,
             )
+            if not current_snapshot_usable:
+                selected_snapshot = None
             member_bar_history = await _family_member_bar_history(
                 db,
                 selected_snapshot,
@@ -3529,11 +3575,24 @@ async def benchmark_family_coverage(
                 "available"
                 if resolved_snapshots
                 else "holdings_snapshot_unresolved"
-                if snapshots
+                if snapshots and not has_resolved_snapshot
+                else "non_current"
+                if snapshots and not current_snapshot_usable
                 else "no_snapshot"
             )
             if resolved_snapshots:
                 covered_roles += 1
+            elif snapshots and has_resolved_snapshot and not current_snapshot_usable:
+                exclusions.append(
+                    AnalysisWarning(
+                        code="family_role_holdings_not_current",
+                        message=(
+                            f"The latest {family_key} {role} holdings snapshot is not safe "
+                            "for current analysis; select an explicit historical as_of."
+                        ),
+                        instrument_id=instrument.id,
+                    )
+                )
             elif snapshots:
                 exclusions.append(
                     AnalysisWarning(
@@ -3697,10 +3756,19 @@ async def benchmark_family_overview(
         else []
     )
     holdings_by_instrument: dict[int, ETFHoldingsSnapshot] = {}
+    holdings_current_by_instrument: dict[int, bool] = {}
     for snapshot in holdings_snapshots:
         instrument_id = snapshot.etf_profile.instrument_id if snapshot.etf_profile else None
         if instrument_id is not None and instrument_id not in holdings_by_instrument:
             holdings_by_instrument[instrument_id] = snapshot
+            capability = (
+                await _current_etf_capability(db, snapshot.etf_profile, snapshot)
+                if snapshot.etf_profile
+                else None
+            )
+            holdings_current_by_instrument[instrument_id] = as_of is not None or bool(
+                capability and capability.usable_for_current_analysis
+            )
     selected_members = _group_members_at(group, as_of)
     cap_mapping = proxy_mappings.get("cap_weight")
     cap_symbol = (
@@ -3753,6 +3821,11 @@ async def benchmark_family_overview(
         symbol = str(mapping.get("symbol")).upper() if mapping.get("symbol") else None
         instrument = instruments.get(symbol) if symbol else None
         holdings_snapshot = holdings_by_instrument.get(instrument.id) if instrument else None
+        holdings_current = (
+            holdings_current_by_instrument.get(instrument.id, False)
+            if instrument is not None
+            else False
+        )
         mappings.append(
             BenchmarkFamilyMappingOut(
                 role=role,
@@ -3763,7 +3836,7 @@ async def benchmark_family_overview(
                 instrument_id=instrument.id if instrument else None,
                 available=instrument is not None,
                 holdings_snapshot_id=holdings_snapshot.id if holdings_snapshot else None,
-                holdings_available=holdings_snapshot is not None,
+                holdings_available=holdings_snapshot is not None and holdings_current,
                 holdings_composition_date=(
                     holdings_snapshot.composition_date if holdings_snapshot else None
                 ),
@@ -5750,6 +5823,12 @@ async def _resolve_benchmark_family_breadth_universe(
                 "symbol": proxy_symbol,
             },
         )
+    await _require_current_etf_snapshot(
+        db,
+        profile,
+        snapshot,
+        as_of=definition.as_of if definition.universe.point_in_time else None,
+    )
     members: list[BreadthMember] = []
     member_ids: list[int] = []
     warnings: list[AnalysisWarning] = []
@@ -5987,6 +6066,12 @@ async def _resolve_generic_breadth_universe(
             raise HTTPException(
                 404, detail={"code": "holdings_snapshot_not_found", "symbol": etf.symbol}
             )
+        await _require_current_etf_snapshot(
+            db,
+            profile,
+            snapshot,
+            as_of=definition.as_of if definition.universe.point_in_time else None,
+        )
         for holding in snapshot.rows:
             if not holding.constituent_instrument_id or holding.constituent_instrument is None:
                 universe_warnings.append(_generic_breadth_warning("unresolved_member", None))
@@ -7756,6 +7841,12 @@ async def evaluate_generic_breadth(
                 404,
                 detail={"code": "holdings_snapshot_not_found", "symbol": etf.symbol},
             )
+        await _require_current_etf_snapshot(
+            db,
+            profile,
+            snapshot,
+            as_of=definition.as_of if definition.universe.point_in_time else None,
+        )
         for holding in snapshot.rows:
             if not holding.constituent_instrument_id or holding.constituent_instrument is None:
                 universe_warnings.append(_generic_breadth_warning("unresolved_member", None))

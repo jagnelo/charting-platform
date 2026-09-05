@@ -553,7 +553,7 @@ class TestWorkspaces:
         assert response.status_code == 200, response.text
         payload = response.json()
         roles = {role["role"]: role for role in payload["roles"]}
-        assert roles["cap_weight"]["status"] == "available"
+        assert roles["cap_weight"]["status"] == "non_current"
         assert roles["cap_weight"]["adapter_key"] == "spdr"
         assert roles["cap_weight"]["adapter_status"] == "failure"
         assert Decimal(roles["cap_weight"]["adapter_confidence"]) == Decimal("0.9900")
@@ -571,7 +571,7 @@ class TestWorkspaces:
         assert roles["equal_weight"]["status"] == "mapping_unavailable"
         assert roles["value"]["status"] == "mapping_unavailable"
         assert roles["growth"]["status"] == "mapping_unavailable"
-        assert payload["coverage"] == 0.25
+        assert payload["coverage"] == 0.0
 
         historical = client.get(
             "/api/v1/analysis/benchmark-families/sp500/coverage",
@@ -693,6 +693,7 @@ class TestWorkspaces:
         response = client.get(
             "/api/v1/analysis/benchmark-families/sp500/coverage",
             headers=auth_headers,
+            params={"as_of": "2026-12-31T00:00:00Z"},
         )
         assert response.status_code == 200, response.text
         cap = next(role for role in response.json()["roles"] if role["role"] == "cap_weight")
@@ -874,6 +875,7 @@ class TestWorkspaces:
         overview = client.get(
             "/api/v1/analysis/benchmark-families/sp500/overview",
             headers=auth_headers,
+            params={"as_of": "2026-12-31T00:00:00Z"},
         )
         assert overview.status_code == 200, overview.text
         cap_mapping = next(
@@ -966,7 +968,11 @@ class TestWorkspaces:
         response = client.get(
             "/api/v1/analysis/benchmark-families/sp500/concentration",
             headers=auth_headers,
-            params={"rank_period": "1M", "top_n": 5},
+            params={
+                "rank_period": "1M",
+                "top_n": 5,
+                "as_of": "2024-07-02T00:00:00Z",
+            },
         )
         assert response.status_code == 200, response.text
         payload = response.json()
@@ -1399,7 +1405,11 @@ class TestWorkspaces:
         response = client.get(
             "/api/v1/analysis/benchmark-families/sp500/breadth",
             headers=auth_headers,
-            params={"near_threshold": "0.02", "new_high_lookback": "20"},
+            params={
+                "near_threshold": "0.02",
+                "new_high_lookback": "20",
+                "as_of": "2026-12-31T00:00:00Z",
+            },
         )
         assert response.status_code == 200, response.text
         payload = response.json()
@@ -1471,7 +1481,7 @@ class TestWorkspaces:
         response = client.get(
             "/api/v1/analysis/benchmark-families/sp500/breadth/history",
             headers=auth_headers,
-            params={"limit": 30},
+            params={"limit": 30, "as_of": "2026-12-31T00:00:00Z"},
         )
         assert response.status_code == 200, response.text
         payload = response.json()
@@ -1847,7 +1857,15 @@ class TestWorkspaces:
         )
         assert ingested.status_code == 200
 
-        response = client.get("/api/v1/market-groups/etf/INDX/industries", headers=auth_headers)
+        current = client.get("/api/v1/market-groups/etf/INDX/industries", headers=auth_headers)
+        assert current.status_code == 409
+        assert current.json()["detail"]["code"] == "etf_holdings_not_current"
+
+        response = client.get(
+            "/api/v1/market-groups/etf/INDX/industries",
+            headers=auth_headers,
+            params={"as_of": "2026-07-02T00:00:00Z"},
+        )
         assert response.status_code == 200
         payload = response.json()
         assert payload["composition_date"] == "2026-07-01"
@@ -1864,6 +1882,7 @@ class TestWorkspaces:
         constituents = client.get(
             "/api/v1/market-groups/etf/INDX/industries/Semiconductors",
             headers=auth_headers,
+            params={"as_of": "2026-07-02T00:00:00Z"},
         )
         assert constituents.status_code == 200
         assert [item["id"] for item in constituents.json()["constituents"]] == [instrument.id]
@@ -1881,12 +1900,22 @@ class TestWorkspaces:
         detail = EquityDetail(
             instrument_id=instrument.id,
             industry="Semiconductors",
-            field_provenance={"industry": {"classification_system": "provider_native"}},
+            field_provenance={
+                "industry": {
+                    "classification_system": "provider_native",
+                    "observed_at": "2026-08-12T00:00:00+00:00",
+                }
+            },
         )
         sector_only_detail = EquityDetail(
             instrument_id=instrument_b.id,
             sector="Information Technology",
-            field_provenance={"sector": {"classification_system": "provider_native"}},
+            field_provenance={
+                "sector": {
+                    "classification_system": "provider_native",
+                    "observed_at": "2026-08-12T00:00:00+00:00",
+                }
+            },
         )
         db.add_all([detail, sector_only_detail])
         cash = Instrument(
@@ -1984,19 +2013,21 @@ class TestWorkspaces:
         response = client.get(
             f"/api/v1/market-groups/etf/{instrument.symbol}/industries",
             headers=auth_headers,
+            params={"as_of": "2026-08-13T00:00:00Z"},
         )
         assert response.status_code == 200
         payload = response.json()
         assert payload["classification_coverage"] == 0.5
         assert payload["exclusions"] == [
             "cash_holding",
+            "classification_not_known_at_as_of",
             "derivative_holding",
-            "unclassified_constituent",
             "unresolved_holding",
         ]
         constituents = client.get(
             f"/api/v1/market-groups/etf/{instrument.symbol}/industries/Semiconductors",
             headers=auth_headers,
+            params={"as_of": "2026-08-13T00:00:00Z"},
         )
         assert constituents.status_code == 200
         assert [item["id"] for item in constituents.json()["constituents"]] == [instrument.id]
@@ -3863,10 +3894,21 @@ class TestWorkspaces:
         )
         db.flush()
 
-        response = client.get(
+        current = client.get(
             "/api/v1/analysis/etf/MIXD/constituents/snapshot",
             headers=auth_headers,
             params={"benchmark": instrument.symbol},
+        )
+        assert current.status_code == 409
+        assert current.json()["detail"]["code"] == "etf_holdings_not_current"
+
+        response = client.get(
+            "/api/v1/analysis/etf/MIXD/constituents/snapshot",
+            headers=auth_headers,
+            params={
+                "benchmark": instrument.symbol,
+                "as_of": "2026-08-13T00:00:00Z",
+            },
         )
         assert response.status_code == 200
         payload = response.json()
@@ -4021,12 +4063,17 @@ class TestWorkspaces:
 
         # The newer controlled browser fixture must not replace the latest
         # canonical disclosure in normal (non-E2E) API reads.
-        composition = client.get("/api/v1/market-groups/etf/SMH/industries", headers=auth_headers)
+        composition = client.get(
+            "/api/v1/market-groups/etf/SMH/industries",
+            headers=auth_headers,
+            params={"as_of": "2024-06-03T00:00:00Z"},
+        )
         assert composition.status_code == 200
         assert composition.json()["composition_date"] == "2024-05-29"
         constituents = client.get(
             "/api/v1/market-groups/etf/SMH/industries/Semiconductors",
             headers=auth_headers,
+            params={"as_of": "2024-06-03T00:00:00Z"},
         )
         assert constituents.status_code == 200
         assert constituents.json()["composition_date"] == "2024-05-29"
@@ -4034,6 +4081,7 @@ class TestWorkspaces:
         response = client.get(
             "/api/v1/market-groups/etf/XLK/industries/Semiconductors/proxies",
             headers=auth_headers,
+            params={"as_of": "2024-06-03T00:00:00Z"},
         )
         assert response.status_code == 200
         payload = response.json()
@@ -4075,7 +4123,10 @@ class TestWorkspaces:
         ranked = client.get(
             "/api/v1/analysis/etf/XLK/industries/Semiconductors/proxies/snapshot",
             headers=auth_headers,
-            params={"market_benchmark": instrument.symbol},
+            params={
+                "market_benchmark": instrument.symbol,
+                "as_of": "2024-06-03T00:00:00Z",
+            },
         )
         assert ranked.status_code == 200
         ranked_payload = ranked.json()
@@ -4092,7 +4143,10 @@ class TestWorkspaces:
         industries_ranked = client.get(
             "/api/v1/analysis/etf/XLK/industries/snapshot",
             headers=auth_headers,
-            params={"market_benchmark": instrument.symbol},
+            params={
+                "market_benchmark": instrument.symbol,
+                "as_of": "2024-06-03T00:00:00Z",
+            },
         )
         assert industries_ranked.status_code == 200
         industries_payload = industries_ranked.json()

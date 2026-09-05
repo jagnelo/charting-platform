@@ -13,6 +13,9 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.etf_holdings import ETFHoldingsAdapterState, ETFHoldingsSnapshot, ETFProfile
 from app.services.etf_holdings_adapters import FALLBACK_ISSUER_AUDITS
 
@@ -29,6 +32,43 @@ LICENSED_VENDOR = "licensed_vendor"
 SEC_FILING = "sec_filing"
 NO_SOURCE = "none"
 _CURRENT_SOURCE_TIERS = {ISSUER_NATIVE, SUCCESSOR_NATIVE, LICENSED_VENDOR}
+
+
+async def load_latest_adapter_state(
+    db: AsyncSession,
+    profile_id: int,
+) -> ETFHoldingsAdapterState | None:
+    """Load the latest persisted route-health state for one ETF profile.
+
+    Current-analysis consumers must evaluate the same per-profile state as the
+    holdings capability endpoint.  Keeping this lookup here prevents a read
+    surface from accidentally treating a stored snapshot as current merely
+    because it is the newest row in the database.
+    """
+
+    return (
+        await db.execute(
+            select(ETFHoldingsAdapterState)
+            .where(ETFHoldingsAdapterState.etf_profile_id == profile_id)
+            .order_by(
+                ETFHoldingsAdapterState.last_checked_at.desc().nullslast(),
+                ETFHoldingsAdapterState.id.desc(),
+            )
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+
+
+def current_analysis_error_detail(capability: ETFHoldingsCapability) -> dict[str, Any]:
+    """Return the stable API detail for a non-current holdings capability."""
+
+    return {
+        "code": "etf_holdings_not_current",
+        "availability": capability.availability,
+        "source_tier": capability.source_tier,
+        "usable_for_current_analysis": False,
+        "reason": capability.reason,
+    }
 
 
 @dataclass(frozen=True, slots=True)

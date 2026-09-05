@@ -1550,7 +1550,7 @@ class TestWatchlistsCrud:
         assert source["locked"] is True
         assert source["symbol"] == "MDY"
         assert source["provenance"]["derived"] is True
-        assert source["provenance"]["availability"] == "available"
+        assert source["provenance"]["availability"] == "unknown"
         assert source["provenance"]["membership_semantics"] == (
             "derived_equal_weight_point_in_time_membership"
         )
@@ -1699,7 +1699,7 @@ class TestWatchlistsCrud:
         assert set(expected_sources) <= set(listed_by_id)
         assert all(listed_by_id[source_id]["locked"] for source_id in expected_sources)
         assert all(
-            listed_by_id[source_id]["provenance"]["availability"] == "available"
+            listed_by_id[source_id]["provenance"]["availability"] == "unknown"
             for source_id in expected_sources
         )
 
@@ -2082,7 +2082,7 @@ class TestWatchlistsCrud:
         assert source["locked"] is True
         assert source["can_edit_membership"] is False
         assert source["member_count"] == 1
-        assert source["provenance"]["availability"] == "available"
+        assert source["provenance"]["availability"] == "unknown"
         assert source["provenance"]["adapter_key"] == "controlled_fixture"
         assert source["provenance"]["adapter_status"] == "failure"
         assert Decimal(str(source["provenance"]["adapter_confidence"])) == Decimal("0.92")
