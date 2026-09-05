@@ -3512,3 +3512,27 @@ branch remains unstaged, so AC10 is still intentionally deferred; DXJ/NTSX/MINT/
 BOND remain explicitly non-current, and AC14 remains the post-integration
 30-day production shadow gate. No provider, credential, paid source, staging
 branch, or other worktree was mutated.
+## Schema-drift route-boundary regression checkpoint — 2026-09-05
+
+Test commit `830884724e18f060ba40f0b26e946d90435f50cc`
+(`test(etf): cover schema drift before ingestion`) closes a coverage gap in
+the prior schema-drift hardening. The earlier tests exercised fingerprint
+comparison and failure persistence directly; this regression constructs the
+real `_refresh_adapter_route` path with a changed artifact shape and the same
+parser version, then proves that `ETFHoldingsSchemaDriftError` is raised before
+`ingest_holdings_snapshot` can be reached. This protects the actual adapter
+boundary rather than relying only on helper-level tests.
+
+Validation passed: the focused refresh suite (`15` tests), the combined
+refresh/capability/resolution suite (`115` tests), the deterministic adapter
+suite (`571` tests), Ruff check, Ruff format check, and diff-check. The
+complete ETF API integration suite passed `66` tests with two existing
+dependency warnings. The post-integration resource audit reported zero
+containers, volumes, testcontainer sessions, and known bytes with no budget
+overrun.
+
+This checkpoint changes tests only. Provider counts and classifications,
+source dispositions, credentials, paid activation, provider-platform staging,
+DXJ/NTSX/MINT/BOND availability, AC10, and AC14 are unchanged. The test commit
+was pushed to the authorized feature branch; no other worktree or branch was
+mutated.
