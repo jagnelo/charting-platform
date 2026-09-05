@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-09-05 — Exact-tip gate after canonical entitlement audit metadata
+
+- [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework`
+      at product tip `bd2b14d2` and documentation tip `52fa058f`: all locked,
+      backend/frontend, build, compose/provider, stack-health,
+      runner-isolation, and functional browser checks passed (`157/157`,
+      `106` documented skips across `263` specs; backend `1320/1320` unit and
+      `384/384` integration; `80.93%` combined; frontend `970/970`).
+- [ ] Preserve and separately resolve the six unchanged visual state-oracle
+      diffs: `watchlist-column-editor-open` at 1080p 100/125 (`13,844` pixels
+      each), and `workspace-floating` at 1080p/1440p 100/125 (`9,770`,
+      `12,097`, `12,097`, `12,097`). Do not alter baselines, masks, thresholds,
+      skips, fallbacks, provider, or acceptance policy.
+- [x] Teardown removed the assigned stack and four generated images; resource
+      accounting reported zero containers, volumes, sessions, and known bytes.
+      Continue canonical provider/history work without integrating, promoting,
+      deploying, or mutating another worktree.
+
 ### 2026-09-05 — Expose canonical entitlement audit metadata
 
 - [x] Render returned entitlement provider, live-probe status, revision,
@@ -14,9 +32,10 @@
       port 80 instead of the assigned 28083 stack port and failed before
       assertions; the corrected rerun passed. Cleanup left zero containers,
       volumes, images, sessions, and known bytes.
-- [ ] Rerun the exact-tip integration gate at the next documentation tip,
-      preserving the six known visual state-oracle diffs and all provider,
-      fallback, baseline, and acceptance policy.
+- [x] Record the exact-tip integration gate at documentation tip `52fa058f`;
+      preserve the six known visual state-oracle diffs and all provider,
+      fallback, baseline, and acceptance policy while continuing the next
+      canonical provider/history slice.
 
 ### 2026-09-05 — Exact-tip gate after canonical holdings-refresh timestamps
 

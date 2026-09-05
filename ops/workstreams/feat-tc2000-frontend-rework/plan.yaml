@@ -13,23 +13,18 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  The focused entitlement-audit slice is durable at product commit bd2b14d2;
-  focused Market Map Vitest passed 36/36, full frontend Vitest passed 970/970,
-  type-check and production build passed, and rebuilt authenticated Chromium
-  F8s-breadth-family-ratio passed 1/1. The next exact-tip full_stack_browser
-  gate is pending at the next documentation tip. The prior exact-tip gate at
-  product commit 3c44b2de and
-  documentation tip dcd4b4bf passed all locked, backend/frontend, build,
-  compose/provider, stack-health, runner-isolation, and functional browser
-  checks (157 passed, 106 documented skips; frontend Vitest 970/970; backend
-  1320 unit and 384 integration tests; 80.93% combined coverage). The
-  unchanged visual matrix remains 98/104 with six reproducible state-oracle
-  mismatches: watchlist-column-editor-open at visual-1080p-100/125 and
-  workspace-floating at visual-1080p-100/125 and visual-1440p-100/125. No
-  baseline, mask, threshold, skip, fallback, provider, or acceptance policy
-  changed. Teardown and resource accounting are clean; continue the next
-  bounded canonical provider/history slice and preserve the visual-only
-  boundary.
+  The exact-tip full_stack_browser gate is now recorded at product commit
+  bd2b14d2 and documentation tip 52fa058f. All locked/non-visual stages and
+  authenticated functional Playwright passed (157 passed, 106 documented
+  skips across 263 specs; backend 1320 unit and 384 integration tests;
+  80.93% combined coverage; frontend Vitest 970/970). The unchanged visual
+  matrix remains 98/104 with six reproducible state-oracle mismatches:
+  watchlist-column-editor-open at visual-1080p-100/125 (13844 pixels each),
+  and workspace-floating at visual-1080p-100/125/1440p-100/1440p-125
+  (9770/12097/12097/12097 pixels). No baseline, mask, threshold, skip,
+  fallback, provider, or acceptance policy changed. Teardown and resource
+  accounting are clean; continue the next bounded canonical provider/history
+  slice and preserve the visual-only boundary.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "The roadmap changes frontend workstation behavior, backend canonical provider/history contracts, authenticated browser workflows, Playwright visual assertions, worker-backed data readiness, and full integration evidence."
@@ -124,12 +119,19 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
-    The focused entitlement-audit slice is durable at product commit bd2b14d2;
-    focused Market Map Vitest passed 36/36, full frontend Vitest passed 970/970,
-    type-check and production build passed, and rebuilt authenticated Chromium
-    F8s-breadth-family-ratio passed 1/1. The next exact-tip full_stack_browser
-    gate is pending at the next documentation tip. The prior exact-tip gate at
-    product commit 3c44b2de and
+    The latest exact-tip full_stack_browser gate is durable at product commit
+    bd2b14d2 and documentation tip 52fa058f. All locked/non-visual stages and
+    authenticated functional Playwright passed (157 passed, 106 documented
+    skips across 263 specs; frontend Vitest 970/970; backend 1320 unit and
+    384 integration tests; 80.93% combined coverage). The unchanged visual
+    matrix remains 98/104 with six reproducible state-oracle mismatches:
+    watchlist-column-editor-open at visual-1080p-100/125 (13844 pixels each),
+    and workspace-floating at visual-1080p-100/125/1440p-100/1440p-125
+    (9770/12097/12097/12097 pixels). No baseline, mask, threshold, skip,
+    fallback, provider, or acceptance policy changed. Teardown and resource
+    accounting are clean; continue the next bounded canonical provider/history
+    slice and preserve the visual-only boundary. Historical context: the prior
+    exact-tip gate at product commit 3c44b2de and
     documentation tip dcd4b4bf passed all locked, backend/frontend, build,
     compose/provider, stack-health, runner-isolation, and functional browser
     checks (157 passed, 106 documented skips; frontend Vitest 970/970; backend
@@ -359,8 +361,9 @@ progress:
     rule, or acceptance policy changed; assigned stack teardown and resource accounting were clean.
     Canonical provider/history, richer Study targets, native-window/accessibility/security,
     dense-data, and visual-oracle review remain open.
-  next_action: "Rerun make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework at the next coherent documentation tip; preserve the six visual state-oracle assertions and unchanged visual/provider fallback policy."
+  next_action: "Continue the next bounded canonical provider/history slice, then record its focused evidence and rerun make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework; preserve the six visual state-oracle assertions and unchanged visual/provider fallback policy."
 remaining_gaps:
+  - "Exact-tip full_stack_browser gate at product tip bd2b14d2 (documentation tip 52fa058f) passed all locked/non-visual stages and functional Playwright 157/157 with 106 documented skips across 263 specs; the unchanged visual matrix remains 98/104 with six state-oracle diffs: watchlist-column-editor-open at visual-1080p-100/125 (13844 pixels each), and workspace-floating at visual-1080p-100/125/1440p-100/1440p-125 (9770/12097/12097/12097 pixels). Teardown removed the assigned stack and four generated images; resource accounting reported zero containers, volumes, sessions, and known bytes. Preserve baseline, mask, threshold, skip, fallback, provider, and acceptance policy while continuing canonical provider/history work."
   - "Product tip bd2b14d2 exposes returned entitlement provider, live-probe status, revision, effective date, and review-due date in the Market Breadth family coverage strip and Market Map canonical readiness list without entitlement inference, credential renewal, provider fan-out, fallback changes, or acceptance-policy changes. Focused Market Map coverage passed 36/36; full frontend Vitest 970/970; type-check/build passed; rebuilt authenticated F8s-breadth-family-ratio passed 1/1 with the audit label asserted. The first browser invocation targeted port 80 rather than the assigned stack port 28083 and failed before assertions; the corrected rerun passed. Cleanup/resource accounting were clean with zero containers, volumes, images, sessions, and known bytes. The next exact-tip full_stack_browser gate remains pending at the next documentation tip; preserve the six visual state-oracle diffs and unchanged provider/fallback/baseline/acceptance policy."
   - "Exact-tip full_stack_browser gate at product tip 3c44b2de (documentation tip dcd4b4bf) passed all locked/non-visual stages and functional Playwright 157/157 with 106 documented skips across 263 specs; the unchanged visual matrix remains 98/104 with six state-oracle diffs: watchlist-column-editor-open at visual-1080p-100/125 (13844 pixels each), and workspace-floating at visual-1080p-100/125/1440p-100/1440p-125 (9770/12097/12097/9770 pixels). Teardown removed the assigned stack and four generated images; resource accounting reported zero containers, volumes, sessions, and known bytes. Preserve baseline, mask, threshold, skip, fallback, provider, and acceptance policy while continuing canonical provider/history work."
   - "Product tip 3c44b2de surfaces returned holdings-refresh checked, failed, and composition dates in the Market Breadth family coverage strip and Market Map canonical readiness list without readiness inference, provider retries, fallback changes, or acceptance-policy changes. Focused Market Map coverage passed 36/36; full frontend Vitest 970/970; type-check/build passed; rebuilt authenticated F8s-breadth-family-ratio passed 1/1 with the new timestamp labels asserted. The initial stack attempt was cleaned before browser assertions; the healthy retry passed and final resource accounting was clean. The next exact-tip full_stack_browser gate remains pending at the next documentation tip; preserve the six visual state-oracle diffs and unchanged provider/fallback/baseline/acceptance policy."
