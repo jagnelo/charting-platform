@@ -3120,3 +3120,22 @@ tests, and Ruff check, Ruff format check, and `git diff --check` passed. No
 provider classification, source tier, entitlement, paid activation, or Tier-0
 disposition changed. AC10 remains gated on synchronized shared provider-platform
 staging, and AC14 remains a post-integration 30-day shadow gate.
+
+## Free-first MINT/BOND vendor-candidate audit — 2026-09-05
+
+The bounded follow-up search found no new executable issuer route for PIMCO
+MINT or BOND. MarketXLS advertises complete holdings tables, but its complete
+holdings/export capability is behind FundXLS Pro pricing and its published
+terms describe personal-use software/data restrictions. PortfoliosLab exposes
+broader tables but explicitly derives them from SEC N-PORT periods ending
+2026-03-31, so the data is periodic rather than current daily issuer support.
+Finnhub documents a global ETF holdings endpoint, but marks it premium and
+requires an API token; current entitlement, licensing, and pricing approval are
+absent. These candidates are recorded in the provider-audit ledger as
+unqualified vendor/periodic evidence only. No credential, paid activation,
+third-party data promotion, or current-support claim was introduced.
+
+MINT and BOND therefore remain `unavailable` and excluded from current
+analysis. The free-first aggregate budget and provider-platform entitlement
+gate remain intact; the next executable integration action is still the shared
+provider-platform staging reconciliation.
