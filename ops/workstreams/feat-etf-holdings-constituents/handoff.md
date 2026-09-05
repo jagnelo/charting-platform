@@ -3267,3 +3267,30 @@ observations with the staged entitlement/quota/health/budget contracts. No
 provider branch, staging branch, credentials, paid source, or ETF route was
 mutated during this check. The four unresolved Tier-0 symbols remain
 non-current, and AC14 remains post-integration.
+
+## Free-first vendor eligibility probe — 2026-09-05
+
+A second bounded review tested the documented public/demo paths for the four
+unresolved Tier-0 symbols without credentials or paid activation:
+
+- Alpha Vantage `ETF_PROFILE` returned HTTP 200 for DXJ, NTSX, MINT, and BOND,
+  but each response was only the demo-key notice instructing the caller to
+  claim a real key; no holdings payload was returned. The official
+  documentation confirms that the endpoint can expose ETF holdings, while the
+  current terms grant the default platform license for personal,
+  non-commercial use and direct commercial users to contact Alpha Vantage.
+  It is therefore not an eligible free/commercial route or a support claim.
+- EODHD's documented fundamentals endpoint describes an `ETF_Data` holdings
+  section, but its free plan is explicitly limited to 20 daily calls for
+  personal-use end-of-day historical data. The public `demo` fundamentals
+  requests for DXJ.US, NTSX.US, MINT.US, and BOND.US each returned HTTP 403
+  `Forbidden`; none produced a holdings artifact. The advertised $19.99
+  starting plan is not evidence that ETF fundamentals/holdings, redistribution
+  rights, or these four symbols are included.
+
+These probes strengthen the existing decision boundary but do not promote or
+downgrade any issuer. Alpha Vantage and EODHD remain research candidates only,
+behind the staged provider-platform entitlement, licensing, quota, and
+aggregate 20 EUR/USD-equivalent budget gate. DXJ/NTSX/MINT/BOND remain
+non-current, and no credential, paid source, adapter, or provider classification
+was changed.
