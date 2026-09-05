@@ -10,6 +10,23 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Exact-tip exhaustive gate after structured-event signal contract
+
+The `full_stack_browser` gate ran at metadata tip `df95b3c5` (product tip `22fd676e` plus the
+backend contract test and formatter/checkpoint metadata commits). Locked dependency/migration
+checks, Ruff/format, TypeScript, backend units (`1,315/1,315`), integration (`383/383` with the
+existing `54` warnings), combined coverage (`80.90%`), frontend Vitest (`947/947` across `109`
+files), production build, compose/provider policy, stack health, runner isolation, and
+authenticated functional Playwright (`155` passed, `106` documented skips across `261` specs)
+passed. The only failing stage is the unchanged four-project visual matrix: `98/104` passed,
+with `watchlist-column-editor-open` at 1080p-100/125 (`13,844` pixels each) and
+`workspace-floating` at 1080p-100/125/1440p-100/1440p-125 (`12,097`/`12,097`/`12,097`/`9,770`
+pixels). No visual policy, fallback rule, baseline, mask, threshold, or skip changed. Teardown
+removed the assigned stack and generated images; resource accounting reported zero retained
+containers, volumes, known image bytes, and test-container sessions. The branch remains active
+for canonical provider/history, richer Study, native-window, accessibility/security, dense-data,
+and visual-oracle work.
+
 ## 2026-09-05 — Backend contract coverage for structured event signals
 
 The backend integration suite now covers the API boundary exercised by the Research Results
