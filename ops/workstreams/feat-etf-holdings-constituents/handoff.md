@@ -3393,3 +3393,40 @@ AC10 remains deferred until the provider-platform branch reaches staging; AC14
 remains a post-integration 30-day production shadow gate. DXJ/NTSX/MINT/BOND
 remain explicitly non-current, and no provider, credential, paid source,
 staging branch, or other worktree was mutated.
+
+## Future metadata fail-closed boundary and full gate — 2026-09-05
+
+Implementation commit `f1d09eca6c52f5d43ba59741b28644a0c18c93ca`
+(`fix(etf): fail closed on future holdings metadata`) extends the future-date
+truthfulness invariant across every ETF holdings write and read boundary. A
+shared validator now rejects future composition dates, as-of dates, and
+published-at timestamps before persistence; manual, CSV, SEC N-PORT, and SEC
+legacy routes return HTTP 400 with rollback; refresh canaries classify the
+condition as `future_dated_source`; and capability evaluation degrades legacy
+or directly persisted future snapshots instead of advertising them as current.
+Controlled end-to-end fixtures retain their explicit precedence. No provider,
+source tier, entitlement, paid activation, or staging state changed.
+
+Focused validation passed: Ruff check, Ruff formatting, diff-check, the focused
+refresh/capability suite (`92 passed`), the deterministic ETF unit matrix
+(`724 passed`), and the complete ETF API integration suite (`66 passed`,
+`2 warnings`).
+
+The complete Docker-backed repository gate passed all stages at this commit:
+backend coverage (`1821 passed`, total coverage `81.13%`), frontend unit and
+coverage (`928 passed`, total coverage `82.02%`), uPlot and visual policy,
+frontend production build, compose contract, provider probes, stack health,
+research-runner sandbox/resource probes, functional Playwright (`154 passed`,
+`106 skipped`), visual Playwright (`104 passed`), and branch-declared tests.
+The opt-in live-provider branch test ran `494 passed` and `23 skipped`; the
+default live contract ran `2 passed` and `515 skipped`. Branch tests also
+reported `571 passed` deterministic adapter tests, `12 passed` ETF frontend
+tests, and a passing frontend production build. Automatic teardown removed all
+branch containers, images, volumes, and network; a post-gate resource audit
+confirmed zero containers, zero volumes, zero testcontainer sessions, zero
+known bytes, and no budget overrun.
+
+AC10 remains deferred until the provider-platform branch reaches staging; AC14
+remains a post-integration 30-day production shadow gate. DXJ/NTSX/MINT/BOND
+remain explicitly non-current, and no provider, credential, paid source,
+staging branch, or other worktree was mutated.
