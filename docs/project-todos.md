@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-05 — Render benchmark-family breadth history
+
+- [x] Render the canonical per-role breadth-history `above_ma.ma20` series in a role-coloured
+      workstation chart using aligned timestamps; preserve missing observations as nulls with no
+      forward fill, and keep role-local readiness/status text visible.
+- [x] Add lifecycle/alignment coverage (`17/17`), TypeScript, production build, and authenticated
+      Chromium `F8s-breadth-family-ratio` (`1/1`) on a rebuilt branch-scoped stack; teardown and
+      temporary-builder cleanup were clean.
+- [x] Product commit `45ae7e9b` (`feat(tc2000): render benchmark family breadth history`) is
+      pushed to `origin/feat/tc2000-frontend-rework`.
+- [ ] Rerun the exact-tip exhaustive gate at the coherent documentation tip while preserving the
+      six existing visual state-oracle diffs and all provider/fallback acceptance policy.
+
 ### 2026-09-05 — Benchmark-family breadth history exposes per-role readiness
 
 - [x] Add role-local benchmark-family breadth-history readiness fields for member count,

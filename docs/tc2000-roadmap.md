@@ -5,6 +5,21 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-05
 
+## 2026-09-05 — Render benchmark-family breadth history
+
+The workstation now renders the canonical per-role benchmark-family breadth-history series as a
+role-coloured uPlot chart, using each role's `above_ma.ma20` observations on the aligned timestamp
+union. Missing timestamps remain `null` (no forward fill), while the existing aligned-point and
+role-local analysis-readiness summaries remain visible. Invalid or unavailable history destroys
+the chart cleanly; no provider fallback, fabricated data, visual oracle, or acceptance rule
+changed.
+
+Focused lifecycle coverage passes `17/17`, TypeScript and production build pass, and authenticated
+Chromium `F8s-breadth-family-ratio` passes `1/1` on a rebuilt branch-scoped stack. Teardown removed
+all assigned resources and the temporary builder. The exact-tip exhaustive gate at this new
+product tip remains pending; preserve the six existing visual state-oracle diffs and rerun the gate
+at the next coherent documentation tip.
+
 ## 2026-09-05 — Exact-tip gate after per-role breadth-history readiness
 
 The exact-tip `full_stack_browser` gate at `437e35b8` passed every non-visual stage and the
