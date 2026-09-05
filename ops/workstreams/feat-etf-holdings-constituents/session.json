@@ -70,9 +70,7 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-45bdf9bd8d"
   },
-  "dirty_paths": [
-    "ps/workstreams/feat-etf-holdings-constituents/session.json"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -108,9 +106,9 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "9e3c17d43d83f91182cb70f5667f893dd61e4d7b",
+  "head": "f30506e12d9d118245e715a902bb9f7427981aa9",
   "implementation_sha": "ef165913df1f02be0a9a1ff3e486eaed557f7e0b",
-  "last_checkpoint": "2026-09-05T01:49:01.516024+00:00",
+  "last_checkpoint": "2026-09-05T01:54:17.140728+00:00",
   "last_human_progress_update": "2026-09-05T00:49:33.000000+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Keep bounded free-first re-tests for DXJ/NTSX and MINT/BOND. Qualify Alpha Vantage/EODHD/FMP only through the shared entitlement, quota, licensing, and aggregate budget gate; no remaining symbol-bearing cohort is queued. After provider-platform reaches staging, reconcile AC10 and run the documented 30-day production AC14 shadow gate.",
@@ -140,7 +138,7 @@
     "total": 14,
     "updated_at": "2026-09-05T00:49:33.000000+00:00"
   },
-  "remote": "9e3c17d43d83f91182cb70f5667f893dd61e4d7b",
+  "remote": "f30506e12d9d118245e715a902bb9f7427981aa9",
   "remote_sha": "ef165913df1f02be0a9a1ff3e486eaed557f7e0b",
   "remote_synchronized": true,
   "schema": 2,
