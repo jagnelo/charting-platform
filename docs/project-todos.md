@@ -18,9 +18,19 @@
       authenticated F8t-results plus the adjacent primary threshold flow passed `1/1` each on a
       rebuilt branch-scoped Docker stack. Product commit `928bf8ae` is pushed to
       `origin/feat/tc2000-frontend-rework`; focused stack teardown and resource cleanup were clean.
-- [ ] Re-run the exact-tip exhaustive gate at `928bf8ae`; preserve the existing six visual state-oracle
-      diffs and continue canonical provider/history, richer Study, native-window/accessibility/security,
-      dense-data, and visual-oracle work.
+- [x] Re-run the exact-tip exhaustive gate at metadata tip `098546be` (product tip `928bf8ae`).
+      Locked dependencies/migrations, workstream validation, Ruff/format, TypeScript, backend units
+      (`1,317/1,317`), backend integration (`384/384` with the existing warnings), frontend Vitest
+      (`950/950` across `109` files), production build, compose/provider policy, stack health, and
+      runner isolation passed. Functional Playwright passed `157/157` with `106` documented skips
+      across `263` specs. The unchanged four-project visual matrix completed `104` cases with
+      `98` passes and six failures: `watchlist-column-editor-open` at visual-1080p-100/125
+      (`13,844` pixels each), and `workspace-floating` at visual-1080p-100/125/1440p-100/1440p-125
+      (`12,097`/`12,097`/`12,097`/`12,097` pixels). No baseline, mask, threshold, skip, fallback
+      oracle, provider rule, or acceptance policy changed. Gate teardown removed the assigned stack
+      and generated resources; resource accounting was clean.
+- [ ] Preserve the six visual state-oracle diffs and continue canonical provider/history, richer
+      Study, native-window/accessibility/security, dense-data, and visual-oracle work.
 
 ### 2026-09-05 — Promote primary Study Lab series through explicit Boolean thresholds
 

@@ -14,9 +14,15 @@ Backend runner/job/API coverage passed `112/112`, `5/5`, and `24/24`; focused fr
 passed `61/61`; full frontend Vitest passed `950/950` across `109` files; type-check, production
 build, and diff checks passed. Authenticated structured-results and primary Study threshold browser
 flows passed `1/1` each on a rebuilt branch-scoped Docker stack with clean teardown. Product commit
-`928bf8ae` is pushed to `origin/feat/tc2000-frontend-rework`. The exact-tip gate is pending; the
-existing six visual state-oracle diffs and remaining canonical provider/history, richer Study,
-native-window/accessibility/security, dense-data, and visual-oracle gaps remain open.
+`928bf8ae` is pushed to `origin/feat/tc2000-frontend-rework`. The exact-tip gate then passed all
+non-visual stages and functional Playwright (`157` passed, `106` documented skips across `263`
+specs). The unchanged four-project visual matrix completed `104` cases with `98` passes and six
+failures: `watchlist-column-editor-open` at visual-1080p-100/125 (`13,844` pixels each), and
+`workspace-floating` at visual-1080p-100/125/1440p-100/1440p-125 (`12,097` pixels each). No
+baseline, mask, threshold, skip, fallback oracle, provider rule, or acceptance policy changed;
+assigned stack teardown and resource accounting were clean. The remaining canonical
+provider/history, richer Study, native-window/accessibility/security, dense-data, and visual-oracle
+gaps remain open.
 
 ## 2026-09-05 — Primary Study Lab numeric-series threshold promotion
 

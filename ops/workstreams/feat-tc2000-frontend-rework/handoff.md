@@ -25,9 +25,19 @@ Study Lab/Research Results/capability coverage `61/61`; full frontend Vitest `95
 files; TypeScript, production build, and `git diff --check` passed. Authenticated F8t-results and
 the adjacent primary Study threshold flow passed `1/1` each on a rebuilt branch-scoped Docker
 stack. The commit is pushed to `origin/feat/tc2000-frontend-rework`; focused stack teardown and
-resource accounting were clean. The exact-tip gate is pending; existing visual state-oracle,
-canonical provider/history, richer Study, native-window/accessibility/security, dense-data, and
-visual-oracle gaps remain open.
+resource accounting were clean.
+
+The exact-tip `full_stack_browser` gate then ran at metadata tip `098546be` (product tip
+`928bf8ae`). Locked dependency/migration, workstream, Ruff/format, TypeScript, backend unit
+(`1,317/1,317`), backend integration (`384/384` with existing warnings), frontend, build,
+compose/provider, stack-health, and runner-isolation stages passed. Functional Playwright passed
+`157/157` with `106` documented skips across `263` specs. The four-project visual matrix completed
+`104` cases with `98` passes and the same six state-oracle failures: `watchlist-column-editor-open`
+at visual-1080p-100/125 (`13,844` pixels each), and `workspace-floating` at all four projects
+(`12,097` pixels each in this run). No baseline, mask, threshold, skip, fallback oracle, provider
+rule, or acceptance policy changed. Gate teardown removed the assigned stack and generated
+resources; resource accounting was clean. Continue canonical provider/history, richer Study,
+native-window/accessibility/security, dense-data, and visual-oracle work.
 
 ## 2026-09-05 — Promote primary Study Lab series thresholds
 

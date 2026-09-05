@@ -8,10 +8,15 @@ authoritative V25 capture represents this promotion-row composition, so its exac
 placement, action spacing, and post-save states remain `required_missing`; this slice does not
 alter any screenshot baseline, mask, threshold, skip, or visual acceptance rule.
 
-Product commit `928bf8ae` has focused backend/frontend coverage and authenticated browser proof; the
-exact-tip gate is pending. The existing six state-oracle diffs remain the only known visual gate
-failures, alongside the broader canonical provider/history, richer Study, native-window,
-accessibility/security, dense-data, and exact V25 visual gaps.
+Product commit `928bf8ae` has focused backend/frontend coverage and authenticated browser proof. The
+exact-tip gate then passed all non-visual stages and functional Playwright (`157` passed, `106`
+documented skips across `263` specs). The unchanged four-project matrix completed `104` cases with
+`98` passes and six failures: `watchlist-column-editor-open` at visual-1080p-100/125 (`13,844`
+pixels each), and `workspace-floating` at visual-1080p-100/125/1440p-100/1440p-125 (`12,097`
+pixels each). No baseline, mask, threshold, skip, fallback oracle, provider rule, or acceptance
+policy changed; assigned stack teardown and resource accounting were clean. These state-oracle
+diffs remain the only known visual gate failures, alongside the broader canonical provider/history,
+richer Study, native-window, accessibility/security, dense-data, and exact V25 visual gaps.
 
 ## 2026-09-05 — Primary Study Lab threshold controls and unchanged visual gate
 

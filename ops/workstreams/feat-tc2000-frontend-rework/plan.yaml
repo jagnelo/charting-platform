@@ -116,9 +116,14 @@ progress:
     focused frontend coverage is 61/61; full frontend is 950/950 across 109 files; type-check,
     build, and diff checks pass; authenticated F8t-results and the adjacent primary threshold flow
     pass 1/1 each on a rebuilt branch-scoped stack. The product commit is pushed and focused stack
-    teardown/resource accounting are clean. The exact-tip gate after this slice is pending; the
-    existing six visual state-oracle diffs, canonical provider/history, richer Study, native-window,
-    accessibility/security, dense-data, and visual-oracle gaps remain open.
+    teardown/resource accounting are clean. The exact-tip gate then passed all non-visual stages and
+    functional Playwright 157/157 with 106 documented skips across 263 specs. The unchanged
+    four-project visual matrix completed 104 cases with 98 passes and six failures: watchlist-column-
+    editor-open at visual-1080p-100/125 (13844 pixels each), and workspace-floating at all four
+    projects (12097 pixels each in this run). No baseline, mask, threshold, skip, fallback oracle,
+    provider rule, or acceptance policy changed; gate teardown and resource accounting were clean.
+    The reproducible blocker is the existing visual state-oracle mismatch; canonical provider/history,
+    richer Study, native-window/accessibility/security, dense-data, and visual-oracle gaps remain open.
     Historical current boundary: product commit b6316871 added explicit operator/threshold promotion
     for finite numeric Study series in the primary Study Lab, with Boolean column/filter/scan/gauge/
     alert fan-out, canonical member scope, immutable run/output lineage, and series_target_to_boolean
@@ -150,13 +155,16 @@ progress:
     rule, or acceptance policy changed; assigned stack teardown and resource accounting were clean.
     Canonical provider/history, richer Study targets, native-window/accessibility/security,
     dense-data, and visual-oracle review remain open.
-  next_action: "Run the exact-tip gate at 928bf8ae, then continue the next compatible Study target or canonical provider/history slice; do not change visual policy or provider fallback rules."
+  next_action: "Continue the next compatible Study target or canonical provider/history slice; preserve the six visual state-oracle diffs and do not change visual policy or provider fallback rules."
 remaining_gaps:
-  - "Current boundary (product tip 928bf8ae): Study range-center latest-value watchlist-column promotion is complete
+  - "Current boundary (metadata tip 098546be, product tip 928bf8ae): Study range-center latest-value watchlist-column promotion is complete
     with backend runner/job/API coverage 112/112, 5/5, and 24/24, focused frontend coverage 61/61,
     full frontend 950/950 across 109 files, type-check/build/diff checks, authenticated F8t-results
     and primary threshold browser flows 1/1 each, and clean focused stack teardown. The exact-tip
-    gate after this slice is pending. The prior primary Study Lab numeric series threshold promotion
+    gate passed all non-visual stages and functional Playwright 157/157 with 106 documented skips
+    across 263 specs. The unchanged visual matrix completed 104 cases with 98 passes and six
+    state-oracle failures: watchlist-column-editor-open at 1080p-100/125 (13844 pixels each) and
+    workspace-floating at all four projects (12097 pixels each in this run). The prior primary Study Lab numeric series threshold promotion
     was complete
     with focused Study Lab coverage 26/26, full frontend 949/949 across 109 files, authenticated
     F9j 1/1, and a clean stack teardown. The exact-tip gate passed every non-visual stage; functional
@@ -168,4 +176,4 @@ remaining_gaps:
   - "R1-R2: the frontend now surfaces the provider-neutral benchmark-family readiness matrix beside Market Map, including member/weighted/classified counts, point-in-time support, entitlement/probe state, latest disclosure resolution, and observed continuity. Canonical family population/history and the live-data top-down trader workflow remain incomplete; the latest four bounded SEC-search passes leave 80/101 QQQ members as HOLDING-* placeholders, QQQE/SPDR dated holdings sources remain unresolved, W1/MN coverage is open, and full QQQ member-history coverage remains unestablished despite 21/21 canonical members meeting the D1 technical floor and corrected point-in-time end filtering."
   - "R3-R4: historical analytics and compatible immutable-output promotion across workstation consumers; events_to_boolean covers watchlist-filter and alert fan-out for completed single-output event runs and explicitly selected named events artifacts from multi-output Study Lab studies. Product tip 22fd676e adds the named structured-event Strategy signal cell in Research Results, and 3a7e4861 extends the same explicit events_to_signal asset adapter with source/output/run lineage to the primary Study Lab for direct and named multi-output events. Structured scalar/series/Boolean/range outputs cover named column, chart, filter, scan, gauge, and alert targets where shape-compatible; numeric Study series use latest_series_to_scalar, range centers use range_center_to_series for chart plots and range_center_to_scalar for latest-value watchlist columns. The explicit capability matrix keeps table/bar/histogram/scatter/heatmap/dashboard/breadth shapes view/export-only; richer chart/list/gauge targets remain open."
   - "R5-R6: required visual states, native-window resilience, accessibility, security, dense-data budgets, and logging evidence remain open; the seeded two-popout endurance guard is now evidenced through 105 churn rounds."
-  - "R7: the exact-tip gate at prior product tip b6316871 passed all non-visual stages and functional Playwright (157 passed, 106 documented skips across 263 specs); the four-project visual matrix remained 98/104 with the same six state-oracle diffs. The exact-tip gate at current product tip 928bf8ae is pending. Canonical provider/history, richer Study, and remaining R3-R6 evidence remain open. Integration, promotion, and deployment remain separately authorized."
+  - "R7: the exact-tip gate at prior product tip b6316871 passed all non-visual stages and functional Playwright (157 passed, 106 documented skips across 263 specs); the four-project visual matrix remained 98/104 with the same six state-oracle diffs. The exact-tip gate at metadata tip 098546be (product tip 928bf8ae) passed all non-visual stages and functional Playwright 157/157 with 106 documented skips; its unchanged visual matrix is 98/104 with six state-oracle diffs. Canonical provider/history, richer Study, and remaining R3-R6 evidence remain open. Integration, promotion, and deployment remain separately authorized."

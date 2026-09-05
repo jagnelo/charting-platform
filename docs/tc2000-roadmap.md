@@ -23,7 +23,12 @@ integration `24/24`, focused frontend coverage `61/61`, full frontend Vitest `95
 files, type-check/build/diff checks passed, and authenticated F8t-results plus the adjacent primary
 threshold flow passed `1/1` each on a rebuilt branch-scoped Docker stack. The commit is pushed to
 `origin/feat/tc2000-frontend-rework`; focused teardown/resource accounting was clean. The exact-tip
-gate after this slice remains to be run; the existing visual state-oracle diffs and canonical
+gate then passed every non-visual stage and functional Playwright (`157` passed, `106` documented
+skips across `263` specs). The unchanged four-project visual matrix completed `104` cases with
+`98` passes and six state-oracle failures: `watchlist-column-editor-open` at visual-1080p-100/125
+(`13,844` pixels each), and `workspace-floating` at visual-1080p-100/125/1440p-100/125 (`12,097`
+pixels each). No visual baseline, mask, threshold, skip, fallback oracle, provider rule, or
+acceptance policy changed; assigned stack teardown and resource accounting were clean. Canonical
 provider/history, richer Study, native-window/accessibility/security, dense-data, and visual-oracle
 gaps remain open.
 
