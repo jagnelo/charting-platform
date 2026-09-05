@@ -105,6 +105,8 @@ progress:
     - Binance exact request-weight accounting for single-symbol price (2) and exchange-info discovery (20); weighted local buckets charge the documented units and multi-page historical candles remain fail-closed
     - Marketstack's conservative 100-request/month free-plan contract and IBKR's documented 10-request/second plus five-concurrent-history pacing contract
     - MarketData.app now uses the documented `/v1` API root, records its 100-credit 09:30 America/New_York reset window and 50-request concurrency ceiling, and has an adapter request-path/auth fixture test
+    - CIK evidence is issuer-only: profile ingestion links normalized SEC CIKs to `Issuer`, generic security domain-key selection excludes CIK, and new instrument-level CIK writes are rejected while legacy lookup remains compatible
+    - deployed ARQ worker whole-universe refresh now enqueues durable bounded jobs and processes them every 15 minutes instead of making an unbounded provider-call loop inside the daily cron
     - final combined backend unit and PostgreSQL/Redis integration validation
   total: 14
   current_phase: credentialed_live_validation
