@@ -2901,3 +2901,7 @@ state remains visible, shows the known provider, explains the route status, and
 emits unavailable for current analysis. The focused panel/view suite passes 12
 tests and `vue-tsc --noEmit` passes. This strengthens AC13 evidence without
 loosening any current-data gate.
+
+The same checkpoint's production frontend build (`vue-tsc && vite build`)
+completed successfully. Vite emitted only the repository's existing large-chunk
+warnings; no ETF compilation or type error occurred.
