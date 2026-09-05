@@ -146,8 +146,10 @@ restore a dead route merely to reproduce historical counts.
 
 The baseline provider-audit ledger now accounts for all 140 fallback keys and an
 exhaustive invariant test proves its key/count/rank alignment with runtime code.
-`guggenheim`, `ars`, `avory`, `ballast`, `bancreek`, `beehive`, `blueprint`, `bridgeway`, `brookstone`, `bufferlabs`, `bushido`, `capforce`, `castellan`, `conductor_fund`, `cresalta`, `elm`, `esoterica`, `even_herd`, `everence`, `falconx`, and `gotham` are native-promoted; `advisors_asset_management` and `amplius` are
-issuer-access-blocked; `alphamark_advisors` is classified as an
+`guggenheim`, `ars`, `avory`, `ballast`, `bancreek`, `beehive`, `blueprint`, `bridgeway`, `brookstone`, `bufferlabs`, `bushido`, `capforce`, `castellan`, `conductor_fund`, `cresalta`, `elm`, `esoterica`, `even_herd`, `everence`, `falconx`, and `gotham` are native-promoted; `advisors_asset_management` remains
+issuer-access-blocked; `amplius` now has a complete executable AAAA parser but
+its observed effective date is future-dated, so it remains fallback-only and
+unavailable for current analysis; `alphamark_advisors` is classified as an
 inactive/successor disposition; `amg_national` is a non-portfolio publisher;
 and `anydrus`, `baillie_gifford`, and `discipline_funds` are non-executable public sources;
 `alphaclone` and `elements` are inactive/successor dispositions; `argent` and `arin` are
@@ -2532,7 +2534,8 @@ the durable audit ledger: ALFA/ALFS/ALFD/ALFV (AlphaClone), SMCP (AlphaMark),
 AAAA (Amplius), NDOW (Anydrus), AMID/ABIG/ALIL (Argent), and ATTR (Arin).
 AlphaClone and AlphaMark are recorded as `not_applicable` pending
 liquidation/successor confirmation. Amplius, Argent, and Arin are
-`unavailable` because issuer routes are Cloudflare-blocked; Anydrus is
+`unavailable`; Amplius is executable but future-dated, while Argent and Arin
+remain Cloudflare-blocked. Anydrus is
 `unavailable` because its public holdings artifact exposes placeholders and no
 current download rows. Dated evidence references and bounded next actions are
 retained for every symbol, and no symbol is current-analysis usable.

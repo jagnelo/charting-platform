@@ -302,10 +302,10 @@ symbol_audit_ledger:
       tier: 1
       provider_identity: amplius
       current_outcome: unavailable
-      evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-09-02
-      evidence_refs: [web:amplius-aaaa-holdings-cloudflare-2026-09-02]
-      next_action: "Re-test the issuer page or identify an issuer-published machine-readable route that is executable without browser challenge state; promote only after fixture and bounded live evidence."
+      evidence_state: future_dated_source
+      investigated_at: 2026-09-05
+      evidence_refs: [web:amplius-aaaa-current-holdings-page-2026-09-05, live:amplius-aaaa-application-200-2026-09-05, live:amplius-aaaa-future-effective-date-2026-09-05]
+      next_action: "Re-test AAAA after the issuer effective date is no longer in the future; retain the provider-specific parser and add bounded live evidence before native promotion."
     - symbol: NDOW
       tier: 1
       provider_identity: anydrus
@@ -1990,30 +1990,33 @@ providers:
     display_name: amplius
     queue_rank: 13
     starting_status: needs_first_party_route_discovery
-    current_status: issuer_access_blocked
-    disposition: issuer_access_blocked
-    last_checked: 2026-09-02
-    source_access_declared: issuer_public_holdings_file
+    current_status: needs_first_party_route_discovery
+    disposition: needs_first_party_route_discovery
+    last_checked: 2026-09-05
+    source_access_declared: issuer_public_product_page_complete_current_holdings_table
     representative_symbols:
       - AAAA
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
+    source_freshness: 2026-09-08
     first_party_domains:
       - www.ampliusetfs.com
     candidate_routes:
       - https://www.ampliusetfs.com/
-    route_complete: false
+    route_complete: true
     symbol_mapping_proven: true
     current_holdings_proven: true
     source_format: html
-    parser_fixture: null
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_amplius_adapter_parses_complete_table_but_preserves_future_date
     live_test: null
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.amplius"
       - "runtime:ISSUER_ADAPTER_CONFIGS.amplius"
+      - "web:amplius-aaaa-current-holdings-page-2026-09-05"
+      - "live:amplius-aaaa-application-200-2026-09-05"
+      - "live:amplius-aaaa-future-effective-date-2026-09-05"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -2023,8 +2026,16 @@ providers:
         source: "https://www.ampliusetfs.com/"
         result: "The public page visibly exposes a complete AAAA holdings table as of 2026-08-31, but a backend HTTP request receives a Cloudflare challenge (HTTP 403), so no stable executable route is currently proven."
         evidence_ref: "web:amplius-aaaa-holdings-cloudflare-2026-09-02"
-    disposition_reason: "amplius: The issuer page shows complete current AAAA holdings, but the backend-accessible request is blocked by Cloudflare; without a stable executable route the source cannot be promoted to native."
-    next_action: "amplius: Re-test the issuer page or identify an issuer-published machine-readable route that is executable without browser challenge state; promote only after fixture and bounded live evidence."
+      - date: 2026-09-05
+        source: "https://www.ampliusetfs.com/"
+        result: "The application-equivalent request now returns HTTP 200 HTML containing the complete 45-row AAAA holdings table, including ticker, name, CUSIP, shares, price, market value, weight, and effective date. Every row is dated 2026-09-08, which is future-dated relative to the 2026-09-05 observation, so the route is parseable but cannot support current analysis yet."
+        evidence_ref: "live:amplius-aaaa-application-200-2026-09-05"
+      - date: 2026-09-05
+        source: "https://www.ampliusetfs.com/"
+        result: "The official page's AAAA table declares an effective date of 2026-09-08; the adapter and ingestion freshness boundary must preserve the artifact as non-current until the date is valid."
+        evidence_ref: "live:amplius-aaaa-future-effective-date-2026-09-05"
+    disposition_reason: "amplius: The issuer page is now executable and complete for AAAA, and a provider-specific parser is covered deterministically, but the observed effective date is 2026-09-08, future-dated relative to the 2026-09-05 check. Keep the source fallback-only and unavailable for current analysis until a non-future artifact is revalidated with bounded live evidence."
+    next_action: "amplius: Re-test AAAA after the issuer effective date is no longer in the future; retain the provider-specific parser and add bounded live evidence before native promotion."
     implementation_sha: null
     validation_refs: []
   - adapter_key: anydrus

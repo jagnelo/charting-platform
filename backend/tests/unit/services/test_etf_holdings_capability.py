@@ -575,14 +575,19 @@ def test_follow_on_ranked_fallback_terminal_symbol_preserves_successor_evidence(
     assert result.evidence_refs == ("web:alphaclone-domain-unrelated-content-2026-09-02",)
 
 
-def test_follow_on_ranked_fallback_blocked_symbol_remains_unavailable():
+def test_follow_on_ranked_fallback_future_dated_symbol_remains_unavailable():
     result = symbol_audit_for_profile(profile_with_symbol("AAAA", "amplius"))
 
     assert result.tier == 1
     assert result.outcome == UNAVAILABLE
-    assert result.evidence_state == "issuer_route_access_blocked"
+    assert result.evidence_state == "future_dated_source"
     assert result.provider_identity == "amplius"
-    assert result.evidence_refs == ("web:amplius-aaaa-holdings-cloudflare-2026-09-02",)
+    assert result.investigated_at == date(2026, 9, 5)
+    assert result.evidence_refs == (
+        "web:amplius-aaaa-current-holdings-page-2026-09-05",
+        "live:amplius-aaaa-application-200-2026-09-05",
+        "live:amplius-aaaa-future-effective-date-2026-09-05",
+    )
 
 
 def test_follow_on_ranked_fallback_non_executable_symbol_is_not_current():

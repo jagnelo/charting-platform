@@ -842,13 +842,17 @@ _register_non_tier_0_audits(
 _register_non_tier_0_audits(
     ("AAAA",),
     outcome=UNAVAILABLE,
-    evidence_state="issuer_route_access_blocked",
+    evidence_state="future_dated_source",
     provider_identity="amplius",
-    investigated_at=date(2026, 9, 2),
-    evidence_refs=("web:amplius-aaaa-holdings-cloudflare-2026-09-02",),
+    investigated_at=date(2026, 9, 5),
+    evidence_refs=(
+        "web:amplius-aaaa-current-holdings-page-2026-09-05",
+        "live:amplius-aaaa-application-200-2026-09-05",
+        "live:amplius-aaaa-future-effective-date-2026-09-05",
+    ),
     next_action=(
-        "Re-test the issuer page or identify an issuer-published machine-readable route that is "
-        "executable without browser challenge state; promote only after fixture and bounded live evidence."
+        "Re-test AAAA after the issuer effective date is no longer in the future; retain the "
+        "provider-specific parser and add bounded live evidence before native promotion."
     ),
 )
 _register_non_tier_0_audits(

@@ -15239,6 +15239,63 @@ async def test_bushido_adapter_parses_complete_current_holdings_tables(monkeypat
 
 
 @pytest.mark.asyncio
+async def test_amplius_adapter_parses_complete_table_but_preserves_future_date(monkeypatch):
+    adapter = get_holdings_adapter("amplius")
+    assert adapter is not None
+    assert type(adapter).__name__ == "AmpliusHoldingsAdapter"
+    assert "amplius" in FALLBACK_ISSUER_AUDITS
+    assert ISSUER_ADAPTER_CONFIGS["amplius"].live_tested_default_route is False
+    assert (
+        adapter.probe(
+            symbol="AAAA", name="Amplius Aggressive Asset Allocation ETF", identifiers={}
+        ).status
+        == "ready"
+    )
+    assert adapter.probe(symbol="UNKNOWN", name="Unknown ETF", identifiers={}).status == (
+        "needs_issuer_route"
+    )
+
+    page_url = "https://www.ampliusetfs.com/"
+    page_html = """
+    <h1>Amplius Aggressive Asset Allocation ETF (AAAA)</h1><h2>Fund Holdings</h2>
+    <table>
+      <tr><th>Ticker</th><th>Name</th><th>CUSIP</th><th>Shares</th><th>Price</th>
+          <th>Market Value ($mm)</th><th>% of Net Assets</th><th>EFFECTIVE_DATE</th></tr>
+      <tr><td>AMD</td><td>Advanced Micro Devices Inc</td><td>007903107</td>
+          <td>6,010</td><td>477.57</td><td>2.87</td><td>1.00</td><td>09/08/2026</td></tr>
+      <tr><td>QQQ</td><td>Invesco QQQ Trust Series 1</td><td>46090E103</td>
+          <td>33,137</td><td>718.96</td><td>23.82</td><td>8.32</td><td>09/08/2026</td></tr>
+      <tr><td>Cash&amp;Other</td><td>Cash &amp; Other</td><td></td>
+          <td>1,000</td><td>1.00</td><td>0.01</td><td>0.00</td><td>09/08/2026</td></tr>
+    </table>
+    """
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [FakeResponse(text=page_html, content_type="text/html", url=page_url)]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="AAAA")
+
+    assert FakeAsyncClient.requested[0][0] == page_url
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol == "AMD"
+    assert result.rows[0].market_value == Decimal("2870000")
+    assert result.rows[0].weight == Decimal("0.01")
+    assert result.rows[1].symbol == "QQQ"
+    assert result.rows[1].holding_type == "fund"
+    assert result.rows[2].symbol is None
+    assert result.rows[2].row_type == "cash"
+    assert result.legal_metadata["source_provider"] == "amplius"
+    assert result.legal_metadata["route_resolution"] == (
+        "amplius_public_complete_current_holdings_table"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-08"
+    assert result.raw_json["market_value_unit"] == "millions_usd"
+
+    with pytest.raises(ValueError, match="matching verified official product page"):
+        await adapter.fetch_latest(symbol="AAAA", source_url="https://example.invalid/holdings")
+
+
+@pytest.mark.asyncio
 async def test_capforce_adapter_parses_complete_current_holdings_tables(monkeypatch):
     adapter = get_holdings_adapter("capforce")
     assert adapter is not None
@@ -22992,7 +23049,10 @@ def test_etf_com_issuer_page_reconciliation_batch_is_registered_and_audited():
         assert audit.status == "needs_first_party_route_discovery"
         adapter = get_holdings_adapter(adapter_key)
         assert adapter is not None
-        assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+        if adapter_key == "amplius":
+            assert type(adapter).__name__ == "AmpliusHoldingsAdapter"
+        else:
+            assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
     for adapter_key in terminal_dispositions:
         audit = FALLBACK_ISSUER_AUDITS[adapter_key]
         assert audit.status == "provider_not_a_portfolio_publisher"
@@ -23064,7 +23124,10 @@ def test_etfdb_issuer_league_continuation_batch_is_registered_and_audited():
         assert audit.status == "needs_first_party_route_discovery"
         adapter = get_holdings_adapter(adapter_key)
         assert adapter is not None
-        assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+        if adapter_key == "amplius":
+            assert type(adapter).__name__ == "AmpliusHoldingsAdapter"
+        else:
+            assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
 
 
 def test_etfdb_issuer_league_exhaustion_batch_is_registered_and_audited():
@@ -23283,7 +23346,10 @@ def test_stockanalysis_provider_third_continuation_batch_is_registered_and_audit
         assert audit.status == "needs_first_party_route_discovery"
         adapter = get_holdings_adapter(adapter_key)
         assert adapter is not None
-        assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+        if adapter_key == "amplius":
+            assert type(adapter).__name__ == "AmpliusHoldingsAdapter"
+        else:
+            assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
     assert "srh" not in FALLBACK_ISSUER_AUDITS
     assert ISSUER_ADAPTER_CONFIGS["srh"].live_tested_default_route is True
     assert type(get_holdings_adapter("srh")).__name__ == "SrhHoldingsAdapter"

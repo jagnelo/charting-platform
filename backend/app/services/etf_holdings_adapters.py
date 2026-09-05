@@ -69112,6 +69112,17 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Bushido Capital publishes complete current SMRI and RNIN holdings tables on its public product pages.",
     ),
+    "amplius": IssuerCsvAdapterConfig(
+        adapter_key="amplius",
+        source_provider="amplius",
+        source_access="issuer_public_product_page_complete_current_holdings_table",
+        expected_cadence="daily",
+        product_page_templates=("https://www.ampliusetfs.com/",),
+        terms_note=(
+            "Amplius/ETF Architect publishes AAAA's complete holdings table on its public fund page; "
+            "the page and holdings may be subject to issuer terms."
+        ),
+    ),
     "capforce": IssuerCsvAdapterConfig(
         adapter_key="capforce",
         source_provider="capforce",
@@ -73357,8 +73368,56 @@ class SegallBryantHamillReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapt
     """StockAnalysis provider-table fallback adapter pending Segall Bryant & Hamill discovery."""
 
 
-class AmpliusReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """StockAnalysis provider-table fallback adapter pending Amplius discovery."""
+class AmpliusHoldingsAdapter(BushidoHoldingsAdapter):
+    """Parse Amplius AAAA's complete issuer-published holdings table.
+
+    The route is deliberately implemented before native promotion so that a
+    complete but future-dated issuer snapshot remains parseable and can be
+    rejected by the freshness boundary instead of being silently served as
+    current support.
+    """
+
+    PROVIDER_DISPLAY_NAME = "Amplius"
+    SOURCE_TAG = "amplius"
+    ROUTE_RESOLUTION = "amplius_public_complete_current_holdings_table"
+    SNAPSHOT_PROVENANCE = "amplius_native_holdings_table"
+    PRODUCT_PAGE_URLS = {"AAAA": "https://www.ampliusetfs.com/"}
+    EXPECTED_IDENTITIES = {"AAAA": "Amplius Aggressive Asset Allocation ETF"}
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        result = await BushidoHoldingsAdapter.fetch_latest(
+            self,
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            source_url=source_url,
+            identifiers=identifiers,
+        )
+        for row in result.rows:
+            market_value_mm = _decimal(row.extra_data.get("Market Value ($mm)"))
+            if market_value_mm is not None:
+                row.market_value = market_value_mm * Decimal("1000000")
+            row.extra_data = {
+                **row.extra_data,
+                "market_value_mm": _clean(row.extra_data.get("Market Value ($mm)")),
+                "market_value_unit": "millions_usd",
+                "source": self.ROUTE_RESOLUTION,
+            }
+        if result.raw_json is not None:
+            result.raw_json["market_value_unit"] = "millions_usd"
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "route_resolution": self.ROUTE_RESOLUTION,
+            "snapshot_provenance": self.SNAPSHOT_PROVENANCE,
+            "source_quality": "issuer_reported_holdings_table",
+        }
+        return result
 
 
 class NestYieldHoldingsAdapter(MilitiaHoldingsAdapter):
@@ -74890,7 +74949,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "alphamark_advisors": AlphaMarkAdvisorsReconciledFallbackHoldingsAdapter,
         "altshares": WaterIslandHoldingsAdapter,
         "amg_national": AmgNationalReconciledFallbackHoldingsAdapter,
-        "amplius": AmpliusReconciledFallbackHoldingsAdapter,
+        "amplius": AmpliusHoldingsAdapter,
         "american_beacon": AmericanBeaconHoldingsAdapter,
         "anydrus": AnydrusReconciledFallbackHoldingsAdapter,
         "arin": ArinReconciledFallbackHoldingsAdapter,

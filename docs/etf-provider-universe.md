@@ -335,8 +335,10 @@ daily CSV;
 `advisors_asset_management` is blocked before a stable
 backend export can be captured; `alphamark_advisors` now redirects to an EP
 Wealth successor page; `amg_national` is a bank/wealth manager rather than an
-ETF portfolio publisher; `amplius` exposes a complete table but blocks backend
-requests with Cloudflare; `anydrus` shows placeholder holdings; and
+ETF portfolio publisher; `amplius` now exposes a complete executable AAAA table
+through the application request, but the observed effective date is future-dated
+relative to the check and the provider remains fallback-only; `anydrus` shows
+placeholder holdings; and
 `baillie_gifford` exposes only top-ten spreadsheets. `alphaclone` currently
 serves unrelated content, while `argent` and `arin` expose holdings pages that
 are likewise blocked to backend requests. These records remain fallback-only
@@ -1844,6 +1846,18 @@ retained. Tweedy Browne's official FilePoint page exposes only a stale 2024 COPY
 artifact and marks the current snapshot TBD, so it remains non-executable.
 The current split is 496 registered / 414 native/live-backed / 82 fallback-only,
 with 6 queued records and `us_benchmark_series` next.
+
+## Amplius AAAA route recheck — 2026-09-05
+
+The official Amplius page now returns HTTP 200 to the application-equivalent
+request and contains a complete 45-row AAAA holdings table with ticker, name,
+CUSIP, shares, price, market value, weight, and effective-date columns. The
+provider-specific adapter and deterministic fixture preserve the table and its
+provenance, but every observed row is dated `2026-09-08`, future-dated relative
+to the `2026-09-05` observation. AAAA therefore remains unavailable for current
+analysis and Amplius remains fallback-only until a non-future snapshot is
+revalidated with bounded live evidence; the freshness boundary must reject the
+future artifact rather than serve it as current.
 
 ## Current audit checkpoint — US Benchmark Series non-executable current route — 2026-09-04
 
