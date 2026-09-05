@@ -10,6 +10,19 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Surface canonical source-history ranges
+
+Product commit `ad90b988` (`feat(tc2000): surface source history ranges`) generalizes the Market
+Map history readiness strip across every timeframe returned by the canonical source-history
+contract. Each row now shows covered/member counts, bar totals, and observed oldest/newest dates;
+missing bounds remain explicit as `unknown`, and no provider or fallback policy changed.
+
+Evidence: focused Market Map coverage `36/36`; full frontend Vitest `947/947` across `109` files;
+TypeScript/type-check, production build, and diff checks passed; authenticated `F8s-family-matrix`
+passed `1/1` against the rebuilt branch-scoped Docker stack with the range assertion. Teardown and
+resource accounting removed all assigned containers, volumes, generated images, and test-container
+sessions. The exact-tip exhaustive gate is queued at this coherent product tip.
+
 ## 2026-09-05 — Exact-tip exhaustive gate after member-history date ranges
 
 The `full_stack_browser` gate ran at metadata tip `dace1ab4` (product tip `6fa41b81`, with the

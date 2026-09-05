@@ -11,14 +11,16 @@ records in `docs/project-todos.md`, `docs/tc2000-parity.md`,
 evidence ledgers. If a summary here conflicts with a dated test receipt or the current code, the
 current code and fresh evidence win.
 
-The latest product slice is `6fa41b81` (`feat(tc2000): surface member history date ranges`).
-Market Map's canonical benchmark-family readiness panel now displays the observed oldest and
-newest member-bar dates for every timeframe that supplies them, alongside the existing readiness,
-coverage, bar-count, and floor evidence. Missing bounds remain explicit as `unknown`; no date is
-inferred or substituted from another timeframe. Focused Market Map coverage passed `36/36`, the
-full frontend suite passed `947/947` across `109` files, TypeScript/type-check, production build,
-and diff checks passed, and the authenticated F8s drill-down passed `1/1` with the new range
-assertion on a rebuilt branch-scoped Docker stack. Teardown removed all assigned resources.
+The latest product slice is `ad90b988` (`feat(tc2000): surface source history ranges`). Market
+Map's canonical source-history readiness strip now renders every returned timeframe, not only the
+first, with covered/member counts, observed bar totals, and oldest/newest dates; missing bounds
+remain explicit as `unknown` and no date is inferred or substituted. Focused Market Map coverage
+passed `36/36`, the full frontend suite passed `947/947` across `109` files, TypeScript/type-check,
+production build, and diff checks passed, and the authenticated F8s family-matrix check passed
+`1/1` with the range assertion on a rebuilt branch-scoped Docker stack. Teardown removed all
+assigned resources. The preceding product slice `6fa41b81` added the same observed date bounds to
+the benchmark-family role labels; this follow-on generalizes the visibility to all source-history
+timeframes without changing provider or fallback policy.
 
 The latest exact-tip exhaustive gate ran at metadata tip `dace1ab4` (product tip `6fa41b81`, with
 the member-history date-range records committed). Locked dependency/migration checks, Ruff/format,

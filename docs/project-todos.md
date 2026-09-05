@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-05 — Surface canonical source-history ranges
+
+- [x] Extend the Market Map source-history readiness strip to render every returned timeframe
+      with covered/member counts, bar totals, and observed oldest/newest bounds. Missing bounds
+      remain explicit as `unknown`; no provider call, fallback rule, or cross-timeframe inference
+      changed.
+- [x] Add component and authenticated `F8s-family-matrix` assertions for the generalized range
+      text. Focused Market Map coverage passed `36/36`; full frontend Vitest passed `947/947` across
+      `109` files; TypeScript, production build, and `git diff --check` passed; the rebuilt
+      branch-scoped Docker browser check passed `1/1`; teardown removed all assigned containers,
+      volumes, generated images, and test-container sessions. Product commit `ad90b988` is pushed
+      to `origin/feat/tc2000-frontend-rework`.
+- [ ] Re-run the exact-tip exhaustive gate at this coherent product tip. Preserve the unchanged
+      visual policy and the reproducible six-diff matrix blocker.
+
 ### 2026-09-05 — Exact-tip exhaustive gate after member-history date ranges
 
 - [x] Re-run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at
