@@ -4333,6 +4333,7 @@ test.describe('TC2000 workstation', () => {
     await expect(breadth.locator('[aria-label="Benchmark family role ranking"]')).toContainText('#1 Equal weight RSP', { timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Benchmark family concentration"]')).toContainText('Cap weight SPY · top 34.0% · HHI 0.04 · effective 25.00 · σ 2.0% · 100.0% covered', { timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Benchmark family concentration"]')).toContainText('History · 1 points · point-in-time snapshots', { timeout: 15_000 })
+    await expect(breadth.locator('.breadth-tool__family-coverage-roles')).toContainText('latest 2026-06-27 · 1/1 resolved · fixture', { timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Benchmark family historical dispersion"]')).toBeVisible({ timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Benchmark family historical concentration metrics"]')).toBeVisible({ timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Cross-family ranking"]')).toContainText('#1 S&P 500 SPY', { timeout: 15_000 })

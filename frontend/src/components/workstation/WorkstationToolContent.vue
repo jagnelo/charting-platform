@@ -775,7 +775,7 @@
           <label>As of <select :value="familyAsOf" aria-label="Family analysis as of" @change="setBreadthConfiguration({ as_of: (($event.target as HTMLSelectElement).value || null) })"><option value="">Latest</option><option v-for="date in familyCoverageDates" :key="date" :value="familyAsOfValue(date)">{{ date }}</option></select></label>
           <div class="breadth-tool__family-coverage-roles">
             <span v-for="role in familyCoverage.roles" :key="role.role">
-          <b>{{ familyRoleLabel(role.role) }}</b> {{ role.symbol ?? role.label }} · {{ role.status }} · {{ role.snapshots.length }} date{{ role.snapshots.length === 1 ? '' : 's' }} · {{ familyContinuityLabel(role) }} · bars {{ familyMemberBarHistoryLabel(role) }} · readiness {{ role.composite_readiness_status ?? 'unknown' }} · entitlement {{ role.entitlement_status ?? 'unknown' }} · refresh {{ role.holdings_refresh_status ?? 'not_attempted' }} · weights {{ role.weights_status ?? 'unknown' }} · classification {{ role.classification_status ?? 'unknown' }}{{ role.placeholder_member_count ? ` · placeholders ${role.placeholder_member_count}` : '' }}
+          <b>{{ familyRoleLabel(role.role) }}</b> {{ role.symbol ?? role.label }} · {{ role.status }} · {{ role.snapshots.length }} date{{ role.snapshots.length === 1 ? '' : 's' }} · {{ familyContinuityLabel(role) }} · {{ familyLatestDisclosureLabel(role) }} · bars {{ familyMemberBarHistoryLabel(role) }} · readiness {{ role.composite_readiness_status ?? 'unknown' }} · entitlement {{ role.entitlement_status ?? 'unknown' }} · refresh {{ role.holdings_refresh_status ?? 'not_attempted' }} · weights {{ role.weights_status ?? 'unknown' }} · classification {{ role.classification_status ?? 'unknown' }}{{ role.placeholder_member_count ? ` · placeholders ${role.placeholder_member_count}` : '' }}
             </span>
           </div>
         </div>
@@ -2360,6 +2360,18 @@ function familyContinuityLabel(role: { continuity_status?: string; continuity_ga
   }
   const label = labels[status] ?? status
   return role.continuity_snapshot_limit_reached ? `${label} · window capped` : label
+}
+function familyLatestDisclosureLabel(role: { snapshots?: Array<{ composition_date?: string | null; source_provider?: string | null; row_count?: number | null; resolved_count?: number | null; unresolved_count?: number | null }> }) {
+  const snapshot = [...(role.snapshots ?? [])]
+    .sort((left, right) => String(right.composition_date ?? '').localeCompare(String(left.composition_date ?? '')))[0]
+  if (!snapshot) return 'no latest disclosure'
+  const rowCount = Number(snapshot.row_count)
+  const resolvedCount = Number(snapshot.resolved_count)
+  const unresolvedCount = Number(snapshot.unresolved_count)
+  const counts = Number.isFinite(rowCount) && Number.isFinite(resolvedCount)
+    ? `${resolvedCount}/${rowCount} resolved${Number.isFinite(unresolvedCount) && unresolvedCount > 0 ? ` · ${unresolvedCount} unresolved` : ''}`
+    : 'resolution unavailable'
+  return `latest ${snapshot.composition_date ?? 'date unavailable'} · ${counts} · ${snapshot.source_provider?.trim() || 'source unavailable'}`
 }
 function familyMemberBarHistoryLabel(role: { member_bar_history?: { status?: string; placeholder_member_count?: number; timeframes?: Array<{ timeframe: string; covered_member_count: number; member_count: number; analysis_ready_member_count: number }> } }) {
   const history = role.member_bar_history
