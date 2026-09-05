@@ -2445,6 +2445,9 @@ const genericBreadthLoading = computed(() => breadthUsesPython.value
   ? breadthPythonSeriesLoading.value
   : workspaceStore.genericBreadthLoading[genericBreadthKey.value] === true || workspaceStore.genericBreadthHistoryLoading[genericBreadthKey.value] === true)
 const genericBreadthRunError = ref('')
+watch([breadthCustomUniverseKind, breadthWatchlistSourceId], () => {
+  genericBreadthRunError.value = ''
+})
 const genericBreadthError = computed(() => {
   if (genericBreadthRunError.value) return genericBreadthRunError.value
   if (breadthUsesPython.value) {

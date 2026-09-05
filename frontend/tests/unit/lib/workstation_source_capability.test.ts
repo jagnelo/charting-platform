@@ -27,6 +27,7 @@ describe('watchlist source capability state', () => {
   it('includes state and failure class in the picker label', () => {
     const source = { provenance: { availability: 'stale', failure_class: 'provider_transport' } }
     expect(formatSourceFailureClass('provider_transport')).toBe('provider transport')
+    expect(sourceIsNotCurrent(source)).toBe(true)
     expect(sourceAvailabilitySuffix(source)).toBe(' · Not current (stale) · provider transport')
   })
 })
