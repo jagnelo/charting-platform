@@ -448,12 +448,15 @@
           @change="setBreadthConfiguration({ custom_universe_watchlist_id: ($event.target as HTMLSelectElement).value })"
         >
           <option value="">Select a watchlist source…</option>
-          <option v-for="source in breadthWatchlistSources" :key="source.source_id" :value="source.source_id">
-            {{ source.name }}{{ source.locked ? ' · Locked' : '' }}
+          <option v-for="source in breadthWatchlistSources" :key="source.source_id" :value="source.source_id" :disabled="sourceIsNotCurrent(source)">
+            {{ source.name }}{{ source.locked ? ' · Locked' : '' }}{{ sourceAvailabilitySuffix(source) }}
           </option>
         </select>
         <small v-if="breadthCustomUniverseKind === 'watchlist' && watchlistStore.watchlistSourcesLoading" role="status">Loading watchlist sources…</small>
         <small v-if="breadthCustomUniverseKind === 'watchlist' && watchlistStore.watchlistSourcesError" role="alert">{{ watchlistStore.watchlistSourcesError }}</small>
+        <small v-if="breadthCustomUniverseKind === 'watchlist' && breadthWatchlistSourceNotCurrent" class="breadth-tool__status breadth-tool__status--error" role="alert">
+          {{ breadthWatchlistSourceName }} is not current{{ breadthWatchlistSourceFailure ? ` · ${formatSourceFailureClass(breadthWatchlistSourceFailure)}` : '' }}{{ breadthWatchlistSourceReason ? `: ${breadthWatchlistSourceReason}` : '' }}. Evaluation is disabled.
+        </small>
         <select :value="breadthComposition" aria-label="Breadth condition composition" @change="setBreadthConfiguration({ breadth_condition_composition: ($event.target as HTMLSelectElement).value })">
           <option value="single">Single condition</option>
           <option value="all">All conditions</option>
@@ -648,7 +651,7 @@
           <label>Target <input :value="breadthSecondaryThreshold" aria-label="Breadth second target threshold" type="number" step="0.001" @change="setBreadthConfiguration({ breadth_secondary_threshold: Number(($event.target as HTMLInputElement).value) })" /></label>
         </template>
         </template>
-        <button type="button" :disabled="(breadthConditionKind === 'python_series' && breadthPythonSeriesCodeVersionId == null) || (breadthComposition === 'tree' && breadthTreePythonSeriesLeaf !== null && pythonLeafAnchorId(breadthTreePythonSeriesLeaf) == null)" @click="runGenericBreadth">Evaluate</button>
+        <button type="button" :disabled="breadthWatchlistSourceNotCurrent || (breadthConditionKind === 'python_series' && breadthPythonSeriesCodeVersionId == null) || (breadthComposition === 'tree' && breadthTreePythonSeriesLeaf !== null && pythonLeafAnchorId(breadthTreePythonSeriesLeaf) == null)" @click="runGenericBreadth">Evaluate</button>
         <span v-if="genericBreadthLoading" role="status" aria-live="polite">Evaluating…</span>
         <span v-else-if="genericBreadthError" class="breadth-tool__status--error" role="alert">{{ genericBreadthError }}</span>
         <span v-else-if="genericBreadth" class="breadth-tool__custom-result"><b>{{ genericBreadthPercentage }}</b> · {{ genericBreadth.pass_count }}/{{ genericBreadth.eligible_count }} eligible · {{ genericBreadthCoverage }} coverage<span v-if="genericBreadth.group_value != null"> · group {{ genericBreadth.group_value.toFixed(4) }}</span></span>
@@ -901,6 +904,7 @@ import { indicatorColumnFromPlot, pythonColumnFromPlot, type ChartAnalysisDragPa
 import { formatWorkstationFreshness } from '@/lib/workstation/freshness'
 import { benchmarkFamilyConstituentSourceId } from '@/lib/workstation/benchmarkFamilySources'
 import { buildBreadthStudyAssetPayload, type BreadthDefinition } from '@/lib/workstation/breadthDefinitions'
+import { formatSourceFailureClass, sourceAvailabilitySuffix, sourceIsNotCurrent } from '@/lib/workstation/sourceCapability'
 import { CHART_BAR_TYPES, type ChartBarType, type ChartComparisonSeries, type ChartPythonSeries, type IndicatorConfig, type OHLCVBar, type Timeframe } from '@/types'
 
 // Golden Layout can temporarily retain multiple virtual roots for one tool.
@@ -2027,6 +2031,11 @@ const breadthWatchlistSourceId = computed(() => {
   if (configured && breadthWatchlistSources.value.some(source => source.source_id === configured)) return configured
   return breadthWatchlistSources.value[0]?.source_id ?? ''
 })
+const breadthWatchlistSource = computed(() => breadthWatchlistSources.value.find(source => source.source_id === breadthWatchlistSourceId.value) ?? null)
+const breadthWatchlistSourceNotCurrent = computed(() => Boolean(breadthWatchlistSource.value && sourceIsNotCurrent(breadthWatchlistSource.value)))
+const breadthWatchlistSourceName = computed(() => breadthWatchlistSource.value?.name ?? 'The selected watchlist source')
+const breadthWatchlistSourceFailure = computed(() => breadthWatchlistSource.value?.provenance?.failure_class)
+const breadthWatchlistSourceReason = computed(() => breadthWatchlistSource.value?.provenance?.capability_reason)
 const breadthComposition = computed(() => {
   const candidate = String(breadthConfigurationValue('breadth_condition_composition', 'single'))
   return ['all', 'any', 'not', 'tree'].includes(candidate) ? candidate : 'single'
@@ -2435,7 +2444,9 @@ const genericBreadthHistory = computed<GenericBreadthHistoryState | null>(() => 
 const genericBreadthLoading = computed(() => breadthUsesPython.value
   ? breadthPythonSeriesLoading.value
   : workspaceStore.genericBreadthLoading[genericBreadthKey.value] === true || workspaceStore.genericBreadthHistoryLoading[genericBreadthKey.value] === true)
+const genericBreadthRunError = ref('')
 const genericBreadthError = computed(() => {
+  if (genericBreadthRunError.value) return genericBreadthRunError.value
   if (breadthUsesPython.value) {
     if (breadthPythonSeriesError.value) return breadthPythonSeriesError.value
     if (breadthPythonSeriesStatus.value === 'failed') return 'The isolated Python breadth run failed.'
@@ -2464,6 +2475,11 @@ function genericBreadthDiagnosticLabel(diagnostic: { path: string; kind: string;
   return `${diagnostic.path} ${diagnostic.kind} ${state}${diagnostic.code ? ` (${diagnostic.code})` : ''}`
 }
 async function runGenericBreadth() {
+  genericBreadthRunError.value = ''
+  if (breadthCustomUniverseKind.value === 'watchlist' && breadthWatchlistSourceNotCurrent.value) {
+    genericBreadthRunError.value = `${breadthWatchlistSourceName.value} is not current and cannot be evaluated for breadth analysis.`
+    return
+  }
   if (breadthUsesPython.value) {
     const anchor = breadthTreePythonSeriesLeaf.value
     if (anchor && pythonLeafAnchorId(anchor) == null) return

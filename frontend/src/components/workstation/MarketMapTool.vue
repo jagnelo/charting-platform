@@ -269,6 +269,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
+import { formatSourceFailureClass as formatFailureClass, sourceAvailability, sourceAvailabilitySuffix, sourceIsNotCurrent } from '@/lib/workstation/sourceCapability'
 import { useWatchlistStore } from '@/stores/watchlist'
 import { useUserSettingsStore } from '@/stores/userSettings'
 import { invalidateCodeAssets } from '@/lib/workstation/libraryQueries'
@@ -403,36 +404,6 @@ const LARGE_MAP_CANVAS_THRESHOLD = 1500
 
 function isSourceSelectable(source: WatchlistSource): boolean {
   return sourceAvailability(source) !== 'unavailable'
-}
-
-function sourceAvailability(source: WatchlistSource): 'available' | 'pending' | 'unavailable' {
-  const availability = String(source.provenance?.availability ?? '')
-  if (availability === 'profile_not_loaded' || availability === 'holdings_snapshot_not_loaded' || availability === 'holdings_snapshot_unresolved' || availability === 'membership_not_loaded') return 'pending'
-  if (['unavailable', 'stale', 'degraded', 'unknown'].includes(availability)) return 'unavailable'
-  return 'available'
-}
-
-function sourceAvailabilitySuffix(source: WatchlistSource): string {
-  const rawAvailability = String(source.provenance?.availability ?? '')
-  const availability = sourceAvailability(source)
-  const failureClass = source.provenance?.failure_class
-  const failureSuffix = failureClass ? ` · ${formatFailureClass(failureClass)}` : ''
-  if (availability === 'unavailable') {
-    if (rawAvailability === 'unavailable') return ` · Unavailable${failureSuffix}`
-    return ` · Not current (${formatFailureClass(rawAvailability)})${failureSuffix}`
-  }
-  if (availability === 'pending') return ' · Pending membership'
-  return ''
-}
-
-function sourceIsNotCurrent(source: WatchlistSource): boolean {
-  const rawAvailability = String(source.provenance?.availability ?? '')
-  return source.provenance?.usable_for_current_analysis === false
-    || ['unavailable', 'stale', 'degraded', 'unknown'].includes(rawAvailability)
-}
-
-function formatFailureClass(value: unknown): string {
-  return String(value ?? '').replace(/_/g, ' ')
 }
 
 function sourceKindLabel(kind: WatchlistSourceKind): string {
