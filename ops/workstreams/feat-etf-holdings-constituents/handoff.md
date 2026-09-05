@@ -4451,3 +4451,27 @@ therefore remains deferred. No source eligibility, provider classification,
 credential, paid route, or protected-worktree state changed; DXJ/NTSX/MINT/BOND
 remain unavailable and the next executable action is still the narrow shared
 capability bridge after the provider branch reaches staging.
+
+## Full Docker gate revalidation — 2026-09-05
+
+The repository-required `make validate-integration
+INTEGRATION_BRANCH=feat/etf-holdings-constituents` gate completed successfully
+on the clean feature checkout. Dependency, migration, lint/format/type-check,
+visual-policy, production-build, compose-contract, provider-probe,
+stack-health, and research-runner stages passed. Combined backend coverage
+passed `1,851` tests at `81.19%`; frontend unit coverage passed `945` tests at
+`82.09%`. Functional Playwright passed `154` tests with `106` documented
+skips, and visual Playwright passed all `104` cases.
+
+All eight branch-declared checks passed: deterministic adapters (`575`), the
+default live contract (`2` passed, `514` skipped), the opt-in live matrix
+(`494` passed, `22` narrowly evidenced external skips), Ruff, workstream
+validation, frontend type-check, the focused ETF panel/view suite (`17`), and
+the frontend production build. The gate's branch-scoped containers, volumes,
+images, and network were removed successfully.
+
+This is current validation evidence for the implemented ETF behavior; it does
+not close the shared provider-platform dependency. The provider branch remains
+outside staging and still lacks `ETF_HOLDINGS`, so AC10 remains deferred and
+AC14 remains a post-integration production shadow gate. No provider
+classification, paid route, credential, or protected worktree changed.
