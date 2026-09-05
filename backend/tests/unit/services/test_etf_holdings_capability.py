@@ -1,6 +1,8 @@
 from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
 
+import httpx
+
 from app.config import settings
 from app.services.etf_holdings_capability import (
     CONTROLLED_FIXTURE,
@@ -422,6 +424,17 @@ def test_canary_failure_classification_keeps_provider_edges_explicit():
         == "empty_or_partial_source"
     )
     assert _canary_failure_class(TimeoutError("timed out")) == "transport_error"
+
+    response = httpx.Response(
+        401,
+        request=httpx.Request("GET", "https://issuer.example/holdings.csv"),
+    )
+    assert (
+        _canary_failure_class(
+            httpx.HTTPStatusError("401 Unauthorized", request=response.request, response=response)
+        )
+        == "authentication_required"
+    )
 
 
 def test_tier_zero_symbol_audit_preserves_unavailable_evidence_and_next_action():

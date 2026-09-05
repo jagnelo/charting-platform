@@ -700,7 +700,16 @@ def _canary_failure_class(failure: Exception | str) -> str:
     if "parseable rows" in text or "complete rows" in text or "empty" in text:
         return "empty_or_partial_source"
     if isinstance(failure, httpx.HTTPStatusError):
-        return f"http_{failure.response.status_code}"
+        status_code = failure.response.status_code
+        # A 401 is materially different from an arbitrary upstream HTTP
+        # failure: it proves that the candidate route requires credentials or
+        # an entitlement that this free/public path does not currently have.
+        # Keep that distinction in the persisted capability evidence so an
+        # operator can review access/terms without mistaking it for transport
+        # or parser drift.
+        if status_code == 401:
+            return "authentication_required"
+        return f"http_{status_code}"
     if isinstance(failure, httpx.HTTPError | TimeoutError | ConnectionError):
         return "transport_error"
     if "parse" in text or "schema" in text or "column" in text:

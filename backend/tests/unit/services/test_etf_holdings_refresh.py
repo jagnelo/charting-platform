@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
 
+import httpx
 import pytest
 
 from app.services import etf_holdings_refresh as refresh
@@ -483,3 +484,13 @@ def test_future_dated_canary_failures_have_explicit_failure_class():
         )
         == "future_dated_source"
     )
+
+
+def test_authentication_failures_have_explicit_failure_class():
+    response = httpx.Response(
+        401,
+        request=httpx.Request("GET", "https://issuer.example/holdings.csv"),
+    )
+    failure = httpx.HTTPStatusError("401 Unauthorized", request=response.request, response=response)
+
+    assert refresh._canary_failure_class(failure) == "authentication_required"
