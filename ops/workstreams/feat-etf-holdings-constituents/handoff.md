@@ -3953,3 +3953,19 @@ provider-platform remains unstaged, DXJ/NTSX/MINT/BOND remain unavailable for
 current analysis, AC10 remains deferred, and AC14 remains the post-integration
 30-day production shadow gate. No paid source, credential, other branch, or
 other worktree was modified.
+
+## Catalog-safety regression checkpoint — 2026-09-05
+
+Test commit `dfa15cc8` strengthens the non-mutating canary-history guarantee at
+the API/database boundary. The integration regression starts with no `DXJ`
+instrument row, calls the admin-only bounded history endpoint, verifies the
+expected empty response, and then verifies that no instrument row was created.
+This protects the monitoring read path against future router/service changes
+that accidentally reintroduce catalog hydration.
+
+The focused Docker-backed regression passed 1 selected test (66 deselected)
+with the two existing Nautilus deprecation warnings; Ruff, formatting, and
+diff-check passed. Provider-platform remains unstaged; DXJ/NTSX/MINT/BOND
+remain unavailable for current analysis; AC10 remains deferred; and AC14
+remains the post-integration 30-day production shadow gate. No paid source,
+credential, other branch, or other worktree was modified.
