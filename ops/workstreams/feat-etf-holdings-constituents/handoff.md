@@ -3301,3 +3301,15 @@ its public `demo` key. DXJ, NTSX, MINT, and BOND each returned HTTP 401 with an
 candidate: its endpoint documentation is not a usable free-access proof, and
 coverage, current terms, redistribution rights, freshness, and price still
 require a shared entitlement review.
+
+## Tier-0 canary coverage invariant — 2026-09-05
+
+Implementation checkpoint `test(etf): guard tier0 canary coverage` adds a
+deterministic regression at the scheduled canary boundary. The default
+`ETF_HOLDINGS_CAPABILITY_CANARY_SYMBOLS` configuration must contain every
+canonical Tier-0 symbol exactly once, so future edits cannot silently omit an
+unresolved route from monitoring or introduce duplicate budget-consuming
+checks. The task-focused suite passes 6 tests, Ruff, formatting, and
+diff-check pass. No provider, route, entitlement, paid activation, or source
+disposition changed; the shared provider-platform staging dependency and AC14
+remain open.
