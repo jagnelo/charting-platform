@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-09-05 — Expose structured range centers in Study Lab
+
+- [x] Align the primary Study Lab with the persisted-result capability matrix for structured
+      `range` artifacts. A named range with aligned finite center values now offers `Save center
+      plot`; the persisted chart asset declares `range_center_to_series`, preserves source/output/
+      run lineage, and leaves lower/upper bounds in the immutable source. Ranges without a valid
+      center and all unsupported shapes remain view/export-only.
+- [x] Add direct Study Lab regression assertions for the adapter, scalar/series contract boundary,
+      and lineage semantics. Focused Study Lab coverage passed `24/24`; full frontend Vitest
+      passed `945/945` across `109` files; TypeScript type-check, production build, and
+      `git diff --check` passed. Product commit `a12c428c` is pushed to
+      `origin/feat/tc2000-frontend-rework`.
+- [ ] Rerun the branch-scoped browser/gate receipts at this new product tip when the Docker-backed
+      stack is available. The prior exhaustive result remains the unchanged `98/104` visual
+      blocker; canonical provider/history, richer Study targets, native-window/accessibility/
+      security, dense-data budgets, and visual-oracle review remain open.
+
 ### 2026-09-05 — Expose latest Study series columns in Study Lab
 
 - [x] Bring the safe numeric-series latest-value promotion to the primary Study Lab surface.

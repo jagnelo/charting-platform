@@ -11,7 +11,19 @@ records in `docs/project-todos.md`, `docs/tc2000-parity.md`,
 evidence ledgers. If a summary here conflicts with a dated test receipt or the current code, the
 current code and fresh evidence win.
 
-The latest product commit is `ec17b0fb` (`feat(tc2000): expose latest Study series column`).
+The latest product commit is `a12c428c` (`feat(tc2000): promote Study range centers`).
+The primary Study Lab now aligns with the persisted-result capability matrix for structured
+`range` artifacts: a named range with aligned finite center values offers `Save center plot` and
+persists a chart-compatible `series` asset through the explicit `range_center_to_series` adapter.
+The immutable source/run lineage is preserved and lower/upper bounds remain source-only; invalid
+centers and unsupported shapes stay view/export-only. Focused Study Lab coverage passed `24/24`;
+the full frontend suite passed `945/945` across `109` files; TypeScript type-check, production
+build, and diff checks passed. The product commit is pushed to the feature branch. The preceding
+direct Study Lab latest-series-column slice is `ec17b0fb`; its updated F9i browser assertion and
+the branch-scoped exhaustive gate remain pending at the new tip. The existing exhaustive receipt
+still has the unchanged `98/104` visual blocker.
+
+The preceding product commit is `ec17b0fb` (`feat(tc2000): expose latest Study series column`).
 The primary Study Lab now offers the same safe latest-value target already available from Study
 Results: a completed numeric `series` with at least one finite observation can be saved as a typed
 watchlist column through the explicit `latest_series_to_scalar` adapter. The selected output name

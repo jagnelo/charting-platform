@@ -10,6 +10,22 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Expose structured range centers in Study Lab
+
+Product commit `a12c428c` (`feat(tc2000): promote Study range centers`) aligns the primary Study
+Lab with the persisted-result capability matrix for structured `range` artifacts. A named range
+with aligned finite center values now offers `Save center plot`; the persisted chart asset declares
+`range_center_to_series`, preserves source/output/run lineage, and leaves lower/upper bounds in the
+immutable source. Invalid-center ranges and unsupported shapes remain view/export-only.
+
+Evidence: focused Study Lab component coverage passed `24/24`; full frontend Vitest passed
+`945/945` across `109` files; TypeScript type-check, production build, and `git diff --check`
+passed. Product commit `a12c428c` is pushed to `origin/feat/tc2000-frontend-rework`. The direct
+F9i browser assertion for the preceding latest-series slice and the branch-scoped exhaustive gate
+have not yet been rerun at this new tip. The prior exhaustive result remains the unchanged `98/104`
+visual blocker; canonical provider/history, richer Study targets, native-window/accessibility/
+security, dense-data, and visual-oracle gaps remain open.
+
 ## 2026-09-05 — Expose latest Study series columns in Study Lab
 
 Product commit `ec17b0fb` (`feat(tc2000): expose latest Study series column`) brings the safe
