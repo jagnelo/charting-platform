@@ -156,6 +156,23 @@ def test_known_adapter_provider_remains_visible_before_first_snapshot():
     assert result.usable_for_current_analysis is False
 
 
+def test_malformed_failure_streak_does_not_crash_capability_evaluation():
+    result = evaluate_capability(
+        profile("wisdomtree"),
+        snapshot(),
+        state(
+            status="failure",
+            reason="HTTP 403",
+            failure=NOW,
+            extra_data={"consecutive_failures": "bad"},
+        ),
+        now=NOW,
+    )
+
+    assert result.availability == DEGRADED
+    assert result.consecutive_failures == 1
+
+
 def test_unverified_identity_never_becomes_current_even_with_complete_rows():
     result = evaluate_capability(
         profile(),

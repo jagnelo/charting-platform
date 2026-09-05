@@ -143,6 +143,19 @@ def _metadata(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
+def _failure_streak(metadata: Mapping[str, Any], *, state_status: str) -> int:
+    """Read persisted health state without allowing malformed JSON to crash reads."""
+
+    fallback = 1 if state_status == "failure" else 0
+    value = metadata.get("consecutive_failures")
+    if value in (None, ""):
+        return fallback
+    try:
+        return max(0, int(value))
+    except (TypeError, ValueError):
+        return fallback
+
+
 def _source_tier(
     snapshot: ETFHoldingsSnapshot | None, state: ETFHoldingsAdapterState | None
 ) -> str:
@@ -1668,9 +1681,7 @@ def evaluate_capability(
         if state
         else None,
         failure_reason=failure_reason,
-        consecutive_failures=int(
-            state_metadata.get("consecutive_failures") or (1 if state_status == "failure" else 0)
-        ),
+        consecutive_failures=_failure_streak(state_metadata, state_status=state_status),
         schema_fingerprint=str(schema_fingerprint) if schema_fingerprint else None,
         reason=reason,
         symbol_audit=symbol_audit,
