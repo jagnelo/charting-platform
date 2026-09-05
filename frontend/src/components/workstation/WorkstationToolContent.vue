@@ -671,6 +671,9 @@
           <option value="cap_weight">Cap weight</option>
         </select>
         <label>Market <input :value="familyRatioMarket" aria-label="Family ratio market benchmark" maxlength="12" @change="setBreadthConfiguration({ family_ratio_market: ($event.target as HTMLInputElement).value.toUpperCase() })" /></label>
+        <label>Rank period <select :value="familyRankPeriod" aria-label="Family ranking period" @change="setBreadthConfiguration({ family_rank_period: ($event.target as HTMLSelectElement).value })">
+          <option v-for="period in familyRankPeriods" :key="period" :value="period">{{ period }}</option>
+        </select></label>
         <span v-if="familyRatioLoading" role="status">Loading…</span>
         <span v-else-if="familyRatioError" class="breadth-tool__status--error" role="alert">{{ familyRatioError }}</span>
         <template v-else-if="familyRatios?.ratios?.length">
@@ -2268,6 +2271,11 @@ const familyRatioRole = computed(() => {
   const candidate = String(props.tool.configuration.family_ratio_role ?? 'equal_weight')
   return ['cap_weight', 'equal_weight', 'value', 'growth'].includes(candidate) ? candidate as 'cap_weight' | 'equal_weight' | 'value' | 'growth' : 'equal_weight'
 })
+const familyRankPeriods = ['1D', '1W', '1M', '3M', '6M', 'YTD', '1Y'] as const
+const familyRankPeriod = computed<typeof familyRankPeriods[number]>(() => {
+  const candidate = String(props.tool.configuration.family_rank_period ?? '1M')
+  return familyRankPeriods.includes(candidate as typeof familyRankPeriods[number]) ? candidate as typeof familyRankPeriods[number] : '1M'
+})
 const familyRatioMarket = computed(() => {
   const candidate = String(props.tool.configuration.family_ratio_market ?? 'SPY').trim().toUpperCase()
   return candidate || 'SPY'
@@ -2297,25 +2305,25 @@ const familyBreadthHistoryReadinessLabel = computed(() => {
   const pending = roles.filter(role => role.analysis_ready_status === 'pending').length
   return `analysis-ready ${ready}/${roles.length}${partial ? ` · partial ${partial}` : ''}${pending ? ` · pending ${pending}` : ''}`
 })
-const familyRankingKey = computed(() => `${breadthGroupKey.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:1M`)
+const familyRankingKey = computed(() => `${breadthGroupKey.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:${familyRankPeriod.value}`)
 const familyRanking = computed(() => workspaceStore.benchmarkFamilyRankings[familyRankingKey.value])
 const familyRankingError = computed(() => workspaceStore.benchmarkFamilyRankingErrors[familyRankingKey.value] ?? null)
 const familyRankingLoading = ref(false)
-const familyConcentrationKey = computed(() => `${breadthGroupKey.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:1M:10`)
+const familyConcentrationKey = computed(() => `${breadthGroupKey.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:${familyRankPeriod.value}:10`)
 const familyConcentration = computed(() => workspaceStore.benchmarkFamilyConcentrations[familyConcentrationKey.value])
 const familyConcentrationError = computed(() => workspaceStore.benchmarkFamilyConcentrationErrors[familyConcentrationKey.value] ?? null)
 const familyConcentrationLoading = ref(false)
-const familyConcentrationHistoryKey = computed(() => `${breadthGroupKey.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:1M:10:500`)
+const familyConcentrationHistoryKey = computed(() => `${breadthGroupKey.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:${familyRankPeriod.value}:10:500`)
 const familyConcentrationHistory = computed(() => workspaceStore.benchmarkFamilyConcentrationHistories[familyConcentrationHistoryKey.value])
 const familyConcentrationHistoryError = computed(() => workspaceStore.benchmarkFamilyConcentrationHistoryErrors[familyConcentrationHistoryKey.value] ?? null)
 const familyConcentrationHistoryPointCount = computed(() => Math.max(0, ...((familyConcentrationHistory.value?.roles ?? []).map(role => role.points.length))))
 const familyConcentrationHistoryMode = computed(() => familyConcentrationHistory.value?.roles.some(role => role.membership_semantics === 'point_in_time_group_membership') ? 'point-in-time member membership' : 'point-in-time snapshots')
 const familyConcentrationHistoryLoading = ref(false)
-const crossFamilyRankingKey = computed(() => `${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:1M::`)
+const crossFamilyRankingKey = computed(() => `${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:${familyRankPeriod.value}::`)
 const crossFamilyRanking = computed(() => workspaceStore.crossFamilyRankings[crossFamilyRankingKey.value])
 const crossFamilyRankingError = computed(() => workspaceStore.crossFamilyRankingErrors[crossFamilyRankingKey.value] ?? null)
 const crossFamilyRankingLoading = ref(false)
-const crossFamilyRankingHistoryKey = computed(() => `${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:1M:::500`)
+const crossFamilyRankingHistoryKey = computed(() => `${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:${familyRankPeriod.value}:::500`)
 const crossFamilyRankingHistory = computed(() => workspaceStore.crossFamilyRankingHistories[crossFamilyRankingHistoryKey.value])
 const crossFamilyRankingHistoryPointCount = computed(() => Math.max(0, ...((crossFamilyRankingHistory.value?.rows ?? []).map(row => row.points.length))))
 const crossFamilyRankingHistoryError = computed(() => workspaceStore.crossFamilyRankingHistoryErrors[crossFamilyRankingHistoryKey.value] ?? null)
@@ -3404,7 +3412,7 @@ watch(() => props.tool.instance_key, async instanceKey => {
 watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, breadthLookback, familyAsOf], ([groupKey, timeframe, adjusted, lookback]) => {
   if (props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth') void loadBreadthUniverse(groupKey, timeframe, adjusted, lookback)
 }, { immediate: true })
-watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioMarket, familyAsOf], async ([groupKey, timeframe, adjusted, market]) => {
+watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioMarket, familyAsOf, familyRankPeriod], async ([groupKey, timeframe, adjusted, market]) => {
   if (!isBenchmarkFamily.value || !(props.tool.instance_key === 'breadth-summary' || props.tool.tool_type === 'breadth')) return
   familyRatioLoading.value = true
   familyTechnicalsLoading.value = true
@@ -3420,11 +3428,11 @@ watch([breadthGroupKey, breadthTimeframe, breadthAdjusted, familyRatioMarket, fa
       workspaceStore.loadBenchmarkFamilyTechnicals(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined }),
       workspaceStore.loadBenchmarkFamilyBreadth(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined, near_threshold: 0.01, new_high_lookback: 20 }),
       workspaceStore.loadBenchmarkFamilyBreadthHistory(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined, limit: 500 }),
-      workspaceStore.loadBenchmarkFamilyRanking(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: '1M' }),
-      workspaceStore.loadBenchmarkFamilyConcentration(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: '1M', top_n: 10 }),
-      workspaceStore.loadBenchmarkFamilyConcentrationHistory(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: '1M', top_n: 10, limit: 500 }),
-      workspaceStore.loadCrossFamilyRanking({ timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: '1M' }),
-      workspaceStore.loadCrossFamilyRankingHistory({ timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: '1M', limit: 500 }),
+      workspaceStore.loadBenchmarkFamilyRanking(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: familyRankPeriod.value }),
+      workspaceStore.loadBenchmarkFamilyConcentration(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: familyRankPeriod.value, top_n: 10 }),
+      workspaceStore.loadBenchmarkFamilyConcentrationHistory(groupKey, { timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: familyRankPeriod.value, top_n: 10, limit: 500 }),
+      workspaceStore.loadCrossFamilyRanking({ timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: familyRankPeriod.value }),
+      workspaceStore.loadCrossFamilyRankingHistory({ timeframe, adjusted, as_of: familyAsOf.value || undefined, rank_period: familyRankPeriod.value, limit: 500 }),
     ])
   } finally {
     familyRatioLoading.value = false

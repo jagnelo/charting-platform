@@ -4146,25 +4146,27 @@ test.describe('TC2000 workstation', () => {
     })
     await page.route('**/api/v1/analysis/benchmark-families/sp500/ranking*', async route => {
       familyAsOfRequests.push(route.request().url())
+      const rankPeriod = new URL(route.request().url()).searchParams.get('rank_period') ?? '1M'
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          family_key: 'sp500', official_index_symbol: 'SPX', benchmark: 'SPY', timeframe: 'D1', adjustment: 'split_adjusted', rank_period: '1M',
+          family_key: 'sp500', official_index_symbol: 'SPX', benchmark: 'SPY', timeframe: 'D1', adjustment: 'split_adjusted', rank_period: rankPeriod,
           roles: [
-            { role: 'equal_weight', symbol: 'RSP', label: 'RSP', verification_state: 'verified', available: true, rank: 1, performance: { '1M': 0.12 }, relative_performance: { '1M': 0.03 }, warnings: [] },
-            { role: 'cap_weight', symbol: 'SPY', label: 'SPY', verification_state: 'verified', available: true, rank: 2, performance: { '1M': 0.09 }, relative_performance: { '1M': 0 }, warnings: [] },
+            { role: 'equal_weight', symbol: 'RSP', label: 'RSP', verification_state: 'verified', available: true, rank: 1, performance: { [rankPeriod]: 0.12 }, relative_performance: { [rankPeriod]: 0.03 }, warnings: [] },
+            { role: 'cap_weight', symbol: 'SPY', label: 'SPY', verification_state: 'verified', available: true, rank: 2, performance: { [rankPeriod]: 0.09 }, relative_performance: { [rankPeriod]: 0 }, warnings: [] },
           ], exclusions: [],
         }),
       })
     })
     await page.route('**/api/v1/analysis/benchmark-families/sp500/concentration/history*', async route => {
       familyAsOfRequests.push(route.request().url())
+      const rankPeriod = new URL(route.request().url()).searchParams.get('rank_period') ?? '1M'
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          family_key: 'sp500', official_index_symbol: 'SPX', timeframe: 'D1', adjustment: 'split_adjusted', rank_period: '1M', top_n: 10, limit: 500,
+          family_key: 'sp500', official_index_symbol: 'SPX', timeframe: 'D1', adjustment: 'split_adjusted', rank_period: rankPeriod, top_n: 10, limit: 500,
           roles: [
             { role: 'cap_weight', symbol: 'SPY', label: 'SPY', verification_state: 'verified', available: true, points: [{ timestamp: '2026-01-02T00:00:00Z', snapshot_id: 1, composition_date: '2026-01-01', known_at: '2026-01-02T00:00:00Z', membership_version: 1, weight_method: 'reported_holdings_weights', reported_weight_coverage: 1, top_n_weight: 0.34, hhi: 0.04, effective_constituents: 25, eligible_count: 500, covered_count: 500, excluded_count: 0, coverage: 1, mean_return: 0.04, median_return: 0.03, dispersion: 0.02, warnings: [] }], exclusions: [] },
             { role: 'equal_weight', symbol: 'RSP', label: 'RSP', verification_state: 'verified', available: true, points: [{ timestamp: '2026-01-02T00:00:00Z', snapshot_id: 2, composition_date: '2026-01-01', known_at: '2026-01-02T00:00:00Z', membership_version: 2, weight_method: 'reported_holdings_weights', reported_weight_coverage: 1, top_n_weight: 0.02, hhi: 0.002, effective_constituents: 500, eligible_count: 500, covered_count: 500, excluded_count: 0, coverage: 1, mean_return: 0.05, median_return: 0.05, dispersion: 0.015, warnings: [] }], exclusions: [] },
@@ -4174,11 +4176,12 @@ test.describe('TC2000 workstation', () => {
     })
     await page.route('**/api/v1/analysis/benchmark-families/sp500/concentration?rank_period*', async route => {
       familyAsOfRequests.push(route.request().url())
+      const rankPeriod = new URL(route.request().url()).searchParams.get('rank_period') ?? '1M'
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          family_key: 'sp500', official_index_symbol: 'SPX', timeframe: 'D1', adjustment: 'split_adjusted', rank_period: '1M', top_n: 10,
+          family_key: 'sp500', official_index_symbol: 'SPX', timeframe: 'D1', adjustment: 'split_adjusted', rank_period: rankPeriod, top_n: 10,
           roles: [
             { role: 'cap_weight', symbol: 'SPY', label: 'SPY', verification_state: 'verified', available: true, weight_method: 'reported_holdings_weights', reported_weight_coverage: 1, top_n: 10, top_n_weight: 0.34, hhi: 0.04, effective_constituents: 25, eligible_count: 500, covered_count: 500, excluded_count: 0, coverage: 1, mean_return: 0.04, median_return: 0.03, dispersion: 0.02, members: [], warnings: [] },
             { role: 'equal_weight', symbol: 'RSP', label: 'RSP', verification_state: 'verified', available: true, weight_method: 'reported_holdings_weights', reported_weight_coverage: 1, top_n: 10, top_n_weight: 0.02, hhi: 0.002, effective_constituents: 500, eligible_count: 500, covered_count: 500, excluded_count: 0, coverage: 1, mean_return: 0.05, median_return: 0.05, dispersion: 0.015, members: [], warnings: [] },
@@ -4188,23 +4191,25 @@ test.describe('TC2000 workstation', () => {
     })
     await page.route('**/api/v1/analysis/benchmark-families/ranking/history*', async route => {
       familyAsOfRequests.push(route.request().url())
+      const rankPeriod = new URL(route.request().url()).searchParams.get('rank_period') ?? '1M'
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          timeframe: 'D1', adjustment: 'split_adjusted', rank_period: '1M', limit: 500, benchmark: null,
-          rows: [{ family_key: 'sp500', family_name: 'S&P 500', official_index_symbol: 'SPX', symbol: 'SPY', label: 'SPY', available: true, coverage: 1, points: [{ timestamp: '2026-01-02T00:00:00Z', rank: 1, performance: { '1M': 0.1 }, relative_performance: { '1M': 0 } }], warnings: [] }], exclusions: [],
+          timeframe: 'D1', adjustment: 'split_adjusted', rank_period: rankPeriod, limit: 500, benchmark: null,
+          rows: [{ family_key: 'sp500', family_name: 'S&P 500', official_index_symbol: 'SPX', symbol: 'SPY', label: 'SPY', available: true, coverage: 1, points: [{ timestamp: '2026-01-02T00:00:00Z', rank: 1, performance: { [rankPeriod]: 0.1 }, relative_performance: { [rankPeriod]: 0 } }], warnings: [] }], exclusions: [],
         }),
       })
     })
     await page.route('**/api/v1/analysis/benchmark-families/ranking*', async route => {
       familyAsOfRequests.push(route.request().url())
+      const rankPeriod = new URL(route.request().url()).searchParams.get('rank_period') ?? '1M'
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          timeframe: 'D1', adjustment: 'split_adjusted', rank_period: '1M', benchmark: null,
-          rows: [{ family_key: 'sp500', family_name: 'S&P 500', official_index_symbol: 'SPX', symbol: 'SPY', label: 'SPY', available: true, rank: 1, performance: { '1M': 0.1 }, relative_performance: { '1M': 0 }, warnings: [] }], exclusions: [],
+          timeframe: 'D1', adjustment: 'split_adjusted', rank_period: rankPeriod, benchmark: null,
+          rows: [{ family_key: 'sp500', family_name: 'S&P 500', official_index_symbol: 'SPX', symbol: 'SPY', label: 'SPY', available: true, rank: 1, performance: { [rankPeriod]: 0.1 }, relative_performance: { [rankPeriod]: 0 }, warnings: [] }], exclusions: [],
         }),
       })
     })
@@ -4335,6 +4340,14 @@ test.describe('TC2000 workstation', () => {
     await expect(breadth.locator('[aria-label="Cross-family historical relative performance"]')).toBeVisible({ timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Cross-family historical rank"]')).toBeVisible({ timeout: 15_000 })
     await expect(familyPanel.getByRole('combobox', { name: 'Family ratio leg' })).toHaveValue('equal_weight')
+    const familyRankingPeriod = familyPanel.getByRole('combobox', { name: 'Family ranking period' })
+    await expect(familyRankingPeriod).toHaveValue('1M')
+    await familyRankingPeriod.selectOption('3M')
+    await expect(familyRankingPeriod).toHaveValue('3M')
+    await expect.poll(() => familyAsOfRequests.some(url => url.includes('rank_period=3M'))).toBe(true)
+    await expect(breadth.locator('[aria-label="Benchmark family role ranking"]')).toContainText('Role ranking · 3M', { timeout: 15_000 })
+    await expect(breadth.locator('[aria-label="Benchmark family concentration"]')).toContainText('· 3M dispersion', { timeout: 15_000 })
+    await expect(breadth.locator('[aria-label="Cross-family ranking"]')).toContainText('US family ranking · 3M', { timeout: 15_000 })
     const familyOverview = breadth.locator('[aria-label="Benchmark family analysis"]')
     await expect(familyOverview).toBeVisible({ timeout: 15_000 })
     await expect(familyOverview).toContainText('S&P 500 · SPX')
