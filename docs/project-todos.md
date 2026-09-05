@@ -10,8 +10,10 @@
       rebuilt-stack teardown and resource cleanup were clean.
 - [x] Product commit `8697e7b8` (`feat(tc2000): render concentration history`) is pushed to
       `origin/feat/tc2000-frontend-rework`.
-- [ ] Rerun the exact-tip exhaustive gate at this product tip while preserving the six existing
-      visual state-oracle diffs and all provider/fallback acceptance policy.
+- [x] Exact-tip `full_stack_browser` gate at metadata tip `6590c2b1` (product tip `8697e7b8`)
+      passed all non-visual stages and functional Playwright (`157/157`, `106` documented skips);
+      visual acceptance remains `98/104` with the same six state-oracle failures. Teardown and
+      resource accounting were clean; no visual/provider/fallback policy changed.
 
 ### 2026-09-05 — Render benchmark-family breadth history
 

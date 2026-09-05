@@ -5,6 +5,17 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-05
 
+## 2026-09-05 — Exact-tip gate after concentration history
+
+The exact-tip `full_stack_browser` gate at metadata tip `6590c2b1` (product tip `8697e7b8`)
+passed locked dependency/migration checks, workstream validation, lint/format/type-check, backend
+unit/integration and combined coverage, frontend Vitest, production build, compose/provider policy,
+stack health, runner isolation, and functional Playwright (`157/157`, with `106` documented skips
+across `263` specs). The visual matrix remains `98/104`; the same six state-oracle assertions fail:
+`watchlist-column-editor-open` at both 1080p scales and `workspace-floating` at all four scales.
+Teardown removed the assigned stack and generated resources. No baseline, mask, threshold, skip,
+fallback, provider, or acceptance rule changed. Continue the next canonical analytics/provider slice.
+
 ## 2026-09-05 — Render benchmark-family concentration history
 
 The workstation now renders the canonical benchmark-family concentration-history `dispersion`
