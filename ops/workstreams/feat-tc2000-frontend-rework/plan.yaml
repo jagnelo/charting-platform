@@ -106,31 +106,27 @@ progress:
   total: 10
   current_phase: R1_R2_canonical_readiness_surface
   current_blocker: >-
-    The exact-tip exhaustive gate at product tip 397c554a passed all non-visual stages and the
-    functional browser suite, then failed only the unchanged visual matrix: 98/104 with six diffs—
+    The exact-tip exhaustive gate reran at metadata tip c8dee130 (product tip a6301f0f). All
+    locked dependency/migration, static, backend, frontend, compose/provider, runner-isolation,
+    stack-health, and functional browser stages passed: backend units 1,315/1,315, integration
+    382/382 with 54 existing warnings, combined coverage 80.90%, frontend Vitest 945/945 across
+    109 files, and authenticated Playwright 155 passed with 106 documented skips across 261
+    specs. Only the unchanged four-project visual matrix failed: 98/104 with six diffs—
     watchlist-column-editor-open at visual-1080p-100/125 (13,844 differing pixels each), and
-    workspace-floating at visual-1080p-100 (9,770), visual-1080p-125 (5,512), visual-1440p-100
-    (12,097), and visual-1440p-125 (12,097). Backend units (1,315/1,315), integration (382/382
-    with 54 existing warnings), combined coverage (80.90%), frontend Vitest (939/939 across 108
-    files), type-check/build, compose/provider policy, assigned-stack health, research-runner
-    isolation, and authenticated functional Playwright (155 passed, 106 documented skips across
-    261 specs) all passed. Product commits 95b12a0f, 7a24dd4b, 4026d8d3, and a6301f0f make the
-    Study artifact capability boundary, benchmark-family canonical readiness, and finite Study
-    series latest-value column target visible in the frontend; browser regression 19896f1e verifies
-    the benchmark-family drill-down panel, 4026d8d3 renders route/provider and holdings-refresh
-    state, and the rebuilt F8t-results flow verifies the latest-series adapter request. Focused
-    readiness/promotion coverage is 68/68; full frontend Vitest is 945/945 across 109 files;
-    targeted backend runner/API coverage is 135/135; type-check, build, and diff-check pass. The
-    floating actual intentionally contains canonical benchmark rows because late benchmark pop-outs
-    hydrate missing shared market-analysis inputs once; chart pop-outs remain display-only. The
-    105-round two-popout endurance guard remains green, but native-window, dense-data budgets,
-    accessibility/security, and other R5-R6 evidence remain incomplete. Canonical provider/history
-    gaps remain open (80 QQQ HOLDING-* placeholders, W1/MN history, QQQE/SPDR dated sources). No
+    workspace-floating at visual-1080p-100/125/1440p-100/1440p-125 (9,770/12,097/9,770/12,097).
+    The floating actual intentionally contains canonical benchmark rows after late benchmark
+    pop-outs hydrate missing shared market-analysis inputs once; chart pop-outs remain
+    display-only. Teardown and the post-gate resource audit reported zero containers, volumes,
+    known image bytes, test-container sessions, and complete accounting. Product tip a6301f0f
+    adds latest_series_to_scalar for finite numeric Study series to typed watchlist columns;
+    focused Results/capability coverage is 32/32, targeted backend runner/API coverage 135/135,
+    and type-check/build/diff checks pass. Canonical provider/history gaps, richer Study targets,
+    native-window/accessibility/security, dense-data, and visual-oracle review remain open. No
     baseline, mask, threshold, skip, fallback oracle, provider rule, or acceptance policy changed.
   next_action: "Continue canonical provider/history enrichment and richer compatible Study Lab targets, then gather native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review without changing visual policy or provider fallback rules."
 remaining_gaps:
-  - "R0/R7: the seeded Chromium suite executes 261 specs with 155 passes and 106 documented skips; focused structured-event F8o and persisted Research Results F8t-results flows pass 1/1 for their named filter/alert actions at product tips 6f575a34 and 24287f3c, scalar/series promotions pass at f8d68d3f, the Boolean matrix passes at 68856251, and the range-center chart adapter passes at 397c554a. The latest completed exact-tip four-project visual matrix at 397c554a is 98/104 with six concentrated screenshot diffs: watchlist-column-editor-open at visual-1080p-100/125 (13,844 pixels each) and workspace-floating at visual-1080p-100/125/1440p-100/1440p-125 (9,770/5,512/12,097/12,097 pixels by viewport)."
+  - "R0/R7: the seeded Chromium suite executes 261 specs with 155 passes and 106 documented skips; focused structured-event F8o and persisted Research Results F8t-results flows pass 1/1 for their named filter/alert actions at product tips 6f575a34 and 24287f3c, scalar/series promotions pass at f8d68d3f, the Boolean matrix passes at 68856251, the range-center chart adapter passes at 397c554a, and latest-series column promotion passes at a6301f0f. The latest exact-tip gate at metadata tip c8dee130 completed all non-visual stages and the four-project visual matrix at 98/104 with six concentrated screenshot diffs: watchlist-column-editor-open at visual-1080p-100/125 (13,844 pixels each) and workspace-floating at visual-1080p-100/125/1440p-100/1440p-125 (9,770/12,097/9,770/12,097 pixels by viewport)."
   - "R1-R2: the frontend now surfaces the provider-neutral benchmark-family readiness matrix beside Market Map, but canonical family population/history/entitlement evidence and the live-data top-down trader workflow remain incomplete; the latest four bounded SEC-search passes leave 80/101 QQQ members as HOLDING-* placeholders, QQQE/SPDR dated holdings sources remain unresolved, W1/MN coverage is open, and full QQQ member-history coverage remains unestablished despite 21/21 canonical members meeting the D1 technical floor and corrected point-in-time end filtering."
   - "R3-R4: historical analytics and compatible immutable-output promotion across workstation consumers; events_to_boolean covers watchlist-filter and alert fan-out for completed single-output event runs and explicitly selected named events artifacts from multi-output Study Lab studies, and structured scalar/series/Boolean/range outputs now cover named column, chart, filter, scan, gauge, and alert targets where shape-compatible. Numeric Study series can explicitly project their latest finite observation into a typed watchlist column through latest_series_to_scalar; the explicit capability matrix keeps table/bar/histogram/scatter/heatmap/dashboard/breadth shapes view/export-only and the range adapter projects only a named center series; richer chart/list/gauge targets remain open."
   - "R5-R6: required visual states, native-window resilience, accessibility, security, dense-data budgets, and logging evidence remain open; the seeded two-popout endurance guard is now evidenced through 105 churn rounds."
-  - "R7: the latest completed exhaustive gate is at product tip 397c554a; backend units 1,315/1,315, integration 382/382 with 54 existing warnings, combined coverage 80.90%, frontend Vitest 939/939, and all stages through functional browser checks pass. The unchanged visual matrix remains an explicit six-diff blocker, including the intentional canonical-row state in workspace-floating. Integration, promotion, and deployment remain separately authorized."
+  - "R7: the latest completed exhaustive gate is at metadata tip c8dee130 (product tip a6301f0f); backend units 1,315/1,315, integration 382/382 with 54 existing warnings, combined coverage 80.90%, frontend Vitest 945/945 across 109 files, and all stages through functional browser checks pass. The unchanged visual matrix remains an explicit six-diff blocker, including the intentional canonical-row state in workspace-floating. Integration, promotion, and deployment remain separately authorized."

@@ -10,6 +10,25 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Exact-tip exhaustive gate after latest Study series promotion
+
+The exhaustive `full_stack_browser` gate was rerun at metadata tip `c8dee130` with product tip
+`a6301f0f`. Locked dependencies/migrations, Ruff/format, TypeScript, backend units (`1,315/1,315`),
+integration (`382/382` with the existing `54` warnings), combined coverage (`80.90%`), frontend
+Vitest (`945/945` across `109` files), production build, compose/provider policy, assigned-stack
+health, research-runner isolation, and authenticated functional Playwright (`155` passed and
+`106` documented skips across `261` specs) all passed. The rebuilt stack was torn down cleanly.
+
+The unchanged four-project visual matrix is the only failing stage: `98/104` passed and six
+assertions failed—`watchlist-column-editor-open` at visual-1080p-100/125 (`13,844` differing
+pixels each), and `workspace-floating` at visual-1080p-100/125/1440p-100/1440p-125
+(`9,770`/`12,097`/`9,770`/`12,097`). The floating actual continues to contain canonical
+benchmark rows after late-popout hydration. No visual baseline, mask, threshold, skip, fallback
+oracle, provider rule, or acceptance policy changed. The post-gate resource audit reported zero
+containers, volumes, known image bytes, test-container sessions, and complete accounting. The
+feature goal remains active while canonical provider/history, richer compatible Study targets,
+native-window/accessibility/security, dense-data, and visual-oracle gaps remain open.
+
 ## 2026-09-05 — Promote finite Study series observations into watchlist columns
 
 Product commit `a6301f0f` (`feat(tc2000): promote latest study series values`) extends the

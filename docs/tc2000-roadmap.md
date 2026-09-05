@@ -24,6 +24,16 @@ across `109` files; type-check, production build, and diff checks passed. Authen
 `F8t-results` browser coverage passed `1/1` against the rebuilt branch-scoped Docker stack,
 including the latest-column action, with clean teardown and complete resource accounting.
 
+The exact-tip exhaustive gate then reran at metadata tip `c8dee130` (product tip `a6301f0f`). All
+non-visual stages and authenticated functional Playwright passed: backend units `1,315/1,315`,
+integration `382/382` with the existing `54` warnings, combined coverage `80.90%`, frontend
+Vitest `945/945` across `109` files, and functional E2E `155` passed with `106` documented skips
+across `261` specs. The unchanged four-project visual matrix remains the only blocker at `98/104`,
+with `watchlist-column-editor-open` diffs of `13,844` pixels at 1080p-100/125 and
+`workspace-floating` diffs of `9,770`/`12,097`/`9,770`/`12,097` pixels at 1080p-100/125 and
+1440p-100/125. No visual baseline, mask, threshold, skip, fallback, provider rule, or acceptance
+policy changed; teardown and resource accounting were clean.
+
 The preceding product commit is `4026d8d3` (`fix(tc2000): show benchmark route readiness`).
 Market Map now surfaces the existing provider-neutral canonical readiness contract for each
 benchmark-family source: all four independently mapped roles, dated-holdings coverage, route and

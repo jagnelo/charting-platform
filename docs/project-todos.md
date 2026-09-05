@@ -1,5 +1,27 @@
 # Project TODO Memory
 
+### 2026-09-05 — Exact-tip exhaustive gate after latest Study series promotion
+
+- [x] Reran `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at
+      metadata tip `c8dee130` (product tip `a6301f0f`). Locked dependencies/migrations, Ruff/
+      format, TypeScript, backend units (`1,315/1,315`), integration (`382/382` with the
+      existing `54` warnings), combined coverage (`80.90%`), frontend Vitest (`945/945` across
+      `109` files), production build, compose/provider policy, assigned-stack health,
+      research-runner isolation, and authenticated functional Playwright (`155` passed and
+      `106` documented skips across `261` specs) all passed.
+- [x] Preserve the unchanged visual result as an explicit blocker: the four-project matrix
+      completed `104` cases with `98` passes and six failures—`watchlist-column-editor-open` at
+      visual-1080p-100/125 (`13,844` differing pixels each), and `workspace-floating` at
+      visual-1080p-100/125/1440p-100/1440p-125 (`9,770`/`12,097`/`9,770`/`12,097` differing
+      pixels). No visual baseline, mask, threshold, skip, fallback oracle, provider rule, or
+      acceptance policy changed; the floating actual continues to contain canonical benchmark
+      rows after late-popout hydration. Gate teardown and the post-gate resource audit reported
+      zero containers, volumes, known image bytes, test-container sessions, and complete
+      accounting.
+- [ ] Continue canonical provider/history enrichment, richer compatible Study Lab targets,
+      native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review.
+      The feature goal remains active and is not yet ready for human review.
+
 ### 2026-09-05 — Promote finite Study series observations into watchlist columns
 
 - [x] Extend the persisted Research Results promotion matrix with an explicit latest-value

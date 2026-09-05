@@ -53,8 +53,25 @@
   },
   "dirty_paths": [],
   "docker": {
+    "accounting_complete": true,
     "available": true,
-    "reason": "Docker Desktop branch-scoped stack is available"
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-tc2000-frontend-rework-db4ca1c4",
+      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -93,14 +110,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "4026d8d380f866d85ee3e44decf062d1b7445e35",
-  "implementation_sha": "4026d8d380f866d85ee3e44decf062d1b7445e35",
+  "head": "c8dee13009843499ded6b52989823ffa5e8798d7",
+  "implementation_sha": "a6301f0fbd50e4df26e1ef79ce0f8f72dbcea726",
   "interrupted": false,
   "last_checkpoint": "2026-09-04T23:39:58.000000+00:00",
-  "last_human_progress_update": "2026-09-04T23:39:58.000000+00:00",
+  "last_human_progress_update": "2026-09-04T23:58:29.524939+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue canonical provider/history enrichment and richer compatible Study Lab targets, then gather native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review without changing visual policy or provider fallback rules.",
-  "plan_hash": "cb05acc2e3eb9001b4080ef41cc3e669ebaaa9d2e2966b921d7cb7a4f2e7c397",
+  "plan_hash": "915045e481080a1b257f4c680e748317b2c7b772e881600db7b1c0280eac7a1b",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [],
@@ -108,14 +125,14 @@
     "completed": [
       "AC1"
     ],
-      "current_blocker": "The exact-tip exhaustive gate at product tip 397c554a passed all non-visual stages and the functional browser suite, then failed only the unchanged visual matrix: 98/104 with six diffs—watchlist-column-editor-open at visual-1080p-100/125 (13,844 differing pixels each), and workspace-floating at visual-1080p-100 (9,770), visual-1080p-125 (5,512), visual-1440p-100 (12,097), and visual-1440p-125 (12,097). Backend units (1,315/1,315), integration (382/382 with 54 existing warnings), combined coverage (80.90%), frontend Vitest (939/939 across 108 files), type-check/build, compose/provider policy, assigned-stack health, research-runner isolation, and authenticated functional Playwright (155 passed, 106 documented skips across 261 specs) all passed. Product commits 95b12a0f and 7a24dd4b make the Study artifact capability boundary and benchmark-family canonical readiness visible in the frontend. Focused readiness/promotion coverage is 67/67; full frontend Vitest is 944/944 across 109 files; type-check, build, and diff-check pass. The floating actual intentionally contains canonical benchmark rows because late benchmark pop-outs hydrate missing shared market-analysis inputs once; chart pop-outs remain display-only. The 105-round two-popout endurance guard remains green, but native-window, dense-data budgets, accessibility/security, and other R5-R6 evidence remain incomplete. Canonical provider/history gaps remain open (80 QQQ HOLDING-* placeholders, W1/MN history, QQQE/SPDR dated sources). No baseline, mask, threshold, skip, fallback oracle, provider rule, or acceptance policy changed.",
-      "current_phase": "R1_R2_canonical_readiness_surface",
-      "next_action": "Continue canonical provider/history enrichment and richer compatible Study Lab targets, then gather native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review without changing visual policy or provider fallback rules.",
+    "current_blocker": "The exact-tip exhaustive gate reran at metadata tip c8dee130 (product tip a6301f0f). All locked dependency/migration, static, backend, frontend, compose/provider, runner-isolation, stack-health, and functional browser stages passed: backend units 1,315/1,315, integration 382/382 with 54 existing warnings, combined coverage 80.90%, frontend Vitest 945/945 across 109 files, and authenticated Playwright 155 passed with 106 documented skips across 261 specs. Only the unchanged four-project visual matrix failed: 98/104 with six diffs—watchlist-column-editor-open at visual-1080p-100/125 (13,844 differing pixels each), and workspace-floating at visual-1080p-100/125/1440p-100/1440p-125 (9,770/12,097/9,770/12,097). The floating actual intentionally contains canonical benchmark rows after late benchmark pop-outs hydrate missing shared market-analysis inputs once; chart pop-outs remain display-only. Teardown and the post-gate resource audit reported zero containers, volumes, known image bytes, test-container sessions, and complete accounting. Product tip a6301f0f adds latest_series_to_scalar for finite numeric Study series to typed watchlist columns; focused Results/capability coverage is 32/32, targeted backend runner/API coverage 135/135, and type-check/build/diff checks pass. Canonical provider/history gaps, richer Study targets, native-window/accessibility/security, dense-data, and visual-oracle review remain open. No baseline, mask, threshold, skip, fallback oracle, provider rule, or acceptance policy changed.",
+    "current_phase": "R1_R2_canonical_readiness_surface",
+    "next_action": "Continue canonical provider/history enrichment and the remaining richer Study Lab targets, then gather native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review without changing visual policy or provider fallback rules.",
     "total": 10,
-      "updated_at": "2026-09-04T23:39:58.000000+00:00"
+    "updated_at": "2026-09-04T23:58:29.524805+00:00"
   },
-  "remote": "4026d8d380f866d85ee3e44decf062d1b7445e35",
-  "remote_sha": "4026d8d380f866d85ee3e44decf062d1b7445e35",
+  "remote": "c8dee13009843499ded6b52989823ffa5e8798d7",
+  "remote_sha": "a6301f0fbd50e4df26e1ef79ce0f8f72dbcea726",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
