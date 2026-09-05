@@ -733,6 +733,7 @@
         <span v-else-if="familyConcentrationHistoryError" class="breadth-tool__status--error" role="alert">{{ familyConcentrationHistoryError }}</span>
         <span v-else-if="familyConcentrationHistory" class="breadth-tool__family-concentration-history">History · {{ familyConcentrationHistoryPointCount }} points · {{ familyConcentrationHistoryMode }}</span>
         <BenchmarkFamilyConcentrationHistoryUPlot v-if="familyConcentrationHistory" :history="familyConcentrationHistory" />
+        <BenchmarkFamilyConcentrationMetricsHistoryUPlot v-if="familyConcentrationHistory" :history="familyConcentrationHistory" />
       </div>
       <div v-if="isBenchmarkFamily" class="breadth-tool__cross-family-ranking" aria-label="Cross-family ranking">
         <strong>US family ranking · {{ crossFamilyRanking?.rank_period ?? '1M' }}</strong>
@@ -890,6 +891,7 @@ import BreadthHistoryUPlot from './BreadthHistoryUPlot.vue'
 import BenchmarkFamilyBreadthHistoryUPlot from './BenchmarkFamilyBreadthHistoryUPlot.vue'
 import BenchmarkFamilyRatioHistoryUPlot from './BenchmarkFamilyRatioHistoryUPlot.vue'
 import BenchmarkFamilyConcentrationHistoryUPlot from './BenchmarkFamilyConcentrationHistoryUPlot.vue'
+import BenchmarkFamilyConcentrationMetricsHistoryUPlot from './BenchmarkFamilyConcentrationMetricsHistoryUPlot.vue'
 import CrossFamilyRankingHistoryUPlot from './CrossFamilyRankingHistoryUPlot.vue'
 import GenericBreadthHistoryUPlot from './GenericBreadthHistoryUPlot.vue'
 import RelativeRotationTool from './RelativeRotationTool.vue'

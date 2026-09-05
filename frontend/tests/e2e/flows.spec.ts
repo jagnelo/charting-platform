@@ -4329,6 +4329,7 @@ test.describe('TC2000 workstation', () => {
     await expect(breadth.locator('[aria-label="Benchmark family concentration"]')).toContainText('Cap weight SPY · top 34.0% · HHI 0.04 · effective 25.00 · σ 2.0% · 100.0% covered', { timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Benchmark family concentration"]')).toContainText('History · 1 points · point-in-time snapshots', { timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Benchmark family historical dispersion"]')).toBeVisible({ timeout: 15_000 })
+    await expect(breadth.locator('[aria-label="Benchmark family historical concentration metrics"]')).toBeVisible({ timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Cross-family ranking"]')).toContainText('#1 S&P 500 SPY', { timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Cross-family ranking"]')).toContainText('History · 1 points', { timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Cross-family historical relative performance"]')).toBeVisible({ timeout: 15_000 })
