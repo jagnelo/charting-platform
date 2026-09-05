@@ -3716,6 +3716,14 @@ provider-platform branch is still not an ancestor of staging, so AC10 remains
 deferred and AC14 remains the post-integration 30-day production shadow gate.
 No other branch or worktree was modified.
 
+## Post-receipt capability regression — 2026-09-05
+
+The complete ETF capability unit module passed all `87` tests after the PIMCO
+evidence update. This confirms the new MINT/BOND evidence references coexist
+with the existing Tier-0, Tier-1, fallback, freshness, and read-only capability
+contracts. No provider classification, source entitlement, paid activation, or
+cross-worktree state changed.
+
 ## Persisted canary-history API coverage checkpoint — 2026-09-05
 
 Test commit `f88ef4c1` adds the positive side of the canary-history contract.
