@@ -35,7 +35,7 @@
         <span class="market-map-tool__source-kind">{{ sourceKindLabel(activeSource.source_kind) }} · {{ activeSource.member_count ?? '—' }} members</span>
         <span v-if="sourceAvailability(activeSource) === 'pending'" class="market-map-tool__source-state" role="status">Membership pending; this locked source remains followable</span>
         <span
-          v-if="activeSource.source_kind === 'etf_holdings' && activeSource.provenance?.usable_for_current_analysis === false"
+          v-if="sourceIsNotCurrent(activeSource)"
           class="market-map-tool__source-state market-map-tool__source-state--warning"
           role="status"
         >
@@ -146,7 +146,7 @@
       </label>
       <span v-if="colorMetric === 'python' && pythonRunLoading" class="market-map-tool__status">Evaluating isolated Python…</span>
       <span v-if="colorMetric === 'python' && pythonRunError" class="market-map-tool__status--error" role="alert">{{ pythonRunError }}</span>
-      <button type="button" class="market-map-tool__run" :disabled="loading || (!sourceId && !explicitSymbols.trim())" @click="run">{{ loading ? 'Loading…' : 'Refresh' }}</button>
+      <button type="button" class="market-map-tool__run" :disabled="loading || (!sourceId && !explicitSymbols.trim()) || (!explicitSymbols.trim() && !!activeSource && !isSourceSelectable(activeSource))" @click="run">{{ loading ? 'Loading…' : 'Refresh' }}</button>
       <label>Snapshot
         <select v-model="snapshotSelectionId" aria-label="Market Map snapshot" :disabled="snapshotLoading">
           <option value="">Live / cached result</option>
@@ -406,19 +406,29 @@ function isSourceSelectable(source: WatchlistSource): boolean {
 }
 
 function sourceAvailability(source: WatchlistSource): 'available' | 'pending' | 'unavailable' {
-  const availability = source.provenance?.availability
-  if (availability === 'unavailable') return 'unavailable'
+  const availability = String(source.provenance?.availability ?? '')
   if (availability === 'profile_not_loaded' || availability === 'holdings_snapshot_not_loaded' || availability === 'holdings_snapshot_unresolved' || availability === 'membership_not_loaded') return 'pending'
+  if (['unavailable', 'stale', 'degraded', 'unknown'].includes(availability)) return 'unavailable'
   return 'available'
 }
 
 function sourceAvailabilitySuffix(source: WatchlistSource): string {
+  const rawAvailability = String(source.provenance?.availability ?? '')
   const availability = sourceAvailability(source)
   const failureClass = source.provenance?.failure_class
   const failureSuffix = failureClass ? ` · ${formatFailureClass(failureClass)}` : ''
-  if (availability === 'unavailable') return ` · Unavailable${failureSuffix}`
+  if (availability === 'unavailable') {
+    if (rawAvailability === 'unavailable') return ` · Unavailable${failureSuffix}`
+    return ` · Not current (${formatFailureClass(rawAvailability)})${failureSuffix}`
+  }
   if (availability === 'pending') return ' · Pending membership'
   return ''
+}
+
+function sourceIsNotCurrent(source: WatchlistSource): boolean {
+  const rawAvailability = String(source.provenance?.availability ?? '')
+  return source.provenance?.usable_for_current_analysis === false
+    || ['unavailable', 'stale', 'degraded', 'unknown'].includes(rawAvailability)
 }
 
 function formatFailureClass(value: unknown): string {
@@ -1243,6 +1253,13 @@ function exportCsv() {
 
 async function run() {
   if (!componentMounted || (!sourceId.value && !explicitSymbols.value.trim())) return
+  if (!explicitSymbols.value.trim() && sourceId.value) {
+    const selectedSource = sources.value.find(source => source.source_id === sourceId.value)
+    if (selectedSource && !isSourceSelectable(selectedSource)) {
+      error.value = `${selectedSource.name} is not current and cannot be used for Market Map analysis.`
+      return
+    }
+  }
   const generation = ++runGeneration
   loading.value = true
   error.value = ''

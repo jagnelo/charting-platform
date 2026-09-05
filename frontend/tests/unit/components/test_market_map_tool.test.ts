@@ -242,6 +242,38 @@ describe('MarketMapTool', () => {
     sourceState.sources = previousSources
   })
 
+  it('blocks stale ETF sources from current Market Map analysis', async () => {
+    const previousSources = sourceState.sources
+    const staleEtf = {
+      ...previousSources[0],
+      source_id: 'etf-holdings:ARKK',
+      source_kind: 'etf_holdings' as const,
+      name: 'ARKK holdings',
+      member_count: 2,
+      provenance: {
+        availability: 'stale',
+        usable_for_current_analysis: false,
+        failure_class: 'freshness_expired',
+        capability_reason: 'The latest holdings snapshot exceeded its freshness deadline.',
+      },
+    }
+    sourceState.sources = [...previousSources, staleEtf]
+    const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: staleEtf.source_id } } })
+    await flushPromises()
+
+    const option = wrapper.find(`option[value="${staleEtf.source_id}"]`)
+    expect(option.attributes('disabled')).toBeDefined()
+    expect(option.text()).toContain('Not current (stale)')
+    expect(option.text()).toContain('freshness expired')
+    expect(wrapper.get('[aria-label="Market Map source preferences"] [role="status"]').text()).toContain('freshness deadline')
+    expect(wrapper.get('[role="alert"]').text()).toContain('cannot be used for Market Map analysis')
+    expect(wrapper.get('.market-map-tool__run').attributes('disabled')).toBeDefined()
+    expect(apiPost).not.toHaveBeenCalledWith('/analysis/market-map', expect.objectContaining({ source_id: staleEtf.source_id }))
+
+    wrapper.unmount()
+    sourceState.sources = previousSources
+  })
+
   it('rejects malformed ETF symbols before any bootstrap request', async () => {
     const wrapper = mount(MarketMapTool)
     await flushPromises()
