@@ -5,6 +5,22 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-05
 
+## 2026-09-05 — Surface canonical disclosure effective times
+
+The workstation’s benchmark-family coverage strip now surfaces the returned
+snapshot `as_of_date` and `known_at` alongside the latest composition date,
+resolution counts, and source provider. These fields are rendered only when
+the canonical snapshot supplies them; the consumer does not infer freshness,
+substitute roles, or change provider/fallback behavior. Product commit
+`e96b081a` (`feat(tc2000): surface disclosure effective times`) is pushed.
+Frontend Vitest passed `970/970`, type-check and production build passed, and
+the rebuilt authenticated Chromium `F8s-breadth-family-ratio` flow passed `1/1`
+with `as of 2026-06-30 · known 2026-06-28T20:00:00Z` asserted. The initial
+browser run exposed and the same slice corrected a stale expectation for the
+new label ordering. Teardown removed four generated images and all assigned
+resources; no provider, fallback, visual-oracle, or acceptance policy changed.
+The next exact-tip gate remains required.
+
 ## 2026-09-05 — Exact-tip gate after canonical member-history floors
 
 At product tip `2f7c1d84` (documentation tip `f4498c80`), the exact-tip

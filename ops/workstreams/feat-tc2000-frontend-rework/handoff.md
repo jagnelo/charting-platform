@@ -10,6 +10,21 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Surface canonical disclosure effective times
+
+Product commit `e96b081a` (`feat(tc2000): surface disclosure effective times`)
+now renders returned benchmark-family snapshot `as_of_date` and `known_at`
+values in the workstation coverage strip alongside the latest composition date,
+resolution counts, and source provider. The consumer is canonical-data-backed:
+missing fields remain omitted, with no inferred freshness, role substitution,
+provider fan-out, fallback, or acceptance-policy change. Frontend Vitest passed
+`970/970`; type-check and production build passed; rebuilt authenticated
+Chromium `F8s-breadth-family-ratio` passed `1/1` after its stale label assertion
+was aligned to the new ordering. Teardown removed four generated images and all
+assigned resources. The next action is the exact-tip integration gate at the
+next coherent documentation tip; preserve the six known visual state-oracle
+diffs.
+
 ## 2026-09-05 — Exact-tip exhaustive gate after canonical member-history floors
 
 At product tip `2f7c1d84` (documentation tip `f4498c80`), the exact-tip

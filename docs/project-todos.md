@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-05 — Surface canonical disclosure effective times
+
+- [x] Render returned snapshot `as_of_date` and `known_at` beside the latest
+      family disclosure date, resolution counts, and provider; omit each field
+      when the canonical snapshot does not supply it and do not infer freshness.
+- [x] Product commit `e96b081a` is pushed; Vitest passed `970/970`, type-check
+      and production build passed, and rebuilt authenticated Chromium
+      `F8s-breadth-family-ratio` passed `1/1` with the effective/known timestamp
+      label asserted. The stale pre-change label expectation was corrected in
+      the same test slice.
+- [ ] Rerun the exact-tip integration gate at the next documentation tip,
+      preserving the six known visual state-oracle diffs and all provider,
+      fallback, baseline, and acceptance policy.
+
 ### 2026-09-05 — Exact-tip gate after canonical member-history floors
 
 - [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework`
