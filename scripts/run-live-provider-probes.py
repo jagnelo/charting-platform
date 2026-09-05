@@ -13,6 +13,8 @@ import os
 import subprocess
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 ROOT = Path(__file__).resolve().parents[1]
 
 KEYLESS = ("EDGAR_USER_AGENT",)
@@ -65,6 +67,10 @@ def changed_provider_code() -> bool:
 
 
 def main() -> int:
+    # Match the backend settings boundary: local operator credentials belong in
+    # the ignored backend/.env.dev file, while explicitly exported variables
+    # retain precedence.  Do not print or persist any loaded secret values.
+    load_dotenv(ROOT / "backend" / ".env.dev", override=False)
     if not changed_provider_code():
         print("live provider probes: not applicable (no provider-related changes)")
         return 0
