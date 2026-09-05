@@ -3749,6 +3749,11 @@ unavailable for current analysis, AC10 remains deferred, and AC14 remains the
 post-integration 30-day production shadow gate. No paid source, credential,
 other branch, or other worktree was modified.
 
+The complete watchlist API integration file was rerun after the shared
+descriptor change: `47 passed` with the same two existing Nautilus deprecation
+warnings. The targeted source-catalog check and static checks remain recorded
+above; no full Docker gate was required for this narrow descriptor-only change.
+
 ## Watchlist source-catalog observability checkpoint — 2026-09-05
 
 Implementation commit `248c2973` carries current ETF capability state into the
