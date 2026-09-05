@@ -5,6 +5,38 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-05
 
+## 2026-09-05 — Assert selected ranking-period values end to end
+
+The authenticated `F8s-breadth-family-ratio` flow now uses period-specific mock
+values and asserts the rendered `3M` role-ranking value (`RSP · 34% · Δ 8%`),
+not only the request parameter and panel label. This closes the test gap that
+could have allowed a hard-coded `1M` summary consumer to pass while the request
+was period-aware. The change is test-only; no product, provider, fallback,
+membership, provenance, visual-oracle, or acceptance policy changed.
+
+On a rebuilt branch-scoped stack, the focused Chromium flow passed `1/1` after
+the initial assertion-format correction; teardown and resource accounting were
+clean. Test commit `4302a9a6` (`test(tc2000): assert ranking period values end
+to end`) is pushed. The exact-tip gate below was rerun at this product tip.
+
+## 2026-09-05 — Exact-tip gate after ranking-period value assertion
+
+At product tip `4302a9a6` (documentation tip `5962f592`), the exact-tip
+`full_stack_browser` gate passed locked dependency/migration checks (migration
+compatibility skipped because no migration changes), workstream validation,
+lint/format/type-check, backend unit/integration and combined coverage
+(`80.93%`; `1320` unit and `384` integration tests), frontend Vitest
+(`970/970`), production build, compose/provider policy, stack health,
+research-runner isolation, and authenticated functional Playwright (`157/157`
+with `106` documented skips across `263` specs). The four-project visual matrix
+completed `104` cases with `98` passes and the same six state-oracle diffs:
+`watchlist-column-editor-open` at both 1080p scales (`13,844` pixels each),
+and `workspace-floating` at 1080p 100/125 (`12,097`/`11,901`) and 1440p
+100/125 (`12,097`/`11,901`). Teardown removed the assigned stack and generated
+resources; resource accounting was clean. No baseline, mask, threshold, skip,
+fallback, provider, or acceptance policy changed. Preserve this visual-only
+boundary and continue the next canonical provider/history slice.
+
 ## 2026-09-05 — Honor the selected ranking period in summaries
 
 The role-ranking and cross-family ranking summary rows now read the selected
@@ -972,11 +1004,9 @@ The TC2000 frontend rework is ready for human review only when all of the follow
 ## Immediate next checkpoint
 
 Continue with the next canonical provider/history slice and compatible chart/list/gauge consumers
-with authenticated evidence. The latest readiness-display slice is at product tip `37af72fa`; its
-focused and full frontend checks pass. The exact-tip gate has previously been rerun at product tip
-`a6301f0f`; all non-visual and functional stages pass, while the unchanged six visual diffs remain
-explicit. The latest product fix is `2ee80c3`, with focused/full frontend and direct F9i evidence;
-the exhaustive gate should be rerun after the next coherent implementation batch. Preserve
-the declared provider fallback boundaries and all existing acceptance policy while expanding the
-remaining richer Study Lab targets, native-window/accessibility/security evidence, and dense-data
-budgets.
+with authenticated evidence. The latest product tip is `4302a9a6`; its focused ranking-period
+value assertion and exact-tip gate are recorded above. All non-visual and functional stages pass,
+while the unchanged six visual state-oracle diffs remain explicit. Preserve the declared provider
+fallback boundaries and all existing acceptance policy while expanding the remaining canonical
+population/history coverage, richer Study Lab targets, native-window/accessibility/security
+evidence, and dense-data budgets.

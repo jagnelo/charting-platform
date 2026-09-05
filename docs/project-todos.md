@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-05 — Assert selected ranking-period values end to end
+
+- [x] Harden `F8s-breadth-family-ratio` with period-specific ranking mock values and an explicit
+      rendered `3M` assertion (`RSP · 34% · Δ 8%`), so request/label propagation cannot hide a
+      hard-coded `1M` summary consumer.
+- [x] Test commit `4302a9a6` is pushed; rebuilt-stack authenticated Chromium passed `1/1` after
+      correcting the expectation to the UI's compact percentage format, with clean teardown and
+      resource accounting.
+- [x] Exact-tip gate at product tip `4302a9a6` (documentation tip `5962f592`) passed all
+      non-visual stages and functional Playwright (`157/157`, `106` documented skips); visual
+      acceptance remains `98/104` with the same six state-oracle diffs. Preserve baseline, mask,
+      threshold, skip, fallback, provider, and acceptance policy.
+
 ### 2026-09-05 — Correct period-aware ranking summaries
 
 - [x] Use the persisted `family_rank_period` for role-ranking and cross-family
