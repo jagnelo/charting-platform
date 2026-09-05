@@ -19,8 +19,8 @@ export const STUDY_ARTIFACT_CAPABILITIES: Readonly<Record<string, StudyArtifactC
     note: 'Compatible targets: watchlist column, filter, scan, Market Gauge, and alert.',
   },
   series: {
-    targets: ['chart plot', 'latest-value watchlist column'],
-    note: 'Compatible targets: chart plot and latest-value watchlist column when a finite observation is present.',
+    targets: ['chart plot', 'latest-value watchlist column', 'thresholded Boolean condition'],
+    note: 'Compatible targets: chart plot, latest-value watchlist column, or a thresholded Boolean condition when a finite observation is present.',
   },
   range: {
     targets: ['center chart plot'],

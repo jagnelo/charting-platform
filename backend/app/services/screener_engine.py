@@ -708,6 +708,11 @@ async def queue_python_screener_run(
             "output_contract": "boolean",
             "output_name": condition.get("output_name"),
             "output_adapter": output_adapter,
+            "series_target": (
+                condition.get("series_target")
+                if isinstance(condition.get("series_target"), dict)
+                else None
+            ),
             "condition_tree": (
                 condition.get("condition_tree")
                 if isinstance(condition.get("condition_tree"), dict)

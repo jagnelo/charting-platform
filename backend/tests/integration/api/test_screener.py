@@ -304,6 +304,79 @@ class TestScreenerCRUD:
         assert rejected.status_code == 422
         assert rejected.json()["detail"]["code"] == "study_promotion_universe_required"
 
+    def test_series_condition_promotion_preserves_threshold_metadata_in_runner_job(
+        self, client, auth_headers, instrument, ohlcv_bars, tmp_path, monkeypatch
+    ):
+        monkeypatch.setattr(
+            "app.services.research_jobs.settings.RESEARCH_JOB_DIR", str(tmp_path / "jobs")
+        )
+        monkeypatch.setattr(
+            "app.services.research_jobs.settings.RESEARCH_RESULT_DIR", str(tmp_path / "results")
+        )
+        asset = client.post(
+            "/api/v1/code/assets",
+            headers=auth_headers,
+            json={
+                "stable_key": "study-series-threshold-condition",
+                "name": "Study series threshold condition",
+                "kind": "condition",
+                "initial_version": {
+                    "source": "output.series('trend', market.close())",
+                    "output_contract": "boolean",
+                    "output_name": "trend",
+                    "lineage": {
+                        "type": "study_run_promotion",
+                        "source_run_id": 913,
+                        "source_output_name": "trend",
+                        "output_adapter": "series_target_to_boolean",
+                        "series_target": {"operator": "gte", "threshold": 11},
+                    },
+                },
+            },
+        )
+        assert asset.status_code == 201, asset.text
+        version_id = asset.json()["versions"][0]["id"]
+        provenance = {
+            "type": "study_run_promotion",
+            "source_run_id": 913,
+            "source_code_version_id": version_id,
+            "source_output_name": "trend",
+            "output_adapter": "series_target_to_boolean",
+            "series_target": {"operator": "gte", "threshold": 11},
+            "source_instrument_ids": [instrument.id],
+            "point_in_time_source_preserved": False,
+        }
+        created = client.post(
+            f"/api/v1/screeners/from-python-condition/{version_id}",
+            headers=auth_headers,
+            json={
+                "name": "Study series threshold filter",
+                "universe_type": "custom",
+                "universe_instrument_ids": [instrument.id],
+                "timeframe": "D1",
+                "provenance": provenance,
+            },
+        )
+        assert created.status_code == 201, created.text
+        conditions = created.json()["conditions"]
+        assert conditions["provenance"] == provenance
+        assert conditions["output_adapter"] == "series_target_to_boolean"
+        assert conditions["output_name"] == "trend"
+        assert conditions["series_target"] == {"operator": "gte", "threshold": 11}
+
+        queued = client.post(f"/api/v1/screeners/{created.json()['id']}/run", headers=auth_headers)
+        assert queued.status_code == 200, queued.text
+        job = json.loads(
+            (
+                tmp_path
+                / "jobs"
+                / f"{queued.json()['result_data']['_python_research_run_id']}.json"
+            ).read_text()
+        )
+        assert job["output_adapter"] == "series_target_to_boolean"
+        assert job["output_name"] == "trend"
+        assert job["series_target"] == {"operator": "gte", "threshold": 11}
+
     def test_create_screener(self, client, auth_headers):
         res = client.post(
             "/api/v1/screeners",

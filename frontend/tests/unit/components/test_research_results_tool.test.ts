@@ -491,6 +491,72 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.text()).toContain('Saved series artifact “trend” as watchlist column “trend latest column”')
   })
 
+  it('promotes a finite numeric series through an explicit thresholded Boolean condition', async () => {
+    const source = "output.series('trend', market.close())"
+    const lineage = {
+      source_run_id: 38,
+      source_code_version_id: 86,
+      source_output_name: 'trend',
+      source_instrument_ids: [7, 8],
+      target: 'filter',
+      output_adapter: 'series_target_to_boolean',
+      series_target: { operator: 'gte', threshold: 11 },
+      semantics: 'study_series_threshold_as_boolean',
+      point_in_time_source_preserved: false,
+    }
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve([{ id: 38, status: 'completed', code_version_id: 86, output_contract: 'study', run_config: { timeframe: 'D1' }, dataset_manifest: { source: 'canonical_local_database', datasets: [{ instrument_id: 7, symbol: 'SPY' }, { instrument_id: 8, symbol: 'QQQ' }] }, reproducibility_hash: 'hash-38', diagnostics: [], artifacts: [
+        { id: 28, name: 'trend', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], values: [10, 12] } } },
+      ] }])
+      if (path === '/code/assets') return Promise.resolve([{ name: 'Study 38', versions: [{ id: 86, source, output_contract: 'study', parameter_schema: { properties: {} }, default_parameters: {} }] }])
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string, body: unknown) => {
+      if (path === '/code/assets') return Promise.resolve({ id: 95, name: 'trend condition', versions: [{ id: 95 }] })
+      if (path === '/screeners/from-python-condition/95') return Promise.resolve({ id: 96, name: 'trend threshold filter' })
+      if (path === '/alerts/screener') return Promise.resolve({ id: 97 })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    expect(wrapper.find('[aria-label="Series condition operator: trend"]').exists()).toBe(true)
+    expect(wrapper.find('[aria-label="Series condition threshold: trend"]').exists()).toBe(true)
+    await wrapper.get('[aria-label="Series condition operator: trend"]').setValue('gte')
+    await wrapper.get('[aria-label="Series condition threshold: trend"]').setValue('11')
+    await wrapper.get('[aria-label="Save filter: trend"]').trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'condition',
+      initial_version: expect.objectContaining({
+        source,
+        output_contract: 'boolean',
+        output_name: 'trend',
+        lineage: expect.objectContaining(lineage),
+      }),
+    }))
+    expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/95', expect.objectContaining({
+      name: 'trend gte 11 Filter 38',
+      universe_type: 'custom',
+      universe_instrument_ids: [7, 8],
+      timeframe: 'D1',
+      provenance: expect.objectContaining(lineage),
+    }))
+    expect(wrapper.text()).toContain('Saved series artifact “trend” as a thresholded watchlist filter.')
+
+    await wrapper.get('[aria-label="Promote scan: trend"]').trigger('click')
+    await flushPromises()
+    await wrapper.get('[aria-label="Use Gauge: trend"]').trigger('click')
+    await flushPromises()
+    await wrapper.get('[aria-label="Promote alert: trend"]').trigger('click')
+    await flushPromises()
+    expect(apiPost.mock.calls.filter(call => call[0] === '/code/assets')).toHaveLength(1)
+    expect(apiPost.mock.calls.filter(call => String(call[0]).startsWith('/screeners/from-python-condition/'))).toHaveLength(1)
+    expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 96, trigger_type: 'entered', repeat: true, notes: 'Created from structured series study run 38 (trend)' })
+    expect(wrapper.text()).toContain('Promoted series artifact “trend” to a thresholded scan alert.')
+  })
+
   it('exposes the complete lineage-preserving Boolean promotion matrix for structured results', async () => {
     const source = "output.boolean('qualifies', True)\noutput.scalar('sample_size', 4)"
     apiGet.mockImplementation((path: string) => {

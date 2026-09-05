@@ -286,6 +286,64 @@ def test_code_asset_kind_and_declared_output_contract_must_match(client, auth_he
     )
     assert series_column_lineage["lineage"]["output_adapter"] == "latest_series_to_scalar"
 
+    selected_series_condition = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "selected-study-series-condition",
+            "name": "Selected study series condition",
+            "kind": "condition",
+            "initial_version": {
+                "source": "output.scalar('sample', 1)\noutput.series('trend', [1, 2])",
+                "output_contract": "boolean",
+                "output_name": "trend",
+                "lineage": {
+                    "source_run_id": 93,
+                    "source_code_version_id": 45,
+                    "target": "filter",
+                    "output_adapter": "series_target_to_boolean",
+                    "series_target": {"operator": "gte", "threshold": 1.5},
+                    "semantics": "study_series_threshold_as_boolean",
+                },
+            },
+        },
+    )
+    assert selected_series_condition.status_code == 201, selected_series_condition.text
+    series_condition_version = selected_series_condition.json()["versions"][0]
+    assert series_condition_version["output_contract"] == "boolean"
+    assert series_condition_version["output_name"] == "trend"
+    series_condition_lineage = next(
+        item
+        for item in series_condition_version["diagnostics"]
+        if item["code"] == "promotion_lineage"
+    )
+    assert series_condition_lineage["lineage"]["output_adapter"] == "series_target_to_boolean"
+    assert series_condition_lineage["lineage"]["series_target"] == {
+        "operator": "gte",
+        "threshold": 1.5,
+    }
+
+    invalid_series_condition = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "selected-study-invalid-series-condition",
+            "name": "Selected study invalid series condition",
+            "kind": "condition",
+            "initial_version": {
+                "source": "output.series('trend', [1, 2])",
+                "output_contract": "boolean",
+                "output_name": "trend",
+                "lineage": {
+                    "output_adapter": "series_target_to_boolean",
+                    "series_target": {"operator": "between", "threshold": 1.5},
+                },
+            },
+        },
+    )
+    assert invalid_series_condition.status_code == 422
+    assert invalid_series_condition.json()["detail"]["code"] == "invalid_series_target"
+
     invalid_selected = client.post(
         "/api/v1/code/assets",
         headers=auth_headers,

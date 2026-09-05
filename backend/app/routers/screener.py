@@ -297,6 +297,19 @@ async def create_screener_from_python_condition(
     }
     if body.provenance:
         conditions["provenance"] = body.provenance
+        # Promotion adapters are explicit executable metadata. Preserve the
+        # threshold relation and selected output on the screener so the
+        # isolated runner, rather than the API process, applies the series
+        # contract at current-data evaluation time.
+        output_adapter = body.provenance.get("output_adapter")
+        if isinstance(output_adapter, str):
+            conditions["output_adapter"] = output_adapter
+        output_name = body.provenance.get("source_output_name")
+        if isinstance(output_name, str) and output_name.strip():
+            conditions["output_name"] = output_name
+        series_target = body.provenance.get("series_target")
+        if isinstance(series_target, dict):
+            conditions["series_target"] = series_target
     screener = ScreenerDefinition(
         **body.model_dump(exclude={"description", "provenance"}),
         conditions=conditions,

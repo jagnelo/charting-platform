@@ -49,6 +49,14 @@
             <button v-if="artifact.artifact_type === 'scalar'" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save column: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'column')">{{ promoting ? 'Promoting…' : `Save column: ${artifact.name}` }}</button>
             <button v-if="artifact.artifact_type === 'series'" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save chart plot: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'plot')">{{ promoting ? 'Promoting…' : `Save chart plot: ${artifact.name}` }}</button>
             <button v-if="artifact.artifact_type === 'series' && latestSeriesValue(artifact) != null" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save latest column: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'column')">{{ promoting ? 'Promoting…' : `Save latest column: ${artifact.name}` }}</button>
+            <template v-if="artifact.artifact_type === 'series' && hasFiniteSeriesValue(artifact)">
+              <div class="research-results-tool__series-condition" role="group" :aria-label="`${artifact.name} thresholded condition`">
+                <label>When <select v-model="seriesConditionOperator" :aria-label="`Series condition operator: ${artifact.name}`"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option><option value="eq">=</option><option value="ne">≠</option></select></label>
+                <label>Value <input v-model.number="seriesConditionThreshold" type="number" step="any" :aria-label="`Series condition threshold: ${artifact.name}`" /></label>
+                <button type="button" :disabled="rerunning || canceling || promoting || !Number.isFinite(seriesConditionThreshold)" :aria-label="`Save Boolean column: ${artifact.name}`" @click="promoteStructuredSeriesCondition(selectedRun, artifact, 'column')">{{ promoting ? 'Promoting…' : `Save Boolean column: ${artifact.name}` }}</button>
+                <button v-for="target in structuredSeriesConditionTargets" :key="`${artifact.id}-series-${target}`" type="button" :disabled="rerunning || canceling || promoting || !Number.isFinite(seriesConditionThreshold)" :aria-label="`${structuredSeriesConditionLabel(target)}: ${artifact.name}`" @click="promoteStructuredSeriesCondition(selectedRun, artifact, target)">{{ promoting ? 'Promoting…' : `${structuredSeriesConditionLabel(target)}: ${artifact.name}` }}</button>
+              </div>
+            </template>
             <button v-if="artifact.artifact_type === 'range'" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save center chart plot: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'plot')">{{ promoting ? 'Promoting…' : `Save center chart plot: ${artifact.name}` }}</button>
             <template v-if="artifact.artifact_type === 'boolean'">
               <button v-for="target in structuredBooleanPromotionTargets" :key="`${artifact.id}-${target}`" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`${structuredBooleanPromotionLabel(target)}: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, target)">{{ promoting ? 'Promoting…' : `${structuredBooleanPromotionLabel(target)}: ${artifact.name}` }}</button>
@@ -149,9 +157,12 @@ const promoting = ref(false)
 const promotionMessage = ref('')
 const promotedScans = ref<Record<number, { id: number; name: string; codeVersionId: number | null }>>({})
 const promotedStructuredBooleanScans = ref<Record<string, { id: number; name: string; codeVersionId: number }>>({})
+const promotedStructuredSeriesScans = ref<Record<string, { id: number; name: string; codeVersionId: number }>>({})
 const promotedEventFilters = ref<Record<number, { id: number; name: string }>>({})
 const occurrenceSymbolFilter = ref('')
 const occurrenceKindFilter = ref<'all' | 'member_entered' | 'member_exited'>('all')
+const seriesConditionOperator = ref<'gt' | 'gte' | 'lt' | 'lte' | 'eq' | 'ne'>('gte')
+const seriesConditionThreshold = ref(0)
 const emit = defineEmits<{ occurrence: [event: { symbol: string; timestamp: string; kind?: string; instrument_id?: number }] }>()
 const comparisonRuns = computed(() => comparisonIds.value.map(id => runs.value.find(run => run.id === id)).filter((run): run is ResearchRunSummary => Boolean(run)))
 const surfaceVisible = ref(true)
@@ -249,6 +260,9 @@ function latestSeriesValue(artifact: ResearchRunSummary['artifacts'][number]): n
     if (typeof value === 'number' && Number.isFinite(value)) return value
   }
   return null
+}
+function hasFiniteSeriesValue(artifact: ResearchRunSummary['artifacts'][number]) {
+  return Boolean(seriesData(artifact)?.values.some(value => typeof value === 'number' && Number.isFinite(value)))
 }
 function barData(artifact: ResearchRunSummary['artifacts'][number]): { labels: string[]; values: number[] } | null {
   const value = artifact.payload.value
@@ -445,6 +459,14 @@ function structuredBooleanPromotionLabel(target: StructuredBooleanPromotionTarge
 }
 function structuredBooleanScanKey(run: ResearchRunSummary, artifact: ResearchRunSummary['artifacts'][number]) {
   return `${run.id}:${artifact.id}:${artifact.name}`
+}
+type StructuredSeriesConditionTarget = 'filter' | 'scan' | 'gauge' | 'alert'
+const structuredSeriesConditionTargets: StructuredSeriesConditionTarget[] = ['filter', 'scan', 'gauge', 'alert']
+function structuredSeriesConditionLabel(target: StructuredSeriesConditionTarget) {
+  return target === 'filter' ? 'Save filter' : target === 'scan' ? 'Promote scan' : target === 'gauge' ? 'Use Gauge' : 'Promote alert'
+}
+function structuredSeriesScanKey(run: ResearchRunSummary, artifact: ResearchRunSummary['artifacts'][number]) {
+  return `${run.id}:${artifact.id}:${artifact.name}:${seriesConditionOperator.value}:${seriesConditionThreshold.value}`
 }
 function declaredStudyInstrumentIds(run: ResearchRunSummary) {
   const manifest = run.dataset_manifest ?? {}
@@ -828,6 +850,95 @@ async function promoteStructuredArtifact(run: ResearchRunSummary, artifact: Rese
     promoting.value = false
   }
 }
+async function promoteStructuredSeriesCondition(
+  run: ResearchRunSummary,
+  artifact: ResearchRunSummary['artifacts'][number],
+  target: 'column' | StructuredSeriesConditionTarget,
+) {
+  if (artifact.artifact_type !== 'series' || !hasFiniteSeriesValue(artifact) || promoting.value) return
+  if (!Number.isFinite(seriesConditionThreshold.value)) {
+    promotionMessage.value = 'Enter a finite numeric threshold before promoting the series.'
+    return
+  }
+  promoting.value = true
+  promotionMessage.value = ''
+  try {
+    const assets = await api.get<Array<{ versions?: Array<{ id?: number; source?: string; output_contract?: string; parameter_schema?: Record<string, unknown>; default_parameters?: Record<string, unknown> }> }>>('/code/assets')
+    const sourceVersion = (assets ?? []).flatMap(asset => asset.versions ?? []).find(version => version.id === run.code_version_id)
+    if (!sourceVersion?.source) throw new Error('The immutable source code version for this series study is unavailable.')
+    const declaredInstrumentIds = declaredStudyInstrumentIds(run)
+    if (!declaredInstrumentIds.length) throw new Error('The study dataset has no declared canonical members; refusing to widen the promoted condition universe.')
+    const seriesTarget = { operator: seriesConditionOperator.value, threshold: Number(seriesConditionThreshold.value) }
+    const sourceRunConfig = run.run_config ?? {}
+    const sourceManifest = run.dataset_manifest ?? {}
+    const scanKey = structuredSeriesScanKey(run, artifact)
+    let scan = promotedStructuredSeriesScans.value[scanKey]
+    const lineage = {
+      type: 'study_run_promotion',
+      source_run_id: run.id,
+      source_code_version_id: run.code_version_id,
+      source_reproducibility_hash: run.reproducibility_hash ?? null,
+      source_dataset_manifest: sourceManifest,
+      source_run_config: sourceRunConfig,
+      source_output_name: artifact.name,
+      source_instrument_ids: declaredInstrumentIds,
+      source_universe_source_id: structuredStudySourceId(run),
+      source_membership_version: structuredStudyMembershipVersion(run),
+      target,
+      output_adapter: 'series_target_to_boolean',
+      series_target: seriesTarget,
+      semantics: 'study_series_threshold_as_boolean',
+      point_in_time_source_preserved: false,
+    }
+    const kind = target === 'column' ? 'column' : 'condition'
+    let codeVersionId = scan?.codeVersionId
+    if (!codeVersionId) {
+      const promoted = await api.post<{ id?: number; name?: string; versions?: Array<{ id?: number }> }>('/code/assets', {
+        stable_key: `${run.id}-${artifact.name}-series-${kind}-${seriesConditionOperator.value}-${seriesConditionThreshold.value}`.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80) || `study-series-${kind}`,
+        name: `${artifact.name} ${target === 'column' ? 'Boolean column' : 'condition'}`,
+        kind,
+        initial_version: {
+          source: sourceVersion.source,
+          output_contract: 'boolean',
+          output_name: artifact.name,
+          parameter_schema: sourceVersion.parameter_schema ?? {},
+          default_parameters: sourceVersion.default_parameters ?? {},
+          lineage,
+        },
+      })
+      const returnedCodeVersionId = promoted.versions?.[0]?.id ?? promoted.id
+      if (typeof returnedCodeVersionId === 'number') codeVersionId = returnedCodeVersionId
+    }
+    if (typeof codeVersionId !== 'number') throw new Error('Series condition promotion did not return an immutable code version.')
+    if (target === 'column') {
+      promotionMessage.value = `Saved series artifact “${artifact.name}” as a thresholded Boolean column.`
+      return
+    }
+    if (!scan) {
+      const screener = await api.post<{ id: number; name?: string }>(`/screeners/from-python-condition/${codeVersionId}`, {
+        name: `${artifact.name} ${seriesConditionOperator.value} ${seriesConditionThreshold.value} ${target === 'scan' ? 'Scan' : 'Filter'} ${run.id}`,
+        description: `Current-data thresholded Boolean target promoted from structured Study run #${run.id}; source series, threshold, membership, and dataset lineage are retained.`,
+        universe_type: 'custom',
+        universe_instrument_ids: declaredInstrumentIds,
+        timeframe: structuredStudyTimeframe(run),
+        provenance: lineage,
+      })
+      scan = { id: screener.id, name: screener.name ?? `${artifact.name} threshold condition`, codeVersionId }
+      promotedStructuredSeriesScans.value = { ...promotedStructuredSeriesScans.value, [scanKey]: scan }
+    }
+    if (target === 'filter') promotionMessage.value = `Saved series artifact “${artifact.name}” as a thresholded watchlist filter.`
+    else if (target === 'scan') promotionMessage.value = `Promoted series artifact “${artifact.name}” to a thresholded scan.`
+    else if (target === 'gauge') promotionMessage.value = `Series artifact “${artifact.name}” is available as a thresholded Market Gauge.`
+    else {
+      await api.post('/alerts/screener', { screener_id: scan.id, trigger_type: 'entered', repeat: true, notes: `Created from structured series study run ${run.id} (${artifact.name})` })
+      promotionMessage.value = `Promoted series artifact “${artifact.name}” to a thresholded scan alert.`
+    }
+  } catch (cause: any) {
+    promotionMessage.value = cause?.message ?? `Unable to promote the ${artifact.artifact_type} artifact to a thresholded condition`
+  } finally {
+    promoting.value = false
+  }
+}
 async function promoteStudy(run: ResearchRunSummary) {
   promoting.value = true
   promotionMessage.value = ''
@@ -901,4 +1012,5 @@ onBeforeUnmount(() => {
 .research-results-tool__occurrence-filters { display:flex; align-items:center; flex-wrap:wrap; gap:5px; color:#91a8b4; }.research-results-tool__occurrence-filters label { display:flex; align-items:center; gap:3px; }.research-results-tool__occurrence-filters input,.research-results-tool__occurrence-filters select { min-width:80px; border:1px solid #3a4954; background:#121a20; color:#dce6ed; font:inherit; padding:2px 3px; }.research-results-tool__occurrence-filters span { margin-left:auto; }
 .research-results-tool__event-promotions { display:flex; flex-wrap:wrap; gap:4px; }.research-results-tool__event-promotions button { padding:2px 4px; }
 .research-results-tool__artifact-promotions { display:flex; flex-wrap:wrap; gap:4px; }.research-results-tool__artifact-promotions button { padding:2px 4px; }
+.research-results-tool__series-condition { display:flex; align-items:center; flex-wrap:wrap; gap:4px; flex-basis:100%; color:#91a8b4; }.research-results-tool__series-condition label { display:flex; align-items:center; gap:3px; }.research-results-tool__series-condition select,.research-results-tool__series-condition input { min-width:52px; border:1px solid #3a4954; background:#121a20; color:#dce6ed; font:inherit; padding:2px 3px; }.research-results-tool__series-condition button { padding:2px 4px; }
 </style>
