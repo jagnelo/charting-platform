@@ -2392,11 +2392,15 @@ function familyReadinessReasonsLabel(role: { composite_readiness_reasons?: strin
   const reasons = (role.composite_readiness_reasons ?? []).filter(reason => reason.trim())
   return reasons.length ? ` · reasons ${reasons.join(' · ')}` : ''
 }
-function familyRefreshLabel(role: { holdings_refresh_status?: string; holdings_refresh_provider?: string | null; holdings_refresh_failure_reason?: string | null }) {
+function familyRefreshLabel(role: { holdings_refresh_status?: string; holdings_refresh_provider?: string | null; holdings_refresh_last_checked_at?: string | null; holdings_refresh_last_success_at?: string | null; holdings_refresh_last_failure_at?: string | null; holdings_refresh_failure_reason?: string | null; holdings_refresh_composition_date?: string | null }) {
   const status = role.holdings_refresh_status ?? 'not_attempted'
   const provider = role.holdings_refresh_provider?.trim()
+  const checked = role.holdings_refresh_last_checked_at?.slice(0, 10)
+  const success = role.holdings_refresh_last_success_at?.slice(0, 10)
+  const failure = role.holdings_refresh_last_failure_at?.slice(0, 10)
+  const composition = role.holdings_refresh_composition_date?.slice(0, 10)
   const reason = role.holdings_refresh_failure_reason?.trim()
-  return `${status}${provider ? ` · ${provider}` : ''}${reason ? ` · reason ${reason}` : ''}`
+  return `${status}${provider ? ` · ${provider}` : ''}${reason ? ` · reason ${reason}` : ''}${checked ? ` · checked ${checked}` : ''}${success ? ` · success ${success}` : ''}${failure ? ` · failed ${failure}` : ''}${composition ? ` · composition ${composition}` : ''}`
 }
 function latestFamilyRatio(ratio: { points: Array<{ value: number }> }) {
   const value = ratio.points.length ? ratio.points[ratio.points.length - 1]?.value : undefined

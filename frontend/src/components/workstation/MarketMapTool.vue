@@ -690,7 +690,13 @@ function benchmarkRoleRefreshLabel(role: BenchmarkFamilyCoverageRole): string {
       ? ` · checked ${role.holdings_refresh_last_checked_at.slice(0, 10)}`
       : ''
   const reason = role.holdings_refresh_failure_reason?.trim()
-  return `${status}${provider}${reason ? ` · reason ${reason}` : ''}`
+  const failure = role.holdings_refresh_last_failure_at
+    ? ` · failed ${role.holdings_refresh_last_failure_at.slice(0, 10)}`
+    : ''
+  const composition = role.holdings_refresh_composition_date
+    ? ` · composition ${role.holdings_refresh_composition_date.slice(0, 10)}`
+    : ''
+  return `${status}${provider}${reason ? ` · reason ${reason}` : ''}${failure}${composition}`
 }
 
 async function refreshHistory() {
