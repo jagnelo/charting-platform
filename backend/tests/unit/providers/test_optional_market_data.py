@@ -11,6 +11,7 @@ from app.providers.optional_market_data import (
     EODHDProvider,
     FinnhubProvider,
     FMPProvider,
+    MarketDataAppProvider,
     MarketstackProvider,
     TiingoProvider,
     TwelveDataProvider,
@@ -133,6 +134,38 @@ def test_daily_adapters_parse_common_rows():
             )
         assert len(bars) == 1
         assert bars[0].close == 10.5
+
+
+def test_marketdata_app_uses_documented_v1_root_and_parses_candles():
+    provider = MarketDataAppProvider()
+    payload = {
+        "s": "ok",
+        "t": [int(datetime(2024, 1, 2, tzinfo=UTC).timestamp())],
+        "o": [100],
+        "h": [102],
+        "l": [99],
+        "c": [101],
+        "v": [1234],
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ) as get,
+    ):
+        configured.MARKETDATA_APP_API_KEY = "demo"
+        bars = provider.fetch_ohlcv(
+            "AAPL",
+            Timeframe.D1,
+            datetime(2024, 1, 1, tzinfo=UTC),
+            datetime(2024, 1, 3, tzinfo=UTC),
+        )
+
+    assert provider.base_url == "https://api.marketdata.app/v1"
+    assert get.call_args.args[0] == "https://api.marketdata.app/v1/stocks/candles/D/AAPL"
+    assert get.call_args.kwargs["headers"] == {"Authorization": "Bearer demo"}
+    assert [(bar.open, bar.close) for bar in bars] == [(100.0, 101.0)]
 
 
 def test_missing_credentials_never_make_optional_call():

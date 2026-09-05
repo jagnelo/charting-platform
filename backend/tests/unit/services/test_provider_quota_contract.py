@@ -162,6 +162,15 @@ def test_marketstack_and_ibkr_use_provider_specific_pacing_contracts():
     assert all(dimension["source"].startswith("https://ibkrcampus.com/") for dimension in ibkr["dimensions"])
 
 
+def test_marketdata_app_records_documented_daily_credit_and_concurrency_limits():
+    seed = settings.PROVIDER_RATE_LIMIT_SEEDS["marketdata_app"]
+    contract = seed["quota_contract"]
+    assert contract["dimensions"][0]["limit"] == 100
+    assert contract["reset"] == "09:30 America/New_York"
+    assert contract["concurrent_requests"] == 50
+    assert seed["max_concurrency"] == 50
+
+
 def test_credit_contract_requires_the_requested_operation_cost():
     source = DataSource(
         name="marketdata_app",

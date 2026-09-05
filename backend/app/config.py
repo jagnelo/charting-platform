@@ -354,8 +354,10 @@ class Settings(BaseSettings):
                     {"name": "credits_per_day", "limit": 100, "window_seconds": 86400, "unit": "credits", "scope": "api_key", "source": "https://www.marketdata.app/docs/api/rate-limiting/"},
                 ],
                 "reset": "09:30 America/New_York",
+                "concurrent_requests": 50,
                 "operation_costs_required": True,
             },
+            "max_concurrency": 50,
             "quota_scope": "api_key",
             "quota_source": "MarketData.app rate-limiting documentation",
         },
@@ -445,7 +447,6 @@ class Settings(BaseSettings):
             "operation_costs": {
                 "fetch_ohlcv": 1,
                 "fetch_latest_ohlcv": 1,
-                "get_current_price": 1,
             },
         },
     }

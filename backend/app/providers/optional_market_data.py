@@ -483,7 +483,9 @@ class TradierProvider(_RESTProvider):
 
 class MarketDataAppProvider(_RESTProvider):
     name = "marketdata_app"
-    base_url = "https://api.marketdata.app/api/v1"
+    # The documented root is ``https://api.marketdata.app/`` and versioned
+    # resources live directly below ``/v1``.  There is no ``/api`` segment.
+    base_url = "https://api.marketdata.app/v1"
     description = "MarketData.app US stocks/options delayed REST data"
     key_setting = "MARKETDATA_APP_API_KEY"
     auth_mode = "header"
