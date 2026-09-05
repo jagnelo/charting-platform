@@ -3697,6 +3697,25 @@ remain unavailable for current analysis, AC10 remains deferred, and AC14
 remains the post-integration 30-day production shadow gate. No paid source,
 credential, other branch, or other worktree was modified.
 
+## PIMCO public fund-ui route audit — 2026-09-05
+
+The bounded read-only PIMCO route audit adds evidence without changing source
+eligibility. The official MINT and BOND product pages returned HTTP 200, but the
+public fund-ui bundle exposes only top-ten holdings routes for the holdings UI;
+it does not establish a complete unauthenticated basket artifact. Anonymous
+requests to the documented fund-ui top-ten endpoints returned HTTP 403, while
+the legacy public `www.pimco.com` top-ten route returned HTTP 404 when queried
+without an issuer session. No complete public route, credential, paid source,
+or entitlement was introduced.
+
+MINT and BOND therefore remain `unavailable` with
+`no_complete_executable_public_artifact`; the capability ledger now preserves
+the top-ten-only evidence, fund-ui access-denied result, and legacy-route
+not-found result alongside the prior authentication evidence. The shared
+provider-platform branch is still not an ancestor of staging, so AC10 remains
+deferred and AC14 remains the post-integration 30-day production shadow gate.
+No other branch or worktree was modified.
+
 ## Persisted canary-history API coverage checkpoint — 2026-09-05
 
 Test commit `f88ef4c1` adds the positive side of the canary-history contract.
