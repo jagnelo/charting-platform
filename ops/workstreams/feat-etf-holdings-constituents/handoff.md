@@ -3352,3 +3352,44 @@ volumes, and the network. No provider, staging, credential, paid activation,
 or other branch was mutated. AC10 remains deferred until the provider-platform
 branch reaches staging; AC14 remains pending its 30-day production shadow
 window.
+
+## Future-dated holdings rejection and focused browser rerun — 2026-09-05
+
+Implementation commit `014518147d419b954d4ae30a8f8506ef8a32f7c5`
+(`fix(etf): reject future-dated holdings snapshots`) closes a truthfulness gap
+in the shared refresh boundary. Both generic latest-route refreshes and explicit
+dated refreshes now reject composition or as-of metadata later than the runner's
+current date before snapshot ingestion. Canary evidence classifies this as
+`future_dated_source`, so a planned issuer rebalance cannot be persisted or
+advertised as current holdings. The focused unit coverage also proves rejection
+before ingestion and the explicit failure class. The live F/M contract records a
+future issuer date as an evidence-bearing skip; the Max JETU transport guard and
+the exact five-row McElhenny Sheffield MSMR shape guard preserve strict parsing
+without treating current external responses as application regressions.
+
+Focused validation passed: Ruff check, Ruff format check, diff-check, the
+refresh unit file (11 tests), and the deterministic ETF unit matrix (691 tests).
+The selected twelve live probes (the ten F/M symbols, JETU, and MSMR) compiled
+and were evidence-bearing skips in the current local DNS-restricted environment;
+they do not constitute live route success.
+
+The full Docker-backed gate was rerun at the implementation head. Dependency,
+migration, lint/type, backend coverage (`1819 passed`, total coverage `81.12%`),
+frontend unit/coverage (`928 passed`, total coverage `82.02%`), visual policy,
+frontend build, compose, provider-probe, branch-stack health, and
+research-runner stages passed. The gate stopped at functional Playwright with
+`152 passed`, `106 skipped`, and two unrelated workstation-flow failures:
+`F8r-easyscan-narrow` at `frontend/tests/e2e/flows.spec.ts:3124` and
+`F8s-market-map-watchlist` at `frontend/tests/e2e/flows.spec.ts:3500`. The
+visual and branch-specific stages did not run because the repository gate stops
+after functional E2E failure. A fresh branch-scoped stack rerun of exactly those
+two tests passed `2/2`; the stack was then torn down by the repository target.
+Resource status confirmed zero containers, zero volumes, zero known bytes, no
+testcontainer sessions, and no budget overrun. This narrows the full-gate result
+to `failed_unrelated_e2e`; it is not claimed green and does not block the
+ETF-owned future-date protection.
+
+AC10 remains deferred until the provider-platform branch reaches staging; AC14
+remains a post-integration 30-day production shadow gate. DXJ/NTSX/MINT/BOND
+remain explicitly non-current, and no provider, credential, paid source,
+staging branch, or other worktree was mutated.
