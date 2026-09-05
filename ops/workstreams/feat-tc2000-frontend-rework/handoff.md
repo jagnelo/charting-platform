@@ -10,6 +10,21 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Exact-tip exhaustive gate after member-history date ranges
+
+The `full_stack_browser` gate ran at metadata tip `dace1ab4` (product tip `6fa41b81`, with the
+date-range records committed). Locked dependency/migration checks, Ruff/format, TypeScript,
+backend units `1,315/1,315`, integration `383/383` with the existing `54` warnings, combined
+coverage `80.90%`, frontend Vitest `947/947` across `109` files, production build, compose/provider
+policy, stack health, runner isolation, and authenticated functional Playwright (`155` passed,
+`106` documented skips across `261` specs) passed. The only failing stage is the unchanged
+four-project visual matrix: `98/104` passed, with `watchlist-column-editor-open` at 1080p-100/125
+(`13,844` pixels each) and `workspace-floating` at 1080p-100/125/1440p-100/1440p-125
+(`11,901`/`9,770`/`9,770`/`12,097` pixels). No visual policy, fallback rule, baseline, mask,
+threshold, or skip changed; the floating actual still intentionally contains canonical benchmark
+rows after late-popout hydration. Teardown removed the assigned stack and generated resources;
+resource accounting was clean.
+
 ## 2026-09-05 — Surface canonical member-history date ranges
 
 Product commit `6fa41b81` (`feat(tc2000): surface member history date ranges`) makes the temporal

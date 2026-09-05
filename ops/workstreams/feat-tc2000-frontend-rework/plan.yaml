@@ -127,7 +127,10 @@ progress:
     98/104: watchlist-column-editor-open differs by 13844 pixels at 1080p-100/125, and
     workspace-floating differs by 11901/9770/9770/12097 pixels at 1080p-100/125/1440p-100/125.
     No baseline, mask, threshold, skip, fallback oracle, provider rule, or acceptance policy changed;
-    assigned stack teardown and resource accounting were clean. Canonical provider/history, richer
+    assigned stack teardown and resource accounting were clean. The latest exact-tip exhaustive
+    gate ran at metadata tip dace1ab4 (product tip 6fa41b81): all non-visual stages and functional
+    browser checks passed with the same 155 passes and 106 documented skips, while the visual matrix
+    remained 98/104 with six concentrated diffs. Canonical provider/history, richer
     Study targets, native-window/accessibility/security, dense-data, and visual-oracle review remain
     open.
   next_action: "Continue canonical provider/history population or the next compatible Study target slice with focused regression coverage, then rerun the exact-tip exhaustive gate at the new coherent tip; do not change visual policy or provider fallback rules."

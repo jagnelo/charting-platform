@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-09-05 — Exact-tip exhaustive gate after member-history date ranges
+
+- [x] Re-run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at
+      metadata tip `dace1ab4` (product tip `6fa41b81`, with the date-range records committed).
+      Locked dependency/migration checks, Ruff/format, TypeScript, backend units (`1,315/1,315`),
+      integration (`383/383` with the existing `54` warnings), combined coverage (`80.90%`),
+      frontend Vitest (`947/947` across `109` files), production build, compose/provider policy,
+      stack health, runner isolation, and authenticated functional Playwright (`155` passed,
+      `106` documented skips across `261` specs) all passed.
+- [x] Preserve the unchanged visual acceptance result: `98/104` passed. The six failures remain
+      `watchlist-column-editor-open` at visual-1080p-100/125 (`13,844` pixels each) and
+      `workspace-floating` at visual-1080p-100/125/1440p-100/1440p-125 (`11,901`/`9,770`/
+      `9,770`/`12,097` pixels). The workspace-floating actual still intentionally contains
+      canonical benchmark rows after late-popout hydration. No baseline, mask, threshold, skip,
+      fallback, provider rule, or acceptance policy changed; gate teardown and resource
+      accounting were clean.
+- [ ] Continue canonical provider/history population, richer compatible Study targets,
+      native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review;
+      this visual matrix is the current reproducible gate blocker.
+
 ### 2026-09-05 — Surface canonical member-history date ranges
 
 - [x] Extend the Market Map canonical benchmark-family readiness label with each returned

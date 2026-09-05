@@ -20,6 +20,20 @@ full frontend suite passed `947/947` across `109` files, TypeScript/type-check, 
 and diff checks passed, and the authenticated F8s drill-down passed `1/1` with the new range
 assertion on a rebuilt branch-scoped Docker stack. Teardown removed all assigned resources.
 
+The latest exact-tip exhaustive gate ran at metadata tip `dace1ab4` (product tip `6fa41b81`, with
+the member-history date-range records committed). Locked dependency/migration checks, Ruff/format,
+TypeScript, backend units `1,315/1,315`, integration `383/383` with the existing `54` warnings,
+combined coverage `80.90%`, frontend Vitest `947/947` across `109` files, production build,
+compose/provider policy, stack health, runner isolation, and authenticated functional Playwright
+(`155` passed, `106` documented skips across `261` specs) all passed. The four-project visual
+matrix remains the only failing stage at `98/104`: `watchlist-column-editor-open` differs by
+`13,844` pixels at 1080p-100/125, and `workspace-floating` differs by `11,901`/`9,770`/
+`9,770`/`12,097` pixels at 1080p-100/125 and 1440p-100/125. No visual baseline, mask, threshold,
+skip, fallback oracle, provider rule, or acceptance policy changed; the workspace-floating actual
+still intentionally contains canonical benchmark rows after late-popout hydration. Teardown and
+resource accounting were clean. The goal remains active while canonical provider/history, richer
+Study, native-window, accessibility/security, dense-data, and visual-oracle gaps remain open.
+
 The preceding product slice is `22fd676e` (`feat(tc2000): promote structured study events to signals`).
 Research Results now offers `Save Strategy signal` for a named event artifact from a completed
 multi-output Study run. It creates an explicit `events` signal asset for the selected output and
@@ -49,7 +63,7 @@ suite passed `383/383` with the existing `54` warnings. The integration-only cov
 `48.09%` and hits the configured `55%` floor because the normal threshold is measured across the
 combined unit/integration gate; this is recorded as an invocation-scope caveat.
 
-The latest exact-tip exhaustive gate ran at metadata tip `aa8fbd0b` (product tip `3a7e4861`, with
+The preceding exact-tip exhaustive gate ran at metadata tip `aa8fbd0b` (product tip `3a7e4861`, with
 the durable Study event-lineage records committed). All non-visual stages and authenticated
 functional Playwright passed: backend units `1,315/1,315`, integration `383/383` with the existing
 `54` warnings, combined coverage `80.90%`, frontend Vitest `947/947` across `109` files, and
