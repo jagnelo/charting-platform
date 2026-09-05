@@ -10,6 +10,23 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Expose canonical holdings-refresh timestamps
+
+Product commit `3c44b2de` surfaces returned holdings-refresh checked, failed,
+and composition dates in the Market Breadth family coverage strip and Market
+Map canonical readiness list. Existing status/provider/reason labels remain
+stable; missing timestamps remain omitted, with no readiness inference,
+provider retry, fallback, or acceptance-policy change. Focused Market Map
+coverage passed `36/36`; full frontend Vitest passed `970/970`; type-check and
+production build passed; rebuilt authenticated Chromium
+`F8s-breadth-family-ratio` passed `1/1` with the new timestamp labels. The
+first browser attempt found no listening stack before assertions and was
+cleaned; the healthy rebuild passed. Final teardown removed four generated
+images and resource accounting reported zero containers, volumes, sessions,
+and known bytes. The next action is the exact-tip gate at the next coherent
+documentation tip; preserve the six visual state-oracle diffs and unchanged
+provider/fallback policy.
+
 ## 2026-09-05 — Exact-tip exhaustive gate after canonical holdings-refresh diagnostics
 
 At product tip `347602f3` (documentation tip `def196bc`), the exact-tip

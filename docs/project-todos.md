@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-05 — Expose canonical holdings-refresh timestamps
+
+- [x] Show returned holdings-refresh checked, failed, and composition dates in
+      the Market Breadth family coverage strip and Market Map canonical
+      readiness list; omit missing fields and do not infer readiness, retry
+      providers, or change fallback/acceptance policy.
+- [x] Product commit `3c44b2de` is pushed; focused Market Map coverage passed
+      `36/36`, full frontend Vitest passed `970/970`, type-check/build passed,
+      and rebuilt authenticated `F8s-breadth-family-ratio` passed `1/1` with
+      the new checked/failed/composition labels asserted. The initial stack
+      attempt was cleaned before assertion; the healthy retry passed and final
+      cleanup left zero containers, volumes, images, sessions, and known bytes.
+- [ ] Rerun the exact-tip integration gate at the next documentation tip,
+      preserving the six known visual state-oracle diffs and all provider,
+      fallback, baseline, and acceptance policy.
+
 ### 2026-09-05 — Exact-tip gate after canonical holdings-refresh diagnostics
 
 - [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework`

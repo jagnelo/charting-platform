@@ -5,6 +5,22 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-05
 
+## 2026-09-05 — Expose canonical holdings-refresh timestamps
+
+Product commit `3c44b2de` (`feat(tc2000): expose refresh timestamps`) now
+surfaces returned holdings-refresh `checked`, `failed`, and `composition` dates
+in the Market Breadth family coverage strip and Market Map canonical readiness
+list. Existing status/provider/reason labels remain stable; missing timestamps
+remain omitted, and the consumer does not infer readiness, retry providers, or
+change fallback or acceptance policy. Focused Market Map coverage passed
+`36/36`; full frontend Vitest passed `970/970`; type-check and production
+build passed; rebuilt authenticated Chromium `F8s-breadth-family-ratio` passed
+`1/1` with `checked 2026-07-03`, `failed 2026-07-04`, and composition dates
+asserted. The first retry attempt found no listening stack before assertions;
+cleanup was complete, the healthy rebuild passed, and final teardown removed
+four generated images with zero containers, volumes, sessions, and known
+bytes. The next exact-tip gate is required at the following documentation tip.
+
 ## 2026-09-05 — Exact-tip gate after canonical holdings-refresh diagnostics
 
 At product tip `347602f3` (documentation tip `def196bc`), the exact-tip
