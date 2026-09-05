@@ -17,6 +17,7 @@ from app.services.etf_holdings_capability import (
     freshness_deadline,
     infer_expected_cadence,
     load_canary_history,
+    load_canary_history_for_symbol,
     symbol_audit_for_profile,
 )
 from app.services.etf_holdings_refresh import _canary_failure_class
@@ -267,6 +268,20 @@ async def test_canary_history_read_is_bounded_and_does_not_probe():
         {"sequence": 3, "status": "success"},
         {"sequence": 4, "status": "success"},
     ]
+
+
+async def test_canary_history_symbol_read_does_not_hydrate_unknown_symbols():
+    class Result:
+        def scalar_one_or_none(self):
+            return None
+
+    class Database:
+        async def execute(self, _statement):
+            return Result()
+
+    result = await load_canary_history_for_symbol(Database(), "  DXJ ")
+
+    assert result == []
 
 
 def test_unverified_identity_never_becomes_current_even_with_complete_rows():

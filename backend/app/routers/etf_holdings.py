@@ -99,7 +99,7 @@ from app.services.etf_holdings_adapters import (
 from app.services.etf_holdings_capability import (
     current_analysis_error_detail,
     evaluate_tier0_shadow_gate,
-    load_canary_history,
+    load_canary_history_for_symbol,
     load_tier0_shadow_observations,
     tier0_symbols,
 )
@@ -566,11 +566,10 @@ async def holdings_canary_history(
 ):
     """Inspect bounded persisted canary evidence without triggering a fetch."""
 
-    instrument = await ensure_lightweight_etf_instrument(db, symbol=symbol)
-    profile = await ensure_etf_profile(db, instrument)
-    observations = await load_canary_history(db, profile.id, limit=limit)
+    normalized_symbol = symbol.strip().upper()
+    observations = await load_canary_history_for_symbol(db, normalized_symbol, limit=limit)
     return ETFHoldingsCanaryHistoryOut(
-        symbol=instrument.symbol,
+        symbol=normalized_symbol,
         observations=[dict(observation) for observation in observations],
     )
 

@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -138,6 +138,30 @@ async def load_canary_history(
         for observation in history[-bounded_limit:]
         if isinstance(observation, Mapping)
     ]
+
+
+async def load_canary_history_for_symbol(
+    db: AsyncSession,
+    symbol: str,
+    *,
+    limit: int = 90,
+) -> list[Mapping[str, Any]]:
+    """Read canary history for an existing symbol without hydrating catalog rows."""
+
+    normalized_symbol = str(symbol or "").strip().upper()
+    if not normalized_symbol:
+        return []
+    profile_id = (
+        await db.execute(
+            select(ETFProfile.id)
+            .join(Instrument, Instrument.id == ETFProfile.instrument_id)
+            .where(func.upper(Instrument.symbol) == normalized_symbol)
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    if profile_id is None:
+        return []
+    return await load_canary_history(db, int(profile_id), limit=limit)
 
 
 def current_analysis_error_detail(capability: ETFHoldingsCapability) -> dict[str, Any]:
