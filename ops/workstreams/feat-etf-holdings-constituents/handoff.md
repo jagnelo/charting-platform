@@ -4393,3 +4393,14 @@ remain explicitly non-current; no credential, paid source, direct-provider
 route, protected-worktree mutation, or staging integration occurred. The next
 executable action remains the narrow ETF capability bridge after the shared
 provider branch reaches staging.
+
+## WisdomTree transport-boundary recheck — 2026-09-05
+
+The current browser-visible NTSX product page renders a dated ten-row holdings
+preview and a `View all holdings` control, but the direct curl-like
+application request to that official route returns Cloudflare challenge HTML.
+The browser surface therefore does not prove a complete executable route for
+the repository transport. NTSX remains unavailable, and no issuer route,
+native provider, SEC fallback, credential, or paid source was promoted.
+Evidence refs: `web:wisdomtree-ntsx-product-page-2026-09-05` and
+`live:wisdomtree-ntsx-product-curl-2026-09-05-cloudflare`.

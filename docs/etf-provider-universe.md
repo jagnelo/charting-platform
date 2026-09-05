@@ -1976,3 +1976,11 @@ incomplete, paid-gated, or periodic; none is promoted as current support.
 Evidence refs: `web:wisdomtree-ntsx-product-page-2026-09-05`,
 `web:stockanalysis-dxj-holdings-preview-2026-09-05`, and
 `web:portfolioslab-mint-nport-holdings-2026-09-05`.
+
+The current NTSX page also renders a dated ten-row holdings preview and a
+`View all holdings` control in browser-visible content. A direct curl-like
+application request to the same official route still returns Cloudflare
+challenge HTML, so the browser surface is not a complete executable source
+for the repository transport. NTSX remains `unavailable`; evidence refs are
+`web:wisdomtree-ntsx-product-page-2026-09-05` and
+`live:wisdomtree-ntsx-product-curl-2026-09-05-cloudflare`.

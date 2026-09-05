@@ -1779,6 +1779,10 @@ providers:
         source: "candidate adapter failure-boundary test"
         result: "When explicit SEC identifiers are present, a blocked WisdomTree route may return governed SEC reconstruction with issuer_route_failure and issuer_route_fallback provenance; without identifiers, the issuer failure remains unavailable."
         evidence_ref: "test:wisdomtree-route-failure-sec-fallback-2026-09-05"
+      - date: 2026-09-05
+        source: "https://www.wisdomtree.com/us/products/capital-efficient/ntsx; curl-like application request to the same route"
+        result: "The current browser-visible NTSX page shows a dated ten-row holdings preview and a View all holdings control, but the direct application-style request returns Cloudflare challenge HTML. The browser surface therefore does not establish a complete executable route for the repository transport; NTSX remains unavailable."
+        evidence_ref: "web:wisdomtree-ntsx-product-page-2026-09-05; live:wisdomtree-ntsx-product-curl-2026-09-05-cloudflare"
     disposition_reason: "wisdomtree: The issuer API is a promising first-party candidate, but application-equivalent transport still receives HTTP 403; DXJ/NTSX remain unavailable and are not promoted."
     next_action: "wisdomtree: Re-test the product-page/API session sequence and promote only after the repository transport obtains complete current rows for both symbols with deterministic and bounded live evidence."
     implementation_sha: null
