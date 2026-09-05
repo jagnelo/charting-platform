@@ -1775,6 +1775,10 @@ providers:
         source: "bounded application live adapter route"
         result: "The candidate adapter's product-page and API requests receive HTTP 403 from Cloudflare through httpx for both DXJ and NTSX; no repeatable application-executable route is proven."
         evidence_ref: "live:wisdomtree-public-fund-holdings-api-2026-09-05-httpx-403"
+      - date: 2026-09-05
+        source: "candidate adapter failure-boundary test"
+        result: "When explicit SEC identifiers are present, a blocked WisdomTree route may return governed SEC reconstruction with issuer_route_failure and issuer_route_fallback provenance; without identifiers, the issuer failure remains unavailable."
+        evidence_ref: "test:wisdomtree-route-failure-sec-fallback-2026-09-05"
     disposition_reason: "wisdomtree: The issuer API is a promising first-party candidate, but application-equivalent transport still receives HTTP 403; DXJ/NTSX remain unavailable and are not promoted."
     next_action: "wisdomtree: Re-test the product-page/API session sequence and promote only after the repository transport obtains complete current rows for both symbols with deterministic and bounded live evidence."
     implementation_sha: null

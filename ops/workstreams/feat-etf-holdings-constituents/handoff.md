@@ -3560,3 +3560,20 @@ tests; Ruff and diff-check passed; workstream validation passed; the ETF API
 integration suite passed `65/66`, with the remaining WTST unknown-symbol route
 contract rerun passing in isolation. The two escalated live canaries are
 recorded as external `httpx`/Cloudflare 403 evidence, not as live success.
+
+## WisdomTree route-failure fallback checkpoint — 2026-09-05
+
+Implementation commit `40b52f0fbcc88917de27b4866c019e2f710423bd`
+(`fix(etf): preserve SEC fallback provenance on issuer block`) hardens the
+candidate route's failure boundary. A blocked product/API session may use the
+existing SEC reconstruction only when explicit SEC identifiers are supplied;
+the returned result is labelled with `issuer_route_failure` and
+`issuer_route_fallback=sec_edgar_filing`. Without identifiers, the original
+issuer failure remains unavailable rather than silently guessing a filing.
+
+Deterministic adapter, capability, and refresh coverage passed `670` tests;
+Ruff, diff-check, and workstream validation passed. The application-equivalent
+WisdomTree live route remains HTTP 403-blocked, so provider counts remain
+496/414/82 and DXJ/NTSX remain unavailable for current analysis. No native
+promotion, paid activation, staging mutation, or provider-platform integration
+was made.
