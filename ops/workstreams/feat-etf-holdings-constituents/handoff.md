@@ -3726,6 +3726,20 @@ No provider-platform or staging worktree was modified. The ETF branch remains
 ready to add only the narrow holdings capability bridge after the shared branch
 is promoted into staging.
 
+## Provider-platform dependency refresh — 2026-09-05 (latest remote state)
+
+The latest read-only remote refresh places `origin/feat/market-data-provider-platform`
+at `4d36ebd2`, while `origin/staging` remains `8b885a2f`. The provider branch is
+therefore 58 commits ahead of staging and is still not an ancestor of staging.
+Its `ProviderCapability` enum still has no `ETF_HOLDINGS` member, so the shared
+capability, entitlement, quota, budget, health, and routing contracts remain
+unavailable to this ETF branch under AC10.
+
+No provider-platform or staging worktree was modified. The ETF branch remains
+clean and ready to add only the narrow holdings capability bridge after the
+shared branch reaches staging; DXJ/NTSX/MINT/BOND remain non-current and no
+direct or paid route is activated.
+
 ## PIMCO public fund-ui route audit — 2026-09-05
 
 The bounded read-only PIMCO route audit adds evidence without changing source
