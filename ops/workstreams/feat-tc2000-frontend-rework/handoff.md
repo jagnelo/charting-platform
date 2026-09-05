@@ -21,7 +21,25 @@ Evidence: focused Market Map coverage `36/36`; full frontend Vitest `947/947` ac
 TypeScript/type-check, production build, and diff checks passed; authenticated `F8s-family-matrix`
 passed `1/1` against the rebuilt branch-scoped Docker stack with the range assertion. Teardown and
 resource accounting removed all assigned containers, volumes, generated images, and test-container
-sessions. The exact-tip exhaustive gate is queued at this coherent product tip.
+sessions.
+
+## 2026-09-05 — Exact-tip exhaustive gate after source-history ranges
+
+The `full_stack_browser` gate ran at metadata tip `70d99baf` (product tip `ad90b988`). Locked
+dependency/migration checks, Ruff/format, TypeScript, backend units `1,315/1,315`, integration
+`383/383` with the existing `54` warnings, combined coverage `80.90%`, frontend Vitest `947/947`
+across `109` files, production build, compose/provider policy, stack health, runner isolation, and
+authenticated functional Playwright (`155` passed, `106` documented skips across `261` specs) all
+passed. The first full rerun had one transient F8r Python Library narrow-window discovery failure;
+a fresh-stack isolated retry passed `1/1` plus `3/3` repeats, and the subsequent full functional
+rerun passed. The only failing stage is the unchanged four-project visual matrix: `98/104` passed,
+with `watchlist-column-editor-open` at visual-1080p-100/125 (`13,844` pixels each), and
+`workspace-floating` at visual-1080p-100/125/1440p-100/1440p-125 (`11,901`/`12,097`/`12,097`/
+`5,512` pixels). No visual policy, fallback rule, baseline, mask, threshold, or skip changed; the
+floating actual still intentionally contains canonical benchmark rows after late-popout hydration.
+Teardown removed the assigned stack and generated resources; resource accounting was clean. The
+goal remains active for canonical provider/history, richer Study, native-window,
+accessibility/security, dense-data, and visual-oracle work.
 
 ## 2026-09-05 — Exact-tip exhaustive gate after member-history date ranges
 

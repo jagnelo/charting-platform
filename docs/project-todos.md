@@ -12,8 +12,16 @@
       branch-scoped Docker browser check passed `1/1`; teardown removed all assigned containers,
       volumes, generated images, and test-container sessions. Product commit `ad90b988` is pushed
       to `origin/feat/tc2000-frontend-rework`.
-- [ ] Re-run the exact-tip exhaustive gate at this coherent product tip. Preserve the unchanged
-      visual policy and the reproducible six-diff matrix blocker.
+- [x] Re-run the exact-tip exhaustive gate at metadata tip `70d99baf` (product tip `ad90b988`).
+      Backend units (`1,315/1,315`), integration (`383/383` with the existing `54` warnings),
+      combined coverage (`80.90%`), frontend Vitest (`947/947`), type-check/build, compose and
+      provider policy, stack/runner probes, and functional Playwright (`155` passed, `106` skips)
+      passed. A transient F8r Python Library narrow-window discovery failure was cleared by a
+      fresh-stack isolated retry (`1/1` plus `3/3` repeats) before the successful full rerun.
+- [ ] Preserve the unchanged visual policy and the reproducible six-diff matrix blocker:
+      `98/104` passed; `watchlist-column-editor-open` differs by `13,844` pixels at 1080p-100/125,
+      while `workspace-floating` differs by `11,901`/`12,097`/`12,097`/`5,512` pixels at
+      1080p-100/125 and 1440p-100/125.
 
 ### 2026-09-05 — Exact-tip exhaustive gate after member-history date ranges
 

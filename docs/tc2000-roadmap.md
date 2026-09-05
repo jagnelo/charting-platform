@@ -22,19 +22,22 @@ assigned resources. The preceding product slice `6fa41b81` added the same observ
 the benchmark-family role labels; this follow-on generalizes the visibility to all source-history
 timeframes without changing provider or fallback policy.
 
-The latest exact-tip exhaustive gate ran at metadata tip `dace1ab4` (product tip `6fa41b81`, with
-the member-history date-range records committed). Locked dependency/migration checks, Ruff/format,
+The latest exact-tip exhaustive gate ran at metadata tip `70d99baf` (product tip `ad90b988`, with
+the source-history readiness records committed). Locked dependency/migration checks, Ruff/format,
 TypeScript, backend units `1,315/1,315`, integration `383/383` with the existing `54` warnings,
 combined coverage `80.90%`, frontend Vitest `947/947` across `109` files, production build,
 compose/provider policy, stack health, runner isolation, and authenticated functional Playwright
 (`155` passed, `106` documented skips across `261` specs) all passed. The four-project visual
 matrix remains the only failing stage at `98/104`: `watchlist-column-editor-open` differs by
-`13,844` pixels at 1080p-100/125, and `workspace-floating` differs by `11,901`/`9,770`/
-`9,770`/`9,770` pixels at 1080p-100/125 and 1440p-100/125. No visual baseline, mask, threshold,
-skip, fallback oracle, provider rule, or acceptance policy changed; the workspace-floating actual
-still intentionally contains canonical benchmark rows after late-popout hydration. Teardown and
-resource accounting were clean. The goal remains active while canonical provider/history, richer
-Study, native-window, accessibility/security, dense-data, and visual-oracle gaps remain open.
+`13,844` pixels at 1080p-100/125, and `workspace-floating` differs by
+`11,901`/`12,097`/`12,097`/`5,512` pixels at 1080p-100/125 and 1440p-100/125. No visual baseline,
+mask, threshold, skip, fallback oracle, provider rule, or acceptance policy changed; the
+workspace-floating actual still intentionally contains canonical benchmark rows after late-popout
+hydration. The first full rerun had one transient F8r Python Library narrow-window discovery
+failure; a fresh-stack isolated retry passed `1/1` and `3/3` repeats, and the subsequent full
+functional rerun passed. Teardown and resource accounting were clean. The goal remains active while
+canonical provider/history, richer Study, native-window, accessibility/security, dense-data, and
+visual-oracle gaps remain open.
 
 The preceding product slice is `22fd676e` (`feat(tc2000): promote structured study events to signals`).
 Research Results now offers `Save Strategy signal` for a named event artifact from a completed
