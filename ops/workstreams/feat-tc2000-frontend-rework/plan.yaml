@@ -106,6 +106,13 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
+    Current slice adds canonical batch family relative-strength history rendering as aligned
+    role-coloured uPlot lines. Lifecycle/alignment coverage passed 26/26, TypeScript/build passed,
+    and authenticated Chromium F8s-breadth-family-ratio passed 1/1 on a rebuilt branch-scoped
+    stack with chart visibility asserted; teardown and resource accounting were clean. Product and
+    durable receipt commit are pending before the exact-tip gate. Preserve unchanged provider/
+    fallback and visual acceptance policy, then rerun the gate at the next coherent documentation
+    tip.
     Exact-tip full_stack_browser gate at metadata tip a9f7451c (product tip 335992cd) passed all
     locked dependency/migration, workstream, lint/format/type-check, backend unit/integration and
     combined coverage (80.93%), frontend Vitest, build, compose/provider, stack-health, runner
@@ -236,6 +243,12 @@ progress:
     dense-data, and visual-oracle review remain open.
   next_action: "Implement the next bounded canonical provider/history slice with authenticated evidence; preserve the six visual state-oracle assertions and unchanged visual/provider fallback policy, then rerun the exact-tip gate at the next coherent tip."
 remaining_gaps:
+  - "Current family relative-strength slice renders canonical batch ratio points as aligned
+    role-coloured history lines with null-preserved gaps and explicit unavailable state. Lifecycle
+    coverage passed 26/26, TypeScript/build passed, authenticated F8s-breadth-family-ratio passed
+    1/1 on a rebuilt branch-scoped stack, and teardown/resource accounting were clean. Commit/push
+    the product and durable receipt, then rerun the exact-tip gate while preserving the six visual
+    state-oracle diffs and unchanged visual/provider/fallback policy."
   - "Exact-tip gate at metadata tip a9f7451c (product tip 335992cd) passed all non-visual stages,
     visual execution, and 156/157 functional Playwright cases with 106 documented skips; the one
     F8s-market-map-watchlist detached-DOM timeout passed on a fresh isolated retry (1/1), so it is

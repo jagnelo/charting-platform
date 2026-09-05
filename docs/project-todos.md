@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-05 — Render family relative-strength history
+
+- [x] Render canonical batch family ratio points as an aligned role-coloured uPlot history chart;
+      preserve missing timestamps as nulls without forward filling and fail closed on malformed or
+      non-finite observations while retaining latest values, coverage, warnings, and provenance.
+- [x] Add lifecycle/alignment coverage (`26/26`), TypeScript, production build, and authenticated
+      Chromium `F8s-breadth-family-ratio` (`1/1`) asserting the history chart on a rebuilt
+      branch-scoped stack; teardown and resource cleanup were clean.
+- [ ] Commit/push this product slice and rerun the exact-tip exhaustive gate at the next coherent
+      documentation tip. Preserve the six existing visual state-oracle failures and unchanged
+      visual/provider/fallback policy.
+
 ### 2026-09-05 — Render cross-family ranking history
 
 - [x] Render canonical cross-family ranking-history `relative_performance` series as family-labelled

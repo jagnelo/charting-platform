@@ -5,6 +5,18 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-05
 
+## 2026-09-05 — Render family relative-strength history
+
+The Market Map family relative-strength surface now renders the canonical batch ratio points as
+an aligned role-coloured uPlot history chart. Missing timestamps remain `null` and malformed or
+non-finite points fail closed with an explicit unavailable state; the existing latest ratio values,
+coverage, warnings, and provenance remain visible.
+
+Lifecycle/alignment coverage passes `26/26`, TypeScript and production build pass, and authenticated
+Chromium `F8s-breadth-family-ratio` passes `1/1` with the history chart asserted visible on a rebuilt
+branch-scoped stack. Teardown removed all assigned resources. The exact-tip gate at this product tip
+is pending; preserve the six existing visual state-oracle diffs and unchanged provider/fallback policy.
+
 ## 2026-09-05 — Exact-tip gate after cross-family ranking history
 
 The exact-tip `full_stack_browser` gate at metadata tip `a9f7451c` (product tip `335992cd`)

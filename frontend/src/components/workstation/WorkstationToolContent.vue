@@ -680,8 +680,9 @@
             <small>{{ ratio.points.length }} points · {{ (ratio.coverage * 100).toFixed(0) }}%</small>
           </span>
         </template>
-        <span v-else class="breadth-tool__status">No aligned family ratio data.</span>
-      </div>
+          <span v-else class="breadth-tool__status">No aligned family ratio data.</span>
+          <BenchmarkFamilyRatioHistoryUPlot v-if="familyRatios" :ratios="familyRatios" />
+        </div>
       <div v-if="isBenchmarkFamily" class="breadth-tool__family-technicals" aria-label="Benchmark family technicals">
         <strong>Family technicals</strong>
         <span v-if="familyTechnicalsLoading" role="status">Loading…</span>
@@ -887,6 +888,7 @@ import StudyLabTool from './StudyLabTool.vue'
 import UnknownToolRecovery from './UnknownToolRecovery.vue'
 import BreadthHistoryUPlot from './BreadthHistoryUPlot.vue'
 import BenchmarkFamilyBreadthHistoryUPlot from './BenchmarkFamilyBreadthHistoryUPlot.vue'
+import BenchmarkFamilyRatioHistoryUPlot from './BenchmarkFamilyRatioHistoryUPlot.vue'
 import BenchmarkFamilyConcentrationHistoryUPlot from './BenchmarkFamilyConcentrationHistoryUPlot.vue'
 import CrossFamilyRankingHistoryUPlot from './CrossFamilyRankingHistoryUPlot.vue'
 import GenericBreadthHistoryUPlot from './GenericBreadthHistoryUPlot.vue'

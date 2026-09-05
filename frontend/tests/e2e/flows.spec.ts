@@ -4322,6 +4322,7 @@ test.describe('TC2000 workstation', () => {
     const familyPanel = breadth.locator('[aria-label="Benchmark family relative strength"]')
     await expect(familyPanel).toBeVisible({ timeout: 10_000 })
     await expect(familyPanel).toContainText('RSP/SPY', { timeout: 15_000 })
+    await expect(breadth.locator('[aria-label="Benchmark family relative strength history"]')).toBeVisible({ timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Benchmark family technicals"]')).toContainText('Cap weight SPY · 600.00 · RSI 55.00', { timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Benchmark family participation"]')).toContainText('Cap weight SPY · >20 70% · near 52w 40% · trend 65%', { timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Benchmark family role ranking"]')).toContainText('#1 Equal weight RSP', { timeout: 15_000 })
