@@ -4583,3 +4583,12 @@ native/live-backed. The current code-derived split is 496 registered / 415
 native-live-backed / 81 fallback-only, with the 16-day date search retained as
 the route canary boundary. Implementation checkpoint:
 `93a488ea8da77f7acf056e52f695787c69243f17`.
+
+## Post-promotion validation — complete opt-in issuer matrix — 2026-09-05
+
+The complete opt-in ETF issuer matrix passed 497 cases with 20 narrowly
+evidenced external skips in 14m08s. The new Anydrus route passed within that
+matrix; no parser, identity, completeness, or live-skip contract was weakened.
+The validation receipt is recorded in `validation.jsonl`; the provider-platform
+staging dependency, unresolved Tier-0 routes, and human closure boundary remain
+unchanged.
