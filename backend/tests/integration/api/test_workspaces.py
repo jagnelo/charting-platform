@@ -3909,11 +3909,11 @@ class TestWorkspaces:
         assert current.status_code == 409
         assert current.json()["detail"] == {
             "code": "etf_holdings_not_current",
-            "availability": "degraded",
-            "source_tier": "manual_upload",
+            "availability": "stale",
+            "source_tier": "issuer_native",
             "usable_for_current_analysis": False,
             "failure_class": None,
-            "reason": "Holdings were manually uploaded and are not issuer-current support.",
+            "reason": "No concrete ETF holdings adapter is assigned to this profile.",
         }
 
         response = client.get(
