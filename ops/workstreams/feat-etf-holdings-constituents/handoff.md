@@ -4604,3 +4604,15 @@ matrix; no parser, identity, completeness, or live-skip contract was weakened.
 The validation receipt is recorded in `validation.jsonl`; the provider-platform
 staging dependency, unresolved Tier-0 routes, and human closure boundary remain
 unchanged.
+
+## Exact-SHA GitHub Actions validation — 2026-09-05
+
+Run `33992545311` validated feature tip
+`97b1c9dfe2b5351193b2100cad69fce9194162c2` successfully. Backend Tests,
+Frontend Unit Tests, Branch-declared Tests, and Playwright E2E all completed
+successfully; the staging/master-only Exhaustive Integration Gate was skipped
+as designed for this feature branch. The run is authoritative exact-SHA CI
+evidence for the synchronized feature tip, not evidence that the provider-
+platform dependency has reached staging. AC10 remains deferred, DXJ/NTSX/MINT/
+BOND remain unavailable for current analysis, and AC14 remains a post-
+integration/deployment shadow-gate step.

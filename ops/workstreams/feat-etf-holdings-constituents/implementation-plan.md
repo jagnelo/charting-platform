@@ -3281,3 +3281,15 @@ branch-scoped stack retry of that exact test passed 1/1, and scoped teardown
 removed all containers, volumes, and images. No ETF assertion failed; the
 transient browser observation remains distinct from the green deterministic and
 opt-in ETF receipts.
+
+## Exact-SHA GitHub Actions validation — 2026-09-05
+
+GitHub Actions run `33992545311` completed successfully for feature tip
+`97b1c9dfe2b5351193b2100cad69fce9194162c2`. Backend Tests, Frontend Unit
+Tests, Branch-declared Tests, and Playwright E2E all passed. The
+staging/master-only Exhaustive Integration Gate was skipped as designed for a
+feature branch. This closes the exact-SHA CI evidence item for the current
+implementation tip without changing provider classifications or source
+eligibility. The provider-platform staging dependency, AC10, unresolved
+DXJ/NTSX/MINT/BOND current-support outcomes, and post-integration AC14 shadow
+gate remain open.
