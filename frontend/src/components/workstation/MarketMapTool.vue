@@ -175,7 +175,7 @@
             <span>{{ role.label }}{{ role.symbol ? ` (${role.symbol})` : '' }}</span>
             <span>{{ role.composite_readiness_status }}</span>
             <span>{{ benchmarkRoleCoverageLabel(role) }}</span>
-            <small>Route: {{ role.holdings_route_status ?? 'not configured' }}{{ role.holdings_route_provider ? ` · ${role.holdings_route_provider}` : '' }} · Refresh: {{ role.holdings_refresh_status ?? 'not attempted' }}</small>
+            <small>Route: {{ role.holdings_route_status ?? 'not configured' }}{{ role.holdings_route_provider ? ` · ${role.holdings_route_provider}` : '' }} · Refresh: {{ benchmarkRoleRefreshLabel(role) }}</small>
             <small>Members: {{ role.member_count }} · Weighted: {{ role.weighted_member_count }} ({{ role.weights_status.replace(/_/g, ' ') }}) · Classified: {{ role.classified_member_count }} ({{ role.classification_status.replace(/_/g, ' ') }}) · Point-in-time: {{ role.point_in_time_supported ? 'supported' : 'unavailable' }}</small>
             <small v-if="role.member_bar_history?.timeframes?.length">History: {{ benchmarkRoleHistoryLabel(role) }}</small>
             <small v-if="role.entitlement_status || role.entitlement_provider">Entitlement: {{ role.entitlement_status?.replace(/_/g, ' ') ?? 'unknown' }}{{ role.entitlement_provider ? ` · ${role.entitlement_provider}` : '' }}{{ role.entitlement_live_probe_status ? ` · probe ${role.entitlement_live_probe_status.replace(/_/g, ' ')}` : '' }}</small>
@@ -680,6 +680,17 @@ function benchmarkRoleLatestSnapshotLabel(role: BenchmarkFamilyCoverageRole): st
   const resolved = `${snapshot.resolved_count}/${snapshot.row_count} resolved`
   const source = snapshot.source_provider ? ` · ${snapshot.source_provider}` : ''
   return `${composition}${asOf}${knownAt} · ${resolved}${source}`
+}
+
+function benchmarkRoleRefreshLabel(role: BenchmarkFamilyCoverageRole): string {
+  const status = role.holdings_refresh_status ?? 'not attempted'
+  const provider = role.holdings_refresh_last_success_at
+    ? ` · success ${role.holdings_refresh_last_success_at.slice(0, 10)}`
+    : role.holdings_refresh_last_checked_at
+      ? ` · checked ${role.holdings_refresh_last_checked_at.slice(0, 10)}`
+      : ''
+  const reason = role.holdings_refresh_failure_reason?.trim()
+  return `${status}${provider}${reason ? ` · reason ${reason}` : ''}`
 }
 
 async function refreshHistory() {
