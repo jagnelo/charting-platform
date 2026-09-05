@@ -1,6 +1,7 @@
 import logging
 
 from app.config import settings
+from app.services.etf_holdings_capability import tier0_symbols
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,22 @@ async def etf_holdings_capability_canary_task(ctx: dict) -> dict:
         for value in str(settings.ETF_HOLDINGS_CAPABILITY_CANARY_SYMBOLS).split(",")
         if value.strip()
     ]
+    canonical_symbols = set(tier0_symbols())
+    if canonical_symbols.issubset(symbols) and (
+        settings.ETF_HOLDINGS_CAPABILITY_CANARY_MAX_SYMBOLS < len(canonical_symbols)
+    ):
+        message = (
+            "ETF holdings capability canary configuration would truncate the canonical "
+            f"Tier-0 set ({len(canonical_symbols)} symbols)"
+        )
+        logger.error(message)
+        return {
+            "skipped": True,
+            "reason": "invalid canary configuration",
+            "configuration_error": message,
+            "requested": len(symbols),
+            "max_symbols": settings.ETF_HOLDINGS_CAPABILITY_CANARY_MAX_SYMBOLS,
+        }
     async with AsyncSessionLocal() as db:
         summary = await run_etf_holdings_capability_canaries(
             db,

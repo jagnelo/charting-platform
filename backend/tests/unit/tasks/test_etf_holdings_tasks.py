@@ -99,6 +99,26 @@ def test_default_capability_canary_covers_each_canonical_tier0_symbol_once():
     assert len(configured) == len(set(configured))
     assert set(configured) == set(tier0_symbols())
     assert len(configured) == len(tier0_symbols())
+    assert settings.ETF_HOLDINGS_CAPABILITY_CANARY_MAX_SYMBOLS >= len(tier0_symbols())
+
+
+def test_etf_capability_canary_rejects_truncated_canonical_tier0_configuration(monkeypatch):
+    monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_ENABLED", True)
+    monkeypatch.setattr(
+        settings, "ETF_HOLDINGS_CAPABILITY_CANARY_SYMBOLS", ",".join(tier0_symbols())
+    )
+    monkeypatch.setattr(
+        settings,
+        "ETF_HOLDINGS_CAPABILITY_CANARY_MAX_SYMBOLS",
+        len(tier0_symbols()) - 1,
+    )
+
+    result = asyncio.run(etf_holdings_tasks.etf_holdings_capability_canary_task({}))
+
+    assert result["skipped"] is True
+    assert result["reason"] == "invalid canary configuration"
+    assert result["requested"] == len(tier0_symbols())
+    assert result["max_symbols"] == len(tier0_symbols()) - 1
 
 
 def test_etf_capability_canary_passes_bounded_configuration(monkeypatch):
