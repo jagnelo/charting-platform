@@ -28008,6 +28008,24 @@ async def test_wisdomtree_route_failure_uses_explicit_sec_fallback_with_provenan
 
 
 @pytest.mark.asyncio
+async def test_wisdomtree_cloudflare_challenge_is_explicitly_issuer_blocked(monkeypatch):
+    adapter = get_holdings_adapter("wisdomtree")
+    assert adapter is not None
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<html>Cloudflare Ray ID: challenge-platform</html>",
+            content_type="text/html",
+            status_code=403,
+            url="https://www.wisdomtree.com/us/products/equity/dxj",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="issuer access challenge"):
+        await adapter.fetch_latest(symbol="DXJ")
+
+
+@pytest.mark.asyncio
 async def test_guggenheim_holdings_route_rejects_wrong_fund_or_missing_table(monkeypatch):
     adapter = get_holdings_adapter("guggenheim")
     assert adapter is not None

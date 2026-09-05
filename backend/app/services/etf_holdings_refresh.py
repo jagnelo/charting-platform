@@ -691,6 +691,8 @@ def _canary_failure_class(failure: Exception | str) -> str:
     text = str(failure).lower()
     if "future composition" in text or "future as-of" in text or "future published-at" in text:
         return "future_dated_source"
+    if "issuer access challenge" in text or "cloudflare ray id" in text:
+        return "issuer_access_blocked"
     if isinstance(failure, ETFHoldingsSchemaDriftError) or "schema fingerprint drift" in text:
         return "schema_drift"
     if "identity" in text or "mismatch" in text:

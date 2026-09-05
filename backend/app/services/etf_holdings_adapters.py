@@ -14857,6 +14857,13 @@ class WisdomTreeHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     headers=_issuer_page_request_headers(accept="text/html,*/*"),
                     follow_redirects=True,
                 )
+                if product_response.status_code in {
+                    403,
+                    429,
+                } and _looks_like_issuer_access_challenge(product_response.text):
+                    raise ValueError(
+                        "WisdomTree issuer access challenge blocked the product route."
+                    )
                 product_response.raise_for_status()
                 product_host = _url_host(str(product_response.url))
                 if not product_host or not _domain_matches(product_host, "wisdomtree.com"):
@@ -14869,6 +14876,12 @@ class WisdomTreeHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     },
                     follow_redirects=True,
                 )
+                if response.status_code in {403, 429} and _looks_like_issuer_access_challenge(
+                    response.text
+                ):
+                    raise ValueError(
+                        "WisdomTree issuer access challenge blocked the holdings route."
+                    )
             response.raise_for_status()
             response_host = _url_host(str(response.url))
             if (

@@ -284,6 +284,12 @@ def test_canary_failure_classification_keeps_provider_edges_explicit():
         == "identity_mismatch"
     )
     assert (
+        _canary_failure_class(
+            ValueError("WisdomTree issuer access challenge blocked the product route.")
+        )
+        == "issuer_access_blocked"
+    )
+    assert (
         _canary_failure_class(ValueError("Issuer holdings route returned no parseable rows."))
         == "empty_or_partial_source"
     )
