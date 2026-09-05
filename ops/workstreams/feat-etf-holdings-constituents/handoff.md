@@ -3224,3 +3224,19 @@ The shared provider-platform branch is still not an ancestor of staging, so
 AC10 remains intentionally unreconciled. DXJ/NTSX/MINT/BOND remain unavailable,
 and AC14 remains a post-integration/deployment production shadow gate. Human
 closure authorization is still pending; do not integrate, promote, or deploy.
+
+## Symbolless fallback audit invariant — 2026-09-05
+
+Implementation commit `37cf521168109fd37e5b53d03801c32b9c220849` adds a durable
+ledger invariant for the 19 fallback identities that have no representative ETF
+symbol. The test requires each such record to retain an explicit terminal
+disposition (`inactive_or_successor_disposition`,
+`non_executable_public_source`, or `provider_not_a_portfolio_publisher`), with
+no complete route, symbol mapping, or current holdings proof. This prevents a
+provider-level identity from silently becoming an unreviewed or apparently
+usable ETF gap.
+
+The two focused ledger tests passed, Ruff and formatting passed, and the branch
+was pushed without changing provider counts or source dispositions. The shared
+provider-platform branch remains absent from staging; AC10 and AC14 remain
+open.
