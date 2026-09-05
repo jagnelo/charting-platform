@@ -1419,6 +1419,14 @@ def evaluate_tier0_shadow_gate(
         for symbol in (eligible_symbols or _TIER_0_SYMBOL_AUDITS)
         if str(symbol).strip()
     }
+    normalized_observations: dict[str, list[Mapping[str, Any]]] = {}
+    for raw_symbol, observations in observations_by_symbol.items():
+        normalized_symbol = str(raw_symbol).strip().upper()
+        if not normalized_symbol or not isinstance(observations, Sequence):
+            continue
+        normalized_observations.setdefault(normalized_symbol, []).extend(
+            observation for observation in observations if isinstance(observation, Mapping)
+        )
     silent_violations: list[dict[str, Any]] = []
     eligible_checks = 0
     passing_checks = 0
@@ -1429,9 +1437,7 @@ def evaluate_tier0_shadow_gate(
 
     for raw_symbol in sorted(requested_symbols):
         symbol = raw_symbol.upper()
-        observations = (
-            observations_by_symbol.get(symbol) or observations_by_symbol.get(raw_symbol) or ()
-        )
+        observations = normalized_observations.get(symbol) or ()
         parsed: list[tuple[date, Mapping[str, Any]]] = []
         for observation in observations:
             if not isinstance(observation, Mapping):

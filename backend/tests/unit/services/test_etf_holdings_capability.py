@@ -1013,3 +1013,16 @@ def test_tier_zero_shadow_gate_rejects_missing_eligible_symbol_coverage():
     assert any(
         "missing eligible Tier 0 observations" in reason for reason in result["failure_reasons"]
     )
+
+
+def test_tier_zero_shadow_gate_normalizes_observation_symbol_keys():
+    result = evaluate_tier0_shadow_gate(
+        {"dxj": [_shadow_observation("2026-09-20T12:00:00+00:00")]},
+        now=date(2026, 9, 20),
+        eligible_symbols=["DXJ"],
+    )
+
+    assert result["status"] == "pass"
+    assert result["missing_symbols"] == []
+    assert result["eligible_checks"] == 1
+    assert result["passing_checks"] == 1
