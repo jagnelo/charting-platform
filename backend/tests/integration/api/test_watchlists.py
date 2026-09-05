@@ -2101,6 +2101,41 @@ class TestWatchlistsCrud:
         assert resolved.status_code == 200, resolved.text
         assert resolved.json()["exclusions"][0]["reason"] == "holdings_snapshot_not_current"
         assert "failure_class" in resolved.json()["exclusions"][0]
+        current_market_map = client.post(
+            "/api/v1/analysis/market-map",
+            headers=auth_headers,
+            json={
+                "source_id": source_id,
+                "period": "1D",
+                "area_metric": "weight",
+                "color_metric": "return",
+            },
+        )
+        assert current_market_map.status_code == 409, current_market_map.text
+        assert current_market_map.json()["detail"] == {
+            "code": "etf_holdings_not_current",
+            "availability": "unknown",
+            "source_tier": "none",
+            "usable_for_current_analysis": False,
+            "failure_class": None,
+            "reason": "ETF holdings are not current for analysis.",
+        }
+        current_breadth = client.post(
+            "/api/v1/analysis/breadth",
+            headers=auth_headers,
+            json={
+                "universe": {
+                    "kind": "watchlist",
+                    "key": source_id,
+                    "point_in_time": True,
+                },
+                "condition": {"kind": "above_moving_average", "params": {"period": 20}},
+                "timeframe": "D1",
+                "adjusted": True,
+            },
+        )
+        assert current_breadth.status_code == 409, current_breadth.text
+        assert current_breadth.json()["detail"] == current_market_map.json()["detail"]
         empty_source = next(
             item
             for item in descriptor.json()

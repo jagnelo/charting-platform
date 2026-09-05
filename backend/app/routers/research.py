@@ -21,7 +21,10 @@ from app.services.research_jobs import (
     enqueue_research_run,
     read_research_progress,
 )
-from app.services.watchlist_sources import resolve_watchlist_source
+from app.services.watchlist_sources import (
+    current_analysis_source_error_detail,
+    resolve_watchlist_source,
+)
 
 router = APIRouter(prefix="/research", tags=["research"])
 
@@ -343,6 +346,12 @@ async def _materialize_declared_dataset(
             raise HTTPException(
                 status_code=422, detail={"code": str(exc), "source_id": source_id}
             ) from exc
+        source_error = current_analysis_source_error_detail(
+            resolved_source.descriptor,
+            historical=options["as_of"] is not None,
+        )
+        if source_error is not None:
+            raise HTTPException(status_code=409, detail=source_error)
         source_member_ids = list(
             dict.fromkeys(member.instrument_id for member in resolved_source.members)
         )

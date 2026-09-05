@@ -143,7 +143,11 @@ from app.services.research_jobs import (
     enqueue_research_run,
     read_research_progress,
 )
-from app.services.watchlist_sources import resolve_watchlist_source
+from app.services.watchlist_sources import (
+    CurrentAnalysisSourceError,
+    current_analysis_source_error_detail,
+    resolve_watchlist_source,
+)
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
 
@@ -308,6 +312,8 @@ async def market_map(
     """
     try:
         return await build_market_map(db, current_user.id, body)
+    except CurrentAnalysisSourceError as exc:
+        raise HTTPException(409, detail=exc.detail) from exc
     except ValueError as exc:
         code = str(exc)
         if code == "invalid_timeframe":
@@ -5700,6 +5706,12 @@ async def _resolve_benchmark_family_breadth_universe(
                 source_id,
                 as_of=definition.as_of if definition.universe.point_in_time else None,
             )
+            source_error = current_analysis_source_error_detail(
+                resolved.descriptor,
+                historical=definition.universe.point_in_time and definition.as_of is not None,
+            )
+            if source_error is not None:
+                raise HTTPException(409, detail=source_error)
             if not resolved.members:
                 if any(
                     str(item.get("reason", "")).startswith("holdings_snapshot")
@@ -5916,6 +5928,13 @@ async def _resolve_user_watchlist_breadth_universe(
         raise HTTPException(404, detail={"code": str(exc), "source_id": source_id}) from exc
     except ValueError as exc:
         raise HTTPException(422, detail={"code": str(exc), "source_id": source_id}) from exc
+
+    source_error = current_analysis_source_error_detail(
+        resolved.descriptor,
+        historical=definition.universe.point_in_time and definition.as_of is not None,
+    )
+    if source_error is not None:
+        raise HTTPException(409, detail=source_error)
 
     instrument_ids = list(dict.fromkeys(member.instrument_id for member in resolved.members))
     instruments = (

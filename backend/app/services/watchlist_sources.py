@@ -35,6 +35,58 @@ PENDING_SOURCE_AVAILABILITIES = frozenset(
         "membership_not_loaded",
     }
 )
+NON_CURRENT_SOURCE_AVAILABILITIES = frozenset({"unavailable", "stale", "degraded", "unknown"})
+
+
+class CurrentAnalysisSourceError(ValueError):
+    """Raised when a current-analysis consumer selects a non-current ETF source."""
+
+    def __init__(self, detail: dict[str, object]):
+        self.detail = detail
+        super().__init__(str(detail.get("code", "etf_holdings_not_current")))
+
+
+def current_analysis_source_error_detail(
+    descriptor: WatchlistSourceRead,
+    *,
+    historical: bool = False,
+) -> dict[str, object] | None:
+    """Return the stable rejection detail for a non-current ETF-proxy source.
+
+    Ordinary personal/watchlist sources do not carry ETF capability state and
+    remain governed by their existing membership contract.  ETF holdings and
+    benchmark-family proxy descriptors, however, must not be presented as a
+    current analysis universe unless the capability explicitly says so.  An
+    explicit historical request bypasses this current-only gate; pending
+    sources remain resolvable so hydration can make progress.
+    """
+
+    if historical:
+        return None
+    provenance = descriptor.provenance or {}
+    is_etf_proxy = descriptor.source_kind == "etf_holdings" or provenance.get(
+        "membership_semantics"
+    ) in {
+        "etf_proxy_holdings",
+        "derived_equal_weight_point_in_time_membership",
+    }
+    if not is_etf_proxy:
+        return None
+
+    availability = str(provenance.get("availability") or "")
+    usable = provenance.get("usable_for_current_analysis")
+    if usable is not False and availability not in NON_CURRENT_SOURCE_AVAILABILITIES:
+        return None
+
+    return {
+        "code": "etf_holdings_not_current",
+        "availability": availability or "unknown",
+        "source_tier": provenance.get("source_tier") or "none",
+        "usable_for_current_analysis": False,
+        "failure_class": provenance.get("failure_class"),
+        "reason": provenance.get("capability_reason")
+        or "ETF holdings are not current for analysis.",
+    }
 
 
 def _holdings_snapshot_availability(
