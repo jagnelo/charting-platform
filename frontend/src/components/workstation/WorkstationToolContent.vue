@@ -2373,14 +2373,15 @@ function familyLatestDisclosureLabel(role: { snapshots?: Array<{ composition_dat
     : 'resolution unavailable'
   return `latest ${snapshot.composition_date ?? 'date unavailable'} · ${counts} · ${snapshot.source_provider?.trim() || 'source unavailable'}`
 }
-function familyMemberBarHistoryLabel(role: { member_bar_history?: { status?: string; placeholder_member_count?: number; timeframes?: Array<{ timeframe: string; covered_member_count: number; member_count: number; analysis_ready_member_count: number }> } }) {
+function familyMemberBarHistoryLabel(role: { member_bar_history?: { status?: string; placeholder_member_count?: number; timeframes?: Array<{ timeframe: string; required_bar_count?: number; covered_member_count: number; member_count: number; analysis_ready_member_count: number }> } }) {
   const history = role.member_bar_history
   if (!history || history.status === 'no_snapshot') return 'no member bars'
   if (!history.timeframes?.length) return history.status
   const timeframeLabels = ['D1', 'W1', 'MN'].map(timeframe => {
     const item = history.timeframes?.find(candidate => candidate.timeframe === timeframe)
     if (!item) return `${timeframe} unavailable`
-    return `${timeframe} ${item.analysis_ready_member_count}/${item.member_count} ready · ${item.covered_member_count}/${item.member_count} covered`
+    const floor = Number(item.required_bar_count)
+    return `${timeframe} ${item.analysis_ready_member_count}/${item.member_count} ready${Number.isFinite(floor) && floor > 0 ? ` · floor ${floor}` : ''} · ${item.covered_member_count}/${item.member_count} covered`
   })
   const placeholders = history.placeholder_member_count ? ` · placeholders ${history.placeholder_member_count}` : ''
   return `${history.status} · ${timeframeLabels.join(' · ')}${placeholders}`

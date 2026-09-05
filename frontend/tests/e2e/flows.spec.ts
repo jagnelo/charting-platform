@@ -4357,7 +4357,7 @@ test.describe('TC2000 workstation', () => {
     await expect(familyOverview).toContainText('NVDA')
     await expect(familyOverview).toContainText('Dated holdings coverage')
     await expect(familyOverview).toContainText('Cap weight SPY · available · 1 date')
-    await expect(familyOverview).toContainText('bars ready · D1 1/1 ready · 1/1 covered · W1 1/1 ready · 1/1 covered · MN 1/1 ready · 1/1 covered')
+    await expect(familyOverview).toContainText('bars ready · D1 1/1 ready · floor 252 · 1/1 covered · W1 1/1 ready · floor 52 · 1/1 covered · MN 1/1 ready · floor 24 · 1/1 covered')
     const familyAsOf = familyOverview.getByRole('combobox', { name: 'Family analysis as of' })
     await expect(familyAsOf).toHaveValue('')
     await familyAsOf.selectOption('2026-06-27T23:59:59Z')
