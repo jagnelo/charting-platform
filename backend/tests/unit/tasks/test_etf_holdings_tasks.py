@@ -4,6 +4,7 @@ import asyncio
 from datetime import date
 
 from app.config import settings
+from app.services.etf_holdings_capability import tier0_symbols
 from app.services.top_down_taxonomy import benchmark_family_proxy_symbols
 from app.tasks import etf_holdings_tasks
 
@@ -85,6 +86,19 @@ def test_etf_capability_canary_is_disabled_by_default(monkeypatch):
     result = asyncio.run(etf_holdings_tasks.etf_holdings_capability_canary_task({}))
 
     assert result == {"skipped": True, "reason": "capability canary disabled"}
+
+
+def test_default_capability_canary_covers_each_canonical_tier0_symbol_once():
+    configured = [
+        value.strip().upper()
+        for value in str(settings.ETF_HOLDINGS_CAPABILITY_CANARY_SYMBOLS).split(",")
+        if value.strip()
+    ]
+
+    assert configured
+    assert len(configured) == len(set(configured))
+    assert set(configured) == set(tier0_symbols())
+    assert len(configured) == len(tier0_symbols())
 
 
 def test_etf_capability_canary_passes_bounded_configuration(monkeypatch):
