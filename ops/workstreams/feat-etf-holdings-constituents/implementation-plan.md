@@ -3207,6 +3207,22 @@ handoff now carry the dated 2026-09-05 WisdomTree/PIMCO evidence and retain the
 free-first rule. Any licensed/vendor route remains deferred behind the shared
 provider-platform entitlement and aggregate 20 EUR/USD-equivalent budget gate.
 
+## Capability health-read hardening — 2026-09-05
+
+Implementation checkpoint `dd64543c2372e0139e4eed89444753d9015a9506` closes
+the corresponding read-side resilience gap. `evaluate_capability` now parses
+the persisted `consecutive_failures` value through a bounded helper, preserving
+the existing failure-state fallback while treating malformed, negative, or
+non-numeric metadata as a safe diagnostic value instead of raising during API
+capability evaluation. This keeps user-visible degradation and monitoring
+responses available even when legacy adapter JSON is damaged.
+
+The focused capability/refresh suites pass 86 tests and the complete
+deterministic ETF unit matrix passes 715 tests; Ruff, formatting, and
+diff-check are green. No source tier, provider count, entitlement, paid
+activation, or Tier-0 disposition changed. Shared provider-platform staging,
+the four unresolved Tier-0 routes, and AC14 remain open.
+
 ## Malformed adapter-health metadata hardening — 2026-09-05
 
 Implementation checkpoint `62d5057fb6a2dc9ec37d36df2236b28b94c69a88` hardens
