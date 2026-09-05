@@ -2365,10 +2365,13 @@ function familyMemberBarHistoryLabel(role: { member_bar_history?: { status?: str
   const history = role.member_bar_history
   if (!history || history.status === 'no_snapshot') return 'no member bars'
   if (!history.timeframes?.length) return history.status
-  const daily = history.timeframes.find(item => item.timeframe === 'D1')
-  if (!daily) return history.status
+  const timeframeLabels = ['D1', 'W1', 'MN'].map(timeframe => {
+    const item = history.timeframes?.find(candidate => candidate.timeframe === timeframe)
+    if (!item) return `${timeframe} unavailable`
+    return `${timeframe} ${item.analysis_ready_member_count}/${item.member_count} ready · ${item.covered_member_count}/${item.member_count} covered`
+  })
   const placeholders = history.placeholder_member_count ? ` · placeholders ${history.placeholder_member_count}` : ''
-  return `${history.status} ${daily.covered_member_count}/${daily.member_count} · ready ${daily.analysis_ready_member_count}/${daily.member_count}${placeholders}`
+  return `${history.status} · ${timeframeLabels.join(' · ')}${placeholders}`
 }
 function latestFamilyRatio(ratio: { points: Array<{ value: number }> }) {
   const value = ratio.points.length ? ratio.points[ratio.points.length - 1]?.value : undefined
