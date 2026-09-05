@@ -3696,3 +3696,38 @@ documented dependency: provider-platform remains unstaged, DXJ/NTSX/MINT/BOND
 remain unavailable for current analysis, AC10 remains deferred, and AC14
 remains the post-integration 30-day production shadow gate. No paid source,
 credential, other branch, or other worktree was modified.
+
+## Basket capability-error contract checkpoint — 2026-09-05
+
+Implementation commit `7af93e92` removes the last ETF-owned current-analysis
+error payload fork. The `/etf-holdings/{symbol}/basket` 409 response now uses
+the shared `current_analysis_error_detail` helper, so it includes
+`failure_class` alongside availability, source tier, usability, and reason,
+matching the analysis and market-group rejection surfaces. The existing
+historical-selection escape hatch remains unchanged.
+
+The targeted basket regression passed, the complete ETF holdings API suite
+passed `66` tests, the deterministic adapter/refresh/capability slice passed
+`672`, and Ruff/diff checks passed.
+
+## Full Docker gate after basket error-contract fix — 2026-09-05
+
+The repository-mandated full gate passed all deterministic/application stages:
+workstream, dependencies, migration checks, lint/format, type-check, backend
+coverage (`1831 passed`, `81.15%`), frontend tests/coverage, uPlot and visual
+policy, production build, compose contracts, provider probes, stack health, and
+research-runner isolation.
+
+Functional Playwright ran all `260` cases with `153 passed` and `106 skipped`.
+It recorded one unrelated workstation failure in
+`F8r-python-library-narrow` (`frontend/tests/e2e/flows.spec.ts:3205`), where
+the Python Library tool did not become visible in the narrow-dock flow. No ETF
+assertion failed; visual E2E did not run after the functional stop. This gate is
+recorded as `failed_unrelated_e2e`, not green. Automatic teardown and the
+post-gate resource audit reported zero containers, volumes, testcontainer
+sessions, known bytes, unknown components, and budget overrun.
+
+Provider-platform remains unstaged, DXJ/NTSX/MINT/BOND remain unavailable for
+current analysis, AC10 remains deferred, and AC14 remains the post-integration
+30-day production shadow gate. No paid source, credential, other branch, or
+other worktree was modified.
