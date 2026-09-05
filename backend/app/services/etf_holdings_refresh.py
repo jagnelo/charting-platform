@@ -26,6 +26,7 @@ from app.models.instrument import Instrument
 from app.providers.base import IdentifierRecord
 from app.services.etf_holdings import (
     ETF_HOLDINGS_INTERNAL_PROVIDER,
+    _ensure_holdings_dates_are_not_future,
     ensure_etf_profile,
     ensure_lightweight_etf_instrument,
     get_etf_profile_for_instrument,
@@ -66,30 +67,6 @@ _BENCHMARK_FAMILY_ROLES = ("cap_weight", "equal_weight", "value", "growth")
 USABLE_HOLDINGS_COMPLETENESS = frozenset({"complete", "filing_reconstructed"})
 _CANARY_HISTORY_KEY = "canary_history"
 _CANARY_HISTORY_LIMIT = 90
-
-
-def _ensure_holdings_dates_are_not_future(
-    composition_date: date | None,
-    as_of_date: date | None,
-    *,
-    today: date | None = None,
-) -> None:
-    """Reject issuer metadata that cannot describe an already published snapshot.
-
-    A public route can expose a planned/rebalanced date ahead of the runner's
-    clock. Persisting that value as a current snapshot would make freshness
-    evaluation optimistic and could incorrectly advertise current analysis.
-    Keep the rejection at the shared ingestion boundary so every adapter route
-    records an observable failure instead of silently storing future data.
-    """
-
-    reference_date = today or datetime.now(UTC).date()
-    for label, value in (("composition", composition_date), ("as-of", as_of_date)):
-        if value is not None and value > reference_date:
-            raise ValueError(
-                f"Issuer holdings route returned a future {label} date "
-                f"({value.isoformat()} > {reference_date.isoformat()})."
-            )
 
 
 def _state_metadata(value: Any) -> dict[str, Any]:
@@ -698,7 +675,7 @@ async def refresh_all_known_etf_holdings(db: AsyncSession) -> dict:
 
 def _canary_failure_class(failure: Exception | str) -> str:
     text = str(failure).lower()
-    if "future composition" in text or "future as-of" in text:
+    if "future composition" in text or "future as-of" in text or "future published-at" in text:
         return "future_dated_source"
     if "identity" in text or "mismatch" in text:
         return "identity_mismatch"

@@ -36,6 +36,8 @@ def profile_with_symbol(symbol: str, adapter_key: str = "issuer"):
 def snapshot(
     *,
     composition_date: date = date(2026, 9, 3),
+    as_of_date: date | None = None,
+    published_at: datetime | None = NOW,
     provenance: str = "issuer_current_holdings",
     source_provider: str = "issuer",
     completeness_status: str = "complete",
@@ -44,7 +46,8 @@ def snapshot(
 ):
     return SimpleNamespace(
         composition_date=composition_date,
-        published_at=NOW,
+        as_of_date=as_of_date,
+        published_at=published_at,
         provenance=provenance,
         source_provider=source_provider,
         completeness_status=completeness_status,
@@ -135,6 +138,19 @@ def test_unspecified_cadence_expires_after_conservative_window():
     assert result.availability == STALE
     assert result.usable_for_current_analysis is False
     assert result.freshness_deadline == NOW.date() - timedelta(days=1)
+
+
+def test_future_dated_snapshot_is_never_current_even_if_route_succeeded():
+    for future_snapshot in (
+        snapshot(composition_date=NOW.date() + timedelta(days=1)),
+        snapshot(as_of_date=NOW.date() + timedelta(days=1)),
+        snapshot(published_at=NOW + timedelta(days=1)),
+    ):
+        result = evaluate_capability(profile(), future_snapshot, state(), now=NOW)
+
+        assert result.availability == DEGRADED
+        assert result.usable_for_current_analysis is False
+        assert "future" in result.reason.lower()
 
 
 def test_missing_snapshot_is_unknown_until_a_route_check_records_outcome():

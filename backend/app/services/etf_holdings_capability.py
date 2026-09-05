@@ -392,6 +392,39 @@ def freshness_deadline(composition_date: date | None, cadence: str) -> date | No
     return composition_date + _CADENCE_WINDOWS.get(cadence, _CADENCE_WINDOWS["unspecified"])
 
 
+def _future_snapshot_reason(
+    snapshot: ETFHoldingsSnapshot | None,
+    *,
+    now: datetime,
+) -> str | None:
+    """Keep legacy future-dated rows from being advertised as current.
+
+    The ingestion boundary rejects new future metadata, but old rows or direct
+    database imports can predate that guard.  Capability reads must therefore
+    fail closed as well instead of trusting a future freshness deadline.
+    """
+
+    if snapshot is None:
+        return None
+    reference_date = now.date()
+    for label, value in (
+        ("composition", snapshot.composition_date),
+        ("as-of", getattr(snapshot, "as_of_date", None)),
+    ):
+        if value is not None and value > reference_date:
+            return (
+                "The latest holdings artifact has a future " f"{label} date ({value.isoformat()})."
+            )
+    published_at = getattr(snapshot, "published_at", None)
+    if published_at is not None:
+        normalized_published_at = (
+            published_at if published_at.tzinfo is not None else published_at.replace(tzinfo=UTC)
+        )
+        if normalized_published_at > now:
+            return "The latest holdings artifact has a future published-at timestamp."
+    return None
+
+
 _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
     "DXJ": ETFHoldingsSymbolAudit(
         tier=0,
@@ -1671,6 +1704,7 @@ def evaluate_capability(
     now = _as_utc(now or datetime.now(UTC)) or datetime.now(UTC)
     state_metadata = _metadata(state.extra_data if state else None)
     source_tier = _source_tier(snapshot, state)
+    future_snapshot_reason = _future_snapshot_reason(snapshot, now=now)
     cadence = infer_expected_cadence(
         source_access=state_metadata.get("source_access"),
         metadata=state_metadata,
@@ -1701,6 +1735,9 @@ def evaluate_capability(
         # workstation reads continue through the strict source-tier gate below.
         availability = CURRENT
         reason = "Controlled E2E fixture is enabled for browser acceptance."
+    elif future_snapshot_reason is not None:
+        availability = DEGRADED
+        reason = future_snapshot_reason
     elif not profile.adapter_key or profile.adapter_key == "unresolved":
         availability = NOT_APPLICABLE if not has_snapshot else STALE
         reason = "No concrete ETF holdings adapter is assigned to this profile."

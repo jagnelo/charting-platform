@@ -343,11 +343,25 @@ def test_future_holdings_dates_are_rejected_at_ingestion_boundary():
             today=date(2026, 9, 5),
         )
 
+    with pytest.raises(ValueError, match="future published-at timestamp"):
+        refresh._ensure_holdings_dates_are_not_future(
+            date(2026, 9, 5),
+            date(2026, 9, 5),
+            now=datetime(2026, 9, 5, 12, tzinfo=UTC),
+            published_at=datetime(2026, 9, 5, 12, 1, tzinfo=UTC),
+        )
+
 
 def test_future_dated_canary_failures_have_explicit_failure_class():
     assert (
         refresh._canary_failure_class(
             "Issuer holdings route returned a future composition date (2026-09-08 > 2026-09-05)."
+        )
+        == "future_dated_source"
+    )
+    assert (
+        refresh._canary_failure_class(
+            "Issuer holdings route returned a future published-at timestamp."
         )
         == "future_dated_source"
     )

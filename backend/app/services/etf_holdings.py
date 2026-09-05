@@ -72,6 +72,41 @@ def _now() -> datetime:
     return datetime.now(UTC)
 
 
+def _ensure_holdings_dates_are_not_future(
+    composition_date: date | None,
+    as_of_date: date | None,
+    *,
+    today: date | None = None,
+    published_at: datetime | None = None,
+    now: datetime | None = None,
+) -> None:
+    """Reject holdings metadata that cannot describe an already known snapshot.
+
+    This is the lowest shared ingestion boundary.  Refresh adapters also call
+    it before fetching persistence, but keeping the check here protects manual,
+    SEC, fixture, and other ingestion paths from storing future evidence that
+    would make current-analysis freshness optimistic.
+    """
+
+    reference_now = now or _now()
+    reference_date = today or reference_now.date()
+    for label, value in (("composition", composition_date), ("as-of", as_of_date)):
+        if value is not None and value > reference_date:
+            raise ValueError(
+                f"Issuer holdings route returned a future {label} date "
+                f"({value.isoformat()} > {reference_date.isoformat()})."
+            )
+    if published_at is not None:
+        normalized_published_at = (
+            published_at if published_at.tzinfo is not None else published_at.replace(tzinfo=UTC)
+        )
+        if normalized_published_at > reference_now:
+            raise ValueError(
+                "Issuer holdings route returned a future published-at timestamp "
+                f"({normalized_published_at.isoformat()} > {reference_now.isoformat()})."
+            )
+
+
 def _visible_snapshot_conditions() -> list[Any]:
     """Limit seeded browser reads to the deterministic holdings fixture.
 
@@ -1077,6 +1112,12 @@ async def ingest_holdings_snapshot(
         for row in rows
     ]
     now = _now()
+    _ensure_holdings_dates_are_not_future(
+        composition_date,
+        as_of_date,
+        published_at=published_at,
+        now=now,
+    )
     known_at = known_at or published_at or _date_end(composition_date)
     data_source = await ensure_data_source(db, ETF_HOLDINGS_INTERNAL_PROVIDER)
     snapshot_hash = _snapshot_hash(canonical_rows)

@@ -132,6 +132,16 @@ def _benchmark_family_holdings_run_output(
     return BenchmarkFamilyHoldingsRefreshRunOut.model_validate(run)
 
 
+async def _ingest_snapshot_or_400(db: AsyncSession, **kwargs):
+    """Map shared ingestion validation failures to an administrative 400."""
+
+    try:
+        return await ingest_holdings_snapshot(db, **kwargs)
+    except ValueError as exc:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 async def _get_own_benchmark_family_holdings_run(
     db: AsyncSession, user_id: int, run_id: int
 ) -> BenchmarkFamilyHoldingsRefreshRun:
@@ -993,7 +1003,7 @@ async def ingest_holdings_rows(
     current_user: User = Depends(require_admin),
 ):
     etf = await ensure_lightweight_etf_instrument(db, symbol=symbol)
-    await ingest_holdings_snapshot(
+    await _ingest_snapshot_or_400(
         db,
         etf_instrument=etf,
         rows=body.rows,
@@ -1028,7 +1038,7 @@ async def ingest_holdings_csv(
 ):
     etf = await ensure_lightweight_etf_instrument(db, symbol=symbol)
     rows = parse_holdings_csv(body.raw_csv)
-    await ingest_holdings_snapshot(
+    await _ingest_snapshot_or_400(
         db,
         etf_instrument=etf,
         rows=rows,
@@ -1071,7 +1081,7 @@ async def ingest_sec_nport_holdings(
         raise HTTPException(400, "SEC filing XML did not contain parseable holdings rows.")
 
     etf = await ensure_lightweight_etf_instrument(db, symbol=symbol)
-    await ingest_holdings_snapshot(
+    await _ingest_snapshot_or_400(
         db,
         etf_instrument=etf,
         rows=rows,
@@ -1118,7 +1128,7 @@ async def ingest_sec_legacy_holdings(
         raise HTTPException(400, "Legacy SEC filing XML did not contain parseable holdings rows.")
 
     etf = await ensure_lightweight_etf_instrument(db, symbol=symbol)
-    await ingest_holdings_snapshot(
+    await _ingest_snapshot_or_400(
         db,
         etf_instrument=etf,
         rows=rows,

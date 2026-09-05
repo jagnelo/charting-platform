@@ -3279,6 +3279,21 @@ def test_etf_holdings_snapshot_can_materialize_read_only_basket(
     assert read.json()["source_snapshot_id"] == basket["source_snapshot_id"]
 
 
+def test_ingestion_rejects_future_snapshot_metadata_as_a_client_error(client, admin_headers):
+    response = client.post(
+        "/api/v1/etf-holdings/FUTURE/ingest",
+        json={
+            "composition_date": (date.today() + timedelta(days=1)).isoformat(),
+            "source_provider": "issuer-test",
+            "rows": [{"symbol": "AAPL", "name": "Apple Inc.", "weight": "0.04"}],
+        },
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 400
+    assert "future composition date" in response.json()["detail"]
+
+
 def test_etf_holdings_basket_rejects_non_current_without_historical_selection(
     client, admin_headers, auth_headers
 ):
@@ -4033,7 +4048,7 @@ def test_coverage_summary_reports_missing_partial_and_full_ranges(
     client.post(
         "/api/v1/etf-holdings/IWV/ingest",
         json={
-            "composition_date": "2026-12-31",
+            "composition_date": (date.today() - timedelta(days=1)).isoformat(),
             "source_provider": "issuer-test",
             "rows": [{"symbol": "AAPL", "name": "Apple Inc.", "weight": "0.01"}],
         },
