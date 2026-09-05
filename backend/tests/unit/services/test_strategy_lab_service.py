@@ -90,7 +90,9 @@ async def test_python_signal_strategy_queues_immutable_isolated_research(monkeyp
 
 
 @pytest.mark.asyncio
-async def test_python_signal_strategy_carries_study_threshold_adapter_into_research_job(monkeypatch):
+async def test_python_signal_strategy_carries_study_threshold_adapter_into_research_job(
+    monkeypatch,
+):
     code_version = CodeVersion(
         id=11,
         code_asset_id=21,
