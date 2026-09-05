@@ -104,7 +104,7 @@ status: in_progress
 progress:
   completed: []
   total: 10
-  current_phase: R1_generic_source_history_readiness
+  current_phase: R4_structured_study_strategy_signal_promotion
   current_blocker: >-
     Current slice product commit ea4514fa adds an aggregate analysis_ready boolean and
     analysis_ready_status across every requested timeframe while preserving the legacy
@@ -165,7 +165,7 @@ progress:
     rule, or acceptance policy changed; assigned stack teardown and resource accounting were clean.
     Canonical provider/history, richer Study targets, native-window/accessibility/security,
     dense-data, and visual-oracle review remain open.
-  next_action: "Continue the next compatible canonical provider/history or Study slice; preserve the six visual state-oracle diffs and unchanged visual/provider fallback policy, then rerun the exact-tip gate after the next product tip."
+  next_action: "Re-run the exact-tip gate at product tip 9080e4de; preserve the six visual state-oracle diffs and unchanged visual/provider fallback policy, then continue the next compatible canonical provider/history or Study slice."
 remaining_gaps:
   - "Current boundary (metadata tip 0af0bed5, product tip 8490f2dd; exact-tip gate complete with visual blocker): generic watchlist source-history now reports analysis-ready D1/W1/MN member counts/percentages at 252/52/24 bar floors, with focused history unit/API checks 5/5 and 1/1, frontend component 36/36, full frontend 952/952 across 109 files, backend units 1318/1318, TypeScript/Ruff/format/diff checks, authenticated F8s-market-map-watchlist 1/1, and clean teardown. The exhaustive gate passed all non-visual stages and functional Playwright 157/157 with 106 documented skips across 263 specs. Its unchanged visual matrix completed 104 cases with 98 passes and six failures: watchlist-column-editor-open at visual-1080p-100/125 (13844 pixels each) and workspace-floating at visual-1080p-100/125/1440p-100/1440p-125 (9770/11901/11901/12097 pixels). Preserve existing covered/worker overall-status and provider fallback semantics, then continue canonical provider/history or Study work. The prior
     metadata boundary 93883674/product 7f672897 had an exact-tip gate complete with visual blocker: Study range-center thresholded Boolean promotion is complete

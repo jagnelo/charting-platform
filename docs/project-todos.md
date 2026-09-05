@@ -1,5 +1,27 @@
 # Project TODO Memory
 
+### 2026-09-05 — Structured Study outputs promote to Strategy signals
+
+- [x] Extend persisted Research Results so compatible structured Boolean artifacts can be saved as
+      typed Strategy signals, while finite numeric `series` and aligned range-center artifacts can
+      be thresholded with the explicit operator/value control and saved as Strategy signals. The
+      signal asset retains selected output identity, canonical member scope, source/membership,
+      Study/run/dataset lineage, and the adapter/threshold semantics; unsupported shapes remain
+      view/export-only and missing canonical members fail closed.
+- [x] Carry `series_target_to_boolean`, `range_center_target_to_boolean`, selected output name, and
+      promotion lineage from the immutable CodeVersion into Strategy Lab's queued research run so
+      the isolated runner applies the relation against current canonical observations. Existing
+      event signal behavior remains unchanged.
+- [x] Add frontend unit coverage for the Boolean/series/range signal matrix, backend service
+      coverage for adapter propagation, focused Strategy Lab API integration (`2/2` with Docker),
+      and authenticated F8t Results browser proof (`2/2`) on a rebuilt branch-scoped stack. Frontend
+      type-check/build and diff checks passed; teardown removed assigned resources.
+- [x] Product commit `9080e4de` (`feat(tc2000): promote structured studies to strategy signals`)
+      is pushed to `origin/feat/tc2000-frontend-rework`.
+- [ ] Re-run the exact-tip exhaustive integration gate at this product tip. Preserve the unchanged
+      six visual state-oracle diffs and continue the remaining R1-R6 provider/history, richer Study,
+      native-window/accessibility/security, dense-data, and visual-oracle work.
+
 ### 2026-09-05 — Aggregate readiness browser and exact-tip gate
 
 - [x] Rebuilt the branch-scoped stack and ran the authenticated Market Map history flow; it

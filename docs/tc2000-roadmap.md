@@ -5,6 +5,27 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-05
 
+## 2026-09-05 — Promote compatible structured Study outputs to Strategy signals
+
+R4 now closes the structured-result Strategy-signal fan-out for compatible shapes. Persisted
+Research Results offers `Save Strategy signal` for Boolean artifacts and for finite thresholded
+`series`/range-center artifacts; each promotion creates a typed Boolean signal asset, preserves
+the selected output, canonical member IDs/source/membership, Study/run/dataset lineage, and an
+explicit adapter/threshold where required, then hands the immutable version to Strategy Lab.
+The isolated Strategy runner now carries promotion adapters, series targets, and selected output
+names from immutable CodeVersion lineage into the queued canonical-data run, so threshold semantics
+are applied outside user code at current observations. Unsupported shapes and missing canonical
+members remain unavailable; event signal handling is unchanged.
+
+Product commit `9080e4de` (`feat(tc2000): promote structured studies to strategy signals`) is pushed
+to `origin/feat/tc2000-frontend-rework`. Focused Research Results/capability coverage passes `33/33`,
+the Strategy Lab service/job tests pass `16/16` with `--no-cov`, focused Strategy Lab API signal
+integration passes `2/2` with Docker, frontend type-check/build and `git diff --check` pass, and the
+authenticated F8t Results flows (structured matrix plus series threshold) pass `2/2` on a rebuilt
+branch-scoped Docker stack with clean teardown/resource accounting. The exact-tip exhaustive gate
+after this product commit remains pending; the existing six visual state-oracle diffs remain
+unchanged and no visual/provider fallback policy changed.
+
 ## 2026-09-05 — Aggregate readiness gate receipt
 
 The authenticated focused Market Map history flow passed `1/1` on a rebuilt branch-scoped
