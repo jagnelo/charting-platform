@@ -106,6 +106,15 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
+    Exact-tip full_stack_browser gate at metadata tip f6607ad7 (product tip 852c1613) passed all
+    locked dependency/migration, workstream, lint/format/type-check, backend unit/integration and
+    combined coverage (80.93%), frontend Vitest (964/964), build, compose/provider, stack-health,
+    runner-isolation, and functional Playwright (157/157 with 106 documented skips). The visual
+    matrix completed 104 cases with 98 passes and the same six state-oracle diffs: watchlist-column-
+    editor-open at both 1080p scales and workspace-floating at all four scales. Teardown/resource
+    accounting were clean. Preserve unchanged visual/provider/fallback/acceptance policy and
+    continue the next canonical analytics/provider slice; the current ratio-history implementation
+    is durable at product tip 852c1613.
     Current slice adds canonical batch family relative-strength history rendering as aligned
     role-coloured uPlot lines. Lifecycle/alignment coverage passed 26/26, TypeScript/build passed,
     and authenticated Chromium F8s-breadth-family-ratio passed 1/1 on a rebuilt branch-scoped
@@ -243,6 +252,13 @@ progress:
     dense-data, and visual-oracle review remain open.
   next_action: "Implement the next bounded canonical provider/history slice with authenticated evidence; preserve the six visual state-oracle assertions and unchanged visual/provider fallback policy, then rerun the exact-tip gate at the next coherent tip."
 remaining_gaps:
+  - "Exact-tip full_stack_browser gate at metadata tip f6607ad7 (product tip 852c1613) passed all
+    non-visual stages and functional Playwright 157/157 with 106 documented skips; the visual
+    matrix remains 98/104 with the same six state-oracle diffs (watchlist-column-editor-open at
+    both 1080p scales and workspace-floating at all four scales). Teardown/resource accounting
+    were clean. No baseline, mask, threshold, skip, fallback, provider, or acceptance policy
+    changed; preserve this visual-only boundary and continue the next canonical analytics/provider
+    slice."
   - "Current family relative-strength slice renders canonical batch ratio points as aligned
     role-coloured history lines with null-preserved gaps and explicit unavailable state. Lifecycle
     coverage passed 26/26, TypeScript/build passed, authenticated F8s-breadth-family-ratio passed

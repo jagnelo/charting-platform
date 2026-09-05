@@ -5,6 +5,18 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-05
 
+## 2026-09-05 — Exact-tip gate after family ratio history
+
+The exact-tip `full_stack_browser` gate at metadata tip `f6607ad7` (product tip `852c1613`)
+passed locked dependency/migration checks, workstream validation, lint/format/type-check, backend
+unit/integration and combined coverage (`80.93%`), frontend Vitest (`964/964`), production build,
+compose/provider policy, stack health, runner isolation, and functional Playwright (`157/157` with
+`106` documented skips). The four-project visual matrix completed `104` cases with `98` passes and
+the same six state-oracle diffs: `watchlist-column-editor-open` at both 1080p scales and
+`workspace-floating` at all four scales. Teardown and resource accounting were clean. No baseline,
+mask, threshold, skip, fallback, provider, or acceptance policy changed; preserve this visual-only
+boundary and continue the next canonical analytics/provider slice.
+
 ## 2026-09-05 — Render family relative-strength history
 
 The Market Map family relative-strength surface now renders the canonical batch ratio points as

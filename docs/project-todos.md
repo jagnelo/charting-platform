@@ -8,9 +8,11 @@
 - [x] Add lifecycle/alignment coverage (`26/26`), TypeScript, production build, and authenticated
       Chromium `F8s-breadth-family-ratio` (`1/1`) asserting the history chart on a rebuilt
       branch-scoped stack; teardown and resource cleanup were clean.
-- [ ] Commit/push this product slice and rerun the exact-tip exhaustive gate at the next coherent
-      documentation tip. Preserve the six existing visual state-oracle failures and unchanged
-      visual/provider/fallback policy.
+- [x] Product commit `852c1613` (`feat(tc2000): render family ratio history`) and durable receipt
+      are pushed to `origin/feat/tc2000-frontend-rework`. The exact-tip gate at metadata tip
+      `f6607ad7` passed all non-visual stages and functional Playwright (`157/157`, `106` skips);
+      the visual matrix remains `98/104` with the same six state-oracle failures. Teardown and
+      resource accounting were clean; no visual/provider/fallback policy changed.
 
 ### 2026-09-05 — Render cross-family ranking history
 
