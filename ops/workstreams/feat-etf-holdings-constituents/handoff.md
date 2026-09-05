@@ -3697,6 +3697,20 @@ remain unavailable for current analysis, AC10 remains deferred, and AC14
 remains the post-integration 30-day production shadow gate. No paid source,
 credential, other branch, or other worktree was modified.
 
+## Provider-platform dependency refresh — 2026-09-05
+
+The current remote provider-platform tip is `2efc1ebc` (with the latest
+credential-preflight commit `9aab3884`), while `origin/staging` remains
+`8b885a2f`, the shared merge-base. The provider branch is 57 commits ahead of
+staging, but it is not an ancestor of staging and its `ProviderCapability` enum
+still has no `ETF_HOLDINGS` member. Its generic entitlement, quota, health,
+availability, and routing work therefore cannot yet be consumed by this ETF
+branch under AC10.
+
+No provider-platform or staging worktree was modified. The ETF branch remains
+ready to add only the narrow holdings capability bridge after the shared branch
+is promoted into staging.
+
 ## PIMCO public fund-ui route audit — 2026-09-05
 
 The bounded read-only PIMCO route audit adds evidence without changing source
