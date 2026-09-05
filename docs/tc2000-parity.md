@@ -1,5 +1,25 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-09-05 — Structured range-center threshold promotion
+
+Completed Study `range` artifacts with aligned finite centers now expose explicit `gt`, `gte`, `lt`,
+`lte`, `eq`, and `ne` threshold controls in both primary Study Lab and persisted Research Results.
+The user can save a typed Boolean watchlist column or reuse one immutable condition for a filter,
+scan, Market Gauge, or alert. The `range_center_target_to_boolean` adapter requests the range
+contract in the isolated runner, extracts the latest finite center per canonical member, and applies
+the comparison outside user code. Source output identity, canonical member IDs/source/membership,
+timeframe, dataset/run lineage, and `study_range_center_threshold_as_boolean` semantics are retained;
+lower/upper bands remain source-only and invalid operators/non-finite thresholds are rejected.
+
+Backend runner coverage passed `113/113`, code API `24/24`, screener integration `27/27`, focused
+frontend coverage `63/63`, and full frontend Vitest `952/952` across `109` files. TypeScript,
+production build, Ruff, workstream validation, and diff checks passed. Authenticated F8t-results
+passed `1/1` on a rebuilt branch-scoped Docker stack with clean teardown/resource accounting.
+Product commit `7f672897` is pushed to `origin/feat/tc2000-frontend-rework`; the exact-tip gate is
+pending. Existing visual acceptance remains unchanged at `98/104` with the six state-oracle diffs;
+canonical provider/history, richer Study, native-window/accessibility/security, dense-data, and
+visual-oracle gaps remain open.
+
 ## 2026-09-05 — Structured range-center latest-value column promotion
 
 Completed structured Study `range` artifacts with an aligned finite `center` now expose a safe

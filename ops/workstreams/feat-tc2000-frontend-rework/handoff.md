@@ -10,6 +10,26 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Promote Study range centers through explicit Boolean thresholds
+
+Product commit `7f672897` (`feat(tc2000): promote range centers through thresholds`) extends the
+primary Study Lab and persisted Research Results with explicit finite `gt`/`gte`/`lt`/`lte`/`eq`/
+`ne` controls for completed structured `range` artifacts with aligned center values. The user can
+save a typed Boolean column or reuse one immutable condition for a watchlist filter, scan, Market
+Gauge, or alert. The `range_center_target_to_boolean` adapter requests the range contract in the
+isolated runner, extracts each canonical member's latest finite center, and applies the relation
+outside user code. Selected output, canonical members/source/membership, timeframe, dataset/run
+lineage, and `study_range_center_threshold_as_boolean` semantics are retained; lower/upper bands
+remain source-only and invalid operators/non-finite thresholds are rejected.
+
+Evidence: backend runner `113/113`, code API `24/24`, screener integration `27/27`, focused
+frontend coverage `63/63`, full frontend Vitest `952/952` across `109` files; TypeScript,
+production build, Ruff, workstream validation, and `git diff --check` passed. Authenticated
+F8t-results passed `1/1` on a rebuilt branch-scoped Docker stack. The commit is pushed to
+`origin/feat/tc2000-frontend-rework`; focused teardown/resource accounting were clean. The exact-tip
+exhaustive gate is the next required check; preserve the existing six visual state-oracle diffs and
+do not alter visual policy, provider fallback rules, or protected worktrees.
+
 ## 2026-09-05 — Promote Study range centers to watchlist columns
 
 Product commit `928bf8ae` (`feat(tc2000): promote range centers to watchlist columns`) extends the

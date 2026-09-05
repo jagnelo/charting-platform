@@ -11,7 +11,23 @@ records in `docs/project-todos.md`, `docs/tc2000-parity.md`,
 evidence ledgers. If a summary here conflicts with a dated test receipt or the current code, the
 current code and fresh evidence win.
 
-The current product slice is `928bf8ae` (`feat(tc2000): promote range centers to watchlist columns`).
+The current product slice is `7f672897` (`feat(tc2000): promote range centers through thresholds`).
+The primary Study Lab and persisted Research Results now expose explicit finite comparison controls
+for completed structured `range` artifacts with aligned center values. A user can save a typed
+Boolean column or reuse the condition for a watchlist filter, scan, Market Gauge, or alert. The
+immutable code asset and screener provenance retain the selected output, canonical members/source/
+membership, timeframe, dataset/run lineage, `range_center_target_to_boolean` adapter, and
+`study_range_center_threshold_as_boolean` semantics; lower/upper bands remain source-only. The
+prepared-universe runner requests the range output, extracts each member's latest finite center, and
+applies the supported relation outside user code. Backend runner coverage passed `113/113`, code API
+`24/24`, screener integration `27/27`, focused frontend coverage `63/63`, full frontend Vitest
+`952/952` across `109` files, TypeScript/build/Ruff/workstream/diff checks passed, and authenticated
+F8t-results browser proof passed `1/1` on a rebuilt branch-scoped Docker stack with clean teardown.
+The commit is pushed to `origin/feat/tc2000-frontend-rework`; the exact-tip gate is pending at this
+new metadata tip. The unchanged visual state-oracle diffs and canonical provider/history, richer
+Study, native-window/accessibility/security, dense-data, and visual-oracle gaps remain open.
+
+The preceding product slice is `928bf8ae` (`feat(tc2000): promote range centers to watchlist columns`).
 The primary Study Lab and persisted Research Results now expose a typed latest-value watchlist-column
 promotion for completed structured `range` artifacts with aligned finite `center` values. Lower/upper
 band values remain source-only; the saved code asset declares scalar output plus the explicit

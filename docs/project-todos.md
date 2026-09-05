@@ -1,5 +1,30 @@
 # Project TODO Memory
 
+### 2026-09-05 — Promote Study range centers through explicit Boolean thresholds
+
+- [x] Extend the primary Study Lab and persisted Research Results promotion matrix for completed
+      structured `range` artifacts with aligned finite `center` observations. A user can choose
+      `gt`, `gte`, `lt`, `lte`, `eq`, or `ne` plus a finite threshold and save a typed Boolean
+      column or reuse the condition for a watchlist filter, scan, Market Gauge, or alert. The
+      lower/upper bands remain source-only and the immutable source is never rewritten.
+- [x] Carry the explicit `range_center_target_to_boolean` adapter through the code-asset contract,
+      screener provenance, immutable research job envelope, and prepared-universe batch runner.
+      Validation accepts the Boolean adapter only when the selected source declares a `range`
+      output and rejects unsupported operators/non-finite thresholds with `invalid_range_center_target`.
+      Each member cell extracts the latest finite center and applies the relation outside user code,
+      preserving canonical member scope and Study/run/dataset lineage.
+- [x] Add focused backend runner/API/screener and frontend Study Lab/Research Results/capability
+      coverage, plus authenticated structured-results browser proof. Backend runner coverage passed
+      `113/113`; code API passed `24/24`; screener integration passed `27/27`; focused frontend
+      coverage passed `63/63`; full frontend Vitest passed `952/952` across `109` files;
+      TypeScript, production build, Ruff, workstream validation, and `git diff --check` passed.
+      Authenticated F8t-results passed `1/1` on the rebuilt branch-scoped Docker stack, and focused
+      stack teardown/resource accounting were clean. Product commit `7f672897` is pushed to
+      `origin/feat/tc2000-frontend-rework`.
+- [ ] Re-run the exact-tip exhaustive gate at the metadata tip for this slice. Preserve the six
+      visual state-oracle diffs and continue canonical provider/history, richer Study, native-window/
+      accessibility/security, dense-data, and visual-oracle work.
+
 ### 2026-09-05 — Promote Study range centers into latest-value watchlist columns
 
 - [x] Extend the primary Study Lab and persisted Research Results promotion matrix so a completed
