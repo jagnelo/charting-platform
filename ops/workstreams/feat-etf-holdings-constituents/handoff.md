@@ -4649,3 +4649,16 @@ as designed for this feature branch. This is validation of the pushed tip,
 not evidence that the provider-platform dependency has reached staging. AC10
 remains deferred, DXJ/NTSX/MINT/BOND remain unavailable for current analysis,
 and AC14 remains a post-integration/deployment shadow-gate step.
+
+## Fresh application-transport Tier-0 recheck — 2026-09-06
+
+The bounded application-equivalent recheck found no route change for the four
+unresolved Tier-0 symbols. WisdomTree product-page and symbol-scoped API
+requests for DXJ and NTSX returned HTTP 403 Cloudflare challenge HTML. PIMCO
+MINT/BOND `topTenHoldings` and `fund-info` requests returned HTTP 401 JSON
+authentication errors.
+
+No complete executable artifact, credential, entitlement, paid source, or
+provider-platform bridge was introduced. Runtime capability evidence and the
+provider-audit ledger now carry the 2026-09-06 transport references, while
+DXJ/NTSX/MINT/BOND remain unavailable for current analysis.

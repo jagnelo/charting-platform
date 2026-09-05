@@ -2094,3 +2094,16 @@ Evidence refs: `web:anydrus-ndow-official-page-2026-09-05`,
 `live:anydrus-ndow-application-200-2026-09-05`,
 `live:anydrus-ndow-dated-filepoint-json-2026-09-03`, and
 `live:anydrus-ndow-complete-84-rows-2026-09-05`.
+
+## Unresolved Tier-0 transport recheck — 2026-09-06
+
+A fresh application-equivalent httpx session returned HTTP 403 Cloudflare
+challenge HTML for both WisdomTree product pages and both symbol-scoped
+holdings APIs for DXJ and NTSX. PIMCO MINT/BOND `topTenHoldings` and
+`fund-info` requests returned HTTP 401 JSON authentication errors. No complete
+executable artifact was retrieved, so the four symbols remain unavailable and
+the provider counts remain 496 registered / 415 native-live-backed / 81
+fallback-only. Evidence refs:
+`live:wisdomtree-public-fund-holdings-api-2026-09-06-httpx-403`,
+`live:pimco-mint-fund-detail-api-2026-09-06-unauthorized`, and
+`live:pimco-bond-fund-detail-api-2026-09-06-unauthorized`.

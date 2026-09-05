@@ -458,7 +458,7 @@ def test_tier_zero_symbol_audit_preserves_unavailable_evidence_and_next_action()
     assert result.outcome == "unavailable"
     assert result.evidence_state == "issuer_route_access_blocked"
     assert result.provider_identity == "wisdomtree"
-    assert result.investigated_at == date(2026, 9, 5)
+    assert result.investigated_at == date(2026, 9, 6)
     assert "identity-verified" in result.next_action
 
 
@@ -488,7 +488,7 @@ def test_tier_zero_symbol_audit_records_pimco_authentication_boundary():
         assert result.tier == 0
         assert result.outcome == UNAVAILABLE
         assert result.evidence_state == "no_complete_executable_public_artifact"
-        assert result.investigated_at == date(2026, 9, 5)
+        assert result.investigated_at == date(2026, 9, 6)
         assert evidence_refs <= set(result.evidence_refs)
         assert "requires authentication" in result.next_action
 

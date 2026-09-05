@@ -3319,3 +3319,17 @@ a holdings artifact; the authenticated fund-detail API remains the only
 declared route found and MINT/BOND remain unavailable. Runtime capability refs
 and provider-audit refs were updated in lockstep, the capability suite passed
 87 tests, and no paid or provider-platform integration was activated.
+
+## Fresh application-transport Tier-0 recheck — 2026-09-06
+
+The bounded application-equivalent recheck found no route change for the four
+unresolved Tier-0 symbols. WisdomTree product-page and symbol-scoped API
+requests for DXJ and NTSX returned HTTP 403 Cloudflare challenge HTML. PIMCO
+MINT/BOND `topTenHoldings` and `fund-info` requests returned HTTP 401 JSON
+authentication errors.
+
+The recheck is evidence-only: no browser-only preview, SEC reconstruction,
+credential, paid source, or speculative provider-platform bridge was promoted.
+The runtime capability tuple and provider-audit history now carry the new
+transport references, and all four symbols remain unavailable for current
+analysis until a complete, identity-bound, repeatably executable route exists.

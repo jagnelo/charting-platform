@@ -538,7 +538,7 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
         outcome=UNAVAILABLE,
         evidence_state="issuer_route_access_blocked",
         provider_identity="wisdomtree",
-        investigated_at=date(2026, 9, 5),
+        investigated_at=date(2026, 9, 6),
         next_action=(
             "Keep DXJ unavailable and periodically re-test WisdomTree's official route; the "
             "public fund-holdings API requires an issuer session that is not repeatably "
@@ -549,6 +549,7 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "web:wisdomtree-public-fund-holdings-api-2026-09-05",
             "live:wisdomtree-public-fund-holdings-api-2026-09-05-httpx-403",
             "web:wisdomtree-dxj-product-page-2026-09-05-current",
+            "live:wisdomtree-public-fund-holdings-api-2026-09-06-httpx-403",
         ),
     ),
     "NTSX": ETFHoldingsSymbolAudit(
@@ -556,7 +557,7 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
         outcome=UNAVAILABLE,
         evidence_state="issuer_route_access_blocked",
         provider_identity="wisdomtree",
-        investigated_at=date(2026, 9, 5),
+        investigated_at=date(2026, 9, 6),
         next_action=(
             "Keep NTSX unavailable and periodically re-test WisdomTree's official route; the "
             "public fund-holdings API requires an issuer session that is not repeatably "
@@ -567,6 +568,7 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "web:wisdomtree-public-fund-holdings-api-2026-09-05",
             "live:wisdomtree-public-fund-holdings-api-2026-09-05-httpx-403",
             "web:wisdomtree-ntsx-product-page-2026-09-05-current",
+            "live:wisdomtree-public-fund-holdings-api-2026-09-06-httpx-403",
         ),
     ),
     "MINT": ETFHoldingsSymbolAudit(
@@ -574,7 +576,7 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
         outcome=UNAVAILABLE,
         evidence_state="no_complete_executable_public_artifact",
         provider_identity="pacific_investments",
-        investigated_at=date(2026, 9, 5),
+        investigated_at=date(2026, 9, 6),
         next_action=(
             "Keep MINT unavailable and re-test only when PIMCO exposes a changed route; its "
             "fund-detail API requires authentication and no complete public export is proven. Do "
@@ -595,6 +597,7 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "web:dealcharts-free-sec-nport-aggregator-2026-09-05",
             "live:dealcharts-mint-facts-2026-09-05-quarterly-stale",
             "web:pimco-mint-document-route-recheck-2026-09-05-404",
+            "live:pimco-mint-fund-detail-api-2026-09-06-unauthorized",
         ),
     ),
     "BOND": ETFHoldingsSymbolAudit(
@@ -602,7 +605,7 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
         outcome=UNAVAILABLE,
         evidence_state="no_complete_executable_public_artifact",
         provider_identity="pacific_investments",
-        investigated_at=date(2026, 9, 5),
+        investigated_at=date(2026, 9, 6),
         next_action=(
             "Keep BOND unavailable and re-test only when PIMCO exposes a changed route; its "
             "fund-detail API requires authentication and no complete public export is proven. Do "
@@ -623,6 +626,7 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "web:dealcharts-free-sec-nport-aggregator-2026-09-05",
             "live:dealcharts-bond-facts-2026-09-05-quarterly-stale",
             "web:pimco-bond-document-route-recheck-2026-09-05-404",
+            "live:pimco-bond-fund-detail-api-2026-09-06-unauthorized",
         ),
     ),
     "GEME": ETFHoldingsSymbolAudit(
