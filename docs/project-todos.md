@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-05 — Render benchmark-family concentration metrics history
+
+- [x] Render canonical point-in-time `top_n_weight` and `hhi` history for available benchmark-family
+      roles as aligned role-coloured uPlot series; preserve missing timestamps as nulls, distinguish
+      HHI with dashed lines, and fail closed on malformed/non-finite observations while retaining
+      current concentration, coverage, warnings, membership, and provenance text.
+- [x] Add lifecycle/alignment coverage (`29/29`), TypeScript, production build, and authenticated
+      Chromium `F8s-breadth-family-ratio` (`1/1`) asserting the metrics chart on a rebuilt
+      branch-scoped stack; teardown and resource cleanup were clean.
+- [x] Product commit `d9b9de95` (`feat(tc2000): render concentration metrics history`) is pushed
+      to `origin/feat/tc2000-frontend-rework`; rerun the exact-tip exhaustive gate at the next
+      coherent documentation tip. Preserve the six known visual state-oracle diffs and all
+      provider, fallback, baseline, threshold, mask, skip, and acceptance policy.
+
 ### 2026-09-05 — Render family relative-strength history
 
 - [x] Render canonical batch family ratio points as an aligned role-coloured uPlot history chart;

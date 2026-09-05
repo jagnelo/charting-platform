@@ -5,6 +5,25 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-05
 
+## 2026-09-05 — Render benchmark-family concentration metrics history
+
+The concentration panel now renders canonical point-in-time `top_n_weight` and `hhi` history for
+each available benchmark-family role alongside the existing dispersion history. Both metrics use
+the aligned timestamp union, preserve missing observations as `null`, validate finite values, and
+fail closed with an explicit unavailable state. Role colours identify the family leg and dashed
+lines identify HHI; the latest concentration values, coverage, warnings, membership semantics, and
+provenance remain unchanged.
+
+Lifecycle/alignment coverage passes `29/29`, TypeScript and production build pass, and authenticated
+Chromium `F8s-breadth-family-ratio` passes `1/1` with the metrics chart asserted visible on a rebuilt
+branch-scoped stack. Teardown removed all assigned resources. The exact-tip gate at this product
+tip is pending; preserve the six existing visual state-oracle diffs and unchanged provider,
+fallback, and acceptance policy.
+
+Product commit `d9b9de95` (`feat(tc2000): render concentration metrics history`) is now pushed to
+`origin/feat/tc2000-frontend-rework`; the durable receipt records the focused and authenticated
+checks above. The exact-tip gate remains pending at the next documentation tip.
+
 ## 2026-09-05 — Exact-tip gate after family ratio history
 
 The exact-tip `full_stack_browser` gate at metadata tip `f6607ad7` (product tip `852c1613`)

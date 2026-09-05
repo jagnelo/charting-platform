@@ -106,6 +106,14 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
+    Current slice adds canonical benchmark-family point-in-time concentration metrics history:
+    aligned top_n_weight and HHI series with null-preserved gaps, finite-value validation, explicit
+    unavailable state, and role-colour/dash semantics. Lifecycle/alignment coverage passed 29/29,
+    TypeScript/build passed, and authenticated Chromium F8s-breadth-family-ratio passed 1/1 on a
+    rebuilt branch-scoped stack with chart visibility asserted; teardown and resource accounting
+    were clean. Product and durable receipt commits are pending before the exact-tip gate. Preserve
+    unchanged provider/fallback and visual acceptance policy, then rerun the gate at the next
+    coherent documentation tip.
     Exact-tip full_stack_browser gate at metadata tip f6607ad7 (product tip 852c1613) passed all
     locked dependency/migration, workstream, lint/format/type-check, backend unit/integration and
     combined coverage (80.93%), frontend Vitest (964/964), build, compose/provider, stack-health,
