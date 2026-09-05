@@ -749,6 +749,7 @@
         <span v-else-if="crossFamilyRankingHistoryError" class="breadth-tool__status--error" role="alert">{{ crossFamilyRankingHistoryError }}</span>
         <span v-if="crossFamilyRankingHistory" class="breadth-tool__cross-family-ranking-history">History · {{ crossFamilyRankingHistoryPointCount }} points</span>
         <CrossFamilyRankingHistoryUPlot v-if="crossFamilyRankingHistory" :history="crossFamilyRankingHistory" />
+        <CrossFamilyRankHistoryUPlot v-if="crossFamilyRankingHistory" :history="crossFamilyRankingHistory" />
       </div>
       <section v-if="isBenchmarkFamily" class="breadth-tool__family-overview" aria-label="Benchmark family analysis">
         <header class="breadth-tool__family-overview-header">
@@ -893,6 +894,7 @@ import BenchmarkFamilyRatioHistoryUPlot from './BenchmarkFamilyRatioHistoryUPlot
 import BenchmarkFamilyConcentrationHistoryUPlot from './BenchmarkFamilyConcentrationHistoryUPlot.vue'
 import BenchmarkFamilyConcentrationMetricsHistoryUPlot from './BenchmarkFamilyConcentrationMetricsHistoryUPlot.vue'
 import CrossFamilyRankingHistoryUPlot from './CrossFamilyRankingHistoryUPlot.vue'
+import CrossFamilyRankHistoryUPlot from './CrossFamilyRankHistoryUPlot.vue'
 import GenericBreadthHistoryUPlot from './GenericBreadthHistoryUPlot.vue'
 import RelativeRotationTool from './RelativeRotationTool.vue'
 import MarketMapTool from './MarketMapTool.vue'

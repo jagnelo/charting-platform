@@ -12,6 +12,7 @@ import BenchmarkFamilyConcentrationHistoryUPlot from '@/components/workstation/B
 import BenchmarkFamilyConcentrationMetricsHistoryUPlot from '@/components/workstation/BenchmarkFamilyConcentrationMetricsHistoryUPlot.vue'
 import BenchmarkFamilyRatioHistoryUPlot from '@/components/workstation/BenchmarkFamilyRatioHistoryUPlot.vue'
 import CrossFamilyRankingHistoryUPlot from '@/components/workstation/CrossFamilyRankingHistoryUPlot.vue'
+import CrossFamilyRankHistoryUPlot from '@/components/workstation/CrossFamilyRankHistoryUPlot.vue'
 import GenericBreadthHistoryUPlot from '@/components/workstation/GenericBreadthHistoryUPlot.vue'
 
 class ResizeObserverMock {
@@ -32,6 +33,7 @@ const cases = [
   { name: 'benchmark family concentration metrics history', component: BenchmarkFamilyConcentrationMetricsHistoryUPlot, valid: { history: { family_key: 'sp500', official_index_symbol: 'SPX', timeframe: 'D1', adjustment: 'split_adjusted', as_of: null, rank_period: '1M', top_n: 10, limit: 500, roles: [{ role: 'cap_weight', symbol: 'SPY', label: 'Cap weight', verification_state: 'verified', available: true, membership_semantics: 'point_in_time_snapshot', points: [{ timestamp: '2026-01-01', snapshot_id: 1, composition_date: '2026-01-01', known_at: '2026-01-01T00:00:00Z', membership_version: 1, membership_semantics: 'point_in_time_snapshot', weight_method: 'reported', reported_weight_coverage: 1, top_n_weight: 0.3, hhi: 0.1, effective_constituents: 100, eligible_count: 100, covered_count: 100, excluded_count: 0, coverage: 1, mean_return: 0.01, median_return: 0.01, dispersion: 0.02, warnings: [] }], exclusions: [] }], exclusions: [] } }, invalid: { history: { family_key: 'sp500', official_index_symbol: 'SPX', timeframe: 'D1', adjustment: 'split_adjusted', as_of: null, rank_period: '1M', top_n: 10, limit: 500, roles: [{ role: 'cap_weight', symbol: 'SPY', label: 'Cap weight', verification_state: 'verified', available: true, membership_semantics: null, points: [{ timestamp: 'not-a-date', snapshot_id: null, composition_date: null, known_at: null, membership_version: 1, membership_semantics: null, weight_method: 'unavailable', reported_weight_coverage: null, top_n_weight: null, hhi: null, effective_constituents: null, eligible_count: 0, covered_count: 0, excluded_count: 0, coverage: 0, mean_return: null, median_return: null, dispersion: null, warnings: [] }], exclusions: [] }], exclusions: [] } } },
   { name: 'benchmark family ratio history', component: BenchmarkFamilyRatioHistoryUPlot, valid: { ratios: { family_key: 'sp500', official_index_symbol: 'SPX', timeframe: 'D1', adjustment: 'split_adjusted', ratios: [{ role: 'equal_weight', symbol: 'RSP', benchmark_role: 'cap_weight', benchmark: 'SPY', points: [{ timestamp: '2026-01-01', value: 1.02 }], coverage: 1, warnings: [] }], exclusions: [] } }, invalid: { ratios: { family_key: 'sp500', official_index_symbol: 'SPX', timeframe: 'D1', adjustment: 'split_adjusted', ratios: [{ role: 'equal_weight', symbol: 'RSP', benchmark_role: 'cap_weight', benchmark: 'SPY', points: [{ timestamp: 'not-a-date', value: Number.NaN }], coverage: 0, warnings: [] }], exclusions: [] } } },
   { name: 'cross-family ranking history', component: CrossFamilyRankingHistoryUPlot, valid: { history: { timeframe: 'D1', adjustment: 'split_adjusted', rank_period: '1M', limit: 500, rows: [{ family_key: 'sp500', family_name: 'S&P 500', official_index_symbol: 'SPX', symbol: 'SPY', label: 'SPY', available: true, coverage: 1, points: [{ timestamp: '2026-01-01', rank: 1, performance: { '1M': 0.1 }, relative_performance: { '1M': 0.02 } }], warnings: [] }], exclusions: [] } }, invalid: { history: { timeframe: 'D1', adjustment: 'split_adjusted', rank_period: '1M', limit: 500, rows: [{ family_key: 'sp500', family_name: 'S&P 500', official_index_symbol: 'SPX', symbol: 'SPY', label: 'SPY', available: true, coverage: 1, points: [{ timestamp: 'not-a-date', rank: 1, performance: { '1M': 0.1 }, relative_performance: { '1M': Number.NaN } }], warnings: [] }], exclusions: [] } } },
+  { name: 'cross-family rank history', component: CrossFamilyRankHistoryUPlot, valid: { history: { timeframe: 'D1', adjustment: 'split_adjusted', rank_period: '1M', limit: 500, rows: [{ family_key: 'sp500', family_name: 'S&P 500', official_index_symbol: 'SPX', symbol: 'SPY', label: 'SPY', available: true, coverage: 1, points: [{ timestamp: '2026-01-01', rank: 1, performance: {}, relative_performance: {} }], warnings: [] }], exclusions: [] } }, invalid: { history: { timeframe: 'D1', adjustment: 'split_adjusted', rank_period: '1M', limit: 500, rows: [{ family_key: 'sp500', family_name: 'S&P 500', official_index_symbol: 'SPX', symbol: 'SPY', label: 'SPY', available: true, coverage: 1, points: [{ timestamp: 'not-a-date', rank: null, performance: {}, relative_performance: {} }], warnings: [] }], exclusions: [] } } },
   { name: 'generic breadth history', component: GenericBreadthHistoryUPlot, valid: { history: { definition_version: 1, definition_hash: 'hash', universe: {}, condition: {}, timeframe: 'D1', adjustment: 'split_adjusted', points: [{ timestamp: '2026-01-01', requested_count: 2, eligible_count: 2, pass_count: 1, excluded_count: 0, percentage: 0.5, coverage: 1, members: [], exclusions: [] }] } }, invalid: { history: { definition_version: 1, definition_hash: 'hash', universe: {}, condition: {}, timeframe: 'D1', adjustment: 'split_adjusted', points: [{ timestamp: 'not-a-date', requested_count: 2, eligible_count: 0, pass_count: 0, excluded_count: 2, percentage: Number.NaN, coverage: 0, members: [], exclusions: [] }] } } },
 ] as const
 
@@ -151,6 +153,21 @@ describe('conditional uPlot lifecycle contracts', () => {
     expect(call[1][0]).toHaveLength(2)
     expect(call[1][1]).toEqual([0.02, 0.03])
     expect(call[1][2]).toEqual([null, -0.01])
+    wrapper.unmount()
+  })
+
+  it('aligns cross-family ranks without forward-filling gaps', async () => {
+    const wrapper = mount(CrossFamilyRankHistoryUPlot, {
+      props: { history: { timeframe: 'D1', adjustment: 'split_adjusted', rank_period: '1M', limit: 500, rows: [
+        { family_key: 'sp500', family_name: 'S&P 500', official_index_symbol: 'SPX', symbol: 'SPY', label: 'SPY', available: true, coverage: 1, points: [{ timestamp: '2026-01-01', rank: 1, performance: {}, relative_performance: {} }, { timestamp: '2026-01-02', rank: 2, performance: {}, relative_performance: {} }], warnings: [] },
+        { family_key: 'nasdaq100', family_name: 'Nasdaq 100', official_index_symbol: 'NDX', symbol: 'QQQ', label: 'QQQ', available: true, coverage: 1, points: [{ timestamp: '2026-01-02', rank: 1, performance: {}, relative_performance: {} }], warnings: [] },
+      ], exclusions: [] } },
+    })
+    await vi.waitFor(() => expect(vi.mocked(uPlot)).toHaveBeenCalledTimes(1))
+    const call = vi.mocked(uPlot).mock.calls[0] as any
+    expect(call[1][0]).toHaveLength(2)
+    expect(call[1][1]).toEqual([1, 2])
+    expect(call[1][2]).toEqual([null, 1])
     wrapper.unmount()
   })
 
