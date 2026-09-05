@@ -27,6 +27,7 @@ from app.providers.base import IdentifierRecord
 from app.services.etf_holdings import (
     ETF_HOLDINGS_INTERNAL_PROVIDER,
     _ensure_holdings_dates_are_not_future,
+    _schema_fingerprint,
     ensure_etf_profile,
     ensure_lightweight_etf_instrument,
     get_etf_profile_for_instrument,
@@ -50,6 +51,19 @@ from app.services.top_down_taxonomy import BENCHMARK_FAMILY_REGISTRY
 
 class ETFHoldingsRouteNotReadyError(ValueError):
     """Raised when an ETF matched an adapter but lacks route metadata."""
+
+
+class ETFHoldingsSchemaDriftError(ValueError):
+    """Raised when an unchanged parser receives a different artifact shape."""
+
+    def __init__(self, *, previous: str, observed: str, parser_version: str):
+        self.previous_fingerprint = previous
+        self.observed_fingerprint = observed
+        self.parser_version = parser_version
+        super().__init__(
+            "ETF holdings source schema fingerprint drift detected "
+            f"(previous={previous}, observed={observed}, parser={parser_version})."
+        )
 
 
 @dataclass(slots=True)
@@ -677,6 +691,8 @@ def _canary_failure_class(failure: Exception | str) -> str:
     text = str(failure).lower()
     if "future composition" in text or "future as-of" in text or "future published-at" in text:
         return "future_dated_source"
+    if isinstance(failure, ETFHoldingsSchemaDriftError) or "schema fingerprint drift" in text:
+        return "schema_drift"
     if "identity" in text or "mismatch" in text:
         return "identity_mismatch"
     if "parseable rows" in text or "complete rows" in text or "empty" in text:
@@ -688,6 +704,56 @@ def _canary_failure_class(failure: Exception | str) -> str:
     if "parse" in text or "schema" in text or "column" in text:
         return "parser_or_schema_error"
     return "provider_error"
+
+
+async def _ensure_schema_fingerprint_is_stable(
+    db: AsyncSession,
+    profile: ETFProfile,
+    *,
+    parser_version: str,
+    raw_payload_text: str | None = None,
+    raw_payload_json: dict | None = None,
+) -> None:
+    """Reject an unexplained artifact-shape change before snapshot persistence.
+
+    A stored fingerprint is evidence about the last successful route, not a
+    reason to accept a new shape silently.  A deliberate parser-version change
+    is the explicit recovery mechanism: it lets an adapter release document
+    the schema migration while an unchanged parser remains fail-closed.
+    Lightweight unit fakes that do not expose a database execute method skip
+    this persistence-boundary check; real refreshes always use AsyncSession.
+    """
+
+    execute = getattr(db, "execute", None)
+    if not callable(execute):
+        return
+    observed = _schema_fingerprint(
+        raw_payload_text=raw_payload_text,
+        raw_payload_json=raw_payload_json,
+    )
+    if not observed:
+        return
+    result = await execute(
+        select(ETFHoldingsAdapterState).where(
+            ETFHoldingsAdapterState.etf_profile_id == profile.id,
+            ETFHoldingsAdapterState.adapter_key == (profile.adapter_key or "unresolved"),
+        )
+    )
+    state = result.scalar_one_or_none()
+    if state is None:
+        return
+    metadata = _state_metadata(state.extra_data)
+    previous = metadata.get("schema_fingerprint")
+    if not previous or str(previous) == observed:
+        return
+    previous_parser = str(getattr(state, "parser_version", None) or "")
+    if previous_parser and previous_parser != parser_version:
+        return
+    raise ETFHoldingsSchemaDriftError(
+        previous=str(previous),
+        observed=observed,
+        parser_version=parser_version,
+    )
 
 
 async def run_etf_holdings_capability_canaries(
@@ -2047,6 +2113,16 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
         result_metadata.get("as_of_date")
     )
     _ensure_holdings_dates_are_not_future(composition_date, as_of_date)
+    parser_version = str(
+        result_metadata.get("parser_version") or f"{adapter.adapter_key}-{source_format}-v1"
+    )
+    await _ensure_schema_fingerprint_is_stable(
+        db,
+        profile,
+        parser_version=parser_version,
+        raw_payload_text=fetch_result.raw_text,
+        raw_payload_json=fetch_result.raw_json,
+    )
 
     snapshot = await ingest_holdings_snapshot(
         db,
@@ -2067,9 +2143,7 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
             or aliases.get("holdings_completeness_status")
             or "unknown"
         ),
-        parser_version=str(
-            result_metadata.get("parser_version") or f"{adapter.adapter_key}-{source_format}-v1"
-        ),
+        parser_version=parser_version,
         raw_payload_text=fetch_result.raw_text,
         raw_payload_json=fetch_result.raw_json,
         legal_metadata={
@@ -2198,6 +2272,7 @@ async def _record_success(db: AsyncSession, profile: ETFProfile, snapshot=None) 
         },
         "consecutive_failures": 0,
     }
+    state.extra_data.pop("last_schema_drift", None)
     if snapshot is not None and snapshot.source_provider:
         state.extra_data["source_provider"] = snapshot.source_provider
     if snapshot is not None:
@@ -2248,3 +2323,10 @@ async def _record_failure(db: AsyncSession, profile: ETFProfile, failure: Except
         "consecutive_failures": _failure_streak(state_metadata) + 1,
         "last_error_class": type(failure).__name__ if isinstance(failure, Exception) else "Error",
     }
+    if isinstance(failure, ETFHoldingsSchemaDriftError):
+        state.extra_data["last_schema_drift"] = {
+            "previous_fingerprint": failure.previous_fingerprint,
+            "observed_fingerprint": failure.observed_fingerprint,
+            "parser_version": failure.parser_version,
+            "observed_at": state.last_failure_at.isoformat(),
+        }

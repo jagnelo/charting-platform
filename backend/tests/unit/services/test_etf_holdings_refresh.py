@@ -181,6 +181,74 @@ async def test_refresh_route_rejects_future_metadata_before_snapshot_ingestion(m
 
 
 @pytest.mark.asyncio
+async def test_schema_drift_is_rejected_for_an_unchanged_parser():
+    profile = _profile()
+    state = _state(
+        extra_data={
+            "schema_fingerprint": refresh._schema_fingerprint(
+                raw_payload_json={"holdings": [{"ticker": "DXJ"}]}
+            )
+        }
+    )
+    state.parser_version = "fixture-json-v1"
+    db = _Session([_Result(scalar=state)])
+
+    with pytest.raises(refresh.ETFHoldingsSchemaDriftError) as error:
+        await refresh._ensure_schema_fingerprint_is_stable(
+            db,
+            profile,
+            parser_version="fixture-json-v1",
+            raw_payload_json={"holdings": [{"ticker": "DXJ", "weight": 1}]},
+        )
+
+    assert error.value.previous_fingerprint != error.value.observed_fingerprint
+    assert error.value.parser_version == "fixture-json-v1"
+
+
+@pytest.mark.asyncio
+async def test_schema_drift_can_recover_with_an_explicit_parser_version():
+    profile = _profile()
+    state = _state(
+        extra_data={
+            "schema_fingerprint": refresh._schema_fingerprint(
+                raw_payload_json={"holdings": [{"ticker": "DXJ"}]}
+            )
+        }
+    )
+    state.parser_version = "fixture-json-v0"
+    db = _Session([_Result(scalar=state)])
+
+    await refresh._ensure_schema_fingerprint_is_stable(
+        db,
+        profile,
+        parser_version="fixture-json-v1",
+        raw_payload_json={"holdings": [{"ticker": "DXJ", "weight": 1}]},
+    )
+
+
+@pytest.mark.asyncio
+async def test_schema_drift_failure_persists_comparable_fingerprints():
+    profile = _profile()
+    state = _state()
+    db = _Session([_Result(scalar=state)])
+    failure = refresh.ETFHoldingsSchemaDriftError(
+        previous="schema-old",
+        observed="schema-new",
+        parser_version="fixture-json-v1",
+    )
+
+    await refresh._record_failure(db, profile, failure)
+
+    assert state.extra_data["last_error_class"] == "ETFHoldingsSchemaDriftError"
+    assert state.extra_data["last_schema_drift"] == {
+        "previous_fingerprint": "schema-old",
+        "observed_fingerprint": "schema-new",
+        "parser_version": "fixture-json-v1",
+        "observed_at": state.last_failure_at.isoformat(),
+    }
+
+
+@pytest.mark.asyncio
 async def test_canary_failure_persists_class_and_opens_circuit_at_threshold(monkeypatch):
     profile = _profile()
     state = _state(status="success")
