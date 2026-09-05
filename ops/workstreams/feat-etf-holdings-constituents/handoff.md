@@ -3729,6 +3729,19 @@ validation, Ruff, formatting, and diff-check passed. Provider-platform remains
 outside staging, so AC10 is still deferred and no source or entitlement was
 activated.
 
+## Tier-0 evidence-drift invariant — 2026-09-05
+
+The symbol-priority ledger now has an executable regression that compares every
+Tier-0 ledger `evidence_refs` tuple with the runtime `_TIER_0_SYMBOL_AUDITS`
+tuple. The check caught and corrected a real drift: the provider ledger had
+supplemental PIMCO vendor evidence that the runtime capability response omitted.
+That evidence is now carried consistently for MINT and BOND, while their
+unavailable disposition remains unchanged.
+
+The complete adapter unit module passed `575` tests and the complete capability
+module passed `87`; Ruff, formatting, and diff-check passed. No source was
+promoted and the provider-platform dependency remains outside staging.
+
 ## Post-receipt capability regression — 2026-09-05
 
 The complete ETF capability unit module passed all `87` tests after the PIMCO
