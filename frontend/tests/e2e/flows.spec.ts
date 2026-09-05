@@ -3136,6 +3136,48 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8t-results-series-threshold — finite Study series promotes to a Boolean filter', async ({ page, browserDiagnostics }) => {
+    await page.route(/\/api\/v1\/research\/runs(?:\?.*)?$/, async route => {
+      if (route.request().method() !== 'GET') return route.continue()
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{
+        id: 901,
+        status: 'completed',
+        code_version_id: 901,
+        output_contract: 'study',
+        run_config: { execution_mode: 'study', output_contract: 'study', timeframe: 'D1' },
+        dataset_manifest: { source: 'canonical_database', timeframe: 'D1', datasets: [{ instrument_id: 7, symbol: 'SPY' }] },
+        reproducibility_hash: 'sha256:series-threshold',
+        artifact_count: 1,
+        artifacts: [{ id: 1, name: 'trend', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], values: [10, 12] } } }],
+      }]) })
+    })
+    await page.route(/\/api\/v1\/code\/assets$/, async route => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ name: 'Series threshold study', versions: [{ id: 901, source: "output.series('trend', market.close())", output_contract: 'study', parameter_schema: {}, default_parameters: {} }] }]) })
+        return
+      }
+      const body = route.request().postDataJSON()
+      expect(body).toMatchObject({ kind: 'condition', initial_version: { output_contract: 'boolean', output_name: 'trend', lineage: { output_adapter: 'series_target_to_boolean', series_target: { operator: 'gte', threshold: 11 } } } })
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 902, name: 'Trend threshold condition', versions: [{ id: 902 }] }) })
+    })
+    await page.route(/\/api\/v1\/screeners\/from-python-condition\/902$/, async route => {
+      expect(route.request().method()).toBe('POST')
+      expect(await route.request().postDataJSON()).toMatchObject({ name: 'trend gte 11 Filter 901', universe_type: 'custom', universe_instrument_ids: [7], timeframe: 'D1', provenance: { output_adapter: 'series_target_to_boolean', series_target: { operator: 'gte', threshold: 11 } } })
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 903, name: 'Trend threshold filter' }) })
+    })
+    await page.goto('/chart')
+    await expect(page.locator('.workstation')).toBeVisible()
+    await page.locator('.workstation__tabs > button').filter({ hasText: 'Study Lab' }).last().click()
+    const results = page.locator('.research-results-tool')
+    await expect(results).toBeVisible({ timeout: 10_000 })
+    await expect(results.getByRole('button', { name: 'Save filter: trend' })).toBeVisible()
+    await results.getByRole('combobox', { name: 'Series condition operator: trend' }).selectOption('gte')
+    await results.getByRole('spinbutton', { name: 'Series condition threshold: trend' }).fill('11')
+    await results.getByRole('button', { name: 'Save filter: trend' }).click()
+    await expect(results).toContainText('Saved series artifact “trend” as a thresholded watchlist filter.')
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8t-results-open — Study Results is available from the primary Add tool menu', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
     await expect(page.locator('.workstation')).toBeVisible()

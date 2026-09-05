@@ -10,6 +10,31 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Promote Study series thresholds
+
+Product commit `225ab93f` (`feat(tc2000): promote Study series thresholds`) extends persisted
+Research Results for finite numeric `series` artifacts. The user can choose `gt`, `gte`, `lt`,
+`lte`, `eq`, or `ne` plus a finite threshold, then save a typed Boolean column or reuse one
+thresholded current-data condition for a watchlist filter, scan, Market Gauge, or alert. The
+selected output, source run/code/dataset lineage, declared canonical member IDs, timeframe,
+`series_target`, and `series_target_to_boolean` adapter are preserved; the immutable Study source
+is not changed. `/code/assets` validates the observed numeric-series contract and finite relation,
+`/screeners/from-python-condition` carries the adapter metadata into the persisted condition, and
+the isolated runner applies the latest finite observation and relation outside user code.
+
+Evidence before branch-gate rerun: focused Research Results/capability coverage `34/34`; full
+frontend Vitest `948/948` across `109` files; TypeScript, production build, and diff checks pass;
+backend code+screener integration `51/51` with the existing NumPy deprecation warnings; runner
+threshold adapter unit passes; authenticated `F8t-results-series-threshold` passes `1/1` on the
+rebuilt branch-scoped Docker stack. Product commit is pushed to
+`origin/feat/tc2000-frontend-rework`.
+
+Remaining: rebuild the assigned stack and run the authenticated Results promotion flow, then rerun
+the exact-tip exhaustive gate. The existing six visual diffs are unchanged and remain an explicit
+review blocker; primary Study Lab direct threshold controls, canonical provider/history, native
+window/accessibility/security, dense-data, and visual-oracle gaps remain open. Do not alter visual
+policy, provider fallback rules, or protected worktrees.
+
 ## 2026-09-05 — Surface canonical source-history ranges
 
 Product commit `ad90b988` (`feat(tc2000): surface source history ranges`) generalizes the Market

@@ -11,6 +11,23 @@ records in `docs/project-todos.md`, `docs/tc2000-parity.md`,
 evidence ledgers. If a summary here conflicts with a dated test receipt or the current code, the
 current code and fresh evidence win.
 
+The current product slice is `225ab93f` (`feat(tc2000): promote Study series thresholds`). Persisted
+Research Results now exposes an explicit operator/threshold control for finite numeric `series`
+artifacts and promotes the selected output into a typed Boolean column, watchlist filter, scan,
+Market Gauge, or alert. The source run/code/output identity, declared canonical members, timeframe,
+dataset lineage, threshold relation, and `series_target_to_boolean` adapter remain explicit; the
+immutable Study source is never rewritten. The backend validates that the source actually declares a
+numeric series and that the relation uses a finite supported threshold, then carries the metadata
+through the screener into the isolated runner. Focused Results/capability coverage passed `34/34`,
+full frontend Vitest passed `948/948` across `109` files, type-check/build/diff checks passed, and
+backend code+screener integration passed `51/51` with the existing NumPy deprecation warnings.
+The authenticated `F8t-results-series-threshold` flow passed `1/1` on a rebuilt branch-scoped
+Docker stack with the operator/threshold, Boolean asset lineage, canonical member universe, and
+screener provenance assertions. The exact-tip exhaustive gate is still pending. The primary Study
+Lab direct threshold controls, canonical provider/history enrichment, native-window/accessibility/
+security, dense-data, and visual-oracle gaps remain open; no visual policy or provider fallback rule
+changes.
+
 The latest product slice is `ad90b988` (`feat(tc2000): surface source history ranges`). Market
 Map's canonical source-history readiness strip now renders every returned timeframe, not only the
 first, with covered/member counts, observed bar totals, and oldest/newest dates; missing bounds

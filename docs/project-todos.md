@@ -1,5 +1,30 @@
 # Project TODO Memory
 
+### 2026-09-05 — Promote Study numeric series through explicit Boolean thresholds
+
+- [x] Extend persisted Research Results for finite numeric `series` artifacts with an explicit
+      operator/threshold editor and safe targets for Boolean columns, watchlist filters, scans,
+      Market Gauges, and alerts. The source output name, declared canonical member IDs, timeframe,
+      dataset/run lineage, `series_target`, and `series_target_to_boolean` adapter are preserved;
+      unsupported/non-finite shapes remain unavailable.
+- [x] Carry the adapter metadata through `/screeners/from-python-condition` into the isolated
+      runner job. The code-asset boundary accepts this Boolean contract only when validation sees
+      a numeric series and a finite supported relation; invalid operators/thresholds return an
+      explicit `invalid_series_target` error. The original Study source remains immutable.
+- [x] Add regression coverage for the UI promotion matrix, stable scan reuse, API contract,
+      provenance propagation, runner-job handoff, and capability text. Focused frontend Results/
+      capability coverage passed `34/34`; full frontend Vitest passed `948/948` across `109` files;
+      type-check/build/diff checks passed; backend code+screener integration passed `51/51` with
+      the existing NumPy deprecation warnings, and the threshold runner unit passed. Product commit
+      `225ab93f` is pushed to `origin/feat/tc2000-frontend-rework`.
+- [x] Rebuild the branch-scoped stack and run the authenticated `F8t-results-series-threshold`
+      Results flow; it passed `1/1` with the operator/threshold, Boolean asset lineage, canonical
+      member universe, and screener provenance assertions. The exact-tip exhaustive gate remains
+      pending. The existing six visual matrix diffs must not be masked, baselined, thresholded,
+      skipped, or treated as provider gaps.
+- [ ] Continue canonical provider/history population, primary Study Lab threshold controls,
+      native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review.
+
 ### 2026-09-05 — Surface canonical source-history ranges
 
 - [x] Extend the Market Map source-history readiness strip to render every returned timeframe

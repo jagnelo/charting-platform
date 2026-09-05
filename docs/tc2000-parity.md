@@ -1,5 +1,26 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-09-05 — Structured Study series threshold promotion
+
+Persisted Research Results now represents the missing safe promotion boundary for finite numeric
+Study `series` outputs. A user selects a named series, comparison operator, and finite threshold;
+the surface can save a typed Boolean column or create one reusable current-data EasyScan used by a
+watchlist filter, scan, Market Gauge, or alert. The immutable source/output/run identity, declared
+canonical member IDs, timeframe, dataset manifest, threshold relation, and
+`series_target_to_boolean` adapter are retained in both the code asset and screener provenance.
+The API rejects unsupported operators, non-finite thresholds, or a claimed adapter when validation
+does not observe a numeric series; the isolated runner performs the latest-value extraction and
+comparison outside user code. No event/range/table coercion or universe widening is introduced.
+
+Focused Results/capability coverage passed `34/34`; full frontend Vitest passed `948/948` across
+`109` files; type-check, production build, and diff checks passed; backend code+screener integration
+passed `51/51` with the existing NumPy deprecation warnings, and the existing runner threshold unit
+passed. Authenticated `F8t-results-series-threshold` passed `1/1` on the rebuilt branch-scoped
+Docker stack with clean teardown pending the branch gate. This slice is scoped to persisted Research
+Results; primary Study Lab direct threshold controls, canonical provider/history population,
+native-window/accessibility/security, dense-data, and exact V25 visual-oracle gaps remain open. No
+visual policy or provider fallback rule changed.
+
 ## 2026-08-19 — Breadth definitions retain locked-watchlist lineage when saved
 
 The Breadth tool now lets a completed generic predicate be saved directly as an immutable Study
