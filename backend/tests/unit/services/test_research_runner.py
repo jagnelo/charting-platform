@@ -104,7 +104,12 @@ def test_runner_adapts_thresholded_range_center_to_boolean_scan_contract():
             "series_target": {"operator": "gte", "threshold": 12},
             "dataset": {
                 "datasets": [
-                    {"instrument_id": 1, "symbol": "SPY", "timestamps": ["2026-01-01", "2026-01-02"], "closes": [10, 12]},
+                    {
+                        "instrument_id": 1,
+                        "symbol": "SPY",
+                        "timestamps": ["2026-01-01", "2026-01-02"],
+                        "closes": [10, 12],
+                    },
                 ]
             },
         }
