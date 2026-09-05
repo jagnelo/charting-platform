@@ -39,7 +39,15 @@ def _profile(symbol="DXJ"):
     return SimpleNamespace(
         id=7,
         adapter_key="wisdomtree",
-        instrument=SimpleNamespace(symbol=symbol),
+        instrument=SimpleNamespace(symbol=symbol, name=f"{symbol} fixture"),
+        provider_aliases={},
+        issuer=None,
+        sponsor=None,
+        fund_family=None,
+        product_url=None,
+        sec_cik=None,
+        sec_series_id=None,
+        sec_class_id=None,
     )
 
 
@@ -132,6 +140,44 @@ async def test_canary_success_records_latency_recovery_and_symbol_gated_capabili
     assert state.extra_data["canary_history"][0]["source_provider"] == "wisdomtree"
     assert state.extra_data["canary_history"][0]["source_url"].endswith("DXJ.csv")
     assert db.flushes == 1
+
+
+@pytest.mark.asyncio
+async def test_refresh_route_rejects_future_metadata_before_snapshot_ingestion(monkeypatch):
+    profile = _profile()
+    profile.adapter_key = "fixture"
+    probe = SimpleNamespace(status="ready", confidence=1)
+    adapter = SimpleNamespace(
+        source_provider="fixture",
+        config=SimpleNamespace(source_access="issuer_public_holdings_csv"),
+        probe=lambda **_: probe,
+        fetch_latest=lambda **_: None,
+    )
+
+    async def fetch_latest(**_kwargs):
+        return SimpleNamespace(
+            rows=[SimpleNamespace()],
+            raw_text="DXJ fixture",
+            raw_json={},
+            source_url="https://issuer.example/DXJ.csv",
+            source_identifier="DXJ",
+            legal_metadata={
+                "source_provider": "fixture",
+                "composition_date": "2099-01-01",
+                "as_of_date": "2099-01-01",
+            },
+        )
+
+    adapter.fetch_latest = fetch_latest
+    monkeypatch.setattr(refresh, "get_holdings_adapter", lambda _key: adapter)
+
+    async def unexpected_ingest(*_args, **_kwargs):
+        raise AssertionError("future-dated artifacts must be rejected before ingestion")
+
+    monkeypatch.setattr(refresh, "ingest_holdings_snapshot", unexpected_ingest)
+
+    with pytest.raises(ValueError, match="future composition date"):
+        await refresh._refresh_adapter_route(None, profile)
 
 
 @pytest.mark.asyncio
@@ -280,3 +326,28 @@ def test_failure_streak_rejects_negative_and_non_numeric_persisted_values():
     assert refresh._failure_streak({"consecutive_failures": "not-a-number"}) == 0
     assert refresh._failure_streak({"consecutive_failures": -4}) == 0
     assert refresh._failure_streak(["legacy-metadata"]) == 0
+
+
+def test_future_holdings_dates_are_rejected_at_ingestion_boundary():
+    with pytest.raises(ValueError, match="future composition date"):
+        refresh._ensure_holdings_dates_are_not_future(
+            date(2026, 9, 8),
+            date(2026, 9, 8),
+            today=date(2026, 9, 5),
+        )
+
+    with pytest.raises(ValueError, match="future as-of date"):
+        refresh._ensure_holdings_dates_are_not_future(
+            date(2026, 9, 5),
+            date(2026, 9, 8),
+            today=date(2026, 9, 5),
+        )
+
+
+def test_future_dated_canary_failures_have_explicit_failure_class():
+    assert (
+        refresh._canary_failure_class(
+            "Issuer holdings route returned a future composition date (2026-09-08 > 2026-09-05)."
+        )
+        == "future_dated_source"
+    )
