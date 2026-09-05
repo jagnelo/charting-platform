@@ -138,7 +138,13 @@ async def test_canary_success_records_latency_recovery_and_symbol_gated_capabili
 async def test_canary_failure_persists_class_and_opens_circuit_at_threshold(monkeypatch):
     profile = _profile()
     state = _state(status="success")
-    db = _Session([_Result(rows=[profile]), _Result(scalar=state), _Result(scalar=state)])
+    db = _Session(
+        [
+            _Result(rows=[profile]),
+            _Result(scalar=state),
+            _Result(scalar=state),
+        ]
+    )
 
     async def failing_refresh(_db, _profile):
         raise ValueError("Issuer holdings route returned no parseable rows.")
@@ -167,6 +173,37 @@ async def test_canary_failure_persists_class_and_opens_circuit_at_threshold(monk
     assert state.status == "circuit_open"
     assert state.extra_data["last_canary_failure_class"] == "empty_or_partial_source"
     assert state.extra_data["circuit_open_until"] is not None
+
+
+@pytest.mark.asyncio
+async def test_canary_normalizes_malformed_persisted_failure_streak(monkeypatch):
+    profile = _profile()
+    state = _state(extra_data={"consecutive_failures": "legacy-corrupt-value"})
+    db = _Session(
+        [
+            _Result(rows=[profile]),
+            _Result(scalar=state),
+            _Result(scalar=state),
+            _Result(scalar=state),
+        ]
+    )
+
+    async def failing_refresh(_db, _profile):
+        raise TimeoutError("issuer route timed out")
+
+    monkeypatch.setattr(refresh, "_refresh_adapter_route", failing_refresh)
+
+    result = await refresh.run_etf_holdings_capability_canaries(
+        db,
+        symbols=["DXJ"],
+        max_symbols=1,
+        failure_threshold=3,
+    )
+
+    assert result["failed"] == 1
+    assert result["reports"][0]["failure_class"] == "transport_error"
+    assert result["reports"][0]["circuit_state"] == "closed"
+    assert state.extra_data["consecutive_failures"] == 1
 
 
 @pytest.mark.asyncio
@@ -237,3 +274,9 @@ def test_canary_history_is_bounded_for_long_running_shadow_windows():
     assert len(result["canary_history"]) == 90
     assert result["canary_history"][0]["sequence"] == 1
     assert result["canary_history"][-1]["sequence"] == 90
+
+
+def test_failure_streak_rejects_negative_and_non_numeric_persisted_values():
+    assert refresh._failure_streak({"consecutive_failures": "not-a-number"}) == 0
+    assert refresh._failure_streak({"consecutive_failures": -4}) == 0
+    assert refresh._failure_streak(["legacy-metadata"]) == 0

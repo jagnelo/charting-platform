@@ -68,11 +68,28 @@ _CANARY_HISTORY_KEY = "canary_history"
 _CANARY_HISTORY_LIMIT = 90
 
 
+def _state_metadata(value: Any) -> dict[str, Any]:
+    """Return persisted adapter metadata in the dictionary shape we require."""
+
+    return value if isinstance(value, dict) else {}
+
+
+def _failure_streak(value: Any) -> int:
+    """Read a persisted failure streak without allowing malformed JSON to abort a run."""
+
+    metadata = _state_metadata(value)
+    try:
+        return max(0, int(metadata.get("consecutive_failures") or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
 def _append_canary_observation(
     metadata: dict[str, Any], observation: dict[str, Any]
 ) -> dict[str, Any]:
     """Keep a bounded, JSON-safe history for shadow-gate evaluation."""
 
+    metadata = _state_metadata(metadata)
     existing = metadata.get(_CANARY_HISTORY_KEY)
     history = (
         [item for item in existing if isinstance(item, dict)] if isinstance(existing, list) else []
@@ -734,7 +751,7 @@ async def run_etf_holdings_capability_canaries(
                 )
             )
         ).scalar_one_or_none()
-        metadata = (state.extra_data or {}) if state is not None else {}
+        metadata = _state_metadata(state.extra_data if state is not None else None)
         open_until_text = metadata.get("circuit_open_until")
         open_until = None
         if open_until_text:
@@ -768,7 +785,7 @@ async def run_etf_holdings_capability_canaries(
                         "transport_kind": circuit_capability.transport_kind,
                         "identity_verified": circuit_capability.identity_verified,
                         "symbol_audit_outcome": circuit_capability.symbol_audit.outcome,
-                        "failure_streak": int(metadata.get("consecutive_failures") or 0),
+                        "failure_streak": _failure_streak(metadata),
                         "failure_class": metadata.get("last_canary_failure_class"),
                         "failure_reason": state.failure_reason,
                         "circuit_state": "open",
@@ -785,7 +802,7 @@ async def run_etf_holdings_capability_canaries(
             continue
 
         started = time.perf_counter()
-        previous_failures = int(metadata.get("consecutive_failures") or 0)
+        previous_failures = _failure_streak(metadata)
         try:
             snapshot = await _refresh_adapter_route(db, profile)
         except ETFHoldingsRouteNotReadyError as exc:
@@ -821,8 +838,8 @@ async def run_etf_holdings_capability_canaries(
         if state is None:
             reports.append({"symbol": symbol, "status": status})
             continue
-        current_metadata = state.extra_data or {}
-        failures = int(current_metadata.get("consecutive_failures") or 0)
+        current_metadata = _state_metadata(state.extra_data)
+        failures = _failure_streak(current_metadata)
         recovered = status == "success" and previous_failures > 0
         if recovered:
             summary["recovered"] += 1
@@ -2093,9 +2110,10 @@ async def _record_skip(
     now = datetime.now(UTC)
     state.last_checked_at = now
     state.last_failure_at = now
+    state_metadata = _state_metadata(state.extra_data)
     state.extra_data = {
-        **(state.extra_data or {}),
-        "consecutive_failures": int((state.extra_data or {}).get("consecutive_failures") or 0) + 1,
+        **state_metadata,
+        "consecutive_failures": _failure_streak(state_metadata) + 1,
         "last_error_class": "RouteNotReady",
     }
 
@@ -2124,13 +2142,14 @@ async def _record_probe(
     state.source_url = probe.source_url
     state.source_identifier = probe.issuer_product_id
     state.last_checked_at = datetime.now(UTC)
+    state_metadata = _state_metadata(state.extra_data)
     state.extra_data = {
-        **(state.extra_data or {}),
+        **state_metadata,
         "probe_confidence": str(probe.confidence),
         "required_identifiers": probe.required_identifiers,
         "consecutive_failures": 0
         if probe.status == "ready"
-        else int((state.extra_data or {}).get("consecutive_failures") or 0) + 1,
+        else _failure_streak(state_metadata) + 1,
     }
 
 
@@ -2154,9 +2173,10 @@ async def _record_success(db: AsyncSession, profile: ETFProfile, snapshot=None) 
     state.rate_limit_state = None
     state.last_success_at = now
     state.last_checked_at = now
-    observation_metadata = snapshot.extra_data if snapshot is not None else {}
+    observation_metadata = _state_metadata(snapshot.extra_data if snapshot is not None else None)
+    state_metadata = _state_metadata(state.extra_data)
     state.extra_data = {
-        **(state.extra_data or {}),
+        **state_metadata,
         **{
             key: observation_metadata.get(key)
             for key in (
@@ -2214,8 +2234,9 @@ async def _record_failure(db: AsyncSession, profile: ETFProfile, failure: Except
     state.rate_limit_state = _rate_limit_state_for_failure(failure)
     state.last_failure_at = datetime.now(UTC)
     state.last_checked_at = state.last_failure_at
+    state_metadata = _state_metadata(state.extra_data)
     state.extra_data = {
-        **(state.extra_data or {}),
-        "consecutive_failures": int((state.extra_data or {}).get("consecutive_failures") or 0) + 1,
+        **state_metadata,
+        "consecutive_failures": _failure_streak(state_metadata) + 1,
         "last_error_class": type(failure).__name__ if isinstance(failure, Exception) else "Error",
     }
