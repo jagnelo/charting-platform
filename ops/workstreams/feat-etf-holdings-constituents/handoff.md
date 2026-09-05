@@ -3294,3 +3294,10 @@ behind the staged provider-platform entitlement, licensing, quota, and
 aggregate 20 EUR/USD-equivalent budget gate. DXJ/NTSX/MINT/BOND remain
 non-current, and no credential, paid source, adapter, or provider classification
 was changed.
+
+The same bounded check called FMP's documented legacy `etf-holder` path with
+its public `demo` key. DXJ, NTSX, MINT, and BOND each returned HTTP 401 with an
+`Invalid API KEY` response. FMP therefore remains an unqualified research
+candidate: its endpoint documentation is not a usable free-access proof, and
+coverage, current terms, redistribution rights, freshness, and price still
+require a shared entitlement review.
