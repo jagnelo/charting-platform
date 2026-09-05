@@ -12,8 +12,12 @@
 - [x] Product commit `6b4d47d1` (`feat(tc2000): expose family breadth history readiness`) is
       pushed to `origin/feat/tc2000-frontend-rework`; rebuilt authenticated Chromium
       `F8s-breadth-family-ratio` passed `1/1` and assigned stack resources were removed.
-- [ ] Re-run the exact-tip exhaustive gate at `6b4d47d1`; preserve the six unchanged visual
-      state-oracle diffs and all existing provider/fallback acceptance policy.
+- [x] Exact-tip gate rerun at docs tip `437e35b8`: all non-visual stages and functional Playwright
+      passed (`157/157`, `106` documented skips); frontend Vitest was `952/952` across `109` files
+      and the visual matrix was `98/104`. The same six state-oracle assertions remain the only
+      blocker (watchlist-column-editor-open at both 1080p scales; workspace-floating at all four
+      scales). Teardown/resource accounting were clean and no visual/provider policy changed.
+- [ ] Continue the next canonical provider/history slice with authenticated evidence.
 
 ### 2026-09-05 — Structured Study outputs promote to Strategy signals
 

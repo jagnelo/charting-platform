@@ -5,6 +5,19 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-05
 
+## 2026-09-05 — Exact-tip gate after per-role breadth-history readiness
+
+The exact-tip `full_stack_browser` gate at `437e35b8` passed every non-visual stage and the
+functional Playwright suite (`157/157`, with `106` documented skips across `263` specs). Backend
+combined coverage, frontend Vitest (`952/952` across `109` files), build, compose/provider policy,
+stack health, and runner-isolation probes all passed. The four-project visual matrix remains
+`98/104`; the same six state-oracle assertions fail: `watchlist-column-editor-open` at 1080p-100
+and 1080p-125 (`13,844` pixels each), and `workspace-floating` at 1080p-100/125/1440p-100/1440p-125
+(`9,770`/`5,512`/`9,770`/`12,097` pixels in this run). Diff counts vary with the existing
+floating-window capture timing, but the failing assertion set is unchanged. Teardown removed all
+assigned resources and no baseline, mask, threshold, skip, fallback, provider, or acceptance rule
+changed. Continue the next canonical provider/history slice while preserving this visual boundary.
+
 ## 2026-09-05 — Expose per-role benchmark breadth-history analysis readiness
 
 Benchmark-family breadth history now reports role-local readiness instead of exposing only
