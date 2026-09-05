@@ -775,7 +775,7 @@
           <label>As of <select :value="familyAsOf" aria-label="Family analysis as of" @change="setBreadthConfiguration({ as_of: (($event.target as HTMLSelectElement).value || null) })"><option value="">Latest</option><option v-for="date in familyCoverageDates" :key="date" :value="familyAsOfValue(date)">{{ date }}</option></select></label>
           <div class="breadth-tool__family-coverage-roles">
             <span v-for="role in familyCoverage.roles" :key="role.role">
-          <b>{{ familyRoleLabel(role.role) }}</b> {{ role.symbol ?? role.label }} · {{ role.status }} · {{ role.snapshots.length }} date{{ role.snapshots.length === 1 ? '' : 's' }} · {{ familyContinuityLabel(role) }} · {{ familyLatestDisclosureLabel(role) }} · bars {{ familyMemberBarHistoryLabel(role) }} · readiness {{ role.composite_readiness_status ?? 'unknown' }}{{ familyReadinessReasonsLabel(role) }} · entitlement {{ familyEntitlementLabel(role) }} · refresh {{ familyRefreshLabel(role) }} · weights {{ role.weights_status ?? 'unknown' }} · classification {{ role.classification_status ?? 'unknown' }}{{ role.placeholder_member_count ? ` · placeholders ${role.placeholder_member_count}` : '' }}
+          <b>{{ familyRoleLabel(role.role) }}</b> {{ role.symbol ?? role.label }} · {{ role.status }} · {{ role.snapshots.length }} date{{ role.snapshots.length === 1 ? '' : 's' }} · {{ familyContinuityLabel(role) }} · {{ familyLatestDisclosureLabel(role) }} · bars {{ familyMemberBarHistoryLabel(role) }} · readiness {{ role.composite_readiness_status ?? 'unknown' }}{{ familyReadinessReasonsLabel(role) }} · route {{ familyRouteLabel(role) }} · entitlement {{ familyEntitlementLabel(role) }} · refresh {{ familyRefreshLabel(role) }} · weights {{ role.weights_status ?? 'unknown' }} · classification {{ role.classification_status ?? 'unknown' }}{{ role.placeholder_member_count ? ` · placeholders ${role.placeholder_member_count}` : '' }}
             </span>
           </div>
         </div>
@@ -2391,6 +2391,12 @@ function familyMemberBarHistoryLabel(role: { member_bar_history?: { status?: str
 function familyReadinessReasonsLabel(role: { composite_readiness_reasons?: string[] }) {
   const reasons = (role.composite_readiness_reasons ?? []).filter(reason => reason.trim())
   return reasons.length ? ` · reasons ${reasons.join(' · ')}` : ''
+}
+function familyRouteLabel(role: { holdings_route_status?: string; holdings_route_provider?: string | null; holdings_route_adapter_key?: string | null }) {
+  const status = role.holdings_route_status?.replace(/_/g, ' ') ?? 'not configured'
+  const provider = role.holdings_route_provider?.trim()
+  const adapter = role.holdings_route_adapter_key?.trim()
+  return `${status}${provider ? ` · ${provider}` : ''}${adapter ? ` · adapter ${adapter}` : ''}`
 }
 function familyEntitlementLabel(role: { entitlement_status?: string; entitlement_provider?: string | null; entitlement_live_probe_status?: string | null; entitlement_revision?: number | null; entitlement_effective_at?: string | null; entitlement_review_due_at?: string | null }) {
   const status = role.entitlement_status ?? 'unknown'

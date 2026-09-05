@@ -203,7 +203,10 @@ describe('MarketMapTool', () => {
             { role: 'value', symbol: null, label: 'Value', available: false, status: 'mapping_unavailable', member_bar_history: { status: 'unavailable', placeholder_member_count: 0, timeframes: [] }, point_in_time_supported: false, member_count: 0, placeholder_member_count: 0, weighted_member_count: 0, weights_status: 'unavailable', classified_member_count: 0, classification_status: 'unavailable', history_ready: false, composite_readiness_status: 'unavailable', composite_readiness_reasons: ['benchmark_role_mapping_unavailable'] },
             { role: 'growth', symbol: null, label: 'Growth', available: false, status: 'mapping_unavailable', member_bar_history: { status: 'unavailable', placeholder_member_count: 0, timeframes: [] }, point_in_time_supported: false, member_count: 0, placeholder_member_count: 0, weighted_member_count: 0, weights_status: 'unavailable', classified_member_count: 0, classification_status: 'unavailable', history_ready: false, composite_readiness_status: 'unavailable', composite_readiness_reasons: ['benchmark_role_mapping_unavailable'] },
           ],
-        })
+        }).then(response => ({
+          ...response,
+          roles: response.roles.map((role, index) => index === 0 ? { ...role, holdings_route_adapter_key: 'sec_issuer_holdings' } : role),
+        }))
       : Promise.resolve([]))
 
     const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: 'benchmark-family:sp500:cap_weight' } } })
@@ -214,7 +217,7 @@ describe('MarketMapTool', () => {
     expect(readiness.text()).toContain('Cap weight (SPY)')
     expect(readiness.text()).toContain('21/101 D1 analysis-ready')
     expect(readiness.text()).toContain('History: D1 21/101 ready · 21 covered · 1000 bars · floor 252 · range 2025-01-01 → 2026-06-30 · W1 0/101 ready · 0 covered · 0 bars · floor 52 · MN 0/101 ready · 0 covered · 0 bars · floor 24')
-    expect(readiness.text()).toContain('Route: configured · sec · Refresh: partial')
+    expect(readiness.text()).toContain('Route: configured · sec · adapter sec_issuer_holdings · Refresh: partial')
     expect(readiness.text()).toContain('Refresh: partial · checked 2026-07-03 · reason issuer endpoint unavailable')
     expect(readiness.text()).toContain('Refresh: partial · checked 2026-07-03 · reason issuer endpoint unavailable · failed 2026-07-04 · composition 2026-06-30')
     expect(readiness.text()).toContain('Members: 101 · Weighted: 101 (ready) · Classified: 21 (partial) · Point-in-time: supported')

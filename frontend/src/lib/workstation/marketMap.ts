@@ -46,8 +46,10 @@ export interface BenchmarkFamilyCoverageRole {
   continuity_gap_count?: number
   continuity_max_interval_days?: number | null
   continuity_snapshot_limit_reached?: boolean
+  holdings_route_adapter_key?: string | null
   holdings_route_provider?: string | null
   holdings_route_status?: string | null
+  holdings_refresh_provider?: string | null
   holdings_refresh_status?: string | null
   holdings_refresh_last_checked_at?: string | null
   holdings_refresh_last_success_at?: string | null

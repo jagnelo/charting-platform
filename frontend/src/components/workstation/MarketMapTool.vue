@@ -175,7 +175,7 @@
             <span>{{ role.label }}{{ role.symbol ? ` (${role.symbol})` : '' }}</span>
             <span>{{ role.composite_readiness_status }}</span>
             <span>{{ benchmarkRoleCoverageLabel(role) }}</span>
-            <small>Route: {{ role.holdings_route_status ?? 'not configured' }}{{ role.holdings_route_provider ? ` · ${role.holdings_route_provider}` : '' }} · Refresh: {{ benchmarkRoleRefreshLabel(role) }}</small>
+            <small>Route: {{ benchmarkRoleRouteLabel(role) }} · Refresh: {{ benchmarkRoleRefreshLabel(role) }}</small>
             <small>Members: {{ role.member_count }} · Weighted: {{ role.weighted_member_count }} ({{ role.weights_status.replace(/_/g, ' ') }}) · Classified: {{ role.classified_member_count }} ({{ role.classification_status.replace(/_/g, ' ') }}) · Point-in-time: {{ role.point_in_time_supported ? 'supported' : 'unavailable' }}</small>
             <small v-if="role.member_bar_history?.timeframes?.length">History: {{ benchmarkRoleHistoryLabel(role) }}</small>
             <small v-if="role.entitlement_status || role.entitlement_provider || role.entitlement_revision != null">Entitlement: {{ benchmarkRoleEntitlementLabel(role) }}</small>
@@ -659,6 +659,13 @@ function benchmarkRoleHistoryLabel(role: BenchmarkFamilyCoverageRole): string {
     const range = oldest || newest ? ` · range ${oldest ?? 'unknown'} → ${newest ?? 'unknown'}` : ''
     return `${history.timeframe} ${history.analysis_ready_member_count}/${history.member_count} ready · ${history.covered_member_count} covered · ${history.bar_count} bars${floor}${range}`
   }).join(' · ')
+}
+
+function benchmarkRoleRouteLabel(role: BenchmarkFamilyCoverageRole): string {
+  const status = role.holdings_route_status?.replace(/_/g, ' ') ?? 'not configured'
+  const provider = role.holdings_route_provider?.trim()
+  const adapter = role.holdings_route_adapter_key?.trim()
+  return `${status}${provider ? ` · ${provider}` : ''}${adapter ? ` · adapter ${adapter}` : ''}`
 }
 
 function watchlistHistoryTimeframeLabel(history: WatchlistSourceHistoryStatus['timeframes'][number]): string {

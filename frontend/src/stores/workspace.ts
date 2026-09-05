@@ -555,6 +555,9 @@ export interface BenchmarkFamilyCoverageRoleState {
   label: string
   verification_state: string
   instrument_id?: number | null
+  adapter_key?: string | null
+  adapter_status?: string | null
+  adapter_confidence?: number | string | null
   available: boolean
   status: string
   holdings_route_adapter_key?: string | null
