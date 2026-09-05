@@ -10,9 +10,20 @@ describe('study artifact promotion capabilities', () => {
       'scan',
       'Market Gauge',
       'alert',
+      'Strategy signal',
     ])
-    expect(studyArtifactCapability('series')?.targets).toEqual(['chart plot', 'latest-value watchlist column', 'thresholded Boolean condition'])
-    expect(studyArtifactCapability('range')?.targets).toEqual(['center chart plot', 'latest center watchlist column', 'thresholded Boolean condition'])
+    expect(studyArtifactCapability('series')?.targets).toEqual([
+      'chart plot',
+      'latest-value watchlist column',
+      'thresholded Boolean condition',
+      'thresholded Strategy signal',
+    ])
+    expect(studyArtifactCapability('range')?.targets).toEqual([
+      'center chart plot',
+      'latest center watchlist column',
+      'thresholded Boolean condition',
+      'thresholded Strategy signal',
+    ])
     expect(studyArtifactCapability('range')?.note).toContain('bounds remain source-only')
     expect(studyArtifactCapability('events')?.targets).toEqual(['watchlist filter', 'alert', 'Strategy signal'])
   })
