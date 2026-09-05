@@ -4426,3 +4426,12 @@ while the production endpoint returned authentication-required responses.
 Although the free-plan terms permit internal application use, this evidence
 does not establish a complete, dated, identity-safe current route. No symbol
 classification, provider promotion, credential, or paid activation changed.
+
+## StockFit daily-holdings candidate — 2026-09-05
+
+StockFit documents issuer-sourced daily holdings, but the free tier exposes
+profiles and coverage metadata while holdings require the ETF plan. Bounded
+no-key requests for the supported-funds list and daily holdings returned
+`Unauthorized`; no free account, API key, entitlement, price, or commercial
+license was activated. DXJ/NTSX/MINT/BOND remain unavailable because no
+complete current route was proven.

@@ -1999,3 +1999,17 @@ evidence, not current support. Evidence refs:
 `live:tickerbot-dxj-ntsx-sandbox-2026-09-05`,
 `live:tickerbot-mint-bond-sandbox-2026-09-05`, and
 `live:tickerbot-production-auth-required-2026-09-05`.
+
+## StockFit daily-holdings candidate — 2026-09-05
+
+StockFit documents issuer-sourced daily holdings and a free tier, but its
+documentation says the free tier exposes profiles and the coverage list while
+holdings are unlocked by the ETF plan. Bounded no-key requests for the
+coverage list and daily holdings returned `Unauthorized`, so coverage and
+current rows for DXJ/NTSX/MINT/BOND remain unproven. No account, API key,
+entitlement, price, or commercial license was activated. Evidence refs:
+`web:stockfit-daily-holdings-contract-2026-09-05`,
+`web:stockfit-pricing-2026-09-05`,
+`live:stockfit-supported-funds-unauthorized-2026-09-05`,
+`live:stockfit-daily-holdings-unauthorized-2026-09-05`, and
+`live:stockfit-mint-bond-daily-unauthorized-2026-09-05`.
