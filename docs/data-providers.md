@@ -37,7 +37,7 @@ re-reviewed when credentials or billing plans change.
 | Coinbase Exchange | public crypto candles, ticker, USD products | none | 10 public requests/sec, burst up to 15 | IP / rolling | contract recorded; keyless live evidence required |
 | Kraken | public crypto OHLC, ticker, USD pairs | none | safe public frequency <=1 request/sec; pair/IP limits apply | IP/pair / rolling | contract recorded; keyless live evidence required |
 | CoinGecko Demo | crypto search, metadata, market-cap universe | `COINGECKO_API_KEY` | 100 calls/min and 10,000 calls/month | Demo key / minute + calendar month | contract recorded; credentialed live evidence required |
-| FINRA | consolidated short interest (OAuth Query API) | `FINRA_CLIENT_ID`, `FINRA_CLIENT_SECRET` | 1,200 synchronous requests/minute/IP; max 5,000 records and 3 MB per synchronous response; 20 asynchronous requests/minute/dataset/account | OAuth client / IP + dataset/account | quota contract recorded; credential/terms/live evidence required |
+| FINRA | consolidated short interest (OAuth Query API) and OTC Daily List lifecycle/corporate-action deltas | `FINRA_CLIENT_ID`, `FINRA_CLIENT_SECRET` | 1,200 synchronous requests/minute/IP; max 5,000 records and 3 MB per synchronous response; 20 asynchronous requests/minute/dataset/account | OAuth client / IP + dataset/account | quota contract recorded; credential/terms/live evidence required |
 | FRED | macro/rates/FX daily series | `FRED_API_KEY` | FRED v2 documents up to 2 requests/sec before 429; v1 also reserves the right to adjust limits, so no cross-version contract is assumed | API key / provider-defined | **not routable until the deployed API version's ceiling is verified** |
 | Nasdaq Trader | official `nasdaqlisted.txt`/`otherlisted.txt` US NMS listing/lifecycle files | none | No numeric public limit in the symbol-directory definition; poll conservatively and record response headers | public service / unknown | **discovery evidence only; quota unknown** |
 | Tiingo | EOD history, search, profiles | `TIINGO_API_KEY` | 500 unique symbols/month, 50/hour, 1,000/day, 1GB/month (free Starter); free terms prohibit durable retention | API key / multiple windows | adapter + contract recorded; free persistence terms block durable routing |
@@ -330,22 +330,28 @@ without notice. Should be deprioritized via provider policy once primary provide
 
 ### FINRA (`finra`)
 
-**Role**: Periodic consolidated short-interest observations for US securities.
-The adapter uses FINRA's `otcMarket/consolidatedShortInterest` Query API dataset
-by default, preserves each raw row, and sends the documented `compareFilters`
+**Role**: Periodic consolidated short-interest observations plus OTC lifecycle
+and corporate-action deltas. The adapter uses FINRA's
+`otcMarket/consolidatedShortInterest` and `otcMarket/OTCDAILYLIST` Query API
+datasets, preserves each raw row, and sends the documented `compareFilters`
 POST shape. It normalises settlement/publication dates, current short position,
-percent float, and days-to-cover values. It does not infer missing values or
-treat publication dates as real-time quotes. FINRA's [API platform
-documentation](https://developer.finra.org/docs) documents the OAuth flow,
-throttling, synchronous record/payload limits, and this dataset. Those limits
-are recorded in the provider contract; the adapter still requires an
-operator-provisioned OAuth credential and reviewed terms before routing.
+percent float, days-to-cover values, and Daily List event dates/types. The
+Daily List is explicitly a delta feed for new/deleted issues, symbol/name
+changes, and other actions; it is not a complete current OTC security master
+and cannot by itself close the initial OTC-universe reconciliation gate. It
+does not infer missing values or treat publication dates as real-time quotes.
+FINRA's [API platform documentation](https://developer.finra.org/docs) documents
+the OAuth flow, throttling, synchronous record/payload limits, and these
+datasets. Those limits are recorded in the provider contract; the adapter still
+requires an operator-provisioned OAuth credential and reviewed terms before
+routing.
 
 **Configuration**: Set `FINRA_CLIENT_ID` and `FINRA_CLIENT_SECRET` in the
-ignored `.env.dev`. `FINRA_SHORT_INTEREST_URL` is an optional endpoint override;
-otherwise the adapter uses the documented API base and OAuth bearer flow. Do
-not put client secrets in commits or chat. The adapter remains non-routable
-until the credential preflight, live probe, and current terms review pass.
+ignored `.env.dev`. `FINRA_SHORT_INTEREST_URL` and
+`FINRA_OTC_DAILY_LIST_URL` are optional endpoint overrides; otherwise the
+adapter uses the documented API base and OAuth bearer flow. Do not put client
+secrets in commits or chat. The adapter remains non-routable until the
+credential preflight, both live probes, and current terms review pass.
 
 ### SEC Company Facts (`edgar`)
 
@@ -384,6 +390,7 @@ FINRA_CLIENT_SECRET=
 FINRA_TOKEN_URL=https://ews.fip.finra.org/fip/rest/ews/oauth2/access_token
 FINRA_API_BASE_URL=https://api.finra.org
 FINRA_SHORT_INTEREST_URL=
+FINRA_OTC_DAILY_LIST_URL=
 
 # Optional adapters (disabled until governance records reviewed entitlements)
 TIINGO_API_KEY=

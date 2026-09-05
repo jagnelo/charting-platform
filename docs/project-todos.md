@@ -15,7 +15,8 @@ current capability/quota ledger.
       operation-cost fail-closed behavior for weighted/credit APIs.
 - [x] Replace undocumented Nasdaq quote/history calls with official Nasdaq
       Trader directory evidence; retain Coinbase/Kraken public crypto adapters,
-      FINRA OAuth configuration, and documentation-faithful optional adapters.
+      FINRA OAuth configuration, OTC Daily List lifecycle-event evidence, and
+      documentation-faithful optional adapters.
 - [x] Make universe reconciliation fail closed on cursor pages without totals
       or explicit completion evidence, preserve Nasdaq Financial Status evidence,
       and prevent exchange-qualified ticker merges across venues.

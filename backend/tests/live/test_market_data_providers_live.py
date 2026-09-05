@@ -9,7 +9,7 @@ silently skipped evidence.
 from __future__ import annotations
 
 import os
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
@@ -161,6 +161,15 @@ def test_finra_credentialed_short_interest():
     _require("FINRA_CLIENT_ID", "FINRA_CLIENT_SECRET")
     rows = FINRAProvider().fetch_short_interest("AAPL")
     assert isinstance(rows, list)
+
+
+def test_finra_credentialed_otc_daily_list():
+    _require("FINRA_CLIENT_ID", "FINRA_CLIENT_SECRET")
+    end = date.today()
+    rows = FINRAProvider().fetch_market_events(start=end - timedelta(days=7), end=end)
+    assert isinstance(rows, list)
+    for row in rows:
+        assert row.event_key.startswith("finra:otc_daily_list:")
 
 
 @pytest.mark.parametrize(

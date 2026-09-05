@@ -86,7 +86,7 @@ status: in_progress
 remaining_gaps:
   - live credentialed provider probes require operator-populated ignored backend/.env.dev values; exact missing names are emitted by the manifest preflight
   - provider-specific unknown quotas (FRED, Finnhub, Marketstack, FMP, IBKR, Binance endpoint weights, Nasdaq Trader polling) remain non-routable until their scope/ceiling is recorded; FINRA's documented synchronous ceiling is now recorded but still requires credential/terms evidence
-  - complete production NMS/OTC reconciliation and the separately approved 30-day shadow run remain post-deployment gates; the NMS/SEC directory adapters and bounded keyless evidence are implemented, while OTC still needs an approved documented source
+  - complete production NMS/OTC reconciliation and the separately approved 30-day shadow run remain post-deployment gates; the NMS/SEC directory adapters and bounded keyless evidence are implemented, while FINRA OTC Daily List now supplies lifecycle deltas but OTC still needs an approved complete security-master source
 progress:
   completed:
     - concrete opt-in adapters for Tiingo, Twelve Data, Finnhub, Marketstack, EODHD, FMP, Tradier, MarketData.app, Coinbase, and Kraken with fixture normalization
@@ -96,6 +96,7 @@ progress:
     - provider-specific quota contracts, multi-dimensional durable reservations, and fail-closed unknown-limit routing
     - OAuth-shaped FINRA client configuration and typed provider-not-configured/rate-limit failures
     - FINRA Query API dataset shape, OAuth expiry handling, documented synchronous quota contract, and credential-required entitlement
+    - FINRA OTC Daily List lifecycle-event normalization with explicit delta-feed versus complete-universe boundary
     - worker-only universe lifecycle observations, repeated-missing deactivation, and exchange-aware core D1 coverage
     - paid-routing switches cannot bypass blank or unreviewed provider entitlements
     - final combined backend unit and PostgreSQL/Redis integration validation

@@ -49,7 +49,8 @@ The backend deterministic gates also pass on this corrective revision:
 - migration compatibility: passed against the previous release head
 
 The full matrix correctly exposed the remaining credentialed blockers (Alpaca,
-Massive, Alpha Vantage, CoinGecko, FRED, FINRA OAuth, Tiingo, Twelve Data,
+Massive, Alpha Vantage, CoinGecko, FRED, FINRA OAuth (short interest and OTC
+Daily List), Tiingo, Twelve Data,
 Finnhub, Marketstack, EODHD, FMP, Tradier, and MarketData.app). Those providers
 remain non-routable or acceptance-blocked until their keys/terms/plan limits
 are supplied and the corresponding probe passes. Binance's endpoint-weight

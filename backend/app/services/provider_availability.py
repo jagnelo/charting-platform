@@ -12,7 +12,7 @@ import asyncio
 import inspect
 import time
 from collections.abc import Awaitable, Callable
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import desc, select
@@ -67,7 +67,11 @@ def representative_request(capability: ProviderCapability) -> dict[str, Any]:
         ProviderCapability.FUTURES_HISTORY: {"symbol": "ES=F", "timeframe": "D1", "limit": 5},
         ProviderCapability.CRYPTO_HISTORY: {"symbol": "BTC-USD", "timeframe": "D1", "limit": 5},
         ProviderCapability.OPTIONS_CURRENT: {"symbol": "SPY"},
-        ProviderCapability.MARKET_EVENTS: {"symbol": "SPY"},
+        ProviderCapability.MARKET_EVENTS: {
+            "symbol": "SPY",
+            "start": (datetime.now(UTC) - timedelta(days=7)).date().isoformat(),
+            "end": datetime.now(UTC).date().isoformat(),
+        },
     }
     return dict(values[capability])
 
@@ -162,9 +166,13 @@ async def default_probe(
         ProviderCapability.EARNINGS,
         ProviderCapability.SHORT_INTEREST,
         ProviderCapability.OPTIONS_CURRENT,
-        ProviderCapability.MARKET_EVENTS,
     }:
         args = {"symbol": request["symbol"]}
+    if capability == ProviderCapability.MARKET_EVENTS:
+        args = {
+            "start": date.fromisoformat(request["start"]),
+            "end": date.fromisoformat(request["end"]),
+        }
     if capability == ProviderCapability.PRICE_HISTORY:
         args = {"symbol": request["symbol"], "timeframe": Timeframe.D1, "limit": request["limit"]}
     if capability == ProviderCapability.UNIVERSE_DISCOVERY:
