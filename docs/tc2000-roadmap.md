@@ -5,6 +5,20 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-05
 
+## 2026-09-05 — Surface latest family disclosure provenance
+
+The workstation’s benchmark-family coverage strip now reports the newest
+returned disclosure date, resolved/total row counts, unresolved count when
+non-zero, and source provider for each role. It selects only the returned
+canonical snapshot metadata and does not infer coverage, substitute another
+role, or trigger provider fan-out. Product commit `38178e12`
+(`feat(tc2000): surface family disclosure provenance`) is pushed. Frontend
+Vitest passed `970/970`, type-check and production build passed, and the
+rebuilt authenticated Chromium `F8s-breadth-family-ratio` flow passed `1/1`
+with the provenance label asserted. Teardown removed four generated images and
+all assigned resources. The next exact-tip gate remains required; preserve the
+six visual state-oracle diffs and unchanged provider/fallback policy.
+
 ## 2026-09-05 — Exact-tip gate after member-bar timeframe readiness
 
 At product tip `a456d7c8` (documentation tip `493c2b66`), the exact-tip

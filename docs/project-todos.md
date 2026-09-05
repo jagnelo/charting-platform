@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-05 — Surface latest family disclosure provenance
+
+- [x] Show each benchmark-family role’s latest canonical disclosure date,
+      resolved/total rows, unresolved rows when present, and source provider in
+      the workstation coverage strip without inferring data or substituting
+      roles.
+- [x] Product commit `38178e12` is pushed; Vitest passed `970/970`,
+      type-check/build passed, and rebuilt authenticated Chromium
+      `F8s-breadth-family-ratio` passed `1/1` with the provenance label asserted.
+      Teardown and resource accounting were clean after four generated images
+      were removed.
+- [ ] Rerun the exact-tip integration gate at the next documentation tip,
+      preserving the six known visual state-oracle diffs and all provider,
+      fallback, baseline, and acceptance policy.
+
 ### 2026-09-05 — Exact-tip gate after member-bar timeframe readiness
 
 - [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework`
