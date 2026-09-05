@@ -2562,6 +2562,9 @@ test.describe('TC2000 workstation', () => {
     // covered rather than only unit/integration tested.
     await expect(study.getByRole('button', { name: 'Save filter: occurrences' })).toBeVisible()
     await expect(study.getByRole('button', { name: 'Promote alert: occurrences' })).toBeVisible()
+    await expect(study.getByRole('button', { name: 'Save signal: occurrences' })).toBeVisible()
+    await study.getByRole('button', { name: 'Save signal: occurrences' }).click()
+    await expect(study).toContainText('Saved event artifact “occurrences” as a reusable Strategy Lab signal.', { timeout: 30_000 })
     await study.getByRole('button', { name: 'Save filter: occurrences' }).click()
     await expect(study).toContainText('Saved event artifact “occurrences” as a reusable watchlist filter.', { timeout: 30_000 })
     await study.getByRole('button', { name: 'Promote alert: occurrences' }).click()

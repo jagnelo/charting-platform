@@ -283,6 +283,9 @@ describe('StudyLabTool', () => {
   })
 
   it('validates, starts an immutable isolated study run, and renders artifacts', async () => {
+    apiGet.mockImplementation((path: string) => path === '/code/assets'
+      ? Promise.resolve([{ versions: [{ id: 42, source: 'output.events("signals", [])', parameter_schema: {}, default_parameters: {} }] }])
+      : Promise.resolve(undefined))
     apiPost.mockImplementation((path: string) => {
       if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['stats', 'output'], lookback_hint: 1, output_contracts: ['bar', 'histogram', 'range', 'scatter', 'scalar', 'table'] })
       if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 42 }] })
@@ -423,6 +426,27 @@ describe('StudyLabTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/42', expect.any(Object))
     expect(wrapper.findAll('button').some(button => button.text() === 'Save filter: signals')).toBe(true)
     expect(wrapper.findAll('button').some(button => button.text() === 'Promote alert: signals')).toBe(true)
+    expect(wrapper.findAll('button').some(button => button.text() === 'Save signal: signals')).toBe(true)
+    await wrapper.findAll('button').find(button => button.text() === 'Save signal: signals')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved event artifact “signals” as a reusable Strategy Lab signal.'))
+    expect(apiGet).toHaveBeenCalledWith('/code/assets')
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'signal',
+      initial_version: expect.objectContaining({
+        output_contract: 'events',
+        output_name: 'signals',
+        lineage: expect.objectContaining({
+          source_run_id: 9,
+          source_code_version_id: 42,
+          source_reproducibility_hash: 'sha256:test',
+          source_output_name: 'signals',
+          target: 'signal',
+          output_adapter: 'events_to_signal',
+          semantics: 'study_event_result_as_strategy_signal',
+        }),
+      }),
+    }))
+    expect(apiPost).toHaveBeenCalledWith('/strategy-lab/signals/from-code/42', {})
     await wrapper.findAll('button').find(button => button.text() === 'Save filter: signals')!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Saved event artifact “signals” as a reusable watchlist filter.'))
     expect(apiPost).toHaveBeenCalledWith('/research/runs/9/promote-event-filter', { artifact_name: 'signals' })
@@ -677,6 +701,9 @@ describe('StudyLabTool', () => {
   })
 
   it('promotes a completed event study without coercing its event contract', async () => {
+    apiGet.mockImplementation((path: string) => path === '/code/assets'
+      ? Promise.resolve([{ versions: [{ id: 144, source: "output.events('signals', [])", parameter_schema: {}, default_parameters: {} }] }])
+      : Promise.resolve(undefined))
     apiPost.mockImplementation((path: string) => {
       if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['market', 'output'], lookback_hint: 1, output_contracts: ['events'] })
       if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 144 }] })
@@ -693,7 +720,22 @@ describe('StudyLabTool', () => {
     const signalButton = wrapper.findAll('[aria-label="Promote study result"] button').find(button => button.text() === 'Save as Strategy signal')
     expect(signalButton).toBeTruthy()
     await signalButton!.trigger('click')
-    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable Strategy Lab signal.'))
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved event artifact “signals” as a reusable Strategy Lab signal.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'signal',
+      initial_version: expect.objectContaining({
+        output_contract: 'events',
+        output_name: 'signals',
+        lineage: expect.objectContaining({
+          source_run_id: 145,
+          source_code_version_id: 144,
+          source_output_name: 'signals',
+          target: 'signal',
+          output_adapter: 'events_to_signal',
+          semantics: 'study_event_result_as_strategy_signal',
+        }),
+      }),
+    }))
     expect(apiPost).toHaveBeenCalledWith('/strategy-lab/signals/from-code/144', {})
   })
 

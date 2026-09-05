@@ -702,6 +702,58 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
       }
       return
     }
+    if (target === 'signal' && contract === 'events') {
+      const eventArtifact = selectedArtifact ?? run.value?.artifacts?.find(artifact => artifact.artifact_type === 'events')
+      const eventOutputName = selectedOutputName ?? eventArtifact?.name
+      if (!eventArtifact || !eventOutputName || run.value?.code_version_id == null) {
+        throw new Error('A named event artifact and immutable source version are required for a Strategy signal.')
+      }
+      const sourceVersions = await api.get<Array<{
+        versions?: Array<{
+          id?: number
+          source?: string
+          parameter_schema?: Record<string, unknown>
+          default_parameters?: Record<string, unknown>
+        }>
+      }>>('/code/assets')
+      const sourceVersion = (sourceVersions ?? [])
+        .flatMap(asset => asset.versions ?? [])
+        .find(version => version.id === run.value?.code_version_id)
+      if (!sourceVersion?.source) throw new Error('The immutable source code version for this event study is unavailable.')
+      const sourceManifest = run.value.dataset_manifest ?? {}
+      const sourceRunConfig = run.value.run_config ?? {}
+      const asset = await api.post<{ id?: number; versions?: Array<{ id?: number }> }>('/code/assets', {
+        stable_key: uniqueAssetKey(`${name.value}-${eventOutputName}`, 'signal'),
+        name: `${eventOutputName} signal`,
+        kind: 'signal',
+        initial_version: {
+          source: sourceVersion.source,
+          output_contract: 'events',
+          output_name: eventOutputName,
+          parameter_schema: sourceVersion.parameter_schema ?? parsedParameterSchema.value ?? {},
+          default_parameters: sourceVersion.default_parameters ?? buildParameters(),
+          lineage: {
+            type: 'study_run_promotion',
+            source_run_id: run.value.id,
+            source_code_version_id: run.value.code_version_id,
+            source_reproducibility_hash: run.value.reproducibility_hash ?? null,
+            source_dataset_manifest: sourceManifest,
+            source_run_config: sourceRunConfig,
+            source_output_name: eventOutputName,
+            target: 'signal',
+            output_adapter: 'events_to_signal',
+            semantics: 'study_event_result_as_strategy_signal',
+            point_in_time_source_preserved: false,
+          },
+        },
+      })
+      void invalidateCodeAssets(queryClient)
+      const codeVersionId = asset.versions?.[0]?.id ?? asset.id
+      if (typeof codeVersionId !== 'number') throw new Error('The event signal asset did not return an immutable code version.')
+      await api.post(`/strategy-lab/signals/from-code/${codeVersionId}`, {})
+      promotionStatus.value = `Saved event artifact “${eventOutputName}” as a reusable Strategy Lab signal.`
+      return
+    }
     const isBooleanTarget = target === 'filter' || target === 'scan' || target === 'gauge' || target === 'alert'
     const latestSeriesColumn = target === 'column' && (
       selectedArtifact?.artifact_type === 'series'
