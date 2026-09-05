@@ -3240,3 +3240,30 @@ The two focused ledger tests passed, Ruff and formatting passed, and the branch
 was pushed without changing provider counts or source dispositions. The shared
 provider-platform branch remains absent from staging; AC10 and AC14 remain
 open.
+
+## Provider-platform contract reconciliation check — 2026-09-05
+
+The external dependency was re-fetched and inspected read-only from the ETF
+worktree. The synchronized refs remain:
+
+- `origin/staging` = `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`
+- `origin/feat/market-data-provider-platform` =
+  `b2f8d264b047a9425b2bba549ccb44313013e3fd`
+- `git merge-base --is-ancestor origin/feat/market-data-provider-platform
+  origin/staging` = false
+
+The provider branch currently supplies the generic `ProviderPolicy`,
+`ProviderEntitlement`/revision, `ProviderHealthState`, availability-observation,
+quota-window, request-usage, and provider-routing contracts, together with the
+authenticated `/providers/entitlements`, `/providers/health`,
+`/providers/availability`, `/providers/usage`, and admin entitlement-update
+surfaces. Its `ProviderCapability` enum still has no `ETF_HOLDINGS` member.
+
+This is a compatibility finding, not a reason to fork generic provider
+governance in the ETF branch. AC10 therefore remains intentionally deferred:
+the ETF branch must wait for the provider-platform branch to reach staging,
+then add the narrow holdings capability bridge and reconcile the ETF canary
+observations with the staged entitlement/quota/health/budget contracts. No
+provider branch, staging branch, credentials, paid source, or ETF route was
+mutated during this check. The four unresolved Tier-0 symbols remain
+non-current, and AC14 remains post-integration.
