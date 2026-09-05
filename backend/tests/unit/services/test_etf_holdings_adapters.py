@@ -28275,6 +28275,7 @@ def test_symbol_priority_ledger_matches_runtime_tier_zero_audits():
             date.fromisoformat(str(row.get("investigated_at", "2026-09-04")))
             == audit.investigated_at
         )
+        assert tuple(row["evidence_refs"]) == audit.evidence_refs
         assert row["next_action"]
 
 
