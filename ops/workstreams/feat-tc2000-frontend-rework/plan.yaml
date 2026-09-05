@@ -12,7 +12,7 @@ human_closure_authorization: pending
 closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
-current_blocker: "The exact-tip full_stack_browser gate at metadata tip 228af958 (product tip 1ae69113) passed all locked, backend, frontend, build, stack-health, isolation, and functional browser stages (157/157 with 106 documented skips); the visual matrix remains 98/104 with the same six watchlist-column-editor-open/workspace-floating state-oracle diffs. Teardown and resource accounting were clean. No visual/provider/fallback/acceptance policy changed; preserve the visual-only boundary and continue canonical analytics/provider work."
+current_blocker: "The current slice exposes the canonical benchmark-family ranking-period contract (1D, 1W, 1M, 3M, 6M, YTD, 1Y) as persisted family_rank_period and threads it through role ranking, concentration current/history, and cross-family ranking current/history requests and cache keys with period-visible labels. Focused frontend coverage (136/136), TypeScript, production build, and authenticated F8s-breadth-family-ratio (1/1) with 3M request/render assertions passed; teardown and resource accounting were clean. The exact-tip full_stack_browser gate at this new documentation/product tip is pending. Preserve the unchanged provider/fallback/visual acceptance policy and six known watchlist-column-editor-open/workspace-floating state-oracle diffs, then rerun the exhaustive gate at the next coherent documentation tip."
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "The roadmap changes frontend workstation behavior, backend canonical provider/history contracts, authenticated browser workflows, Playwright visual assertions, worker-backed data readiness, and full integration evidence."
@@ -107,6 +107,15 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
+    Current slice exposes the canonical benchmark-family ranking-period contract (1D, 1W, 1M,
+    3M, 6M, YTD, 1Y) as persisted family_rank_period and threads it through role ranking,
+    concentration current/history, and cross-family ranking current/history requests and cache
+    keys with period-visible labels. Focused frontend coverage passed 136/136, TypeScript and
+    production build passed, and authenticated Chromium F8s-breadth-family-ratio passed 1/1 with
+    3M request/render assertions on a rebuilt branch-scoped stack; teardown and resource accounting
+    were clean. Product commit bbe011db is recorded; the durable docs/receipt commit is pending
+    before the exact-tip gate. Preserve unchanged provider/fallback and visual acceptance policy, then rerun the gate at the next
+    coherent documentation tip.
     Current slice adds canonical benchmark-family point-in-time concentration metrics history:
     aligned top_n_weight and HHI series with null-preserved gaps, finite-value validation, explicit
     unavailable state, and role-colour/dash semantics. Lifecycle/alignment coverage passed 29/29,

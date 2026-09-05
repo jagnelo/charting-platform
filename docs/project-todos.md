@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-05 — Expose configurable family ranking horizons
+
+- [x] Persist and expose the canonical benchmark-family ranking-period contract (`1D`, `1W`,
+      `1M`, `3M`, `6M`, `YTD`, `1Y`) as `family_rank_period`, with safe `1M` fallback for invalid
+      stored values.
+- [x] Thread the selected period through role ranking, concentration current/history, and
+      cross-family ranking current/history request parameters and cache keys; surface the period
+      in the affected panel labels.
+- [x] Run focused frontend coverage (`136/136`), TypeScript, production build, and authenticated
+      Chromium `F8s-breadth-family-ratio` (`1/1`) asserting a `3M` request and rendered labels on a
+      rebuilt branch-scoped stack; teardown and resource accounting were clean.
+- [ ] Rerun the exact-tip exhaustive gate at the next coherent documentation tip; preserve the six
+      known visual state-oracle diffs and all provider, fallback, baseline, threshold, mask, skip,
+      and acceptance policy.
+
 ### 2026-09-05 — Exact-tip gate after cross-family rank history
 
 - [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at metadata
