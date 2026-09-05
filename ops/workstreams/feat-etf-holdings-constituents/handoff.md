@@ -3749,6 +3749,22 @@ unavailable for current analysis, AC10 remains deferred, and AC14 remains the
 post-integration 30-day production shadow gate. No paid source, credential,
 other branch, or other worktree was modified.
 
+## Watchlist source-catalog observability checkpoint — 2026-09-05
+
+Implementation commit `248c2973` carries current ETF capability state into the
+watchlist source descriptor provenance. When a cached adapter state exists, the
+descriptor now exposes `failure_class`, `capability_reason`, and
+`usable_for_current_analysis` in addition to lifecycle availability and source
+metadata. This closes the remaining catalog-level gap: consumers can diagnose a
+non-current ETF before attempting to resolve its members, not only after an
+exclusion is returned.
+
+The locked ETF source-catalog regression passed; Ruff, formatting, and
+diff-check passed. Provider-platform remains unstaged, DXJ/NTSX/MINT/BOND
+remain unavailable for current analysis, AC10 remains deferred, and AC14
+remains the post-integration 30-day production shadow gate. No paid source,
+credential, other branch, or other worktree was modified.
+
 The post-change affected-consumer validation then passed all `165` tests across
 the strategy-lab and watchlist API integration files plus ETF capability and
 refresh unit suites (the same existing `54` warnings), and the complete
