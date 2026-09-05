@@ -926,6 +926,26 @@ def test_tier_zero_shadow_gate_rejects_silent_violations_and_two_freshness_misse
     assert any("silent" in reason for reason in result["failure_reasons"])
 
 
+def test_tier_zero_shadow_gate_rejects_unclassified_current_source_tier():
+    result = evaluate_tier0_shadow_gate(
+        {
+            "GEME": [
+                _shadow_observation(
+                    "2026-09-20T12:00:00+00:00",
+                    source_tier=NO_SOURCE,
+                )
+            ]
+        },
+        now=date(2026, 9, 20),
+        eligible_symbols=["GEME"],
+    )
+
+    assert result["status"] == "fail"
+    assert result["passing_checks"] == 0
+    assert result["silent_violation_count"] == 1
+    assert any("identity/schema/completeness" in reason for reason in result["failure_reasons"])
+
+
 def test_tier_zero_shadow_gate_requires_observations_in_the_window():
     result = evaluate_tier0_shadow_gate(
         {
