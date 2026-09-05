@@ -5,6 +5,26 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-05
 
+## 2026-09-05 — Exact-tip gate after canonical holdings-route adapter identity
+
+At product tip `1ca7569d` (documentation tip `5936a6ed`), the exact-tip
+`full_stack_browser` gate passed locked dependency/migration checks (migration
+compatibility skipped because no migration changes), workstream validation,
+Ruff/format/type-check, backend unit/integration and combined coverage
+(`80.93%`; `1320` unit and `384` integration tests), frontend Vitest
+(`970/970`), production build, compose/provider policy, stack health,
+research-runner isolation, and authenticated functional Playwright (`157`
+passed with `106` documented skips across `263` specs). The unchanged visual
+matrix completed `104` cases with `98` passes and six state-oracle diffs:
+`watchlist-column-editor-open` at visual-1080p-100/125 (`13,844` pixels each),
+and `workspace-floating` at visual-1080p-100 (`11,901`), visual-1080p-125
+(`12,097`), visual-1440p-100 (`12,097`), and visual-1440p-125 (`12,097`). No
+baseline, mask, threshold, skip, fallback oracle, provider rule, or acceptance
+policy changed. Teardown removed the assigned stack and four generated images;
+resource accounting reported zero containers, volumes, sessions, and known
+bytes. The reproducible blocker remains visual-only; continue the next bounded
+canonical provider/history slice.
+
 ## 2026-09-05 — Expose canonical holdings-route adapter identity
 
 Product commit `1ca7569d` (`feat(tc2000): expose holdings route adapter`) now

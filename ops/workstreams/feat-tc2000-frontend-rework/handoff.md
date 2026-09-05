@@ -10,6 +10,27 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Exact-tip exhaustive gate after canonical holdings-route adapter identity
+
+At product tip `1ca7569d` (documentation tip `5936a6ed`), the exact-tip
+`full_stack_browser` gate passed locked dependency/migration checks (migration
+compatibility skipped because no migration changes), workstream validation,
+Ruff/format, TypeScript, backend units `1320/1320`, integration `384/384`,
+combined coverage `80.93%`, frontend Vitest `970/970`, production build,
+compose/provider policy, stack health, research-runner isolation, and
+authenticated functional Playwright (`157` passed with `106` documented skips
+across `263` specs). The unchanged visual matrix completed `104` cases with
+`98` passes and six state-oracle diffs: `watchlist-column-editor-open` at
+visual-1080p-100/125 (`13,844` pixels each), and `workspace-floating` at
+visual-1080p-100 (`11,901`), visual-1080p-125 (`12,097`), visual-1440p-100
+(`12,097`), and visual-1440p-125 (`12,097`). No baseline, mask, threshold,
+skip, fallback oracle, provider rule, or acceptance policy changed. Teardown
+removed the assigned stack and four generated images; resource accounting
+reported zero containers, volumes, sessions, and known bytes. The blocker is
+visual-only and reproducible; preserve that boundary and continue the next
+canonical provider/history slice without integrating, promoting, deploying,
+or mutating another worktree.
+
 ## 2026-09-05 — Expose canonical holdings-route adapter identity
 
 Product commit `1ca7569d` exposes the returned holdings-route adapter key
