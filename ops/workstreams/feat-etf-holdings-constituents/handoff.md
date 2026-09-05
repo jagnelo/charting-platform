@@ -4141,3 +4141,22 @@ degradation surfaces. Provider-platform remains unstaged; DXJ/NTSX/MINT/BOND
 remain unavailable for current analysis; AC10 remains deferred; and AC14
 remains the post-integration 30-day production shadow gate. No other branch or
 worktree was modified.
+
+## Persisted quota-diagnostic API checkpoint — 2026-09-05
+
+Test commit `9a45308d` closes the verification gap at the persisted API
+boundary. The Docker-backed ARKK refresh regression now asserts that a 429
+failure retains the operational adapter-state value `rate_limit_state=http_429`
+while also persisting `extra_data.last_failure_class=quota_rate_limited`; it
+then reads `GET /api/v1/etf-holdings/ARKK/capability` and verifies that the
+same semantic class is returned to the user-facing capability contract.
+
+The focused Docker-backed integration regression passed `1` test with the two
+existing Nautilus deprecation warnings. The focused task/refresh/capability/
+worker unit suite passed `137` tests; Ruff check, Ruff formatting, and
+`git diff --check` passed. This is test-boundary hardening only: no provider
+route, source disposition, entitlement, paid activation, or frontend contract
+changed. Provider-platform remains unstaged; DXJ/NTSX/MINT/BOND remain
+unavailable for current analysis; AC10 remains deferred; and AC14 remains the
+post-integration 30-day production shadow gate. No other branch or worktree
+was modified.
