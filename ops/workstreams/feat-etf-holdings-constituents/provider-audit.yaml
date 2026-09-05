@@ -37,7 +37,7 @@ symbol_priority_ledger:
       current_outcome: unavailable
       evidence_state: no_complete_executable_public_artifact
       investigated_at: 2026-09-05
-      evidence_refs: [web:pimco-mint-daily-disclosure-2026-09-05, live:pimco-mint-fund-detail-api-2026-09-05-unauthorized, live:pimco-mint-fund-detail-api-2026-09-05-retest-unauthorized, web:pimco-third-party-holdings-candidates-2026-09-05, web:pimco-fund-ui-top-ten-only-2026-09-05, live:pimco-fund-ui-top-ten-route-2026-09-05-forbidden, live:pimco-www-top-ten-route-2026-09-05-not-found]
+      evidence_refs: [web:pimco-mint-daily-disclosure-2026-09-05, live:pimco-mint-fund-detail-api-2026-09-05-unauthorized, live:pimco-mint-fund-detail-api-2026-09-05-retest-unauthorized, web:pimco-third-party-holdings-candidates-2026-09-05, web:pimco-fund-ui-top-ten-only-2026-09-05, live:pimco-fund-ui-top-ten-route-2026-09-05-forbidden, live:pimco-www-top-ten-route-2026-09-05-not-found, web:securitiesdb-free-etf-holdings-api-2026-09-05, live:securitiesdb-mint-bond-no-holdings-2026-09-05, live:securitiesdb-qqq-control-future-metadata-2026-09-05]
       next_action: "Keep unavailable and re-test only when PIMCO exposes a changed route; its fund-detail API requires authentication and no complete public export is proven. MarketXLS advertises a complete table but requires a paid FundXLS plan and its terms restrict use to personal use; PortfoliosLab derives SEC N-PORT data through a 2026-03-31 period. Treat both as unqualified vendor/periodic candidates, not current support."
     - symbol: BOND
       tier: 0
@@ -45,7 +45,7 @@ symbol_priority_ledger:
       current_outcome: unavailable
       evidence_state: no_complete_executable_public_artifact
       investigated_at: 2026-09-05
-      evidence_refs: [web:pimco-bond-daily-disclosure-2026-09-05, live:pimco-bond-fund-detail-api-2026-09-05-unauthorized, live:pimco-bond-fund-detail-api-2026-09-05-retest-unauthorized, web:pimco-third-party-holdings-candidates-2026-09-05, web:pimco-fund-ui-top-ten-only-2026-09-05, live:pimco-fund-ui-top-ten-route-2026-09-05-forbidden, live:pimco-www-top-ten-route-2026-09-05-not-found]
+      evidence_refs: [web:pimco-bond-daily-disclosure-2026-09-05, live:pimco-bond-fund-detail-api-2026-09-05-unauthorized, live:pimco-bond-fund-detail-api-2026-09-05-retest-unauthorized, web:pimco-third-party-holdings-candidates-2026-09-05, web:pimco-fund-ui-top-ten-only-2026-09-05, live:pimco-fund-ui-top-ten-route-2026-09-05-forbidden, live:pimco-www-top-ten-route-2026-09-05-not-found, web:securitiesdb-free-etf-holdings-api-2026-09-05, live:securitiesdb-mint-bond-no-holdings-2026-09-05, live:securitiesdb-qqq-control-future-metadata-2026-09-05]
       next_action: "Keep unavailable and re-test only when PIMCO exposes a changed route; its fund-detail API requires authentication and no complete public export is proven. MarketXLS advertises a complete table but requires a paid FundXLS plan and its terms restrict use to personal use; PortfoliosLab derives SEC N-PORT data through a 2026-03-31 period. Finnhub documents ETF holdings behind a premium endpoint and token, without current entitlement or terms approval. Do not treat these as current support."
     - symbol: GEME
       tier: 0
@@ -7754,6 +7754,10 @@ providers:
         source: "https://fund-ui.pimco.com/app.js; https://fund-ui.pimco.com/main.js; https://fund-ui.pimco.com/fund-detail-api/api/funds/72201R833/topTenHoldings; https://fund-ui.pimco.com/fund-detail-api/api/funds/72201R775/topTenHoldings; https://www.pimco.com/api/funds/72201R833/topTenHoldings"
         result: "The public fund-ui bundle exposes top-ten holdings routes rather than a proven complete basket endpoint; anonymous fund-ui requests returned HTTP 403 and the legacy www route returned HTTP 404. No complete unauthenticated public basket was proven for MINT or BOND."
         evidence_ref: "web:pimco-fund-ui-top-ten-only-2026-09-05; live:pimco-fund-ui-top-ten-route-2026-09-05-forbidden; live:pimco-www-top-ten-route-2026-09-05-not-found"
+      - date: 2026-09-05
+        source: "https://securitiesdb.com/developers/etf-holdings-api; https://securitiesdb.com/api/v1/etfs/MINT/holdings; https://securitiesdb.com/api/v1/etfs/BOND/holdings; https://securitiesdb.com/api/v1/etfs/QQQ/holdings"
+        result: "The documented no-key endpoint is reachable for QQQ, but returns HTTP 404 no-holdings-data responses for both MINT and BOND. The QQQ control response also reports future-dated freshness metadata relative to the runner clock, and the service documents public-filings/third-party aggregation with no warranty; this is an unqualified research candidate, not current support."
+        evidence_ref: "web:securitiesdb-free-etf-holdings-api-2026-09-05; live:securitiesdb-mint-bond-no-holdings-2026-09-05; live:securitiesdb-qqq-control-future-metadata-2026-09-05"
     disposition_reason: "pacific_investments: Pacific Asset Management's official U.S.-listed GEME route is now symbol-level current and live-validated, while PIMCO MINT/BOND still expose no complete executable public route; the mixed identity remains fallback-only at provider level until the unresolved PIMCO representatives are closed."
     next_action: "pacific_investments: Keep the GEME route freshness-monitored and continue free-first MINT/BOND route discovery; do not promote provider-level native support or SEC/top-ten artifacts until the remaining representatives are complete."
     implementation_sha: null

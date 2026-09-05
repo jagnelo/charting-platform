@@ -1939,3 +1939,13 @@ SEC/top-ten promotion was introduced. Evidence refs:
 `web:pimco-fund-ui-top-ten-only-2026-09-05`,
 `live:pimco-fund-ui-top-ten-route-2026-09-05-forbidden`, and
 `live:pimco-www-top-ten-route-2026-09-05-not-found`.
+
+The free SecuritiesDB candidate was also tested before any activation decision:
+its documented endpoint returned HTTP 404 “no holdings data” for both MINT and
+BOND, although the same endpoint responded for QQQ. The QQQ control payload
+reported future-dated freshness metadata relative to the runner clock, and the
+service disclaims warranty for aggregated public-filing/third-party data. It is
+therefore retained as an unqualified research candidate, not a current source.
+Evidence refs: `web:securitiesdb-free-etf-holdings-api-2026-09-05`,
+`live:securitiesdb-mint-bond-no-holdings-2026-09-05`, and
+`live:securitiesdb-qqq-control-future-metadata-2026-09-05`.

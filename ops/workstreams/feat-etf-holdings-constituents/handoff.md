@@ -3697,6 +3697,21 @@ remain unavailable for current analysis, AC10 remains deferred, and AC14
 remains the post-integration 30-day production shadow gate. No paid source,
 credential, other branch, or other worktree was modified.
 
+## Free SecuritiesDB candidate audit — 2026-09-05
+
+The documented no-key SecuritiesDB ETF holdings endpoint was tested as a
+free-first candidate for the unresolved MINT/BOND symbols. It returned HTTP 404
+`No holdings data for ETF` for both symbols, while a QQQ control request reached
+the endpoint successfully. That control response reported future-dated
+freshness metadata relative to the runner clock, and the service describes its
+data as public-filing/third-party aggregation supplied without warranty.
+
+SecuritiesDB is therefore recorded as an unqualified research candidate, not a
+current source. MINT/BOND remain unavailable; no adapter, credential,
+entitlement, paid activation, or source promotion was introduced. The complete
+adapter suite passed `575`, the capability suite passed `87`, and workstream/
+Ruff/format/diff validation passed.
+
 ## Provider-platform dependency refresh — 2026-09-05
 
 The current remote provider-platform tip is `2efc1ebc` (with the latest
