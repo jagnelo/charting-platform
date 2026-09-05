@@ -16,6 +16,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.models.etf_holdings import ETFHoldingsAdapterState, ETFHoldingsSnapshot, ETFProfile
 from app.models.instrument import Instrument
 from app.services.etf_holdings_adapters import FALLBACK_ISSUER_AUDITS
@@ -32,6 +33,7 @@ SUCCESSOR_NATIVE = "successor_native"
 LICENSED_VENDOR = "licensed_vendor"
 SEC_FILING = "sec_filing"
 NO_SOURCE = "none"
+CONTROLLED_FIXTURE = "controlled_fixture"
 _CURRENT_SOURCE_TIERS = {ISSUER_NATIVE, SUCCESSOR_NATIVE, LICENSED_VENDOR}
 
 
@@ -258,7 +260,14 @@ def _source_tier(
         **_metadata(snapshot_metadata.get("legal_metadata")),
     }
     explicit = str(metadata.get("source_tier") or "").strip().lower()
-    if explicit in {ISSUER_NATIVE, SUCCESSOR_NATIVE, LICENSED_VENDOR, SEC_FILING, NO_SOURCE}:
+    if explicit in {
+        ISSUER_NATIVE,
+        SUCCESSOR_NATIVE,
+        LICENSED_VENDOR,
+        SEC_FILING,
+        NO_SOURCE,
+        CONTROLLED_FIXTURE,
+    }:
         return explicit
     provenance = " ".join(
         str(value or "").lower()
@@ -1678,8 +1687,21 @@ def evaluate_capability(
     state_status = str(state.status if state else "").lower()
     failure_reason = state.failure_reason if state else None
     schema_fingerprint = state_metadata.get("schema_fingerprint")
+    controlled_fixture = bool(
+        settings.E2E_SEED_MARKET_DATA
+        and snapshot is not None
+        and snapshot.provenance == "controlled_fixture"
+        and snapshot.source_provider == "e2e_reference"
+    )
 
-    if not profile.adapter_key or profile.adapter_key == "unresolved":
+    if controlled_fixture:
+        # The opt-in browser fixture is deterministic test data, not a source
+        # entitlement. Allow it to exercise current-analysis UI contracts only
+        # while the explicit E2E setting is enabled; production and normal
+        # workstation reads continue through the strict source-tier gate below.
+        availability = CURRENT
+        reason = "Controlled E2E fixture is enabled for browser acceptance."
+    elif not profile.adapter_key or profile.adapter_key == "unresolved":
         availability = NOT_APPLICABLE if not has_snapshot else STALE
         reason = "No concrete ETF holdings adapter is assigned to this profile."
     elif not has_snapshot:
@@ -1747,7 +1769,9 @@ def evaluate_capability(
             "The symbol-level source audit is not current support "
             f"({symbol_audit.evidence_state}); showing last-known data only."
         )
-    usable = availability == CURRENT and source_tier in _CURRENT_SOURCE_TIERS
+    usable = availability == CURRENT and (
+        source_tier in _CURRENT_SOURCE_TIERS or controlled_fixture
+    )
     return ETFHoldingsCapability(
         availability=availability,
         source_tier=source_tier,

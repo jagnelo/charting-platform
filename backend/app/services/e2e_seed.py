@@ -542,7 +542,12 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
             parser_version="e2e-v1",
             snapshot_hash=digest,
             notes="Controlled browser-acceptance fixture; not market data.",
-            extra_data={"seed": "e2e", "controlled_fixture": True},
+            extra_data={
+                "seed": "e2e",
+                "controlled_fixture": True,
+                "source_tier": "controlled_fixture",
+                "transport_kind": "controlled_fixture",
+            },
         )
         db.add(snapshot)
         await db.flush()

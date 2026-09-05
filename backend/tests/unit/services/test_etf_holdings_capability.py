@@ -1,7 +1,9 @@
 from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
 
+from app.config import settings
 from app.services.etf_holdings_capability import (
+    CONTROLLED_FIXTURE,
     CURRENT,
     DEGRADED,
     NO_SOURCE,
@@ -202,6 +204,25 @@ def test_unrecognized_source_tier_never_becomes_current_even_with_complete_rows(
     assert result.availability == DEGRADED
     assert result.usable_for_current_analysis is False
     assert "recognized current-data source tier" in result.reason
+
+
+def test_controlled_fixture_is_current_only_in_explicit_e2e_mode(monkeypatch):
+    fixture = snapshot(
+        provenance="controlled_fixture",
+        source_provider="e2e_reference",
+        extra_data={"source_tier": CONTROLLED_FIXTURE},
+    )
+
+    monkeypatch.setattr(settings, "E2E_SEED_MARKET_DATA", True)
+    enabled = evaluate_capability(profile(None), fixture, None, now=NOW)
+    assert enabled.source_tier == CONTROLLED_FIXTURE
+    assert enabled.availability == CURRENT
+    assert enabled.usable_for_current_analysis is True
+
+    monkeypatch.setattr(settings, "E2E_SEED_MARKET_DATA", False)
+    disabled = evaluate_capability(profile(None), fixture, None, now=NOW)
+    assert disabled.source_tier == CONTROLLED_FIXTURE
+    assert disabled.usable_for_current_analysis is False
 
 
 def test_unqualified_vendor_text_does_not_become_a_licensed_current_source():
