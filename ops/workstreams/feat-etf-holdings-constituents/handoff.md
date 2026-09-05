@@ -2977,3 +2977,17 @@ unclassified artifact from being re-labelled current downstream.
 The new regression covers both the helper and persisted snapshot metadata. The
 complete deterministic ETF unit matrix passes 711 tests; focused resolution
 coverage passes 18 tests, with Ruff, formatting, and diff-check green.
+
+## Licensed-vendor evidence gate — 2026-09-05
+
+Implementation checkpoint `a550824d3ef5d8033997d2d998a86f8754cab20c` tightens
+cost governance at both ingest and capability evaluation. Generic `vendor` or
+`aggregator` wording no longer becomes `licensed_vendor`; that tier now requires
+an explicit recognized source tier, a positive licensed-vendor flag, or explicit
+licensed/entitled metadata. Issuer routes whose descriptions mention a vendor
+endpoint therefore remain issuer-native only when their issuer provenance is
+recognized, and otherwise remain `none`/degraded.
+
+The focused source-tier/capability coverage passes 95 tests and the complete
+deterministic ETF unit matrix passes 712 tests. No paid provider, credential,
+entitlement, or route disposition was activated.
