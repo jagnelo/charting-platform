@@ -24,7 +24,7 @@ RUN_LIVE_PROVIDER_TESTS=1 EDGAR_USER_AGENT='charting-platform live-validation op
   rtk uv run --project backend pytest tests/live/test_market_data_providers_live.py \
   -m live -k 'openfigi or sec_edgar or nasdaq or binance or coinbase or kraken' \
   --no-header -q --no-cov
-# 8 passed, 15 deselected
+# 8 passed, 16 deselected
 ```
 
 A later bounded rerun passed the other six probes but received an honest
@@ -40,27 +40,32 @@ RUN_LIVE_PROVIDER_TESTS=1 rtk uv run --project backend pytest \
 # 1 passed
 ```
 
-The backend deterministic gates also pass on this corrective revision:
+The backend deterministic gates also pass on the preceding corrective revision;
+the current live-test-only change has passed its changed-surface checks:
 
-- unit suite: `1315 passed`
+- unit suite: `1320 passed`
 - Docker-backed integration suite: `369 passed`
-- focused provider quota/routing/runtime tests: `28 passed`
+- focused provider quota/routing/runtime tests: `33 passed`
 - migration compatibility: passed against the previous release head
 
 The full matrix correctly exposed the remaining credentialed blockers (Alpaca,
 Massive, Alpha Vantage, CoinGecko, FRED, FINRA OAuth (short interest and OTC
-Daily List), Tiingo, Twelve Data,
+Daily List and the explicitly configured OTC directory), Tiingo, Twelve Data,
 Finnhub, Marketstack, EODHD, FMP, Tradier, and MarketData.app). Those providers
 remain non-routable or acceptance-blocked until their keys/terms/plan limits
 are supplied and the corresponding probe passes. Binance's endpoint-weight
 accounting and Nasdaq Trader's non-numeric polling ceiling remain explicitly
 tracked rather than guessed.
 
-The current preflight names these missing variables exactly:
-`ALPACA_API_KEY`, `ALPACA_SECRET_KEY`, `MASSIVE_API_KEY`,
+The current full preflight ran six keyless probes successfully and reported
+18 blocked credential/configuration cases; it returned exit code `2` and makes
+no acceptance claim. It names these missing variables exactly:
+`EDGAR_USER_AGENT`, `ALPACA_API_KEY`, `ALPACA_SECRET_KEY`, `MASSIVE_API_KEY`,
 `ALPHA_VANTAGE_API_KEY`, `COINGECKO_API_KEY`, `FRED_API_KEY`,
-`FINRA_CLIENT_ID`, `FINRA_CLIENT_SECRET`, `TIINGO_API_KEY`,
+`FINRA_CLIENT_ID`, `FINRA_CLIENT_SECRET`,
+`FINRA_OTC_SYMBOL_DIRECTORY_URL`, `TIINGO_API_KEY`,
 `TWELVE_DATA_API_KEY`, `FINNHUB_API_KEY`, `MARKETSTACK_API_KEY`,
 `EODHD_API_KEY`, `FMP_API_KEY`, `TRADIER_API_KEY`, and
-`MARKETDATA_APP_API_KEY`. Populate them only in the ignored
+`MARKETDATA_APP_API_KEY`, plus the non-secret source configuration
+`FINRA_OTC_SYMBOL_DIRECTORY_URL`. Populate them only in the ignored
 `backend/.env.dev`; never paste secret values into the repository or chat.

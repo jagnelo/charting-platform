@@ -23,6 +23,7 @@ CREDENTIALS = {
     "coingecko": ("COINGECKO_API_KEY",),
     "fred": ("FRED_API_KEY",),
     "finra": ("FINRA_CLIENT_ID", "FINRA_CLIENT_SECRET"),
+    "finra_otc_directory": ("FINRA_OTC_SYMBOL_DIRECTORY_URL",),
     "tiingo": ("TIINGO_API_KEY",),
     "twelve_data": ("TWELVE_DATA_API_KEY",),
     "finnhub": ("FINNHUB_API_KEY",),

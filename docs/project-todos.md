@@ -28,8 +28,9 @@ current capability/quota ledger.
       Kraken; backend unit and integration suites pass.
 - [ ] Populate credentials in ignored `backend/.env.dev` and execute the
       credentialed probes for Alpaca, Massive, Alpha Vantage, CoinGecko, FRED,
-      FINRA, Tiingo, Twelve Data, Finnhub, Marketstack, EODHD, FMP, Tradier,
-      and MarketData.app. Any provider that fails or exposes an unverified
+      FINRA, the explicitly configured FINRA OTC directory, Tiingo, Twelve
+      Data, Finnhub, Marketstack, EODHD, FMP, Tradier, and MarketData.app. Any
+      provider that fails or exposes an unverified
       quota remains disabled; no 30-day observation run may start before this
       gate and the NMS/OTC reconciliation gate are complete. The configured
       OTC directory adapter still requires operator-approved source/terms/quota

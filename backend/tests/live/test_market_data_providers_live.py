@@ -21,6 +21,7 @@ from app.providers.coingecko import CoinGeckoProvider
 from app.providers.crypto_market_data import CoinbaseProvider, KrakenProvider
 from app.providers.edgar import EdgarProvider
 from app.providers.finra import FINRAProvider
+from app.providers.finra_otc_directory import FINRAOTCDirectoryProvider
 from app.providers.fred import FREDProvider
 from app.providers.massive import MassiveProvider
 from app.providers.nasdaq import NasdaqProvider
@@ -195,6 +196,17 @@ def test_finra_credentialed_otc_daily_list():
     assert isinstance(rows, list)
     for row in rows:
         assert row.event_key.startswith("finra:otc_daily_list:")
+
+
+def test_finra_otc_directory_credentialed_source():
+    """Prove the operator-approved complete OTC source returns a bounded page."""
+
+    _require("FINRA_OTC_SYMBOL_DIRECTORY_URL")
+    page = FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
+    assert page["quotes"]
+    assert page["total"] >= len(page["quotes"])
+    assert page["source_files"] == [os.environ["FINRA_OTC_SYMBOL_DIRECTORY_URL"].strip()]
+    assert all(row["exchange"] == "OTC" for row in page["quotes"])
 
 
 @pytest.mark.parametrize(
