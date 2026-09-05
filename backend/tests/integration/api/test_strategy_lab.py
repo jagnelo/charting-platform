@@ -318,8 +318,8 @@ class TestStrategyLabAPI:
         """A named event output keeps its contract and lineage through both API boundaries."""
         source = (
             "output.scalar('sample_size', 1)\n"
-            "output.events('occurrences', [{\"symbol\": \"SPY\", "
-            "\"timestamp\": \"2026-01-02\", \"kind\": \"signal\"}])"
+            'output.events(\'occurrences\', [{"symbol": "SPY", '
+            '"timestamp": "2026-01-02", "kind": "signal"}])'
         )
         lineage = {
             "type": "study_run_promotion",
@@ -360,8 +360,7 @@ class TestStrategyLabAPI:
         assert version["output_contract"] == "events"
         assert version["output_name"] == "occurrences"
         assert any(
-            diagnostic["code"] == "promotion_lineage"
-            and diagnostic["lineage"] == lineage
+            diagnostic["code"] == "promotion_lineage" and diagnostic["lineage"] == lineage
             for diagnostic in version["diagnostics"]
         )
 
