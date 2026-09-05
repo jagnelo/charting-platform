@@ -168,6 +168,35 @@ def test_marketdata_app_uses_documented_v1_root_and_parses_candles():
     assert [(bar.open, bar.close) for bar in bars] == [(100.0, 101.0)]
 
 
+def test_marketdata_app_inherited_current_price_uses_one_documented_credit():
+    provider = MarketDataAppProvider()
+    payload = {
+        "s": "ok",
+        "t": [int(datetime(2024, 1, 2, tzinfo=UTC).timestamp())],
+        "o": [100],
+        "h": [102],
+        "l": [99],
+        "c": [101],
+        "v": [1234],
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ) as get,
+    ):
+        configured.MARKETDATA_APP_API_KEY = "demo"
+        with patch.object(
+            provider,
+            "latest_window_start",
+            return_value=datetime(2024, 1, 1, tzinfo=UTC),
+        ):
+            assert provider.get_current_price("AAPL") == 101.0
+
+    assert get.call_args.args[0] == "https://api.marketdata.app/v1/stocks/candles/D/AAPL"
+
+
 def test_missing_credentials_never_make_optional_call():
     provider = TwelveDataProvider()
     with (

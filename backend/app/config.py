@@ -447,6 +447,7 @@ class Settings(BaseSettings):
             "operation_costs": {
                 "fetch_ohlcv": 1,
                 "fetch_latest_ohlcv": 1,
+                "get_current_price": 1,
             },
         },
     }
