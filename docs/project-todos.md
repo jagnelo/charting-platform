@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-05 — Surface canonical provider-probe evidence
+
+- [x] Render returned provider-neutral readiness probe evidence in the
+      benchmark workstation: passed/total probes, recovered count, and latest
+      observation date. Do not call providers, choose routes, infer
+      entitlement, retry refreshes, or change fallback/acceptance policy.
+- [x] Product commit `901f56e5` is committed locally; the store suite passed
+      `71/71`, full frontend Vitest passed `970/970`, type-check/build passed,
+      and rebuilt authenticated Chromium passed the provider-probe assertion
+      `1/1`. Teardown/resource accounting reported zero containers, volumes,
+      sessions, and known bytes.
+- [ ] Rerun the exact-tip integration gate at the next documentation tip,
+      preserving the six known visual state-oracle diffs and all provider,
+      fallback, baseline, and acceptance policy.
+
 ### 2026-09-05 — Exact-tip gate after canonical holdings-route adapter identity
 
 - [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework`

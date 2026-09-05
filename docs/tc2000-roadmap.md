@@ -5,6 +5,20 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-05
 
+## 2026-09-05 — Surface canonical provider-probe evidence
+
+Product commit `901f56e5` (`feat(tc2000): surface provider probe evidence`)
+now renders the backend's provider-neutral readiness probe count, pass count,
+recovery count, and latest observation date in the benchmark workstation. The
+consumer only formats returned evidence; it does not call providers, choose a
+route, infer entitlement, retry refreshes, or change fallback or acceptance
+policy. The store suite passed `71/71`; full frontend Vitest passed `970/970`;
+type-check and production build passed; rebuilt authenticated Chromium passed
+the provider-probe evidence assertion `1/1`. Teardown removed four generated
+images and resource accounting reported zero containers, volumes, sessions,
+and known bytes. The next exact-tip gate is required at the following
+documentation tip.
+
 ## 2026-09-05 — Exact-tip gate after canonical holdings-route adapter identity
 
 At product tip `1ca7569d` (documentation tip `5936a6ed`), the exact-tip

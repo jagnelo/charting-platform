@@ -10,6 +10,20 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Surface canonical provider-probe evidence
+
+Product commit `901f56e5` renders the backend's provider-neutral readiness
+probe count, pass count, recovery count, and latest observation date in the
+benchmark workstation. The consumer only formats returned evidence; it does
+not call providers, choose a route, infer entitlement, retry refreshes, or
+change fallback or acceptance policy. The store suite passed `71/71`; full
+frontend Vitest passed `970/970`; type-check and production build passed; the
+rebuilt authenticated Chromium provider-probe assertion passed `1/1`.
+Teardown removed four generated images and resource accounting reported zero
+containers, volumes, sessions, and known bytes. The next action is the
+exact-tip gate at the next documentation tip; preserve the six visual
+state-oracle diffs and unchanged provider/fallback policy.
+
 ## 2026-09-05 — Exact-tip exhaustive gate after canonical holdings-route adapter identity
 
 At product tip `1ca7569d` (documentation tip `5936a6ed`), the exact-tip
