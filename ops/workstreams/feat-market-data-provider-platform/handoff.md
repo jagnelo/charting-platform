@@ -8,7 +8,7 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 - Request: Implement the approved US-first multi-provider market-data platform plan: canonical FIGI-based identity and issuer model; exchange/session calendars; market-series scoped raw/canonical OHLCV with local rollups and adjustments; provider capability/entitlement/quota routing; US universe/lifecycle, events, SEC fundamentals, FINRA short interest, current options with local high-fidelity Greeks, optional futures and crypto providers; backend admin/diagnostic APIs; and disabled 30-day shadow monitoring. Backend/data only; do not modify frontend or ETF constituent provider work.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 - Planning state: ready; scope, acceptance criteria, branch tests, and the docker-backed full-integration validation profile are recorded in `plan.yaml`.
-- Implementation checkpoint: `463c8152` (`fix(market-data): expose quota readiness and pacing contracts`) is pushed to `origin/feat/market-data-provider-platform`; the current operational record is `533fb7ea`. It follows the provider-quota, SEC/Nasdaq evidence, OTC configuration-wiring, and live-gate commits recorded below.
+- Implementation checkpoint: `9aab3884` (`test(ops): load ignored provider env for live probes`) is pushed to `origin/feat/market-data-provider-platform`; it follows `463c8152` (`fix(market-data): expose quota readiness and pacing contracts`) and the prior operational record `2efc1ebc`. The live wrapper now loads the ignored `backend/.env.dev` file while preserving exported-variable precedence, so the documented credential workflow is executable without placing secrets in Git or chat.
 
 ## Current implementation boundary
 
