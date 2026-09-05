@@ -437,6 +437,13 @@ class TestStrategyLabAPI:
                 "composition_date": "2026-05-31",
                 "source_provider": "issuer-test",
                 "provenance": "issuer_current_holdings",
+                "legal_metadata": {
+                    "expected_cadence": "quarterly",
+                    "artifact_identity_validation": {
+                        "status": "matched",
+                        "matched": [{"value": "SPY"}],
+                    },
+                },
                 "rows": [
                     {
                         "symbol": instrument.symbol,
@@ -448,6 +455,12 @@ class TestStrategyLabAPI:
             },
         )
         assert ingest_res.status_code == 200
+        profile_res = client.patch(
+            "/api/v1/etf-holdings/SPY/profile",
+            headers=admin_headers,
+            json={"provider_aliases": {"holdings_adapter": "spdr"}},
+        )
+        assert profile_res.status_code == 200
 
         create_res = client.post(
             "/api/v1/strategy-lab/definitions",
@@ -526,6 +539,99 @@ class TestStrategyLabAPI:
         run = run_res.json()
         assert run["result_summary"]["universe"]["resolved_instrument_count"] == 1
         assert run["result_summary"]["universe"]["resolved_symbols"] == [instrument.symbol]
+
+    def test_strategy_latest_etf_universe_rejects_non_current_snapshot(
+        self,
+        client,
+        admin_headers,
+        auth_headers,
+        ohlcv_bars,
+    ):
+        ingest_res = client.post(
+            "/api/v1/etf-holdings/SPY/ingest",
+            headers=admin_headers,
+            json={
+                "composition_date": "2026-05-31",
+                "source_provider": "sec",
+                "provenance": "sec_filing",
+                "source_quality": "sec_filing",
+                "completeness_status": "complete",
+                "rows": [
+                    {
+                        "symbol": "AAPL",
+                        "name": "Apple Inc.",
+                        "weight": "1.0",
+                        "shares": "100",
+                    }
+                ],
+            },
+        )
+        assert ingest_res.status_code == 200
+        profile_res = client.patch(
+            "/api/v1/etf-holdings/SPY/profile",
+            headers=admin_headers,
+            json={"provider_aliases": {"holdings_adapter": "spdr"}},
+        )
+        assert profile_res.status_code == 200
+
+        create_res = client.post(
+            "/api/v1/strategy-lab/definitions",
+            headers=auth_headers,
+            json={
+                "name": "Reject Non-Current ETF Snapshot Strategy",
+                "source_type": "custom",
+                "definition_type": "rules",
+                "initial_version": {
+                    "definition_snapshot": {
+                        "timeframe": "D1",
+                        "direction": "long",
+                        "entry_logic": "all",
+                        "conditions": [
+                            {
+                                "type": "price_threshold",
+                                "field": "close",
+                                "op": "gt",
+                                "value": 0,
+                            }
+                        ],
+                        "risk": {
+                            "stop_loss_pct": 2.0,
+                            "take_profit_rr": 1.5,
+                            "max_bars_in_trade": 5,
+                        },
+                    },
+                    "universe_config": {
+                        "etf_holdings": {
+                            "symbol": "SPY",
+                            "snapshot_mode": "latest",
+                        }
+                    },
+                    "benchmark_config": {"symbol": "SPY"},
+                    "execution_model": {"entry": "next_bar_open"},
+                },
+            },
+        )
+        assert create_res.status_code == 201
+        version = create_res.json()["versions"][0]
+
+        preview_res = client.post(
+            "/api/v1/strategy-lab/coverage-preview",
+            headers=auth_headers,
+            json={
+                "source_type": "custom",
+                "timeframe": "D1",
+                "date_from": ohlcv_bars[0].ts.isoformat(),
+                "date_to": ohlcv_bars[-1].ts.isoformat(),
+                "universe_config": version["universe_config"],
+                "benchmark_config": {},
+            },
+        )
+        assert preview_res.status_code == 200
+        preview = preview_res.json()
+        assert preview["universe"]["instrument_count"] == 0
+        assert any(
+            "cannot be used for current analysis" in warning for warning in preview["warnings"]
+        )
 
     def test_strategy_run_can_use_dynamic_etf_holdings_universe(
         self,
@@ -898,7 +1004,10 @@ class TestStrategyLabAPI:
             },
         )
         assert first_snapshot.status_code == 200
-        basket_res = client.get("/api/v1/etf-holdings/SPY/basket", headers=auth_headers)
+        basket_res = client.get(
+            "/api/v1/etf-holdings/SPY/basket?date=2024-01-01",
+            headers=auth_headers,
+        )
         assert basket_res.status_code == 200
         basket_id = basket_res.json()["id"]
 

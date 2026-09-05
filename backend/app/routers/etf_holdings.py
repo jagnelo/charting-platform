@@ -60,7 +60,11 @@ from app.schemas.etf_holdings_history import (
     BenchmarkFamilyHoldingsRefreshRunOut,
     BenchmarkFamilyHoldingsRefreshRunRequest,
 )
-from app.services.baskets import basket_to_out, materialize_etf_holdings_basket
+from app.services.baskets import (
+    ETFHoldingsCurrentDataUnavailable,
+    basket_to_out,
+    materialize_etf_holdings_basket,
+)
 from app.services.benchmark_family_history import plan_benchmark_family_history_refresh
 from app.services.benchmark_family_holdings_runs import plan_benchmark_family_holdings_refresh
 from app.services.etf_holdings import (
@@ -538,12 +542,26 @@ async def materialized_holdings_basket(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    basket = await materialize_etf_holdings_basket(
-        db,
-        symbol_or_id,
-        snapshot_id=snapshot_id,
-        snapshot_date=date_,
-    )
+    try:
+        basket = await materialize_etf_holdings_basket(
+            db,
+            symbol_or_id,
+            snapshot_id=snapshot_id,
+            snapshot_date=date_,
+            allow_non_current=snapshot_id is not None or date_ is not None,
+        )
+    except ETFHoldingsCurrentDataUnavailable as exc:
+        capability = exc.capability
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "etf_holdings_not_current",
+                "availability": capability.availability,
+                "source_tier": capability.source_tier,
+                "usable_for_current_analysis": False,
+                "reason": capability.reason,
+            },
+        ) from exc
     if basket is None:
         raise HTTPException(404, "ETF holdings basket could not be materialized")
     await db.commit()

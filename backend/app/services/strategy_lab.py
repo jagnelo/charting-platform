@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.basket import Basket, BasketMember, BasketSnapshot
-from app.models.etf_holdings import ETFHoldingsSnapshot, ETFProfile
+from app.models.etf_holdings import ETFHoldingsAdapterState, ETFHoldingsSnapshot, ETFProfile
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.radar import (
@@ -30,6 +30,7 @@ from app.models.strategy import (
     StrategyVersion,
 )
 from app.models.watchlist import Watchlist, WatchlistItem
+from app.services.etf_holdings_capability import evaluate_capability
 from app.services.research_jobs import collect_research_result, enqueue_research_run
 from app.services.strategy_lab_nautilus import (
     NautilusOpenPosition,
@@ -324,6 +325,58 @@ def _parse_etf_snapshot_date(value: Any) -> date | None:
         return datetime.fromisoformat(str(value).replace("Z", "+00:00")).date()
     except ValueError:
         return None
+
+
+_EXPLICIT_HISTORICAL_ETF_MODES = {
+    "date",
+    "as_of_date",
+    "specific_date",
+    "dynamic",
+    "point_in_time",
+    "point-in-time",
+    "historical",
+}
+
+
+def _etf_holdings_selection_is_historical(config: dict[str, Any]) -> bool:
+    """Whether the user explicitly selected a historical holdings view."""
+
+    mode = str(config.get("snapshot_mode") or config.get("mode") or "").strip().lower()
+    if mode in _EXPLICIT_HISTORICAL_ETF_MODES:
+        return True
+    return any(
+        config.get(key) not in (None, "")
+        for key in ("snapshot_date", "composition_date", "as_of_date")
+    )
+
+
+async def _current_etf_snapshot_is_usable(
+    db: AsyncSession,
+    profile: ETFProfile,
+    snapshot: ETFHoldingsSnapshot,
+    warnings: list[str],
+) -> bool:
+    """Reject non-current ETF holdings before a current analysis can consume them."""
+
+    state = (
+        await db.execute(
+            select(ETFHoldingsAdapterState)
+            .where(ETFHoldingsAdapterState.etf_profile_id == profile.id)
+            .order_by(
+                ETFHoldingsAdapterState.last_checked_at.desc().nullslast(),
+                ETFHoldingsAdapterState.id.desc(),
+            )
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    capability = evaluate_capability(profile, snapshot, state)
+    if capability.usable_for_current_analysis:
+        return True
+    warnings.append(
+        "ETF holdings snapshot cannot be used for current analysis "
+        f"({capability.availability}): {capability.reason}"
+    )
+    return False
 
 
 def _coerce_timeframe(timeframe_value: str | None, warnings: list[str]) -> Timeframe:
@@ -969,6 +1022,10 @@ async def _resolve_universe_instruments(
                     f"ETF holdings universe has no snapshot available on or before {snapshot_date.isoformat()}."
                 )
             return []
+
+        if not _etf_holdings_selection_is_historical(etf_holdings_config):
+            if not await _current_etf_snapshot_is_usable(db, profile, snapshot, warnings):
+                return []
 
         holding_ids: list[int] = []
         seen_holding_ids: set[int] = set()

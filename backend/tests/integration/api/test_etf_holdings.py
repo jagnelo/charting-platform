@@ -3198,6 +3198,13 @@ def test_etf_holdings_snapshot_can_materialize_read_only_basket(
             "composition_date": "2026-05-31",
             "provenance": "issuer_current_holdings",
             "source_provider": "issuer-test",
+            "legal_metadata": {
+                "expected_cadence": "quarterly",
+                "artifact_identity_validation": {
+                    "status": "matched",
+                    "matched": [{"value": "DIA"}],
+                },
+            },
             "rows": [
                 {
                     "symbol": "AAPL",
@@ -3223,6 +3230,12 @@ def test_etf_holdings_snapshot_can_materialize_read_only_basket(
         headers=admin_headers,
     )
     assert ingest.status_code == 200
+    profile = client.patch(
+        "/api/v1/etf-holdings/DIA/profile",
+        json={"provider_aliases": {"holdings_adapter": "spdr"}},
+        headers=admin_headers,
+    )
+    assert profile.status_code == 200
 
     materialized = client.get("/api/v1/etf-holdings/DIA/basket", headers=auth_headers)
     assert materialized.status_code == 200
@@ -3242,6 +3255,54 @@ def test_etf_holdings_snapshot_can_materialize_read_only_basket(
     read = client.get(f"/api/v1/baskets/{basket['id']}", headers=auth_headers)
     assert read.status_code == 200
     assert read.json()["source_snapshot_id"] == basket["source_snapshot_id"]
+
+
+def test_etf_holdings_basket_rejects_non_current_without_historical_selection(
+    client, admin_headers, auth_headers
+):
+    ingest = client.post(
+        "/api/v1/etf-holdings/DIA/ingest",
+        json={
+            "composition_date": "2026-05-31",
+            "provenance": "sec_filing",
+            "source_provider": "sec",
+            "source_quality": "sec_filing",
+            "completeness_status": "complete",
+            "rows": [
+                {
+                    "symbol": "AAPL",
+                    "name": "Apple Inc.",
+                    "weight": "0.04",
+                    "shares": "100",
+                }
+            ],
+        },
+        headers=admin_headers,
+    )
+    assert ingest.status_code == 200
+    profile = client.patch(
+        "/api/v1/etf-holdings/DIA/profile",
+        json={"provider_aliases": {"holdings_adapter": "spdr"}},
+        headers=admin_headers,
+    )
+    assert profile.status_code == 200
+
+    current = client.get("/api/v1/etf-holdings/DIA/basket", headers=auth_headers)
+    assert current.status_code == 409
+    assert current.json()["detail"] == {
+        "code": "etf_holdings_not_current",
+        "availability": "degraded",
+        "source_tier": "sec_filing",
+        "usable_for_current_analysis": False,
+        "reason": "Holdings are reconstructed from SEC filings and are not issuer-current support.",
+    }
+
+    historical = client.get(
+        "/api/v1/etf-holdings/DIA/basket?date=2026-05-31",
+        headers=auth_headers,
+    )
+    assert historical.status_code == 200
+    assert historical.json()["composition_date"] == "2026-05-31"
 
 
 def test_csv_ingestion_normalizes_common_issuer_columns(client, admin_headers, auth_headers):

@@ -6,7 +6,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.basket import Basket, BasketMember, BasketSnapshot, BasketSnapshotMember
-from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+from app.models.etf_holdings import (
+    ETFHolding,
+    ETFHoldingsAdapterState,
+    ETFHoldingsSnapshot,
+    ETFProfile,
+)
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.schemas.basket import (
@@ -17,6 +22,7 @@ from app.schemas.basket import (
     BasketSnapshotOut,
     BasketUpdateRequest,
 )
+from app.services.etf_holdings_capability import ETFHoldingsCapability, evaluate_capability
 
 VALID_USER_WEIGHTING_SCHEMES = {"equal", "custom"}
 WEIGHT_TOLERANCE = Decimal("0.0001")
@@ -28,6 +34,14 @@ class BasketValidationError(ValueError):
 
 class BasketReadOnlyError(PermissionError):
     """Raised when a caller tries to mutate a read-only/system basket."""
+
+
+class ETFHoldingsCurrentDataUnavailable(ValueError):
+    """Raised when current analysis requests a non-current ETF holdings snapshot."""
+
+    def __init__(self, capability: ETFHoldingsCapability):
+        self.capability = capability
+        super().__init__(capability.reason)
 
 
 async def create_basket(
@@ -143,8 +157,9 @@ async def materialize_etf_holdings_basket(
     *,
     snapshot_id: int | None = None,
     snapshot_date: date | None = None,
+    allow_non_current: bool = False,
 ) -> Basket | None:
-    """Create or update a read-only system basket from a resolved ETF holdings snapshot."""
+    """Create/update a basket, requiring current capability unless historical is explicit."""
 
     snapshot, etf_instrument = await _load_etf_snapshot(
         db,
@@ -154,6 +169,24 @@ async def materialize_etf_holdings_basket(
     )
     if snapshot is None or etf_instrument is None:
         return None
+
+    if not allow_non_current and snapshot_id is None and snapshot_date is None:
+        state = (
+            await db.execute(
+                select(ETFHoldingsAdapterState)
+                .where(ETFHoldingsAdapterState.etf_profile_id == snapshot.etf_profile_id)
+                .order_by(
+                    ETFHoldingsAdapterState.last_checked_at.desc().nullslast(),
+                    ETFHoldingsAdapterState.id.desc(),
+                )
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        profile = await db.get(ETFProfile, snapshot.etf_profile_id)
+        if profile is not None:
+            capability = evaluate_capability(profile, snapshot, state)
+            if not capability.usable_for_current_analysis:
+                raise ETFHoldingsCurrentDataUnavailable(capability)
 
     existing = (
         await db.execute(
