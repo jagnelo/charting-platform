@@ -69,7 +69,8 @@ current capability/quota ledger.
       core D1 coverage snapshots. Nasdaq public directory discovery is retained
       as NMS venue evidence alongside SEC/Alpaca/Massive/Alpha Vantage, and the
       configurable FINRA OTC directory is present as an explicitly gated OTC
-      discovery path.
+      discovery path, with full live pagination proven against the official
+      `otcSecurityMaster` DAPI snapshot; source terms and quota remain gated.
 - [ ] Activate reviewed optional-provider entitlements, reconcile the complete
       US venue universe in production, and complete the separate post-merge
       30-day observation run. New routing remains disabled until the workstream

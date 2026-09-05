@@ -15,19 +15,22 @@ chat. The exact names are in `backend/.env.example` and the provider ledger.
 
 ## Evidence captured in this worktree
 
-On 2026-09-05, with network access and a temporary non-secret SEC User-Agent,
-the keyless matrix passed `8/8`, including full SEC ticker/exchange-directory
-pagination and full Nasdaq directory pagination for both equities and ETFs:
+On 2026-09-05, with network access, a temporary non-secret SEC User-Agent, and
+the official FINRA OTC Security Master URL, the public/keyless matrix passed
+`9/9`, including full SEC ticker/exchange-directory pagination, full Nasdaq
+directory pagination for both equities and ETFs, and full FINRA OTC DAPI
+pagination:
 
 ```sh
 RUN_LIVE_PROVIDER_TESTS=1 EDGAR_USER_AGENT='charting-platform live-validation ops@example.invalid' \
+  FINRA_OTC_SYMBOL_DIRECTORY_URL='https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster' \
   rtk uv run --project backend pytest tests/live/test_market_data_providers_live.py \
-  -m live -k 'openfigi or sec_edgar or nasdaq or binance or coinbase or kraken' \
+  -m live -k 'openfigi or sec_edgar or nasdaq or binance or coinbase or kraken or finra_otc_directory' \
   --no-header -q --no-cov
-# 8 passed, 16 deselected
+# 9 passed, 15 deselected
 ```
 
-A later bounded rerun passed the other six probes but received an honest
+A later bounded rerun passed the other six keyless probes but received an honest
 OpenFIGI HTTP 429 after additional anonymous traffic. After the documented
 anonymous window reset, the bounded keyless matrix passed again; the
 intermediate 429 remains recorded as rate-limit evidence, not hidden.
@@ -50,10 +53,12 @@ the current live-test-only change has passed its changed-surface checks:
 
 The full matrix correctly exposed the remaining credentialed blockers (Alpaca,
 Massive, Alpha Vantage, CoinGecko, FRED, FINRA OAuth (short interest and OTC
-Daily List and the explicitly configured OTC directory), Tiingo, Twelve Data,
-Finnhub, Marketstack, EODHD, FMP, Tradier, and MarketData.app). Those providers
-remain non-routable or acceptance-blocked until their keys/terms/plan limits
-are supplied and the corresponding probe passes. Binance's endpoint-weight
+Daily List), Tiingo, Twelve Data, Finnhub, Marketstack, EODHD, FMP, Tradier,
+and MarketData.app). The FINRA OTC DAPI source itself is public and full
+pagination is proven above, but it remains non-routable until its terms and
+provider-specific quota are reviewed. The credentialed providers remain
+non-routable or acceptance-blocked until their keys/terms/plan limits are
+supplied and the corresponding probe passes. Binance's endpoint-weight
 accounting and Nasdaq Trader's non-numeric polling ceiling remain explicitly
 tracked rather than guessed.
 
@@ -66,6 +71,5 @@ no acceptance claim. It names these missing variables exactly:
 `FINRA_OTC_SYMBOL_DIRECTORY_URL`, `TIINGO_API_KEY`,
 `TWELVE_DATA_API_KEY`, `FINNHUB_API_KEY`, `MARKETSTACK_API_KEY`,
 `EODHD_API_KEY`, `FMP_API_KEY`, `TRADIER_API_KEY`, and
-`MARKETDATA_APP_API_KEY`, plus the non-secret source configuration
-`FINRA_OTC_SYMBOL_DIRECTORY_URL`. Populate them only in the ignored
+`MARKETDATA_APP_API_KEY`. Populate them only in the ignored
 `backend/.env.dev`; never paste secret values into the repository or chat.

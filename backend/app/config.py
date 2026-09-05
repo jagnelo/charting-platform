@@ -549,6 +549,9 @@ class Settings(BaseSettings):
     FINRA_API_BASE_URL: str = "https://api.finra.org"
     FINRA_SHORT_INTEREST_URL: str = ""
     FINRA_OTC_DAILY_LIST_URL: str = ""
+    # Official current OTC Security Master DAPI URL is documented in
+    # docs/data-providers.md; keep this empty until operations explicitly
+    # approves the source, terms, and polling contract.
     FINRA_OTC_SYMBOL_DIRECTORY_URL: str = ""
     INSTRUMENT_DISCOVERY_PAGE_DELAY_SECONDS: float = 0.75
     INSTRUMENT_METADATA_DELAY_SECONDS: float = 1.0
