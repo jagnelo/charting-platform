@@ -45,7 +45,7 @@ RUN_LIVE_PROVIDER_TESTS=1 rtk uv run --project backend pytest \
 
 The backend deterministic gates pass on the current corrective revision:
 
-- unit suite: `1330 passed`
+- unit suite: `1331 passed`
 - Docker-backed integration suite: `370 passed`
 - focused capacity/quota/runtime/provider-support tests: `17 passed`; capacity-admin plus provider API integration: `8 passed`
 - migration compatibility: passed against the previous release head
