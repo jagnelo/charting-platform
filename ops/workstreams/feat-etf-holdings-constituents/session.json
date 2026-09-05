@@ -70,7 +70,9 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-45bdf9bd8d"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ps/workstreams/feat-etf-holdings-constituents/session.json"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -106,13 +108,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "a7b9c7f40569d5e9bc528b5b18030312d611e9c5",
+  "head": "759fa0faf91eb785c3caaa577bfe9a3a03e68b05",
   "implementation_sha": "37cf521168109fd37e5b53d03801c32b9c220849",
   "last_checkpoint": "2026-09-05T05:25:36Z",
   "last_human_progress_update": "2026-09-05T05:25:36Z",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Reconcile AC10 only after origin/feat/market-data-provider-platform is an ancestor of origin/staging; until then keep DXJ/NTSX/MINT/BOND unavailable and do not activate paid or direct-provider routes.",
-  "plan_hash": "a9afeda12fcfc78fbdc6a987fe956307bc4b8dca2603553bcd36222008cb07ea",
+  "plan_hash": "2fa28ce7e74380f16a63b5285f35f5e34e4e835363e302117c16b0890a80f580",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
