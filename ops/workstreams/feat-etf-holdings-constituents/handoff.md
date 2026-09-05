@@ -3607,6 +3607,18 @@ resource audit are recorded separately below. Provider-platform staging,
 paid activation, AC10, the four unresolved Tier-0 symbols, and AC14 remain
 unchanged.
 
+## Current-SHA Docker gate and browser retry — 2026-09-05
+
+The current-SHA `make validate-integration` gate passed workstream validation,
+dependency/migration checks, lint/format/type checks, backend coverage (1,853
+passed; 81.19%), frontend coverage (945 passed; 82.06%), build/compose
+contracts, stack health, research-runner isolation, and all visual checks. The
+functional browser stage reported 153 passed and 106 documented skips, with one
+unrelated existing `F8j-conflict` recovery-copy assertion failing. An isolated
+retry of that exact test passed 1/1 against a fresh branch-scoped stack; all
+scoped containers, volumes, and images were then removed. This is recorded as a
+narrow transient browser failure, not an ETF or application regression.
+
 ## Full Docker gate after issuer-challenge observability — 2026-09-05
 
 The post-checkpoint `make validate-integration
