@@ -14848,32 +14848,45 @@ class WisdomTreeHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "WisdomTree holdings must use the exact symbol-scoped public fund-holdings API route."
             )
 
-        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
-            product_response = await client.get(
-                self._PRODUCT_PAGE_URLS[normalized_symbol],
-                headers=_issuer_page_request_headers(accept="text/html,*/*"),
-                follow_redirects=True,
+        try:
+            async with httpx.AsyncClient(
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
+            ) as client:
+                product_response = await client.get(
+                    self._PRODUCT_PAGE_URLS[normalized_symbol],
+                    headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                    follow_redirects=True,
+                )
+                product_response.raise_for_status()
+                product_host = _url_host(str(product_response.url))
+                if not product_host or not _domain_matches(product_host, "wisdomtree.com"):
+                    raise ValueError("WisdomTree product-page session left the issuer domain.")
+                response = await client.get(
+                    resolved_source_url,
+                    headers={
+                        **_issuer_page_request_headers(accept="application/json,*/*"),
+                        "Referer": self._PRODUCT_PAGE_URLS[normalized_symbol],
+                    },
+                    follow_redirects=True,
+                )
+            response.raise_for_status()
+            response_host = _url_host(str(response.url))
+            if (
+                not response_host
+                or not _domain_matches(response_host, "wisdomtree.com")
+                or urlparse(str(response.url)).path.rstrip("/") != expected_path
+            ):
+                raise ValueError("WisdomTree holdings response left the symbol-scoped issuer route.")
+        except (httpx.HTTPError, requests.RequestException, ValueError) as route_error:
+            sec_result = await self._sec_fallback_after_route_error(
+                route_error,
+                symbol=normalized_symbol,
+                issuer_product_id=issuer_product_id,
+                identifiers=identifiers,
             )
-            product_response.raise_for_status()
-            product_host = _url_host(str(product_response.url))
-            if not product_host or not _domain_matches(product_host, "wisdomtree.com"):
-                raise ValueError("WisdomTree product-page session left the issuer domain.")
-            response = await client.get(
-                resolved_source_url,
-                headers={
-                    **_issuer_page_request_headers(accept="application/json,*/*"),
-                    "Referer": self._PRODUCT_PAGE_URLS[normalized_symbol],
-                },
-                follow_redirects=True,
-            )
-        response.raise_for_status()
-        response_host = _url_host(str(response.url))
-        if (
-            not response_host
-            or not _domain_matches(response_host, "wisdomtree.com")
-            or urlparse(str(response.url)).path.rstrip("/") != expected_path
-        ):
-            raise ValueError("WisdomTree holdings response left the symbol-scoped issuer route.")
+            if sec_result is not None:
+                return sec_result
+            raise
 
         payload = response.json()
         if not isinstance(payload, list) or not payload:

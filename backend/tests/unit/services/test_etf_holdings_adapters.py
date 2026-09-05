@@ -27980,6 +27980,36 @@ async def test_wisdomtree_public_fund_holdings_api_rejects_identity_drift(monkey
 
 
 @pytest.mark.asyncio
+async def test_wisdomtree_route_failure_uses_explicit_sec_fallback_with_provenance(monkeypatch):
+    adapter = get_holdings_adapter("wisdomtree")
+    assert adapter is not None
+    request = httpx.Request("GET", "https://www.wisdomtree.com/us/products/equity/dxj")
+    blocked = httpx.HTTPStatusError(
+        "Client error '403 Forbidden'",
+        request=request,
+        response=httpx.Response(403, request=request),
+    )
+    FakeAsyncClient.queue = [blocked]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    fallback = HoldingsFetchResult(
+        rows=[CanonicalHoldingRow(symbol="8306 JT", name="Mitsubishi UFJ Financial Group")],
+        source_url="https://www.sec.gov/Archives/edgar/data/example.xml",
+        legal_metadata={"source_access": "sec_filing", "source_provider": "sec"},
+    )
+
+    async def fake_sec_fallback(**_kwargs):
+        return fallback
+
+    monkeypatch.setattr(adapter, "_fetch_latest_sec_filing_holdings", fake_sec_fallback)
+
+    result = await adapter.fetch_latest(symbol="DXJ", identifiers={"sec_cik": "0000036405"})
+
+    assert result is fallback
+    assert result.legal_metadata["issuer_route_fallback"] == "sec_edgar_filing"
+    assert "403" in result.legal_metadata["issuer_route_failure"]
+
+
+@pytest.mark.asyncio
 async def test_guggenheim_holdings_route_rejects_wrong_fund_or_missing_table(monkeypatch):
     adapter = get_holdings_adapter("guggenheim")
     assert adapter is not None
