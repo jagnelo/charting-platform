@@ -4415,3 +4415,14 @@ records, with no missing attempt history, evidence refs, or next actions. The
 symbol ledgers contain 15 Tier-0 and 160 Tier-1 records, each with an explicit
 outcome. This confirms ledger coverage and does not promote any source or close
 AC10/AC14.
+
+## Tickerbot free-sandbox candidate — 2026-09-05
+
+Tickerbot's documented no-key sandbox was tested for all four unresolved
+Tier-0 symbols. DXJ and MINT returned zero rows; NTSX returned 463 rows; BOND
+returned only four rows. The sandbox omitted `total`/`truncated` completeness
+metadata and exposed server assembly time rather than a holdings report date,
+while the production endpoint returned authentication-required responses.
+Although the free-plan terms permit internal application use, this evidence
+does not establish a complete, dated, identity-safe current route. No symbol
+classification, provider promotion, credential, or paid activation changed.

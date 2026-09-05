@@ -1984,3 +1984,18 @@ challenge HTML, so the browser surface is not a complete executable source
 for the repository transport. NTSX remains `unavailable`; evidence refs are
 `web:wisdomtree-ntsx-product-page-2026-09-05` and
 `live:wisdomtree-ntsx-product-curl-2026-09-05-cloudflare`.
+
+## Tickerbot free-sandbox candidate — 2026-09-05
+
+Tickerbot documents a no-key sandbox ETF holdings route and a free plan whose
+terms permit internal application use. Bounded probes returned no DXJ or MINT
+rows, 463 NTSX rows, and only four BOND rows. The sandbox responses omit the
+documented `total`/`truncated` completeness fields and provide server
+assembly time rather than a holdings report date; the production endpoint
+requires a bearer token. The candidate is retained as unqualified research
+evidence, not current support. Evidence refs:
+`web:tickerbot-etf-holdings-contract-2026-09-05`,
+`web:tickerbot-terms-free-internal-use-2026-09-05`,
+`live:tickerbot-dxj-ntsx-sandbox-2026-09-05`,
+`live:tickerbot-mint-bond-sandbox-2026-09-05`, and
+`live:tickerbot-production-auth-required-2026-09-05`.
