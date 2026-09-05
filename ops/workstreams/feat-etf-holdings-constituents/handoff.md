@@ -3731,3 +3731,21 @@ Provider-platform remains unstaged, DXJ/NTSX/MINT/BOND remain unavailable for
 current analysis, AC10 remains deferred, and AC14 remains the post-integration
 30-day production shadow gate. No paid source, credential, other branch, or
 other worktree was modified.
+
+## Shared degradation-contract regression checkpoint — 2026-09-05
+
+Implementation commit `0368b404` hardens the route-level contract around
+non-current ETF holdings. The market-group industry route and ETF constituent
+analysis route now have integration regressions that assert the complete
+`etf_holdings_not_current` detail: availability, source tier, current-analysis
+usability, `failure_class`, and the human-readable reason. This prevents a
+future route fork from silently dropping the machine-readable diagnostic field
+that the basket route and shared capability helper already expose.
+
+Both focused regressions passed under the repository-supported Python 3.12
+runtime (`2 passed`, with the existing Nautilus deprecation warnings). Ruff was
+not changed; `git diff --check` passed. This is contract-test hardening only:
+provider-platform remains unstaged, DXJ/NTSX/MINT/BOND remain unavailable for
+current analysis, AC10 remains deferred, and AC14 remains the post-integration
+30-day production shadow gate. No paid source, credential, other branch, or
+other worktree was modified.
