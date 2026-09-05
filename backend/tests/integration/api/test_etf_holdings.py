@@ -180,6 +180,22 @@ def test_capability_read_does_not_hydrate_unknown_symbol(client, auth_headers, d
     assert db.query(Instrument).filter_by(symbol="ZZZ").count() == 0
 
 
+@pytest.mark.parametrize(
+    "path",
+    ["/api/v1/etf-holdings/ZZZ/adapter-state", "/api/v1/etf-holdings/ZZZ/backfills"],
+)
+def test_admin_inspection_lists_do_not_hydrate_unknown_symbol(path, client, admin_headers, db):
+    from app.models.instrument import Instrument
+
+    assert db.query(Instrument).filter_by(symbol="ZZZ").count() == 0
+
+    response = client.get(path, headers=admin_headers)
+
+    assert response.status_code == 200, response.text
+    assert response.json() == []
+    assert db.query(Instrument).filter_by(symbol="ZZZ").count() == 0
+
+
 def test_admin_family_history_refresh_queues_deduplicated_local_members(
     client, admin_headers, monkeypatch
 ):

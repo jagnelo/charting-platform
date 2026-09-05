@@ -654,6 +654,16 @@ async def get_etf_profile_for_instrument(db: AsyncSession, instrument_id: int) -
     ).scalar_one_or_none()
 
 
+async def get_etf_profile_for_symbol(db: AsyncSession, symbol: str) -> ETFProfile | None:
+    """Read an existing ETF profile by symbol without creating catalog rows."""
+
+    normalized_symbol = str(symbol or "").strip().upper()
+    instrument = await _load_instrument_by_symbol_or_id(db, normalized_symbol)
+    if instrument is None:
+        return None
+    return await get_etf_profile_for_instrument(db, instrument.id)
+
+
 async def ensure_etf_profile(
     db: AsyncSession,
     instrument: Instrument,

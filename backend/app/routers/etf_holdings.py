@@ -75,6 +75,7 @@ from app.services.etf_holdings import (
     ensure_lightweight_etf_instrument,
     get_constituent_timeline,
     get_etf_profile_for_instrument,
+    get_etf_profile_for_symbol,
     get_holdings_diff,
     get_holdings_overlap_matrix,
     get_holdings_overlap_summary,
@@ -927,8 +928,9 @@ async def holdings_adapter_state(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    instrument = await ensure_lightweight_etf_instrument(db, symbol=symbol)
-    profile = await ensure_etf_profile(db, instrument)
+    profile = await get_etf_profile_for_symbol(db, symbol)
+    if profile is None:
+        return []
     states = (
         (
             await db.execute(
@@ -1223,8 +1225,7 @@ async def list_etf_backfill_jobs(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    etf = await ensure_lightweight_etf_instrument(db, symbol=symbol)
-    profile = await get_etf_profile_for_instrument(db, etf.id)
+    profile = await get_etf_profile_for_symbol(db, symbol)
     if profile is None:
         return []
     return await list_sec_nport_backfill_jobs(db, profile=profile, limit=limit)
