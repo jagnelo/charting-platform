@@ -3747,6 +3747,24 @@ AC10 remains deferred, and AC14 remains the post-integration 30-day production
 shadow gate. No paid source, credential, other branch, or other worktree was
 modified.
 
+## Backend current-analysis capability gate checkpoint — 2026-09-05
+
+Implementation commit `89fd3282` adds the backend counterpart to the frontend
+source gate. Market Map primary and reference sources, generic Breadth
+watchlist sources, and Study Lab declared universes now reject stale,
+degraded, unknown, or unavailable ETF-proxy capability states with the stable
+`etf_holdings_not_current` detail. Pending sources remain available for
+hydration, and explicit historical requests retain their existing path.
+
+The new capability unit tests, current Market Map/Breadth regression, generic
+Breadth integration slice, research-router tests, Market Map/watchlist unit
+slices, and complete watchlist API file passed; the complete watchlist file
+reported `47 passed` with the same two Nautilus deprecation warnings. Ruff,
+formatting, and diff-check passed. Provider-platform remains unstaged,
+DXJ/NTSX/MINT/BOND remain unavailable for current analysis, AC10 remains
+deferred, and AC14 remains the post-integration 30-day production shadow gate.
+No paid source, credential, other branch, or other worktree was modified.
+
 ## Downstream degradation observability checkpoint — 2026-09-05
 
 Implementation commit `2c7c784a` extends the machine-readable ETF capability
