@@ -4086,3 +4086,18 @@ The task, refresh, and worker suites passed `46` tests; Ruff check, Ruff
 formatting, `git diff --check`, and workstream validation passed. Provider-
 platform staging, DXJ/NTSX/MINT/BOND, AC10, and AC14 remain unchanged. No paid
 source, credential, other branch, or other worktree was modified.
+
+## Canary truncation-boundary checkpoint — 2026-09-05
+
+Implementation commit `6388aed4` closes the remaining scheduled-canary
+coverage loophole. The task now rejects any configured symbol list longer than
+`ETF_HOLDINGS_CAPABILITY_CANARY_MAX_SYMBOLS`, including deliberate custom
+operator lists, before opening a database session or making provider calls.
+This prevents the underlying bounded runner from silently dropping configured
+symbols while preserving smaller custom lists when their explicit bound is
+sufficient.
+
+The task, refresh, and worker suites passed `47` tests; Ruff check, Ruff
+formatting, `git diff --check`, and workstream validation passed. Provider-
+platform staging, DXJ/NTSX/MINT/BOND, AC10, and AC14 remain unchanged. No paid
+source, credential, other branch, or other worktree was modified.
