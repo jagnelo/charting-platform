@@ -43,12 +43,11 @@ RUN_LIVE_PROVIDER_TESTS=1 rtk uv run --project backend pytest \
 # 1 passed
 ```
 
-The backend deterministic gates also pass on the preceding corrective revision;
-the current live-test-only change has passed its changed-surface checks:
+The backend deterministic gates pass on the current corrective revision:
 
-- unit suite: `1320 passed`
+- unit suite: `1324 passed`
 - Docker-backed integration suite: `369 passed`
-- focused provider quota/routing/runtime tests: `33 passed`
+- focused provider quota/routing/runtime/router tests: `36 passed`
 - migration compatibility: passed against the previous release head
 
 The full matrix correctly exposed the remaining credentialed blockers (Alpaca,
@@ -58,9 +57,13 @@ and MarketData.app). The FINRA OTC DAPI source itself is public and full
 pagination is proven above, but it remains non-routable until its terms and
 provider-specific quota are reviewed. The credentialed providers remain
 non-routable or acceptance-blocked until their keys/terms/plan limits are
-supplied and the corresponding probe passes. Binance's endpoint-weight
-accounting and Nasdaq Trader's non-numeric polling ceiling remain explicitly
-tracked rather than guessed.
+supplied and the corresponding probe passes. The conservative Marketstack
+free-plan contract (100 requests/month) and IBKR Web API pacing contract (10
+requests/second plus five concurrent historical requests) are now recorded
+from provider documentation; IBKR remains a descriptor with no routable
+capability. Binance's endpoint-weight accounting, FRED v1's non-numeric
+ceiling, Finnhub/FMP plan-specific limits, and Nasdaq Trader's non-numeric
+polling ceiling remain explicitly tracked rather than guessed.
 
 With the public SEC User-Agent and official FINRA OTC DAPI URL supplied for the
 run, the current full preflight passed `9` public probes and reported `15`
