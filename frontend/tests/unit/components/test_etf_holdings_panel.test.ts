@@ -149,4 +149,32 @@ describe('ETFHoldingsPanel', () => {
     expect(wrapper.emitted('availability')?.at(-1)).toEqual([false])
     expect(wrapper.text()).toContain('A last-known snapshot may be displayed')
   })
+
+  it.each(['stale', 'unavailable', 'not_applicable', 'unknown'])(
+    'keeps a %s no-snapshot capability visible and provider-attributed',
+    async availability => {
+      vi.mocked(api.get)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({
+          availability,
+          source_provider: 'wisdomtree',
+          source_tier: 'none',
+          usable_for_current_analysis: false,
+          displayable_last_known: false,
+          consecutive_failures: 1,
+          reason: `${availability} route evidence`,
+        })
+
+      const wrapper = mount(ETFHoldingsPanel, { props: { symbol: 'DXJ' } })
+
+      await vi.waitFor(() => {
+        expect(wrapper.text()).toContain(availability.replace('_', ' '))
+      })
+
+      expect(wrapper.text()).toContain('wisdomtree')
+      expect(wrapper.text()).toContain(`${availability} route evidence`)
+      expect(wrapper.text()).toContain('No current holdings snapshot is available')
+      expect(wrapper.emitted('availability')?.at(-1)).toEqual([false])
+    },
+  )
 })
