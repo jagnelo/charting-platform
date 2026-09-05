@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-09-05 — Exact-tip gate after canonical member-history floors
+
+- [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework`
+      at product tip `2f7c1d84` and documentation tip `f4498c80`: locked,
+      backend/frontend, build, compose/provider, stack-health,
+      runner-isolation, and functional browser checks passed (`157/157`,
+      `106` documented skips across `263` specs); visual acceptance remains
+      `98/104` with the same six state-oracle assertions.
+- [ ] Preserve and separately resolve `watchlist-column-editor-open` at 1080p
+      100/125 and `workspace-floating` at 1080p/1440p 100/125. Do not alter
+      baselines, masks, thresholds, skips, fallbacks, provider, or acceptance
+      policy.
+- [x] Teardown removed the assigned stack and four generated images; no
+      containers or volumes remained and resource accounting was clean. Continue
+      the next canonical provider/history slice without integrating, promoting,
+      deploying, or mutating another worktree.
+
 ### 2026-09-05 — Show canonical member-history floors
 
 - [x] Include the backend `required_bar_count` floor for D1/W1/MN beside each
@@ -9,7 +26,7 @@
       type-check/build passed, and rebuilt authenticated Chromium
       `F8s-breadth-family-ratio` passed `1/1` with floors `252/52/24` asserted.
       Teardown and resource accounting were clean after four images were removed.
-- [ ] Rerun the exact-tip integration gate at the next documentation tip,
+- [x] Rerun the exact-tip integration gate at the next documentation tip,
       preserving the six known visual state-oracle diffs and all provider,
       fallback, baseline, and acceptance policy.
 

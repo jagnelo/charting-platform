@@ -10,6 +10,26 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Exact-tip exhaustive gate after canonical member-history floors
+
+At product tip `2f7c1d84` (documentation tip `f4498c80`), the exact-tip
+`full_stack_browser` gate passed locked dependency/migration checks (migration
+compatibility skipped because no migration changes), workstream validation,
+Ruff/format, TypeScript, backend units `1320/1320`, integration `384/384`,
+combined coverage `80.93%`, frontend Vitest `970/970`, production build,
+compose/provider policy, stack health, research-runner isolation, and
+authenticated functional Playwright (`157` passed with `106` documented skips
+across `263` specs). The unchanged visual matrix completed `104` cases with
+`98` passes and six state-oracle diffs: `watchlist-column-editor-open` at
+visual-1080p-100/125 (`13,844` pixels each), and `workspace-floating` at
+visual-1080p-100 (`9,770`), visual-1080p-125 (`9,770`), visual-1440p-100
+(`9,770`), and visual-1440p-125 (`12,097`). No baseline, mask, threshold,
+skip, fallback oracle, provider rule, or acceptance policy changed. Teardown
+removed the assigned stack and four generated images; no containers or volumes
+remained and resource accounting was clean. The next action is the next bounded
+canonical provider/history slice; do not integrate, promote, deploy, or mutate
+another worktree.
+
 ## 2026-09-05 — Expose analysis-ready history floors for generic sources
 
 Product commit `8490f2dd` (`feat(tc2000): expose history analysis-ready floors`) extends the shared
