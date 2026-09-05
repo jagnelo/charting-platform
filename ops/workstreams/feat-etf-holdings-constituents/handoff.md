@@ -2845,3 +2845,31 @@ diff-check, and workstream validation also pass. This is a branch-owned
 observability hardening checkpoint; it does not close the unresolved DXJ/NTSX or
 MINT/BOND source boundaries, shared provider-platform staging dependency (AC10),
 or post-integration 30-day shadow gate (AC14).
+
+## Free-first vendor assessment — 2026-09-05
+
+No paid source was purchased, enabled, or given credentials. The bounded
+assessment records candidates for the shared provider-platform entitlement and
+budget gate only:
+
+- Alpha Vantage documents an `ETF_PROFILE` endpoint that returns ETF metrics and
+  holdings/constituents with allocation data. Its accessible premium page does
+  not publish a verifiable plan price in this review, and commercial-use terms,
+  coverage of the unresolved symbols, freshness, and quota still require an
+  entitlement review. It is therefore a research candidate, not a route or a
+  support claim.
+- EODHD documents ETF fundamentals with an `ETF_Data` section containing fund
+  profile, allocations, and holdings. Its free plan is explicitly limited to
+  20 daily calls for end-of-day history; the documentation recommends plans
+  starting at $19.99 for broader access, so ETF holdings availability under the
+  free tier is not assumed. It is a plausible sub-$20 candidate pending a
+  symbol-coverage, freshness, licensing, and quota proof.
+- Financial Modeling Prep exposes an ETF-holder endpoint in its public API
+  documentation, but no current price/entitlement or licensing proof was
+  established in this pass; it remains unqualified.
+
+The decision rule remains unchanged: first-party free or already-entitled
+artifacts take precedence; a vendor may be tested only with fixtures until the
+shared entitlement, quota, aggregate 20 EUR/USD-equivalent monthly budget, and
+human activation gate are available. None of these candidates changes the
+current non-current outcomes for DXJ/NTSX/MINT/BOND.
