@@ -5,6 +5,20 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-05
 
+## 2026-09-05 — Show canonical member-history floors
+
+The workstation’s family coverage strip now includes each timeframe’s backend
+`required_bar_count` floor beside its covered and analysis-ready member counts.
+This makes the D1/W1/MN readiness contract explicit in the consumer without
+changing history computation, provider selection, fallback, or acceptance
+policy. Product commit `2f7c1d84` (`feat(tc2000): show family history floors`)
+is pushed. Frontend Vitest passed `970/970`, type-check and production build
+passed, and rebuilt authenticated Chromium `F8s-breadth-family-ratio` passed
+`1/1` with floors `252/52/24` asserted. Teardown removed four generated
+images and all assigned resources. The next exact-tip gate remains required;
+preserve the six visual state-oracle diffs and unchanged provider/fallback
+policy.
+
 ## 2026-09-05 — Surface latest family disclosure provenance
 
 The workstation’s benchmark-family coverage strip now reports the newest

@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-05 — Show canonical member-history floors
+
+- [x] Include the backend `required_bar_count` floor for D1/W1/MN beside each
+      role’s covered and analysis-ready counts in the workstation family
+      coverage strip; no history computation or provider/fallback policy changed.
+- [x] Product commit `2f7c1d84` is pushed; Vitest passed `970/970`,
+      type-check/build passed, and rebuilt authenticated Chromium
+      `F8s-breadth-family-ratio` passed `1/1` with floors `252/52/24` asserted.
+      Teardown and resource accounting were clean after four images were removed.
+- [ ] Rerun the exact-tip integration gate at the next documentation tip,
+      preserving the six known visual state-oracle diffs and all provider,
+      fallback, baseline, and acceptance policy.
+
 ### 2026-09-05 — Surface latest family disclosure provenance
 
 - [x] Show each benchmark-family role’s latest canonical disclosure date,
