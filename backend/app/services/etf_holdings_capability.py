@@ -1864,7 +1864,7 @@ def evaluate_capability(
         availability = DEGRADED
         reason = future_snapshot_reason
     elif not profile.adapter_key or profile.adapter_key == "unresolved":
-        availability = NOT_APPLICABLE if not has_snapshot else STALE
+        availability = UNKNOWN if not has_snapshot else STALE
         reason = "No concrete ETF holdings adapter is assigned to this profile."
     elif not has_snapshot:
         availability = (

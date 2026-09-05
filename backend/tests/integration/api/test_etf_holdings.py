@@ -174,7 +174,7 @@ def test_capability_read_does_not_hydrate_unknown_symbol(client, auth_headers, d
 
     assert response.status_code == 200, response.text
     body = response.json()
-    assert body["availability"] == "not_applicable"
+    assert body["availability"] == "unknown"
     assert body["usable_for_current_analysis"] is False
     assert body["symbol_audit"]["outcome"] == "unknown"
     assert db.query(Instrument).filter_by(symbol="ZZZ").count() == 0

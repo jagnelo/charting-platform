@@ -188,6 +188,14 @@ def test_missing_snapshot_is_unknown_until_a_route_check_records_outcome():
     assert result.displayable_last_known is False
 
 
+def test_unassigned_profile_without_snapshot_is_unknown_not_not_applicable():
+    result = evaluate_capability(profile(None), None, None, now=NOW)
+
+    assert result.availability == UNKNOWN
+    assert result.usable_for_current_analysis is False
+    assert result.symbol_audit.outcome == UNKNOWN
+
+
 def test_known_adapter_provider_remains_visible_before_first_snapshot():
     result = evaluate_capability(
         profile("wisdomtree"),
