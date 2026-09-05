@@ -148,6 +148,31 @@ async def _queue_python_signal_research(
             **(run.parameter_values or {}),
         },
     }
+    # Study-result signal promotions may use an explicit adapter (for example a
+    # thresholded series or range-center value).  Carry that immutable lineage
+    # into the queued research configuration so the isolated runner receives the
+    # same adapter and target relation as the authored CodeVersion.
+    diagnostics = code_version.diagnostics if isinstance(code_version.diagnostics, list) else []
+    promotion_lineage = next(
+        (
+            item.get("lineage")
+            for item in diagnostics
+            if isinstance(item, dict)
+            and item.get("code") == "promotion_lineage"
+            and isinstance(item.get("lineage"), dict)
+        ),
+        None,
+    )
+    if isinstance(promotion_lineage, dict):
+        output_adapter = promotion_lineage.get("output_adapter")
+        if isinstance(output_adapter, str) and output_adapter:
+            run_config["output_adapter"] = output_adapter
+        series_target = promotion_lineage.get("series_target")
+        if isinstance(series_target, dict):
+            run_config["series_target"] = series_target
+        output_name = promotion_lineage.get("source_output_name")
+        if isinstance(output_name, str) and output_name:
+            run_config["output_name"] = output_name
     if run.timeframe:
         run_config["timeframe"] = run.timeframe
     if run.date_from:

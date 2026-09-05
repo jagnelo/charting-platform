@@ -473,18 +473,18 @@ function canPromoteStructuredArtifact(run: ResearchRunSummary | null, artifact: 
     && (artifact.artifact_type === 'scalar' || artifact.artifact_type === 'series' || artifact.artifact_type === 'boolean'
       || (artifact.artifact_type === 'range' && rangeData(artifact)?.center != null))
 }
-type StructuredBooleanPromotionTarget = 'column' | 'filter' | 'scan' | 'gauge' | 'alert'
-const structuredBooleanPromotionTargets: StructuredBooleanPromotionTarget[] = ['column', 'filter', 'scan', 'gauge', 'alert']
+type StructuredBooleanPromotionTarget = 'column' | 'filter' | 'scan' | 'gauge' | 'alert' | 'signal'
+const structuredBooleanPromotionTargets: StructuredBooleanPromotionTarget[] = ['column', 'filter', 'scan', 'gauge', 'alert', 'signal']
 function structuredBooleanPromotionLabel(target: StructuredBooleanPromotionTarget) {
-  return target === 'column' ? 'Save column' : target === 'filter' ? 'Save filter' : target === 'scan' ? 'Promote scan' : target === 'gauge' ? 'Use Gauge' : 'Promote alert'
+  return target === 'column' ? 'Save column' : target === 'filter' ? 'Save filter' : target === 'scan' ? 'Promote scan' : target === 'gauge' ? 'Use Gauge' : target === 'alert' ? 'Promote alert' : 'Save Strategy signal'
 }
 function structuredBooleanScanKey(run: ResearchRunSummary, artifact: ResearchRunSummary['artifacts'][number]) {
   return `${run.id}:${artifact.id}:${artifact.name}`
 }
-type StructuredSeriesConditionTarget = 'filter' | 'scan' | 'gauge' | 'alert'
-const structuredSeriesConditionTargets: StructuredSeriesConditionTarget[] = ['filter', 'scan', 'gauge', 'alert']
+type StructuredSeriesConditionTarget = 'filter' | 'scan' | 'gauge' | 'alert' | 'signal'
+const structuredSeriesConditionTargets: StructuredSeriesConditionTarget[] = ['filter', 'scan', 'gauge', 'alert', 'signal']
 function structuredSeriesConditionLabel(target: StructuredSeriesConditionTarget) {
-  return target === 'filter' ? 'Save filter' : target === 'scan' ? 'Promote scan' : target === 'gauge' ? 'Use Gauge' : 'Promote alert'
+  return target === 'filter' ? 'Save filter' : target === 'scan' ? 'Promote scan' : target === 'gauge' ? 'Use Gauge' : target === 'alert' ? 'Promote alert' : 'Save Strategy signal'
 }
 function structuredSeriesScanKey(run: ResearchRunSummary, artifact: ResearchRunSummary['artifacts'][number]) {
   return `${run.id}:${artifact.id}:${artifact.name}:${seriesConditionOperator.value}:${seriesConditionThreshold.value}`
@@ -750,12 +750,61 @@ async function promoteEventArtifact(run: ResearchRunSummary, artifactName: strin
     promoting.value = false
   }
 }
+async function promoteStructuredStudySignal(
+  run: ResearchRunSummary,
+  artifactName: string,
+  options: { outputAdapter?: string; seriesTarget?: Record<string, unknown>; semantics: string },
+) {
+  const declaredInstrumentIds = declaredStudyInstrumentIds(run)
+  if (!declaredInstrumentIds.length) throw new Error('The study dataset has no declared canonical members; refusing to widen the Strategy signal universe.')
+  const assets = await api.get<Array<{ versions?: Array<{ id?: number; source?: string; parameter_schema?: Record<string, unknown>; default_parameters?: Record<string, unknown> }> }>>('/code/assets')
+  const sourceVersion = (assets ?? []).flatMap(asset => asset.versions ?? []).find(version => version.id === run.code_version_id)
+  if (!sourceVersion?.source) throw new Error('The immutable source code version for this study is unavailable.')
+  const lineage = {
+    type: 'study_run_promotion',
+    source_run_id: run.id,
+    source_code_version_id: run.code_version_id,
+    source_reproducibility_hash: run.reproducibility_hash ?? null,
+    source_dataset_manifest: run.dataset_manifest ?? {},
+    source_run_config: run.run_config ?? {},
+    source_output_name: artifactName,
+    source_instrument_ids: declaredInstrumentIds,
+    source_universe_source_id: structuredStudySourceId(run),
+    source_membership_version: structuredStudyMembershipVersion(run),
+    target: 'signal',
+    ...(options.outputAdapter ? { output_adapter: options.outputAdapter } : {}),
+    ...(options.seriesTarget ? { series_target: options.seriesTarget } : {}),
+    semantics: options.semantics,
+    point_in_time_source_preserved: false,
+  }
+  const asset = await api.post<{ id?: number; name?: string; versions?: Array<{ id?: number }> }>('/code/assets', {
+    stable_key: `${run.id}-${artifactName}-signal-${Date.now().toString(36)}`.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80) || `study-${run.id}-signal`,
+    name: `${artifactName} Strategy signal`,
+    kind: 'signal',
+    initial_version: {
+      source: sourceVersion.source,
+      output_contract: 'boolean',
+      output_name: artifactName,
+      parameter_schema: sourceVersion.parameter_schema ?? {},
+      default_parameters: sourceVersion.default_parameters ?? {},
+      lineage,
+    },
+  })
+  const codeVersionId = asset.versions?.[0]?.id ?? asset.id
+  if (typeof codeVersionId !== 'number') throw new Error('The Strategy signal asset did not return an immutable code version.')
+  return api.post<{ id: number; name: string }>(`/strategy-lab/signals/from-code/${codeVersionId}`, {})
+}
 async function promoteStructuredArtifact(run: ResearchRunSummary, artifact: ResearchRunSummary['artifacts'][number], target: 'column' | 'plot' | StructuredBooleanPromotionTarget) {
   if (!canPromoteStructuredArtifact(run, artifact) || promoting.value) return
   promoting.value = true
   promotionMessage.value = ''
   try {
     if (artifact.artifact_type === 'boolean' && target !== 'column' && target !== 'plot') {
+      if (target === 'signal') {
+        const promoted = await promoteStructuredStudySignal(run, artifact.name, { semantics: 'study_boolean_result_as_strategy_signal' })
+        promotionMessage.value = `Saved Boolean artifact “${artifact.name}” as Strategy signal “${promoted.name}” (#${promoted.id}). Current-data re-evaluation and source lineage are preserved.`
+        return
+      }
       const scanKey = structuredBooleanScanKey(run, artifact)
       let promotedScan = promotedStructuredBooleanScans.value[scanKey]
       if (!promotedScan) {
@@ -891,6 +940,15 @@ async function promoteStructuredSeriesCondition(
   promoting.value = true
   promotionMessage.value = ''
   try {
+    if (target === 'signal') {
+      const promoted = await promoteStructuredStudySignal(run, artifact.name, {
+        outputAdapter: 'series_target_to_boolean',
+        seriesTarget: { operator: seriesConditionOperator.value, threshold: Number(seriesConditionThreshold.value) },
+        semantics: 'study_series_threshold_as_strategy_signal',
+      })
+      promotionMessage.value = `Saved thresholded series “${artifact.name}” as Strategy signal “${promoted.name}” (#${promoted.id}). Current-data re-evaluation and source lineage are preserved.`
+      return
+    }
     const assets = await api.get<Array<{ versions?: Array<{ id?: number; source?: string; output_contract?: string; parameter_schema?: Record<string, unknown>; default_parameters?: Record<string, unknown> }> }>>('/code/assets')
     const sourceVersion = (assets ?? []).flatMap(asset => asset.versions ?? []).find(version => version.id === run.code_version_id)
     if (!sourceVersion?.source) throw new Error('The immutable source code version for this series study is unavailable.')
@@ -980,6 +1038,15 @@ async function promoteStructuredRangeCenterCondition(
   promoting.value = true
   promotionMessage.value = ''
   try {
+    if (target === 'signal') {
+      const promoted = await promoteStructuredStudySignal(run, artifact.name, {
+        outputAdapter: 'range_center_target_to_boolean',
+        seriesTarget: { operator: seriesConditionOperator.value, threshold: Number(seriesConditionThreshold.value) },
+        semantics: 'study_range_center_threshold_as_strategy_signal',
+      })
+      promotionMessage.value = `Saved thresholded range center “${artifact.name}” as Strategy signal “${promoted.name}” (#${promoted.id}). Current-data re-evaluation and source lineage are preserved.`
+      return
+    }
     const assets = await api.get<Array<{ versions?: Array<{ id?: number; source?: string; output_contract?: string; parameter_schema?: Record<string, unknown>; default_parameters?: Record<string, unknown> }> }>>('/code/assets')
     const sourceVersion = (assets ?? []).flatMap(asset => asset.versions ?? []).find(version => version.id === run.code_version_id)
     if (!sourceVersion?.source) throw new Error('The immutable source code version for this range study is unavailable.')

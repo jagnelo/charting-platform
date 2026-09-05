@@ -546,8 +546,13 @@ describe('ResearchResultsTool', () => {
       return Promise.resolve([])
     })
     apiPost.mockImplementation((path: string, body: unknown) => {
-      if (path === '/code/assets') return Promise.resolve({ id: 95, name: 'trend condition', versions: [{ id: 95 }] })
+      if (path === '/code/assets') {
+        const payload = body as { kind?: string }
+        if (payload.kind === 'signal') return Promise.resolve({ id: 96, name: 'trend Strategy signal', versions: [{ id: 96 }] })
+        return Promise.resolve({ id: 95, name: 'trend condition', versions: [{ id: 95 }] })
+      }
       if (path === '/screeners/from-python-condition/95') return Promise.resolve({ id: 96, name: 'trend threshold filter' })
+      if (path === '/strategy-lab/signals/from-code/96') return Promise.resolve({ id: 97, name: 'Trend Strategy Signal' })
       if (path === '/alerts/screener') return Promise.resolve({ id: 97 })
       return Promise.resolve({})
     })
@@ -585,10 +590,18 @@ describe('ResearchResultsTool', () => {
     await flushPromises()
     await wrapper.get('[aria-label="Promote alert: trend"]').trigger('click')
     await flushPromises()
-    expect(apiPost.mock.calls.filter(call => call[0] === '/code/assets')).toHaveLength(1)
+    expect(wrapper.text()).toContain('Promoted series artifact “trend” to a thresholded scan alert.')
+    await wrapper.get('[aria-label="Save Strategy signal: trend"]').trigger('click')
+    await flushPromises()
+    expect(apiPost.mock.calls.filter(call => call[0] === '/code/assets')).toHaveLength(2)
     expect(apiPost.mock.calls.filter(call => String(call[0]).startsWith('/screeners/from-python-condition/'))).toHaveLength(1)
     expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 96, trigger_type: 'entered', repeat: true, notes: 'Created from structured series study run 38 (trend)' })
-    expect(wrapper.text()).toContain('Promoted series artifact “trend” to a thresholded scan alert.')
+    expect(apiPost).toHaveBeenCalledWith('/strategy-lab/signals/from-code/96', {})
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'signal',
+      initial_version: expect.objectContaining({ lineage: expect.objectContaining({ target: 'signal', output_adapter: 'series_target_to_boolean', series_target: { operator: 'gte', threshold: 11 }, semantics: 'study_series_threshold_as_strategy_signal' }) }),
+    }))
+    expect(wrapper.text()).toContain('Saved thresholded series “trend” as Strategy signal “Trend Strategy Signal” (#97).')
   })
 
   it('promotes a structured range center through an explicit thresholded Boolean condition', async () => {
@@ -612,8 +625,13 @@ describe('ResearchResultsTool', () => {
       return Promise.resolve([])
     })
     apiPost.mockImplementation((path: string, body: unknown) => {
-      if (path === '/code/assets') return Promise.resolve({ id: 98, name: 'confidence condition', versions: [{ id: 98 }] })
+      if (path === '/code/assets') {
+        const payload = body as { kind?: string }
+        if (payload.kind === 'signal') return Promise.resolve({ id: 100, name: 'confidence Strategy signal', versions: [{ id: 100 }] })
+        return Promise.resolve({ id: 98, name: 'confidence condition', versions: [{ id: 98 }] })
+      }
       if (path === '/screeners/from-python-condition/98') return Promise.resolve({ id: 99, name: 'confidence threshold filter' })
+      if (path === '/strategy-lab/signals/from-code/100') return Promise.resolve({ id: 101, name: 'Confidence Strategy Signal' })
       return Promise.resolve({})
     })
     const wrapper = mountTool()
@@ -642,6 +660,14 @@ describe('ResearchResultsTool', () => {
       provenance: expect.objectContaining(lineage),
     }))
     expect(wrapper.text()).toContain('Saved range center “confidence” as a thresholded watchlist filter.')
+    await wrapper.get('[aria-label="Save Strategy signal: confidence"]').trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/strategy-lab/signals/from-code/100', {})
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'signal',
+      initial_version: expect.objectContaining({ lineage: expect.objectContaining({ target: 'signal', output_adapter: 'range_center_target_to_boolean', series_target: { operator: 'gte', threshold: 2.5 }, semantics: 'study_range_center_threshold_as_strategy_signal' }) }),
+    }))
+    expect(wrapper.text()).toContain('Saved thresholded range center “confidence” as Strategy signal “Confidence Strategy Signal” (#101).')
   })
 
   it('exposes the complete lineage-preserving Boolean promotion matrix for structured results', async () => {
@@ -656,16 +682,18 @@ describe('ResearchResultsTool', () => {
     apiPost.mockImplementation((path: string, body: unknown) => {
       if (path === '/code/assets') {
         const payload = body as { kind?: string }
+        if (payload.kind === 'signal') return Promise.resolve({ id: 83, name: 'Qualifies Strategy signal', versions: [{ id: 83 }] })
         return Promise.resolve({ id: payload.kind === 'column' ? 79 : 80, name: payload.kind === 'column' ? 'Qualifies column' : 'Qualifies condition', versions: [{ id: payload.kind === 'column' ? 79 : 80 }] })
       }
       if (path === '/screeners/from-python-condition/80') return Promise.resolve({ id: 81, name: 'Qualifies scan' })
+      if (path === '/strategy-lab/signals/from-code/83') return Promise.resolve({ id: 84, name: 'Qualifies Strategy Signal' })
       if (path === '/alerts/screener') return Promise.resolve({ id: 82 })
       return Promise.resolve({})
     })
     const wrapper = mountTool()
     await flushPromises()
 
-    for (const label of ['Save column: qualifies', 'Save filter: qualifies', 'Promote scan: qualifies', 'Use Gauge: qualifies', 'Promote alert: qualifies']) {
+    for (const label of ['Save column: qualifies', 'Save filter: qualifies', 'Promote scan: qualifies', 'Use Gauge: qualifies', 'Promote alert: qualifies', 'Save Strategy signal: qualifies']) {
       expect(wrapper.find(`[aria-label="${label}"]`).exists()).toBe(true)
     }
     await wrapper.get('[aria-label="Save column: qualifies"]').trigger('click')
@@ -695,9 +723,22 @@ describe('ResearchResultsTool', () => {
     await flushPromises()
     await wrapper.get('[aria-label="Promote alert: qualifies"]').trigger('click')
     await flushPromises()
+    expect(wrapper.text()).toContain('Promoted Boolean artifact “qualifies” to an active scan alert.')
+    await wrapper.get('[aria-label="Save Strategy signal: qualifies"]').trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'signal',
+      initial_version: expect.objectContaining({
+        source,
+        output_contract: 'boolean',
+        output_name: 'qualifies',
+        lineage: expect.objectContaining({ source_run_id: 32, source_code_version_id: 78, source_output_name: 'qualifies', target: 'signal', semantics: 'study_boolean_result_as_strategy_signal', point_in_time_source_preserved: false }),
+      }),
+    }))
+    expect(apiPost).toHaveBeenCalledWith('/strategy-lab/signals/from-code/83', {})
     expect(apiPost.mock.calls.filter(call => String(call[0]).startsWith('/screeners/from-python-condition/'))).toHaveLength(1)
     expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 81, trigger_type: 'entered', repeat: true, notes: 'Created from structured Boolean research run 32 (qualifies)' })
-    expect(wrapper.text()).toContain('Promoted Boolean artifact “qualifies” to an active scan alert.')
+    expect(wrapper.text()).toContain('Saved Boolean artifact “qualifies” as Strategy signal “Qualifies Strategy Signal” (#84).')
   })
 
   it('refuses structured Boolean scan promotion when canonical members are absent', async () => {

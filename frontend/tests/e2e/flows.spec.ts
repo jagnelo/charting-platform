@@ -3074,6 +3074,21 @@ test.describe('TC2000 workstation', () => {
         await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 52, name: 'Occurrences signal asset', versions: [{ id: 52 }] }) })
         return
       }
+      if (body?.kind === 'signal' && outputName === 'qualifies') {
+        expect(body?.initial_version).toMatchObject({ output_contract: 'boolean', output_name: 'qualifies', lineage: { target: 'signal', semantics: 'study_boolean_result_as_strategy_signal' } })
+        await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 57, name: 'Qualifies signal asset', versions: [{ id: 57 }] }) })
+        return
+      }
+      if (body?.kind === 'signal' && outputName === 'trend') {
+        expect(body?.initial_version).toMatchObject({ output_contract: 'boolean', output_name: 'trend', lineage: { target: 'signal', output_adapter: 'series_target_to_boolean', series_target: { operator: 'gte', threshold: 1.5 }, semantics: 'study_series_threshold_as_strategy_signal' } })
+        await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 59, name: 'Trend signal asset', versions: [{ id: 59 }] }) })
+        return
+      }
+      if (body?.kind === 'signal' && outputName === 'confidence') {
+        expect(body?.initial_version).toMatchObject({ output_contract: 'boolean', output_name: 'confidence', lineage: { target: 'signal', output_adapter: 'range_center_target_to_boolean', series_target: { operator: 'gte', threshold: 2.5 }, semantics: 'study_range_center_threshold_as_strategy_signal' } })
+        await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 61, name: 'Confidence signal asset', versions: [{ id: 61 }] }) })
+        return
+      }
       const id = outputName === 'sample_size' ? 46 : outputName === 'trend' ? (body?.kind === 'column' ? 49 : 47) : outputName === 'confidence' ? (body?.kind === 'column' ? 54 : 48) : 50
       const name = outputName === 'sample_size' ? 'Sample size column' : outputName === 'trend' ? (body?.kind === 'column' ? 'Trend latest column' : 'Trend plot') : outputName === 'confidence' ? (body?.kind === 'column' ? 'Confidence latest column' : 'Confidence center plot') : 'Qualifies column'
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id, name, versions: [{ id }] }) })
@@ -3113,6 +3128,11 @@ test.describe('TC2000 workstation', () => {
     })
     await page.route(/\/api\/v1\/strategy-lab\/signals\/from-code\/52$/, async route => {
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 53, name: 'Occurrences Strategy Signal' }) })
+    })
+    await page.route(/\/api\/v1\/strategy-lab\/signals\/from-code\/(57|59|61)$/, async route => {
+      const codeVersionId = route.request().url().match(/from-code\/(\d+)/)?.[1]
+      const names: Record<string, string> = { '57': 'Qualifies Strategy Signal', '59': 'Trend Strategy Signal', '61': 'Confidence Strategy Signal' }
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: Number(codeVersionId) + 1, name: names[codeVersionId ?? ''] }) })
     })
     await page.route(/\/api\/v1\/research\/runs\/885\/promote-event-filter$/, async route => {
       expect(route.request().method()).toBe('POST')
@@ -3188,6 +3208,10 @@ test.describe('TC2000 workstation', () => {
     await expect(results).toContainText('Saved series artifact “trend” as chart plot “Trend plot”.')
     await results.getByRole('button', { name: 'Save latest column: trend' }).click()
     await expect(results).toContainText('Saved series artifact “trend” as watchlist column “Trend latest column”.')
+    await results.getByRole('combobox', { name: 'Series condition operator: trend' }).selectOption('gte')
+    await results.getByRole('spinbutton', { name: 'Series condition threshold: trend' }).fill('1.5')
+    await results.getByRole('button', { name: 'Save Strategy signal: trend' }).click()
+    await expect(results).toContainText('Saved thresholded series “trend” as Strategy signal “Trend Strategy Signal” (#60).')
     await expect(results.getByRole('button', { name: 'Save center chart plot: confidence' })).toBeVisible()
     await results.getByRole('button', { name: 'Save center chart plot: confidence' }).click()
     await expect(results).toContainText('Saved range center “confidence” as chart plot “Confidence center plot”.')
@@ -3199,7 +3223,9 @@ test.describe('TC2000 workstation', () => {
     await results.getByRole('spinbutton', { name: 'Range center condition threshold: confidence' }).fill('2.5')
     await results.getByRole('button', { name: 'Save filter: confidence' }).click()
     await expect(results).toContainText('Saved range center “confidence” as a thresholded watchlist filter.')
-    for (const label of ['Save column: qualifies', 'Save filter: qualifies', 'Promote scan: qualifies', 'Use Gauge: qualifies', 'Promote alert: qualifies']) await expect(results.getByRole('button', { name: label })).toBeVisible()
+    await results.getByRole('button', { name: 'Save Strategy signal: confidence' }).click()
+    await expect(results).toContainText('Saved thresholded range center “confidence” as Strategy signal “Confidence Strategy Signal” (#62).')
+    for (const label of ['Save column: qualifies', 'Save filter: qualifies', 'Promote scan: qualifies', 'Use Gauge: qualifies', 'Promote alert: qualifies', 'Save Strategy signal: qualifies']) await expect(results.getByRole('button', { name: label })).toBeVisible()
     await results.getByRole('button', { name: 'Save column: qualifies' }).click()
     await expect(results).toContainText('Saved Boolean artifact “qualifies” as watchlist column “Qualifies column”.')
     await results.getByRole('button', { name: 'Save filter: qualifies' }).click()
@@ -3210,6 +3236,8 @@ test.describe('TC2000 workstation', () => {
     await expect(results).toContainText('Boolean artifact “qualifies” is available as a Market Gauge')
     await results.getByRole('button', { name: 'Promote alert: qualifies' }).click()
     await expect(results).toContainText('Promoted Boolean artifact “qualifies” to an active scan alert.')
+    await results.getByRole('button', { name: 'Save Strategy signal: qualifies' }).click()
+    await expect(results).toContainText('Saved Boolean artifact “qualifies” as Strategy signal “Qualifies Strategy Signal” (#58).')
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -3234,6 +3262,11 @@ test.describe('TC2000 workstation', () => {
         return
       }
       const body = route.request().postDataJSON()
+      if (body?.kind === 'signal') {
+        expect(body).toMatchObject({ kind: 'signal', initial_version: { output_contract: 'boolean', output_name: 'trend', lineage: { target: 'signal', output_adapter: 'series_target_to_boolean', series_target: { operator: 'gte', threshold: 11 }, semantics: 'study_series_threshold_as_strategy_signal' } } })
+        await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 904, name: 'Trend threshold signal asset', versions: [{ id: 904 }] }) })
+        return
+      }
       expect(body).toMatchObject({ kind: 'condition', initial_version: { output_contract: 'boolean', output_name: 'trend', lineage: { output_adapter: 'series_target_to_boolean', series_target: { operator: 'gte', threshold: 11 } } } })
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 902, name: 'Trend threshold condition', versions: [{ id: 902 }] }) })
     })
@@ -3241,6 +3274,9 @@ test.describe('TC2000 workstation', () => {
       expect(route.request().method()).toBe('POST')
       expect(await route.request().postDataJSON()).toMatchObject({ name: 'trend gte 11 Filter 901', universe_type: 'custom', universe_instrument_ids: [7], timeframe: 'D1', provenance: { output_adapter: 'series_target_to_boolean', series_target: { operator: 'gte', threshold: 11 } } })
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 903, name: 'Trend threshold filter' }) })
+    })
+    await page.route(/\/api\/v1\/strategy-lab\/signals\/from-code\/904$/, async route => {
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 905, name: 'Trend threshold Strategy Signal' }) })
     })
     await page.goto('/chart')
     await expect(page.locator('.workstation')).toBeVisible()
@@ -3252,6 +3288,8 @@ test.describe('TC2000 workstation', () => {
     await results.getByRole('spinbutton', { name: 'Series condition threshold: trend' }).fill('11')
     await results.getByRole('button', { name: 'Save filter: trend' }).click()
     await expect(results).toContainText('Saved series artifact “trend” as a thresholded watchlist filter.')
+    await results.getByRole('button', { name: 'Save Strategy signal: trend' }).click()
+    await expect(results).toContainText('Saved thresholded series “trend” as Strategy signal “Trend threshold Strategy Signal” (#905).')
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

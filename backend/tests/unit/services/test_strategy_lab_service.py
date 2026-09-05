@@ -89,6 +89,56 @@ async def test_python_signal_strategy_queues_immutable_isolated_research(monkeyp
     assert run.result_summary["output_contract"] == "events"
 
 
+@pytest.mark.asyncio
+async def test_python_signal_strategy_carries_study_threshold_adapter_into_research_job(monkeypatch):
+    code_version = CodeVersion(
+        id=11,
+        code_asset_id=21,
+        version_number=1,
+        source="output.series('trend', [1, 2, 3])",
+        output_contract="boolean",
+        output_name="trend",
+        diagnostics=[
+            {
+                "code": "promotion_lineage",
+                "lineage": {
+                    "output_adapter": "series_target_to_boolean",
+                    "series_target": {"operator": "gte", "threshold": 2.5},
+                    "source_output_name": "trend",
+                },
+            }
+        ],
+    )
+    db = _ResearchQueueDB(code_version)
+
+    async def materialize(*_args, **_kwargs):
+        return {"symbols": ["SPY"], "datasets": []}
+
+    monkeypatch.setattr("app.routers.research._materialize_declared_dataset", materialize)
+    queued = []
+    monkeypatch.setattr("app.services.strategy_lab.enqueue_research_run", queued.append)
+    strategy = StrategyDefinition(user_id=4, name="Threshold signal", definition_type="python")
+    version = StrategyVersion(
+        strategy=strategy,
+        definition_snapshot={"code_version_id": 11, "output_contract": "boolean"},
+    )
+    run = StrategyRun(
+        strategy=strategy,
+        strategy_version=version,
+        requested_by_user_id=4,
+        engine_type="nautilus",
+        test_mode="backtest",
+        universe_config={"symbols": ["SPY"]},
+    )
+
+    await _queue_python_signal_research(db, strategy=strategy, version=version, run=run)
+
+    research_run = queued[0]
+    assert research_run.run_config["output_adapter"] == "series_target_to_boolean"
+    assert research_run.run_config["series_target"] == {"operator": "gte", "threshold": 2.5}
+    assert research_run.run_config["output_name"] == "trend"
+
+
 def _trade(
     symbol: str,
     entry_at: str,
