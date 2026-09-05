@@ -108,7 +108,11 @@ progress:
   current_blocker: >-
     Product commit 22fd676e closes the structured multi-output Study event to Strategy signal
     capability cell with focused Research Results/capability 33/33, full frontend 947/947 across
-    109 files, type-check/build/diff, and authenticated F8t-results 1/1 evidence. The exact-tip
+    109 files, type-check/build/diff, and authenticated F8t-results 1/1 evidence. Backend contract
+    coverage now passes the focused structured-event signal test 1/1 and the full integration suite
+    383/383 with the existing 54 warnings; the integration-only invocation reports 48.09% against
+    the configured 55% floor because combined unit/integration coverage is the repository gate.
+    The exact-tip
     full_stack_browser gate ran at metadata tip 3b497ee3 (product tip 0712951).
     Backend units passed 1315/1315, integration 382/382 with the existing 54 warnings, combined
     coverage is 80.90%, frontend Vitest passed 946/946 across 109 files, and functional E2E passed

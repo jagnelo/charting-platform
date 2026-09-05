@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-05 — Verify backend contract for structured Study event signals
+
+- [x] Add integration coverage for the Research Results structured-event signal API boundary.
+      The test persists a multi-output Study source as a named `events` signal version with the
+      explicit `events_to_signal` adapter and source/output lineage, then promotes that immutable
+      version through Strategy Lab and verifies the Python strategy snapshot reference.
+- [x] The focused test passed `1/1` with `--no-cov`; the full backend integration suite passed
+      `383/383` with the existing `54` warnings. That integration-only invocation reports
+      `48.09%` and exits on the configured `55%` floor because the repository threshold is based
+      on the combined unit/integration gate; this is a coverage-scope caveat, not a test failure.
+- [ ] Continue canonical provider/history population, richer compatible Study targets,
+      native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review;
+      the exact-tip visual matrix remains the reproducible six-diff blocker.
+
 ### 2026-09-05 — Promote named structured Study events to Strategy signals
 
 - [x] Align Research Results with the existing Study Lab event capability. A completed

@@ -312,6 +312,78 @@ class TestStrategyLabAPI:
             == "research_filter_promotion_artifact_name_required"
         )
 
+    def test_multi_output_study_event_output_promotes_to_strategy_signal(
+        self, client, auth_headers
+    ):
+        """A named event output keeps its contract and lineage through both API boundaries."""
+        source = (
+            "output.scalar('sample_size', 1)\n"
+            "output.events('occurrences', [{\"symbol\": \"SPY\", "
+            "\"timestamp\": \"2026-01-02\", \"kind\": \"signal\"}])"
+        )
+        lineage = {
+            "type": "study_run_promotion",
+            "source_run_id": 37,
+            "source_code_version_id": 85,
+            "source_reproducibility_hash": "structured-signal-hash",
+            "source_dataset_manifest": {
+                "source": "canonical_database",
+                "timeframe": "D1",
+            },
+            "source_run_config": {"symbols": ["SPY"], "timeframe": "D1"},
+            "source_output_name": "occurrences",
+            "target": "signal",
+            "output_adapter": "events_to_signal",
+            "semantics": "study_event_result_as_strategy_signal",
+            "point_in_time_source_preserved": False,
+        }
+
+        asset_res = client.post(
+            "/api/v1/code/assets",
+            headers=auth_headers,
+            json={
+                "stable_key": "structured-event-strategy-signal",
+                "name": "Occurrences Study Signal",
+                "kind": "signal",
+                "initial_version": {
+                    "source": source,
+                    "output_contract": "events",
+                    "output_name": "occurrences",
+                    "parameter_schema": {"lookback": {"type": "integer"}},
+                    "default_parameters": {"lookback": 20},
+                    "lineage": lineage,
+                },
+            },
+        )
+        assert asset_res.status_code == 201, asset_res.text
+        version = asset_res.json()["versions"][0]
+        assert version["output_contract"] == "events"
+        assert version["output_name"] == "occurrences"
+        assert any(
+            diagnostic["code"] == "promotion_lineage"
+            and diagnostic["lineage"] == lineage
+            for diagnostic in version["diagnostics"]
+        )
+
+        promotion_res = client.post(
+            f"/api/v1/strategy-lab/signals/from-code/{version['id']}",
+            headers=auth_headers,
+        )
+        assert promotion_res.status_code == 201, promotion_res.text
+        payload = promotion_res.json()
+        assert payload["name"] == "Occurrences Study Signal Strategy Signal"
+        assert payload["metadata"] == {
+            "origin": "study_lab_promotion",
+            "code_asset_id": asset_res.json()["id"],
+            "code_version_id": version["id"],
+            "output_contract": "events",
+        }
+        assert payload["versions"][0]["definition_snapshot"] == {
+            "kind": "python_signal",
+            "code_version_id": version["id"],
+            "output_contract": "events",
+        }
+
     def test_study_lab_signal_promotion_creates_strategy_definition_reference(
         self, client, auth_headers
     ):

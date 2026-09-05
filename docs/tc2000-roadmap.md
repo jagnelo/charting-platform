@@ -22,6 +22,15 @@ Research Results/capability tests passed `33/33`; full frontend Vitest passed `9
 structured-event signal cell without coercing event lists into Boolean values or widening the
 declared universe.
 
+The backend contract for this path is now covered by
+`test_multi_output_study_event_output_promotes_to_strategy_signal`. It verifies that the selected
+named event output is persisted as an `events` signal asset with the explicit `events_to_signal`
+adapter and source/output lineage, then promoted through Strategy Lab without changing the
+immutable source. The focused test passed `1/1` with `--no-cov`; the full backend integration
+suite passed `383/383` with the existing `54` warnings. The integration-only coverage report is
+`48.09%` and hits the configured `55%` floor because the normal threshold is measured across the
+combined unit/integration gate; this is recorded as an invocation-scope caveat.
+
 The latest exact-tip exhaustive gate ran at metadata tip `3b497ee3` (product tip `0712951`). All
 non-visual stages and authenticated functional Playwright passed: backend units `1,315/1,315`,
 integration `382/382` with the existing `54` warnings, combined coverage `80.90%`, frontend

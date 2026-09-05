@@ -10,6 +10,19 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Backend contract coverage for structured event signals
+
+The backend integration suite now covers the API boundary exercised by the Research Results
+structured-event signal action. A multi-output Study source is persisted as a named `events`
+signal version with `events_to_signal` lineage, selected `output_name`, and immutable source
+metadata; the resulting version is then accepted by Strategy Lab and referenced in the persisted
+Python strategy snapshot. The focused test passed `1/1` with `--no-cov`; the full backend
+integration suite passed `383/383` with the existing `54` warnings. The integration-only command
+reports `48.09%` coverage and exits on the repository's `55%` floor because the normal threshold
+is measured across the combined unit/integration gate; no implementation failure occurred.
+The backend test change remains branch-owned and does not alter visual, provider fallback, or
+protected-worktree policy.
+
 ## 2026-09-05 — Promote named structured Study events to Strategy signals
 
 Product commit `22fd676e` (`feat(tc2000): promote structured study events to signals`) aligns
