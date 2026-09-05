@@ -2784,3 +2784,29 @@ Focused checks skipped exactly 2 cases. The complete opt-in matrix rerun passed
 with Ruff, formatting, diff, and workstream validation green. The shared
 provider-platform branch is still not an ancestor of staging, so no shared
 provider bridge or other-worktree mutation was performed.
+
+## Tier-0 priority route validation — 2026-09-05
+
+The ETF branch contains implementation commit `78d085ae`, pushed to
+`origin/feat/etf-holdings-constituents`. The F/m `fm_investments` route passed
+a bounded canary for all ten approved U.S. Benchmark Series products
+(TBIL/XBIL/OBIL/UTWO/UTRE/UFIV/USVN/UTEN/UTWY/UTHY), with issuer API data
+dated 2026-09-04 and two or three complete rows per product. The strict route
+preserves issuer provenance, freshness, identity, and cash semantics.
+
+Pacific Asset Management's official GEME page now has a dedicated strict
+holdings-table route. It exposed 66 complete rows dated 2026-09-04, including
+security ticker, SEDOL, quantity, market value, weight, and a USD cash row.
+GEME is current at symbol level with focused deterministic and live coverage.
+The mixed `pacific_investments` provider remains fallback-only because PIMCO
+MINT/BOND still lack a complete executable public artifact; no provider-level
+native promotion was made.
+
+Validation for this tranche: 688 deterministic ETF tests passed; focused F/m
+(10) and GEME (1) live checks passed; the full opt-in matrix passed 508 with 9
+narrow skips and no failures; the default live contract passed 2 with 515
+network cases skipped; Ruff, formatting, diff-check, and workstream validation
+passed. DXJ/NTSX remain issuer-edge blocked and MINT/BOND unresolved. AC10 is
+still gated on provider-platform staging, AC11 remains open for unresolved
+Tier-0/source work, and AC14 remains a post-integration production shadow
+gate.
