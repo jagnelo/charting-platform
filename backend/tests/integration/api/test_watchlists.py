@@ -2091,6 +2091,9 @@ class TestWatchlistsCrud:
         assert source["provenance"]["snapshot_row_count"] == 1
         assert source["provenance"]["snapshot_resolved_count"] == 1
         assert source["provenance"]["snapshot_unresolved_count"] == 0
+        assert "failure_class" in source["provenance"]
+        assert "capability_reason" in source["provenance"]
+        assert "usable_for_current_analysis" in source["provenance"]
         resolved = client.get(
             f"/api/v1/watchlists/sources/{source_id}",
             headers=auth_headers,

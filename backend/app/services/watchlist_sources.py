@@ -211,8 +211,17 @@ def _market_group_descriptor(group: MarketGroup) -> WatchlistSourceRead:
 def _holdings_route_provenance(
     profile: ETFProfile | None,
     snapshot: ETFHoldingsSnapshot | None,
+    state: ETFHoldingsAdapterState | None = None,
+    *,
+    as_of: datetime | None = None,
 ) -> dict[str, object | None]:
     """Expose cached holdings route and quality evidence without probing providers."""
+
+    capability = (
+        evaluate_capability(profile, snapshot, state)
+        if profile is not None and snapshot is not None and state is not None and as_of is None
+        else None
+    )
 
     return {
         "adapter_key": profile.adapter_key if profile is not None else None,
@@ -238,6 +247,11 @@ def _holdings_route_provenance(
             snapshot.published_at.isoformat()
             if snapshot is not None and snapshot.published_at is not None
             else None
+        ),
+        "failure_class": capability.failure_class if capability is not None else None,
+        "capability_reason": capability.reason if capability is not None else None,
+        "usable_for_current_analysis": (
+            capability.usable_for_current_analysis if capability is not None else None
         ),
     }
 
@@ -358,7 +372,7 @@ def _benchmark_family_role_descriptor(
             "completeness_status": snapshot.completeness_status
             if snapshot is not None
             else "not_loaded",
-            **_holdings_route_provenance(profile, snapshot),
+            **_holdings_route_provenance(profile, snapshot, state, as_of=as_of),
         },
         effective_at=(
             datetime.combine(composition, datetime.min.time())
@@ -405,7 +419,7 @@ def _etf_descriptor(
             "snapshot_id": snapshot.id if snapshot else None,
             "snapshot_hash": snapshot.snapshot_hash if snapshot else None,
             "completeness_status": snapshot.completeness_status if snapshot else "not_loaded",
-            **_holdings_route_provenance(profile, snapshot),
+            **_holdings_route_provenance(profile, snapshot, state, as_of=as_of),
         },
         effective_at=datetime.combine(composition, datetime.min.time()) if composition else None,
         known_at=snapshot.known_at if snapshot else None,
