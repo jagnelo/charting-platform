@@ -4510,3 +4510,19 @@ staging, and adding the enum or importing speculative APIs now would create a
 parallel or merge-conflicting runtime. The existing ETF adapter, freshness,
 canary, and user-visible degradation behavior remains branch-local until the
 shared capability is staged.
+
+## Free/low-cost unresolved-symbol candidate scan — 2026-09-05
+
+A bounded scan of current free and low-cost candidates found no new route that
+meets the ETF support contract. BusinessQuant documents SEC N-PORT reporting
+periods rather than current issuer holdings; ETF-holdings.com is issuer-backed
+but billable per returned holding; MarketXLS advertises a complete MINT table
+behind a paid FundXLS plan; Trackinsight exposes only top holdings and requests
+a trial; and Tickerbot's production completeness metadata requires
+authentication even though its sandbox is free.
+
+These are useful research/monitoring leads but not complete, current,
+identity-safe, free or under-20-unit executable routes. DXJ/NTSX/MINT/BOND
+remain unavailable, with no credential, paid activation, provider promotion,
+or source-tier change. The next compliant action remains a changed issuer/API
+route or a separately authorized shared-budget entitlement.
