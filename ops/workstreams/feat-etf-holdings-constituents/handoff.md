@@ -2991,3 +2991,20 @@ recognized, and otherwise remain `none`/degraded.
 The focused source-tier/capability coverage passes 95 tests and the complete
 deterministic ETF unit matrix passes 712 tests. No paid provider, credential,
 entitlement, or route disposition was activated.
+
+## Malformed adapter-health metadata hardening — 2026-09-05
+
+Implementation checkpoint `62d5057fb6a2dc9ec37d36df2236b28b94c69a88` hardens
+the ETF refresh/canary state boundary. Persisted adapter `extra_data` is now
+normalized to a dictionary before health bookkeeping, and malformed, negative,
+or non-numeric `consecutive_failures` values are treated as a safe zero rather
+than aborting a canary or refresh-state update. The same bounded reader is used
+by circuit, recovery, probe, skip, success, and failure paths, preserving the
+existing source/capability rules while making legacy JSON corruption observable
+through the next recorded failure instead of a task crash.
+
+Focused refresh coverage passes 8 tests; the complete deterministic ETF unit
+matrix passes 714 tests; Ruff, formatting, and diff-check are green. No source
+tier, provider count, entitlement, paid activation, or Tier-0 disposition
+changed. Shared provider-platform staging and the four unresolved Tier-0
+routes remain open gates.
