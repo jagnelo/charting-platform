@@ -4336,3 +4336,18 @@ WisdomTree challenge transport, MINT/BOND remain authentication-gated without
 an unauthenticated complete PIMCO artifact, AC10 remains deferred, and AC14
 remains the post-integration 30-day production shadow gate. No paid route,
 credential, other branch, or other worktree was modified.
+
+## Provider-platform dependency refresh — 2026-09-05 (capacity-events tip)
+
+The latest read-only remote refresh places `origin/feat/market-data-provider-platform`
+at `8d5163c1`, whose newest commit persists provider capacity events. The
+provider branch remains 58 commits ahead of `origin/staging` at `8b885a2f` and
+is still not an ancestor of staging. Its `ProviderCapability` enum still has no
+`ETF_HOLDINGS` member, so the shared entitlement, quota, budget, health, and
+routing contracts cannot yet be consumed by this ETF branch under AC10.
+
+No provider-platform or staging worktree was modified. The ETF branch remains
+clean and synchronized, with the next executable action still being the narrow
+ETF capability bridge after the shared branch reaches staging. DXJ/NTSX/MINT/BOND
+remain explicitly non-current; no credentials, paid source, or direct-provider
+route was activated.
