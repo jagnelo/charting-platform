@@ -23,9 +23,15 @@ applies the supported relation outside user code. Backend runner coverage passed
 `24/24`, screener integration `27/27`, focused frontend coverage `63/63`, full frontend Vitest
 `952/952` across `109` files, TypeScript/build/Ruff/workstream/diff checks passed, and authenticated
 F8t-results browser proof passed `1/1` on a rebuilt branch-scoped Docker stack with clean teardown.
-The commit is pushed to `origin/feat/tc2000-frontend-rework`; the exact-tip gate is pending at this
-new metadata tip. The unchanged visual state-oracle diffs and canonical provider/history, richer
-Study, native-window/accessibility/security, dense-data, and visual-oracle gaps remain open.
+The commit is pushed to `origin/feat/tc2000-frontend-rework`. The exact-tip gate then ran at metadata
+tip `93883674` after formatter correction `c2f3a588` (product tip `7f672897`): all non-visual stages
+and functional Playwright passed (`157/157` with `106` documented skips across `263` specs), while
+the visual matrix remained `98/104` with six unchanged state-oracle failures. The six diffs are
+`watchlist-column-editor-open` at visual-1080p-100/125 (`13,844` pixels each) and
+`workspace-floating` at visual-1080p-100/125/1440p-100/1440p-125
+(`11,901`/`11,901`/`12,097`/`9,770` pixels). No visual policy, provider fallback rule, or
+acceptance policy changed; teardown and resource accounting were clean. Canonical provider/history,
+richer Study, native-window/accessibility/security, dense-data, and visual-oracle gaps remain open.
 
 The preceding product slice is `928bf8ae` (`feat(tc2000): promote range centers to watchlist columns`).
 The primary Study Lab and persisted Research Results now expose a typed latest-value watchlist-column

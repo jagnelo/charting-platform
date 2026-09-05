@@ -1,5 +1,21 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-09-05 — Exact-tip gate after structured range-center threshold promotion
+
+The exact-tip gate ran at metadata tip `93883674` after formatter correction `c2f3a588` (product
+tip `7f672897`). Locked dependency/migration checks, workstream validation, Ruff/format, TypeScript,
+backend units `1,318/1,318`, integration `384/384` with the existing warnings, frontend Vitest
+`952/952` across `109` files, production build, compose/provider policy, stack health, runner
+isolation, and functional Playwright (`157` passed, `106` documented skips across `263` specs)
+passed. The unchanged four-project visual matrix completed `104` cases with `98` passes and six
+failures: `watchlist-column-editor-open` at visual-1080p-100/125 (`13,844` pixels each), and
+`workspace-floating` at visual-1080p-100/125/1440p-100/1440p-125
+(`11,901`/`11,901`/`12,097`/`9,770` pixels). No baseline, mask, threshold, skip, fallback oracle,
+provider rule, or acceptance policy changed; teardown and resource accounting were clean. The six
+visual state-oracle diffs remain the reproducible gate blocker and the broader canonical provider/
+history, richer Study, native-window/accessibility/security, dense-data, and visual-oracle gaps
+remain open.
+
 ## 2026-09-05 — Structured range-center threshold promotion
 
 Completed Study `range` artifacts with aligned finite centers now expose explicit `gt`, `gte`, `lt`,

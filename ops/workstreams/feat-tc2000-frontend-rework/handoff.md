@@ -30,6 +30,22 @@ F8t-results passed `1/1` on a rebuilt branch-scoped Docker stack. The commit is 
 exhaustive gate is the next required check; preserve the existing six visual state-oracle diffs and
 do not alter visual policy, provider fallback rules, or protected worktrees.
 
+## 2026-09-05 — Exact-tip gate after range-center threshold promotion
+
+The exact-tip `full_stack_browser` gate ran at metadata tip `93883674` after formatter correction
+`c2f3a588` (product tip `7f672897`). Locked dependency/migration checks, workstream validation,
+Ruff/format, TypeScript, backend units `1,318/1,318`, integration `384/384` with the existing
+warnings, frontend Vitest `952/952` across `109` files, production build, compose/provider policy,
+stack health, runner isolation, and functional Playwright (`157` passed, `106` documented skips
+across `263` specs) all passed. The visual matrix completed `104` cases with `98` passes and six
+unchanged failures: `watchlist-column-editor-open` at visual-1080p-100/125 (`13,844` pixels each)
+and `workspace-floating` at visual-1080p-100/125/1440p-100/125
+(`11,901`/`11,901`/`12,097`/`9,770` pixels). No baseline, mask, threshold, skip, fallback oracle,
+provider rule, or acceptance policy changed. Teardown removed the assigned stack and generated
+resources; resource accounting was clean. The six visual state-oracle diffs remain the reproducible
+gate blocker; continue canonical provider/history, richer Study, native-window/accessibility/
+security, dense-data, and visual-oracle work.
+
 ## 2026-09-05 — Promote Study range centers to watchlist columns
 
 Product commit `928bf8ae` (`feat(tc2000): promote range centers to watchlist columns`) extends the

@@ -114,10 +114,15 @@ progress:
     coverage is 113/113, code API 24/24, screener integration 27/27, focused frontend 63/63, and
     full frontend 952/952 across 109 files; TypeScript, build, Ruff, workstream, and diff checks
     pass; authenticated F8t-results is 1/1 on a rebuilt branch-scoped stack with clean teardown.
-    The product commit is pushed. The exact-tip exhaustive gate is pending at the new metadata tip;
-    preserve the existing six visual state-oracle diffs and do not change visual policy, provider
-    fallback rules, or protected worktrees. Canonical provider/history, richer Study, native-window/
-    accessibility/security, dense-data, and visual-oracle gaps remain open.
+    The product commit is pushed. The exact-tip exhaustive gate then ran at metadata tip 93883674
+    after formatter correction c2f3a588: all non-visual stages and functional Playwright passed
+    (157/157 with 106 documented skips across 263 specs), while the unchanged visual matrix completed
+    104 cases with 98 passes and six failures: watchlist-column-editor-open at visual-1080p-100/125
+    (13844 pixels each), and workspace-floating at visual-1080p-100/125/1440p-100/125
+    (11901/11901/12097/9770 pixels). No baseline, mask, threshold, skip, fallback oracle, provider
+    rule, or acceptance policy changed; teardown and resource accounting were clean. The six visual
+    state-oracle diffs remain the reproducible gate blocker; canonical provider/history, richer Study,
+    native-window/accessibility/security, dense-data, and visual-oracle gaps remain open.
     Historical current boundary: product commit b6316871 added explicit operator/threshold promotion
     for finite numeric Study series in the primary Study Lab, with Boolean column/filter/scan/gauge/
     alert fan-out, canonical member scope, immutable run/output lineage, and series_target_to_boolean
@@ -149,16 +154,20 @@ progress:
     rule, or acceptance policy changed; assigned stack teardown and resource accounting were clean.
     Canonical provider/history, richer Study targets, native-window/accessibility/security,
     dense-data, and visual-oracle review remain open.
-  next_action: "Run the exact-tip exhaustive gate for metadata tip after 7f672897; preserve the six visual state-oracle diffs, then continue the next compatible Study target or canonical provider/history slice."
+  next_action: "Continue the next compatible Study target or canonical provider/history slice; preserve the six visual state-oracle diffs and do not change visual policy or provider fallback rules."
 remaining_gaps:
-  - "Current boundary (product tip 7f672897; exact-tip gate pending): Study range-center thresholded Boolean promotion is complete
+  - "Current boundary (metadata tip 93883674, product tip 7f672897; exact-tip gate complete with visual blocker): Study range-center thresholded Boolean promotion is complete
     across primary Study Lab and persisted Research Results with Boolean column/filter/scan/gauge/alert
     fan-out, backend runner coverage 113/113, code API 24/24, screener integration 27/27, focused
     frontend coverage 63/63, full frontend 952/952 across 109 files, TypeScript/build/Ruff/workstream/
     diff checks, authenticated F8t-results 1/1, and clean focused stack teardown. The explicit
     range_center_target_to_boolean adapter preserves canonical member and Study/run/dataset lineage;
     lower/upper bands remain source-only and invalid relation/threshold inputs are rejected. Run the
-    exact-tip gate at this new metadata tip; preserve the six visual state-oracle diffs. The prior
+    exact-tip gate passed all non-visual stages and functional Playwright 157/157 with 106 documented
+    skips across 263 specs. Its unchanged visual matrix completed 104 cases with 98 passes and six
+    failures: watchlist-column-editor-open at visual-1080p-100/125 (13844 pixels each) and
+    workspace-floating at visual-1080p-100/125/1440p-100/125 (11901/11901/12097/9770 pixels).
+    Preserve the six visual state-oracle diffs. The prior
     metadata boundary 098546be/product 928bf8ae completed latest-value watchlist-column promotion
     with backend runner/job/API coverage 112/112, 5/5, and 24/24, focused frontend coverage 61/61,
     full frontend 950/950 across 109 files, type-check/build/diff checks, authenticated F8t-results
