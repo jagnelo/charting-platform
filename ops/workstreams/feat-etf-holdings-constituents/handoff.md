@@ -3765,6 +3765,22 @@ DXJ/NTSX/MINT/BOND remain unavailable for current analysis, AC10 remains
 deferred, and AC14 remains the post-integration 30-day production shadow gate.
 No paid source, credential, other branch, or other worktree was modified.
 
+## Monitoring-list catalog-safety checkpoint — 2026-09-05
+
+Implementation commit `7d2e6d5b` extends the non-mutating read boundary to the
+admin monitoring lists. `GET /etf-holdings/{symbol}/adapter-state` and
+`GET /etf-holdings/{symbol}/backfills` now use a shared existing-profile lookup
+and return an empty list for an unknown symbol, rather than creating an
+instrument/profile solely to answer an inspection request. Existing profiles
+continue to expose their persisted adapter state and backfill jobs.
+
+The focused Docker-backed regression passed `4` tests (66 deselected) with the
+two existing Nautilus deprecation warnings; Ruff, formatting, and diff-check
+passed. Provider-platform remains unstaged; DXJ/NTSX/MINT/BOND remain
+unavailable for current analysis; AC10 remains deferred; and AC14 remains the
+post-integration 30-day production shadow gate. No paid source, credential,
+other branch, or other worktree was modified.
+
 ## Non-mutating canary-history read checkpoint — 2026-09-05
 
 Implementation commit `11ee3ad1` closes an integrity gap in the bounded canary
