@@ -178,7 +178,12 @@ describe('ETFHoldingsPanel', () => {
     },
   )
 
-  it('shows the machine-readable issuer access classification in the degradation notice', async () => {
+  it.each([
+    ['issuer_access_blocked', 'issuer access blocked'],
+    ['authentication_required', 'authentication required'],
+    ['access_denied', 'access denied'],
+    ['quota_rate_limited', 'quota/rate limited'],
+  ])('shows the human-readable %s classification in the degradation notice', async (failureClass, label) => {
     vi.mocked(api.get)
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({
@@ -188,14 +193,14 @@ describe('ETFHoldingsPanel', () => {
         usable_for_current_analysis: false,
         displayable_last_known: false,
         consecutive_failures: 1,
-        failure_class: 'issuer_access_blocked',
-        reason: 'WisdomTree issuer access challenge blocked the product route.',
+        failure_class: failureClass,
+        reason: 'The issuer route is not available to the current public transport.',
       })
 
     const wrapper = mount(ETFHoldingsPanel, { props: { symbol: 'DXJ' } })
 
     await vi.waitFor(() => {
-      expect(wrapper.text()).toContain('Last check classification: issuer access blocked')
+      expect(wrapper.text()).toContain(`Last check classification: ${label}`)
     })
   })
 
