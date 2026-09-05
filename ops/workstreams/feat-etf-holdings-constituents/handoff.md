@@ -3603,6 +3603,29 @@ resource audit are recorded separately below. Provider-platform staging,
 paid activation, AC10, the four unresolved Tier-0 symbols, and AC14 remain
 unchanged.
 
+## Full Docker gate after issuer-challenge observability — 2026-09-05
+
+The post-checkpoint `make validate-integration
+INTEGRATION_BRANCH=feat-etf-holdings-constituents` run at `2fb30207` passed
+workstream/dependency/migration checks, Ruff and formatting, frontend
+type-check, backend coverage (`1830` passed; `81.14%`), frontend coverage
+(`928` passed; `82.02%`), production build, compose contracts, provider
+probes, branch-scoped stack health, and research-runner isolation probes.
+
+Functional Playwright executed all `260` scheduled cases with `153 passed` and
+`106 skipped`; one unrelated workstation failure occurred in F9h (Python
+Library tab visibility) at `frontend/tests/e2e/flows.spec.ts:872`. The failure
+is outside ETF holdings and does not indicate a regression in the challenge
+classification change. The gate therefore remains `failed_unrelated_e2e`, not
+green; no ETF-specific assertion failed and no separate success claim is made
+for the gate as a whole.
+
+Automatic teardown removed the branch images, containers, volumes, and network.
+The post-gate resource audit reports zero containers, zero volumes, zero
+testcontainer sessions, zero known bytes, no unknown components, no budget
+overrun, and complete accounting. Provider-platform staging, paid activation,
+AC10, the four unresolved Tier-0 symbols, and AC14 remain unchanged.
+
 ## Full Docker gate after issuer-fallback hardening — 2026-09-05
 
 The repository-mandated `make validate-integration
