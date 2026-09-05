@@ -494,3 +494,19 @@ def test_authentication_failures_have_explicit_failure_class():
     failure = httpx.HTTPStatusError("401 Unauthorized", request=response.request, response=response)
 
     assert refresh._canary_failure_class(failure) == "authentication_required"
+
+
+@pytest.mark.parametrize(
+    ("status_code", "expected_class"),
+    [(403, "access_denied"), (429, "quota_rate_limited")],
+)
+def test_access_and_quota_failures_have_explicit_failure_classes(status_code, expected_class):
+    response = httpx.Response(
+        status_code,
+        request=httpx.Request("GET", "https://issuer.example/holdings.csv"),
+    )
+    failure = httpx.HTTPStatusError(
+        f"HTTP {status_code}", request=response.request, response=response
+    )
+
+    assert refresh._canary_failure_class(failure) == expected_class

@@ -436,6 +436,20 @@ def test_canary_failure_classification_keeps_provider_edges_explicit():
         == "authentication_required"
     )
 
+    for status_code, expected_class in ((403, "access_denied"), (429, "quota_rate_limited")):
+        response = httpx.Response(
+            status_code,
+            request=httpx.Request("GET", "https://issuer.example/holdings.csv"),
+        )
+        assert (
+            _canary_failure_class(
+                httpx.HTTPStatusError(
+                    f"HTTP {status_code}", request=response.request, response=response
+                )
+            )
+            == expected_class
+        )
+
 
 def test_tier_zero_symbol_audit_preserves_unavailable_evidence_and_next_action():
     result = symbol_audit_for_profile(profile_with_symbol("DXJ", "wisdomtree"))

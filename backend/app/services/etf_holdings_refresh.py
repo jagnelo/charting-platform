@@ -709,6 +709,10 @@ def _canary_failure_class(failure: Exception | str) -> str:
         # or parser drift.
         if status_code == 401:
             return "authentication_required"
+        if status_code == 403:
+            return "access_denied"
+        if status_code == 429:
+            return "quota_rate_limited"
         return f"http_{status_code}"
     if isinstance(failure, httpx.HTTPError | TimeoutError | ConnectionError):
         return "transport_error"
