@@ -85,7 +85,7 @@ deployment_impact: new backend/worker configuration, optional provider credentia
 status: in_progress
 remaining_gaps:
   - live credentialed provider probes require operator-populated ignored backend/.env.dev values; exact missing names are emitted by the manifest preflight
-  - provider-specific unknown quotas (FRED v1, Finnhub, FMP, Binance endpoint weights, Nasdaq Trader polling, and the configured FINRA OTC source) remain non-routable until their scope/ceiling is recorded; conservative Marketstack free-plan and IBKR Web API pacing contracts are recorded, but still require account/terms/adapter evidence; FINRA's documented synchronous ceiling still requires credential/terms evidence
+  - provider-specific unknown quotas (FRED v1, Finnhub, FMP, Binance historical OHLCV's multi-request weight, Nasdaq Trader polling, and the configured FINRA OTC source) remain non-routable until their scope/ceiling is recorded; exact Binance weights are recorded for single-symbol price and exchange-info discovery, while conservative Marketstack free-plan and IBKR Web API pacing contracts are recorded but still require account/terms/adapter evidence; FINRA's documented synchronous ceiling still requires credential/terms evidence
   - complete production NMS/OTC reconciliation and the separately approved 30-day shadow run remain post-deployment gates; the NMS/SEC directory adapters and bounded keyless evidence are implemented, while FINRA OTC Daily List now supplies lifecycle deltas but OTC still needs an approved complete security-master source
 progress:
   completed:
@@ -102,6 +102,7 @@ progress:
     - paid-routing switches cannot bypass blank or unreviewed provider entitlements
     - admin status exposes exact missing quota-contract dimensions, entitlement review state, and weighted/credit operation-cost readiness
     - typed 429/418/quota capacity events persist reset headers and retry timestamps and are exposed through backend admin diagnostics
+    - Binance exact request-weight accounting for single-symbol price (2) and exchange-info discovery (20); weighted local buckets charge the documented units and multi-page historical candles remain fail-closed
     - Marketstack's conservative 100-request/month free-plan contract and IBKR's documented 10-request/second plus five-concurrent-history pacing contract
     - final combined backend unit and PostgreSQL/Redis integration validation
   total: 14
