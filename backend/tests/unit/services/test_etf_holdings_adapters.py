@@ -28073,6 +28073,33 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         assert record["attempt_history"]
 
 
+def test_symbolless_fallback_identities_remain_explicitly_non_current():
+    """Provider-level identities must not become silent ETF support gaps."""
+    ledger_path = (
+        Path(__file__).resolve().parents[4]
+        / "ops"
+        / "workstreams"
+        / "feat-etf-holdings-constituents"
+        / "provider-audit.yaml"
+    )
+    records = yaml.safe_load(ledger_path.read_text())["providers"]
+    symbolless = [record for record in records if not record["representative_symbols"]]
+
+    assert len(symbolless) == 19
+    allowed_dispositions = {
+        "inactive_or_successor_disposition",
+        "non_executable_public_source",
+        "provider_not_a_portfolio_publisher",
+    }
+    for record in symbolless:
+        assert record["disposition"] in allowed_dispositions
+        assert record["current_status"] == record["disposition"]
+        assert record["route_complete"] is False
+        assert record["symbol_mapping_proven"] is False
+        assert record["current_holdings_proven"] is False
+        assert record["next_action"]
+
+
 def test_symbol_priority_ledger_matches_runtime_tier_zero_audits():
     ledger_path = (
         Path(__file__).resolve().parents[4]
