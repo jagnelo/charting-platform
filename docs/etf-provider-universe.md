@@ -1962,3 +1962,17 @@ provider classification changed. Evidence refs:
 `web:dealcharts-free-sec-nport-aggregator-2026-09-05`,
 `live:dealcharts-mint-facts-2026-09-05-quarterly-stale`, and
 `live:dealcharts-bond-facts-2026-09-05-quarterly-stale`.
+
+## Fresh unresolved-symbol source check — 2026-09-05
+
+A bounded recheck found no new eligible route for the remaining Tier-0
+symbols. WisdomTree's current NTSX product page exposes a factsheet,
+portfolio characteristics, and a holdings section but no complete public
+download in the page transport. StockAnalysis exposes only a 25-row DXJ
+preview, identifies Finnhub as its data source, and gates the full list
+behind subscription. PortfoliosLab's current MINT table is explicitly based
+on the SEC N-PORT period ended `2026-06-30`. These artifacts are respectively
+incomplete, paid-gated, or periodic; none is promoted as current support.
+Evidence refs: `web:wisdomtree-ntsx-product-page-2026-09-05`,
+`web:stockanalysis-dxj-holdings-preview-2026-09-05`, and
+`web:portfolioslab-mint-nport-holdings-2026-09-05`.
