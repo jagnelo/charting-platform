@@ -48,20 +48,38 @@ async def test_daily_history_refresh_delegates_to_canonical_batch_task(monkeypat
     monkeypatch.setattr(settings, "MARKET_DATA_REFRESH_SCHEDULE_ENABLED", True)
     calls = []
 
-    async def fake_refresh(ctx):
+    async def fake_enqueue(ctx):
         calls.append(ctx)
-        return {"instruments_refreshed": 3, "total_bars": 12}
+        return {"queued": 3, "mode": "enqueue_only"}
 
-    monkeypatch.setattr(data_tasks, "fetch_all_instruments_history", fake_refresh)
+    monkeypatch.setattr(data_tasks, "enqueue_core_refresh_jobs", fake_enqueue)
 
     result = await arq_worker.scheduled_daily_history_refresh({"redis": "test"})
 
-    assert result == {"instruments_refreshed": 3, "total_bars": 12}
+    assert result == {"queued": 3, "mode": "enqueue_only"}
+    assert calls == [{"redis": "test"}]
+
+
+@pytest.mark.asyncio
+async def test_refresh_queue_process_delegates_to_bounded_worker_task(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_DATA_REFRESH_SCHEDULE_ENABLED", True)
+    calls = []
+
+    async def fake_process(ctx):
+        calls.append(ctx)
+        return {"claimed": 4, "completed": 3, "retried": 1}
+
+    monkeypatch.setattr(data_tasks, "process_refresh_jobs", fake_process)
+
+    result = await arq_worker.scheduled_refresh_queue_process({"redis": "test"})
+
+    assert result == {"claimed": 4, "completed": 3, "retried": 1}
     assert calls == [{"redis": "test"}]
 
 
 def test_worker_registers_history_refresh_function():
     assert arq_worker.scheduled_daily_history_refresh in arq_worker.WorkerSettings.functions
+    assert arq_worker.scheduled_refresh_queue_process in arq_worker.WorkerSettings.functions
 
 
 @pytest.mark.asyncio

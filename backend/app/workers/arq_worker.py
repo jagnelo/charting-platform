@@ -381,13 +381,30 @@ async def scheduled_daily_id_bootstrap(ctx: dict):
 
 
 async def scheduled_daily_history_refresh(ctx: dict):
-    """Refresh recent canonical OHLCV bars when explicitly enabled."""
+    """Enqueue whole-universe core D1 work when explicitly enabled.
+
+    The deployed Docker worker must use the durable refresh queue rather than
+    iterating through every instrument and making provider calls in one long
+    cron invocation.  Lease/retry processing is handled by
+    ``scheduled_refresh_queue_process`` below.
+    """
     if not settings.MARKET_DATA_REFRESH_SCHEDULE_ENABLED:
         logger.info("Market-data refresh schedule disabled; skipping history refresh")
         return {"skipped": True, "reason": "schedule disabled"}
-    from app.tasks.data_tasks import fetch_all_instruments_history
+    from app.tasks.data_tasks import enqueue_core_refresh_jobs
 
-    return await fetch_all_instruments_history(ctx)
+    return await enqueue_core_refresh_jobs(ctx)
+
+
+async def scheduled_refresh_queue_process(ctx: dict):
+    """Process a bounded batch of leased core refresh jobs."""
+
+    if not settings.MARKET_DATA_REFRESH_SCHEDULE_ENABLED:
+        logger.info("Market-data refresh schedule disabled; skipping queue process")
+        return {"skipped": True, "reason": "schedule disabled"}
+    from app.tasks.data_tasks import process_refresh_jobs
+
+    return await process_refresh_jobs(ctx)
 
 
 async def scheduled_etf_holdings_refresh(ctx: dict):
@@ -492,6 +509,7 @@ class WorkerSettings:
         scheduled_daily_metadata_sync,
         scheduled_daily_id_bootstrap,
         scheduled_daily_history_refresh,
+        scheduled_refresh_queue_process,
         scheduled_etf_holdings_refresh,
         scheduled_etf_holdings_sec_backfill,
         scheduled_etf_holdings_classification_refresh,
@@ -505,6 +523,7 @@ class WorkerSettings:
             cron(scheduled_daily_metadata_sync, hour=3, minute=0),
             cron(scheduled_daily_id_bootstrap, hour=4, minute=0),
             cron(scheduled_daily_history_refresh, hour=5, minute=0),
+            cron(scheduled_refresh_queue_process, minute={0, 15, 30, 45}),
             cron(scheduled_etf_holdings_refresh, weekday=6, hour=5, minute=0),
             cron(scheduled_etf_holdings_sec_backfill, weekday=6, hour=6, minute=0),
             cron(scheduled_etf_holdings_classification_refresh, weekday=6, hour=7, minute=0),

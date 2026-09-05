@@ -16,7 +16,9 @@ def test_figi_domain_key_is_namespaced_and_normalized():
 
 def test_internal_or_unknown_identifiers_do_not_become_domain_keys():
     assert make_domain_key(InstrumentIdentifierType.INTERNAL, "instrument:1") is None
+    assert make_domain_key(InstrumentIdentifierType.CIK, "0000320193") is None
     assert choose_domain_key({"internal": "instrument:1", "unknown": "x"}) is None
+    assert choose_domain_key({"cik": "0000320193"}) is None
 
 
 def test_series_key_contains_scope_and_adjustment():

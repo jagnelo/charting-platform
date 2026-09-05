@@ -25,11 +25,11 @@ _DOMAIN_PREFIXES = {
     InstrumentIdentifierType.CUSIP: "cusip",
     InstrumentIdentifierType.SEDOL: "sedol",
     InstrumentIdentifierType.LEI: "lei",
-    InstrumentIdentifierType.CIK: "cik",
 }
 
-# FIGI is preferred for a security; issuer identifiers are still useful when a
-# provider does not return FIGI and are namespaced to avoid collisions.
+# FIGI is preferred for a security. CIK is intentionally absent: it identifies
+# an SEC registrant/issuer and must never become a security domain key. Issuer
+# records carry the CIK separately.
 _IDENTIFIER_PRIORITY = (
     InstrumentIdentifierType.FIGI,
     InstrumentIdentifierType.COMPOSITE_FIGI,
@@ -37,7 +37,6 @@ _IDENTIFIER_PRIORITY = (
     InstrumentIdentifierType.CUSIP,
     InstrumentIdentifierType.SEDOL,
     InstrumentIdentifierType.LEI,
-    InstrumentIdentifierType.CIK,
 )
 
 

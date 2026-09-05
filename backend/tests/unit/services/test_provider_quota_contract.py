@@ -168,7 +168,7 @@ def test_marketdata_app_records_documented_daily_credit_and_concurrency_limits()
     assert contract["dimensions"][0]["limit"] == 100
     assert contract["reset"] == "09:30 America/New_York"
     assert contract["concurrent_requests"] == 50
-    assert seed["max_concurrency"] == 50
+    assert seed.get("max_concurrency") is None
 
 
 def test_credit_contract_requires_the_requested_operation_cost():

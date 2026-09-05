@@ -7,8 +7,9 @@ from sqlalchemy import select
 
 from app.models.data_source import DataSource
 from app.models.instrument import EquityDetail, Instrument
-from app.models.instrument_identity import InstrumentIdentifier
+from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
 from app.models.listing import InstrumentListing
+from app.models.market_data_foundation import Issuer
 from app.models.provider_observation import (
     InstrumentIdentifierSnapshot,
     InstrumentProfileSnapshot,
@@ -55,6 +56,39 @@ async def test_profile_classification_system_is_retained_in_detail_provenance(
 
     assert detail.field_provenance["sector"]["classification_system"] == "SEC_SIC"
     assert detail.field_provenance["industry"]["classification_system"] == "SEC_SIC"
+
+
+@pytest.mark.asyncio
+async def test_profile_cik_is_attached_to_issuer_not_security_identity(db, instrument, monkeypatch):
+    profile = InstrumentProfile(
+        provider="edgar",
+        symbol=instrument.symbol,
+        canonical_symbol=instrument.symbol,
+        name=instrument.name,
+        currency="USD",
+        quote_type="EQUITY",
+        exchange="NASDAQ",
+        identifiers=[IdentifierRecord(identifier_type="CIK", identifier_value="320193")],
+        extra={"cik": 320193},
+    )
+
+    async def _no_provider_scores(*_args, **_kwargs):
+        return []
+
+    monkeypatch.setattr(instrument_mastering, "resolve_provider_chain", _no_provider_scores)
+    await instrument_mastering.ingest_provider_profile(
+        AsyncSessionAdapter(db), profile, instrument=instrument
+    )
+
+    issuer = db.execute(select(Issuer).where(Issuer.cik == "0000320193")).scalar_one()
+    assert instrument.issuer_id == issuer.id
+    assert issuer.domain_key == "cik:0000320193"
+    assert db.execute(
+        select(InstrumentIdentifier).where(
+            InstrumentIdentifier.instrument_id == instrument.id,
+            InstrumentIdentifier.identifier_type == InstrumentIdentifierType.CIK,
+        )
+    ).scalar_one_or_none() is None
 
 
 def _resolved_provider(

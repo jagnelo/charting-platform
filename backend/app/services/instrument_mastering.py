@@ -17,6 +17,7 @@ from app.models.instrument_identity import (
     InstrumentProviderSymbol,
 )
 from app.models.instrument_stats import InstrumentStats
+from app.models.market_data_foundation import Issuer
 from app.models.provider_observation import InstrumentProfileSnapshot
 from app.models.provider_runtime import ProviderCapability
 from app.providers import ensure_data_source, provider_symbol_for_instrument
@@ -372,6 +373,53 @@ def _identifier_enum(identifier_type: str) -> InstrumentIdentifierType:
         return InstrumentIdentifierType.INTERNAL
 
 
+def _normalize_cik(value: Any) -> str | None:
+    digits = "".join(character for character in str(value or "") if character.isdigit())
+    if not digits or len(digits) > 10:
+        return None
+    return digits.zfill(10)
+
+
+async def ensure_profile_issuer(
+    db: AsyncSession,
+    instrument: Instrument,
+    profile: InstrumentProfile,
+) -> None:
+    """Attach SEC CIK evidence to the issuer domain, never the security key."""
+
+    cik = _normalize_cik((profile.extra or {}).get("cik"))
+    if cik is None:
+        return
+
+    issuer = (
+        await db.execute(select(Issuer).where(Issuer.cik == cik))
+    ).scalar_one_or_none()
+    if issuer is None:
+        issuer = (
+            await db.execute(select(Issuer).where(Issuer.domain_key == f"cik:{cik}"))
+        ).scalar_one_or_none()
+    if issuer is None:
+        issuer = Issuer(
+            domain_key=f"cik:{cik}",
+            legal_name=profile.name or profile.canonical_symbol or profile.symbol,
+            cik=cik,
+            country_code="US",
+            provenance={
+                "source": profile.provider,
+                "provider_symbol": profile.symbol,
+                "observed_at": _now_utc().isoformat(),
+            },
+        )
+        db.add(issuer)
+        await db.flush()
+
+    # A security can be linked to one issuer, but an issuer can own many
+    # share classes/listings. Never silently reassign an already-linked
+    # security when conflicting provider evidence arrives.
+    if instrument.issuer_id is None or instrument.issuer_id == issuer.id:
+        instrument.issuer_id = issuer.id
+
+
 async def ensure_instrument_type(
     db: AsyncSession,
     asset_class_name: str,
@@ -485,6 +533,13 @@ async def register_identifier(
     provider_name: str,
     identifier: IdentifierRecord,
 ) -> None:
+    # SEC CIK identifies the issuer/legal entity, not a tradeable security.
+    # Profile ingestion records it on ``Issuer``; legacy instrument rows may
+    # still contain CIK records for lookup compatibility, but new writes must
+    # never create another security-level CIK key.
+    if _identifier_enum(identifier.identifier_type) == InstrumentIdentifierType.CIK:
+        return
+
     data_source = await ensure_data_source(db, provider_name)
     existing = (
         await db.execute(
@@ -834,6 +889,8 @@ async def apply_profile_to_instrument(
             currency=normalized_currency,
             is_primary=True,
         )
+
+    await ensure_profile_issuer(db, instrument, profile)
 
     for identifier in profile.identifiers:
         await register_identifier(db, instrument, profile.provider, identifier)
