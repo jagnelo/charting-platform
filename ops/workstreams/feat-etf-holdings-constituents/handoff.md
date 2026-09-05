@@ -4197,3 +4197,20 @@ provider-platform integration. Provider-platform remains unstaged, DXJ/NTSX/
 MINT/BOND remain unavailable for current analysis, AC10 remains deferred, and
 AC14 remains the post-integration 30-day production shadow gate. No other
 branch or worktree was modified.
+
+## Humanized failure-label regression checkpoint — 2026-09-05
+
+Test commit `3b304ad3` expands the ETF Holdings panel regression from the
+issuer-challenge case to all four user-visible semantic classifications:
+`issuer_access_blocked`, `authentication_required`, `access_denied`, and
+`quota_rate_limited`. The test asserts the exact human-readable label rendered
+in the degradation notice, protecting the API-to-UI diagnostic contract.
+
+The focused panel/formatter/view suite passed `27` tests, frontend type-check
+passed, and `git diff --check` passed. A fresh bounded read-only re-test still
+returned HTTP 403 HTML responses for both WisdomTree DXJ/NTSX product and
+holdings routes and HTTP 401 JSON responses for both PIMCO MINT/BOND fund-info
+and top-ten routes. No source was promoted, no credential or paid route was
+enabled, provider-platform remains unstaged, AC10 remains deferred, and AC14
+remains the post-integration 30-day production shadow gate. No other branch or
+worktree was modified.
