@@ -75,6 +75,28 @@
         <div v-if="loadError" class="notice notice--error">{{ loadError }}</div>
 
         <div
+          v-if="selectedCapability?.last_canary_at"
+          class="capability-health"
+          data-testid="etf-view-capability-health"
+        >
+          <span>
+            Canary {{ canaryStatusLabel(selectedCapability.last_canary_status) }} ·
+            {{ formatDateTime(selectedCapability.last_canary_at) }}
+          </span>
+          <span v-if="selectedCapability.last_canary_latency_ms != null">
+            {{ selectedCapability.last_canary_latency_ms }} ms
+          </span>
+          <span>Failures {{ selectedCapability.consecutive_failures }}</span>
+          <span v-if="selectedCapability.last_canary_recovered">Recovered</span>
+          <span v-if="selectedCapability.circuit_state">
+            Circuit {{ selectedCapability.circuit_state }}
+          </span>
+          <span v-if="selectedCapability.circuit_open_until">
+            until {{ formatDateTime(selectedCapability.circuit_open_until) }}
+          </span>
+        </div>
+
+        <div
           v-if="selectedCapability && !selectedCapability.usable_for_current_analysis"
           class="notice notice--capability"
           :class="capabilityClass(selectedCapability)"
@@ -662,6 +684,15 @@ function capabilityClass(capability: ETFHoldingsCapability | null | undefined): 
 
 function capabilityFailureLabel(failureClass: string | null | undefined): string {
   return String(failureClass || '').replace(/_/g, ' ')
+}
+
+function canaryStatusLabel(status: string | null | undefined): string {
+  return String(status || 'unknown').replace(/_/g, ' ')
+}
+
+function formatDateTime(value: string | null | undefined): string {
+  if (!value) return '—'
+  return new Date(value).toLocaleString()
 }
 
 const pageEnd = computed(() => {
@@ -2031,6 +2062,15 @@ button.holding-row:hover,
 .notice--capability .capability-failure-class {
   display: block;
   color: #f0c66a;
+}
+.capability-health {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  color: #8f98a5;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  line-height: 1.4;
 }
 .empty-state {
   border: 1px dashed #292929;

@@ -62,6 +62,11 @@ const profile = {
     usable_for_current_analysis: true,
     displayable_last_known: true,
     consecutive_failures: 0,
+    last_canary_at: '2026-09-05T10:00:00Z',
+    last_canary_status: 'success',
+    last_canary_latency_ms: 148.25,
+    last_canary_recovered: true,
+    circuit_state: 'closed',
     reason: 'A complete holdings snapshot passed the latest adapter check.',
   },
 }
@@ -501,6 +506,11 @@ describe('ETFHoldingsView', () => {
     expect(wrapper.text()).toContain('+2.00%')
     expect(wrapper.text()).toContain('USD 4,000')
     expect(wrapper.text()).toContain('NASDAQ · US')
+    expect(wrapper.get('[data-testid="etf-view-capability-health"]').text()).toContain('Canary success')
+    expect(wrapper.text()).toContain('148.25 ms')
+    expect(wrapper.text()).toContain('Failures 0')
+    expect(wrapper.text()).toContain('Recovered')
+    expect(wrapper.text()).toContain('Circuit closed')
 
     await wrapper.find('.detail-title button').trigger('click')
     expect(routerPush).toHaveBeenCalledWith('/chart/MSFT')
