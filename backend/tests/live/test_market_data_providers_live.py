@@ -67,6 +67,31 @@ def test_sec_edgar_keyless_profile():
     assert profile is not None and profile.name and profile.extra.get("cik")
 
 
+def test_sec_edgar_full_ticker_exchange_directory_pagination_is_complete():
+    """Fetch the official SEC directory once and prove local page completion."""
+
+    _require("EDGAR_USER_AGENT")
+    provider = EdgarProvider()
+    rows: list[dict] = []
+    offset = 0
+    declared_total: int | None = None
+    while True:
+        page = provider.discover_universe_page("EQUITY", offset)
+        page_rows = page["quotes"]
+        assert page_rows
+        if declared_total is None:
+            declared_total = page["total"]
+        assert page["total"] == declared_total
+        rows.extend(page_rows)
+        offset += len(page_rows)
+        if offset >= declared_total:
+            break
+        assert len(page_rows) > 0
+
+    assert declared_total == len(rows)
+    assert len({(row["symbol"], row["exchange"], row.get("sec_cik")) for row in rows}) == len(rows)
+
+
 def test_nasdaq_trader_keyless_directory():
     provider = NasdaqProvider()
     equities = provider.discover_universe_page("EQUITY", 0)
