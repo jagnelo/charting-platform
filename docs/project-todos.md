@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-05 — Correct period-aware ranking summaries
+
+- [x] Use the persisted `family_rank_period` for role-ranking and cross-family
+      summary performance reads; remove the remaining hard-coded `1M` consumers.
+- [x] Product commit `cdcef088` is pushed; focused frontend coverage passed
+      `136/136`, TypeScript/build passed, and authenticated Chromium
+      `F8s-breadth-family-ratio` passed `1/1` on a rebuilt branch-scoped stack with
+      clean teardown/resource accounting.
+- [ ] Rerun the exact-tip exhaustive gate at the corrected product tip; preserve
+      the six known visual state-oracle diffs and unchanged provider/fallback,
+      baseline, threshold, mask, skip, and acceptance policy.
+
 ### 2026-09-05 — Exact-tip gate after configurable family ranking horizons
 
 - [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at metadata

@@ -5,6 +5,23 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-05
 
+## 2026-09-05 — Honor the selected ranking period in summaries
+
+The role-ranking and cross-family ranking summary rows now read the selected
+`family_rank_period` value instead of retaining a hard-coded `1M` lookup. The
+request/cache horizon and the rendered summary values therefore stay aligned
+for every supported period; no provider, fallback, membership, provenance,
+visual-oracle, or acceptance policy changed.
+
+Focused frontend coverage passes `136/136`, TypeScript and production build
+pass, and authenticated Chromium `F8s-breadth-family-ratio` passes `1/1` on a
+rebuilt branch-scoped stack with the `3M` request/render assertions. Teardown
+and resource accounting were clean. Product commit `cdcef088`
+(`fix(tc2000): honor selected ranking period in summaries`) is pushed to
+`origin/feat/tc2000-frontend-rework`; rerun the exact-tip gate at the next
+coherent documentation tip, preserving the six known visual state-oracle
+diffs and unchanged provider/fallback policy.
+
 ## 2026-09-05 — Exact-tip gate after configurable family ranking horizons
 
 The exact-tip `full_stack_browser` gate at metadata tip `d64c9c78` (product tip `bbe011db`)
