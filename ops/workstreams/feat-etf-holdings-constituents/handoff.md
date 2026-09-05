@@ -3765,6 +3765,23 @@ DXJ/NTSX/MINT/BOND remain unavailable for current analysis, AC10 remains
 deferred, and AC14 remains the post-integration 30-day production shadow gate.
 No paid source, credential, other branch, or other worktree was modified.
 
+## Per-symbol canary-history API checkpoint — 2026-09-05
+
+Implementation commit `e38edc60` closes the remaining API observability gap for
+ETF canaries. The admin-only `GET /etf-holdings/{symbol}/canary-history` route
+reads the latest persisted adapter-state history without triggering a provider
+fetch, returns the symbol and bounded observation records, and caps caller
+requests at the writer's 90-observation retention window. Missing state returns
+an explicit empty history rather than synthesizing a pass.
+
+Validation: the capability-service suite passed `84` tests; the focused API
+regression passed; the complete Docker-backed ETF holdings API suite passed
+`67` tests with two existing Nautilus deprecation warnings; Ruff, formatting,
+and diff-check passed. Provider-platform remains unstaged, DXJ/NTSX/MINT/BOND
+remain unavailable for current analysis, AC10 remains deferred, and AC14
+remains the post-integration 30-day production shadow gate. No paid source,
+credential, other branch, or other worktree was modified.
+
 ## Standalone holdings-view canary checkpoint — 2026-09-05
 
 Implementation commit `368f4049` carries the persisted per-symbol canary
