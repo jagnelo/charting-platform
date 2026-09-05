@@ -16,19 +16,20 @@ chat. The exact names are in `backend/.env.example` and the provider ledger.
 ## Evidence captured in this worktree
 
 On 2026-09-05, with network access and a temporary non-secret SEC User-Agent,
-the initial keyless matrix passed `6/6`:
+the initial keyless matrix passed `7/7`, including full Nasdaq directory
+pagination for both equities and ETFs:
 
 ```sh
 RUN_LIVE_PROVIDER_TESTS=1 EDGAR_USER_AGENT='charting-platform live-validation ops@example.invalid' \
   rtk uv run --project backend pytest tests/live/test_market_data_providers_live.py \
   -m live -k 'openfigi or sec_edgar or nasdaq or binance or coinbase or kraken' \
   --no-header -q --no-cov
-# 6 passed, 14 deselected
+# 7 passed, 14 deselected
 ```
 
-A later bounded rerun passed the other five probes but received an honest
+A later bounded rerun passed the other six probes but received an honest
 OpenFIGI HTTP 429 after additional anonymous traffic. After the documented
-anonymous window reset, the full six-probe matrix passed again (`6 passed,
+anonymous window reset, the full seven-probe matrix passed again (`7 passed,
 14 deselected`); the intermediate 429 remains recorded as rate-limit evidence,
 not hidden.
 

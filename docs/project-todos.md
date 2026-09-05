@@ -20,8 +20,9 @@ current capability/quota ledger.
       or explicit completion evidence, preserve Nasdaq Financial Status evidence,
       and prevent exchange-qualified ticker merges across venues.
 - [x] Add a manifest-driven live-provider matrix. Keyless probes currently
-      pass for OpenFIGI, SEC EDGAR (with a real contact User-Agent), Nasdaq,
-      Binance, Coinbase, and Kraken; backend unit and integration suites pass.
+      pass for OpenFIGI, SEC EDGAR (with a real contact User-Agent), Nasdaq
+      first-page and full-directory pagination for equities/ETFs, Binance,
+      Coinbase, and Kraken; backend unit and integration suites pass.
 - [ ] Populate credentials in ignored `backend/.env.dev` and execute the
       credentialed probes for Alpaca, Massive, Alpha Vantage, CoinGecko, FRED,
       FINRA, Tiingo, Twelve Data, Finnhub, Marketstack, EODHD, FMP, Tradier,

@@ -80,6 +80,34 @@ def test_nasdaq_trader_keyless_directory():
         assert next_page["quotes"] and next_page["quotes"][0]["symbol"] != equities["quotes"][0]["symbol"]
 
 
+def test_nasdaq_trader_full_directory_pagination_is_complete():
+    """Fetch both official directory files once and prove page completion locally."""
+
+    provider = NasdaqProvider()
+    for quote_type in ("EQUITY", "ETF"):
+        rows: list[dict] = []
+        offset = 0
+        declared_total: int | None = None
+        while True:
+            page = provider.discover_universe_page(quote_type, offset)
+            assert page["source_files"] == ["nasdaqlisted", "otherlisted"]
+            if declared_total is None:
+                declared_total = page["total"]
+            assert page["total"] == declared_total
+            page_rows = page["quotes"]
+            assert page_rows
+            rows.extend(page_rows)
+            next_offset = page.get("next_offset")
+            if next_offset is None:
+                break
+            assert next_offset > offset
+            assert len(rows) <= declared_total
+            offset = next_offset
+
+        assert declared_total == len(rows)
+        assert len({(row["symbol"], row["exchange_mic"], row["quoteType"]) for row in rows}) == len(rows)
+
+
 def test_binance_keyless_crypto_history():
     start, end = _bounds()
     rows = BinanceProvider().fetch_latest_ohlcv("BTC-USD", Timeframe.D1, 1)
