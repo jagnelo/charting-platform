@@ -3749,6 +3749,22 @@ unavailable for current analysis, AC10 remains deferred, and AC14 remains the
 post-integration 30-day production shadow gate. No paid source, credential,
 other branch, or other worktree was modified.
 
+## Market Map ETF degradation-visibility checkpoint — 2026-09-05
+
+Implementation commit `a624ad48` closes the remaining user-facing gap in the
+Market Map source picker. An unavailable ETF source now includes its
+human-readable capability failure classification in the disabled option, and
+selecting that source exposes the capability reason in the active-source status
+before any market-map request is made. This keeps issuer access blocks,
+schema/route failures, and other non-current states distinguishable instead of
+presenting only a generic “Unavailable” label.
+
+The focused Market Map component suite passed `33` tests and frontend
+type-check passed. Provider-platform remains unstaged, DXJ/NTSX/MINT/BOND
+remain unavailable for current analysis, AC10 remains deferred, and AC14
+remains the post-integration 30-day production shadow gate. No paid source,
+credential, other branch, or other worktree was modified.
+
 The complete watchlist API integration file was rerun after the shared
 descriptor change: `47 passed` with the same two existing Nautilus deprecation
 warnings. The targeted source-catalog check and static checks remain recorded
