@@ -5,6 +5,21 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-05
 
+## 2026-09-05 — Render benchmark-family concentration history
+
+The workstation now renders the canonical benchmark-family concentration-history `dispersion`
+series as role-coloured uPlot lines beneath the point-in-time concentration summary. Timestamps
+are aligned across available roles and missing observations remain `null`; the chart never
+forward-fills membership, returns, or weights. Invalid or unavailable dispersion remains an
+explicit unavailable state, and no provider fallback, fabricated data, visual oracle, or
+acceptance rule changed.
+
+Lifecycle/alignment coverage passes `20/20`, TypeScript and production build pass, and authenticated
+Chromium `F8s-breadth-family-ratio` passes `1/1` with the dispersion chart asserted visible on a
+rebuilt branch-scoped stack. Teardown removed all assigned resources. The exact-tip gate at this
+new product tip is pending; preserve the six existing visual state-oracle diffs and rerun it at
+the next coherent documentation tip.
+
 ## 2026-09-05 — Exact-tip gate after breadth-history chart
 
 The exact-tip `full_stack_browser` gate at metadata tip `9c230fd5` (product tip `45ae7e9b`)

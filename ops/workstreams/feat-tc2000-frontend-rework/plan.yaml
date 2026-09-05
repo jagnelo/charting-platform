@@ -106,6 +106,14 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
+    Current slice product tip 8697e7b8 renders canonical benchmark-family point-in-time
+    concentration-history dispersion as aligned role-coloured uPlot lines, preserving missing
+    timestamps as nulls without forward filling membership, returns, or weights. Lifecycle and
+    alignment coverage passed 20/20, TypeScript and production build passed, and authenticated
+    Chromium F8s-breadth-family-ratio passed 1/1 with the chart visibility asserted on a rebuilt
+    branch-scoped stack. Teardown and resource accounting were clean. The exact-tip exhaustive gate
+    at this new product tip is pending; preserve the six existing visual state-oracle diffs and
+    unchanged provider/fallback policy, then rerun the gate at the next coherent documentation tip.
     Exact-tip full_stack_browser gate at metadata tip 9c230fd5 (product tip 45ae7e9b) passed
     locked dependency/migration checks, workstream validation, lint/format/type-check, backend
     unit/integration and combined coverage, frontend Vitest, production build, compose/provider
@@ -210,6 +218,12 @@ progress:
     dense-data, and visual-oracle review remain open.
   next_action: "Implement the next bounded canonical provider/history slice with authenticated evidence; preserve the six visual state-oracle assertions and unchanged visual/provider fallback policy, then rerun the exact-tip gate at the next coherent tip."
 remaining_gaps:
+  - "Current slice product tip 8697e7b8 renders canonical benchmark-family point-in-time
+    concentration-history dispersion as aligned role-coloured lines with null-preserved gaps and
+    no forward fill. Lifecycle/alignment coverage passed 20/20, TypeScript/build passed, and
+    authenticated F8s-breadth-family-ratio passed 1/1 with chart visibility asserted; teardown was
+    clean. Rerun the exact-tip gate at this product tip and preserve the six existing visual
+    state-oracle diffs and provider/fallback acceptance policy."
   - "Current slice product tip 45ae7e9b renders canonical benchmark-family per-role breadth-history
     above_ma.ma20 series as aligned role-coloured lines with null-preserved gaps and no forward
     fill. Lifecycle coverage passed 17/17, TypeScript/build passed, authenticated

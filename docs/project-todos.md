@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-05 — Render benchmark-family concentration history
+
+- [x] Render canonical point-in-time concentration-history `dispersion` by available benchmark
+      family role in a role-coloured chart; align timestamps and preserve missing observations as
+      nulls without forward filling or substituting membership/return data.
+- [x] Add lifecycle/alignment coverage (`20/20`), TypeScript, production build, and authenticated
+      Chromium `F8s-breadth-family-ratio` (`1/1`) asserting the dispersion chart is visible;
+      rebuilt-stack teardown and resource cleanup were clean.
+- [x] Product commit `8697e7b8` (`feat(tc2000): render concentration history`) is pushed to
+      `origin/feat/tc2000-frontend-rework`.
+- [ ] Rerun the exact-tip exhaustive gate at this product tip while preserving the six existing
+      visual state-oracle diffs and all provider/fallback acceptance policy.
+
 ### 2026-09-05 — Render benchmark-family breadth history
 
 - [x] Render the canonical per-role breadth-history `above_ma.ma20` series in a role-coloured
