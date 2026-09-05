@@ -4475,3 +4475,21 @@ not close the shared provider-platform dependency. The provider branch remains
 outside staging and still lacks `ETF_HOLDINGS`, so AC10 remains deferred and
 AC14 remains a post-integration production shadow gate. No provider
 classification, paid route, credential, or protected worktree changed.
+
+## Dependency and official-source recheck — 2026-09-05
+
+The provider-platform remote advanced to `1519f55a`, but it is still not an
+ancestor of staging `8b885a2f`; its authoritative `ProviderCapability` enum
+still has no `ETF_HOLDINGS` member. The provider branch does contain holdings
+models/routes, but that does not authorize an ETF capability bridge before the
+shared capability contract is staged. No provider-platform code was merged or
+copied into this worktree.
+
+The current official WisdomTree DXJ/NTSX pages were rechecked. NTSX exposes
+current dated product metrics and a ten-row holdings preview, while DXJ exposes
+product/factsheet material; neither exposes a complete, repository-executable
+public holdings artifact in the bounded route. The current PIMCO catalogue and
+MINT/BOND product surfaces likewise confirm the products but expose no complete
+public basket; the authenticated fund-detail boundary remains the only declared
+complete route found. DXJ/NTSX/MINT/BOND therefore remain unavailable for
+current analysis, with no source or provider classification change.
