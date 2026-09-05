@@ -1,5 +1,27 @@
 # Project TODO Memory
 
+### 2026-09-05 — Promote Study range centers into latest-value watchlist columns
+
+- [x] Extend the primary Study Lab and persisted Research Results promotion matrix so a completed
+      structured `range` artifact with an aligned finite `center` can be saved as a typed latest-value
+      watchlist column. Lower/upper band values remain source-only; the immutable source/output/run/
+      dataset lineage records the explicit `range_center_to_scalar` adapter and
+      `study_range_center_result_as_latest_watchlist_column` semantics.
+- [x] Carry the scalar adapter through the code-asset contract, immutable research job envelope, and
+      prepared-universe batch runner. Validation accepts the scalar target only when the selected
+      source declares a `range` output; each member cell extracts the latest finite center outside
+      user code and preserves the typed scalar result.
+- [x] Add focused backend job/runner/API and frontend Study Lab/Research Results/capability coverage,
+      plus authenticated structured-results browser proof. Backend runner coverage passed `112/112`,
+      job-envelope coverage `5/5`, code API integration `24/24`, focused frontend coverage `61/61`,
+      full frontend Vitest `950/950` across `109` files, type-check/build/diff checks passed, and
+      authenticated F8t-results plus the adjacent primary threshold flow passed `1/1` each on a
+      rebuilt branch-scoped Docker stack. Product commit `928bf8ae` is pushed to
+      `origin/feat/tc2000-frontend-rework`; focused stack teardown and resource cleanup were clean.
+- [ ] Re-run the exact-tip exhaustive gate at `928bf8ae`; preserve the existing six visual state-oracle
+      diffs and continue canonical provider/history, richer Study, native-window/accessibility/security,
+      dense-data, and visual-oracle work.
+
 ### 2026-09-05 — Promote primary Study Lab series through explicit Boolean thresholds
 
 - [x] Extend the primary Study Lab for completed single-output finite numeric `series` runs with

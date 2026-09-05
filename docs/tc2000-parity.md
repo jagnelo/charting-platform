@@ -1,5 +1,23 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-09-05 — Structured range-center latest-value column promotion
+
+Completed structured Study `range` artifacts with an aligned finite `center` now expose a safe
+latest-value watchlist-column target in both primary Study Lab and persisted Research Results. The
+promotion declares scalar output with `range_center_to_scalar`; source/output/run/dataset lineage
+and the explicit `study_range_center_result_as_latest_watchlist_column` semantics are retained,
+while lower/upper band values remain source-only. The prepared-universe runner requests the range
+contract and extracts each member's latest finite center outside user code; the code-asset boundary
+accepts this adapter only when validation observes a range output.
+
+Backend runner/job/API coverage passed `112/112`, `5/5`, and `24/24`; focused frontend coverage
+passed `61/61`; full frontend Vitest passed `950/950` across `109` files; type-check, production
+build, and diff checks passed. Authenticated structured-results and primary Study threshold browser
+flows passed `1/1` each on a rebuilt branch-scoped Docker stack with clean teardown. Product commit
+`928bf8ae` is pushed to `origin/feat/tc2000-frontend-rework`. The exact-tip gate is pending; the
+existing six visual state-oracle diffs and remaining canonical provider/history, richer Study,
+native-window/accessibility/security, dense-data, and visual-oracle gaps remain open.
+
 ## 2026-09-05 — Primary Study Lab numeric-series threshold promotion
 
 The primary Study Lab now offers explicit threshold controls for completed single-output finite

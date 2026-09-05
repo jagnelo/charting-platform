@@ -11,7 +11,23 @@ records in `docs/project-todos.md`, `docs/tc2000-parity.md`,
 evidence ledgers. If a summary here conflicts with a dated test receipt or the current code, the
 current code and fresh evidence win.
 
-The current product slice is `b6316871` (`feat(tc2000): promote Study Lab series thresholds`). The
+The current product slice is `928bf8ae` (`feat(tc2000): promote range centers to watchlist columns`).
+The primary Study Lab and persisted Research Results now expose a typed latest-value watchlist-column
+promotion for completed structured `range` artifacts with aligned finite `center` values. Lower/upper
+band values remain source-only; the saved code asset declares scalar output plus the explicit
+`range_center_to_scalar` adapter and `study_range_center_result_as_latest_watchlist_column` lineage.
+The immutable research job envelope carries that adapter into prepared-universe batch execution,
+which requests the range output and extracts the latest finite center as each member's scalar cell
+outside user code. Backend runner coverage passed `112/112`, job-envelope coverage `5/5`, code API
+integration `24/24`, focused frontend coverage `61/61`, full frontend Vitest `950/950` across `109`
+files, type-check/build/diff checks passed, and authenticated F8t-results plus the adjacent primary
+threshold flow passed `1/1` each on a rebuilt branch-scoped Docker stack. The commit is pushed to
+`origin/feat/tc2000-frontend-rework`; focused teardown/resource accounting was clean. The exact-tip
+gate after this slice remains to be run; the existing visual state-oracle diffs and canonical
+provider/history, richer Study, native-window/accessibility/security, dense-data, and visual-oracle
+gaps remain open.
+
+The preceding product slice is `b6316871` (`feat(tc2000): promote Study Lab series thresholds`). The
 primary Study Lab now exposes the same safe threshold fan-out as persisted Research Results for
 completed single-output finite numeric `series` runs: an explicit operator (`gt`, `gte`, `lt`,
 `lte`, `eq`, or `ne`) and finite threshold can produce a typed Boolean column or one reusable

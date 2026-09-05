@@ -10,6 +10,25 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Promote Study range centers to watchlist columns
+
+Product commit `928bf8ae` (`feat(tc2000): promote range centers to watchlist columns`) extends the
+primary Study Lab and persisted Research Results surfaces with a typed latest-value watchlist
+column for completed structured `range` artifacts whose center series is aligned and finite. The
+lower/upper band remains source-only. Immutable source/output/run/dataset lineage records the
+`range_center_to_scalar` adapter and `study_range_center_result_as_latest_watchlist_column`
+semantics; the code-asset boundary and prepared-universe runner preserve the adapter and extract
+the latest center outside user code for each scalar member cell.
+
+Evidence: backend runner `112/112`, job-envelope `5/5`, and code API `24/24`; focused frontend
+Study Lab/Research Results/capability coverage `61/61`; full frontend Vitest `950/950` across `109`
+files; TypeScript, production build, and `git diff --check` passed. Authenticated F8t-results and
+the adjacent primary Study threshold flow passed `1/1` each on a rebuilt branch-scoped Docker
+stack. The commit is pushed to `origin/feat/tc2000-frontend-rework`; focused stack teardown and
+resource accounting were clean. The exact-tip gate is pending; existing visual state-oracle,
+canonical provider/history, richer Study, native-window/accessibility/security, dense-data, and
+visual-oracle gaps remain open.
+
 ## 2026-09-05 — Promote primary Study Lab series thresholds
 
 Product commit `b6316871` (`feat(tc2000): promote Study Lab series thresholds`) extends the

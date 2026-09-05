@@ -1,5 +1,18 @@
 # TC2000 Version 25 Visual-Parity Specification
 
+## 2026-09-05 — Range-center latest-value promotion is functional-only
+
+Primary Study Lab and persisted Research Results now expose a functional “Save latest center
+column” action for aligned finite range centers, backed by explicit scalar adapter lineage. No
+authoritative V25 capture represents this promotion-row composition, so its exact typography,
+placement, action spacing, and post-save states remain `required_missing`; this slice does not
+alter any screenshot baseline, mask, threshold, skip, or visual acceptance rule.
+
+Product commit `928bf8ae` has focused backend/frontend coverage and authenticated browser proof; the
+exact-tip gate is pending. The existing six state-oracle diffs remain the only known visual gate
+failures, alongside the broader canonical provider/history, richer Study, native-window,
+accessibility/security, dense-data, and exact V25 visual gaps.
+
 ## 2026-09-05 — Primary Study Lab threshold controls and unchanged visual gate
 
 The primary Study Lab now exposes an explicit operator/finite-threshold row for completed
