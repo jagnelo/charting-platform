@@ -70,27 +70,14 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-45bdf9bd8d"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
+    "ops/workstreams/feat-etf-holdings-constituents/session.json",
+    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
+  ],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-etf-holdings-constituents-45bdf9bd",
-      "charting-stack-feat-etf-holdings-constituents-45bdf9bd"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
-    "worktree_id": "feat-etf-holdings-constituents-45bdf9bd8d"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
   },
   "docker_ready": {
     "ready": true,
@@ -106,13 +93,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "50d0903f0a2a5512562a9e13265c6b894b53da9f",
-  "implementation_sha": "ef165913df1f02be0a9a1ff3e486eaed557f7e0b",
-  "last_checkpoint": "2026-09-05T02:30:03.196863+00:00",
-  "last_human_progress_update": "2026-09-05T00:49:33.000000+00:00",
+  "head": "06faa1ea8355f8abd07d964be8323e1b02b209b1",
+  "implementation_sha": "06faa1ea8355f8abd07d964be8323e1b02b209b1",
+  "last_checkpoint": "2026-09-05T03:28:06.019227+00:00",
+  "last_human_progress_update": "2026-09-05T03:27:55.054903+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Keep bounded free-first re-tests for DXJ/NTSX and MINT/BOND. Qualify Alpha Vantage/EODHD/FMP only through the shared entitlement, quota, licensing, and aggregate budget gate; no remaining symbol-bearing cohort is queued. After provider-platform reaches staging, reconcile AC10 and run the documented 30-day production AC14 shadow gate.",
-  "plan_hash": "f8f736dc9d9f1ebefe10da3395e7fa08f6b237af8000d2ec7cf553ac95856870",
+  "next_action": "Reconcile AC10 only after origin/feat/market-data-provider-platform is an ancestor of origin/staging; until then keep DXJ/NTSX/MINT/BOND unavailable and do not activate paid or direct-provider routes.",
+  "plan_hash": "dbd05fc7ab850811f0752c6453124efbf083aac1d81fb6dd27a281544aafdabc",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -132,14 +119,14 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "The shared provider-platform branch has not yet reached staging; generic entitlement/quota/budget/health integration remains intentionally deferred until its synchronized staging merge. Eleven of fifteen Tier-0 symbols have dated current issuer evidence (the ten F/m routes plus Pacific Asset Management GEME); DXJ/NTSX remain blocked by WisdomTree Cloudflare challenges and MINT/BOND remain without an unauthenticated complete executable PIMCO artifact. All 15 Tier-0 and 160 Tier-1 representative symbols have explicit outcomes; the remaining 19 fallback identities have no representative symbol and retain provider-level terminal or non-publisher dispositions. AC11 remains open only for bounded re-tests or new source evidence for the four unresolved Tier-0 symbols; AC14 remains post-integration.",
-    "current_phase": "tier0_priority_route_validation",
-    "next_action": "Keep bounded free-first re-tests for DXJ/NTSX and MINT/BOND. Qualify Alpha Vantage/EODHD/FMP only through the shared entitlement, quota, licensing, and aggregate budget gate; no remaining symbol-bearing cohort is queued. After provider-platform reaches staging, reconcile AC10 and run the documented 30-day production AC14 shadow gate.",
+    "current_blocker": "The shared provider-platform branch is still not present in staging; AC10 cannot be reconciled from this ETF worktree. The four unresolved Tier-0 symbols remain explicitly unavailable after the 2026-09-05 re-test, and AC14 remains post-integration.",
+    "current_phase": "provider_platform_dependency_wait",
+    "next_action": "Reconcile AC10 only after origin/feat/market-data-provider-platform is an ancestor of origin/staging; until then keep DXJ/NTSX/MINT/BOND unavailable and do not activate paid or direct-provider routes.",
     "total": 14,
-    "updated_at": "2026-09-05T00:49:33.000000+00:00"
+    "updated_at": "2026-09-05T03:27:55.054625+00:00"
   },
-  "remote": "50d0903f0a2a5512562a9e13265c6b894b53da9f",
-  "remote_sha": "ef165913df1f02be0a9a1ff3e486eaed557f7e0b",
+  "remote": "06faa1ea8355f8abd07d964be8323e1b02b209b1",
+  "remote_sha": "06faa1ea8355f8abd07d964be8323e1b02b209b1",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "5b434602-fc78-40c5-8f0a-0960badecb67",

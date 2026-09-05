@@ -3170,3 +3170,20 @@ next permitted action remains a bounded free-first re-test of DXJ/NTSX and
 MINT/BOND, or reconciliation of AC10 once the shared provider-platform branch
 is actually present in staging; no direct provider-branch mutation or paid
 entitlement activation is authorized.
+
+## Tier-0 route re-test closure — 2026-09-05
+
+Implementation checkpoint `06faa1ea8355f8abd07d964be8323e1b02b209b1` records the
+bounded follow-up re-test against the four unresolved
+Tier-0 routes. WisdomTree returned HTTP 403 `text/html` challenge responses for
+both DXJ and NTSX. PIMCO's declared fund-detail routes returned HTTP 401 JSON
+responses for both MINT and BOND. No complete executable basket, credential,
+entitlement, or paid source was introduced.
+
+The symbol-level capability actions now say to keep these symbols unavailable
+and retry only on a route/edge change, rather than presenting an immediately
+repeatable action after the same boundary has just been confirmed. The ledger
+records the re-test evidence and preserves the non-current outcomes. Focused
+capability tests (79), Ruff, formatting, diff-check, and workstream validation
+passed. AC11 remains open only for genuinely new compliant source evidence;
+AC10 remains dependent on provider-platform staging.
