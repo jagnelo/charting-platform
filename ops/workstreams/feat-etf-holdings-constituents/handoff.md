@@ -4351,3 +4351,12 @@ clean and synchronized, with the next executable action still being the narrow
 ETF capability bridge after the shared branch reaches staging. DXJ/NTSX/MINT/BOND
 remain explicitly non-current; no credentials, paid source, or direct-provider
 route was activated.
+
+## Deterministic ETF suite revalidation — 2026-09-05
+
+Against the clean synchronized feature state, the complete adapter and
+capability unit suites passed `662` tests (`575` adapter and `87` capability).
+The workstream validator, Ruff check, Ruff format check, and `git diff --check`
+also passed. This revalidation changes no provider classification or source
+eligibility; it confirms that the current branch remains green while the
+provider-platform dependency is outside staging.
