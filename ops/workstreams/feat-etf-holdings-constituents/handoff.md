@@ -3325,3 +3325,30 @@ lists remain supported for bounded tests or deliberate operator use. Focused
 task coverage passes 7 tests, Ruff, formatting, and diff-check pass. This is
 ETF-local monitoring hardening only; no provider, route, entitlement, paid
 activation, or source disposition changed.
+
+## Full Docker gate for Tier-0 canary truncation guard — 2026-09-05
+
+The full `make validate-integration INTEGRATION_BRANCH=feat-etf-holdings-constituents`
+gate ran against implementation/session head `67bd819ab8e5953e13af0ead7caffcf8d01aa05a`.
+All deterministic and application-facing stages passed: dependency and
+migration checks, lint/type/build checks, backend coverage (`1816 passed`),
+frontend unit/coverage, visual policy, compose, stack health, research-runner
+probes, functional Playwright (`154 passed`, `106 skipped`), visual Playwright
+(`104 passed`), and the non-live adapter branch test (`571 passed`). The
+default live-provider contract passed `2` tests with `515` expected skips.
+
+The gate was not green because the explicit live-provider matrix exposed twelve
+external/current-data variants (`496 passed`, `9 skipped`, `12 failed`): ten
+F/M Investments canaries (TBIL, XBIL, OBIL, UTWO, UTRE, UFIV, USVN, UTEN,
+UTWY, UTHY) returned a future composition date of `2026-09-08` while the
+runner date was `2026-09-05`; Max JETU hit an upstream `httpx.ReadTimeout`; and
+McElhenny Sheffield MSMR returned five rows against the existing seven-row
+live assertion. No ETF-owned code path failed, and these results do not justify
+weakening strict parsing or promoting any source. They are retained as live
+issuer/data freshness and availability evidence for follow-up classification.
+
+The gate's automatic teardown removed all branch-scoped containers, images,
+volumes, and the network. No provider, staging, credential, paid activation,
+or other branch was mutated. AC10 remains deferred until the provider-platform
+branch reaches staging; AC14 remains pending its 30-day production shadow
+window.
