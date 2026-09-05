@@ -11,7 +11,16 @@ records in `docs/project-todos.md`, `docs/tc2000-parity.md`,
 evidence ledgers. If a summary here conflicts with a dated test receipt or the current code, the
 current code and fresh evidence win.
 
-The latest product slice is `22fd676e` (`feat(tc2000): promote structured study events to signals`).
+The latest product slice is `6fa41b81` (`feat(tc2000): surface member history date ranges`).
+Market Map's canonical benchmark-family readiness panel now displays the observed oldest and
+newest member-bar dates for every timeframe that supplies them, alongside the existing readiness,
+coverage, bar-count, and floor evidence. Missing bounds remain explicit as `unknown`; no date is
+inferred or substituted from another timeframe. Focused Market Map coverage passed `36/36`, the
+full frontend suite passed `947/947` across `109` files, TypeScript/type-check, production build,
+and diff checks passed, and the authenticated F8s drill-down passed `1/1` with the new range
+assertion on a rebuilt branch-scoped Docker stack. Teardown removed all assigned resources.
+
+The preceding product slice is `22fd676e` (`feat(tc2000): promote structured study events to signals`).
 Research Results now offers `Save Strategy signal` for a named event artifact from a completed
 multi-output Study run. It creates an explicit `events` signal asset for the selected output and
 hands that immutable version to Strategy Lab with source run/code/dataset/output lineage,

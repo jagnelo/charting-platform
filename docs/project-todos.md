@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-05 — Surface canonical member-history date ranges
+
+- [x] Extend the Market Map canonical benchmark-family readiness label with each returned
+      timeframe's observed `oldest` and `newest` member-bar dates. The display preserves missing
+      bounds as `unknown` and never infers coverage from another timeframe.
+- [x] Add component and authenticated `F8s-family-map-drilldown` assertions for the date-range
+      text. Focused Market Map coverage passed `36/36`; full frontend Vitest passed `947/947`
+      across `109` files; TypeScript, production build, and `git diff --check` passed; the rebuilt
+      branch-scoped Docker browser check passed `1/1`; teardown removed all containers, volumes,
+      generated images, and test-container sessions. Product commit `6fa41b81` is pushed to
+      `origin/feat/tc2000-frontend-rework`.
+- [ ] Continue canonical provider/history population, richer compatible Study targets,
+      native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review;
+      the latest exhaustive gate remains the reproducible six-diff visual blocker.
+
 ### 2026-09-05 — Exact-tip exhaustive gate after Study event signal lineage
 
 - [x] Re-run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at

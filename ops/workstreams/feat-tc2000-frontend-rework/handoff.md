@@ -10,6 +10,19 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Surface canonical member-history date ranges
+
+Product commit `6fa41b81` (`feat(tc2000): surface member history date ranges`) makes the temporal
+coverage carried by the canonical benchmark-family API visible in Market Map. Each returned D1,
+W1, or MN timeframe now shows its observed oldest/newest date bounds next to readiness, covered
+members, bar totals, and the declared floor; partial bounds stay explicit as `unknown`.
+
+Evidence: focused Market Map coverage `36/36`; full frontend Vitest `947/947` across `109` files;
+TypeScript/type-check, production build, and diff checks passed; authenticated F8s passed `1/1`
+with a date-range assertion on the rebuilt branch-scoped Docker stack. Teardown/resource
+accounting reported zero assigned containers, volumes, generated images, and test-container
+sessions. The commit is pushed to `origin/feat/tc2000-frontend-rework`.
+
 ## 2026-09-05 — Exact-tip exhaustive gate after Study event signal lineage
 
 The `full_stack_browser` gate ran at metadata tip `aa8fbd0b` (product tip `3a7e4861`, with the
