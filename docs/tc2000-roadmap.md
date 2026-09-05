@@ -40,18 +40,21 @@ suite passed `383/383` with the existing `54` warnings. The integration-only cov
 `48.09%` and hits the configured `55%` floor because the normal threshold is measured across the
 combined unit/integration gate; this is recorded as an invocation-scope caveat.
 
-The latest exact-tip exhaustive gate ran at metadata tip `df95b3c5` (product tip `22fd676e` plus
-the backend contract test and formatter/checkpoint metadata commits). All non-visual stages and
-authenticated functional Playwright passed: backend units `1,315/1,315`, integration `383/383`
-with the existing `54` warnings, combined coverage `80.90%`, frontend Vitest `947/947` across
-`109` files, and functional E2E `155` passed with `106` documented skips across `261` specs. The
-four-project visual matrix remains the only failing stage at `98/104`: `watchlist-column-editor-open`
-differs by `13,844` pixels at 1080p-100/125, and `workspace-floating` differs by
-`12,097`/`12,097`/`12,097`/`9,770` pixels at 1080p-100/125 and 1440p-100/125. No visual baseline,
-mask, threshold, skip, fallback oracle, provider rule, or acceptance policy changed; assigned
-stack teardown and resource accounting were clean. The goal therefore remains active while
+The latest exact-tip exhaustive gate ran at metadata tip `aa8fbd0b` (product tip `3a7e4861`, with
+the durable Study event-lineage records committed). All non-visual stages and authenticated
+functional Playwright passed: backend units `1,315/1,315`, integration `383/383` with the existing
+`54` warnings, combined coverage `80.90%`, frontend Vitest `947/947` across `109` files, and
+functional E2E `155` passed with `106` documented skips across `261` specs. The four-project visual
+matrix remains the only failing stage at `98/104`: `watchlist-column-editor-open` differs by
+`13,844` pixels at 1080p-100/125, and `workspace-floating` differs by
+`11,901`/`9,770`/`9,770`/`12,097` pixels at 1080p-100/125 and 1440p-100/125. No visual
+baseline, mask, threshold, skip, fallback oracle, provider rule, or acceptance policy changed;
+assigned stack teardown and resource accounting were clean. The goal therefore remains active while
 canonical provider/history, richer Study, native-window, accessibility/security, dense-data, and
 visual-oracle gaps remain open.
+
+The preceding exact-tip gate ran at metadata tip `df95b3c5` before the primary Study Lab event-lineage
+fix and is retained below as historical evidence.
 
 The latest product commit is `0712951` (`feat(tc2000): expose complete benchmark history readiness`).
 Market Map's provider-neutral benchmark-family readiness panel now renders every D1/W1/MN
