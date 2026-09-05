@@ -10,6 +10,22 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Preserve single-output Study series promotion contract
+
+Product commit `2ee80c3` (`fix(tc2000): preserve single-output series promotion contract`) fixes
+the primary Study Lab's raw single-output numeric-series promotion edge. When the latest-value
+column target is selected, the frontend now derives and sends the returned series artifact's
+explicit output name, declares the scalar contract with `latest_series_to_scalar`, and preserves
+the immutable Study/run lineage. Both structured timestamp/value payloads and raw numeric arrays
+are supported; incompatible shapes still fail explicitly.
+
+Evidence: focused Study Lab coverage passed `25/25`; full frontend Vitest passed `946/946` across
+`109` files; TypeScript type-check, production build, and `git diff --check` passed. Authenticated
+F9i passed `1/1` against the rebuilt branch-scoped Docker stack. Teardown and resource accounting
+reported zero containers, volumes, known image bytes, and test-container sessions. The fix is
+committed locally on `feat/tc2000-frontend-rework`; canonical provider/history, richer Study
+targets, native-window/accessibility/security, dense-data, and visual-oracle gaps remain open.
+
 ## 2026-09-05 — Expose structured range centers in Study Lab
 
 Product commit `a12c428c` (`feat(tc2000): promote Study range centers`) aligns the primary Study

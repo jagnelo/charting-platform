@@ -11,7 +11,19 @@ records in `docs/project-todos.md`, `docs/tc2000-parity.md`,
 evidence ledgers. If a summary here conflicts with a dated test receipt or the current code, the
 current code and fresh evidence win.
 
-The latest product commit is `a12c428c` (`feat(tc2000): promote Study range centers`).
+The latest product commit is `2ee80c3` (`fix(tc2000): preserve single-output series promotion contract`).
+The primary Study Lab's single-output numeric-series promotion now derives the explicit output
+name from the returned series artifact, so the persisted scalar watchlist column satisfies the
+backend's declared-output contract for both structured timestamp/value payloads and raw numeric
+series arrays. The `latest_series_to_scalar` adapter, selected output, and immutable Study/run
+lineage remain explicit; validation still rejects incompatible shapes and does not add a
+latest-only fallback. Focused Study Lab coverage passed `25/25`; the full frontend suite passed
+`946/946` across `109` files; TypeScript type-check, production build, and diff checks passed.
+The authenticated F9i direct Study Lab flow passed `1/1` on a rebuilt branch-scoped Docker stack;
+teardown and resource accounting reported zero containers, volumes, known image bytes, and
+test-container sessions. This product fix is committed locally on the feature branch.
+
+The preceding product commit is `a12c428c` (`feat(tc2000): promote Study range centers`).
 The primary Study Lab now aligns with the persisted-result capability matrix for structured
 `range` artifacts: a named range with aligned finite center values offers `Save center plot` and
 persists a chart-compatible `series` asset through the explicit `range_center_to_series` adapter.
@@ -456,7 +468,8 @@ Continue with the next canonical provider/history slice and compatible chart/lis
 with authenticated evidence. The latest readiness-display slice is at product tip `37af72fa`; its
 focused and full frontend checks pass. The exact-tip gate has previously been rerun at product tip
 `a6301f0f`; all non-visual and functional stages pass, while the unchanged six visual diffs remain
-explicit. Preserve
+explicit. The latest product fix is `2ee80c3`, with focused/full frontend and direct F9i evidence;
+the exhaustive gate should be rerun after the next coherent implementation batch. Preserve
 the declared provider fallback boundaries and all existing acceptance policy while expanding the
 remaining richer Study Lab targets, native-window/accessibility/security evidence, and dense-data
 budgets.

@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-09-05 — Preserve single-output Study series promotion contract
+
+- [x] Fix the primary Study Lab's single-output numeric-series promotion path to derive the
+      selected output name from the returned series artifact. The persisted watchlist column now
+      declares the scalar contract with `latest_series_to_scalar`, while structured timestamped
+      and raw single-output series payloads both retain the immutable Study/run lineage. The
+      backend's declared-output contract is therefore satisfied without weakening validation or
+      introducing a latest-only fallback for incompatible shapes.
+- [x] Add a raw-series component regression and correct the authenticated F9i selector so the
+      direct Study Lab promotion is exercised end to end. Focused Study Lab coverage passed
+      `25/25`; full frontend Vitest passed `946/946` across `109` files; TypeScript type-check,
+      production build, and `git diff --check` passed. Authenticated F9i passed `1/1` against the
+      rebuilt branch-scoped Docker stack; teardown and resource accounting reported zero
+      containers, volumes, known image bytes, and test-container sessions. Product commit
+      `2ee80c3` is committed locally on `feat/tc2000-frontend-rework`.
+- [ ] Continue canonical provider/history enrichment, richer compatible Study targets,
+      native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review;
+      the prior exact-tip exhaustive result remains the unchanged `98/104` visual blocker.
+
 ### 2026-09-05 — Expose structured range centers in Study Lab
 
 - [x] Align the primary Study Lab with the persisted-result capability matrix for structured
