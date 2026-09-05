@@ -2873,3 +2873,12 @@ artifacts take precedence; a vendor may be tested only with fixtures until the
 shared entitlement, quota, aggregate 20 EUR/USD-equivalent monthly budget, and
 human activation gate are available. None of these candidates changes the
 current non-current outcomes for DXJ/NTSX/MINT/BOND.
+## Coverage boundary reconciliation — 2026-09-05
+
+The provider-audit ledger now has no remaining symbol-bearing cohort queued:
+all 15 Tier-0 and 160 Tier-1 representative symbols have explicit outcomes,
+while the remaining 19 fallback identities have no representative symbol and
+retain provider-level terminal or non-publisher dispositions. The next ETF-owned
+action is therefore bounded free-first re-testing or new evidence for DXJ/NTSX
+and MINT/BOND, followed by shared-provider integration once that branch reaches
+staging; no fallback symbol is silently promoted while those gates remain open.
