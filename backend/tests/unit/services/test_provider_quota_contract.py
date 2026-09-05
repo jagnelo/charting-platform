@@ -13,7 +13,9 @@ from app.services.provider_runtime import (
     ProviderRateLimitError,
     policy_has_known_quota,
     provider_contract_operation_cost_known,
+    provider_contract_operation_costs_configured,
     provider_rate_limit_error,
+    quota_contract_missing_dimensions,
     seed_provider_runtime,
 )
 from tests.unit.conftest import AsyncSessionAdapter
@@ -125,6 +127,16 @@ def test_binance_seed_tracks_current_spot_ceiling_but_stays_dynamic_cost_gated()
     assert contract["dynamic_endpoint_weights"] is True
 
 
+def test_marketstack_and_ibkr_use_provider_specific_pacing_contracts():
+    marketstack = settings.PROVIDER_RATE_LIMIT_SEEDS["marketstack"]["quota_contract"]
+    assert marketstack["dimensions"][0]["limit"] == 100
+    assert marketstack["dimensions"][0]["window_seconds"] == 2678400
+
+    ibkr = settings.PROVIDER_RATE_LIMIT_SEEDS["ibkr"]["quota_contract"]
+    assert {dimension["limit"] for dimension in ibkr["dimensions"]} == {5, 10}
+    assert all(dimension["source"].startswith("https://ibkrcampus.com/") for dimension in ibkr["dimensions"])
+
+
 def test_credit_contract_requires_the_requested_operation_cost():
     source = DataSource(
         name="marketdata_app",
@@ -139,7 +151,7 @@ def test_credit_contract_requires_the_requested_operation_cost():
             "operation_costs_required": True,
         },
     )
-    assert provider_contract_operation_cost_known(policy, source)
+    assert not provider_contract_operation_cost_known(policy, source)
     assert provider_contract_operation_cost_known(policy, source, "fetch_ohlcv")
     assert not provider_contract_operation_cost_known(policy, source, "get_current_price")
 
@@ -164,3 +176,27 @@ def test_partial_contract_is_non_routable_instead_of_dropping_a_dimension():
         },
     )
     assert not policy_has_known_quota(policy)
+    assert "quota_contract.dimensions[1].source" in quota_contract_missing_dimensions(policy)
+
+
+def test_missing_quota_contract_is_operator_actionable():
+    policy = ProviderPolicy(data_source_id=1, capability=ProviderCapability.PRICE_HISTORY)
+    assert quota_contract_missing_dimensions(policy) == [
+        "quota_contract",
+        "quota_scope",
+        "quota_source",
+    ]
+
+
+def test_dynamic_operation_cost_readiness_is_exposed_separately():
+    source = DataSource(name="binance", config={"usage_tracking": {"operation_costs": {}}})
+    policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.CRYPTO_HISTORY,
+        quota_contract={
+            "dimensions": [{"name": "weight", "limit": 10, "window_seconds": 60, "unit": "weight", "scope": "ip", "source": "unit-test"}],
+            "reset": "fixed_minute",
+            "dynamic_endpoint_weights": True,
+        },
+    )
+    assert not provider_contract_operation_costs_configured(policy, source)

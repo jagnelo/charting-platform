@@ -39,17 +39,17 @@ re-reviewed when credentials or billing plans change.
 | CoinGecko Demo | crypto search, metadata, market-cap universe | `COINGECKO_API_KEY` | 100 calls/min and 10,000 calls/month | Demo key / minute + calendar month | contract recorded; credentialed live evidence required |
 | FINRA | consolidated short interest (OAuth Query API) and OTC Daily List lifecycle/corporate-action deltas | `FINRA_CLIENT_ID`, `FINRA_CLIENT_SECRET` | 1,200 synchronous requests/minute/IP; max 5,000 records and 3 MB per synchronous response; 20 asynchronous requests/minute/dataset/account | OAuth client / IP + dataset/account | quota contract recorded; credential/terms/live evidence required |
 | FINRA OTC directory | current `otcSecurityMaster` DAPI snapshot, or configured pipe-delimited OTC/OTCBB mirror | `FINRA_OTC_SYMBOL_DIRECTORY_URL` | Source-specific; no public numeric limit assumed | configured source / unknown until reviewed | full current DAPI pagination is live-proven; adapter remains non-routable until terms and quota evidence are recorded |
-| FRED | macro/rates/FX daily series | `FRED_API_KEY` | FRED v2 documents up to 2 requests/sec before 429; v1 also reserves the right to adjust limits, so no cross-version contract is assumed | API key / provider-defined | **not routable until the deployed API version's ceiling is verified** |
+| FRED | macro/rates/FX daily series | `FRED_API_KEY` | The deployed adapter uses FRED v1; its official errors page documents 429 throttling but no fixed numeric ceiling, so no limit is inferred from the separate v2 documentation | API key / provider-defined | **not routable until the deployed API version's ceiling is verified** |
 | Nasdaq Trader | official `nasdaqlisted.txt`/`otherlisted.txt` US NMS listing/lifecycle files | none | No numeric public limit in the symbol-directory definition; poll conservatively and record response headers | public service / unknown | **discovery evidence only; quota unknown** |
 | Tiingo | EOD history, search, profiles | `TIINGO_API_KEY` | 500 unique symbols/month, 50/hour, 1,000/day, 1GB/month (free Starter); free terms prohibit durable retention | API key / multiple windows | adapter + contract recorded; free persistence terms block durable routing |
 | Twelve Data | multi-timeframe candles, quote, search, US universe | `TWELVE_DATA_API_KEY` | 8 credits/min and 800/day Basic; cost is symbols/endpoint-weighted | API key / minute + day | adapter + credit contract recorded; operation costs must be verified |
 | Finnhub | candles, US profile/search, earnings events/universe | `FINNHUB_API_KEY` | Plan limits are dashboard-specific; hard cap 30 req/sec, candle entitlement can be premium | token / plan-specific | **quota unknown; not routable until account evidence** |
-| Marketstack | daily EOD history and ticker discovery | `MARKETSTACK_API_KEY` | Current pricing page says 100 requests/month, while an FAQ section still says 1,000; use the lower value only after account confirmation | key / calendar month | **quota ambiguous; not routable until account evidence** |
+| Marketstack | daily EOD history and ticker discovery | `MARKETSTACK_API_KEY` | Free-plan pricing publishes 100 requests/month and one year of history; a stale FAQ sentence says 1,000, so the checked-in contract uses the lower 100-request ceiling | key / calendar month | contract recorded; account/terms/live evidence required |
 | EODHD | long-history daily EOD, fundamentals/profile, US exchange list | `EODHD_API_KEY` | Free 20/day and 20/min, one-year history; paid $19.99/month adds 100k/day, 1,000/min, 30+ years | API key / minute + day | contract recorded; credentialed live evidence required |
 | FMP | daily history, profile, available-traded list | `FMP_API_KEY` | Current free allowance is account-plan dependent; public repository says up to 250/day but dashboard confirmation is required | key / plan-specific | **quota unknown; not routable** |
 | Tradier | US daily history, quotes/search; options-capable REST surface | `TRADIER_API_KEY` | 60/min sandbox; 120/min production market-data quota, response headers expose remaining/reset | token / minute | adapter + contract recorded; account live evidence required |
 | MarketData.app | delayed US stocks/options candles (options surface is optional) | `MARKETDATA_APP_API_KEY` | 100 credits/day free, reset 09:30 ET; 50 concurrency; free/trial history limited to one year | key / reset-day + concurrency | adapter + contract recorded; account live evidence required |
-| IBKR | account-bound stocks/options/futures/crypto via read-only Web API descriptor | deployment-specific `IBKR_READ_ONLY_URL` | 10 req/sec/session plus endpoint limits; historical max 5 concurrent; market-data subscriptions/account required | session/account / endpoint | descriptor only; no routing until funded-account evidence |
+| IBKR | account-bound stocks/options/futures/crypto via read-only Web API descriptor | deployment-specific `IBKR_READ_ONLY_URL` | Global 10 requests/sec/session; `/iserver/marketdata/history` max 5 concurrent; endpoint-specific pacing and a 15-minute penalty box apply | session/account / endpoint | pacing contract recorded; descriptor only, no routing until a funded-account adapter/evidence exists |
 | yfinance | legacy broad fallback, options/futures compatibility only | none | No official quota/SLA; unofficial scraping | unknown | legacy-only and disabled by default |
 | ETF holdings internal | platform's issuer/SEC holdings ingestion | internal configuration | Internal job/provider budgets, not an external market-data API | internal | generic bridge only; issuer-specific work remains on ETF branch |
 
@@ -59,11 +59,13 @@ The adapter excludes test issues, retains Nasdaq Financial Status Indicators
 absence plus separate lifecycle evidence before marking a listing inactive.
 See the [official symbol-directory definitions](https://nasdaqtrader.com/Trader.aspx?id=SymbolDirDefs).
 
-The FRED ceiling note follows the [FRED API v2 error documentation](https://fred.stlouisfed.org/docs/api/fred/v2/errors.html);
-FRED's v1 documentation deliberately leaves the operating ceiling adjustable.
-Marketstack's pricing/FAQ disagreement is visible in its [pricing page](https://marketstack.com/pricing)
-and [FAQ](https://marketstack.com/faq), so the implementation does not select a
-numeric contract until the account terms are confirmed.
+The FRED adapter uses the v1 endpoint. Its [v1 errors documentation](https://fred.stlouisfed.org/docs/api/fred/errors.html)
+confirms 429 throttling but does not publish a fixed number; the v2 page's
+two-requests-per-second example is therefore not applied to this adapter.
+Marketstack's [pricing page](https://marketstack.com/pricing) publishes the
+free 100-request/month plan; its [FAQ](https://marketstack.com/faq) contains a
+conflicting 1,000-request sentence, so the runtime records the lower 100 limit
+and remains gated on account/terms review.
 
 The platform uses a capability-based provider chain.  For each data type the runtime selects the
 highest-scoring available provider, falls back to the next, and so on.  Initial priorities below
@@ -97,12 +99,14 @@ scraping endpoint is substituted.
 
 Concrete adapters now exist for the cheap/keyless exchange and REST surfaces
 listed above (`coinbase`, `kraken`, `tradier`, and `marketdata_app` included).
-IBKR remains a descriptor because it is account/session-bound. Credentials,
-quota, and personal-use/redistribution terms are never inferred from an API
-key alone. FINRA now uses its OAuth client flow and has the documented
-synchronous quota ceiling recorded; credential, terms, and live evidence are
-still required. A provider becomes routable only after the governance record
-and live evidence satisfy the contract.
+IBKR remains a descriptor because it is account/session-bound; its documented
+pacing contract is recorded, but no capability is routable until a funded
+account/session adapter is supplied and tested. Credentials, quota, and
+personal-use/redistribution terms are never inferred from an API key alone.
+FINRA now uses its OAuth client flow and has the documented synchronous quota
+ceiling recorded; credential, terms, and live evidence are still required. A
+provider becomes routable only after the governance record and live evidence
+satisfy the contract.
 
 ## Market-data platform boundary
 

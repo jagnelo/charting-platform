@@ -34,6 +34,7 @@ from app.services.provider_runtime import (
 @dataclass(frozen=True, slots=True)
 class ProviderRequirements:
     capability: ProviderCapability
+    operation: str | None = None
     instrument_id: int | None = None
     asset_class: str | None = None
     venue: str | None = None
@@ -190,7 +191,10 @@ async def select_provider(
     """Select, reserve, and explain one provider decision."""
 
     providers = await resolve_provider_chain(
-        db, requirements.capability, instrument_id=requirements.instrument_id
+        db,
+        requirements.capability,
+        instrument_id=requirements.instrument_id,
+        operation=requirements.operation,
     )
     candidates: list[dict[str, Any]] = []
     rejected: dict[str, str] = {}
@@ -207,7 +211,7 @@ async def select_provider(
             rejected[resolved.provider_name] = "quota_unknown"
             continue
         if not provider_contract_operation_cost_known(
-            resolved.policy, resolved.data_source
+            resolved.policy, resolved.data_source, requirements.operation
         ):
             rejected[resolved.provider_name] = "operation_cost_unknown"
             continue

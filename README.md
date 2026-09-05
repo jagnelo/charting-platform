@@ -181,7 +181,9 @@ Useful provider envs:
 - `IDENTIFIER_PROVIDER_PRIORITY`: seed order for identifier enrichment.
 - `OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY`: seed order for option quote-history providers.
 - `PROVIDER_CHAIN_SEEDS`: JSON object overriding seed chains per capability, for example `{"instrument_metadata":["openfigi","yfinance"]}`.
-- `PROVIDER_RATE_LIMIT_SEEDS`: JSON object keyed by provider, for example `{"yfinance":{"tokens_per_minute":30,"burst_capacity":10}}`.
+- `PROVIDER_RATE_LIMIT_SEEDS`: JSON object keyed by provider. Values must be
+  copied from the provider's current published contract and include a complete
+  quota contract; there is no safe generic example or fallback.
 - `PROVIDER_FRESHNESS_SEEDS`: JSON object keyed by capability, for example `{"price_history":300,"instrument_events":86400}`.
 - `OPTION_CHAIN_REFRESH_HORIZON_DAYS`: refresh horizon for tracked-interest options maintenance.
 

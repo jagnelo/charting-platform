@@ -370,6 +370,49 @@ class Settings(BaseSettings):
             "quota_scope": "production_token",
             "quota_source": "Tradier rate-limiting documentation",
         },
+        "marketstack": {
+            "quota_contract": {
+                "dimensions": [
+                    {
+                        "name": "requests_per_month",
+                        "limit": 100,
+                        "window_seconds": 2678400,
+                        "unit": "requests",
+                        "scope": "api_key",
+                        "source": "https://marketstack.com/pricing",
+                    }
+                ],
+                "reset": "calendar_month",
+            },
+            "quota_scope": "api_key",
+            "quota_source": "Marketstack free-plan pricing",
+        },
+        "ibkr": {
+            "quota_contract": {
+                "dimensions": [
+                    {
+                        "name": "global_requests_per_second",
+                        "limit": 10,
+                        "window_seconds": 1,
+                        "unit": "requests",
+                        "scope": "authenticated_session",
+                        "source": "https://ibkrcampus.com/docs/web-api/v1/pacing-limitations",
+                    },
+                    {
+                        "name": "historical_requests_concurrent",
+                        "limit": 5,
+                        "window_seconds": 1,
+                        "unit": "concurrent_requests",
+                        "scope": "authenticated_session",
+                        "source": "https://ibkrcampus.com/docs/web-api/v1/pacing-limitations",
+                    },
+                ],
+                "reset": "rolling",
+                "endpoint_specific_limits": True,
+            },
+            "quota_scope": "authenticated_session",
+            "quota_source": "IBKR Web API pacing limitations",
+        },
     }
     PROVIDER_FRESHNESS_SEEDS: dict[str, int] = {}
     PROVIDER_USAGE_PROFILE_SEEDS: dict[str, dict] = {

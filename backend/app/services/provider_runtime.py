@@ -232,7 +232,11 @@ def provider_contract_operation_cost_known(
     if not isinstance(costs, dict) or not costs:
         return False
     if operation is None:
-        return True
+        # A provider may have a cost table while the caller has not named the
+        # operation.  Selecting it anyway would silently charge one request
+        # for an unknown endpoint weight, so generic workload selection stays
+        # fail-closed.
+        return False
     family = _operation_family(operation)
     return family in costs or operation in costs
 
@@ -440,6 +444,53 @@ def quota_dimensions(policy: ProviderPolicy) -> list[dict[str, Any]]:
             }
         )
     return result
+
+
+def quota_contract_missing_dimensions(policy: ProviderPolicy) -> list[str]:
+    """Return exact quota-contract fields that prevent safe admission."""
+
+    contract = policy.quota_contract
+    if not isinstance(contract, dict):
+        return ["quota_contract", "quota_scope", "quota_source"]
+
+    missing: list[str] = []
+    if not str(contract.get("reset") or "").strip():
+        missing.append("quota_contract.reset")
+    dimensions = contract.get("dimensions")
+    if not isinstance(dimensions, list) or not dimensions:
+        missing.append("quota_contract.dimensions")
+        return missing
+
+    for index, item in enumerate(dimensions):
+        prefix = f"quota_contract.dimensions[{index}]"
+        if not isinstance(item, dict):
+            missing.append(prefix)
+            continue
+        for field_name in ("name", "limit", "window_seconds", "unit", "scope", "source"):
+            value = item.get(field_name)
+            if field_name in {"limit", "window_seconds"}:
+                try:
+                    valid = int(value) > 0
+                except (TypeError, ValueError):
+                    valid = False
+            else:
+                valid = bool(str(value or "").strip())
+            if not valid:
+                missing.append(f"{prefix}.{field_name}")
+    return missing
+
+
+def provider_contract_operation_costs_configured(
+    policy: ProviderPolicy, data_source: DataSource
+) -> bool:
+    """Whether a weighted/credit contract has an operation-cost map."""
+
+    contract = dict(policy.quota_contract or {})
+    if not (contract.get("dynamic_endpoint_weights") or contract.get("operation_costs_required")):
+        return True
+    tracking = _usage_tracking_config(data_source)
+    costs = tracking.get("operation_costs")
+    return bool(isinstance(costs, dict) and costs)
 
 
 def policy_has_known_quota(policy: ProviderPolicy) -> bool:
@@ -685,6 +736,7 @@ async def resolve_provider_chain(
     capability: ProviderCapability,
     *,
     instrument_id: int | None = None,
+    operation: str | None = None,
 ) -> list[ResolvedProvider]:
     await seed_provider_runtime(db)
     rows = (
@@ -769,6 +821,12 @@ async def resolve_provider_chain(
             # An adapter may be perfectly valid code while its current plan,
             # key/IP scope, or window is unknown.  That is an observable
             # configuration state, never a reason to guess a safe default.
+            continue
+        if operation is not None and not provider_contract_operation_cost_known(
+            policy, data_source, operation
+        ):
+            # Weighted/credit providers are not candidates until this exact
+            # operation has a documented charge in the local usage profile.
             continue
         if health.circuit_open_until and health.circuit_open_until > now:
             continue
@@ -871,7 +929,12 @@ async def execute_provider_call(
     response_items: Callable[[T], int | None] | None = None,
     treat_empty_as_failure: bool = False,
 ) -> ProviderExecutionResult:
-    chain = await resolve_provider_chain(db, capability, instrument_id=instrument_id)
+    chain = await resolve_provider_chain(
+        db,
+        capability,
+        instrument_id=instrument_id,
+        operation=operation,
+    )
     if provider_name is not None:
         chain = [resolved for resolved in chain if resolved.provider_name == provider_name]
     loop = asyncio.get_event_loop()
@@ -1070,8 +1133,13 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
     await seed_provider_runtime(db)
     rows = (
         await db.execute(
-            select(ProviderPolicy, ProviderHealthState, DataSource)
+            select(ProviderPolicy, ProviderHealthState, DataSource, ProviderEntitlement)
             .join(DataSource, DataSource.id == ProviderPolicy.data_source_id)
+            .join(
+                ProviderEntitlement,
+                (ProviderEntitlement.data_source_id == ProviderPolicy.data_source_id)
+                & (ProviderEntitlement.capability == ProviderPolicy.capability),
+            )
             .join(
                 ProviderHealthState,
                 (ProviderHealthState.data_source_id == ProviderPolicy.data_source_id)
@@ -1100,11 +1168,23 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
             "quota_source": policy.quota_source,
             "quota_verified_at": policy.quota_verified_at,
             "quota_state": "known" if policy_has_known_quota(policy) else "unknown",
+            "quota_missing_dimensions": quota_contract_missing_dimensions(policy),
+            "operation_costs_configured": provider_contract_operation_costs_configured(
+                policy, data_source
+            ),
             "credentials_configured": provider_is_configured(data_source.name),
+            "entitlement_state": (
+                "reviewed"
+                if str(entitlement.configured_plan or "").strip().lower() != "unreviewed"
+                else "unreviewed"
+            ),
             "routing_eligible": bool(
                 policy.is_enabled
                 and policy_has_known_quota(policy)
                 and provider_is_configured(data_source.name)
+                and str(entitlement.configured_plan or "").strip().lower() != "unreviewed"
+                and (entitlement.is_free or settings.ALLOW_PAID_PROVIDER_ROUTING)
+                and provider_contract_operation_costs_configured(policy, data_source)
             ),
             "freshness_seconds": policy.freshness_seconds,
             "failure_streak": health.failure_streak,
@@ -1119,5 +1199,5 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
             "last_error_type": health.last_error_type,
             "last_error_message": health.last_error_message,
         }
-        for policy, health, data_source in rows
+        for policy, health, data_source, entitlement in rows
     ]
