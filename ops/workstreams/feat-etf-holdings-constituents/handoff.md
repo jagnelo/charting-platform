@@ -2892,3 +2892,12 @@ returned HTTP 401. The Pacific Asset Management GEME route passed its focused
 opt-in live contract (1 passed). The four unresolved symbols remain explicitly
 non-current, and GEME remains current only under its existing dated,
 identity-bound canary contract.
+## Non-current UI contract coverage — 2026-09-05
+
+Implementation checkpoint `11671d1cfac05ccf8fcc0c4e994f937c9e5ed52f` adds
+parameterized ETF holdings-panel coverage for `stale`, `unavailable`,
+`not_applicable`, and `unknown` capabilities when no snapshot exists. Each
+state remains visible, shows the known provider, explains the route status, and
+emits unavailable for current analysis. The focused panel/view suite passes 12
+tests and `vue-tsc --noEmit` passes. This strengthens AC13 evidence without
+loosening any current-data gate.
