@@ -11,6 +11,20 @@ records in `docs/project-todos.md`, `docs/tc2000-parity.md`,
 evidence ledgers. If a summary here conflicts with a dated test receipt or the current code, the
 current code and fresh evidence win.
 
+## 2026-09-05 — Separate aggregate analysis readiness from covered history
+
+The generic watchlist source-history response now includes an aggregate `analysis_ready` boolean
+and `analysis_ready_status` across every requested timeframe. The existing `overall_status` remains
+the compatibility-oriented covered/worker state, while the new aggregate applies the declared
+D1/W1/MN floors (252/52/24 bars) to prevent daily-only or one-bar coverage from being presented as
+study-ready. Market Map renders both states. Product commit `ea4514fa` (`feat(tc2000): expose
+aggregate history readiness`) is committed on the feature branch. Backend watchlist-history units
+pass `6/6`, full backend units pass `1,319/1,319` with the existing `34` warnings, focused Market
+Map component coverage passes `36/36`, full frontend Vitest remains `952/952` across `109` files,
+TypeScript, Ruff, format, and `git diff --check` pass. The exhaustive gate and authenticated
+browser recheck at this new product tip remain pending; the prior gate's six unchanged visual
+state-oracle diffs remain explicit.
+
 ## 2026-09-05 — Generic source history exposes analysis-ready floors
 
 The shared watchlist source-history status now reports analysis-ready members and percentages for

@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-05 — Separate aggregate analysis readiness from covered history
+
+- [x] Keep the legacy generic source-history `overall_status` for covered/worker progress while
+      adding `analysis_ready` and `analysis_ready_status` across every requested timeframe. The
+      aggregate applies the D1/W1/MN floors of 252/52/24 bars, so daily coverage cannot hide an
+      incomplete weekly or monthly leg and one-bar coverage cannot masquerade as study-ready.
+- [x] Surface the aggregate state in Market Map and retain compatibility with older API/e2e
+      fixtures. Watchlist-history units passed `6/6`, backend units passed `1,319/1,319` with the
+      existing `34` warnings, focused Market Map component coverage passed `36/36`, full frontend
+      Vitest passed `952/952` across `109` files, TypeScript, Ruff, format, and `git diff --check`
+      passed. Product commit `ea4514fa` is committed on `feat/tc2000-frontend-rework`.
+- [ ] Re-run the authenticated browser flow and exact-tip exhaustive gate after this product
+      commit; preserve the six visual state-oracle diffs and unchanged fallback/provider policy.
+
 ### 2026-09-05 — Expose analysis-ready history floors for generic sources
 
 - [x] Extend the shared watchlist source-history contract with provider-neutral analysis-readiness
