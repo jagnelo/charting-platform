@@ -88,6 +88,7 @@
             <div v-if="canPromoteStructuredEventArtifact(selectedRun, artifact)" class="research-results-tool__event-promotions" role="group" :aria-label="`${artifact.name} promotions`">
               <button type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save filter: ${artifact.name}`" @click="promoteEventArtifact(selectedRun, artifact.name, 'filter')">{{ promoting ? 'Promoting…' : `Save filter: ${artifact.name}` }}</button>
               <button type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Promote alert: ${artifact.name}`" @click="promoteEventArtifact(selectedRun, artifact.name, 'alert')">{{ promoting ? 'Promoting…' : `Promote alert: ${artifact.name}` }}</button>
+              <button type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save Strategy signal: ${artifact.name}`" @click="promoteEventArtifact(selectedRun, artifact.name, 'signal')">{{ promoting ? 'Promoting…' : `Save Strategy signal: ${artifact.name}` }}</button>
             </div>
             <div class="research-results-tool__events" role="list" :aria-label="`${artifact.name} filtered occurrences`">
               <button v-for="(event, index) in filteredEventRows(artifact)" :key="`${event.symbol}-${event.timestamp}-${index}`" type="button" role="listitem" :aria-label="`${event.symbol} ${event.timestamp} occurrence`" @click="emit('occurrence', event)"><strong>{{ event.symbol }}</strong><span>{{ event.kind ? `${event.kind.replace(/_/g, ' ')} · ` : '' }}{{ event.timestamp }}</span></button>
@@ -651,10 +652,48 @@ async function promoteEventAlert(run: ResearchRunSummary) {
     promoting.value = false
   }
 }
-async function promoteEventArtifact(run: ResearchRunSummary, artifactName: string, target: 'filter' | 'alert') {
+async function promoteEventArtifact(run: ResearchRunSummary, artifactName: string, target: 'filter' | 'alert' | 'signal') {
   promoting.value = true
   promotionMessage.value = ''
   try {
+    if (target === 'signal') {
+      const assets = await api.get<Array<{ versions?: Array<{ id?: number; source?: string; output_contract?: string; parameter_schema?: Record<string, unknown>; default_parameters?: Record<string, unknown> }> }>>('/code/assets')
+      const sourceVersion = (assets ?? []).flatMap(asset => asset.versions ?? []).find(version => version.id === run.code_version_id)
+      if (!sourceVersion?.source) throw new Error('The immutable source code version for this research run is unavailable.')
+      const sourceManifest = run.dataset_manifest ?? {}
+      const sourceRunConfig = run.run_config ?? {}
+      const lineage = {
+        type: 'study_run_promotion',
+        source_run_id: run.id,
+        source_code_version_id: run.code_version_id,
+        source_reproducibility_hash: run.reproducibility_hash ?? null,
+        source_dataset_manifest: sourceManifest,
+        source_run_config: sourceRunConfig,
+        source_output_name: artifactName,
+        target: 'signal',
+        output_adapter: 'events_to_signal',
+        semantics: 'study_event_result_as_strategy_signal',
+        point_in_time_source_preserved: false,
+      }
+      const asset = await api.post<{ id?: number; name?: string; versions?: Array<{ id?: number }> }>('/code/assets', {
+        stable_key: `${run.id}-${artifactName}-signal-${Date.now().toString(36)}`.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80) || `study-${run.id}-signal`,
+        name: `${artifactName} signal`,
+        kind: 'signal',
+        initial_version: {
+          source: sourceVersion.source,
+          output_contract: 'events',
+          output_name: artifactName,
+          parameter_schema: sourceVersion.parameter_schema ?? {},
+          default_parameters: sourceVersion.default_parameters ?? {},
+          lineage,
+        },
+      })
+      const codeVersionId = asset.versions?.[0]?.id ?? asset.id
+      if (typeof codeVersionId !== 'number') throw new Error('The event signal asset did not return an immutable code version.')
+      const promoted = await api.post<{ id: number; name: string }>(`/strategy-lab/signals/from-code/${codeVersionId}`, {})
+      promotionMessage.value = `Saved event artifact “${artifactName}” as Strategy signal “${promoted.name}” (#${promoted.id}). Current-data re-evaluation and source lineage are preserved.`
+      return
+    }
     const promoted = await api.post<{ id: number; name: string }>(`/research/runs/${run.id}/promote-event-filter`, { artifact_name: artifactName })
     if (target === 'alert') {
       await api.post('/alerts/screener', { screener_id: promoted.id, trigger_type: 'both', repeat: true, notes: `Created from structured event research run ${run.id}` })

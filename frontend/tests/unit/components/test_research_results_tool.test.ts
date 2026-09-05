@@ -345,6 +345,46 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.text()).toContain('Promoted event artifact “occurrences” to an active alert.')
   })
 
+  it('promotes a named structured-study event artifact to a Strategy signal with an explicit adapter', async () => {
+    const source = "output.events('occurrences', [{'symbol': dataset['symbol'], 'timestamp': market.timestamps()[-1], 'kind': 'breakout'}])"
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve([{ id: 37, status: 'completed', code_version_id: 85, output_contract: 'study', run_config: { timeframe: 'D1' }, dataset_manifest: { source: 'canonical_database' }, reproducibility_hash: 'hash-37', diagnostics: [], artifacts: [
+        { id: 27, name: 'occurrences', artifact_type: 'events', payload: { value: [{ symbol: 'SPY', timestamp: '2026-01-02T00:00:00Z', kind: 'breakout', instrument_id: 7 }] } },
+      ] }])
+      if (path === '/code/assets') return Promise.resolve([{ name: 'Study 37', versions: [{ id: 85, source, output_contract: 'study', parameter_schema: { properties: {} }, default_parameters: {} }] }])
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string, body: unknown) => {
+      if (path === '/code/assets') return Promise.resolve({ id: 86, name: 'Occurrences signal', versions: [{ id: 86 }] })
+      if (path === '/strategy-lab/signals/from-code/86') return Promise.resolve({ id: 87, name: 'Occurrences Strategy Signal' })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.get('[aria-label="Save Strategy signal: occurrences"]').trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'signal',
+      initial_version: expect.objectContaining({
+        source,
+        output_contract: 'events',
+        output_name: 'occurrences',
+        lineage: expect.objectContaining({
+          source_run_id: 37,
+          source_output_name: 'occurrences',
+          target: 'signal',
+          output_adapter: 'events_to_signal',
+          semantics: 'study_event_result_as_strategy_signal',
+          point_in_time_source_preserved: false,
+        }),
+      }),
+    }))
+    expect(apiPost).toHaveBeenCalledWith('/strategy-lab/signals/from-code/86', {})
+    expect(wrapper.text()).toContain('Saved event artifact “occurrences” as Strategy signal “Occurrences Strategy Signal” (#87).')
+  })
+
   it('exposes lineage-preserving column and chart promotions for structured scalar and series artifacts', async () => {
     const source = "output.scalar('sample_size', 4)\noutput.series('trend', [1, 2])"
     apiGet.mockImplementation((path: string) => {

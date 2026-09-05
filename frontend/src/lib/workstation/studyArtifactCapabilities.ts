@@ -27,8 +27,8 @@ export const STUDY_ARTIFACT_CAPABILITIES: Readonly<Record<string, StudyArtifactC
     note: 'Compatible target: center chart plot when an aligned finite center series is present; bounds remain source-only.',
   },
   events: {
-    targets: ['watchlist filter', 'alert'],
-    note: 'Structured-study event targets: watchlist filter and alert; single-output event runs may also save a Strategy signal.',
+    targets: ['watchlist filter', 'alert', 'Strategy signal'],
+    note: 'Structured-study event targets: watchlist filter, alert, and Strategy signal; all preserve the selected artifact and source lineage.',
   },
   table: {
     targets: [],

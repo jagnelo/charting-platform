@@ -3003,6 +3003,10 @@ test.describe('TC2000 workstation', () => {
       }
       if (outputName === 'confidence') expect(body?.initial_version).toMatchObject({ output_contract: 'series', output_name: 'confidence', lineage: { output_adapter: 'range_center_to_series', semantics: 'study_range_center_result_as_chart_plot' } })
       if (outputName === 'trend' && body?.kind === 'column') expect(body?.initial_version).toMatchObject({ output_contract: 'scalar', output_name: 'trend', lineage: { output_adapter: 'latest_series_to_scalar', semantics: 'study_series_latest_result_as_watchlist_column' } })
+      if (body?.kind === 'signal' && outputName === 'occurrences') {
+        await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 52, name: 'Occurrences signal asset', versions: [{ id: 52 }] }) })
+        return
+      }
       const id = outputName === 'sample_size' ? 46 : outputName === 'trend' ? (body?.kind === 'column' ? 49 : 47) : outputName === 'confidence' ? 48 : 50
       const name = outputName === 'sample_size' ? 'Sample size column' : outputName === 'trend' ? (body?.kind === 'column' ? 'Trend latest column' : 'Trend plot') : outputName === 'confidence' ? 'Confidence center plot' : 'Qualifies column'
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id, name, versions: [{ id }] }) })
@@ -3039,6 +3043,9 @@ test.describe('TC2000 workstation', () => {
     })
     await page.route(/\/api\/v1\/research\/runs\/884\/promote-event-signal$/, async route => {
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 43, name: 'Breakout events signal' }) })
+    })
+    await page.route(/\/api\/v1\/strategy-lab\/signals\/from-code\/52$/, async route => {
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 53, name: 'Occurrences Strategy Signal' }) })
     })
     await page.route(/\/api\/v1\/research\/runs\/885\/promote-event-filter$/, async route => {
       expect(route.request().method()).toBe('POST')
@@ -3099,6 +3106,8 @@ test.describe('TC2000 workstation', () => {
     await expect(results).toContainText('Saved event artifact “occurrences” as a reusable watchlist filter.')
     await results.getByRole('button', { name: 'Promote alert: occurrences' }).click()
     await expect(results).toContainText('Promoted event artifact “occurrences” to an active alert.')
+    await results.getByRole('button', { name: 'Save Strategy signal: occurrences' }).click()
+    await expect(results).toContainText('Saved event artifact “occurrences” as Strategy signal “Occurrences Strategy Signal” (#53).')
     await expect(results.getByRole('button', { name: 'Save column: sample_size' })).toBeVisible()
     await expect(results.getByRole('button', { name: 'Save chart plot: trend' })).toBeVisible()
     await results.getByRole('button', { name: 'Save column: sample_size' }).click()

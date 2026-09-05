@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { studyArtifactCapability } from '@/lib/workstation/studyArtifactCapabilities'
 
 describe('study artifact promotion capabilities', () => {
-  it('describes compatible scalar, boolean, series, and range targets', () => {
+  it('describes compatible scalar, boolean, series, range, and event targets', () => {
     expect(studyArtifactCapability('scalar')?.targets).toEqual(['watchlist column'])
     expect(studyArtifactCapability('boolean')?.targets).toEqual([
       'watchlist column',
@@ -13,6 +13,7 @@ describe('study artifact promotion capabilities', () => {
     ])
     expect(studyArtifactCapability('series')?.targets).toEqual(['chart plot', 'latest-value watchlist column'])
     expect(studyArtifactCapability('range')?.note).toContain('bounds remain source-only')
+    expect(studyArtifactCapability('events')?.targets).toEqual(['watchlist filter', 'alert', 'Strategy signal'])
   })
 
   it('keeps structured visual shapes view/export-only', () => {
