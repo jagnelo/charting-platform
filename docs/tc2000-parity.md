@@ -10,8 +10,13 @@ is committed locally. Backend units passed `1,318/1,318`, focused history unit/A
 `5/5` and `1/1` (selected API coverage-floor caveat noted in the TODO ledger), frontend component
 coverage passed `36/36`, full Vitest passed `952/952` across `109` files, TypeScript/Ruff/format/
 diff checks passed, and authenticated F8s-market-map-watchlist passed `1/1` on a rebuilt,
-branch-scoped stack with clean teardown. The exact-tip exhaustive gate is pending at the durable
-documentation tip; the unchanged visual matrix remains `98/104` with six state-oracle diffs.
+branch-scoped stack with clean teardown. The exact-tip exhaustive gate then ran at metadata tip
+`0af0bed5` (product tip `8490f2dd`): all non-visual stages and functional Playwright passed
+(`157/157`, `106` documented skips across `263` specs). The unchanged visual matrix remains
+`98/104`; `watchlist-column-editor-open` differs by `13,844` pixels at visual-1080p-100/125, and
+`workspace-floating` differs by `9,770`/`11,901`/`11,901`/`12,097` pixels at
+visual-1080p-100/125/1440p-100/1440p-125. Teardown and resource accounting were clean; no visual
+or provider/fallback policy changed.
 
 ## 2026-09-05 — Exact-tip gate after structured range-center threshold promotion
 

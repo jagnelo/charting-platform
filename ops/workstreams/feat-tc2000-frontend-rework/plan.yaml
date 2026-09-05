@@ -114,10 +114,15 @@ progress:
     API invocation has the expected coverage-floor caveat); frontend component coverage passed 36/36;
     full frontend Vitest passed 952/952 across 109 files; TypeScript, Ruff/format, and diff checks
     passed; authenticated F8s-market-map-watchlist passed 1/1 on a rebuilt branch-scoped stack with
-    clean teardown. The product commit is committed locally; the exact-tip exhaustive gate must be
-    rerun at the durable documentation tip. Existing visual acceptance remains 98/104 with six
-    reproducible state-oracle diffs. Canonical provider/history, richer Study, native-window/
-    accessibility/security, dense-data, and visual-oracle gaps remain open.
+    clean teardown. The product commit is pushed. The exact-tip exhaustive gate then ran at metadata
+    tip 0af0bed5: all non-visual stages and functional Playwright passed 157/157 with 106 documented
+    skips across 263 specs. The unchanged visual matrix completed 104 cases with 98 passes and six
+    failures: watchlist-column-editor-open at visual-1080p-100/125 (13844 pixels each), and
+    workspace-floating at visual-1080p-100/125/1440p-100/1440p-125
+    (9770/11901/11901/12097 pixels). Teardown and resource accounting were clean; existing visual
+    acceptance remains unchanged and the six state-oracle diffs are the only gate blocker.
+    Canonical provider/history, richer Study, native-window/accessibility/security, dense-data, and
+    visual-oracle gaps remain open.
     Historical current boundary: product commit b6316871 added explicit operator/threshold promotion
     for finite numeric Study series in the primary Study Lab, with Boolean column/filter/scan/gauge/
     alert fan-out, canonical member scope, immutable run/output lineage, and series_target_to_boolean
@@ -149,9 +154,9 @@ progress:
     rule, or acceptance policy changed; assigned stack teardown and resource accounting were clean.
     Canonical provider/history, richer Study targets, native-window/accessibility/security,
     dense-data, and visual-oracle review remain open.
-  next_action: "Run the exact-tip exhaustive gate at the documentation tip, preserve the six visual state-oracle diffs and unchanged provider fallback policy, then continue the next compatible canonical provider/history or Study slice."
+  next_action: "Continue the next compatible canonical provider/history or Study slice; preserve the six visual state-oracle diffs and unchanged visual/provider fallback policy."
 remaining_gaps:
-  - "Current boundary (product tip 8490f2dd; exact-tip gate pending): generic watchlist source-history now reports analysis-ready D1/W1/MN member counts/percentages at 252/52/24 bar floors, with focused history unit/API checks 5/5 and 1/1, frontend component 36/36, full frontend 952/952 across 109 files, backend units 1318/1318, TypeScript/Ruff/format/diff checks, authenticated F8s-market-map-watchlist 1/1, and clean focused stack teardown. Preserve existing covered/worker overall-status and provider fallback semantics. Run the exact-tip gate at the durable documentation tip, then continue canonical provider/history or Study work. The prior
+  - "Current boundary (metadata tip 0af0bed5, product tip 8490f2dd; exact-tip gate complete with visual blocker): generic watchlist source-history now reports analysis-ready D1/W1/MN member counts/percentages at 252/52/24 bar floors, with focused history unit/API checks 5/5 and 1/1, frontend component 36/36, full frontend 952/952 across 109 files, backend units 1318/1318, TypeScript/Ruff/format/diff checks, authenticated F8s-market-map-watchlist 1/1, and clean teardown. The exhaustive gate passed all non-visual stages and functional Playwright 157/157 with 106 documented skips across 263 specs. Its unchanged visual matrix completed 104 cases with 98 passes and six failures: watchlist-column-editor-open at visual-1080p-100/125 (13844 pixels each) and workspace-floating at visual-1080p-100/125/1440p-100/1440p-125 (9770/11901/11901/12097 pixels). Preserve existing covered/worker overall-status and provider fallback semantics, then continue canonical provider/history or Study work. The prior
     metadata boundary 93883674/product 7f672897 had an exact-tip gate complete with visual blocker: Study range-center thresholded Boolean promotion is complete
     across primary Study Lab and persisted Research Results with Boolean column/filter/scan/gauge/alert
     fan-out, backend runner coverage 113/113, code API 24/24, screener integration 27/27, focused

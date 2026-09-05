@@ -6,8 +6,12 @@ Market Map now labels provider-neutral D1/W1/MN analysis readiness using the dec
 bar floors in addition to covered members and observed history. No authoritative V25 capture covers
 this diagnostic text, so exact typography and spacing remain `required_missing`; no screenshot
 baseline, mask, threshold, skip, or visual acceptance rule changed. The product commit is
-`8490f2dd`; the exact-tip gate is pending at the documentation tip and the existing visual result
-remains `98/104` with the same six state-oracle mismatches.
+`8490f2dd`; the exact-tip gate then ran at metadata tip `0af0bed5`, passing all non-visual stages
+and functional Playwright (`157/157` with `106` documented skips across `263` specs). The visual
+matrix remains `98/104`: `watchlist-column-editor-open` differs by `13,844` pixels at
+visual-1080p-100/125, and `workspace-floating` by `9,770`/`11,901`/`11,901`/`12,097` pixels at
+visual-1080p-100/125/1440p-100/1440p-125. Teardown was clean; the six state-oracle mismatches
+remain the only visual gate failures and no visual acceptance rule changed.
 
 ## 2026-09-05 — Range-center threshold promotion remains functional-only
 

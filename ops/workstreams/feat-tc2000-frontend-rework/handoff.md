@@ -22,9 +22,14 @@ Evidence: backend units `1,318/1,318`; focused history unit/API checks `5/5` and
 API invocation has the expected coverage-floor caveat); frontend component coverage `36/36`; full
 frontend Vitest `952/952` across `109` files; TypeScript, Ruff/format, and `git diff --check`
 passed; authenticated F8s-market-map-watchlist `1/1` passed on a rebuilt branch-scoped Docker
-stack with clean teardown/resource accounting. The exact-tip exhaustive gate is pending at the
-durable documentation tip. Preserve the unchanged six visual state-oracle diffs and do not alter
-visual policy, provider fallback rules, or protected worktrees.
+stack with clean teardown/resource accounting. The exact-tip exhaustive gate then ran at metadata
+tip `0af0bed5` (product tip `8490f2dd`): all non-visual stages and functional Playwright passed
+(`157/157` with `106` documented skips across `263` specs). The unchanged visual matrix completed
+`104` cases with `98` passes and six failures: `watchlist-column-editor-open` at visual-1080p-100/125
+(`13,844` pixels each), and `workspace-floating` at visual-1080p-100/125/1440p-100/1440p-125
+(`9,770`/`11,901`/`11,901`/`12,097` pixels). Teardown/resource accounting were clean; preserve
+the six visual state-oracle diffs and do not alter visual policy, provider fallback rules, or
+protected worktrees.
 
 ## 2026-09-05 — Promote Study range centers through explicit Boolean thresholds
 

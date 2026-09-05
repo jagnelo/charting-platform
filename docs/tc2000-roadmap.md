@@ -22,8 +22,13 @@ Backend units passed `1,318/1,318`; the focused history unit/API checks passed `
 selected API invocation has the expected coverage-floor caveat); frontend component coverage passed
 `36/36`, full frontend Vitest `952/952` across `109` files, TypeScript, Ruff/format, and diff checks
 passed, and authenticated F8s-market-map-watchlist passed `1/1` on a rebuilt branch-scoped stack
-with clean teardown. The exact-tip exhaustive gate must be rerun at the documentation tip; existing
-visual acceptance remains unchanged at `98/104` with six reproducible state-oracle diffs.
+with clean teardown. The exact-tip exhaustive gate then ran at metadata tip `0af0bed5` (product tip
+`8490f2dd`): all non-visual stages and functional Playwright passed (`157/157` with `106` documented
+skips across `263` specs). The unchanged visual matrix completed `104` cases with `98` passes and
+six failures: `watchlist-column-editor-open` at visual-1080p-100/125 (`13,844` pixels each), and
+`workspace-floating` at visual-1080p-100/125/1440p-100/1440p-125 (`9,770`/`11,901`/`11,901`/
+`12,097` pixels). Teardown and resource accounting were clean; existing visual acceptance remains
+unchanged and the six state-oracle diffs are the only gate blocker.
 
 The current product slice is `8490f2dd` (`feat(tc2000): expose history analysis-ready floors`).
 

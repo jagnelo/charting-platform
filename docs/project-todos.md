@@ -13,8 +13,14 @@
       passed `952/952` across `109` files, backend units passed `1,318/1,318`, and Ruff/format,
       TypeScript, and `git diff --check` passed. Authenticated F8s-market-map-watchlist passed
       `1/1` on a rebuilt branch-scoped Docker stack; teardown removed all assigned resources.
-- [x] Product commit `8490f2dd` (`feat(tc2000): expose history analysis-ready floors`) is committed
-      locally; exact-tip exhaustive gate rerun remains required at the durable documentation tip.
+- [x] Product commit `8490f2dd` (`feat(tc2000): expose history analysis-ready floors`) is pushed to
+      `origin/feat/tc2000-frontend-rework`. The exact-tip exhaustive gate ran at metadata tip
+      `0af0bed5` and passed every non-visual stage plus functional Playwright (`157/157` with `106`
+      documented skips across `263` specs). The unchanged visual matrix completed `104` cases with
+      `98` passes and six failures: `watchlist-column-editor-open` at visual-1080p-100/125
+      (`13,844` pixels each), and `workspace-floating` at visual-1080p-100/125/1440p-100/1440p-125
+      (`9,770`/`11,901`/`11,901`/`12,097` pixels). Teardown removed all assigned resources; no
+      visual policy, provider fallback rule, or acceptance policy changed.
 - [ ] Preserve the six visual state-oracle diffs and continue the next compatible canonical
       provider/history or Study target without changing visual policy or fallback rules.
 
