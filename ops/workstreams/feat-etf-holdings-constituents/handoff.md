@@ -4553,3 +4553,16 @@ Westwood remains `issuer_access_blocked` and MDST remains unavailable. The
 browser-indexed portfolio does not establish application support; promotion
 still requires repeatable transport access, strict parser/mapping coverage,
 and bounded live proof.
+
+## Advisors Asset Management route recheck — 2026-09-05
+
+AAM's current indexed SPDV detail page exposes a 52-item holdings grid across
+six pages and an Export to Excel affordance. Direct application-equivalent
+default and page-size requests ended with empty server replies; no complete
+export or stable paginated transport was retrieved for SPDV, BDIV, TRFM, or
+PFLD.
+
+AAM remains `issuer_access_blocked` and all four symbols remain unavailable.
+The paginated browser UI is evidence of a candidate route, not application
+support; promotion still requires a complete executable artifact, strict
+symbol mapping, and bounded live proof.

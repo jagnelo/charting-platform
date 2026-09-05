@@ -802,8 +802,12 @@ _register_non_tier_0_audits(
     outcome=UNAVAILABLE,
     evidence_state="issuer_route_access_blocked",
     provider_identity="advisors_asset_management",
-    investigated_at=date(2026, 9, 2),
-    evidence_refs=("web:aam-etf-detail-empty-backend-response-2026-09-02",),
+    investigated_at=date(2026, 9, 5),
+    evidence_refs=(
+        "web:aam-etf-detail-empty-backend-response-2026-09-02",
+        "web:aam-spdv-current-paginated-holdings-2026-09-05",
+        "live:aam-spdv-application-empty-reply-2026-09-05",
+    ),
     next_action=(
         "Re-test AAM's symbol-scoped detail/export route from an allowed network path; promote "
         "only after capturing a complete artifact, mapping symbols, and adding parser plus "

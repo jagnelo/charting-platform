@@ -2045,3 +2045,18 @@ validation, and bounded live proof. Evidence refs:
 `web:westwood-mdst-current-holdings-2026-09-05`,
 `live:westwood-mdst-current-holdings-page-2026-09-05-403`, and
 `live:westwood-mdst-current-holdings-csv-2026-09-05-403`.
+
+## Advisors Asset Management route recheck — 2026-09-05
+
+AAM's current indexed SPDV detail page exposes a 52-item holdings grid across
+six pages and an Export to Excel affordance. The application-equivalent
+default and page-size requests ended with empty server replies, so no complete
+export or stable paginated transport was retrieved for SPDV, BDIV, TRFM, or
+PFLD.
+
+AAM remains an explicit `issuer_access_blocked` fallback and all four symbols
+remain `unavailable`. The paginated browser UI is not promoted as current
+support without a complete executable artifact, strict symbol mapping, and
+bounded live proof. Evidence refs:
+`web:aam-spdv-current-paginated-holdings-2026-09-05` and
+`live:aam-spdv-application-empty-reply-2026-09-05`.
