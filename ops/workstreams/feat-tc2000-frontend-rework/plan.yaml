@@ -106,6 +106,15 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
+    Exact-tip full_stack_browser gate at metadata tip 9c230fd5 (product tip 45ae7e9b) passed
+    locked dependency/migration checks, workstream validation, lint/format/type-check, backend
+    unit/integration and combined coverage, frontend Vitest, production build, compose/provider
+    policy, stack health, runner isolation, and functional Playwright 157/157 with 106 documented
+    skips across 263 specs. The visual matrix remains 98/104 with the same six state-oracle
+    assertions: watchlist-column-editor-open at both 1080p scales and workspace-floating at all
+    four scales. Teardown and resource accounting were clean; no baseline, mask, threshold, skip,
+    fallback, provider, or acceptance policy changed. Continue the next canonical provider/history
+    slice.
     Current slice product tip 45ae7e9b renders the canonical benchmark-family per-role
     breadth-history above_ma.ma20 observations as aligned role-coloured uPlot lines, preserving
     missing timestamps as nulls without forward filling. Role-local readiness/status and aligned
@@ -205,8 +214,9 @@ remaining_gaps:
     above_ma.ma20 series as aligned role-coloured lines with null-preserved gaps and no forward
     fill. Lifecycle coverage passed 17/17, TypeScript/build passed, authenticated
     F8s-breadth-family-ratio passed 1/1 on a rebuilt stack, and teardown/builder cleanup were
-    clean. Rerun the exact-tip gate at the next coherent documentation tip; preserve the six
-    existing visual state-oracle diffs and provider/fallback acceptance policy."
+    clean. The exact-tip gate at metadata tip 9c230fd5 passed all non-visual stages and functional
+    Playwright 157/157 with 106 documented skips; visual acceptance remains 98/104 with the same
+    six state-oracle diffs. Preserve the existing visual/provider/fallback acceptance policy."
   - "Current boundary (metadata tip 0af0bed5, product tip 8490f2dd; exact-tip gate complete with visual blocker): generic watchlist source-history now reports analysis-ready D1/W1/MN member counts/percentages at 252/52/24 bar floors, with focused history unit/API checks 5/5 and 1/1, frontend component 36/36, full frontend 952/952 across 109 files, backend units 1318/1318, TypeScript/Ruff/format/diff checks, authenticated F8s-market-map-watchlist 1/1, and clean teardown. The exhaustive gate passed all non-visual stages and functional Playwright 157/157 with 106 documented skips across 263 specs. Its unchanged visual matrix completed 104 cases with 98 passes and six failures: watchlist-column-editor-open at visual-1080p-100/125 (13844 pixels each) and workspace-floating at visual-1080p-100/125/1440p-100/1440p-125 (9770/11901/11901/12097 pixels). Preserve existing covered/worker overall-status and provider fallback semantics, then continue canonical provider/history or Study work. The prior
     metadata boundary 93883674/product 7f672897 had an exact-tip gate complete with visual blocker: Study range-center thresholded Boolean promotion is complete
     across primary Study Lab and persisted Research Results with Boolean column/filter/scan/gauge/alert

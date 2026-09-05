@@ -5,6 +5,17 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-05
 
+## 2026-09-05 — Exact-tip gate after breadth-history chart
+
+The exact-tip `full_stack_browser` gate at metadata tip `9c230fd5` (product tip `45ae7e9b`)
+passed locked dependency/migration checks, workstream validation, lint/format/type-check, backend
+unit/integration and combined coverage, frontend Vitest, production build, compose/provider policy,
+stack health, runner isolation, and functional Playwright (`157/157`, with `106` documented skips
+across `263` specs). The visual matrix remains `98/104`; the same six state-oracle assertions fail:
+`watchlist-column-editor-open` at both 1080p scales and `workspace-floating` at all four scales.
+Teardown removed the assigned stack and generated resources. No baseline, mask, threshold, skip,
+fallback, provider, or acceptance rule changed. Continue the next canonical provider/history slice.
+
 ## 2026-09-05 — Render benchmark-family breadth history
 
 The workstation now renders the canonical per-role benchmark-family breadth-history series as a

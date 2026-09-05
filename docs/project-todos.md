@@ -10,8 +10,10 @@
       temporary-builder cleanup were clean.
 - [x] Product commit `45ae7e9b` (`feat(tc2000): render benchmark family breadth history`) is
       pushed to `origin/feat/tc2000-frontend-rework`.
-- [ ] Rerun the exact-tip exhaustive gate at the coherent documentation tip while preserving the
-      six existing visual state-oracle diffs and all provider/fallback acceptance policy.
+- [x] Exact-tip `full_stack_browser` gate at metadata tip `9c230fd5` (product tip `45ae7e9b`)
+      passed all non-visual stages and functional Playwright (`157/157`, `106` documented skips);
+      visual acceptance remains `98/104` with the same six state-oracle failures. Teardown and
+      resource accounting were clean; no visual/provider/fallback policy changed.
 
 ### 2026-09-05 — Benchmark-family breadth history exposes per-role readiness
 
