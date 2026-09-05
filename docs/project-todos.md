@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-05 — Render cross-family ranking history
+
+- [x] Render canonical cross-family ranking-history `relative_performance` series as family-labelled
+      uPlot lines beneath the current ranking summary; align timestamps and preserve missing
+      observations as nulls without forward filling rank or performance values, with explicit
+      unavailable state for malformed/unsupported data.
+- [x] Add lifecycle/alignment coverage (`23/23`), TypeScript, production build, and authenticated
+      Chromium `F8s-breadth-family-ratio` (`1/1`) asserting the historical relative-performance
+      chart is visible on a rebuilt branch-scoped stack; teardown and resource cleanup were clean.
+- [ ] Commit/push the product and durable workstream receipt, then rerun the exact-tip exhaustive
+      gate at the next coherent documentation tip. Preserve the six existing visual state-oracle
+      failures and unchanged visual/provider/fallback policy.
+
 ### 2026-09-05 — Render benchmark-family concentration history
 
 - [x] Render canonical point-in-time concentration-history `dispersion` by available benchmark

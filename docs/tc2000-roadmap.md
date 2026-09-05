@@ -5,6 +5,20 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-05
 
+## 2026-09-05 — Render cross-family ranking history
+
+The workstation now renders the canonical cross-family ranking-history `relative_performance`
+series as family-labelled uPlot lines beneath the ranking summary. Timestamps are aligned across
+available families and missing observations remain `null`; no rank or performance values are
+forward-filled. Invalid or unavailable rows fail closed with an explicit unavailable state, and
+the existing family ranking/history text remains visible.
+
+Lifecycle/alignment coverage passes `23/23`, TypeScript and production build pass, and authenticated
+Chromium `F8s-breadth-family-ratio` passes `1/1` with the historical relative-performance chart
+asserted visible on a rebuilt branch-scoped stack. Teardown removed all assigned resources. The
+exact-tip gate at this new product tip is pending; preserve the six existing visual state-oracle
+diffs and unchanged provider/fallback policy.
+
 ## 2026-09-05 — Exact-tip gate after concentration history
 
 The exact-tip `full_stack_browser` gate at metadata tip `6590c2b1` (product tip `8697e7b8`)

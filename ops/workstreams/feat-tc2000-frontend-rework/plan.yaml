@@ -106,6 +106,13 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
+    Current slice adds canonical cross-family ranking-history relative_performance as aligned
+    family-labelled uPlot lines with null-preserved gaps and explicit unavailable state. Lifecycle
+    and alignment coverage passed 23/23, TypeScript and production build passed, and authenticated
+    Chromium F8s-breadth-family-ratio passed 1/1 with chart visibility asserted on a rebuilt
+    branch-scoped stack; teardown and resource accounting were clean. Product and durable receipt
+    commit are pending before the exact-tip gate. Preserve unchanged provider/fallback and visual
+    acceptance policy, then rerun the gate at the next coherent documentation tip.
     Current slice product tip 8697e7b8 renders canonical benchmark-family point-in-time
     concentration-history dispersion as aligned role-coloured uPlot lines, preserving missing
     timestamps as nulls without forward filling membership, returns, or weights. Lifecycle and
@@ -220,6 +227,12 @@ progress:
     dense-data, and visual-oracle review remain open.
   next_action: "Implement the next bounded canonical provider/history slice with authenticated evidence; preserve the six visual state-oracle assertions and unchanged visual/provider fallback policy, then rerun the exact-tip gate at the next coherent tip."
 remaining_gaps:
+  - "Current cross-family ranking-history slice renders canonical relative_performance series as
+    family-labelled aligned lines with null-preserved gaps and no forward fill. Lifecycle/alignment
+    coverage passed 23/23, TypeScript/build passed, and authenticated F8s-breadth-family-ratio
+    passed 1/1 on a rebuilt branch-scoped stack with clean teardown. Commit/push the product and
+    durable receipt, then rerun the exact-tip gate while preserving the six visual state-oracle
+    diffs and unchanged visual/provider/fallback policy."
   - "Concentration-history product tip 8697e7b8 has an exact-tip gate at metadata tip 6590c2b1:
     all non-visual stages and functional Playwright 157/157 with 106 documented skips passed;
     visual acceptance remains 98/104 with the same six state-oracle diffs. The canonical dispersion

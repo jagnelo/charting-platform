@@ -4330,6 +4330,7 @@ test.describe('TC2000 workstation', () => {
     await expect(breadth.locator('[aria-label="Benchmark family historical dispersion"]')).toBeVisible({ timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Cross-family ranking"]')).toContainText('#1 S&P 500 SPY', { timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Cross-family ranking"]')).toContainText('History · 1 points', { timeout: 15_000 })
+    await expect(breadth.locator('[aria-label="Cross-family historical relative performance"]')).toBeVisible({ timeout: 15_000 })
     await expect(familyPanel.getByRole('combobox', { name: 'Family ratio leg' })).toHaveValue('equal_weight')
     const familyOverview = breadth.locator('[aria-label="Benchmark family analysis"]')
     await expect(familyOverview).toBeVisible({ timeout: 15_000 })
