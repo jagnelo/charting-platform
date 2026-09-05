@@ -72,25 +72,8 @@
   },
   "dirty_paths": [],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-etf-holdings-constituents-45bdf9bd",
-      "charting-stack-feat-etf-holdings-constituents-45bdf9bd"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
-    "worktree_id": "feat-etf-holdings-constituents-45bdf9bd8d"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
   },
   "docker_ready": {
     "ready": true,
@@ -106,13 +89,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "a7db4a3ec4ba5fecbd8a7f78aa237864569f6a11",
+  "head": "14d762f8265eb2e9444d03cabb14bff3f3541ca7",
   "implementation_sha": "93a488ea8da77f7acf056e52f695787c69243f17",
   "last_checkpoint": "2026-09-05T21:14:30+00:00",
   "last_human_progress_update": "2026-09-05T15:25:09Z",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Reconcile AC10 only after origin/feat/market-data-provider-platform is an ancestor of origin/staging; until then keep DXJ/NTSX/MINT/BOND unavailable and do not activate paid or direct-provider routes.",
-  "plan_hash": "156c8bce87c66cce7d3244faa8bed9fa54597e52b0e951bd53741609bb70bff4",
+  "plan_hash": "9a4398e7c9cd1f5cfeb03dfc7bb07c94ce7500f74e03801d430451130fda56af",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -138,7 +121,7 @@
     "total": 14,
     "updated_at": "2026-09-05T20:04:10+00:00"
   },
-  "remote": "a7db4a3ec4ba5fecbd8a7f78aa237864569f6a11",
+  "remote": "14d762f8265eb2e9444d03cabb14bff3f3541ca7",
   "remote_sha": "a7db4a3ec4ba5fecbd8a7f78aa237864569f6a11",
   "remote_synchronized": true,
   "schema": 2,
