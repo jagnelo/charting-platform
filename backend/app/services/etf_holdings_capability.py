@@ -586,6 +586,9 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "web:pimco-fund-ui-top-ten-only-2026-09-05",
             "live:pimco-fund-ui-top-ten-route-2026-09-05-forbidden",
             "live:pimco-www-top-ten-route-2026-09-05-not-found",
+            "web:securitiesdb-free-etf-holdings-api-2026-09-05",
+            "live:securitiesdb-mint-bond-no-holdings-2026-09-05",
+            "live:securitiesdb-qqq-control-future-metadata-2026-09-05",
         ),
     ),
     "BOND": ETFHoldingsSymbolAudit(
@@ -607,6 +610,9 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "web:pimco-fund-ui-top-ten-only-2026-09-05",
             "live:pimco-fund-ui-top-ten-route-2026-09-05-forbidden",
             "live:pimco-www-top-ten-route-2026-09-05-not-found",
+            "web:securitiesdb-free-etf-holdings-api-2026-09-05",
+            "live:securitiesdb-mint-bond-no-holdings-2026-09-05",
+            "live:securitiesdb-qqq-control-future-metadata-2026-09-05",
         ),
     ),
     "GEME": ETFHoldingsSymbolAudit(
