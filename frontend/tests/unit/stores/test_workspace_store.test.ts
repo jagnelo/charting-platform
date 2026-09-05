@@ -414,6 +414,17 @@ describe('workspace store layout tabs', () => {
       ready_role_count: 0,
       readiness_status: 'coverage_limited',
       universe_provenance: { provider_calls: false },
+      provider_probe_evidence: [
+        {
+          provider: 'fixture',
+          capability: 'price_history',
+          classification: 'healthy',
+          success: true,
+          consecutive_failures: 0,
+          recovered: false,
+          observed_at: '2026-08-01T12:00:00Z',
+        },
+      ],
       families: [],
     })
     const store = useWorkspaceStore()
@@ -426,6 +437,8 @@ describe('workspace store layout tabs', () => {
     })
     expect(result?.readiness_status).toBe('coverage_limited')
     expect(result?.universe_provenance.provider_calls).toBe(false)
+    expect(result?.provider_probe_evidence?.[0]?.provider).toBe('fixture')
+    expect(result?.provider_probe_evidence?.[0]?.success).toBe(true)
     expect(store.benchmarkFamilyReadiness?.role_count).toBe(32)
     expect(store.benchmarkFamilyReadinessError).toBeNull()
   })

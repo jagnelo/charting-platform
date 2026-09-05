@@ -1069,6 +1069,39 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('all-family readiness exposes canonical provider probe evidence', async ({ page, browserDiagnostics }) => {
+    await page.route('**/api/v1/analysis/benchmark-families/readiness*', async route => {
+      const response = await route.fetch()
+      const payload = await response.json()
+      payload.provider_probe_evidence = [
+        {
+          provider: 'fixture',
+          capability: 'price_history',
+          classification: 'healthy',
+          success: true,
+          consecutive_failures: 0,
+          recovered: false,
+          observed_at: '2026-08-01T12:00:00Z',
+        },
+        {
+          provider: 'fixture',
+          capability: 'universe_discovery',
+          classification: 'recovered',
+          success: true,
+          consecutive_failures: 1,
+          recovered: true,
+          observed_at: '2026-08-02T12:00:00Z',
+        },
+      ]
+      await route.fulfill({ response, body: JSON.stringify(payload) })
+    })
+    await page.goto('/chart')
+    const benchmarkSurface = page.locator('.benchmark-surface').first()
+    await expect(benchmarkSurface).toBeVisible({ timeout: 10_000 })
+    await expect(benchmarkSurface.getByLabel('Benchmark provider probe evidence')).toContainText('Provider probes: 2/2 passed · 1 recovered · latest 2026-08-02')
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('factory analysis layouts expose linked comparison chart surfaces', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
 

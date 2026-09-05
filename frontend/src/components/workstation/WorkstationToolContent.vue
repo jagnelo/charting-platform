@@ -17,6 +17,7 @@
         <span v-if="benchmarkFamilyReadinessLoading" role="status">Checking all-family readiness…</span>
         <span v-else-if="benchmarkFamilyReadinessError" class="benchmark-surface__family-error" role="alert">Readiness unavailable: {{ benchmarkFamilyReadinessError }}</span>
         <span v-else-if="benchmarkFamilyReadiness" class="benchmark-surface__family-readiness" aria-label="Benchmark family readiness">All-family readiness: {{ benchmarkFamilyReadiness.readiness_status }} · {{ benchmarkFamilyReadiness.ready_role_count }}/{{ benchmarkFamilyReadiness.role_count }} roles · {{ benchmarkFamilyReadiness.ready_family_count }}/{{ benchmarkFamilyReadiness.family_count }} families ready</span>
+        <span v-if="benchmarkFamilyReadiness" class="benchmark-surface__family-readiness" aria-label="Benchmark provider probe evidence">{{ benchmarkFamilyProviderProbeLabel(benchmarkFamilyReadiness) }}</span>
         <span v-if="benchmarkFamilyLoading" role="status">Loading family legs…</span>
         <span v-else-if="benchmarkFamilyError" class="benchmark-surface__family-error" role="alert">{{ benchmarkFamilyError }}</span>
       </div>
@@ -879,7 +880,7 @@ import ChartPlotLibrary from './ChartPlotLibrary.vue'
 import { usePanelStore } from '@/stores/chart'
 import { useDrawingsStore } from '@/stores/drawings'
 import { useAlertsStore } from '@/stores/alerts'
-import { useWorkspaceStore, type GenericBreadthHistoryState, type GenericBreadthState, type GroupSnapshotRow, type LinkGroup, type WorkspaceWindowState } from '@/stores/workspace'
+import { useWorkspaceStore, type BenchmarkFamilyReadinessState, type GenericBreadthHistoryState, type GenericBreadthState, type GroupSnapshotRow, type LinkGroup, type WorkspaceWindowState } from '@/stores/workspace'
 import { useWatchlistStore } from '@/stores/watchlist'
 import type { Instrument, Watchlist, WatchlistSource } from '@/types'
 import ToolWindow from './ToolWindow.vue'
@@ -1950,6 +1951,18 @@ const benchmarkFamilyLoading = ref(false)
 const benchmarkFamilyReadiness = computed(() => workspaceStore.benchmarkFamilyReadiness)
 const benchmarkFamilyReadinessError = computed(() => workspaceStore.benchmarkFamilyReadinessError)
 const benchmarkFamilyReadinessLoading = ref(false)
+function benchmarkFamilyProviderProbeLabel(readiness: BenchmarkFamilyReadinessState) {
+  const evidence = readiness.provider_probe_evidence ?? []
+  if (!evidence.length) return 'Provider probes: none recorded'
+  const successful = evidence.filter(item => item.success).length
+  const recovered = evidence.filter(item => item.recovered).length
+  const latestObservedAt = [...evidence]
+    .map(item => item.observed_at)
+    .filter(Boolean)
+    .sort()
+  const latest = latestObservedAt.length ? latestObservedAt[latestObservedAt.length - 1] : undefined
+  return `Provider probes: ${successful}/${evidence.length} passed${recovered ? ` · ${recovered} recovered` : ''}${latest ? ` · latest ${latest.slice(0, 10)}` : ''}`
+}
 const benchmarkFamilyError = computed(() => {
   if (!benchmarkFamilyKey.value) return ''
   return workspaceStore.marketGroupErrors[benchmarkFamilyKey.value] ?? workspaceStore.groupSnapshotErrors[benchmarkFamilyKey.value] ?? benchmarkFamilyOverviewError.value
