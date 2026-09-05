@@ -5,6 +5,20 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-05
 
+## 2026-09-05 — Exact-tip gate after concentration metrics history
+
+The exact-tip `full_stack_browser` gate at metadata tip `a399697a` (product tip `d9b9de95`)
+passed locked dependency/migration checks (migration compatibility skipped because no migration
+changes), workstream validation, lint/format/type-check, backend unit/integration and combined
+coverage (`80.93%`), frontend Vitest (`967/967`), production build, compose/provider policy,
+stack health, research-runner isolation, and functional Playwright (`157/157` with `106`
+documented skips across `263` specs). The visual matrix completed `104` cases with `98` passes
+and the same six state-oracle diffs: `watchlist-column-editor-open` at 1080p 100% and 125%,
+and `workspace-floating` at 1080p 100%/125% and 1440p 100%/125%. Teardown removed the assigned
+stack and generated resources; resource accounting was clean. No baseline, mask, threshold, skip,
+fallback, provider, or acceptance policy changed; preserve the visual-only boundary and continue
+canonical analytics/provider work.
+
 ## 2026-09-05 — Render benchmark-family concentration metrics history
 
 The concentration panel now renders canonical point-in-time `top_n_weight` and `hhi` history for

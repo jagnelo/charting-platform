@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-05 — Exact-tip gate after concentration metrics history
+
+- [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at metadata
+      tip `a399697a` (product tip `d9b9de95`): all locked checks, backend/frontend suites,
+      coverage (`80.93%`), build, stack health, runner isolation, and functional Playwright
+      (`157/157`, `106` documented skips) passed; visual matrix completed `104` cases.
+- [ ] Preserve and separately resolve the six existing visual state-oracle diffs (`98/104`):
+      `watchlist-column-editor-open` at both 1080p scales and `workspace-floating` at all four
+      1080p/1440p scales. Do not alter baselines, masks, thresholds, skips, fallbacks, provider,
+      or acceptance policy to make the gate green.
+- [x] Teardown and resource accounting were clean; continue the next canonical analytics/provider
+      slice without integrating, promoting, deploying, or mutating another worktree.
+
 ### 2026-09-05 — Render benchmark-family concentration metrics history
 
 - [x] Render canonical point-in-time `top_n_weight` and `hhi` history for available benchmark-family
