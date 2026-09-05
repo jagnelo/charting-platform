@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-09-05 — Preserve Study event signal lineage
+
+- [x] Route primary Study Lab `events` promotions through a dedicated typed signal asset instead
+      of reusing the raw Study version. Both single-output and named multi-output event artifacts
+      now declare `events_to_signal`, selected output identity, immutable source/run/dataset
+      lineage, current-data re-evaluation, and the explicit point-in-time limitation before the
+      Strategy Lab signal is created.
+- [x] Add component coverage for direct and named event signal promotion and extend authenticated
+      F8o to exercise `Save signal: occurrences`. Focused Study Lab coverage passed `25/25`; full
+      frontend Vitest passed `947/947` across `109` files; TypeScript type-check, production build,
+      and `git diff --check` passed. Authenticated F8o passed `1/1` on the rebuilt branch-scoped
+      Docker stack; teardown/resource accounting reported zero containers, volumes, known image
+      bytes, and test-container sessions. Product commit `3a7e4861` is committed locally on
+      `feat/tc2000-frontend-rework`.
+- [ ] Re-run the exact-tip exhaustive gate at this product tip. The unchanged visual matrix is
+      still the reproducible six-diff blocker; canonical provider/history, richer Study targets,
+      native-window/accessibility/security, dense-data budgets, and visual-oracle review remain
+      open.
+
 ### 2026-09-05 — Exact-tip exhaustive gate after structured-event signal contract
 
 - [x] Re-run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at

@@ -22,6 +22,15 @@ Research Results/capability tests passed `33/33`; full frontend Vitest passed `9
 structured-event signal cell without coercing event lists into Boolean values or widening the
 declared universe.
 
+The latest product fix is `3a7e4861` (`feat(tc2000): preserve Study event signal lineage`). The
+primary Study Lab now routes both single-output and named multi-output `events` artifacts through
+an explicit `events_to_signal` asset adapter before creating a Strategy Lab signal. The selected
+artifact name, immutable source/run/dataset lineage, current-data re-evaluation semantics, and
+point-in-time limitation are preserved; the raw Study version is no longer reused without a
+promotion contract. Focused Study Lab coverage passed `25/25`, full frontend Vitest passed
+`947/947` across `109` files, type-check/build/diff checks passed, and authenticated F8o passed
+`1/1` on the rebuilt branch-scoped stack with clean teardown/resource accounting.
+
 The backend contract for this path is now covered by
 `test_multi_output_study_event_output_promotes_to_strategy_signal`. It verifies that the selected
 named event output is persisted as an `events` signal asset with the explicit `events_to_signal`

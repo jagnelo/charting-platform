@@ -10,6 +10,23 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Preserve Study event signal lineage
+
+Product commit `3a7e4861` (`feat(tc2000): preserve Study event signal lineage`) closes the
+primary Study Lab event-signal lineage gap. Both direct single-output and named multi-output
+`events` artifacts now create a typed `signal` asset with `events_to_signal`, selected output
+identity, immutable source/run/dataset lineage, current-data re-evaluation, and the explicit
+point-in-time limitation before Strategy Lab consumes the version; the raw Study version is no
+longer reused without an adapter contract.
+
+Evidence: focused Study Lab coverage `25/25`; full frontend Vitest `947/947` across `109` files;
+TypeScript, production build, and diff checks passed; authenticated F8o passed `1/1` against the
+rebuilt branch-scoped Docker stack, including `Save signal: occurrences`. Teardown/resource
+accounting reported zero containers, volumes, known image bytes, and test-container sessions.
+The exact-tip exhaustive gate is queued at this new product tip; its known visual result remains
+`98/104` with six unchanged diffs, and canonical provider/history plus remaining R3-R6 evidence
+remain open.
+
 ## 2026-09-05 — Exact-tip exhaustive gate after structured-event signal contract
 
 The `full_stack_browser` gate ran at metadata tip `df95b3c5` (product tip `22fd676e` plus the
