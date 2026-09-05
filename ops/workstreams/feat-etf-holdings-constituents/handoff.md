@@ -3156,3 +3156,17 @@ regression, ETF integration/capability slice (144 tests), and deterministic ETF
 unit matrix (716 tests) passed; Ruff, formatting, and diff-check passed. AC10
 remains gated on shared provider-platform staging and AC14 still requires real
 post-deployment observations plus human closure.
+
+## Session-state parity reconciliation — 2026-09-05
+
+The branch was clean and synchronized at `50d0903f0a2a5512562a9e13265c6b894b53da9f`,
+but the generated `session.json` still recorded the preceding operational
+checkpoint `651fa071`. The repository session-status helper was run in the
+registered ETF worktree and refreshed the durable head/remote fields to the
+actual synchronized tip. No application or provider behavior changed.
+
+This operational context is closed separately from implementation work. The
+next permitted action remains a bounded free-first re-test of DXJ/NTSX and
+MINT/BOND, or reconciliation of AC10 once the shared provider-platform branch
+is actually present in staging; no direct provider-branch mutation or paid
+entitlement activation is authorized.
