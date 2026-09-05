@@ -96,6 +96,7 @@ from app.services.etf_holdings_adapters import (
     parse_holdings_csv,
 )
 from app.services.etf_holdings_capability import (
+    current_analysis_error_detail,
     evaluate_tier0_shadow_gate,
     load_tier0_shadow_observations,
     tier0_symbols,
@@ -586,13 +587,7 @@ async def materialized_holdings_basket(
         capability = exc.capability
         raise HTTPException(
             status_code=409,
-            detail={
-                "code": "etf_holdings_not_current",
-                "availability": capability.availability,
-                "source_tier": capability.source_tier,
-                "usable_for_current_analysis": False,
-                "reason": capability.reason,
-            },
+            detail=current_analysis_error_detail(capability),
         ) from exc
     if basket is None:
         raise HTTPException(404, "ETF holdings basket could not be materialized")

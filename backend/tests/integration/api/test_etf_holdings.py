@@ -3332,6 +3332,7 @@ def test_etf_holdings_basket_rejects_non_current_without_historical_selection(
         "availability": "degraded",
         "source_tier": "sec_filing",
         "usable_for_current_analysis": False,
+        "failure_class": None,
         "reason": "Holdings are reconstructed from SEC filings and are not issuer-current support.",
     }
 
