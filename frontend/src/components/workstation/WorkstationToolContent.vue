@@ -716,7 +716,7 @@
         <span v-else-if="familyRankingError" class="breadth-tool__status--error" role="alert">{{ familyRankingError }}</span>
         <template v-else-if="familyRanking">
           <span v-for="role in familyRanking.roles" :key="role.role" class="breadth-tool__family-ranking-role">
-            <b>#{{ role.rank ?? '—' }}</b> {{ familyRoleLabel(role.role) }} {{ role.symbol ?? role.label }} · {{ familyBreadthPercentage({ percentage: role.performance['1M'] }) }} · Δ {{ familyBreadthPercentage({ percentage: role.relative_performance['1M'] }) }}
+            <b>#{{ role.rank ?? '—' }}</b> {{ familyRoleLabel(role.role) }} {{ role.symbol ?? role.label }} · {{ familyBreadthPercentage({ percentage: role.performance[familyRankPeriod] }) }} · Δ {{ familyBreadthPercentage({ percentage: role.relative_performance[familyRankPeriod] }) }}
           </span>
         </template>
         <span v-else class="breadth-tool__status">Role ranking unavailable.</span>
@@ -744,7 +744,7 @@
         <span v-else-if="crossFamilyRankingError" class="breadth-tool__status--error" role="alert">{{ crossFamilyRankingError }}</span>
         <template v-else-if="crossFamilyRanking">
           <span v-for="row in crossFamilyRanking.rows.filter(item => item.available).slice(0, 4)" :key="row.family_key" class="breadth-tool__cross-family-ranking-row">
-            <b>#{{ row.rank ?? '—' }}</b> {{ row.family_name }} {{ row.symbol ?? row.label }} · {{ familyBreadthPercentage({ percentage: row.performance['1M'] }) }}
+            <b>#{{ row.rank ?? '—' }}</b> {{ row.family_name }} {{ row.symbol ?? row.label }} · {{ familyBreadthPercentage({ percentage: row.performance[familyRankPeriod] }) }}
           </span>
         </template>
         <span v-else class="breadth-tool__status">Cross-family ranking unavailable.</span>
