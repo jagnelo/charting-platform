@@ -168,7 +168,21 @@ def _source_tier(
     )
     if "sec" in provenance or "filing" in provenance:
         return SEC_FILING
-    if any(token in provenance for token in ("vendor", "licensed", "aggregator")):
+    entitlement_status = (
+        str(
+            metadata.get("entitlement_status")
+            or metadata.get("entitlement_class")
+            or metadata.get("data_entitlement")
+            or ""
+        )
+        .strip()
+        .lower()
+    )
+    if metadata.get("licensed_vendor") is True or entitlement_status in {
+        "licensed",
+        "licensed_vendor",
+        "entitled",
+    }:
         return LICENSED_VENDOR
     if metadata.get("successor_publisher") or metadata.get("publisher_relationship"):
         return SUCCESSOR_NATIVE

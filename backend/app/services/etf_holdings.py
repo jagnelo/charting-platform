@@ -165,7 +165,21 @@ def _capability_source_tier(
         return "sec_filing"
     if legal_metadata.get("successor_publisher") or legal_metadata.get("publisher_relationship"):
         return "successor_native"
-    if any(token in text for token in ("vendor", "licensed", "aggregator")):
+    entitlement_status = (
+        str(
+            legal_metadata.get("entitlement_status")
+            or legal_metadata.get("entitlement_class")
+            or legal_metadata.get("data_entitlement")
+            or ""
+        )
+        .strip()
+        .lower()
+    )
+    if legal_metadata.get("licensed_vendor") is True or entitlement_status in {
+        "licensed",
+        "licensed_vendor",
+        "entitled",
+    }:
         return "licensed_vendor"
     if any(token in text for token in ("issuer", "native", "self_snapshotted")):
         return "issuer_native"

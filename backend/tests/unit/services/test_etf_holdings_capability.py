@@ -187,6 +187,22 @@ def test_unrecognized_source_tier_never_becomes_current_even_with_complete_rows(
     assert "recognized current-data source tier" in result.reason
 
 
+def test_unqualified_vendor_text_does_not_become_a_licensed_current_source():
+    result = evaluate_capability(
+        profile(),
+        snapshot(
+            provenance="aggregator_snapshot",
+            source_provider="market_vendor",
+        ),
+        state(),
+        now=NOW,
+    )
+
+    assert result.source_tier == NO_SOURCE
+    assert result.availability == DEGRADED
+    assert result.usable_for_current_analysis is False
+
+
 def test_successor_metadata_is_preserved_as_a_distinct_source_tier():
     result = evaluate_capability(
         profile(),

@@ -121,6 +121,21 @@ def test_capability_source_tier_does_not_default_unclassified_ingest_to_issuer_n
         )
         == "licensed_vendor"
     )
+    assert (
+        _capability_source_tier(
+            provenance="aggregator_snapshot",
+            source_provider="market_vendor",
+        )
+        == "none"
+    )
+    assert (
+        _capability_source_tier(
+            provenance="vendor_snapshot",
+            source_provider="market_data",
+            legal_metadata={"entitlement_status": "licensed"},
+        )
+        == "licensed_vendor"
+    )
 
 
 @pytest.mark.asyncio
