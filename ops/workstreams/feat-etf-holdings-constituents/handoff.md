@@ -3465,3 +3465,50 @@ AC10 remains deferred until the provider-platform branch reaches staging; AC14
 remains a post-integration 30-day production shadow gate. DXJ/NTSX/MINT/BOND
 remain explicitly non-current, and no provider, credential, paid source,
 staging branch, or other worktree was mutated.
+## Schema-drift fail-closed boundary and full validation checkpoint — 2026-09-05
+
+Implementation commit `dd31c80239ca6346b7ad5bfd31e2f11a5a1d1d04`
+(`fix(etf): fail closed on schema drift`) hardens the refresh/canary boundary
+against unannounced issuer-artifact shape changes. Before any provider-owned
+artifact is handed to snapshot ingestion, the refresh route now computes the
+same schema fingerprint used by ETF holdings state and compares it with the
+persisted adapter fingerprint. A changed fingerprint under the same parser
+version raises an explicit `ETFHoldingsSchemaDriftError`, classifies the canary
+failure as `schema_drift`, and prevents the snapshot/profile write. The failure
+record retains previous and observed fingerprints, parser version, and
+observation time for diagnosis and recovery. An explicit parser-version change
+is the documented recovery path; a successful refresh clears the prior drift
+marker. Lightweight test doubles without a database execute method retain their
+existing route-test behavior.
+
+The regression coverage proves three boundaries: unchanged-parser drift is
+rejected before ingestion, an intentional parser-version change can recover,
+and the persisted failure metadata contains comparable fingerprints. Focused
+refresh coverage passed `14` tests; the combined refresh/capability/resolution
+suite passed `114`; the deterministic adapter suite passed `571`; and the
+complete ETF API integration suite passed `66` with two existing warnings.
+Ruff check, formatting, and diff-check passed.
+
+The branch-declared default live contract passed `2` tests with `515` expected
+skips. The explicitly opt-in live-provider matrix passed `496` cases with `21`
+evidence-bearing external/provider skips in `11m42s`; no ETF-owned assertion
+failed. The Docker-backed repository gate passed dependency, migration, lint,
+backend coverage (`1825 passed`, total `81.13%`), frontend unit/coverage
+(`928 passed`, total `82.04%`), visual policy, frontend production build,
+compose contract, provider probes, branch stack health, and research-runner
+probes. It stopped at functional Playwright on one unrelated existing
+`F8s-breadth-family-ratio` timestamp assertion in
+`frontend/tests/e2e/flows.spec.ts:3721` (`153 passed`, `106 skipped`; expected
+`2026-06-27T00:00:00Z`, received `2025-12-29T21:00:00Z`). An exact isolated
+rerun of that test against a fresh branch-scoped stack passed `1/1`. Because
+the repository gate stops after functional-E2E failure, no independent visual
+stage is claimed from this run. Automatic teardown removed the branch stack;
+the post-teardown resource audit reported zero containers, volumes,
+testcontainer sessions, and known bytes with no budget overrun.
+
+The implementation commit was pushed immediately. Durable workstream evidence
+for this checkpoint is being recorded separately. The shared provider-platform
+branch remains unstaged, so AC10 is still intentionally deferred; DXJ/NTSX/MINT/
+BOND remain explicitly non-current, and AC14 remains the post-integration
+30-day production shadow gate. No provider, credential, paid source, staging
+branch, or other worktree was mutated.
