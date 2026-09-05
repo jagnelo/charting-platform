@@ -72,25 +72,8 @@
   },
   "dirty_paths": [],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-etf-holdings-constituents-45bdf9bd",
-      "charting-stack-feat-etf-holdings-constituents-45bdf9bd"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
-    "worktree_id": "feat-etf-holdings-constituents-45bdf9bd8d"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
   },
   "docker_ready": {
     "ready": true,
@@ -106,13 +89,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "1af33cd7ec5538fcf6d0b649fa3a56ba12cf595a",
+  "head": "97cea8e4a874d9766ff29e9a7d1332af47a2aaaa",
   "implementation_sha": "37cf521168109fd37e5b53d03801c32b9c220849",
   "last_checkpoint": "2026-09-05T05:25:36Z",
   "last_human_progress_update": "2026-09-05T05:25:36Z",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Reconcile AC10 only after origin/feat/market-data-provider-platform is an ancestor of origin/staging; until then keep DXJ/NTSX/MINT/BOND unavailable and do not activate paid or direct-provider routes.",
-  "plan_hash": "fa6663ae980ed1b03dc6b36e73f4ae1ced0d181e630f1761d50ab195587ce31b",
+  "plan_hash": "36b0244411fccabaf2d51fa2ad2b390c44da2e9d5c2fcf1aa5fb6392c06e3107",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -138,7 +121,7 @@
     "total": 14,
     "updated_at": "2026-09-05T03:27:55.054625+00:00"
   },
-  "remote": "1af33cd7ec5538fcf6d0b649fa3a56ba12cf595a",
+  "remote": "97cea8e4a874d9766ff29e9a7d1332af47a2aaaa",
   "remote_sha": "1af33cd7ec5538fcf6d0b649fa3a56ba12cf595a",
   "remote_synchronized": true,
   "schema": 2,
