@@ -18,9 +18,16 @@
       type-check/build and diff checks passed; teardown removed assigned resources.
 - [x] Product commit `9080e4de` (`feat(tc2000): promote structured studies to strategy signals`)
       is pushed to `origin/feat/tc2000-frontend-rework`.
-- [ ] Re-run the exact-tip exhaustive integration gate at this product tip. Preserve the unchanged
-      six visual state-oracle diffs and continue the remaining R1-R6 provider/history, richer Study,
-      native-window/accessibility/security, dense-data, and visual-oracle work.
+- [x] Re-run the exact-tip exhaustive integration gate at this product tip. At follow-up tip
+      `a5dc4957`, all non-visual stages and functional Playwright passed (`157/157`, with `106`
+      documented skips across `263` specs); combined backend coverage was `80.92%` and frontend
+      Vitest was `952/952` across `109` files. The four-project visual matrix remains `98/104`
+      with the same six state-oracle diffs: `watchlist-column-editor-open` at visual-1080p-100/125
+      (`13,844` pixels each), and `workspace-floating` at visual-1080p-100 (`12,097`),
+      visual-1080p-125 (`9,770`), visual-1440p-100 (`12,097`), and visual-1440p-125 (`12,097`).
+      Teardown/resource accounting were clean; no visual or provider fallback policy changed.
+- [ ] Continue the next canonical provider/history slice with authenticated evidence; preserve the
+      six visual state-oracle diffs and all existing acceptance/fallback policy.
 
 ### 2026-09-05 — Aggregate readiness browser and exact-tip gate
 

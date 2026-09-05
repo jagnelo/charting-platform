@@ -23,8 +23,15 @@ the Strategy Lab service/job tests pass `16/16` with `--no-cov`, focused Strateg
 integration passes `2/2` with Docker, frontend type-check/build and `git diff --check` pass, and the
 authenticated F8t Results flows (structured matrix plus series threshold) pass `2/2` on a rebuilt
 branch-scoped Docker stack with clean teardown/resource accounting. The exact-tip exhaustive gate
-after this product commit remains pending; the existing six visual state-oracle diffs remain
-unchanged and no visual/provider fallback policy changed.
+after the follow-up capability-matrix test correction at tip `a5dc4957` passed every non-visual
+stage and functional Playwright (`157/157`, with `106` documented skips across `263` specs).
+Combined backend coverage was `80.92%` (unit/integration `1320` and `384` respectively), frontend
+Vitest was `952/952` across `109` files, and the four-project visual matrix was `98/104`. The six
+unchanged state-oracle diffs are `watchlist-column-editor-open` at visual-1080p-100/125 (`13,844`
+pixels each) and `workspace-floating` at visual-1080p-100 (`12,097`), visual-1080p-125 (`9,770`),
+visual-1440p-100 (`12,097`), and visual-1440p-125 (`12,097`). Stack teardown and resource
+accounting were clean; no visual/provider fallback policy changed. Continue with the next
+canonical provider/history slice.
 
 ## 2026-09-05 — Aggregate readiness gate receipt
 
