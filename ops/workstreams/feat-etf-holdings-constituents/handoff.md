@@ -3731,6 +3731,23 @@ remains deferred; and AC14 remains the post-integration 30-day production
 shadow gate. No paid source, credential, other branch, or other worktree was
 modified.
 
+## Shadow-observation loader hardening checkpoint — 2026-09-05
+
+Implementation commit `96136997` hardens the persisted Tier-0 monitoring
+loader. It now matches instrument symbols case-insensitively, normalizes the
+returned keys, sorts aggregated histories by their observation timestamp, and
+caps each symbol at the canary writer's 90-record retention bound before the
+shadow gate evaluates it. This prevents legacy casing and multiple persisted
+state rows from causing missing coverage or unbounded monitoring work.
+
+The capability unit suite passed `87` tests. The focused Docker-backed
+shadow-gate regressions passed `2` tests (70 deselected) with the two existing
+Nautilus deprecation warnings; Ruff, formatting, and diff-check passed.
+Provider-platform remains unstaged; DXJ/NTSX/MINT/BOND remain unavailable for
+current analysis; AC10 remains deferred; and AC14 remains the post-integration
+30-day production shadow gate. No paid source, credential, other branch, or
+other worktree was modified.
+
 ## Unknown capability-state correction checkpoint — 2026-09-05
 
 Implementation commit `394fddf1` corrects a semantic boundary in capability
