@@ -4404,3 +4404,14 @@ the repository transport. NTSX remains unavailable, and no issuer route,
 native provider, SEC fallback, credential, or paid source was promoted.
 Evidence refs: `web:wisdomtree-ntsx-product-page-2026-09-05` and
 `live:wisdomtree-ntsx-product-curl-2026-09-05-cloudflare`.
+
+## Ledger invariant recheck — 2026-09-05
+
+The branch-local runtime and durable audit ledger were recounted. Runtime
+contains exactly 82 fallback identities: 8 `issuer_access_blocked`, 64
+`needs_first_party_route_discovery`, 3 `non_executable_public_source`, and 7
+`provider_not_a_portfolio_publisher`. The YAML ledger contains all 140 provider
+records, with no missing attempt history, evidence refs, or next actions. The
+symbol ledgers contain 15 Tier-0 and 160 Tier-1 records, each with an explicit
+outcome. This confirms ledger coverage and does not promote any source or close
+AC10/AC14.
