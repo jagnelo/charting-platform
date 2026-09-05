@@ -2361,7 +2361,7 @@ function familyContinuityLabel(role: { continuity_status?: string; continuity_ga
   const label = labels[status] ?? status
   return role.continuity_snapshot_limit_reached ? `${label} · window capped` : label
 }
-function familyLatestDisclosureLabel(role: { snapshots?: Array<{ composition_date?: string | null; source_provider?: string | null; row_count?: number | null; resolved_count?: number | null; unresolved_count?: number | null }> }) {
+function familyLatestDisclosureLabel(role: { snapshots?: Array<{ composition_date?: string | null; as_of_date?: string | null; known_at?: string | null; source_provider?: string | null; row_count?: number | null; resolved_count?: number | null; unresolved_count?: number | null }> }) {
   const snapshot = [...(role.snapshots ?? [])]
     .sort((left, right) => String(right.composition_date ?? '').localeCompare(String(left.composition_date ?? '')))[0]
   if (!snapshot) return 'no latest disclosure'
@@ -2371,7 +2371,9 @@ function familyLatestDisclosureLabel(role: { snapshots?: Array<{ composition_dat
   const counts = Number.isFinite(rowCount) && Number.isFinite(resolvedCount)
     ? `${resolvedCount}/${rowCount} resolved${Number.isFinite(unresolvedCount) && unresolvedCount > 0 ? ` · ${unresolvedCount} unresolved` : ''}`
     : 'resolution unavailable'
-  return `latest ${snapshot.composition_date ?? 'date unavailable'} · ${counts} · ${snapshot.source_provider?.trim() || 'source unavailable'}`
+  const asOf = snapshot.as_of_date ? ` · as of ${snapshot.as_of_date}` : ''
+  const knownAt = snapshot.known_at ? ` · known ${snapshot.known_at}` : ''
+  return `latest ${snapshot.composition_date ?? 'date unavailable'}${asOf}${knownAt} · ${counts} · ${snapshot.source_provider?.trim() || 'source unavailable'}`
 }
 function familyMemberBarHistoryLabel(role: { member_bar_history?: { status?: string; placeholder_member_count?: number; timeframes?: Array<{ timeframe: string; required_bar_count?: number; covered_member_count: number; member_count: number; analysis_ready_member_count: number }> } }) {
   const history = role.member_bar_history
