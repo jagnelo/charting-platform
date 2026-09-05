@@ -21,7 +21,7 @@ symbol_priority_ledger:
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
       investigated_at: 2026-09-05
-      evidence_refs: [web:wisdomtree-public-fund-holdings-api-2026-09-05, live:wisdomtree-public-fund-holdings-api-2026-09-05-httpx-403]
+      evidence_refs: [web:wisdomtree-public-fund-holdings-api-2026-09-05, live:wisdomtree-public-fund-holdings-api-2026-09-05-httpx-403, web:wisdomtree-dxj-product-page-2026-09-05-current]
       next_action: "Keep unavailable and periodically re-test the official WisdomTree product-page/API session sequence; promote only after complete identity-verified current rows are repeatably executable through the application transport."
     - symbol: NTSX
       tier: 0
@@ -29,7 +29,7 @@ symbol_priority_ledger:
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
       investigated_at: 2026-09-05
-      evidence_refs: [web:wisdomtree-public-fund-holdings-api-2026-09-05, live:wisdomtree-public-fund-holdings-api-2026-09-05-httpx-403]
+      evidence_refs: [web:wisdomtree-public-fund-holdings-api-2026-09-05, live:wisdomtree-public-fund-holdings-api-2026-09-05-httpx-403, web:wisdomtree-ntsx-product-page-2026-09-05-current]
       next_action: "Keep unavailable and periodically re-test the official WisdomTree product-page/API session sequence; promote only after complete identity-verified current rows are repeatably executable through the application transport."
     - symbol: MINT
       tier: 0
@@ -37,7 +37,7 @@ symbol_priority_ledger:
       current_outcome: unavailable
       evidence_state: no_complete_executable_public_artifact
       investigated_at: 2026-09-05
-      evidence_refs: [web:pimco-mint-daily-disclosure-2026-09-05, live:pimco-mint-fund-detail-api-2026-09-05-unauthorized, live:pimco-mint-fund-detail-api-2026-09-05-retest-unauthorized, web:pimco-third-party-holdings-candidates-2026-09-05, web:pimco-fund-ui-top-ten-only-2026-09-05, live:pimco-fund-ui-top-ten-route-2026-09-05-forbidden, live:pimco-www-top-ten-route-2026-09-05-not-found, web:securitiesdb-free-etf-holdings-api-2026-09-05, live:securitiesdb-mint-bond-no-holdings-2026-09-05, live:securitiesdb-qqq-control-future-metadata-2026-09-05, web:dealcharts-free-sec-nport-aggregator-2026-09-05, live:dealcharts-mint-facts-2026-09-05-quarterly-stale]
+      evidence_refs: [web:pimco-mint-daily-disclosure-2026-09-05, live:pimco-mint-fund-detail-api-2026-09-05-unauthorized, live:pimco-mint-fund-detail-api-2026-09-05-retest-unauthorized, web:pimco-third-party-holdings-candidates-2026-09-05, web:pimco-fund-ui-top-ten-only-2026-09-05, live:pimco-fund-ui-top-ten-route-2026-09-05-forbidden, live:pimco-www-top-ten-route-2026-09-05-not-found, web:securitiesdb-free-etf-holdings-api-2026-09-05, live:securitiesdb-mint-bond-no-holdings-2026-09-05, live:securitiesdb-qqq-control-future-metadata-2026-09-05, web:dealcharts-free-sec-nport-aggregator-2026-09-05, live:dealcharts-mint-facts-2026-09-05-quarterly-stale, web:pimco-mint-document-route-recheck-2026-09-05-404]
       next_action: "Keep unavailable and re-test only when PIMCO exposes a changed route; its fund-detail API requires authentication and no complete public export is proven. MarketXLS advertises a complete table but requires a paid FundXLS plan and its terms restrict use to personal use; PortfoliosLab derives SEC N-PORT data through a 2026-03-31 period. Treat both as unqualified vendor/periodic candidates, not current support."
     - symbol: BOND
       tier: 0
@@ -45,7 +45,7 @@ symbol_priority_ledger:
       current_outcome: unavailable
       evidence_state: no_complete_executable_public_artifact
       investigated_at: 2026-09-05
-      evidence_refs: [web:pimco-bond-daily-disclosure-2026-09-05, live:pimco-bond-fund-detail-api-2026-09-05-unauthorized, live:pimco-bond-fund-detail-api-2026-09-05-retest-unauthorized, web:pimco-third-party-holdings-candidates-2026-09-05, web:pimco-fund-ui-top-ten-only-2026-09-05, live:pimco-fund-ui-top-ten-route-2026-09-05-forbidden, live:pimco-www-top-ten-route-2026-09-05-not-found, web:securitiesdb-free-etf-holdings-api-2026-09-05, live:securitiesdb-mint-bond-no-holdings-2026-09-05, live:securitiesdb-qqq-control-future-metadata-2026-09-05, web:dealcharts-free-sec-nport-aggregator-2026-09-05, live:dealcharts-bond-facts-2026-09-05-quarterly-stale]
+      evidence_refs: [web:pimco-bond-daily-disclosure-2026-09-05, live:pimco-bond-fund-detail-api-2026-09-05-unauthorized, live:pimco-bond-fund-detail-api-2026-09-05-retest-unauthorized, web:pimco-third-party-holdings-candidates-2026-09-05, web:pimco-fund-ui-top-ten-only-2026-09-05, live:pimco-fund-ui-top-ten-route-2026-09-05-forbidden, live:pimco-www-top-ten-route-2026-09-05-not-found, web:securitiesdb-free-etf-holdings-api-2026-09-05, live:securitiesdb-mint-bond-no-holdings-2026-09-05, live:securitiesdb-qqq-control-future-metadata-2026-09-05, web:dealcharts-free-sec-nport-aggregator-2026-09-05, live:dealcharts-bond-facts-2026-09-05-quarterly-stale, web:pimco-bond-document-route-recheck-2026-09-05-404]
       next_action: "Keep unavailable and re-test only when PIMCO exposes a changed route; its fund-detail API requires authentication and no complete public export is proven. MarketXLS advertises a complete table but requires a paid FundXLS plan and its terms restrict use to personal use; PortfoliosLab derives SEC N-PORT data through a 2026-03-31 period. Finnhub documents ETF holdings behind a premium endpoint and token, without current entitlement or terms approval. Do not treat these as current support."
     - symbol: GEME
       tier: 0
@@ -1791,6 +1791,14 @@ providers:
         source: "https://www.wisdomtree.com/us/products/capital-efficient/ntsx; curl-like application request to the same route"
         result: "The current browser-visible NTSX page shows a dated ten-row holdings preview and a View all holdings control, but the direct application-style request returns Cloudflare challenge HTML. The browser surface therefore does not establish a complete executable route for the repository transport; NTSX remains unavailable."
         evidence_ref: "web:wisdomtree-ntsx-product-page-2026-09-05; live:wisdomtree-ntsx-product-curl-2026-09-05-cloudflare"
+      - date: 2026-09-05
+        source: "https://www.wisdomtree.com/us/products/equity/dxj"
+        result: "The current official DXJ page is browser-readable with holdings dated 2026-09-04, but it exposes only ten named rows plus Remaining Portfolio and a View all holdings control. The rendered page contains no complete downloadable artifact; this does not change the application transport boundary or establish current executable support."
+        evidence_ref: "web:wisdomtree-dxj-product-page-2026-09-05-current"
+      - date: 2026-09-05
+        source: "https://www.wisdomtree.com/us/products/capital-efficient/ntsx"
+        result: "The current official NTSX page is browser-readable with holdings dated 2026-09-03, but it exposes only ten named rows plus Remaining Portfolio and a View all holdings control. The rendered page contains no complete downloadable artifact; this does not change the application transport boundary or establish current executable support."
+        evidence_ref: "web:wisdomtree-ntsx-product-page-2026-09-05-current"
       - date: 2026-09-05
         source: "https://tickerbot.io/docs/endpoints/tickers/holdings; https://api.tickerbot.io/v2/sandbox/tickers/DXJ/holdings?limit=5000; https://api.tickerbot.io/v2/sandbox/tickers/NTSX/holdings?limit=5000; https://api.tickerbot.io/v2/tickers/NTSX/holdings?limit=5000"
         result: "Tickerbot's no-key sandbox returned zero DXJ holdings and 463 NTSX rows, but the sandbox response omitted the documented total/truncated completeness fields and exposed only server assembly time, not a holdings report date. The production endpoint requires a bearer token. Its terms allow internal application use on the free plan, but the candidate is not current-support eligible without a complete, dated, authenticated contract and upstream entitlement review."
@@ -7806,6 +7814,14 @@ providers:
         source: "https://fund-ui.pimco.com/app.js; https://fund-ui.pimco.com/main.js; https://fund-ui.pimco.com/fund-detail-api/api/funds/72201R833/topTenHoldings; https://fund-ui.pimco.com/fund-detail-api/api/funds/72201R775/topTenHoldings; https://www.pimco.com/api/funds/72201R833/topTenHoldings"
         result: "The public fund-ui bundle exposes top-ten holdings routes rather than a proven complete basket endpoint; anonymous fund-ui requests returned HTTP 403 and the legacy www route returned HTTP 404. No complete unauthenticated public basket was proven for MINT or BOND."
         evidence_ref: "web:pimco-fund-ui-top-ten-only-2026-09-05; live:pimco-fund-ui-top-ten-route-2026-09-05-forbidden; live:pimco-www-top-ten-route-2026-09-05-not-found"
+      - date: 2026-09-05
+        source: "https://www.pimco.com/us/en/documents/f67aec88085c324bcdae7fdb1694127e0b0c477bf4175a1cf8cd4da06a0ea1eff30a8dd357e3d010b5bfc8e92b80d6b1?app=dot"
+        result: "The official MINT daily-disclosure document URL returned HTTP 404 during the current read-only source recheck. Search-indexed text still describes daily disclosure, but the missing document is not an executable holdings artifact and does not change MINT's unavailable classification."
+        evidence_ref: "web:pimco-mint-document-route-recheck-2026-09-05-404"
+      - date: 2026-09-05
+        source: "https://www.pimco.com/us/en/documents/59144abed4eff08608a1795abb7f24995835fe75754d94a5b2de52ae747e3e03a0484a00da3a59f799223b6307c30e37?app=dot"
+        result: "The official BOND daily-disclosure document URL returned HTTP 404 during the current read-only source recheck. Search-indexed text still describes the product, but the missing document is not an executable holdings artifact and does not change BOND's unavailable classification."
+        evidence_ref: "web:pimco-bond-document-route-recheck-2026-09-05-404"
       - date: 2026-09-05
         source: "https://securitiesdb.com/developers/etf-holdings-api; https://securitiesdb.com/api/v1/etfs/MINT/holdings; https://securitiesdb.com/api/v1/etfs/BOND/holdings; https://securitiesdb.com/api/v1/etfs/QQQ/holdings"
         result: "The documented no-key endpoint is reachable for QQQ, but returns HTTP 404 no-holdings-data responses for both MINT and BOND. The QQQ control response also reports future-dated freshness metadata relative to the runner clock, and the service documents public-filings/third-party aggregation with no warranty; this is an unqualified research candidate, not current support."

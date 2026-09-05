@@ -3304,3 +3304,18 @@ feature branch. This validates the pushed tip without changing provider
 classifications or source eligibility. The provider-platform staging
 dependency, AC10, unresolved DXJ/NTSX/MINT/BOND current-support outcomes, and
 post-integration AC14 shadow gate remain open.
+
+## Fresh first-party Tier-0 source recheck — 2026-09-05
+
+The current official WisdomTree DXJ and NTSX pages are browser-readable with
+dated holdings sections, but each provides only a ten-row preview plus
+`Remaining Portfolio` and a `View all holdings` control. No complete download
+was exposed by the rendered page, and this does not overcome the repository
+transport's Cloudflare challenge. DXJ and NTSX remain unavailable.
+
+The current official PIMCO document URLs used for the daily-disclosure audit
+returned HTTP 404 in the read-only recheck. This is route-drift evidence, not
+a holdings artifact; the authenticated fund-detail API remains the only
+declared route found and MINT/BOND remain unavailable. Runtime capability refs
+and provider-audit refs were updated in lockstep, the capability suite passed
+87 tests, and no paid or provider-platform integration was activated.

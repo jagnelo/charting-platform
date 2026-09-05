@@ -4617,6 +4617,28 @@ platform dependency has reached staging. AC10 remains deferred, DXJ/NTSX/MINT/
 BOND remain unavailable for current analysis, and AC14 remains a post-
 integration/deployment shadow-gate step.
 
+## Fresh first-party Tier-0 source recheck — 2026-09-05
+
+The current read-only first-party check did not produce a compliant route for
+the four unresolved Tier-0 symbols. WisdomTree's official DXJ page now renders
+holdings dated 2026-09-04 and the official NTSX page renders holdings dated
+2026-09-03, but each exposes only ten named rows plus `Remaining Portfolio` and
+a `View all holdings` control. The rendered browser content has no complete
+downloadable artifact, and the application-equivalent transport boundary
+remains unchanged; neither symbol is promoted.
+
+The official PIMCO MINT and BOND document URLs used in the daily-disclosure
+evidence recheck returned HTTP 404. Search-indexed descriptions of daily
+disclosure are not executable holdings artifacts, and the previously observed
+fund-detail API still requires authentication. MINT/BOND therefore remain
+`no_complete_executable_public_artifact`.
+
+The provider-audit symbol evidence tuples and runtime capability evidence refs
+were updated together, and the complete capability unit suite passed 87 tests
+with workstream validation green. No paid source, credential, entitlement,
+native promotion, provider-platform bridge, AC10 reconciliation, or AC14 claim
+was introduced.
+
 ## Exact-SHA GitHub Actions receipt for pushed documentation checkpoint — 2026-09-05
 
 Run `33993815315` validated pushed feature tip

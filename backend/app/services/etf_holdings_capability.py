@@ -548,6 +548,7 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
         evidence_refs=(
             "web:wisdomtree-public-fund-holdings-api-2026-09-05",
             "live:wisdomtree-public-fund-holdings-api-2026-09-05-httpx-403",
+            "web:wisdomtree-dxj-product-page-2026-09-05-current",
         ),
     ),
     "NTSX": ETFHoldingsSymbolAudit(
@@ -565,6 +566,7 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
         evidence_refs=(
             "web:wisdomtree-public-fund-holdings-api-2026-09-05",
             "live:wisdomtree-public-fund-holdings-api-2026-09-05-httpx-403",
+            "web:wisdomtree-ntsx-product-page-2026-09-05-current",
         ),
     ),
     "MINT": ETFHoldingsSymbolAudit(
@@ -592,6 +594,7 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "live:securitiesdb-qqq-control-future-metadata-2026-09-05",
             "web:dealcharts-free-sec-nport-aggregator-2026-09-05",
             "live:dealcharts-mint-facts-2026-09-05-quarterly-stale",
+            "web:pimco-mint-document-route-recheck-2026-09-05-404",
         ),
     ),
     "BOND": ETFHoldingsSymbolAudit(
@@ -619,6 +622,7 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "live:securitiesdb-qqq-control-future-metadata-2026-09-05",
             "web:dealcharts-free-sec-nport-aggregator-2026-09-05",
             "live:dealcharts-bond-facts-2026-09-05-quarterly-stale",
+            "web:pimco-bond-document-route-recheck-2026-09-05-404",
         ),
     ),
     "GEME": ETFHoldingsSymbolAudit(
