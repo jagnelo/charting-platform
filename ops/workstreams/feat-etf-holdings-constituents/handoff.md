@@ -3765,6 +3765,23 @@ DXJ/NTSX/MINT/BOND remain unavailable for current analysis, AC10 remains
 deferred, and AC14 remains the post-integration 30-day production shadow gate.
 No paid source, credential, other branch, or other worktree was modified.
 
+## Standalone holdings-view canary checkpoint — 2026-09-05
+
+Implementation commit `368f4049` carries the persisted per-symbol canary
+diagnostics into the standalone ETF Holdings workspace. The selected-profile
+surface now renders the latest canary status and timestamp, measured latency,
+consecutive failures, recovery state, and circuit state/open-until alongside
+the existing current-data warning and source-review action. This keeps the
+full-screen holdings workflow consistent with the compact chart panel and
+prevents operational evidence from being visible only in one entry point.
+
+The combined ETF holdings panel/view regression passed `14` tests, frontend
+type-check passed, and `git diff --check` passed. Provider-platform remains
+unstaged, DXJ/NTSX/MINT/BOND remain unavailable for current analysis, AC10
+remains deferred, and AC14 remains the post-integration 30-day production
+shadow gate. No paid source, credential, other branch, or other worktree was
+modified.
+
 ## ETF canary diagnostics checkpoint — 2026-09-05
 
 Implementation commit `80a4c6c6` makes the bounded canary evidence operationally
