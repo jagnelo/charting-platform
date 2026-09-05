@@ -3786,6 +3786,23 @@ descriptor change: `47 passed` with the same two existing Nautilus deprecation
 warnings. The targeted source-catalog check and static checks remain recorded
 above; no full Docker gate was required for this narrow descriptor-only change.
 
+## Breadth current-analysis gate checkpoint — 2026-09-05
+
+Implementation commit `77fd6191` closes the matching frontend gap beyond Market
+Map. The Breadth tool's custom watchlist-source picker now reuses the shared
+source-capability classifier, labels stale/degraded/unknown/unavailable ETF
+sources with their lifecycle and failure class, disables those options, and
+shows the capability reason for the selected source. The Evaluate action is
+disabled for a non-current source and the handler retains a defensive guard for
+both ordinary and Python-backed breadth evaluation.
+
+The source-capability regression passed `9` tests, the focused Market Map suite
+passed `34` tests, frontend type-check passed, and `git diff --check` passed.
+Provider-platform remains unstaged, DXJ/NTSX/MINT/BOND remain unavailable for
+current analysis, AC10 remains deferred, and AC14 remains the post-integration
+30-day production shadow gate. No paid source, credential, other branch, or
+other worktree was modified.
+
 ## Watchlist source-catalog observability checkpoint — 2026-09-05
 
 Implementation commit `248c2973` carries current ETF capability state into the
