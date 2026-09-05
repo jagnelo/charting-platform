@@ -4101,3 +4101,23 @@ The task, refresh, and worker suites passed `47` tests; Ruff check, Ruff
 formatting, `git diff --check`, and workstream validation passed. Provider-
 platform staging, DXJ/NTSX/MINT/BOND, AC10, and AC14 remain unchanged. No paid
 source, credential, other branch, or other worktree was modified.
+
+## Authentication-boundary observability checkpoint — 2026-09-05
+
+Implementation commit `1df0bd01` makes an HTTP 401 from an ETF holdings
+candidate route persist as the semantic failure class `authentication_required`
+instead of the opaque `http_401`. This is the evidence class for a route that
+requires credentials or an entitlement not available to the current
+free/public path; it does not promote the route or authorize paid activation.
+Issuer challenge/Cloudflare evidence remains `issuer_access_blocked`, while
+quota, transport, parser/schema, completeness, identity, future-date, and
+other HTTP statuses retain their existing classifications.
+
+The focused task/refresh/capability/worker suite passed `135` tests. Ruff
+check, Ruff formatting, and `git diff --check` passed. The classification now
+flows through the existing persisted capability field and the existing ETF
+degradation UI without a frontend contract change. Provider-platform remains
+unstaged; DXJ/NTSX/MINT/BOND remain unavailable for current analysis; AC10
+remains deferred; and AC14 remains the post-integration 30-day production
+shadow gate. No paid source, credential, other branch, or other worktree was
+modified.
