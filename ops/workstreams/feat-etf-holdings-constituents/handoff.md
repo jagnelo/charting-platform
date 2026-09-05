@@ -3578,6 +3578,31 @@ WisdomTree live route remains HTTP 403-blocked, so provider counts remain
 promotion, paid activation, staging mutation, or provider-platform integration
 was made.
 
+## Issuer-edge challenge observability checkpoint — 2026-09-05
+
+Implementation commit `5cce7625` (`fix(etf): classify issuer access challenges`)
+adds an explicit failure boundary for WisdomTree issuer-edge challenge pages.
+Product and holdings requests receiving 403/429 responses whose HTML contains
+Cloudflare/challenge markers now raise an `issuer access challenge` error;
+canary failure classification persists this as `issuer_access_blocked` instead
+of collapsing it into a generic provider failure. The deterministic regression
+uses a representative Cloudflare challenge response and confirms the route is
+blocked before parsing.
+
+The existing strict SEC fallback boundary is unchanged: only an explicit SEC
+identifier path may return reconstructed rows, with
+`issuer_route_failure`/`issuer_route_fallback` provenance; requests without
+identifiers remain unavailable. Fresh bounded probes still show DXJ/NTSX
+receiving HTTP 403 challenge HTML and MINT/BOND receiving HTTP 401 PIMCO API
+responses, so no provider promotion or current-analysis support claim is made.
+
+Validation for this implementation passed the complete ETF adapter/refresh/
+capability unit slice (`671` tests), Ruff check/format, and diff-check. The
+implementation was pushed immediately at `5cce7625`; the full Docker gate and
+resource audit are recorded separately below. Provider-platform staging,
+paid activation, AC10, the four unresolved Tier-0 symbols, and AC14 remain
+unchanged.
+
 ## Full Docker gate after issuer-fallback hardening — 2026-09-05
 
 The repository-mandated `make validate-integration
