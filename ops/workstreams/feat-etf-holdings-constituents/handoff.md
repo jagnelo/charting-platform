@@ -4071,3 +4071,18 @@ Ruff, formatting, and diff-check passed. Provider-platform remains unstaged;
 DXJ/NTSX/MINT/BOND remain unavailable for current analysis; AC10 remains
 deferred; and AC14 remains the post-integration 30-day production shadow gate.
 No paid source, credential, other branch, or other worktree was modified.
+
+## Canary configuration fail-closed checkpoint — 2026-09-05
+
+Implementation commit `440fb4f4` hardens the enabled scheduled Tier-0 canary
+boundary. An empty or duplicate
+`ETF_HOLDINGS_CAPABILITY_CANARY_SYMBOLS` value now returns an explicit invalid
+configuration result before opening a database session or making provider
+calls. This prevents silent zero coverage and duplicate budget-consuming
+checks while preserving the intentional support for a smaller explicitly
+configured operator list.
+
+The task, refresh, and worker suites passed `46` tests; Ruff check, Ruff
+formatting, `git diff --check`, and workstream validation passed. Provider-
+platform staging, DXJ/NTSX/MINT/BOND, AC10, and AC14 remain unchanged. No paid
+source, credential, other branch, or other worktree was modified.
