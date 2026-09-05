@@ -114,7 +114,7 @@
   "implementation_sha": "6e86d3bc347ee6ddeabaa7b635bbf06b789afea5",
   "interrupted": false,
   "last_checkpoint": "2026-09-05T04:10:24.470387+00:00",
-  "last_human_progress_update": "2026-09-05T04:07:40.682496+00:00",
+  "last_human_progress_update": "2026-09-05T05:27:30.140595+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue canonical provider/history population or the next compatible Study target slice with focused regression coverage, then rerun the exact-tip exhaustive gate at the new coherent tip; preserve visual policy and provider fallback rules.",
   "plan_hash": "db02a1bb713fcbdb34e42ce6bec1ed929c9ade383aeb02571aea46bb812091f8",
@@ -125,11 +125,11 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "Exact-tip gate at metadata tip dace1ab4 (product tip 6fa41b81) passed backend units 1315/1315, integration 383/383, combined coverage 80.90%, frontend 947/947, functional E2E 155 passed with 106 documented skips; visual matrix remains 98/104 with six unchanged screenshot diffs: watchlist-column-editor-open 13844 pixels at 1080p-100/125 and workspace-floating 11901/9770/9770/9770 pixels at 1080p-100/125/1440p-100/125. Canonical provider/history, richer Study, native-window/accessibility/security, dense-data, and visual-oracle evidence remain open.",
+    "current_blocker": "Exact-tip gate at metadata tip 70d99baf (product tip ad90b988) passed backend units 1315/1315, integration 383/383, combined coverage 80.90%, frontend 947/947, functional E2E 155 passed with 106 documented skips; visual matrix remains 98/104 with six unchanged screenshot diffs: watchlist-column-editor-open 13844 pixels at 1080p-100/125 and workspace-floating 11901/12097/12097/5512 pixels at 1080p-100/125/1440p-100/125. Canonical provider/history, richer Study, native-window/accessibility/security, dense-data, and visual-oracle evidence remain open. The first full run had one transient F8r-python-library-narrow window-discovery failure; a fresh-stack isolated rerun passed 1/1 plus 3/3 repeats.",
     "current_phase": "R1_R2_canonical_provider_history",
     "next_action": "Continue canonical provider/history population or the next compatible Study target slice with focused regression coverage, then rerun the exact-tip exhaustive gate at the new coherent tip; preserve visual policy and provider fallback rules.",
     "total": 10,
-    "updated_at": "2026-09-05T04:07:40.682114+00:00"
+    "updated_at": "2026-09-05T05:27:30.140154+00:00"
   },
   "remote": "6e86d3bc347ee6ddeabaa7b635bbf06b789afea5",
   "remote_sha": "6e86d3bc347ee6ddeabaa7b635bbf06b789afea5",
