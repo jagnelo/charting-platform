@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-05 — Expose canonical holdings-refresh diagnostics
+
+- [x] Show returned holdings-refresh provider and failure reason in the Market
+      Breadth family coverage strip and Market Map canonical readiness list;
+      do not infer readiness, retry providers, or change fallback policy.
+- [x] Product commit `347602f3` is committed locally; focused Market Map
+      coverage passed `36/36`, full frontend Vitest passed `970/970`,
+      type-check/build passed, and rebuilt authenticated
+      `F8s-breadth-family-ratio` passed `1/1` with the diagnostic asserted.
+      Cleanup left zero containers, volumes, images, sessions, and known bytes.
+- [ ] Rerun the exact-tip integration gate at the next documentation tip,
+      preserving the six known visual state-oracle diffs and all provider,
+      fallback, baseline, and acceptance policy.
+
 ### 2026-09-05 — Exact-tip gate after canonical composite-readiness reasons
 
 - [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework`

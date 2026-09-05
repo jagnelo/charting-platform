@@ -10,6 +10,22 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Expose canonical holdings-refresh diagnostics
+
+Product commit `347602f3` now keeps the canonical holdings-refresh provider and
+failure reason visible in the Market Breadth benchmark-family coverage strip
+and Market Map readiness list. Partial/failed refreshes remain explicit instead
+of becoming status-only labels; absent fields stay absent, with no readiness
+inference, provider retry, fallback, or acceptance-policy change. Focused
+Market Map coverage passed `36/36`; full frontend Vitest passed `970/970`;
+type-check and production build passed; rebuilt authenticated Chromium
+`F8s-breadth-family-ratio` passed `1/1` with the diagnostic asserted. An
+interrupted first stack startup was cleaned completely; the clean retry passed
+and teardown/resource accounting reported zero containers, volumes, images,
+sessions, and known bytes. The next action is the exact-tip gate at the next
+coherent documentation tip; preserve the six visual state-oracle diffs and
+unchanged provider/fallback policy.
+
 ## 2026-09-05 — Exact-tip exhaustive gate after canonical composite-readiness reasons
 
 At product tip `606d67ba` (documentation tip `a25f8497`), the exact-tip

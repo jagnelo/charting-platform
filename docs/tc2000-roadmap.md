@@ -5,6 +5,21 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-05
 
+## 2026-09-05 — Expose canonical holdings-refresh diagnostics
+
+Product commit `347602f3` (`feat(tc2000): expose canonical refresh diagnostics`)
+now keeps the backend's holdings-refresh provider and failure reason visible in
+both the Market Breadth benchmark-family coverage strip and Market Map's
+canonical readiness list. A partial/failed refresh is no longer reduced to a
+status-only label; absent provider/timestamp/reason fields remain absent, and
+the consumer does not retry providers, infer readiness, or change fallback
+policy. Focused Market Map coverage passed `36/36`; full frontend Vitest passed
+`970/970`; type-check and production build passed; rebuilt authenticated
+Chromium `F8s-breadth-family-ratio` passed `1/1` with the refresh diagnostic
+assertion. The first stack startup was interrupted before browser execution;
+cleanup restored zero resources, and the clean retry passed. The next exact-tip
+gate is required at the following documentation tip.
+
 ## 2026-09-05 — Exact-tip gate after canonical composite-readiness reasons
 
 At product tip `606d67ba` (documentation tip `a25f8497`), the exact-tip
