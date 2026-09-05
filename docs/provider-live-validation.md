@@ -62,13 +62,13 @@ supplied and the corresponding probe passes. Binance's endpoint-weight
 accounting and Nasdaq Trader's non-numeric polling ceiling remain explicitly
 tracked rather than guessed.
 
-The current full preflight ran six keyless probes successfully and reported
-18 blocked credential/configuration cases; it returned exit code `2` and makes
-no acceptance claim. It names these missing variables exactly:
-`EDGAR_USER_AGENT`, `ALPACA_API_KEY`, `ALPACA_SECRET_KEY`, `MASSIVE_API_KEY`,
+With the public SEC User-Agent and official FINRA OTC DAPI URL supplied for the
+run, the current full preflight passed `9` public probes and reported `15`
+blocked credentialed cases; it returned exit code `2` and makes no acceptance
+claim. It names these missing variables exactly:
+`ALPACA_API_KEY`, `ALPACA_SECRET_KEY`, `MASSIVE_API_KEY`,
 `ALPHA_VANTAGE_API_KEY`, `COINGECKO_API_KEY`, `FRED_API_KEY`,
-`FINRA_CLIENT_ID`, `FINRA_CLIENT_SECRET`,
-`FINRA_OTC_SYMBOL_DIRECTORY_URL`, `TIINGO_API_KEY`,
+`FINRA_CLIENT_ID`, `FINRA_CLIENT_SECRET`, `TIINGO_API_KEY`,
 `TWELVE_DATA_API_KEY`, `FINNHUB_API_KEY`, `MARKETSTACK_API_KEY`,
 `EODHD_API_KEY`, `FMP_API_KEY`, `TRADIER_API_KEY`, and
 `MARKETDATA_APP_API_KEY`. Populate them only in the ignored

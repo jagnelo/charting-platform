@@ -71,7 +71,8 @@
     "worktree_id": "feat-market-data-provider-platform-252f410b51"
   },
   "dirty_paths": [
-    "ps/workstreams/feat-market-data-provider-platform/handoff.md",
+    "ocs/provider-live-validation.md",
+    "ops/workstreams/feat-market-data-provider-platform/handoff.md",
     "ops/workstreams/feat-market-data-provider-platform/validation.jsonl"
   ],
   "docker": {
@@ -109,9 +110,9 @@
   "goal_request_state": "planning_required",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "211894ad5448d1d2a59bf8bb1c3ccba84bde4664",
+  "head": "b85dc0474847d114587b14c1df004a2ed06a8e4e",
   "implementation_sha": "352c64acbc466c1d3bc45d658a7dd2b06677a6e1",
-  "last_checkpoint": "2026-09-05T16:57:21.747938+00:00",
+  "last_checkpoint": "2026-09-05T17:13:55.493479+00:00",
   "last_human_progress_update": "2026-09-05T15:56:10.567038+00:00",
   "local_validation_profile": "docker_integration",
   "next_action": "continue implementation from the branch workstream",
@@ -144,7 +145,7 @@
     "total": 14,
     "updated_at": "2026-09-05T15:56:10.566880+00:00"
   },
-  "remote": "211894ad5448d1d2a59bf8bb1c3ccba84bde4664",
+  "remote": "b85dc0474847d114587b14c1df004a2ed06a8e4e",
   "remote_sha": "352c64acbc466c1d3bc45d658a7dd2b06677a6e1",
   "remote_synchronized": true,
   "retained_docker_resources": [],
