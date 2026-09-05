@@ -3059,6 +3059,11 @@ test.describe('TC2000 workstation', () => {
       expect(body).toMatchObject({ initial_version: { source: "output.scalar('sample_size', 4)\noutput.series('trend', [1, 2])\noutput.boolean('qualifies', True)\noutput.range('confidence', [1, 2], [3, 4], [2, 3])" } })
       const outputName = body?.initial_version?.output_name
       if (body?.kind === 'condition') {
+        if (body?.initial_version?.lineage?.output_adapter === 'range_center_target_to_boolean') {
+          expect(body?.initial_version).toMatchObject({ output_contract: 'boolean', output_name: 'confidence', lineage: { output_adapter: 'range_center_target_to_boolean', series_target: { operator: 'gte', threshold: 2.5 }, semantics: 'study_range_center_threshold_as_boolean' } })
+          await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 55, name: 'Confidence range condition', versions: [{ id: 55, output_contract: 'boolean' }] }) })
+          return
+        }
         await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 49, name: 'Qualifies condition', versions: [{ id: 49, output_contract: 'boolean' }] }) })
         return
       }
@@ -3118,6 +3123,11 @@ test.describe('TC2000 workstation', () => {
       expect(route.request().method()).toBe('POST')
       expect(await route.request().postDataJSON()).toMatchObject({ name: 'qualifies Filter 885', universe_type: 'custom', universe_instrument_ids: [7], timeframe: 'D1', provenance: { source_run_id: 885, source_output_name: 'qualifies' } })
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 50, name: 'Qualifies scan' }) })
+    })
+    await page.route(/\/api\/v1\/screeners\/from-python-condition\/55$/, async route => {
+      expect(route.request().method()).toBe('POST')
+      expect(await route.request().postDataJSON()).toMatchObject({ name: 'confidence gte 2.5 Filter 885', universe_type: 'custom', universe_instrument_ids: [7], timeframe: 'D1', provenance: { output_adapter: 'range_center_target_to_boolean', series_target: { operator: 'gte', threshold: 2.5 } } })
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 56, name: 'Confidence threshold filter' }) })
     })
     await page.route(/\/api\/v1\/alerts\/screener$/, async route => {
       if (route.request().method() !== 'POST') return route.continue()
@@ -3184,6 +3194,11 @@ test.describe('TC2000 workstation', () => {
     await expect(results.getByRole('button', { name: 'Save latest center column: confidence' })).toBeVisible()
     await results.getByRole('button', { name: 'Save latest center column: confidence' }).click()
     await expect(results).toContainText('Saved range center “confidence” as watchlist column “Confidence latest column”.')
+    await expect(results.getByRole('combobox', { name: 'Range center condition operator: confidence' })).toBeVisible()
+    await results.getByRole('combobox', { name: 'Range center condition operator: confidence' }).selectOption('gte')
+    await results.getByRole('spinbutton', { name: 'Range center condition threshold: confidence' }).fill('2.5')
+    await results.getByRole('button', { name: 'Save filter: confidence' }).click()
+    await expect(results).toContainText('Saved range center “confidence” as a thresholded watchlist filter.')
     for (const label of ['Save column: qualifies', 'Save filter: qualifies', 'Promote scan: qualifies', 'Use Gauge: qualifies', 'Promote alert: qualifies']) await expect(results.getByRole('button', { name: label })).toBeVisible()
     await results.getByRole('button', { name: 'Save column: qualifies' }).click()
     await expect(results).toContainText('Saved Boolean artifact “qualifies” as watchlist column “Qualifies column”.')

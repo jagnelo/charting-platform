@@ -94,6 +94,27 @@ def test_runner_adapts_thresholded_numeric_series_to_boolean_scan_contract():
     ]
 
 
+def test_runner_adapts_thresholded_range_center_to_boolean_scan_contract():
+    result = execute_job(
+        {
+            "source": "output.range('target', [10, 11], [12, 14], [11, 12.5])",
+            "output_contract": "boolean",
+            "output_name": "target",
+            "output_adapter": "range_center_target_to_boolean",
+            "series_target": {"operator": "gte", "threshold": 12},
+            "dataset": {
+                "datasets": [
+                    {"instrument_id": 1, "symbol": "SPY", "timestamps": ["2026-01-01", "2026-01-02"], "closes": [10, 12]},
+                ]
+            },
+        }
+    )
+    assert result["status"] == "completed"
+    assert result["artifacts"]["batch_cells"]["value"]["cells"] == [
+        {"instrument_id": 1, "symbol": "SPY", "status": "completed", "value": True, "metric": 12.5},
+    ]
+
+
 def test_runner_executes_declared_event_signals_across_prepared_universe_cells():
     result = execute_job(
         {

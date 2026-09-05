@@ -353,6 +353,64 @@ def test_code_asset_kind_and_declared_output_contract_must_match(client, auth_he
         "threshold": 1.5,
     }
 
+    selected_range_condition = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "selected-study-range-center-condition",
+            "name": "Selected study range center condition",
+            "kind": "condition",
+            "initial_version": {
+                "source": "output.scalar('sample', 1)\noutput.range('band', [1, 2], [3, 4], [2, 3])",
+                "output_contract": "boolean",
+                "output_name": "band",
+                "lineage": {
+                    "source_run_id": 95,
+                    "source_code_version_id": 47,
+                    "target": "filter",
+                    "output_adapter": "range_center_target_to_boolean",
+                    "series_target": {"operator": "gte", "threshold": 2.5},
+                    "semantics": "study_range_center_threshold_as_boolean",
+                },
+            },
+        },
+    )
+    assert selected_range_condition.status_code == 201, selected_range_condition.text
+    range_condition_version = selected_range_condition.json()["versions"][0]
+    assert range_condition_version["output_contract"] == "boolean"
+    assert range_condition_version["output_name"] == "band"
+    range_condition_lineage = next(
+        item
+        for item in range_condition_version["diagnostics"]
+        if item["code"] == "promotion_lineage"
+    )
+    assert range_condition_lineage["lineage"]["output_adapter"] == "range_center_target_to_boolean"
+    assert range_condition_lineage["lineage"]["series_target"] == {
+        "operator": "gte",
+        "threshold": 2.5,
+    }
+
+    invalid_range_condition = client.post(
+        "/api/v1/code/assets",
+        headers=auth_headers,
+        json={
+            "stable_key": "selected-study-invalid-range-center-condition",
+            "name": "Selected study invalid range center condition",
+            "kind": "condition",
+            "initial_version": {
+                "source": "output.range('band', [1, 2], [3, 4], [2, 3])",
+                "output_contract": "boolean",
+                "output_name": "band",
+                "lineage": {
+                    "output_adapter": "range_center_target_to_boolean",
+                    "series_target": {"operator": "between", "threshold": 1.5},
+                },
+            },
+        },
+    )
+    assert invalid_range_condition.status_code == 422
+    assert invalid_range_condition.json()["detail"]["code"] == "invalid_range_center_target"
+
     invalid_series_condition = client.post(
         "/api/v1/code/assets",
         headers=auth_headers,

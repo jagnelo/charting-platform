@@ -12,7 +12,7 @@ describe('study artifact promotion capabilities', () => {
       'alert',
     ])
     expect(studyArtifactCapability('series')?.targets).toEqual(['chart plot', 'latest-value watchlist column', 'thresholded Boolean condition'])
-    expect(studyArtifactCapability('range')?.targets).toEqual(['center chart plot', 'latest center watchlist column'])
+    expect(studyArtifactCapability('range')?.targets).toEqual(['center chart plot', 'latest center watchlist column', 'thresholded Boolean condition'])
     expect(studyArtifactCapability('range')?.note).toContain('bounds remain source-only')
     expect(studyArtifactCapability('events')?.targets).toEqual(['watchlist filter', 'alert', 'Strategy signal'])
   })

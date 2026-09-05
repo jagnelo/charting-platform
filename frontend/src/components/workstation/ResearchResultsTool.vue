@@ -59,6 +59,14 @@
             </template>
             <button v-if="artifact.artifact_type === 'range'" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save center chart plot: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'plot')">{{ promoting ? 'Promoting…' : `Save center chart plot: ${artifact.name}` }}</button>
             <button v-if="artifact.artifact_type === 'range' && rangeData(artifact)?.center?.some(value => Number.isFinite(value))" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save latest center column: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'column')">{{ promoting ? 'Promoting…' : `Save latest center column: ${artifact.name}` }}</button>
+            <template v-if="artifact.artifact_type === 'range' && hasFiniteRangeCenterValue(artifact)">
+              <div class="research-results-tool__series-condition" role="group" :aria-label="`${artifact.name} range center thresholded condition`">
+                <label>Center when <select v-model="seriesConditionOperator" :aria-label="`Range center condition operator: ${artifact.name}`"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option><option value="eq">=</option><option value="ne">≠</option></select></label>
+                <label>Value <input v-model.number="seriesConditionThreshold" type="number" step="any" :aria-label="`Range center condition threshold: ${artifact.name}`" /></label>
+                <button type="button" :disabled="rerunning || canceling || promoting || !Number.isFinite(seriesConditionThreshold)" :aria-label="`Save Boolean column: ${artifact.name}`" @click="promoteStructuredRangeCenterCondition(selectedRun, artifact, 'column')">{{ promoting ? 'Promoting…' : `Save Boolean column: ${artifact.name}` }}</button>
+                <button v-for="target in structuredSeriesConditionTargets" :key="`${artifact.id}-range-center-${target}`" type="button" :disabled="rerunning || canceling || promoting || !Number.isFinite(seriesConditionThreshold)" :aria-label="`${structuredSeriesConditionLabel(target)}: ${artifact.name}`" @click="promoteStructuredRangeCenterCondition(selectedRun, artifact, target)">{{ promoting ? 'Promoting…' : `${structuredSeriesConditionLabel(target)}: ${artifact.name}` }}</button>
+              </div>
+            </template>
             <template v-if="artifact.artifact_type === 'boolean'">
               <button v-for="target in structuredBooleanPromotionTargets" :key="`${artifact.id}-${target}`" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`${structuredBooleanPromotionLabel(target)}: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, target)">{{ promoting ? 'Promoting…' : `${structuredBooleanPromotionLabel(target)}: ${artifact.name}` }}</button>
             </template>
@@ -159,6 +167,7 @@ const promotionMessage = ref('')
 const promotedScans = ref<Record<number, { id: number; name: string; codeVersionId: number | null }>>({})
 const promotedStructuredBooleanScans = ref<Record<string, { id: number; name: string; codeVersionId: number }>>({})
 const promotedStructuredSeriesScans = ref<Record<string, { id: number; name: string; codeVersionId: number }>>({})
+const promotedStructuredRangeCenterScans = ref<Record<string, { id: number; name: string; codeVersionId: number }>>({})
 const promotedEventFilters = ref<Record<number, { id: number; name: string }>>({})
 const occurrenceSymbolFilter = ref('')
 const occurrenceKindFilter = ref<'all' | 'member_entered' | 'member_exited'>('all')
@@ -261,6 +270,17 @@ function latestSeriesValue(artifact: ResearchRunSummary['artifacts'][number]): n
     if (typeof value === 'number' && Number.isFinite(value)) return value
   }
   return null
+}
+function latestRangeCenterValue(artifact: ResearchRunSummary['artifacts'][number]): number | null {
+  const values = rangeData(artifact)?.center
+  if (!values) return null
+  for (const value of values.slice().reverse()) {
+    if (typeof value === 'number' && Number.isFinite(value)) return value
+  }
+  return null
+}
+function hasFiniteRangeCenterValue(artifact: ResearchRunSummary['artifacts'][number]) {
+  return latestRangeCenterValue(artifact) != null
 }
 function hasFiniteSeriesValue(artifact: ResearchRunSummary['artifacts'][number]) {
   return Boolean(seriesData(artifact)?.values.some(value => typeof value === 'number' && Number.isFinite(value)))
@@ -943,6 +963,95 @@ async function promoteStructuredSeriesCondition(
     }
   } catch (cause: any) {
     promotionMessage.value = cause?.message ?? `Unable to promote the ${artifact.artifact_type} artifact to a thresholded condition`
+  } finally {
+    promoting.value = false
+  }
+}
+async function promoteStructuredRangeCenterCondition(
+  run: ResearchRunSummary,
+  artifact: ResearchRunSummary['artifacts'][number],
+  target: 'column' | StructuredSeriesConditionTarget,
+) {
+  if (artifact.artifact_type !== 'range' || !hasFiniteRangeCenterValue(artifact) || promoting.value) return
+  if (!Number.isFinite(seriesConditionThreshold.value)) {
+    promotionMessage.value = 'Enter a finite numeric threshold before promoting the range center.'
+    return
+  }
+  promoting.value = true
+  promotionMessage.value = ''
+  try {
+    const assets = await api.get<Array<{ versions?: Array<{ id?: number; source?: string; output_contract?: string; parameter_schema?: Record<string, unknown>; default_parameters?: Record<string, unknown> }> }>>('/code/assets')
+    const sourceVersion = (assets ?? []).flatMap(asset => asset.versions ?? []).find(version => version.id === run.code_version_id)
+    if (!sourceVersion?.source) throw new Error('The immutable source code version for this range study is unavailable.')
+    const declaredInstrumentIds = declaredStudyInstrumentIds(run)
+    if (!declaredInstrumentIds.length) throw new Error('The study dataset has no declared canonical members; refusing to widen the promoted condition universe.')
+    const rangeTarget = { operator: seriesConditionOperator.value, threshold: Number(seriesConditionThreshold.value) }
+    const sourceRunConfig = run.run_config ?? {}
+    const sourceManifest = run.dataset_manifest ?? {}
+    const scanKey = `${run.id}:${artifact.id}:${artifact.name}:range_center_target_to_boolean:${seriesConditionOperator.value}:${seriesConditionThreshold.value}`
+    let scan = promotedStructuredRangeCenterScans.value[scanKey]
+    const lineage = {
+      type: 'study_run_promotion',
+      source_run_id: run.id,
+      source_code_version_id: run.code_version_id,
+      source_reproducibility_hash: run.reproducibility_hash ?? null,
+      source_dataset_manifest: sourceManifest,
+      source_run_config: sourceRunConfig,
+      source_output_name: artifact.name,
+      source_instrument_ids: declaredInstrumentIds,
+      source_universe_source_id: structuredStudySourceId(run),
+      source_membership_version: structuredStudyMembershipVersion(run),
+      target,
+      output_adapter: 'range_center_target_to_boolean',
+      series_target: rangeTarget,
+      semantics: 'study_range_center_threshold_as_boolean',
+      point_in_time_source_preserved: false,
+    }
+    const kind = target === 'column' ? 'column' : 'condition'
+    let codeVersionId = scan?.codeVersionId
+    if (!codeVersionId) {
+      const promoted = await api.post<{ id?: number; name?: string; versions?: Array<{ id?: number }> }>('/code/assets', {
+        stable_key: `${run.id}-${artifact.name}-range-center-${kind}-${seriesConditionOperator.value}-${seriesConditionThreshold.value}`.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80) || `study-range-center-${kind}`,
+        name: `${artifact.name} ${target === 'column' ? 'Boolean column' : 'condition'}`,
+        kind,
+        initial_version: {
+          source: sourceVersion.source,
+          output_contract: 'boolean',
+          output_name: artifact.name,
+          parameter_schema: sourceVersion.parameter_schema ?? {},
+          default_parameters: sourceVersion.default_parameters ?? {},
+          lineage,
+        },
+      })
+      const returnedCodeVersionId = promoted.versions?.[0]?.id ?? promoted.id
+      if (typeof returnedCodeVersionId === 'number') codeVersionId = returnedCodeVersionId
+    }
+    if (typeof codeVersionId !== 'number') throw new Error('Range center condition promotion did not return an immutable code version.')
+    if (target === 'column') {
+      promotionMessage.value = `Saved range center “${artifact.name}” as a thresholded Boolean column.`
+      return
+    }
+    if (!scan) {
+      const screener = await api.post<{ id: number; name?: string }>(`/screeners/from-python-condition/${codeVersionId}`, {
+        name: `${artifact.name} ${seriesConditionOperator.value} ${seriesConditionThreshold.value} ${target === 'scan' ? 'Scan' : 'Filter'} ${run.id}`,
+        description: `Current-data thresholded Boolean target promoted from structured Study run #${run.id}; range center, threshold, membership, and dataset lineage are retained.`,
+        universe_type: 'custom',
+        universe_instrument_ids: declaredInstrumentIds,
+        timeframe: structuredStudyTimeframe(run),
+        provenance: lineage,
+      })
+      scan = { id: screener.id, name: screener.name ?? `${artifact.name} range center condition`, codeVersionId }
+      promotedStructuredRangeCenterScans.value = { ...promotedStructuredRangeCenterScans.value, [scanKey]: scan }
+    }
+    if (target === 'filter') promotionMessage.value = `Saved range center “${artifact.name}” as a thresholded watchlist filter.`
+    else if (target === 'scan') promotionMessage.value = `Promoted range center “${artifact.name}” to a thresholded scan.`
+    else if (target === 'gauge') promotionMessage.value = `Range center “${artifact.name}” is available as a thresholded Market Gauge.`
+    else {
+      await api.post('/alerts/screener', { screener_id: scan.id, trigger_type: 'entered', repeat: true, notes: `Created from structured range center study run ${run.id} (${artifact.name})` })
+      promotionMessage.value = `Promoted range center “${artifact.name}” to a thresholded scan alert.`
+    }
+  } catch (cause: any) {
+    promotionMessage.value = cause?.message ?? 'Unable to promote the range center artifact to a thresholded condition'
   } finally {
     promoting.value = false
   }

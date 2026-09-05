@@ -377,6 +377,65 @@ class TestScreenerCRUD:
         assert job["output_name"] == "trend"
         assert job["series_target"] == {"operator": "gte", "threshold": 11}
 
+        range_asset = client.post(
+            "/api/v1/code/assets",
+            headers=auth_headers,
+            json={
+                "stable_key": "study-range-center-threshold-condition",
+                "name": "Study range center threshold condition",
+                "kind": "condition",
+                "initial_version": {
+                    "source": "output.range('band', [1, 2], [3, 4], [2, 3])",
+                    "output_contract": "boolean",
+                    "output_name": "band",
+                    "lineage": {
+                        "type": "study_run_promotion",
+                        "source_run_id": 914,
+                        "source_output_name": "band",
+                        "output_adapter": "range_center_target_to_boolean",
+                        "series_target": {"operator": "gte", "threshold": 2.5},
+                    },
+                },
+            },
+        )
+        assert range_asset.status_code == 201, range_asset.text
+        range_version_id = range_asset.json()["versions"][0]["id"]
+        range_created = client.post(
+            f"/api/v1/screeners/from-python-condition/{range_version_id}",
+            headers=auth_headers,
+            json={
+                "name": "Study range center threshold filter",
+                "universe_type": "custom",
+                "universe_instrument_ids": [instrument.id],
+                "timeframe": "D1",
+                "provenance": {
+                    "type": "study_run_promotion",
+                    "source_run_id": 914,
+                    "source_code_version_id": range_version_id,
+                    "source_output_name": "band",
+                    "output_adapter": "range_center_target_to_boolean",
+                    "series_target": {"operator": "gte", "threshold": 2.5},
+                    "source_instrument_ids": [instrument.id],
+                    "point_in_time_source_preserved": False,
+                },
+            },
+        )
+        assert range_created.status_code == 201, range_created.text
+        range_queued = client.post(
+            f"/api/v1/screeners/{range_created.json()['id']}/run", headers=auth_headers
+        )
+        assert range_queued.status_code == 200, range_queued.text
+        range_job = json.loads(
+            (
+                tmp_path
+                / "jobs"
+                / f"{range_queued.json()['result_data']['_python_research_run_id']}.json"
+            ).read_text()
+        )
+        assert range_job["output_adapter"] == "range_center_target_to_boolean"
+        assert range_job["output_name"] == "band"
+        assert range_job["series_target"] == {"operator": "gte", "threshold": 2.5}
+
     def test_create_screener(self, client, auth_headers):
         res = client.post(
             "/api/v1/screeners",

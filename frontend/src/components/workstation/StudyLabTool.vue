@@ -73,6 +73,14 @@
           <button type="button" :disabled="promotionBusy || !Number.isFinite(seriesConditionThreshold)" @click="promoteSeriesCondition('column')">{{ promotionBusy ? 'Promoting…' : 'Save Boolean column' }}</button>
           <button v-for="target in seriesConditionTargets" :key="`series-condition-${target}`" type="button" :disabled="promotionBusy || !Number.isFinite(seriesConditionThreshold)" @click="promoteSeriesCondition(target)">{{ promotionBusy ? 'Promoting…' : seriesConditionLabel(target) }}</button>
         </div>
+        <div v-if="latestRangeCenterObservation != null" class="study-lab-tool__series-condition" role="group" aria-label="Study range center threshold condition">
+          <label>Center when <select v-model="seriesConditionOperator" aria-label="Study range center condition operator"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option><option value="eq">=</option><option value="ne">≠</option></select></label>
+          <label>Value <input v-model.number="seriesConditionThreshold" type="number" step="any" aria-label="Study range center condition threshold" /></label>
+          <button type="button" :disabled="promotionBusy || !Number.isFinite(seriesConditionThreshold)" @click="promoteRangeCenterCondition('column')">{{ promotionBusy ? 'Promoting…' : 'Save Boolean column' }}</button>
+          <button v-for="target in seriesConditionTargets" :key="`range-center-condition-${target}`" type="button" :disabled="promotionBusy || !Number.isFinite(seriesConditionThreshold)" @click="promoteRangeCenterCondition(target)">{{ promotionBusy ? 'Promoting…' : seriesConditionLabel(target) }}</button>
+        </div>
+        <button v-if="promotableKind === 'range'" type="button" :disabled="promotionBusy" @click="promote('plot')">{{ promotionBusy ? 'Promoting…' : 'Save center as chart plot' }}</button>
+        <button v-if="promotableKind === 'range' && latestRangeCenterObservation != null" type="button" :disabled="promotionBusy" @click="promote('column')">{{ promotionBusy ? 'Promoting…' : 'Save latest center column' }}</button>
         <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('filter')">{{ promotionBusy ? 'Promoting…' : 'Save as watchlist filter' }}</button>
         <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('column')">{{ promotionBusy ? 'Promoting…' : 'Save as Boolean column' }}</button>
         <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('scan')">{{ promotionBusy ? 'Promoting…' : 'Promote to scan' }}</button>
@@ -357,14 +365,14 @@ const runGuidance = computed(() => {
     default: return 'Study status is being resolved.'
   }
 })
-const promotableKind = computed<'scalar' | 'boolean' | 'series' | 'events' | null>(() => {
+const promotableKind = computed<'scalar' | 'boolean' | 'series' | 'events' | 'range' | null>(() => {
   // Keep promotion controls available after the first promotion.  A completed
   // research run can be refreshed by the durable-run query while the scan
   // creation request is settling; that transient status must not remove the
   // already valid boolean result or strand the newly-created scan before it
   // can be promoted to an alert/signal.
   if (!run.value || !runSource.value || (run.value.status !== 'completed' && promotedScanId.value == null)) return null
-  return runContract.value === 'scalar' || runContract.value === 'boolean' || runContract.value === 'series' || runContract.value === 'events' ? runContract.value : null
+  return runContract.value === 'scalar' || runContract.value === 'boolean' || runContract.value === 'series' || runContract.value === 'events' || runContract.value === 'range' ? runContract.value : null
 })
 const progressLabel = computed(() => {
   const progress = run.value?.progress
@@ -377,6 +385,11 @@ const latestSeriesObservation = computed(() => {
   const artifact = run.value?.artifacts?.find(item => item.artifact_type === 'series')
   return artifact ? latestSeriesValue(artifact) : null
 })
+const latestRangeCenterObservation = computed(() => {
+  const artifact = run.value?.artifacts?.find(item => item.artifact_type === 'range')
+  if (!artifact) return null
+  return latestRangeCenterValue(artifact)
+})
 const metricArtifacts = computed(() => (run.value?.artifacts ?? []).filter(artifact => ['scalar', 'boolean'].includes(artifact.artifact_type)))
 const nonScalarArtifacts = computed(() => (run.value?.artifacts ?? []).filter(artifact => !['scalar', 'boolean'].includes(artifact.artifact_type)))
 type PromotionTarget = 'column' | 'plot' | 'filter' | 'scan' | 'gauge' | 'alert' | 'signal'
@@ -386,9 +399,9 @@ const seriesConditionTargets: SeriesConditionTarget[] = ['filter', 'scan', 'gaug
 function seriesConditionLabel(target: SeriesConditionTarget) {
   return target === 'column' ? 'Save Boolean column' : target === 'filter' ? 'Save watchlist filter' : target === 'scan' ? 'Promote scan' : target === 'gauge' ? 'Use as Market Gauge' : 'Promote alert'
 }
-function seriesConditionKey() {
-  const artifact = run.value?.artifacts?.find(item => item.artifact_type === 'series')
-  return `${run.value?.id ?? 'run'}:${artifact?.id ?? 'series'}:${artifact?.name ?? 'series'}:${seriesConditionOperator.value}:${seriesConditionThreshold.value}`
+function seriesConditionKey(artifact?: Artifact, adapter = 'series_target_to_boolean') {
+  const selected = artifact ?? run.value?.artifacts?.find(item => item.artifact_type === 'series')
+  return `${run.value?.id ?? 'run'}:${selected?.id ?? 'series'}:${selected?.name ?? 'series'}:${adapter}:${seriesConditionOperator.value}:${seriesConditionThreshold.value}`
 }
 function declaredStudyInstrumentIds() {
   const manifest = run.value?.dataset_manifest ?? {}
@@ -589,6 +602,14 @@ function latestSeriesValue(artifact: Artifact): number | null {
   const values = structuredValues ?? (Array.isArray(rawValue) ? rawValue : null)
   if (!values) return null
   for (const value of values.slice().reverse()) {
+    if (typeof value === 'number' && Number.isFinite(value)) return value
+  }
+  return null
+}
+function latestRangeCenterValue(artifact: Artifact): number | null {
+  const center = rangeData(artifact)?.center
+  if (!center) return null
+  for (const value of center.slice().reverse()) {
     if (typeof value === 'number' && Number.isFinite(value)) return value
   }
   return null
@@ -1024,6 +1045,100 @@ async function promoteSeriesCondition(target: SeriesConditionTarget) {
     }
   } catch (cause: any) {
     promotionStatus.value = cause?.message ?? 'Unable to promote the Study series to a thresholded condition'
+  } finally { promotionBusy.value = false }
+}
+async function promoteRangeCenterCondition(target: SeriesConditionTarget) {
+  const studyRun = run.value
+  const artifact = studyRun?.artifacts?.find(item => item.artifact_type === 'range')
+  if (!studyRun || studyRun.status !== 'completed' || !artifact || latestRangeCenterValue(artifact) == null || promotionBusy.value) return
+  if (!Number.isFinite(seriesConditionThreshold.value)) {
+    promotionStatus.value = 'Enter a finite numeric threshold before promoting the range center.'
+    return
+  }
+  const declaredInstrumentIds = declaredStudyInstrumentIds()
+  if (!declaredInstrumentIds.length) {
+    promotionStatus.value = 'The study dataset has no declared canonical members; refusing to widen the promoted condition universe.'
+    return
+  }
+  if (!runSource.value) {
+    promotionStatus.value = 'The immutable source code version for this range study is unavailable.'
+    return
+  }
+  promotionBusy.value = true
+  promotionStatus.value = ''
+  try {
+    const key = seriesConditionKey(artifact, 'range_center_target_to_boolean')
+    const cached = promotedSeriesConditionScans.value[key] ?? {}
+    const seriesTarget = { operator: seriesConditionOperator.value, threshold: Number(seriesConditionThreshold.value) }
+    const sourceManifest = studyRun.dataset_manifest ?? {}
+    const sourceRunConfig = studyRun.run_config ?? {}
+    const lineage = {
+      type: 'study_run_promotion',
+      source_run_id: studyRun.id,
+      source_code_version_id: studyRun.code_version_id ?? runCodeVersionId.value,
+      source_reproducibility_hash: studyRun.reproducibility_hash ?? null,
+      source_dataset_manifest: sourceManifest,
+      source_run_config: sourceRunConfig,
+      source_output_name: artifact.name,
+      source_instrument_ids: declaredInstrumentIds,
+      source_universe_source_id: studySourceId(),
+      source_membership_version: studyMembershipVersion(),
+      target,
+      output_adapter: 'range_center_target_to_boolean',
+      series_target: seriesTarget,
+      semantics: 'study_range_center_threshold_as_boolean',
+      point_in_time_source_preserved: false,
+    }
+    const kind = target === 'column' ? 'column' : 'condition'
+    let codeVersionId = target === 'column' ? cached.columnCodeVersionId : cached.codeVersionId
+    if (typeof codeVersionId !== 'number') {
+      const promoted = await api.post<{ id?: number; versions?: Array<{ id?: number }> }>('/code/assets', {
+        stable_key: `${stableKey(name.value)}-range-center-${kind}-${studyRun.id}-${stableKey(artifact.name)}-${seriesConditionOperator.value}-${seriesConditionThreshold.value}`,
+        name: `${artifact.name} ${target === 'column' ? 'Boolean column' : 'condition'}`,
+        kind,
+        initial_version: {
+          source: runSource.value,
+          output_contract: 'boolean',
+          output_name: artifact.name,
+          parameter_schema: parsedParameterSchema.value ?? {},
+          default_parameters: buildParameters(),
+          lineage,
+        },
+      })
+      codeVersionId = promoted.versions?.[0]?.id ?? promoted.id
+      if (typeof codeVersionId !== 'number') throw new Error('Range center condition promotion did not return an immutable code version.')
+      promotedSeriesConditionScans.value = {
+        ...promotedSeriesConditionScans.value,
+        [key]: target === 'column' ? { ...cached, columnCodeVersionId: codeVersionId } : { ...cached, codeVersionId },
+      }
+    }
+    if (target === 'column') {
+      promotionStatus.value = `Saved range center “${artifact.name}” as a thresholded Boolean column.`
+      return
+    }
+    let scanId = cached.id
+    if (typeof scanId !== 'number') {
+      const configuredTimeframe = studyRun.run_config?.timeframe ?? sourceManifest.timeframe
+      const screener = await api.post<{ id: number }>(`/screeners/from-python-condition/${codeVersionId}`, {
+        name: `${artifact.name} ${seriesConditionOperator.value} ${seriesConditionThreshold.value} ${target === 'scan' ? 'Scan' : 'Filter'} ${studyRun.id}`,
+        description: `Current-data thresholded Boolean target promoted from Study Lab run #${studyRun.id}; range center, threshold, membership, and dataset lineage are retained.`,
+        universe_type: 'custom',
+        universe_instrument_ids: declaredInstrumentIds,
+        timeframe: typeof configuredTimeframe === 'string' && configuredTimeframe.trim() ? configuredTimeframe : timeframe.value,
+        provenance: lineage,
+      })
+      scanId = screener.id
+      promotedSeriesConditionScans.value = { ...promotedSeriesConditionScans.value, [key]: { ...promotedSeriesConditionScans.value[key], id: scanId, codeVersionId } }
+    }
+    if (target === 'filter') promotionStatus.value = `Saved range center “${artifact.name}” as a thresholded watchlist filter.`
+    else if (target === 'scan') promotionStatus.value = `Promoted range center “${artifact.name}” to a thresholded scan.`
+    else if (target === 'gauge') promotionStatus.value = `Range center “${artifact.name}” is available as a thresholded Market Gauge.`
+    else {
+      await api.post('/alerts/screener', { screener_id: scanId, trigger_type: 'entered', repeat: true, notes: `Created from Study Lab range center run ${studyRun.id} (${artifact.name})` })
+      promotionStatus.value = `Promoted range center “${artifact.name}” to a thresholded scan alert.`
+    }
+  } catch (cause: any) {
+    promotionStatus.value = cause?.message ?? 'Unable to promote the Study range center to a thresholded condition'
   } finally { promotionBusy.value = false }
 }
 async function rerun(snapshot: boolean) {

@@ -1246,7 +1246,8 @@ def _execute_batch(
                     if output_adapter in {"latest_series_to_scalar", "series_target_to_boolean"}
                     and output_contract in {"scalar", "boolean"}
                     else "range"
-                    if output_adapter == "range_center_to_scalar" and output_contract == "scalar"
+                    if output_adapter in {"range_center_to_scalar", "range_center_target_to_boolean"}
+                    and output_contract in {"scalar", "boolean"}
                     else output_contract
                 )
                 if output_adapter == "events_to_boolean" and output_contract == "boolean":
@@ -1287,6 +1288,12 @@ def _execute_batch(
                 ]
                 if output_adapter == "series_target_to_boolean":
                     extracted_metric, extraction_error = _series_artifact(result, output_name)
+                    value, target_error = _series_target_value(
+                        extracted_metric, hash_input.get("series_target")
+                    )
+                    error = extraction_error or target_error
+                elif output_adapter == "range_center_target_to_boolean":
+                    extracted_metric, extraction_error = _range_center_artifact(result, output_name)
                     value, target_error = _series_target_value(
                         extracted_metric, hash_input.get("series_target")
                     )

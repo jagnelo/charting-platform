@@ -591,6 +591,59 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.text()).toContain('Promoted series artifact “trend” to a thresholded scan alert.')
   })
 
+  it('promotes a structured range center through an explicit thresholded Boolean condition', async () => {
+    const source = "output.range('confidence', [1, 2], [3, 4], [2, 3])"
+    const lineage = {
+      source_run_id: 39,
+      source_code_version_id: 87,
+      source_output_name: 'confidence',
+      source_instrument_ids: [7, 8],
+      target: 'filter',
+      output_adapter: 'range_center_target_to_boolean',
+      series_target: { operator: 'gte', threshold: 2.5 },
+      semantics: 'study_range_center_threshold_as_boolean',
+      point_in_time_source_preserved: false,
+    }
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve([{ id: 39, status: 'completed', code_version_id: 87, output_contract: 'study', run_config: { timeframe: 'D1' }, dataset_manifest: { source: 'canonical_local_database', datasets: [{ instrument_id: 7, symbol: 'SPY' }, { instrument_id: 8, symbol: 'QQQ' }] }, reproducibility_hash: 'hash-39', diagnostics: [], artifacts: [
+        { id: 29, name: 'confidence', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], lower: [1, 2], upper: [3, 4], center: [2, 3] } } },
+      ] }])
+      if (path === '/code/assets') return Promise.resolve([{ name: 'Study 39', versions: [{ id: 87, source, output_contract: 'study', parameter_schema: { properties: {} }, default_parameters: {} }] }])
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string, body: unknown) => {
+      if (path === '/code/assets') return Promise.resolve({ id: 98, name: 'confidence condition', versions: [{ id: 98 }] })
+      if (path === '/screeners/from-python-condition/98') return Promise.resolve({ id: 99, name: 'confidence threshold filter' })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    expect(wrapper.find('[aria-label="Range center condition operator: confidence"]').exists()).toBe(true)
+    await wrapper.get('[aria-label="Range center condition operator: confidence"]').setValue('gte')
+    await wrapper.get('[aria-label="Range center condition threshold: confidence"]').setValue('2.5')
+    await wrapper.get('[aria-label="Save filter: confidence"]').trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'condition',
+      initial_version: expect.objectContaining({
+        source,
+        output_contract: 'boolean',
+        output_name: 'confidence',
+        lineage: expect.objectContaining(lineage),
+      }),
+    }))
+    expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/98', expect.objectContaining({
+      name: 'confidence gte 2.5 Filter 39',
+      universe_type: 'custom',
+      universe_instrument_ids: [7, 8],
+      timeframe: 'D1',
+      provenance: expect.objectContaining(lineage),
+    }))
+    expect(wrapper.text()).toContain('Saved range center “confidence” as a thresholded watchlist filter.')
+  })
+
   it('exposes the complete lineage-preserving Boolean promotion matrix for structured results', async () => {
     const source = "output.boolean('qualifies', True)\noutput.scalar('sample_size', 4)"
     apiGet.mockImplementation((path: string) => {

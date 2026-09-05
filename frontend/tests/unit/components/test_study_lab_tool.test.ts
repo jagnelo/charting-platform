@@ -778,6 +778,51 @@ describe('StudyLabTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 150, trigger_type: 'entered', repeat: true, notes: 'Created from Study Lab series run 149 (trend)' })
   })
 
+  it('promotes a direct Study Lab range center through an explicit threshold condition', async () => {
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['range'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 151 }] })
+      if (path === '/research/runs') return Promise.resolve({
+        id: 152,
+        code_version_id: 151,
+        status: 'completed',
+        run_config: { universe_source_id: 'watchlist:7', timeframe: 'D1' },
+        dataset_manifest: { universe_source_id: 'watchlist:7', universe_membership_version: 'watchlist:7:v2', timeframe: 'D1', datasets: [{ instrument_id: 7, symbol: 'SPY' }] },
+        artifacts: [{ id: 2, name: 'confidence', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], lower: [1, 2], upper: [3, 4], center: [2, 3] } } }],
+      })
+      if (path === '/screeners/from-python-condition/151') return Promise.resolve({ id: 153 })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    await wrapper.find('[aria-label="Study Python source"]').setValue("output.range('confidence', [1, 2], [3, 4], [2, 3])")
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button')[1].trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #152'))
+    expect(wrapper.find('[aria-label="Study range center threshold condition"]').exists()).toBe(true)
+    await wrapper.find('[aria-label="Study range center condition operator"]').setValue('gt')
+    await wrapper.find('[aria-label="Study range center condition threshold"]').setValue('2.5')
+    await wrapper.findAll('[aria-label="Study range center threshold condition"] button').find(button => button.text() === 'Save Boolean column')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved range center “confidence” as a thresholded Boolean column.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        output_contract: 'boolean',
+        output_name: 'confidence',
+        lineage: expect.objectContaining({
+          output_adapter: 'range_center_target_to_boolean',
+          series_target: { operator: 'gt', threshold: 2.5 },
+          semantics: 'study_range_center_threshold_as_boolean',
+        }),
+      }),
+    }))
+    await wrapper.findAll('[aria-label="Study range center threshold condition"] button').find(button => button.text() === 'Save watchlist filter')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved range center “confidence” as a thresholded watchlist filter.'))
+    expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/151', expect.objectContaining({
+      provenance: expect.objectContaining({ output_adapter: 'range_center_target_to_boolean', series_target: { operator: 'gt', threshold: 2.5 } }),
+    }))
+  })
+
   it('promotes a completed event study without coercing its event contract', async () => {
     apiGet.mockImplementation((path: string) => path === '/code/assets'
       ? Promise.resolve([{ versions: [{ id: 144, source: "output.events('signals', [])", parameter_schema: {}, default_parameters: {} }] }])
