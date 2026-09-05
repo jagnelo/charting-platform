@@ -70,11 +70,7 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-45bdf9bd8d"
   },
-  "dirty_paths": [
-    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-    "ops/workstreams/feat-etf-holdings-constituents/session.json",
-    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -110,7 +106,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "733c43cda603c02535a5b41079d50b32636e48c8",
+  "head": "ce04233ebaed4093ffcc377be4d2d0241bac005b",
   "implementation_sha": "733c43cda603c02535a5b41079d50b32636e48c8",
   "last_checkpoint": "2026-09-05T05:25:36Z",
   "last_human_progress_update": "2026-09-05T05:25:36Z",
@@ -142,8 +138,8 @@
     "total": 14,
     "updated_at": "2026-09-05T03:27:55.054625+00:00"
   },
-  "remote": "733c43cda603c02535a5b41079d50b32636e48c8",
-  "remote_sha": "733c43cda603c02535a5b41079d50b32636e48c8",
+  "remote": "ce04233ebaed4093ffcc377be4d2d0241bac005b",
+  "remote_sha": "ce04233ebaed4093ffcc377be4d2d0241bac005b",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "5b434602-fc78-40c5-8f0a-0960badecb67",
