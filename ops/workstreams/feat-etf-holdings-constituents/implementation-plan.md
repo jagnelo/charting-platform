@@ -3293,3 +3293,14 @@ implementation tip without changing provider classifications or source
 eligibility. The provider-platform staging dependency, AC10, unresolved
 DXJ/NTSX/MINT/BOND current-support outcomes, and post-integration AC14 shadow
 gate remain open.
+
+## Exact-SHA GitHub Actions receipt for pushed documentation checkpoint — 2026-09-05
+
+GitHub Actions run `33993815315` completed successfully for pushed feature tip
+`d0d992179ac5c1b5a96dd907940712703933ffe1`. Backend Tests, Frontend Unit
+Tests, Branch-declared Tests, and Playwright E2E all passed. The
+staging/master-only Exhaustive Integration Gate was skipped as designed for a
+feature branch. This validates the pushed tip without changing provider
+classifications or source eligibility. The provider-platform staging
+dependency, AC10, unresolved DXJ/NTSX/MINT/BOND current-support outcomes, and
+post-integration AC14 shadow gate remain open.
