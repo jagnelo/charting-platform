@@ -2905,3 +2905,14 @@ loosening any current-data gate.
 The same checkpoint's production frontend build (`vue-tsc && vite build`)
 completed successfully. Vite emitted only the repository's existing large-chunk
 warnings; no ETF compilation or type error occurred.
+
+## WisdomTree DataSpan candidate assessment — 2026-09-05
+
+The official WisdomTree Connect/DataSpan documentation was reviewed as a
+possible alternative to the Cloudflare-blocked DXJ/NTSX product routes. The
+documented Fund Data API requires the server-side `x-wt-dataspan-key` header and
+describes fund metadata, URLs, NAV, and related datasets; no public complete
+holdings endpoint, current entitlement, commercial terms, or price was proven
+for these ETFs. It is therefore recorded as an unqualified vendor candidate
+behind the shared entitlement/quota/licensing/budget gate. No credential,
+request, adapter promotion, or current-support claim was introduced.

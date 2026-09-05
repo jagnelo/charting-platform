@@ -1735,6 +1735,7 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.wisdomtree"
       - "runtime:ISSUER_ADAPTER_CONFIGS.wisdomtree"
+      - "web:wisdomtree-connect-dataspan-2026-09-05"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -1756,6 +1757,10 @@ providers:
         source: "https://www.wisdomtree.com/us/products/equity/dxj; https://www.wisdomtree.com/us/products/capital-efficient/ntsx"
         result: "Bounded requests returned HTTP 403 Cloudflare challenge content for both DXJ and NTSX product routes."
         evidence_ref: "live:wisdomtree-current-fund-holdings-2026-09-05-blocked"
+      - date: 2026-09-05
+        source: "https://docs.wisdomtreeconnect.com/dataspan/auth; https://docs.wisdomtreeconnect.com/dataspan/details/fund-details"
+        result: "WisdomTree's official DataSpan documentation requires an x-wt-dataspan-key and documents fund metadata/NAV routes, but no public complete holdings endpoint or verifiable pricing/terms was established; it remains an unqualified candidate behind the shared entitlement and budget gate."
+        evidence_ref: "web:wisdomtree-connect-dataspan-2026-09-05"
     disposition_reason: "wisdomtree: Official holdings and product pages identify current DXJ/NTSX holdings, but bounded requests are Cloudflare-blocked and no stable executable route is proven."
     next_action: "wisdomtree: Periodically re-test the official fund-holdings and symbol-scoped pages; promote only after complete rows, mapping, parser fixtures, and bounded live evidence are available."
     implementation_sha: null
