@@ -416,6 +416,19 @@ class Settings(BaseSettings):
     }
     PROVIDER_FRESHNESS_SEEDS: dict[str, int] = {}
     PROVIDER_USAGE_PROFILE_SEEDS: dict[str, dict] = {
+        # Binance publishes exact weights for the two single-request adapter
+        # operations below.  ``fetch_ohlcv`` is intentionally absent: one
+        # adapter call may page through an arbitrary historical range and
+        # cannot be safely charged as one weight before execution.
+        "binance": {
+            "mode": "weighted_request",
+            "unit_label": "request_weight",
+            "operation_costs": {
+                "get_current_price": 2,
+                "discover_universe_page": 20,
+                "reconcile_universe_page": 20,
+            },
+        },
         "twelve_data": {
             "mode": "credit_count",
             "unit_label": "credits",

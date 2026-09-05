@@ -249,14 +249,15 @@ class TokenBucket:
         self.tokens = float(self.capacity)
         self.last_refill = time.monotonic()
 
-    def try_acquire(self) -> bool:
+    def try_acquire(self, units: int = 1) -> bool:
+        units = max(int(units), 1)
         now = time.monotonic()
         elapsed = now - self.last_refill
         self.last_refill = now
         self.tokens = min(self.capacity, self.tokens + elapsed * self.rate_per_second)
-        if self.tokens < 1:
+        if self.tokens < units:
             return False
-        self.tokens -= 1
+        self.tokens -= units
         return True
 
 
@@ -998,7 +999,9 @@ async def execute_provider_call(
         if reservations is None:
             continue
         if resolved.policy.tokens_per_minute is not None and resolved.policy.burst_capacity is not None:
-            if not _get_bucket(resolved.policy, resolved.provider_name).try_acquire():
+            if not _get_bucket(resolved.policy, resolved.provider_name).try_acquire(
+                max(1, int(usage_units.to_integral_value()))
+            ):
                 settle_provider_contract(reservations, units=max(1, int(usage_units.to_integral_value())), success=False)
                 continue
         log_row = ProviderRequestLog(

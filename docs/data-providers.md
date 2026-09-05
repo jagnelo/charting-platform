@@ -33,7 +33,7 @@ re-reviewed when credentials or billing plans change.
 | Alpha Vantage | Daily OHLCV, symbol search, listings, IPO events | `ALPHA_VANTAGE_API_KEY` | 25 requests/day (free key) | API key / provider-defined day | contract recorded; credentialed live evidence required |
 | SEC EDGAR | issuer/ticker/exchange directory, profiles, filings/earnings, XBRL facts | `EDGAR_USER_AGENT` | 10 requests/sec total across an IP | IP / rolling fair-access window | contract recorded; keyless live evidence required |
 | OpenFIGI | FIGI/ISIN/CUSIP/SEDOL mapping and profile enrichment | optional `OPENFIGI_API_KEY` | 25 requests/min without key (keyed plan has separate 6-sec/100-job contract) | IP or key / rolling | keyless contract recorded; live probe required |
-| Binance | public crypto OHLCV, ticker, USDT universe | none | Current Spot REST documentation exposes a 6,000 request-weight/min IP ceiling; endpoint weights are dynamic and returned in headers | IP / fixed minute; 429/418 protection | visible; endpoint-weight reconciliation required before broad routing |
+| Binance | public crypto OHLCV, ticker, USDT universe | none | Current Spot REST documentation exposes a 6,000 request-weight/min IP ceiling. Adapter operations use documented weights: single-symbol price 2 and exchange-info discovery 20. Historical OHLCV can page over arbitrary ranges and remains fail-closed until its total weight is reservable before execution; response `X-MBX-USED-WEIGHT-*` and `Retry-After` headers are retained on capacity failures | IP / fixed minute; 429/418 protection | exact-weight price/discovery operations admitted only when selected; historical candles remain non-routable |
 | Coinbase Exchange | public crypto candles, ticker, USD products | none | 10 public requests/sec, burst up to 15 | IP / rolling | contract recorded; keyless live evidence required |
 | Kraken | public crypto OHLC, ticker, USD pairs | none | safe public frequency <=1 request/sec; pair/IP limits apply | IP/pair / rolling | contract recorded; keyless live evidence required |
 | CoinGecko Demo | crypto search, metadata, market-cap universe | `COINGECKO_API_KEY` | 100 calls/min and 10,000 calls/month | Demo key / minute + calendar month | contract recorded; credentialed live evidence required |
@@ -243,9 +243,15 @@ timeframes are meaningful.
 The provider translates transparently.
 
 **Rate limits**: the current [Spot REST documentation](https://developers.binance.com/en/docs/products/spot/rest-api)
-exposes a 6,000 request-weight/minute IP ceiling; endpoint weights are
-dynamic and must be accounted for from Binance's `exchangeInfo`/response
-headers. Repeated 429 violations can produce an HTTP 418 IP ban.
+exposes a 6,000 request-weight/minute IP ceiling; the official [Spot REST
+endpoint definitions](https://github.com/binance/binance-spot-api-docs/blob/master/rest-api.md)
+define weight 2 for `/api/v3/ticker/price` with one `symbol` and weight 20 for
+`/api/v3/exchangeInfo`. The adapter charges those exact values. Historical
+`/api/v3/klines` calls cost weight 2 each, but a broad range may issue multiple
+requests, so the platform leaves that operation non-routable until it can reserve
+the complete request count safely. Repeated 429 violations can produce an HTTP
+418 IP ban; response usage and reset headers are captured when capacity failures
+occur.
 
 **No configuration required.**
 

@@ -8,8 +8,11 @@ Capabilities:
 
 Auth: None required — all endpoints used here are public.
 Rate limits: the current Spot REST documentation exposes a 6,000
-request-weight/minute IP ceiling; endpoint weights are dynamic and must be
-reconciled before this adapter is admitted to broad routing.
+request-weight/minute IP ceiling. The adapter records the exact documented
+weights for single-symbol price (2) and exchange-info discovery (20). Historical
+OHLCV remains non-routable through the runtime until its potentially multi-page
+request count can be reserved before execution; it must never be charged as one
+request by default.
 
 Symbol convention:
   Platform canonical : BTC-USD

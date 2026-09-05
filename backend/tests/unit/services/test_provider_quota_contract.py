@@ -139,6 +139,19 @@ def test_binance_seed_tracks_current_spot_ceiling_but_stays_dynamic_cost_gated()
     assert contract["dynamic_endpoint_weights"] is True
 
 
+def test_binance_only_admits_operations_with_exact_documented_weights():
+    source = DataSource(name="binance")
+    source.config = {"usage_tracking": settings.PROVIDER_USAGE_PROFILE_SEEDS["binance"]}
+    seed = settings.PROVIDER_RATE_LIMIT_SEEDS["binance"]
+    policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.LATEST_PRICE,
+        quota_contract=seed["quota_contract"],
+    )
+    assert provider_contract_operation_cost_known(policy, source, "get_current_price")
+    assert not provider_contract_operation_cost_known(policy, source, "fetch_ohlcv:1d")
+
+
 def test_marketstack_and_ibkr_use_provider_specific_pacing_contracts():
     marketstack = settings.PROVIDER_RATE_LIMIT_SEEDS["marketstack"]["quota_contract"]
     assert marketstack["dimensions"][0]["limit"] == 100

@@ -16,6 +16,7 @@ from app.models.provider_runtime import (
     ProviderPolicy,
 )
 from app.services.provider_runtime import (
+    TokenBucket,
     _get_bucket,
     _get_semaphore,
     resolve_provider_chain,
@@ -487,6 +488,14 @@ def test_bucket_rebuilds_when_policy_limits_change():
     assert second is not first
     assert second.capacity == 30
     assert second.rate_per_second == pytest.approx(2.0)
+
+
+def test_token_bucket_charges_weighted_units():
+    bucket = TokenBucket(rate_per_minute=60, burst_capacity=4)
+
+    assert bucket.try_acquire(2)
+    assert bucket.try_acquire(2)
+    assert not bucket.try_acquire(2)
 
 
 def test_semaphore_rebuilds_when_policy_concurrency_changes():
