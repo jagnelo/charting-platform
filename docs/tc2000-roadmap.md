@@ -5,6 +5,19 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-05
 
+## 2026-09-05 — Exact-tip gate after cross-family ranking history
+
+The exact-tip `full_stack_browser` gate at metadata tip `a9f7451c` (product tip `335992cd`)
+passed locked dependency/migration checks, workstream validation, lint/format/type-check, backend
+unit/integration and combined coverage (`80.93%`), frontend Vitest, production build,
+compose/provider policy, stack health, runner isolation, and the visual matrix execution. Functional
+Playwright completed `156/157` with `106` documented skips; `F8s-market-map-watchlist` timed out
+once on a detached Study Lab button during a re-render. A fresh isolated retry passed `1/1`, so
+the failure is recorded as a transient DOM-detach flake rather than a reproducible regression.
+Teardown and resource accounting were clean. No baseline, mask, threshold, skip, fallback, provider,
+or acceptance policy changed; preserve the six existing visual state-oracle diffs and continue the
+next canonical analytics/provider slice.
+
 ## 2026-09-05 — Render cross-family ranking history
 
 The workstation now renders the canonical cross-family ranking-history `relative_performance`

@@ -9,9 +9,15 @@
 - [x] Add lifecycle/alignment coverage (`23/23`), TypeScript, production build, and authenticated
       Chromium `F8s-breadth-family-ratio` (`1/1`) asserting the historical relative-performance
       chart is visible on a rebuilt branch-scoped stack; teardown and resource cleanup were clean.
-- [ ] Commit/push the product and durable workstream receipt, then rerun the exact-tip exhaustive
+- [x] Commit/push the product and durable workstream receipt, then rerun the exact-tip exhaustive
       gate at the next coherent documentation tip. Preserve the six existing visual state-oracle
       failures and unchanged visual/provider/fallback policy.
+- [x] Product commit `335992cd` (`feat(tc2000): render cross-family ranking history`) and the
+      durable receipt are pushed to `origin/feat/tc2000-frontend-rework`. The exact-tip gate at
+      metadata tip `a9f7451c` passed all non-visual stages and the visual matrix; functional
+      Playwright was `156/157` with `106` documented skips because `F8s-market-map-watchlist`
+      hit one detached-DOM timeout. A fresh isolated retry passed `1/1`; teardown/resource
+      accounting were clean. No visual/provider/fallback policy changed.
 
 ### 2026-09-05 — Render benchmark-family concentration history
 

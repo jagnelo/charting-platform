@@ -106,6 +106,15 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
+    Exact-tip full_stack_browser gate at metadata tip a9f7451c (product tip 335992cd) passed all
+    locked dependency/migration, workstream, lint/format/type-check, backend unit/integration and
+    combined coverage (80.93%), frontend Vitest, build, compose/provider, stack-health, runner
+    isolation, and visual execution stages. Functional Playwright completed 156/157 with 106
+    documented skips; F8s-market-map-watchlist timed out once on a detached Study Lab button during
+    re-render. A fresh isolated retry passed 1/1, classifying it as a transient DOM-detach flake,
+    not a reproducible regression. Teardown/resource accounting were clean. Preserve unchanged
+    visual/provider/fallback acceptance policy and continue the next canonical analytics/provider
+    slice; the six existing visual state-oracle diffs remain explicit.
     Current slice adds canonical cross-family ranking-history relative_performance as aligned
     family-labelled uPlot lines with null-preserved gaps and explicit unavailable state. Lifecycle
     and alignment coverage passed 23/23, TypeScript and production build passed, and authenticated
@@ -227,6 +236,12 @@ progress:
     dense-data, and visual-oracle review remain open.
   next_action: "Implement the next bounded canonical provider/history slice with authenticated evidence; preserve the six visual state-oracle assertions and unchanged visual/provider fallback policy, then rerun the exact-tip gate at the next coherent tip."
 remaining_gaps:
+  - "Exact-tip gate at metadata tip a9f7451c (product tip 335992cd) passed all non-visual stages,
+    visual execution, and 156/157 functional Playwright cases with 106 documented skips; the one
+    F8s-market-map-watchlist detached-DOM timeout passed on a fresh isolated retry (1/1), so it is
+    treated as transient. Teardown/resource accounting were clean. Preserve unchanged visual,
+    provider, fallback, and acceptance policy; continue the next canonical analytics/provider slice
+    while keeping the six existing visual state-oracle diffs explicit."
   - "Current cross-family ranking-history slice renders canonical relative_performance series as
     family-labelled aligned lines with null-preserved gaps and no forward fill. Lifecycle/alignment
     coverage passed 23/23, TypeScript/build passed, and authenticated F8s-breadth-family-ratio
