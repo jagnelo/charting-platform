@@ -206,6 +206,54 @@ async def test_schema_drift_is_rejected_for_an_unchanged_parser():
 
 
 @pytest.mark.asyncio
+async def test_refresh_route_rejects_schema_drift_before_snapshot_ingestion(monkeypatch):
+    profile = _profile()
+    profile.adapter_key = "fixture"
+    state = _state(
+        extra_data={
+            "schema_fingerprint": refresh._schema_fingerprint(
+                raw_payload_json={"holdings": [{"ticker": "DXJ"}]}
+            )
+        }
+    )
+    state.parser_version = "fixture-json-v1"
+    db = _Session([_Result(scalar=state)])
+    probe = SimpleNamespace(status="ready", confidence=1)
+    adapter = SimpleNamespace(
+        adapter_key="fixture",
+        source_provider="fixture",
+        config=SimpleNamespace(source_access="issuer_public_holdings_json"),
+        probe=lambda **_: probe,
+    )
+
+    async def fetch_latest(**_kwargs):
+        return SimpleNamespace(
+            rows=[SimpleNamespace()],
+            raw_text=None,
+            raw_json={"holdings": [{"ticker": "DXJ", "weight": 1}]},
+            source_url="https://issuer.example/DXJ.json",
+            source_identifier="DXJ",
+            legal_metadata={
+                "source_provider": "fixture",
+                "source_format": "json",
+                "parser_version": "fixture-json-v1",
+                "composition_date": "2026-09-03",
+            },
+        )
+
+    adapter.fetch_latest = fetch_latest
+    monkeypatch.setattr(refresh, "get_holdings_adapter", lambda _key: adapter)
+
+    async def unexpected_ingest(*_args, **_kwargs):
+        raise AssertionError("schema-drift artifacts must be rejected before ingestion")
+
+    monkeypatch.setattr(refresh, "ingest_holdings_snapshot", unexpected_ingest)
+
+    with pytest.raises(refresh.ETFHoldingsSchemaDriftError, match="schema fingerprint drift"):
+        await refresh._refresh_adapter_route(db, profile)
+
+
+@pytest.mark.asyncio
 async def test_schema_drift_can_recover_with_an_explicit_parser_version():
     profile = _profile()
     state = _state(
