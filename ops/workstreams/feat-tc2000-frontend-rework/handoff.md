@@ -10,6 +10,22 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Surface complete benchmark history readiness
+
+Product commit `0712951` (`feat(tc2000): expose complete benchmark history readiness`) extends the
+Market Map benchmark-family readiness panel across every D1/W1/MN member-bar timeframe returned by
+the canonical API. Each role now shows analysis-ready versus covered members, observed bar totals,
+and the declared per-timeframe floor; absent weekly/monthly history stays explicit and cannot be
+mistaken for daily readiness.
+
+Evidence: focused Market Map coverage passed `36/36`; full frontend Vitest passed `946/946` across
+`109` files; TypeScript type-check, production build, and `git diff --check` passed. Authenticated
+F8s passed `1/1` against the rebuilt branch-scoped Docker stack. Teardown and resource accounting
+reported zero containers, volumes, known image bytes, and test-container sessions. The product
+commit is committed locally on `feat/tc2000-frontend-rework`; canonical population/history,
+richer Study targets, native-window/accessibility/security, dense-data, and visual-oracle gaps
+remain open.
+
 ## 2026-09-05 — Preserve single-output Study series promotion contract
 
 Product commit `2ee80c3` (`fix(tc2000): preserve single-output series promotion contract`) fixes

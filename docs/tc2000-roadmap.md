@@ -11,7 +11,17 @@ records in `docs/project-todos.md`, `docs/tc2000-parity.md`,
 evidence ledgers. If a summary here conflicts with a dated test receipt or the current code, the
 current code and fresh evidence win.
 
-The latest product commit is `2ee80c3` (`fix(tc2000): preserve single-output series promotion contract`).
+The latest product commit is `0712951` (`feat(tc2000): expose complete benchmark history readiness`).
+Market Map's provider-neutral benchmark-family readiness panel now renders every D1/W1/MN
+member-bar timeframe returned by the canonical API for each role, including analysis-ready versus
+covered members, observed bar totals, and the declared analysis floor. A missing weekly or monthly
+leg is visible as incomplete rather than inferred from daily coverage. Focused Market Map coverage
+passed `36/36`; full frontend Vitest passed `946/946` across `109` files`; TypeScript type-check,
+production build, and diff checks passed. Authenticated F8s passed `1/1` on a rebuilt
+branch-scoped Docker stack with clean teardown and resource accounting. This product commit is
+committed locally on the feature branch.
+
+The preceding product commit is `2ee80c3` (`fix(tc2000): preserve single-output series promotion contract`).
 The primary Study Lab's single-output numeric-series promotion now derives the explicit output
 name from the returned series artifact, so the persisted scalar watchlist column satisfies the
 backend's declared-output contract for both structured timestamp/value payloads and raw numeric

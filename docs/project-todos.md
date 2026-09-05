@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-05 — Surface complete benchmark history readiness
+
+- [x] Extend the Market Map benchmark-family readiness panel to show every canonical bar-history
+      timeframe returned by the API, not only the selected timeframe. Each role now exposes D1/W1/
+      MN analysis-ready versus covered members, observed bar totals, and the declared per-timeframe
+      analysis floor; missing weekly/monthly legs remain explicit instead of being implied by D1.
+- [x] Add focused and authenticated browser assertions for the complete history summary. Market Map
+      coverage passed `36/36`; full frontend Vitest passed `946/946` across `109` files; TypeScript
+      type-check, production build, and `git diff --check` passed. Authenticated F8s passed `1/1`
+      against the rebuilt branch-scoped Docker stack; teardown and resource accounting reported
+      zero containers, volumes, known image bytes, and test-container sessions. Product commit
+      `0712951` is committed locally on `feat/tc2000-frontend-rework`.
+- [ ] Continue canonical provider/history population, richer compatible Study targets,
+      native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review;
+      the prior exact-tip exhaustive result remains the unchanged `98/104` visual blocker.
+
 ### 2026-09-05 — Preserve single-output Study series promotion contract
 
 - [x] Fix the primary Study Lab's single-output numeric-series promotion path to derive the
