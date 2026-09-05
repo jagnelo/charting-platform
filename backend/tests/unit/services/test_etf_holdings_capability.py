@@ -196,8 +196,23 @@ def test_tier_zero_symbol_audit_preserves_unavailable_evidence_and_next_action()
     assert result.outcome == "unavailable"
     assert result.evidence_state == "issuer_route_access_blocked"
     assert result.provider_identity == "wisdomtree"
-    assert result.investigated_at == date(2026, 9, 4)
+    assert result.investigated_at == date(2026, 9, 5)
     assert "identity-verified" in result.next_action
+
+
+def test_tier_zero_symbol_audit_records_pimco_authentication_boundary():
+    for symbol, evidence_ref in (
+        ("MINT", "live:pimco-mint-fund-detail-api-2026-09-05-unauthorized"),
+        ("BOND", "live:pimco-bond-fund-detail-api-2026-09-05-unauthorized"),
+    ):
+        result = symbol_audit_for_profile(profile_with_symbol(symbol, "pacific_investments"))
+
+        assert result.tier == 0
+        assert result.outcome == UNAVAILABLE
+        assert result.evidence_state == "no_complete_executable_public_artifact"
+        assert result.investigated_at == date(2026, 9, 5)
+        assert evidence_ref in result.evidence_refs
+        assert "requires authentication" in result.next_action
 
 
 def test_tier_zero_symbol_audit_rejects_a_mismatched_provider_identity():

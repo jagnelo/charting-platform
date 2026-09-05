@@ -251,14 +251,15 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
         outcome=UNAVAILABLE,
         evidence_state="issuer_route_access_blocked",
         provider_identity="wisdomtree",
-        investigated_at=date(2026, 9, 4),
+        investigated_at=date(2026, 9, 5),
         next_action=(
-            "Re-test WisdomTree's official DXJ route; promote only after complete, "
+            "Re-test WisdomTree's official DXJ route; the current browser-visible page is not "
+            "executable from backend-equivalent requests. Promote only after complete, "
             "identity-verified current rows and live evidence."
         ),
         evidence_refs=(
-            "web:wisdomtree-current-fund-holdings-2026-09-03",
-            "live:wisdomtree-current-fund-holdings-2026-09-03-blocked",
+            "web:wisdomtree-current-fund-holdings-2026-09-05",
+            "live:wisdomtree-current-fund-holdings-2026-09-05-blocked",
         ),
     ),
     "NTSX": ETFHoldingsSymbolAudit(
@@ -266,14 +267,15 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
         outcome=UNAVAILABLE,
         evidence_state="issuer_route_access_blocked",
         provider_identity="wisdomtree",
-        investigated_at=date(2026, 9, 4),
+        investigated_at=date(2026, 9, 5),
         next_action=(
-            "Re-test WisdomTree's official NTSX route; promote only after complete, "
+            "Re-test WisdomTree's official NTSX route; the current browser-visible page is not "
+            "executable from backend-equivalent requests. Promote only after complete, "
             "identity-verified current rows and live evidence."
         ),
         evidence_refs=(
-            "web:wisdomtree-current-fund-holdings-2026-09-03",
-            "live:wisdomtree-current-fund-holdings-2026-09-03-blocked",
+            "web:wisdomtree-current-fund-holdings-2026-09-05",
+            "live:wisdomtree-current-fund-holdings-2026-09-05-blocked",
         ),
     ),
     "MINT": ETFHoldingsSymbolAudit(
@@ -281,24 +283,32 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
         outcome=UNAVAILABLE,
         evidence_state="no_complete_executable_public_artifact",
         provider_identity="pacific_investments",
-        investigated_at=date(2026, 9, 4),
+        investigated_at=date(2026, 9, 5),
         next_action=(
-            "Re-check PIMCO's official MINT holdings/download surfaces; do not treat "
-            "top-ten or factsheet data as a complete basket."
+            "PIMCO declares daily MINT disclosure, but its fund-detail API requires authentication "
+            "and no complete public export is proven; do not treat top-ten or factsheet data as a "
+            "complete basket."
         ),
-        evidence_refs=("web:pacific-investments-geme-pimco-mint-2026-09-03",),
+        evidence_refs=(
+            "web:pimco-mint-daily-disclosure-2026-09-05",
+            "live:pimco-mint-fund-detail-api-2026-09-05-unauthorized",
+        ),
     ),
     "BOND": ETFHoldingsSymbolAudit(
         tier=0,
         outcome=UNAVAILABLE,
         evidence_state="no_complete_executable_public_artifact",
         provider_identity="pacific_investments",
-        investigated_at=date(2026, 9, 4),
+        investigated_at=date(2026, 9, 5),
         next_action=(
-            "Re-check PIMCO's official BOND holdings/download surfaces; do not treat "
-            "top-ten or factsheet data as a complete basket."
+            "PIMCO declares daily BOND disclosure, but its fund-detail API requires authentication "
+            "and no complete public export is proven; do not treat top-ten or factsheet data as a "
+            "complete basket."
         ),
-        evidence_refs=("web:pacific-investments-geme-pimco-mint-2026-09-03",),
+        evidence_refs=(
+            "web:pimco-bond-daily-disclosure-2026-09-05",
+            "live:pimco-bond-fund-detail-api-2026-09-05-unauthorized",
+        ),
     ),
     "GEME": ETFHoldingsSymbolAudit(
         tier=0,

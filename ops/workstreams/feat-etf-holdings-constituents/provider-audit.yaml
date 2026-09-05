@@ -7,7 +7,7 @@ baseline_fallback_count: 140
 current_registered_count: 496
 current_native_count: 414
 current_fallback_count: 82
-generated_at: 2026-09-04T21:30:00Z
+generated_at: 2026-09-05T01:00:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -20,25 +20,33 @@ symbol_priority_ledger:
       provider_identity: wisdomtree
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      next_action: "Re-test the official WisdomTree route; promote only after complete identity-verified current rows and live evidence."
+      investigated_at: 2026-09-05
+      evidence_refs: [web:wisdomtree-current-fund-holdings-2026-09-05, live:wisdomtree-current-fund-holdings-2026-09-05-blocked]
+      next_action: "Re-test the official WisdomTree route; the current browser-visible page is not executable from backend-equivalent requests. Promote only after complete identity-verified current rows and live evidence."
     - symbol: NTSX
       tier: 0
       provider_identity: wisdomtree
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      next_action: "Re-test the official WisdomTree route; promote only after complete identity-verified current rows and live evidence."
+      investigated_at: 2026-09-05
+      evidence_refs: [web:wisdomtree-current-fund-holdings-2026-09-05, live:wisdomtree-current-fund-holdings-2026-09-05-blocked]
+      next_action: "Re-test the official WisdomTree route; the current browser-visible page is not executable from backend-equivalent requests. Promote only after complete identity-verified current rows and live evidence."
     - symbol: MINT
       tier: 0
       provider_identity: pacific_investments
       current_outcome: unavailable
       evidence_state: no_complete_executable_public_artifact
-      next_action: "Re-check PIMCO's official holdings/download surfaces; do not treat top-ten or factsheet data as a complete basket."
+      investigated_at: 2026-09-05
+      evidence_refs: [web:pimco-mint-daily-disclosure-2026-09-05, live:pimco-mint-fund-detail-api-2026-09-05-unauthorized]
+      next_action: "PIMCO declares daily MINT disclosure, but its fund-detail API requires authentication and no complete public export is proven; do not treat top-ten or factsheet data as a complete basket."
     - symbol: BOND
       tier: 0
       provider_identity: pacific_investments
       current_outcome: unavailable
       evidence_state: no_complete_executable_public_artifact
-      next_action: "Re-check PIMCO's official holdings/download surfaces; do not treat top-ten or factsheet data as a complete basket."
+      investigated_at: 2026-09-05
+      evidence_refs: [web:pimco-bond-daily-disclosure-2026-09-05, live:pimco-bond-fund-detail-api-2026-09-05-unauthorized]
+      next_action: "PIMCO declares daily BOND disclosure, but its fund-detail API requires authentication and no complete public export is proven; do not treat top-ten or factsheet data as a complete basket."
     - symbol: GEME
       tier: 0
       provider_identity: pacific_investments
@@ -1705,7 +1713,7 @@ providers:
     starting_status: issuer_access_blocked
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-09-03
+    last_checked: 2026-09-05
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [DXJ, NTSX]
     estimated_us_etf_count: null
@@ -1716,6 +1724,8 @@ providers:
     candidate_routes:
       - https://www.wisdomtree.com/us/products/fund-holdings
       - https://www.wisdomtree.com/investments/etfs/equity/dxj
+      - https://www.wisdomtree.com/us/products/equity/dxj
+      - https://www.wisdomtree.com/us/products/capital-efficient/ntsx
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -1738,6 +1748,14 @@ providers:
         source: "https://www.wisdomtree.com/us/products/fund-holdings"
         result: "Backend-equivalent request returned HTTP 403 Cloudflare challenge."
         evidence_ref: "live:wisdomtree-current-fund-holdings-2026-09-03-blocked"
+      - date: 2026-09-05
+        source: "https://www.wisdomtree.com/us/products/equity/dxj; https://www.wisdomtree.com/us/products/capital-efficient/ntsx"
+        result: "The current WisdomTree pages expose dated top-ten holdings in browser-visible content, but a backend-equivalent request still returns the Cloudflare challenge for the U.S. product pages; no complete executable route is promoted."
+        evidence_ref: "web:wisdomtree-current-fund-holdings-2026-09-05"
+      - date: 2026-09-05
+        source: "https://www.wisdomtree.com/us/products/equity/dxj; https://www.wisdomtree.com/us/products/capital-efficient/ntsx"
+        result: "Bounded requests returned HTTP 403 Cloudflare challenge content for both DXJ and NTSX product routes."
+        evidence_ref: "live:wisdomtree-current-fund-holdings-2026-09-05-blocked"
     disposition_reason: "wisdomtree: Official holdings and product pages identify current DXJ/NTSX holdings, but bounded requests are Cloudflare-blocked and no stable executable route is proven."
     next_action: "wisdomtree: Periodically re-test the official fund-holdings and symbol-scoped pages; promote only after complete rows, mapping, parser fixtures, and bounded live evidence are available."
     implementation_sha: null
@@ -7647,7 +7665,7 @@ providers:
     starting_status: non_executable_public_source
     current_status: non_executable_public_source
     disposition: non_executable_public_source
-    last_checked: 2026-09-03
+    last_checked: 2026-09-05
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [GEME, MINT, BOND]
     estimated_us_etf_count: null
@@ -7658,7 +7676,9 @@ providers:
     candidate_routes:
       - https://www.pacificam.co.uk/geme-etf/
       - https://www.pacificinvestments.com/about-us/
-      - https://www.pimco.com/us/en/investments/etf/mint/pimco-multi-sector-bond-active-etf
+      - https://www.pimco.com/us/en/investments/etf/pimco-enhanced-short-maturity-active-exchange-traded-fund/usetf-usd
+      - https://www.pimco.com/us/en/investments/etf/pimco-active-bond-exchange-traded-fund/usetf-usd
+      - https://fund-ui.pimco.com/fund-detail-api/api/funds/{cusip}/topTenHoldings
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -7681,6 +7701,18 @@ providers:
         source: "https://www.pacificam.co.uk/geme-etf/"
         result: "Pacific Asset Management's official GEME page identifies the U.S.-listed NASDAQ fund and exposed 66 complete holdings rows dated 2026-09-04, including ticker/SEDOL/quantity/market-value/weight fields; the bounded live route passed. PIMCO MINT/BOND remain without a complete executable public route."
         evidence_ref: "live:pacific-asset-management-geme-holdings-2026-09-05"
+      - date: 2026-09-05
+        source: "https://www.pimco.com/us/en/documents/f67aec88085c324bcdae7fdb1694127e0b0c477bf4175a1cf8cd4da06a0ea1eff30a8dd357e3d010b5bfc8e92b80d6b1?app=dot; https://www.pimco.com/us/en/documents/59144abed4eff08608a1795abb7f24995835fe75754d94a5b2de52ae747e3e03a0484a00da3a59f799223b6307c30e37?app=dot"
+        result: "PIMCO's official MINT and BOND materials declare daily holdings disclosure, but the public product pages expose no complete downloadable basket in the bounded route; top-ten/factsheet material remains insufficient for current constituent support."
+        evidence_ref: "web:pimco-daily-holdings-disclosure-2026-09-05"
+      - date: 2026-09-05
+        source: "https://fund-ui.pimco.com/fund-detail-api/api/funds/72201R833/topTenHoldings; https://fund-ui.pimco.com/fund-detail-api/api/funds/72201R833/fund-info"
+        result: "PIMCO's declared fund-detail API returned HTTP 401 Unauthorized for bounded MINT requests; no public complete route is executable without authentication."
+        evidence_ref: "live:pimco-mint-fund-detail-api-2026-09-05-unauthorized"
+      - date: 2026-09-05
+        source: "https://fund-ui.pimco.com/fund-detail-api/api/funds/72201R775/topTenHoldings; https://fund-ui.pimco.com/fund-detail-api/api/funds/72201R775/fund-info"
+        result: "The same declared fund-detail API returned HTTP 401 Unauthorized for bounded BOND requests; no public complete route is executable without authentication."
+        evidence_ref: "live:pimco-bond-fund-detail-api-2026-09-05-unauthorized"
     disposition_reason: "pacific_investments: Pacific Asset Management's official U.S.-listed GEME route is now symbol-level current and live-validated, while PIMCO MINT/BOND still expose no complete executable public route; the mixed identity remains fallback-only at provider level until the unresolved PIMCO representatives are closed."
     next_action: "pacific_investments: Keep the GEME route freshness-monitored and continue free-first MINT/BOND route discovery; do not promote provider-level native support or SEC/top-ten artifacts until the remaining representatives are complete."
     implementation_sha: null
