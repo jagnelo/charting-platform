@@ -195,5 +195,10 @@ class WatchlistSourceHistoryStatus(BaseModel):
     limited: bool = False
     excluded_count: int = 0
     overall_status: str
+    # ``overall_status`` intentionally preserves the legacy covered/worker
+    # contract.  These fields answer the stricter workstation question without
+    # allowing a one-bar-per-member source to masquerade as study-ready.
+    analysis_ready: bool = False
+    analysis_ready_status: str = "pending"
     timeframes: list[WatchlistSourceHistoryTimeframeStatus] = Field(default_factory=list)
     message: str | None = None

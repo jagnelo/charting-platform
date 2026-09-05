@@ -199,6 +199,8 @@ async def test_watchlist_history_status_uses_local_coverage_and_worker_progress(
 
     assert status["locked"] is True
     assert status["overall_status"] == "fetching"
+    assert status["analysis_ready"] is False
+    assert status["analysis_ready_status"] == "pending"
     assert status["selected_instrument_count"] == 2
     assert status["excluded_count"] == 1
     assert status["timeframes"] == [
@@ -219,3 +221,75 @@ async def test_watchlist_history_status_uses_local_coverage_and_worker_progress(
             "pending_count": 0,
         }
     ]
+
+
+@pytest.mark.asyncio
+async def test_watchlist_history_status_separates_covered_from_analysis_ready(monkeypatch):
+    async def fake_plan(*_args, **_kwargs):
+        return {
+            "source_ids": ["market-group:sp500"],
+            "timeframes": ["D1", "W1"],
+            "as_of": None,
+            "max_instruments": 5000,
+            "instrument_ids": [10],
+            "available_instrument_count": 1,
+            "selected_instrument_count": 1,
+            "limited": False,
+            "sources": [
+                {
+                    "source_id": "market-group:sp500",
+                    "source_kind": "index_membership",
+                    "name": "S&P 500",
+                    "locked": True,
+                    "status": "ready",
+                    "excluded_count": 0,
+                    "membership_version": "v1",
+                    "message": None,
+                }
+            ],
+        }
+
+    class FakeDB:
+        def __init__(self):
+            self.calls = 0
+
+        async def execute(self, _statement):
+            self.calls += 1
+
+            class FakeResult:
+                def __init__(self, call_number):
+                    self.call_number = call_number
+
+                def all(self_inner):
+                    if self_inner.call_number == 1:
+                        return [
+                            SimpleNamespace(
+                                timeframe=SimpleNamespace(value="D1"),
+                                covered_count=1,
+                                bar_count=252,
+                                oldest=None,
+                                newest=None,
+                            ),
+                            SimpleNamespace(
+                                timeframe=SimpleNamespace(value="W1"),
+                                covered_count=1,
+                                bar_count=10,
+                                oldest=None,
+                                newest=None,
+                            ),
+                        ]
+                    return [
+                        (10, SimpleNamespace(value="D1"), 252),
+                        (10, SimpleNamespace(value="W1"), 10),
+                    ]
+
+            return FakeResult(self.calls)
+
+    monkeypatch.setattr(history, "plan_watchlist_source_history_refresh", fake_plan)
+    status = await history.build_watchlist_source_history_status(
+        FakeDB(), 42, source_id="market-group:sp500", timeframes=["D1", "W1"]
+    )
+
+    assert status["overall_status"] == "ready"
+    assert status["analysis_ready"] is False
+    assert status["analysis_ready_status"] == "partial"

@@ -319,6 +319,26 @@ async def build_watchlist_source_history_status(
     else:
         overall_status = "pending"
 
+    # Keep the historical ``overall_status`` semantics stable for existing
+    # callers, while exposing an independent aggregate that applies the
+    # declared D1/W1/MN technical-history floors.  This is deliberately based
+    # on every requested timeframe: daily readiness cannot hide an empty
+    # weekly/monthly leg.
+    if not instrument_ids:
+        analysis_ready = False
+        analysis_ready_status = "pending" if source.get("status") == "pending" else "unavailable"
+    elif all(
+        item["analysis_ready_member_count"] == len(instrument_ids) for item in timeframe_statuses
+    ):
+        analysis_ready = True
+        analysis_ready_status = "ready"
+    elif any(item["analysis_ready_member_count"] for item in timeframe_statuses):
+        analysis_ready = False
+        analysis_ready_status = "partial"
+    else:
+        analysis_ready = False
+        analysis_ready_status = "pending"
+
     return {
         "source_id": source_id,
         "source_kind": source.get("source_kind"),
@@ -332,6 +352,8 @@ async def build_watchlist_source_history_status(
         "limited": plan["limited"],
         "excluded_count": source.get("excluded_count", 0),
         "overall_status": overall_status,
+        "analysis_ready": analysis_ready,
+        "analysis_ready_status": analysis_ready_status,
         "timeframes": timeframe_statuses,
         "message": source.get("message"),
     }

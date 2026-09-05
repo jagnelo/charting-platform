@@ -192,6 +192,7 @@
       <span v-else-if="historyError" class="market-map-tool__status--error" role="alert">{{ historyError }}</span>
       <template v-else-if="historyStatus">
         <span :class="`market-map-tool__history-status--${historyStatus.overall_status}`">{{ historyStatus.overall_status }}</span>
+        <span v-if="historyStatus.analysis_ready_status" :class="`market-map-tool__history-status--${historyStatus.analysis_ready_status}`">analysis {{ historyStatus.analysis_ready_status }}</span>
         <span v-for="history in historyStatus.timeframes" :key="history.timeframe">{{ watchlistHistoryTimeframeLabel(history) }}</span>
         <span v-if="historyStatus.limited">Bounded to {{ historyStatus.selected_instrument_count }} of {{ historyStatus.available_instrument_count }}</span>
         <span v-if="historyRefreshMessage" role="status">{{ historyRefreshMessage }}</span>

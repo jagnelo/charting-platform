@@ -119,6 +119,8 @@ export interface WatchlistSourceHistoryStatus {
   limited: boolean
   excluded_count: number
   overall_status: WatchlistHistoryStatusKind
+  analysis_ready?: boolean
+  analysis_ready_status?: WatchlistHistoryStatusKind
   timeframes: WatchlistHistoryTimeframeStatus[]
   message?: string | null
 }
