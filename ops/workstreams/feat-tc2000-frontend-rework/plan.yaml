@@ -13,15 +13,17 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  The next exact-tip full_stack_browser gate is pending after product commit
-  606d67ba (canonical Market Breadth composite-readiness reasons). The focused
-  slice passed frontend Vitest 970/970, type-check, production build, and the
-  rebuilt authenticated F8s-breadth-family-ratio flow 1/1 with ready and
-  unavailable reason labels asserted. Teardown removed the assigned stack and
-  four generated images; resource accounting reported zero containers, volumes,
-  and known bytes. Preserve the existing six visual state-oracle diffs and
-  unchanged provider, fallback, baseline, and acceptance policy while rerunning
-  the exact gate at the next documentation tip.
+  The exact-tip full_stack_browser gate at product tip 606d67ba (documentation
+  tip a25f8497) passed every locked/non-visual stage and authenticated
+  functional Playwright 157/157 with 106 documented skips across 263 specs.
+  The unchanged visual matrix remains 98/104 with six state-oracle diffs:
+  watchlist-column-editor-open at 1080p-100/125 (13844 pixels each), and
+  workspace-floating at 1080p-100/125/1440p-100/1440p-125 (5512/11901/12097/
+  11901 pixels). Teardown removed the assigned stack and four generated images;
+  no containers or volumes remained and resource accounting reported zero known
+  bytes. Preserve the visual-only boundary and continue the next bounded
+  canonical provider/history slice without changing baseline, mask, threshold,
+  skip, fallback, provider, or acceptance policy.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "The roadmap changes frontend workstation behavior, backend canonical provider/history contracts, authenticated browser workflows, Playwright visual assertions, worker-backed data readiness, and full integration evidence."
@@ -116,6 +118,15 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
+    Latest exact-tip full_stack_browser gate at product tip 606d67ba
+    (documentation tip a25f8497) passed all locked/non-visual stages and
+    functional Playwright 157/157 with 106 documented skips across 263 specs.
+    The unchanged visual matrix remains 98/104 with six state-oracle diffs:
+    watchlist-column-editor-open at 1080p-100/125 (13844 pixels each), and
+    workspace-floating at 1080p-100/125/1440p-100/1440p-125
+    (5512/11901/12097/11901 pixels). Teardown and resource accounting were
+    clean with zero containers, volumes, and known bytes. Preserve the
+    visual-only boundary and continue canonical provider/history work.
     Exact-tip full_stack_browser gate at product tip 2f7c1d84 (documentation tip
     f4498c80) passed every locked/non-visual stage and functional Playwright
     157/157 with 106 documented skips across 263 specs. The unchanged visual
@@ -327,6 +338,7 @@ progress:
     dense-data, and visual-oracle review remain open.
   next_action: "Continue the next bounded canonical provider/history slice; after its focused evidence, rerun make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework at the next coherent documentation tip. Preserve the six visual state-oracle assertions and unchanged visual/provider fallback policy."
 remaining_gaps:
+  - "Exact-tip full_stack_browser gate at product tip 606d67ba (documentation tip a25f8497) passed all locked/non-visual stages and functional Playwright 157/157 with 106 documented skips across 263 specs; the unchanged visual matrix remains 98/104 with six state-oracle diffs: watchlist-column-editor-open at both 1080p scales (13844 pixels each), and workspace-floating at 1080p-100/125/1440p-100/1440p-125 (5512/11901/12097/11901 pixels). Teardown removed the assigned stack and four generated images; no containers or volumes remained and resource accounting reported zero known bytes. Preserve baseline, mask, threshold, skip, fallback, provider, and acceptance policy while continuing canonical provider/history work."
   - "Product tip 606d67ba surfaces returned composite_readiness_reasons beside each Market Breadth benchmark-family role's readiness status. Vitest 970/970, type-check/build, and rebuilt authenticated F8s-breadth-family-ratio 1/1 passed with ready and unavailable reason labels asserted; teardown/resource accounting reported zero containers, volumes, and known bytes. The next exact-tip full_stack_browser gate remains pending at the next documentation tip; preserve the six visual state-oracle diffs and unchanged provider/fallback/baseline/acceptance policy."
   - "Exact-tip full_stack_browser gate at product tip e96b081a (documentation tip d82ff2ec) passed all locked/non-visual stages and functional Playwright 157/157 with 106 documented skips across 263 specs; the visual matrix remains 98/104 with the same six state-oracle diffs: watchlist-column-editor-open at both 1080p scales (13844 pixels each), and workspace-floating at 1080p-100/125 (9770 pixels each), 1440p-100 (9770), and 1440p-125 (12097). Teardown removed the assigned stack and four generated images; no containers or volumes remained and resource accounting was clean. Preserve baseline, mask, threshold, skip, fallback, provider, and acceptance policy while continuing canonical provider/history work."
   - "Product tip e96b081a surfaces returned canonical benchmark-family snapshot as_of_date and known_at values beside the latest disclosure date, resolution counts, and provider. Vitest 970/970, type-check, production build, and rebuilt authenticated F8s-breadth-family-ratio 1/1 passed after aligning the stale label assertion; teardown/resource accounting were clean. The exact-tip full_stack_browser gate remains pending at the next documentation tip; preserve the six visual state-oracle diffs and unchanged provider/fallback/acceptance policy."

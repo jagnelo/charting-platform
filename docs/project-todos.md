@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-09-05 — Exact-tip gate after canonical composite-readiness reasons
+
+- [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework`
+      at product tip `606d67ba` and documentation tip `a25f8497`: all locked,
+      backend/frontend, build, compose/provider, stack-health,
+      runner-isolation, and functional browser checks passed (`157/157`,
+      `106` documented skips across `263` specs); visual acceptance remains
+      `98/104` with the same six state-oracle assertions.
+- [ ] Preserve and separately resolve `watchlist-column-editor-open` at 1080p
+      100/125 and `workspace-floating` at 1080p/1440p 100/125. Do not alter
+      baselines, masks, thresholds, skips, fallbacks, provider, or acceptance
+      policy.
+- [x] Teardown removed the assigned stack and four generated images; no
+      containers or volumes remained and resource accounting reported zero
+      known bytes. Continue the next canonical provider/history slice without
+      integrating, promoting, deploying, or mutating another worktree.
+
 ### 2026-09-05 — Surface canonical composite-readiness reasons
 
 - [x] Render returned `composite_readiness_reasons` beside each Market Breadth
