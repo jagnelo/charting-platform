@@ -112,7 +112,7 @@
   "last_human_progress_update": "2026-09-05T00:49:33.000000+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Keep bounded free-first re-tests for DXJ/NTSX and MINT/BOND. Qualify Alpha Vantage/EODHD/FMP only through the shared entitlement, quota, licensing, and aggregate budget gate; no remaining symbol-bearing cohort is queued. After provider-platform reaches staging, reconcile AC10 and run the documented 30-day production AC14 shadow gate.",
-  "plan_hash": "645f628cbbb95969fc2beaf780fdebbd4756b9d87e818dd6cfbf189c4458bc44",
+  "plan_hash": "1e638ca80ac497d2a2eefffe8a54b29a46acbfef9099b50b49b8b348a4b7903d",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [

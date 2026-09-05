@@ -2945,3 +2945,21 @@ approved current tiers (`issuer_native`, `successor_native`, and
 The focused capability suite passes 76 tests and the complete deterministic ETF
 backend matrix passes 693 tests. Ruff, formatting, and diff-check remain green;
 no provider classification, entitlement, budget, or route disposition changed.
+
+## Fresh first-party Tier-0 route audit — 2026-09-05
+
+The additional first-party review did not produce a promotable route. WisdomTree's
+current DXJ and NTSX pages expose dated top-ten holdings in browser-visible
+content, but backend-equivalent requests still receive the Cloudflare 403
+challenge. The current DataSpan documentation requires a server-side API key
+for its general routes and documents a WTGXX-only money-market holdings route;
+it does not document a complete holdings endpoint or establish DXJ/NTSX
+coverage. No credential, paid entitlement, or adapter promotion was introduced.
+
+PIMCO's current ETF catalogue and MINT/BOND product pages state daily holdings
+disclosure, but the public product-detail shell does not expose a complete
+downloadable basket. The declared fund-detail API remains HTTP 401 without
+authentication. MINT and BOND therefore remain unavailable/non-current; top-ten,
+factsheet, SEC, and marketing artifacts remain excluded from current constituent
+support. The provider-audit ledger now records these dated route observations
+and remains internally consistent at 496 registered / 414 native / 82 fallback.
