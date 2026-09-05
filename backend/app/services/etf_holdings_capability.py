@@ -186,6 +186,12 @@ class ETFHoldingsCapability:
     last_checked_at: datetime | None
     last_success_at: datetime | None
     last_failure_at: datetime | None
+    last_canary_at: datetime | None
+    last_canary_status: str | None
+    last_canary_latency_ms: float | None
+    last_canary_recovered: bool | None
+    circuit_state: str | None
+    circuit_open_until: datetime | None
     freshness_deadline: date | None
     row_count: int | None
     resolved_count: int | None
@@ -214,6 +220,12 @@ class ETFHoldingsCapability:
             "last_checked_at": self.last_checked_at,
             "last_success_at": self.last_success_at,
             "last_failure_at": self.last_failure_at,
+            "last_canary_at": self.last_canary_at,
+            "last_canary_status": self.last_canary_status,
+            "last_canary_latency_ms": self.last_canary_latency_ms,
+            "last_canary_recovered": self.last_canary_recovered,
+            "circuit_state": self.circuit_state,
+            "circuit_open_until": self.circuit_open_until,
             "freshness_deadline": self.freshness_deadline,
             "row_count": self.row_count,
             "resolved_count": self.resolved_count,
@@ -236,6 +248,37 @@ def _as_utc(value: datetime | None) -> datetime | None:
 
 def _metadata(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
+
+
+def _metadata_datetime(metadata: Mapping[str, Any], key: str) -> datetime | None:
+    """Parse an optional persisted ISO timestamp without making reads fail open."""
+
+    value = metadata.get(key)
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return _as_utc(value)
+    try:
+        parsed = datetime.fromisoformat(str(value))
+    except (TypeError, ValueError):
+        return None
+    return _as_utc(parsed)
+
+
+def _metadata_float(metadata: Mapping[str, Any], key: str) -> float | None:
+    value = metadata.get(key)
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return None
+    return parsed if parsed >= 0 else None
+
+
+def _metadata_bool(metadata: Mapping[str, Any], key: str) -> bool | None:
+    value = metadata.get(key)
+    return value if isinstance(value, bool) else None
 
 
 def _failure_streak(metadata: Mapping[str, Any], *, state_status: str) -> int:
@@ -1718,6 +1761,20 @@ def evaluate_capability(
     checked = _as_utc(state.last_checked_at if state else None)
     success = _as_utc(state.last_success_at if state else None)
     failure = _as_utc(state.last_failure_at if state else None)
+    last_canary_at = _metadata_datetime(state_metadata, "last_canary_at")
+    last_canary_status = (
+        str(state_metadata["last_canary_status"])
+        if state_metadata.get("last_canary_status") is not None
+        else None
+    )
+    last_canary_latency_ms = _metadata_float(state_metadata, "last_canary_latency_ms")
+    last_canary_recovered = _metadata_bool(state_metadata, "last_canary_recovered")
+    circuit_state = (
+        str(state_metadata["circuit_state"])
+        if state_metadata.get("circuit_state") is not None
+        else None
+    )
+    circuit_open_until = _metadata_datetime(state_metadata, "circuit_open_until")
     complete = bool(snapshot and snapshot.completeness_status in _COMPLETE_STATUSES)
     has_snapshot = snapshot is not None
     identity_verified = _identity_verified(snapshot, state)
@@ -1839,6 +1896,12 @@ def evaluate_capability(
         last_checked_at=state.last_checked_at if state else None,
         last_success_at=state.last_success_at if state else success,
         last_failure_at=state.last_failure_at if state else failure,
+        last_canary_at=last_canary_at,
+        last_canary_status=last_canary_status,
+        last_canary_latency_ms=last_canary_latency_ms,
+        last_canary_recovered=last_canary_recovered,
+        circuit_state=circuit_state,
+        circuit_open_until=circuit_open_until,
         freshness_deadline=deadline,
         row_count=snapshot.row_count if snapshot else state.row_count if state else None,
         resolved_count=snapshot.resolved_count

@@ -201,6 +201,12 @@ export interface ETFHoldingsCapability {
   last_checked_at?: string | null
   last_success_at?: string | null
   last_failure_at?: string | null
+  last_canary_at?: string | null
+  last_canary_status?: string | null
+  last_canary_latency_ms?: number | null
+  last_canary_recovered?: boolean | null
+  circuit_state?: string | null
+  circuit_open_until?: string | null
   freshness_deadline?: string | null
   row_count?: number | null
   resolved_count?: number | null

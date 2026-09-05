@@ -23,6 +23,14 @@
     </header>
 
     <div v-if="!collapsed" class="holdings-body">
+      <div v-if="capability && capability.last_canary_at" class="capability-health" data-testid="etf-capability-health">
+        <span>Canary {{ canaryStatusLabel(capability.last_canary_status) }} · {{ formatDateTime(capability.last_canary_at) }}</span>
+        <span v-if="capability.last_canary_latency_ms != null">{{ capability.last_canary_latency_ms }} ms</span>
+        <span>Failures {{ capability.consecutive_failures }}</span>
+        <span v-if="capability.last_canary_recovered">Recovered</span>
+        <span v-if="capability.circuit_state">Circuit {{ capability.circuit_state }}</span>
+        <span v-if="capability.circuit_open_until">until {{ formatDateTime(capability.circuit_open_until) }}</span>
+      </div>
       <div v-if="capability && !capability.usable_for_current_analysis" class="capability-notice">
         <strong>{{ capabilityLabel(capability) }}</strong>
         <span>{{ capability.reason || 'Current constituent analysis is not supported for this symbol.' }}</span>
@@ -222,6 +230,7 @@ const capabilityLabel = (value: ETFHoldingsCapability) =>
   String(value.availability || 'unknown').replace(/_/g, ' ')
 const capabilityClass = (value: ETFHoldingsCapability) => `capability--${value.availability || 'unknown'}`
 const failureClassLabel = (value: string) => value.replace(/_/g, ' ')
+const canaryStatusLabel = (value?: string | null) => String(value || 'unknown').replace(/_/g, ' ')
 const provenanceLabel = computed(() =>
   String(snapshot.value?.provenance || '').replace(/_/g, ' ') || '—'
 )
@@ -520,6 +529,15 @@ watch(visibleHoldings, rows => {
 .capability-notice small { color: #aa9862; }
 .capability-notice .capability-failure-class { color: #f0c66a; }
 .capability-notice .capability-next-action { color: #b9c6d8; }
+.capability-health {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  color: #8f9bab;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  line-height: 1.4;
+}
 .summary-strip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

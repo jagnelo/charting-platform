@@ -216,6 +216,35 @@ def test_malformed_failure_streak_does_not_crash_capability_evaluation():
     assert result.consecutive_failures == 1
 
 
+def test_persisted_canary_diagnostics_are_exposed_as_capability_metadata():
+    canary_at = NOW - timedelta(minutes=3)
+    circuit_until = NOW + timedelta(minutes=2)
+    result = evaluate_capability(
+        profile(),
+        snapshot(),
+        state(
+            status="circuit_open",
+            extra_data={
+                "last_canary_at": canary_at.isoformat(),
+                "last_canary_status": "failure",
+                "last_canary_latency_ms": "412.5",
+                "last_canary_recovered": False,
+                "circuit_state": "open",
+                "circuit_open_until": circuit_until.isoformat(),
+                "consecutive_failures": 3,
+            },
+        ),
+        now=NOW,
+    )
+
+    assert result.last_canary_at == canary_at
+    assert result.last_canary_status == "failure"
+    assert result.last_canary_latency_ms == 412.5
+    assert result.last_canary_recovered is False
+    assert result.circuit_state == "open"
+    assert result.circuit_open_until == circuit_until
+
+
 def test_unverified_identity_never_becomes_current_even_with_complete_rows():
     result = evaluate_capability(
         profile(),

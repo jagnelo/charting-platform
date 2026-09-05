@@ -198,4 +198,34 @@ describe('ETFHoldingsPanel', () => {
       expect(wrapper.text()).toContain('Last check classification: issuer access blocked')
     })
   })
+
+  it('shows persisted canary diagnostics alongside capability state', async () => {
+    vi.mocked(api.get)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        availability: 'unavailable',
+        source_provider: 'wisdomtree',
+        source_tier: 'none',
+        usable_for_current_analysis: false,
+        displayable_last_known: false,
+        consecutive_failures: 3,
+        last_canary_at: '2026-09-05T10:00:00Z',
+        last_canary_status: 'failure',
+        last_canary_latency_ms: 412.5,
+        last_canary_recovered: false,
+        circuit_state: 'open',
+        circuit_open_until: '2026-09-05T10:05:00Z',
+        reason: 'route evidence',
+      })
+
+    const wrapper = mount(ETFHoldingsPanel, { props: { symbol: 'DXJ' } })
+
+    await vi.waitFor(() => {
+      expect(wrapper.get('[data-testid="etf-capability-health"]').text()).toContain('Canary failure')
+    })
+    expect(wrapper.text()).toContain('412.5 ms')
+    expect(wrapper.text()).toContain('Failures 3')
+    expect(wrapper.text()).toContain('Circuit open')
+    expect(wrapper.text()).toContain('until')
+  })
 })

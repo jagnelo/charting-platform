@@ -34,6 +34,12 @@ class ETFHoldingsCapabilityOut(BaseModel):
     last_checked_at: datetime | None = None
     last_success_at: datetime | None = None
     last_failure_at: datetime | None = None
+    last_canary_at: datetime | None = None
+    last_canary_status: str | None = None
+    last_canary_latency_ms: float | None = None
+    last_canary_recovered: bool | None = None
+    circuit_state: str | None = None
+    circuit_open_until: datetime | None = None
     freshness_deadline: date | None = None
     row_count: int | None = None
     resolved_count: int | None = None
