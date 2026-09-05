@@ -14774,7 +14774,214 @@ class NeilAzousRareviewHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
 
 class WisdomTreeHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    pass
+    """Read WisdomTree's symbol-scoped public fund-holdings JSON route.
+
+    WisdomTree renders only a top-ten summary in the initial product HTML, but
+    the same first-party application exposes a complete, dated holdings payload
+    behind ``/api/fund-holdings/{entity_id}``.  Keep the entity mapping explicit
+    so a product page or an issuer-wide response can never be mistaken for the
+    requested fund.
+    """
+
+    _FUND_ENTITY_IDS: dict[str, str] = {
+        "DXJ": "1000549",
+        "NTSX": "1001798",
+    }
+    _PRODUCT_PAGE_URLS: dict[str, str] = {
+        "DXJ": "https://www.wisdomtree.com/us/products/equity/dxj",
+        "NTSX": "https://www.wisdomtree.com/us/products/capital-efficient/ntsx",
+    }
+    _HOLDINGS_URL_TEMPLATE = "https://www.wisdomtree.com/api/fund-holdings/{entity_id}"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        normalized_symbol = symbol.strip().upper()
+        entity_id = self._FUND_ENTITY_IDS.get(normalized_symbol)
+        if entity_id is not None:
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.9900"),
+                status="ready",
+                reason=(
+                    "WisdomTree exposes complete dated holdings through its public, "
+                    "symbol-scoped fund-holdings API."
+                ),
+                source_url=self._HOLDINGS_URL_TEMPLATE.format(entity_id=entity_id),
+                issuer_product_id=entity_id,
+            )
+        return super().probe(symbol=symbol, name=name, identifiers=identifiers)
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        entity_id = self._FUND_ENTITY_IDS.get(normalized_symbol)
+        if entity_id is None:
+            return await super().fetch_latest(
+                symbol=symbol,
+                issuer_product_id=issuer_product_id,
+                source_url=source_url,
+                identifiers=identifiers,
+            )
+        if issuer_product_id and str(issuer_product_id).strip() != entity_id:
+            raise ValueError(
+                f"WisdomTree issuer product id {issuer_product_id!r} does not match "
+                f"{normalized_symbol} entity {entity_id}."
+            )
+
+        resolved_source_url = source_url or self._HOLDINGS_URL_TEMPLATE.format(entity_id=entity_id)
+        parsed_source_url = urlparse(resolved_source_url)
+        source_host = _url_host(resolved_source_url)
+        expected_path = f"/api/fund-holdings/{entity_id}"
+        if (
+            not source_host
+            or not _domain_matches(source_host, "wisdomtree.com")
+            or parsed_source_url.path.rstrip("/") != expected_path
+            or parsed_source_url.query
+            or parsed_source_url.fragment
+        ):
+            raise ValueError(
+                "WisdomTree holdings must use the exact symbol-scoped public fund-holdings API route."
+            )
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_response = await client.get(
+                self._PRODUCT_PAGE_URLS[normalized_symbol],
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+            product_response.raise_for_status()
+            product_host = _url_host(str(product_response.url))
+            if not product_host or not _domain_matches(product_host, "wisdomtree.com"):
+                raise ValueError("WisdomTree product-page session left the issuer domain.")
+            response = await client.get(
+                resolved_source_url,
+                headers={
+                    **_issuer_page_request_headers(accept="application/json,*/*"),
+                    "Referer": self._PRODUCT_PAGE_URLS[normalized_symbol],
+                },
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        response_host = _url_host(str(response.url))
+        if (
+            not response_host
+            or not _domain_matches(response_host, "wisdomtree.com")
+            or urlparse(str(response.url)).path.rstrip("/") != expected_path
+        ):
+            raise ValueError("WisdomTree holdings response left the symbol-scoped issuer route.")
+
+        payload = response.json()
+        if not isinstance(payload, list) or not payload:
+            raise ValueError("WisdomTree holdings API returned no complete row array.")
+        rows, composition_date = self._parse_payload(
+            payload,
+            symbol=normalized_symbol,
+            entity_id=entity_id,
+        )
+        if not rows or composition_date is None:
+            raise ValueError(
+                f"WisdomTree holdings API did not return complete dated rows for {normalized_symbol}."
+            )
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            raw_json={"holdings": payload},
+            source_url=str(response.url),
+            source_identifier=entity_id,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "json",
+                "route_resolution": "wisdomtree_public_fund_holdings_api",
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_payload(
+        cls,
+        payload: list[Any],
+        *,
+        symbol: str,
+        entity_id: str,
+    ) -> tuple[list[CanonicalHoldingRow], date | None]:
+        observed_dates: set[date] = set()
+        rows: list[CanonicalHoldingRow] = []
+        expected_entity_id = int(entity_id)
+        for index, raw in enumerate(payload, start=1):
+            if not isinstance(raw, dict):
+                raise ValueError("WisdomTree holdings API returned a non-object row.")
+            observed_ticker = _clean(raw.get("fundTicker"))
+            if observed_ticker is None or observed_ticker.upper() != symbol:
+                raise ValueError(
+                    f"WisdomTree holdings row {index} is not scoped to requested fund {symbol}."
+                )
+            observed_entity = raw.get("wtClassID")
+            try:
+                if int(str(observed_entity)) != expected_entity_id:
+                    raise ValueError
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    f"WisdomTree holdings row {index} has the wrong fund entity id."
+                ) from exc
+            raw_date = _clean(raw.get("dt"))
+            composition_date = _parse_issuer_date(raw_date)
+            if composition_date is None and raw_date and len(raw_date) >= 10:
+                composition_date = _parse_issuer_date(raw_date[:10])
+            if composition_date is None:
+                raise ValueError(f"WisdomTree holdings row {index} has no valid holdings date.")
+            observed_dates.add(composition_date)
+            name = _clean(raw.get("securityName"))
+            if name is None:
+                raise ValueError(f"WisdomTree holdings row {index} has no security name.")
+            source_ticker = _clean(raw.get("securityTicker"))
+            asset_group = (_clean(raw.get("assetGroup")) or "").upper()
+            is_cash = asset_group in {"CA", "CASH"} or any(
+                token in name.upper() for token in ("CASH", "CURRENCY", "MONEY MARKET")
+            )
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=None if is_cash else (source_ticker.upper() if source_ticker else None),
+                    name=name,
+                    weight=_decimal(raw.get("wgt")),
+                    shares=_decimal(raw.get("shares")),
+                    market_value=_decimal(raw.get("marketValueBase")),
+                    currency="USD" if is_cash else None,
+                    holding_type="cash" if is_cash else "security",
+                    row_type="cash" if is_cash else "security",
+                    source_row_id=(
+                        f"wisdomtree:{symbol}:{composition_date.isoformat()}:{index}:"
+                        f"{raw.get('figi') or source_ticker or name}"
+                    ),
+                    extra_data={
+                        key: value
+                        for key, value in raw.items()
+                        if key
+                        not in {
+                            "fundTicker",
+                            "wtClassID",
+                            "dt",
+                            "securityName",
+                            "securityTicker",
+                            "wgt",
+                            "shares",
+                            "marketValueBase",
+                        }
+                        and _clean(value) is not None
+                    },
+                )
+            )
+        if len(observed_dates) != 1:
+            raise ValueError("WisdomTree holdings API returned mixed or missing holdings dates.")
+        return rows, next(iter(observed_dates))
 
 
 class GuggenheimHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -67463,6 +67670,12 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
     "wisdomtree": IssuerCsvAdapterConfig(
         adapter_key="wisdomtree",
         source_provider="wisdomtree",
+        source_access="issuer_public_holdings_file",
+        live_tested_default_route=False,
+        terms_note=(
+            "WisdomTree's public symbol-scoped fund-holdings API may be subject to "
+            "issuer terms and its disclosed holdings date governs freshness."
+        ),
     ),
     "guggenheim": IssuerCsvAdapterConfig(
         adapter_key="guggenheim",

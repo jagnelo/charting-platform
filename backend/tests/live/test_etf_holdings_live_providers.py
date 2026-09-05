@@ -428,7 +428,6 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
 }
 SEC_BACKED_SAMPLE_ADAPTERS = {
     "direxion",
-    "wisdomtree",
 }
 
 
@@ -4289,29 +4288,3 @@ def test_live_backed_providers_each_have_a_concrete_live_route_test():
         and isinstance(adapter_key := getattr(value, "_live_provider_adapter_key", None), str)
     }
     assert parametrized | bespoke == LIVE_BACKED_ISSUER_ADAPTERS
-
-
-@pytest.mark.asyncio
-@pytest.mark.slow
-@pytest.mark.parametrize(
-    ("adapter_key", "symbol"),
-    [
-        ("wisdomtree", "DXJ"),
-    ],
-)
-async def test_live_sec_backed_adapters_probe_ready_with_sec_identifiers(
-    adapter_key,
-    symbol,
-):
-    adapter = get_holdings_adapter(adapter_key)
-    assert adapter is not None
-
-    probe = adapter.probe(
-        symbol=symbol,
-        name="",
-        identifiers={"sec_cik": "0000036405"},
-    )
-
-    assert not ISSUER_ADAPTER_CONFIGS[adapter_key].live_tested_default_route
-    assert probe.status == "ready"
-    assert probe.source_url == "https://data.sec.gov/submissions/CIK0000036405.json"

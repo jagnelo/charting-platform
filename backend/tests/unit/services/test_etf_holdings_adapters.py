@@ -311,6 +311,16 @@ async def test_sofi_fetch_preserves_periodic_archive_provenance(monkeypatch):
     FakeAsyncClient.requested = []
     FakeAsyncClient.queue = [
         FakeResponse(
+            text="<html>DXJ product page</html>",
+            content_type="text/html",
+            url="https://www.wisdomtree.com/us/products/equity/dxj",
+        ),
+        FakeResponse(
+            text="<html>DXJ product page</html>",
+            content_type="text/html",
+            url="https://www.wisdomtree.com/us/products/equity/dxj",
+        ),
+        FakeResponse(
             content=b"%PDF-fake",
             content_type="application/pdf",
             url=adapter.HOLDINGS_URL,
@@ -27870,6 +27880,103 @@ async def test_guggenheim_holdings_route_parses_complete_issuer_table(monkeypatc
         "as_of_date": "2026-08-31",
         "terms_note": ISSUER_ADAPTER_CONFIGS["guggenheim"].terms_note,
     }
+
+
+@pytest.mark.asyncio
+async def test_wisdomtree_public_fund_holdings_api_is_symbol_scoped_and_dated(monkeypatch):
+    adapter = get_holdings_adapter("wisdomtree")
+    assert adapter is not None
+    probe = adapter.probe(symbol="DXJ", name="", identifiers={})
+    assert probe.status == "ready"
+    assert probe.source_url == "https://www.wisdomtree.com/api/fund-holdings/1000549"
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<html>DXJ product page</html>",
+            content_type="text/html",
+            url="https://www.wisdomtree.com/us/products/equity/dxj",
+        ),
+        FakeResponse(
+            text=json.dumps(
+                [
+                    {
+                        "dt": "2026-09-04T00:00:00.000Z",
+                        "wtClassID": 1000549,
+                        "fundTicker": "DXJ",
+                        "assetGroup": "EQ",
+                        "securityTicker": "8306 JT",
+                        "securityName": "Mitsubishi UFJ Financial Group",
+                        "shares": 1234,
+                        "marketValueBase": 987654.32,
+                        "wgt": 0.0425,
+                        "figi": "BBG000BPH459",
+                        "sectorName": "Financials",
+                    },
+                    {
+                        "dt": "2026-09-04T00:00:00.000Z",
+                        "wtClassID": 1000549,
+                        "fundTicker": "DXJ",
+                        "assetGroup": "CASH",
+                        "securityTicker": "",
+                        "securityName": "Cash",
+                        "shares": 0,
+                        "marketValueBase": 1000,
+                        "wgt": 0.0001,
+                    },
+                ]
+            ),
+            content_type="application/json",
+            url="https://www.wisdomtree.com/api/fund-holdings/1000549",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="DXJ")
+
+    assert FakeAsyncClient.requested[0][0].endswith("/us/products/equity/dxj")
+    assert FakeAsyncClient.requested[1][0].endswith("/api/fund-holdings/1000549")
+    assert result.legal_metadata["route_resolution"] == (
+        "wisdomtree_public_fund_holdings_api"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-04"
+    assert result.rows[0].symbol == "8306 JT"
+    assert result.rows[0].extra_data["figi"] == "BBG000BPH459"
+    assert result.rows[0].weight == Decimal("0.0425")
+    assert result.rows[0].extra_data["sectorName"] == "Financials"
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].symbol is None
+
+
+@pytest.mark.asyncio
+async def test_wisdomtree_public_fund_holdings_api_rejects_identity_drift(monkeypatch):
+    adapter = get_holdings_adapter("wisdomtree")
+    assert adapter is not None
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<html>DXJ product page</html>",
+            content_type="text/html",
+            url="https://www.wisdomtree.com/us/products/equity/dxj",
+        ),
+        FakeResponse(
+            text=json.dumps(
+                [
+                    {
+                        "dt": "2026-09-04",
+                        "wtClassID": 1001798,
+                        "fundTicker": "NTSX",
+                        "assetGroup": "EQ",
+                        "securityName": "Wrong fund",
+                    }
+                ]
+            ),
+            content_type="application/json",
+            url="https://www.wisdomtree.com/api/fund-holdings/1000549",
+        )
+    ]
+    with pytest.raises(ValueError, match="not scoped to requested fund"):
+        await adapter.fetch_latest(symbol="DXJ")
 
 
 @pytest.mark.asyncio

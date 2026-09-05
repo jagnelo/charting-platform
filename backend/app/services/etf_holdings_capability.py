@@ -434,13 +434,13 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
         investigated_at=date(2026, 9, 5),
         next_action=(
             "Keep DXJ unavailable and periodically re-test WisdomTree's official route; the "
-            "current browser-visible page is not executable from backend-equivalent requests. "
-            "Promote only after complete, identity-verified current rows and live evidence."
+            "public fund-holdings API requires an issuer session that is not repeatably "
+            "executable through the application transport. Promote only after complete, "
+            "identity-verified current rows and repeatable live evidence."
         ),
         evidence_refs=(
-            "web:wisdomtree-current-fund-holdings-2026-09-05",
-            "live:wisdomtree-current-fund-holdings-2026-09-05-blocked",
-            "live:wisdomtree-current-fund-holdings-2026-09-05-retest-blocked",
+            "web:wisdomtree-public-fund-holdings-api-2026-09-05",
+            "live:wisdomtree-public-fund-holdings-api-2026-09-05-httpx-403",
         ),
     ),
     "NTSX": ETFHoldingsSymbolAudit(
@@ -451,13 +451,13 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
         investigated_at=date(2026, 9, 5),
         next_action=(
             "Keep NTSX unavailable and periodically re-test WisdomTree's official route; the "
-            "current browser-visible page is not executable from backend-equivalent requests. "
-            "Promote only after complete, identity-verified current rows and live evidence."
+            "public fund-holdings API requires an issuer session that is not repeatably "
+            "executable through the application transport. Promote only after complete, "
+            "identity-verified current rows and repeatable live evidence."
         ),
         evidence_refs=(
-            "web:wisdomtree-current-fund-holdings-2026-09-05",
-            "live:wisdomtree-current-fund-holdings-2026-09-05-blocked",
-            "live:wisdomtree-current-fund-holdings-2026-09-05-retest-blocked",
+            "web:wisdomtree-public-fund-holdings-api-2026-09-05",
+            "live:wisdomtree-public-fund-holdings-api-2026-09-05-httpx-403",
         ),
     ),
     "MINT": ETFHoldingsSymbolAudit(
