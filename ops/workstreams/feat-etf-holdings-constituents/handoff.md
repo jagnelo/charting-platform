@@ -4435,3 +4435,19 @@ no-key requests for the supported-funds list and daily holdings returned
 `Unauthorized`; no free account, API key, entitlement, price, or commercial
 license was activated. DXJ/NTSX/MINT/BOND remain unavailable because no
 complete current route was proven.
+
+## Deterministic revalidation and dependency refresh — 2026-09-05
+
+The complete deterministic ETF adapter and capability suites were rerun against
+the clean feature checkout: `662` tests passed (`575` adapter and `87`
+capability). The workstream validator, Ruff check, Ruff format check, and
+`git diff --check` also passed.
+
+The accompanying read-only remote refresh places
+`origin/feat/market-data-provider-platform` at `0cd9cb4d` and
+`origin/staging` at `8b885a2f`; the provider branch is not an ancestor of
+staging and its `ProviderCapability` enum still lacks `ETF_HOLDINGS`. AC10
+therefore remains deferred. No source eligibility, provider classification,
+credential, paid route, or protected-worktree state changed; DXJ/NTSX/MINT/BOND
+remain unavailable and the next executable action is still the narrow shared
+capability bridge after the provider branch reaches staging.
