@@ -3969,3 +3969,21 @@ diff-check passed. Provider-platform remains unstaged; DXJ/NTSX/MINT/BOND
 remain unavailable for current analysis; AC10 remains deferred; and AC14
 remains the post-integration 30-day production shadow gate. No paid source,
 credential, other branch, or other worktree was modified.
+
+## Capability-read catalog-safety checkpoint — 2026-09-05
+
+Implementation commit `ee4e9713` applies the same integrity boundary to the
+user-facing capability endpoint. `GET /etf-holdings/{symbol}/capability` now
+looks up an existing instrument/profile and evaluates its persisted snapshot
+and adapter state; when no catalog entry exists, it evaluates a transient
+unknown profile without inserting an `Instrument` or `ETFProfile` row. This
+keeps capability inspection observational while preserving the explicit
+unknown/not-applicable response for untracked symbols.
+
+Capability unit coverage passed `85` tests. The focused Docker-backed API
+regressions for canary-history and capability inspection passed `2` selected
+tests (66 deselected) with the two existing Nautilus deprecation warnings;
+Ruff, formatting, and diff-check passed. Provider-platform remains unstaged;
+DXJ/NTSX/MINT/BOND remain unavailable for current analysis; AC10 remains
+deferred; and AC14 remains the post-integration 30-day production shadow gate.
+No paid source, credential, other branch, or other worktree was modified.
