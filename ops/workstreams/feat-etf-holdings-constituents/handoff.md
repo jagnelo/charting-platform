@@ -3765,6 +3765,25 @@ DXJ/NTSX/MINT/BOND remain unavailable for current analysis, AC10 remains
 deferred, and AC14 remains the post-integration 30-day production shadow gate.
 No paid source, credential, other branch, or other worktree was modified.
 
+## Non-mutating canary-history read checkpoint — 2026-09-05
+
+Implementation commit `11ee3ad1` closes an integrity gap in the bounded canary
+history endpoint. The admin-only `GET /etf-holdings/{symbol}/canary-history`
+route now resolves only an already-existing ETF profile by symbol and reads its
+persisted adapter-state history. Unknown symbols return an empty observation
+list without creating instrument/profile catalog rows, hydrating a provider
+route, or triggering a fetch. This preserves the endpoint's documented
+read-only inspection behavior and prevents monitoring queries from mutating the
+catalog.
+
+The non-hydrating capability regression passed with 85 tests, and the focused
+Docker-backed API regression passed 1 selected test (66 deselected) with the
+two existing Nautilus deprecation warnings. Ruff, formatting, and diff-check
+passed. Provider-platform remains unstaged; DXJ/NTSX/MINT/BOND remain
+unavailable for current analysis; AC10 remains deferred; and AC14 remains the
+post-integration 30-day production shadow gate. No paid source, credential,
+other branch, or other worktree was modified.
+
 ## Per-symbol canary-history API checkpoint — 2026-09-05
 
 Implementation commit `e38edc60` closes the remaining API observability gap for
