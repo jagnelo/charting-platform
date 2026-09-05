@@ -5,6 +5,22 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-05
 
+## 2026-09-05 — Aggregate readiness gate receipt
+
+The authenticated focused Market Map history flow passed `1/1` on a rebuilt branch-scoped
+stack. The exact-tip `full_stack_browser` gate at metadata tip `4932fbc2` (product tip
+`ea4514fa`) passed all locked dependency/migration, workstream, lint/format/type-check,
+backend unit/integration and combined coverage (`80.92%`), frontend Vitest (`952/952`),
+build, compose/provider, stack-health, runner-isolation, and functional Playwright stages
+(`157/157` with `106` documented skips across `263` specs). The four-project visual matrix
+remains `98/104`: the six unchanged state-oracle diffs are `watchlist-column-editor-open`
+at visual-1080p-100/125 (`13,844` pixels each) and `workspace-floating` at
+visual-1080p-100/125/1440p-100/1440p-125 (`12,097`/`12,097`/`9,770`/`9,770` pixels).
+No baseline, mask, threshold, skip, fallback oracle, provider rule, or acceptance policy
+changed; teardown removed all assigned resources. The gate is explicitly blocked only by
+those existing visual diffs, while canonical provider/history breadth and remaining R2-R6
+gaps stay open.
+
 This is the concise, branch-owned execution map for the TC2000 frontend rework. The chronological
 records in `docs/project-todos.md`, `docs/tc2000-parity.md`,
 `docs/tc2000-acceptance-governance.md`, and `docs/tc2000-visual-parity.md` remain the detailed

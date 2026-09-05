@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-09-05 — Aggregate readiness browser and exact-tip gate
+
+- [x] Rebuilt the branch-scoped stack and ran the authenticated Market Map history flow; it
+      passed `1/1` with clean teardown.
+- [x] Re-ran `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at
+      metadata tip `4932fbc2` (product tip `ea4514fa`). Locked dependency/migration checks,
+      workstream validation, lint/format/type-check, backend units/integration and combined
+      coverage (`80.92%`), frontend Vitest (`952/952`), build, compose/provider policy,
+      stack health, runner isolation, and functional Playwright (`157/157`, `106` documented
+      skips across `263` specs) passed.
+- [ ] The unchanged visual matrix is `98/104`; preserve the six state-oracle diffs:
+      `watchlist-column-editor-open` at visual-1080p-100/125 (`13,844` pixels each), and
+      `workspace-floating` at visual-1080p-100/125/1440p-100/1440p-125
+      (`12,097`/`12,097`/`9,770`/`9,770` pixels). No visual policy, fallback rule, provider
+      rule, baseline, mask, threshold, or skip changed. Continue the next compatible
+      canonical provider/history or Study slice.
+
 ### 2026-09-05 — Separate aggregate analysis readiness from covered history
 
 - [x] Keep the legacy generic source-history `overall_status` for covered/worker progress while
@@ -11,8 +28,9 @@
       existing `34` warnings, focused Market Map component coverage passed `36/36`, full frontend
       Vitest passed `952/952` across `109` files, TypeScript, Ruff, format, and `git diff --check`
       passed. Product commit `ea4514fa` is committed on `feat/tc2000-frontend-rework`.
-- [ ] Re-run the authenticated browser flow and exact-tip exhaustive gate after this product
-      commit; preserve the six visual state-oracle diffs and unchanged fallback/provider policy.
+- [x] Re-ran the authenticated browser flow and exact-tip exhaustive gate after this product
+      commit; all non-visual stages passed and the six visual state-oracle diffs remain the
+      explicit reproducible blocker. Preserve the unchanged fallback/provider policy.
 
 ### 2026-09-05 — Expose analysis-ready history floors for generic sources
 
