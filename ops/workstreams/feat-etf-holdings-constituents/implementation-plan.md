@@ -3267,3 +3267,17 @@ fallback-only providers. Keep the 16-day dated search and route canary bounded;
 implementation checkpoint `93a488ea8da77f7acf056e52f695787c69243f17`; do not
 infer current support if the issuer route drifts or the completeness
 contract fails.
+
+## Current-SHA integration-gate receipt — 2026-09-05
+
+The post-promotion `make validate-integration` run passed the current branch's
+workstream, dependency, migration, lint, formatting, type, backend coverage,
+frontend coverage, build, compose, provider-probe policy, stack-health,
+research-runner isolation, and visual stages. Backend coverage was 1,853
+passed at 81.19%; frontend coverage was 945 passed at 82.06%. Functional E2E
+reported 153 passed and 106 documented skips, with one unrelated existing
+`F8j-conflict` recovery-copy footer assertion failing transiently. A fresh
+branch-scoped stack retry of that exact test passed 1/1, and scoped teardown
+removed all containers, volumes, and images. No ETF assertion failed; the
+transient browser observation remains distinct from the green deterministic and
+opt-in ETF receipts.
