@@ -3183,3 +3183,26 @@ workstream validation were green. DXJ/NTSX remain issuer-edge blocked and
 MINT/BOND remain unresolved, so AC11 is open; shared provider-platform staging
 is still required before AC10, and AC14 remains a post-integration shadow
 gate.
+
+## Tier-0 free-first route re-test — 2026-09-05
+
+The next bounded source review kept the four unresolved Tier-0 symbols
+explicitly non-current. WisdomTree's current DXJ and NTSX product pages are
+browser-visible and expose dated top-ten holdings, but backend-equivalent
+requests still return Cloudflare 403 challenge content. The pages therefore
+remain useful audit evidence but are not an executable complete route for the
+application; no browser-only or SEC reconstruction was promoted.
+
+PIMCO's official MINT and BOND materials declare daily holdings disclosure,
+but the public product detail surface did not expose a complete downloadable
+basket. PIMCO's declared fund-detail API was tested with the public CUSIPs
+(`72201R833` for MINT and `72201R775` for BOND); bounded `topTenHoldings` and
+`fund-info` requests returned HTTP 401 Unauthorized. These responses establish
+an authentication boundary, not current constituent support. MINT/BOND remain
+`no_complete_executable_public_artifact`, and the mixed Pacific/PIMCO provider
+remains fallback-only.
+
+The runtime symbol audit, YAML ledger, unit parity coverage, and durable
+handoff now carry the dated 2026-09-05 WisdomTree/PIMCO evidence and retain the
+free-first rule. Any licensed/vendor route remains deferred behind the shared
+provider-platform entitlement and aggregate 20 EUR/USD-equivalent budget gate.
