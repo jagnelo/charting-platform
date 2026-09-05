@@ -192,7 +192,7 @@
       <span v-else-if="historyError" class="market-map-tool__status--error" role="alert">{{ historyError }}</span>
       <template v-else-if="historyStatus">
         <span :class="`market-map-tool__history-status--${historyStatus.overall_status}`">{{ historyStatus.overall_status }}</span>
-        <span v-if="historyStatus.timeframes.length">{{ historyStatus.timeframes[0].covered_member_count }}/{{ historyStatus.timeframes[0].member_count }} {{ historyStatus.timeframes[0].timeframe }} members covered</span>
+        <span v-for="history in historyStatus.timeframes" :key="history.timeframe">{{ watchlistHistoryTimeframeLabel(history) }}</span>
         <span v-if="historyStatus.limited">Bounded to {{ historyStatus.selected_instrument_count }} of {{ historyStatus.available_instrument_count }}</span>
         <span v-if="historyRefreshMessage" role="status">{{ historyRefreshMessage }}</span>
       </template>
@@ -658,6 +658,13 @@ function benchmarkRoleHistoryLabel(role: BenchmarkFamilyCoverageRole): string {
     const range = oldest || newest ? ` · range ${oldest ?? 'unknown'} → ${newest ?? 'unknown'}` : ''
     return `${history.timeframe} ${history.analysis_ready_member_count}/${history.member_count} ready · ${history.covered_member_count} covered · ${history.bar_count} bars${floor}${range}`
   }).join(' · ')
+}
+
+function watchlistHistoryTimeframeLabel(history: WatchlistSourceHistoryStatus['timeframes'][number]): string {
+  const oldest = history.oldest ? history.oldest.slice(0, 10) : null
+  const newest = history.newest ? history.newest.slice(0, 10) : null
+  const range = oldest || newest ? ` · range ${oldest ?? 'unknown'} → ${newest ?? 'unknown'}` : ''
+  return `${history.covered_member_count}/${history.member_count} ${history.timeframe} members covered · ${history.bar_count} bars${range}`
 }
 
 function benchmarkRoleLatestSnapshotLabel(role: BenchmarkFamilyCoverageRole): string {

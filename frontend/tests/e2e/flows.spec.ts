@@ -3565,7 +3565,7 @@ test.describe('TC2000 workstation', () => {
         const historySourceId = decodeURIComponent(pathname.split('/history-status/').pop() ?? '')
         if (['market-group:us-benchmarks', 'watchlist:7', 'combo:analysis-combo'].includes(historySourceId)) {
           const historySource = sources.find(item => item.source_id === historySourceId) ?? sources[0]
-          await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ source_id: historySource.source_id, source_kind: historySource.source_kind, name: historySource.name, locked: historySource.locked, membership_version: historySource.membership_version, max_instruments: 5000, available_instrument_count: 2, selected_instrument_count: 2, limited: false, excluded_count: 0, overall_status: 'ready', timeframes: [{ timeframe: 'D1', member_count: 2, covered_member_count: 2, coverage_percent: 100, bar_count: 4, in_progress_count: 0, complete_count: 2, failed_count: 0, pending_count: 0 }] }) })
+          await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ source_id: historySource.source_id, source_kind: historySource.source_kind, name: historySource.name, locked: historySource.locked, membership_version: historySource.membership_version, max_instruments: 5000, available_instrument_count: 2, selected_instrument_count: 2, limited: false, excluded_count: 0, overall_status: 'ready', timeframes: [{ timeframe: 'D1', member_count: 2, covered_member_count: 2, coverage_percent: 100, bar_count: 4, oldest: '2025-01-01T00:00:00Z', newest: '2026-06-30T00:00:00Z', in_progress_count: 0, complete_count: 2, failed_count: 0, pending_count: 0 }] }) })
           return
         }
       }
@@ -3744,7 +3744,7 @@ test.describe('TC2000 workstation', () => {
     await page.route('**/api/v1/watchlists/sources**', async route => {
       const pathname = new URL(route.request().url()).pathname
       if (pathname.includes('/history-status/')) {
-        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ overall_status: 'ready', available_instrument_count: 1, selected_instrument_count: 1, timeframes: [{ timeframe: 'D1', member_count: 1, covered_member_count: 1, coverage_percent: 100 }] }) })
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ overall_status: 'ready', available_instrument_count: 1, selected_instrument_count: 1, timeframes: [{ timeframe: 'D1', member_count: 1, covered_member_count: 1, coverage_percent: 100, bar_count: 4, oldest: '2025-01-01T00:00:00Z', newest: '2026-06-30T00:00:00Z' }] }) })
         return
       }
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ source_id: 'benchmark-family:sp500:cap_weight', source_kind: 'index_membership', name: 'S&P 500 constituents', locked: true, can_follow: true, can_clone: true, can_edit_membership: false, member_count: 1, membership_version: 'sp500:cap:v1', provenance: { availability: 'available', membership_semantics: 'etf_proxy_holdings' } }, { source_id: 'benchmark-family:sp500:equal_weight', source_kind: 'index_membership', name: 'S&P 500 equal-weight constituents', locked: true, can_follow: true, can_clone: true, can_edit_membership: false, member_count: 1, membership_version: 'sp500:equal:v1', provenance: { availability: 'available', membership_semantics: 'etf_proxy_holdings' } }]) })
@@ -3844,7 +3844,7 @@ test.describe('TC2000 workstation', () => {
     await page.route('**/api/v1/watchlists/sources**', async route => {
       const pathname = new URL(route.request().url()).pathname
       if (pathname.includes('/history-status/')) {
-        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ overall_status: 'ready', available_instrument_count: 1, selected_instrument_count: 1, timeframes: [{ timeframe: 'D1', member_count: 1, covered_member_count: 1, coverage_percent: 100 }] }) })
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ overall_status: 'ready', available_instrument_count: 1, selected_instrument_count: 1, timeframes: [{ timeframe: 'D1', member_count: 1, covered_member_count: 1, coverage_percent: 100, bar_count: 4, oldest: '2025-01-01T00:00:00Z', newest: '2026-06-30T00:00:00Z' }] }) })
         return
       }
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(families.map(family => ({ source_id: `benchmark-family:${family.key}:cap_weight`, source_kind: 'index_membership', name: `${family.name} constituents`, locked: true, can_follow: true, can_clone: true, can_edit_membership: false, member_count: 1, membership_version: `${family.key}:v1`, provenance: { availability: 'available', membership_semantics: 'etf_proxy_holdings' } }))) })
@@ -3872,6 +3872,7 @@ test.describe('TC2000 workstation', () => {
       await expect(mapWindow.getByRole('combobox', { name: 'Market Map universe' })).toHaveValue(`benchmark-family:${family.key}:cap_weight`)
       await expect.poll(() => selectedSources.at(-1), { timeout: 15_000 }).toBe(`benchmark-family:${family.key}:cap_weight`)
       await expect(mapWindow.locator('.market-map-tool__summary')).toContainText('Locked source', { timeout: 15_000 })
+      await expect(mapWindow.locator('[aria-label="Market Map history readiness"]')).toContainText('1/1 D1 members covered · 4 bars · range 2025-01-01 → 2026-06-30', { timeout: 15_000 })
       await expect(mapWindow.locator('.market-map-tool__tile')).toHaveCount(1)
       await mapWindow.getByRole('button', { name: 'Close tool' }).click()
       await expect(mapWindow).toBeHidden()
