@@ -3716,6 +3716,19 @@ provider-platform branch is still not an ancestor of staging, so AC10 remains
 deferred and AC14 remains the post-integration 30-day production shadow gate.
 No other branch or worktree was modified.
 
+## PIMCO ledger reconciliation checkpoint — 2026-09-05
+
+The fresh public fund-ui route evidence is now reconciled across the symbol
+priority ledger, provider audit record, provider-universe documentation, and
+runtime capability evidence. MINT and BOND retain the same unavailable
+disposition; only their dated evidence set expanded to include the top-ten-only
+bundle inspection, fund-ui HTTP 403, and legacy-route HTTP 404 observations.
+
+The complete ETF capability unit module passed `87` tests; workstream
+validation, Ruff, formatting, and diff-check passed. Provider-platform remains
+outside staging, so AC10 is still deferred and no source or entitlement was
+activated.
+
 ## Post-receipt capability regression — 2026-09-05
 
 The complete ETF capability unit module passed all `87` tests after the PIMCO

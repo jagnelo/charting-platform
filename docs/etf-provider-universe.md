@@ -1921,3 +1921,21 @@ their public artifacts are stale, top-ten-only, unresolved, or non-executable;
 Wellesley is `not_applicable` as an adviser identity; and Worth Charting and
 Yoke remain issuer-route blocked. No stale, blocked, or unresolved artifact is
 promoted as current support.
+
+## Current PIMCO route candidate checkpoint — MINT/BOND public fund-ui boundary — 2026-09-05
+
+PIMCO's official MINT and BOND materials remain reachable and declare daily
+holdings disclosure, but the public fund-ui bundle exposes top-ten holdings
+routes rather than a proven complete basket endpoint. Anonymous requests to
+those fund-ui routes returned HTTP 403, while the legacy public `www.pimco.com`
+top-ten route returned HTTP 404. No complete unauthenticated holdings artifact
+is therefore executable by the application client.
+
+MINT and BOND remain unavailable with
+`no_complete_executable_public_artifact`; the mixed `pacific_investments`
+identity remains fallback-only because GEME is current while the PIMCO
+representatives are unresolved. No credential, paid route, entitlement, or
+SEC/top-ten promotion was introduced. Evidence refs:
+`web:pimco-fund-ui-top-ten-only-2026-09-05`,
+`live:pimco-fund-ui-top-ten-route-2026-09-05-forbidden`, and
+`live:pimco-www-top-ten-route-2026-09-05-not-found`.
