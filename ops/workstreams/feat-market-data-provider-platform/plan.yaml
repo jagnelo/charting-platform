@@ -104,6 +104,7 @@ progress:
     - typed 429/418/quota capacity events persist reset headers and retry timestamps and are exposed through backend admin diagnostics
     - Binance exact request-weight accounting for single-symbol price (2) and exchange-info discovery (20); weighted local buckets charge the documented units and multi-page historical candles remain fail-closed
     - Marketstack's conservative 100-request/month free-plan contract and IBKR's documented 10-request/second plus five-concurrent-history pacing contract
+    - MarketData.app now uses the documented `/v1` API root, records its 100-credit 09:30 America/New_York reset window and 50-request concurrency ceiling, and has an adapter request-path/auth fixture test
     - final combined backend unit and PostgreSQL/Redis integration validation
   total: 14
   current_phase: credentialed_live_validation

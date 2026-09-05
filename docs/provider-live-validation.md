@@ -45,7 +45,7 @@ RUN_LIVE_PROVIDER_TESTS=1 rtk uv run --project backend pytest \
 
 The backend deterministic gates pass on the current corrective revision:
 
-- unit suite: `1326 passed`
+- unit suite: `1330 passed`
 - Docker-backed integration suite: `370 passed`
 - focused capacity/quota/runtime/provider-support tests: `17 passed`; capacity-admin plus provider API integration: `8 passed`
 - migration compatibility: passed against the previous release head
@@ -82,3 +82,11 @@ claim. It names these missing variables exactly:
 `EODHD_API_KEY`, `FMP_API_KEY`, `TRADIER_API_KEY`, and
 `MARKETDATA_APP_API_KEY`. Populate them only in the ignored
 `backend/.env.dev`; never paste secret values into the repository or chat.
+
+The MarketData.app adapter was also checked against the current official API
+root during this checkpoint: versioned resources are under
+`https://api.marketdata.app/v1` (not `/api/v1`). The checked-in contract records
+the documented 100-credit daily free window, its 09:30 America/New_York reset,
+and the 50-request concurrent ceiling; the adapter path and Bearer-auth shape
+are covered by a fixture test. A credentialed live read is still required before
+this provider can be accepted for routing.
