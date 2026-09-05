@@ -3091,3 +3091,32 @@ coverage verifies both the rejection and historical escape hatch. The complete
 ETF unit matrix passed, with Ruff, formatting, and diff-check green. No provider
 classification, source tier, entitlement, paid activation, or Tier-0 outcome
 changed.
+
+## All current-analysis consumers capability gate — 2026-09-05
+
+Implementation checkpoint `2d0c64d045fc47e6061072a76a9a6129f3ec5809` extends the
+AC13 boundary beyond Strategy Lab and basket materialization. Direct ETF
+constituent snapshots, ETF industry composition/proxy reads, benchmark-family
+breadth (including generic breadth evaluation), benchmark coverage/overview, and
+watchlist ETF/benchmark-family resolvers now consult the shared per-profile
+capability evaluator. Current requests reject or expose explicit non-current
+degradation; they cannot silently treat stale, SEC-only, incomplete, failed,
+unknown, or identity-unverified holdings as current. Explicit `as_of` requests
+remain the historical escape hatch and retain snapshot provenance.
+
+Watchlist source descriptors now expose capability-derived availability, while
+current non-usable sources resolve to no members with a structured exclusion.
+Benchmark coverage no longer counts a non-current resolved snapshot as covered,
+and overview mappings report holdings availability only when the selected
+snapshot is usable for the requested time semantics. Historical integration
+fixtures were updated to select `as_of` explicitly, and current-degradation
+regressions cover HTTP 409/API status, non-current coverage, and unavailable
+current watchlist membership.
+
+Validation: the complete ETF/Strategy/Workspace/Watchlist integration slice
+passed 184 tests (54 existing deprecation warnings), the deterministic ETF
+adapter/bootstrap/capability/refresh/resolution/task/worker matrix passed 716
+tests, and Ruff check, Ruff format check, and `git diff --check` passed. No
+provider classification, source tier, entitlement, paid activation, or Tier-0
+disposition changed. AC10 remains gated on synchronized shared provider-platform
+staging, and AC14 remains a post-integration 30-day shadow gate.
