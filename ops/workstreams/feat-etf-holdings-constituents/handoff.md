@@ -2931,3 +2931,17 @@ non-current.
 The focused capability/refresh suite passes 81 tests; the complete deterministic
 ETF backend matrix passes 692 tests, with Ruff, formatting, and diff-check
 green. No provider classification or source entitlement changed.
+
+## Shadow-gate source-tier regression — 2026-09-05
+
+Implementation checkpoint `f0461750ad1037591f655e9247dce9f18d994e0f` adds a
+focused regression for the tier-0 shadow gate: a complete, identity-verified
+observation with an unclassified source tier is counted as a silent
+identity/schema/completeness violation and cannot pass the current-data gate.
+This keeps the shadow monitor aligned with the runtime capability evaluator's
+approved current tiers (`issuer_native`, `successor_native`, and
+`licensed_vendor`).
+
+The focused capability suite passes 76 tests and the complete deterministic ETF
+backend matrix passes 693 tests. Ruff, formatting, and diff-check remain green;
+no provider classification, entitlement, budget, or route disposition changed.
