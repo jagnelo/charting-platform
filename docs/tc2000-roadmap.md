@@ -11,6 +11,18 @@ records in `docs/project-todos.md`, `docs/tc2000-parity.md`,
 evidence ledgers. If a summary here conflicts with a dated test receipt or the current code, the
 current code and fresh evidence win.
 
+The latest exact-tip exhaustive gate ran at metadata tip `3b497ee3` (product tip `0712951`). All
+non-visual stages and authenticated functional Playwright passed: backend units `1,315/1,315`,
+integration `382/382` with the existing `54` warnings, combined coverage `80.90%`, frontend
+Vitest `946/946` across `109` files, and functional E2E `155` passed with `106` documented skips
+across `261` specs. The four-project visual matrix remains the only failing stage at `98/104`:
+`watchlist-column-editor-open` differs by `13,844` pixels at 1080p-100/125, and
+`workspace-floating` differs by `9,770`/`12,097`/`12,097`/`12,097` pixels at 1080p-100/125 and
+1440p-100/125. No visual baseline, mask, threshold, skip, fallback oracle, provider rule, or
+acceptance policy changed; assigned stack teardown and resource accounting were clean. The goal
+therefore remains active while canonical provider/history, richer Study, native-window,
+accessibility/security, dense-data, and visual-oracle gaps remain open.
+
 The latest product commit is `0712951` (`feat(tc2000): expose complete benchmark history readiness`).
 Market Map's provider-neutral benchmark-family readiness panel now renders every D1/W1/MN
 member-bar timeframe returned by the canonical API for each role, including analysis-ready versus

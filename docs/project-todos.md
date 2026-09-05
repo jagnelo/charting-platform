@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-09-05 — Exact-tip exhaustive gate after complete benchmark history readiness
+
+- [x] Re-run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at
+      metadata tip `3b497ee3` (product tip `0712951`). Locked dependency/migration checks,
+      Ruff/format, TypeScript, backend units (`1,315/1,315`), integration (`382/382` with the
+      existing `54` warnings), combined coverage (`80.90%`), frontend Vitest (`946/946` across
+      `109` files), production build, compose/provider policy, stack health, runner isolation,
+      and authenticated functional Playwright (`155` passed, `106` documented skips across
+      `261` specs) all passed.
+- [x] Record the unchanged visual acceptance result: `98/104` passed. The six failures remain
+      `watchlist-column-editor-open` at visual-1080p-100/125 (`13,844` pixels each) and
+      `workspace-floating` at visual-1080p-100/125/1440p-100/1440p-125 (`9,770`/`12,097`/
+      `12,097`/`12,097` pixels). No baseline, mask, threshold, skip, fallback oracle, provider
+      rule, or acceptance policy changed. Gate teardown removed all assigned containers, volumes,
+      network, generated images, and test-container sessions.
+- [ ] Continue canonical provider/history population, richer compatible Study targets,
+      native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review;
+      the visual matrix is the current reproducible gate blocker.
+
 ### 2026-09-05 — Surface complete benchmark history readiness
 
 - [x] Extend the Market Map benchmark-family readiness panel to show every canonical bar-history

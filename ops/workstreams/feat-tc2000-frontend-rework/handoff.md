@@ -10,6 +10,21 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Exact-tip exhaustive gate after complete benchmark history readiness
+
+The `full_stack_browser` gate ran at metadata tip `3b497ee3` (product tip `0712951`). Locked
+dependency/migration checks, Ruff/format, TypeScript, backend units (`1,315/1,315`), integration
+(`382/382` with the existing `54` warnings), combined coverage (`80.90%`), frontend Vitest
+(`946/946` across `109` files), production build, compose/provider policy, stack health, runner
+isolation, and authenticated functional Playwright (`155` passed, `106` documented skips across
+`261` specs) passed. The only failing stage is the unchanged four-project visual matrix: `98/104`
+passed, with `watchlist-column-editor-open` at 1080p-100/125 (`13,844` pixels each) and
+`workspace-floating` at 1080p-100/125/1440p-100/1440p-125 (`9,770`/`12,097`/`12,097`/`12,097`
+pixels). No visual policy or fallback rule changed. Teardown removed the assigned stack and
+generated images; resource accounting reported zero retained resources and test-container sessions.
+The branch remains active for canonical provider/history, richer Study, native-window,
+accessibility/security, dense-data, and visual-oracle work.
+
 ## 2026-09-05 — Surface complete benchmark history readiness
 
 Product commit `0712951` (`feat(tc2000): expose complete benchmark history readiness`) extends the
