@@ -3697,6 +3697,23 @@ remain unavailable for current analysis, AC10 remains deferred, and AC14
 remains the post-integration 30-day production shadow gate. No paid source,
 credential, other branch, or other worktree was modified.
 
+## Unknown capability-state correction checkpoint — 2026-09-05
+
+Implementation commit `394fddf1` corrects a semantic boundary in capability
+evaluation. A profile with no concrete adapter and no holdings snapshot now
+returns `unknown`, reflecting an unreviewed/unassigned symbol. The evaluator
+continues to preserve `not_applicable` for audited terminal, successor, or
+non-portfolio-publisher identities, so the two states remain meaningful and
+distinct in the API and UI.
+
+Capability unit coverage passed `86` tests. The focused Docker-backed API
+regression for an untracked symbol passed `1` selected test (69 deselected) with
+the two existing Nautilus deprecation warnings; Ruff, formatting, and
+diff-check passed. Provider-platform remains unstaged; DXJ/NTSX/MINT/BOND
+remain unavailable for current analysis; AC10 remains deferred; and AC14
+remains the post-integration 30-day production shadow gate. No paid source,
+credential, other branch, or other worktree was modified.
+
 ## Basket capability-error contract checkpoint — 2026-09-05
 
 Implementation commit `7af93e92` removes the last ETF-owned current-analysis
