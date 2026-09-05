@@ -3073,3 +3073,21 @@ Tier-0 outcome changed.
 This receipt confirms the ETF-owned implementation is regression-free at the
 current tip, but it does not close AC10 or AC14: provider-platform staging is
 still absent and the production shadow period has not begun.
+
+## Current-analysis capability gates — 2026-09-05
+
+Implementation checkpoint `46d7137f1e6c52be29360c346bfdf1a3564ff240` closes an
+ETF-owned AC13 gap. Strategy Lab's default/latest ETF universe now evaluates the
+stored per-symbol capability and refuses non-current snapshots, returning an
+explicit warning instead of silently testing SEC, stale, incomplete, or
+identity-unverified holdings. Explicit date, historical, point-in-time, and
+dynamic selections remain available as historical evidence.
+
+Default ETF-to-basket materialization now applies the same current-data gate and
+returns a structured HTTP 409 capability error when current analysis is unsafe;
+an explicit snapshot ID or date opts into historical materialization. Regression
+coverage verifies both the rejection and historical escape hatch. The complete
+172-test capability/ETF/Strategy integration slice and 716-test deterministic
+ETF unit matrix passed, with Ruff, formatting, and diff-check green. No provider
+classification, source tier, entitlement, paid activation, or Tier-0 outcome
+changed.
