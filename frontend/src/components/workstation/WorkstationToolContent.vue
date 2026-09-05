@@ -704,6 +704,7 @@
         </template>
         <span v-else class="breadth-tool__status">Role participation unavailable.</span>
         <span v-if="familyBreadthHistory" class="breadth-tool__family-breadth-history">History · {{ familyBreadthHistoryPointCount }} aligned points · {{ familyBreadthHistoryReadinessLabel }}</span>
+        <BenchmarkFamilyBreadthHistoryUPlot v-if="familyBreadthHistory" :history="familyBreadthHistory" />
       </div>
       <div v-if="isBenchmarkFamily" class="breadth-tool__family-ranking" aria-label="Benchmark family role ranking">
         <strong>Role ranking · {{ familyRanking?.rank_period ?? '1M' }}</strong>
@@ -883,6 +884,7 @@ import MarketGaugeTool from './MarketGaugeTool.vue'
 import StudyLabTool from './StudyLabTool.vue'
 import UnknownToolRecovery from './UnknownToolRecovery.vue'
 import BreadthHistoryUPlot from './BreadthHistoryUPlot.vue'
+import BenchmarkFamilyBreadthHistoryUPlot from './BenchmarkFamilyBreadthHistoryUPlot.vue'
 import GenericBreadthHistoryUPlot from './GenericBreadthHistoryUPlot.vue'
 import RelativeRotationTool from './RelativeRotationTool.vue'
 import MarketMapTool from './MarketMapTool.vue'
