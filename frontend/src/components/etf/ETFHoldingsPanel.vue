@@ -38,7 +38,7 @@
           A last-known snapshot may be displayed for historical context, but it must not be treated as current.
         </small>
         <small v-if="capability.failure_class" class="capability-failure-class">
-          Last check classification: {{ failureClassLabel(capability.failure_class) }}
+          Last check classification: {{ formatSourceFailureClass(capability.failure_class) }}
         </small>
         <small v-if="capability.symbol_audit?.next_action" class="capability-next-action">
           Next source-review action: {{ capability.symbol_audit.next_action }}
@@ -209,6 +209,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { api } from '@/lib/api'
+import { formatSourceFailureClass } from '@/lib/workstation/sourceCapability'
 import type { ETFHolding, ETFHoldingsCapability, ETFHoldingsSnapshot } from '@/types'
 
 const props = defineProps<{ symbol: string | null }>()
@@ -229,7 +230,6 @@ const visible = computed(() => !!snapshot.value || !!capability.value)
 const capabilityLabel = (value: ETFHoldingsCapability) =>
   String(value.availability || 'unknown').replace(/_/g, ' ')
 const capabilityClass = (value: ETFHoldingsCapability) => `capability--${value.availability || 'unknown'}`
-const failureClassLabel = (value: string) => value.replace(/_/g, ' ')
 const canaryStatusLabel = (value?: string | null) => String(value || 'unknown').replace(/_/g, ' ')
 const provenanceLabel = computed(() =>
   String(snapshot.value?.provenance || '').replace(/_/g, ' ') || '—'

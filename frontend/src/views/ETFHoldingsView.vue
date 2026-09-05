@@ -598,6 +598,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import SearchBar from '@/components/common/SearchBar.vue'
 import { api } from '@/lib/api'
+import { formatSourceFailureClass } from '@/lib/workstation/sourceCapability'
 import type {
   ETFHolding,
   ETFHoldingsSnapshot,
@@ -683,7 +684,7 @@ function capabilityClass(capability: ETFHoldingsCapability | null | undefined): 
 }
 
 function capabilityFailureLabel(failureClass: string | null | undefined): string {
-  return String(failureClass || '').replace(/_/g, ' ')
+  return formatSourceFailureClass(failureClass)
 }
 
 function canaryStatusLabel(status: string | null | undefined): string {

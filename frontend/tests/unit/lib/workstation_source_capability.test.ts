@@ -30,4 +30,10 @@ describe('watchlist source capability state', () => {
     expect(sourceIsNotCurrent(source)).toBe(true)
     expect(sourceAvailabilitySuffix(source)).toBe(' · Not current (stale) · provider transport')
   })
+
+  it('uses explicit human labels for access and quota diagnostics', () => {
+    expect(formatSourceFailureClass('authentication_required')).toBe('authentication required')
+    expect(formatSourceFailureClass('access_denied')).toBe('access denied')
+    expect(formatSourceFailureClass('quota_rate_limited')).toBe('quota/rate limited')
+  })
 })

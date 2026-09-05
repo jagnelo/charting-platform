@@ -27,7 +27,13 @@ export function sourceIsNotCurrent(source: SourceCapabilityDescriptor): boolean 
 }
 
 export function formatSourceFailureClass(value: unknown): string {
-  return String(value ?? '').replace(/_/g, ' ')
+  const normalized = String(value ?? '')
+  const labels: Record<string, string> = {
+    access_denied: 'access denied',
+    authentication_required: 'authentication required',
+    quota_rate_limited: 'quota/rate limited',
+  }
+  return labels[normalized] ?? normalized.replace(/_/g, ' ')
 }
 
 export function sourceAvailabilitySuffix(source: SourceCapabilityDescriptor): string {
