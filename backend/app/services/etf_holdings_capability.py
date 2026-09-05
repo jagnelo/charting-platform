@@ -111,6 +111,35 @@ async def load_tier0_shadow_observations(
     return observations_by_symbol
 
 
+async def load_canary_history(
+    db: AsyncSession,
+    profile_id: int,
+    *,
+    limit: int = 90,
+) -> list[Mapping[str, Any]]:
+    """Return the bounded persisted canary history for one ETF profile.
+
+    This is an observation read only: it never probes a provider or infers a
+    passing result.  The persisted history is already capped by the canary
+    writer; the read applies a second caller-controlled bound for safe admin
+    inspection.
+    """
+
+    state = await load_latest_adapter_state(db, profile_id)
+    if state is None:
+        return []
+    metadata = _metadata(state.extra_data)
+    history = metadata.get("canary_history")
+    if not isinstance(history, list):
+        return []
+    bounded_limit = max(1, min(int(limit), 90))
+    return [
+        dict(observation)
+        for observation in history[-bounded_limit:]
+        if isinstance(observation, Mapping)
+    ]
+
+
 def current_analysis_error_detail(capability: ETFHoldingsCapability) -> dict[str, Any]:
     """Return the stable API detail for a non-current holdings capability."""
 

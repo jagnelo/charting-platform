@@ -147,6 +147,17 @@ def test_admin_shadow_gate_reports_missing_tier0_observations(client, admin_head
     )
 
 
+def test_admin_can_inspect_bounded_canary_history_for_a_symbol(client, admin_headers):
+    response = client.get(
+        "/api/v1/etf-holdings/DXJ/canary-history",
+        headers=admin_headers,
+        params={"limit": 2},
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json() == {"symbol": "DXJ", "observations": []}
+
+
 def test_admin_family_history_refresh_queues_deduplicated_local_members(
     client, admin_headers, monkeypatch
 ):

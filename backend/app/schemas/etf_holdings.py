@@ -75,6 +75,13 @@ class ETFHoldingsShadowGateOut(BaseModel):
     missed_freshness_by_symbol: dict[str, int]
 
 
+class ETFHoldingsCanaryHistoryOut(BaseModel):
+    """Bounded persisted canary evidence for one ETF symbol."""
+
+    symbol: str
+    observations: list[dict[str, Any]] = Field(default_factory=list)
+
+
 class ETFProfileOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

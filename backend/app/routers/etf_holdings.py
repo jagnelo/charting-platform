@@ -24,6 +24,7 @@ from app.schemas.etf_holdings import (
     ETFHoldingsAdapterProbeOut,
     ETFHoldingsAdapterStateOut,
     ETFHoldingsBackfillJobOut,
+    ETFHoldingsCanaryHistoryOut,
     ETFHoldingsCapabilityOut,
     ETFHoldingsCoverageRequest,
     ETFHoldingsCoverageSummary,
@@ -98,6 +99,7 @@ from app.services.etf_holdings_adapters import (
 from app.services.etf_holdings_capability import (
     current_analysis_error_detail,
     evaluate_tier0_shadow_gate,
+    load_canary_history,
     load_tier0_shadow_observations,
     tier0_symbols,
 )
@@ -553,6 +555,24 @@ async def holdings_capability(
     instrument = await ensure_lightweight_etf_instrument(db, symbol=symbol)
     profile = await ensure_etf_profile(db, instrument)
     return await holdings_capability_for_profile(db, profile)
+
+
+@router.get("/{symbol}/canary-history", response_model=ETFHoldingsCanaryHistoryOut)
+async def holdings_canary_history(
+    symbol: str,
+    limit: int = Query(90, ge=1, le=90),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Inspect bounded persisted canary evidence without triggering a fetch."""
+
+    instrument = await ensure_lightweight_etf_instrument(db, symbol=symbol)
+    profile = await ensure_etf_profile(db, instrument)
+    observations = await load_canary_history(db, profile.id, limit=limit)
+    return ETFHoldingsCanaryHistoryOut(
+        symbol=instrument.symbol,
+        observations=[dict(observation) for observation in observations],
+    )
 
 
 @router.get("/{symbol_or_id}/latest", response_model=ETFHoldingsSnapshotOut)

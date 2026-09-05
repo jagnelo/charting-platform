@@ -16,6 +16,7 @@ from app.services.etf_holdings_capability import (
     evaluate_tier0_shadow_gate,
     freshness_deadline,
     infer_expected_cadence,
+    load_canary_history,
     symbol_audit_for_profile,
 )
 from app.services.etf_holdings_refresh import _canary_failure_class
@@ -243,6 +244,29 @@ def test_persisted_canary_diagnostics_are_exposed_as_capability_metadata():
     assert result.last_canary_recovered is False
     assert result.circuit_state == "open"
     assert result.circuit_open_until == circuit_until
+
+
+async def test_canary_history_read_is_bounded_and_does_not_probe():
+    class Result:
+        def scalar_one_or_none(self):
+            return SimpleNamespace(
+                extra_data={
+                    "canary_history": [
+                        {"sequence": index, "status": "success"} for index in range(5)
+                    ]
+                }
+            )
+
+    class Database:
+        async def execute(self, _statement):
+            return Result()
+
+    result = await load_canary_history(Database(), 42, limit=2)
+
+    assert result == [
+        {"sequence": 3, "status": "success"},
+        {"sequence": 4, "status": "success"},
+    ]
 
 
 def test_unverified_identity_never_becomes_current_even_with_complete_rows():
