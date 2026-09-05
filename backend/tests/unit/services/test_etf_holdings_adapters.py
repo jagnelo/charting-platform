@@ -9306,6 +9306,53 @@ async def test_fm_investments_adapter_discovers_drupal_holdings_api(monkeypatch)
 
 
 @pytest.mark.asyncio
+async def test_pacific_investments_adapter_parses_complete_geme_holdings_table(monkeypatch):
+    adapter = get_holdings_adapter("pacific_investments")
+    assert adapter is not None
+
+    holdings_rows = "".join(
+        f"<tr><td>Issuer {index}</td><td>SYM{index} US</td><td>SED{index:04d}</td>"
+        f"<td>{index * 100}</td><td>{index * 1000}</td><td>{index / 100:.2f}%</td></tr>"
+        for index in range(1, 20)
+    )
+    holdings_rows += (
+        "<tr><td>USD - United States Dollar</td><td>USD</td><td></td>"
+        "<td>1000</td><td>1000</td><td>1.00%</td></tr>"
+    )
+    page = (
+        "<html><body><h1>GEME</h1><p>CUSIP 900934506</p>"
+        "<p>Data displayed as of Sep 04, 2026</p>"
+        "<table><tr><th>Security Name</th><th>Security Ticker</th><th>SEDOL</th>"
+        "<th>Quantity</th><th>Market Value (base)</th><th>Weight</th></tr>"
+        f"{holdings_rows}</table></body></html>"
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=page,
+            content_type="text/html",
+            url="https://www.pacificam.co.uk/geme-etf/",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="GEME")
+
+    assert FakeAsyncClient.requested[0][0] == "https://www.pacificam.co.uk/geme-etf/"
+    assert len(result.rows) == 20
+    assert result.rows[0].symbol == "SYM1 US"
+    assert result.rows[0].market_value == Decimal("1000")
+    assert result.rows[-1].row_type == "cash"
+    assert result.rows[-1].symbol is None
+    assert result.rows[-1].holding_type == "cash"
+    assert result.legal_metadata["source_provider"] == "pacific_asset_management"
+    assert result.legal_metadata["route_resolution"] == (
+        "pacific_asset_management_geme_holdings_table"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-04"
+
+
+@pytest.mark.asyncio
 async def test_1251_capital_adapter_uses_owned_fm_investments_holdings_api(monkeypatch):
     adapter = get_holdings_adapter("1251_capital")
     assert adapter is not None

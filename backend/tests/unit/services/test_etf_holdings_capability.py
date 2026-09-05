@@ -214,8 +214,21 @@ def test_tier_zero_symbol_audit_accepts_reconciled_provider_aliases():
     result = symbol_audit_for_profile(profile_with_symbol("UTWO", "us_benchmark_series"))
 
     assert result.tier == 0
-    assert result.outcome == "unavailable"
+    assert result.outcome == CURRENT
+    assert result.evidence_state == "issuer_current_canary_verified"
     assert result.provider_identity == "fm_investments"
+    assert result.investigated_at == date(2026, 9, 5)
+
+
+def test_tier_zero_geme_uses_pacific_asset_management_current_route_evidence():
+    result = symbol_audit_for_profile(profile_with_symbol("GEME", "pacific_investments"))
+
+    assert result.tier == 0
+    assert result.outcome == CURRENT
+    assert result.evidence_state == "issuer_current_canary_verified"
+    assert result.provider_identity == "pacific_investments"
+    assert result.investigated_at == date(2026, 9, 5)
+    assert "live:pacific-asset-management-geme-holdings-2026-09-05" in result.evidence_refs
 
 
 def test_ranked_fallback_non_executable_symbols_remain_unavailable():

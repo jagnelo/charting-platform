@@ -302,12 +302,18 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
     ),
     "GEME": ETFHoldingsSymbolAudit(
         tier=0,
-        outcome=NOT_APPLICABLE,
-        evidence_state="identity_requires_reconciliation",
+        outcome=CURRENT,
+        evidence_state="issuer_current_canary_verified",
         provider_identity="pacific_investments",
-        investigated_at=date(2026, 9, 4),
-        next_action="Resolve GEME's sponsor/publisher identity before selecting a holdings route.",
-        evidence_refs=("web:pacific-investments-geme-pimco-mint-2026-09-03",),
+        investigated_at=date(2026, 9, 5),
+        next_action=(
+            "Keep Pacific AM's GEME page canary bounded and freshness-aware; retain current "
+            "only while the complete dated table remains identity-bound and executable."
+        ),
+        evidence_refs=(
+            "web:pacific-asset-management-geme-holdings-2026-09-05",
+            "live:pacific-asset-management-geme-holdings-2026-09-05",
+        ),
     ),
 }
 
@@ -332,15 +338,18 @@ for _symbol in (
 ):
     _TIER_0_SYMBOL_AUDITS[_symbol] = ETFHoldingsSymbolAudit(
         tier=0,
-        outcome=UNAVAILABLE,
-        evidence_state="route_requires_bounded_canary",
+        outcome=CURRENT,
+        evidence_state="issuer_current_canary_verified",
         provider_identity="fm_investments",
-        investigated_at=date(2026, 9, 4),
+        investigated_at=date(2026, 9, 5),
         next_action=(
-            "Run the opt-in F/m symbol-scoped canary and record source, schema, "
-            "completeness, and freshness evidence."
+            "Keep the F/m symbol-scoped canary bounded and freshness-aware; retain current "
+            "only while the issuer API remains complete, identity-bound, and within deadline."
         ),
-        evidence_refs=("web:us-benchmark-series-current-fm-pages-2026-09-04",),
+        evidence_refs=(
+            "web:us-benchmark-series-current-fm-pages-2026-09-04",
+            "live:fm-investments-tier0-canary-2026-09-05",
+        ),
     )
 
 

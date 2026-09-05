@@ -42,69 +42,91 @@ symbol_priority_ledger:
     - symbol: GEME
       tier: 0
       provider_identity: pacific_investments
-      current_outcome: not_applicable
-      evidence_state: identity_requires_reconciliation
-      next_action: "Resolve the GEME sponsor/publisher identity before selecting a holdings route."
+      current_outcome: current
+      evidence_state: issuer_current_canary_verified
+      investigated_at: 2026-09-05
+      evidence_refs: [web:pacific-asset-management-geme-holdings-2026-09-05, live:pacific-asset-management-geme-holdings-2026-09-05]
+      next_action: "Keep Pacific AM's GEME page canary bounded and freshness-aware; retain current only while the complete dated table remains identity-bound and executable."
     - symbol: TBIL
       tier: 0
       provider_identity: fm_investments
-      current_outcome: unavailable
-      evidence_state: route_requires_bounded_canary
-      next_action: "Run the opt-in F/m symbol-scoped canary and record source, schema, completeness, and freshness evidence."
+      current_outcome: current
+      evidence_state: issuer_current_canary_verified
+      investigated_at: 2026-09-05
+      evidence_refs: [web:us-benchmark-series-current-fm-pages-2026-09-04, live:fm-investments-tier0-canary-2026-09-05]
+      next_action: "Keep the F/m symbol-scoped canary bounded and freshness-aware; retain current only while the issuer API remains complete, identity-bound, and within deadline."
     - symbol: XBIL
       tier: 0
       provider_identity: fm_investments
-      current_outcome: unavailable
-      evidence_state: route_requires_bounded_canary
-      next_action: "Run the opt-in F/m symbol-scoped canary and record source, schema, completeness, and freshness evidence."
+      current_outcome: current
+      evidence_state: issuer_current_canary_verified
+      investigated_at: 2026-09-05
+      evidence_refs: [web:us-benchmark-series-current-fm-pages-2026-09-04, live:fm-investments-tier0-canary-2026-09-05]
+      next_action: "Keep the F/m symbol-scoped canary bounded and freshness-aware; retain current only while the issuer API remains complete, identity-bound, and within deadline."
     - symbol: OBIL
       tier: 0
       provider_identity: fm_investments
-      current_outcome: unavailable
-      evidence_state: route_requires_bounded_canary
-      next_action: "Run the opt-in F/m symbol-scoped canary and record source, schema, completeness, and freshness evidence."
+      current_outcome: current
+      evidence_state: issuer_current_canary_verified
+      investigated_at: 2026-09-05
+      evidence_refs: [web:us-benchmark-series-current-fm-pages-2026-09-04, live:fm-investments-tier0-canary-2026-09-05]
+      next_action: "Keep the F/m symbol-scoped canary bounded and freshness-aware; retain current only while the issuer API remains complete, identity-bound, and within deadline."
     - symbol: UTWO
       tier: 0
       provider_identity: fm_investments
-      current_outcome: unavailable
-      evidence_state: route_requires_bounded_canary
-      next_action: "Run the opt-in F/m symbol-scoped canary and record source, schema, completeness, and freshness evidence."
+      current_outcome: current
+      evidence_state: issuer_current_canary_verified
+      investigated_at: 2026-09-05
+      evidence_refs: [web:us-benchmark-series-current-fm-pages-2026-09-04, live:fm-investments-tier0-canary-2026-09-05]
+      next_action: "Keep the F/m symbol-scoped canary bounded and freshness-aware; retain current only while the issuer API remains complete, identity-bound, and within deadline."
     - symbol: UTRE
       tier: 0
       provider_identity: fm_investments
-      current_outcome: unavailable
-      evidence_state: route_requires_bounded_canary
-      next_action: "Run the opt-in F/m symbol-scoped canary and record source, schema, completeness, and freshness evidence."
+      current_outcome: current
+      evidence_state: issuer_current_canary_verified
+      investigated_at: 2026-09-05
+      evidence_refs: [web:us-benchmark-series-current-fm-pages-2026-09-04, live:fm-investments-tier0-canary-2026-09-05]
+      next_action: "Keep the F/m symbol-scoped canary bounded and freshness-aware; retain current only while the issuer API remains complete, identity-bound, and within deadline."
     - symbol: UFIV
       tier: 0
       provider_identity: fm_investments
-      current_outcome: unavailable
-      evidence_state: route_requires_bounded_canary
-      next_action: "Run the opt-in F/m symbol-scoped canary and record source, schema, completeness, and freshness evidence."
+      current_outcome: current
+      evidence_state: issuer_current_canary_verified
+      investigated_at: 2026-09-05
+      evidence_refs: [web:us-benchmark-series-current-fm-pages-2026-09-04, live:fm-investments-tier0-canary-2026-09-05]
+      next_action: "Keep the F/m symbol-scoped canary bounded and freshness-aware; retain current only while the issuer API remains complete, identity-bound, and within deadline."
     - symbol: USVN
       tier: 0
       provider_identity: fm_investments
-      current_outcome: unavailable
-      evidence_state: route_requires_bounded_canary
-      next_action: "Run the opt-in F/m symbol-scoped canary and record source, schema, completeness, and freshness evidence."
+      current_outcome: current
+      evidence_state: issuer_current_canary_verified
+      investigated_at: 2026-09-05
+      evidence_refs: [web:us-benchmark-series-current-fm-pages-2026-09-04, live:fm-investments-tier0-canary-2026-09-05]
+      next_action: "Keep the F/m symbol-scoped canary bounded and freshness-aware; retain current only while the issuer API remains complete, identity-bound, and within deadline."
     - symbol: UTEN
       tier: 0
       provider_identity: fm_investments
-      current_outcome: unavailable
-      evidence_state: route_requires_bounded_canary
-      next_action: "Run the opt-in F/m symbol-scoped canary and record source, schema, completeness, and freshness evidence."
+      current_outcome: current
+      evidence_state: issuer_current_canary_verified
+      investigated_at: 2026-09-05
+      evidence_refs: [web:us-benchmark-series-current-fm-pages-2026-09-04, live:fm-investments-tier0-canary-2026-09-05]
+      next_action: "Keep the F/m symbol-scoped canary bounded and freshness-aware; retain current only while the issuer API remains complete, identity-bound, and within deadline."
     - symbol: UTWY
       tier: 0
       provider_identity: fm_investments
-      current_outcome: unavailable
-      evidence_state: route_requires_bounded_canary
-      next_action: "Run the opt-in F/m symbol-scoped canary and record source, schema, completeness, and freshness evidence."
+      current_outcome: current
+      evidence_state: issuer_current_canary_verified
+      investigated_at: 2026-09-05
+      evidence_refs: [web:us-benchmark-series-current-fm-pages-2026-09-04, live:fm-investments-tier0-canary-2026-09-05]
+      next_action: "Keep the F/m symbol-scoped canary bounded and freshness-aware; retain current only while the issuer API remains complete, identity-bound, and within deadline."
     - symbol: UTHY
       tier: 0
       provider_identity: fm_investments
-      current_outcome: unavailable
-      evidence_state: route_requires_bounded_canary
-      next_action: "Run the opt-in F/m symbol-scoped canary and record source, schema, completeness, and freshness evidence."
+      current_outcome: current
+      evidence_state: issuer_current_canary_verified
+      investigated_at: 2026-09-05
+      evidence_refs: [web:us-benchmark-series-current-fm-pages-2026-09-04, live:fm-investments-tier0-canary-2026-09-05]
+      next_action: "Keep the F/m symbol-scoped canary bounded and freshness-aware; retain current only while the issuer API remains complete, identity-bound, and within deadline."
 symbol_audit_ledger:
   policy: "Tier 1 records are explicit symbol-scoped outcomes for the ranked fallback cohorts processed so far. They carry issuer-specific dated evidence and never promote a symbol to current support; unavailable and not-applicable outcomes remain non-usable until a new investigation proves otherwise."
   symbols:
@@ -7632,8 +7654,9 @@ providers:
     estimated_us_etf_aum: null
     us_equity_breadth: null
     source_freshness: null
-    first_party_domains: [pacificinvestments.com, pimco.com]
+    first_party_domains: [pacificam.co.uk, pacificinvestments.com, pimco.com]
     candidate_routes:
+      - https://www.pacificam.co.uk/geme-etf/
       - https://www.pacificinvestments.com/about-us/
       - https://www.pimco.com/us/en/investments/etf/mint/pimco-multi-sector-bond-active-etf
     route_complete: false
@@ -7654,8 +7677,12 @@ providers:
         source: "https://www.pacificinvestments.com/about-us/; https://www.pimco.com/us/en/investments/etf/mint/pimco-multi-sector-bond-active-etf"
         result: "Pacific Investments identifies a non-U.S. GEME ETF, while PIMCO MINT/BOND pages and declared APIs expose catalogue/top-ten surfaces but no complete executable holdings export; bounded API requests returned 401/403/404."
         evidence_ref: "web:pacific-investments-geme-pimco-mint-2026-09-03"
-    disposition_reason: "pacific_investments: Pacific Investments identifies a non-U.S. GEME ETF, while PIMCO routes expose only catalogue/top-ten surfaces and bounded holdings APIs are 401/403/404; no complete executable source is proven."
-    next_action: "pacific_investments: Keep fallback-only; revisit only if a U.S.-listed Pacific/PIMCO ETF publishes a complete executable holdings route with mapping and live evidence."
+      - date: 2026-09-05
+        source: "https://www.pacificam.co.uk/geme-etf/"
+        result: "Pacific Asset Management's official GEME page identifies the U.S.-listed NASDAQ fund and exposed 66 complete holdings rows dated 2026-09-04, including ticker/SEDOL/quantity/market-value/weight fields; the bounded live route passed. PIMCO MINT/BOND remain without a complete executable public route."
+        evidence_ref: "live:pacific-asset-management-geme-holdings-2026-09-05"
+    disposition_reason: "pacific_investments: Pacific Asset Management's official U.S.-listed GEME route is now symbol-level current and live-validated, while PIMCO MINT/BOND still expose no complete executable public route; the mixed identity remains fallback-only at provider level until the unresolved PIMCO representatives are closed."
+    next_action: "pacific_investments: Keep the GEME route freshness-monitored and continue free-first MINT/BOND route discovery; do not promote provider-level native support or SEC/top-ten artifacts until the remaining representatives are complete."
     implementation_sha: null
     validation_refs: []
   - adapter_key: planrock

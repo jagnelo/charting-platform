@@ -1,5 +1,5 @@
 import os
-from datetime import date
+from datetime import date, timedelta
 
 import httpx
 import pytest
@@ -2933,6 +2933,61 @@ async def test_live_columbia_threadneedle_cusip_holdings_export():
     assert result.legal_metadata["route_resolution"] == ("columbia_threadneedle_cusip_holdings_csv")
     assert result.legal_metadata["composition_date"]
     assert any(row.cusip for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("fm_investments")
+@pytest.mark.parametrize(
+    "symbol",
+    ["TBIL", "XBIL", "OBIL", "UTWO", "UTRE", "UFIV", "USVN", "UTEN", "UTWY", "UTHY"],
+)
+async def test_live_fm_investments_tier_zero_symbol_canary(symbol):
+    adapter = get_holdings_adapter("fm_investments")
+    assert adapter is not None
+
+    try:
+        result = await adapter.fetch_latest(symbol=symbol)
+    except (httpx.HTTPError, requests.RequestException, TimeoutError) as exc:
+        if _is_external_live_access_failure(exc):
+            pytest.skip(str(exc))
+        raise
+
+    _assert_live_holdings_result(result, adapter_key="fm_investments", min_rows=2)
+    metadata = result.legal_metadata or {}
+    assert metadata["source_provider"] == "fm_investments"
+    assert metadata["route_resolution"] == "issuer_drupal_holdings_api"
+    assert metadata["product_page_url"]
+    assert metadata["node_id"]
+    composition_date = date.fromisoformat(str(metadata["composition_date"]))
+    assert composition_date <= date.today()
+    assert composition_date >= date.today() - timedelta(days=4)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+async def test_live_pacific_asset_management_geme_tier_zero_route():
+    adapter = get_holdings_adapter("pacific_investments")
+    assert adapter is not None
+
+    try:
+        result = await adapter.fetch_latest(symbol="GEME")
+    except (httpx.HTTPError, requests.RequestException, TimeoutError) as exc:
+        if _is_external_live_access_failure(exc):
+            pytest.skip(str(exc))
+        raise
+
+    _assert_live_holdings_result(result, adapter_key="pacific_investments", min_rows=20)
+    metadata = result.legal_metadata or {}
+    assert metadata["source_provider"] == "pacific_asset_management"
+    assert metadata["route_resolution"] == "pacific_asset_management_geme_holdings_table"
+    assert metadata["publisher"] == "Pacific Asset Management"
+    assert metadata["composition_date"]
+    composition_date = date.fromisoformat(str(metadata["composition_date"]))
+    assert composition_date <= date.today()
+    assert composition_date >= date.today() - timedelta(days=4)
+    assert any(row.row_type == "cash" for row in result.rows)
+    assert any(row.symbol == "IBN US" for row in result.rows)
 
 
 @pytest.mark.asyncio

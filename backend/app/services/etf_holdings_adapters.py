@@ -70647,7 +70647,134 @@ class OrixAuditedFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
 
 class PacificInvestmentsAuditedFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """Audited fallback-only adapter for PIMCO/Pacific Investments identities."""
+    """Read Pacific AM's complete GEME page without promoting PIMCO routes."""
+
+    _GEME_URL = "https://www.pacificam.co.uk/geme-etf/"
+    _GEME_REQUIRED_HEADERS = {
+        "security name",
+        "security ticker",
+        "sedol",
+        "quantity",
+        "market value (base)",
+        "weight",
+    }
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol != "GEME":
+            return await super().fetch_latest(
+                symbol=symbol,
+                issuer_product_id=issuer_product_id,
+                source_url=source_url,
+                identifiers=identifiers,
+            )
+
+        resolved_source_url = source_url or self._GEME_URL
+        parsed_source_url = urlparse(resolved_source_url)
+        if (
+            not _url_host(resolved_source_url)
+            or not _domain_matches(_url_host(resolved_source_url) or "", "pacificam.co.uk")
+            or parsed_source_url.path.rstrip("/") != "/geme-etf"
+            or parsed_source_url.query
+        ):
+            raise ValueError("Pacific AM GEME holdings must use the official symbol-scoped page.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                resolved_source_url,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+        response.raise_for_status()
+        response_host = _url_host(str(response.url))
+        if not response_host or not _domain_matches(response_host, "pacificam.co.uk"):
+            raise ValueError("Pacific AM GEME holdings response left the issuer domain.")
+        page_text = response.text
+        if not re.search(r"\bGEME\b", page_text) or "900934506" not in page_text:
+            raise ValueError("Pacific AM GEME holdings page did not match the requested ETF.")
+
+        rows = parse_html_holdings_table_by_headers(
+            page_text,
+            required_headers=self._GEME_REQUIRED_HEADERS,
+            preserve_named_zero_rows=True,
+        )
+        if len(rows) < 20:
+            raise ValueError("Pacific AM GEME holdings page did not expose complete rows.")
+        date_match = re.search(
+            r"Data displayed as of\s+(?P<value>[A-Za-z]+\s+\d{1,2},\s+\d{4})",
+            page_text,
+            re.IGNORECASE,
+        )
+        composition_date = _parse_issuer_date(date_match.group("value")) if date_match else None
+        if composition_date is None:
+            raise ValueError("Pacific AM GEME holdings page did not expose a holdings date.")
+
+        for index, row in enumerate(rows, start=1):
+            raw_ticker = _clean(row.extra_data.get("Security Ticker"))
+            raw_name = (_clean(row.name) or "").upper()
+            row.symbol = raw_ticker
+            row.market_value = _decimal(row.extra_data.get("Market Value (base)"))
+            if (
+                raw_ticker
+                and raw_ticker.upper()
+                in {
+                    "USD",
+                    "CNH",
+                    "TWD",
+                    "GBP",
+                    "AED",
+                    "INR",
+                    "HKD",
+                    "ZAR",
+                    "SAR",
+                    "PLN",
+                    "MYR",
+                    "MXN",
+                    "IDR",
+                    "EUR",
+                    "CAD",
+                    "BRL",
+                    "THB",
+                    "CNY",
+                    "KRW",
+                }
+                or "CURRENCY" in raw_name
+            ):
+                row.symbol = None
+                row.row_type = "cash"
+                row.holding_type = "cash"
+            row.source_row_id = f"pacificam:geme:{composition_date.isoformat()}:{index}"
+            row.extra_data = {
+                **row.extra_data,
+                "source": "pacific_asset_management_geme_holdings_table",
+            }
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=page_text,
+            raw_json=None,
+            source_url=str(response.url),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": "issuer_public_product_page_complete_holdings_html_table",
+                "source_provider": "pacific_asset_management",
+                "adapter_key": self.adapter_key,
+                "source_format": "html",
+                "route_resolution": "pacific_asset_management_geme_holdings_table",
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+                "publisher": "Pacific Asset Management",
+                "parent_issuer": "Pacific Investments",
+                "terms_note": self.config.terms_note,
+            },
+        )
 
 
 class PlanRockAuditedFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
