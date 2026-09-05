@@ -2916,3 +2916,18 @@ holdings endpoint, current entitlement, commercial terms, or price was proven
 for these ETFs. It is therefore recorded as an unqualified vendor candidate
 behind the shared entitlement/quota/licensing/budget gate. No credential,
 request, adapter promotion, or current-support claim was introduced.
+
+## Unclassified source-tier rejection — 2026-09-05
+
+Implementation checkpoint `b01d7d7811e054054fc9cd2a873b488123f8c78d` tightens
+the capability evaluator's current-data gate. A complete, identity-verified
+snapshot with unknown provenance can no longer be labelled `current`; it is
+now explicitly `degraded` and remains unusable for current analysis. The
+shadow-gate checks share the same approved source-tier set
+(`issuer_native`, `successor_native`, and `licensed_vendor`). SEC, stale,
+partial, unverified, and unclassified artifacts therefore remain visibly
+non-current.
+
+The focused capability/refresh suite passes 81 tests; the complete deterministic
+ETF backend matrix passes 692 tests, with Ruff, formatting, and diff-check
+green. No provider classification or source entitlement changed.
