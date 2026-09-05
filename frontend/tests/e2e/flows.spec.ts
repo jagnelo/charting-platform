@@ -3758,6 +3758,7 @@ test.describe('TC2000 workstation', () => {
     await expect.poll(() => requestedSources.at(-1), { timeout: 15_000 }).toBe('benchmark-family:sp500:equal_weight')
     await expect(mapWindow.locator('.market-map-tool__summary')).toContainText('Locked source', { timeout: 15_000 })
     await expect(mapWindow.locator('[aria-label="Benchmark family canonical readiness"]')).toContainText('50% of roles have dated holdings', { timeout: 15_000 })
+    await expect(mapWindow.locator('[aria-label="Benchmark family canonical readiness"]')).toContainText('History: D1 1/1 ready · 1 covered · 4 bars', { timeout: 15_000 })
     await expect(mapWindow.locator('.market-map-tool__tile')).toHaveCount(1)
     await browserDiagnostics.expectNoCriticalIssues()
   })

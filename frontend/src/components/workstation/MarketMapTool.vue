@@ -177,6 +177,7 @@
             <span>{{ benchmarkRoleCoverageLabel(role) }}</span>
             <small>Route: {{ role.holdings_route_status ?? 'not configured' }}{{ role.holdings_route_provider ? ` · ${role.holdings_route_provider}` : '' }} · Refresh: {{ role.holdings_refresh_status ?? 'not attempted' }}</small>
             <small>Members: {{ role.member_count }} · Weighted: {{ role.weighted_member_count }} ({{ role.weights_status.replace(/_/g, ' ') }}) · Classified: {{ role.classified_member_count }} ({{ role.classification_status.replace(/_/g, ' ') }}) · Point-in-time: {{ role.point_in_time_supported ? 'supported' : 'unavailable' }}</small>
+            <small v-if="role.member_bar_history?.timeframes?.length">History: {{ benchmarkRoleHistoryLabel(role) }}</small>
             <small v-if="role.entitlement_status || role.entitlement_provider">Entitlement: {{ role.entitlement_status?.replace(/_/g, ' ') ?? 'unknown' }}{{ role.entitlement_provider ? ` · ${role.entitlement_provider}` : '' }}{{ role.entitlement_live_probe_status ? ` · probe ${role.entitlement_live_probe_status.replace(/_/g, ' ')}` : '' }}</small>
             <small v-if="role.snapshots?.length">Latest disclosure: {{ benchmarkRoleLatestSnapshotLabel(role) }}</small>
             <small v-if="role.continuity_status && role.continuity_status !== 'not_applicable'">Observed continuity: {{ role.continuity_status.replace(/_/g, ' ') }}{{ role.continuity_gap_count ? ` · ${role.continuity_gap_count} gap${role.continuity_gap_count === 1 ? '' : 's'}` : '' }}{{ role.continuity_snapshot_limit_reached ? ' · snapshot limit reached' : '' }}</small>
@@ -646,6 +647,14 @@ function benchmarkRoleCoverageLabel(role: BenchmarkFamilyCoverageRole): string {
   if (history) return `${history.analysis_ready_member_count}/${history.member_count} ${history.timeframe} analysis-ready`
   if (role.member_bar_history?.status) return role.member_bar_history.status.replace(/_/g, ' ')
   return role.history_ready ? 'member history ready' : 'member history incomplete'
+}
+
+function benchmarkRoleHistoryLabel(role: BenchmarkFamilyCoverageRole): string {
+  const histories = role.member_bar_history?.timeframes ?? []
+  return histories.map(history => {
+    const floor = history.required_bar_count ? ` · floor ${history.required_bar_count}` : ''
+    return `${history.timeframe} ${history.analysis_ready_member_count}/${history.member_count} ready · ${history.covered_member_count} covered · ${history.bar_count} bars${floor}`
+  }).join(' · ')
 }
 
 function benchmarkRoleLatestSnapshotLabel(role: BenchmarkFamilyCoverageRole): string {
