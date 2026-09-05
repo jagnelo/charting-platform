@@ -3697,6 +3697,22 @@ remain unavailable for current analysis, AC10 remains deferred, and AC14
 remains the post-integration 30-day production shadow gate. No paid source,
 credential, other branch, or other worktree was modified.
 
+## Persisted canary-history API coverage checkpoint — 2026-09-05
+
+Test commit `f88ef4c1` adds the positive side of the canary-history contract.
+The integration test creates an existing ARKK profile and persisted adapter
+state containing four canary observations, requests `limit=2`, and verifies
+that the endpoint returns the newest two observations in order. The existing
+unknown-symbol test continues to verify an empty response without catalog
+hydration, covering both persisted and absent monitoring state.
+
+The two focused Docker-backed API tests passed (69 deselected) with the two
+existing Nautilus deprecation warnings; Ruff, formatting, and diff-check
+passed. Provider-platform remains unstaged; DXJ/NTSX/MINT/BOND remain
+unavailable for current analysis; AC10 remains deferred; and AC14 remains the
+post-integration 30-day production shadow gate. No paid source, credential,
+other branch, or other worktree was modified.
+
 ## Unknown capability-state correction checkpoint — 2026-09-05
 
 Implementation commit `394fddf1` corrects a semantic boundary in capability
