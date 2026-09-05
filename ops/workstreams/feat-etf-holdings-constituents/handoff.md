@@ -3577,3 +3577,31 @@ WisdomTree live route remains HTTP 403-blocked, so provider counts remain
 496/414/82 and DXJ/NTSX remain unavailable for current analysis. No native
 promotion, paid activation, staging mutation, or provider-platform integration
 was made.
+
+## Full Docker gate after issuer-fallback hardening — 2026-09-05
+
+The repository-mandated `make validate-integration
+INTEGRATION_BRANCH=feat-etf-holdings-constituents` reached and passed the
+deterministic/application stages: workstream validation, dependency and
+migration checks, backend Ruff check/format, frontend type-check, combined
+backend/frontend coverage, uPlot and visual-policy checks, production build,
+compose contracts, provider probes, branch-scoped stack health, and the
+research-runner isolation probes. The branch-scoped stack built and all six
+services became healthy.
+
+Functional Playwright completed all `260` scheduled cases with `153 passed`,
+`106 skipped`, and one unrelated failure: `F8r-rotation-narrow` at
+`frontend/tests/e2e/flows.spec.ts:3088`, where the Relative Rotation tool was
+not found in the narrow-dock test. The failure is outside ETF holdings code and
+was not retried as an implementation fix. Because the gate stops at functional
+E2E, no independent visual-E2E result is claimed from this run.
+
+Automatic teardown removed the complete branch stack, images, volumes, and
+network. Post-teardown resource status reported zero containers, zero volumes,
+zero testcontainer sessions, zero known bytes, no unknown components, and no
+budget overrun. This checkpoint is therefore recorded as
+`failed_unrelated_e2e`, not green. The formatter correction was pushed in
+`b499fefb`; no provider, credential, paid source, provider-platform branch,
+staging branch, or other worktree was mutated. AC10 remains deferred, the four
+unresolved Tier-0 symbols remain non-current, and AC14 remains the post-
+integration production shadow gate.
