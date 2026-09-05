@@ -374,6 +374,23 @@ describe('StudyLabTool', () => {
         }),
       }),
     }))
+    const rangeCenterButton = wrapper.findAll('button').find(button => button.text() === 'Save center plot: confidence')
+    expect(rangeCenterButton).toBeDefined()
+    await rangeCenterButton!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable chart plot.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'plot',
+      initial_version: expect.objectContaining({
+        output_contract: 'series',
+        output_name: 'confidence',
+        lineage: expect.objectContaining({
+          source_run_id: 9,
+          source_output_name: 'confidence',
+          output_adapter: 'range_center_to_series',
+          semantics: 'study_range_center_result_as_chart_plot',
+        }),
+      }),
+    }))
     await wrapper.findAll('button').find(button => button.text() === 'Save column: qualifies')!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable watchlist column.'))
     expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
