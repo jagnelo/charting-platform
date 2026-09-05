@@ -2828,3 +2828,20 @@ The runtime audit, provider ledger, and capability unit coverage now preserve
 these dated source/transport boundaries. Any licensed/vendor route remains
 deferred behind the shared provider-platform entitlement/quota/health contract
 and aggregate 20 EUR/USD-equivalent budget gate.
+
+## Capability diagnostics hardening — 2026-09-05
+
+Implementation checkpoint `0e6bd265ed289a4c3b2d154fe04adf1c532b5ad7` is pushed
+to `origin/feat/etf-holdings-constituents`. The capability response now keeps a
+known adapter/provider visible even when the first route attempt has produced no
+snapshot, so a blocked symbol is attributed to its route rather than rendered as
+an unexplained “No source” result. Skipped route checks retain `last_failure_at`,
+successful snapshots persist their provider metadata into adapter state, and a
+canary failure that reaches its threshold persists `circuit_open` immediately.
+
+The focused capability/refresh tests pass (80 tests), and the complete
+deterministic ETF backend matrix passes 691 tests. Ruff, repository formatting,
+diff-check, and workstream validation also pass. This is a branch-owned
+observability hardening checkpoint; it does not close the unresolved DXJ/NTSX or
+MINT/BOND source boundaries, shared provider-platform staging dependency (AC10),
+or post-integration 30-day shadow gate (AC14).
