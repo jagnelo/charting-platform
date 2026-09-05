@@ -5,6 +5,20 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-05
 
+## 2026-09-05 — Exact-tip gate after cross-family rank history
+
+The exact-tip `full_stack_browser` gate at metadata tip `228af958` (product tip `1ae69113`)
+passed locked dependency/migration checks (migration compatibility skipped because no migration
+changes), workstream validation, lint/format/type-check, backend unit/integration and combined
+coverage (`80.93%`), frontend Vitest (`970/970`), production build, compose/provider policy,
+stack health, research-runner isolation, and functional Playwright (`157/157` with `106`
+documented skips across `263` specs). The visual matrix completed `104` cases with `98` passes
+and the same six state-oracle diffs: `watchlist-column-editor-open` at 1080p 100% and 125%,
+and `workspace-floating` at 1080p 100%/125% and 1440p 100%/125%. Teardown removed the assigned
+stack and generated resources; resource accounting was clean. No baseline, mask, threshold, skip,
+fallback, provider, or acceptance policy changed; preserve the visual-only boundary and continue
+canonical analytics/provider work.
+
 ## 2026-09-05 — Render cross-family rank history
 
 The cross-family ranking panel now renders canonical historical `rank` values as a separate
