@@ -3187,3 +3187,40 @@ records the re-test evidence and preserves the non-current outcomes. Focused
 capability tests (79), Ruff, formatting, diff-check, and workstream validation
 passed. AC11 remains open only for genuinely new compliant source evidence;
 AC10 remains dependent on provider-platform staging.
+
+## Implementation and full-gate checkpoint — 2026-09-05
+
+Implementation commit `d417f37aea8ea97c26b0fac8506eb48956e23238` adds a bounded
+Playwright response classifier for the expected current-analysis `409`
+conflicts. It consumes only the exact ETF/benchmark/breadth/basket snapshot
+paths and leaves unrelated browser failures visible. Commit
+`733c43cda603c02535a5b41079d50b32636e48c8` adds an explicit, test-only
+controlled-fixture capability mode. Seeded E2E snapshots carry explicit
+controlled-fixture provenance; production/non-E2E evaluation remains strict and
+does not treat those fixtures as current data.
+
+Focused validation passed: the capability unit suite passed 80 tests, the
+controlled-fixture ETF drilldown browser slice passed 3 tests, the focused F9c
+browser regression passed 1 test, and the isolated F8s market-map watchlist
+rerun passed once in 8.5 seconds. The branch is clean and synchronized at
+`733c43cda603c02535a5b41079d50b32636e48c8`; no other worktree or branch was
+mutated.
+
+The final Docker-backed `make validate-integration
+INTEGRATION_BRANCH=feat/etf-holdings-constituents` run passed dependencies,
+migrations, lint, backend coverage (1,813 tests; 81.11% coverage), frontend
+unit/coverage, visual-policy checks, production build, compose contracts,
+provider probes, stack health, research-runner probes, and visual E2E. Functional
+Playwright completed 153 passed and 106 skipped, with one existing unrelated
+`F8s-market-map-watchlist` timeout at `flows.spec.ts:3500` caused by the visible
+button being detached during a retry. The same test passed in an isolated
+fresh-stack rerun, so this remains a narrow flaky harness failure rather than an
+ETF regression; the gate correctly remains recorded as non-green. Teardown
+removed all branch-scoped containers, volumes, images, and test-container
+sessions; resource status reports zero containers, zero volumes, zero known
+bytes, and no budget overrun.
+
+The shared provider-platform branch is still not an ancestor of staging, so
+AC10 remains intentionally unreconciled. DXJ/NTSX/MINT/BOND remain unavailable,
+and AC14 remains a post-integration/deployment production shadow gate. Human
+closure authorization is still pending; do not integrate, promote, or deploy.

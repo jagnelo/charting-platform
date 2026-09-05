@@ -76,8 +76,25 @@
     "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
   ],
   "docker": {
-    "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-etf-holdings-constituents-45bdf9bd",
+      "charting-stack-feat-etf-holdings-constituents-45bdf9bd"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "feat-etf-holdings-constituents-45bdf9bd8d"
   },
   "docker_ready": {
     "ready": true,
@@ -93,10 +110,10 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "06faa1ea8355f8abd07d964be8323e1b02b209b1",
-  "implementation_sha": "06faa1ea8355f8abd07d964be8323e1b02b209b1",
-  "last_checkpoint": "2026-09-05T03:28:06.019227+00:00",
-  "last_human_progress_update": "2026-09-05T03:27:55.054903+00:00",
+  "head": "733c43cda603c02535a5b41079d50b32636e48c8",
+  "implementation_sha": "733c43cda603c02535a5b41079d50b32636e48c8",
+  "last_checkpoint": "2026-09-05T05:25:36Z",
+  "last_human_progress_update": "2026-09-05T05:25:36Z",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Reconcile AC10 only after origin/feat/market-data-provider-platform is an ancestor of origin/staging; until then keep DXJ/NTSX/MINT/BOND unavailable and do not activate paid or direct-provider routes.",
   "plan_hash": "dbd05fc7ab850811f0752c6453124efbf083aac1d81fb6dd27a281544aafdabc",
@@ -125,8 +142,8 @@
     "total": 14,
     "updated_at": "2026-09-05T03:27:55.054625+00:00"
   },
-  "remote": "06faa1ea8355f8abd07d964be8323e1b02b209b1",
-  "remote_sha": "06faa1ea8355f8abd07d964be8323e1b02b209b1",
+  "remote": "733c43cda603c02535a5b41079d50b32636e48c8",
+  "remote_sha": "733c43cda603c02535a5b41079d50b32636e48c8",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "5b434602-fc78-40c5-8f0a-0960badecb67",
