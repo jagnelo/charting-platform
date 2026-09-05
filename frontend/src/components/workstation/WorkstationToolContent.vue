@@ -731,6 +731,7 @@
         <span v-if="familyConcentrationHistoryLoading" role="status">Loading history…</span>
         <span v-else-if="familyConcentrationHistoryError" class="breadth-tool__status--error" role="alert">{{ familyConcentrationHistoryError }}</span>
         <span v-else-if="familyConcentrationHistory" class="breadth-tool__family-concentration-history">History · {{ familyConcentrationHistoryPointCount }} points · {{ familyConcentrationHistoryMode }}</span>
+        <BenchmarkFamilyConcentrationHistoryUPlot v-if="familyConcentrationHistory" :history="familyConcentrationHistory" />
       </div>
       <div v-if="isBenchmarkFamily" class="breadth-tool__cross-family-ranking" aria-label="Cross-family ranking">
         <strong>US family ranking · {{ crossFamilyRanking?.rank_period ?? '1M' }}</strong>
@@ -885,6 +886,7 @@ import StudyLabTool from './StudyLabTool.vue'
 import UnknownToolRecovery from './UnknownToolRecovery.vue'
 import BreadthHistoryUPlot from './BreadthHistoryUPlot.vue'
 import BenchmarkFamilyBreadthHistoryUPlot from './BenchmarkFamilyBreadthHistoryUPlot.vue'
+import BenchmarkFamilyConcentrationHistoryUPlot from './BenchmarkFamilyConcentrationHistoryUPlot.vue'
 import GenericBreadthHistoryUPlot from './GenericBreadthHistoryUPlot.vue'
 import RelativeRotationTool from './RelativeRotationTool.vue'
 import MarketMapTool from './MarketMapTool.vue'
