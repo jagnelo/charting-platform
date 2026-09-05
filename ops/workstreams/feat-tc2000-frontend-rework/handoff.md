@@ -10,6 +10,22 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Expose canonical holdings-route adapter identity
+
+Product commit `1ca7569d` exposes the returned holdings-route adapter key
+beside route status/provider in the Market Map canonical-readiness list and
+Market Breadth family coverage strip. Missing metadata remains omitted; no
+provider selection, readiness inference, refresh retry, fallback, visual
+oracle, or acceptance-policy change was made. Focused Market Map Vitest passed
+`36/36`; full frontend Vitest passed `970/970`; type-check and production build
+passed. The restricted first Chromium invocation failed before assertions;
+the elevated authenticated `F8s-breadth-family-ratio` rerun passed `1/1` with
+`fixture_holdings` asserted. Teardown removed the assigned stack and four
+generated images; resource accounting reported zero containers, volumes,
+sessions, and known bytes. The next action is the exact-tip gate at the next
+documentation tip; preserve the six visual state-oracle diffs and unchanged
+provider/fallback policy.
+
 ## 2026-09-05 — Exact-tip exhaustive gate after canonical entitlement audit metadata
 
 At product tip `bd2b14d2` (documentation tip `52fa058f`), the exact-tip

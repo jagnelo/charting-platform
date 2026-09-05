@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-09-05 — Expose canonical holdings-route adapter identity
+
+- [x] Render the returned holdings-route adapter key beside route
+      status/provider in Market Map canonical readiness and the Market Breadth
+      family coverage strip; omit missing values and do not select providers,
+      infer readiness, retry refreshes, or change fallback/acceptance policy.
+- [x] Product commit `1ca7569d` is pushed; focused Market Map coverage passed
+      `36/36`, full frontend Vitest passed `970/970`, type-check/build passed,
+      and elevated authenticated `F8s-breadth-family-ratio` passed `1/1` with
+      `fixture_holdings` asserted. The initial restricted Chromium invocation
+      failed before assertions; teardown/resource accounting after the
+      corrected run reported zero containers, volumes, sessions, and known
+      bytes.
+- [ ] Rerun the exact-tip integration gate at the next documentation tip,
+      preserving the six known visual state-oracle diffs and all provider,
+      fallback, baseline, and acceptance policy.
+
 ### 2026-09-05 — Exact-tip gate after canonical entitlement audit metadata
 
 - [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework`

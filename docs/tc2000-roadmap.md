@@ -5,6 +5,22 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-05
 
+## 2026-09-05 — Expose canonical holdings-route adapter identity
+
+Product commit `1ca7569d` (`feat(tc2000): expose holdings route adapter`) now
+renders the returned holdings-route adapter key beside route status/provider in
+both the Market Map canonical-readiness list and the Market Breadth family
+coverage strip. Missing adapter metadata remains omitted; the consumers do not
+select providers, infer readiness, retry refreshes, alter fallback behavior, or
+change visual/acceptance policy. Focused Market Map Vitest passed `36/36`; full
+frontend Vitest passed `970/970`; type-check and production build passed. The
+first browser invocation was denied by the restricted Chromium sandbox before
+assertions; the elevated rerun of authenticated `F8s-breadth-family-ratio`
+passed `1/1` with `fixture_holdings` asserted. Teardown removed the assigned
+stack and four generated images; resource accounting reported zero containers,
+volumes, sessions, and known bytes. The next exact-tip gate is required at the
+following documentation tip.
+
 ## 2026-09-05 — Exact-tip gate after canonical entitlement audit metadata
 
 At product tip `bd2b14d2` (documentation tip `52fa058f`), the exact-tip
