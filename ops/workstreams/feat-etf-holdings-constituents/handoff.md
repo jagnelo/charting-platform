@@ -3732,6 +3732,23 @@ current analysis, AC10 remains deferred, and AC14 remains the post-integration
 30-day production shadow gate. No paid source, credential, other branch, or
 other worktree was modified.
 
+## Downstream degradation observability checkpoint — 2026-09-05
+
+Implementation commit `2c7c784a` extends the machine-readable ETF capability
+classification beyond HTTP rejection routes. Strategy Lab warnings for a
+non-current latest ETF snapshot now include `failure_class`, and watchlist
+source exclusions preserve `failure_class` for both benchmark-family ETF
+proxies and direct `etf-holdings:<symbol>` sources. This keeps blocked,
+stale, schema, completeness, and route failures diagnosable when a consumer
+returns an empty universe rather than an HTTP 409.
+
+The focused strategy-lab regression and focused watchlist-source regression
+both passed under Python 3.12; Ruff, formatting, and diff-check passed. The
+provider-platform dependency remains unstaged, DXJ/NTSX/MINT/BOND remain
+unavailable for current analysis, AC10 remains deferred, and AC14 remains the
+post-integration 30-day production shadow gate. No paid source, credential,
+other branch, or other worktree was modified.
+
 ## Shared degradation-contract regression checkpoint — 2026-09-05
 
 Implementation commit `0368b404` hardens the route-level contract around
