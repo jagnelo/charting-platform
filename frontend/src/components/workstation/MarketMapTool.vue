@@ -178,7 +178,7 @@
             <small>Route: {{ role.holdings_route_status ?? 'not configured' }}{{ role.holdings_route_provider ? ` · ${role.holdings_route_provider}` : '' }} · Refresh: {{ benchmarkRoleRefreshLabel(role) }}</small>
             <small>Members: {{ role.member_count }} · Weighted: {{ role.weighted_member_count }} ({{ role.weights_status.replace(/_/g, ' ') }}) · Classified: {{ role.classified_member_count }} ({{ role.classification_status.replace(/_/g, ' ') }}) · Point-in-time: {{ role.point_in_time_supported ? 'supported' : 'unavailable' }}</small>
             <small v-if="role.member_bar_history?.timeframes?.length">History: {{ benchmarkRoleHistoryLabel(role) }}</small>
-            <small v-if="role.entitlement_status || role.entitlement_provider">Entitlement: {{ role.entitlement_status?.replace(/_/g, ' ') ?? 'unknown' }}{{ role.entitlement_provider ? ` · ${role.entitlement_provider}` : '' }}{{ role.entitlement_live_probe_status ? ` · probe ${role.entitlement_live_probe_status.replace(/_/g, ' ')}` : '' }}</small>
+            <small v-if="role.entitlement_status || role.entitlement_provider || role.entitlement_revision != null">Entitlement: {{ benchmarkRoleEntitlementLabel(role) }}</small>
             <small v-if="role.snapshots?.length">Latest disclosure: {{ benchmarkRoleLatestSnapshotLabel(role) }}</small>
             <small v-if="role.continuity_status && role.continuity_status !== 'not_applicable'">Observed continuity: {{ role.continuity_status.replace(/_/g, ' ') }}{{ role.continuity_gap_count ? ` · ${role.continuity_gap_count} gap${role.continuity_gap_count === 1 ? '' : 's'}` : '' }}{{ role.continuity_snapshot_limit_reached ? ' · snapshot limit reached' : '' }}</small>
             <small v-if="role.composite_readiness_reasons?.length">{{ role.composite_readiness_reasons.join(' · ') }}</small>
@@ -697,6 +697,16 @@ function benchmarkRoleRefreshLabel(role: BenchmarkFamilyCoverageRole): string {
     ? ` · composition ${role.holdings_refresh_composition_date.slice(0, 10)}`
     : ''
   return `${status}${provider}${reason ? ` · reason ${reason}` : ''}${failure}${composition}`
+}
+
+function benchmarkRoleEntitlementLabel(role: BenchmarkFamilyCoverageRole): string {
+  const status = role.entitlement_status?.replace(/_/g, ' ') ?? 'unknown'
+  const provider = role.entitlement_provider?.trim()
+  const probe = role.entitlement_live_probe_status?.trim()
+  const revision = role.entitlement_revision == null ? null : `rev ${role.entitlement_revision}`
+  const effective = role.entitlement_effective_at?.slice(0, 10)
+  const reviewDue = role.entitlement_review_due_at?.slice(0, 10)
+  return `${status}${provider ? ` · ${provider}` : ''}${probe ? ` · probe ${probe.replace(/_/g, ' ')}` : ''}${revision ? ` · ${revision}` : ''}${effective ? ` · effective ${effective}` : ''}${reviewDue ? ` · review due ${reviewDue}` : ''}`
 }
 
 async function refreshHistory() {
