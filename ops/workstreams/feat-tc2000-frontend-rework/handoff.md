@@ -10,6 +10,24 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Canonical readiness evidence surface
+
+Product commit `37af72fa` (`feat(tc2000): expose canonical readiness evidence`) extends the
+provider-neutral benchmark-family readiness data used by Market Map without changing the backend
+contract or interactive provider boundary. The frontend now retains and renders each role's
+member/weighted/classified counts and statuses, point-in-time support, entitlement provider and
+live-probe state, latest disclosed composition/as-of/known-at dates with resolved-row counts, and
+observed continuity gaps. Missing/pending/unavailable roles remain explicit; no neighboring role or
+fabricated data is substituted.
+
+Validation: focused `frontend/npm test -- --run tests/unit/components/test_market_map_tool.test.ts`
+passed `36/36`; full frontend `npm test -- --run` passed `945/945` across `109` files; `npm run
+type-check`, `npm run build`, and `git diff --check` passed. The commit is pushed to
+`origin/feat/tc2000-frontend-rework`. The next context is canonical provider/history enrichment,
+with richer compatible Study targets, native-window/accessibility/security, dense-data, and visual
+review still open. The exhaustive gate has not yet been rerun at this product tip; do not alter
+visual baselines, provider fallback policy, or protected worktrees.
+
 ## 2026-09-05 — Exact-tip exhaustive gate after latest Study series promotion
 
 The exhaustive `full_stack_browser` gate was rerun at metadata tip `c8dee130` with product tip

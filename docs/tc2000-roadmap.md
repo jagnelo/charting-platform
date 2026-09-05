@@ -11,7 +11,17 @@ records in `docs/project-todos.md`, `docs/tc2000-parity.md`,
 evidence ledgers. If a summary here conflicts with a dated test receipt or the current code, the
 current code and fresh evidence win.
 
-The latest product commit is `a6301f0f` (`feat(tc2000): promote latest study series values`).
+The latest product commit is `37af72fa` (`feat(tc2000): expose canonical readiness evidence`).
+Market Map now surfaces the existing provider-neutral benchmark role evidence alongside each
+family source: member/weighted/classified counts and statuses, point-in-time support, entitlement
+provider and live-probe state, latest disclosed composition/as-of/known-at dates with resolved-row
+counts, and observed continuity gaps. This is a truthful readiness display only; interactive reads
+remain local-contract reads with no provider fan-out or neighboring-role substitution. Focused
+Market Map coverage passed `36/36`; full frontend Vitest passed `945/945` across `109` files;
+TypeScript type-check, production build, and diff checks passed. The commit is pushed to the feature
+branch.
+
+The preceding product commit is `a6301f0f` (`feat(tc2000): promote latest study series values`).
 Persisted Research Results now offers a latest-value watchlist-column target for numeric `series`
 artifacts when a finite observation exists. The frontend sends an explicit
 `latest_series_to_scalar` adapter with the selected output name and complete Study run lineage;
@@ -419,8 +429,10 @@ The TC2000 frontend rework is ready for human review only when all of the follow
 ## Immediate next checkpoint
 
 Continue with the next canonical provider/history slice and compatible chart/list/gauge consumers
-with authenticated evidence. The exact-tip gate has now been rerun at product tip `397c554a`; all
-non-visual and functional stages pass, while the unchanged six visual diffs remain explicit. Preserve
+with authenticated evidence. The latest readiness-display slice is at product tip `37af72fa`; its
+focused and full frontend checks pass. The exact-tip gate has previously been rerun at product tip
+`a6301f0f`; all non-visual and functional stages pass, while the unchanged six visual diffs remain
+explicit. Preserve
 the declared provider fallback boundaries and all existing acceptance policy while expanding the
 remaining richer Study Lab targets, native-window/accessibility/security evidence, and dense-data
 budgets.

@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-09-05 — Surface canonical role evidence in Market Map
+
+- [x] Extend the benchmark-family readiness contract used by Market Map to retain the API's
+      existing snapshot, continuity, entitlement, adapter, and per-timeframe history metadata.
+      The readiness panel now shows member/weight/classification counts, point-in-time support,
+      entitlement provider and live-probe state, the latest disclosed composition/as-of/known-at
+      dates with resolved-row counts, and observed continuity gaps. This is display-only evidence;
+      interactive reads still use the local canonical contract and never fan out to providers or
+      substitute a neighboring role.
+- [x] Add regression assertions for partial, dated, gapped, and entitlement-backed role evidence.
+      Focused Market Map coverage passed `36/36`; full frontend Vitest passed `945/945` across
+      `109` files; TypeScript type-check, production build, and `git diff --check` passed.
+      Product commit `37af72fa` is pushed to `origin/feat/tc2000-frontend-rework`.
+- [ ] Continue canonical provider/history enrichment (including unresolved QQQ/QQQE and W1/MN
+      evidence), richer compatible Study Lab targets, native-window/accessibility/security
+      evidence, dense-data budgets, and visual-oracle review. The feature goal remains active and
+      is not yet ready for human review.
+
 ### 2026-09-05 — Exact-tip exhaustive gate after latest Study series promotion
 
 - [x] Reran `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at
