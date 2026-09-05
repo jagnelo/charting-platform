@@ -576,7 +576,8 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
         next_action=(
             "Keep MINT unavailable and re-test only when PIMCO exposes a changed route; its "
             "fund-detail API requires authentication and no complete public export is proven. Do "
-            "not treat top-ten or factsheet data as a complete basket."
+            "not treat top-ten, factsheet, or DealCharts SEC N-PORT quarterly data as a current "
+            "basket."
         ),
         evidence_refs=(
             "web:pimco-mint-daily-disclosure-2026-09-05",
@@ -589,6 +590,8 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "web:securitiesdb-free-etf-holdings-api-2026-09-05",
             "live:securitiesdb-mint-bond-no-holdings-2026-09-05",
             "live:securitiesdb-qqq-control-future-metadata-2026-09-05",
+            "web:dealcharts-free-sec-nport-aggregator-2026-09-05",
+            "live:dealcharts-mint-facts-2026-09-05-quarterly-stale",
         ),
     ),
     "BOND": ETFHoldingsSymbolAudit(
@@ -600,7 +603,8 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
         next_action=(
             "Keep BOND unavailable and re-test only when PIMCO exposes a changed route; its "
             "fund-detail API requires authentication and no complete public export is proven. Do "
-            "not treat top-ten or factsheet data as a complete basket."
+            "not treat top-ten, factsheet, or DealCharts SEC N-PORT quarterly data as a current "
+            "basket."
         ),
         evidence_refs=(
             "web:pimco-bond-daily-disclosure-2026-09-05",
@@ -613,6 +617,8 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "web:securitiesdb-free-etf-holdings-api-2026-09-05",
             "live:securitiesdb-mint-bond-no-holdings-2026-09-05",
             "live:securitiesdb-qqq-control-future-metadata-2026-09-05",
+            "web:dealcharts-free-sec-nport-aggregator-2026-09-05",
+            "live:dealcharts-bond-facts-2026-09-05-quarterly-stale",
         ),
     ),
     "GEME": ETFHoldingsSymbolAudit(

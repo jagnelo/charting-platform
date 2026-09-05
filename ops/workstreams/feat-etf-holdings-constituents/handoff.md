@@ -4360,3 +4360,19 @@ The workstream validator, Ruff check, Ruff format check, and `git diff --check`
 also passed. This revalidation changes no provider classification or source
 eligibility; it confirms that the current branch remains green while the
 provider-platform dependency is outside staging.
+
+## DealCharts free-first MINT/BOND audit — 2026-09-05
+
+DealCharts was tested as a no-login, no-key free-first candidate. Its public
+facts endpoints returned complete position arrays for both MINT and BOND, but
+each record reports an as-of date of `2026-06-30` and a filing date of
+`2026-05-29`; the service identifies the source as SEC N-PORT/NPORT-P with
+quarterly freshness. This is useful historical/regulatory evidence but cannot
+be current daily issuer holdings, so it does not satisfy
+`usable_for_current_analysis`.
+
+The runtime capability ledger, symbol priority ledger, provider audit,
+provider-universe documentation, and plan now carry the same DealCharts
+evidence references. MINT/BOND remain unavailable; no SEC-derived promotion,
+credential, entitlement, paid activation, provider classification, or
+cross-worktree mutation occurred.

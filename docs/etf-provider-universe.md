@@ -1949,3 +1949,16 @@ therefore retained as an unqualified research candidate, not a current source.
 Evidence refs: `web:securitiesdb-free-etf-holdings-api-2026-09-05`,
 `live:securitiesdb-mint-bond-no-holdings-2026-09-05`, and
 `live:securitiesdb-qqq-control-future-metadata-2026-09-05`.
+
+The DealCharts free-first candidate was then bounded against its public
+machine-readable surface. Its no-login/no-key facts endpoints returned
+complete position arrays for both MINT and BOND, but each record reports an
+as-of date of `2026-06-30` and a filing date of `2026-05-29`; the service
+explicitly identifies the data as SEC N-PORT/NPORT-P and quarterly. This is
+useful historical/regulatory evidence, not current daily issuer holdings, and
+cannot satisfy `usable_for_current_analysis`. MINT and BOND remain
+`unavailable`; no SEC-derived promotion, credential, paid activation, or
+provider classification changed. Evidence refs:
+`web:dealcharts-free-sec-nport-aggregator-2026-09-05`,
+`live:dealcharts-mint-facts-2026-09-05-quarterly-stale`, and
+`live:dealcharts-bond-facts-2026-09-05-quarterly-stale`.
