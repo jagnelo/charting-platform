@@ -164,6 +164,7 @@ async def test_canary_failure_persists_class_and_opens_circuit_at_threshold(monk
     assert report["status"] == "failure"
     assert report["failure_class"] == "empty_or_partial_source"
     assert report["circuit_state"] == "open"
+    assert state.status == "circuit_open"
     assert state.extra_data["last_canary_failure_class"] == "empty_or_partial_source"
     assert state.extra_data["circuit_open_until"] is not None
 
@@ -212,6 +213,20 @@ async def test_canary_reports_missing_profiles_without_creating_generic_runtime_
     assert result["missing_profiles"] == 1
     assert result["reports"] == [{"symbol": "DXJ", "status": "missing_profile"}]
     assert db.flushes == 1
+
+
+@pytest.mark.asyncio
+async def test_route_skip_records_failure_time_for_capability_diagnostics():
+    profile = _profile()
+    state = _state(status="pending")
+    db = _Session([_Result(scalar=state)])
+
+    await refresh._record_skip(db, profile, "needs_issuer_route", "Cloudflare blocked route")
+
+    assert state.status == "needs_issuer_route"
+    assert state.last_checked_at is not None
+    assert state.last_failure_at == state.last_checked_at
+    assert state.failure_reason == "Cloudflare blocked route"
 
 
 def test_canary_history_is_bounded_for_long_running_shadow_windows():

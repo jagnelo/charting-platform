@@ -831,6 +831,7 @@ async def run_etf_holdings_capability_canaries(
         if status != "success" and failures >= max(1, failure_threshold):
             circuit_state = "open"
             circuit_open_until = datetime.now(UTC) + timedelta(seconds=max(1, cooldown_seconds))
+            state.status = "circuit_open"
         observation_now = datetime.now(UTC)
         capability = evaluate_capability(profile, snapshot, state, now=observation_now)
         observation = {
@@ -2089,7 +2090,9 @@ async def _record_skip(
         db.add(state)
     state.status = status
     state.failure_reason = failure_reason or "No concrete free issuer adapter route is configured."
-    state.last_checked_at = datetime.now(UTC)
+    now = datetime.now(UTC)
+    state.last_checked_at = now
+    state.last_failure_at = now
     state.extra_data = {
         **(state.extra_data or {}),
         "consecutive_failures": int((state.extra_data or {}).get("consecutive_failures") or 0) + 1,
@@ -2158,6 +2161,7 @@ async def _record_success(db: AsyncSession, profile: ETFProfile, snapshot=None) 
             key: observation_metadata.get(key)
             for key in (
                 "source_tier",
+                "source_provider",
                 "transport_kind",
                 "expected_cadence",
                 "schema_fingerprint",
@@ -2166,6 +2170,8 @@ async def _record_success(db: AsyncSession, profile: ETFProfile, snapshot=None) 
         },
         "consecutive_failures": 0,
     }
+    if snapshot is not None and snapshot.source_provider:
+        state.extra_data["source_provider"] = snapshot.source_provider
     if snapshot is not None:
         state.source_url = snapshot.source_url
         state.source_identifier = snapshot.source_identifier

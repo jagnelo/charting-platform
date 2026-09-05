@@ -198,6 +198,26 @@ def _transport_kind(
     return "stored_artifact"
 
 
+def _source_provider(
+    profile: ETFProfile,
+    snapshot: ETFHoldingsSnapshot | None,
+    state: ETFHoldingsAdapterState | None,
+) -> str | None:
+    """Keep the known provider visible even when a route has no snapshot yet."""
+
+    if snapshot is not None and snapshot.source_provider:
+        return str(snapshot.source_provider)
+    state_metadata = _metadata(state.extra_data if state else None)
+    for key in ("source_provider", "provider_identity"):
+        value = state_metadata.get(key)
+        if value:
+            return str(value)
+    adapter_key = str(profile.adapter_key or "").strip()
+    if adapter_key and adapter_key != "unresolved":
+        return adapter_key
+    return None
+
+
 def _identity_verified(
     snapshot: ETFHoldingsSnapshot | None, state: ETFHoldingsAdapterState | None
 ) -> bool:
@@ -1608,7 +1628,7 @@ def evaluate_capability(
         usable_for_current_analysis=usable,
         displayable_last_known=has_snapshot,
         adapter_key=profile.adapter_key,
-        source_provider=snapshot.source_provider if snapshot else None,
+        source_provider=_source_provider(profile, snapshot, state),
         transport_kind=_transport_kind(snapshot, state),
         expected_cadence=cadence if has_snapshot or state is not None else None,
         composition_date=composition_date,

@@ -142,6 +142,19 @@ def test_missing_snapshot_is_unknown_until_a_route_check_records_outcome():
     assert result.displayable_last_known is False
 
 
+def test_known_adapter_provider_remains_visible_before_first_snapshot():
+    result = evaluate_capability(
+        profile("wisdomtree"),
+        None,
+        state(status="failure", reason="HTTP 403"),
+        now=NOW,
+    )
+
+    assert result.source_provider == "wisdomtree"
+    assert result.availability == UNAVAILABLE
+    assert result.usable_for_current_analysis is False
+
+
 def test_unverified_identity_never_becomes_current_even_with_complete_rows():
     result = evaluate_capability(
         profile(),
