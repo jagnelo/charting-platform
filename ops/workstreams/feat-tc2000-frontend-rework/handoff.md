@@ -10,6 +10,20 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Surface canonical composite-readiness reasons
+
+Product commit `606d67ba` makes the Market Breadth benchmark-family coverage
+strip display the returned `composite_readiness_reasons` beside each role's
+readiness status. The consumer remains canonical-data-backed: absent reasons
+stay absent, with no inferred readiness, provider fan-out, fallback, or
+acceptance-policy change. Vitest passed `970/970`; type-check and production
+build passed; rebuilt authenticated Chromium `F8s-breadth-family-ratio` passed
+`1/1` with ready/unavailable reason labels asserted. Teardown removed the
+assigned stack and four generated images; resource accounting reported zero
+containers, volumes, and known bytes. The next action is the exact-tip gate at
+the next coherent documentation tip; preserve the six visual state-oracle
+diffs and unchanged provider/fallback policy.
+
 ## 2026-09-05 — Exact-tip exhaustive gate after disclosure effective times
 
 At product tip `e96b081a` (documentation tip `d82ff2ec`), the exact-tip

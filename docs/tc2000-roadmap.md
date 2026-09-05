@@ -5,6 +5,20 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-05
 
+## 2026-09-05 — Surface canonical composite-readiness reasons
+
+The Market Breadth benchmark-family coverage strip now renders the backend's
+returned `composite_readiness_reasons` beside each role's readiness status.
+Reasons are displayed only when supplied by the canonical coverage contract;
+the consumer does not infer readiness, fan out to providers, or alter fallback
+or acceptance policy. Product commit `606d67ba` (`feat(tc2000): surface
+canonical readiness reasons`) is committed locally. Frontend Vitest passed
+`970/970`, type-check and production build passed, and rebuilt authenticated
+Chromium `F8s-breadth-family-ratio` passed `1/1` with ready and unavailable
+reason labels asserted. Teardown removed the assigned stack and four images;
+resource accounting reported zero containers, volumes, and known bytes. The
+next exact-tip gate is required at the following documentation tip.
+
 ## 2026-09-05 — Exact-tip gate after disclosure effective times
 
 At product tip `e96b081a` (documentation tip `d82ff2ec`), the exact-tip

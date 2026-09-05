@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-05 — Surface canonical composite-readiness reasons
+
+- [x] Render returned `composite_readiness_reasons` beside each Market Breadth
+      benchmark-family role's readiness status without inferring readiness or
+      changing provider/fallback/acceptance policy.
+- [x] Product commit `606d67ba` is committed locally; Vitest passed `970/970`,
+      type-check/build passed, rebuilt authenticated `F8s-breadth-family-ratio`
+      passed `1/1` with ready/unavailable reason labels asserted, and teardown
+      left zero containers, volumes, or known bytes.
+- [ ] Rerun the exact-tip integration gate at the next documentation tip,
+      preserving the six known visual state-oracle diffs and all provider,
+      fallback, baseline, and acceptance policy.
+
 ### 2026-09-05 — Exact-tip gate after disclosure effective times
 
 - [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework`
