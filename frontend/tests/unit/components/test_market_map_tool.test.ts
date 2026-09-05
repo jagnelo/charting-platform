@@ -213,6 +213,35 @@ describe('MarketMapTool', () => {
     sourceState.sources = previousSources
   })
 
+  it('shows the ETF capability failure classification before a market-map run', async () => {
+    const previousSources = sourceState.sources
+    const blockedEtf = {
+      ...previousSources[0],
+      source_id: 'etf-holdings:DXJ',
+      source_kind: 'etf_holdings' as const,
+      name: 'DXJ holdings',
+      member_count: 0,
+      provenance: {
+        availability: 'unavailable',
+        usable_for_current_analysis: false,
+        failure_class: 'issuer_access_blocked',
+        capability_reason: 'WisdomTree issuer access challenge blocked the product route.',
+      },
+    }
+    sourceState.sources = [...previousSources, blockedEtf]
+    const wrapper = mount(MarketMapTool, { props: { configuration: { source_id: blockedEtf.source_id } } })
+    await flushPromises()
+
+    const option = wrapper.find(`option[value="${blockedEtf.source_id}"]`)
+    expect(option.attributes('disabled')).toBeDefined()
+    expect(option.text()).toContain('Unavailable')
+    expect(option.text()).toContain('issuer access blocked')
+    expect(wrapper.get('[aria-label="Market Map source preferences"] [role="status"]').text()).toContain('WisdomTree issuer access challenge')
+
+    wrapper.unmount()
+    sourceState.sources = previousSources
+  })
+
   it('rejects malformed ETF symbols before any bootstrap request', async () => {
     const wrapper = mount(MarketMapTool)
     await flushPromises()

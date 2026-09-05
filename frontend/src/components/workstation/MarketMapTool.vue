@@ -34,6 +34,13 @@
       <div v-if="activeSource" class="market-map-tool__source-actions" aria-label="Market Map source preferences">
         <span class="market-map-tool__source-kind">{{ sourceKindLabel(activeSource.source_kind) }} · {{ activeSource.member_count ?? '—' }} members</span>
         <span v-if="sourceAvailability(activeSource) === 'pending'" class="market-map-tool__source-state" role="status">Membership pending; this locked source remains followable</span>
+        <span
+          v-if="activeSource.source_kind === 'etf_holdings' && activeSource.provenance?.usable_for_current_analysis === false"
+          class="market-map-tool__source-state market-map-tool__source-state--warning"
+          role="status"
+        >
+          Current holdings unavailable{{ activeSource.provenance?.failure_class ? ` · ${formatFailureClass(activeSource.provenance.failure_class)}` : '' }}{{ activeSource.provenance?.capability_reason ? `: ${activeSource.provenance.capability_reason}` : '' }}
+        </span>
         <button v-if="activeSource.can_follow" type="button" :aria-pressed="sourceFollowed" :aria-label="sourceFollowed ? `Unfollow ${activeSource.name}` : `Follow ${activeSource.name}`" @click="toggleSourceFollow">{{ sourceFollowed ? 'Following' : 'Follow' }}</button>
         <button v-if="activeSource.can_clone" type="button" :aria-pressed="sourcePinned" :aria-label="sourcePinned ? `Unpin ${activeSource.name}` : `Pin ${activeSource.name}`" @click="toggleSourcePin">{{ sourcePinned ? 'Pinned' : 'Pin' }}</button>
         <button v-if="map && activeSource.can_clone" type="button" :disabled="sourceCloneBusy" :aria-label="`Clone ${activeSource.name} snapshot`" @click="cloneActiveSource">{{ sourceCloneBusy ? 'Cloning…' : 'Clone snapshot' }}</button>
@@ -407,9 +414,15 @@ function sourceAvailability(source: WatchlistSource): 'available' | 'pending' | 
 
 function sourceAvailabilitySuffix(source: WatchlistSource): string {
   const availability = sourceAvailability(source)
-  if (availability === 'unavailable') return ' · Unavailable'
+  const failureClass = source.provenance?.failure_class
+  const failureSuffix = failureClass ? ` · ${formatFailureClass(failureClass)}` : ''
+  if (availability === 'unavailable') return ` · Unavailable${failureSuffix}`
   if (availability === 'pending') return ' · Pending membership'
   return ''
+}
+
+function formatFailureClass(value: unknown): string {
+  return String(value ?? '').replace(/_/g, ' ')
 }
 
 function sourceKindLabel(kind: WatchlistSourceKind): string {
@@ -1345,6 +1358,8 @@ onUnmounted(() => {
 .market-map-tool select, .market-map-tool input, .market-map-tool button { border: 1px solid #3c4858; background: #151c25; color: #d4d9e2; border-radius: 2px; padding: 5px 7px; font: inherit; }
 .market-map-tool__source-actions { display: flex; gap: 4px; align-items: end; padding-bottom: 0; }
 .market-map-tool__source-kind { margin-right: auto; color: #80909d; font-size: 10px; }
+.market-map-tool__source-state { color: #f7d87b; font-size: 10px; }
+.market-map-tool__source-state--warning { max-width: 420px; color: #ff9a9a; }
 .market-map-tool__source-actions button { cursor: pointer; min-width: 58px; }
 .market-map-tool__source-actions button[aria-pressed="true"] { border-color: #f7d87b; color: #f7d87b; }
 .market-map-tool__run { background: #2d8cff !important; border-color: #2d8cff !important; color: white !important; cursor: pointer; }
