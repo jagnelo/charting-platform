@@ -4376,3 +4376,20 @@ provider-universe documentation, and plan now carry the same DealCharts
 evidence references. MINT/BOND remain unavailable; no SEC-derived promotion,
 credential, entitlement, paid activation, provider classification, or
 cross-worktree mutation occurred.
+
+## Provider-platform dependency refresh — 2026-09-05 (latest capacity tip)
+
+The bounded remote refresh placed `origin/feat/market-data-provider-platform`
+at `6cbcd48e`, with `origin/staging` still at `8b885a2f`; the provider branch
+is not an ancestor of staging. The provider tip adds documented Binance
+weights, but its `ProviderCapability` enum still has no `ETF_HOLDINGS` member.
+Accordingly AC10 cannot be reconciled from this feature worktree: the ETF
+route must not duplicate the shared entitlement, quota, budget, health, or
+availability runtime, and no bridge was added while the dependency remains
+unstaged.
+
+The ETF branch remains clean and synchronized at `73b9d8ae`. DXJ/NTSX/MINT/BOND
+remain explicitly non-current; no credential, paid source, direct-provider
+route, protected-worktree mutation, or staging integration occurred. The next
+executable action remains the narrow ETF capability bridge after the shared
+provider branch reaches staging.
