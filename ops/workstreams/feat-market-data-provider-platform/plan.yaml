@@ -103,7 +103,7 @@ progress:
     - admin status exposes exact missing quota-contract dimensions, entitlement review state, and weighted/credit operation-cost readiness
     - Marketstack's conservative 100-request/month free-plan contract and IBKR's documented 10-request/second plus five-concurrent-history pacing contract
     - final combined backend unit and PostgreSQL/Redis integration validation
-  total: 16
+  total: 14
   current_phase: credentialed_live_validation
   current_blocker: credentialed live probes require operator-populated ignored backend/.env.dev values; NMS/OTC reconciliation and shadow activation remain post-deployment gates
   next_action: populate provider credentials, execute every credentialed probe, resolve failures, and then reassess readiness; do not reuse prior receipts or activate routing before that evidence
