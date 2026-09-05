@@ -33,6 +33,7 @@ from app.providers.crypto_market_data import CoinbaseProvider, KrakenProvider
 from app.providers.edgar import EdgarProvider
 from app.providers.etf_holdings_internal import ETFHoldingsInternalProvider
 from app.providers.finra import FINRAProvider
+from app.providers.finra_otc_directory import FINRAOTCDirectoryProvider
 from app.providers.fred import FREDProvider
 from app.providers.massive import MassiveProvider
 from app.providers.nasdaq import NasdaqProvider
@@ -68,6 +69,7 @@ _PROVIDERS: dict[str, ProviderDescriptor] = {
     "nasdaq": NasdaqProvider(),  # Official US NMS listing/lifecycle directory evidence
     "alpha_vantage": AlphaVantageProvider(),  # Quota-limited daily-history corroboration
     "finra": FINRAProvider(),  # Consolidated short-interest datasets (endpoint configurable)
+    "finra_otc_directory": FINRAOTCDirectoryProvider(),  # Explicitly configured OTC directory evidence
     # Optional low-cost adapters. They remain absent from default chains and
     # entitlement seeds until credentials, quotas, and redistribution terms
     # are reviewed by operations.

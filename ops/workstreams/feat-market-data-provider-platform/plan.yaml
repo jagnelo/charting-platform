@@ -97,6 +97,7 @@ progress:
     - OAuth-shaped FINRA client configuration and typed provider-not-configured/rate-limit failures
     - FINRA Query API dataset shape, OAuth expiry handling, documented synchronous quota contract, and credential-required entitlement
     - FINRA OTC Daily List lifecycle-event normalization with explicit delta-feed versus complete-universe boundary
+    - fail-closed configurable FINRA OTC symbol-directory pagination adapter; no default URL or quota is invented
     - worker-only universe lifecycle observations, repeated-missing deactivation, and exchange-aware core D1 coverage
     - paid-routing switches cannot bypass blank or unreviewed provider entitlements
     - final combined backend unit and PostgreSQL/Redis integration validation

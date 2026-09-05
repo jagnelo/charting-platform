@@ -38,6 +38,7 @@ re-reviewed when credentials or billing plans change.
 | Kraken | public crypto OHLC, ticker, USD pairs | none | safe public frequency <=1 request/sec; pair/IP limits apply | IP/pair / rolling | contract recorded; keyless live evidence required |
 | CoinGecko Demo | crypto search, metadata, market-cap universe | `COINGECKO_API_KEY` | 100 calls/min and 10,000 calls/month | Demo key / minute + calendar month | contract recorded; credentialed live evidence required |
 | FINRA | consolidated short interest (OAuth Query API) and OTC Daily List lifecycle/corporate-action deltas | `FINRA_CLIENT_ID`, `FINRA_CLIENT_SECRET` | 1,200 synchronous requests/minute/IP; max 5,000 records and 3 MB per synchronous response; 20 asynchronous requests/minute/dataset/account | OAuth client / IP + dataset/account | quota contract recorded; credential/terms/live evidence required |
+| FINRA OTC directory | configurable pipe-delimited OTC/OTCBB symbol directory | `FINRA_OTC_SYMBOL_DIRECTORY_URL` | Source-specific; no public numeric limit assumed | configured source / unknown until reviewed | adapter available but non-routable until source, terms, completeness, and quota evidence are recorded |
 | FRED | macro/rates/FX daily series | `FRED_API_KEY` | FRED v2 documents up to 2 requests/sec before 429; v1 also reserves the right to adjust limits, so no cross-version contract is assumed | API key / provider-defined | **not routable until the deployed API version's ceiling is verified** |
 | Nasdaq Trader | official `nasdaqlisted.txt`/`otherlisted.txt` US NMS listing/lifecycle files | none | No numeric public limit in the symbol-directory definition; poll conservatively and record response headers | public service / unknown | **discovery evidence only; quota unknown** |
 | Tiingo | EOD history, search, profiles | `TIINGO_API_KEY` | 500 unique symbols/month, 50/hour, 1,000/day, 1GB/month (free Starter); free terms prohibit durable retention | API key / multiple windows | adapter + contract recorded; free persistence terms block durable routing |
@@ -353,6 +354,19 @@ adapter uses the documented API base and OAuth bearer flow. Do not put client
 secrets in commits or chat. The adapter remains non-routable until the
 credential preflight, both live probes, and current terms review pass.
 
+### FINRA OTC directory (`finra_otc_directory`)
+
+This is a separate, explicitly configured discovery adapter for the
+pipe-delimited OTC/OTCBB symbol-directory shape described by FINRA. It pages a
+complete configured file, preserves the raw source record, maps active and
+eligible statuses conservatively, and exposes the source URL in every page.
+There is intentionally no default URL: FINRA's public documentation describes
+the directory and historical delivery formats, but the current delivery
+endpoint, redistribution terms, and polling allowance must be confirmed by
+operations before use. The provider has no quota seed and therefore remains
+non-routable until those facts are recorded; the Daily List adapter is still
+the lifecycle-delta path and is not substituted for this directory.
+
 ### SEC Company Facts (`edgar`)
 
 The EDGAR adapter exposes raw Company Facts observations with namespace, fact,
@@ -391,6 +405,7 @@ FINRA_TOKEN_URL=https://ews.fip.finra.org/fip/rest/ews/oauth2/access_token
 FINRA_API_BASE_URL=https://api.finra.org
 FINRA_SHORT_INTEREST_URL=
 FINRA_OTC_DAILY_LIST_URL=
+FINRA_OTC_SYMBOL_DIRECTORY_URL=
 
 # Optional adapters (disabled until governance records reviewed entitlements)
 TIINGO_API_KEY=

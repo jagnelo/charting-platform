@@ -15,7 +15,8 @@ current capability/quota ledger.
       operation-cost fail-closed behavior for weighted/credit APIs.
 - [x] Replace undocumented Nasdaq quote/history calls with official Nasdaq
       Trader directory evidence; retain Coinbase/Kraken public crypto adapters,
-      FINRA OAuth configuration, OTC Daily List lifecycle-event evidence, and
+      FINRA OAuth configuration, OTC Daily List lifecycle-event evidence, the
+      fail-closed configurable FINRA OTC symbol-directory adapter, and
       documentation-faithful optional adapters.
 - [x] Make universe reconciliation fail closed on cursor pages without totals
       or explicit completion evidence, preserve Nasdaq Financial Status evidence,
@@ -30,7 +31,9 @@ current capability/quota ledger.
       FINRA, Tiingo, Twelve Data, Finnhub, Marketstack, EODHD, FMP, Tradier,
       and MarketData.app. Any provider that fails or exposes an unverified
       quota remains disabled; no 30-day observation run may start before this
-      gate and the NMS/OTC reconciliation gate are complete.
+      gate and the NMS/OTC reconciliation gate are complete. The configured
+      OTC directory adapter still requires operator-approved source/terms/quota
+      evidence before it can route.
 
 ### 2026-09-04 — US-first market-data provider platform foundation
 
