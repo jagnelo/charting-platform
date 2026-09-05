@@ -3765,6 +3765,30 @@ DXJ/NTSX/MINT/BOND remain unavailable for current analysis, AC10 remains
 deferred, and AC14 remains the post-integration 30-day production shadow gate.
 No paid source, credential, other branch, or other worktree was modified.
 
+## ETF canary diagnostics checkpoint — 2026-09-05
+
+Implementation commit `80a4c6c6` makes the bounded canary evidence operationally
+visible at the same per-symbol capability boundary used by current-analysis
+gates. Persisted metadata is parsed defensively and now includes the latest
+canary timestamp/status, measured latency, recovery flag, failure streak,
+circuit state, and circuit-open deadline in the backend capability object and
+`ETFHoldingsCapabilityOut` response. The holdings panel renders a compact
+diagnostics line so operators can distinguish a recent success, a failed or
+recovered check, and an open circuit without treating a last-known snapshot as
+current.
+
+Validation: the focused capability suite passed `83` tests with
+`--no-cov`; the Docker-backed `test_etf_holdings.py` integration suite passed
+`66` tests with two existing Nautilus deprecation warnings; the ETF holdings
+panel suite passed `9` tests; frontend type-check, Ruff, formatting, and
+`git diff --check` passed. The ordinary focused pytest invocation also ran all
+83 tests but exited on the repository-wide 55% coverage threshold, so that
+threshold result is not reported as a clean pass. Provider-platform remains
+unstaged, DXJ/NTSX/MINT/BOND remain unavailable for current analysis, AC10
+remains deferred, and AC14 remains the post-integration 30-day production
+shadow gate. No paid source, credential, other branch, or other worktree was
+modified.
+
 ## Downstream degradation observability checkpoint — 2026-09-05
 
 Implementation commit `2c7c784a` extends the machine-readable ETF capability
