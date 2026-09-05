@@ -70,7 +70,10 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-market-data-provider-platform",
     "worktree_id": "feat-market-data-provider-platform-252f410b51"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ps/workstreams/feat-market-data-provider-platform/handoff.md",
+    "ops/workstreams/feat-market-data-provider-platform/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -106,9 +109,9 @@
   "goal_request_state": "planning_required",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "ccf57aa420988c91c6e9f400ce62bff6e6762a8b",
+  "head": "06c3f29b678258eb147d318deca3e45a4477c958",
   "implementation_sha": "352c64acbc466c1d3bc45d658a7dd2b06677a6e1",
-  "last_checkpoint": "2026-09-05T16:32:32.615107+00:00",
+  "last_checkpoint": "2026-09-05T16:51:34.693168+00:00",
   "last_human_progress_update": "2026-09-05T15:56:10.567038+00:00",
   "local_validation_profile": "docker_integration",
   "next_action": "continue implementation from the branch workstream",
@@ -141,7 +144,7 @@
     "total": 14,
     "updated_at": "2026-09-05T15:56:10.566880+00:00"
   },
-  "remote": "ccf57aa420988c91c6e9f400ce62bff6e6762a8b",
+  "remote": "06c3f29b678258eb147d318deca3e45a4477c958",
   "remote_sha": "352c64acbc466c1d3bc45d658a7dd2b06677a6e1",
   "remote_synchronized": true,
   "retained_docker_resources": [],
