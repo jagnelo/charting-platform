@@ -3732,6 +3732,21 @@ current analysis, AC10 remains deferred, and AC14 remains the post-integration
 30-day production shadow gate. No paid source, credential, other branch, or
 other worktree was modified.
 
+## Breadth capability-error reset checkpoint — 2026-09-05
+
+Follow-on implementation commit `4ce72b71` clears the Breadth tool's local
+non-current capability error whenever the selected universe or source changes.
+This keeps a previous blocked-source explanation from lingering after the user
+switches to an eligible source; the fail-closed evaluation guard remains in
+place.
+
+The source-capability and focused Market Map suites passed `43` tests combined,
+frontend type-check passed, and `git diff --check` passed. Provider-platform
+remains unstaged, DXJ/NTSX/MINT/BOND remain unavailable for current analysis,
+AC10 remains deferred, and AC14 remains the post-integration 30-day production
+shadow gate. No paid source, credential, other branch, or other worktree was
+modified.
+
 ## Downstream degradation observability checkpoint — 2026-09-05
 
 Implementation commit `2c7c784a` extends the machine-readable ETF capability
