@@ -41,6 +41,19 @@ async def etf_holdings_capability_canary_task(ctx: dict) -> dict:
         for value in str(settings.ETF_HOLDINGS_CAPABILITY_CANARY_SYMBOLS).split(",")
         if value.strip()
     ]
+    if not symbols or len(symbols) != len(set(symbols)):
+        message = (
+            "ETF holdings capability canary configuration must contain at least one "
+            "unique symbol"
+        )
+        logger.error(message)
+        return {
+            "skipped": True,
+            "reason": "invalid canary configuration",
+            "configuration_error": message,
+            "requested": len(symbols),
+            "max_symbols": settings.ETF_HOLDINGS_CAPABILITY_CANARY_MAX_SYMBOLS,
+        }
     canonical_symbols = set(tier0_symbols())
     if canonical_symbols.issubset(symbols) and (
         settings.ETF_HOLDINGS_CAPABILITY_CANARY_MAX_SYMBOLS < len(canonical_symbols)

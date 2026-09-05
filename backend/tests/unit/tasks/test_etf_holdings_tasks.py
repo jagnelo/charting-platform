@@ -3,6 +3,8 @@ from __future__ import annotations
 import asyncio
 from datetime import date
 
+import pytest
+
 from app.config import settings
 from app.services.etf_holdings_capability import tier0_symbols
 from app.services.top_down_taxonomy import benchmark_family_proxy_symbols
@@ -119,6 +121,24 @@ def test_etf_capability_canary_rejects_truncated_canonical_tier0_configuration(m
     assert result["reason"] == "invalid canary configuration"
     assert result["requested"] == len(tier0_symbols())
     assert result["max_symbols"] == len(tier0_symbols()) - 1
+
+
+@pytest.mark.parametrize(
+    ("configured_symbols", "expected_requested"),
+    [("", 0), ("DXJ,DXJ", 2)],
+)
+def test_etf_capability_canary_rejects_empty_or_duplicate_configuration(
+    monkeypatch, configured_symbols, expected_requested
+):
+    monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_ENABLED", True)
+    monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_SYMBOLS", configured_symbols)
+
+    result = asyncio.run(etf_holdings_tasks.etf_holdings_capability_canary_task({}))
+
+    assert result["skipped"] is True
+    assert result["reason"] == "invalid canary configuration"
+    assert result["requested"] == expected_requested
+    assert "unique symbol" in result["configuration_error"]
 
 
 def test_etf_capability_canary_passes_bounded_configuration(monkeypatch):
