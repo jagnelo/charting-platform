@@ -4214,3 +4214,29 @@ and top-ten routes. No source was promoted, no credential or paid route was
 enabled, provider-platform remains unstaged, AC10 remains deferred, and AC14
 remains the post-integration 30-day production shadow gate. No other branch or
 worktree was modified.
+
+## Corrected full-gate checkpoint — 2026-09-05
+
+The first full Docker gate at the pre-fix head stopped on an outdated workspace
+integration expectation: its fixture seeded an ETF profile without a concrete
+adapter while claiming issuer-native provenance, so the truthful capability
+response is `stale`/`issuer_native` with the explicit reason that no concrete
+adapter is assigned. Commit `e134b492` updates only that assertion; the complete
+workspace integration file then passed all `52` tests.
+
+The rerun at `e134b492` passed the complete repository gate: workstream and
+dependency/migration checks, Ruff/formatting, frontend type-check and coverage,
+backend coverage (`1850` passed; `81.19%`), production builds, compose
+contracts, provider probes, branch-scoped stack health, research-runner
+isolation/resource probes, functional Playwright (`154` passed, `106` skipped),
+visual Playwright (`104` passed), and all eight branch-declared tests. The
+feature-specific live matrix passed `495` cases with `21` expected skips; the
+focused ETF panel/view tests passed `17`, and the frontend production build
+passed. Teardown removed the branch stack, volumes, network, and images.
+
+This gate does not alter the remaining product boundary: the shared
+provider-platform branch is not in staging, DXJ/NTSX remain blocked by
+WisdomTree challenge transport, MINT/BOND remain authentication-gated without
+an unauthenticated complete PIMCO artifact, AC10 remains deferred, and AC14
+remains the post-integration 30-day production shadow gate. No paid route,
+credential, other branch, or other worktree was modified.
