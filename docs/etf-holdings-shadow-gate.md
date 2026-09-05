@@ -41,7 +41,10 @@ The service function
 `app.services.etf_holdings_capability.evaluate_tier0_shadow_gate` returns the
 machine-readable result, including the exact window, eligible and passing
 counts, success rate, per-symbol freshness streaks, missing-symbol coverage,
-and violation details.
+and violation details. Administrators can read the same result from
+`GET /api/v1/etf-holdings/shadow-gate` (optionally passing `as_of=YYYY-MM-DD`
+for a deterministic replay). The endpoint reads persisted bounded canary
+history only; it never triggers issuer fetches or manufactures observations.
 
 The same capability response carries dated `symbol_audit.evidence_refs` for
 the Tier 0 ledger and the ranked Tier 1 fallback cohorts processed so far. Those references
@@ -57,14 +60,16 @@ identity match; an identity mismatch falls back to `unknown` until reconciled.
    budget bridge is deployed and that the ETF canary is enabled through the
    approved configuration only. No provider credential or paid source may be
    introduced as part of the gate.
-2. Export the `canary_history` records for every Tier 0 symbol from the
-   production read-only telemetry path. Preserve source URL/provider,
-   transport, schema fingerprint, row counts, completeness, freshness,
-   latency, failure class, failure streak, circuit state, recovery, and
-   capability fields.
-3. Group observations by symbol and pass the grouped records to
-   `evaluate_tier0_shadow_gate` with the UTC evaluation date. Store the result
-   alongside the deployment SHA and provider-platform entitlement revision.
+2. Read `GET /api/v1/etf-holdings/shadow-gate` from the production read-only
+   admin telemetry path. The response aggregates persisted `canary_history`
+   records for every Tier 0 symbol; the underlying evidence retains source
+   URL/provider, transport, schema fingerprint, row counts, completeness,
+   freshness, latency, failure class, failure streak, circuit state, recovery,
+   and capability fields.
+3. Store the machine-readable response alongside the deployment SHA and
+   provider-platform entitlement revision. For offline replay or alternate
+   storage, group the persisted records by symbol and call
+   `evaluate_tier0_shadow_gate` with the UTC evaluation date.
 4. If the result fails, keep the affected symbol unavailable/degraded in the
    product, investigate the recorded route/identity/schema/completeness cause,
    and do not waive the threshold by relabelling SEC, stale, partial, blocked,

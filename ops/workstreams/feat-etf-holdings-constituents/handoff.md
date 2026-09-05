@@ -3139,3 +3139,20 @@ MINT and BOND therefore remain `unavailable` and excluded from current
 analysis. The free-first aggregate budget and provider-platform entitlement
 gate remain intact; the next executable integration action is still the shared
 provider-platform staging reconciliation.
+
+## Tier-0 shadow-gate telemetry endpoint — 2026-09-05
+
+Implementation checkpoint `15474a1e5d779a4f449d8f500cafd46b342ebe11` makes the
+documented AC14 monitor operationally readable before deployment integration.
+The admin-only `GET /api/v1/etf-holdings/shadow-gate` endpoint aggregates the
+bounded `canary_history` records persisted in ETF adapter state for the canonical
+15 Tier-0 symbols and returns the existing machine-readable 30-day evaluator
+result. It never fetches providers or synthesizes missing observations, so a
+symbol without telemetry remains an explicit gate failure.
+
+The endpoint is documented in `docs/etf-holdings-shadow-gate.md` and supports an
+optional `as_of` date for deterministic replay. The focused shadow-gate
+regression, ETF integration/capability slice (144 tests), and deterministic ETF
+unit matrix (716 tests) passed; Ruff, formatting, and diff-check passed. AC10
+remains gated on shared provider-platform staging and AC14 still requires real
+post-deployment observations plus human closure.
