@@ -5,6 +5,23 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-05
 
+## 2026-09-05 — Expose canonical entitlement audit metadata
+
+Product commit `bd2b14d2` (`feat(tc2000): expose entitlement audit metadata`)
+now renders the returned entitlement provider, live-probe status, revision,
+effective date, and review-due date in both the Market Breadth family coverage
+strip and Market Map canonical-readiness list. Missing metadata remains omitted;
+the consumer does not infer entitlement, renew credentials, fan out to another
+provider, or change fallback or acceptance policy. Focused Market Map Vitest
+passed `36/36`; full frontend Vitest passed `970/970`; type-check and
+production build passed. Rebuilt authenticated Chromium
+`F8s-breadth-family-ratio` passed `1/1` with the entitlement audit label
+asserted. The first browser invocation targeted port 80 instead of the
+branch-scoped port 28083 and failed before assertions; the corrected rerun
+passed. Teardown removed the assigned stack and four generated images;
+resource accounting reported zero containers, volumes, sessions, and known
+bytes. The next exact-tip gate is required at the following documentation tip.
+
 ## 2026-09-05 — Exact-tip gate after canonical holdings-refresh timestamps
 
 At product tip `3c44b2de` (documentation tip `dcd4b4bf`), the exact-tip

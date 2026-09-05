@@ -10,6 +10,23 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Expose canonical entitlement audit metadata
+
+Product commit `bd2b14d2` exposes returned entitlement provider, live-probe
+status, revision, effective date, and review-due date in the Market Breadth
+family coverage strip and Market Map canonical-readiness list. Missing fields
+remain omitted; no entitlement inference, credential renewal, provider
+fan-out, fallback, or acceptance-policy change was made. Focused Market Map
+Vitest passed `36/36`; full frontend Vitest passed `970/970`; type-check and
+production build passed. Rebuilt authenticated Chromium
+`F8s-breadth-family-ratio` passed `1/1` with the audit metadata asserted. The
+first browser invocation used port 80 rather than the assigned stack's 28083
+and failed before assertions; the corrected rerun passed. Teardown removed the
+assigned stack and four generated images; resource accounting reported zero
+containers, volumes, sessions, and known bytes. The next action is the
+exact-tip gate at the next coherent documentation tip; preserve the six
+visual state-oracle diffs and unchanged provider/fallback policy.
+
 ## 2026-09-05 — Exact-tip exhaustive gate after canonical holdings-refresh timestamps
 
 At product tip `3c44b2de` (documentation tip `dcd4b4bf`), the exact-tip

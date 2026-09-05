@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-09-05 — Expose canonical entitlement audit metadata
+
+- [x] Render returned entitlement provider, live-probe status, revision,
+      effective date, and review-due date in the Market Breadth family
+      coverage strip and Market Map canonical-readiness list; omit missing
+      metadata and do not infer entitlement, renew credentials, fan out to
+      another provider, or change fallback/acceptance policy.
+- [x] Product commit `bd2b14d2` is pushed; focused Market Map coverage passed
+      `36/36`, full frontend Vitest passed `970/970`, type-check/build passed,
+      and rebuilt authenticated `F8s-breadth-family-ratio` passed `1/1` with
+      the audit metadata asserted. The initial browser invocation targeted
+      port 80 instead of the assigned 28083 stack port and failed before
+      assertions; the corrected rerun passed. Cleanup left zero containers,
+      volumes, images, sessions, and known bytes.
+- [ ] Rerun the exact-tip integration gate at the next documentation tip,
+      preserving the six known visual state-oracle diffs and all provider,
+      fallback, baseline, and acceptance policy.
+
 ### 2026-09-05 — Exact-tip gate after canonical holdings-refresh timestamps
 
 - [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework`
