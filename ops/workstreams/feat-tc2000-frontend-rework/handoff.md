@@ -10,6 +10,21 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Promote named structured Study events to Strategy signals
+
+Product commit `22fd676e` (`feat(tc2000): promote structured study events to signals`) aligns
+Research Results with the primary Study Lab event capability. A completed multi-output Study event
+artifact now offers `Save Strategy signal`; the frontend creates a typed `events` signal asset for
+the selected output and passes its immutable version to Strategy Lab. Source run/code/dataset/
+artifact lineage, `events_to_signal`, current-data re-evaluation, and the point-in-time limitation
+remain explicit; no event list is coerced to Boolean or widened beyond the declared source.
+
+Evidence: focused Research Results/capability tests `33/33`; full frontend Vitest `947/947` across
+`109` files; type-check, production build, and diff checks passed; authenticated F8t-results `1/1`
+passed on the rebuilt branch-scoped Docker stack. Teardown/resource accounting reported zero
+containers, volumes, known image bytes, and test-container sessions. Canonical provider/history,
+richer Study, native-window/accessibility/security, dense-data, and visual-oracle gaps remain open.
+
 ## 2026-09-05 — Exact-tip exhaustive gate after complete benchmark history readiness
 
 The `full_stack_browser` gate ran at metadata tip `3b497ee3` (product tip `0712951`). Locked

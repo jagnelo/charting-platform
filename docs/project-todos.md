@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-09-05 — Promote named structured Study events to Strategy signals
+
+- [x] Align Research Results with the existing Study Lab event capability. A completed
+      multi-output Study event artifact now offers `Save Strategy signal`; the frontend creates a
+      typed `events` signal asset scoped to the selected output name, then hands its immutable
+      version to Strategy Lab. The lineage records source run/code/dataset/output identity,
+      `events_to_signal`, current-data re-evaluation, and the explicit point-in-time limitation;
+      no event list is coerced into a Boolean or widened to an unscoped universe.
+- [x] Add capability-matrix, component, and authenticated F8t-results coverage. Focused Research
+      Results/capability tests passed `33/33`; full frontend Vitest passed `947/947` across `109`
+      files; TypeScript type-check, production build, and `git diff --check` passed. Authenticated
+      F8t-results passed `1/1` against the rebuilt branch-scoped Docker stack; teardown and resource
+      accounting reported zero containers, volumes, known image bytes, and test-container sessions.
+      Product commit `22fd676e` is pushed to `origin/feat/tc2000-frontend-rework`.
+- [ ] Continue canonical provider/history population, richer compatible Study targets,
+      native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review;
+      the exact-tip visual matrix remains the reproducible six-diff blocker.
+
 ### 2026-09-05 — Exact-tip exhaustive gate after complete benchmark history readiness
 
 - [x] Re-run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at

@@ -11,6 +11,17 @@ records in `docs/project-todos.md`, `docs/tc2000-parity.md`,
 evidence ledgers. If a summary here conflicts with a dated test receipt or the current code, the
 current code and fresh evidence win.
 
+The latest product slice is `22fd676e` (`feat(tc2000): promote structured study events to signals`).
+Research Results now offers `Save Strategy signal` for a named event artifact from a completed
+multi-output Study run. It creates an explicit `events` signal asset for the selected output and
+hands that immutable version to Strategy Lab with source run/code/dataset/output lineage,
+`events_to_signal` semantics, and an explicit current-data re-evaluation boundary. Focused
+Research Results/capability tests passed `33/33`; full frontend Vitest passed `947/947` across
+`109` files; type-check, production build, and diff checks passed; authenticated F8t-results passed
+`1/1` on the rebuilt branch-scoped stack with clean teardown/resource accounting. This closes the
+structured-event signal cell without coercing event lists into Boolean values or widening the
+declared universe.
+
 The latest exact-tip exhaustive gate ran at metadata tip `3b497ee3` (product tip `0712951`). All
 non-visual stages and authenticated functional Playwright passed: backend units `1,315/1,315`,
 integration `382/382` with the existing `54` warnings, combined coverage `80.90%`, frontend
