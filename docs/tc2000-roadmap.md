@@ -11,7 +11,19 @@ records in `docs/project-todos.md`, `docs/tc2000-parity.md`,
 evidence ledgers. If a summary here conflicts with a dated test receipt or the current code, the
 current code and fresh evidence win.
 
-The latest product commit is `37af72fa` (`feat(tc2000): expose canonical readiness evidence`).
+The latest product commit is `ec17b0fb` (`feat(tc2000): expose latest Study series column`).
+The primary Study Lab now offers the same safe latest-value target already available from Study
+Results: a completed numeric `series` with at least one finite observation can be saved as a typed
+watchlist column through the explicit `latest_series_to_scalar` adapter. The selected output name
+and immutable Study/run lineage are preserved, while the chart-plot action and unsupported-shape
+boundaries remain unchanged. Focused Study Lab coverage passed `24/24`; the full frontend suite
+passed `945/945` across `109` files at this product boundary; TypeScript type-check, production
+build, and diff checks passed. The authenticated F9i flow now exercises both direct Study Lab
+promotions; the product commit is pushed to the feature branch. The next coherent validation batch
+should rerun the branch-scoped browser/gate receipts at this tip; the existing exhaustive receipt
+still has the unchanged `98/104` visual blocker.
+
+The preceding product commit is `37af72fa` (`feat(tc2000): expose canonical readiness evidence`).
 Market Map now surfaces the existing provider-neutral benchmark role evidence alongside each
 family source: member/weighted/classified counts and statuses, point-in-time support, entitlement
 provider and live-probe state, latest disclosed composition/as-of/known-at dates with resolved-row

@@ -10,6 +10,22 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Expose latest Study series columns in Study Lab
+
+Product commit `ec17b0fb` (`feat(tc2000): expose latest Study series column`) brings the safe
+latest-value promotion target to the primary Study Lab surface. Completed numeric `series` results
+now offer `Save latest column` only when a finite observation exists; the persisted typed scalar
+column declares `latest_series_to_scalar` and preserves the selected output plus immutable
+Study/run lineage. Existing chart-plot promotion and unsupported-shape boundaries are unchanged.
+
+Evidence: focused Study Lab component coverage passed `24/24`; full frontend Vitest passed
+`945/945` across `109` files at the same product boundary; TypeScript type-check, production build,
+and `git diff --check` passed. The authenticated F9i flow now exercises both direct Study Lab
+promotions, but has not yet been rerun after this product commit. The commit is pushed to
+`origin/feat/tc2000-frontend-rework`; the prior exhaustive gate remains the unchanged `98/104`
+visual result with six diffs. Canonical provider/history, richer Study targets, native-window/
+accessibility/security, dense-data, and visual-oracle gaps remain open.
+
 ## 2026-09-05 — Canonical readiness evidence surface
 
 Product commit `37af72fa` (`feat(tc2000): expose canonical readiness evidence`) extends the

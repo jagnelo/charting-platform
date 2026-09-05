@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-09-05 — Expose latest Study series columns in Study Lab
+
+- [x] Bring the safe numeric-series latest-value promotion to the primary Study Lab surface.
+      Completed Study runs now offer `Save latest column` only when a finite observation exists;
+      the persisted asset declares `latest_series_to_scalar`, retains the selected output and
+      immutable Study/run lineage, and remains a typed scalar watchlist column. Series plots and
+      all incompatible shapes keep their existing behavior.
+- [x] Extend the authenticated F9i Study Lab flow and component coverage for the direct control.
+      Focused Study Lab coverage passed `24/24`; the full frontend Vitest suite had already passed
+      `945/945` across `109` files at the same product boundary; TypeScript type-check, production
+      build, and `git diff --check` passed. Product commit `ec17b0fb` is pushed to
+      `origin/feat/tc2000-frontend-rework`.
+- [ ] Re-run the branch-scoped Docker-backed browser/gate receipts at this new product tip when
+      the next coherent batch is ready. The existing exhaustive result remains the unchanged
+      `98/104` visual blocker; canonical provider/history enrichment, richer Study targets,
+      native-window/accessibility/security, dense-data budgets, and visual-oracle review remain
+      open.
+
 ### 2026-09-05 — Surface canonical role evidence in Market Map
 
 - [x] Extend the benchmark-family readiness contract used by Market Map to retain the API's
