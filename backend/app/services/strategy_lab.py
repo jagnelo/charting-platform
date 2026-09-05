@@ -374,7 +374,8 @@ async def _current_etf_snapshot_is_usable(
         return True
     warnings.append(
         "ETF holdings snapshot cannot be used for current analysis "
-        f"({capability.availability}): {capability.reason}"
+        f"({capability.availability}; failure_class={capability.failure_class or 'none'}): "
+        f"{capability.reason}"
     )
     return False
 

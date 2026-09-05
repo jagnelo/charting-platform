@@ -632,6 +632,7 @@ class TestStrategyLabAPI:
         assert any(
             "cannot be used for current analysis" in warning for warning in preview["warnings"]
         )
+        assert any("failure_class=" in warning for warning in preview["warnings"])
 
     def test_strategy_run_can_use_dynamic_etf_holdings_universe(
         self,

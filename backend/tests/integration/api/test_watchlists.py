@@ -2091,6 +2091,13 @@ class TestWatchlistsCrud:
         assert source["provenance"]["snapshot_row_count"] == 1
         assert source["provenance"]["snapshot_resolved_count"] == 1
         assert source["provenance"]["snapshot_unresolved_count"] == 0
+        resolved = client.get(
+            f"/api/v1/watchlists/sources/{source_id}",
+            headers=auth_headers,
+        )
+        assert resolved.status_code == 200, resolved.text
+        assert resolved.json()["exclusions"][0]["reason"] == "holdings_snapshot_not_current"
+        assert "failure_class" in resolved.json()["exclusions"][0]
         empty_source = next(
             item
             for item in descriptor.json()
