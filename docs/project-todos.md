@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-05 — Render cross-family rank history
+
+- [x] Render canonical cross-family historical `rank` values as a separate family-labelled,
+      inverted-axis uPlot chart beside relative-performance history; align timestamps, preserve
+      missing observations as nulls, and fail closed on malformed/non-finite data.
+- [x] Add lifecycle/alignment coverage (`32/32`), TypeScript, production build, and authenticated
+      Chromium `F8s-breadth-family-ratio` (`1/1`) asserting the rank chart on a rebuilt
+      branch-scoped stack; teardown and resource cleanup were clean.
+- [x] Product commit `1ae69113` (`feat(tc2000): render cross-family rank history`) is pushed to
+      `origin/feat/tc2000-frontend-rework`; rerun the exact-tip exhaustive gate at the next
+      coherent documentation tip. Preserve the six known visual state-oracle diffs and all
+      provider, fallback, baseline, threshold, mask, skip, and acceptance policy.
+
 ### 2026-09-05 — Exact-tip gate after concentration metrics history
 
 - [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework` at metadata
