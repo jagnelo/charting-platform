@@ -700,6 +700,66 @@ describe('StudyLabTool', () => {
     }))
   })
 
+  it('promotes a direct Study Lab series through one explicit threshold condition', async () => {
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['series'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 148 }] })
+      if (path === '/research/runs') return Promise.resolve({
+        id: 149,
+        code_version_id: 148,
+        status: 'completed',
+        run_config: { universe_source_id: 'watchlist:7', timeframe: 'W1' },
+        dataset_manifest: { universe_source_id: 'watchlist:7', universe_membership_version: 'watchlist:7:v2', timeframe: 'W1', datasets: [{ instrument_id: 7, symbol: 'SPY' }] },
+        artifacts: [{ id: 1, name: 'trend', artifact_type: 'series', payload: { value: [null, 4, 6] } }],
+      })
+      if (path === '/screeners/from-python-condition/148') return Promise.resolve({ id: 150 })
+      return Promise.resolve({})
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    await wrapper.find('[aria-label="Study Python source"]').setValue("output.series('trend', [None, 4, 6])")
+    await wrapper.find('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.findAll('button')[1].trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #149'))
+    expect(wrapper.find('[aria-label="Study series threshold condition"]').exists()).toBe(true)
+    await wrapper.find('[aria-label="Study series condition operator"]').setValue('gt')
+    await wrapper.find('[aria-label="Study series condition threshold"]').setValue('5')
+    await wrapper.findAll('[aria-label="Study series threshold condition"] button').find(button => button.text() === 'Save Boolean column')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved series artifact “trend” as a thresholded Boolean column.'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'column',
+      initial_version: expect.objectContaining({
+        output_contract: 'boolean',
+        output_name: 'trend',
+        lineage: expect.objectContaining({
+          source_run_id: 149,
+          source_instrument_ids: [7],
+          source_universe_source_id: 'watchlist:7',
+          source_membership_version: 'watchlist:7:v2',
+          output_adapter: 'series_target_to_boolean',
+          series_target: { operator: 'gt', threshold: 5 },
+          semantics: 'study_series_threshold_as_boolean',
+        }),
+      }),
+    }))
+    await wrapper.findAll('[aria-label="Study series threshold condition"] button').find(button => button.text() === 'Save watchlist filter')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved series artifact “trend” as a thresholded watchlist filter.'))
+    expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/148', expect.objectContaining({
+      universe_type: 'custom',
+      universe_instrument_ids: [7],
+      timeframe: 'W1',
+      provenance: expect.objectContaining({ output_adapter: 'series_target_to_boolean', series_target: { operator: 'gt', threshold: 5 } }),
+    }))
+    await wrapper.findAll('[aria-label="Study series threshold condition"] button').find(button => button.text() === 'Promote scan')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Promoted series artifact “trend” to a thresholded scan.'))
+    await wrapper.findAll('[aria-label="Study series threshold condition"] button').find(button => button.text() === 'Use as Market Gauge')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Series artifact “trend” is available as a thresholded Market Gauge.'))
+    await wrapper.findAll('[aria-label="Study series threshold condition"] button').find(button => button.text() === 'Promote alert')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Promoted series artifact “trend” to a thresholded scan alert.'))
+    expect(apiPost.mock.calls.filter(call => String(call[0]).startsWith('/screeners/from-python-condition/'))).toHaveLength(1)
+    expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 150, trigger_type: 'entered', repeat: true, notes: 'Created from Study Lab series run 149 (trend)' })
+  })
+
   it('promotes a completed event study without coercing its event contract', async () => {
     apiGet.mockImplementation((path: string) => path === '/code/assets'
       ? Promise.resolve([{ versions: [{ id: 144, source: "output.events('signals', [])", parameter_schema: {}, default_parameters: {} }] }])

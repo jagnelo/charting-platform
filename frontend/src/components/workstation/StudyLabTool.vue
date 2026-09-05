@@ -67,6 +67,12 @@
         <button v-if="promotableKind === 'scalar'" type="button" :disabled="promotionBusy" @click="promote('column')">{{ promotionBusy ? 'Promoting…' : 'Save as column' }}</button>
         <button v-if="promotableKind === 'series'" type="button" :disabled="promotionBusy" @click="promote('plot')">{{ promotionBusy ? 'Promoting…' : 'Save as chart plot' }}</button>
         <button v-if="promotableKind === 'series' && latestSeriesObservation != null" type="button" :disabled="promotionBusy" @click="promote('column')">{{ promotionBusy ? 'Promoting…' : 'Save latest column' }}</button>
+        <div v-if="promotableKind === 'series' && latestSeriesObservation != null" class="study-lab-tool__series-condition" role="group" aria-label="Study series threshold condition">
+          <label>When <select v-model="seriesConditionOperator" aria-label="Study series condition operator"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option><option value="eq">=</option><option value="ne">≠</option></select></label>
+          <label>Value <input v-model.number="seriesConditionThreshold" type="number" step="any" aria-label="Study series condition threshold" /></label>
+          <button type="button" :disabled="promotionBusy || !Number.isFinite(seriesConditionThreshold)" @click="promoteSeriesCondition('column')">{{ promotionBusy ? 'Promoting…' : 'Save Boolean column' }}</button>
+          <button v-for="target in seriesConditionTargets" :key="`series-condition-${target}`" type="button" :disabled="promotionBusy || !Number.isFinite(seriesConditionThreshold)" @click="promoteSeriesCondition(target)">{{ promotionBusy ? 'Promoting…' : seriesConditionLabel(target) }}</button>
+        </div>
         <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('filter')">{{ promotionBusy ? 'Promoting…' : 'Save as watchlist filter' }}</button>
         <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('column')">{{ promotionBusy ? 'Promoting…' : 'Save as Boolean column' }}</button>
         <button v-if="promotableKind === 'boolean'" type="button" :disabled="promotionBusy" @click="promote('scan')">{{ promotionBusy ? 'Promoting…' : 'Promote to scan' }}</button>
@@ -224,6 +230,9 @@ const promotionStatus = ref('')
 const rerunBusy = ref(false)
 const validation = ref<Validation | null>(null)
 const promotedScanId = ref<number | null>(null)
+const promotedSeriesConditionScans = ref<Record<string, { id?: number; codeVersionId?: number; columnCodeVersionId?: number }>>({})
+const seriesConditionOperator = ref<'gt' | 'gte' | 'lt' | 'lte' | 'eq' | 'ne'>('gte')
+const seriesConditionThreshold = ref(0)
 const cacheKey = props.toolKey ? `study:${props.toolKey}` : null
 const cachedRun = cacheKey ? studyRunCache.get(cacheKey) : null
 const run = ref<Run | null>(cachedRun?.run ?? null)
@@ -372,6 +381,36 @@ const metricArtifacts = computed(() => (run.value?.artifacts ?? []).filter(artif
 const nonScalarArtifacts = computed(() => (run.value?.artifacts ?? []).filter(artifact => !['scalar', 'boolean'].includes(artifact.artifact_type)))
 type PromotionTarget = 'column' | 'plot' | 'filter' | 'scan' | 'gauge' | 'alert' | 'signal'
 type ArtifactPromotion = { artifact: Artifact; target: PromotionTarget; label: string }
+type SeriesConditionTarget = 'column' | 'filter' | 'scan' | 'gauge' | 'alert'
+const seriesConditionTargets: SeriesConditionTarget[] = ['filter', 'scan', 'gauge', 'alert']
+function seriesConditionLabel(target: SeriesConditionTarget) {
+  return target === 'column' ? 'Save Boolean column' : target === 'filter' ? 'Save watchlist filter' : target === 'scan' ? 'Promote scan' : target === 'gauge' ? 'Use as Market Gauge' : 'Promote alert'
+}
+function seriesConditionKey() {
+  const artifact = run.value?.artifacts?.find(item => item.artifact_type === 'series')
+  return `${run.value?.id ?? 'run'}:${artifact?.id ?? 'series'}:${artifact?.name ?? 'series'}:${seriesConditionOperator.value}:${seriesConditionThreshold.value}`
+}
+function declaredStudyInstrumentIds() {
+  const manifest = run.value?.dataset_manifest ?? {}
+  const datasets = Array.isArray(manifest.datasets) ? manifest.datasets : []
+  return [...new Set([
+    ...(typeof manifest.instrument_id === 'number' ? [manifest.instrument_id] : []),
+    ...datasets
+      .filter(item => item && typeof item === 'object')
+      .map(item => (item as Record<string, unknown>).instrument_id)
+      .filter((item): item is number => typeof item === 'number' && Number.isInteger(item) && item > 0),
+  ])]
+}
+function studySourceId() {
+  const sourceRunConfig = run.value?.run_config ?? {}
+  if (typeof sourceRunConfig.universe_source_id === 'string' && sourceRunConfig.universe_source_id.trim()) return sourceRunConfig.universe_source_id
+  const sourceManifest = run.value?.dataset_manifest ?? {}
+  return typeof sourceManifest.universe_source_id === 'string' && sourceManifest.universe_source_id.trim() ? sourceManifest.universe_source_id : null
+}
+function studyMembershipVersion() {
+  const sourceManifest = run.value?.dataset_manifest ?? {}
+  return typeof sourceManifest.universe_membership_version === 'string' && sourceManifest.universe_membership_version.trim() ? sourceManifest.universe_membership_version : null
+}
 const artifactPromotions = computed<ArtifactPromotion[]>(() => {
   if (!run.value || run.value.status !== 'completed' || !runSource.value) return []
   // Compatible single-output runs reuse their immutable version directly;
@@ -884,6 +923,100 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
     promotionStatus.value = cause?.message ?? 'Unable to promote study result'
   } finally { promotionBusy.value = false }
 }
+async function promoteSeriesCondition(target: SeriesConditionTarget) {
+  const studyRun = run.value
+  const artifact = studyRun?.artifacts?.find(item => item.artifact_type === 'series')
+  if (!studyRun || studyRun.status !== 'completed' || runContract.value !== 'series' || !artifact || latestSeriesValue(artifact) == null || promotionBusy.value) return
+  if (!Number.isFinite(seriesConditionThreshold.value)) {
+    promotionStatus.value = 'Enter a finite numeric threshold before promoting the series.'
+    return
+  }
+  const declaredInstrumentIds = declaredStudyInstrumentIds()
+  if (!declaredInstrumentIds.length) {
+    promotionStatus.value = 'The study dataset has no declared canonical members; refusing to widen the promoted condition universe.'
+    return
+  }
+  if (!runSource.value) {
+    promotionStatus.value = 'The immutable source code version for this series study is unavailable.'
+    return
+  }
+  promotionBusy.value = true
+  promotionStatus.value = ''
+  try {
+    const key = seriesConditionKey()
+    const cached = promotedSeriesConditionScans.value[key] ?? {}
+    const seriesTarget = { operator: seriesConditionOperator.value, threshold: Number(seriesConditionThreshold.value) }
+    const sourceManifest = studyRun.dataset_manifest ?? {}
+    const sourceRunConfig = studyRun.run_config ?? {}
+    const lineage = {
+      type: 'study_run_promotion',
+      source_run_id: studyRun.id,
+      source_code_version_id: studyRun.code_version_id ?? runCodeVersionId.value,
+      source_reproducibility_hash: studyRun.reproducibility_hash ?? null,
+      source_dataset_manifest: sourceManifest,
+      source_run_config: sourceRunConfig,
+      source_output_name: artifact.name,
+      source_instrument_ids: declaredInstrumentIds,
+      source_universe_source_id: studySourceId(),
+      source_membership_version: studyMembershipVersion(),
+      target,
+      output_adapter: 'series_target_to_boolean',
+      series_target: seriesTarget,
+      semantics: 'study_series_threshold_as_boolean',
+      point_in_time_source_preserved: false,
+    }
+    let codeVersionId = target === 'column' ? cached.columnCodeVersionId : cached.codeVersionId
+    if (typeof codeVersionId !== 'number') {
+      const kind = target === 'column' ? 'column' : 'condition'
+      const promoted = await api.post<{ id?: number; versions?: Array<{ id?: number }> }>('/code/assets', {
+        stable_key: `${stableKey(name.value)}-series-${kind}-${studyRun.id}-${stableKey(artifact.name)}-${seriesConditionOperator.value}-${seriesConditionThreshold.value}`,
+        name: `${artifact.name} ${target === 'column' ? 'Boolean column' : 'condition'}`,
+        kind,
+        initial_version: {
+          source: runSource.value,
+          output_contract: 'boolean',
+          output_name: artifact.name,
+          parameter_schema: parsedParameterSchema.value ?? {},
+          default_parameters: buildParameters(),
+          lineage,
+        },
+      })
+      codeVersionId = promoted.versions?.[0]?.id ?? promoted.id
+      if (typeof codeVersionId !== 'number') throw new Error('Series condition promotion did not return an immutable code version.')
+      promotedSeriesConditionScans.value = {
+        ...promotedSeriesConditionScans.value,
+        [key]: target === 'column' ? { ...cached, columnCodeVersionId: codeVersionId } : { ...cached, codeVersionId },
+      }
+    }
+    if (target === 'column') {
+      promotionStatus.value = `Saved series artifact “${artifact.name}” as a thresholded Boolean column.`
+      return
+    }
+    let scanId = cached.id
+    if (typeof scanId !== 'number') {
+      const configuredTimeframe = studyRun.run_config?.timeframe ?? sourceManifest.timeframe
+      const screener = await api.post<{ id: number }>(`/screeners/from-python-condition/${codeVersionId}`, {
+        name: `${artifact.name} ${seriesConditionOperator.value} ${seriesConditionThreshold.value} ${target === 'scan' ? 'Scan' : 'Filter'} ${studyRun.id}`,
+        description: `Current-data thresholded Boolean target promoted from Study Lab run #${studyRun.id}; source series, threshold, membership, and dataset lineage are retained.`,
+        universe_type: 'custom',
+        universe_instrument_ids: declaredInstrumentIds,
+        timeframe: typeof configuredTimeframe === 'string' && configuredTimeframe.trim() ? configuredTimeframe : timeframe.value,
+        provenance: lineage,
+      })
+      scanId = screener.id
+      promotedSeriesConditionScans.value = { ...promotedSeriesConditionScans.value, [key]: { ...promotedSeriesConditionScans.value[key], id: scanId, codeVersionId } }
+    }
+    if (target === 'filter') promotionStatus.value = `Saved series artifact “${artifact.name}” as a thresholded watchlist filter.`
+    else if (target === 'scan') promotionStatus.value = `Promoted series artifact “${artifact.name}” to a thresholded scan.`
+    else if (target === 'gauge') promotionStatus.value = `Series artifact “${artifact.name}” is available as a thresholded Market Gauge.`
+    else {
+      await api.post('/alerts/screener', { screener_id: scanId, trigger_type: 'entered', repeat: true, notes: `Created from Study Lab series run ${studyRun.id} (${artifact.name})` })
+      promotionStatus.value = `Promoted series artifact “${artifact.name}” to a thresholded scan alert.`
+    }
+  } catch (cause: any) {
+    promotionStatus.value = cause?.message ?? 'Unable to promote the Study series to a thresholded condition'
+  } finally { promotionBusy.value = false }
+}
 async function rerun(snapshot: boolean) {
   if (!run.value || rerunBusy.value) return
   const generation = ++runGeneration
@@ -970,7 +1103,7 @@ onBeforeUnmount(() => {
 .study-lab-tool__source-lineage { margin:0; padding:3px 4px; border:1px solid #49667a; background:#17232b; color:#b9d9eb; font-size:9px; }
 input,textarea,button,select { min-width:0; border:1px solid #3a4954; background:#172027; color:#dce6ed; font:inherit; } input,select { padding:2px 4px; } textarea { width:100%; resize:none; padding:5px; font:11px/1.35 ui-monospace,SFMono-Regular,monospace; } button { cursor:pointer; } button:disabled { cursor:default; opacity:.5; }
 .study-lab-tool__validation,.study-lab-tool__run { padding:5px; border:1px solid #34424c; background:#151b20; } .study-lab-tool__validation--bad,.study-lab-tool__error { border-color:#9e5757; color:#f0a2a2; } pre { max-height:100px; overflow:auto; margin:3px 0 0; color:#b8c6d0; white-space:pre-wrap; } .study-lab-tool__run > div { display:flex; align-items:center; gap:6px; } .study-lab-tool__run > div button { margin-left:auto; } .study-lab-tool__run p,.study-lab-tool__notice,.study-lab-tool__error { margin:0; color:#8195a3; } .study-lab-tool__universe-warning { margin:0; color:#e0b47d; } .study-lab-tool__dataset-summary { font-size:9px; } .study-lab-tool__run article { margin-top:5px; padding-top:4px; border-top:1px solid #29343c; } .study-lab-tool__run small { margin-left:5px; color:#779ab0; }.study-lab-tool__metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(70px,1fr)); gap:4px; margin-top:5px; }.study-lab-tool__metrics article { display:grid; gap:2px; margin:0; padding:4px; border:1px solid #29343c; background:#11161b; }.study-lab-tool__metrics strong { color:#b9e0f9; font-size:14px; }.study-lab-tool__metric--true { border-color:#3f8263!important; }.study-lab-tool__metric--true strong { color:#80d5a5!important; }.study-lab-tool__metric--false { border-color:#875454!important; }.study-lab-tool__metric--false strong { color:#f0a0a0!important; }.study-lab-tool__run table { width:100%; margin-top:4px; border-collapse:collapse; font-size:9px; }.study-lab-tool__run th,.study-lab-tool__run td { padding:2px 4px; border:1px solid #2c3943; text-align:left; white-space:nowrap; }.study-lab-tool__run th { color:#91a8b8; background:#1b252d; }.study-lab-tool__events { display:grid; gap:2px; margin-top:4px; }.study-lab-tool__events button { display:grid; grid-template-columns:50px 1fr auto; gap:5px; padding:3px 4px; border:1px solid #2d3c46; background:#11161b; color:#cddbe5; text-align:left; }.study-lab-tool__events button:hover { background:#1d3543; }.study-lab-tool__events span,.study-lab-tool__events small { color:#91a8b4; }.study-lab-tool__run-status--completed { color:#82c49b; }.study-lab-tool__run-status--failed { color:#ed9696; }.study-lab-tool__run-status--queued,.study-lab-tool__run-status--running { color:#80bce8; }
-.study-lab-tool__promotions { display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; }.study-lab-tool__promotions button { margin-left:0!important; }.study-lab-tool__promotion-status { color:#9fd3a9!important; }.study-lab-tool__run-guidance { margin:3px 0 0!important; color:#9ab1bf!important; }.study-lab-tool__run-status--failed + .study-lab-tool__run-guidance { color:#f0a2a2!important; }.study-lab-tool__run-status--canceled + .study-lab-tool__run-guidance { color:#e0b47d!important; }
+.study-lab-tool__promotions { display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; }.study-lab-tool__promotions button { margin-left:0!important; }.study-lab-tool__series-condition { display:flex; flex-wrap:wrap; align-items:center; gap:4px; width:100%; padding:3px 0; }.study-lab-tool__series-condition label { display:inline-flex; align-items:center; gap:3px; }.study-lab-tool__series-condition input { width:88px; }.study-lab-tool__promotion-status { color:#9fd3a9!important; }.study-lab-tool__run-guidance { margin:3px 0 0!important; color:#9ab1bf!important; }.study-lab-tool__run-status--failed + .study-lab-tool__run-guidance { color:#f0a2a2!important; }.study-lab-tool__run-status--canceled + .study-lab-tool__run-guidance { color:#e0b47d!important; }
 .study-lab-tool__metrics article button { justify-self:start; padding:1px 4px; }
 .study-lab-tool__run-details { margin-top:4px; border-top:1px solid #29343c; padding-top:3px; }.study-lab-tool__run-details summary { color:#9db0bc; cursor:pointer; }.study-lab-tool__run-details pre { max-height:90px; margin:3px 0 0; }
 .study-lab-tool__artifact-header { display:flex; align-items:center; gap:5px; }.study-lab-tool__artifact-header button { margin-left:auto; padding:1px 4px; }

@@ -950,6 +950,64 @@ test.describe('Chart', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F9j — a primary Study Lab series promotes through an explicit threshold', async ({ page, browserDiagnostics }) => {
+    let codeAssetPosts = 0
+    await page.route('**/api/v1/code/validate', async route => {
+      expect(route.request().method()).toBe('POST')
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['series'] }) })
+    })
+    await page.route('**/api/v1/code/assets', async route => {
+      if (route.request().method() === 'GET') return route.continue()
+      const body = route.request().postDataJSON() as { kind?: string; initial_version?: { output_contract?: string; output_name?: string; lineage?: Record<string, unknown> } }
+      codeAssetPosts += 1
+      if (codeAssetPosts === 1) {
+        expect(body).toMatchObject({ kind: 'study', initial_version: { output_contract: 'series' } })
+        await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 1201, versions: [{ id: 1201 }] }) })
+        return
+      }
+      expect(body).toMatchObject({ kind: 'condition', initial_version: { output_contract: 'boolean', output_name: 'reusable_series', lineage: { output_adapter: 'series_target_to_boolean', series_target: { operator: 'gte', threshold: 3 } } } })
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 1202, versions: [{ id: 1202 }] }) })
+    })
+    await page.route('**/api/v1/research/runs', async route => {
+      if (route.request().method() !== 'POST') return route.continue()
+      expect(route.request().postDataJSON()).toMatchObject({ code_version_id: 1201, run_config: { symbol: 'SPY', timeframe: 'D1' } })
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({
+        id: 1203,
+        code_version_id: 1201,
+        status: 'completed',
+        run_config: { symbol: 'SPY', timeframe: 'D1' },
+        dataset_manifest: { source: 'canonical_database', timeframe: 'D1', datasets: [{ instrument_id: 7, symbol: 'SPY' }] },
+        reproducibility_hash: 'sha256:study-series-threshold',
+        artifacts: [{ id: 1, name: 'reusable_series', artifact_type: 'series', payload: { value: { timestamps: ['2026-01-01', '2026-01-02'], values: [2, 4] } } }],
+      }) })
+    })
+    await page.route('**/api/v1/screeners/from-python-condition/1202', async route => {
+      expect(route.request().method()).toBe('POST')
+      expect(route.request().postDataJSON()).toMatchObject({ universe_type: 'custom', universe_instrument_ids: [7], timeframe: 'D1', provenance: { output_adapter: 'series_target_to_boolean', series_target: { operator: 'gte', threshold: 3 } } })
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 1204, name: 'Reusable series threshold' }) })
+    })
+    await page.goto('/chart/SPY')
+    await page.getByRole('button', { name: 'Study', exact: true }).click()
+    const studyLayoutTab = page.locator('.workstation__tabs > button').filter({ hasText: 'Study Lab' }).last()
+    if (await studyLayoutTab.count()) await studyLayoutTab.click()
+    const studyTab = page.locator('.lm_tab:visible').filter({ hasText: 'Study Lab' }).last()
+    if (await studyTab.count()) await studyTab.click()
+    const study = page.locator('.study-lab-tool:visible').last()
+    await expect(study).toBeVisible({ timeout: 10_000 })
+    await study.getByRole('textbox', { name: 'Study name' }).fill('E2E direct threshold')
+    await study.getByRole('textbox', { name: 'Study Python source' }).fill("output.series('reusable_series', [2, 4])")
+    await study.getByRole('button', { name: 'Validate' }).click()
+    await expect(study).toContainText('Validated for isolated execution', { timeout: 10_000 })
+    await study.getByRole('button', { name: 'Run', exact: true }).click()
+    await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 15_000 })
+    await expect(study.getByRole('group', { name: 'Study series threshold condition' })).toBeVisible()
+    await study.getByRole('combobox', { name: 'Study series condition operator' }).selectOption('gte')
+    await study.getByRole('spinbutton', { name: 'Study series condition threshold' }).fill('3')
+    await study.getByRole('button', { name: 'Save watchlist filter', exact: true }).click()
+    await expect(study).toContainText('Saved series artifact “reusable_series” as a thresholded watchlist filter.', { timeout: 15_000 })
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
 })
 
 // ── TC2000 workstation window mechanics ──────────────────────────────────────
