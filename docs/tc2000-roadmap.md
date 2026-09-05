@@ -5,6 +5,25 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-05
 
+## 2026-09-05 — Exact-tip gate after member-bar timeframe readiness
+
+At product tip `a456d7c8` (documentation tip `493c2b66`), the exact-tip
+`full_stack_browser` gate passed locked dependency/migration checks (migration
+compatibility skipped because no migration changes), workstream validation,
+lint/format/type-check, backend unit/integration and combined coverage
+(`80.93%`; `1320` unit and `384` integration tests), frontend Vitest
+(`970/970`), production build, compose/provider policy, stack health,
+research-runner isolation, and authenticated functional Playwright (`157`
+passed with `106` documented skips across `263` specs). The unchanged visual
+matrix completed `104` cases with `98` passes and the same six state-oracle
+diffs: `watchlist-column-editor-open` at 1080p 100/125 (`13,844` pixels each),
+and `workspace-floating` at 1080p 100/125 (`12,097`/`11,901`) and 1440p
+100/125 (`12,097`/`11,901`). Teardown removed the assigned stack and four
+generated images; no containers or volumes remained and resource accounting
+was clean. No baseline, mask, threshold, skip, fallback, provider, or
+acceptance policy changed. Preserve this visual-only boundary and continue the
+next canonical provider/history slice.
+
 ## 2026-09-05 — Surface every canonical member-bar timeframe in family readiness
 
 The Market Breadth benchmark-family coverage summary now reports the canonical
