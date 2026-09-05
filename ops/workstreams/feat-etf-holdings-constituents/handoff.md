@@ -3749,6 +3749,13 @@ unavailable for current analysis, AC10 remains deferred, and AC14 remains the
 post-integration 30-day production shadow gate. No paid source, credential,
 other branch, or other worktree was modified.
 
+The post-change affected-consumer validation then passed all `165` tests across
+the strategy-lab and watchlist API integration files plus ETF capability and
+refresh unit suites (the same existing `54` warnings), and the complete
+deterministic ETF adapter suite passed `575` tests. No full Docker gate was
+rerun for this narrow consumer-observability slice; the prior gate remains
+recorded separately as `failed_unrelated_e2e`.
+
 ## Shared degradation-contract regression checkpoint — 2026-09-05
 
 Implementation commit `0368b404` hardens the route-level contract around
