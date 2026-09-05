@@ -2036,7 +2036,7 @@ providers:
         evidence_ref: "live:amplius-aaaa-future-effective-date-2026-09-05"
     disposition_reason: "amplius: The issuer page is now executable and complete for AAAA, and a provider-specific parser is covered deterministically, but the observed effective date is 2026-09-08, future-dated relative to the 2026-09-05 check. Keep the source fallback-only and unavailable for current analysis until a non-future artifact is revalidated with bounded live evidence."
     next_action: "amplius: Re-test AAAA after the issuer effective date is no longer in the future; retain the provider-specific parser and add bounded live evidence before native promotion."
-    implementation_sha: null
+    implementation_sha: 566a38f7120bdd526a261da28c19a70b88b8764e
     validation_refs: []
   - adapter_key: anydrus
     display_name: anydrus
