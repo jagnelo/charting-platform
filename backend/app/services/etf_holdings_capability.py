@@ -785,8 +785,13 @@ _register_non_tier_0_audits(
     outcome=UNAVAILABLE,
     evidence_state="issuer_route_access_blocked",
     provider_identity="westwood",
-    investigated_at=date(2026, 9, 3),
-    evidence_refs=("web:westwood-mdst-current-holdings-2026-09-03",),
+    investigated_at=date(2026, 9, 5),
+    evidence_refs=(
+        "web:westwood-mdst-current-holdings-2026-09-03",
+        "web:westwood-mdst-current-holdings-2026-09-05",
+        "live:westwood-mdst-current-holdings-page-2026-09-05-403",
+        "live:westwood-mdst-current-holdings-csv-2026-09-05-403",
+    ),
     next_action=(
         "Periodically re-test the official MDST page and declared CSV; promote only after "
         "complete rows, mapping, parser fixtures, and bounded live evidence are available."

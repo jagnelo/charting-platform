@@ -4541,3 +4541,15 @@ Q3 remains `issuer_access_blocked` and QVOY remains unavailable. The current
 browser-indexed table is evidence of a potentially complete issuer source, not
 application support; promotion still requires repeatable transport access,
 strict parser/mapping coverage, and bounded live proof.
+
+## Westwood MDST route recheck — 2026-09-05
+
+Westwood's current MDST page is browser-indexed with a 23-holding portfolio
+and top holdings dated 2026-09-03. Direct application-equivalent requests to
+both the product page and declared `1471-Holdings.csv` route returned HTTP 403
+`text/html`; no complete artifact was retrieved by the repository client.
+
+Westwood remains `issuer_access_blocked` and MDST remains unavailable. The
+browser-indexed portfolio does not establish application support; promotion
+still requires repeatable transport access, strict parser/mapping coverage,
+and bounded live proof.

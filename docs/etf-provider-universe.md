@@ -2030,3 +2030,18 @@ application transport, strict parsing, identity checks, and live evidence.
 Evidence refs: `web:q3-qvoy-official-etf-page-2026-09-05`,
 `live:q3-qvoy-official-etf-page-2026-09-05-application-503`, and
 `live:q3-qvoy-download-route-2026-09-05-application-503`.
+
+## Westwood MDST route recheck — 2026-09-05
+
+Westwood's current MDST page is browser-indexed with a 23-holding portfolio
+and top holdings dated September 3, 2026. The application-equivalent product
+request and the declared `1471-Holdings.csv` route both returned HTTP 403
+`text/html`; no complete artifact was retrieved by the repository client.
+
+Westwood remains an explicit `issuer_access_blocked` fallback and MDST remains
+`unavailable`. The browser-indexed portfolio evidence does not establish
+application support without executable transport, strict parsing, identity
+validation, and bounded live proof. Evidence refs:
+`web:westwood-mdst-current-holdings-2026-09-05`,
+`live:westwood-mdst-current-holdings-page-2026-09-05-403`, and
+`live:westwood-mdst-current-holdings-csv-2026-09-05-403`.
