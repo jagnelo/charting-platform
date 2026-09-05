@@ -447,7 +447,7 @@ receiving equity symbols) will be naturally deprioritised by the circuit-breaker
 | Data type                    | Primary provider  | Fallback        |
 |------------------------------|-------------------|-----------------|
 | US equity OHLCV              | alpaca            | alpha_vantage (quota-limited) |
-| US equity/ETF universe discovery | alpaca / SEC directory | massive / Nasdaq / alpha_vantage |
+| US equity/ETF universe discovery | alpaca / SEC directory / Nasdaq NMS files | massive / FINRA OTC directory (explicit source) / alpha_vantage |
 | US splits + dividends        | alpaca            | edgar           |
 | Crypto OHLCV                 | binance / coinbase / kraken | Alpaca (where symbol coverage applies) |
 | Crypto universe discovery    | Nasdaq Trader (US listings) + exchange APIs | CoinGecko Demo |

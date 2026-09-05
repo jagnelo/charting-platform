@@ -203,6 +203,61 @@ async def test_new_workstation_chain_excludes_implicit_yfinance_fallback(db, mon
 
 
 @pytest.mark.asyncio
+async def test_otc_directory_requires_explicit_source_before_resolution(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", "")
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_RATE_LIMIT_SEEDS",
+        {
+            **settings.PROVIDER_RATE_LIMIT_SEEDS,
+            "finra_otc_directory": {
+                "quota_contract": {
+                    "reset": "fixed_minute",
+                    "dimensions": [
+                        {
+                            "name": "requests",
+                            "limit": 10,
+                            "window_seconds": 60,
+                            "unit": "requests",
+                            "scope": "operator_source",
+                            "source": "unit-test",
+                        }
+                    ],
+                }
+            },
+        },
+    )
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_ENTITLEMENT_SEEDS",
+        {
+            **settings.PROVIDER_ENTITLEMENT_SEEDS,
+            "finra_otc_directory": {
+                "configured_plan": "operator-reviewed-directory",
+                "is_free": True,
+                "authentication_required": False,
+            },
+        },
+    )
+
+    await seed_provider_runtime(async_db)
+    chain = await resolve_provider_chain(async_db, ProviderCapability.UNIVERSE_DISCOVERY)
+
+    assert all(item.provider_name != "finra_otc_directory" for item in chain)
+
+    monkeypatch.setattr(
+        settings,
+        "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+        "https://example.test/otc-directory.txt",
+    )
+    await seed_provider_runtime(async_db)
+    chain = await resolve_provider_chain(async_db, ProviderCapability.UNIVERSE_DISCOVERY)
+
+    assert any(item.provider_name == "finra_otc_directory" for item in chain)
+
+
+@pytest.mark.asyncio
 async def test_explicit_legacy_yfinance_requires_a_verified_quota(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     await seed_provider_runtime(async_db)

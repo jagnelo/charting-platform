@@ -29,7 +29,7 @@ from app.models.provider_runtime import (
     ProviderHealthState,
     ProviderPolicy,
 )
-from app.providers import get_provider
+from app.providers import get_provider, provider_configuration_required, provider_is_configured
 from app.services.onesignal import send_provider_availability_notification
 
 CLASSIFICATIONS = {
@@ -284,7 +284,10 @@ async def run_availability_probes(
             not entitlement.is_free or entitlement.configured_plan in {"excluded", "unreviewed"}
         ):
             classification = "entitlement_exclusion"
-        elif not provider_configured(source, entitlement):
+        elif (
+            provider_configuration_required(source.name)
+            and not provider_is_configured(source.name)
+        ) or not provider_configured(source, entitlement):
             classification = "not_configured"
         else:
             try:

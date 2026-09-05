@@ -1,3 +1,4 @@
+from app.config import settings
 from app.providers.registry import (
     get_default_discovery_provider,
     get_default_event_provider,
@@ -9,6 +10,8 @@ from app.providers.registry import (
     get_price_history_provider,
     get_provider,
     list_provider_capabilities,
+    provider_configuration_required,
+    provider_is_configured,
 )
 
 
@@ -24,6 +27,7 @@ def test_backend_env_example_keeps_yfinance_out_of_new_workstation_chains():
     )
     assert json.loads(identifier_line.split("=", 1)[1]) == ["openfigi"]
     assert seeds["option_chain"] == ["yfinance"]
+    assert "finra_otc_directory" in seeds["universe_discovery"]
     assert "alpaca" not in seeds["instrument_search"]
     assert all(
         "yfinance" not in providers
@@ -69,6 +73,20 @@ class TestProviderRegistry:
     def test_default_options_provider_matches_yfinance(self):
         provider = get_default_options_provider()
         assert provider.name == "yfinance"
+
+    def test_otc_directory_is_in_the_default_universe_chain_but_requires_source_config(self):
+        assert "finra_otc_directory" in settings.PROVIDER_CHAIN_SEEDS["universe_discovery"]
+        assert provider_configuration_required("finra_otc_directory") is True
+
+    def test_otc_directory_configuration_is_fail_closed(self, monkeypatch):
+        monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", "")
+        assert provider_is_configured("finra_otc_directory") is False
+        monkeypatch.setattr(
+            settings,
+            "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+            "https://example.test/otc-directory.txt",
+        )
+        assert provider_is_configured("finra_otc_directory") is True
 
     def test_yfinance_is_available_as_price_history_provider(self):
         provider = get_price_history_provider("yfinance")

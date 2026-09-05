@@ -28,6 +28,7 @@ from app.providers import (
     ensure_data_source,
     get_provider,
     list_provider_capabilities,
+    provider_configuration_required,
     provider_is_configured,
     supported_provider_names,
 )
@@ -731,7 +732,12 @@ async def resolve_provider_chain(
         configured_plan = str(entitlement.configured_plan or "").strip().lower()
         if not configured_plan or configured_plan == "unreviewed":
             continue
-        if entitlement.authentication_required and not provider_is_configured(data_source.name):
+        if (
+            provider_configuration_required(data_source.name)
+            and not provider_is_configured(data_source.name)
+        ) or (
+            entitlement.authentication_required and not provider_is_configured(data_source.name)
+        ):
             continue
         if (
             data_source.name == "yfinance"

@@ -108,8 +108,18 @@ class Settings(BaseSettings):
         "latest_price": ["alpaca", "alpha_vantage"],
         "instrument_events": ["alpaca", "edgar"],
         # SEC adds official US issuer/ticker/exchange evidence across venues;
-        # it does not replace authenticated or market-data discovery routes.
-        "universe_discovery": ["alpaca", "edgar", "massive", "nasdaq", "alpha_vantage"],
+        # Nasdaq covers the documented NMS files, while the explicitly
+        # configured FINRA directory is the fail-closed OTC counterpart. The
+        # latter has no inferred quota and therefore remains non-routable until
+        # its source, terms, and quota contract are operator-approved.
+        "universe_discovery": [
+            "alpaca",
+            "edgar",
+            "massive",
+            "nasdaq",
+            "finra_otc_directory",
+            "alpha_vantage",
+        ],
     }
     # Provider-specific, documentation-backed budgets.  An omitted provider
     # (or omitted dimension) is intentionally unknown and therefore not

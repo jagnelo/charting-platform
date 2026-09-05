@@ -320,9 +320,27 @@ _AUTH_SETTINGS: dict[str, tuple[str, ...]] = {
     "finra": ("FINRA_CLIENT_ID", "FINRA_CLIENT_SECRET"),
 }
 
+# Some adapters need an operator-approved source/configuration value even
+# though they do not authenticate with that source. Keep these separate from
+# credential settings so a missing URL is visible as ``not configured`` rather
+# than being mistaken for a valid keyless provider.
+_CONFIGURATION_SETTINGS: dict[str, tuple[str, ...]] = {
+    "finra_otc_directory": ("FINRA_OTC_SYMBOL_DIRECTORY_URL",),
+}
+
+
+def provider_configuration_required(name: str) -> bool:
+    """Return whether the adapter needs explicit non-credential configuration."""
+
+    return name in _CONFIGURATION_SETTINGS
+
 
 def provider_is_configured(name: str) -> bool:
-    """Return whether the deployment supplied the credentials this adapter needs."""
+    """Return whether the deployment supplied required adapter inputs."""
+
+    configured = _CONFIGURATION_SETTINGS.get(name)
+    if configured is not None:
+        return all(bool(getattr(settings, key, "")) for key in configured)
 
     required = _AUTH_SETTINGS.get(name)
     if required is None:

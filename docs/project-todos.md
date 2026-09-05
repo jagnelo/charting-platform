@@ -66,7 +66,9 @@ current capability/quota ledger.
       complete-run counts, provider symbol/venue presence, conservative
       repeated-missing confirmation, lifecycle events, identity issues, and
       core D1 coverage snapshots. Nasdaq public directory discovery is retained
-      as venue evidence alongside SEC/Alpaca/Massive/Alpha Vantage.
+      as NMS venue evidence alongside SEC/Alpaca/Massive/Alpha Vantage, and the
+      configurable FINRA OTC directory is present as an explicitly gated OTC
+      discovery path.
 - [ ] Activate reviewed optional-provider entitlements, reconcile the complete
       US venue universe in production, and complete the separate post-merge
       30-day observation run. New routing remains disabled until the workstream
