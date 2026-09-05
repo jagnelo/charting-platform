@@ -28,6 +28,7 @@ SUCCESSOR_NATIVE = "successor_native"
 LICENSED_VENDOR = "licensed_vendor"
 SEC_FILING = "sec_filing"
 NO_SOURCE = "none"
+_CURRENT_SOURCE_TIERS = {ISSUER_NATIVE, SUCCESSOR_NATIVE, LICENSED_VENDOR}
 
 
 @dataclass(frozen=True, slots=True)
@@ -1451,7 +1452,7 @@ def evaluate_tier0_shadow_gate(
             if availability == CURRENT and (
                 not identity_verified
                 or completeness not in _COMPLETE_STATUSES
-                or source_tier not in {ISSUER_NATIVE, SUCCESSOR_NATIVE, LICENSED_VENDOR}
+                or source_tier not in _CURRENT_SOURCE_TIERS
                 or symbol_audit_outcome != CURRENT
             ):
                 violation = "current_observation_failed_identity_completeness_or_source_gate"
@@ -1471,7 +1472,7 @@ def evaluate_tier0_shadow_gate(
                 and availability == CURRENT
                 and identity_verified
                 and completeness in _COMPLETE_STATUSES
-                and source_tier in {ISSUER_NATIVE, SUCCESSOR_NATIVE, LICENSED_VENDOR}
+                and source_tier in _CURRENT_SOURCE_TIERS
                 and usable
                 and deadline is not None
                 and not missed_freshness
@@ -1570,6 +1571,9 @@ def evaluate_capability(
     elif source_tier == SEC_FILING:
         availability = DEGRADED
         reason = "Holdings are reconstructed from SEC filings and are not issuer-current support."
+    elif source_tier not in _CURRENT_SOURCE_TIERS:
+        availability = DEGRADED
+        reason = "The latest holdings artifact has no recognized current-data source tier."
     elif not identity_verified:
         availability = DEGRADED
         reason = "The latest holdings artifact has not passed explicit ETF identity verification."
@@ -1616,11 +1620,7 @@ def evaluate_capability(
             "The symbol-level source audit is not current support "
             f"({symbol_audit.evidence_state}); showing last-known data only."
         )
-    usable = availability == CURRENT and source_tier in {
-        ISSUER_NATIVE,
-        SUCCESSOR_NATIVE,
-        LICENSED_VENDOR,
-    }
+    usable = availability == CURRENT and source_tier in _CURRENT_SOURCE_TIERS
     return ETFHoldingsCapability(
         availability=availability,
         source_tier=source_tier,

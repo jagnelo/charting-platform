@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from app.services.etf_holdings_capability import (
     CURRENT,
     DEGRADED,
+    NO_SOURCE,
     SEC_FILING,
     STALE,
     UNAVAILABLE,
@@ -167,6 +168,23 @@ def test_unverified_identity_never_becomes_current_even_with_complete_rows():
     assert result.identity_verified is False
     assert result.usable_for_current_analysis is False
     assert "identity verification" in result.reason
+
+
+def test_unrecognized_source_tier_never_becomes_current_even_with_complete_rows():
+    result = evaluate_capability(
+        profile(),
+        snapshot(
+            provenance="stored_holdings_snapshot",
+            source_provider="unclassified_provider",
+        ),
+        state(),
+        now=NOW,
+    )
+
+    assert result.source_tier == NO_SOURCE
+    assert result.availability == DEGRADED
+    assert result.usable_for_current_analysis is False
+    assert "recognized current-data source tier" in result.reason
 
 
 def test_successor_metadata_is_preserved_as_a_distinct_source_tier():
