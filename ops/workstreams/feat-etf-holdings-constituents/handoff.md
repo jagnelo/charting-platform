@@ -4179,3 +4179,21 @@ The four Tier-0 symbols therefore remain unavailable, no credential or paid
 route was enabled, provider-platform remains unstaged, AC10 remains deferred,
 and AC14 remains the post-integration 30-day production shadow gate. No other
 branch or worktree was modified.
+
+## Affected-consumer validation checkpoint — 2026-09-05
+
+The broader post-change validation is green for the branch-local contracts.
+The frontend affected-consumer set passed `159` tests across the ETF Holdings
+panel/view, shared source-capability formatter, Market Map, Breadth, Study Lab,
+virtual watchlist, and watchlist panel suites; `npm run type-check` passed.
+The backend affected-consumer and ETF monitoring set passed `714` unit tests
+across capability, refresh, adapters, scheduled tasks, Market Map, watchlist
+source capability, Strategy Lab, research, and watchlist routers. Workstream
+validation and `git diff --check` passed as well.
+
+This is proportional branch-local evidence after the user-facing diagnostics
+change; it does not replace the previously recorded full Docker gate or claim
+provider-platform integration. Provider-platform remains unstaged, DXJ/NTSX/
+MINT/BOND remain unavailable for current analysis, AC10 remains deferred, and
+AC14 remains the post-integration 30-day production shadow gate. No other
+branch or worktree was modified.
