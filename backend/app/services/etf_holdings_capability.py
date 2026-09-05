@@ -119,6 +119,7 @@ def current_analysis_error_detail(capability: ETFHoldingsCapability) -> dict[str
         "availability": capability.availability,
         "source_tier": capability.source_tier,
         "usable_for_current_analysis": False,
+        "failure_class": capability.failure_class,
         "reason": capability.reason,
     }
 
@@ -191,6 +192,7 @@ class ETFHoldingsCapability:
     unresolved_count: int | None
     completeness_status: str | None
     failure_reason: str | None
+    failure_class: str | None
     consecutive_failures: int
     schema_fingerprint: str | None
     reason: str
@@ -218,6 +220,7 @@ class ETFHoldingsCapability:
             "unresolved_count": self.unresolved_count,
             "completeness_status": self.completeness_status,
             "failure_reason": self.failure_reason,
+            "failure_class": self.failure_class,
             "consecutive_failures": self.consecutive_failures,
             "schema_fingerprint": self.schema_fingerprint,
             "reason": self.reason,
@@ -1720,6 +1723,18 @@ def evaluate_capability(
     identity_verified = _identity_verified(snapshot, state)
     state_status = str(state.status if state else "").lower()
     failure_reason = state.failure_reason if state else None
+    failure_class = None
+    if state is not None and state_status in {
+        "failure",
+        "needs_issuer_route",
+        "holdings_adapter_unresolved",
+        "circuit_open",
+    }:
+        raw_failure_class = state_metadata.get("last_failure_class")
+        if raw_failure_class is None:
+            raw_failure_class = state_metadata.get("last_canary_failure_class")
+        if raw_failure_class:
+            failure_class = str(raw_failure_class)
     schema_fingerprint = state_metadata.get("schema_fingerprint")
     controlled_fixture = bool(
         settings.E2E_SEED_MARKET_DATA
@@ -1842,6 +1857,7 @@ def evaluate_capability(
         if state
         else None,
         failure_reason=failure_reason,
+        failure_class=failure_class,
         consecutive_failures=_failure_streak(state_metadata, state_status=state_status),
         schema_fingerprint=str(schema_fingerprint) if schema_fingerprint else None,
         reason=reason,

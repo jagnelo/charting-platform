@@ -11,6 +11,7 @@ from app.services.etf_holdings_capability import (
     STALE,
     UNAVAILABLE,
     UNKNOWN,
+    current_analysis_error_detail,
     evaluate_capability,
     evaluate_tier0_shadow_gate,
     freshness_deadline,
@@ -117,14 +118,38 @@ def test_failed_current_route_keeps_last_known_snapshot_degraded():
     result = evaluate_capability(
         profile(),
         snapshot(),
-        state(status="failure", reason="HTTP 403", failure=NOW),
+        state(
+            status="failure",
+            reason="WisdomTree issuer access challenge blocked the product route.",
+            failure=NOW,
+            extra_data={"last_failure_class": "issuer_access_blocked"},
+        ),
         now=NOW,
     )
 
     assert result.availability == DEGRADED
     assert result.usable_for_current_analysis is False
     assert result.displayable_last_known is True
-    assert result.failure_reason == "HTTP 403"
+    assert result.failure_reason == "WisdomTree issuer access challenge blocked the product route."
+    assert result.failure_class == "issuer_access_blocked"
+
+
+def test_current_analysis_error_detail_preserves_failure_classification():
+    result = evaluate_capability(
+        profile(),
+        None,
+        state(
+            status="failure",
+            reason="WisdomTree issuer access challenge blocked the product route.",
+            failure=NOW,
+            extra_data={"last_failure_class": "issuer_access_blocked"},
+        ),
+        now=NOW,
+    )
+
+    detail = current_analysis_error_detail(result)
+
+    assert detail["failure_class"] == "issuer_access_blocked"
 
 
 def test_unspecified_cadence_expires_after_conservative_window():

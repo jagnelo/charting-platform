@@ -40,6 +40,7 @@ class ETFHoldingsCapabilityOut(BaseModel):
     unresolved_count: int | None = None
     completeness_status: str | None = None
     failure_reason: str | None = None
+    failure_class: str | None = None
     consecutive_failures: int = 0
     schema_fingerprint: str | None = None
     reason: str

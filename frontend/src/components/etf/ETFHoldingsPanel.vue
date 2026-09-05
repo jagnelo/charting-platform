@@ -29,6 +29,9 @@
         <small v-if="capability.displayable_last_known">
           A last-known snapshot may be displayed for historical context, but it must not be treated as current.
         </small>
+        <small v-if="capability.failure_class" class="capability-failure-class">
+          Last check classification: {{ failureClassLabel(capability.failure_class) }}
+        </small>
         <small v-if="capability.symbol_audit?.next_action" class="capability-next-action">
           Next source-review action: {{ capability.symbol_audit.next_action }}
         </small>
@@ -218,6 +221,7 @@ const visible = computed(() => !!snapshot.value || !!capability.value)
 const capabilityLabel = (value: ETFHoldingsCapability) =>
   String(value.availability || 'unknown').replace(/_/g, ' ')
 const capabilityClass = (value: ETFHoldingsCapability) => `capability--${value.availability || 'unknown'}`
+const failureClassLabel = (value: string) => value.replace(/_/g, ' ')
 const provenanceLabel = computed(() =>
   String(snapshot.value?.provenance || '').replace(/_/g, ' ') || '—'
 )
@@ -514,6 +518,7 @@ watch(visibleHoldings, rows => {
 .capability-notice strong { text-transform: capitalize; }
 .capability-notice span { color: #d7c17d; }
 .capability-notice small { color: #aa9862; }
+.capability-notice .capability-failure-class { color: #f0c66a; }
 .capability-notice .capability-next-action { color: #b9c6d8; }
 .summary-strip {
   display: grid;

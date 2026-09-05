@@ -969,6 +969,7 @@ async def run_etf_holdings_capability_canaries(
             "last_canary_status": status,
             "last_canary_latency_ms": elapsed_ms,
             "last_canary_failure_class": failure_class,
+            "last_failure_class": failure_class,
             "last_canary_failure_reason": failure_text,
             "last_canary_recovered": recovered,
             "circuit_state": circuit_state,
@@ -2199,6 +2200,7 @@ async def _record_skip(
         **state_metadata,
         "consecutive_failures": _failure_streak(state_metadata) + 1,
         "last_error_class": "RouteNotReady",
+        "last_failure_class": "route_not_ready",
     }
 
 
@@ -2234,6 +2236,7 @@ async def _record_probe(
         "consecutive_failures": 0
         if probe.status == "ready"
         else _failure_streak(state_metadata) + 1,
+        "last_failure_class": None if probe.status == "ready" else "route_not_ready",
     }
 
 
@@ -2273,6 +2276,8 @@ async def _record_success(db: AsyncSession, profile: ETFProfile, snapshot=None) 
             if observation_metadata.get(key) is not None
         },
         "consecutive_failures": 0,
+        "last_failure_class": None,
+        "last_canary_failure_class": None,
     }
     state.extra_data.pop("last_schema_drift", None)
     if snapshot is not None and snapshot.source_provider:
@@ -2320,10 +2325,12 @@ async def _record_failure(db: AsyncSession, profile: ETFProfile, failure: Except
     state.last_failure_at = datetime.now(UTC)
     state.last_checked_at = state.last_failure_at
     state_metadata = _state_metadata(state.extra_data)
+    failure_class = _canary_failure_class(failure)
     state.extra_data = {
         **state_metadata,
         "consecutive_failures": _failure_streak(state_metadata) + 1,
         "last_error_class": type(failure).__name__ if isinstance(failure, Exception) else "Error",
+        "last_failure_class": failure_class,
     }
     if isinstance(failure, ETFHoldingsSchemaDriftError):
         state.extra_data["last_schema_drift"] = {

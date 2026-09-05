@@ -85,6 +85,9 @@
           <span v-if="selectedCapability.composition_date">
             Last composition: {{ selectedCapability.composition_date }}.
           </span>
+          <span v-if="selectedCapability.failure_class" class="capability-failure-class">
+            Last check classification: {{ capabilityFailureLabel(selectedCapability.failure_class) }}.
+          </span>
           <span v-if="selectedCapability.symbol_audit?.next_action" class="capability-next-action">
             Next source-review action: {{ selectedCapability.symbol_audit.next_action }}
           </span>
@@ -655,6 +658,10 @@ function capabilityLabel(capability: ETFHoldingsCapability | null | undefined): 
 
 function capabilityClass(capability: ETFHoldingsCapability | null | undefined): string {
   return `capability--${capability?.availability || 'unknown'}`
+}
+
+function capabilityFailureLabel(failureClass: string | null | undefined): string {
+  return String(failureClass || '').replace(/_/g, ' ')
 }
 
 const pageEnd = computed(() => {
@@ -2020,6 +2027,10 @@ button.holding-row:hover,
 .notice--capability .capability-next-action {
   display: block;
   color: #b9c6d8;
+}
+.notice--capability .capability-failure-class {
+  display: block;
+  color: #f0c66a;
 }
 .empty-state {
   border: 1px dashed #292929;

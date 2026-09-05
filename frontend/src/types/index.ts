@@ -207,6 +207,7 @@ export interface ETFHoldingsCapability {
   unresolved_count?: number | null
   completeness_status?: string | null
   failure_reason?: string | null
+  failure_class?: string | null
   consecutive_failures: number
   schema_fingerprint?: string | null
   reason: string

@@ -177,4 +177,25 @@ describe('ETFHoldingsPanel', () => {
       expect(wrapper.emitted('availability')?.at(-1)).toEqual([false])
     },
   )
+
+  it('shows the machine-readable issuer access classification in the degradation notice', async () => {
+    vi.mocked(api.get)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        availability: 'unavailable',
+        source_provider: 'wisdomtree',
+        source_tier: 'none',
+        usable_for_current_analysis: false,
+        displayable_last_known: false,
+        consecutive_failures: 1,
+        failure_class: 'issuer_access_blocked',
+        reason: 'WisdomTree issuer access challenge blocked the product route.',
+      })
+
+    const wrapper = mount(ETFHoldingsPanel, { props: { symbol: 'DXJ' } })
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('Last check classification: issuer access blocked')
+    })
+  })
 })

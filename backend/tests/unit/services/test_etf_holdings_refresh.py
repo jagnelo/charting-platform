@@ -288,6 +288,7 @@ async def test_schema_drift_failure_persists_comparable_fingerprints():
     await refresh._record_failure(db, profile, failure)
 
     assert state.extra_data["last_error_class"] == "ETFHoldingsSchemaDriftError"
+    assert state.extra_data["last_failure_class"] == "schema_drift"
     assert state.extra_data["last_schema_drift"] == {
         "previous_fingerprint": "schema-old",
         "observed_fingerprint": "schema-new",
@@ -334,6 +335,7 @@ async def test_canary_failure_persists_class_and_opens_circuit_at_threshold(monk
     assert report["circuit_state"] == "open"
     assert state.status == "circuit_open"
     assert state.extra_data["last_canary_failure_class"] == "empty_or_partial_source"
+    assert state.extra_data["last_failure_class"] == "empty_or_partial_source"
     assert state.extra_data["circuit_open_until"] is not None
 
 
