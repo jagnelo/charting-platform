@@ -104,24 +104,21 @@ status: in_progress
 progress:
   completed: []
   total: 10
-  current_phase: R3_R4_study_series_threshold_promotion
+  current_phase: R3_R4_primary_study_lab_series_threshold_promotion
   current_blocker: >-
-    Current slice product commit 225ab93f adds explicit operator/threshold promotion for finite
-    numeric Study series in persisted Research Results, with Boolean column/filter/scan/gauge/alert
+    Current slice product commit b6316871 adds explicit operator/threshold promotion for finite
+    numeric Study series in the primary Study Lab, with Boolean column/filter/scan/gauge/alert
     fan-out, canonical member scope, immutable run/output lineage, and series_target_to_boolean
-    metadata. Focused Results/capability coverage is 34/34, full frontend is 948/948 across 109
-    files, type-check/build/diff checks pass, backend code+screener integration is 51/51 with the
-    existing NumPy warnings, and authenticated F8t-results-series-threshold is 1/1 on a rebuilt
-    stack. The exact-tip run at this product tip passed all static/dependency/migration, backend,
-    frontend, build, compose/provider, stack, and runner stages; the first functional pass had one
-    transient F8j conflict-recovery timeout, isolated F8j passed 1/1, and the complete functional
-    rerun passed 153/153 with 109 documented skips across 262 specs. The visual-only matrix is
-    reproducibly 98/104: watchlist-column-editor-open differs by 13844 pixels at visual-1080p-100/
-    125; workspace-floating differs by 12097/9770/12097/9770 pixels at visual-1080p-100/125/
-    1440p-100/125. No baseline, mask, threshold, skip, fallback oracle, provider rule, or
-    acceptance policy changed; teardown and resource accounting are clean. Primary Study Lab
-    direct threshold controls, canonical provider/history, native-window, accessibility/security,
-    dense-data, and visual-oracle gaps remain open.
+    metadata. Focused Study Lab coverage is 26/26, full frontend is 949/949 across 109 files,
+    type-check/build/diff checks pass, and authenticated F9j is 1/1 on a rebuilt stack. The
+    exact-tip gate at this product tip passed all static/dependency/migration, backend, frontend,
+    build, compose/provider, stack, and runner stages; functional Playwright passed 157/157 with
+    106 documented skips across 263 specs. The visual-only matrix is reproducibly 98/104:
+    watchlist-column-editor-open differs by 13844 pixels at visual-1080p-100/125; workspace-floating
+    differs by 12097/9770/12097/12097 pixels at visual-1080p-100/125/1440p-100/125. No baseline,
+    mask, threshold, skip, fallback oracle, provider rule, or acceptance policy changed; teardown
+    and resource accounting are clean. Canonical provider/history, richer Study targets,
+    native-window, accessibility/security, dense-data, and visual-oracle gaps remain open.
     Historical prior boundary: product commit ad90b988 generalizes the Market Map canonical source-history readiness surface
     with covered/member counts, bar totals, and observed oldest/newest date ranges for every
     returned timeframe, after product commit 6fa41b81 extended benchmark-family labels and
@@ -148,16 +145,15 @@ progress:
     dense-data, and visual-oracle review remain open.
   next_action: "Continue the next compatible Study target or canonical provider/history slice with focused regression coverage, then rerun the exact-tip gate at the new coherent tip; do not change visual policy or provider fallback rules."
 remaining_gaps:
-  - "Current boundary (product tip a6737e18): numeric Study series threshold promotion is complete
-    in persisted Research Results, with focused Results/capability coverage 34/34, full frontend
-    948/948, backend code+screener integration 51/51, authenticated F8t-results-series-threshold
-    1/1, and a clean stack teardown. The complete functional rerun passed 153/153 with 109
-    documented skips; isolated F8j conflict recovery passed 1/1 after one transient first-gate
-    timeout. Visual-only acceptance remains 98/104 with six concentrated state-oracle diffs:
+  - "Current boundary (product tip b6316871): primary Study Lab numeric series threshold promotion is complete
+    with focused Study Lab coverage 26/26, full frontend 949/949 across 109 files, authenticated
+    F9j 1/1, and a clean stack teardown. The exact-tip gate passed every non-visual stage; functional
+    Playwright passed 157/157 with 106 documented skips across 263 specs. Visual-only acceptance
+    remains 98/104 with six concentrated state-oracle diffs:
     watchlist-column-editor-open (13844 pixels at 1080p-100/125) and workspace-floating (12097/
-    9770/12097/9770 pixels at 1080p-100/125/1440p-100/125)."
-  - "R0/R7: the seeded Chromium suite executes 261 specs with 155 passes and 106 documented skips; focused structured-event F8o and persisted Research Results F8t-results flows pass 1/1 for their named filter/alert actions at product tips 6f575a34 and 24287f3c, scalar/series promotions pass at f8d68d3f, the Boolean matrix passes at 68856251, the range-center chart adapter passes at 397c554a, and latest-series column promotion passes at a6301f0f. The primary Study Lab now has the latest-series target with an explicit single-output contract fix at 2ee80c3, the range-center target at a12c428c, and the explicit events_to_signal lineage fix at 3a7e4861; focused Study Lab coverage is 25/25 and direct F9i/F8o browser coverage passes 1/1 on rebuilt stacks. Market Map benchmark-family history readiness renders all returned D1/W1/MN legs at 0712951, surfaces observed oldest/newest bounds at 6fa41b81, and the generalized source-history strip renders every returned timeframe at ad90b988, with direct F8s browser coverage 1/1. The exact-tip gate at metadata tip 70d99baf (product tip ad90b988) completed all non-visual stages; a transient F8r discovery failure was cleared by an isolated 1/1 plus 3/3 retry, and the full functional rerun passed. The four-project visual matrix remains 98/104 with six concentrated screenshot diffs: watchlist-column-editor-open at visual-1080p-100/125 (13,844 pixels each) and workspace-floating at visual-1080p-100/125/1440p-100/1440p-125 (11,901/12,097/12,097/5,512 pixels by viewport)."
+    9770/12097/12097 pixels at 1080p-100/125/1440p-100/125)."
+  - "Historical R0/R7 receipts: the seeded Chromium suite executes 261 specs with 155 passes and 106 documented skips; focused structured-event F8o and persisted Research Results F8t-results flows pass 1/1 for their named filter/alert actions at product tips 6f575a34 and 24287f3c, scalar/series promotions pass at f8d68d3f, the Boolean matrix passes at 68856251, the range-center chart adapter passes at 397c554a, and latest-series column promotion passes at a6301f0f. The primary Study Lab now has the latest-series target with an explicit single-output contract fix at 2ee80c3, the range-center target at a12c428c, and the explicit events_to_signal lineage fix at 3a7e4861; focused Study Lab coverage is 25/25 and direct F9i/F8o browser coverage passes 1/1 on rebuilt stacks. Market Map benchmark-family history readiness renders all returned D1/W1/MN legs at 0712951, surfaces observed oldest/newest bounds at 6fa41b81, and the generalized source-history strip renders every returned timeframe at ad90b988, with direct F8s browser coverage 1/1. The exact-tip gate at metadata tip 70d99baf (product tip ad90b988) completed all non-visual stages; a transient F8r discovery failure was cleared by an isolated 1/1 plus 3/3 retry, and the full functional rerun passed. The four-project visual matrix remains 98/104 with six concentrated screenshot diffs: watchlist-column-editor-open at visual-1080p-100/125 (13,844 pixels each) and workspace-floating at visual-1080p-100/125/1440p-100/1440p-125 (11,901/12,097/12,097/5,512 pixels by viewport)."
   - "R1-R2: the frontend now surfaces the provider-neutral benchmark-family readiness matrix beside Market Map, including member/weighted/classified counts, point-in-time support, entitlement/probe state, latest disclosure resolution, and observed continuity. Canonical family population/history and the live-data top-down trader workflow remain incomplete; the latest four bounded SEC-search passes leave 80/101 QQQ members as HOLDING-* placeholders, QQQE/SPDR dated holdings sources remain unresolved, W1/MN coverage is open, and full QQQ member-history coverage remains unestablished despite 21/21 canonical members meeting the D1 technical floor and corrected point-in-time end filtering."
   - "R3-R4: historical analytics and compatible immutable-output promotion across workstation consumers; events_to_boolean covers watchlist-filter and alert fan-out for completed single-output event runs and explicitly selected named events artifacts from multi-output Study Lab studies. Product tip 22fd676e adds the named structured-event Strategy signal cell in Research Results, and 3a7e4861 extends the same explicit events_to_signal asset adapter with source/output/run lineage to the primary Study Lab for direct and named multi-output events. Structured scalar/series/Boolean/range outputs cover named column, chart, filter, scan, gauge, and alert targets where shape-compatible; numeric Study series use latest_series_to_scalar and named ranges use range_center_to_series. The explicit capability matrix keeps table/bar/histogram/scatter/heatmap/dashboard/breadth shapes view/export-only; richer chart/list/gauge targets remain open."
   - "R5-R6: required visual states, native-window resilience, accessibility, security, dense-data budgets, and logging evidence remain open; the seeded two-popout endurance guard is now evidenced through 105 churn rounds."
-  - "R7: the earlier completed exhaustive gate at metadata tip 70d99baf (product tip ad90b988) remains historical evidence; the current a6737e18 boundary has the same six-diff visual blocker after a passing functional rerun. Canonical provider/history and remaining R3-R6 evidence remain open. Integration, promotion, and deployment remain separately authorized."
+  - "R7: the exact-tip gate at current product tip b6316871 passed all non-visual stages and functional Playwright (157 passed, 106 documented skips across 263 specs); the four-project visual matrix remains 98/104 with the same six state-oracle diffs. Canonical provider/history, richer Study, and remaining R3-R6 evidence remain open. Integration, promotion, and deployment remain separately authorized."

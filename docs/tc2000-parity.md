@@ -1,5 +1,27 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-09-05 — Primary Study Lab numeric-series threshold promotion
+
+The primary Study Lab now offers explicit threshold controls for completed single-output finite
+numeric `series` runs. A selected operator (`gt`, `gte`, `lt`, `lte`, `eq`, or `ne`) and finite
+threshold can save a typed Boolean column or create one reusable current-data condition for a
+watchlist filter, scan, Market Gauge, or alert. The source output name, immutable Study/run/dataset
+lineage, canonical member IDs/source/membership, timeframe, and `series_target_to_boolean` adapter
+are retained; unsupported and non-finite shapes remain capability-gated.
+
+Focused Study Lab coverage passed `26/26`; full frontend Vitest passed `949/949` across `109` files;
+TypeScript, production build, and `git diff --check` passed; authenticated F9j passed `1/1` on the
+rebuilt branch-scoped Docker stack. Product commit `b6316871` is pushed to
+`origin/feat/tc2000-frontend-rework`. The exact-tip gate passed all non-visual stages, including
+backend units `1,315/1,315`, integration `384/384` with the existing `54` warnings, combined
+coverage `80.91%`, and functional Playwright `157` passed with `106` documented skips across `263`
+specs. Visual acceptance remains `98/104` with six unchanged state-oracle diffs:
+`watchlist-column-editor-open` (`13,844` pixels at 1080p-100/125) and `workspace-floating`
+(`12,097`/`9,770`/`12,097`/`12,097` pixels at 1080p-100/125/1440p-100/125). No baseline, mask,
+threshold, skip, fallback oracle, provider rule, or acceptance policy changed. Primary provider/
+history, richer Study targets, native-window/accessibility/security, dense-data, and exact V25
+visual-oracle gaps remain open.
+
 ## 2026-09-05 — Structured Study series threshold promotion
 
 Persisted Research Results now represents the missing safe promotion boundary for finite numeric

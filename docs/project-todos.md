@@ -1,5 +1,29 @@
 # Project TODO Memory
 
+### 2026-09-05 — Promote primary Study Lab series through explicit Boolean thresholds
+
+- [x] Extend the primary Study Lab for completed single-output finite numeric `series` runs with
+      explicit `gt`, `gte`, `lt`, `lte`, `eq`, and `ne` threshold controls. The user can save a
+      typed Boolean column or reuse one stable threshold condition for a watchlist filter, scan,
+      Market Gauge, or alert; the original Study source remains immutable.
+- [x] Preserve the selected output, canonical member IDs/source/membership, timeframe, dataset and
+      run lineage, condition/column code versions, and `series_target_to_boolean` adapter. Non-finite
+      observations, missing canonical scope, and unsupported run shapes remain explicitly unavailable.
+- [x] Add focused UI/API regression coverage for the promotion matrix and stable screener reuse.
+      Focused Study Lab coverage passed `26/26`; full frontend Vitest passed `949/949` across `109`
+      files; TypeScript, production build, and `git diff --check` passed; authenticated F9j passed
+      `1/1` on the rebuilt branch-scoped Docker stack. Product commit `b6316871` is pushed to
+      `origin/feat/tc2000-frontend-rework`.
+- [x] Re-run the exact-tip exhaustive gate at product tip `b6316871`. Locked dependency/migration,
+      Ruff/format, TypeScript, backend units (`1,315/1,315`), backend integration (`384/384` with
+      the existing `54` warnings), combined coverage (`80.91%`), frontend Vitest (`949/949`), build,
+      compose/provider policy, stack health, and runner isolation passed. Functional Playwright
+      passed `157/157` with `106` documented skips across `263` specs; the four-project visual matrix
+      remains `98/104` with the same six state-oracle diffs. Teardown and resource accounting were
+      clean; no visual policy, fallback rule, or protected worktree changed.
+- [ ] Continue canonical provider/history population, richer Study targets, native-window/
+      accessibility/security evidence, dense-data budgets, and visual-oracle review.
+
 ### 2026-09-05 — Promote Study numeric series through explicit Boolean thresholds
 
 - [x] Extend persisted Research Results for finite numeric `series` artifacts with an explicit
@@ -22,8 +46,8 @@
       member universe, and screener provenance assertions. Exact-tip gate evidence is recorded in
       the dated entry below. The existing six visual matrix diffs must not be masked, baselined, thresholded,
       skipped, or treated as provider gaps.
-- [ ] Continue canonical provider/history population, primary Study Lab threshold controls,
-      native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review.
+- [ ] Continue canonical provider/history population, richer Study targets, native-window/
+      accessibility/security evidence, dense-data budgets, and visual-oracle review.
 
 ### 2026-09-05 — Exact-tip gate after numeric Study series threshold promotion
 
@@ -38,8 +62,8 @@
       `watchlist-column-editor-open` (`13,844` pixels at 1080p-100/125) and
       `workspace-floating` (`12,097`/`9,770`/`12,097`/`9,770` pixels at 1080p-100/125/1440p-100/125).
       No baseline, mask, threshold, skip, fallback oracle, provider rule, or acceptance policy changed.
-- [ ] Continue canonical provider/history population, primary Study Lab threshold controls,
-      native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review.
+- [ ] Continue canonical provider/history population, richer Study targets, native-window/
+      accessibility/security evidence, dense-data budgets, and visual-oracle review.
 
 ### 2026-09-05 — Surface canonical source-history ranges
 

@@ -10,6 +10,29 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Promote primary Study Lab series thresholds
+
+Product commit `b6316871` (`feat(tc2000): promote Study Lab series thresholds`) extends the
+primary Study Lab with explicit `gt`/`gte`/`lt`/`lte`/`eq`/`ne` plus finite-threshold controls for
+completed single-output numeric `series` runs. The user can save a typed Boolean column or reuse
+one stable threshold condition for a watchlist filter, scan, Market Gauge, or alert. Selected
+output identity, immutable Study/run/dataset lineage, canonical member IDs/source/membership,
+timeframe, and `series_target_to_boolean` are retained; unsupported/non-finite runs remain
+capability-gated and the source is never rewritten.
+
+Evidence: focused Study Lab coverage `26/26`; full frontend Vitest `949/949` across `109` files;
+TypeScript, production build, and `git diff --check` passed; authenticated F9j passed `1/1` on a
+rebuilt branch-scoped Docker stack. The exact-tip `full_stack_browser` gate passed dependency/
+migration, lint/format, backend units `1,315/1,315`, integration `384/384` with the existing `54`
+warnings, combined coverage `80.91%`, frontend coverage, build, compose/provider policy, stack
+health, and runner isolation. Functional Playwright passed `157/157` with `106` documented skips
+across `263` specs. The four-project visual matrix remains `98/104` with six unchanged
+state-oracle diffs: `watchlist-column-editor-open` (`13,844` pixels at 1080p-100/125) and
+`workspace-floating` (`12,097`/`9,770`/`12,097`/`12,097` pixels at 1080p-100/125/1440p-100/125).
+No visual policy, fallback rule, or protected worktree changed; teardown/resource accounting was
+clean. Continue canonical provider/history, richer Study targets, native-window/accessibility/
+security, dense-data budgets, and visual-oracle work.
+
 ## 2026-09-05 — Promote Study series thresholds
 
 Product commit `225ab93f` (`feat(tc2000): promote Study series thresholds`) extends persisted

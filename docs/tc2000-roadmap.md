@@ -11,7 +11,26 @@ records in `docs/project-todos.md`, `docs/tc2000-parity.md`,
 evidence ledgers. If a summary here conflicts with a dated test receipt or the current code, the
 current code and fresh evidence win.
 
-The current product slice is `225ab93f` (`feat(tc2000): promote Study series thresholds`). Persisted
+The current product slice is `b6316871` (`feat(tc2000): promote Study Lab series thresholds`). The
+primary Study Lab now exposes the same safe threshold fan-out as persisted Research Results for
+completed single-output finite numeric `series` runs: an explicit operator (`gt`, `gte`, `lt`,
+`lte`, `eq`, or `ne`) and finite threshold can produce a typed Boolean column or one reusable
+current-data condition for a watchlist filter, scan, Market Gauge, or alert. The selected output,
+canonical member IDs/source/membership, timeframe, dataset/run lineage, and
+`series_target_to_boolean` adapter remain explicit; the immutable Study source is not rewritten and
+unsupported/non-finite runs remain unavailable. Focused Study Lab coverage passed `26/26`; full
+frontend Vitest passed `949/949` across `109` files; TypeScript, production build, and diff checks
+passed; authenticated F9j passed `1/1` on a rebuilt branch-scoped Docker stack. The exact-tip gate
+at this product tip passed every non-visual stage, including backend units `1,315/1,315`, backend
+integration `384/384` with the existing `54` warnings, combined coverage `80.91%`, and functional
+Playwright `157` passed with `106` documented skips across `263` specs. The four-project visual
+matrix remains `98/104` with the same six state-oracle diffs; teardown and resource accounting were
+clean, and no visual policy or provider fallback rule changed. The preceding persisted-results
+slice is `225ab93f`, which supplies the same adapter contract at the Research Results boundary.
+Primary provider/history, richer Study, native-window/accessibility/security, dense-data, and
+visual-oracle gaps remain open.
+
+The preceding product slice was `225ab93f` (`feat(tc2000): promote Study series thresholds`). Persisted
 Research Results now exposes an explicit operator/threshold control for finite numeric `series`
 artifacts and promotes the selected output into a typed Boolean column, watchlist filter, scan,
 Market Gauge, or alert. The source run/code/output identity, declared canonical members, timeframe,

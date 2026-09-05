@@ -1,5 +1,23 @@
 # TC2000 Version 25 Visual-Parity Specification
 
+## 2026-09-05 — Primary Study Lab threshold controls and unchanged visual gate
+
+The primary Study Lab now exposes an explicit operator/finite-threshold row for completed
+single-output numeric `series` runs. The row can create a typed Boolean column or one reusable
+condition for filter, scan, Market Gauge, and alert fan-out while retaining source/output/run
+lineage and canonical member scope. This is a functional parity slice; no authoritative V25
+capture exists for the new promotion-row composition, so its exact typography, placement, and
+post-save visuals remain `required_missing`.
+
+The exact-tip gate at product commit `b6316871` passed every non-visual stage and functional
+Playwright (`157` passed, `106` documented skips across `263` specs). The unchanged four-project
+visual matrix remains `98/104`: `watchlist-column-editor-open` differs by `13,844` pixels at
+1080p-100/125, and `workspace-floating` differs by `12,097`/`9,770`/`12,097`/`12,097` pixels at
+1080p-100/125/1440p-100/125. No baseline, mask, threshold, skip, fallback oracle, provider rule,
+or acceptance policy changed. These concentrated state-oracle mismatches, along with canonical
+provider/history, richer Study, native-window/accessibility/security, dense-data, and exact V25
+visual-oracle gaps, remain open.
+
 ## 2026-08-19 — Nested geometry and group frames are the source-polymorphic interim oracle
 
 The Market Map functional oracle now partitions any grouped source by its canonical top-level
