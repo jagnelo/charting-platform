@@ -3713,6 +3713,24 @@ unavailable for current analysis; AC10 remains deferred; and AC14 remains the
 post-integration 30-day production shadow gate. No paid source, credential,
 other branch, or other worktree was modified.
 
+## Shadow-gate persisted-observation coverage checkpoint — 2026-09-05
+
+Test commit `739608d4` adds positive API coverage for the Tier-0 shadow gate.
+The integration test persists a DXJ canary observation, calls the admin
+shadow-gate endpoint for a fixed date, and verifies that DXJ appears in
+`observed_symbols`, is removed from `missing_symbols`, and contributes one
+eligible but failing check. This proves the route reads persisted per-symbol
+canary evidence and still refuses to count an unavailable observation as a
+passing current-analysis check.
+
+The missing-observation and persisted-observation Docker-backed regressions
+passed `2` tests (70 deselected) with the two existing Nautilus deprecation
+warnings; Ruff, formatting, and diff-check passed. Provider-platform remains
+unstaged; DXJ/NTSX/MINT/BOND remain unavailable for current analysis; AC10
+remains deferred; and AC14 remains the post-integration 30-day production
+shadow gate. No paid source, credential, other branch, or other worktree was
+modified.
+
 ## Unknown capability-state correction checkpoint — 2026-09-05
 
 Implementation commit `394fddf1` corrects a semantic boundary in capability
