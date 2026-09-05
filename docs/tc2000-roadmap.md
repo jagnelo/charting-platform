@@ -11,7 +11,23 @@ records in `docs/project-todos.md`, `docs/tc2000-parity.md`,
 evidence ledgers. If a summary here conflicts with a dated test receipt or the current code, the
 current code and fresh evidence win.
 
-The current product slice is `7f672897` (`feat(tc2000): promote range centers through thresholds`).
+## 2026-09-05 — Generic source history exposes analysis-ready floors
+
+The shared watchlist source-history status now reports analysis-ready members and percentages for
+the canonical D1/W1/MN floors (252/52/24 bars), alongside the existing covered-member, bar-count,
+date-range, and worker-progress fields. Market Map labels surface the distinction without changing
+the compatibility-oriented overall status or any provider entitlement/fallback behavior. Product
+commit `8490f2dd` (`feat(tc2000): expose history analysis-ready floors`) is committed locally.
+Backend units passed `1,318/1,318`; the focused history unit/API checks passed `5/5` and `1/1` (the
+selected API invocation has the expected coverage-floor caveat); frontend component coverage passed
+`36/36`, full frontend Vitest `952/952` across `109` files, TypeScript, Ruff/format, and diff checks
+passed, and authenticated F8s-market-map-watchlist passed `1/1` on a rebuilt branch-scoped stack
+with clean teardown. The exact-tip exhaustive gate must be rerun at the documentation tip; existing
+visual acceptance remains unchanged at `98/104` with six reproducible state-oracle diffs.
+
+The current product slice is `8490f2dd` (`feat(tc2000): expose history analysis-ready floors`).
+
+The preceding product slice is `7f672897` (`feat(tc2000): promote range centers through thresholds`).
 The primary Study Lab and persisted Research Results now expose explicit finite comparison controls
 for completed structured `range` artifacts with aligned center values. A user can save a typed
 Boolean column or reuse the condition for a watchlist filter, scan, Market Gauge, or alert. The

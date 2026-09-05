@@ -1,5 +1,18 @@
 # TC2000 Version 25 Parity Matrix
 
+## 2026-09-05 — Generic source history analysis-readiness visibility
+
+The provider-neutral watchlist source-history contract now exposes analysis-ready member counts
+and percentages for the D1/W1/MN technical floors (252/52/24 bars). Market Map surfaces these
+values beside covered members, total bars, and observed bounds; the existing coverage/worker
+overall-status semantics and provider/fallback policy remain unchanged. Product commit `8490f2dd`
+is committed locally. Backend units passed `1,318/1,318`, focused history unit/API checks passed
+`5/5` and `1/1` (selected API coverage-floor caveat noted in the TODO ledger), frontend component
+coverage passed `36/36`, full Vitest passed `952/952` across `109` files, TypeScript/Ruff/format/
+diff checks passed, and authenticated F8s-market-map-watchlist passed `1/1` on a rebuilt,
+branch-scoped stack with clean teardown. The exact-tip exhaustive gate is pending at the durable
+documentation tip; the unchanged visual matrix remains `98/104` with six state-oracle diffs.
+
 ## 2026-09-05 — Exact-tip gate after structured range-center threshold promotion
 
 The exact-tip gate ran at metadata tip `93883674` after formatter correction `c2f3a588` (product

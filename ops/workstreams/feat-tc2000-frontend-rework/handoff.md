@@ -10,6 +10,22 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-05 — Expose analysis-ready history floors for generic sources
+
+Product commit `8490f2dd` (`feat(tc2000): expose history analysis-ready floors`) extends the shared
+watchlist source-history response with provider-neutral analysis-ready member counts/percentages
+for D1/W1/MN floors of 252/52/24 bars. Market Map displays the distinction beside covered-member
+counts, observed bars, and date bounds. Existing covered/worker overall-status semantics, provider
+entitlements, fallback rules, and canonical-data boundaries are unchanged.
+
+Evidence: backend units `1,318/1,318`; focused history unit/API checks `5/5` and `1/1` (the selected
+API invocation has the expected coverage-floor caveat); frontend component coverage `36/36`; full
+frontend Vitest `952/952` across `109` files; TypeScript, Ruff/format, and `git diff --check`
+passed; authenticated F8s-market-map-watchlist `1/1` passed on a rebuilt branch-scoped Docker
+stack with clean teardown/resource accounting. The exact-tip exhaustive gate is pending at the
+durable documentation tip. Preserve the unchanged six visual state-oracle diffs and do not alter
+visual policy, provider fallback rules, or protected worktrees.
+
 ## 2026-09-05 — Promote Study range centers through explicit Boolean thresholds
 
 Product commit `7f672897` (`feat(tc2000): promote range centers through thresholds`) extends the

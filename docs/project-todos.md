@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-09-05 — Expose analysis-ready history floors for generic sources
+
+- [x] Extend the shared watchlist source-history contract with provider-neutral analysis-readiness
+      counts and percentages for D1/W1/MN, using the declared technical floors of 252/52/24 bars.
+      Preserve the existing covered-member, worker-progress, and overall-status semantics; no
+      provider entitlement, fallback, or fabricated-data behavior changed.
+- [x] Render the analysis-ready count and floor in the Market Map history labels when returned,
+      while keeping older/e2e response fixtures compatible. Backend unit coverage passed `5/5`,
+      the focused API assertion passed `1/1` (the selected-test invocation reports only its expected
+      coverage-floor caveat), frontend component coverage passed `36/36`, full frontend Vitest
+      passed `952/952` across `109` files, backend units passed `1,318/1,318`, and Ruff/format,
+      TypeScript, and `git diff --check` passed. Authenticated F8s-market-map-watchlist passed
+      `1/1` on a rebuilt branch-scoped Docker stack; teardown removed all assigned resources.
+- [x] Product commit `8490f2dd` (`feat(tc2000): expose history analysis-ready floors`) is committed
+      locally; exact-tip exhaustive gate rerun remains required at the durable documentation tip.
+- [ ] Preserve the six visual state-oracle diffs and continue the next compatible canonical
+      provider/history or Study target without changing visual policy or fallback rules.
+
 ### 2026-09-05 — Promote Study range centers through explicit Boolean thresholds
 
 - [x] Extend the primary Study Lab and persisted Research Results promotion matrix for completed

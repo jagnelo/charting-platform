@@ -1,5 +1,14 @@
 # TC2000 Version 25 Visual-Parity Specification
 
+## 2026-09-05 — Generic history floors remain functional-only
+
+Market Map now labels provider-neutral D1/W1/MN analysis readiness using the declared 252/52/24
+bar floors in addition to covered members and observed history. No authoritative V25 capture covers
+this diagnostic text, so exact typography and spacing remain `required_missing`; no screenshot
+baseline, mask, threshold, skip, or visual acceptance rule changed. The product commit is
+`8490f2dd`; the exact-tip gate is pending at the documentation tip and the existing visual result
+remains `98/104` with the same six state-oracle mismatches.
+
 ## 2026-09-05 — Range-center threshold promotion remains functional-only
 
 Primary Study Lab and persisted Research Results now expose explicit finite threshold controls for
