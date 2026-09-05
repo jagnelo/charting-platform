@@ -21,16 +21,16 @@ symbol_priority_ledger:
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
       investigated_at: 2026-09-05
-      evidence_refs: [web:wisdomtree-current-fund-holdings-2026-09-05, live:wisdomtree-current-fund-holdings-2026-09-05-blocked, live:wisdomtree-current-fund-holdings-2026-09-05-retest-blocked, web:wisdomtree-dataspan-route-coverage-2026-09-05]
-      next_action: "Keep unavailable and periodically re-test the official WisdomTree route; the current browser-visible page is not executable from backend-equivalent requests. DataSpan's documented general routes require an API key and do not document a complete holdings route for these symbols. Promote only after complete identity-verified current rows and live evidence."
+      evidence_refs: [web:wisdomtree-public-fund-holdings-api-2026-09-05, live:wisdomtree-public-fund-holdings-api-2026-09-05-httpx-403]
+      next_action: "Keep unavailable and periodically re-test the official WisdomTree product-page/API session sequence; promote only after complete identity-verified current rows are repeatably executable through the application transport."
     - symbol: NTSX
       tier: 0
       provider_identity: wisdomtree
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
       investigated_at: 2026-09-05
-      evidence_refs: [web:wisdomtree-current-fund-holdings-2026-09-05, live:wisdomtree-current-fund-holdings-2026-09-05-blocked, live:wisdomtree-current-fund-holdings-2026-09-05-retest-blocked, web:wisdomtree-dataspan-route-coverage-2026-09-05]
-      next_action: "Keep unavailable and periodically re-test the official WisdomTree route; the current browser-visible page is not executable from backend-equivalent requests. DataSpan's documented general routes require an API key and do not document a complete holdings route for these symbols. Promote only after complete identity-verified current rows and live evidence."
+      evidence_refs: [web:wisdomtree-public-fund-holdings-api-2026-09-05, live:wisdomtree-public-fund-holdings-api-2026-09-05-httpx-403]
+      next_action: "Keep unavailable and periodically re-test the official WisdomTree product-page/API session sequence; promote only after complete identity-verified current rows are repeatably executable through the application transport."
     - symbol: MINT
       tier: 0
       provider_identity: pacific_investments
@@ -1723,9 +1723,10 @@ providers:
     first_party_domains: [wisdomtree.com]
     candidate_routes:
       - https://www.wisdomtree.com/us/products/fund-holdings
-      - https://www.wisdomtree.com/investments/etfs/equity/dxj
       - https://www.wisdomtree.com/us/products/equity/dxj
       - https://www.wisdomtree.com/us/products/capital-efficient/ntsx
+      - https://www.wisdomtree.com/api/fund-holdings/1000549
+      - https://www.wisdomtree.com/api/fund-holdings/1001798
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
@@ -1735,12 +1736,12 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.wisdomtree"
       - "runtime:ISSUER_ADAPTER_CONFIGS.wisdomtree"
-      - "web:wisdomtree-connect-dataspan-2026-09-05"
-      - "live:wisdomtree-current-fund-holdings-2026-09-05-retest-blocked"
+      - "web:wisdomtree-public-fund-holdings-api-2026-09-05"
+      - "live:wisdomtree-public-fund-holdings-api-2026-09-05-httpx-403"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
-        result: "Runtime baseline records issuer route access blocked; no native promotion."
+        result: "Runtime baseline records issuer route access blocked before native route implementation."
         evidence_ref: "runtime:FALLBACK_ISSUER_AUDITS.wisdomtree"
       - date: 2026-09-03
         source: "https://www.wisdomtree.com/us/products/fund-holdings"
@@ -1767,11 +1768,15 @@ providers:
         result: "The current official DataSpan route index documents API-key-protected metadata/NAV and a WTGXX-only money-market holdings route; it does not document a general complete holdings endpoint or establish DXJ/NTSX coverage. No credential or paid activation is authorized."
         evidence_ref: "web:wisdomtree-dataspan-route-coverage-2026-09-05"
       - date: 2026-09-05
-        source: "https://www.wisdomtree.com/us/products/equity/dxj; https://www.wisdomtree.com/us/products/capital-efficient/ntsx"
-        result: "A second bounded backend-equivalent re-test returned HTTP 403 text/html for both DXJ and NTSX; the response remains an issuer-edge challenge rather than a complete executable holdings artifact."
-        evidence_ref: "live:wisdomtree-current-fund-holdings-2026-09-05-retest-blocked"
-    disposition_reason: "wisdomtree: Official holdings and product pages identify current DXJ/NTSX holdings, but bounded requests are Cloudflare-blocked and no stable executable route is proven."
-    next_action: "wisdomtree: Periodically re-test the official fund-holdings and symbol-scoped pages; promote only after complete rows, mapping, parser fixtures, and bounded live evidence are available."
+        source: "https://www.wisdomtree.com/api/fund-holdings/1000549; https://www.wisdomtree.com/api/fund-holdings/1001798"
+        result: "The public symbol-scoped API can return complete identity-bound JSON rows after a curl-like issuer session bootstrap, and the candidate adapter validates entity id, ticker, date, names, and route host before canonicalization; the repository httpx transport currently receives HTTP 403 from the issuer edge."
+        evidence_ref: "web:wisdomtree-public-fund-holdings-api-2026-09-05"
+      - date: 2026-09-05
+        source: "bounded application live adapter route"
+        result: "The candidate adapter's product-page and API requests receive HTTP 403 from Cloudflare through httpx for both DXJ and NTSX; no repeatable application-executable route is proven."
+        evidence_ref: "live:wisdomtree-public-fund-holdings-api-2026-09-05-httpx-403"
+    disposition_reason: "wisdomtree: The issuer API is a promising first-party candidate, but application-equivalent transport still receives HTTP 403; DXJ/NTSX remain unavailable and are not promoted."
+    next_action: "wisdomtree: Re-test the product-page/API session sequence and promote only after the repository transport obtains complete current rows for both symbols with deterministic and bounded live evidence."
     implementation_sha: null
     validation_refs: []
   - adapter_key: advisors_asset_management

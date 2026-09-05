@@ -1892,6 +1892,24 @@ provider-not-a-portfolio-publisher. Evidence refs:
 `web:yoke-current-holdings-page-2026-09-04`, and
 `live:yoke-current-holdings-page-2026-09-04-blocked`.
 
+## Current WisdomTree route candidate checkpoint — DXJ/NTSX session/API boundary — 2026-09-05
+
+WisdomTree's public product HTML renders only a top-ten summary, while its
+symbol-scoped application route can return complete JSON holdings for DXJ
+(`1000549`) and NTSX (`1001798`) after a curl-like issuer session bootstrap.
+The candidate adapter validates the exact issuer host and entity route, fund
+ticker, entity id, uniform holdings date, security names, and canonical
+cash/security rows. The repository's application-equivalent `httpx` transport
+currently receives Cloudflare HTTP 403 responses from the product/API sequence,
+so DXJ/NTSX remain unavailable and WisdomTree remains fallback-only. No native
+promotion or current-support claim is made until the route is repeatably
+executable by the application transport.
+
+The current code-derived split remains 496 registered / 414 native/live-backed /
+82 fallback-only providers. Evidence refs:
+`web:wisdomtree-public-fund-holdings-api-2026-09-05` and
+`live:wisdomtree-public-fund-holdings-api-2026-09-05-httpx-403`.
+
 ## Thirteenth ranked Tier-1 symbol-audit cohort — 2026-09-04
 
 The thirteenth ranked symbol-audit cohort covers RMME/BEGS/RSEE/RTRE/RDFI/

@@ -3536,3 +3536,27 @@ source dispositions, credentials, paid activation, provider-platform staging,
 DXJ/NTSX/MINT/BOND availability, AC10, and AC14 are unchanged. The test commit
 was pushed to the authorized feature branch; no other worktree or branch was
 mutated.
+
+## WisdomTree guarded route candidate checkpoint — 2026-09-05
+
+Implementation commit `0840d44de9c006c3a7bb5c7e523df7a6fce2a510`
+(`feat(etf): add guarded WisdomTree holdings candidate route`) adds a strict
+candidate adapter for DXJ (`1000549`) and NTSX (`1001798`). It bootstraps the
+issuer product-page session before calling the symbol-scoped JSON route,
+validates the exact host/path, entity id, fund ticker, uniform holdings date,
+security names, and canonical cash/security rows, and fails closed on identity
+or schema drift. Deterministic fixtures cover complete rows and identity drift.
+
+The route is deliberately not promoted. A bounded curl-like session can receive
+the public API payload, but the repository-equivalent `httpx` product/API
+sequence currently receives Cloudflare HTTP 403 for both symbols. WisdomTree
+therefore remains in `FALLBACK_ISSUER_AUDITS`, the provider split remains
+496 registered / 414 native / 82 fallback, and DXJ/NTSX remain unavailable in
+the Tier 0 ledger. No credential, paid source, staging branch, or provider
+platform contract was changed.
+
+Validation: the deterministic adapter/capability/refresh slice passed `669`
+tests; Ruff and diff-check passed; workstream validation passed; the ETF API
+integration suite passed `65/66`, with the remaining WTST unknown-symbol route
+contract rerun passing in isolation. The two escalated live canaries are
+recorded as external `httpx`/Cloudflare 403 evidence, not as live success.
