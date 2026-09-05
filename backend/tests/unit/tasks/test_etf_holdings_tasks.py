@@ -123,6 +123,20 @@ def test_etf_capability_canary_rejects_truncated_canonical_tier0_configuration(m
     assert result["max_symbols"] == len(tier0_symbols()) - 1
 
 
+def test_etf_capability_canary_rejects_truncated_custom_configuration(monkeypatch):
+    monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_ENABLED", True)
+    monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_SYMBOLS", "DXJ,NTSX")
+    monkeypatch.setattr(settings, "ETF_HOLDINGS_CAPABILITY_CANARY_MAX_SYMBOLS", 1)
+
+    result = asyncio.run(etf_holdings_tasks.etf_holdings_capability_canary_task({}))
+
+    assert result["skipped"] is True
+    assert result["reason"] == "invalid canary configuration"
+    assert result["requested"] == 2
+    assert result["max_symbols"] == 1
+    assert "configured symbol list" in result["configuration_error"]
+
+
 @pytest.mark.parametrize(
     ("configured_symbols", "expected_requested"),
     [("", 0), ("DXJ,DXJ", 2)],

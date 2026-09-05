@@ -55,12 +55,16 @@ async def etf_holdings_capability_canary_task(ctx: dict) -> dict:
             "max_symbols": settings.ETF_HOLDINGS_CAPABILITY_CANARY_MAX_SYMBOLS,
         }
     canonical_symbols = set(tier0_symbols())
-    if canonical_symbols.issubset(symbols) and (
-        settings.ETF_HOLDINGS_CAPABILITY_CANARY_MAX_SYMBOLS < len(canonical_symbols)
-    ):
+    max_symbols = settings.ETF_HOLDINGS_CAPABILITY_CANARY_MAX_SYMBOLS
+    if max_symbols < len(symbols):
+        configured_scope = (
+            "canonical Tier-0 set"
+            if canonical_symbols.issubset(symbols)
+            else "configured symbol list"
+        )
         message = (
-            "ETF holdings capability canary configuration would truncate the canonical "
-            f"Tier-0 set ({len(canonical_symbols)} symbols)"
+            "ETF holdings capability canary configuration would truncate the "
+            f"{configured_scope} ({len(symbols)} symbols)"
         )
         logger.error(message)
         return {
@@ -68,7 +72,7 @@ async def etf_holdings_capability_canary_task(ctx: dict) -> dict:
             "reason": "invalid canary configuration",
             "configuration_error": message,
             "requested": len(symbols),
-            "max_symbols": settings.ETF_HOLDINGS_CAPABILITY_CANARY_MAX_SYMBOLS,
+            "max_symbols": max_symbols,
         }
     async with AsyncSessionLocal() as db:
         summary = await run_etf_holdings_capability_canaries(
