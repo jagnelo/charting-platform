@@ -155,6 +155,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "barclays",
     "baron",
     "belpointe",
+    "anydrus",
     "bluemonte",
     "bmo",
     "bcp_cc",
@@ -4260,6 +4261,31 @@ async def test_live_corient_fundx_product_page_declared_csv_viewer_holdings():
     assert result.legal_metadata["parent_issuer"] == "corient"
     assert any(row.symbol == "IOO" for row in result.rows)
     assert any(row.cusip for row in result.rows)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("anydrus")
+async def test_live_anydrus_ndow_page_declared_filepoint_holdings_json():
+    adapter = get_holdings_adapter("anydrus")
+    assert adapter is not None
+
+    try:
+        result = await adapter.fetch_latest(symbol="NDOW")
+    except (httpx.HTTPError, requests.RequestException, TimeoutError, ValueError) as exc:
+        if _is_external_live_access_failure(exc):
+            pytest.skip(str(exc))
+        raise
+
+    _assert_live_holdings_result(result, adapter_key="anydrus", min_rows=80)
+    metadata = result.legal_metadata or {}
+    assert metadata["source_provider"] == "anydrus"
+    assert metadata["source_format"] == "filepoint_json"
+    assert metadata["route_resolution"] == ("anydrus_product_page_declared_filepoint_holdings_json")
+    assert metadata["snapshot_provenance"] == "anydrus_native_filepoint_payload"
+    assert metadata["composition_date"]
+    assert any(row.row_type == "cash" for row in result.rows)
+    assert any(row.symbol == "SCHO" for row in result.rows)
 
 
 def _parametrized_live_provider_keys(*tests) -> set[str]:

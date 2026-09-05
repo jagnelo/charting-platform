@@ -23520,6 +23520,7 @@ def test_stockanalysis_provider_sixth_continuation_batch_is_registered_and_audit
         "max",
         "moonvest",
         "sammons_enterprises",
+        "anydrus",
     }
 
     assert expected
@@ -26032,6 +26033,117 @@ async def test_belpointe_plgi_adapter_discovers_filepoint_payload_and_parses_hol
 
 
 @pytest.mark.asyncio
+async def test_anydrus_ndow_adapter_discovers_dated_filepoint_payload(monkeypatch):
+    adapter = get_holdings_adapter("anydrus")
+    assert adapter is not None
+    assert type(adapter).__name__ == "AnydrusHoldingsAdapter"
+
+    payload = {
+        "response": {"status_description": "Success", "status_code": 0},
+        "data": {
+            "2026-09-02": [
+                {
+                    "fund_ticker": "NDOW",
+                    "fund_description": "Anydrus Advantage ETF",
+                    "number_of_holdings_in_etf": 3,
+                    "constituents": [
+                        {
+                            "etf_ticker": "NDOW",
+                            "constituent_ticker": "SCHO",
+                            "constituent_description": "Schwab Short-Term U.S. Treasury ETF",
+                            "constituent_weight": 0.0476,
+                            "constituent_market_value": 123456.78,
+                            "constituent_cusip": "808524870",
+                            "shares_held_of_constituent": 1200,
+                        },
+                        {
+                            "etf_ticker": "NDOW",
+                            "constituent_ticker": "",
+                            "constituent_description": "CASH AND CASH EQUIVALENTS",
+                            "constituent_weight": 0.0078,
+                            "constituent_market_value": 541245.0,
+                            "shares_held_of_constituent": 541245.0,
+                        },
+                        {
+                            "etf_ticker": "NDOW",
+                            "constituent_ticker": "MCK",
+                            "constituent_description": "McKesson Corporation",
+                            "constituent_weight": 0.0312,
+                            "constituent_market_value": 98765.43,
+                            "constituent_cusip": "58155Q103",
+                            "constituent_isin": "US58155Q1031",
+                            "shares_held_of_constituent": 100,
+                        },
+                    ],
+                }
+            ]
+        },
+    }
+
+    class FixedDate(date):
+        @classmethod
+        def today(cls):
+            return date(2026, 9, 5)
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=(
+                "<html>Anydrus Advantage ETF NDOW "
+                '<button id="downloadHoldingsBtn">Download All</button></html>'
+            ),
+            content_type="text/html",
+            url=adapter.PRODUCT_PAGE_URL,
+        ),
+        FakeResponse(
+            text=(
+                'const endpoint = "https://filepoint.live/anydrus_getdata_cached3.php"; '
+                'const fallback = "https://filepoint.live/anydrus_" + date + "_data.json";'
+            ),
+            content_type="application/javascript",
+            url=adapter.APP_JS_URL,
+        ),
+        FakeResponse(
+            text="not found",
+            status_code=404,
+            url="https://filepoint.live/anydrus_2026-09-05_data.json",
+        ),
+        FakeResponse(
+            text=json.dumps(payload),
+            content_type="application/json",
+            url="https://filepoint.live/anydrus_2026-09-04_data.json",
+        ),
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.date", FixedDate)
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="NDOW")
+
+    assert [request[0] for request in FakeAsyncClient.requested] == [
+        adapter.PRODUCT_PAGE_URL,
+        adapter.APP_JS_URL,
+        "https://filepoint.live/anydrus_2026-09-05_data.json",
+        "https://filepoint.live/anydrus_2026-09-04_data.json",
+    ]
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol == "SCHO"
+    assert result.rows[0].weight == Decimal("0.0476")
+    assert result.rows[0].market_value == Decimal("123456.78")
+    assert result.rows[1].row_type == "cash"
+    assert result.rows[1].holding_type == "cash"
+    assert result.rows[2].isin == "US58155Q1031"
+    assert result.raw_json["declared_holdings_count"] == 3
+    assert result.legal_metadata["source_provider"] == "anydrus"
+    assert result.legal_metadata["route_resolution"] == (
+        "anydrus_product_page_declared_filepoint_holdings_json"
+    )
+    assert result.legal_metadata["composition_date"] == "2026-09-02"
+
+    with pytest.raises(ValueError, match="official NDOW product page"):
+        await adapter.fetch_latest(symbol="NDOW", source_url="https://example.com/ndow")
+
+
+@pytest.mark.asyncio
 async def test_adaptive_investments_adapter_parses_variable_embedded_holdings_payload(monkeypatch):
     adapter = get_holdings_adapter("adaptive_investments")
     assert adapter is not None
@@ -28186,8 +28298,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 414
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 82
+    assert ledger["current_native_count"] == 415
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 81
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -28196,6 +28308,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert native_promoted == {
         "ars",
         "avory",
+        "anydrus",
         "ballast",
         "bancreek",
         "beehive",

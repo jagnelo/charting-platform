@@ -69123,6 +69123,18 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
             "the page and holdings may be subject to issuer terms."
         ),
     ),
+    "anydrus": IssuerCsvAdapterConfig(
+        adapter_key="anydrus",
+        source_provider="anydrus",
+        source_access="issuer_product_page_declared_filepoint_holdings_json",
+        expected_cadence="daily",
+        product_page_templates=("https://www.anydrusfunds.com/",),
+        live_tested_default_route=True,
+        terms_note=(
+            "Anydrus publishes NDOW's complete holdings through its public fund page and "
+            "page-declared FilePoint JSON artifacts; data may be subject to issuer terms."
+        ),
+    ),
     "capforce": IssuerCsvAdapterConfig(
         adapter_key="capforce",
         source_provider="capforce",
@@ -70751,7 +70763,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "alphamark_advisors",
         "amg_national",
         "amplius",
-        "anydrus",
         "argent",
         "arin",
         "azimut",
@@ -74876,8 +74887,223 @@ class PerformanceTrustReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter
     """StockAnalysis provider-table fallback adapter pending Performance Trust discovery."""
 
 
-class AnydrusReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """StockAnalysis provider-table fallback adapter pending Anydrus discovery."""
+class AnydrusHoldingsAdapter(BelpointeHoldingsAdapter):
+    """Fetch NDOW from Anydrus' page-declared, dated FilePoint JSON payload."""
+
+    SUPPORTED_SYMBOL = "NDOW"
+    PRODUCT_PAGE_URL = "https://www.anydrusfunds.com/"
+    APP_JS_URL = "https://www.anydrusfunds.com/assets/js/app.js?version=1"
+    HOLDINGS_URL_RE = re.compile(
+        r"https://filepoint\.live/anydrus_getdata_cached3\.php",
+        flags=re.IGNORECASE,
+    )
+    DATED_HOLDINGS_URL_TEMPLATE = "https://filepoint.live/anydrus_{date}_data.json"
+    MAX_DAYS_BACK = 15
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name
+        normalized_symbol = symbol.strip().upper()
+        has_sec_fallback = bool(_identifier(identifiers, "sec_cik", "cik"))
+        supported = normalized_symbol == self.SUPPORTED_SYMBOL
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=(
+                Decimal("0.9600")
+                if supported
+                else Decimal("0.3500")
+                if has_sec_fallback
+                else Decimal("0")
+            ),
+            status="ready" if supported or has_sec_fallback else "unsupported_symbol",
+            reason=(
+                "Anydrus publishes NDOW's complete holdings through its page-declared FilePoint JSON route."
+                if supported
+                else (
+                    "No verified Anydrus/NDOW native holdings route is configured for "
+                    f"{normalized_symbol or 'an empty symbol'}; SEC filing fallback is available."
+                    if has_sec_fallback
+                    else "No verified Anydrus/NDOW native holdings route is configured for "
+                    f"{normalized_symbol or 'an empty symbol'}."
+                )
+            ),
+            source_url=self.PRODUCT_PAGE_URL if supported else None,
+            issuer_product_id=normalized_symbol or None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol != self.SUPPORTED_SYMBOL:
+            raise ValueError(
+                "No verified Anydrus/NDOW native holdings route is configured for "
+                f"{normalized_symbol or 'an empty symbol'}."
+            )
+        if source_url and not self._is_official_product_page(source_url):
+            raise ValueError(
+                "Anydrus holdings must be resolved from the official NDOW product page."
+            )
+
+        failures: list[str] = []
+        holdings_response: Any | None = None
+        holdings_url: str | None = None
+        rows: list[CanonicalHoldingRow] = []
+        composition_date: date | None = None
+        fund_metadata: dict[str, Any] = {}
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            product_page_response = await client.get(
+                self.PRODUCT_PAGE_URL,
+                headers=_issuer_page_request_headers(accept="text/html,*/*"),
+                follow_redirects=True,
+            )
+            if product_page_response.status_code >= 400:
+                product_page_response.raise_for_status()
+            self._validate_product_page(product_page_response.text)
+            script_response = await client.get(
+                self.APP_JS_URL,
+                headers={
+                    **_issuer_page_request_headers(
+                        accept="application/javascript,text/javascript,*/*"
+                    ),
+                    "Referer": str(product_page_response.url),
+                },
+                follow_redirects=True,
+            )
+            if script_response.status_code >= 400:
+                script_response.raise_for_status()
+            self._validate_app_script(script_response.text)
+            self._discover_holdings_url(script_response.text)
+            for day_offset in range(self.MAX_DAYS_BACK + 1):
+                candidate_date = date.today() - timedelta(days=day_offset)
+                candidate_url = self.DATED_HOLDINGS_URL_TEMPLATE.format(
+                    date=candidate_date.isoformat()
+                )
+                response = await client.get(
+                    candidate_url,
+                    headers={
+                        **_holdings_request_headers(accept="application/json,text/plain,*/*"),
+                        "Referer": str(product_page_response.url),
+                    },
+                    follow_redirects=True,
+                )
+                if response.status_code == 404:
+                    failures.append(f"{candidate_url}:404")
+                    continue
+                if response.status_code >= 400:
+                    response.raise_for_status()
+                if not response.text.strip():
+                    failures.append(f"{candidate_url}:empty")
+                    continue
+                try:
+                    candidate_rows, candidate_date, candidate_metadata = (
+                        self._parse_holdings_payload(response.json())
+                    )
+                except (TypeError, ValueError, json.JSONDecodeError) as exc:
+                    failures.append(f"{candidate_url}:{exc}")
+                    continue
+                if not candidate_rows or candidate_date is None:
+                    failures.append(f"{candidate_url}:incomplete")
+                    continue
+                rows = candidate_rows
+                composition_date = candidate_date
+                fund_metadata = candidate_metadata
+                holdings_response = response
+                holdings_url = candidate_url
+                break
+
+        if holdings_response is None or holdings_url is None or composition_date is None:
+            raise ValueError(
+                "Anydrus did not expose a recent complete NDOW holdings JSON artifact: "
+                + "; ".join(failures[-5:])
+            )
+
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=holdings_response.text,
+            raw_json={
+                "source_format": "filepoint_json",
+                "fund_metadata": fund_metadata,
+                "row_count": len(rows),
+                "declared_holdings_count": fund_metadata.get("number_of_holdings_in_etf"),
+            },
+            source_url=str(getattr(holdings_response, "url", holdings_url)),
+            source_identifier=normalized_symbol,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "filepoint_json",
+                "route_resolution": "anydrus_product_page_declared_filepoint_holdings_json",
+                "product_page_url": str(product_page_response.url),
+                "app_script_url": self.APP_JS_URL,
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+                "terms_note": self.config.terms_note,
+                "source_quality": "issuer_reported_current_holdings",
+                "snapshot_provenance": "anydrus_native_filepoint_payload",
+                "publisher_metadata": fund_metadata,
+            },
+        )
+
+    @classmethod
+    def _validate_product_page(cls, page_text: str) -> None:
+        normalized = html.unescape(page_text).lower()
+        if "anydrus advantage etf" not in normalized or "ndow" not in normalized:
+            raise ValueError("Anydrus product page identity did not match requested ETF NDOW.")
+        if "downloadholdingsbtn" not in normalized:
+            raise ValueError(
+                "Anydrus product page did not expose its complete holdings download control."
+            )
+
+    @classmethod
+    def _validate_app_script(cls, app_js: str) -> None:
+        normalized = html.unescape(app_js)
+        if cls.HOLDINGS_URL_RE.search(normalized) is None:
+            raise ValueError(
+                "Anydrus app script did not declare its primary FilePoint holdings route."
+            )
+        if "https://filepoint.live/anydrus_" not in normalized or "_data.json" not in normalized:
+            raise ValueError(
+                "Anydrus app script did not declare its dated FilePoint holdings fallback route."
+            )
+
+    @classmethod
+    def _discover_holdings_url(cls, app_js: str) -> str:
+        match = cls.HOLDINGS_URL_RE.search(app_js)
+        if match is None:
+            raise ValueError(
+                "Anydrus app script did not declare its primary FilePoint holdings route."
+            )
+        return match.group(0)
+
+    @classmethod
+    def _parse_holdings_payload(
+        cls,
+        payload: Any,
+    ) -> tuple[list[CanonicalHoldingRow], date, dict[str, Any]]:
+        rows, composition_date, fund_metadata = super()._parse_holdings_payload(payload)
+        if not rows or composition_date == date.min:
+            raise ValueError("Anydrus FilePoint payload did not expose complete NDOW rows.")
+        declared_count = _decimal(fund_metadata.get("number_of_holdings_in_etf"))
+        if declared_count is None or len(rows) < int(declared_count):
+            raise ValueError(
+                "Anydrus FilePoint payload returned fewer rows than its declared holdings count."
+            )
+        return rows, composition_date, fund_metadata
+
+    @staticmethod
+    def _is_official_product_page(source_url: str) -> bool:
+        parsed = urlparse(source_url)
+        return parsed.scheme == "https" and parsed.netloc.lower() in {
+            "anydrusfunds.com",
+            "www.anydrusfunds.com",
+        }
 
 
 class SammonsEnterprisesReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -74951,7 +75177,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "amg_national": AmgNationalReconciledFallbackHoldingsAdapter,
         "amplius": AmpliusHoldingsAdapter,
         "american_beacon": AmericanBeaconHoldingsAdapter,
-        "anydrus": AnydrusReconciledFallbackHoldingsAdapter,
+        "anydrus": AnydrusHoldingsAdapter,
         "arin": ArinReconciledFallbackHoldingsAdapter,
         "ars": ArtemisHoldingsAdapter,
         "argent": ArgentReconciledFallbackHoldingsAdapter,

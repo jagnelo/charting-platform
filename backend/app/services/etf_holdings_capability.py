@@ -856,18 +856,6 @@ _register_non_tier_0_audits(
     ),
 )
 _register_non_tier_0_audits(
-    ("NDOW",),
-    outcome=UNAVAILABLE,
-    evidence_state="non_executable_public_source",
-    provider_identity="anydrus",
-    investigated_at=date(2026, 9, 2),
-    evidence_refs=("web:anydrus-ndow-placeholder-holdings-2026-09-02",),
-    next_action=(
-        "Re-test the NDOW page for a populated complete download; promote only after current rows, "
-        "symbol mapping, parser fixtures, and bounded live evidence are available."
-    ),
-)
-_register_non_tier_0_audits(
     ("AMID", "ABIG", "ALIL"),
     outcome=UNAVAILABLE,
     evidence_state="issuer_route_access_blocked",

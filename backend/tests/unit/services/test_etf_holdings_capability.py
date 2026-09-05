@@ -590,18 +590,18 @@ def test_follow_on_ranked_fallback_future_dated_symbol_remains_unavailable():
     )
 
 
-def test_follow_on_ranked_fallback_non_executable_symbol_is_not_current():
+def test_follow_on_ranked_native_symbol_is_current_when_snapshot_is_available():
     result = evaluate_capability(
         profile_with_symbol("NDOW", "anydrus"),
-        snapshot(),
+        snapshot(source_provider="anydrus"),
         state(),
         now=NOW,
     )
 
-    assert result.availability == UNAVAILABLE
-    assert result.usable_for_current_analysis is False
-    assert result.symbol_audit.outcome == UNAVAILABLE
-    assert result.symbol_audit.evidence_state == "non_executable_public_source"
+    assert result.availability == CURRENT
+    assert result.usable_for_current_analysis is True
+    assert result.symbol_audit.tier == 2
+    assert result.symbol_audit.evidence_state == "no_symbol_audit_record"
 
 
 def test_follow_on_ranked_fallback_avos_symbol_preserves_blocked_route_evidence():
