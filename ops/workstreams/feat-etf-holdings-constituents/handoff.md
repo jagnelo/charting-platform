@@ -3057,3 +3057,19 @@ The next executable ETF-owned action is still the shared provider-platform
 staging reconciliation; any Alpha Vantage, EODHD, FMP, or other vendor path must
 first satisfy shared entitlement, quota, licensing, and the aggregate
 20 EUR/USD-equivalent budget gate.
+
+## Current branch-declared validation — 2026-09-05
+
+The current synchronized head `296c020cd57530d02780cc420eeab633a01e6980`
+passed the complete branch-declared matrix. The deterministic adapter suite
+passed 570 tests; the default live contract passed 2 tests with 515 network
+cases skipped; the opt-in live matrix passed 510 cases with 7 narrow skips;
+Ruff and workstream validation passed; and the ETF frontend type-check, focused
+panel/view suite (12 tests), and production build passed. The seven live skips
+remain the existing explicitly reviewed external/provider boundaries; no
+provider classification, source tier, entitlement, paid activation, or
+Tier-0 outcome changed.
+
+This receipt confirms the ETF-owned implementation is regression-free at the
+current tip, but it does not close AC10 or AC14: provider-platform staging is
+still absent and the production shadow period has not begun.
