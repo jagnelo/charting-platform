@@ -4160,3 +4160,22 @@ changed. Provider-platform remains unstaged; DXJ/NTSX/MINT/BOND remain
 unavailable for current analysis; AC10 remains deferred; and AC14 remains the
 post-integration 30-day production shadow gate. No other branch or worktree
 was modified.
+
+## User-visible access/quota diagnostics checkpoint — 2026-09-05
+
+Implementation commit `284b78f7` makes the semantic canary classes readable in
+all ETF degradation surfaces. The shared workstation failure formatter now
+labels `authentication_required` as “authentication required”, `access_denied`
+as “access denied”, and `quota_rate_limited` as “quota/rate limited”; the ETF
+Holdings panel and standalone ETF Holdings view use that shared formatter while
+retaining the existing fallback for unknown classes.
+
+Frontend source-capability, ETF panel, and ETF view tests passed `24`; frontend
+type-check and `git diff --check` passed. A bounded read-only external re-test
+also confirmed no source promotion is justified: WisdomTree DXJ/NTSX product
+and symbol-scoped API routes returned HTTP 403 Cloudflare challenge responses,
+and PIMCO MINT/BOND fund-detail API routes returned HTTP 401 JSON responses.
+The four Tier-0 symbols therefore remain unavailable, no credential or paid
+route was enabled, provider-platform remains unstaged, AC10 remains deferred,
+and AC14 remains the post-integration 30-day production shadow gate. No other
+branch or worktree was modified.
