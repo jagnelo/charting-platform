@@ -4493,3 +4493,20 @@ MINT/BOND product surfaces likewise confirm the products but expose no complete
 public basket; the authenticated fund-detail boundary remains the only declared
 complete route found. DXJ/NTSX/MINT/BOND therefore remain unavailable for
 current analysis, with no source or provider classification change.
+
+## Shared bridge contract identified — 2026-09-05
+
+Read-only inspection of the unstaged provider-platform tip identified the
+contract the ETF branch must consume after staging. The bridge should add the
+shared `ProviderCapability.ETF_HOLDINGS` member and route ETF work through the
+generic `resolve_provider_chain`/`execute_provider_call` path for provider
+health, request logging, circuit state, and result accounting. Queued or
+scheduled work must use `ProviderRequirements` with an explicit holdings
+operation and `select_provider`, then settle via the generic
+`reserve_provider_contract`/`settle_workload_lease` path.
+
+This is a contract note, not an implementation: the provider branch is not in
+staging, and adding the enum or importing speculative APIs now would create a
+parallel or merge-conflicting runtime. The existing ETF adapter, freshness,
+canary, and user-visible degradation behavior remains branch-local until the
+shared capability is staged.
