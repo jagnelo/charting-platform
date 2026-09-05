@@ -1908,6 +1908,10 @@ class TestWorkspaces:
         assert roles["equal_weight"]["available"] is True
         assert roles["equal_weight"]["membership_version"] is not None
         assert len(roles["equal_weight"]["points"]) == 30
+        assert roles["equal_weight"]["member_count"] == 1
+        assert roles["equal_weight"]["analysis_ready_member_count"] == 0
+        assert roles["equal_weight"]["analysis_ready_status"] == "pending"
+        assert roles["equal_weight"]["required_bar_count"] == 252
         assert set(roles["equal_weight"]["points"][-1]["above_ma"]) == {
             "ma20",
             "ma50",

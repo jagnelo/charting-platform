@@ -154,6 +154,7 @@ from app.services.research_jobs import (
     read_research_progress,
 )
 from app.services.top_down_taxonomy import benchmark_family_registry
+from app.services.watchlist_history import ANALYSIS_REQUIRED_BAR_COUNTS
 from app.services.watchlist_sources import resolve_watchlist_source
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
@@ -4951,6 +4952,28 @@ async def benchmark_family_breadth_history(
             )
             for timestamp, values in sorted(by_timestamp.items())
         ][-limit:]
+        required_bar_count = ANALYSIS_REQUIRED_BAR_COUNTS.get(timeframe.value)
+        member_count = len(member_ids)
+        covered_member_count = sum(
+            bool(bars_by_id.get(instrument_id)) for instrument_id in member_ids
+        )
+        analysis_ready_member_count = (
+            sum(
+                len(bars_by_id.get(instrument_id, [])) >= required_bar_count
+                for instrument_id in member_ids
+            )
+            if required_bar_count is not None
+            else 0
+        )
+        analysis_ready_status = (
+            "ready"
+            if member_count and analysis_ready_member_count == member_count
+            else "partial"
+            if analysis_ready_member_count
+            else "pending"
+            if covered_member_count
+            else "unavailable"
+        )
         roles.append(
             BenchmarkFamilyBreadthHistoryRoleOut(
                 role=role,
@@ -4960,6 +4983,15 @@ async def benchmark_family_breadth_history(
                 available=True,
                 membership_version=_generic_membership_version(membership_payload),
                 universe_provenance=universe_provenance,
+                member_count=member_count,
+                analysis_ready_member_count=analysis_ready_member_count,
+                analysis_ready_percent=(
+                    round((analysis_ready_member_count / member_count) * 100, 2)
+                    if member_count
+                    else 0.0
+                ),
+                required_bar_count=required_bar_count,
+                analysis_ready_status=analysis_ready_status,
                 points=points,
                 exclusions=role_exclusions,
             )

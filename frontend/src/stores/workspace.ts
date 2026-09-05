@@ -279,6 +279,11 @@ export interface BenchmarkFamilyBreadthHistoryState {
     available: boolean
     membership_version?: number | null
     universe_provenance?: Record<string, unknown>
+    member_count: number
+    analysis_ready_member_count: number
+    analysis_ready_percent: number
+    required_bar_count?: number | null
+    analysis_ready_status?: string
     points: BreadthHistoryState['points']
     exclusions: Array<{ code: string; message: string; instrument_id?: number | null }>
   }>

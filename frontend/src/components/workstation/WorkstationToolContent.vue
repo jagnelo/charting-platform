@@ -703,7 +703,7 @@
           </span>
         </template>
         <span v-else class="breadth-tool__status">Role participation unavailable.</span>
-        <span v-if="familyBreadthHistory" class="breadth-tool__family-breadth-history">History · {{ familyBreadthHistoryPointCount }} aligned points</span>
+        <span v-if="familyBreadthHistory" class="breadth-tool__family-breadth-history">History · {{ familyBreadthHistoryPointCount }} aligned points · {{ familyBreadthHistoryReadinessLabel }}</span>
       </div>
       <div v-if="isBenchmarkFamily" class="breadth-tool__family-ranking" aria-label="Benchmark family role ranking">
         <strong>Role ranking · {{ familyRanking?.rank_period ?? '1M' }}</strong>
@@ -2277,6 +2277,14 @@ const familyBreadthLoading = ref(false)
 const familyBreadthHistoryKey = computed(() => `${breadthGroupKey.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:500`)
 const familyBreadthHistory = computed(() => workspaceStore.benchmarkFamilyBreadthHistories[familyBreadthHistoryKey.value])
 const familyBreadthHistoryPointCount = computed(() => Math.max(0, ...((familyBreadthHistory.value?.roles ?? []).map(role => role.points.length))))
+const familyBreadthHistoryReadinessLabel = computed(() => {
+  const roles = (familyBreadthHistory.value?.roles ?? []).filter(role => role.available)
+  if (!roles.length) return 'readiness unavailable'
+  const ready = roles.filter(role => role.analysis_ready_status === 'ready').length
+  const partial = roles.filter(role => role.analysis_ready_status === 'partial').length
+  const pending = roles.filter(role => role.analysis_ready_status === 'pending').length
+  return `analysis-ready ${ready}/${roles.length}${partial ? ` · partial ${partial}` : ''}${pending ? ` · pending ${pending}` : ''}`
+})
 const familyRankingKey = computed(() => `${breadthGroupKey.value}:${breadthTimeframe.value}:${breadthAdjusted.value ? 'adj' : 'raw'}:${familyAsOf.value || 'latest'}:1M`)
 const familyRanking = computed(() => workspaceStore.benchmarkFamilyRankings[familyRankingKey.value])
 const familyRankingError = computed(() => workspaceStore.benchmarkFamilyRankingErrors[familyRankingKey.value] ?? null)
