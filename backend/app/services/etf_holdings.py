@@ -1088,6 +1088,13 @@ async def ingest_holdings_snapshot(
     notes: str | None = None,
     allow_provider_enrichment: bool = True,
 ) -> ETFHoldingsSnapshot:
+    now = _now()
+    _ensure_holdings_dates_are_not_future(
+        composition_date,
+        as_of_date,
+        published_at=published_at,
+        now=now,
+    )
     profile = await ensure_etf_profile(db, etf_instrument, legal_metadata=legal_metadata)
     canonical_rows = [
         row
@@ -1111,13 +1118,6 @@ async def ingest_holdings_snapshot(
         )
         for row in rows
     ]
-    now = _now()
-    _ensure_holdings_dates_are_not_future(
-        composition_date,
-        as_of_date,
-        published_at=published_at,
-        now=now,
-    )
     known_at = known_at or published_at or _date_end(composition_date)
     data_source = await ensure_data_source(db, ETF_HOLDINGS_INTERNAL_PROVIDER)
     snapshot_hash = _snapshot_hash(canonical_rows)
