@@ -25,6 +25,7 @@ from app.models.market_data_foundation import (
     ProviderShadowObservation,
     ShortInterestObservation,
 )
+from app.models.provider_runtime import ProviderCapability, ProviderCapacityEvent
 from app.models.user import User
 from app.services.market_data_monitoring import build_shadow_report
 
@@ -188,6 +189,45 @@ async def list_provider_quota(
             "reserved_units": row.reserved_units,
             "consumed_units": row.consumed_units,
             "cost_cents": row.cost_cents,
+        }
+        for row in rows
+    ]
+
+
+@router.get("/capacity-events")
+async def list_provider_capacity_events(
+    provider_id: int | None = None,
+    capability: ProviderCapability | None = None,
+    limit: int = Query(default=100, ge=1, le=500),
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    """List typed 429/418/quota rejections and their provider reset evidence."""
+
+    query = (
+        select(ProviderCapacityEvent)
+        .order_by(ProviderCapacityEvent.observed_at.desc())
+        .limit(limit)
+    )
+    if provider_id is not None:
+        query = query.where(ProviderCapacityEvent.data_source_id == provider_id)
+    if capability is not None:
+        query = query.where(ProviderCapacityEvent.capability == capability)
+    rows = (await db.execute(query)).scalars().all()
+    return [
+        {
+            "id": row.id,
+            "data_source_id": row.data_source_id,
+            "capability": row.capability.value,
+            "operation": row.operation,
+            "scope": row.scope,
+            "status_code": row.status_code,
+            "error_type": row.error_type,
+            "message": row.message,
+            "retry_at": row.retry_at,
+            "response_headers": row.response_headers,
+            "observed_at": row.observed_at,
+            "request_log_id": row.request_log_id,
         }
         for row in rows
     ]

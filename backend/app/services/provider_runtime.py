@@ -18,6 +18,7 @@ from app.config import settings
 from app.models.data_source import DataSource
 from app.models.provider_runtime import (
     ProviderCapability,
+    ProviderCapacityEvent,
     ProviderEntitlement,
     ProviderEntitlementRevision,
     ProviderHealthState,
@@ -534,6 +535,10 @@ def _retry_at_from_headers(headers: Any, *, now: datetime | None = None) -> date
 def provider_rate_limit_error(provider_name: str, exc: Exception, *, scope: str | None = None) -> ProviderRateLimitError | None:
     """Convert an HTTP 429/418/quota response to a typed capacity error."""
 
+    if isinstance(exc, ProviderRateLimitError):
+        if exc.scope is None:
+            exc.scope = scope
+        return exc
     response = exc.response if isinstance(exc, httpx.HTTPStatusError) else None
     status_code = getattr(response, "status_code", None)
     message = str(exc)
@@ -552,6 +557,30 @@ def provider_rate_limit_error(provider_name: str, exc: Exception, *, scope: str 
         scope=scope,
         headers=headers,
     )
+
+
+def _capacity_response_headers(headers: dict[str, str] | None) -> dict[str, str]:
+    """Keep only non-sensitive rate-limit headers in durable capacity evidence."""
+
+    if not headers:
+        return {}
+    allowed = {
+        "retry-after",
+        "x-ratelimit-limit",
+        "x-ratelimit-remaining",
+        "x-ratelimit-reset",
+        "x-rate-limit-limit",
+        "x-rate-limit-remaining",
+        "x-rate-limit-reset",
+        "ratelimit-limit",
+        "ratelimit-remaining",
+        "ratelimit-reset",
+    }
+    return {
+        str(key).lower(): str(value)[:240]
+        for key, value in headers.items()
+        if str(key).lower() in allowed
+    }
 
 
 async def seed_provider_runtime(db: AsyncSession) -> None:
@@ -1039,6 +1068,22 @@ async def execute_provider_call(
             if rate_error is not None:
                 exc = rate_error
                 last_error = rate_error
+                db.add(
+                    ProviderCapacityEvent(
+                        data_source_id=resolved.data_source.id,
+                        capability=capability,
+                        operation=operation,
+                        scope=rate_error.scope or resolved.policy.quota_scope,
+                        status_code=rate_error.status_code,
+                        error_type=rate_error.__class__.__name__,
+                        message=str(rate_error)[:4000],
+                        retry_at=rate_error.retry_at,
+                        response_headers=_capacity_response_headers(rate_error.headers),
+                        observed_at=datetime.now(UTC),
+                        request_log_id=log_row.id,
+                    )
+                )
+                await db.flush()
                 # A provider-supplied reset is authoritative.  Do not sleep
                 # blindly or retry the same provider in a tight loop.
                 if rate_error.retry_at is not None:

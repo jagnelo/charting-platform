@@ -277,6 +277,38 @@ class ProviderRequestLog(Base, TimestampMixin):
     )
 
 
+class ProviderCapacityEvent(Base, TimestampMixin):
+    """Durable, typed evidence of a provider capacity/quota rejection."""
+
+    __tablename__ = "provider_capacity_event"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    data_source_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("data_source.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    capability: Mapped[ProviderCapability] = mapped_column(
+        SAEnum(ProviderCapability), nullable=False, index=True
+    )
+    operation: Mapped[str] = mapped_column(String(80), nullable=False)
+    scope: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    status_code: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    error_type: Mapped[str] = mapped_column(String(80), nullable=False, default="ProviderRateLimitError")
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    retry_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    response_headers: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    request_log_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("provider_request_log.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+
+    data_source: Mapped["DataSource | None"] = relationship()
+    request_log: Mapped["ProviderRequestLog | None"] = relationship()
+
+    __table_args__ = (
+        Index("ix_provider_capacity_event_source_observed", "data_source_id", "observed_at"),
+    )
+
+
 class ProviderAvailabilityRun(Base, TimestampMixin):
     """One scheduled availability sweep and its immutable observations."""
 

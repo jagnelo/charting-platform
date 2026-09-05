@@ -98,6 +98,18 @@ def test_ip_ban_status_is_typed_as_provider_capacity_failure():
     assert typed.scope == "ip"
 
 
+def test_existing_typed_capacity_error_is_preserved_for_durable_event_recording():
+    typed = ProviderRateLimitError(
+        "example",
+        "provider quota exceeded",
+        status_code=429,
+        headers={"Authorization": "must-not-be-persisted", "Retry-After": "5"},
+    )
+    preserved = provider_rate_limit_error("example", typed, scope="api_key")
+    assert preserved is typed
+    assert preserved.scope == "api_key"
+
+
 def test_non_capacity_http_error_is_not_misclassified():
     response = httpx.Response(500, request=httpx.Request("GET", "https://provider.example/data"))
     exc = httpx.HTTPStatusError("500 Server Error", request=response.request, response=response)

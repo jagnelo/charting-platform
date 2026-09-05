@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
+import httpx
 import pytest
 from sqlalchemy import select
 
@@ -12,8 +13,14 @@ from app.models.instrument_identity import (
     InstrumentProviderCapabilityStatus,
     InstrumentProviderSymbol,
 )
-from app.models.provider_runtime import ProviderCapability, ProviderHealthState, ProviderPolicy
+from app.models.provider_runtime import (
+    ProviderCapability,
+    ProviderCapacityEvent,
+    ProviderHealthState,
+    ProviderPolicy,
+)
 from app.services.provider_runtime import (
+    ProviderRateLimitError,
     ResolvedProvider,
     execute_provider_call,
     resolve_provider_chain,
@@ -166,6 +173,48 @@ async def test_execute_provider_call_downgrades_and_recovers_provider_support(
     assert result.provider_name == "yfinance"
     assert status_by_source[primary.data_source.id] == SUPPORT_STATUS_UNSUPPORTED
     assert status_by_source[fallback.data_source.id] == SUPPORT_STATUS_SUPPORTED
+
+
+@pytest.mark.asyncio
+async def test_execute_provider_call_persists_typed_capacity_event(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    primary = _resolved_provider(
+        db,
+        provider_name="alpaca",
+        capability=ProviderCapability.LATEST_PRICE,
+        provider=_Provider(None),
+    )
+
+    async def _fake_resolve(*_args, **_kwargs):
+        return [primary]
+
+    response = httpx.Response(
+        429,
+        headers={"Retry-After": "11", "Authorization": "must-not-be-stored"},
+        request=httpx.Request("GET", "https://provider.example/data"),
+    )
+    upstream = httpx.HTTPStatusError(
+        "429 Too Many Requests", request=response.request, response=response
+    )
+
+    def _raise():
+        raise upstream
+
+    monkeypatch.setattr("app.services.provider_runtime.resolve_provider_chain", _fake_resolve)
+    with pytest.raises(ProviderRateLimitError) as raised:
+        await execute_provider_call(
+            async_db,
+            ProviderCapability.LATEST_PRICE,
+            "get_current_price",
+            invoke=lambda _provider, _provider_symbol: _raise(),
+        )
+
+    assert raised.value.status_code == 429
+    event = db.execute(select(ProviderCapacityEvent)).scalar_one()
+    assert event.status_code == 429
+    assert event.scope == "test"
+    assert event.retry_at is not None
+    assert event.response_headers == {"retry-after": "11"}
 
 
 @pytest.mark.asyncio
