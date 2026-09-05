@@ -165,6 +165,50 @@ def test_admin_can_inspect_bounded_canary_history_without_hydrating_unknown_symb
     assert db.query(Instrument).filter_by(symbol="DXJ").count() == 0
 
 
+def test_admin_can_read_bounded_persisted_canary_history_for_existing_symbol(
+    client, admin_headers, db
+):
+    from app.models.etf_holdings import ETFHoldingsAdapterState, ETFProfile
+    from app.models.instrument import Instrument
+
+    profile_response = client.patch(
+        "/api/v1/etf-holdings/ARKK/profile",
+        json={
+            "issuer": "ARK Invest",
+            "provider_aliases": {"holdings_adapter": "ark"},
+        },
+        headers=admin_headers,
+    )
+    assert profile_response.status_code == 200, profile_response.text
+    profile = (
+        db.query(ETFProfile)
+        .join(Instrument, Instrument.id == ETFProfile.instrument_id)
+        .filter(Instrument.symbol == "ARKK")
+        .one()
+    )
+    db.add(
+        ETFHoldingsAdapterState(
+            etf_profile_id=profile.id,
+            adapter_key="ark",
+            status="success",
+            last_checked_at=datetime(2026, 9, 5, 12, tzinfo=UTC),
+            extra_data={
+                "canary_history": [{"sequence": index, "status": "success"} for index in range(4)]
+            },
+        )
+    )
+    db.flush()
+
+    response = client.get(
+        "/api/v1/etf-holdings/ARKK/canary-history",
+        headers=admin_headers,
+        params={"limit": 2},
+    )
+
+    assert response.status_code == 200, response.text
+    assert [item["sequence"] for item in response.json()["observations"]] == [2, 3]
+
+
 def test_capability_read_does_not_hydrate_unknown_symbol(client, auth_headers, db):
     from app.models.instrument import Instrument
 
