@@ -35,6 +35,7 @@ SEC_FILING = "sec_filing"
 NO_SOURCE = "none"
 CONTROLLED_FIXTURE = "controlled_fixture"
 _CURRENT_SOURCE_TIERS = {ISSUER_NATIVE, SUCCESSOR_NATIVE, LICENSED_VENDOR}
+_CANARY_HISTORY_LIMIT = 90
 
 
 async def load_latest_adapter_state(
@@ -96,7 +97,7 @@ async def load_tier0_shadow_observations(
             select(ETFHoldingsAdapterState, Instrument.symbol)
             .join(ETFProfile, ETFProfile.id == ETFHoldingsAdapterState.etf_profile_id)
             .join(Instrument, Instrument.id == ETFProfile.instrument_id)
-            .where(Instrument.symbol.in_(requested_symbols))
+            .where(func.upper(Instrument.symbol).in_(requested_symbols))
         )
     ).all()
     for state, raw_symbol in rows:
@@ -108,6 +109,13 @@ async def load_tier0_shadow_observations(
         observations_by_symbol.setdefault(symbol, []).extend(
             observation for observation in history if isinstance(observation, Mapping)
         )
+    for symbol, observations in observations_by_symbol.items():
+        observations.sort(
+            key=lambda observation: str(
+                observation.get("observed_at") or observation.get("last_canary_at") or ""
+            )
+        )
+        observations_by_symbol[symbol] = observations[-_CANARY_HISTORY_LIMIT:]
     return observations_by_symbol
 
 
@@ -132,7 +140,7 @@ async def load_canary_history(
     history = metadata.get("canary_history")
     if not isinstance(history, list):
         return []
-    bounded_limit = max(1, min(int(limit), 90))
+    bounded_limit = max(1, min(int(limit), _CANARY_HISTORY_LIMIT))
     return [
         dict(observation)
         for observation in history[-bounded_limit:]

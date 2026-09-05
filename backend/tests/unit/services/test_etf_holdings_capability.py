@@ -18,6 +18,7 @@ from app.services.etf_holdings_capability import (
     infer_expected_cadence,
     load_canary_history,
     load_canary_history_for_symbol,
+    load_tier0_shadow_observations,
     symbol_audit_for_profile,
 )
 from app.services.etf_holdings_refresh import _canary_failure_class
@@ -290,6 +291,32 @@ async def test_canary_history_symbol_read_does_not_hydrate_unknown_symbols():
     result = await load_canary_history_for_symbol(Database(), "  DXJ ")
 
     assert result == []
+
+
+async def test_tier0_shadow_observations_normalize_symbols_and_bound_history():
+    class Result:
+        def all(self):
+            return [
+                (
+                    SimpleNamespace(
+                        extra_data={
+                            "canary_history": [
+                                {"sequence": index, "status": "success"} for index in range(91)
+                            ]
+                        }
+                    ),
+                    "dxj",
+                )
+            ]
+
+    class Database:
+        async def execute(self, _statement):
+            return Result()
+
+    result = await load_tier0_shadow_observations(Database(), eligible_symbols=[" DXJ "])
+
+    assert list(result) == ["DXJ"]
+    assert [observation["sequence"] for observation in result["DXJ"]] == list(range(1, 91))
 
 
 def test_unverified_identity_never_becomes_current_even_with_complete_rows():
