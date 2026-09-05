@@ -3394,6 +3394,41 @@ remains a post-integration 30-day production shadow gate. DXJ/NTSX/MINT/BOND
 remain explicitly non-current, and no provider, credential, paid source,
 staging branch, or other worktree was mutated.
 
+## Pre-persistence future-metadata validation and full gate — 2026-09-05
+
+Implementation commit `9eb944d8` (`fix(etf): validate metadata before profile
+writes`) closes the remaining lower-boundary ordering gap in the future-date
+truthfulness invariant. `ingest_holdings_snapshot()` now validates composition,
+as-of, and published-at metadata before ETF profile hydration or any canonical
+profile write can occur. The new regression patches profile hydration to fail
+if reached and proves that a future composition date is rejected first; this
+keeps the ingestion boundary fail-closed even for direct callers below the API
+transaction boundary. No provider, source tier, entitlement, paid activation,
+staging branch, or other worktree changed.
+
+Focused validation passed: the resolution/refresh/capability suite (`111
+passed`), the deterministic ETF matrix (`725 passed`), the complete ETF API
+integration suite (`66 passed`, `2 warnings`), Ruff check, Ruff formatting,
+and diff-check.
+
+The complete Docker-backed repository gate passed every stage at this head:
+backend coverage (`1822 passed`, total coverage `81.13%`), frontend unit and
+coverage (`928 passed`, total coverage `82.05%`), uPlot and visual policy,
+frontend production build, compose contract, provider probes, stack health,
+research-runner sandbox/resource probes, functional Playwright (`154 passed`,
+`106 skipped`), visual Playwright (`104 passed`), and all eight branch-declared
+tests. The opt-in live-provider branch test ran `495 passed` and `22 skipped`;
+the default live contract ran `2 passed` and `515 skipped`. Branch tests also
+reported `571 passed` deterministic adapter tests and `12 passed` ETF frontend
+tests. Automatic teardown removed all branch containers, images, volumes, and
+network; the post-gate resource audit confirmed zero containers, zero volumes,
+zero testcontainer sessions, zero known bytes, and no budget overrun.
+
+AC10 remains deferred until the provider-platform branch reaches staging; AC14
+remains a post-integration 30-day production shadow gate. DXJ/NTSX/MINT/BOND
+remain explicitly non-current, and no provider, credential, paid source,
+staging branch, or other worktree was mutated.
+
 ## Future metadata fail-closed boundary and full gate — 2026-09-05
 
 Implementation commit `f1d09eca6c52f5d43ba59741b28644a0c18c93ca`
