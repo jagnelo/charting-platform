@@ -12,7 +12,7 @@ human_closure_authorization: pending
 closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
-current_blocker: "The corrected ranking-period slice is durable at product tip cdcef088: role-ranking and cross-family summary performance reads now use the selected family_rank_period rather than hard-coded 1M. Focused frontend coverage passed 136/136, TypeScript/build passed, and authenticated F8s-breadth-family-ratio passed 1/1 on a rebuilt branch-scoped stack with clean teardown/resource accounting. The exact-tip gate at the next coherent documentation tip is pending. Preserve the six known visual state-oracle diffs and unchanged provider/fallback/acceptance policy; continue the next canonical analytics/provider slice after recording the gate."
+current_blocker: "Exact-tip full_stack_browser gate at metadata tip 20c750a2 (product tip cdcef088) passed locked dependency/migration checks (migration compatibility skipped because no migration changes), workstream validation, lint/format/type-check, backend unit/integration and combined coverage (80.93%; 1320 unit and 384 integration tests), frontend Vitest (970/970), production build, compose/provider policy, stack health, research-runner isolation, and functional Playwright (157/157 with 106 documented skips across 263 specs). The visual matrix completed 104 cases with 98 passes and the same six watchlist-column-editor-open/workspace-floating state-oracle diffs. Teardown and resource accounting were clean. No baseline, mask, threshold, skip, fallback, provider, or acceptance policy changed; preserve the visual-only boundary and continue the next canonical analytics/provider slice."
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "The roadmap changes frontend workstation behavior, backend canonical provider/history contracts, authenticated browser workflows, Playwright visual assertions, worker-backed data readiness, and full integration evidence."
@@ -278,8 +278,14 @@ progress:
     rule, or acceptance policy changed; assigned stack teardown and resource accounting were clean.
     Canonical provider/history, richer Study targets, native-window/accessibility/security,
     dense-data, and visual-oracle review remain open.
-  next_action: "Run the exact-tip gate at the corrected ranking-period documentation tip, preserving the six visual state-oracle assertions and unchanged visual/provider fallback policy; then implement the next bounded canonical provider/history slice with authenticated evidence."
+  next_action: "Implement the next bounded canonical provider/history slice with authenticated evidence; preserve the six visual state-oracle assertions and unchanged visual/provider fallback policy, then rerun the exact-tip gate at the next coherent tip."
 remaining_gaps:
+  - "Exact-tip full_stack_browser gate at metadata tip 20c750a2 (product tip cdcef088) passed all
+    locked/non-visual stages, combined backend coverage 80.93% (1320 unit and 384 integration),
+    frontend Vitest 970/970, functional Playwright 157/157 with 106 documented skips, and clean
+    stack/resource teardown. The unchanged visual matrix remains 98/104 with six state-oracle
+    diffs: watchlist-column-editor-open at both 1080p scales and workspace-floating at all four
+    scales. Preserve baseline, mask, threshold, skip, fallback, provider, and acceptance policy."
   - "Corrected ranking-period summary consumers are durable at product tip cdcef088: role-ranking
     and cross-family summary performance reads use the selected family_rank_period, with focused
     frontend coverage 136/136, TypeScript/build, authenticated F8s-breadth-family-ratio 1/1 on a

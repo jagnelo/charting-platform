@@ -8,9 +8,12 @@
       `136/136`, TypeScript/build passed, and authenticated Chromium
       `F8s-breadth-family-ratio` passed `1/1` on a rebuilt branch-scoped stack with
       clean teardown/resource accounting.
-- [ ] Rerun the exact-tip exhaustive gate at the corrected product tip; preserve
-      the six known visual state-oracle diffs and unchanged provider/fallback,
-      baseline, threshold, mask, skip, and acceptance policy.
+- [x] Rerun the exact-tip exhaustive gate at metadata tip `20c750a2` (product tip
+      `cdcef088`): all locked/non-visual stages and functional Playwright passed
+      (`157/157`, `106` documented skips); the unchanged visual matrix is `98/104`
+      with the same six state-oracle diffs. Teardown and resource accounting were
+      clean; preserve provider/fallback, baseline, threshold, mask, skip, and
+      acceptance policy.
 
 ### 2026-09-05 — Exact-tip gate after configurable family ranking horizons
 

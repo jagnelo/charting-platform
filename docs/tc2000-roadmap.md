@@ -22,6 +22,23 @@ and resource accounting were clean. Product commit `cdcef088`
 coherent documentation tip, preserving the six known visual state-oracle
 diffs and unchanged provider/fallback policy.
 
+## 2026-09-05 — Exact-tip gate after period-aware summary correction
+
+The exact-tip `full_stack_browser` gate at metadata tip `20c750a2` (product tip
+`cdcef088`) passed locked dependency/migration checks (migration compatibility
+skipped because no migration changes), workstream validation, lint/format/type-
+check, backend unit/integration and combined coverage (`80.93%`; `1320` unit
+and `384` integration tests), frontend Vitest (`970/970`), production build,
+compose/provider policy, stack health, research-runner isolation, and functional
+Playwright (`157/157` with `106` documented skips across `263` specs). The
+visual matrix completed `104` cases with `98` passes and the same six state-
+oracle diffs: `watchlist-column-editor-open` at 1080p 100% and 125%, and
+`workspace-floating` at 1080p 100%/125% and 1440p 100%/125%. Teardown removed
+the assigned stack and generated resources; resource accounting was clean. No
+baseline, mask, threshold, skip, fallback, provider, or acceptance policy
+changed. Preserve this visual-only boundary and continue the next canonical
+analytics/provider slice.
+
 ## 2026-09-05 — Exact-tip gate after configurable family ranking horizons
 
 The exact-tip `full_stack_browser` gate at metadata tip `d64c9c78` (product tip `bbe011db`)
