@@ -5,6 +5,21 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-05
 
+## 2026-09-05 — Surface every canonical member-bar timeframe in family readiness
+
+The Market Breadth benchmark-family coverage summary now reports the canonical
+member-bar readiness for each declared analysis timeframe (`D1`, `W1`, and
+`MN`), including both covered and analysis-ready member counts. A missing
+timeframe is explicit as unavailable; the consumer does not infer readiness
+from the daily leg or request provider data. The authenticated
+`F8s-breadth-family-ratio` flow now supplies and asserts all three timeframe
+contracts. Product commit `a456d7c8` (`feat(tc2000): surface all family bar
+timeframes`) is pushed. Frontend Vitest passed `970/970`, type-check and
+production build passed, and the rebuilt authenticated Chromium flow passed
+`1/1`; stack teardown removed four generated images and all assigned resources.
+The exact-tip gate at the next documentation tip remains required; preserve the
+six existing visual state-oracle diffs and unchanged provider/fallback policy.
+
 ## 2026-09-05 — Assert selected ranking-period values end to end
 
 The authenticated `F8s-breadth-family-ratio` flow now uses period-specific mock

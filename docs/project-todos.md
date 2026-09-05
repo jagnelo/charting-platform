@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-05 — Surface every canonical member-bar timeframe in family readiness
+
+- [x] Report D1, W1, and MN covered/analysis-ready member counts in the Market
+      Breadth benchmark-family readiness summary; missing timeframe legs remain
+      explicit as unavailable and no provider/fallback behavior changed.
+- [x] Extend the authenticated `F8s-breadth-family-ratio` fixture and assertion
+      to cover all three canonical timeframe contracts. Product commit `a456d7c8`
+      is pushed; Vitest passed `970/970`, type-check/build passed, and rebuilt
+      Chromium passed `1/1` with clean stack/resource teardown.
+- [ ] Rerun the exact-tip integration gate at the next documentation tip,
+      preserving the six known visual state-oracle diffs and all visual,
+      provider, fallback, and acceptance policy.
+
 ### 2026-09-05 — Assert selected ranking-period values end to end
 
 - [x] Harden `F8s-breadth-family-ratio` with period-specific ranking mock values and an explicit
