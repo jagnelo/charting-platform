@@ -8,7 +8,7 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 - Request: Implement the approved US-first multi-provider market-data platform plan: canonical FIGI-based identity and issuer model; exchange/session calendars; market-series scoped raw/canonical OHLCV with local rollups and adjustments; provider capability/entitlement/quota routing; US universe/lifecycle, events, SEC fundamentals, FINRA short interest, current options with local high-fidelity Greeks, optional futures and crypto providers; backend admin/diagnostic APIs; and disabled 30-day shadow monitoring. Backend/data only; do not modify frontend or ETF constituent provider work.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 - Planning state: ready; scope, acceptance criteria, branch tests, and the docker-backed full-integration validation profile are recorded in `plan.yaml`.
-- Implementation checkpoint: `5bea90fb61426201d3a1ba81dbec60a34f50f367` (`feat(market-data): enforce provider-specific quota evidence`) is pushed to `origin/feat/market-data-provider-platform`; the operational checkpoint below remains to be committed separately.
+- Implementation checkpoint: `5bea90fb61426201d3a1ba81dbec60a34f50f367` (`feat(market-data): enforce provider-specific quota evidence`) is pushed to `origin/feat/market-data-provider-platform`; subsequent evidence commit `3b8cef3976081e50107161c4bfe64d234c4a326d` adds and exercises full Nasdaq directory pagination; the operational checkpoint below remains to be committed separately.
 
 ## Current implementation boundary
 
