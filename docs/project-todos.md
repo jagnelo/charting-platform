@@ -1,5 +1,24 @@
 # Project TODO Memory
 
+### 2026-09-05 — Exact-tip gate after canonical holdings-refresh diagnostics
+
+- [x] Run `make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework`
+      at product tip `347602f3` and documentation tip `def196bc`: locked
+      dependency/migration, workstream, lint/format/type-check, backend
+      unit/integration (`1320/1320`, `384/384`; `80.93%`), frontend Vitest
+      (`970/970`), build, compose/provider, stack-health, runner-isolation,
+      and authenticated functional browser checks all passed (`157/157`,
+      `106` documented skips across `263` specs).
+- [ ] Preserve and separately resolve the six unchanged visual state-oracle
+      diffs: `watchlist-column-editor-open` at 1080p 100/125 (`13,844` pixels
+      each), and `workspace-floating` at 1080p/1440p 100/125 (`9,770`,
+      `12,097`, `9,770`, `12,097`). Do not alter baselines, masks, thresholds,
+      skips, fallbacks, provider, or acceptance policy.
+- [x] Teardown removed the assigned stack and four generated images; resource
+      accounting reported zero containers, volumes, sessions, and known bytes.
+      Continue canonical provider/history work without integrating, promoting,
+      deploying, or mutating another worktree.
+
 ### 2026-09-05 — Expose canonical holdings-refresh diagnostics
 
 - [x] Show returned holdings-refresh provider and failure reason in the Market
