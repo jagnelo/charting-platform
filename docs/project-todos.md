@@ -26,6 +26,10 @@ current capability/quota ledger.
       pagination with a real contact User-Agent), Nasdaq first-page and
       full-directory pagination for equities/ETFs, Binance, Coinbase, and
       Kraken; backend unit and integration suites pass.
+- [x] Record Binance's official Spot REST request weights where the adapter can
+      charge them before execution: single-symbol price is weight 2 and
+      exchange-info discovery is weight 20. Multi-page historical candles stay
+      fail-closed until their complete request weight can be reserved safely.
 - [ ] Populate credentials in ignored `backend/.env.dev` and execute the
       credentialed probes for Alpaca, Massive, Alpha Vantage, CoinGecko, FRED,
       FINRA, the explicitly configured FINRA OTC directory, Tiingo, Twelve
