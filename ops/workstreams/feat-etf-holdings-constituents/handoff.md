@@ -4526,3 +4526,18 @@ identity-safe, free or under-20-unit executable routes. DXJ/NTSX/MINT/BOND
 remain unavailable, with no credential, paid activation, provider promotion,
 or source-tier change. The next compliant action remains a changed issuer/API
 route or a separately authorized shared-budget entitlement.
+
+## Q3 QVOY route recheck — 2026-09-05
+
+The current Q3 product page is browser-indexed with a complete 14-position
+QVOY table dated 2026-09-04 and a declared holdings CSV link. Direct
+application-equivalent requests to both the product page and
+`GetHoldingsCSV1_v3aLIVE.php` returned HTTP 503 `text/html` site-owner/access-
+limited responses; the indexed download link separately resolved to HTTP 404
+for the bounded crawler. No complete executable artifact was retrieved by the
+repository transport.
+
+Q3 remains `issuer_access_blocked` and QVOY remains unavailable. The current
+browser-indexed table is evidence of a potentially complete issuer source, not
+application support; promotion still requires repeatable transport access,
+strict parser/mapping coverage, and bounded live proof.

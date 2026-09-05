@@ -2013,3 +2013,20 @@ entitlement, price, or commercial license was activated. Evidence refs:
 `live:stockfit-supported-funds-unauthorized-2026-09-05`,
 `live:stockfit-daily-holdings-unauthorized-2026-09-05`, and
 `live:stockfit-mint-bond-daily-unauthorized-2026-09-05`.
+
+## Q3 QVOY route recheck — 2026-09-05
+
+The current Q3 product page is browser-indexed with a complete 14-position
+QVOY table dated September 4, 2026 and a declared holdings CSV link. The
+application-equivalent request to both the product page and the declared
+`GetHoldingsCSV1_v3aLIVE.php` route returned HTTP 503 `text/html`
+site-owner/access-limited responses. The indexed download link also resolved
+to HTTP 404 for the bounded crawler, so no complete executable artifact was
+retrieved by the repository transport.
+
+Q3 remains an explicit `issuer_access_blocked` fallback and QVOY remains
+`unavailable`; the dated browser table is not promoted without repeatable
+application transport, strict parsing, identity checks, and live evidence.
+Evidence refs: `web:q3-qvoy-official-etf-page-2026-09-05`,
+`live:q3-qvoy-official-etf-page-2026-09-05-application-503`, and
+`live:q3-qvoy-download-route-2026-09-05-application-503`.

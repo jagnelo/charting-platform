@@ -207,8 +207,8 @@ symbol_audit_ledger:
       provider_identity: q3
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-09-03
-      evidence_refs: [web:q3-qvoy-official-etf-page-2026-09-03]
+      investigated_at: 2026-09-05
+      evidence_refs: [web:q3-qvoy-official-etf-page-2026-09-03, web:q3-qvoy-official-etf-page-2026-09-05, live:q3-qvoy-official-etf-page-2026-09-05-application-503, live:q3-qvoy-download-route-2026-09-05-application-503]
       next_action: "Re-test the QVOY page and declared holdings route after the issuer throttle clears; promote only after complete rows, mapping, parser fixtures, and live evidence are available."
     - symbol: ACVF
       tier: 1
@@ -1590,7 +1590,7 @@ providers:
     starting_status: issuer_access_blocked
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-09-03
+    last_checked: 2026-09-05
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [QVOY]
     estimated_us_etf_count: null
@@ -1622,7 +1622,15 @@ providers:
         source: "https://www.q3allseasonfunds.com/etf/"
         result: "Backend-equivalent request returned HTTP 503 site-owner/Cloudflare access-limited response."
         evidence_ref: "live:q3-qvoy-official-etf-page-2026-09-03-blocked"
-    disposition_reason: "q3: The official QVOY ETF page identifies a holdings route, but bounded access returns HTTP 503 with Retry-After 3600; no complete executable artifact is proven."
+      - date: 2026-09-05
+        source: "https://www.q3allseasonfunds.com/etf/"
+        result: "A current browser-indexed page exposes 14 dated QVOY positions and a declared CSV link as of 2026-09-04, but the application-equivalent request returned HTTP 503 text/html site-owner access-limited content."
+        evidence_ref: "web:q3-qvoy-official-etf-page-2026-09-05"
+      - date: 2026-09-05
+        source: "https://www.q3allseasonfunds.com/GetHoldingsCSV1_v3aLIVE.php"
+        result: "The declared holdings-download route also returned HTTP 503 text/html to the application client; no complete executable artifact was retrieved."
+        evidence_ref: "live:q3-qvoy-download-route-2026-09-05-application-503"
+    disposition_reason: "q3: The current official QVOY page documents a complete dated 14-position table and declared CSV link, but both the product and download routes return HTTP 503 site-owner access-limited content to the application client; no complete executable artifact is proven."
     next_action: "q3: Re-test the QVOY page and declared holdings route after the issuer throttle clears; promote only after complete rows, mapping, parser fixtures, and live evidence are available."
     implementation_sha: null
     validation_refs: []
