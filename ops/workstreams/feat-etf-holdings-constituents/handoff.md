@@ -2963,3 +2963,17 @@ authentication. MINT and BOND therefore remain unavailable/non-current; top-ten,
 factsheet, SEC, and marketing artifacts remain excluded from current constituent
 support. The provider-audit ledger now records these dated route observations
 and remains internally consistent at 496 registered / 414 native / 82 fallback.
+
+## Persisted source-tier hardening — 2026-09-05
+
+Implementation checkpoint `8ace06d3923e8ca56aebf322221152dbca6b6fb3` closes a
+second provenance gap at the snapshot-ingest boundary. Previously, an artifact
+whose provenance and provider were both unclassified could receive the
+`issuer_native` default before capability evaluation. Ingestion now honors only
+recognized explicit tiers, infers SEC/successor/vendor/issuer tiers from known
+signals, and persists `none` otherwise. This prevents a complete but
+unclassified artifact from being re-labelled current downstream.
+
+The new regression covers both the helper and persisted snapshot metadata. The
+complete deterministic ETF unit matrix passes 711 tests; focused resolution
+coverage passes 18 tests, with Ruff, formatting, and diff-check green.
