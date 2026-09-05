@@ -4153,8 +4153,8 @@ test.describe('TC2000 workstation', () => {
         body: JSON.stringify({
           family_key: 'sp500', official_index_symbol: 'SPX', benchmark: 'SPY', timeframe: 'D1', adjustment: 'split_adjusted', rank_period: rankPeriod,
           roles: [
-            { role: 'equal_weight', symbol: 'RSP', label: 'RSP', verification_state: 'verified', available: true, rank: 1, performance: { [rankPeriod]: 0.12 }, relative_performance: { [rankPeriod]: 0.03 }, warnings: [] },
-            { role: 'cap_weight', symbol: 'SPY', label: 'SPY', verification_state: 'verified', available: true, rank: 2, performance: { [rankPeriod]: 0.09 }, relative_performance: { [rankPeriod]: 0 }, warnings: [] },
+            { role: 'equal_weight', symbol: 'RSP', label: 'RSP', verification_state: 'verified', available: true, rank: 1, performance: { [rankPeriod]: rankPeriod === '3M' ? 0.34 : 0.12 }, relative_performance: { [rankPeriod]: rankPeriod === '3M' ? 0.08 : 0.03 }, warnings: [] },
+            { role: 'cap_weight', symbol: 'SPY', label: 'SPY', verification_state: 'verified', available: true, rank: 2, performance: { [rankPeriod]: rankPeriod === '3M' ? 0.26 : 0.09 }, relative_performance: { [rankPeriod]: 0 }, warnings: [] },
           ], exclusions: [],
         }),
       })
@@ -4346,6 +4346,7 @@ test.describe('TC2000 workstation', () => {
     await expect(familyRankingPeriod).toHaveValue('3M')
     await expect.poll(() => familyAsOfRequests.some(url => url.includes('rank_period=3M'))).toBe(true)
     await expect(breadth.locator('[aria-label="Benchmark family role ranking"]')).toContainText('Role ranking · 3M', { timeout: 15_000 })
+    await expect(breadth.locator('[aria-label="Benchmark family role ranking"]')).toContainText('RSP · 34% · Δ 8%', { timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Benchmark family concentration"]')).toContainText('· 3M dispersion', { timeout: 15_000 })
     await expect(breadth.locator('[aria-label="Cross-family ranking"]')).toContainText('US family ranking · 3M', { timeout: 15_000 })
     const familyOverview = breadth.locator('[aria-label="Benchmark family analysis"]')
