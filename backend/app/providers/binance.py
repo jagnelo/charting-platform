@@ -7,7 +7,9 @@ Capabilities:
   - DiscoveryProvider    : crypto universe (USDT-quoted pairs)
 
 Auth: None required — all endpoints used here are public.
-Rate limits: 1 200 request-weight/minute (weight=1 per klines request).
+Rate limits: the current Spot REST documentation exposes a 6,000
+request-weight/minute IP ceiling; endpoint weights are dynamic and must be
+reconciled before this adapter is admitted to broad routing.
 
 Symbol convention:
   Platform canonical : BTC-USD
@@ -110,9 +112,11 @@ class BinanceProvider:
                 )
                 r.raise_for_status()
                 klines = r.json()
-            except Exception as exc:
+            except httpx.HTTPStatusError:
+                raise
+            except httpx.RequestError as exc:
                 logger.warning("binance fetch_ohlcv %s: %s", symbol, exc)
-                break
+                raise
 
             if not klines:
                 break
@@ -188,9 +192,11 @@ class BinanceProvider:
             )
             r.raise_for_status()
             return float(r.json()["price"])
-        except Exception as exc:
+        except httpx.HTTPStatusError:
+            raise
+        except httpx.RequestError as exc:
             logger.debug("binance get_current_price %s: %s", symbol, exc)
-            return None
+            raise
 
     # ── Universe Discovery ────────────────────────────────────────────────────
 
@@ -247,9 +253,11 @@ def _cached_usdt_pairs() -> list[dict]:
         _usdt_pairs = pairs
         _usdt_pairs_ts = now
         return pairs
-    except Exception as exc:
+    except httpx.HTTPStatusError:
+        raise
+    except httpx.RequestError as exc:
         logger.warning("binance _cached_usdt_pairs: %s", exc)
-        return _usdt_pairs
+        raise
 
 
 def _pair_to_quote(pair: dict) -> dict[str, Any]:

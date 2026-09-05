@@ -42,7 +42,7 @@ dependencies:
   - staging baseline at 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
   - feat/etf-holdings-constituents owns ETF constituent provider adapters; this branch consumes compatible canonical identities only
   - feat/etf-holdings-constituents is active in parallel and may overlap on ETF identity/discovery evidence; reconcile contracts at integration without changing its adapter ownership
-  - configured provider credentials and terms are optional; unavailable providers remain disabled and do not block unrelated providers
+  - configured provider credentials and terms are explicit; unavailable or quota-unknown providers remain visible but non-routable and do not block unrelated providers
 acceptance_criteria:
   - id: AC-IDENTITY
     text: New and reconciled US-listed securities use stable FIGI-domain keys where applicable, issuer identity is separate from security identity, effective-dated listing/provider-symbol history is retained, and unresolved candidates are quarantined without silent merges.
@@ -65,7 +65,13 @@ acceptance_criteria:
   - id: AC-COMPAT
     text: Existing symbol-based API aliases and legacy yfinance-dependent paths remain functional only through explicit compatibility behavior; yfinance is absent from default and acceptance routing.
   - id: AC-TEST
-    text: Focused unit, adapter-fixture, migration, PostgreSQL/Redis integration, worker, API, numerical, point-in-time, and full backend integration validation pass; no frontend files are modified.
+    text: Focused unit, adapter-fixture, migration, PostgreSQL/Redis integration, worker, API, numerical, point-in-time, and full backend integration validation pass; every live-enabled provider has either bounded keyless evidence or an explicit credential preflight failure; no frontend files are modified.
+  - id: AC-QUOTA-SAFETY
+    text: No provider policy contains a generic 60/min, 15-burst, 2-concurrency, or 30-second fallback. Unknown limits are represented as NULL/unknown, excluded from routing, and surfaced with the exact missing contract dimensions.
+  - id: AC-RATE-FAILURE
+    text: 429/418/quota responses parse provider reset headers where present, stop the affected provider scope, persist a typed capacity event, defer work until the reset (or operator decision), and do not create a retry storm or unsafe fallback.
+  - id: AC-LIVE-EVIDENCE
+    text: The manifest-driven live matrix covers keyless and credentialed providers separately. Missing credentials identify exact environment variables and block ready-for-review; no live skip is represented as proof.
 branch_tests:
   - backend unit and provider fixture suites for identity, routing, calendars, coverage, events, adjustments, options, and anomaly handling
   - backend migration compatibility and PostgreSQL/Redis integration tests
@@ -76,19 +82,24 @@ branch_tests_reason: Application models, migrations, providers, workers, Redis q
 live_test_impact: opt-in provider probes and a separately approved post-deployment 30-day disabled shadow run; no deployment or activation is authorized in this implementation session
 migration_impact: multiple additive/transformational PostgreSQL migrations for issuers, domain identities, series scope, sessions, facts/events/short interest, provider runtime budgets, and shadow telemetry; old symbol/OHLCV rows require deterministic compatibility backfill
 deployment_impact: new backend/worker configuration, optional provider credentials, QuantLib dependency, Redis-backed quota state, scheduled shadow-report jobs, and feature flags; deployment remains a separate human-authorized master workflow
-status: ready_for_human_review
+status: in_progress
 remaining_gaps:
-  - the concrete optional adapters remain disabled until operators record credentials, quotas, redistribution terms, and environment-scoped entitlements
-  - production reconciliation still needs reviewed authoritative feeds for every US venue and a separately operated listing-change review queue; public/credentialed discovery evidence is now worker-ready
-  - production deployment and the separately approved 30-day shadow run remain out of scope for this session
+  - live credentialed provider probes require operator-populated ignored backend/.env.dev values; exact missing names are emitted by the manifest preflight
+  - provider-specific unknown quotas (FRED, Finnhub, Marketstack, FMP, IBKR, Binance endpoint weights, Nasdaq Trader polling) remain non-routable until their scope/ceiling is recorded; FINRA's documented synchronous ceiling is now recorded but still requires credential/terms evidence
+  - complete production NMS/OTC reconciliation and the separately approved 30-day shadow run remain post-deployment gates; the NMS/SEC directory adapters and bounded keyless evidence are implemented, while OTC still needs an approved documented source
 progress:
   completed:
-    - concrete opt-in adapters for Tiingo, Twelve Data, Finnhub, Marketstack, EODHD, and FMP with fixture normalization
-    - Nasdaq equity/ETF directory evidence with raw-page pagination and conservative CIK/issuer reconciliation
+    - concrete opt-in adapters for Tiingo, Twelve Data, Finnhub, Marketstack, EODHD, FMP, Tradier, MarketData.app, Coinbase, and Kraken with fixture normalization
+    - official Nasdaq Trader equity/ETF directory ingestion; undocumented Nasdaq quote-history routes removed
+    - NMS pagination now requires explicit totals/cursor completion evidence; Nasdaq Financial Status is retained without treating deficient/bankrupt listings as delisted
+    - exchange-qualified discovery rows cannot fall back to ticker-only cross-venue merges; failed/partial reconciliation runs report non-complete aggregate status
+    - provider-specific quota contracts, multi-dimensional durable reservations, and fail-closed unknown-limit routing
+    - OAuth-shaped FINRA client configuration and typed provider-not-configured/rate-limit failures
+    - FINRA Query API dataset shape, OAuth expiry handling, documented synchronous quota contract, and credential-required entitlement
     - worker-only universe lifecycle observations, repeated-missing deactivation, and exchange-aware core D1 coverage
     - paid-routing switches cannot bypass blank or unreviewed provider entitlements
     - final combined backend unit and PostgreSQL/Redis integration validation
-  total: 11
-  current_phase: implementation_and_integration_validation
-  current_blocker: none
-  next_action: human review of the backend-only branch; after approval, operators can seed reviewed entitlements and run the separate production/shadow activation workflow
+  total: 14
+  current_phase: credentialed_live_validation
+  current_blocker: credentialed live probes require operator-populated ignored backend/.env.dev values; NMS/OTC reconciliation and shadow activation remain post-deployment gates
+  next_action: populate provider credentials, execute every credentialed probe, resolve failures, and then reassess readiness; do not reuse prior receipts or activate routing before that evidence

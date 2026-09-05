@@ -29,6 +29,7 @@ from app.providers.base import (
 from app.providers.binance import BinanceProvider
 from app.providers.coingecko import CoinGeckoProvider
 from app.providers.configured import OPTIONAL_PROVIDER_DESCRIPTORS
+from app.providers.crypto_market_data import CoinbaseProvider, KrakenProvider
 from app.providers.edgar import EdgarProvider
 from app.providers.etf_holdings_internal import ETFHoldingsInternalProvider
 from app.providers.finra import FINRAProvider
@@ -40,8 +41,10 @@ from app.providers.optional_market_data import (
     EODHDProvider,
     FinnhubProvider,
     FMPProvider,
+    MarketDataAppProvider,
     MarketstackProvider,
     TiingoProvider,
+    TradierProvider,
     TwelveDataProvider,
 )
 from app.providers.yfinance import YFinanceProvider
@@ -54,13 +57,15 @@ _PROVIDERS: dict[str, ProviderDescriptor] = {
     "fred": FREDProvider(),  # Interest rates, forex series, macro indicators
     "binance": BinanceProvider(),  # Crypto OHLCV and universe
     "coingecko": CoinGeckoProvider(),  # Crypto metadata and discovery
+    "coinbase": CoinbaseProvider(),  # Keyless public crypto exchange data
+    "kraken": KrakenProvider(),  # Keyless public crypto exchange data
     "edgar": EdgarProvider(),  # US company profile and earnings history
     "etf_holdings_internal": ETFHoldingsInternalProvider(),
     # Fallback / supplementary
     "yfinance": YFinanceProvider(),  # Broad fallback — options chains, futures, forward earnings
     "openfigi": OpenFigiProvider(),  # Stable identifier enrichment (FIGI, ISIN)
     "massive": MassiveProvider(),  # Reference ticker universe corroboration
-    "nasdaq": NasdaqProvider(),  # Public US EOD historical quote fallback
+    "nasdaq": NasdaqProvider(),  # Official US NMS listing/lifecycle directory evidence
     "alpha_vantage": AlphaVantageProvider(),  # Quota-limited daily-history corroboration
     "finra": FINRAProvider(),  # Consolidated short-interest datasets (endpoint configurable)
     # Optional low-cost adapters. They remain absent from default chains and
@@ -72,6 +77,8 @@ _PROVIDERS: dict[str, ProviderDescriptor] = {
     "marketstack": MarketstackProvider(),
     "eodhd": EODHDProvider(),
     "fmp": FMPProvider(),
+    "tradier": TradierProvider(),
+    "marketdata_app": MarketDataAppProvider(),
 }
 # Keep descriptor-only entries visible for broker/crypto integrations that do
 # not yet have a concrete adapter. ``setdefault`` preserves concrete classes.
@@ -90,6 +97,29 @@ _DEFAULT_PROVIDER_USAGE_PROFILES: dict[str, dict] = {
     }
     for name in _PROVIDERS
 }
+
+# Keep the admin usage view and runtime reservation contract sourced from the
+# same provider-specific declarations.  Unknown providers intentionally retain
+# ``limit_kind=unknown`` and are not routable.
+for _provider_name, _rate_seed in settings.PROVIDER_RATE_LIMIT_SEEDS.items():
+    if _provider_name not in _DEFAULT_PROVIDER_USAGE_PROFILES:
+        continue
+    _profile = _DEFAULT_PROVIDER_USAGE_PROFILES[_provider_name]
+    _contract = _rate_seed.get("quota_contract") if isinstance(_rate_seed, dict) else None
+    _dimensions = (_contract or {}).get("dimensions") if isinstance(_contract, dict) else None
+    if isinstance(_dimensions, list) and _dimensions:
+        _profile["limit_kind"] = "multi_dimensional"
+        _profile["quota_dimensions"] = _dimensions
+        _profile["quota_window_seconds"] = min(
+            int(item["window_seconds"])
+            for item in _dimensions
+            if isinstance(item, dict) and str(item.get("window_seconds", "")).isdigit()
+        )
+        _profile["quota_limit"] = min(
+            int(item["limit"])
+            for item in _dimensions
+            if isinstance(item, dict) and str(item.get("limit", "")).isdigit()
+        )
 
 
 def _capability_names(provider: ProviderDescriptor) -> list[str]:
@@ -269,6 +299,38 @@ def get_identifier_providers() -> list[IdentifierProvider]:
 
 def supported_provider_names() -> Sequence[str]:
     return tuple(_PROVIDERS.keys())
+
+
+_AUTH_SETTINGS: dict[str, tuple[str, ...]] = {
+    "alpaca": ("ALPACA_API_KEY", "ALPACA_SECRET_KEY"),
+    "massive": ("MASSIVE_API_KEY",),
+    "alpha_vantage": ("ALPHA_VANTAGE_API_KEY",),
+    "fred": ("FRED_API_KEY",),
+    "coingecko": ("COINGECKO_API_KEY",),
+    "tiingo": ("TIINGO_API_KEY",),
+    "twelve_data": ("TWELVE_DATA_API_KEY",),
+    "finnhub": ("FINNHUB_API_KEY",),
+    "marketstack": ("MARKETSTACK_API_KEY",),
+    "eodhd": ("EODHD_API_KEY",),
+    "fmp": ("FMP_API_KEY",),
+    "tradier": ("TRADIER_API_KEY",),
+    "marketdata_app": ("MARKETDATA_APP_API_KEY",),
+    "finra": ("FINRA_CLIENT_ID", "FINRA_CLIENT_SECRET"),
+}
+
+
+def provider_is_configured(name: str) -> bool:
+    """Return whether the deployment supplied the credentials this adapter needs."""
+
+    required = _AUTH_SETTINGS.get(name)
+    if required is None:
+        if name == "edgar":
+            user_agent = str(getattr(settings, "EDGAR_USER_AGENT", "") or "").strip()
+            return bool(user_agent and "contact@example.com" not in user_agent)
+        return True
+    if name == "massive":
+        return bool(settings.MASSIVE_API_KEY or settings.MARKETDATA_API_KEY)
+    return all(bool(getattr(settings, key, "")) for key in required)
 
 
 def get_provider_usage_profile(name: str) -> dict:

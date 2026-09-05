@@ -69,7 +69,7 @@ async def claim_refresh_jobs(
             MarketRefreshJob.next_attempt_at <= current,
             or_(
                 MarketRefreshJob.status == "queued",
-                MarketRefreshJob.status == "retry",
+                MarketRefreshJob.status.in_(["retry", "deferred"]),
                 (MarketRefreshJob.status == "leased") & (MarketRefreshJob.leased_until < current),
             ),
         )
@@ -101,11 +101,19 @@ async def retry_refresh_job(
     *,
     now: datetime | None = None,
     max_backoff_seconds: int = 3600,
+    retry_at: datetime | None = None,
 ) -> None:
     current = now or datetime.now(UTC)
     backoff = min(max_backoff_seconds, 2 ** min(job.attempts, 10))
-    job.status = "retry"
+    is_quota_defer = retry_at is not None
+    job.status = "deferred" if is_quota_defer else "retry"
     job.leased_until = None
     job.last_error = error[:2000]
-    job.next_attempt_at = current + timedelta(seconds=backoff)
+    backoff_at = current + timedelta(seconds=backoff)
+    job.next_attempt_at = max(backoff_at, retry_at) if retry_at is not None else backoff_at
+    job.metadata_payload = {
+        **(job.metadata_payload or {}),
+        "defer_reason": "provider_reset" if is_quota_defer else None,
+        "provider_retry_at": retry_at.isoformat() if retry_at else None,
+    }
     await db.flush()

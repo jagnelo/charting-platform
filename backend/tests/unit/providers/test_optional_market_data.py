@@ -3,7 +3,10 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from app.models.ohlcv import Timeframe
+from app.providers.errors import ProviderNotConfiguredError
 from app.providers.optional_market_data import (
     EODHDProvider,
     FinnhubProvider,
@@ -139,5 +142,6 @@ def test_missing_credentials_never_make_optional_call():
         patch("app.providers.optional_market_data.httpx.get") as get,
     ):
         configured.TWELVE_DATA_API_KEY = ""
-        assert provider.get_current_price("AAPL") is None
+        with pytest.raises(ProviderNotConfiguredError):
+            provider.get_current_price("AAPL")
     get.assert_not_called()

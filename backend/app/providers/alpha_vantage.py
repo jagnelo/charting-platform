@@ -13,6 +13,7 @@ import httpx
 from app.config import settings
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.providers.base import MarketEventRecord, ProviderSearchResult
+from app.providers.errors import ProviderNotConfiguredError, ProviderRateLimitError
 
 logger = logging.getLogger(__name__)
 _BASE = "https://www.alphavantage.co/query"
@@ -28,36 +29,23 @@ class AlphaVantageProvider:
 
     def _get(self, function: str, **params: Any) -> dict[str, Any] | None:
         if not self._key():
-            logger.warning("alpha_vantage: ALPHA_VANTAGE_API_KEY is not configured")
-            return None
-        try:
-            response = httpx.get(
-                _BASE,
-                params={"function": function, "apikey": self._key(), **params},
-                timeout=30,
-            )
-            response.raise_for_status()
-            payload = response.json()
-            return payload if isinstance(payload, dict) else None
-        except Exception as exc:
-            logger.warning("alpha_vantage %s failed: %s", function, exc)
-            return None
+            raise ProviderNotConfiguredError("alpha_vantage requires ALPHA_VANTAGE_API_KEY")
+        response = httpx.get(_BASE, params={"function": function, "apikey": self._key(), **params}, timeout=30)
+        response.raise_for_status()
+        payload = response.json()
+        if isinstance(payload, dict) and (payload.get("Note") or payload.get("Information")):
+            raise ProviderRateLimitError(self.name, str(payload.get("Note") or payload.get("Information")))
+        return payload if isinstance(payload, dict) else None
 
     def _get_text(self, function: str, **params: Any) -> str | None:
         if not self._key():
-            logger.warning("alpha_vantage: ALPHA_VANTAGE_API_KEY is not configured")
-            return None
-        try:
-            response = httpx.get(
-                _BASE,
-                params={"function": function, "apikey": self._key(), **params},
-                timeout=30,
-            )
-            response.raise_for_status()
-            return response.text
-        except Exception as exc:
-            logger.warning("alpha_vantage %s failed: %s", function, exc)
-            return None
+            raise ProviderNotConfiguredError("alpha_vantage requires ALPHA_VANTAGE_API_KEY")
+        response = httpx.get(_BASE, params={"function": function, "apikey": self._key(), **params}, timeout=30)
+        response.raise_for_status()
+        text = response.text
+        if "Thank you for using Alpha Vantage" in text or "higher API call volume" in text:
+            raise ProviderRateLimitError(self.name, text[:240])
+        return text
 
     def search_instruments(self, query: str, *, limit: int = 10) -> list[ProviderSearchResult]:
         if not query.strip() or limit <= 0:

@@ -30,6 +30,7 @@ from app.providers.base import (
     ListingRecord,
     ProviderSearchResult,
 )
+from app.providers.errors import ProviderNotConfiguredError
 
 logger = logging.getLogger(__name__)
 
@@ -125,22 +126,17 @@ class _RESTProvider:
 
     def _get(self, path: str, params: dict[str, Any] | None = None) -> Any:
         if self.key_setting and not self._key():
-            logger.info(
-                "%s: %s is not configured; provider remains disabled", self.name, self.key_setting
+            raise ProviderNotConfiguredError(
+                f"{self.name} requires {self.key_setting}; configure it before routing"
             )
-            return None
-        try:
-            response = httpx.get(
-                f"{self.base_url.rstrip('/')}/{path.lstrip('/')}",
-                params=self._auth_params(params),
-                headers=self._auth_headers(),
-                timeout=30,
-            )
-            response.raise_for_status()
-            return response.json()
-        except Exception as exc:
-            logger.warning("%s request failed: %s", self.name, exc)
-            return None
+        response = httpx.get(
+            f"{self.base_url.rstrip('/')}/{path.lstrip('/')}",
+            params=self._auth_params(params),
+            headers=self._auth_headers(),
+            timeout=30,
+        )
+        response.raise_for_status()
+        return response.json()
 
     @staticmethod
     def _rows(payload: Any, *keys: str) -> list[dict[str, Any]]:
@@ -448,6 +444,67 @@ class TwelveDataProvider(_RESTProvider):
 
     def supported_discovery_types(self) -> list[str]:
         return ["EQUITY", "ETF"]
+
+
+class TradierProvider(_RESTProvider):
+    name = "tradier"
+    base_url = "https://api.tradier.com/v1"
+    description = "Tradier US equities/options quotes and historical bars"
+    key_setting = "TRADIER_API_KEY"
+    auth_mode = "header"
+    key_header = "Authorization"
+
+    def _auth_headers(self) -> dict[str, str]:
+        key = self._key()
+        return {"Authorization": f"Bearer {key}", "Accept": "application/json"} if key else {}
+
+    def fetch_ohlcv(self, symbol: str, timeframe: Timeframe, start: datetime, end: datetime, *, adjusted: bool = True, instrument_id: int | None = None, data_source_id: int | None = None) -> list[OHLCVBar]:
+        if timeframe not in {Timeframe.D1, Timeframe.W1, Timeframe.MN}:
+            return []
+        interval = {Timeframe.D1: "daily", Timeframe.W1: "weekly", Timeframe.MN: "monthly"}[timeframe]
+        payload = self._get("markets/history", {"symbol": symbol.upper(), "interval": interval, "start": _bounded_datetime(start).date().isoformat(), "end": _bounded_datetime(end).date().isoformat()})
+        rows = self._rows(payload, "history")
+        return sorted([bar for bar in (self._bar(row, timeframe, instrument_id=instrument_id, data_source_id=data_source_id) for row in rows) if bar and start <= bar.ts < end], key=lambda bar: bar.ts)
+
+    def get_current_price(self, symbol: str) -> float | None:
+        payload = self._get("markets/quotes", {"symbols": symbol.upper()})
+        quotes = payload.get("quotes", {}).get("quote") if isinstance(payload, dict) else None
+        row = quotes[0] if isinstance(quotes, list) and quotes else quotes
+        return _number(row.get("last")) if isinstance(row, dict) else None
+
+    def search_instruments(self, query: str, *, limit: int = 10) -> list[ProviderSearchResult]:
+        payload = self._get("markets/search", {"q": query, "indexes": "false"})
+        rows = self._rows(payload, "securities")
+        return [ProviderSearchResult(symbol=str(row.get("symbol") or "").upper(), name=str(row.get("description") or row.get("symbol") or ""), exchange=str(row.get("exchange") or ""), instrument_type=str(row.get("type") or "EQUITY").upper()) for row in rows[:limit] if row.get("symbol")]
+
+    def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime:
+        return datetime.now(UTC) - timedelta(days=max(30, limit * 2))
+
+
+class MarketDataAppProvider(_RESTProvider):
+    name = "marketdata_app"
+    base_url = "https://api.marketdata.app/api/v1"
+    description = "MarketData.app US stocks/options delayed REST data"
+    key_setting = "MARKETDATA_APP_API_KEY"
+    auth_mode = "header"
+    key_header = "Authorization"
+
+    def _auth_headers(self) -> dict[str, str]:
+        key = self._key()
+        return {"Authorization": f"Bearer {key}"} if key else {}
+
+    def fetch_ohlcv(self, symbol: str, timeframe: Timeframe, start: datetime, end: datetime, *, adjusted: bool = True, instrument_id: int | None = None, data_source_id: int | None = None) -> list[OHLCVBar]:
+        resolution = {Timeframe.M1: "1", Timeframe.M5: "5", Timeframe.M15: "15", Timeframe.H1: "60", Timeframe.D1: "D", Timeframe.W1: "W"}.get(timeframe)
+        if not resolution:
+            return []
+        payload = self._get(f"stocks/candles/{resolution}/{symbol.upper()}", {"from": _bounded_datetime(start).date().isoformat(), "to": _bounded_datetime(end).date().isoformat()})
+        if not isinstance(payload, dict) or payload.get("s") not in {"ok", "no_data"}:
+            return []
+        rows = [{"t": ts, "o": o, "h": high, "l": low, "c": close, "v": volume} for ts, o, high, low, close, volume in zip(payload.get("t", []), payload.get("o", []), payload.get("h", []), payload.get("l", []), payload.get("c", []), payload.get("v", []))]
+        return sorted([bar for bar in (self._bar(row, timeframe, instrument_id=instrument_id, data_source_id=data_source_id) for row in rows) if bar and start <= bar.ts < end], key=lambda bar: bar.ts)
+
+    def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime:
+        return datetime.now(UTC) - timedelta(seconds=_TF_SECONDS.get(timeframe, 86400) * max(1, limit))
 
 
 class FinnhubProvider(_RESTProvider):
@@ -879,6 +936,8 @@ __all__ = [
     "FMPProvider",
     "FinnhubProvider",
     "MarketstackProvider",
+    "MarketDataAppProvider",
+    "TradierProvider",
     "TiingoProvider",
     "TwelveDataProvider",
 ]

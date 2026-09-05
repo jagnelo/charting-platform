@@ -1,5 +1,34 @@
 # Project TODO Memory
 
+### 2026-09-05 — Corrective provider quota and live-evidence gate
+
+This entry supersedes older “provider not built” notes below; historical entries
+remain for audit chronology, while `docs/data-providers.md` is the authoritative
+current capability/quota ledger.
+
+- [x] Remove inferred provider limits from runtime defaults. A provider is
+      non-routable until its provider-specific quota contract, scope, source,
+      and credential state are recorded; unknown limits are never replaced by
+      a 60/minute, 15-burst, 2-concurrent, or 30-second fallback.
+- [x] Add durable multi-dimensional reservations, provider-reset-aware
+      deferral, typed 429/418 handling, admin-visible quota state, and
+      operation-cost fail-closed behavior for weighted/credit APIs.
+- [x] Replace undocumented Nasdaq quote/history calls with official Nasdaq
+      Trader directory evidence; retain Coinbase/Kraken public crypto adapters,
+      FINRA OAuth configuration, and documentation-faithful optional adapters.
+- [x] Make universe reconciliation fail closed on cursor pages without totals
+      or explicit completion evidence, preserve Nasdaq Financial Status evidence,
+      and prevent exchange-qualified ticker merges across venues.
+- [x] Add a manifest-driven live-provider matrix. Keyless probes currently
+      pass for OpenFIGI, SEC EDGAR (with a real contact User-Agent), Nasdaq,
+      Binance, Coinbase, and Kraken; backend unit and integration suites pass.
+- [ ] Populate credentials in ignored `backend/.env.dev` and execute the
+      credentialed probes for Alpaca, Massive, Alpha Vantage, CoinGecko, FRED,
+      FINRA, Tiingo, Twelve Data, Finnhub, Marketstack, EODHD, FMP, Tradier,
+      and MarketData.app. Any provider that fails or exposes an unverified
+      quota remains disabled; no 30-day observation run may start before this
+      gate and the NMS/OTC reconciliation gate are complete.
+
 ### 2026-09-04 — US-first market-data provider platform foundation
 
 - [x] Add additive, provider-agnostic identity primitives: a namespaced
@@ -10304,6 +10333,11 @@ Why this was deferred:
 ### 9. Activate paid providers for options data and forward earnings estimates
 Status: `In progress — full completion contract still open`
 
+Historical note: the current provider adapter/quota ledger is maintained in the
+2026-09-05 entry above. This item remains open specifically for credentialed
+activation and richer options/forward-estimate surfaces, not because the basic
+MarketData.app or FMP REST adapters are absent.
+
 Context:
 - The platform now has a full free-provider stack (Alpaca, FRED, Binance, CoinGecko, EDGAR)
   covering US equity OHLCV, crypto, corporate actions, rates, and historical earnings.
@@ -10313,15 +10347,16 @@ Context:
   - **Forward earnings calendar** — upcoming confirmed/estimated earnings dates
   - **Analyst price targets and recommendations**
 
-Low-budget candidates already anticipated in config.py (keys are present, providers not yet built):
-- `MARKETDATA_API_KEY` → MarketData.app ($25/month) — US options with real greeks + earnings calendar
+Low-budget candidates already anticipated in config.py:
+- `MARKETDATA_APP_API_KEY` → MarketData.app — delayed US candles, with options/earnings surfaces requiring entitlement validation
 - `FMP_API_KEY` → Financial Modeling Prep ($15/month) — forward estimates, analyst data, richer fundamentals
 - IBKR TWS API (free with account) — comprehensive US + international options, futures, real greeks;
   requires IB Gateway sidecar process and a throttled scheduler due to IBKR pacing limits
 
 What remains:
-- Implement `marketdata` provider (MarketData.app): `OptionChainProvider` with real greeks,
-  `EventProvider` for earnings calendar
+- Credentialed live validation and entitlement review for the optional adapters.
+- Add/validate a dedicated `OptionChainProvider` with real greeks and a forward-earnings
+  `EventProvider` only when the selected plan/API contract supports those surfaces.
 - Implement `fmp` provider (FMP): `EventProvider` for forward earnings + analyst data,
   `InstrumentMetadataProvider` for richer fundamentals
 - Optionally implement `ibkr` provider (IBKR TWS): comprehensive coverage for priority instruments,

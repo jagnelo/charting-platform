@@ -1,0 +1,65 @@
+# Provider live-validation matrix
+
+The live matrix is intentionally separate from normal unit/integration runs:
+
+```sh
+RUN_LIVE_PROVIDER_TESTS=1 rtk uv run --project backend python scripts/run-live-provider-probes.py
+```
+
+The command performs a preflight, prints every missing environment variable,
+runs one bounded read per provider, and returns non-zero when a credentialed
+probe is blocked. A missing credential is never reported as a passing skip.
+The wrapper returns exit code `2` for an incomplete credential preflight.
+Secrets belong in the ignored `backend/.env.dev`; do not put them in Git or
+chat. The exact names are in `backend/.env.example` and the provider ledger.
+
+## Evidence captured in this worktree
+
+On 2026-09-05, with network access and a temporary non-secret SEC User-Agent,
+the initial keyless matrix passed `6/6`:
+
+```sh
+RUN_LIVE_PROVIDER_TESTS=1 EDGAR_USER_AGENT='charting-platform live-validation ops@example.invalid' \
+  rtk uv run --project backend pytest tests/live/test_market_data_providers_live.py \
+  -m live -k 'openfigi or sec_edgar or nasdaq or binance or coinbase or kraken' \
+  --no-header -q --no-cov
+# 6 passed, 14 deselected
+```
+
+A later bounded rerun passed the other five probes but received an honest
+OpenFIGI HTTP 429 after additional anonymous traffic. After the documented
+anonymous window reset, the full six-probe matrix passed again (`6 passed,
+14 deselected`); the intermediate 429 remains recorded as rate-limit evidence,
+not hidden.
+
+The standalone venue-disambiguated OpenFIGI probe also passed `1/1`:
+
+```sh
+RUN_LIVE_PROVIDER_TESTS=1 rtk uv run --project backend pytest \
+  tests/live/test_openfigi_live.py -m live --no-header -q --no-cov
+# 1 passed
+```
+
+The backend deterministic gates also pass on this corrective revision:
+
+- unit suite: `1314 passed`
+- Docker-backed integration suite: `369 passed`
+- focused provider quota/routing/runtime tests: `28 passed`
+- migration compatibility: passed against the previous release head
+
+The full matrix correctly exposed the remaining credentialed blockers (Alpaca,
+Massive, Alpha Vantage, CoinGecko, FRED, FINRA OAuth, Tiingo, Twelve Data,
+Finnhub, Marketstack, EODHD, FMP, Tradier, and MarketData.app). Those providers
+remain non-routable or acceptance-blocked until their keys/terms/plan limits
+are supplied and the corresponding probe passes. Binance's endpoint-weight
+accounting and Nasdaq Trader's non-numeric polling ceiling remain explicitly
+tracked rather than guessed.
+
+The current preflight names these missing variables exactly:
+`ALPACA_API_KEY`, `ALPACA_SECRET_KEY`, `MASSIVE_API_KEY`,
+`ALPHA_VANTAGE_API_KEY`, `COINGECKO_API_KEY`, `FRED_API_KEY`,
+`FINRA_CLIENT_ID`, `FINRA_CLIENT_SECRET`, `TIINGO_API_KEY`,
+`TWELVE_DATA_API_KEY`, `FINNHUB_API_KEY`, `MARKETSTACK_API_KEY`,
+`EODHD_API_KEY`, `FMP_API_KEY`, `TRADIER_API_KEY`, and
+`MARKETDATA_APP_API_KEY`. Populate them only in the ignored
+`backend/.env.dev`; never paste secret values into the repository or chat.

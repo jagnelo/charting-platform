@@ -7,7 +7,8 @@ Capabilities:
   - DiscoveryProvider         : market-cap-ordered crypto universe
 
 Auth: COINGECKO_API_KEY (free Demo key — register at coingecko.com/en/api).
-Rate limits: ~30 requests/minute on free Demo tier.
+Rate limits: Demo plan is documented at 100 calls/minute and 10,000 calls/month;
+the provider contract remains the authoritative checked-in routing declaration.
 
 CoinGecko uses its own slug-based IDs (e.g. "bitcoin") rather than ticker
 symbols.  A module-level coin list cache handles the symbol→id resolution
@@ -28,6 +29,7 @@ import httpx
 
 from app.config import settings
 from app.providers.base import InstrumentProfile, ListingRecord, ProviderSearchResult
+from app.providers.errors import ProviderNotConfiguredError
 
 logger = logging.getLogger(__name__)
 
@@ -59,14 +61,7 @@ class CoinGeckoProvider:
     def _headers(self) -> dict[str, str]:
         if settings.COINGECKO_API_KEY:
             return {"x-cg-demo-api-key": settings.COINGECKO_API_KEY}
-        if not self._warned_no_key:
-            logger.warning(
-                "coingecko: COINGECKO_API_KEY is not set — running unauthenticated (~30 req/min "
-                "vs 500 req/min with a free Demo key). Get one at coingecko.com/en/api and set "
-                "COINGECKO_API_KEY in .env.dev."
-            )
-            self._warned_no_key = True
-        return {}
+        raise ProviderNotConfiguredError("coingecko requires COINGECKO_API_KEY for the Demo plan")
 
     def _get(self, path: str, params: dict | None = None) -> Any:
         r = httpx.get(
@@ -83,9 +78,11 @@ class CoinGeckoProvider:
     def search_instruments(self, query: str, *, limit: int = 10) -> list[ProviderSearchResult]:
         try:
             data = self._get("/search", {"query": query})
-        except Exception as exc:
+        except httpx.HTTPStatusError:
+            raise
+        except httpx.RequestError as exc:
             logger.warning("coingecko search '%s': %s", query, exc)
-            return []
+            raise
         results: list[ProviderSearchResult] = []
         for coin in (data.get("coins") or [])[:limit]:
             sym = coin.get("symbol", "").upper()
@@ -116,9 +113,11 @@ class CoinGeckoProvider:
                     "developer_data": "false",
                 },
             )
-        except Exception as exc:
+        except httpx.HTTPStatusError:
+            raise
+        except httpx.RequestError as exc:
             logger.warning("coingecko get_instrument_profile %s (%s): %s", symbol, coin_id, exc)
-            return None
+            raise
 
         sym = (data.get("symbol") or "").upper()
         name = data.get("name") or sym
@@ -178,9 +177,11 @@ class CoinGeckoProvider:
                     "price_change_percentage": "",
                 },
             )
-        except Exception as exc:
+        except httpx.HTTPStatusError:
+            raise
+        except httpx.RequestError as exc:
             logger.warning("coingecko discover_universe_page page=%d: %s", page_num, exc)
-            return {"total": 0, "quotes": []}
+            raise
 
         quotes = [_market_to_quote(c) for c in (data or []) if c.get("symbol")]
         return {
@@ -223,8 +224,11 @@ def _ensure_coin_list(headers: dict) -> None:
         _coin_list = mapping
         _coin_list_all = coins
         _coin_list_ts = now
-    except Exception as exc:
+    except httpx.HTTPStatusError:
+        raise
+    except httpx.RequestError as exc:
         logger.warning("coingecko _ensure_coin_list: %s", exc)
+        raise
 
 
 def _market_to_quote(coin: dict) -> dict[str, Any]:

@@ -21,7 +21,6 @@ import urllib.request
 import uuid
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 BACKEND = ROOT / "backend"
 PYTHON = BACKEND / ".venv" / "bin" / "python"
@@ -51,7 +50,16 @@ def changed_migrations(base: str) -> list[str]:
     output = git(
         "diff", "--name-only", f"{base}..HEAD", "--", "backend/alembic/versions"
     )
-    return [line for line in output.splitlines() if line.endswith(".py")]
+    changed = {line for line in output.splitlines() if line.endswith(".py")}
+    # During an implementation session the corrective migration is often
+    # intentionally uncommitted. Include tracked/untracked worktree paths so
+    # the gate cannot report a false “no migration changes” skip.
+    status = git("status", "--short")
+    for line in status.splitlines():
+        path = line[3:] if len(line) > 3 else ""
+        if path.startswith("backend/alembic/versions/") and path.endswith(".py"):
+            changed.add(path)
+    return sorted(changed)
 
 
 def wait_for_postgres(port: int) -> None:

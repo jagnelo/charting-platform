@@ -140,7 +140,12 @@ async def process_refresh_jobs(ctx: dict, limit: int = 50) -> dict:
                 await complete_refresh_job(db, job)
                 completed += 1
             except Exception as exc:
-                await retry_refresh_job(db, job, str(exc))
+                await retry_refresh_job(
+                    db,
+                    job,
+                    str(exc),
+                    retry_at=getattr(exc, "retry_at", None),
+                )
                 retried += 1
         await db.commit()
         return {"claimed": len(jobs), "completed": completed, "retried": retried}

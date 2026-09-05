@@ -104,16 +104,285 @@ class Settings(BaseSettings):
         # configurations are filtered by provider capability at runtime too.
         "instrument_search": ["edgar", "massive", "alpha_vantage"],
         "instrument_metadata": ["edgar"],
-        "price_history": ["alpaca", "nasdaq", "alpha_vantage"],
-        "latest_price": ["alpaca", "nasdaq", "alpha_vantage"],
+        "price_history": ["alpaca", "alpha_vantage"],
+        "latest_price": ["alpaca", "alpha_vantage"],
         "instrument_events": ["alpaca", "edgar"],
         # SEC adds official US issuer/ticker/exchange evidence across venues;
         # it does not replace authenticated or market-data discovery routes.
         "universe_discovery": ["alpaca", "edgar", "massive", "nasdaq", "alpha_vantage"],
     }
-    PROVIDER_RATE_LIMIT_SEEDS: dict[str, dict[str, int]] = {}
+    # Provider-specific, documentation-backed budgets.  An omitted provider
+    # (or omitted dimension) is intentionally unknown and therefore not
+    # routable.  Never add a generic fallback here: several vendors publish
+    # endpoint-, key-, IP-, or plan-specific limits.
+    PROVIDER_RATE_LIMIT_SEEDS: dict[str, dict] = {
+        "alpaca": {
+            "quota_contract": {
+                "dimensions": [
+                    {
+                        "name": "historical_api_calls",
+                        "limit": 200,
+                        "window_seconds": 60,
+                        "unit": "requests",
+                        "scope": "account",
+                        "source": "https://docs.alpaca.markets/us/v1.1/docs/about-market-data-api",
+                    }
+                ],
+                "reset": "rolling_or_provider_defined",
+            },
+            "tokens_per_minute": 200,
+            "quota_scope": "account",
+            "quota_source": "Alpaca market data API documentation",
+        },
+        "massive": {
+            "quota_contract": {
+                "dimensions": [
+                    {
+                        "name": "requests_per_minute",
+                        "limit": 5,
+                        "window_seconds": 60,
+                        "unit": "requests",
+                        "scope": "api_key",
+                        "source": "https://massive.com/stocks",
+                    }
+                ],
+                "reset": "rolling_or_provider_defined",
+            },
+            "tokens_per_minute": 5,
+            "quota_scope": "api_key",
+            "quota_source": "Massive Stocks Basic plan documentation",
+        },
+        "alpha_vantage": {
+            "quota_contract": {
+                "dimensions": [
+                    {
+                        "name": "requests_per_day",
+                        "limit": 25,
+                        "window_seconds": 86400,
+                        "unit": "requests",
+                        "scope": "api_key",
+                        "source": "https://www.alphavantage.co/support/",
+                    }
+                ],
+                "reset": "provider_defined_daily",
+            },
+            "quota_scope": "api_key",
+            "quota_source": "Alpha Vantage support documentation",
+        },
+        "openfigi": {
+            "quota_contract": {
+                "dimensions": [
+                    {
+                        "name": "mapping_requests_per_minute",
+                        "limit": 25,
+                        "window_seconds": 60,
+                        "unit": "requests",
+                        "scope": "ip_or_api_key",
+                        "source": "https://www.openfigi.com/api/documentation",
+                    }
+                ],
+                "reset": "rolling",
+            },
+            "tokens_per_minute": 25,
+            "quota_scope": "ip_or_api_key",
+            "quota_source": "OpenFIGI API documentation",
+        },
+        "edgar": {
+            "quota_contract": {
+                "dimensions": [
+                    {
+                        "name": "requests_per_second",
+                        "limit": 10,
+                        "window_seconds": 1,
+                        "unit": "requests",
+                        "scope": "ip",
+                        "source": "https://www.sec.gov/filergroup/announcements-old/new-rate-control-limits",
+                    }
+                ],
+                "reset": "rolling",
+            },
+            "quota_scope": "ip",
+            "quota_source": "SEC fair-access policy",
+        },
+        "finra": {
+            "quota_contract": {
+                "dimensions": [
+                    {
+                        "name": "synchronous_requests_per_minute",
+                        "limit": 1200,
+                        "window_seconds": 60,
+                        "unit": "requests",
+                        "scope": "ip",
+                        "source": "https://developer.finra.org/docs",
+                    }
+                ],
+                "reset": "rolling_or_provider_defined",
+            },
+            "tokens_per_minute": 1200,
+            "quota_scope": "ip",
+            "quota_source": "FINRA API Platform usage limits",
+        },
+        "coingecko": {
+            "quota_contract": {
+                "dimensions": [
+                    {
+                        "name": "calls_per_minute",
+                        "limit": 100,
+                        "window_seconds": 60,
+                        "unit": "requests",
+                        "scope": "demo_api_key",
+                        "source": "https://www.coingecko.com/en/api/pricing",
+                    },
+                    {
+                        "name": "calls_per_month",
+                        "limit": 10000,
+                        "window_seconds": 2678400,
+                        "unit": "requests",
+                        "scope": "demo_api_key",
+                        "source": "https://www.coingecko.com/en/api/pricing",
+                    },
+                ],
+                "reset": "calendar_month_for_monthly_dimension",
+            },
+            "tokens_per_minute": 100,
+            "quota_scope": "demo_api_key",
+            "quota_source": "CoinGecko Demo plan documentation",
+        },
+        "binance": {
+            "quota_contract": {
+                "dimensions": [
+                    {
+                        "name": "request_weight_per_minute",
+                        "limit": 6000,
+                        "window_seconds": 60,
+                        "unit": "weight",
+                        "scope": "ip",
+                        "source": "https://developers.binance.com/en/docs/products/spot/rest-api",
+                    }
+                ],
+                "reset": "fixed_minute",
+                "dynamic_endpoint_weights": True,
+            },
+            "tokens_per_minute": 6000,
+            "quota_scope": "ip",
+            "quota_source": "Binance Spot REST API documentation",
+        },
+        "coinbase": {
+            "quota_contract": {
+                "dimensions": [
+                    {
+                        "name": "public_requests_per_second",
+                        "limit": 10,
+                        "window_seconds": 1,
+                        "unit": "requests",
+                        "scope": "ip",
+                        "source": "https://docs.cdp.coinbase.com/exchange/rest-api/rate-limits",
+                    }
+                ],
+                "reset": "rolling",
+            },
+            "quota_scope": "ip",
+            "quota_source": "Coinbase Exchange REST rate-limit documentation",
+        },
+        "kraken": {
+            "quota_contract": {
+                "dimensions": [
+                    {
+                        "name": "public_safe_frequency",
+                        "limit": 1,
+                        "window_seconds": 1,
+                        "unit": "requests",
+                        "scope": "ip_or_pair",
+                        "source": "https://support.kraken.com/articles/206548367-what-are-the-api-rate-limits-",
+                    }
+                ],
+                "reset": "rolling",
+            },
+            "quota_scope": "ip_or_pair",
+            "quota_source": "Kraken REST rate-limit documentation",
+        },
+        "tiingo": {
+            "quota_contract": {
+                "dimensions": [
+                    {"name": "unique_symbols_per_month", "limit": 500, "window_seconds": 2678400, "unit": "symbols", "scope": "api_key", "source": "https://www.tiingo.com/about/pricing"},
+                    {"name": "requests_per_hour", "limit": 50, "window_seconds": 3600, "unit": "requests", "scope": "api_key", "source": "https://www.tiingo.com/about/pricing"},
+                    {"name": "requests_per_day", "limit": 1000, "window_seconds": 86400, "unit": "requests", "scope": "api_key", "source": "https://www.tiingo.com/about/pricing"},
+                ],
+                "reset": "provider_defined",
+            },
+            "quota_scope": "api_key",
+            "quota_source": "Tiingo Starter pricing documentation",
+        },
+        "twelve_data": {
+            "quota_contract": {
+                "dimensions": [
+                    {"name": "credits_per_minute", "limit": 8, "window_seconds": 60, "unit": "credits", "scope": "api_key", "source": "https://twelvedata.com/pricing"},
+                    {"name": "credits_per_day", "limit": 800, "window_seconds": 86400, "unit": "credits", "scope": "api_key", "source": "https://twelvedata.com/pricing"},
+                ],
+                "reset": "provider_defined",
+                "operation_costs_required": True,
+            },
+            "tokens_per_minute": 8,
+            "quota_scope": "api_key",
+            "quota_source": "Twelve Data Basic pricing/credits documentation",
+        },
+        "eodhd": {
+            "quota_contract": {
+                "dimensions": [
+                    {"name": "requests_per_minute", "limit": 20, "window_seconds": 60, "unit": "requests", "scope": "api_key", "source": "https://eodhd.com/"},
+                    {"name": "requests_per_day", "limit": 20, "window_seconds": 86400, "unit": "requests", "scope": "api_key", "source": "https://eodhd.com/"},
+                ],
+                "reset": "provider_defined",
+            },
+            "tokens_per_minute": 20,
+            "quota_scope": "api_key",
+            "quota_source": "EODHD free plan documentation",
+        },
+        "marketdata_app": {
+            "quota_contract": {
+                "dimensions": [
+                    {"name": "credits_per_day", "limit": 100, "window_seconds": 86400, "unit": "credits", "scope": "api_key", "source": "https://www.marketdata.app/docs/api/rate-limiting/"},
+                ],
+                "reset": "09:30 America/New_York",
+                "operation_costs_required": True,
+            },
+            "quota_scope": "api_key",
+            "quota_source": "MarketData.app rate-limiting documentation",
+        },
+        "tradier": {
+            "quota_contract": {
+                "dimensions": [
+                    {"name": "market_data_requests_per_minute", "limit": 120, "window_seconds": 60, "unit": "requests", "scope": "production_token", "source": "https://docs.tradier.com/docs/rate-limiting"},
+                ],
+                "reset": "rolling",
+            },
+            "tokens_per_minute": 120,
+            "quota_scope": "production_token",
+            "quota_source": "Tradier rate-limiting documentation",
+        },
+    }
     PROVIDER_FRESHNESS_SEEDS: dict[str, int] = {}
-    PROVIDER_USAGE_PROFILE_SEEDS: dict[str, dict] = {}
+    PROVIDER_USAGE_PROFILE_SEEDS: dict[str, dict] = {
+        "twelve_data": {
+            "mode": "credit_count",
+            "unit_label": "credits",
+            "operation_costs": {
+                "fetch_ohlcv": 1,
+                "fetch_latest_ohlcv": 1,
+                "get_current_price": 1,
+                "search_instruments": 1,
+            },
+        },
+        "marketdata_app": {
+            "mode": "credit_count",
+            "unit_label": "credits",
+            "operation_costs": {
+                "fetch_ohlcv": 1,
+                "fetch_latest_ohlcv": 1,
+                "get_current_price": 1,
+            },
+        },
+    }
     # A capability is not usable merely because an adapter exists. These
     # explicit defaults describe the free/public plans that the workstation
     # may use; any provider omitted here remains unreviewed and disabled until
@@ -131,7 +400,7 @@ class Settings(BaseSettings):
         "edgar": {
             "configured_plan": "sec-public",
             "is_free": True,
-            "authentication_required": False,
+            "authentication_required": True,
             "usage_terms": "SEC public data subject to fair-access policy and user-agent identification.",
             "history_depth": "SEC filing history",
             "venue_coverage": "US issuers represented in SEC filings",
@@ -156,13 +425,13 @@ class Settings(BaseSettings):
             "freshness_semantics": "EOD/delayed",
         },
         "nasdaq": {
-            "configured_plan": "public-eod",
+            "configured_plan": "public-directory",
             "is_free": True,
             "authentication_required": False,
-            "usage_terms": "Public endpoint; terms and availability require operational review.",
-            "history_depth": "Public EOD endpoint depth",
-            "venue_coverage": "NASDAQ-labelled public symbols; not canonical exchange universe",
-            "freshness_semantics": "EOD/delayed",
+            "usage_terms": "Public Nasdaq Trader symbol-directory files; no redistribution entitlement inferred.",
+            "history_depth": "Directory snapshots and lifecycle evidence only",
+            "venue_coverage": "US NMS venues represented in official directory files",
+            "freshness_semantics": "Directory publication/update time",
         },
         "openfigi": {
             "configured_plan": "free-api",
@@ -191,6 +460,24 @@ class Settings(BaseSettings):
             "venue_coverage": "Binance crypto markets",
             "freshness_semantics": "Delayed/current endpoint response",
         },
+        "coinbase": {
+            "configured_plan": "public-exchange-api",
+            "is_free": True,
+            "authentication_required": False,
+            "usage_terms": "Coinbase Exchange public REST API limits; no redistribution entitlement implied.",
+            "history_depth": "Endpoint candle retention; maximum 300 candles per request",
+            "venue_coverage": "Coinbase Exchange crypto products",
+            "freshness_semantics": "Public exchange endpoint response",
+        },
+        "kraken": {
+            "configured_plan": "public-exchange-api",
+            "is_free": True,
+            "authentication_required": False,
+            "usage_terms": "Kraken public API safe-frequency and pair limits apply.",
+            "history_depth": "OHLC endpoint returns recent 720 entries",
+            "venue_coverage": "Kraken crypto pairs",
+            "freshness_semantics": "Public exchange endpoint response",
+        },
         "coingecko": {
             "configured_plan": "free-demo",
             "is_free": True,
@@ -203,8 +490,8 @@ class Settings(BaseSettings):
         "finra": {
             "configured_plan": "public-dataset",
             "is_free": True,
-            "authentication_required": False,
-            "usage_terms": "FINRA public datasets subject to published access and use terms.",
+            "authentication_required": True,
+            "usage_terms": "FINRA public Query API dataset; API credential, OAuth, usage limits, and terms apply.",
             "history_depth": "Publication-dependent short-interest history",
             "venue_coverage": "US securities covered by FINRA consolidated short interest",
             "freshness_semantics": "Periodic publication; not real-time",
@@ -231,6 +518,7 @@ class Settings(BaseSettings):
     MARKETSTACK_API_KEY: str = ""
     EODHD_API_KEY: str = ""
     TRADIER_API_KEY: str = ""
+    MARKETDATA_APP_API_KEY: str = ""
     IBKR_READ_ONLY_URL: str = ""
     COINBASE_API_KEY: str = ""
     KRAKEN_API_KEY: str = ""
@@ -238,22 +526,25 @@ class Settings(BaseSettings):
     ALPACA_API_KEY: str = ""
     ALPACA_SECRET_KEY: str = ""
     ALPACA_DATA_FEED: str = "iex"  # "iex" (free) or "sip" (paid consolidated)
-    NASDAQ_USER_AGENT: str = (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36"
-    )
+    NASDAQ_USER_AGENT: str = "charting-platform market-data-universe"
     # FRED (Federal Reserve Economic Data) — rates, macro, forex series
     FRED_API_KEY: str = ""
     # CoinGecko — crypto universe discovery and metadata (free demo key)
     COINGECKO_API_KEY: str = ""
     # SEC EDGAR — no key required; User-Agent identifies your app to SEC servers
     EDGAR_USER_AGENT: str = "charting-platform contact@example.com"
+    FINRA_CLIENT_ID: str = ""
+    FINRA_CLIENT_SECRET: str = ""
+    FINRA_TOKEN_URL: str = "https://ews.fip.finra.org/fip/rest/ews/oauth2/access_token"
+    FINRA_API_BASE_URL: str = "https://api.finra.org"
     FINRA_SHORT_INTEREST_URL: str = ""
     INSTRUMENT_DISCOVERY_PAGE_DELAY_SECONDS: float = 0.75
     INSTRUMENT_METADATA_DELAY_SECONDS: float = 1.0
     INSTRUMENT_IDENTIFIER_DELAY_SECONDS: float = 1.0
     INSTRUMENT_DAILY_METADATA_CAP: int = 750
     INSTRUMENT_DAILY_IDENTIFIER_CAP: int = 250
+    # Process-local instrument-sync guard only. This is not an external
+    # provider entitlement and is never copied into ProviderPolicy defaults.
     PROVIDER_MAX_CONCURRENCY: int = 2
     OPTION_CHAIN_REFRESH_HORIZON_DAYS: int = 45
     PROVIDER_REQUEST_LOG_RETENTION_DAYS: int = 30

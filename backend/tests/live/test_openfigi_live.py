@@ -16,7 +16,9 @@ pytestmark = [
 
 
 def test_public_openfigi_resolves_spy_without_credentials():
-    records = OpenFigiProvider().fetch_stable_identifiers("SPY")
+    # A ticker alone is intentionally ambiguous on OpenFIGI; provide the
+    # Nasdaq/NYSE composite venue evidence before accepting a FIGI.
+    records = OpenFigiProvider().fetch_stable_identifiers("SPY", exchange_code="US")
 
     assert records
     assert any(record.identifier_type == "COMPOSITE_FIGI" for record in records)

@@ -59,3 +59,27 @@ async def test_failed_job_uses_bounded_exponential_retry(db):
     await retry_refresh_job(async_db, job, "provider timeout", now=now)
     assert job.status == "retry"
     assert job.next_attempt_at >= now + timedelta(seconds=2)
+
+
+@pytest.mark.asyncio
+async def test_provider_reset_defers_job_until_retry_at(db):
+    async_db = AsyncSessionAdapter(db)
+    now = datetime(2026, 9, 4, 12, tzinfo=UTC)
+    retry_at = now + timedelta(minutes=7)
+    job = await enqueue_refresh_job(
+        async_db,
+        request_key="d1:quota",
+        capability="price_history",
+        now=now,
+    )
+    await claim_refresh_jobs(async_db, now=now)
+    await retry_refresh_job(
+        async_db,
+        job,
+        "provider rate limit",
+        now=now,
+        retry_at=retry_at,
+    )
+    assert job.status == "deferred"
+    assert job.next_attempt_at == retry_at
+    assert job.metadata_payload["defer_reason"] == "provider_reset"

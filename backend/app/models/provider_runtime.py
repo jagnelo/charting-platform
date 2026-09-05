@@ -57,10 +57,17 @@ class ProviderPolicy(Base, TimestampMixin):
     is_pinned: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     auto_weight_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     base_priority: Mapped[int] = mapped_column(Integer, nullable=False, default=100)
-    max_concurrency: Mapped[int] = mapped_column(Integer, nullable=False, default=2)
-    tokens_per_minute: Mapped[int] = mapped_column(Integer, nullable=False, default=60)
-    burst_capacity: Mapped[int] = mapped_column(Integer, nullable=False, default=15)
-    cooldown_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=30)
+    # External-provider limits are never inferred.  A NULL value means that
+    # the corresponding dimension was not verified and the provider is not
+    # routable until an operator records an entitlement/contract.
+    max_concurrency: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    tokens_per_minute: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    burst_capacity: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    cooldown_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    quota_contract: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    quota_scope: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    quota_source: Mapped[str | None] = mapped_column(String(240), nullable=True)
+    quota_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     freshness_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=3600)
     score_floor: Mapped[Decimal] = mapped_column(
         Numeric(10, 4), nullable=False, default=Decimal("0")

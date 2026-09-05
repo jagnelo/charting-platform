@@ -35,27 +35,21 @@ class OpenFigiProvider:
         ticker = str(symbol or "").strip().upper()
         if not ticker:
             return []
-        try:
-            results = self._mapping_results(
-                [{"idType": _OPENFIGI_ID_TYPES["ticker"], "idValue": ticker}]
-            )
-            if not results:
-                return []
-            rows = [row for row in results[0] if isinstance(row, dict)]
-            if exchange_code:
-                expected_exchange = str(exchange_code).strip().upper()
-                rows = [row for row in rows if str(row.get("exchCode") or "").upper() == expected_exchange]
-            if security_type:
-                expected_type = str(security_type).strip().upper()
-                rows = [row for row in rows if str(row.get("securityType") or "").upper() == expected_type]
-            # A ticker can map to several venue listings.  Without an exchange
-            # filter we refuse to pick one silently and quarantine upstream.
-            if len(rows) != 1:
-                return []
-            return self._identifier_records_from_mapping(rows[0])
-        except Exception as exc:
-            logger.debug("OpenFIGI lookup failed for %s: %s", symbol, exc)
+        results = self._mapping_results(
+            [{"idType": _OPENFIGI_ID_TYPES["ticker"], "idValue": ticker}]
+        )
+        if not results:
             return []
+        rows = [row for row in results[0] if isinstance(row, dict)]
+        if exchange_code:
+            expected_exchange = str(exchange_code).strip().upper()
+            rows = [row for row in rows if str(row.get("exchCode") or "").upper() == expected_exchange]
+        if security_type:
+            expected_type = str(security_type).strip().upper()
+            rows = [row for row in rows if str(row.get("securityType") or "").upper() == expected_type]
+        if len(rows) != 1:
+            return []
+        return self._identifier_records_from_mapping(rows[0])
 
     def resolve_instrument_profile(
         self,
@@ -85,17 +79,7 @@ class OpenFigiProvider:
         if not requests_payload:
             return None
 
-        try:
-            responses = self._mapping_results(requests_payload)
-        except Exception as exc:
-            logger.debug(
-                "OpenFIGI identifier profile lookup failed for %s/%s/%s: %s",
-                isin,
-                cusip,
-                sedol,
-                exc,
-            )
-            return None
+        responses = self._mapping_results(requests_payload)
 
         for index, mapping_rows in enumerate(responses):
             if not mapping_rows:
@@ -120,7 +104,9 @@ class OpenFigiProvider:
                 json=payload,
                 headers=headers,
             )
-        if response.status_code != 200:
+        if hasattr(response, "raise_for_status"):
+            response.raise_for_status()
+        elif getattr(response, "status_code", 200) != 200:
             return []
 
         raw_payload = response.json()

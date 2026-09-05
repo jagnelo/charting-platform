@@ -21,6 +21,7 @@ from app.providers.alpha_vantage import AlphaVantageProvider
 from app.providers.binance import BinanceProvider, _from_binance, _to_binance
 from app.providers.coingecko import CoinGeckoProvider
 from app.providers.edgar import EdgarProvider, _ensure_ticker_map
+from app.providers.errors import ProviderNotConfiguredError
 from app.providers.fred import FREDProvider, fred_series_for, is_fred_symbol
 from app.providers.massive import MassiveProvider
 from app.providers.registry import (
@@ -413,7 +414,8 @@ class TestMassiveReferenceProvider:
             mock_settings.MASSIVE_API_KEY = ""
             mock_settings.MARKETDATA_API_KEY = ""
             provider = MassiveProvider()
-            assert provider.search_instruments("AAPL") == []
+            with pytest.raises(ProviderNotConfiguredError):
+                provider.search_instruments("AAPL")
             assert provider.discover_universe_page("CRYPTOCURRENCY", 0) == {
                 "total": 0,
                 "quotes": [],
@@ -460,7 +462,9 @@ class TestMassiveReferenceProvider:
         assert result[0].exchange == "XNAS"
         assert page["quotes"][0]["instrument_type"] == "CS"
         assert page["next_url"] == "https://api.massive.com/v3/reference/tickers?cursor=abc"
+        assert page["total"] is None and page["complete"] is False
         assert next_page["quotes"] == []
+        assert next_page["total"] is None and next_page["complete"] is True
         assert get.call_count == 3
         assert get.call_args_list[1].kwargs["params"].get("cursor") is None
         assert get.call_args_list[2].kwargs["params"]["cursor"] == "abc"
@@ -470,7 +474,8 @@ class TestAlphaVantageProvider:
     def test_missing_key_is_empty(self):
         with patch("app.providers.alpha_vantage.settings") as mock_settings:
             mock_settings.ALPHA_VANTAGE_API_KEY = ""
-            assert AlphaVantageProvider().search_instruments("AAPL") == []
+            with pytest.raises(ProviderNotConfiguredError):
+                AlphaVantageProvider().search_instruments("AAPL")
 
     def test_daily_history_is_parsed_and_bounded(self):
         response = MagicMock()
@@ -561,24 +566,19 @@ class TestFREDOHLCVParsing:
 
 
 class TestCoinGeckoCredentialWarning:
-    def test_warns_when_api_key_missing(self, caplog):
+    def test_missing_key_is_explicit(self, caplog):
         provider = CoinGeckoProvider()
         with patch("app.providers.coingecko.settings") as mock_settings:
             mock_settings.COINGECKO_API_KEY = ""
-            with caplog.at_level(logging.WARNING, logger="app.providers.coingecko"):
-                headers = provider._headers()
-        assert headers == {}
-        assert "COINGECKO_API_KEY" in caplog.text
+            with pytest.raises(ProviderNotConfiguredError):
+                provider._headers()
 
-    def test_warns_once_per_provider_instance(self, caplog):
+    def test_missing_key_does_not_call_network(self, caplog):
         provider = CoinGeckoProvider()
         with patch("app.providers.coingecko.settings") as mock_settings:
             mock_settings.COINGECKO_API_KEY = ""
-            with caplog.at_level(logging.WARNING, logger="app.providers.coingecko"):
+            with pytest.raises(ProviderNotConfiguredError):
                 provider._headers()
-                provider._headers()
-        warnings = [record for record in caplog.records if record.levelno == logging.WARNING]
-        assert len(warnings) == 1
 
     def test_includes_key_header_when_configured(self):
         provider = CoinGeckoProvider()

@@ -11,7 +11,11 @@ Mapped symbols (platform canonical → FRED series ID):
   Macro           : FEDFUNDS, CPIAUCSL, UNRATE, GDP, T10YIE, VIXCLS
 
 Auth: FRED_API_KEY (free — register at fred.stlouisfed.org/docs/api/api_key.html).
-Rate limits: generous; FRED does not publish hard limits for reasonable use.
+Rate limits: the deployed v1 endpoint does not provide a fixed contract that
+the runtime can safely assume. FRED v2 documents a two-requests-per-second
+threshold, but that does not automatically apply to this v1 adapter; the
+provider therefore remains non-routable until the deployed endpoint's terms
+are verified and recorded.
 
 FRED returns single scalar observations, not OHLCV.  open=high=low=close=value
 so bars integrate cleanly with the existing OHLCVBar model.

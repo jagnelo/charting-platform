@@ -203,14 +203,14 @@ async def test_new_workstation_chain_excludes_implicit_yfinance_fallback(db, mon
 
 
 @pytest.mark.asyncio
-async def test_explicit_legacy_yfinance_fallback_can_be_enabled(db, monkeypatch):
+async def test_explicit_legacy_yfinance_requires_a_verified_quota(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     await seed_provider_runtime(async_db)
     monkeypatch.setattr(settings, "ENABLE_LEGACY_YFINANCE_FALLBACK", True)
 
     chain = await resolve_provider_chain(async_db, ProviderCapability.PRICE_HISTORY)
 
-    assert any(item.provider_name == "yfinance" for item in chain)
+    assert all(item.provider_name != "yfinance" for item in chain)
 
 
 @pytest.mark.asyncio
@@ -305,10 +305,10 @@ async def test_seed_provider_runtime_backfills_missing_policy_defaults(db):
     ).scalar_one()
 
     assert policy.base_priority is not None
-    assert policy.max_concurrency is not None
-    assert policy.tokens_per_minute is not None
-    assert policy.burst_capacity is not None
-    assert policy.cooldown_seconds is not None
+    assert policy.max_concurrency is None
+    assert policy.tokens_per_minute is None
+    assert policy.burst_capacity is None
+    assert policy.cooldown_seconds is None
     assert policy.freshness_seconds is not None
     assert policy.score_floor == Decimal("0")
     assert policy.score_ceiling == Decimal("100")

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -52,6 +52,9 @@ class ProviderPolicyUpdate(BaseModel):
     tokens_per_minute: int | None = None
     burst_capacity: int | None = None
     cooldown_seconds: int | None = None
+    quota_contract: dict | None = None
+    quota_scope: str | None = None
+    quota_source: str | None = None
     freshness_seconds: int | None = None
 
 
@@ -422,8 +425,20 @@ async def update_provider_policy(
     if policy is None:
         raise HTTPException(404, f"No policy found for '{provider_name}' / '{capability}'")
 
-    for field_name, value in body.model_dump(exclude_unset=True).items():
+    changes = body.model_dump(exclude_unset=True)
+    quota_fields = {"max_concurrency", "tokens_per_minute", "burst_capacity", "cooldown_seconds"}
+    if quota_fields.intersection(changes) and not (changes.get("quota_contract") or policy.quota_contract):
+        raise HTTPException(
+            400,
+            "Provider limits require a documentation-backed quota_contract; "
+            "individual numeric defaults are not accepted",
+        )
+    for field_name, value in changes.items():
         setattr(policy, field_name, value)
+    if changes.get("quota_contract") is not None:
+        policy.quota_verified_at = datetime.now(UTC)
+    elif "quota_contract" in changes:
+        policy.quota_verified_at = None
     if body.base_priority is not None and body.is_pinned is None:
         policy.is_pinned = True
     await db.flush()

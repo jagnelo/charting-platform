@@ -50,6 +50,7 @@ from app.providers.registry import (
     get_search_provider,
     get_short_interest_provider,
     list_provider_capabilities,
+    provider_is_configured,
     provider_symbol_for_instrument,
     supported_provider_names,
 )
@@ -105,5 +106,6 @@ __all__ = [
     "get_search_provider",
     "list_provider_capabilities",
     "provider_symbol_for_instrument",
+    "provider_is_configured",
     "supported_provider_names",
 ]

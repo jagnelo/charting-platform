@@ -52,6 +52,21 @@ def _resolved_provider(
         tokens_per_minute=60,
         burst_capacity=15,
         cooldown_seconds=30,
+        quota_contract={
+            "dimensions": [
+                {
+                    "name": "test_requests_per_minute",
+                    "limit": 60,
+                    "window_seconds": 60,
+                    "unit": "requests",
+                    "scope": "test",
+                    "source": "unit-test",
+                }
+            ],
+            "reset": "fixed_minute",
+        },
+        quota_scope="test",
+        quota_source="unit-test",
         freshness_seconds=300,
         score_floor=Decimal("0"),
         score_ceiling=Decimal("100"),
@@ -162,6 +177,8 @@ async def test_resolve_provider_chain_prefers_supported_then_bound_provider(
     # ordering assertion does not accidentally reintroduce it as an implicit
     # provider dependency.
     monkeypatch.setattr(settings, "ENABLE_LEGACY_YFINANCE_FALLBACK", True)
+    monkeypatch.setattr(settings, "ALPACA_API_KEY", "unit-key")
+    monkeypatch.setattr(settings, "ALPACA_SECRET_KEY", "unit-secret")
     async_db = AsyncSessionAdapter(db)
     alpha = _resolved_provider(
         db,

@@ -10,8 +10,8 @@ The registry is an identity bootstrap, not a market-data fixture:
 
 * every field is labelled as curated registry provenance;
 * no price, volume, membership, exchange, or holdings facts are fabricated;
-* Nasdaq is registered only as a provider-symbol binding for its public EOD
-  price-history adapter;
+* Nasdaq is registered only as a provider-symbol binding for official NMS
+  directory evidence; it is not a price-history adapter;
 * bars and holdings continue to come from their normal provider services.
 """
 
@@ -177,7 +177,7 @@ async def ensure_core_workstation_identities(db: AsyncSession) -> dict:
             currency="USD",
             is_primary=False,
             extra_data={
-                "source_role": "public_us_eod_price_history",
+                "source_role": "official_us_nms_directory_evidence",
                 "identity_bootstrap": CORE_WORKSTATION_REGISTRY,
                 "exchange_claim": "not asserted",
             },

@@ -16,6 +16,7 @@ import httpx
 
 from app.config import settings
 from app.providers.base import ProviderSearchResult
+from app.providers.errors import ProviderNotConfiguredError
 
 logger = logging.getLogger(__name__)
 
@@ -45,16 +46,11 @@ class MassiveProvider:
 
     def _get(self, params: dict[str, Any]) -> dict[str, Any] | None:
         if not self._api_key():
-            logger.warning("massive: MASSIVE_API_KEY is not set; skipping reference request")
-            return None
-        try:
-            response = httpx.get(f"{_BASE}{_TICKERS_PATH}", params=params, timeout=20)
-            response.raise_for_status()
-            payload = response.json()
-            return payload if isinstance(payload, dict) else None
-        except Exception as exc:
-            logger.warning("massive reference request failed: %s", exc)
-            return None
+            raise ProviderNotConfiguredError("massive requires MASSIVE_API_KEY (or MARKETDATA_API_KEY)")
+        response = httpx.get(f"{_BASE}{_TICKERS_PATH}", params=params, timeout=20)
+        response.raise_for_status()
+        payload = response.json()
+        return payload if isinstance(payload, dict) else None
 
     def search_instruments(self, query: str, *, limit: int = 10) -> list[ProviderSearchResult]:
         needle = query.strip()
@@ -105,10 +101,15 @@ class MassiveProvider:
             if next_cursor:
                 self._cursor_by_page[page + 1] = next_cursor
         return {
-            "total": len(quotes),
+            # Massive exposes cursor pagination rather than a global result
+            # count. Do not mislabel each page length as the universe total;
+            # the reconciliation worker follows ``next_url`` and accepts the
+            # explicit final-page marker below.
+            "total": None,
             "quotes": quotes,
             "next_url": next_url,
             "next_offset": offset + _PAGE_SIZE if next_url else None,
+            "complete": not bool(next_url),
         }
 
     def supported_discovery_types(self) -> list[str]:

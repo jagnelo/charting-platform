@@ -212,6 +212,10 @@ class ProviderQuotaWindow(Base, TimestampMixin):
         Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
     )
     capability: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    # A provider may publish independent budgets (for example requests/minute
+    # and requests/month).  Each dimension is reserved independently; routing
+    # must satisfy all dimensions before selecting a provider.
+    dimension: Mapped[str] = mapped_column(String(80), nullable=False, default="default")
     window_started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     window_seconds: Mapped[int] = mapped_column(Integer, nullable=False)
     limit_units: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -226,6 +230,7 @@ class ProviderQuotaWindow(Base, TimestampMixin):
         UniqueConstraint(
             "data_source_id",
             "capability",
+            "dimension",
             "window_started_at",
             "window_seconds",
             name="uq_provider_quota_window",

@@ -1,289 +1,111 @@
-"""Public Nasdaq historical daily bars for US-listed equities and ETFs.
+"""Official Nasdaq Trader symbol-directory adapter.
 
-The public quote-history endpoint is used as a free-source, EOD fallback when
-credentialed providers are unavailable.  It exposes the exchange's historical
-price series (including split-adjusted historical prices in the returned
-series), but it is not a total-return feed and does not provide intraday bars.
-
-The adapter intentionally supports only ``D1`` and only the platform's
-``adjusted=True`` view.  Returning no rows for raw or intraday requests keeps
-the adjustment contract honest and lets the provider runtime continue to an
-independently entitled source where one exists.
+Nasdaq Trader publishes the authoritative, machine-readable ``nasdaqlisted``
+and ``otherlisted`` files. They are used only for US listing/lifecycle
+evidence; the undocumented ``api.nasdaq.com`` quote-history route is not used.
 """
 
 from __future__ import annotations
 
-import logging
-import re
+import csv
+import io
 import time
-from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx
 
 from app.config import settings
-from app.models.ohlcv import OHLCVBar, Timeframe
 
-logger = logging.getLogger(__name__)
-
-_BASE = "https://api.nasdaq.com/api/quote"
-_SCREENER_URL = "https://api.nasdaq.com/api/screener/stocks"
-_PAGE_SIZE = 5_000
-_MAX_PAGES = 4
-_US_DATE = "%Y-%m-%d"
-_ROW_DATE = "%m/%d/%Y"
-_CACHE_TTL_SECONDS = 120.0
-_history_cache: dict[tuple[str, str, str, str], tuple[float, list[dict[str, Any]]]] = {}
-
-
-def _number(value: Any) -> float | None:
-    """Parse Nasdaq currency/volume strings without accepting placeholders."""
-    if value is None:
-        return None
-    text = str(value).strip().replace(",", "")
-    if not text or text in {"--", "-", "N/A", "n/a"}:
-        return None
-    text = text.replace("$", "").replace("%", "")
-    # Keep a leading minus and decimal/scientific notation; reject other text.
-    if not re.fullmatch(r"[-+]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?", text):
-        return None
-    try:
-        return float(text)
-    except ValueError:
-        return None
+_BASE = "https://www.nasdaqtrader.com/dynamic/SymDir"
+_FILES = {"nasdaqlisted": f"{_BASE}/nasdaqlisted.txt", "otherlisted": f"{_BASE}/otherlisted.txt"}
+_PAGE_SIZE = 1000
+_CACHE_TTL_SECONDS = 900
+_cache: tuple[float, list[dict[str, Any]]] | None = None
 
 
 class NasdaqProvider:
     name = "nasdaq"
-    base_url = "https://api.nasdaq.com"
-    description = (
-        "Nasdaq public historical quote endpoint — free US-listed EOD prices, "
-        "split-adjusted price series, and volume"
-    )
-
-    def _headers(self) -> dict[str, str]:
-        return {
-            "User-Agent": getattr(
-                settings,
-                "NASDAQ_USER_AGENT",
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36",
-            ),
-            "Accept": "application/json, text/plain, */*",
-            "Origin": "https://www.nasdaq.com",
-            "Referer": "https://www.nasdaq.com/",
-        }
-
-    def _rows(
-        self, symbol: str, asset_class: str, start: datetime, end: datetime
-    ) -> list[dict[str, Any]]:
-        """Fetch all bounded pages for one Nasdaq asset class."""
-        rows: list[dict[str, Any]] = []
-        # Nasdaq's public route can omit the newest ETF session when
-        # ``fromdate`` is the requested session or only one calendar day
-        # earlier. Start three calendar days earlier (enough to cross a normal
-        # weekend boundary), request through today, and filter to the caller's
-        # range after parsing. This preserves the canonical interval while
-        # allowing the endpoint to return the boundary session.
-        query_start = start - timedelta(days=3)
-        query_end = max(end, datetime.now(UTC))
-        cache_key = (
-            symbol.upper(),
-            asset_class,
-            query_start.strftime(_US_DATE),
-            query_end.strftime(_US_DATE),
-        )
-        cached = _history_cache.get(cache_key)
-        if cached and time.monotonic() - cached[0] < _CACHE_TTL_SECONDS:
-            return list(cached[1])
-        for page in range(_MAX_PAGES):
-            try:
-                response = httpx.get(
-                    f"{_BASE}/{symbol.upper()}/historical",
-                    params={
-                        "assetclass": asset_class,
-                        "fromdate": query_start.strftime(_US_DATE),
-                        "todate": query_end.strftime(_US_DATE),
-                        "limit": _PAGE_SIZE,
-                        "offset": page * _PAGE_SIZE,
-                    },
-                    headers=self._headers(),
-                    timeout=30,
-                )
-                response.raise_for_status()
-                payload = response.json()
-            except (httpx.HTTPError, ValueError, TypeError) as exc:
-                logger.warning("nasdaq historical %s (%s) failed: %s", symbol, asset_class, exc)
-                return []
-
-            data = payload.get("data") if isinstance(payload, dict) else None
-            table = data.get("tradesTable") if isinstance(data, dict) else None
-            page_rows = table.get("rows") if isinstance(table, dict) else None
-            if not isinstance(page_rows, list):
-                _history_cache[cache_key] = (time.monotonic(), rows)
-                return rows
-            rows.extend(row for row in page_rows if isinstance(row, dict))
-            total = data.get("totalRecords") if isinstance(data, dict) else None
-            if len(rows) >= int(total or len(rows)) or len(page_rows) < _PAGE_SIZE:
-                break
-        _history_cache[cache_key] = (time.monotonic(), rows)
-        return rows
-
-    def fetch_ohlcv(
-        self,
-        symbol: str,
-        timeframe: Timeframe,
-        start: datetime,
-        end: datetime,
-        *,
-        adjusted: bool = True,
-        instrument_id: int | None = None,
-        data_source_id: int | None = None,
-    ) -> list[OHLCVBar]:
-        if timeframe is not Timeframe.D1 or not adjusted:
-            return []
-        if start.tzinfo is None:
-            start = start.replace(tzinfo=UTC)
-        if end.tzinfo is None:
-            end = end.replace(tzinfo=UTC)
-
-        # Nasdaq uses separate asset-class routes.  Stocks first avoids the
-        # ETF route returning a less useful error for ordinary equities; ETFs
-        # are tried only when the stock route has no rows.
-        rows = self._rows(symbol, "stocks", start, end)
-        if not rows:
-            rows = self._rows(symbol, "etf", start, end)
-
-        bars: list[OHLCVBar] = []
-        for row in rows:
-            try:
-                ts = datetime.strptime(str(row["date"]), _ROW_DATE).replace(tzinfo=UTC)
-            except (KeyError, TypeError, ValueError):
-                continue
-            if not start <= ts < end:
-                continue
-            values = {
-                field: _number(row.get(field))
-                for field in ("open", "high", "low", "close", "volume")
-            }
-            if any(values[field] is None for field in ("open", "high", "low", "close")):
-                continue
-            bars.append(
-                OHLCVBar(
-                    instrument_id=instrument_id,
-                    data_source_id=data_source_id,
-                    timeframe=timeframe,
-                    ts=ts,
-                    open=values["open"],
-                    high=values["high"],
-                    low=values["low"],
-                    close=values["close"],
-                    volume=values["volume"],
-                    is_adjusted=True,
-                )
-            )
-        # The endpoint is newest-first and may overlap pages; the canonical
-        # upsert key removes duplicates, while this keeps provider output clean.
-        return sorted({bar.ts: bar for bar in bars}.values(), key=lambda bar: bar.ts)
-
-    def fetch_latest_ohlcv(
-        self,
-        symbol: str,
-        timeframe: Timeframe,
-        limit: int,
-        *,
-        adjusted: bool = True,
-        instrument_id: int | None = None,
-        data_source_id: int | None = None,
-    ) -> list[OHLCVBar]:
-        start = self.latest_window_start(timeframe, limit)
-        return self.fetch_ohlcv(
-            symbol,
-            timeframe,
-            start,
-            datetime.now(UTC),
-            adjusted=adjusted,
-            instrument_id=instrument_id,
-            data_source_id=data_source_id,
-        )[-limit:]
-
-    def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime:
-        return datetime.now(UTC) - timedelta(days=max(limit * 2, 30))
-
-    def get_current_price(self, symbol: str) -> float | None:
-        bars = self.fetch_latest_ohlcv(symbol, Timeframe.D1, 1)
-        return float(bars[-1].close) if bars else None
+    base_url = "https://www.nasdaqtrader.com"
+    description = "Official Nasdaq Trader US listing and lifecycle symbol directories"
 
     def discover_universe_page(self, quote_type: str, offset: int) -> dict[str, Any]:
-        """Read Nasdaq's public symbol directory as venue evidence.
-
-        The screener includes Nasdaq-listed equities and exchange-traded funds;
-        the provider does not expose a stable all-venue count, so the returned
-        ``total`` is the endpoint's reported row count and every page is kept as
-        an observation for later reconciliation.
-        """
         normalized = quote_type.strip().upper()
         if normalized not in {"EQUITY", "ETF"} or offset < 0:
             return {"total": 0, "quotes": []}
-        try:
-            response = httpx.get(
-                _SCREENER_URL,
-                params={"tableonly": "true", "limit": _PAGE_SIZE, "offset": offset},
-                headers=self._headers(),
-                timeout=30,
-            )
-            response.raise_for_status()
-            payload = response.json()
-        except (httpx.HTTPError, ValueError, TypeError) as exc:
-            logger.warning("nasdaq universe discovery offset=%d failed: %s", offset, exc)
-            return {"total": 0, "quotes": []}
-
-        data = payload.get("data") if isinstance(payload, dict) else None
-        rows = data.get("rows") if isinstance(data, dict) else None
-        if not isinstance(rows, list):
-            return {"total": 0, "quotes": []}
-        quotes: list[dict[str, Any]] = []
-        for row in rows:
-            if not isinstance(row, dict):
-                continue
-            symbol = str(row.get("symbol") or row.get("ticker") or "").strip().upper()
-            if not symbol:
-                continue
-            asset_type = str(row.get("assetType") or row.get("securityType") or "EQUITY").upper()
-            inferred = (
-                "ETF"
-                if "ETF" in asset_type or str(row.get("etf") or "").lower() == "yes"
-                else "EQUITY"
-            )
-            if inferred != normalized:
-                continue
-            quotes.append(
-                {
-                    "symbol": symbol,
-                    "longName": row.get("name") or row.get("securityName") or symbol,
-                    "shortName": row.get("name") or row.get("securityName") or symbol,
-                    "exchange": row.get("exchange") or "Nasdaq",
-                    "currency": "USD",
-                    "quoteType": inferred,
-                    "status": "active",
-                    "source_record": row,
-                }
-            )
-        total = data.get("totalRecords") if isinstance(data, dict) else None
-        try:
-            total_count = int(total)
-        except (TypeError, ValueError):
-            total_count = offset + len(rows)
-        # ``offset`` addresses unfiltered screener rows. The reconciler needs
-        # the raw-page cursor rather than the number of rows matching EQUITY
-        # versus ETF on this page.
+        rows = [row for row in _directory_rows() if row["quoteType"] == normalized]
+        page = rows[offset : offset + _PAGE_SIZE]
         return {
-            "total": total_count,
-            "quotes": quotes,
-            "next_offset": (
-                offset + len(rows) if rows and offset + len(rows) < total_count else None
-            ),
+            "total": len(rows),
+            "quotes": page,
+            "next_offset": offset + _PAGE_SIZE if offset + _PAGE_SIZE < len(rows) else None,
+            "source_files": list(_FILES),
         }
 
     def supported_discovery_types(self) -> list[str]:
         return ["EQUITY", "ETF"]
+
+
+def _directory_rows() -> list[dict[str, Any]]:
+    global _cache
+    now = time.monotonic()
+    if _cache and now - _cache[0] < _CACHE_TTL_SECONDS:
+        return list(_cache[1])
+    rows: list[dict[str, Any]] = []
+    for source_name, url in _FILES.items():
+        response = httpx.get(
+            url,
+            headers={"User-Agent": settings.NASDAQ_USER_AGENT},
+            timeout=30,
+        )
+        response.raise_for_status()
+        rows.extend(_parse_file(source_name, response.text))
+    _cache = (now, rows)
+    return list(rows)
+
+
+def _parse_file(source_name: str, text: str) -> list[dict[str, Any]]:
+    reader = csv.DictReader(io.StringIO(text), delimiter="|")
+    parsed: list[dict[str, Any]] = []
+    for row in reader:
+        first_value = next(iter(row.values()), "") if row else ""
+        if not row or row.get("File Creation Time") is not None or str(first_value).strip().lower().startswith("file creation time"):
+            continue
+        if source_name == "nasdaqlisted":
+            symbol = str(row.get("Symbol") or "").strip().upper()
+            name = str(row.get("Security Name") or symbol).strip()
+            exchange = "XNAS"
+            is_etf = str(row.get("ETF") or "N").upper() == "Y"
+            test_issue = str(row.get("Test Issue") or "N").upper() == "Y"
+            financial_status = str(row.get("Financial Status") or "").upper()
+            # Nasdaq's Financial Status Indicator describes a listed issue's
+            # compliance/bankruptcy state; it is not a delisting feed. Keep
+            # those rows in the universe and retain the indicator as evidence.
+            # Test issues are the only Nasdaq-listed directory rows excluded.
+            active = not test_issue
+        else:
+            symbol = str(row.get("ACT Symbol") or "").strip().upper()
+            name = str(row.get("Security Name") or symbol).strip()
+            code = str(row.get("Exchange") or "").strip().upper()
+            exchange = {"A": "XASE", "N": "XNYS", "P": "ARCX", "Z": "BATS", "V": "IEXG"}.get(code, code or None)
+            is_etf = str(row.get("ETF") or "N").upper() == "Y"
+            financial_status = ""
+            active = str(row.get("Test Issue") or "N").upper() != "Y"
+        if not symbol or not active:
+            continue
+        parsed.append(
+            {
+                "symbol": symbol,
+                "longName": name,
+                "shortName": name,
+                "exchange": exchange,
+                "exchange_mic": exchange,
+                "currency": "USD",
+                "quoteType": "ETF" if is_etf else "EQUITY",
+                "instrument_type": "ETF" if is_etf else "EQUITY",
+                "status": "active",
+                "financial_status": financial_status or None,
+                "source_record": row,
+                "source_file": source_name,
+            }
+        )
+    return parsed

@@ -224,6 +224,12 @@ async def _find_instrument(
         return candidates[0]
     if len(candidates) > 1:
         return None
+    # An exchange-qualified discovery row must never fall back to a ticker-only
+    # match from another venue. That would silently merge two securities that
+    # happen to share a symbol. Unqualified legacy rows may still use the
+    # compatibility symbol fallback when it is globally unambiguous.
+    if exchange_id is not None:
+        return None
     by_symbol = (
         (await db.execute(select(Instrument).where(Instrument.symbol == symbol))).scalars().all()
     )
@@ -689,7 +695,10 @@ async def reconcile_us_universe(
                             quote_type, offset
                         ),
                         response_items=lambda page: len(page.get("quotes") or []),
-                        treat_empty_as_failure=True,
+                        # An empty terminal page is valid for cursor-based
+                        # feeds after at least one page, but an empty first
+                        # page is never accepted as a complete universe.
+                        treat_empty_as_failure=not bool(rows),
                     )
                     page = execution.result or {}
                     await store_universe_discovery_snapshot(
@@ -703,21 +712,46 @@ async def reconcile_us_universe(
                     )
                     page_rows = [row for row in (page.get("quotes") or []) if isinstance(row, dict)]
                     rows.extend(page_rows)
-                    total = int(page.get("total") or len(rows))
+                    declared_total = page.get("total")
+                    if declared_total is not None:
+                        page_total = int(declared_total)
+                        if page_total < 0:
+                            raise ValueError("discovery provider returned a negative total")
+                        if total is None:
+                            total = page_total
+                        elif total != page_total:
+                            raise ValueError("discovery provider changed its declared total")
+                        if total < offset + len(page_rows):
+                            raise ValueError("discovery provider total is smaller than observed rows")
                     next_offset = page.get("next_offset")
-                    if (
-                        isinstance(next_offset, int)
-                        and next_offset > offset
-                        and (bool(page.get("next_url")) or next_offset < total)
-                    ):
+                    next_url = bool(page.get("next_url"))
+                    if isinstance(next_offset, int) and next_offset > offset:
+                        if next_offset > 2_000_000:
+                            raise ValueError("discovery provider exceeded safety page limit")
                         offset = next_offset
                         continue
+                    if next_url:
+                        offset += len(page_rows)
+                        if offset > 2_000_000:
+                            raise ValueError("discovery provider exceeded safety page limit")
+                        continue
                     offset += len(page_rows)
-                    if not page_rows or offset >= total:
+                    if total is not None:
+                        if offset >= total:
+                            break
+                        raise ValueError(
+                            "discovery provider omitted pagination before declared total"
+                        )
+                    if page.get("complete") is True:
                         break
-                    if offset > 2_000_000:
-                        raise ValueError("discovery provider exceeded safety page limit")
-                run.expected_count = total or len(rows)
+                    if not page_rows:
+                        raise ValueError(
+                            "discovery provider returned an empty page without completion evidence"
+                        )
+                    raise ValueError(
+                        "discovery provider omitted total and completion evidence"
+                    )
+                run.expected_count = total if total is not None else len(rows)
                 active_keys = await _reconcile_rows(
                     db,
                     run=run,
@@ -762,8 +796,16 @@ async def reconcile_us_universe(
                     "quarantined": run.quarantined_count,
                 }
             )
+    statuses = [row["status"] for row in results]
+    overall_status = (
+        "complete"
+        if statuses and all(status == "complete" for status in statuses)
+        else "failed"
+        if statuses and all(status == "failed" for status in statuses)
+        else "partial"
+    )
     return {
-        "status": "complete",
+        "status": overall_status,
         "providers": sorted({row["provider"] for row in results}),
         "runs": results,
     }

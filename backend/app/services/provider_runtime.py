@@ -10,6 +10,7 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any, TypeVar
 
+import httpx
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,8 +28,10 @@ from app.providers import (
     ensure_data_source,
     get_provider,
     list_provider_capabilities,
+    provider_is_configured,
     supported_provider_names,
 )
+from app.providers.errors import ProviderNotConfiguredError, ProviderRateLimitError
 from app.services.provider_support import (
     SUPPORT_STATUS_SUPPORTED,
     SUPPORT_STATUS_UNKNOWN,
@@ -139,6 +142,10 @@ class ProviderNoDataError(LookupError):
     """Raised when providers resolve successfully but none return usable data."""
 
 
+class ProviderQuotaUnknownError(RuntimeError):
+    """Raised when no documentation-backed quota contract is available."""
+
+
 def _operation_family(operation: str) -> str:
     return operation.split(":", 1)[0].strip() or operation
 
@@ -198,6 +205,35 @@ def _usage_cost_for_operation(data_source: DataSource, operation: str) -> tuple[
     if cost <= 0:
         cost = Decimal("1")
     return mode, unit_label, cost
+
+
+def provider_contract_operation_cost_known(
+    policy: ProviderPolicy,
+    data_source: DataSource,
+    operation: str | None = None,
+) -> bool:
+    """Return whether a quota contract can be safely charged for this call.
+
+    Providers whose allowance is weighted per endpoint, or whose contract
+    explicitly requires credit costs, must not silently fall back to one
+    request == one unit. They remain visible to operators but are non-routable
+    until the operation-cost map is populated.
+    """
+
+    contract = dict(policy.quota_contract or {})
+    if not (
+        contract.get("dynamic_endpoint_weights")
+        or contract.get("operation_costs_required")
+    ):
+        return True
+    tracking = _usage_tracking_config(data_source)
+    costs = tracking.get("operation_costs")
+    if not isinstance(costs, dict) or not costs:
+        return False
+    if operation is None:
+        return True
+    family = _operation_family(operation)
+    return family in costs or operation in costs
 
 
 class TokenBucket:
@@ -295,19 +331,24 @@ def _apply_policy_defaults(
     provider_name: str,
     providers: list[str],
     freshness_seconds: int,
-    rate_seed: dict[str, int],
+    rate_seed: dict[str, Any],
 ) -> None:
     if not policy.is_pinned:
         policy.base_priority = _base_priority(provider_name, providers)
-    policy.max_concurrency = _int_or(
-        policy.max_concurrency,
-        rate_seed.get("max_concurrency", settings.PROVIDER_MAX_CONCURRENCY),
-    )
-    policy.tokens_per_minute = _int_or(
-        policy.tokens_per_minute, rate_seed.get("tokens_per_minute", 60)
-    )
-    policy.burst_capacity = _int_or(policy.burst_capacity, rate_seed.get("burst_capacity", 15))
-    policy.cooldown_seconds = _int_or(policy.cooldown_seconds, 30)
+    # Quota and concurrency values are external-provider facts, not local
+    # tuning defaults.  Leave them NULL when the seed does not explicitly
+    # declare a documented value; the resolver will then fail closed.
+    for field_name in ("max_concurrency", "tokens_per_minute", "burst_capacity", "cooldown_seconds"):
+        if getattr(policy, field_name) is None and rate_seed.get(field_name) is not None:
+            setattr(policy, field_name, rate_seed[field_name])
+    if policy.quota_contract is None and rate_seed.get("quota_contract"):
+        policy.quota_contract = dict(rate_seed["quota_contract"])
+    if policy.quota_scope is None and rate_seed.get("quota_scope"):
+        policy.quota_scope = str(rate_seed["quota_scope"])
+    if policy.quota_source is None and rate_seed.get("quota_source"):
+        policy.quota_source = str(rate_seed["quota_source"])
+    if policy.quota_verified_at is None and policy.quota_contract:
+        policy.quota_verified_at = datetime.now(UTC)
     policy.freshness_seconds = _int_or(policy.freshness_seconds, freshness_seconds)
     if policy.score_floor is None:
         policy.score_floor = _DEFAULT_SCORE_FLOOR
@@ -324,6 +365,10 @@ def _bucket_key(provider_name: str, capability: ProviderCapability) -> tuple[str
 
 
 def _get_bucket(policy: ProviderPolicy, provider_name: str) -> TokenBucket:
+    if policy.tokens_per_minute is None or policy.burst_capacity is None:
+        raise ProviderQuotaUnknownError(
+            f"{provider_name}/{policy.capability.value} has no verified minute bucket"
+        )
     key = _bucket_key(provider_name, policy.capability)
     config = (policy.tokens_per_minute, policy.burst_capacity)
     cached = _token_buckets.get(key)
@@ -336,14 +381,125 @@ def _get_bucket(policy: ProviderPolicy, provider_name: str) -> TokenBucket:
 
 
 def _get_semaphore(policy: ProviderPolicy, provider_name: str) -> asyncio.Semaphore:
+    # Serialising an unknown-concurrency provider is a local safety measure,
+    # not a claim about the vendor's entitlement.  The external quota contract
+    # remains the source of truth for admission and is never populated with 1.
+    configured_concurrency = policy.max_concurrency if policy.max_concurrency and policy.max_concurrency > 0 else 1
     key = _bucket_key(provider_name, policy.capability)
     cached = _semaphores.get(key)
-    if cached is None or cached[0] != max(1, policy.max_concurrency):
-        sem = asyncio.Semaphore(max(1, policy.max_concurrency))
-        _semaphores[key] = (max(1, policy.max_concurrency), sem)
+    if cached is None or cached[0] != configured_concurrency:
+        sem = asyncio.Semaphore(configured_concurrency)
+        _semaphores[key] = (configured_concurrency, sem)
         return sem
     sem = cached[1]
     return sem
+
+
+def quota_dimensions(policy: ProviderPolicy) -> list[dict[str, Any]]:
+    """Return only complete, positive, explicitly documented dimensions.
+
+    A partial contract is not safer than an unknown contract: silently
+    discarding one malformed dimension could admit requests that exceed the
+    provider's real allowance. Require reset semantics plus source/scope/unit
+    evidence for every declared dimension before routing.
+    """
+
+    contract = policy.quota_contract or {}
+    if not isinstance(contract, dict) or not str(contract.get("reset") or "").strip():
+        return []
+    dimensions = contract.get("dimensions")
+    if not isinstance(dimensions, list) or not dimensions:
+        return []
+    result: list[dict[str, Any]] = []
+    for item in dimensions:
+        if not isinstance(item, dict):
+            return []
+        try:
+            limit = int(item.get("limit"))
+            window_seconds = int(item.get("window_seconds"))
+        except (TypeError, ValueError):
+            return []
+        if (
+            limit <= 0
+            or window_seconds <= 0
+            or not str(item.get("name") or "").strip()
+            or not str(item.get("unit") or "").strip()
+            or not str(item.get("source") or "").strip()
+            or not str(item.get("scope") or policy.quota_scope or "").strip()
+        ):
+            return []
+        result.append(
+            {
+                **item,
+                "name": str(item["name"]),
+                "limit": limit,
+                "window_seconds": window_seconds,
+                "unit": str(item.get("unit") or "requests"),
+                "scope": str(item.get("scope") or policy.quota_scope or "unknown"),
+            }
+        )
+    return result
+
+
+def policy_has_known_quota(policy: ProviderPolicy) -> bool:
+    """Whether this policy has a complete contract suitable for routing."""
+
+    return bool(quota_dimensions(policy))
+
+
+def _retry_at_from_headers(headers: Any, *, now: datetime | None = None) -> datetime | None:
+    """Parse standard retry/reset headers without inventing a provider delay."""
+
+    if headers is None:
+        return None
+    normalized = {str(key).lower(): str(value) for key, value in headers.items()}
+    current = now or datetime.now(UTC)
+    retry_after = normalized.get("retry-after")
+    if retry_after:
+        try:
+            seconds = float(retry_after)
+            if seconds >= 0:
+                return current + timedelta(seconds=seconds)
+        except ValueError:
+            try:
+                parsed = datetime.strptime(retry_after, "%a, %d %b %Y %H:%M:%S GMT")
+                return parsed.replace(tzinfo=UTC)
+            except ValueError:
+                pass
+    for name in ("x-ratelimit-reset", "x-rate-limit-reset", "ratelimit-reset"):
+        value = normalized.get(name)
+        if not value:
+            continue
+        try:
+            raw = float(value)
+        except ValueError:
+            continue
+        # Providers use both Unix epochs and relative seconds for this header.
+        return datetime.fromtimestamp(raw, tz=UTC) if raw > 1_000_000_000 else current + timedelta(seconds=max(0, raw))
+    return None
+
+
+def provider_rate_limit_error(provider_name: str, exc: Exception, *, scope: str | None = None) -> ProviderRateLimitError | None:
+    """Convert an HTTP 429/418/quota response to a typed capacity error."""
+
+    response = exc.response if isinstance(exc, httpx.HTTPStatusError) else None
+    status_code = getattr(response, "status_code", None)
+    message = str(exc)
+    lower = message.lower()
+    is_quota = status_code in {418, 429} or any(
+        marker in lower for marker in ("rate limit", "rate_limit", "too many requests", "quota exceeded", "quota limit")
+    )
+    if not is_quota:
+        return None
+    headers = dict(getattr(response, "headers", {}) or {})
+    return ProviderRateLimitError(
+        provider_name,
+        message or f"{provider_name} rate limit exceeded",
+        retry_at=_retry_at_from_headers(headers),
+        status_code=status_code,
+        scope=scope,
+        headers=headers,
+    )
 
 
 async def seed_provider_runtime(db: AsyncSession) -> None:
@@ -407,11 +563,16 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                     capability=capability,
                     is_enabled=True,
                     base_priority=_base_priority(provider_name, providers),
-                    max_concurrency=rate_seed.get(
-                        "max_concurrency", settings.PROVIDER_MAX_CONCURRENCY
-                    ),
-                    tokens_per_minute=rate_seed.get("tokens_per_minute", 60),
-                    burst_capacity=rate_seed.get("burst_capacity", 15),
+                    max_concurrency=rate_seed.get("max_concurrency"),
+                    tokens_per_minute=rate_seed.get("tokens_per_minute"),
+                    burst_capacity=rate_seed.get("burst_capacity"),
+                    cooldown_seconds=rate_seed.get("cooldown_seconds"),
+                    quota_contract=rate_seed.get("quota_contract"),
+                    quota_scope=rate_seed.get("quota_scope"),
+                    quota_source=rate_seed.get("quota_source"),
+                    quota_verified_at=datetime.now(UTC)
+                    if rate_seed.get("quota_contract")
+                    else None,
                     freshness_seconds=freshness,
                 )
                 db.add(policy)
@@ -423,6 +584,7 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                     )
                 )
             ).scalar_one_or_none()
+            entitlement_was_new = entitlement is None
             if entitlement is None:
                 entitlement = ProviderEntitlement(
                     data_source_id=data_source.id,
@@ -450,7 +612,15 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                 )
                 db.add(entitlement)
                 await db.flush()
-            elif entitlement.configured_plan == "unreviewed" and entitlement_seed:
+            if rate_seed.get("quota_contract"):
+                quota_policy = dict(entitlement.quota_policy or {})
+                quota_policy.setdefault("contract", dict(rate_seed["quota_contract"]))
+                entitlement.quota_policy = quota_policy
+            if (
+                not entitlement_was_new
+                and entitlement.configured_plan == "unreviewed"
+                and entitlement_seed
+            ):
                 # Upgrade rows created by older builds without overwriting an
                 # operator-reviewed entitlement.
                 prior_values = {
@@ -561,6 +731,8 @@ async def resolve_provider_chain(
         configured_plan = str(entitlement.configured_plan or "").strip().lower()
         if not configured_plan or configured_plan == "unreviewed":
             continue
+        if entitlement.authentication_required and not provider_is_configured(data_source.name):
+            continue
         if (
             data_source.name == "yfinance"
             and capability
@@ -586,6 +758,11 @@ async def resolve_provider_chain(
         if allowed_environments and current_environment not in allowed_environments:
             continue
         if entitlement.review_due_at and _as_utc(entitlement.review_due_at) <= now:
+            continue
+        if not policy_has_known_quota(policy):
+            # An adapter may be perfectly valid code while its current plan,
+            # key/IP scope, or window is unknown.  That is an observable
+            # configuration state, never a reason to guess a safe default.
             continue
         if health.circuit_open_until and health.circuit_open_until > now:
             continue
@@ -668,7 +845,7 @@ async def _record_result(
         health.last_error_type = error.__class__.__name__ if error else "ProviderError"
         health.last_error_message = str(error) if error else "Provider call failed"
         policy.learned_weight = _ewma(policy.learned_weight, Decimal("-4"))
-        if health.failure_streak >= 3:
+        if health.failure_streak >= 3 and policy.cooldown_seconds:
             health.circuit_open_until = now + timedelta(seconds=policy.cooldown_seconds)
 
     policy.effective_score = _effective_score(policy, health)
@@ -695,13 +872,37 @@ async def execute_provider_call(
     last_error: Exception | None = None
 
     for resolved in chain:
-        if not _get_bucket(resolved.policy, resolved.provider_name).try_acquire():
+        if not provider_contract_operation_cost_known(
+            resolved.policy, resolved.data_source, operation
+        ):
             continue
-
         usage_mode, usage_unit_label, usage_units = _usage_cost_for_operation(
             resolved.data_source,
             operation,
         )
+        # A runtime call participates in the same durable multi-dimensional
+        # budget used by queued workloads.  This prevents concurrent workers
+        # from multiplying a provider/IP/key allowance in process-local
+        # buckets.  The import is intentionally lazy because provider_routing
+        # imports the resolver for its candidate selection.
+        from app.services.provider_routing import (
+            reserve_provider_contract,
+            settle_provider_contract,
+        )
+
+        reservations = await reserve_provider_contract(
+            db,
+            resolved=resolved,
+            capability=capability.value,
+            units=max(1, int(usage_units.to_integral_value())),
+            now=datetime.now(UTC),
+        )
+        if reservations is None:
+            continue
+        if resolved.policy.tokens_per_minute is not None and resolved.policy.burst_capacity is not None:
+            if not _get_bucket(resolved.policy, resolved.provider_name).try_acquire():
+                settle_provider_contract(reservations, units=max(1, int(usage_units.to_integral_value())), success=False)
+                continue
         log_row = ProviderRequestLog(
             data_source_id=resolved.data_source.id,
             capability=capability,
@@ -739,6 +940,11 @@ async def execute_provider_call(
                 latency_ms=latency_ms,
                 response_items=count,
             )
+            settle_provider_contract(
+                reservations,
+                units=max(1, int(usage_units.to_integral_value())),
+                success=True,
+            )
             if instrument_id is not None:
                 await record_provider_support(
                     db,
@@ -756,7 +962,28 @@ async def execute_provider_call(
                 result=result,
             )
         except Exception as exc:
+            rate_error = provider_rate_limit_error(
+                resolved.provider_name,
+                exc,
+                scope=resolved.policy.quota_scope,
+            )
+            if rate_error is not None:
+                exc = rate_error
+                last_error = rate_error
+                # A provider-supplied reset is authoritative.  Do not sleep
+                # blindly or retry the same provider in a tight loop.
+                if rate_error.retry_at is not None:
+                    resolved.health.circuit_open_until = rate_error.retry_at
+                else:
+                    resolved.health.circuit_open_until = datetime.now(UTC) + timedelta(
+                        seconds=resolved.policy.cooldown_seconds or 0
+                    ) if resolved.policy.cooldown_seconds else None
             last_error = exc
+            settle_provider_contract(
+                reservations,
+                units=max(1, int(usage_units.to_integral_value())),
+                success=False,
+            )
             latency_ms = int((time.perf_counter() - started) * 1000)
             await _record_result(
                 db,
@@ -807,9 +1034,10 @@ async def execute_provider_call(
                     operation,
                     exc,
                 )
-            await asyncio.sleep(
-                min(1.0, 0.2 * (resolved.health.failure_streak + 1)) + random.random() * 0.15
-            )
+            if not isinstance(exc, ProviderRateLimitError | ProviderNotConfiguredError):
+                await asyncio.sleep(
+                    min(1.0, 0.2 * (resolved.health.failure_streak + 1)) + random.random() * 0.15
+                )
             continue
 
     if not chain and instrument_id is not None:
@@ -861,6 +1089,17 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
             "tokens_per_minute": policy.tokens_per_minute,
             "burst_capacity": policy.burst_capacity,
             "cooldown_seconds": policy.cooldown_seconds,
+            "quota_contract": policy.quota_contract,
+            "quota_scope": policy.quota_scope,
+            "quota_source": policy.quota_source,
+            "quota_verified_at": policy.quota_verified_at,
+            "quota_state": "known" if policy_has_known_quota(policy) else "unknown",
+            "credentials_configured": provider_is_configured(data_source.name),
+            "routing_eligible": bool(
+                policy.is_enabled
+                and policy_has_known_quota(policy)
+                and provider_is_configured(data_source.name)
+            ),
             "freshness_seconds": policy.freshness_seconds,
             "failure_streak": health.failure_streak,
             "last_success_at": health.last_success_at,
