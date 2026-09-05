@@ -14876,7 +14876,9 @@ class WisdomTreeHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 or not _domain_matches(response_host, "wisdomtree.com")
                 or urlparse(str(response.url)).path.rstrip("/") != expected_path
             ):
-                raise ValueError("WisdomTree holdings response left the symbol-scoped issuer route.")
+                raise ValueError(
+                    "WisdomTree holdings response left the symbol-scoped issuer route."
+                )
         except (httpx.HTTPError, requests.RequestException, ValueError) as route_error:
             sec_result = await self._sec_fallback_after_route_error(
                 route_error,

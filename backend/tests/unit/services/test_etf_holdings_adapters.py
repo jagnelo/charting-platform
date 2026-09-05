@@ -324,7 +324,7 @@ async def test_sofi_fetch_preserves_periodic_archive_provenance(monkeypatch):
             content=b"%PDF-fake",
             content_type="application/pdf",
             url=adapter.HOLDINGS_URL,
-        )
+        ),
     ]
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
 
@@ -27928,7 +27928,7 @@ async def test_wisdomtree_public_fund_holdings_api_is_symbol_scoped_and_dated(mo
             ),
             content_type="application/json",
             url="https://www.wisdomtree.com/api/fund-holdings/1000549",
-        )
+        ),
     ]
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
 
@@ -27936,9 +27936,7 @@ async def test_wisdomtree_public_fund_holdings_api_is_symbol_scoped_and_dated(mo
 
     assert FakeAsyncClient.requested[0][0].endswith("/us/products/equity/dxj")
     assert FakeAsyncClient.requested[1][0].endswith("/api/fund-holdings/1000549")
-    assert result.legal_metadata["route_resolution"] == (
-        "wisdomtree_public_fund_holdings_api"
-    )
+    assert result.legal_metadata["route_resolution"] == ("wisdomtree_public_fund_holdings_api")
     assert result.legal_metadata["composition_date"] == "2026-09-04"
     assert result.rows[0].symbol == "8306 JT"
     assert result.rows[0].extra_data["figi"] == "BBG000BPH459"
@@ -27973,7 +27971,7 @@ async def test_wisdomtree_public_fund_holdings_api_rejects_identity_drift(monkey
             ),
             content_type="application/json",
             url="https://www.wisdomtree.com/api/fund-holdings/1000549",
-        )
+        ),
     ]
     with pytest.raises(ValueError, match="not scoped to requested fund"):
         await adapter.fetch_latest(symbol="DXJ")
