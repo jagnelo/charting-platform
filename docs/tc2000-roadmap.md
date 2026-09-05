@@ -23,7 +23,10 @@ full frontend Vitest passed `948/948` across `109` files, type-check/build/diff 
 backend code+screener integration passed `51/51` with the existing NumPy deprecation warnings.
 The authenticated `F8t-results-series-threshold` flow passed `1/1` on a rebuilt branch-scoped
 Docker stack with the operator/threshold, Boolean asset lineage, canonical member universe, and
-screener provenance assertions. The exact-tip exhaustive gate is still pending. The primary Study
+screener provenance assertions. Exact-tip gate evidence is now recorded below: the first functional
+pass had one transient `F8j` timeout, isolated `F8j` passed `1/1`, and the complete rerun passed
+`153/153` with `109` documented skips; the visual-only matrix remains `98/104` with the same six
+state-oracle diffs. The primary Study
 Lab direct threshold controls, canonical provider/history enrichment, native-window/accessibility/
 security, dense-data, and visual-oracle gaps remain open; no visual policy or provider fallback rule
 changes.

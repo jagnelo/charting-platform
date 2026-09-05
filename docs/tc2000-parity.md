@@ -16,8 +16,11 @@ Focused Results/capability coverage passed `34/34`; full frontend Vitest passed 
 `109` files; type-check, production build, and diff checks passed; backend code+screener integration
 passed `51/51` with the existing NumPy deprecation warnings, and the existing runner threshold unit
 passed. Authenticated `F8t-results-series-threshold` passed `1/1` on the rebuilt branch-scoped
-Docker stack with clean teardown pending the branch gate. This slice is scoped to persisted Research
-Results; primary Study Lab direct threshold controls, canonical provider/history population,
+Docker stack with clean teardown. The exact-tip gate then passed all non-visual stages; after one
+transient `F8j` conflict-recovery timeout, isolated and complete functional reruns passed. The
+visual-only matrix remains `98/104` with the six unchanged state-oracle diffs recorded in the
+roadmap. This slice is scoped to persisted Research Results; primary Study Lab direct threshold controls,
+canonical provider/history population,
 native-window/accessibility/security, dense-data, and exact V25 visual-oracle gaps remain open. No
 visual policy or provider fallback rule changed.
 

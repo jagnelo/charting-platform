@@ -29,11 +29,17 @@ threshold adapter unit passes; authenticated `F8t-results-series-threshold` pass
 rebuilt branch-scoped Docker stack. Product commit is pushed to
 `origin/feat/tc2000-frontend-rework`.
 
-Remaining: rebuild the assigned stack and run the authenticated Results promotion flow, then rerun
-the exact-tip exhaustive gate. The existing six visual diffs are unchanged and remain an explicit
-review blocker; primary Study Lab direct threshold controls, canonical provider/history, native
-window/accessibility/security, dense-data, and visual-oracle gaps remain open. Do not alter visual
-policy, provider fallback rules, or protected worktrees.
+The exact-tip gate was rerun at this product boundary. All static/dependency/migration, backend,
+frontend, build, compose/provider, stack-health, and runner stages passed. The first functional
+pass had one transient `F8j` conflict-recovery timeout; isolated `F8j` passed `1/1`, and the
+complete functional rerun passed `153/153` with `109` documented skips across `262` specs. The
+visual-only matrix remains `98/104`: `watchlist-column-editor-open` differs by `13,844` pixels
+at 1080p-100/125 and `workspace-floating` by `12,097`/`9,770`/`12,097`/`9,770` pixels across
+1080p-100/125 and 1440p-100/125. These are unchanged state-oracle mismatches; no baseline,
+mask, threshold, skip, fallback oracle, provider rule, or acceptance policy changed. Teardown
+and resource accounting are clean. Primary Study Lab direct threshold controls, canonical
+provider/history, native-window/accessibility/security, dense-data, and visual-oracle gaps remain
+open. Do not alter visual policy, provider fallback rules, or protected worktrees.
 
 ## 2026-09-05 — Surface canonical source-history ranges
 

@@ -19,9 +19,25 @@
       `225ab93f` is pushed to `origin/feat/tc2000-frontend-rework`.
 - [x] Rebuild the branch-scoped stack and run the authenticated `F8t-results-series-threshold`
       Results flow; it passed `1/1` with the operator/threshold, Boolean asset lineage, canonical
-      member universe, and screener provenance assertions. The exact-tip exhaustive gate remains
-      pending. The existing six visual matrix diffs must not be masked, baselined, thresholded,
+      member universe, and screener provenance assertions. Exact-tip gate evidence is recorded in
+      the dated entry below. The existing six visual matrix diffs must not be masked, baselined, thresholded,
       skipped, or treated as provider gaps.
+- [ ] Continue canonical provider/history population, primary Study Lab threshold controls,
+      native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review.
+
+### 2026-09-05 — Exact-tip gate after numeric Study series threshold promotion
+
+- [x] At product tip `a6737e18`, all locked dependency/migration, Ruff/format, TypeScript,
+      backend unit (`1,315/1,315`), backend integration (`384/384`, existing `54` warnings),
+      combined coverage (`80.91%`), frontend Vitest (`948/948` across `109` files), build,
+      compose/provider, stack-health, and runner stages passed.
+- [x] The first functional pass encountered one transient `F8j` conflict-recovery timeout.
+      An isolated retry passed `1/1`, and the complete functional rerun passed `153/153` with
+      `109` documented skips across `262` specs. The rebuilt stack was torn down cleanly.
+- [x] Visual-only acceptance remains `98/104`, with six unchanged state-oracle diffs:
+      `watchlist-column-editor-open` (`13,844` pixels at 1080p-100/125) and
+      `workspace-floating` (`12,097`/`9,770`/`12,097`/`9,770` pixels at 1080p-100/125/1440p-100/125).
+      No baseline, mask, threshold, skip, fallback oracle, provider rule, or acceptance policy changed.
 - [ ] Continue canonical provider/history population, primary Study Lab threshold controls,
       native-window/accessibility/security evidence, dense-data budgets, and visual-oracle review.
 
