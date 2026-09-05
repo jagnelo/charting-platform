@@ -2882,3 +2882,13 @@ retain provider-level terminal or non-publisher dispositions. The next ETF-owned
 action is therefore bounded free-first re-testing or new evidence for DXJ/NTSX
 and MINT/BOND, followed by shared-provider integration once that branch reaches
 staging; no fallback symbol is silently promoted while those gates remain open.
+
+## Tier-0 boundary re-test — 2026-09-05
+
+The fresh bounded probes did not change any disposition. WisdomTree's official
+DXJ and NTSX product routes returned HTTP 403 to backend-equivalent requests;
+PIMCO's MINT (`72201R833`) and BOND (`72201R775`) `topTenHoldings` API routes
+returned HTTP 401. The Pacific Asset Management GEME route passed its focused
+opt-in live contract (1 passed). The four unresolved symbols remain explicitly
+non-current, and GEME remains current only under its existing dated,
+identity-bound canary contract.
