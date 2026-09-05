@@ -165,6 +165,21 @@ def test_admin_can_inspect_bounded_canary_history_without_hydrating_unknown_symb
     assert db.query(Instrument).filter_by(symbol="DXJ").count() == 0
 
 
+def test_capability_read_does_not_hydrate_unknown_symbol(client, auth_headers, db):
+    from app.models.instrument import Instrument
+
+    assert db.query(Instrument).filter_by(symbol="ZZZ").count() == 0
+
+    response = client.get("/api/v1/etf-holdings/ZZZ/capability", headers=auth_headers)
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["availability"] == "not_applicable"
+    assert body["usable_for_current_analysis"] is False
+    assert body["symbol_audit"]["outcome"] == "unknown"
+    assert db.query(Instrument).filter_by(symbol="ZZZ").count() == 0
+
+
 def test_admin_family_history_refresh_queues_deduplicated_local_members(
     client, admin_headers, monkeypatch
 ):

@@ -84,7 +84,7 @@ from app.services.etf_holdings import (
     get_nearest_snapshot,
     get_unresolved_holdings,
     get_weight_evolution,
-    holdings_capability_for_profile,
+    holdings_capability_for_symbol,
     ingest_holdings_snapshot,
     list_available_dates,
     list_etfs_with_holdings,
@@ -552,9 +552,7 @@ async def holdings_capability(
 ):
     """Return truthful current holdings capability without triggering a fetch."""
 
-    instrument = await ensure_lightweight_etf_instrument(db, symbol=symbol)
-    profile = await ensure_etf_profile(db, instrument)
-    return await holdings_capability_for_profile(db, profile)
+    return await holdings_capability_for_symbol(db, symbol)
 
 
 @router.get("/{symbol}/canary-history", response_model=ETFHoldingsCanaryHistoryOut)

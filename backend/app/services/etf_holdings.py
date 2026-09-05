@@ -1529,6 +1529,25 @@ async def holdings_capability_for_profile(
     return evaluate_capability(profile, latest, state).as_dict()
 
 
+async def holdings_capability_for_symbol(db: AsyncSession, symbol: str) -> dict[str, Any]:
+    """Evaluate a symbol's capability without hydrating an unknown catalog entry."""
+
+    normalized_symbol = str(symbol or "").strip().upper()
+    instrument = await _load_instrument_by_symbol_or_id(db, normalized_symbol)
+    if instrument is None:
+        transient_instrument = Instrument(symbol=normalized_symbol, name=normalized_symbol)
+        return evaluate_capability(
+            ETFProfile(instrument=transient_instrument),
+            None,
+            None,
+        ).as_dict()
+
+    profile = await get_etf_profile_for_instrument(db, instrument.id)
+    if profile is None:
+        return evaluate_capability(ETFProfile(instrument=instrument), None, None).as_dict()
+    return await holdings_capability_for_profile(db, profile)
+
+
 async def get_latest_snapshot(
     db: AsyncSession,
     symbol_or_id: str | int,
