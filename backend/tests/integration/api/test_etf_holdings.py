@@ -147,6 +147,65 @@ def test_admin_shadow_gate_reports_missing_tier0_observations(client, admin_head
     )
 
 
+def test_admin_shadow_gate_loads_persisted_tier0_observation(client, admin_headers, db):
+    from app.models.etf_holdings import ETFHoldingsAdapterState, ETFProfile
+    from app.models.instrument import Instrument
+
+    profile_response = client.patch(
+        "/api/v1/etf-holdings/DXJ/profile",
+        json={
+            "issuer": "WisdomTree",
+            "provider_aliases": {"holdings_adapter": "wisdomtree"},
+        },
+        headers=admin_headers,
+    )
+    assert profile_response.status_code == 200, profile_response.text
+    profile = (
+        db.query(ETFProfile)
+        .join(Instrument, Instrument.id == ETFProfile.instrument_id)
+        .filter(Instrument.symbol == "DXJ")
+        .one()
+    )
+    db.add(
+        ETFHoldingsAdapterState(
+            etf_profile_id=profile.id,
+            adapter_key="wisdomtree",
+            status="failure",
+            last_checked_at=datetime(2026, 9, 5, 12, tzinfo=UTC),
+            extra_data={
+                "canary_history": [
+                    {
+                        "observed_at": "2026-09-05T12:00:00+00:00",
+                        "status": "failure",
+                        "availability": "unavailable",
+                        "completeness_status": "unknown",
+                        "source_tier": "issuer_native",
+                        "identity_verified": False,
+                        "usable_for_current_analysis": False,
+                        "freshness_deadline": "2026-09-05",
+                        "symbol_audit_outcome": "unavailable",
+                    }
+                ]
+            },
+        )
+    )
+    db.flush()
+
+    response = client.get(
+        "/api/v1/etf-holdings/shadow-gate",
+        headers=admin_headers,
+        params={"as_of": "2026-09-05"},
+    )
+
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["observed_symbols"] == ["DXJ"]
+    assert "DXJ" not in payload["missing_symbols"]
+    assert payload["eligible_checks"] == 1
+    assert payload["passing_checks"] == 0
+    assert payload["success_rate"] == 0.0
+
+
 def test_admin_can_inspect_bounded_canary_history_without_hydrating_unknown_symbol(
     client, admin_headers, db
 ):
