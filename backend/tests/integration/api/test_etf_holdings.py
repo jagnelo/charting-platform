@@ -1617,7 +1617,9 @@ def test_admin_can_refresh_spdr_product_page_discovered_zip_route(
     assert validation["matched"][0]["value"] == "SPY"
 
 
-def test_refresh_failure_records_rate_limit_adapter_state(client, admin_headers, monkeypatch):
+def test_refresh_failure_records_rate_limit_adapter_state(
+    client, admin_headers, auth_headers, monkeypatch
+):
     request = httpx.Request("GET", "https://issuer.example/rate-holdings.csv")
     response = httpx.Response(429, request=request)
     calls = {"count": 0}
@@ -1688,8 +1690,13 @@ def test_refresh_failure_records_rate_limit_adapter_state(client, admin_headers,
     assert body[0]["adapter_key"] == "ark"
     assert body[0]["status"] == "failure"
     assert body[0]["rate_limit_state"] == "http_429"
+    assert body[0]["extra_data"]["last_failure_class"] == "quota_rate_limited"
     assert "Too Many Requests" in body[0]["failure_reason"]
     assert body[0]["last_failure_at"] is not None
+
+    capability = client.get("/api/v1/etf-holdings/ARKK/capability", headers=auth_headers)
+    assert capability.status_code == 200
+    assert capability.json()["failure_class"] == "quota_rate_limited"
 
     retry = client.post("/api/v1/etf-holdings/refresh", headers=admin_headers)
     assert retry.status_code == 200
