@@ -1859,7 +1859,14 @@ class TestWorkspaces:
 
         current = client.get("/api/v1/market-groups/etf/INDX/industries", headers=auth_headers)
         assert current.status_code == 409
-        assert current.json()["detail"]["code"] == "etf_holdings_not_current"
+        assert current.json()["detail"] == {
+            "code": "etf_holdings_not_current",
+            "availability": "stale",
+            "source_tier": "issuer_native",
+            "usable_for_current_analysis": False,
+            "failure_class": None,
+            "reason": "No concrete ETF holdings adapter is assigned to this profile.",
+        }
 
         response = client.get(
             "/api/v1/market-groups/etf/INDX/industries",
@@ -3900,7 +3907,14 @@ class TestWorkspaces:
             params={"benchmark": instrument.symbol},
         )
         assert current.status_code == 409
-        assert current.json()["detail"]["code"] == "etf_holdings_not_current"
+        assert current.json()["detail"] == {
+            "code": "etf_holdings_not_current",
+            "availability": "degraded",
+            "source_tier": "manual_upload",
+            "usable_for_current_analysis": False,
+            "failure_class": None,
+            "reason": "Holdings were manually uploaded and are not issuer-current support.",
+        }
 
         response = client.get(
             "/api/v1/analysis/etf/MIXD/constituents/snapshot",
