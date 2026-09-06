@@ -780,6 +780,7 @@
           <b>{{ familyRoleLabel(role.role) }}</b> {{ role.symbol ?? role.label }} · {{ role.status }} · {{ role.snapshots.length }} date{{ role.snapshots.length === 1 ? '' : 's' }} · {{ familyContinuityLabel(role) }} · {{ familyLatestDisclosureLabel(role) }} · bars {{ familyMemberBarHistoryLabel(role) }} · readiness {{ role.composite_readiness_status ?? 'unknown' }}{{ familyReadinessReasonsLabel(role) }} · route {{ familyRouteLabel(role) }} · entitlement {{ familyEntitlementLabel(role) }} · refresh {{ familyRefreshLabel(role) }} · weights {{ role.weights_status ?? 'unknown' }} · classification {{ role.classification_status ?? 'unknown' }}{{ role.placeholder_member_count ? ` · placeholders ${role.placeholder_member_count}` : '' }}
             </span>
           </div>
+          <span class="sr-only" aria-label="Benchmark family canonical role evidence">{{ familyCanonicalRoleEvidenceLabel(familyCoverage) }}</span>
         </div>
         <p v-else-if="familyCoverageError" class="breadth-tool__status breadth-tool__status--error" role="alert">{{ familyCoverageError }}</p>
         <div v-if="familyConstituents" class="breadth-tool__family-constituents">
@@ -2441,6 +2442,20 @@ function familyRefreshLabel(role: { holdings_refresh_status?: string; holdings_r
   const composition = role.holdings_refresh_composition_date?.slice(0, 10)
   const reason = role.holdings_refresh_failure_reason?.trim()
   return `${status}${provider ? ` · ${provider}` : ''}${reason ? ` · reason ${reason}` : ''}${checked ? ` · checked ${checked}` : ''}${success ? ` · success ${success}` : ''}${failure ? ` · failed ${failure}` : ''}${composition ? ` · composition ${composition}` : ''}`
+}
+function familyCanonicalRoleEvidenceLabel(coverage: { roles?: Array<{ role: 'cap_weight' | 'equal_weight' | 'value' | 'growth'; symbol?: string | null; label: string; point_in_time_supported?: boolean; member_count?: number; placeholder_member_count?: number; weighted_member_count?: number; weights_status?: string; classified_member_count?: number; classification_status?: string; history_ready?: boolean; composite_readiness_status?: string }> }) {
+  const roles = coverage.roles ?? []
+  if (!roles.length) return 'Canonical role evidence: unavailable'
+  return `Canonical role evidence: ${roles.map(role => {
+    const name = `${familyRoleLabel(role.role)} ${role.symbol ?? role.label}`
+    const members = Number.isFinite(role.member_count) ? `members ${role.member_count}` : 'members unavailable'
+    const placeholders = role.placeholder_member_count ? ` · placeholders ${role.placeholder_member_count}` : ''
+    const weighted = Number.isFinite(role.weighted_member_count) ? `weighted ${role.weighted_member_count} (${role.weights_status ?? 'unknown'})` : 'weighted unavailable'
+    const classified = Number.isFinite(role.classified_member_count) ? `classified ${role.classified_member_count} (${role.classification_status ?? 'unknown'})` : 'classified unavailable'
+    const pointInTime = role.point_in_time_supported === true ? 'point-in-time supported' : role.point_in_time_supported === false ? 'point-in-time unavailable' : 'point-in-time not reported'
+    const history = role.history_ready === true ? 'history ready' : role.history_ready === false ? 'history incomplete' : 'history not reported'
+    return `${name} · ${members}${placeholders} · ${weighted} · ${classified} · ${pointInTime} · ${history} · readiness ${role.composite_readiness_status ?? 'unknown'}`
+  }).join('; ')}`
 }
 function latestFamilyRatio(ratio: { points: Array<{ value: number }> }) {
   const value = ratio.points.length ? ratio.points[ratio.points.length - 1]?.value : undefined
