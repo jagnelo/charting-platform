@@ -4662,3 +4662,25 @@ No complete executable artifact, credential, entitlement, paid source, or
 provider-platform bridge was introduced. Runtime capability evidence and the
 provider-audit ledger now carry the 2026-09-06 transport references, while
 DXJ/NTSX/MINT/BOND remain unavailable for current analysis.
+## Final live-contract hardening and exact-SHA CI — 2026-09-06
+
+The final live-provider sweep exposed only issuer-edge contract drift, not an
+ETF parser or adapter regression. Regan's current MBSF daily artifact contains
+37 complete rows and reports fractional weights totaling approximately 1.0004;
+the live contract now uses a conservative 20-row floor plus at-least-99%
+fractional weight coverage. Cultivar's bespoke test now applies the existing
+external-timeout skip contract. Cohanzick's temporary Catapult endpoint HTTP
+409 and Thor's issuer read timeout are recorded as provider-scoped
+evidence-bearing skips in both parametrized and bespoke tests; no generic 409
+skip or source promotion was introduced.
+
+Exact-SHA GitHub Actions run `34003268958` validated tip
+`b2570d0344069b631d65480945aa0319b2a2db90` successfully. Backend Tests,
+Frontend Unit Tests, Branch-declared Tests, and Playwright E2E all passed. The
+branch-declared receipt was 577 deterministic adapter tests passed, default
+live 2 passed/515 skipped, opt-in live 492 passed/25 skipped, frontend ETF
+type/build checks passed, and Playwright completed 151 passed/109 skipped. The
+staging/master-only Exhaustive Integration Gate was skipped as designed for a
+feature branch. This validates the feature tip and its live-test resilience;
+it does not stage the provider-platform dependency, resolve DXJ/NTSX/MINT/BOND,
+or satisfy AC10/AC14.
