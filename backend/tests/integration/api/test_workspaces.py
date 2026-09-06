@@ -521,6 +521,14 @@ class TestWorkspaces:
         assert sp500_roles["cap_weight"]["history_route_source_url"].endswith(
             "holdings-daily-us-en-spy.xlsx"
         )
+        assert sp500_roles["equal_weight"]["history_route_status"] == "issuer_current_only"
+        assert sp500_roles["equal_weight"]["history_route_provider"] == "invesco"
+        assert sp500_roles["equal_weight"]["history_route_policy"] == (
+            "issuer_public_json_catalog_current_monthly_only"
+        )
+        assert sp500_roles["equal_weight"]["history_route_source_url"].endswith(
+            "shareclasses/46137V357/holdings/fund?idType=cusip&interval=monthly&productType=ETF"
+        )
 
     def test_benchmark_family_coverage_exposes_role_dates_and_point_in_time_filter(
         self, client, auth_headers, db, instrument_type

@@ -87,6 +87,21 @@ def _spdr_history_route(symbol: str) -> dict[str, str]:
     }
 
 
+# Invesco's verified RSP adapter resolves the fund to a stable CUSIP-addressed
+# JSON holdings endpoint, but that endpoint is current/monthly only.  Preserve
+# the limitation explicitly rather than implying that the issuer route can be
+# replayed for an arbitrary historical date.
+_INVESCO_RSP_HISTORY_ROUTE = {
+    "status": "issuer_current_only",
+    "provider": "invesco",
+    "policy": "issuer_public_json_catalog_current_monthly_only",
+    "source_url": (
+        "https://dng-api.invesco.com/cache/v1/accounts/en_US/shareclasses/"
+        "46137V357/holdings/fund?idType=cusip&interval=monthly&productType=ETF"
+    ),
+}
+
+
 # The family registry is deliberately metadata-first.  A configured ETF ticker
 # is an identity candidate, not proof that the ETF is an official constituent
 # source or that its holdings are complete at every historical date.  The
@@ -113,6 +128,7 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "label": "S&P 500 equal-weight ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.invesco.com/us/en/etf/rsp",
+            "history_route": dict(_INVESCO_RSP_HISTORY_ROUTE),
         },
         "value": {
             "symbol": "SPYV",

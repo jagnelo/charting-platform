@@ -191,6 +191,22 @@ def test_spdr_family_roles_declare_current_only_history_route():
     assert observed == expected_symbols
 
 
+def test_invesco_family_roles_declare_current_only_history_route():
+    mapping = next(
+        family for family in benchmark_family_registry() if family["logical_key"] == "sp500"
+    )["equal_weight"]
+    assert mapping["symbol"] == "RSP"
+    assert mapping["history_route"] == {
+        "status": "issuer_current_only",
+        "provider": "invesco",
+        "policy": "issuer_public_json_catalog_current_monthly_only",
+        "source_url": (
+            "https://dng-api.invesco.com/cache/v1/accounts/en_US/shareclasses/"
+            "46137V357/holdings/fund?idType=cusip&interval=monthly&productType=ETF"
+        ),
+    }
+
+
 def test_every_configured_family_role_has_explicit_route_or_is_unavailable():
     """Keep the family matrix identity-first instead of relying on issuer inference."""
 

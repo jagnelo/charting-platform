@@ -213,6 +213,35 @@ async def test_family_history_plan_preserves_spdr_current_only_route_evidence(mo
 
 
 @pytest.mark.asyncio
+async def test_family_history_plan_preserves_invesco_current_only_route_evidence(monkeypatch):
+    async def fake_resolve(_db, _user_id, _source_id, *, as_of):
+        assert as_of is None
+        return SimpleNamespace(
+            descriptor=SimpleNamespace(
+                membership_version="pending-v1",
+                provenance={"availability": "holdings_snapshot_not_loaded"},
+            ),
+            members=(),
+            exclusions=({"reason": "holdings_snapshot_not_loaded"},),
+        )
+
+    monkeypatch.setattr(history, "resolve_watchlist_source", fake_resolve)
+    plan = await history.plan_benchmark_family_history_refresh(
+        object(),
+        family_keys=["sp500"],
+        roles=["equal_weight"],
+    )
+
+    leg = plan["legs"][0]
+    assert leg["history_route_status"] == "issuer_current_only"
+    assert leg["history_route_provider"] == "invesco"
+    assert leg["history_route_policy"] == "issuer_public_json_catalog_current_monthly_only"
+    assert leg["history_route_source_url"].endswith(
+        "shareclasses/46137V357/holdings/fund?idType=cusip&interval=monthly&productType=ETF"
+    )
+
+
+@pytest.mark.asyncio
 async def test_queue_snapshot_member_history_deduplicates_canonical_members_and_reports_queue_state():
     class Result:
         def all(self):
