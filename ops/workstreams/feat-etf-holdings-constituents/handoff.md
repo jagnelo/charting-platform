@@ -4461,6 +4461,18 @@ researched but ineligible candidate for DXJ/NTSX/MINT/BOND. No account, key,
 entitlement, or paid activation was requested, and no symbol classification
 changed.
 
+## ETF Holdings API low-cost candidate — 2026-09-06
+
+ETF Holdings API publishes usage pricing of `$1 per 100,000 holdings` with a
+`$10` minimum top-up and requires a bearer API key for holdings and coverage
+checks. Its public documentation describes issuer-backed current snapshots and
+lists WisdomTree among supported issuer families, but does not list PIMCO. It is
+therefore a low-cost candidate for shared-provider entitlement review, not
+current support: DXJ/NTSX/MINT/BOND coverage, freshness, terms, and commercial
+use remain unverified without an account/key, and no activation was requested.
+No symbol outcome changed and no SEC/stale route was promoted. Evidence ref:
+`web:etf-holdings-api-contract-2026-09-06`.
+
 ## Exact-SHA CI checkpoint — 2026-09-06
 
 GitHub Actions run `34014319351` validated pushed tip
