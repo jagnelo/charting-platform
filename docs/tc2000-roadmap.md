@@ -1772,9 +1772,10 @@ The TC2000 frontend rework is ready for human review only when all of the follow
 ## Immediate next checkpoint
 
 Continue with the next canonical provider/history slice and compatible chart/list/gauge consumers
-with authenticated evidence. The latest product tip is `4302a9a6`; its focused ranking-period
-value assertion and exact-tip gate are recorded above. All non-visual and functional stages pass,
-while the unchanged six visual state-oracle diffs remain explicit. Preserve the declared provider
-fallback boundaries and all existing acceptance policy while expanding the remaining canonical
-population/history coverage, richer Study Lab targets, native-window/accessibility/security
-evidence, and dense-data budgets.
+with authenticated evidence. The latest product tip is `bf550e0f`; the exact-tip exhaustive gate
+receipt is recorded above and the documentation tip is `f311ba04`. All non-visual and functional
+stages pass, while the unchanged six visual state-oracle diffs remain explicit: column-editor-open
+at both 1080p projects and workspace-floating at all four visual projects. Preserve the declared
+provider fallback boundaries and all existing acceptance policy while expanding the remaining
+canonical population/history coverage, richer Study Lab targets, native-window/accessibility/
+security evidence, and dense-data budgets.
