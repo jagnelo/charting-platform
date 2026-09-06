@@ -5,6 +5,22 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-06
 
+## 2026-09-06 — Expose canonical snapshot quality evidence
+
+Product commit `d3547dfd` (`feat(tc2000): expose snapshot quality evidence`)
+extends the visual-neutral accessible role evidence in Market Breadth and
+Market Map with the latest canonical holdings snapshot's source quality and
+completeness status. Roles without a snapshot explicitly report unavailable
+snapshot evidence; missing quality/completeness fields report not reported.
+The consumers format returned API fields only and do not select providers,
+infer readiness, retry refreshes, substitute roles, or alter fallback,
+visual, or acceptance policy. Market Map unit coverage passed `36/36`, full
+frontend Vitest passed `970/970`, type-check and production build passed,
+and authenticated Chromium `F8s-breadth-family-ratio` passed `1/1` with the
+new evidence asserted. Teardown removed four generated images and resource
+accounting reported zero containers, volumes, sessions, and known bytes. The
+next exact-tip gate is required at the next documentation tip.
+
 ## 2026-09-06 — Exact-tip gate after canonical role identity evidence
 
 At exact product tip `6209b55f` (documentation tip before this receipt

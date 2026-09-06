@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-06 — Expose canonical snapshot quality evidence
+
+- [x] Add visual-neutral accessible role evidence for the latest canonical
+      holdings snapshot source quality and completeness status in Market
+      Breadth and Market Map; explicitly report unavailable snapshot evidence
+      and not-reported fields without provider selection, readiness inference,
+      refresh retry, role substitution, or fallback/acceptance-policy changes.
+      Product commit `d3547dfd`.
+- [x] Market Map unit coverage passed `36/36`, full frontend Vitest passed
+      `970/970`, type-check and production build passed, and authenticated
+      `F8s-breadth-family-ratio` passed `1/1` with source quality and
+      completeness asserted. Teardown/resource accounting reported zero
+      containers, volumes, sessions, and known bytes.
+- [ ] Rerun the exact-tip integration gate at the next documentation tip;
+      preserve the six existing visual state-oracle diffs.
+
 ### 2026-09-06 — Exact-tip gate after canonical role identity evidence
 
 - [x] Record the exact-tip `full_stack_browser` gate at product tip

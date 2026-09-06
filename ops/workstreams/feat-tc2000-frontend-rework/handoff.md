@@ -10,6 +10,20 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-06 — Expose canonical snapshot quality evidence
+
+Product commit `d3547dfd` extends the visual-neutral accessible role evidence
+in Market Breadth and Market Map with each latest canonical holdings snapshot's
+source quality and completeness status. Roles without snapshots explicitly
+report unavailable evidence and missing fields report not reported; provider
+selection, readiness inference, refresh retry, role substitution, fallback,
+visual, and acceptance policy remain unchanged. Market Map unit coverage passed
+`36/36`, full frontend Vitest passed `970/970`, type-check and production build
+passed, and authenticated `F8s-breadth-family-ratio` passed `1/1`. Teardown
+removed four generated images and resource accounting was clean with zero
+containers, volumes, sessions, and known bytes. Next action: rerun the exact-tip
+gate at the next documentation tip.
+
 ## 2026-09-06 — Exact-tip exhaustive gate after canonical role identity evidence
 
 At exact product tip `6209b55f` (documentation tip before this receipt
