@@ -1828,8 +1828,9 @@ providers:
         evidence_ref: "live:wisdomtree-public-fund-holdings-api-2026-09-06-curl-http1-1"
     disposition_reason: "wisdomtree: The official symbol-scoped JSON route is complete, identity-bound, dated, and live validated for DXJ/NTSX. Python httpx receives an issuer challenge, but the explicit HTTP/1.1 curl retry is repeatable and provenance-marked, so WisdomTree is native-promoted for the verified symbols while freshness and schema checks remain mandatory."
     next_action: "wisdomtree: Keep DXJ/NTSX bounded and freshness-aware; re-audit on transport or schema drift, and do not invoke SEC fallback when the strict curl route succeeds."
-    implementation_sha: null
-    validation_refs: []
+    implementation_sha: ae6e2d5cf83afa99325b6d2f52cc64c20cea004b
+    validation_refs:
+      - validation:2026-09-06-wisdomtree-transport-promotion
   - adapter_key: advisors_asset_management
     display_name: advisors_asset_management
     queue_rank: 9
