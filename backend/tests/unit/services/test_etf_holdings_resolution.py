@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
@@ -191,7 +191,7 @@ async def test_ingest_rejects_future_metadata_before_profile_hydration(db, monke
             async_db,
             etf_instrument=etf_instrument,
             rows=[],
-            composition_date=date(2026, 9, 6),
+            composition_date=date.today() + timedelta(days=1),
             provenance="issuer_native",
             source_provider="issuer-test",
         )
