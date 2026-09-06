@@ -4683,6 +4683,16 @@ Integration Gate was skipped as designed for this feature branch. The run
 validates the current audit-parity correction and its durable receipt. It does
 not stage the provider-platform dependency, resolve DXJ/NTSX/MINT/BOND, or
 satisfy AC10/AC14.
+
+## Workstream count-parity regression — 2026-09-06
+
+Implementation checkpoint `960fba59` adds an executable regression that compares
+the code-derived fallback, Tier-0, and Tier-1 counts with the YAML provider and
+symbol ledgers and with the current plan, session, and handoff summaries. The
+focused ledger slice passed 5 tests; the full deterministic adapter suite passed
+578 tests, the capability suite passed 87, and Ruff, workstream validation, and
+diff-check passed. This prevents stale narrative counts from silently returning
+to the current durable state; it does not change any provider or symbol outcome.
 ## Final live-contract hardening and exact-SHA CI — 2026-09-06
 
 The final live-provider sweep exposed only issuer-edge contract drift, not an
