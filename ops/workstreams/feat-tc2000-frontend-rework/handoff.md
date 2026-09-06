@@ -10,6 +10,35 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-06 — Exact-tip exhaustive gate after canonical family provenance evidence
+
+At exact product tip `0147aded` (documentation tip `a3841089`), the
+`full_stack_browser` gate passed locked/non-visual checks, backend
+unit/integration and combined coverage (`80.93%`; `1320` unit and `384`
+integration), frontend Vitest (`970/970`), production image build,
+compose/provider policy, stack health, research-runner isolation/resource
+probes, and authenticated functional Playwright (`159` passed with `106`
+documented skips across `265` specs). The visual matrix returned `98/104` with
+only the six known state-oracle diffs: watchlist-column-editor-open at
+1080p-100/125 (`13,844` pixels each), and workspace-floating at 1080p-100
+(`9,770`), 1080p-125 (`12,097`), 1440p-100 (`9,770`), and 1440p-125
+(`12,097`). No visual/provider/fallback/acceptance policy changed. Cleanup
+removed four images and resource accounting is clean with zero containers,
+volumes, sessions, and known bytes. Next action: continue the next bounded
+canonical provider/history slice while preserving the visual-only boundary.
+
+## 2026-09-06 — Expose canonical family provenance evidence
+
+Product commit `0147aded` extends visual-neutral accessible canonical evidence
+in Market Map and Market Breadth with family identity, official index name,
+as-of, membership version, primitive universe-provenance fields, coverage,
+freshness, and exclusion codes. Consumers format returned API fields only;
+no provider selection, readiness inference, refresh retry, role substitution,
+fallback, visual, or acceptance policy changed. Market Map focused unit
+coverage passed `36/36`, full frontend Vitest passed `970/970`, and type-check
+and production build passed. The exact-tip gate receipt is recorded immediately
+above; next action is the next bounded canonical provider/history slice.
+
 ## 2026-09-06 — Exact-tip exhaustive gate after canonical readiness lineage evidence
 
 At exact product tip `ab09cc60` (documentation tip `7c2d076f`), the

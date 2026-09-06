@@ -5,6 +5,40 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-06
 
+## 2026-09-06 — Exact-tip gate after canonical family provenance evidence
+
+At exact product tip `0147aded` (documentation tip `a3841089`), the
+`full_stack_browser` gate passed locked dependency/migration and workstream
+checks, Ruff/format/type-check, backend unit/integration and combined coverage
+(`80.93%`; `1320` unit and `384` integration tests), frontend Vitest
+(`970/970`), production image build, compose/provider policy, stack health,
+research-runner isolation/resource probes, and authenticated functional
+Playwright (`159` passed with `106` documented skips across `265` specs). The
+visual matrix completed `104` cases with `98` passes and exactly the six known
+state-oracle diffs: watchlist-column-editor-open at visual-1080p-100/125
+(`13,844` pixels each), and workspace-floating at visual-1080p-100 (`9,770`),
+visual-1080p-125 (`12,097`), visual-1440p-100 (`9,770`), and
+visual-1440p-125 (`12,097`). No baseline, mask, threshold, skip, fallback,
+provider, or acceptance policy changed. Gate cleanup removed four generated
+images and the post-gate resource audit reported zero containers, volumes,
+sessions, and known bytes. Continue the next bounded canonical provider/history
+slice while preserving this visual-only boundary.
+
+## 2026-09-06 — Expose canonical family provenance evidence
+
+Product commit `0147aded` (`feat(tc2000): expose benchmark family provenance
+evidence`) extends the visual-neutral accessible canonical evidence in Market
+Map and Market Breadth with family identity, official index name, point-in-time
+as-of, membership version, primitive universe-provenance fields, coverage,
+freshness, and exclusion codes. The frontend contract now mirrors the
+backend's canonical family coverage envelope; values are formatted only when
+returned and no provider selection, readiness inference, refresh retry, role
+substitution, fallback, visual, or acceptance policy changed. Market Map
+focused unit coverage passed `36/36`, full frontend Vitest passed `970/970`,
+type-check and production build passed. The exact-tip gate receipt is recorded
+immediately above; next action is the next bounded canonical provider/history
+slice.
+
 ## 2026-09-06 — Exact-tip gate after canonical readiness lineage evidence
 
 At exact product tip `ab09cc60` (documentation tip `7c2d076f`), the
