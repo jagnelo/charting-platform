@@ -3184,6 +3184,18 @@ MINT/BOND remain unresolved, so AC11 is open; shared provider-platform staging
 is still required before AC10, and AC14 remains a post-integration shadow
 gate.
 
+## PIMCO anonymous route-inventory recheck — 2026-09-06
+
+The public PIMCO fund-detail JavaScript bundle was inspected for declared
+holdings/statistics routes. Anonymous bounded requests for both MINT
+(`72201R833`) and BOND (`72201R775`) returned HTTP 401 for
+`topTenHoldings`, `breakouts`, `topTenHoldings/export`, `allocation`,
+`allocation/last12month`, `regional`, `sector-allocation`, `asset-and-leverage`,
+`trade-data`, and `overview-metadata`. No complete unauthenticated holdings
+export was found or activated; the mixed Pacific/PIMCO provider remains
+fallback-only and MINT/BOND remain unavailable. Evidence ref:
+`live:pimco-fund-detail-route-inventory-2026-09-06-unauthorized`.
+
 ## Tier-0 free-first route re-test — 2026-09-05
 
 The next bounded source review kept the four unresolved Tier-0 symbols

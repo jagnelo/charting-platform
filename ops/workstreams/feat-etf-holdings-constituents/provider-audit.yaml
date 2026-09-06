@@ -7793,6 +7793,7 @@ providers:
       - "runtime:ISSUER_ADAPTER_CONFIGS.pacific_investments"
       - "live:pimco-mint-fund-detail-api-2026-09-05-retest-unauthorized"
       - "live:pimco-bond-fund-detail-api-2026-09-05-retest-unauthorized"
+      - "live:pimco-fund-detail-route-inventory-2026-09-06-unauthorized"
       - "web:dealcharts-free-sec-nport-aggregator-2026-09-05"
       - "live:dealcharts-mint-facts-2026-09-05-quarterly-stale"
       - "live:dealcharts-bond-facts-2026-09-05-quarterly-stale"
@@ -7882,6 +7883,10 @@ providers:
         source: "https://etf-holdings.com/; https://etf-holdings.com/docs"
         result: "ETF Holdings API publishes usage pricing of $1 per 100,000 holdings with a $10 minimum top-up and requires a bearer API key. Its public current-issuer list does not name PIMCO, so MINT/BOND coverage, freshness, and licensing cannot be verified without an account/key; no activation was requested and no SEC fallback was promoted."
         evidence_ref: "web:etf-holdings-api-contract-2026-09-06"
+      - date: 2026-09-06
+        source: "https://fund-ui.pimco.com/fund-detail-api/api/funds/{cusip}/{route}; public fund-ui app.js/main.js route inventory for topTenHoldings, breakouts, topTenHoldings/export, allocation, allocation/last12month, regional, sector-allocation, asset-and-leverage, trade-data, and overview-metadata"
+        result: "A bounded anonymous probe of the public fund-detail route inventory returned HTTP 401 for every tested route for both MINT (CUSIP 72201R833) and BOND (CUSIP 72201R775). The public bundle exposes statistics/top-ten routes but no anonymous complete holdings export; no credential or entitlement was used."
+        evidence_ref: "live:pimco-fund-detail-route-inventory-2026-09-06-unauthorized"
     disposition_reason: "pacific_investments: Pacific Asset Management's official U.S.-listed GEME route is now symbol-level current and live-validated, while PIMCO MINT/BOND still expose no complete executable public route; the mixed identity remains fallback-only at provider level until the unresolved PIMCO representatives are closed."
     next_action: "pacific_investments: Keep the GEME route freshness-monitored and continue free-first MINT/BOND route discovery; do not promote provider-level native support or SEC/top-ten artifacts until the remaining representatives are complete."
     implementation_sha: null

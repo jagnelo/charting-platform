@@ -5,6 +5,18 @@ adviser, and white-label publisher identity level because holdings artifacts are
 usually published by product sites, not by a single normalized legal-issuer
 field.
 
+## PIMCO anonymous fund-detail route inventory — 2026-09-06
+
+The public PIMCO fund-detail bundle was rechecked for MINT (`72201R833`) and
+BOND (`72201R775`). Anonymous requests to every declared holdings/statistics
+route tested—`topTenHoldings`, `breakouts`, `topTenHoldings/export`,
+`allocation`, `allocation/last12month`, `regional`, `sector-allocation`,
+`asset-and-leverage`, `trade-data`, and `overview-metadata`—returned HTTP 401
+for both CUSIPs. The public bundle exposes top-ten/statistics components but no
+anonymous complete holdings export. No credential or entitlement was used;
+MINT/BOND remain `unavailable` with
+`no_complete_executable_public_artifact`.
+
 ## StockFit pricing boundary recheck — 2026-09-06
 
 The public StockFit pricing payload provides explicit structured pricing: the

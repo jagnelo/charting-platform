@@ -73,6 +73,19 @@ The schema-4 contract is `plan.yaml`. A later Codex implementation model must
 read both completely, follow the automatic agent-session workflow, and work
 only in this branch's registered local worktree.
 
+## PIMCO anonymous route-inventory recheck — 2026-09-06
+
+The public PIMCO fund-detail bundle was rechecked without credentials. Every
+tested declared route for MINT (`72201R833`) and BOND (`72201R775`) returned
+HTTP 401, including top-ten, breakouts/export, allocation, regional,
+sector-allocation, asset/leverage, trade-data, and overview metadata. The
+bundle exposes no anonymous complete holdings export. This adds route-drift and
+authentication evidence only; no source, entitlement, paid activation, or
+provider classification changed. MINT/BOND remain unavailable and the mixed
+Pacific/PIMCO provider remains fallback-only.
+
+Evidence ref: `live:pimco-fund-detail-route-inventory-2026-09-06-unauthorized`.
+
 ## WisdomTree/DXJ-NTSX transport promotion — 2026-09-06
 
 The official WisdomTree symbol-scoped product/API sequence is now implemented
