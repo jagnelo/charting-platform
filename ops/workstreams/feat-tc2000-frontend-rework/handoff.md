@@ -10,6 +10,24 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-06 — Exact-tip exhaustive gate after canonical role evidence
+
+At branch tip `2baa19a0` (product commit `eccae95e`, documentation tip
+`2baa19a0`), the exact-tip `full_stack_browser` gate passed locked/non-visual
+checks, backend unit/integration and combined coverage (`80.93%`; `1320` unit
+and `384` integration), frontend Vitest (`970/970`), build, compose/provider
+policy, stack health, research-runner isolation/resource probes, and
+authenticated functional Playwright (`159` passed with `106` documented skips
+across `265` specs). The visual matrix completed `104` cases with `98` passes
+and exactly the six known state-oracle diffs: watchlist-column-editor-open at
+1080p-100/125 (`13,844` pixels each), and workspace-floating at 1080p-100/125
+and 1440p-100/125 (`12,097`, `12,097`, `11,901`, `9,770` pixels in this run).
+No baseline, mask, threshold, skip, fallback, provider, or acceptance policy
+changed. Teardown removed the assigned stack and four generated images;
+resource accounting was clean with zero containers, volumes, sessions, and
+known bytes. Next action: continue the next bounded canonical provider/history
+slice while preserving the visual-only boundary.
+
 ## 2026-09-06 — Expose canonical role evidence in Market Breadth
 
 Product commit `eccae95e` adds a visual-neutral accessible labelled status to

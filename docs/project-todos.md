@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-06 — Exact-tip gate after canonical role evidence
+
+- [x] Record the exact-tip integration gate at branch tip `2baa19a0` (product
+      `eccae95e`, documentation `2baa19a0`): locked/non-visual checks and
+      functional Playwright passed (`159` passed, `106` documented skips across
+      `265` specs; backend `1320/1320` unit and `384/384` integration; `80.93%`
+      combined; frontend `970/970`), and the visual matrix returned to
+      `98/104` with exactly the six known diffs.
+- [x] Preserve the unchanged visual/provider/fallback/acceptance boundary:
+      watchlist-column-editor-open failed only at 1080p-100/125 (`13,844`
+      pixels each), while workspace-floating failed only at 1080p-100/125 and
+      1440p-100/125 (`12,097`, `12,097`, `11,901`, `9,770` pixels in this run).
+      Teardown/resource accounting reported zero containers, volumes, sessions,
+      and known bytes. Continue the next bounded canonical provider/history
+      slice.
+
 ### 2026-09-06 — Expose canonical role evidence in Market Breadth
 
 - [x] Add a visual-neutral accessible status for each returned benchmark-family
