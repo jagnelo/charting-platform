@@ -5,6 +5,24 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-06
 
+## 2026-09-06 — Expose canonical readiness lineage evidence
+
+Product commit `ab09cc60` (`feat(tc2000): expose readiness lineage evidence`)
+extends the visual-neutral accessible canonical role evidence in Market Map and
+Market Breadth with the API's remaining readiness lineage: availability and
+role status, member/placeholder/weighted/classified counts, point-in-time and
+history state, per-timeframe analysis-ready counts/bar floors/date ranges,
+holdings route, refresh outcome/timestamps/reason, entitlement lifecycle, and
+composite readiness reasons. It only formats returned canonical fields; no
+provider selection, readiness inference, refresh retry, role substitution,
+fallback, visual, or acceptance policy changed. Market Map focused unit
+coverage passed `36/36`, full frontend Vitest passed `970/970`, type-check and
+production build passed, and authenticated Chromium
+`F8s-breadth-family-ratio` passed `1/1`. Teardown removed four generated
+images and resource accounting reported zero containers, volumes, sessions,
+and known bytes. The next exact-tip gate is required at the next documentation
+tip.
+
 ## 2026-09-06 — Exact-tip gate after canonical entitlement capability evidence
 
 At exact product tip `de4ab370` (documentation tip `4ed2b533`), the

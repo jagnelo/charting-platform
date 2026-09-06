@@ -10,6 +10,21 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-06 — Expose canonical readiness lineage evidence
+
+Product commit `ab09cc60` extends visual-neutral accessible canonical role
+evidence in Market Map and Market Breadth with returned availability/status,
+member and placeholder counts, weighted/classified counts, point-in-time and
+history state, per-timeframe analysis-ready counts/bar floors/date ranges,
+holdings route, refresh outcome/timestamps/reason, entitlement lifecycle, and
+composite readiness reasons. Consumers format canonical API fields only; no
+provider selection, readiness inference, refresh retry, role substitution,
+fallback, visual, or acceptance policy changed. Market Map unit coverage passed
+`36/36`, full frontend Vitest passed `970/970`, type-check/build passed, and
+authenticated `F8s-breadth-family-ratio` passed `1/1`. Teardown/resource
+accounting is clean with zero containers, volumes, sessions, and known bytes.
+Next action: rerun the exact-tip gate at the next documentation tip.
+
 ## 2026-09-06 — Exact-tip exhaustive gate after canonical entitlement capability evidence
 
 At exact product tip `de4ab370` (documentation tip `4ed2b533`), the

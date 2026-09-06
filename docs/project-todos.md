@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-06 — Expose canonical readiness lineage evidence
+
+- [x] Extend visual-neutral canonical role evidence in Market Map and Market
+      Breadth with returned availability/status, member and placeholder counts,
+      weighted/classified counts, point-in-time/history state, per-timeframe
+      analysis-ready counts/bar floors/date ranges, holdings route, refresh
+      outcome/timestamps/reason, entitlement lifecycle, and composite readiness
+      reasons. Product commit `ab09cc60`; no provider selection, inference,
+      retry, substitution, fallback, visual, or acceptance policy changed.
+- [x] Market Map focused unit coverage passed `36/36`, full frontend Vitest
+      passed `970/970`, type-check/build passed, and authenticated
+      `F8s-breadth-family-ratio` passed `1/1`. Teardown/resource accounting
+      reported zero containers, volumes, sessions, and known bytes.
+- [ ] Rerun the exact-tip integration gate at the next documentation tip;
+      preserve the six existing visual state-oracle diffs.
+
 ### 2026-09-06 — Exact-tip gate after canonical entitlement capability evidence
 
 - [x] Record the exact-tip `full_stack_browser` gate at product tip
