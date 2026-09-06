@@ -10,6 +10,20 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-06 — Expose canonical entitlement capability evidence
+
+Product commit `de4ab370` adds the returned per-role entitlement capability
+map to visual-neutral accessible canonical role evidence in Market Breadth and
+Market Map. Capability keys are sorted and values are rendered as readable
+states; absent maps say `capabilities not reported`. Consumers format API
+evidence only and do not select providers, infer readiness, retry refreshes,
+substitute roles, or alter fallback, visual, or acceptance policy. Market Map
+unit coverage passed `36/36`, full frontend Vitest passed `970/970`,
+type-check/build passed, and authenticated `F8s-breadth-family-ratio` passed
+`1/1`. Teardown/resource accounting is clean with zero containers, volumes,
+sessions, and known bytes. Next action: rerun the exact-tip gate at the next
+documentation tip.
+
 ## 2026-09-06 — Exact-tip exhaustive gate after canonical continuity evidence
 
 At exact product tip `3a9f89e2` (documentation tip `11b8265d`), the

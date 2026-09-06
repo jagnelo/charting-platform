@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-06 — Expose canonical entitlement capability evidence
+
+- [x] Extend visual-neutral canonical role evidence in Market Breadth and
+      Market Map with the returned per-role entitlement capability map, sorted
+      as human-readable key/value states; explicitly report `capabilities not
+      reported` when absent. Product commit `de4ab370`.
+- [x] Market Map focused unit coverage passed `36/36`, full frontend Vitest
+      passed `970/970`, type-check/build passed, and rebuilt authenticated
+      `F8s-breadth-family-ratio` passed `1/1`. Teardown/resource accounting
+      reported zero containers, volumes, sessions, and known bytes.
+- [ ] Rerun the exact-tip integration gate at the next documentation tip;
+      preserve the six existing visual state-oracle diffs.
+
 ### 2026-09-06 — Exact-tip gate after canonical continuity evidence
 
 - [x] Record the exact-tip `full_stack_browser` gate at product tip

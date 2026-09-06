@@ -5,6 +5,21 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-06
 
+## 2026-09-06 — Expose canonical entitlement capability evidence
+
+Product commit `de4ab370` (`feat(tc2000): expose entitlement capability
+evidence`) extends the visual-neutral accessible canonical role evidence in
+Market Breadth and Market Map with the API's per-role entitlement capability
+map (sorted, human-readable key/value states). Missing maps explicitly report
+`capabilities not reported`; no provider selection, readiness inference,
+refresh retry, role substitution, fallback, visual, or acceptance policy
+changed. Market Map focused unit coverage passed `36/36`, full frontend
+Vitest passed `970/970`, type-check/build passed, and rebuilt authenticated
+Chromium `F8s-breadth-family-ratio` passed `1/1`. Teardown removed four
+generated images and resource accounting reported zero containers, volumes,
+sessions, and known bytes. The next exact-tip gate is required at the next
+documentation tip.
+
 ## 2026-09-06 — Exact-tip gate after canonical continuity evidence
 
 At exact product tip `3a9f89e2` (documentation tip `11b8265d`), the
