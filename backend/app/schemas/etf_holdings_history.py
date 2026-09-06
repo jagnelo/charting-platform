@@ -23,6 +23,10 @@ class BenchmarkFamilyHistoryRefreshLegOut(BaseModel):
     deduplicated_count: int = 0
     excluded_count: int = 0
     membership_version: str | None = None
+    history_route_status: str = "not_reported"
+    history_route_provider: str | None = None
+    history_route_policy: str | None = None
+    history_route_source_url: str | None = None
     message: str | None = None
 
 

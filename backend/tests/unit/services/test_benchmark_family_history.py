@@ -114,6 +114,38 @@ async def test_family_history_plan_keeps_unmapped_roles_unavailable(monkeypatch)
 
 
 @pytest.mark.asyncio
+async def test_family_history_plan_preserves_nasdaq_historical_route_evidence(monkeypatch):
+    async def fake_resolve(_db, _user_id, source_id, *, as_of):
+        assert _user_id == 0
+        assert as_of is None
+        return SimpleNamespace(
+            descriptor=SimpleNamespace(
+                membership_version=f"{source_id}-v1",
+                provenance={"availability": "holdings_snapshot_not_loaded"},
+            ),
+            members=(),
+            exclusions=({"reason": "holdings_snapshot_not_loaded"},),
+        )
+
+    monkeypatch.setattr(history, "resolve_watchlist_source", fake_resolve)
+    plan = await history.plan_benchmark_family_history_refresh(
+        object(),
+        family_keys=["nasdaq100"],
+        roles=["cap_weight", "equal_weight"],
+    )
+
+    legs = {leg["role"]: leg for leg in plan["legs"]}
+    assert legs["cap_weight"]["status"] == "pending"
+    assert legs["cap_weight"]["history_route_status"] == "sec_filing_reconstruction"
+    assert legs["cap_weight"]["history_route_provider"] == "sec"
+    assert legs["cap_weight"]["history_route_policy"] == (
+        "latest_sec_filing_report_on_or_before_requested_date"
+    )
+    assert legs["cap_weight"]["history_route_source_url"].endswith("CIK0001067839.json")
+    assert legs["equal_weight"]["history_route_source_url"].endswith("CIK0001424958.json")
+
+
+@pytest.mark.asyncio
 async def test_queue_snapshot_member_history_deduplicates_canonical_members_and_reports_queue_state():
     class Result:
         def all(self):

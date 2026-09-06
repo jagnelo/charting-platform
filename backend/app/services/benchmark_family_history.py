@@ -132,6 +132,28 @@ async def plan_benchmark_family_history_refresh(
     for family_key in normalized_families:
         for role in normalized_roles:
             source_id = f"benchmark-family:{family_key}:{role}"
+            family = next(
+                family
+                for family in BENCHMARK_FAMILY_REGISTRY
+                if family.get("logical_key") == family_key
+            )
+            mapping = family.get(role) if isinstance(family.get(role), dict) else {}
+            history_route = mapping.get("history_route")
+            history_route = history_route if isinstance(history_route, dict) else {}
+            route_evidence = {
+                "history_route_status": str(history_route.get("status") or "not_reported"),
+                "history_route_provider": (
+                    str(history_route.get("provider")) if history_route.get("provider") else None
+                ),
+                "history_route_policy": (
+                    str(history_route.get("policy")) if history_route.get("policy") else None
+                ),
+                "history_route_source_url": (
+                    str(history_route.get("source_url"))
+                    if history_route.get("source_url")
+                    else None
+                ),
+            }
             try:
                 resolved = await resolve_watchlist_source(db, 0, source_id, as_of=as_of)
             except (LookupError, ValueError) as exc:
@@ -145,6 +167,7 @@ async def plan_benchmark_family_history_refresh(
                         "selected_count": 0,
                         "deduplicated_count": 0,
                         "excluded_count": 0,
+                        **route_evidence,
                         "message": str(exc),
                     }
                 )
@@ -185,6 +208,7 @@ async def plan_benchmark_family_history_refresh(
                     "deduplicated_count": len(members) - selected_count,
                     "excluded_count": len(resolved.exclusions),
                     "membership_version": resolved.descriptor.membership_version,
+                    **route_evidence,
                     "message": (
                         None
                         if available
