@@ -94,8 +94,8 @@
   "last_checkpoint": "2026-09-05T21:14:30+00:00",
   "last_human_progress_update": "2026-09-05T15:25:09Z",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Reconcile AC10 only after origin/feat/market-data-provider-platform is an ancestor of origin/staging; until then keep DXJ/NTSX/MINT/BOND unavailable and do not activate paid or direct-provider routes.",
-  "plan_hash": "9a4398e7c9cd1f5cfeb03dfc7bb07c94ce7500f74e03801d430451130fda56af",
+  "next_action": "Reconcile AC10 only after origin/feat/market-data-provider-platform is an ancestor of origin/staging; until then keep DXJ/NTSX/MINT/BOND unavailable and do not activate paid or direct-provider routes. Re-test the WisdomTree session/API candidate only when application transport behavior changes; after provider-platform reaches staging, run the documented 30-day production AC14 shadow gate.",
+  "plan_hash": "0453c67253b398de1ed6e68fe3c1569c630a1ce481e6716acf9595cbc81d20e9",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -115,11 +115,11 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "The shared provider-platform branch is still not present in staging; AC10 cannot be reconciled from this ETF worktree. Eleven of fifteen Tier-0 symbols have dated current issuer evidence (the ten F/m routes plus Pacific Asset Management GEME); DXJ/NTSX remain blocked by the WisdomTree application transport/Cloudflare boundary and MINT/BOND remain without an unauthenticated complete executable PIMCO artifact. All 15 Tier-0 and 160 Tier-1 representative symbols have explicit outcomes; the remaining 19 fallback identities have no representative symbol and retain provider-level terminal or non-publisher dispositions. AC11 remains open only for genuinely new compliant source evidence for the four unresolved Tier-0 symbols; AC14 remains post-integration.",
+    "current_blocker": "The shared provider-platform branch is still not present in staging; AC10 cannot be reconciled from this ETF worktree. Eleven of fifteen Tier-0 symbols have dated current issuer evidence (the ten F/m routes plus Pacific Asset Management GEME); DXJ/NTSX remain blocked by the WisdomTree application transport/Cloudflare boundary and MINT/BOND remain without an unauthenticated complete executable PIMCO artifact. All 15 Tier-0 and 159 Tier-1 representative symbols have explicit outcomes; the remaining 19 fallback identities have no representative symbol and retain provider-level terminal or non-publisher dispositions. AC11 remains open only for genuinely new compliant source evidence for the four unresolved Tier-0 symbols; AC14 remains post-integration.",
     "current_phase": "provider_platform_dependency_wait",
-    "next_action": "Reconcile AC10 only after origin/feat/market-data-provider-platform is an ancestor of origin/staging; until then keep DXJ/NTSX/MINT/BOND unavailable and do not activate paid or direct-provider routes.",
+    "next_action": "Reconcile AC10 only after origin/feat/market-data-provider-platform is an ancestor of origin/staging; until then keep DXJ/NTSX/MINT/BOND unavailable and do not activate paid or direct-provider routes. Re-test the WisdomTree session/API candidate only when application transport behavior changes; after provider-platform reaches staging, run the documented 30-day production AC14 shadow gate.",
     "total": 14,
-    "updated_at": "2026-09-05T20:04:10+00:00"
+    "updated_at": "2026-09-06T02:57:54+00:00"
   },
   "remote": "7e068e90271b498cb392c61ec13797c5d993c168",
   "remote_sha": "7e068e90271b498cb392c61ec13797c5d993c168",

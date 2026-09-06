@@ -4662,6 +4662,16 @@ No complete executable artifact, credential, entitlement, paid source, or
 provider-platform bridge was introduced. Runtime capability evidence and the
 provider-audit ledger now carry the 2026-09-06 transport references, while
 DXJ/NTSX/MINT/BOND remain unavailable for current analysis.
+
+## Current ledger count reconciliation — 2026-09-06
+
+The branch-local runtime and YAML ledger were recounted after the final
+transport evidence update. Both now contain 15 Tier-0 and 159 Tier-1 symbol
+records, with 81 fallback identities and 140 provider-audit records. Earlier
+checkpoint entries that reported 160 Tier-1 records are retained as historical
+receipts; the current blocker, session state, and next-action records now use
+the code-derived 159 count. No symbol outcome, provider disposition, source
+eligibility, or capability classification changed.
 ## Final live-contract hardening and exact-SHA CI — 2026-09-06
 
 The final live-provider sweep exposed only issuer-edge contract drift, not an
