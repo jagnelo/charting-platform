@@ -70,10 +70,29 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-45bdf9bd8d"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ps/workstreams/feat-etf-holdings-constituents/session.json"
+  ],
   "docker": {
-    "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-etf-holdings-constituents-45bdf9bd",
+      "charting-stack-feat-etf-holdings-constituents-45bdf9bd"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "feat-etf-holdings-constituents-45bdf9bd8d"
   },
   "docker_ready": {
     "ready": true,
@@ -82,20 +101,20 @@
   },
   "goal_budget_policy": "unbounded_unless_human_authorized",
   "goal_objective": "Advance feat/etf-holdings-constituents: Make ETF constituent availability truthful, cost-governed, resilient, and observable per symbol; integrate ETF holdings with the shared provider platform after it reaches staging; remediate the full fallback inventory in relevance order; and deliver tested monitoring and user-visible degradation behavior without silently treating SEC, stale, partial, or unverified data as current support.. Acceptance criteria: AC1: Durable ETF workstream state is current and internally consistent: the plan, handoff, provider-universe document, registry counts, audit counts, and next action agree at every checkpoint.; AC2: A complete provider-audit ledger accounts for every current fallback-only adapter key exactly once, uses the approved deterministic ranking, and records issuer-specific dated source evidence, disposition, and next action.; AC3: Every provider counted as native has a concrete provider-owned holdings route, provider-specific fetch entry point, strict parsing/mapping, truthful provenance and freshness, deterministic tests, and concrete opt-in live coverage.; AC4: Every provider remaining fallback-only has a current issuer-specific audit disposition; no fallback is silently promoted through SEC data and no generic unattempted discovery note is accepted as final evidence.; AC5: All 140 providers in the starting fallback population have been processed to either a verified native promotion or a defensible dated terminal/blocked disposition, with no missing, duplicate, or stale ledger entries.; AC6: ISSUER_ADAPTER_CONFIGS, FALLBACK_ISSUER_AUDITS, native/fallback counts, native adapter ownership, deterministic tests, live-provider coverage, documentation, and the provider-audit ledger satisfy exhaustive matrix invariants.; AC7: Focused checks, the complete deterministic adapter suite, default live contracts, the complete opt-in live provider matrix, Ruff, the Docker-backed full-integration gate, and exact-SHA CI are green or any genuine external outage is narrowly evidenced without misrepresenting validation.; AC8: The feature branch is clean and synchronized at an exact reviewed SHA, durable handoff and validation records are complete, and the workstream stops at ready_for_human_review without integration, promotion, deployment, or cross-worktree mutation.; AC9: Every tracked ETF symbol exposes an additive capability outcome; only complete, fresh, identity-verified current or successor-native data is marked usable_for_current_analysis, while SEC, stale, partial, failed, unreviewed, and unknown routes are explicit.; AC10: ETF holdings consumes the shared provider-platform entitlement, quota, health, availability, and aggregate 20 EUR/USD-equivalent monthly budget contracts; no duplicate generic provider runtime or unapproved paid activation exists.; AC11: The 81 fallback identities are reassessed at symbol level in relevance order, with Tier 0 US ETFs receiving a completed free/zero-cost/cheap-source investigation and an explicit current, degraded, stale, unavailable, successor, or not-applicable outcome.; AC12: Bounded opt-in ETF canaries persist source, transport, schema, completeness, freshness, latency, failure-streak, circuit, and recovery evidence; route drift and stale data cannot silently serve as current holdings.; AC13: ETF API and UI surfaces distinguish current, degraded, stale, unavailable, not-applicable, and unknown holdings; historical snapshots remain inspectable with provenance and current-analysis flows reject non-current data unless a user explicitly selects historical evidence.; AC14: A 30-day production shadow gate is documented as a post-integration/deployment acceptance step, targeting at least 95% eligible Tier 0 checks, no two consecutive missed freshness deadlines, and zero silent identity/schema/completeness violations.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
-  "goal_recorded_at": "2026-09-06T06:09:17.355347+00:00",
+  "goal_recorded_at": "2026-09-06T06:36:09.894806+00:00",
   "goal_request": {
     "objective": "Advance feat/etf-holdings-constituents: Make ETF constituent availability truthful, cost-governed, resilient, and observable per symbol; integrate ETF holdings with the shared provider platform after it reaches staging; remediate the full fallback inventory in relevance order; and deliver tested monitoring and user-visible degradation behavior without silently treating SEC, stale, partial, or unverified data as current support.. Acceptance criteria: AC1: Durable ETF workstream state is current and internally consistent: the plan, handoff, provider-universe document, registry counts, audit counts, and next action agree at every checkpoint.; AC2: A complete provider-audit ledger accounts for every current fallback-only adapter key exactly once, uses the approved deterministic ranking, and records issuer-specific dated source evidence, disposition, and next action.; AC3: Every provider counted as native has a concrete provider-owned holdings route, provider-specific fetch entry point, strict parsing/mapping, truthful provenance and freshness, deterministic tests, and concrete opt-in live coverage.; AC4: Every provider remaining fallback-only has a current issuer-specific audit disposition; no fallback is silently promoted through SEC data and no generic unattempted discovery note is accepted as final evidence.; AC5: All 140 providers in the starting fallback population have been processed to either a verified native promotion or a defensible dated terminal/blocked disposition, with no missing, duplicate, or stale ledger entries.; AC6: ISSUER_ADAPTER_CONFIGS, FALLBACK_ISSUER_AUDITS, native/fallback counts, native adapter ownership, deterministic tests, live-provider coverage, documentation, and the provider-audit ledger satisfy exhaustive matrix invariants.; AC7: Focused checks, the complete deterministic adapter suite, default live contracts, the complete opt-in live provider matrix, Ruff, the Docker-backed full-integration gate, and exact-SHA CI are green or any genuine external outage is narrowly evidenced without misrepresenting validation.; AC8: The feature branch is clean and synchronized at an exact reviewed SHA, durable handoff and validation records are complete, and the workstream stops at ready_for_human_review without integration, promotion, deployment, or cross-worktree mutation.; AC9: Every tracked ETF symbol exposes an additive capability outcome; only complete, fresh, identity-verified current or successor-native data is marked usable_for_current_analysis, while SEC, stale, partial, failed, unreviewed, and unknown routes are explicit.; AC10: ETF holdings consumes the shared provider-platform entitlement, quota, health, availability, and aggregate 20 EUR/USD-equivalent monthly budget contracts; no duplicate generic provider runtime or unapproved paid activation exists.; AC11: The 81 fallback identities are reassessed at symbol level in relevance order, with Tier 0 US ETFs receiving a completed free/zero-cost/cheap-source investigation and an explicit current, degraded, stale, unavailable, successor, or not-applicable outcome.; AC12: Bounded opt-in ETF canaries persist source, transport, schema, completeness, freshness, latency, failure-streak, circuit, and recovery evidence; route drift and stale data cannot silently serve as current holdings.; AC13: ETF API and UI surfaces distinguish current, degraded, stale, unavailable, not-applicable, and unknown holdings; historical snapshots remain inspectable with provenance and current-analysis flows reject non-current data unless a user explicitly selects historical evidence.; AC14: A 30-day production shadow gate is documented as a post-integration/deployment acceptance step, targeting at least 95% eligible Tier 0 checks, no two consecutive missed freshness deadlines, and zero silent identity/schema/completeness violations.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "ab0e58b44f2d968130c4c86a6e6c68b4e92db40a",
-  "implementation_sha": "ab0e58b44f2d968130c4c86a6e6c68b4e92db40a",
-  "last_checkpoint": "2026-09-06T06:10:15+00:00",
-  "last_human_progress_update": "2026-09-06T06:09:31.421094+00:00",
+  "head": "01c04c52bc06826d317c84844ce6cc55cee3f366",
+  "implementation_sha": "01c04c52bc06826d317c84844ce6cc55cee3f366",
+  "last_checkpoint": "2026-09-06T06:37:05.738947+00:00",
+  "last_human_progress_update": "2026-09-06T06:36:10.236421+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Reconcile AC10 only after origin/feat/market-data-provider-platform is an ancestor of origin/staging; until then keep DXJ/NTSX/MINT/BOND unavailable and do not activate paid or direct-provider routes. Re-test the WisdomTree session/API candidate only when application transport behavior changes; after provider-platform reaches staging, run the documented 30-day production AC14 shadow gate.",
-  "plan_hash": "ae1764253257a95e80fc6e0e18eedfe4fff228456f8e631f82aea5ada8df6d11",
+  "plan_hash": "00e6a7c62e6746a10217919a4854f83a11865b9d0cfdd043e20f13da57ffe340",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -115,14 +134,14 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "The shared provider-platform branch is still not present in staging; AC10 cannot be reconciled from this ETF worktree. Eleven of fifteen Tier-0 symbols have dated current issuer evidence (the ten F/m routes plus Pacific Asset Management GEME); DXJ/NTSX remain blocked by the WisdomTree application transport/Cloudflare boundary and MINT/BOND remain without an unauthenticated complete executable PIMCO artifact. All 15 Tier-0 and 159 Tier-1 representative symbols have explicit outcomes; the remaining 19 fallback identities have no representative symbol and retain provider-level terminal or non-publisher dispositions. AC11 remains open only for genuinely new compliant source evidence for the four unresolved Tier-0 symbols; AC14 remains post-integration.",
+    "current_blocker": "The shared provider-platform branch has not yet reached staging; generic entitlement/quota/budget/health integration remains intentionally deferred until its synchronized staging merge. Eleven of fifteen Tier-0 symbols have dated current issuer evidence (the ten F/m routes plus Pacific Asset Management GEME); DXJ/NTSX remain blocked by the WisdomTree application transport/Cloudflare boundary and MINT/BOND remain without an unauthenticated complete executable PIMCO artifact. All 15 Tier-0 and 159 Tier-1 representative symbols have explicit outcomes; the remaining 19 fallback identities have no representative symbol and retain provider-level terminal or non-publisher dispositions. AC11 remains open only for genuinely new compliant source evidence for the four unresolved Tier-0 symbols; AC14 remains post-integration.",
     "current_phase": "provider_platform_dependency_wait",
     "next_action": "Reconcile AC10 only after origin/feat/market-data-provider-platform is an ancestor of origin/staging; until then keep DXJ/NTSX/MINT/BOND unavailable and do not activate paid or direct-provider routes. Re-test the WisdomTree session/API candidate only when application transport behavior changes; after provider-platform reaches staging, run the documented 30-day production AC14 shadow gate.",
     "total": 14,
-    "updated_at": "2026-09-06T06:09:31.420967+00:00"
+    "updated_at": "2026-09-06T06:36:10.236299+00:00"
   },
-  "remote": "ab0e58b44f2d968130c4c86a6e6c68b4e92db40a",
-  "remote_sha": "ab0e58b44f2d968130c4c86a6e6c68b4e92db40a",
+  "remote": "01c04c52bc06826d317c84844ce6cc55cee3f366",
+  "remote_sha": "01c04c52bc06826d317c84844ce6cc55cee3f366",
   "remote_synchronized": true,
   "schema": 2,
   "session_id": "5b434602-fc78-40c5-8f0a-0960badecb67",
