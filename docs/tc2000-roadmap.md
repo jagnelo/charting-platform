@@ -5,6 +5,26 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-06
 
+## 2026-09-06 — Exact-tip gate after canonical role identity evidence
+
+At exact product tip `6209b55f` (documentation tip before this receipt
+update `4da0f688`), the `full_stack_browser` gate passed locked
+dependency/migration and workstream checks, Ruff/format/type-check, backend
+unit/integration and combined coverage (`80.93%`; `1320` unit and `384`
+integration tests), frontend Vitest (`970/970`), production image build,
+compose/provider policy, stack health, research-runner isolation/resource
+probes, and authenticated functional Playwright (`159` passed with `106`
+documented skips across `265` specs). The visual matrix completed `104`
+cases with `98` passes and exactly the six known state-oracle diffs:
+watchlist-column-editor-open at visual-1080p-100/125 (`13,844` pixels each),
+and workspace-floating at visual-1080p-100/125 and visual-1440p-100/125
+(`12,097`, `12,097`, `12,097`, `12,097` pixels in this run). No baseline,
+mask, threshold, skip, fallback, provider rule, or acceptance policy changed.
+Teardown removed the assigned stack and four generated images; resource
+accounting reported zero containers, volumes, sessions, and known bytes.
+Preserve the visual-only boundary and continue the next bounded canonical
+provider/history slice.
+
 ## 2026-09-06 — Expose canonical role identity evidence
 
 Product commit `6209b55f` (`feat(tc2000): expose canonical role identity
