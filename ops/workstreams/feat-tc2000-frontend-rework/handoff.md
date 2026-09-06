@@ -10,6 +10,19 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-06 — Expose canonical role evidence in Market Breadth
+
+Product commit `eccae95e` adds a visual-neutral accessible labelled status to
+the Market Breadth family coverage panel. It formats returned canonical role
+member/placeholder counts, weighted/classified counts and statuses,
+point-in-time support, history readiness, and composite readiness without
+provider selection, readiness inference, refresh retry, role substitution, or
+fallback/acceptance-policy changes. Full frontend Vitest passed `970/970`,
+type-check/build passed, and rebuilt authenticated Chromium
+`F8s-breadth-family-ratio` passed `1/1`. Teardown removed four generated images
+and resource accounting reported zero containers, volumes, sessions, and known
+bytes. Next action: rerun the exact-tip gate at the next documentation tip.
+
 ## 2026-09-06 — Keep provider-probe evidence visual-neutral
 
 Product commit `da417508` retains the canonical provider-probe evidence as an

@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-06 — Expose canonical role evidence in Market Breadth
+
+- [x] Add a visual-neutral accessible status for each returned benchmark-family
+      role with canonical member/placeholder counts, weighted/classified counts
+      and statuses, point-in-time support, history readiness, and composite
+      readiness. The consumer only formats API evidence; it does not select
+      providers, infer readiness, retry refreshes, substitute roles, or change
+      fallback/acceptance policy. Product commit `eccae95e`.
+- [x] Full frontend Vitest passed `970/970`, type-check/build passed, and
+      rebuilt authenticated Chromium `F8s-breadth-family-ratio` passed `1/1`
+      with covered-role evidence asserted. Teardown/resource accounting
+      reported zero containers, volumes, sessions, and known bytes.
+- [ ] Rerun the exact-tip integration gate at the next documentation tip;
+      preserve the six existing visual state-oracle diffs.
+
 ### 2026-09-06 — Expose canonical universe provenance evidence
 
 - [x] Add an accessible labelled readiness status for registry, family count,

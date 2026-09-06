@@ -5,6 +5,21 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-06
 
+## 2026-09-06 — Expose canonical role evidence in Market Breadth
+
+Product commit `eccae95e` (`feat(tc2000): expose canonical role evidence`)
+adds a visual-neutral, accessible labelled status to the Market Breadth family
+coverage panel. It formats each returned role's canonical member and
+placeholder counts, weighted/classified counts with their statuses,
+point-in-time support, history readiness, and composite readiness without
+selecting providers, inferring readiness, retrying refreshes, substituting
+roles, or changing fallback, visual, or acceptance policy. Full frontend
+Vitest passed `970/970`, type-check and production build passed, and rebuilt
+authenticated Chromium `F8s-breadth-family-ratio` passed `1/1` with covered
+role evidence asserted. Teardown removed four generated images and resource
+accounting reported zero containers, volumes, sessions, and known bytes. The
+next exact-tip gate is required at the next documentation tip.
+
 ## 2026-09-06 — Keep provider-probe evidence visual-neutral
 
 Product commit `da417508` (`fix(tc2000): keep provider probe evidence
