@@ -4795,3 +4795,15 @@ deterministic suites passed 666 tests. Workstream validation and diff-check
 also passed. No provider classification, source promotion, entitlement, paid
 activation, or provider-platform state changed; the next context remains
 dependent on provider-platform reaching staging.
+
+## Exact-SHA CI checkpoint — 2026-09-06
+
+GitHub Actions run `34015836839` validated pushed tip
+`81f282e5fb0c5e763bfbcf98506fd620c8f2f125` successfully. Backend Tests,
+including Testcontainers integration, Frontend Unit Tests, Branch-declared
+Tests, and Playwright E2E all passed; the protected staging/master-only
+Exhaustive Integration Gate was skipped as designed for a feature branch.
+This receipt validates the low-cost candidate/session checkpoint only. The
+provider-platform branch remains outside staging, AC10 remains deferred,
+DXJ/NTSX/MINT/BOND remain unavailable, and post-integration AC14 remains
+open.
