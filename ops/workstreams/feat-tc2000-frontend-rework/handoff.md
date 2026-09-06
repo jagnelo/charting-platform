@@ -10,6 +10,18 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-06 — Expose canonical continuity gap evidence
+
+Product commit `3a9f89e2` adds visual-neutral accessible evidence for canonical
+benchmark-family continuity: status, gap count, maximum interval, dated gap
+intervals, and snapshot-window capping in Market Breadth and Market Map. Omitted
+continuity is reported explicitly as `continuity not reported`; consumers only
+format returned API fields. Market Map unit coverage passed `36/36`, full
+frontend Vitest passed `970/970`, type-check/build passed, and authenticated
+`F8s-breadth-family-ratio` passed `1/1`. Teardown/resource accounting is clean
+with zero containers, volumes, sessions, and known bytes. Next action: rerun
+the exact-tip gate at the next documentation tip.
+
 ## 2026-09-06 — Exact-tip exhaustive gate after canonical snapshot lineage evidence
 
 At exact product tip `97efe1ea` (documentation tip `86733d42`), the
