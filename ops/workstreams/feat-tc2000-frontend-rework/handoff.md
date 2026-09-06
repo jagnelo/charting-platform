@@ -10,6 +10,23 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-06 — Exact-tip exhaustive gate after canonical entitlement capability evidence
+
+At exact product tip `de4ab370` (documentation tip `4ed2b533`), the
+`full_stack_browser` gate passed locked/non-visual checks, backend
+unit/integration and combined coverage (`80.93%`; `1320` unit and `384`
+integration), frontend Vitest (`970/970`), production image build,
+compose/provider policy, stack health, research-runner isolation/resource
+probes, and authenticated functional Playwright (`159` passed with `106`
+documented skips across `265` specs). The visual matrix returned `98/104` with
+only the six known state-oracle diffs: watchlist-column-editor-open at
+1080p-100/125 (`13,844` pixels each), and workspace-floating at 1080p-100
+(`12,097`), 1080p-125 (`12,097`), 1440p-100 (`12,097`), and 1440p-125
+(`9,770`). No visual/provider/fallback/acceptance policy changed. Cleanup
+removed four images and resource accounting is clean with zero containers,
+volumes, sessions, and known bytes. Next action: continue the next bounded
+canonical provider/history slice while preserving the visual-only boundary.
+
 ## 2026-09-06 — Expose canonical entitlement capability evidence
 
 Product commit `de4ab370` adds the returned per-role entitlement capability
@@ -21,8 +38,8 @@ substitute roles, or alter fallback, visual, or acceptance policy. Market Map
 unit coverage passed `36/36`, full frontend Vitest passed `970/970`,
 type-check/build passed, and authenticated `F8s-breadth-family-ratio` passed
 `1/1`. Teardown/resource accounting is clean with zero containers, volumes,
-sessions, and known bytes. Next action: rerun the exact-tip gate at the next
-documentation tip.
+sessions, and known bytes. The exact-tip gate receipt is recorded immediately
+above; next action is the next bounded canonical provider/history slice.
 
 ## 2026-09-06 — Exact-tip exhaustive gate after canonical continuity evidence
 
