@@ -1056,6 +1056,7 @@ async def refresh_benchmark_family_holdings_for_date(
     refreshed = unavailable = failed = 0
     for role in requested_roles:
         mapping = family.get(role) if isinstance(family.get(role), dict) else None
+        route_evidence = _history_route_evidence(mapping)
         symbol = (
             str(mapping.get("symbol")).strip().upper()
             if mapping and mapping.get("symbol")
@@ -1068,6 +1069,7 @@ async def refresh_benchmark_family_holdings_for_date(
                     "role": role,
                     "symbol": None,
                     "status": "unavailable",
+                    **route_evidence,
                     "message": "No verified mapped proxy is configured for this family role.",
                 }
             )
@@ -1089,6 +1091,7 @@ async def refresh_benchmark_family_holdings_for_date(
                         "role": role,
                         "symbol": symbol,
                         "status": "route_not_ready",
+                        **route_evidence,
                         "message": probe.reason or "No usable free holdings route is configured.",
                     }
                 )
@@ -1105,6 +1108,7 @@ async def refresh_benchmark_family_holdings_for_date(
                     "role": role,
                     "symbol": symbol,
                     "status": "route_not_ready",
+                    **route_evidence,
                     "message": str(exc),
                 }
             )
@@ -1115,6 +1119,7 @@ async def refresh_benchmark_family_holdings_for_date(
                     "role": role,
                     "symbol": symbol,
                     "status": "failed",
+                    **route_evidence,
                     "message": str(exc) or "Dated family holdings refresh failed.",
                 }
             )
@@ -1127,6 +1132,7 @@ async def refresh_benchmark_family_holdings_for_date(
                     "status": "refreshed",
                     "snapshot_id": snapshot.id,
                     "composition_date": snapshot.composition_date,
+                    **route_evidence,
                 }
             )
 
@@ -1155,6 +1161,21 @@ def _normalize_benchmark_family_roles(roles: list[str] | None) -> list[str]:
         if normalized_role not in normalized_roles:
             normalized_roles.append(normalized_role)
     return normalized_roles
+
+
+def _history_route_evidence(mapping: dict[str, Any] | None) -> dict[str, Any]:
+    """Return the declared historical route without inferring provider support."""
+
+    route = mapping.get("history_route") if isinstance(mapping, dict) else None
+    route = route if isinstance(route, dict) else {}
+    return {
+        "history_route_status": str(route.get("status") or "not_reported"),
+        "history_route_provider": str(route["provider"]) if route.get("provider") else None,
+        "history_route_policy": str(route["policy"]) if route.get("policy") else None,
+        "history_route_source_url": (
+            str(route["source_url"]) if route.get("source_url") else None
+        ),
+    }
 
 
 def _normalize_benchmark_family_keys(family_keys: list[str] | None) -> list[str]:

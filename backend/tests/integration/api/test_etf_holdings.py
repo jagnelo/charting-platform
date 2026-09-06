@@ -2403,6 +2403,10 @@ def test_admin_can_refresh_selected_benchmark_family_legs_for_date(
             "status": "refreshed",
             "snapshot_id": body["legs"][0]["snapshot_id"],
             "composition_date": "2026-06-27",
+            "history_route_status": "not_reported",
+            "history_route_provider": None,
+            "history_route_policy": None,
+            "history_route_source_url": None,
             "message": None,
         },
         {
@@ -2411,6 +2415,10 @@ def test_admin_can_refresh_selected_benchmark_family_legs_for_date(
             "status": "unavailable",
             "snapshot_id": None,
             "composition_date": None,
+            "history_route_status": "not_reported",
+            "history_route_provider": None,
+            "history_route_policy": None,
+            "history_route_source_url": None,
             "message": "No verified mapped proxy is configured for this family role.",
         },
     ]

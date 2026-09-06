@@ -507,6 +507,10 @@ class BenchmarkFamilyHoldingsDatedRefreshLegOut(BaseModel):
     status: str
     snapshot_id: int | None = None
     composition_date: date | None = None
+    history_route_status: str = "not_reported"
+    history_route_provider: str | None = None
+    history_route_policy: str | None = None
+    history_route_source_url: str | None = None
     message: str | None = None
 
 
