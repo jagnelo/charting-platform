@@ -205,7 +205,7 @@ describe('MarketMapTool', () => {
           ],
         }).then(response => ({
           ...response,
-          roles: response.roles.map((role, index) => index === 0 ? { ...role, holdings_route_adapter_key: 'sec_issuer_holdings' } : role),
+          roles: response.roles.map((role, index) => index === 0 ? { ...role, holdings_route_adapter_key: 'sec_issuer_holdings', entitlement_capabilities: { history: 'partial', holdings: 'supported', weights: 'supported', classification: 'pending' } } : role),
         }))
       : Promise.resolve([]))
 
@@ -221,7 +221,7 @@ describe('MarketMapTool', () => {
     expect(readiness.text()).toContain('Refresh: partial · checked 2026-07-03 · reason issuer endpoint unavailable')
     expect(readiness.text()).toContain('Refresh: partial · checked 2026-07-03 · reason issuer endpoint unavailable · failed 2026-07-04 · composition 2026-06-30')
     expect(readiness.text()).toContain('Members: 101 · Weighted: 101 (ready) · Classified: 21 (partial) · Point-in-time: supported')
-    expect(readiness.get('[aria-label="Benchmark family canonical identity evidence"]').text()).toContain('Cap weight SPY · verification not reported · adapter unmapped · snapshot 2026-06-30 · as-of 2026-07-01 · known 2026-07-02 · provenance issuer snapshot · source quality issuer_disclosed · completeness partial · rows 101 · resolved 21 · unresolved 80 · continuity gapped · 1 gap · max 76d · intervals 2026-03-31 to 2026-06-15 (76d)')
+    expect(readiness.get('[aria-label="Benchmark family canonical identity evidence"]').text()).toContain('Cap weight SPY · verification not reported · adapter unmapped · snapshot 2026-06-30 · as-of 2026-07-01 · known 2026-07-02 · provenance issuer snapshot · source quality issuer_disclosed · completeness partial · rows 101 · resolved 21 · unresolved 80 · continuity gapped · 1 gap · max 76d · intervals 2026-03-31 to 2026-06-15 (76d) · capabilities classification=pending, history=partial, holdings=supported, weights=supported')
     expect(readiness.text()).toContain('Entitlement: verified · sec · probe passed')
     expect(readiness.text()).toContain('Entitlement: verified · sec · probe passed · rev 7 · effective 2026-07-01 · review due 2026-10-01')
     expect(readiness.text()).toContain('Latest disclosure: 2026-06-30 · as-of 2026-07-01 · known 2026-07-02 · 21/101 resolved · sec')

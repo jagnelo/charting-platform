@@ -733,7 +733,8 @@ function benchmarkRoleIdentityEvidenceLabel(coverage: BenchmarkFamilyCoverage): 
     const continuityStatus = role.continuity_status?.trim()?.replace(/_/g, ' ') || 'not reported'
     const continuityGaps = (role.continuity_gaps ?? []).map(gap => `${gap.from_date.slice(0, 10)} to ${gap.to_date.slice(0, 10)} (${gap.interval_days}d)`).join(', ')
     const continuityEvidence = ` · continuity ${continuityStatus}${role.continuity_gap_count ? ` · ${role.continuity_gap_count} gap${role.continuity_gap_count === 1 ? '' : 's'}` : ''}${role.continuity_max_interval_days ? ` · max ${role.continuity_max_interval_days}d` : ''}${continuityGaps ? ` · intervals ${continuityGaps}` : ''}${role.continuity_snapshot_limit_reached ? ' · snapshot window capped' : ''}`
-    return `${name} · verification ${verification} · adapter ${adapter}${status ? ` (${status})` : ''}${confidence ? ` · ${confidence}` : ''}${snapshotEvidence}${continuityEvidence}`
+    const entitlementCapabilities = Object.entries(role.entitlement_capabilities ?? {}).sort(([left], [right]) => left.localeCompare(right)).map(([key, value]) => `${key.replace(/_/g, ' ')}=${String(value).replace(/_/g, ' ')}`).join(', ') || 'not reported'
+    return `${name} · verification ${verification} · adapter ${adapter}${status ? ` (${status})` : ''}${confidence ? ` · ${confidence}` : ''}${snapshotEvidence}${continuityEvidence} · capabilities ${entitlementCapabilities}`
   }).join(' | ')}`
 }
 
