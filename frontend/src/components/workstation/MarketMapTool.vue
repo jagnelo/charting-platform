@@ -730,7 +730,10 @@ function benchmarkRoleIdentityEvidenceLabel(coverage: BenchmarkFamilyCoverage): 
     const snapshotEvidence = snapshot
       ? ` · snapshot ${snapshot.composition_date?.slice(0, 10) || 'date not reported'}${snapshot.as_of_date ? ` · as-of ${snapshot.as_of_date.slice(0, 10)}` : ''}${snapshot.known_at ? ` · known ${snapshot.known_at.slice(0, 10)}` : ''} · provenance ${snapshot.provenance?.trim() || 'not reported'} · source quality ${snapshot.source_quality?.trim() || 'not reported'} · completeness ${snapshot.completeness_status?.trim() || 'not reported'} · rows ${Number.isFinite(snapshot.row_count) ? snapshot.row_count : 'not reported'} · resolved ${Number.isFinite(snapshot.resolved_count) ? snapshot.resolved_count : 'not reported'} · unresolved ${Number.isFinite(snapshot.unresolved_count) ? snapshot.unresolved_count : 'not reported'}`
       : ' · snapshot evidence unavailable'
-    return `${name} · verification ${verification} · adapter ${adapter}${status ? ` (${status})` : ''}${confidence ? ` · ${confidence}` : ''}${snapshotEvidence}`
+    const continuityStatus = role.continuity_status?.trim()?.replace(/_/g, ' ') || 'not reported'
+    const continuityGaps = (role.continuity_gaps ?? []).map(gap => `${gap.from_date.slice(0, 10)} to ${gap.to_date.slice(0, 10)} (${gap.interval_days}d)`).join(', ')
+    const continuityEvidence = ` · continuity ${continuityStatus}${role.continuity_gap_count ? ` · ${role.continuity_gap_count} gap${role.continuity_gap_count === 1 ? '' : 's'}` : ''}${role.continuity_max_interval_days ? ` · max ${role.continuity_max_interval_days}d` : ''}${continuityGaps ? ` · intervals ${continuityGaps}` : ''}${role.continuity_snapshot_limit_reached ? ' · snapshot window capped' : ''}`
+    return `${name} · verification ${verification} · adapter ${adapter}${status ? ` (${status})` : ''}${confidence ? ` · ${confidence}` : ''}${snapshotEvidence}${continuityEvidence}`
   }).join(' | ')}`
 }
 
