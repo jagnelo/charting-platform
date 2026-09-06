@@ -420,6 +420,7 @@ LIVE_BACKED_ISSUER_ADAPTERS = {
     "weitz",
     "wbi",
     "world_gold_council",
+    "wisdomtree",
     "yorkville",
     "truth_social",
     "sofi",
@@ -2979,6 +2980,32 @@ async def test_live_fm_investments_tier_zero_symbol_canary(symbol):
             f"({composition_date.isoformat()}); the refresh boundary rejects it "
             "as non-current source evidence."
         )
+    assert composition_date <= date.today()
+    assert composition_date >= date.today() - timedelta(days=4)
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("wisdomtree")
+@pytest.mark.parametrize("symbol", ["DXJ", "NTSX"])
+async def test_live_wisdomtree_tier_zero_symbol_canary(symbol):
+    adapter = get_holdings_adapter("wisdomtree")
+    assert adapter is not None
+
+    try:
+        result = await adapter.fetch_latest(symbol=symbol)
+    except (httpx.HTTPError, requests.RequestException, TimeoutError, ValueError) as exc:
+        if _is_external_live_access_failure(exc) or "WisdomTree issuer access challenge" in str(exc):
+            pytest.skip(str(exc))
+        raise
+
+    _assert_live_holdings_result(result, adapter_key="wisdomtree", min_rows=20)
+    metadata = result.legal_metadata or {}
+    assert metadata["source_provider"] == "wisdomtree"
+    assert metadata["route_resolution"] == "wisdomtree_public_fund_holdings_api"
+    assert metadata["source_format"] == "json"
+    assert metadata["transport"] in {"httpx", "curl_http1_1_after_issuer_challenge"}
+    composition_date = date.fromisoformat(str(metadata["composition_date"]))
     assert composition_date <= date.today()
     assert composition_date >= date.today() - timedelta(days=4)
 

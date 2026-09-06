@@ -16,14 +16,14 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 - Latest staging merge: `9bc42091ac3d95bcc11ad8783692fb3cd8f9d2e4`
 - Incorporated staging SHA: `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`
-- Current code-derived state: 496 registered, 415 native/live-backed, 81
+- Current code-derived state: 496 registered, 416 native/live-backed, 80
   fallback-only.
-- Current fallback status split: 8 issuer-access-blocked, 63
+- Current fallback status split: 7 issuer-access-blocked, 63
   needs-first-party-route-discovery, 3 non-executable public source, and 7
   non-portfolio-publisher. The ledger retains dated terminal dispositions for
   every fallback key; all 140 historical records are represented exactly once.
 - `docs/etf-provider-universe.md` is reconciled from code to the current
-  496/415/81 snapshot; future updates must remain code-derived.
+  496/416/80 snapshot; future updates must remain code-derived.
 - Validation tier: `full_integration`.
 - Local validation profile: `docker_integration`.
 - The latest complete `make validate-integration` run on the current working
@@ -72,6 +72,24 @@ The human-approved exhaustive plan is
 The schema-4 contract is `plan.yaml`. A later Codex implementation model must
 read both completely, follow the automatic agent-session workflow, and work
 only in this branch's registered local worktree.
+
+## WisdomTree/DXJ-NTSX transport promotion — 2026-09-06
+
+The official WisdomTree symbol-scoped product/API sequence is now implemented
+with a bounded transport retry. Python `httpx` receives an issuer Cloudflare
+challenge, so the adapter retries the same official routes with HTTP/1.1
+`curl`, records `curl_http1_1_after_issuer_challenge` in provenance, and still
+enforces exact host/path, fund entity/ticker, non-empty complete JSON rows,
+uniform composition date, and freshness checks. Direct live validation returned
+430 DXJ rows and 508 NTSX rows, all dated 2026-09-04. The deterministic transport
+retry test and two-symbol opt-in canary are in place.
+
+WisdomTree is now native-promoted and DXJ/NTSX are current symbol canaries. The
+code-derived split is 496 registered / 416 native-live-backed / 80 fallback-only.
+MINT and BOND remain unavailable because PIMCO has not exposed a complete
+executable public holdings artifact. AC10 remains gated on the provider-platform
+branch reaching staging, and AC14 remains a post-integration/deployment shadow
+gate.
 
 ## CI follow-up — live-provider edge resilience — 2026-09-03
 

@@ -52,16 +52,16 @@ never maintain them as an independent implementation constant.
 | Classification | Count |
 |---|---:|
 | Registered issuer adapter configurations | 496 |
-| Native/live-backed providers | 414 |
-| Audited fallback-only providers | 82 |
+| Native/live-backed providers | 416 |
+| Audited fallback-only providers | 80 |
 | Native plus fallback | 496 |
 
-The current 82 fallback audits divide into:
+The current 80 fallback audits divide into:
 
 | Audit status | Count |
 |---|---:|
-| `issuer_access_blocked` | 8 |
-| `needs_first_party_route_discovery` | 64 |
+| `issuer_access_blocked` | 7 |
+| `needs_first_party_route_discovery` | 63 |
 | `non_executable_public_source` | 3 |
 | `provider_not_a_portfolio_publisher` | 7 |
 
@@ -3320,16 +3320,22 @@ declared route found and MINT/BOND remain unavailable. Runtime capability refs
 and provider-audit refs were updated in lockstep, the capability suite passed
 87 tests, and no paid or provider-platform integration was activated.
 
-## Fresh application-transport Tier-0 recheck — 2026-09-06
+## WisdomTree HTTP/1.1 transport promotion — 2026-09-06
 
-The bounded application-equivalent recheck found no route change for the four
-unresolved Tier-0 symbols. WisdomTree product-page and symbol-scoped API
-requests for DXJ and NTSX returned HTTP 403 Cloudflare challenge HTML. PIMCO
-MINT/BOND `topTenHoldings` and `fund-info` requests returned HTTP 401 JSON
-authentication errors.
+A bounded fresh probe confirmed an issuer-edge split: the repository's Python
+`httpx` sequence receives HTTP 403 Cloudflare challenge HTML, while an explicit
+HTTP/1.1 `curl` retry against the same official WisdomTree product/API routes
+returns HTTP 200 complete JSON. The strict adapter validated 430 DXJ rows and
+508 NTSX rows, all dated 2026-09-04, including symbol/entity identity, exact
+route host/path, complete payload shape, and freshness. Transport provenance is
+recorded as `curl_http1_1_after_issuer_challenge`; no credential or paid source
+was activated.
 
-The recheck is evidence-only: no browser-only preview, SEC reconstruction,
-credential, paid source, or speculative provider-platform bridge was promoted.
-The runtime capability tuple and provider-audit history now carry the new
-transport references, and all four symbols remain unavailable for current
-analysis until a complete, identity-bound, repeatably executable route exists.
+DXJ and NTSX are therefore current/native-promoted canaries. The fallback split
+is now 496 registered / 416 native-live-backed / 80 fallback-only. MINT and
+BOND remain unavailable because PIMCO still has no complete executable public
+artifact. The WisdomTree route must remain bounded and freshness-aware, with
+re-audit on transport/schema drift and no SEC fallback when the strict curl
+route succeeds. Deterministic and bounded live tests cover the transport retry;
+the shared provider-platform dependency, AC10, and post-integration AC14 remain
+open.

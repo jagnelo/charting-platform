@@ -20,7 +20,7 @@ previous_branch: feat/etf-holdings-constituents
 previous_tip: a8d618995fbd928c66117271bb7ac9152a935ab5
 goal: "Make ETF constituent availability truthful, cost-governed, resilient, and observable per symbol; integrate ETF holdings with the shared provider platform after it reaches staging; remediate the full fallback inventory in relevance order; and deliver tested monitoring and user-visible degradation behavior without silently treating SEC, stale, partial, or unverified data as current support."
 scope:
-  - "Keep branch-owned ETF workstream and provider-universe documentation code-derived; the current reconciled baseline is 496 registered, 415 native/live-backed, and 81 fallback-only providers."
+  - "Keep branch-owned ETF workstream and provider-universe documentation code-derived; the current reconciled baseline is 496 registered, 416 native/live-backed, and 80 fallback-only providers."
   - "Create and maintain a branch-owned exhaustive provider audit ledger covering all 140 current fallback-only adapter keys, with deterministic prioritization, source evidence, attempt dates, route disposition, and next action."
   - "Investigate every current fallback issuer against first-party public or already-entitled holdings sources; promote only complete, executable, provider-owned routes and retain evidence-backed fallback classifications otherwise."
   - "Implement provider-specific adapters with strict symbol mapping, parsing, provenance, freshness, error behavior, and no silent SEC-fallback promotion."
@@ -91,7 +91,7 @@ acceptance_criteria:
   - id: AC10
     text: "ETF holdings consumes the shared provider-platform entitlement, quota, health, availability, and aggregate 20 EUR/USD-equivalent monthly budget contracts; no duplicate generic provider runtime or unapproved paid activation exists."
   - id: AC11
-    text: "The 81 fallback identities are reassessed at symbol level in relevance order, with Tier 0 US ETFs receiving a completed free/zero-cost/cheap-source investigation and an explicit current, degraded, stale, unavailable, successor, or not-applicable outcome."
+    text: "The 80 current fallback identities are reassessed at symbol level in relevance order, with Tier 0 US ETFs receiving a completed free/zero-cost/cheap-source investigation and an explicit current, degraded, stale, unavailable, successor, or not-applicable outcome."
   - id: AC12
     text: "Bounded opt-in ETF canaries persist source, transport, schema, completeness, freshness, latency, failure-streak, circuit, and recovery evidence; route drift and stale data cannot silently serve as current holdings."
   - id: AC13

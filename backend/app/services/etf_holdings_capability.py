@@ -535,41 +535,41 @@ def _future_snapshot_reason(
 _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
     "DXJ": ETFHoldingsSymbolAudit(
         tier=0,
-        outcome=UNAVAILABLE,
-        evidence_state="issuer_route_access_blocked",
+        outcome=CURRENT,
+        evidence_state="issuer_current_canary_verified",
         provider_identity="wisdomtree",
         investigated_at=date(2026, 9, 6),
         next_action=(
-            "Keep DXJ unavailable and periodically re-test WisdomTree's official route; the "
-            "public fund-holdings API requires an issuer session that is not repeatably "
-            "executable through the application transport. Promote only after complete, "
-            "identity-verified current rows and repeatable live evidence."
+            "Keep DXJ current only while WisdomTree's complete symbol-scoped JSON route remains "
+            "identity-verified and within its freshness deadline; retain the bounded HTTP/1.1 "
+            "curl retry after an issuer challenge and re-audit on transport or schema drift."
         ),
         evidence_refs=(
             "web:wisdomtree-public-fund-holdings-api-2026-09-05",
             "live:wisdomtree-public-fund-holdings-api-2026-09-05-httpx-403",
             "web:wisdomtree-dxj-product-page-2026-09-05-current",
             "live:wisdomtree-public-fund-holdings-api-2026-09-06-httpx-403",
+            "live:wisdomtree-public-fund-holdings-api-2026-09-06-curl-http1-1",
             "web:etf-holdings-api-contract-2026-09-06",
         ),
     ),
     "NTSX": ETFHoldingsSymbolAudit(
         tier=0,
-        outcome=UNAVAILABLE,
-        evidence_state="issuer_route_access_blocked",
+        outcome=CURRENT,
+        evidence_state="issuer_current_canary_verified",
         provider_identity="wisdomtree",
         investigated_at=date(2026, 9, 6),
         next_action=(
-            "Keep NTSX unavailable and periodically re-test WisdomTree's official route; the "
-            "public fund-holdings API requires an issuer session that is not repeatably "
-            "executable through the application transport. Promote only after complete, "
-            "identity-verified current rows and repeatable live evidence."
+            "Keep NTSX current only while WisdomTree's complete symbol-scoped JSON route remains "
+            "identity-verified and within its freshness deadline; retain the bounded HTTP/1.1 "
+            "curl retry after an issuer challenge and re-audit on transport or schema drift."
         ),
         evidence_refs=(
             "web:wisdomtree-public-fund-holdings-api-2026-09-05",
             "live:wisdomtree-public-fund-holdings-api-2026-09-05-httpx-403",
             "web:wisdomtree-ntsx-product-page-2026-09-05-current",
             "live:wisdomtree-public-fund-holdings-api-2026-09-06-httpx-403",
+            "live:wisdomtree-public-fund-holdings-api-2026-09-06-curl-http1-1",
             "web:etf-holdings-api-contract-2026-09-06",
         ),
     ),

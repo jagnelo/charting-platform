@@ -50,14 +50,14 @@ classes are not allowed.
 
 Current native-route split:
 
-- Native/live-backed providers: `415`
-- Audited fallback-only providers: `81`
+- Native/live-backed providers: `416`
+- Audited fallback-only providers: `80`
 
 This is the current branch-derived split after the Warren WCAP request-profile,
-Inspire ETF Engine, Fidelity named-zero-weight-row, and Anydrus NDOW
-page-declared FilePoint JSON repairs. The remaining Vident and MM VAM aliases
-stay fallback-only because the shared Vident issuer route returns a Cloudflare
-challenge to the application client.
+Inspire ETF Engine, Fidelity named-zero-weight-row, Anydrus NDOW
+page-declared FilePoint JSON, and WisdomTree DXJ/NTSX HTTP/1.1 transport repairs.
+The remaining Vident and MM VAM aliases stay fallback-only because the shared
+Vident issuer route returns a Cloudflare challenge to the application client.
 
 Provider identity is not the same as symbol-level usability. The branch now
 exposes a per-symbol capability contract that labels current, degraded, stale,
@@ -2117,15 +2117,32 @@ Evidence refs: `web:anydrus-ndow-official-page-2026-09-05`,
 `live:anydrus-ndow-dated-filepoint-json-2026-09-03`, and
 `live:anydrus-ndow-complete-84-rows-2026-09-05`.
 
+## WisdomTree DXJ/NTSX native route promotion — 2026-09-06
+
+A fresh application-equivalent probe confirmed that WisdomTree's Python HTTP
+client receives Cloudflare HTTP 403 challenge HTML, while an explicit bounded
+HTTP/1.1 `curl` retry against the same official product/API sequence returns
+HTTP 200 complete symbol-scoped JSON. The strict adapter validated 430 DXJ rows
+and 508 NTSX rows, all dated 2026-09-04, with issuer identity, route, row
+completeness, and freshness checks. Transport provenance records the curl retry;
+no credentials or paid source was activated. DXJ and NTSX are now native/current
+canaries, while MINT and BOND remain unavailable and the route remains subject
+to freshness and schema re-audit.
+
+The current code-derived split is 496 registered / 416 native/live-backed /
+80 fallback-only providers. Evidence refs:
+`live:wisdomtree-public-fund-holdings-api-2026-09-06-httpx-403` and
+`live:wisdomtree-public-fund-holdings-api-2026-09-06-curl-http1-1`.
+
 ## Unresolved Tier-0 transport recheck — 2026-09-06
 
 A fresh application-equivalent httpx session returned HTTP 403 Cloudflare
 challenge HTML for both WisdomTree product pages and both symbol-scoped
 holdings APIs for DXJ and NTSX. PIMCO MINT/BOND `topTenHoldings` and
 `fund-info` requests returned HTTP 401 JSON authentication errors. No complete
-executable artifact was retrieved, so the four symbols remain unavailable and
-the provider counts remain 496 registered / 415 native-live-backed / 81
-fallback-only. Evidence refs:
+executable artifact was retrieved for PIMCO, so MINT/BOND remain unavailable;
+the superseding WisdomTree probe promotes DXJ/NTSX and the provider counts are
+now 496 registered / 416 native-live-backed / 80 fallback-only. Evidence refs:
 `live:wisdomtree-public-fund-holdings-api-2026-09-06-httpx-403`,
 `live:pimco-mint-fund-detail-api-2026-09-06-unauthorized`, and
 `live:pimco-bond-fund-detail-api-2026-09-06-unauthorized`.

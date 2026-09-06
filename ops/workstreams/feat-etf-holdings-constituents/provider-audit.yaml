@@ -5,9 +5,9 @@ baseline_registered_count: 496
 baseline_native_count: 356
 baseline_fallback_count: 140
 current_registered_count: 496
-current_native_count: 415
-current_fallback_count: 81
-generated_at: 2026-09-05T04:25:00Z
+current_native_count: 416
+current_fallback_count: 80
+generated_at: 2026-09-06T00:00:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
@@ -18,19 +18,19 @@ symbol_priority_ledger:
     - symbol: DXJ
       tier: 0
       provider_identity: wisdomtree
-      current_outcome: unavailable
-      evidence_state: issuer_route_access_blocked
+      current_outcome: current
+      evidence_state: issuer_current_canary_verified
       investigated_at: 2026-09-06
-      evidence_refs: [web:wisdomtree-public-fund-holdings-api-2026-09-05, live:wisdomtree-public-fund-holdings-api-2026-09-05-httpx-403, web:wisdomtree-dxj-product-page-2026-09-05-current, live:wisdomtree-public-fund-holdings-api-2026-09-06-httpx-403, web:etf-holdings-api-contract-2026-09-06]
-      next_action: "Keep unavailable and periodically re-test the official WisdomTree product-page/API session sequence; promote only after complete identity-verified current rows are repeatably executable through the application transport."
+      evidence_refs: [web:wisdomtree-public-fund-holdings-api-2026-09-05, live:wisdomtree-public-fund-holdings-api-2026-09-05-httpx-403, web:wisdomtree-dxj-product-page-2026-09-05-current, live:wisdomtree-public-fund-holdings-api-2026-09-06-httpx-403, live:wisdomtree-public-fund-holdings-api-2026-09-06-curl-http1-1, web:etf-holdings-api-contract-2026-09-06]
+      next_action: "Keep current only while the complete symbol-scoped WisdomTree JSON route remains identity-verified and within its freshness deadline; retain the bounded HTTP/1.1 curl retry after an issuer challenge and re-audit on transport or schema drift."
     - symbol: NTSX
       tier: 0
       provider_identity: wisdomtree
-      current_outcome: unavailable
-      evidence_state: issuer_route_access_blocked
+      current_outcome: current
+      evidence_state: issuer_current_canary_verified
       investigated_at: 2026-09-06
-      evidence_refs: [web:wisdomtree-public-fund-holdings-api-2026-09-05, live:wisdomtree-public-fund-holdings-api-2026-09-05-httpx-403, web:wisdomtree-ntsx-product-page-2026-09-05-current, live:wisdomtree-public-fund-holdings-api-2026-09-06-httpx-403, web:etf-holdings-api-contract-2026-09-06]
-      next_action: "Keep unavailable and periodically re-test the official WisdomTree product-page/API session sequence; promote only after complete identity-verified current rows are repeatably executable through the application transport."
+      evidence_refs: [web:wisdomtree-public-fund-holdings-api-2026-09-05, live:wisdomtree-public-fund-holdings-api-2026-09-05-httpx-403, web:wisdomtree-ntsx-product-page-2026-09-05-current, live:wisdomtree-public-fund-holdings-api-2026-09-06-httpx-403, live:wisdomtree-public-fund-holdings-api-2026-09-06-curl-http1-1, web:etf-holdings-api-contract-2026-09-06]
+      next_action: "Keep current only while the complete symbol-scoped WisdomTree JSON route remains identity-verified and within its freshness deadline; retain the bounded HTTP/1.1 curl retry after an issuer challenge and re-audit on transport or schema drift."
     - symbol: MINT
       tier: 0
       provider_identity: pacific_investments
@@ -1719,15 +1719,15 @@ providers:
     display_name: wisdomtree
     queue_rank: 8
     starting_status: issuer_access_blocked
-    current_status: issuer_access_blocked
-    disposition: issuer_access_blocked
+    current_status: native_promoted
+    disposition: native_promoted
     last_checked: 2026-09-06
-    source_access_declared: issuer_public_holdings_file
+    source_access_declared: issuer_public_symbol_scoped_holdings_json
     representative_symbols: [DXJ, NTSX]
     estimated_us_etf_count: null
     estimated_us_etf_aum: null
     us_equity_breadth: null
-    source_freshness: null
+    source_freshness: 2026-09-04
     first_party_domains: [wisdomtree.com]
     candidate_routes:
       - https://www.wisdomtree.com/us/products/fund-holdings
@@ -1735,17 +1735,19 @@ providers:
       - https://www.wisdomtree.com/us/products/capital-efficient/ntsx
       - https://www.wisdomtree.com/api/fund-holdings/1000549
       - https://www.wisdomtree.com/api/fund-holdings/1001798
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    parser_fixture: null
-    live_test: null
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    source_format: json
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_wisdomtree_public_fund_holdings_api_is_symbol_scoped_and_dated
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_wisdomtree_tier_zero_symbol_canary
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.wisdomtree"
       - "runtime:ISSUER_ADAPTER_CONFIGS.wisdomtree"
       - "web:wisdomtree-public-fund-holdings-api-2026-09-05"
       - "live:wisdomtree-public-fund-holdings-api-2026-09-05-httpx-403"
+      - "live:wisdomtree-public-fund-holdings-api-2026-09-06-curl-http1-1"
       - "web:etf-holdings-api-contract-2026-09-06"
     attempt_history:
       - date: 2026-07-26
@@ -1820,8 +1822,12 @@ providers:
         source: "https://etf-holdings.com/; https://etf-holdings.com/docs"
         result: "ETF Holdings API publishes usage pricing of $1 per 100,000 holdings with a $10 minimum top-up, requires a bearer API key for holdings and coverage checks, and documents issuer-backed current snapshots. The public supported-issuer list names WisdomTree but not PIMCO; DXJ/NTSX coverage is not verifiable without an account/key, and no activation was requested."
         evidence_ref: "web:etf-holdings-api-contract-2026-09-06"
-    disposition_reason: "wisdomtree: The issuer API is a promising first-party candidate, but application-equivalent transport still receives HTTP 403; DXJ/NTSX remain unavailable and are not promoted."
-    next_action: "wisdomtree: Re-test the product-page/API session sequence and promote only after the repository transport obtains complete current rows for both symbols with deterministic and bounded live evidence."
+      - date: 2026-09-06
+        source: "https://www.wisdomtree.com/us/products/equity/dxj; https://www.wisdomtree.com/us/products/capital-efficient/ntsx; https://www.wisdomtree.com/api/fund-holdings/1000549; https://www.wisdomtree.com/api/fund-holdings/1001798"
+        result: "A bounded HTTP/1.1 curl retry after the Python client's issuer challenge returned HTTP 200 complete symbol-scoped JSON arrays: DXJ 430 rows and NTSX 508 rows, all dated 2026-09-04. The strict adapter live validation passed identity, route, completeness, and freshness checks without credentials or a paid route; provenance records the curl fallback transport."
+        evidence_ref: "live:wisdomtree-public-fund-holdings-api-2026-09-06-curl-http1-1"
+    disposition_reason: "wisdomtree: The official symbol-scoped JSON route is complete, identity-bound, dated, and live validated for DXJ/NTSX. Python httpx receives an issuer challenge, but the explicit HTTP/1.1 curl retry is repeatable and provenance-marked, so WisdomTree is native-promoted for the verified symbols while freshness and schema checks remain mandatory."
+    next_action: "wisdomtree: Keep DXJ/NTSX bounded and freshness-aware; re-audit on transport or schema drift, and do not invoke SEC fallback when the strict curl route succeeds."
     implementation_sha: null
     validation_refs: []
   - adapter_key: advisors_asset_management

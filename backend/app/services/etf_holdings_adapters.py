@@ -6,7 +6,9 @@ import csv
 import html
 import json
 import re
+import shutil
 import ssl
+import subprocess
 import xml.etree.ElementTree as ET
 import zipfile
 from dataclasses import dataclass, field, replace
@@ -14793,6 +14795,84 @@ class WisdomTreeHoldingsAdapter(IssuerCsvHoldingsAdapter):
     }
     _HOLDINGS_URL_TEMPLATE = "https://www.wisdomtree.com/api/fund-holdings/{entity_id}"
 
+    @staticmethod
+    def _curl_get(
+        url: str,
+        *,
+        headers: dict[str, str],
+        timeout: float,
+    ) -> requests.Response:
+        """Retry an issuer challenge with curl's HTTP/1.1 transport.
+
+        WisdomTree's Cloudflare edge has been observed to reject the Python
+        HTTP client fingerprint while serving the same public route to curl.
+        This is a transport retry only: the caller still validates the exact
+        issuer host/path, fund identity, complete row array, and one holdings
+        date before accepting the response.
+        """
+
+        curl_binary = shutil.which("curl")
+        if not curl_binary:
+            raise requests.RequestException("curl is unavailable for WisdomTree transport retry")
+        marker = "__ETF_HOLDINGS_CURL_META__"
+        command = [
+            curl_binary,
+            "--silent",
+            "--show-error",
+            "--location",
+            "--http1.1",
+            "--max-time",
+            str(max(float(timeout), 1.0)),
+            "--write-out",
+            f"\n{marker}%{{http_code}}\n{marker}%{{url_effective}}",
+        ]
+        for key, value in headers.items():
+            command.extend(("--header", f"{key}: {value}"))
+        command.append(url)
+        try:
+            completed = subprocess.run(
+                command,
+                capture_output=True,
+                check=False,
+                timeout=max(float(timeout) + 5.0, 10.0),
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise requests.RequestException(
+                f"WisdomTree curl HTTP/1.1 transport failed: {exc}"
+            ) from exc
+        output = completed.stdout
+        marker_bytes = f"\n{marker}".encode()
+        metadata_start = output.find(marker_bytes)
+        if metadata_start < 0:
+            detail = completed.stderr.decode("utf-8", errors="replace").strip()
+            raise requests.RequestException(
+                "WisdomTree curl response did not include terminal metadata"
+                + (f": {detail}" if detail else "")
+            )
+        body = output[:metadata_start]
+        metadata = output[metadata_start + len(marker_bytes) :].decode(
+            "utf-8", errors="replace"
+        )
+        metadata_lines = metadata.splitlines()
+        if len(metadata_lines) < 2:
+            raise requests.RequestException("WisdomTree curl response metadata was incomplete")
+        try:
+            status_code = int(metadata_lines[0])
+        except ValueError as exc:
+            raise requests.RequestException(
+                "WisdomTree curl response status was invalid"
+            ) from exc
+        response = requests.Response()
+        response.status_code = status_code
+        effective_url = metadata_lines[1]
+        if effective_url.startswith(marker):
+            effective_url = effective_url[len(marker) :]
+        response.url = effective_url or url
+        response._content = body
+        response.encoding = "utf-8"
+        response.request = requests.Request("GET", url, headers=headers).prepare()
+        return response
+
     def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
         normalized_symbol = symbol.strip().upper()
         entity_id = self._FUND_ENTITY_IDS.get(normalized_symbol)
@@ -14848,6 +14928,8 @@ class WisdomTreeHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "WisdomTree holdings must use the exact symbol-scoped public fund-holdings API route."
             )
 
+        transport = "httpx"
+        route_error: Exception | None = None
         try:
             async with httpx.AsyncClient(
                 timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
@@ -14892,16 +14974,71 @@ class WisdomTreeHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 raise ValueError(
                     "WisdomTree holdings response left the symbol-scoped issuer route."
                 )
-        except (httpx.HTTPError, requests.RequestException, ValueError) as route_error:
-            sec_result = await self._sec_fallback_after_route_error(
-                route_error,
-                symbol=normalized_symbol,
-                issuer_product_id=issuer_product_id,
-                identifiers=identifiers,
-            )
-            if sec_result is not None:
-                return sec_result
-            raise
+        except (httpx.HTTPError, requests.RequestException, ValueError) as caught_error:
+            route_error = caught_error
+            if "WisdomTree issuer access challenge blocked" in str(caught_error):
+                try:
+                    curl_headers = _issuer_page_request_headers(accept="text/html,*/*")
+                    product_response = await asyncio.to_thread(
+                        self._curl_get,
+                        self._PRODUCT_PAGE_URLS[normalized_symbol],
+                        headers=curl_headers,
+                        timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                    )
+                    if product_response.status_code in {403, 429} and _looks_like_issuer_access_challenge(
+                        product_response.text
+                    ):
+                        raise ValueError(
+                            "WisdomTree issuer access challenge blocked the curl product route."
+                        )
+                    product_response.raise_for_status()
+                    product_host = _url_host(str(product_response.url))
+                    if not product_host or not _domain_matches(product_host, "wisdomtree.com"):
+                        raise ValueError(
+                            "WisdomTree curl product-page response left the issuer domain."
+                        )
+                    curl_headers = {
+                        **_issuer_page_request_headers(accept="application/json,*/*"),
+                        "Referer": self._PRODUCT_PAGE_URLS[normalized_symbol],
+                    }
+                    response = await asyncio.to_thread(
+                        self._curl_get,
+                        resolved_source_url,
+                        headers=curl_headers,
+                        timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                    )
+                    if response.status_code in {403, 429} and _looks_like_issuer_access_challenge(
+                        response.text
+                    ):
+                        raise ValueError(
+                            "WisdomTree issuer access challenge blocked the curl holdings route."
+                        )
+                    response.raise_for_status()
+                    response_host = _url_host(str(response.url))
+                    if (
+                        not response_host
+                        or not _domain_matches(response_host, "wisdomtree.com")
+                        or urlparse(str(response.url)).path.rstrip("/") != expected_path
+                    ):
+                        raise ValueError(
+                            "WisdomTree curl holdings response left the symbol-scoped issuer route."
+                        )
+                    transport = "curl_http1_1_after_issuer_challenge"
+                    route_error = None
+                except (requests.RequestException, ValueError) as curl_error:
+                    route_error = ValueError(
+                        f"{caught_error}; curl HTTP/1.1 retry failed: {curl_error}"
+                    )
+            if route_error is not None:
+                sec_result = await self._sec_fallback_after_route_error(
+                    route_error,
+                    symbol=normalized_symbol,
+                    issuer_product_id=issuer_product_id,
+                    identifiers=identifiers,
+                )
+                if sec_result is not None:
+                    return sec_result
+                raise route_error
 
         payload = response.json()
         if not isinstance(payload, list) or not payload:
@@ -14927,6 +15064,7 @@ class WisdomTreeHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "adapter_key": self.adapter_key,
                 "source_format": "json",
                 "route_resolution": "wisdomtree_public_fund_holdings_api",
+                "transport": transport,
                 "composition_date": composition_date.isoformat(),
                 "as_of_date": composition_date.isoformat(),
                 "terms_note": self.config.terms_note,
@@ -67698,11 +67836,12 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
     "wisdomtree": IssuerCsvAdapterConfig(
         adapter_key="wisdomtree",
         source_provider="wisdomtree",
-        source_access="issuer_public_holdings_file",
-        live_tested_default_route=False,
+        source_access="issuer_public_symbol_scoped_holdings_json",
+        live_tested_default_route=True,
         terms_note=(
             "WisdomTree's public symbol-scoped fund-holdings API may be subject to "
-            "issuer terms and its disclosed holdings date governs freshness."
+            "issuer terms; the application uses an HTTP/1.1 curl retry after an issuer "
+            "challenge and the disclosed holdings date governs freshness."
         ),
     ),
     "guggenheim": IssuerCsvAdapterConfig(
@@ -70740,7 +70879,6 @@ _FALLBACK_AUDITS_BY_STATUS: dict[str, tuple[str, ...]] = {
         "manulife",
         "ridgeline",
         "westwood",
-        "wisdomtree",
         "q3",
     ),
     "non_executable_public_source": (

@@ -28115,6 +28115,7 @@ async def test_wisdomtree_public_fund_holdings_api_is_symbol_scoped_and_dated(mo
     assert FakeAsyncClient.requested[0][0].endswith("/us/products/equity/dxj")
     assert FakeAsyncClient.requested[1][0].endswith("/api/fund-holdings/1000549")
     assert result.legal_metadata["route_resolution"] == ("wisdomtree_public_fund_holdings_api")
+    assert result.legal_metadata["transport"] == "httpx"
     assert result.legal_metadata["composition_date"] == "2026-09-04"
     assert result.rows[0].symbol == "8306 JT"
     assert result.rows[0].extra_data["figi"] == "BBG000BPH459"
@@ -28122,6 +28123,58 @@ async def test_wisdomtree_public_fund_holdings_api_is_symbol_scoped_and_dated(mo
     assert result.rows[0].extra_data["sectorName"] == "Financials"
     assert result.rows[1].row_type == "cash"
     assert result.rows[1].symbol is None
+
+
+@pytest.mark.asyncio
+async def test_wisdomtree_cloudflare_challenge_retries_official_route_with_curl_http11(monkeypatch):
+    adapter = get_holdings_adapter("wisdomtree")
+    assert adapter is not None
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="<html>Cloudflare Ray ID: challenge-platform</html>",
+            content_type="text/html",
+            status_code=403,
+            url="https://www.wisdomtree.com/us/products/equity/dxj",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    curl_queue = [
+        FakeResponse(
+            text="<html>DXJ product page</html>",
+            content_type="text/html",
+            url="https://www.wisdomtree.com/us/products/equity/dxj",
+        ),
+        FakeResponse(
+            text=json.dumps(
+                [
+                    {
+                        "dt": "2026-09-04T00:00:00.000Z",
+                        "wtClassID": 1000549,
+                        "fundTicker": "DXJ",
+                        "assetGroup": "EQ",
+                        "securityTicker": "8306 JT",
+                        "securityName": "Mitsubishi UFJ Financial Group",
+                        "shares": 1234,
+                        "marketValueBase": 987654.32,
+                        "wgt": 0.0425,
+                    }
+                ]
+            ),
+            content_type="application/json",
+            url="https://www.wisdomtree.com/api/fund-holdings/1000549",
+        ),
+    ]
+
+    def fake_curl(*_args, **_kwargs):
+        return curl_queue.pop(0)
+
+    monkeypatch.setattr(adapter, "_curl_get", fake_curl)
+
+    result = await adapter.fetch_latest(symbol="DXJ")
+
+    assert result.rows[0].symbol == "8306 JT"
+    assert result.legal_metadata["transport"] == "curl_http1_1_after_issuer_challenge"
+    assert result.legal_metadata["composition_date"] == "2026-09-04"
 
 
 @pytest.mark.asyncio
@@ -28198,6 +28251,11 @@ async def test_wisdomtree_cloudflare_challenge_is_explicitly_issuer_blocked(monk
         )
     ]
     monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    def unavailable_curl(*_args, **_kwargs):
+        raise requests.RequestException("curl disabled in deterministic unit test")
+
+    monkeypatch.setattr(adapter, "_curl_get", unavailable_curl)
 
     with pytest.raises(ValueError, match="issuer access challenge"):
         await adapter.fetch_latest(symbol="DXJ")
@@ -28298,8 +28356,8 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
     assert ledger["baseline_fallback_count"] == 140
     assert ledger["baseline_native_count"] == 356
     assert ledger["current_registered_count"] == len(ISSUER_ADAPTER_CONFIGS) == 496
-    assert ledger["current_native_count"] == 415
-    assert ledger["current_fallback_count"] == len(fallback_keys) == 81
+    assert ledger["current_native_count"] == 416
+    assert ledger["current_fallback_count"] == len(fallback_keys) == 80
     assert len(records) == 140
     assert len(record_keys) == len(set(record_keys))
     native_promoted = {
@@ -28365,6 +28423,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         "stance",
         "stratified",
         "trimtabs",
+        "wisdomtree",
     }
     assert set(record_keys) == fallback_keys | native_promoted
     assert sorted(record["queue_rank"] for record in records) == list(range(1, len(records) + 1))
@@ -28392,7 +28451,7 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
             ]
         else:
             assert key in native_promoted
-            assert record["starting_status"] == "needs_first_party_route_discovery"
+            assert record["starting_status"] in allowed_statuses
             assert record["current_status"] == "native_promoted"
             assert record["disposition"] == "native_promoted"
             assert record["route_complete"] is True

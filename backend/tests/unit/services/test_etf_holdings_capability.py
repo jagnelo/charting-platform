@@ -214,6 +214,22 @@ def test_known_adapter_provider_remains_visible_before_first_snapshot():
     assert result.usable_for_current_analysis is False
 
 
+def test_current_wisdomtree_symbol_snapshot_is_usable_for_current_analysis():
+    result = evaluate_capability(
+        profile_with_symbol("DXJ", "wisdomtree"),
+        snapshot(
+            source_provider="wisdomtree",
+            source_url="https://www.wisdomtree.com/api/fund-holdings/1000549",
+        ),
+        state(),
+        now=NOW,
+    )
+
+    assert result.availability == CURRENT
+    assert result.usable_for_current_analysis is True
+    assert result.symbol_audit.outcome == CURRENT
+
+
 def test_malformed_failure_streak_does_not_crash_capability_evaluation():
     result = evaluate_capability(
         profile("wisdomtree"),
@@ -453,15 +469,18 @@ def test_canary_failure_classification_keeps_provider_edges_explicit():
         )
 
 
-def test_tier_zero_symbol_audit_preserves_unavailable_evidence_and_next_action():
+def test_tier_zero_symbol_audit_records_wisdomtree_current_route():
     result = symbol_audit_for_profile(profile_with_symbol("DXJ", "wisdomtree"))
 
     assert result.tier == 0
-    assert result.outcome == "unavailable"
-    assert result.evidence_state == "issuer_route_access_blocked"
+    assert result.outcome == "current"
+    assert result.evidence_state == "issuer_current_canary_verified"
     assert result.provider_identity == "wisdomtree"
     assert result.investigated_at == date(2026, 9, 6)
-    assert "identity-verified" in result.next_action
+    assert "freshness deadline" in result.next_action
+    assert "curl retry" in result.next_action
+    assert any("httpx-403" in ref for ref in result.evidence_refs)
+    assert any("curl-http1-1" in ref for ref in result.evidence_refs)
 
 
 def test_tier_zero_symbol_audit_records_pimco_authentication_boundary():
@@ -1070,7 +1089,7 @@ def test_unreviewed_fallback_symbol_cannot_be_marked_current_from_a_snapshot_alo
 
 def test_unavailable_tier_zero_audit_blocks_current_analysis_even_with_a_snapshot():
     result = evaluate_capability(
-        profile_with_symbol("DXJ", "wisdomtree"),
+        profile_with_symbol("MINT", "pacific_investments"),
         snapshot(),
         state(),
         now=NOW,
