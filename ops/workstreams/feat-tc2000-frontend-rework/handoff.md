@@ -10,6 +10,24 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-06 — Exact-tip exhaustive gate after canonical snapshot quality evidence
+
+At exact product tip `d3547dfd` (documentation tip `a037ea56`), the
+`full_stack_browser` gate passed locked/non-visual checks, backend
+unit/integration and combined coverage (`80.93%`; `1320` unit and `384`
+integration), frontend Vitest (`970/970`), production image build,
+compose/provider policy, stack health, research-runner isolation/resource
+probes, and authenticated functional Playwright (`159` passed with `106`
+documented skips across `265` specs). The visual matrix completed `104`
+cases with `98` passes and exactly six known state-oracle diffs:
+watchlist-column-editor-open at 1080p-100/125 (`13,844` pixels each), and
+workspace-floating at 1080p-100 (`12,097`), 1080p-125 (`9,770`), 1440p-100
+(`12,097`), and 1440p-125 (`12,097`). No baseline, mask, threshold, skip,
+fallback, provider, or acceptance policy changed. Gate cleanup removed four
+generated images and left no containers, volumes, sessions, or known bytes.
+Next action: continue the next bounded canonical provider/history slice while
+preserving the visual-only boundary.
+
 ## 2026-09-06 — Expose canonical snapshot quality evidence
 
 Product commit `d3547dfd` extends the visual-neutral accessible role evidence
@@ -21,8 +39,9 @@ visual, and acceptance policy remain unchanged. Market Map unit coverage passed
 `36/36`, full frontend Vitest passed `970/970`, type-check and production build
 passed, and authenticated `F8s-breadth-family-ratio` passed `1/1`. Teardown
 removed four generated images and resource accounting was clean with zero
-containers, volumes, sessions, and known bytes. Next action: rerun the exact-tip
-gate at the next documentation tip.
+containers, volumes, sessions, and known bytes. The exact-tip gate receipt is
+recorded above. Next action: continue the next bounded canonical provider/
+history slice.
 
 ## 2026-09-06 — Exact-tip exhaustive gate after canonical role identity evidence
 

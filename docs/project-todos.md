@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-06 — Exact-tip gate after canonical snapshot quality evidence
+
+- [x] Record the exact-tip `full_stack_browser` gate at product tip
+      `d3547dfd` (documentation tip `a037ea56`): locked/non-visual checks and
+      functional Playwright passed (`159` passed, `106` documented skips across
+      `265` specs; backend `1320/1320` unit and `384/384` integration;
+      `80.93%` combined; frontend `970/970`).
+- [x] Preserve the unchanged visual/provider/fallback/acceptance boundary:
+      the visual matrix returned `98/104` with exactly six diffs —
+      watchlist-column-editor-open at 1080p-100/125 (`13,844` pixels each)
+      and workspace-floating at 1080p-100 (`12,097`), 1080p-125 (`9,770`),
+      1440p-100 (`12,097`), and 1440p-125 (`12,097` pixels). Gate cleanup
+      left no containers, volumes, sessions, or known bytes. Continue the
+      next bounded canonical provider/history slice.
+
 ### 2026-09-06 — Expose canonical snapshot quality evidence
 
 - [x] Add visual-neutral accessible role evidence for the latest canonical
@@ -13,8 +28,9 @@
       `F8s-breadth-family-ratio` passed `1/1` with source quality and
       completeness asserted. Teardown/resource accounting reported zero
       containers, volumes, sessions, and known bytes.
-- [ ] Rerun the exact-tip integration gate at the next documentation tip;
-      preserve the six existing visual state-oracle diffs.
+- [x] Rerun the exact-tip integration gate at the next documentation tip;
+      preserve the six existing visual state-oracle diffs. The receipt is
+      recorded immediately above.
 
 ### 2026-09-06 — Exact-tip gate after canonical role identity evidence
 
