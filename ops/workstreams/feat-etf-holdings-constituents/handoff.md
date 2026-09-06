@@ -4745,3 +4745,13 @@ audit. MINT/BOND remain unavailable with
 source, provider promotion, AC10 bridge, or AC14 claim was introduced. The
 next PIMCO action remains a changed, complete, current public holdings route or
 an explicitly approved low-cost/licensed source.
+
+## Exact-SHA CI checkpoint — 2026-09-06
+
+GitHub Actions run `34012762799` validated pushed tip
+`074f4766ef810bb680b4da45f297cb100542a8ff` successfully. Backend Tests,
+including Testcontainers integration, Frontend Unit Tests, Branch-declared
+Tests, and Playwright E2E all passed. The staging/master-only Exhaustive
+Integration Gate was skipped as designed for a feature branch. This receipt
+validates the pushed evidence checkpoint only; provider-platform staging, AC10,
+DXJ/NTSX/MINT/BOND, and post-integration AC14 remain open.
