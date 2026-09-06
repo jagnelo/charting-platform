@@ -127,8 +127,8 @@ async def test_canary_success_records_latency_recovery_and_symbol_gated_capabili
     assert result["failed"] == 0
     report = result["reports"][0]
     assert report["status"] == "success"
-    # A successful fetch cannot override the unresolved Tier 0 source audit.
-    assert report["availability"] == "unavailable"
+    # The verified WisdomTree route now unlocks the current Tier 0 capability.
+    assert report["availability"] == "current"
     assert report["recovered"] is True
     assert report["circuit_state"] == "closed"
     assert report["latency_ms"] >= 0
@@ -136,8 +136,8 @@ async def test_canary_success_records_latency_recovery_and_symbol_gated_capabili
     assert state.extra_data["last_canary_failure_class"] is None
     assert len(state.extra_data["canary_history"]) == 1
     assert state.extra_data["canary_history"][0]["status"] == "success"
-    assert state.extra_data["canary_history"][0]["availability"] == "unavailable"
-    assert state.extra_data["canary_history"][0]["symbol_audit_outcome"] == "unavailable"
+    assert state.extra_data["canary_history"][0]["availability"] == "current"
+    assert state.extra_data["canary_history"][0]["symbol_audit_outcome"] == "current"
     assert state.extra_data["canary_history"][0]["source_provider"] == "wisdomtree"
     assert state.extra_data["canary_history"][0]["source_url"].endswith("DXJ.csv")
     assert db.flushes == 1

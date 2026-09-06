@@ -111,7 +111,7 @@
   "head": "04fe128385b4b77033f3d59d6187f5d2da6f1731",
   "implementation_sha": "04fe128385b4b77033f3d59d6187f5d2da6f1731",
   "last_checkpoint": "2026-09-06T07:26:36.458359+00:00",
-  "last_human_progress_update": "2026-09-06T07:26:19.869791+00:00",
+  "last_human_progress_update": "2026-09-06T07:31:29.791050+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "plan_hash": "ef706c1215982147ef73f917716b8ada3ea21d3af4b08aa0948f6855e423cfe5",
@@ -134,11 +134,11 @@
       "AC12",
       "AC13"
     ],
-    "current_blocker": "The shared provider-platform branch has not reached staging, so AC10 generic entitlement/quota/budget/health integration remains deferred. WisdomTree DXJ/NTSX now have dated current issuer evidence through the strict HTTP/1.1 curl retry; only PIMCO MINT/BOND remain unresolved Tier-0 symbols. AC11 remains open for the remaining fallback identities and new compliant evidence; AC14 remains post-integration.",
+    "current_blocker": "The shared provider-platform branch has not reached staging, so AC10 generic entitlement/quota/budget/health integration remains deferred. WisdomTree DXJ/NTSX now have dated current issuer evidence through the strict HTTP/1.1 curl retry; only PIMCO MINT/BOND remain unresolved Tier-0 symbols. All 15 Tier-0 and 159 Tier-1 representative symbols have explicit outcomes; the remaining 19 fallback identities have no representative symbol and retain provider-level terminal or non-publisher dispositions. AC11 remains open for the remaining fallback identities and new compliant evidence; AC14 remains post-integration.",
     "current_phase": "provider_platform_dependency_wait",
     "next_action": "Wait for origin/feat/market-data-provider-platform to become an ancestor of origin/staging before implementing the ETF_HOLDINGS shared capability bridge; keep MINT/BOND unavailable, monitor WisdomTree freshness/schema, and then run the documented AC14 shadow gate after integration/deployment.",
     "total": 14,
-    "updated_at": "2026-09-06T07:26:19.869699+00:00"
+    "updated_at": "2026-09-06T07:31:29.790970+00:00"
   },
   "remote": "04fe128385b4b77033f3d59d6187f5d2da6f1731",
   "remote_sha": "04fe128385b4b77033f3d59d6187f5d2da6f1731",
