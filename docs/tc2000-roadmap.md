@@ -5,6 +5,23 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-06
 
+## 2026-09-06 — Expose canonical snapshot lineage evidence
+
+Product commit `97efe1ea` (`feat(tc2000): expose snapshot lineage evidence`)
+extends the visual-neutral accessible role evidence in Market Breadth and
+Market Map with the selected latest canonical snapshot's composition, as-of,
+and known dates, provenance, row count, resolved count, and unresolved count.
+Missing values remain explicitly not reported and roles without snapshots
+retain unavailable snapshot evidence. The consumers only format returned API
+fields; provider selection, readiness inference, refresh retry, role
+substitution, fallback, visual, and acceptance policy remain unchanged.
+Market Map unit coverage passed `36/36`, full frontend Vitest passed
+`970/970`, type-check and production build passed, and authenticated Chromium
+`F8s-breadth-family-ratio` passed `1/1` with the lineage fields asserted.
+Teardown removed four generated images and resource accounting reported zero
+containers, volumes, sessions, and known bytes. The next exact-tip gate is
+required at the next documentation tip.
+
 ## 2026-09-06 — Exact-tip gate after canonical snapshot quality evidence
 
 At exact product tip `d3547dfd` (documentation tip `a037ea56`), the
