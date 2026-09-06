@@ -28405,6 +28405,33 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         assert record["attempt_history"]
 
 
+def test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers():
+    """Current durable summaries must not drift from code-derived coverage."""
+    workstream_root = (
+        Path(__file__).resolve().parents[4]
+        / "ops"
+        / "workstreams"
+        / "feat-etf-holdings-constituents"
+    )
+    ledger = yaml.safe_load((workstream_root / "provider-audit.yaml").read_text())
+    plan = yaml.safe_load((workstream_root / "plan.yaml").read_text())
+    session = json.loads((workstream_root / "session.json").read_text())
+    handoff = (workstream_root / "handoff.md").read_text()
+
+    fallback_count = len(FALLBACK_ISSUER_AUDITS)
+    tier_zero_count = len(_TIER_0_SYMBOL_AUDITS)
+    tier_one_count = len(_NON_TIER_0_SYMBOL_AUDITS)
+
+    assert ledger["current_fallback_count"] == fallback_count
+    assert len(ledger["symbol_priority_ledger"]["symbols"]) == tier_zero_count
+    assert len(ledger["symbol_audit_ledger"]["symbols"]) == tier_one_count
+
+    expected_tier_counts = f"{tier_zero_count} Tier-0 and {tier_one_count} Tier-1"
+    assert expected_tier_counts in plan["current_blocker"]
+    assert expected_tier_counts in session["progress"]["current_blocker"]
+    assert f"Both now contain {tier_zero_count} Tier-0 and {tier_one_count} Tier-1" in handoff
+
+
 def test_symbolless_fallback_identities_remain_explicitly_non_current():
     """Provider-level identities must not become silent ETF support gaps."""
     ledger_path = (
