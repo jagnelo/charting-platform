@@ -7,9 +7,20 @@
       `da417508`; focused store coverage `71/71`, type-check/build passed,
       provider-probe browser assertion `1/1`, and focused visual cases `22/28`
       passed with only the six existing watchlist/floating diffs.
-- [ ] Rerun the exact-tip integration gate at `da417508`; preserve the six
-      known visual state-oracle diffs and all provider, fallback, baseline,
-      and acceptance policy.
+- [x] Rerun the exact-tip integration gate at `da417508` (docs `4b16ddc1`):
+      locked/non-visual and functional checks passed (`158` passed, `106`
+      documented skips across `264` specs; backend `1320/1320` unit and
+      `384/384` integration; `80.93%` combined; frontend `970/970`), and the
+      visual matrix returned to `98/104` with exactly the six known diffs.
+
+### 2026-09-06 — Exact-tip gate after visual-neutral provider-probe evidence
+
+- [x] Record the authoritative corrected-tip gate at product `da417508` and
+      documentation `4b16ddc1`; no baseline, mask, threshold, skip, fallback,
+      provider, or acceptance policy changed.
+- [x] Teardown removed the assigned stack and four generated images;
+      resource accounting reported zero containers, volumes, sessions, and
+      known bytes. Continue the next bounded canonical provider/history slice.
 
 ### 2026-09-06 — Exact-tip gate after canonical provider-probe evidence
 

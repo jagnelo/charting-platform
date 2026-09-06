@@ -18,6 +18,25 @@ state-oracle diffs. No baseline, mask, threshold, skip, fallback, provider,
 or acceptance policy changed. The full exact-tip gate must be rerun at the
 next documentation tip.
 
+## 2026-09-06 — Exact-tip gate after visual-neutral provider-probe evidence
+
+At product tip `da417508` (documentation tip `4b16ddc1`), the exact-tip
+`full_stack_browser` gate passed all locked dependency/migration checks,
+workstream validation, Ruff/format/type-check, backend unit/integration and
+combined coverage (`80.93%`; `1320` unit and `384` integration tests),
+frontend Vitest (`970/970`), production build, compose/provider policy, stack
+health, research-runner isolation, and authenticated functional Playwright
+(`158` passed with `106` documented skips across `264` specs). The visual
+matrix completed `104` cases with `98` passes and exactly the six known
+state-oracle diffs: watchlist-column-editor-open at visual-1080p-100/125
+(`13,844` pixels each), and workspace-floating at visual-1080p-100/125 and
+visual-1440p-100/125 (`11,901`, `11,901`, `9,770`, `12,097` pixels in this
+run). No baseline, mask, threshold, skip, fallback oracle, provider rule, or
+acceptance policy changed. Teardown removed four generated images and resource
+accounting reported zero containers, volumes, sessions, and known bytes. The
+visual-only boundary is restored; continue the next bounded canonical
+provider/history slice.
+
 ## 2026-09-06 — Exact-tip gate after canonical provider-probe evidence
 
 At product tip `901f56e5` (documentation tip `04661fcb`), the exact-tip

@@ -22,6 +22,21 @@ remained. No baseline, mask, threshold, skip, fallback, provider, or
 acceptance policy changed. The next action is the exact-tip gate at this
 product tip.
 
+## 2026-09-06 — Exact-tip exhaustive gate after visual-neutral provider-probe evidence
+
+At product tip `da417508` (documentation tip `4b16ddc1`), the exact-tip
+`full_stack_browser` gate passed all locked/non-visual stages and functional
+Playwright (`158` passed, `106` documented skips across `264` specs; backend
+`1320` unit and `384` integration; `80.93%` combined; frontend `970/970`).
+The visual matrix completed `104` cases with `98` passes and exactly the six
+known state-oracle diffs: watchlist-column-editor-open at both 1080p scales
+(`13,844` pixels each), and workspace-floating at 1080p-100/125 and
+1440p-100/125 (`11,901`, `11,901`, `9,770`, `12,097` pixels in this run).
+No baseline, mask, threshold, skip, fallback, provider, or acceptance policy
+changed. Teardown removed four generated images and resource accounting was
+clean with zero containers, volumes, sessions, and known bytes. The next
+action is the next bounded canonical provider/history slice.
+
 ## 2026-09-06 — Exact-tip exhaustive gate after canonical provider-probe evidence
 
 At product tip `901f56e5` (documentation tip `04661fcb`), all locked/non-visual
