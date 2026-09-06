@@ -3,7 +3,7 @@
 Status: active implementation roadmap  
 Branch: `feat/tc2000-frontend-rework`  
 Parent: `staging`  
-Last reconciled: 2026-09-05
+Last reconciled: 2026-09-06
 
 ## 2026-09-06 — Keep provider-probe evidence visual-neutral
 
