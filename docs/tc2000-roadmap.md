@@ -5,6 +5,22 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-06
 
+## 2026-09-06 — Expose canonical role identity evidence
+
+Product commit `6209b55f` (`feat(tc2000): expose canonical role identity
+evidence`) adds visual-neutral accessible identity evidence to both Market
+Breadth and Market Map. Each returned role now reports its verification state,
+mapping adapter key/status/confidence, and explicit unmapped/not-reported
+states. The consumers only format existing canonical API fields; they do not
+select providers, infer readiness, retry refreshes, substitute roles, or alter
+fallback, visual, or acceptance policy. Market Map unit coverage passed
+`36/36`, full frontend Vitest passed `970/970`, the production image
+type-check/build passed, and rebuilt authenticated Chromium
+`F8s-breadth-family-ratio` passed `1/1`. Teardown removed four generated
+images and resource accounting reported zero containers, volumes, sessions,
+and known bytes. The next exact-tip gate is required at the next
+documentation tip.
+
 ## 2026-09-06 — Exact-tip gate after canonical role evidence
 
 At branch tip `2baa19a0` (product commit `eccae95e`, documentation tip

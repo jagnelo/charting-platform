@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-06 — Expose canonical role identity evidence
+
+- [x] Add visual-neutral accessible identity evidence to Market Breadth and
+      Market Map for returned role verification state, mapping adapter
+      key/status/confidence, and explicit unmapped/not-reported states. The
+      consumers only format canonical API fields and do not select providers,
+      infer readiness, retry refreshes, substitute roles, or alter fallback,
+      visual, or acceptance policy. Product commit `6209b55f`.
+- [x] Market Map unit coverage passed `36/36`, full frontend Vitest passed
+      `970/970`, production image type-check/build passed, and rebuilt
+      authenticated Chromium `F8s-breadth-family-ratio` passed `1/1`.
+      Teardown/resource accounting reported zero containers, volumes, sessions,
+      and known bytes.
+- [ ] Rerun the exact-tip integration gate at the next documentation tip;
+      preserve the six existing visual state-oracle diffs.
+
 ### 2026-09-06 — Exact-tip gate after canonical role evidence
 
 - [x] Record the exact-tip integration gate at branch tip `2baa19a0` (product
@@ -28,7 +44,7 @@
       rebuilt authenticated Chromium `F8s-breadth-family-ratio` passed `1/1`
       with covered-role evidence asserted. Teardown/resource accounting
       reported zero containers, volumes, sessions, and known bytes.
-- [ ] Rerun the exact-tip integration gate at the next documentation tip;
+- [x] Rerun the exact-tip integration gate at the next documentation tip;
       preserve the six existing visual state-oracle diffs.
 
 ### 2026-09-06 — Expose canonical universe provenance evidence

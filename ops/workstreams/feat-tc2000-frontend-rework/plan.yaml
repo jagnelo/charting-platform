@@ -13,16 +13,16 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  The exact-tip full_stack_browser gate at branch tip 2baa19a0 (product
-  eccae95e) passed all locked/non-visual stages, backend/frontend checks,
-  runner probes, and authenticated functional Playwright (159 passed, 106
-  documented skips across 265 specs). The visual matrix is 98/104 with the
-  same six reproducible state-oracle diffs: watchlist-column-editor-open at
-  1080p-100/125 (13844 pixels each) and workspace-floating at
-  1080p-100/125/1440p-100/1440p-125 (12097/12097/11901/9770 pixels in this
-  run). Teardown and resource accounting are clean. Preserve the unchanged
-  visual/provider/fallback/acceptance policy and continue the next bounded
-  canonical provider/history slice.
+  The latest bounded canonical role-identity slice is durable at product
+  commit 6209b55f. Market Breadth and Market Map now expose returned role
+  verification state and mapping adapter key/status/confidence through
+  visual-neutral accessible evidence, with explicit unmapped/not-reported
+  states. Market Map unit coverage passed 36/36, full frontend Vitest passed
+  970/970, the production image type-check/build passed, and authenticated
+  F8s-breadth-family-ratio passed 1/1; teardown and resource accounting are
+  clean. The next exact-tip full_stack_browser gate is required at the next
+  documentation tip. Preserve the six existing visual state-oracle diffs and
+  unchanged provider/fallback/acceptance policy.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "The roadmap changes frontend workstation behavior, backend canonical provider/history contracts, authenticated browser workflows, Playwright visual assertions, worker-backed data readiness, and full integration evidence."
@@ -117,16 +117,16 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
-    The exact-tip full_stack_browser gate at branch tip 2baa19a0 (product tip
-    eccae95e) passed all locked/non-visual stages, backend/frontend checks,
-    runner probes, and authenticated functional Playwright (159 passed, 106
-    documented skips across 265 specs). The visual matrix is 98/104 with the
-    same six reproducible state-oracle diffs: watchlist-column-editor-open at
-    1080p-100/125 (13844 pixels each) and workspace-floating at
-    1080p-100/125/1440p-100/1440p-125 (12097/12097/11901/9770 pixels in this
-    run). Teardown and resource accounting are clean. Preserve unchanged
-    visual/provider/fallback/acceptance policy and continue the next bounded
-    canonical provider/history slice.
+    The latest bounded canonical role-identity slice is durable at product tip
+    6209b55f. Market Breadth and Market Map now expose returned role
+    verification state and mapping adapter key/status/confidence through
+    visual-neutral accessible evidence, with explicit unmapped/not-reported
+    states. Market Map unit coverage passed 36/36, full frontend Vitest passed
+    970/970, production image type-check/build passed, and authenticated
+    F8s-breadth-family-ratio passed 1/1; teardown and resource accounting are
+    clean. The next exact-tip full_stack_browser gate is required at the next
+    documentation tip. Preserve the six existing visual state-oracle diffs and
+    unchanged provider/fallback/acceptance policy.
     Corrected exact-tip gate at product da417508 and docs 4b16ddc1 passed all
     locked/non-visual stages and functional Playwright 158/158 with 106
     documented skips across 264 specs. The visual matrix is 98/104 with the
