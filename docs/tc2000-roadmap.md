@@ -5,6 +5,18 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-06
 
+## 2026-09-06 — Carry canonical history routes into refresh plans
+
+Product commit `97a144bd` carries each benchmark-family history-refresh leg's
+canonical route status, provider, historical policy, and source URL into the
+administrative queue response. Nasdaq QQQ/QQQE therefore remain visibly
+`sec_filing_reconstruction` through both family coverage and refresh planning,
+while pending local membership and OHLCV population stay distinct from route
+readiness. The focused history planner passed `11/11`, the two admin refresh
+API regressions passed `2/2`, Ruff/format/diff checks passed, and no provider
+selection, fallback, visual, or acceptance policy changed. The exact-tip gate
+at this product tip is the next required validation step.
+
 ## 2026-09-06 — Exact-tip gate after Nasdaq family history-route evidence
 
 At exact product tip `3a3e5bc1` (`feat(tc2000): expose Nasdaq family history

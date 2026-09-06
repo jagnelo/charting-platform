@@ -10,6 +10,16 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-06 — Carry canonical history routes into refresh plans
+
+Product commit `97a144bd` carries canonical history route status, provider,
+policy, and source URL into every benchmark-family history-refresh leg. The
+admin response now makes QQQ/QQQE SEC filing reconstruction visible even when
+their local membership or OHLCV history remains pending. Focused planner tests
+passed `11/11`, admin refresh API regressions passed `2/2`, and Ruff/format/
+diff checks passed. No provider selection, fallback, visual, or acceptance
+policy changed. The exact-tip gate at this product tip is pending.
+
 ## 2026-09-06 — Exact-tip exhaustive gate after Nasdaq family history-route evidence
 
 At exact product tip `3a3e5bc1`, the `full_stack_browser` gate passed all

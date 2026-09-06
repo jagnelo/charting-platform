@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-06 — Carry canonical history routes into refresh plans
+
+- [x] Carry each benchmark-family history-refresh leg's canonical route
+      status/provider/policy/source into the admin queue response, preserving
+      QQQ/QQQE SEC reconstruction evidence separately from local membership and
+      OHLCV population. Product commit `97a144bd`.
+- [x] Focused history planner tests passed `11/11`; the two admin family-history
+      refresh API regressions passed `2/2`; Ruff/format/diff checks passed.
+- [ ] Rerun the exact-tip integration gate at product tip `97a144bd` and
+      preserve the six existing visual state-oracle diffs.
+
 ### 2026-09-06 — Nasdaq family history-route evidence and exact-tip gate
 
 - [x] Add canonical SEC historical-filing reconstruction route metadata for
