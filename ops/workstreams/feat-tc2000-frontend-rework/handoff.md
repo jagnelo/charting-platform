@@ -10,6 +10,32 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-06 — Expose SPDR current-only history route evidence
+
+Product commit `9ec4d498` adds explicit current-only route metadata for the
+nine mapped SPDR roles SPY, SPYV, SPYG, MDY, MDYV, MDYG, SLYV, SLYG, and SPTM.
+Family-history planning preserves `issuer_current_only` / `spdr` /
+`issuer_daily_workbook_current_snapshot_only` and each symbol-specific daily
+workbook URL. This intentionally does not claim dated replay, populated
+holdings snapshots, or member-bar history. Focused checks passed `28/28`, the
+selected family coverage API regression passed `1/1`, and Ruff/format/diff
+checks passed.
+
+## 2026-09-06 — Exact-tip exhaustive gate after SPDR current-only history route evidence
+
+At exact product tip `9ec4d498`, the exhaustive gate passed all locked,
+backend/frontend, build, compose/provider, stack-health, runner-isolation, and
+authenticated functional-browser stages (`159` passed, `106` documented skips
+across `265` specs; frontend Vitest `970/970`). The visual matrix returned
+`98/104`, with only the six known state-oracle diffs: watchlist-column-editor-
+open at 1080p-100/125 (`13,844` pixels each), and workspace-floating at
+1080p-100 (`9,770`), 1080p-125 (`12,097`), 1440p-100 (`9,770`), and
+1440p-125 (`9,770`). Cleanup removed four images and resource accounting is
+clean with zero containers, volumes, sessions, and known bytes. No baseline,
+mask, threshold, skip, fallback, provider, or acceptance policy changed.
+Next action: continue the next bounded canonical provider/history slice while
+preserving the visual-only boundary.
+
 ## 2026-09-06 — Expose iShares dated history routes
 
 Product commit `8573d958` declares the verified iShares public `asOfDate`

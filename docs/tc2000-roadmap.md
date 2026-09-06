@@ -5,6 +5,36 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-06
 
+## 2026-09-06 — Expose SPDR current-only history route evidence
+
+Product commit `9ec4d498` declares explicit issuer-current-only route evidence
+for the nine mapped State Street/SPDR roles SPY, SPYV, SPYG, MDY, MDYV, MDYG,
+SLYV, SLYG, and SPTM. Family-history planning now preserves
+`issuer_current_only` / `spdr` / `issuer_daily_workbook_current_snapshot_only`
+and the symbol-specific daily workbook URL. This is deliberately current
+snapshot evidence only: SPDR has no verified dated replay route here, so no
+dated holdings snapshot or member-bar history is claimed. Focused taxonomy,
+planner, refresh, and route checks passed `28/28`; the selected coverage API
+regression passed `1/1`; Ruff, format, and diff checks passed.
+
+## 2026-09-06 — Exact-tip gate after SPDR current-only history route evidence
+
+At exact product tip `9ec4d498`, the `full_stack_browser` gate passed locked
+dependency/migration/workstream checks, Ruff/format/type-check, backend unit
+and integration phases, combined coverage, frontend Vitest (`970/970`),
+production image build, compose/provider policy, stack health, research-runner
+isolation/resource probes, and authenticated functional Playwright (`159`
+passed with `106` documented skips across `265` specs). The visual matrix
+completed `104` cases with `98` passes and exactly the same six state-oracle
+diffs: watchlist-column-editor-open at visual-1080p-100/125 (`13,844` pixels
+each), and workspace-floating at visual-1080p-100 (`9,770`), visual-1080p-125
+(`12,097`), visual-1440p-100 (`9,770`), and visual-1440p-125 (`9,770`). No
+baseline, mask, threshold, skip, fallback, provider, or acceptance policy
+changed. Gate cleanup removed four generated images and resource accounting
+was clean with zero containers, volumes, sessions, and known bytes. Continue
+the next bounded canonical provider/history population slice while preserving
+this visual-only boundary.
+
 ## 2026-09-06 — Expose iShares dated history routes
 
 Product commit `8573d958` declares the verified iShares public `asOfDate`

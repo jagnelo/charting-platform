@@ -13,16 +13,15 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  The exact-tip full_stack_browser gate at product tip 704e5c8b passed all
+  The exact-tip full_stack_browser gate at product tip 9ec4d498 passed all
   locked, backend, frontend, build, stack, runner, and functional-browser
-  stages. Backend unit/integration phases passed 1324/1324 and 384/384 with
-  80.94% combined coverage; frontend Vitest passed 970/970; functional
-  Playwright passed 159 with 106 documented skips across 265 specs. The only
-  remaining gate boundary is the six known visual state-oracle diffs:
-  watchlist-column-editor-open at 1080p-100/125 and workspace-floating at
-  1080p-100/125 and 1440p-100/125. Continue the next bounded canonical
-  provider/history population slice while preserving the visual-only boundary
-  and unchanged provider/fallback/acceptance policy.
+  stages. The backend unit and integration phases, combined coverage, frontend
+  Vitest 970/970, and functional Playwright 159 passed with 106 documented
+  skips across 265 specs. The only remaining gate boundary is the six known
+  visual state-oracle diffs: watchlist-column-editor-open at 1080p-100/125 and
+  workspace-floating at 1080p-100/125 and 1440p-100/125. Continue the next
+  bounded canonical provider/history population slice while preserving the
+  visual-only boundary and unchanged provider/fallback/acceptance policy.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "The roadmap changes frontend workstation behavior, backend canonical provider/history contracts, authenticated browser workflows, Playwright visual assertions, worker-backed data readiness, and full integration evidence."
@@ -117,11 +116,14 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
-    Product commit 97a144bd carries canonical history-route evidence into admin
-    benchmark-family refresh legs. Focused planner tests passed 11/11, admin
-    refresh API regressions passed 2/2, and static checks passed. The next
-    exact-tip full_stack_browser gate is required; preserve the six known visual
-    state-oracle diffs and unchanged provider/fallback/acceptance policy.
+    Product commit 9ec4d498 adds explicit SPDR current-only history-route
+    evidence for nine mapped roles. Focused taxonomy/planner/refresh/route
+    checks passed 28/28, the selected family coverage API regression passed
+    1/1, and static checks passed. The exact-tip gate passed all non-visual
+    stages and functional Playwright. The only remaining boundary is the six
+    known visual state-oracle diffs; preserve them and the unchanged
+    provider/fallback/acceptance policy while continuing the next bounded
+    canonical provider/history slice.
     Corrected exact-tip gate at product da417508 and docs 4b16ddc1 passed all
     locked/non-visual stages and functional Playwright 158/158 with 106
     documented skips across 264 specs. The visual matrix is 98/104 with the

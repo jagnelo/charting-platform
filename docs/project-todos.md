@@ -1,5 +1,27 @@
 # Project TODO Memory
 
+### 2026-09-06 — Expose SPDR current-only history route evidence
+
+- [x] Declare explicit issuer-current-only route evidence for the nine mapped
+      SPDR roles SPY, SPYV, SPYG, MDY, MDYV, MDYG, SLYV, SLYG, and SPTM, and
+      preserve the symbol-specific daily workbook URL through family-history
+      planning. Product commit `9ec4d498`; this does not claim dated replay or
+      populated holdings/member-bar history.
+- [x] Focused taxonomy/planner/refresh/route checks passed `28/28`; the selected
+      family coverage API regression passed `1/1`; Ruff, format, and diff checks
+      passed.
+- [x] Rerun the exact-tip integration gate at product tip `9ec4d498`: all
+      locked/non-visual stages and authenticated functional Playwright passed
+      (`159` passed, `106` documented skips across `265` specs; frontend
+      `970/970`). The visual matrix remains `98/104` with the same six
+      state-oracle diffs: column-editor-open (`13,844` pixels at 1080p-100/125)
+      and workspace-floating (`9,770`, `12,097`, `9,770`, `9,770` pixels at
+      1080p-100/125 and 1440p-100/125). Cleanup/resource accounting is clean;
+      no visual/provider/fallback/acceptance policy changed.
+- [ ] Continue the next bounded canonical provider/history population slice;
+      preserve the six visual state-oracle diffs and do not treat route metadata
+      as populated history.
+
 ### 2026-09-06 — Expose iShares dated history routes
 
 - [x] Declare the verified issuer `asOfDate` route for IJR, IWB, IWD, IWF,
