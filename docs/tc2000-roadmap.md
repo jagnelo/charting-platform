@@ -5,6 +5,39 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-06
 
+## 2026-09-06 — Exact-tip gate after Nasdaq family history-route evidence
+
+At exact product tip `3a3e5bc1` (`feat(tc2000): expose Nasdaq family history
+route evidence`), the `full_stack_browser` gate passed locked dependency/
+migration and workstream checks, Ruff/format/type-check, backend unit and
+integration coverage (`1320` unit, `384` integration; `80.93%` combined),
+frontend Vitest (`970/970`), production image build, compose/provider policy,
+stack health, research-runner isolation/resource probes, and authenticated
+functional Playwright (`159` passed with `106` documented skips across `265`
+specs). The visual matrix returned `98/104`, with exactly the six known
+state-oracle diffs: watchlist-column-editor-open at visual-1080p-100/125
+(`13,844` pixels each), and workspace-floating at visual-1080p-100 (`12,097`),
+visual-1080p-125 (`9,770`), visual-1440p-100 (`12,097`), and
+visual-1440p-125 (`12,097`). No baseline, mask, threshold, skip, fallback,
+provider, or acceptance policy changed. Gate cleanup removed four generated
+images and the post-gate resource audit reported zero containers, volumes,
+sessions, and known bytes. Continue the next bounded canonical provider/history
+slice while preserving this visual-only boundary.
+
+## 2026-09-06 — Expose Nasdaq family history-route evidence
+
+Product commit `3a3e5bc1` adds explicit canonical `history_route` metadata to
+the QQQ and QQQE Nasdaq-100 family mappings and exposes that route status,
+provider, policy, and source URL through the backend family coverage/readiness
+contracts and visual-neutral accessible Market Map/Market Breadth evidence.
+The route records SEC historical-filing reconstruction readiness
+(`sec_filing_reconstruction`) and does not claim that dated holdings snapshots
+or member bars are already populated. Focused Market Map coverage passed
+`36/36`, full frontend Vitest passed `970/970`, type-check/build passed, and
+targeted backend integration, Ruff, compile, and diff checks passed. The exact
+gate receipt is recorded immediately above; the next action remains a bounded
+canonical provider/history population slice.
+
 ## 2026-09-06 — Exact-tip gate after canonical family provenance evidence
 
 At exact product tip `0147aded` (documentation tip `a3841089`), the

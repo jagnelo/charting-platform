@@ -13,18 +13,18 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  The exact-tip full_stack_browser gate is recorded at product tip 0147aded
-  and documentation tip a3841089. Locked/non-visual stages, backend 1320 unit
-  and 384 integration tests with 80.93% combined coverage, frontend 970/970,
-  production build, stack/runner probes, and functional Playwright 159 passed
-  with 106 documented skips across 265 specs. The visual matrix is 98/104
-  with exactly the six known state-oracle diffs: watchlist-column-editor-open
-  at 1080p-100/125 (13844/13844 pixels) and workspace-floating at 1080p-100,
-  1080p-125, 1440p-100, and 1440p-125 (9770/12097/9770/12097 pixels). No
-  baseline, mask, threshold, skip, fallback, provider, or acceptance policy
-  changed; teardown and resource accounting are clean with zero containers,
-  volumes, sessions, and known bytes. Continue the next bounded canonical
-  provider/history slice while preserving the visual-only boundary.
+  The exact-tip full_stack_browser gate is recorded at product tip 3a3e5bc1.
+  Locked/non-visual stages, backend 1320 unit and 384 integration tests with
+  80.93% combined coverage, frontend 970/970, production build, stack/runner
+  probes, and functional Playwright 159 passed with 106 documented skips across
+  265 specs. The visual matrix is 98/104 with exactly the six known
+  state-oracle diffs: watchlist-column-editor-open at 1080p-100/125
+  (13844/13844 pixels) and workspace-floating at 1080p-100, 1080p-125,
+  1440p-100, and 1440p-125 (12097/9770/12097/12097 pixels). No baseline,
+  mask, threshold, skip, fallback, provider, or acceptance policy changed;
+  teardown and resource accounting are clean with zero containers, volumes,
+  sessions, and known bytes. Continue the next bounded canonical provider/
+  history population slice while preserving the visual-only boundary.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "The roadmap changes frontend workstation behavior, backend canonical provider/history contracts, authenticated browser workflows, Playwright visual assertions, worker-backed data readiness, and full integration evidence."
@@ -119,17 +119,18 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
-    The latest bounded canonical entitlement-capability slice is durable at
-    product commit de4ab370. Market Breadth and Market Map now expose the
-    returned per-role entitlement capability map in visual-neutral accessible
-    role evidence, with absent maps explicitly reported as not reported. Market
-    Map unit coverage passed 36/36, full frontend Vitest passed 970/970,
-    type-check/build passed, and rebuilt authenticated F8s-breadth-family-ratio
-    passed 1/1; teardown and resource accounting are clean with zero
-    containers, volumes, sessions, and known bytes. The next exact-tip
-    full_stack_browser gate is required at the next documentation tip. Preserve
-    the six existing visual state-oracle diffs and unchanged provider/fallback/
-    acceptance policy.
+    The latest bounded Nasdaq family history-route slice is durable at product
+    commit 3a3e5bc1. QQQ and QQQE now expose canonical SEC historical-filing
+    reconstruction route status/provider/policy/source evidence through family
+    coverage/readiness and visual-neutral Market Map/Market Breadth consumers;
+    this is route readiness, not populated dated holdings/member bars. Focused
+    Market Map coverage passed 36/36, full frontend Vitest passed 970/970,
+    type-check/build and targeted backend checks passed. The exact-tip gate at
+    this product tip passed all locked/non-visual stages and functional
+    Playwright 159/159 with 106 documented skips across 265 specs; visual is
+    98/104 with the six unchanged state-oracle diffs. Preserve provider/
+    fallback/acceptance policy and continue the next canonical provider/history
+    population slice.
     Corrected exact-tip gate at product da417508 and docs 4b16ddc1 passed all
     locked/non-visual stages and functional Playwright 158/158 with 106
     documented skips across 264 specs. The visual matrix is 98/104 with the

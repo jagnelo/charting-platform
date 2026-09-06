@@ -10,6 +10,32 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-06 — Exact-tip exhaustive gate after Nasdaq family history-route evidence
+
+At exact product tip `3a3e5bc1`, the `full_stack_browser` gate passed all
+locked/non-visual checks, backend unit/integration and combined coverage
+(`80.93%`; `1320` unit and `384` integration), frontend Vitest (`970/970`),
+production image build, compose/provider policy, stack health, research-runner
+isolation/resource probes, and authenticated functional Playwright (`159`
+passed with `106` documented skips across `265` specs). The visual matrix
+returned `98/104` with only the six known state-oracle diffs:
+watchlist-column-editor-open at 1080p-100/125 (`13,844` pixels each), and
+workspace-floating at 1080p-100 (`12,097`), 1080p-125 (`9,770`), 1440p-100
+(`12,097`), and 1440p-125 (`12,097`). No visual/provider/fallback/acceptance
+policy changed. Cleanup removed four images and resource accounting is clean
+with zero containers, volumes, sessions, and known bytes. Next action: continue
+the next bounded canonical provider/history population slice.
+
+## 2026-09-06 — Expose Nasdaq family history-route evidence
+
+Product commit `3a3e5bc1` adds canonical SEC historical-filing reconstruction
+route evidence for QQQ and QQQE to backend family coverage/readiness and the
+visual-neutral Market Map/Market Breadth role evidence. This documents route
+readiness only; it does not claim populated dated holdings snapshots or member
+bars. Focused and full frontend checks, type-check/build, targeted backend
+integration/Ruff/compile/diff validation passed. Preserve the six visual
+state-oracle diffs and unchanged provider/fallback/acceptance policy.
+
 ## 2026-09-06 — Exact-tip exhaustive gate after canonical family provenance evidence
 
 At exact product tip `0147aded` (documentation tip `a3841089`), the

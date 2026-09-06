@@ -1,5 +1,26 @@
 # Project TODO Memory
 
+### 2026-09-06 — Nasdaq family history-route evidence and exact-tip gate
+
+- [x] Add canonical SEC historical-filing reconstruction route metadata for
+      QQQ and QQQE, expose status/provider/policy/source through backend family
+      coverage/readiness and visual-neutral Market Map/Market Breadth evidence,
+      and preserve the distinction between route readiness and populated dated
+      holdings/member bars. Product commit `3a3e5bc1`.
+- [x] Record the exact-tip `full_stack_browser` gate at product tip
+      `3a3e5bc1`: backend `1320/1320` unit and `384/384` integration tests,
+      `80.93%` combined coverage, frontend `970/970`, functional Playwright
+      `159` passed with `106` documented skips across `265` specs, and all
+      locked/build/stack/runner checks passed.
+- [x] Preserve the unchanged visual/provider/fallback/acceptance boundary:
+      the visual matrix returned `98/104` with exactly six diffs —
+      watchlist-column-editor-open at 1080p-100/125 (`13,844` pixels each)
+      and workspace-floating at 1080p-100 (`12,097`), 1080p-125 (`9,770`),
+      1440p-100 (`12,097`), and 1440p-125 (`12,097`). Cleanup and the resource
+      audit left no containers, volumes, sessions, or known bytes.
+- [ ] Continue the next bounded canonical provider/history population slice;
+      do not treat route metadata as populated history.
+
 ### 2026-09-06 — Exact-tip gate after canonical family provenance evidence
 
 - [x] Record the exact-tip `full_stack_browser` gate at product tip
