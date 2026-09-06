@@ -7,7 +7,7 @@
       refresh legs. Product commit `1888f358`.
 - [x] Focused service coverage passed `12/12`; selected dated-family API
       regression passed `1/1`; Ruff/format/diff checks passed.
-- [ ] Rerun the exact-tip integration gate at product tip `1888f358` and
+- [ ] Rerun the exact-tip integration gate at corrected product tip `bf550e0f` and
       preserve the six existing visual state-oracle diffs.
 
 ### 2026-09-06 — Carry canonical history routes into refresh plans

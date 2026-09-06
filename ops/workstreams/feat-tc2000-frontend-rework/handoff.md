@@ -12,13 +12,13 @@ Update this handoff at each coherent boundary.
 
 ## 2026-09-06 — Carry history routes into dated family refreshes
 
-Product commit `1888f358` carries declared historical route status, provider,
+Product commit `1888f358` (formatter-only follow-up `bf550e0f`) carries declared historical route status, provider,
 policy, and source URL through every provider-backed benchmark-family dated
 refresh leg, including refreshed, route-not-ready, failed, and unmapped
 outcomes. Focused service tests passed `12/12`, the selected dated-family API
 regression passed `1/1`, and Ruff/format/diff checks passed. No provider
 selection, fallback, visual, or acceptance policy changed. The exact-tip gate
-at this product tip is pending.
+at corrected product tip `bf550e0f` is pending.
 
 ## 2026-09-06 — Carry canonical history routes into refresh plans
 

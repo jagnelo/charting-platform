@@ -13,8 +13,8 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  The next exact-tip full_stack_browser gate is required at product tip
-  1888f358 after carrying declared history-route status/provider/policy/source
+  The next exact-tip full_stack_browser gate is required at corrected product
+  tip bf550e0f after carrying declared history-route status/provider/policy/source
   into dated benchmark-family refresh legs. Focused service tests passed 12/12,
   the selected dated-family API regression passed 1/1, and Ruff/format/diff
   checks passed. Preserve the six known visual state-oracle diffs and unchanged
