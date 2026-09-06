@@ -4755,3 +4755,12 @@ Tests, and Playwright E2E all passed. The staging/master-only Exhaustive
 Integration Gate was skipped as designed for a feature branch. This receipt
 validates the pushed evidence checkpoint only; provider-platform staging, AC10,
 DXJ/NTSX/MINT/BOND, and post-integration AC14 remain open.
+
+## Deterministic validation refresh — 2026-09-06
+
+After refreshing the staging/provider-platform refs and rechecking the
+unresolved Tier-0 source boundary, the complete ETF adapter and capability
+deterministic suites passed 666 tests. Workstream validation and diff-check
+also passed. No provider classification, source promotion, entitlement, paid
+activation, or provider-platform state changed; the next context remains
+dependent on provider-platform reaching staging.

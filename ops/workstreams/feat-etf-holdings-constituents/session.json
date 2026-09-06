@@ -91,11 +91,11 @@
   "goal_unavailable_reason": null,
   "head": "6d48fce8a7d40cfecc9731b1ee1534d198b0ce6e",
   "implementation_sha": "6d48fce8a7d40cfecc9731b1ee1534d198b0ce6e",
-  "last_checkpoint": "2026-09-06T05:20:40+00:00",
+  "last_checkpoint": "2026-09-06T05:26:16+00:00",
   "last_human_progress_update": "2026-09-05T15:25:09Z",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Reconcile AC10 only after origin/feat/market-data-provider-platform is an ancestor of origin/staging; until then keep DXJ/NTSX/MINT/BOND unavailable and do not activate paid or direct-provider routes. Re-test the WisdomTree session/API candidate only when application transport behavior changes; after provider-platform reaches staging, run the documented 30-day production AC14 shadow gate.",
-  "plan_hash": "9114ba44a0490e61a183136b412ca484f358a656a9667416a6164332d4758e80",
+  "plan_hash": "2dc2bdf10ac1eb93b4e9900b30ae326b16ee624cfaba5948de2d8c9831552cb0",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -119,7 +119,7 @@
     "current_phase": "provider_platform_dependency_wait",
     "next_action": "Reconcile AC10 only after origin/feat/market-data-provider-platform is an ancestor of origin/staging; until then keep DXJ/NTSX/MINT/BOND unavailable and do not activate paid or direct-provider routes. Re-test the WisdomTree session/API candidate only when application transport behavior changes; after provider-platform reaches staging, run the documented 30-day production AC14 shadow gate.",
     "total": 14,
-      "updated_at": "2026-09-06T05:20:40+00:00"
+      "updated_at": "2026-09-06T05:26:16+00:00"
   },
   "remote": "6d48fce8a7d40cfecc9731b1ee1534d198b0ce6e",
   "remote_sha": "6d48fce8a7d40cfecc9731b1ee1534d198b0ce6e",
