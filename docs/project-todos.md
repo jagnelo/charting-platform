@@ -1,5 +1,31 @@
 # Project TODO Memory
 
+### 2026-09-06 — Keep provider-probe evidence visual-neutral
+
+- [x] Preserve the canonical provider-probe evidence as an accessible labelled
+      status without changing benchmark-header layout pixels. Product commit
+      `da417508`; focused store coverage `71/71`, type-check/build passed,
+      provider-probe browser assertion `1/1`, and focused visual cases `22/28`
+      passed with only the six existing watchlist/floating diffs.
+- [ ] Rerun the exact-tip integration gate at `da417508`; preserve the six
+      known visual state-oracle diffs and all provider, fallback, baseline,
+      and acceptance policy.
+
+### 2026-09-06 — Exact-tip gate after canonical provider-probe evidence
+
+- [x] Run the exact-tip gate at product `901f56e5` and docs `04661fcb`:
+      locked/non-visual and functional checks passed (`158` passed, `106`
+      documented skips across `264` specs; backend `1320/1320` unit and
+      `384/384` integration; `80.93%` combined; frontend `970/970`).
+- [x] Identify the visual-only expansion: `27/104` visual cases failed
+      because the newly visible provider-probe line changed existing board
+      screenshots in addition to the six known state-oracle diffs. The line
+      was made visual-neutral in `da417508`; no visual oracle or acceptance
+      policy was changed.
+- [x] Teardown removed the assigned stack and four generated images;
+      resource accounting reported zero containers, volumes, sessions, and
+      known bytes.
+
 ### 2026-09-05 — Surface canonical provider-probe evidence
 
 - [x] Render returned provider-neutral readiness probe evidence in the
@@ -11,9 +37,9 @@
       and rebuilt authenticated Chromium passed the provider-probe assertion
       `1/1`. Teardown/resource accounting reported zero containers, volumes,
       sessions, and known bytes.
-- [ ] Rerun the exact-tip integration gate at the next documentation tip,
-      preserving the six known visual state-oracle diffs and all provider,
-      fallback, baseline, and acceptance policy.
+- [x] Record the exact-tip gate at documentation tip `04661fcb`; the visual
+      expansion was isolated to the newly visible provider-probe line and was
+      corrected by `da417508` without changing visual or acceptance policy.
 
 ### 2026-09-05 — Exact-tip gate after canonical holdings-route adapter identity
 

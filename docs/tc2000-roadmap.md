@@ -5,6 +5,35 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-05
 
+## 2026-09-06 — Keep provider-probe evidence visual-neutral
+
+Product commit `da417508` (`fix(tc2000): keep provider probe evidence
+visual-neutral`) retains the canonical provider-probe evidence as an
+accessible labelled status without adding layout pixels to the benchmark
+header. The focused workspace store suite passed `71/71`, type-check and
+production build passed, the provider-probe browser assertion passed `1/1`,
+and focused board-guided visual cases passed `22/28`; the only six failures
+were the pre-existing watchlist-column-editor-open and workspace-floating
+state-oracle diffs. No baseline, mask, threshold, skip, fallback, provider,
+or acceptance policy changed. The full exact-tip gate must be rerun at the
+next documentation tip.
+
+## 2026-09-06 — Exact-tip gate after canonical provider-probe evidence
+
+At product tip `901f56e5` (documentation tip `04661fcb`), the exact-tip
+`full_stack_browser` gate passed every locked/non-visual stage and the
+functional browser suite (`158` passed, `106` documented skips across `264`
+specs), including backend unit/integration and combined coverage (`1320`,
+`384`, `80.93%`), frontend Vitest (`970/970`), build, compose/provider
+policy, stack health, and runner isolation. The visual matrix completed
+`104` cases but failed `27` because the newly visible provider-probe line
+changed existing board screenshots in addition to the six known state-oracle
+diffs. That line was subsequently made visual-neutral in `da417508`; no
+visual baseline, mask, threshold, skip, fallback oracle, provider rule, or
+acceptance policy was changed. Teardown removed four generated images and
+resource accounting reported zero containers, volumes, sessions, and known
+bytes. Rerun the exact-tip gate at `da417508` after the parity fix.
+
 ## 2026-09-05 — Surface canonical provider-probe evidence
 
 Product commit `901f56e5` (`feat(tc2000): surface provider probe evidence`)

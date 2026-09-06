@@ -10,6 +10,31 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-06 — Keep provider-probe evidence visual-neutral
+
+Product commit `da417508` retains the canonical provider-probe evidence as an
+accessible labelled status without adding layout pixels to the benchmark
+header. The focused workspace store suite passed `71/71`, type-check and
+production build passed, the provider-probe browser assertion passed `1/1`,
+and focused board-guided visual cases passed `22/28`; only the six existing
+watchlist-column-editor-open and workspace-floating state-oracle diffs
+remained. No baseline, mask, threshold, skip, fallback, provider, or
+acceptance policy changed. The next action is the exact-tip gate at this
+product tip.
+
+## 2026-09-06 — Exact-tip exhaustive gate after canonical provider-probe evidence
+
+At product tip `901f56e5` (documentation tip `04661fcb`), all locked/non-visual
+and functional stages passed (`158` functional passes, `106` documented skips
+across `264` specs; backend `1320` unit and `384` integration; `80.93%`
+combined; frontend `970/970`). The visual matrix completed `104` cases but
+had `27` failures because the newly visible provider-probe line changed board
+screenshots in addition to the six known diffs. Commit `da417508` made that
+evidence visual-neutral without changing any visual oracle or acceptance
+policy. Teardown removed four generated images and resource accounting was
+clean with zero containers, volumes, sessions, and known bytes. Rerun the
+exact-tip gate at `da417508`.
+
 ## 2026-09-05 — Surface canonical provider-probe evidence
 
 Product commit `901f56e5` renders the backend's provider-neutral readiness
