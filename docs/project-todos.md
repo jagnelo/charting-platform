@@ -10,9 +10,20 @@
       rebuilt authenticated Chromium passed the provider-probe and universe
       provenance assertions `2/2`; teardown/resource accounting reported zero
       containers, volumes, sessions, and known bytes.
-- [ ] Rerun the exact-tip integration gate at the next documentation tip,
-      preserving the six known visual state-oracle diffs and unchanged provider,
-      fallback, baseline, and acceptance policy.
+- [x] Rerun the exact-tip integration gate at product `80f7f266` and docs
+      `b57e5893`: locked/non-visual and functional checks passed (`159` passed,
+      `106` documented skips across `265` specs; backend `1320/1320` unit and
+      `384/384` integration; `80.93%` combined; frontend `970/970`), and the
+      visual matrix returned to `98/104` with exactly the six known diffs.
+
+### 2026-09-06 — Exact-tip gate after canonical universe provenance evidence
+
+- [x] Record the authoritative corrected-tip gate at product `80f7f266` and
+      documentation `b57e5893`; no baseline, mask, threshold, skip, fallback,
+      provider, or acceptance policy changed.
+- [x] Teardown removed the assigned stack and four generated images;
+      resource accounting reported zero containers, volumes, sessions, and
+      known bytes. Continue the next bounded canonical provider/history slice.
 
 ### 2026-09-06 — Keep provider-probe evidence visual-neutral
 

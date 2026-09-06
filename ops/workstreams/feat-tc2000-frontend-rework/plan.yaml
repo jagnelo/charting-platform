@@ -13,14 +13,14 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  The corrected exact-tip gate at product commit da417508 and documentation tip
-  4b16ddc1 passed every locked/non-visual stage and functional Playwright (158
-  passed, 106 documented skips across 264 specs; backend 1320 unit and 384
+  The corrected exact-tip gate at product commit 80f7f266 and documentation tip
+  b57e5893 passed every locked/non-visual stage and functional Playwright (159
+  passed, 106 documented skips across 265 specs; backend 1320 unit and 384
   integration tests; 80.93% combined coverage; frontend Vitest 970/970). The
-  visual matrix is back to 98/104 with exactly six reproducible state-oracle
+  visual matrix remains 98/104 with exactly six reproducible state-oracle
   mismatches: watchlist-column-editor-open at visual-1080p-100/125 (13844
   pixels each), and workspace-floating at visual-1080p-100/125/1440p-100/1440p-125
-  (11901/11901/9770/12097 pixels in this run). No baseline, mask, threshold,
+  (11901/12097/9770/12097 pixels in this run). No baseline, mask, threshold,
   skip, fallback, provider, or acceptance policy changed. Teardown and
   resource accounting are clean; preserve this visual-only boundary and
   continue the next bounded canonical provider/history slice.
@@ -356,9 +356,9 @@ progress:
     rule, or acceptance policy changed; assigned stack teardown and resource accounting were clean.
     Canonical provider/history, richer Study targets, native-window/accessibility/security,
     dense-data, and visual-oracle review remain open.
-  next_action: "Record the canonical universe-provenance slice at the next documentation tip, then rerun make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework while preserving the six visual state-oracle assertions and unchanged visual/provider fallback policy."
+  next_action: "Continue the next bounded canonical provider/history slice, then rerun make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework at the next documentation tip while preserving the six visual state-oracle assertions and unchanged visual/provider fallback policy."
 remaining_gaps:
-  - "Product tip 80f7f266 adds an accessible labelled readiness status for canonical universe provenance (registry, family count, point-in-time/latest mode, missing-family count, and provider-call boundary) without provider calls, route selection, readiness inference, fallback, visual-oracle, or acceptance-policy changes. Full frontend Vitest passed 970/970; type-check/build passed; rebuilt authenticated Chromium passed both evidence assertions 2/2; teardown/resource accounting were clean. The exact-tip gate remains pending at the next documentation tip."
+  - "Product tip 80f7f266 adds an accessible labelled readiness status for canonical universe provenance (registry, family count, point-in-time/latest mode, missing-family count, and provider-call boundary) without provider calls, route selection, readiness inference, fallback, visual-oracle, or acceptance-policy changes. Full frontend Vitest passed 970/970; type-check/build passed; rebuilt authenticated Chromium passed both evidence assertions 2/2; teardown/resource accounting were clean. The corrected exact-tip gate at docs b57e5893 passed all locked/non-visual and functional checks; the visual matrix is 98/104 with exactly the six known watchlist/floating diffs."
   - "Product tip da417508 keeps the backend provider-neutral readiness probe count, pass count, recovery count, and latest observation date as an accessible labelled status without changing benchmark-header layout pixels. The corrected exact-tip gate at docs 4b16ddc1 passed all locked/non-visual and functional checks; the visual matrix is 98/104 with exactly the six known watchlist/floating diffs. Preserve unchanged provider/fallback/baseline/acceptance policy."
   - "The preceding exact-tip gate at product 901f56e5 and docs 04661fcb passed every locked/non-visual stage and functional Playwright (158 passed, 106 documented skips across 264 specs), but 27 visual cases failed after the newly visible provider-probe line changed existing screenshots. This was corrected by da417508 without changing visual or acceptance policy."
   - "Exact-tip full_stack_browser gate at product tip 1ca7569d and documentation tip 5936a6ed passed every locked/non-visual stage and functional Playwright (157 passed, 106 documented skips across 263 specs; backend 1320 unit and 384 integration tests; 80.93% combined coverage; frontend Vitest 970/970). The unchanged visual matrix remains 98/104 with six reproducible state-oracle diffs: watchlist-column-editor-open at visual-1080p-100/125 (13844 pixels each), and workspace-floating at visual-1080p-100/125/1440p-100/1440p-125 (11901/12097/12097/12097 pixels). Teardown and resource accounting were clean with zero containers, volumes, sessions, and known bytes. Preserve this visual-only boundary and continue the next bounded canonical provider/history slice without changing baselines, masks, thresholds, skips, fallbacks, provider rules, or acceptance policy."
