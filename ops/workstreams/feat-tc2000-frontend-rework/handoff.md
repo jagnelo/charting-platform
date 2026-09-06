@@ -23,7 +23,7 @@ checks passed. The exact-tip gate at this product tip is recorded below.
 
 ## 2026-09-06 — Exact-tip exhaustive gate after iShares dated history routes
 
-At exact product tip `704e5c8b` (documentation tip pending), the
+At exact product tip `704e5c8b` (documentation tip `e2d3ce9a`), the
 `full_stack_browser` gate passed locked/non-visual checks, backend unit and
 integration phases (`1324` unit and `384` integration; `80.94%` combined),
 frontend Vitest (`970/970`), production image build, compose/provider policy,
