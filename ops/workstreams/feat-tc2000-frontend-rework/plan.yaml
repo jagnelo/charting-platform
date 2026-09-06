@@ -13,17 +13,19 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  The latest bounded canonical continuity slice is durable at product commit
-  3a9f89e2. Market Breadth and Market Map now expose continuity status, gap
-  count, maximum interval, dated gap intervals, and snapshot-window capping in
-  visual-neutral accessible role evidence; omitted continuity is explicitly
-  reported as not reported. Market Map unit coverage passed 36/36, full
-  frontend Vitest passed 970/970, type-check/build passed, and rebuilt
-  authenticated F8s-breadth-family-ratio passed 1/1. Teardown and resource
-  accounting are clean with zero containers, volumes, sessions, and known
-  bytes. The next exact-tip full_stack_browser gate is required at the next
-  documentation tip. Preserve the six existing visual state-oracle diffs and
-  unchanged provider/fallback/acceptance policy.
+  The exact-tip full_stack_browser gate at product tip 3a9f89e2 (documentation
+  tip 11b8265d) passed all locked/non-visual stages, backend unit/integration
+  and combined coverage (80.93%; 1320 unit and 384 integration tests),
+  frontend Vitest (970/970), production image build, compose/provider policy,
+  stack health, research-runner isolation/resource probes, and authenticated
+  functional Playwright (159 passed with 106 documented skips across 265
+  specs). The visual matrix remains 98/104 with exactly six known
+  watchlist-column-editor-open and workspace-floating state-oracle diffs:
+  13844/13844/9770/12097/11901/11901 pixels for visual-1080p-100/125 and
+  visual-1440p-100/125 as recorded in docs/tc2000-roadmap.md. No baseline,
+  mask, threshold, skip, fallback, provider, or acceptance policy changed.
+  Gate cleanup and resource accounting are clean. Continue the next bounded
+  canonical provider/history slice while preserving the visual-only boundary.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "The roadmap changes frontend workstation behavior, backend canonical provider/history contracts, authenticated browser workflows, Playwright visual assertions, worker-backed data readiness, and full integration evidence."
@@ -118,17 +120,19 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
-    The latest bounded canonical continuity slice is durable at product commit
-    3a9f89e2. Market Breadth and Market Map now expose continuity status, gap
-    count, maximum interval, dated gap intervals, and snapshot-window capping
-    in visual-neutral accessible role evidence; omitted continuity is explicitly
-    reported as not reported. Market Map unit coverage passed 36/36, full
-    frontend Vitest passed 970/970, type-check/build passed, and rebuilt
-    authenticated F8s-breadth-family-ratio passed 1/1; teardown and resource
-    accounting are clean with zero containers, volumes, sessions, and known
-    bytes. The next exact-tip full_stack_browser gate is required at the next
-    documentation tip. Preserve the six existing visual state-oracle diffs and
-    unchanged provider/fallback/acceptance policy.
+    The exact-tip full_stack_browser gate at product tip 3a9f89e2 (documentation
+    tip 11b8265d) passed all locked/non-visual stages, backend unit/integration
+    and combined coverage (80.93%; 1320 unit and 384 integration tests),
+    frontend Vitest (970/970), production image build, compose/provider policy,
+    stack health, research-runner isolation/resource probes, and authenticated
+    functional Playwright (159 passed with 106 documented skips across 265
+    specs). The visual matrix remains 98/104 with exactly six known state-oracle
+    diffs: watchlist-column-editor-open at 1080p-100/125 (13844 pixels each),
+    and workspace-floating at 1080p-100/125 and 1440p-100/125
+    (9770/12097/11901/11901 pixels). No baseline, mask, threshold, skip,
+    fallback, provider, or acceptance policy changed; teardown and resource
+    accounting are clean. Continue the next bounded canonical provider/history
+    slice while preserving the visual-only boundary.
     Corrected exact-tip gate at product da417508 and docs 4b16ddc1 passed all
     locked/non-visual stages and functional Playwright 158/158 with 106
     documented skips across 264 specs. The visual matrix is 98/104 with the

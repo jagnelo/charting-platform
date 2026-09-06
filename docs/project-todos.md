@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-06 — Exact-tip gate after canonical continuity evidence
+
+- [x] Record the exact-tip `full_stack_browser` gate at product tip
+      `3a9f89e2` (documentation tip `11b8265d`): locked/non-visual checks and
+      functional Playwright passed (`159` passed, `106` documented skips across
+      `265` specs; backend `1320/1320` unit and `384/384` integration;
+      `80.93%` combined; frontend `970/970`).
+- [x] Preserve the unchanged visual/provider/fallback/acceptance boundary:
+      the visual matrix returned `98/104` with exactly six diffs —
+      watchlist-column-editor-open at 1080p-100/125 (`13,844` pixels each)
+      and workspace-floating at 1080p-100 (`9,770`), 1080p-125 (`12,097`),
+      1440p-100 (`11,901`), and 1440p-125 (`11,901` pixels). Gate cleanup
+      left no containers, volumes, sessions, or known bytes. Continue the
+      next bounded canonical provider/history slice.
+
 ### 2026-09-06 — Expose canonical continuity gap evidence
 
 - [x] Extend visual-neutral canonical role evidence in Market Breadth and

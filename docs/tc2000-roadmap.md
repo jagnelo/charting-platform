@@ -5,6 +5,25 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-06
 
+## 2026-09-06 — Exact-tip gate after canonical continuity evidence
+
+At exact product tip `3a9f89e2` (documentation tip `11b8265d`), the
+`full_stack_browser` gate passed locked dependency/migration and workstream
+checks, Ruff/format/type-check, backend unit/integration and combined coverage
+(`80.93%`; `1320` unit and `384` integration tests), frontend Vitest
+(`970/970`), production image build, compose/provider policy, stack health,
+research-runner isolation/resource probes, and authenticated functional
+Playwright (`159` passed with `106` documented skips across `265` specs). The
+visual matrix completed `104` cases with `98` passes and exactly the six known
+state-oracle diffs: watchlist-column-editor-open at visual-1080p-100/125
+(`13,844` pixels each), and workspace-floating at visual-1080p-100 (`9,770`),
+visual-1080p-125 (`12,097`), visual-1440p-100 (`11,901`), and
+visual-1440p-125 (`11,901`). No baseline, mask, threshold, skip, fallback,
+provider, or acceptance policy changed. Gate cleanup removed four generated
+images and left no containers, volumes, sessions, or known bytes. Continue the
+next bounded canonical provider/history slice while preserving this
+visual-only boundary.
+
 ## 2026-09-06 — Expose canonical continuity gap evidence
 
 Product commit `3a9f89e2` (`feat(tc2000): expose continuity gap evidence`)
