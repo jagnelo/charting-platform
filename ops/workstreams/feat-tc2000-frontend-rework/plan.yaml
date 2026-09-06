@@ -13,13 +13,16 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  The next exact-tip full_stack_browser gate is required at product tip
-  8573d958 after exposing verified iShares issuer-as-of history routes for
-  eight mapped family roles. Focused route, planner, dated-refresh, and adapter
-  checks passed 5/5; Ruff, format, and diff checks passed. This records route
-  capability only, not populated dated snapshots or member-bar history.
-  Preserve the six known visual state-oracle diffs and unchanged
-  provider/fallback/acceptance policy while the gate runs.
+  The exact-tip full_stack_browser gate at product tip 704e5c8b passed all
+  locked, backend, frontend, build, stack, runner, and functional-browser
+  stages. Backend unit/integration phases passed 1324/1324 and 384/384 with
+  80.94% combined coverage; frontend Vitest passed 970/970; functional
+  Playwright passed 159 with 106 documented skips across 265 specs. The only
+  remaining gate boundary is the six known visual state-oracle diffs:
+  watchlist-column-editor-open at 1080p-100/125 and workspace-floating at
+  1080p-100/125 and 1440p-100/125. Continue the next bounded canonical
+  provider/history population slice while preserving the visual-only boundary
+  and unchanged provider/fallback/acceptance policy.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "The roadmap changes frontend workstation behavior, backend canonical provider/history contracts, authenticated browser workflows, Playwright visual assertions, worker-backed data readiness, and full integration evidence."

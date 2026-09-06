@@ -19,7 +19,24 @@ IWV. Family-history planning now preserves the explicit
 and the BlackRock product-data endpoint. This is route capability evidence only;
 it does not claim populated dated holdings or member-bar history. Focused route,
 planner, dated-refresh, and adapter checks passed `5/5`; Ruff, format, and diff
-checks passed. The exact-tip gate at this product tip is pending.
+checks passed. The exact-tip gate at this product tip is recorded below.
+
+## 2026-09-06 — Exact-tip exhaustive gate after iShares dated history routes
+
+At exact product tip `704e5c8b` (documentation tip pending), the
+`full_stack_browser` gate passed locked/non-visual checks, backend unit and
+integration phases (`1324` unit and `384` integration; `80.94%` combined),
+frontend Vitest (`970/970`), production image build, compose/provider policy,
+stack health, research-runner isolation/resource probes, and authenticated
+functional Playwright (`159` passed with `106` documented skips across `265`
+specs). The visual matrix returned `98/104` with exactly the six known
+state-oracle diffs: watchlist-column-editor-open at 1080p-100/125 (`13,844`
+pixels each), and workspace-floating at 1080p-100 (`9,770`), 1080p-125
+(`11,901`), 1440p-100 (`12,097`), and 1440p-125 (`9,770`). No baseline, mask,
+threshold, skip, fallback, provider, or acceptance policy changed. Cleanup
+removed four generated images and resource accounting is clean with zero
+containers, volumes, sessions, and known bytes. Continue the next bounded
+canonical provider/history population slice; preserve the visual-only boundary.
 
 ## 2026-09-06 — Carry history routes into dated family refreshes
 

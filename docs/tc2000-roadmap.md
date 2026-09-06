@@ -15,7 +15,26 @@ BlackRock product-data endpoint. This records route capability only; it does
 not claim that any dated snapshot, membership population, or member-bar history
 has been fetched or is complete. Focused route, planner, dated-refresh, and
 adapter checks passed `5/5`; Ruff, format, and diff checks passed. The exact-tip
-gate at this product tip is pending.
+gate at this product tip is recorded immediately below.
+
+## 2026-09-06 — Exact-tip gate after iShares dated history routes
+
+At exact product tip `704e5c8b` (documentation tip pending), the
+`full_stack_browser` gate passed locked dependency/migration/workstream checks,
+Ruff/format/type-check, backend unit and integration phases (`1324` unit and
+`384` integration tests; `80.94%` combined coverage), frontend Vitest
+(`970/970`), production image build, compose/provider policy, stack health,
+research-runner isolation/resource probes, and authenticated functional
+Playwright (`159` passed with `106` documented skips across `265` specs). The
+visual matrix completed `104` cases with `98` passes and exactly the same six
+state-oracle diffs: watchlist-column-editor-open at visual-1080p-100/125
+(`13,844` pixels each), and workspace-floating at visual-1080p-100 (`9,770`),
+visual-1080p-125 (`11,901`), visual-1440p-100 (`12,097`), and
+visual-1440p-125 (`9,770`). No baseline, mask, threshold, skip, fallback,
+provider, or acceptance policy changed. Gate cleanup removed four generated
+images and resource accounting was clean with zero containers, volumes,
+sessions, and known bytes. Continue the next bounded canonical provider/history
+population slice while preserving this visual-only boundary.
 
 ## 2026-09-06 — Carry history routes into dated family refreshes
 
@@ -1784,8 +1803,8 @@ The TC2000 frontend rework is ready for human review only when all of the follow
 ## Immediate next checkpoint
 
 Continue with the next canonical provider/history slice and compatible chart/list/gauge consumers
-with authenticated evidence. The latest product tip is `bf550e0f`; the exact-tip exhaustive gate
-receipt is recorded above and the documentation tip is `f311ba04`. All non-visual and functional
+with authenticated evidence. The latest product tip is `704e5c8b`; the exact-tip exhaustive gate
+receipt is recorded above and the documentation tip will be recorded in the follow-up docs commit. All non-visual and functional
 stages pass, while the unchanged six visual state-oracle diffs remain explicit: column-editor-open
 at both 1080p projects and workspace-floating at all four visual projects. Preserve the declared
 provider fallback boundaries and all existing acceptance policy while expanding the remaining

@@ -8,8 +8,22 @@
       dated snapshots or member-bar history.
 - [x] Focused route, planner, dated-refresh, and adapter checks passed `5/5`;
       Ruff, format, and diff checks passed.
-- [ ] Rerun the exact-tip integration gate at product tip `8573d958`, preserving
-      the six existing visual state-oracle diffs.
+- [x] Rerun the exact-tip integration gate after the iShares route contract
+      repair at product tip `704e5c8b`; the full receipt is recorded below and
+      preserves the six existing visual state-oracle diffs.
+
+- [x] Rerun the exact-tip integration gate after the test-contract repair at
+      product tip `704e5c8b`: backend `1324/1324` unit and `384/384`
+      integration tests, `80.94%` combined coverage, frontend `970/970`, and
+      functional Playwright `159` passed with `106` documented skips across
+      `265` specs. The visual matrix remains `98/104` with the same six
+      state-oracle diffs: column-editor-open (`13,844` pixels at 1080p-100/125)
+      and workspace-floating (`9,770`, `11,901`, `12,097`, `9,770` pixels at
+      1080p-100/125 and 1440p-100/125). Cleanup/resource accounting is clean;
+      no visual/provider/fallback/acceptance policy changed.
+- [ ] Continue the next bounded canonical provider/history population slice;
+      preserve the six visual state-oracle diffs and do not treat route metadata
+      as populated history.
 
 ### 2026-09-06 — Carry history routes into dated family refreshes
 
