@@ -2443,18 +2443,22 @@ function familyRefreshLabel(role: { holdings_refresh_status?: string; holdings_r
   const reason = role.holdings_refresh_failure_reason?.trim()
   return `${status}${provider ? ` · ${provider}` : ''}${reason ? ` · reason ${reason}` : ''}${checked ? ` · checked ${checked}` : ''}${success ? ` · success ${success}` : ''}${failure ? ` · failed ${failure}` : ''}${composition ? ` · composition ${composition}` : ''}`
 }
-function familyCanonicalRoleEvidenceLabel(coverage: { roles?: Array<{ role: 'cap_weight' | 'equal_weight' | 'value' | 'growth'; symbol?: string | null; label: string; point_in_time_supported?: boolean; member_count?: number; placeholder_member_count?: number; weighted_member_count?: number; weights_status?: string; classified_member_count?: number; classification_status?: string; history_ready?: boolean; composite_readiness_status?: string }> }) {
+function familyCanonicalRoleEvidenceLabel(coverage: { roles?: Array<{ role: 'cap_weight' | 'equal_weight' | 'value' | 'growth'; symbol?: string | null; label: string; verification_state?: string; adapter_key?: string | null; adapter_status?: string | null; adapter_confidence?: number | string | null; point_in_time_supported?: boolean; member_count?: number; placeholder_member_count?: number; weighted_member_count?: number; weights_status?: string; classified_member_count?: number; classification_status?: string; history_ready?: boolean; composite_readiness_status?: string }> }) {
   const roles = coverage.roles ?? []
   if (!roles.length) return 'Canonical role evidence: unavailable'
   return `Canonical role evidence: ${roles.map(role => {
     const name = `${familyRoleLabel(role.role)} ${role.symbol ?? role.label}`
+    const verification = role.verification_state?.trim() || 'not reported'
+    const adapter = role.adapter_key?.trim() || 'unmapped'
+    const adapterStatus = role.adapter_status?.trim()
+    const confidence = role.adapter_confidence == null ? null : `confidence ${role.adapter_confidence}`
     const members = Number.isFinite(role.member_count) ? `members ${role.member_count}` : 'members unavailable'
     const placeholders = role.placeholder_member_count ? ` · placeholders ${role.placeholder_member_count}` : ''
     const weighted = Number.isFinite(role.weighted_member_count) ? `weighted ${role.weighted_member_count} (${role.weights_status ?? 'unknown'})` : 'weighted unavailable'
     const classified = Number.isFinite(role.classified_member_count) ? `classified ${role.classified_member_count} (${role.classification_status ?? 'unknown'})` : 'classified unavailable'
     const pointInTime = role.point_in_time_supported === true ? 'point-in-time supported' : role.point_in_time_supported === false ? 'point-in-time unavailable' : 'point-in-time not reported'
     const history = role.history_ready === true ? 'history ready' : role.history_ready === false ? 'history incomplete' : 'history not reported'
-    return `${name} · ${members}${placeholders} · ${weighted} · ${classified} · ${pointInTime} · ${history} · readiness ${role.composite_readiness_status ?? 'unknown'}`
+    return `${name} · verification ${verification} · adapter ${adapter}${adapterStatus ? ` (${adapterStatus})` : ''}${confidence ? ` · ${confidence}` : ''} · ${members}${placeholders} · ${weighted} · ${classified} · ${pointInTime} · ${history} · readiness ${role.composite_readiness_status ?? 'unknown'}`
   }).join('; ')}`
 }
 function latestFamilyRatio(ratio: { points: Array<{ value: number }> }) {

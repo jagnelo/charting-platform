@@ -221,6 +221,7 @@ describe('MarketMapTool', () => {
     expect(readiness.text()).toContain('Refresh: partial · checked 2026-07-03 · reason issuer endpoint unavailable')
     expect(readiness.text()).toContain('Refresh: partial · checked 2026-07-03 · reason issuer endpoint unavailable · failed 2026-07-04 · composition 2026-06-30')
     expect(readiness.text()).toContain('Members: 101 · Weighted: 101 (ready) · Classified: 21 (partial) · Point-in-time: supported')
+    expect(readiness.get('[aria-label="Benchmark family canonical identity evidence"]').text()).toContain('Cap weight SPY · verification not reported · adapter unmapped')
     expect(readiness.text()).toContain('Entitlement: verified · sec · probe passed')
     expect(readiness.text()).toContain('Entitlement: verified · sec · probe passed · rev 7 · effective 2026-07-01 · review due 2026-10-01')
     expect(readiness.text()).toContain('Latest disclosure: 2026-06-30 · as-of 2026-07-01 · known 2026-07-02 · 21/101 resolved · sec')

@@ -184,6 +184,7 @@
             <small v-if="role.composite_readiness_reasons?.length">{{ role.composite_readiness_reasons.join(' · ') }}</small>
           </li>
         </ul>
+        <span class="sr-only" aria-label="Benchmark family canonical identity evidence">{{ benchmarkRoleIdentityEvidenceLabel(benchmarkCoverage) }}</span>
       </template>
     </div>
     <div v-if="sourceId || historyLoading || historyError" class="market-map-tool__history-status" aria-label="Market Map history readiness">
@@ -714,6 +715,19 @@ function benchmarkRoleEntitlementLabel(role: BenchmarkFamilyCoverageRole): strin
   const effective = role.entitlement_effective_at?.slice(0, 10)
   const reviewDue = role.entitlement_review_due_at?.slice(0, 10)
   return `${status}${provider ? ` · ${provider}` : ''}${probe ? ` · probe ${probe.replace(/_/g, ' ')}` : ''}${revision ? ` · ${revision}` : ''}${effective ? ` · effective ${effective}` : ''}${reviewDue ? ` · review due ${reviewDue}` : ''}`
+}
+
+function benchmarkRoleIdentityEvidenceLabel(coverage: BenchmarkFamilyCoverage): string {
+  const roles = coverage.roles ?? []
+  if (!roles.length) return 'Canonical role identity evidence: unavailable'
+  return `Canonical role identity evidence: ${roles.map(role => {
+    const name = `${role.label}${role.symbol ? ` ${role.symbol}` : ''}`
+    const verification = role.verification_state?.trim() || 'not reported'
+    const adapter = role.adapter_key?.trim() || 'unmapped'
+    const status = role.adapter_status?.trim()
+    const confidence = role.adapter_confidence == null ? null : `confidence ${role.adapter_confidence}`
+    return `${name} · verification ${verification} · adapter ${adapter}${status ? ` (${status})` : ''}${confidence ? ` · ${confidence}` : ''}`
+  }).join(' | ')}`
 }
 
 async function refreshHistory() {
