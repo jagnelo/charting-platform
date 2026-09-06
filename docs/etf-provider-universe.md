@@ -2107,3 +2107,23 @@ fallback-only. Evidence refs:
 `live:wisdomtree-public-fund-holdings-api-2026-09-06-httpx-403`,
 `live:pimco-mint-fund-detail-api-2026-09-06-unauthorized`, and
 `live:pimco-bond-fund-detail-api-2026-09-06-unauthorized`.
+
+## PIMCO Fund Explorer metadata and creation-basket recheck — 2026-09-06
+
+The public PIMCO Fund Explorer client declares a separate application API.
+With the same public-individual role headers used by the page, its fund-details
+route resolves MINT and BOND identity metadata (including CUSIPs and catalogue
+freshness through September 3, 2026), and its document route returns factsheet,
+quarterly-report, and `ETFs Basket` document metadata. This is a useful
+identity/source-discovery improvement, but it is not a holdings feed.
+
+The linked `ETFs Basket` spreadsheet is a creation-unit/authorized-participant
+delivery basket. Although it contains sections labelled for MINT and BOND, a
+creation basket is not the funds' complete current portfolio and therefore cannot
+be used as ETF constituents. The quarterly report is also allocation/performance
+material rather than a security-level holdings table. MINT/BOND remain
+`unavailable` with `no_complete_executable_public_artifact`; no PIMCO source,
+credential, entitlement, paid plan, or provider classification changed.
+Evidence refs: `web:pimco-public-fund-explorer-api-2026-09-06`,
+`live:pimco-fund-explorer-metadata-2026-09-06`, and
+`live:pimco-creation-basket-not-holdings-2026-09-06`.

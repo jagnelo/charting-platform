@@ -4727,3 +4727,21 @@ snapshot, and a successful route state; terminal dispositions remain
 Ruff/formatting/diff-check passed, and no provider/source classification changed.
 The provider-platform staging dependency, DXJ/NTSX/MINT/BOND, AC10, and AC14
 remain unchanged.
+
+## PIMCO Fund Explorer route recheck — 2026-09-06
+
+The public PIMCO Fund Explorer application now provides a reachable,
+application-equivalent metadata route when the public-individual role headers
+are supplied. It identifies MINT and BOND by ticker and CUSIP and reports
+catalogue freshness through 2026-09-03. Its document metadata exposes reports,
+factsheets, and an `ETFs Basket` spreadsheet, but no holdings-report endpoint.
+The downloadable spreadsheet is a creation-unit/authorized-participant basket,
+not the funds' complete current constituents, so it cannot be promoted as ETF
+holdings support.
+
+The new evidence is recorded in the runtime capability ledger and provider
+audit. MINT/BOND remain unavailable with
+`no_complete_executable_public_artifact`; no credentials, entitlements, paid
+source, provider promotion, AC10 bridge, or AC14 claim was introduced. The
+next PIMCO action remains a changed, complete, current public holdings route or
+an explicitly approved low-cost/licensed source.

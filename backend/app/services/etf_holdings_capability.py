@@ -598,6 +598,9 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "live:dealcharts-mint-facts-2026-09-05-quarterly-stale",
             "web:pimco-mint-document-route-recheck-2026-09-05-404",
             "live:pimco-mint-fund-detail-api-2026-09-06-unauthorized",
+            "web:pimco-public-fund-explorer-api-2026-09-06",
+            "live:pimco-fund-explorer-metadata-2026-09-06",
+            "live:pimco-creation-basket-not-holdings-2026-09-06",
         ),
     ),
     "BOND": ETFHoldingsSymbolAudit(
@@ -627,6 +630,9 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "live:dealcharts-bond-facts-2026-09-05-quarterly-stale",
             "web:pimco-bond-document-route-recheck-2026-09-05-404",
             "live:pimco-bond-fund-detail-api-2026-09-06-unauthorized",
+            "web:pimco-public-fund-explorer-api-2026-09-06",
+            "live:pimco-fund-explorer-metadata-2026-09-06",
+            "live:pimco-creation-basket-not-holdings-2026-09-06",
         ),
     ),
     "GEME": ETFHoldingsSymbolAudit(
