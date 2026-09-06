@@ -2187,3 +2187,12 @@ That date is future-dated relative to the `2026-09-06` observation, so the
 existing ingestion and capability boundaries correctly keep AAAA unavailable
 for current analysis. No native promotion is justified until a later check
 proves a non-future, complete, identity-bound artifact.
+
+## Putnam-to-Franklin successor recheck — 2026-09-06
+
+The bounded no-credential Franklin Templeton GraphQL recheck covered
+representative Putnam symbols: PFRX returned no holdings rows, SYNB returned
+33 rows dated `2025-10-31`, and PGRI returned 56 rows dated `2026-07-31`.
+The successor route remains executable but materially stale or empty, so the
+14-symbol Putnam family remains unavailable and fallback-only. No SEC-derived
+promotion, paid activation, or unverified native route was added.

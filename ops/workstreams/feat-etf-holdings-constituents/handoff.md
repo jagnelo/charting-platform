@@ -4859,3 +4859,10 @@ after the effective date is no longer future-dated.
 The focused capability and adapter suites then passed 669 tests; Ruff,
 workstream validation, and diff-check also passed. This validates the evidence
 refresh and parity correction without changing provider classification.
+
+## Putnam-to-Franklin successor recheck — 2026-09-06
+
+Representative no-credential probes found PFRX empty, SYNB dated `2025-10-31`,
+and PGRI dated `2026-07-31`. The public successor API therefore remains
+non-current for the Putnam family; all 14 symbols stay unavailable and no
+successor-native promotion is justified.

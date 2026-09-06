@@ -3371,3 +3371,9 @@ change was made.
 
 The focused capability and adapter suites passed 669 tests after the durable
 ledger parity correction; Ruff, workstream validation, and diff-check passed.
+
+## Putnam-to-Franklin successor recheck — 2026-09-06
+
+The representative public GraphQL probe found no PFRX holdings, a 2025-10-31
+SYNB snapshot, and a 2026-07-31 PGRI snapshot. The route remains executable but
+not current; no successor-native promotion or SEC fallback promotion was made.

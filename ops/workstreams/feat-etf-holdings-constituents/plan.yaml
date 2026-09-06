@@ -267,6 +267,7 @@ remaining_gaps:
   - "Exact-SHA GitHub Actions run 34015836839 on 81f282e5fb0c5e763bfbcf98506fd620c8f2f125 passed Backend Tests including Testcontainers integration, Frontend Unit Tests, Branch-declared Tests, and Playwright E2E; the protected staging/master-only Exhaustive Integration Gate was skipped as designed for this feature branch. This validates the low-cost candidate/session checkpoint only; provider-platform staging, AC10, DXJ/NTSX/MINT/BOND, and post-integration AC14 remain open."
   - "The 2026-09-06 bounded Amplius AAAA recheck returned HTTP 200 with 45 complete holdings rows, but all rows still carried the future effective date 2026-09-08. Runtime and provider-audit evidence advanced to the new check date; the freshness boundary correctly keeps AAAA unavailable and Amplius fallback-only, with no native promotion or paid activation."
   - "Focused validation after the Amplius evidence refresh passed 669 ETF capability and adapter tests, Ruff, workstream validation, and diff-check. The ledger parity correction keeps the runtime AAAA audit and YAML symbol record aligned; no provider classification changed."
+  - "The 2026-09-06 representative Putnam-to-Franklin successor probe found no PFRX rows, a 2025-10-31 SYNB snapshot, and a 2026-07-31 PGRI snapshot. The public route remains materially stale or empty; the 14-symbol family remains unavailable/fallback-only and no successor-native or SEC-derived promotion occurred."
 progress:
   completed:
     - AC1
