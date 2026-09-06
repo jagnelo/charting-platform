@@ -4672,6 +4672,17 @@ checkpoint entries that reported 160 Tier-1 records are retained as historical
 receipts; the current blocker, session state, and next-action records now use
 the code-derived 159 count. No symbol outcome, provider disposition, source
 eligibility, or capability classification changed.
+
+## Exact-SHA CI for current ledger checkpoint — 2026-09-06
+
+GitHub Actions run `34007845793` validated
+`edb88c8064f7e8875877c36ccee85aa636439465` successfully. Backend Tests
+(including Testcontainers integration), Frontend Unit Tests, Branch-declared
+Tests, and Playwright E2E all passed; the staging/master-only Exhaustive
+Integration Gate was skipped as designed for this feature branch. The run
+validates the current audit-parity correction and its durable receipt. It does
+not stage the provider-platform dependency, resolve DXJ/NTSX/MINT/BOND, or
+satisfy AC10/AC14.
 ## Final live-contract hardening and exact-SHA CI — 2026-09-06
 
 The final live-provider sweep exposed only issuer-edge contract drift, not an
