@@ -18,6 +18,7 @@
         <span v-else-if="benchmarkFamilyReadinessError" class="benchmark-surface__family-error" role="alert">Readiness unavailable: {{ benchmarkFamilyReadinessError }}</span>
         <span v-else-if="benchmarkFamilyReadiness" class="benchmark-surface__family-readiness" aria-label="Benchmark family readiness">All-family readiness: {{ benchmarkFamilyReadiness.readiness_status }} · {{ benchmarkFamilyReadiness.ready_role_count }}/{{ benchmarkFamilyReadiness.role_count }} roles · {{ benchmarkFamilyReadiness.ready_family_count }}/{{ benchmarkFamilyReadiness.family_count }} families ready</span>
         <span v-if="benchmarkFamilyReadiness" class="sr-only" aria-label="Benchmark provider probe evidence">{{ benchmarkFamilyProviderProbeLabel(benchmarkFamilyReadiness) }}</span>
+        <span v-if="benchmarkFamilyReadiness" class="sr-only" aria-label="Benchmark family universe provenance">{{ benchmarkFamilyUniverseProvenanceLabel(benchmarkFamilyReadiness) }}</span>
         <span v-if="benchmarkFamilyLoading" role="status">Loading family legs…</span>
         <span v-else-if="benchmarkFamilyError" class="benchmark-surface__family-error" role="alert">{{ benchmarkFamilyError }}</span>
       </div>
@@ -1962,6 +1963,17 @@ function benchmarkFamilyProviderProbeLabel(readiness: BenchmarkFamilyReadinessSt
     .sort()
   const latest = latestObservedAt.length ? latestObservedAt[latestObservedAt.length - 1] : undefined
   return `Provider probes: ${successful}/${evidence.length} passed${recovered ? ` · ${recovered} recovered` : ''}${latest ? ` · latest ${latest.slice(0, 10)}` : ''}`
+}
+function benchmarkFamilyUniverseProvenanceLabel(readiness: BenchmarkFamilyReadinessState) {
+  const provenance = readiness.universe_provenance ?? {}
+  const registry = typeof provenance.registry === 'string' && provenance.registry.trim()
+    ? provenance.registry.trim()
+    : 'unavailable'
+  const familyKeys = Array.isArray(provenance.family_keys) ? provenance.family_keys : []
+  const missingFamilies = Array.isArray(provenance.missing_families) ? provenance.missing_families : []
+  const pointInTime = provenance.point_in_time === true ? 'point-in-time' : 'latest'
+  const providerCalls = provenance.provider_calls === false ? 'none' : provenance.provider_calls === true ? 'recorded' : 'not reported'
+  return `Universe: ${registry} · ${familyKeys.length || readiness.family_count} families · ${pointInTime} · missing ${missingFamilies.length} · provider calls ${providerCalls}`
 }
 const benchmarkFamilyError = computed(() => {
   if (!benchmarkFamilyKey.value) return ''

@@ -1102,6 +1102,26 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('all-family readiness exposes canonical universe provenance', async ({ page, browserDiagnostics }) => {
+    await page.route('**/api/v1/analysis/benchmark-families/readiness*', async route => {
+      const response = await route.fetch()
+      const payload = await response.json()
+      payload.universe_provenance = {
+        registry: 'top_down_taxonomy',
+        family_keys: ['sp500', 'nasdaq100'],
+        point_in_time: true,
+        missing_families: ['russell2000'],
+        provider_calls: false,
+      }
+      await route.fulfill({ response, body: JSON.stringify(payload) })
+    })
+    await page.goto('/chart')
+    const benchmarkSurface = page.locator('.benchmark-surface').first()
+    await expect(benchmarkSurface).toBeVisible({ timeout: 10_000 })
+    await expect(benchmarkSurface.getByLabel('Benchmark family universe provenance')).toContainText('Universe: top_down_taxonomy · 2 families · point-in-time · missing 1 · provider calls none')
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('factory analysis layouts expose linked comparison chart surfaces', async ({ page, browserDiagnostics }) => {
     await page.goto('/chart')
 
