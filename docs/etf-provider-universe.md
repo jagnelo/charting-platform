@@ -15,6 +15,18 @@ ineligible candidate for DXJ/NTSX/MINT/BOND. No account, key, entitlement, or
 paid activation was requested. Evidence ref:
 `web:stockfit-pricing-2026-09-06-jsonld`.
 
+## ETF Holdings API low-cost candidate — 2026-09-06
+
+ETF Holdings API publishes usage pricing of `$1 per 100,000 holdings` with a
+`$10` minimum top-up and requires a bearer API key for holdings and coverage
+checks. Its public documentation describes issuer-backed current snapshots and
+lists WisdomTree among supported issuer families, but does not list PIMCO. The
+candidate is therefore eligible for shared-provider/low-cost review but remains
+unverified for DXJ/NTSX/MINT/BOND without an account, key, coverage check,
+freshness/terms review, and human activation. No account, credential, credit,
+or paid activation was requested, and no symbol outcome changed. Evidence ref:
+`web:etf-holdings-api-contract-2026-09-06`.
+
 ## Current Market Target
 
 The current broad U.S. ETF promoter target is `496` identities.

@@ -550,6 +550,7 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "live:wisdomtree-public-fund-holdings-api-2026-09-05-httpx-403",
             "web:wisdomtree-dxj-product-page-2026-09-05-current",
             "live:wisdomtree-public-fund-holdings-api-2026-09-06-httpx-403",
+            "web:etf-holdings-api-contract-2026-09-06",
         ),
     ),
     "NTSX": ETFHoldingsSymbolAudit(
@@ -569,6 +570,7 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "live:wisdomtree-public-fund-holdings-api-2026-09-05-httpx-403",
             "web:wisdomtree-ntsx-product-page-2026-09-05-current",
             "live:wisdomtree-public-fund-holdings-api-2026-09-06-httpx-403",
+            "web:etf-holdings-api-contract-2026-09-06",
         ),
     ),
     "MINT": ETFHoldingsSymbolAudit(
@@ -601,6 +603,7 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "web:pimco-public-fund-explorer-api-2026-09-06",
             "live:pimco-fund-explorer-metadata-2026-09-06",
             "live:pimco-creation-basket-not-holdings-2026-09-06",
+            "web:etf-holdings-api-contract-2026-09-06",
         ),
     ),
     "BOND": ETFHoldingsSymbolAudit(
@@ -633,6 +636,7 @@ _TIER_0_SYMBOL_AUDITS: dict[str, ETFHoldingsSymbolAudit] = {
             "web:pimco-public-fund-explorer-api-2026-09-06",
             "live:pimco-fund-explorer-metadata-2026-09-06",
             "live:pimco-creation-basket-not-holdings-2026-09-06",
+            "web:etf-holdings-api-contract-2026-09-06",
         ),
     ),
     "GEME": ETFHoldingsSymbolAudit(
