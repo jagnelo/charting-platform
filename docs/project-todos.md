@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-06 — Expose iShares dated history routes
+
+- [x] Declare the verified issuer `asOfDate` route for IJR, IWB, IWD, IWF,
+      IWM, IWN, IWO, and IWV, and preserve it through family-history planning.
+      Product commit `8573d958`; route capability does not claim populated
+      dated snapshots or member-bar history.
+- [x] Focused route, planner, dated-refresh, and adapter checks passed `5/5`;
+      Ruff, format, and diff checks passed.
+- [ ] Rerun the exact-tip integration gate at product tip `8573d958`, preserving
+      the six existing visual state-oracle diffs.
+
 ### 2026-09-06 — Carry history routes into dated family refreshes
 
 - [x] Carry declared historical route status/provider/policy/source through

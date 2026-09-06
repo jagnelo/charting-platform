@@ -10,6 +10,17 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-06 — Expose iShares dated history routes
+
+Product commit `8573d958` declares the verified iShares public `asOfDate`
+route for the eight mapped family roles IJR, IWB, IWD, IWF, IWM, IWN, IWO, and
+IWV. Family-history planning now preserves the explicit
+`issuer_as_of_date` / `ishares` / `issuer_public_json_api_as_of_date` evidence
+and the BlackRock product-data endpoint. This is route capability evidence only;
+it does not claim populated dated holdings or member-bar history. Focused route,
+planner, dated-refresh, and adapter checks passed `5/5`; Ruff, format, and diff
+checks passed. The exact-tip gate at this product tip is pending.
+
 ## 2026-09-06 — Carry history routes into dated family refreshes
 
 Product commit `1888f358` (formatter-only follow-up `bf550e0f`) carries declared historical route status, provider,

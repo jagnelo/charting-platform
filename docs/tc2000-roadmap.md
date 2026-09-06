@@ -5,6 +5,18 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-06
 
+## 2026-09-06 — Expose iShares dated history routes
+
+Product commit `8573d958` declares the verified iShares public `asOfDate`
+route for the eight mapped family roles IJR, IWB, IWD, IWF, IWM, IWN, IWO,
+and IWV. The route evidence is carried by family-history planning as
+`issuer_as_of_date` / `ishares` / `issuer_public_json_api_as_of_date` with the
+BlackRock product-data endpoint. This records route capability only; it does
+not claim that any dated snapshot, membership population, or member-bar history
+has been fetched or is complete. Focused route, planner, dated-refresh, and
+adapter checks passed `5/5`; Ruff, format, and diff checks passed. The exact-tip
+gate at this product tip is pending.
+
 ## 2026-09-06 — Carry history routes into dated family refreshes
 
 Product commit `1888f358` (formatter-only follow-up `bf550e0f`) carries each benchmark-family mapping's declared
