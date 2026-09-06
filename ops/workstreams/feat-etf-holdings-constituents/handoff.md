@@ -4461,6 +4461,16 @@ researched but ineligible candidate for DXJ/NTSX/MINT/BOND. No account, key,
 entitlement, or paid activation was requested, and no symbol classification
 changed.
 
+## Exact-SHA CI checkpoint — 2026-09-06
+
+GitHub Actions run `34014319351` validated pushed tip
+`cd7d9be0089a60d44c98a0fbee119c20e17d1a7a` successfully. Backend Tests,
+including Testcontainers integration, Frontend Unit Tests, Branch-declared
+Tests, and Playwright E2E all passed. The staging/master-only Exhaustive
+Integration Gate was skipped as designed for a feature branch. This validates
+the cost-boundary evidence checkpoint only; provider-platform staging, AC10,
+DXJ/NTSX/MINT/BOND, and post-integration AC14 remain open.
+
 ## Deterministic revalidation and dependency refresh — 2026-09-05
 
 The complete deterministic ETF adapter and capability suites were rerun against
