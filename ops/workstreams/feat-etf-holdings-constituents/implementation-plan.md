@@ -3196,6 +3196,15 @@ export was found or activated; the mixed Pacific/PIMCO provider remains
 fallback-only and MINT/BOND remain unavailable. Evidence ref:
 `live:pimco-fund-detail-route-inventory-2026-09-06-unauthorized`.
 
+## Complete fallback capability-boundary regression — 2026-09-06
+
+The capability suite now exercises every one of the 80 current fallback
+identities with a synthetic, unreviewed symbol and a complete stored snapshot.
+All remain non-current (`unknown` or `not_applicable`) and unusable for current
+analysis; only explicit symbol-level evidence can override the provider-level
+fallback boundary. The focused capability suite passes 90 tests, and no
+provider classification or source outcome changed.
+
 ## Tier-0 free-first route re-test — 2026-09-05
 
 The next bounded source review kept the four unresolved Tier-0 symbols

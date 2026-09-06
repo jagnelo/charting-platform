@@ -86,6 +86,15 @@ Pacific/PIMCO provider remains fallback-only.
 
 Evidence ref: `live:pimco-fund-detail-route-inventory-2026-09-06-unauthorized`.
 
+## Complete fallback capability-boundary regression — 2026-09-06
+
+The deterministic capability suite now covers all 80 fallback identities at
+the boundary: a synthetic unreviewed symbol plus a complete stored snapshot
+cannot become `current` or `usable_for_current_analysis`. Explicit Tier-0 and
+ranked symbol records remain the only path to a current fallback-provider
+outcome. The focused capability suite passes 90 tests; no provider/source,
+credential, paid activation, or shared-provider classification changed.
+
 ## WisdomTree/DXJ-NTSX transport promotion — 2026-09-06
 
 The official WisdomTree symbol-scoped product/API sequence is now implemented

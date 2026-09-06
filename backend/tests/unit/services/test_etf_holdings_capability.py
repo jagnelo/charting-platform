@@ -6,6 +6,7 @@ import httpx
 import yaml
 
 from app.config import settings
+from app.services.etf_holdings_adapters import FALLBACK_ISSUER_AUDITS
 from app.services.etf_holdings_capability import (
     CONTROLLED_FIXTURE,
     CURRENT,
@@ -1139,6 +1140,25 @@ def test_all_symbolless_fallback_identities_remain_non_current_at_capability_bou
             "identity_level_only",
         }
         assert capability.availability in {"not_applicable", UNKNOWN}
+        assert capability.usable_for_current_analysis is False
+
+
+def test_every_fallback_identity_rejects_unreviewed_synthetic_symbols():
+    """A complete snapshot cannot turn an unreviewed fallback identity current."""
+    assert len(FALLBACK_ISSUER_AUDITS) == 80
+
+    for adapter_key in sorted(FALLBACK_ISSUER_AUDITS):
+        profile_value = profile_with_symbol(f"SYNTHETIC_{adapter_key}", adapter_key)
+        audit = symbol_audit_for_profile(profile_value)
+        capability = evaluate_capability(
+            profile_value,
+            snapshot(source_provider=adapter_key),
+            state(),
+            now=NOW,
+        )
+
+        assert audit.outcome != CURRENT
+        assert capability.availability != CURRENT
         assert capability.usable_for_current_analysis is False
 
 
