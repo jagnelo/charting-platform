@@ -2443,7 +2443,7 @@ function familyRefreshLabel(role: { holdings_refresh_status?: string; holdings_r
   const reason = role.holdings_refresh_failure_reason?.trim()
   return `${status}${provider ? ` · ${provider}` : ''}${reason ? ` · reason ${reason}` : ''}${checked ? ` · checked ${checked}` : ''}${success ? ` · success ${success}` : ''}${failure ? ` · failed ${failure}` : ''}${composition ? ` · composition ${composition}` : ''}`
 }
-function familyCanonicalRoleEvidenceLabel(coverage: { roles?: Array<{ role: 'cap_weight' | 'equal_weight' | 'value' | 'growth'; symbol?: string | null; label: string; verification_state?: string; adapter_key?: string | null; adapter_status?: string | null; adapter_confidence?: number | string | null; point_in_time_supported?: boolean; member_count?: number; placeholder_member_count?: number; weighted_member_count?: number; weights_status?: string; classified_member_count?: number; classification_status?: string; history_ready?: boolean; composite_readiness_status?: string }> }) {
+function familyCanonicalRoleEvidenceLabel(coverage: { roles?: Array<{ role: 'cap_weight' | 'equal_weight' | 'value' | 'growth'; symbol?: string | null; label: string; verification_state?: string; adapter_key?: string | null; adapter_status?: string | null; adapter_confidence?: number | string | null; point_in_time_supported?: boolean; member_count?: number; placeholder_member_count?: number; weighted_member_count?: number; weights_status?: string; classified_member_count?: number; classification_status?: string; history_ready?: boolean; composite_readiness_status?: string; snapshots?: Array<{ composition_date?: string | null; source_quality?: string | null; completeness_status?: string | null }> }> }) {
   const roles = coverage.roles ?? []
   if (!roles.length) return 'Canonical role evidence: unavailable'
   return `Canonical role evidence: ${roles.map(role => {
@@ -2458,7 +2458,11 @@ function familyCanonicalRoleEvidenceLabel(coverage: { roles?: Array<{ role: 'cap
     const classified = Number.isFinite(role.classified_member_count) ? `classified ${role.classified_member_count} (${role.classification_status ?? 'unknown'})` : 'classified unavailable'
     const pointInTime = role.point_in_time_supported === true ? 'point-in-time supported' : role.point_in_time_supported === false ? 'point-in-time unavailable' : 'point-in-time not reported'
     const history = role.history_ready === true ? 'history ready' : role.history_ready === false ? 'history incomplete' : 'history not reported'
-    return `${name} · verification ${verification} · adapter ${adapter}${adapterStatus ? ` (${adapterStatus})` : ''}${confidence ? ` · ${confidence}` : ''} · ${members}${placeholders} · ${weighted} · ${classified} · ${pointInTime} · ${history} · readiness ${role.composite_readiness_status ?? 'unknown'}`
+    const snapshot = [...(role.snapshots ?? [])].sort((left, right) => String(right.composition_date ?? '').localeCompare(String(left.composition_date ?? '')))[0]
+    const snapshotEvidence = snapshot
+      ? ` · source quality ${snapshot.source_quality?.trim() || 'not reported'} · completeness ${snapshot.completeness_status?.trim() || 'not reported'}`
+      : ' · snapshot evidence unavailable'
+    return `${name} · verification ${verification} · adapter ${adapter}${adapterStatus ? ` (${adapterStatus})` : ''}${confidence ? ` · ${confidence}` : ''} · ${members}${placeholders} · ${weighted} · ${classified} · ${pointInTime} · ${history} · readiness ${role.composite_readiness_status ?? 'unknown'}${snapshotEvidence}`
   }).join('; ')}`
 }
 function latestFamilyRatio(ratio: { points: Array<{ value: number }> }) {

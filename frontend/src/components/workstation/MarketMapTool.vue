@@ -726,7 +726,11 @@ function benchmarkRoleIdentityEvidenceLabel(coverage: BenchmarkFamilyCoverage): 
     const adapter = role.adapter_key?.trim() || 'unmapped'
     const status = role.adapter_status?.trim()
     const confidence = role.adapter_confidence == null ? null : `confidence ${role.adapter_confidence}`
-    return `${name} · verification ${verification} · adapter ${adapter}${status ? ` (${status})` : ''}${confidence ? ` · ${confidence}` : ''}`
+    const snapshot = [...(role.snapshots ?? [])].sort((left, right) => String(right.composition_date ?? '').localeCompare(String(left.composition_date ?? '')))[0]
+    const snapshotEvidence = snapshot
+      ? ` · source quality ${snapshot.source_quality?.trim() || 'not reported'} · completeness ${snapshot.completeness_status?.trim() || 'not reported'}`
+      : ' · snapshot evidence unavailable'
+    return `${name} · verification ${verification} · adapter ${adapter}${status ? ` (${status})` : ''}${confidence ? ` · ${confidence}` : ''}${snapshotEvidence}`
   }).join(' | ')}`
 }
 
