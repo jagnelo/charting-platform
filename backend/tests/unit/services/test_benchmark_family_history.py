@@ -146,6 +146,39 @@ async def test_family_history_plan_preserves_nasdaq_historical_route_evidence(mo
 
 
 @pytest.mark.asyncio
+async def test_family_history_plan_preserves_ishares_as_of_route_evidence(monkeypatch):
+    async def fake_resolve(_db, _user_id, _source_id, *, as_of):
+        assert as_of is None
+        return SimpleNamespace(
+            descriptor=SimpleNamespace(
+                membership_version="pending-v1",
+                provenance={"availability": "holdings_snapshot_not_loaded"},
+            ),
+            members=(),
+            exclusions=({"reason": "holdings_snapshot_not_loaded"},),
+        )
+
+    monkeypatch.setattr(history, "resolve_watchlist_source", fake_resolve)
+    plan = await history.plan_benchmark_family_history_refresh(
+        object(),
+        family_keys=["russell1000"],
+        roles=["cap_weight", "value", "growth"],
+    )
+
+    expected_source = (
+        "https://www.blackrock.com/varnish-api/blk-one01-product-data/"
+        "product-data/api/v2/get-product-data"
+    )
+    legs = {leg["role"]: leg for leg in plan["legs"]}
+    assert {leg["history_route_status"] for leg in legs.values()} == {"issuer_as_of_date"}
+    assert {leg["history_route_provider"] for leg in legs.values()} == {"ishares"}
+    assert {leg["history_route_policy"] for leg in legs.values()} == {
+        "issuer_public_json_api_as_of_date"
+    }
+    assert {leg["history_route_source_url"] for leg in legs.values()} == {expected_source}
+
+
+@pytest.mark.asyncio
 async def test_queue_snapshot_member_history_deduplicates_canonical_members_and_reports_queue_state():
     class Result:
         def all(self):

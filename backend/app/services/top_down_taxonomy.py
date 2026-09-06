@@ -46,6 +46,22 @@ _SP500_IDENTITY = {
     "official_series_policy": "use_only_when_entitled",
 }
 
+# iShares exposes an explicit ``asOfDate`` parameter on the same public product
+# data endpoint used by the canonical holdings adapter.  Keep this declaration
+# beside the family registry so dated refresh planning can distinguish a
+# verified issuer-as-of route from roles whose provider only exposes current
+# holdings.  The route proves capability, not that any dated snapshot has been
+# fetched or is complete.
+_ISHARES_HISTORY_ROUTE = {
+    "status": "issuer_as_of_date",
+    "provider": "ishares",
+    "policy": "issuer_public_json_api_as_of_date",
+    "source_url": (
+        "https://www.blackrock.com/varnish-api/blk-one01-product-data/"
+        "product-data/api/v2/get-product-data"
+    ),
+}
+
 # The family registry is deliberately metadata-first.  A configured ETF ticker
 # is an identity candidate, not proof that the ETF is an official constituent
 # source or that its holdings are complete at every historical date.  The
@@ -130,6 +146,7 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "label": "S&P SmallCap 600 cap-weighted ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ishares.com/us/products/239774/ishares-core-sp-smallcap-etf",
+            "history_route": dict(_ISHARES_HISTORY_ROUTE),
         },
         "equal_weight": {
             "symbol": None,
@@ -198,6 +215,7 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "label": "Russell 1000 cap-weighted ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ishares.com/us/products/239707/ishares-russell-1000-etf",
+            "history_route": dict(_ISHARES_HISTORY_ROUTE),
         },
         "equal_weight": {
             "symbol": None,
@@ -210,12 +228,14 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "label": "Russell 1000 value ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ishares.com/us/products/239708/ishares-russell-1000-value-etf",
+            "history_route": dict(_ISHARES_HISTORY_ROUTE),
         },
         "growth": {
             "symbol": "IWF",
             "label": "Russell 1000 growth ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ishares.com/us/products/239706/ishares-russell-1000-growth-etf",
+            "history_route": dict(_ISHARES_HISTORY_ROUTE),
         },
         "derived_equal_weight": {
             "allowed": True,
@@ -232,6 +252,7 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "label": "Russell 2000 cap-weighted ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ishares.com/us/products/239710/ishares-russell-2000-etf",
+            "history_route": dict(_ISHARES_HISTORY_ROUTE),
         },
         "equal_weight": {
             "symbol": None,
@@ -244,12 +265,14 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "label": "Russell 2000 value ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ishares.com/us/products/239712/ishares-russell-2000-value-etf",
+            "history_route": dict(_ISHARES_HISTORY_ROUTE),
         },
         "growth": {
             "symbol": "IWO",
             "label": "Russell 2000 growth ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ishares.com/us/products/239709/ishares-russell-2000-growth-etf",
+            "history_route": dict(_ISHARES_HISTORY_ROUTE),
         },
         "derived_equal_weight": {
             "allowed": True,
@@ -266,6 +289,7 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "label": "Russell 3000 cap-weighted ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ishares.com/us/products/239714/ishares-russell-3000-etf",
+            "history_route": dict(_ISHARES_HISTORY_ROUTE),
         },
         "equal_weight": {
             "symbol": None,

@@ -148,6 +148,27 @@ def test_benchmark_family_style_proxies_have_explicit_free_source_routes():
     )
 
 
+def test_ishares_family_roles_declare_the_supported_as_of_history_route():
+    expected_symbols = {"IJR", "IWB", "IWD", "IWF", "IWM", "IWN", "IWO", "IWV"}
+    observed: set[str] = set()
+    for family in benchmark_family_registry():
+        for role in ("cap_weight", "equal_weight", "value", "growth"):
+            mapping = family[role]
+            if mapping.get("symbol") not in expected_symbols:
+                continue
+            observed.add(mapping["symbol"])
+            assert mapping["history_route"] == {
+                "status": "issuer_as_of_date",
+                "provider": "ishares",
+                "policy": "issuer_public_json_api_as_of_date",
+                "source_url": (
+                    "https://www.blackrock.com/varnish-api/blk-one01-product-data/"
+                    "product-data/api/v2/get-product-data"
+                ),
+            }
+    assert observed == expected_symbols
+
+
 def test_every_configured_family_role_has_explicit_route_or_is_unavailable():
     """Keep the family matrix identity-first instead of relying on issuer inference."""
 
