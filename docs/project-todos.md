@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-06 — Exact-tip gate after canonical readiness lineage evidence
+
+- [x] Record the exact-tip `full_stack_browser` gate at product tip
+      `ab09cc60` (documentation tip `7c2d076f`): locked/non-visual checks and
+      functional Playwright passed (`159` passed, `106` documented skips across
+      `265` specs; backend `1320/1320` unit and `384/384` integration;
+      `80.93%` combined; frontend `970/970`).
+- [x] Preserve the unchanged visual/provider/fallback/acceptance boundary:
+      the visual matrix returned `98/104` with exactly six diffs —
+      watchlist-column-editor-open at 1080p-100/125 (`13,844` pixels each)
+      and workspace-floating at all four projects (`12,097` pixels each).
+      Gate cleanup and the resource audit left no containers, volumes, sessions,
+      or known bytes.
+- [ ] Continue the next bounded canonical provider/history slice while
+      preserving the six visual state-oracle diffs.
+
 ### 2026-09-06 — Expose canonical readiness lineage evidence
 
 - [x] Extend visual-neutral canonical role evidence in Market Map and Market
@@ -13,8 +29,9 @@
       passed `970/970`, type-check/build passed, and authenticated
       `F8s-breadth-family-ratio` passed `1/1`. Teardown/resource accounting
       reported zero containers, volumes, sessions, and known bytes.
-- [ ] Rerun the exact-tip integration gate at the next documentation tip;
-      preserve the six existing visual state-oracle diffs.
+- [x] Rerun the exact-tip integration gate at the next documentation tip;
+      the receipt is recorded immediately above with the six unchanged visual
+      state-oracle diffs.
 
 ### 2026-09-06 — Exact-tip gate after canonical entitlement capability evidence
 
