@@ -18,7 +18,24 @@ refresh leg, including refreshed, route-not-ready, failed, and unmapped
 outcomes. Focused service tests passed `12/12`, the selected dated-family API
 regression passed `1/1`, and Ruff/format/diff checks passed. No provider
 selection, fallback, visual, or acceptance policy changed. The exact-tip gate
-at corrected product tip `bf550e0f` is pending.
+at corrected product tip `bf550e0f` is recorded below.
+
+## 2026-09-06 — Exact-tip exhaustive gate after dated family refresh route evidence
+
+At exact product tip `bf550e0f` (documentation tip `fec088cf`), the
+`full_stack_browser` gate passed locked/non-visual checks, backend unit phase
+`1322`, combined coverage threshold, frontend Vitest, production image build,
+compose/provider policy, stack health, research-runner isolation/resource
+probes, and authenticated functional Playwright (`159` passed with `106`
+documented skips across `265` specs). The visual matrix returned `98/104` with
+the same six state-oracle diffs: watchlist-column-editor-open at
+visual-1080p-100/125 (`13,844` pixels each), and workspace-floating at
+visual-1080p-100/125 (`9,770` each) and visual-1440p-100/125 (`12,097` each).
+No baseline, mask, threshold, skip, fallback, provider, or acceptance policy
+changed. Cleanup removed four generated images and resource accounting is
+clean with zero containers, volumes, sessions, and known bytes. Continue the
+next bounded canonical provider/history population slice; preserve the
+visual-only boundary.
 
 ## 2026-09-06 — Carry canonical history routes into refresh plans
 

@@ -7,8 +7,17 @@
       refresh legs. Product commit `1888f358`.
 - [x] Focused service coverage passed `12/12`; selected dated-family API
       regression passed `1/1`; Ruff/format/diff checks passed.
-- [ ] Rerun the exact-tip integration gate at corrected product tip `bf550e0f` and
-      preserve the six existing visual state-oracle diffs.
+- [x] Rerun the exact-tip integration gate at corrected product tip `bf550e0f`:
+      backend unit phase `1322` passed, combined coverage passed the configured
+      threshold, and authenticated functional Playwright passed `159` with
+      `106` documented skips across `265` specs. The visual matrix remains
+      `98/104` with the six existing state-oracle diffs: watchlist-column-editor-
+      open at 1080p-100/125 (`13,844` pixels each) and workspace-floating at
+      1080p-100/125 (`9,770` each) and 1440p-100/125 (`12,097` each). Cleanup
+      and resource audit are clean; no visual/provider/fallback/acceptance
+      policy changed.
+- [ ] Continue the next bounded canonical provider/history population slice;
+      preserve the six visual state-oracle diffs.
 
 ### 2026-09-06 — Carry canonical history routes into refresh plans
 
