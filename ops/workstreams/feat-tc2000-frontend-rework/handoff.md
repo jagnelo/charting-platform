@@ -37,6 +37,19 @@ changed. Teardown removed four generated images and resource accounting was
 clean with zero containers, volumes, sessions, and known bytes. The next
 action is the next bounded canonical provider/history slice.
 
+## 2026-09-06 — Expose canonical universe provenance evidence
+
+Product commit `80f7f266` adds an accessible labelled readiness status for the
+returned canonical universe provenance: registry, family count,
+point-in-time/latest mode, missing-family count, and explicit provider-call
+boundary. The consumer only formats returned metadata; it does not call
+providers, select routes, infer readiness, or change fallback, visual, or
+acceptance policy. Full frontend Vitest passed `970/970`, type-check/build
+passed, and rebuilt authenticated Chromium passed the two evidence assertions
+`2/2`. Teardown removed four generated images and resource accounting was
+clean with zero containers, volumes, sessions, and known bytes. The next
+action is the exact-tip gate at the next documentation tip.
+
 ## 2026-09-06 — Exact-tip exhaustive gate after canonical provider-probe evidence
 
 At product tip `901f56e5` (documentation tip `04661fcb`), all locked/non-visual

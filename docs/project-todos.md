@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-06 — Expose canonical universe provenance evidence
+
+- [x] Add an accessible labelled readiness status for registry, family count,
+      point-in-time/latest mode, missing-family count, and provider-call
+      boundary. Product commit `80f7f266` formats returned metadata only and
+      remains visual-neutral.
+- [x] Full frontend Vitest passed `970/970`, type-check/build passed, and
+      rebuilt authenticated Chromium passed the provider-probe and universe
+      provenance assertions `2/2`; teardown/resource accounting reported zero
+      containers, volumes, sessions, and known bytes.
+- [ ] Rerun the exact-tip integration gate at the next documentation tip,
+      preserving the six known visual state-oracle diffs and unchanged provider,
+      fallback, baseline, and acceptance policy.
+
 ### 2026-09-06 — Keep provider-probe evidence visual-neutral
 
 - [x] Preserve the canonical provider-probe evidence as an accessible labelled

@@ -37,6 +37,20 @@ accounting reported zero containers, volumes, sessions, and known bytes. The
 visual-only boundary is restored; continue the next bounded canonical
 provider/history slice.
 
+## 2026-09-06 — Expose canonical universe provenance evidence
+
+Product commit `80f7f266` (`feat(tc2000): expose universe provenance evidence`)
+adds an accessible labelled readiness status for the backend's canonical
+universe provenance: registry, family count, point-in-time/latest mode,
+missing-family count, and explicit provider-call boundary. It formats returned
+metadata only; it does not call providers, select routes, infer readiness, or
+change fallback, visual, or acceptance policy. Full frontend Vitest passed
+`970/970`, type-check and production build passed, and rebuilt authenticated
+Chromium passed both canonical evidence assertions (`2/2`). Teardown removed
+four generated images and resource accounting reported zero containers,
+volumes, sessions, and known bytes. The next exact-tip gate is required at the
+following documentation tip.
+
 ## 2026-09-06 — Exact-tip gate after canonical provider-probe evidence
 
 At product tip `901f56e5` (documentation tip `04661fcb`), the exact-tip
