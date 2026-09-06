@@ -1,5 +1,6 @@
 import os
 from datetime import date, timedelta
+from decimal import Decimal
 
 import httpx
 import pytest
@@ -1426,7 +1427,10 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             "MBSF",
             None,
             {},
-            50,
+            # The current Regan daily portfolio is a complete 37-row fixed-income
+            # schedule; keep a conservative floor and validate weight coverage below
+            # instead of preserving a stale historical row-count assumption.
+            20,
         ),
         (
             "castleark",
@@ -2529,6 +2533,10 @@ async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
         )
         assert result.legal_metadata["composition_date"]
         assert any(row.holding_type == "cash" for row in result.rows)
+    if adapter_key == "regan" and symbol == "MBSF":
+        assert result.legal_metadata["composition_date"]
+        total_weight = sum((row.weight or Decimal("0")) for row in result.rows)
+        assert total_weight >= Decimal("99")
 
 
 @pytest.mark.asyncio
@@ -3668,7 +3676,12 @@ async def test_live_wealthtrust_public_wltg_complete_holdings_table():
 async def test_live_cultivar_current_fund_page_holdings_table():
     adapter = get_holdings_adapter("cultivar")
     assert adapter is not None
-    result = await adapter.fetch_latest(symbol="CVAR")
+    try:
+        result = await adapter.fetch_latest(symbol="CVAR")
+    except (httpx.HTTPError, requests.RequestException, TimeoutError) as exc:
+        if _is_external_live_access_failure(exc):
+            pytest.skip(str(exc))
+        raise
     _assert_live_holdings_result(result, adapter_key="cultivar", min_rows=50)
     assert result.legal_metadata["route_resolution"] == "cultivar_current_fund_page_holdings_table"
     assert result.legal_metadata["composition_date"]
