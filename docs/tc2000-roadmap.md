@@ -17,6 +17,25 @@ API regressions passed `2/2`, Ruff/format/diff checks passed, and no provider
 selection, fallback, visual, or acceptance policy changed. The exact-tip gate
 at this product tip is the next required validation step.
 
+## 2026-09-06 — Exact-tip gate after carrying history routes into refresh plans
+
+At exact product tip `97a144bd` (`feat(tc2000): carry history routes into
+refresh plans`), the `full_stack_browser` gate passed all locked dependency/
+migration/workstream, Ruff/format/type-check, backend unit/integration,
+frontend Vitest, production-build, compose/provider, stack-health,
+research-runner isolation/resource, and authenticated functional-browser
+stages. The backend unit phase passed `1321` tests; authenticated functional
+Playwright passed `159` with `106` documented skips across `265` specs. The
+visual matrix returned `98/104`, with the same six state-oracle diffs:
+watchlist-column-editor-open at visual-1080p-100/125 (`13,844` pixels each),
+and workspace-floating at visual-1080p-100 (`12,097`), visual-1080p-125
+(`12,097`), visual-1440p-100 (`11,901`), and visual-1440p-125 (`12,097`).
+No baseline, mask, threshold, skip, fallback, provider, or acceptance policy
+changed. Gate cleanup removed four generated images and the post-gate resource
+audit reported zero containers, volumes, sessions, and known bytes. Continue
+the next bounded canonical provider/history population slice while preserving
+this visual-only boundary.
+
 ## 2026-09-06 — Exact-tip gate after Nasdaq family history-route evidence
 
 At exact product tip `3a3e5bc1` (`feat(tc2000): expose Nasdaq family history

@@ -8,8 +8,14 @@
       OHLCV population. Product commit `97a144bd`.
 - [x] Focused history planner tests passed `11/11`; the two admin family-history
       refresh API regressions passed `2/2`; Ruff/format/diff checks passed.
-- [ ] Rerun the exact-tip integration gate at product tip `97a144bd` and
-      preserve the six existing visual state-oracle diffs.
+- [x] Rerun the exact-tip integration gate at product tip `97a144bd`: backend
+      unit phase `1321` passed, functional Playwright `159` passed with `106`
+      documented skips across `265` specs, and all locked/non-visual stages
+      passed. The visual matrix remains `98/104` with the six existing
+      state-oracle diffs (watchlist-column-editor-open `13,844` pixels at
+      1080p-100/125; workspace-floating `12,097`/`12,097`/`11,901`/`12,097`
+      pixels at 1080p-100/125 and 1440p-100/125). Cleanup/resource audit is
+      clean; no visual/provider/fallback/acceptance policy changed.
 
 ### 2026-09-06 — Nasdaq family history-route evidence and exact-tip gate
 

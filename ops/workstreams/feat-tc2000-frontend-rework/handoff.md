@@ -20,6 +20,23 @@ passed `11/11`, admin refresh API regressions passed `2/2`, and Ruff/format/
 diff checks passed. No provider selection, fallback, visual, or acceptance
 policy changed. The exact-tip gate at this product tip is pending.
 
+## 2026-09-06 — Exact-tip exhaustive gate after carrying history routes into refresh plans
+
+At exact product tip `97a144bd`, the `full_stack_browser` gate passed all
+locked/non-visual stages, including the `1321`-test backend unit phase,
+frontend Vitest/type-check/build, compose/provider and stack health,
+research-runner isolation/resource probes, and authenticated functional
+Playwright (`159` passed with `106` documented skips across `265` specs). The
+visual matrix returned `98/104` with the same six state-oracle diffs:
+watchlist-column-editor-open at visual-1080p-100/125 (`13,844` pixels each),
+and workspace-floating at visual-1080p-100/125 (`12,097` each),
+visual-1440p-100 (`11,901`), and visual-1440p-125 (`12,097`). No baseline,
+mask, threshold, skip, fallback, provider, or acceptance policy changed.
+Cleanup removed four generated images and resource accounting is clean with
+zero containers, volumes, sessions, and known bytes. Continue the next
+bounded canonical provider/history population slice; preserve this
+visual-only boundary.
+
 ## 2026-09-06 — Exact-tip exhaustive gate after Nasdaq family history-route evidence
 
 At exact product tip `3a3e5bc1`, the `full_stack_browser` gate passed all
