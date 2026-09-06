@@ -4715,3 +4715,15 @@ staging/master-only Exhaustive Integration Gate was skipped as designed for a
 feature branch. This validates the feature tip and its live-test resilience;
 it does not stage the provider-platform dependency, resolve DXJ/NTSX/MINT/BOND,
 or satisfy AC10/AC14.
+
+## Symbolless fallback capability boundary — 2026-09-06
+
+Implementation checkpoint `9bf709c5` adds an executable capability regression
+covering all 19 provider-audit records without representative symbols. Each
+provider-only identity is evaluated with a synthetic symbol, a complete stored
+snapshot, and a successful route state; terminal dispositions remain
+`not_applicable`, non-executable identities remain `unknown`, and none may be
+`usable_for_current_analysis`. The full capability suite passed 88 tests,
+Ruff/formatting/diff-check passed, and no provider/source classification changed.
+The provider-platform staging dependency, DXJ/NTSX/MINT/BOND, AC10, and AC14
+remain unchanged.
