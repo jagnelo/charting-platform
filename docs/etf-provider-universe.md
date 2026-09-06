@@ -2178,3 +2178,12 @@ credential, entitlement, paid plan, or provider classification changed.
 Evidence refs: `web:pimco-public-fund-explorer-api-2026-09-06`,
 `live:pimco-fund-explorer-metadata-2026-09-06`, and
 `live:pimco-creation-basket-not-holdings-2026-09-06`.
+
+## Amplius AAAA effective-date recheck — 2026-09-06
+
+The bounded Amplius adapter recheck returned HTTP 200 with 45 complete AAAA
+rows, but every row continues to declare an effective date of `2026-09-08`.
+That date is future-dated relative to the `2026-09-06` observation, so the
+existing ingestion and capability boundaries correctly keep AAAA unavailable
+for current analysis. No native promotion is justified until a later check
+proves a non-future, complete, identity-bound artifact.

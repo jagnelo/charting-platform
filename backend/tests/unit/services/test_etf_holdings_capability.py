@@ -604,11 +604,13 @@ def test_follow_on_ranked_fallback_future_dated_symbol_remains_unavailable():
     assert result.outcome == UNAVAILABLE
     assert result.evidence_state == "future_dated_source"
     assert result.provider_identity == "amplius"
-    assert result.investigated_at == date(2026, 9, 5)
+    assert result.investigated_at == date(2026, 9, 6)
     assert result.evidence_refs == (
         "web:amplius-aaaa-current-holdings-page-2026-09-05",
         "live:amplius-aaaa-application-200-2026-09-05",
         "live:amplius-aaaa-future-effective-date-2026-09-05",
+        "live:amplius-aaaa-application-200-2026-09-06",
+        "live:amplius-aaaa-future-effective-date-2026-09-06",
     )
 
 

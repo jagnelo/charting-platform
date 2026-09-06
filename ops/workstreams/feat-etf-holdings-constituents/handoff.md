@@ -4847,3 +4847,15 @@ This receipt validates the low-cost candidate/session checkpoint only. The
 provider-platform branch remains outside staging, AC10 remains deferred,
 DXJ/NTSX/MINT/BOND remain unavailable, and post-integration AC14 remains
 open.
+
+## Amplius AAAA effective-date recheck — 2026-09-06
+
+The bounded Amplius adapter probe returned HTTP 200 with 45 complete AAAA
+holdings rows, but all rows still carry the future effective date `2026-09-08`.
+AAAA remains unavailable for current analysis and Amplius remains fallback-only;
+the parser and freshness rejection are retained, with another recheck required
+after the effective date is no longer future-dated.
+
+The focused capability and adapter suites then passed 669 tests; Ruff,
+workstream validation, and diff-check also passed. This validates the evidence
+refresh and parity correction without changing provider classification.

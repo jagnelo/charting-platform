@@ -862,11 +862,13 @@ _register_non_tier_0_audits(
     outcome=UNAVAILABLE,
     evidence_state="future_dated_source",
     provider_identity="amplius",
-    investigated_at=date(2026, 9, 5),
+    investigated_at=date(2026, 9, 6),
     evidence_refs=(
         "web:amplius-aaaa-current-holdings-page-2026-09-05",
         "live:amplius-aaaa-application-200-2026-09-05",
         "live:amplius-aaaa-future-effective-date-2026-09-05",
+        "live:amplius-aaaa-application-200-2026-09-06",
+        "live:amplius-aaaa-future-effective-date-2026-09-06",
     ),
     next_action=(
         "Re-test AAAA after the issuer effective date is no longer in the future; retain the "

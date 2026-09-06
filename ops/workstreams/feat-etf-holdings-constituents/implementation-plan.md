@@ -3360,3 +3360,14 @@ re-audit on transport/schema drift and no SEC fallback when the strict curl
 route succeeds. Deterministic and bounded live tests cover the transport retry;
 the shared provider-platform dependency, AC10, and post-integration AC14 remain
 open.
+
+## Amplius AAAA effective-date recheck — 2026-09-06
+
+The bounded Amplius adapter probe returned HTTP 200 with 45 complete AAAA
+holdings rows, but every row still reports the future effective date
+`2026-09-08`. The current-date freshness boundary therefore continues to reject
+the artifact for current analysis; no native promotion or source-classification
+change was made.
+
+The focused capability and adapter suites passed 669 tests after the durable
+ledger parity correction; Ruff, workstream validation, and diff-check passed.

@@ -303,8 +303,8 @@ symbol_audit_ledger:
       provider_identity: amplius
       current_outcome: unavailable
       evidence_state: future_dated_source
-      investigated_at: 2026-09-05
-      evidence_refs: [web:amplius-aaaa-current-holdings-page-2026-09-05, live:amplius-aaaa-application-200-2026-09-05, live:amplius-aaaa-future-effective-date-2026-09-05]
+      investigated_at: 2026-09-06
+      evidence_refs: [web:amplius-aaaa-current-holdings-page-2026-09-05, live:amplius-aaaa-application-200-2026-09-05, live:amplius-aaaa-future-effective-date-2026-09-05, live:amplius-aaaa-application-200-2026-09-06, live:amplius-aaaa-future-effective-date-2026-09-06]
       next_action: "Re-test AAAA after the issuer effective date is no longer in the future; retain the provider-specific parser and add bounded live evidence before native promotion."
     - symbol: AMID
       tier: 1
@@ -2012,7 +2012,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: needs_first_party_route_discovery
     disposition: needs_first_party_route_discovery
-    last_checked: 2026-09-05
+    last_checked: 2026-09-06
     source_access_declared: issuer_public_product_page_complete_current_holdings_table
     representative_symbols:
       - AAAA
@@ -2037,6 +2037,8 @@ providers:
       - "web:amplius-aaaa-current-holdings-page-2026-09-05"
       - "live:amplius-aaaa-application-200-2026-09-05"
       - "live:amplius-aaaa-future-effective-date-2026-09-05"
+      - "live:amplius-aaaa-application-200-2026-09-06"
+      - "live:amplius-aaaa-future-effective-date-2026-09-06"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -2054,7 +2056,15 @@ providers:
         source: "https://www.ampliusetfs.com/"
         result: "The official page's AAAA table declares an effective date of 2026-09-08; the adapter and ingestion freshness boundary must preserve the artifact as non-current until the date is valid."
         evidence_ref: "live:amplius-aaaa-future-effective-date-2026-09-05"
-    disposition_reason: "amplius: The issuer page is now executable and complete for AAAA, and a provider-specific parser is covered deterministically, but the observed effective date is 2026-09-08, future-dated relative to the 2026-09-05 check. Keep the source fallback-only and unavailable for current analysis until a non-future artifact is revalidated with bounded live evidence."
+      - date: 2026-09-06
+        source: "https://www.ampliusetfs.com/"
+        result: "The bounded adapter recheck returned HTTP 200 HTML with 45 complete AAAA rows and the same 2026-09-08 effective date. The artifact remains future-dated relative to the 2026-09-06 observation and is therefore not current-analysis usable."
+        evidence_ref: "live:amplius-aaaa-application-200-2026-09-06"
+      - date: 2026-09-06
+        source: "https://www.ampliusetfs.com/"
+        result: "The AAAA effective date remains 2026-09-08; retain the future-date rejection until a later bounded check proves a non-future complete artifact."
+        evidence_ref: "live:amplius-aaaa-future-effective-date-2026-09-06"
+    disposition_reason: "amplius: The issuer page is executable and complete for AAAA, and a provider-specific parser is covered deterministically, but the observed effective date is 2026-09-08, future-dated relative to the 2026-09-06 check. Keep the source fallback-only and unavailable for current analysis until a non-future artifact is revalidated with bounded live evidence."
     next_action: "amplius: Re-test AAAA after the issuer effective date is no longer in the future; retain the provider-specific parser and add bounded live evidence before native promotion."
     implementation_sha: 566a38f7120bdd526a261da28c19a70b88b8764e
     validation_refs: []
