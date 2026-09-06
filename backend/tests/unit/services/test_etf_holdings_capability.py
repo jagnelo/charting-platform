@@ -1,7 +1,9 @@
 from datetime import UTC, date, datetime, timedelta
+from pathlib import Path
 from types import SimpleNamespace
 
 import httpx
+import yaml
 
 from app.config import settings
 from app.services.etf_holdings_capability import (
@@ -1085,6 +1087,40 @@ def test_terminal_non_publisher_identity_is_not_applicable_at_symbol_boundary():
     assert result.tier == 1
     assert result.outcome == "not_applicable"
     assert result.evidence_state == "identity_level_terminal_disposition"
+
+
+def test_all_symbolless_fallback_identities_remain_non_current_at_capability_boundary():
+    """Provider-only dispositions must not become current through a snapshot."""
+    ledger_path = (
+        Path(__file__).resolve().parents[4]
+        / "ops"
+        / "workstreams"
+        / "feat-etf-holdings-constituents"
+        / "provider-audit.yaml"
+    )
+    records = yaml.safe_load(ledger_path.read_text())["providers"]
+    symbolless = [
+        record["adapter_key"] for record in records if not record["representative_symbols"]
+    ]
+
+    assert len(symbolless) == 19
+    for adapter_key in symbolless:
+        profile_value = profile_with_symbol(f"SYNTHETIC_{adapter_key}", adapter_key)
+        audit = symbol_audit_for_profile(profile_value)
+        capability = evaluate_capability(
+            profile_value,
+            snapshot(source_provider=adapter_key),
+            state(),
+            now=NOW,
+        )
+
+        assert audit.outcome in {"not_applicable", UNKNOWN}
+        assert audit.evidence_state in {
+            "identity_level_terminal_disposition",
+            "identity_level_only",
+        }
+        assert capability.availability in {"not_applicable", UNKNOWN}
+        assert capability.usable_for_current_analysis is False
 
 
 def _shadow_observation(
