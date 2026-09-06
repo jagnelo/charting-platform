@@ -1172,9 +1172,7 @@ def _history_route_evidence(mapping: dict[str, Any] | None) -> dict[str, Any]:
         "history_route_status": str(route.get("status") or "not_reported"),
         "history_route_provider": str(route["provider"]) if route.get("provider") else None,
         "history_route_policy": str(route["policy"]) if route.get("policy") else None,
-        "history_route_source_url": (
-            str(route["source_url"]) if route.get("source_url") else None
-        ),
+        "history_route_source_url": (str(route["source_url"]) if route.get("source_url") else None),
     }
 
 
