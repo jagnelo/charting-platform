@@ -2196,3 +2196,11 @@ representative Putnam symbols: PFRX returned no holdings rows, SYNB returned
 The successor route remains executable but materially stale or empty, so the
 14-symbol Putnam family remains unavailable and fallback-only. No SEC-derived
 promotion, paid activation, or unverified native route was added.
+
+## Putnam-to-Franklin full successor sweep — 2026-09-06
+
+The complete no-credential sweep across all 14 mapped symbols found no current
+complete artifact: PFRX returned no rows, while the remaining symbols returned
+snapshots dated between `2025-10-31` and `2026-07-31`. The family remains
+unavailable and fallback-only; no successor-native or SEC-derived promotion was
+made.

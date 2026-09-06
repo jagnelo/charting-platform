@@ -952,7 +952,7 @@ symbol_audit_ledger:
       current_outcome: unavailable
       evidence_state: non_executable_public_source
       investigated_at: 2026-09-06
-      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03", "live:putnam-franklin-representative-recheck-2026-09-06"]
+      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03", "live:putnam-franklin-representative-recheck-2026-09-06", "live:putnam-franklin-full-sweep-2026-09-06"]
       next_action: "Recheck Franklin Templeton product/API holdings for a complete current snapshot across the mapped Putnam symbols; promote only after current-date coverage, parser fixtures, and bounded live tests pass."
     - symbol: SYNB
       tier: 1
@@ -960,95 +960,95 @@ symbol_audit_ledger:
       current_outcome: unavailable
       evidence_state: non_executable_public_source
       investigated_at: 2026-09-06
-      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03", "live:putnam-franklin-representative-recheck-2026-09-06"]
+      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03", "live:putnam-franklin-representative-recheck-2026-09-06", "live:putnam-franklin-full-sweep-2026-09-06"]
       next_action: "Recheck Franklin Templeton product/API holdings for a complete current snapshot across the mapped Putnam symbols; promote only after current-date coverage, parser fixtures, and bounded live tests pass."
     - symbol: PGRO
       tier: 1
       provider_identity: putnam
       current_outcome: unavailable
       evidence_state: non_executable_public_source
-      investigated_at: 2026-09-03
-      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03"]
+      investigated_at: 2026-09-06
+      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03", "live:putnam-franklin-full-sweep-2026-09-06"]
       next_action: "Recheck Franklin Templeton product/API holdings for a complete current snapshot across the mapped Putnam symbols; promote only after current-date coverage, parser fixtures, and bounded live tests pass."
     - symbol: PHYD
       tier: 1
       provider_identity: putnam
       current_outcome: unavailable
       evidence_state: non_executable_public_source
-      investigated_at: 2026-09-03
-      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03"]
+      investigated_at: 2026-09-06
+      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03", "live:putnam-franklin-full-sweep-2026-09-06"]
       next_action: "Recheck Franklin Templeton product/API holdings for a complete current snapshot across the mapped Putnam symbols; promote only after current-date coverage, parser fixtures, and bounded live tests pass."
     - symbol: PBDC
       tier: 1
       provider_identity: putnam
       current_outcome: unavailable
       evidence_state: non_executable_public_source
-      investigated_at: 2026-09-03
-      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03"]
+      investigated_at: 2026-09-06
+      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03", "live:putnam-franklin-full-sweep-2026-09-06"]
       next_action: "Recheck Franklin Templeton product/API holdings for a complete current snapshot across the mapped Putnam symbols; promote only after current-date coverage, parser fixtures, and bounded live tests pass."
     - symbol: PCRB
       tier: 1
       provider_identity: putnam
       current_outcome: unavailable
       evidence_state: non_executable_public_source
-      investigated_at: 2026-09-03
-      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03"]
+      investigated_at: 2026-09-06
+      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03", "live:putnam-franklin-full-sweep-2026-09-06"]
       next_action: "Recheck Franklin Templeton product/API holdings for a complete current snapshot across the mapped Putnam symbols; promote only after current-date coverage, parser fixtures, and bounded live tests pass."
     - symbol: PLDR
       tier: 1
       provider_identity: putnam
       current_outcome: unavailable
       evidence_state: non_executable_public_source
-      investigated_at: 2026-09-03
-      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03"]
+      investigated_at: 2026-09-06
+      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03", "live:putnam-franklin-full-sweep-2026-09-06"]
       next_action: "Recheck Franklin Templeton product/API holdings for a complete current snapshot across the mapped Putnam symbols; promote only after current-date coverage, parser fixtures, and bounded live tests pass."
     - symbol: PFUT
       tier: 1
       provider_identity: putnam
       current_outcome: unavailable
       evidence_state: non_executable_public_source
-      investigated_at: 2026-09-03
-      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03"]
+      investigated_at: 2026-09-06
+      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03", "live:putnam-franklin-full-sweep-2026-09-06"]
       next_action: "Recheck Franklin Templeton product/API holdings for a complete current snapshot across the mapped Putnam symbols; promote only after current-date coverage, parser fixtures, and bounded live tests pass."
     - symbol: PULT
       tier: 1
       provider_identity: putnam
       current_outcome: unavailable
       evidence_state: non_executable_public_source
-      investigated_at: 2026-09-03
-      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03"]
+      investigated_at: 2026-09-06
+      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03", "live:putnam-franklin-full-sweep-2026-09-06"]
       next_action: "Recheck Franklin Templeton product/API holdings for a complete current snapshot across the mapped Putnam symbols; promote only after current-date coverage, parser fixtures, and bounded live tests pass."
     - symbol: PEMX
       tier: 1
       provider_identity: putnam
       current_outcome: unavailable
       evidence_state: non_executable_public_source
-      investigated_at: 2026-09-03
-      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03"]
+      investigated_at: 2026-09-06
+      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03", "live:putnam-franklin-full-sweep-2026-09-06"]
       next_action: "Recheck Franklin Templeton product/API holdings for a complete current snapshot across the mapped Putnam symbols; promote only after current-date coverage, parser fixtures, and bounded live tests pass."
     - symbol: PVAL
       tier: 1
       provider_identity: putnam
       current_outcome: unavailable
       evidence_state: non_executable_public_source
-      investigated_at: 2026-09-03
-      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03"]
+      investigated_at: 2026-09-06
+      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03", "live:putnam-franklin-full-sweep-2026-09-06"]
       next_action: "Recheck Franklin Templeton product/API holdings for a complete current snapshot across the mapped Putnam symbols; promote only after current-date coverage, parser fixtures, and bounded live tests pass."
     - symbol: PPIE
       tier: 1
       provider_identity: putnam
       current_outcome: unavailable
       evidence_state: non_executable_public_source
-      investigated_at: 2026-09-03
-      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03"]
+      investigated_at: 2026-09-06
+      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03", "live:putnam-franklin-full-sweep-2026-09-06"]
       next_action: "Recheck Franklin Templeton product/API holdings for a complete current snapshot across the mapped Putnam symbols; promote only after current-date coverage, parser fixtures, and bounded live tests pass."
     - symbol: PPEM
       tier: 1
       provider_identity: putnam
       current_outcome: unavailable
       evidence_state: non_executable_public_source
-      investigated_at: 2026-09-03
-      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03"]
+      investigated_at: 2026-09-06
+      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03", "live:putnam-franklin-full-sweep-2026-09-06"]
       next_action: "Recheck Franklin Templeton product/API holdings for a complete current snapshot across the mapped Putnam symbols; promote only after current-date coverage, parser fixtures, and bounded live tests pass."
     - symbol: PGRI
       tier: 1
@@ -1056,7 +1056,7 @@ symbol_audit_ledger:
       current_outcome: unavailable
       evidence_state: non_executable_public_source
       investigated_at: 2026-09-06
-      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03", "live:putnam-franklin-representative-recheck-2026-09-06"]
+      evidence_refs: ["web:putnam-franklin-current-etf-catalogue-2026-09-03", "web:putnam-quarterly-holdings-disclosure-2026-09-03", "live:putnam-franklin-api-stale-or-empty-2026-09-03", "live:putnam-franklin-representative-recheck-2026-09-06", "live:putnam-franklin-full-sweep-2026-09-06"]
       next_action: "Recheck Franklin Templeton product/API holdings for a complete current snapshot across the mapped Putnam symbols; promote only after current-date coverage, parser fixtures, and bounded live tests pass."
     - symbol: PZIV
       tier: 1
@@ -6346,7 +6346,11 @@ providers:
         source: "Franklin Templeton public GraphQL holdings API"
         result: "Representative no-credential recheck: PFRX returned no holdings rows; SYNB returned 33 rows dated 2025-10-31; PGRI returned 56 rows dated 2026-07-31. The successor route remains executable but materially stale or empty, so no current Putnam-family promotion is justified."
         evidence_ref: "live:putnam-franklin-representative-recheck-2026-09-06"
-    disposition_reason: "putnam: Putnam's current retail ETF catalogue has moved to Franklin Templeton and its public API is executable, but the representative September 6 recheck still returned no PFRX rows, a 2025-10-31 SYNB snapshot, and a 2026-07-31 PGRI snapshot. Official disclosure materials describe an eight-business-day quarterly complete-holdings cadence; therefore no complete current route is proven and the provider remains non_executable_public_source without SEC reconstruction or native promotion."
+      - date: 2026-09-06
+        source: "Franklin Templeton public GraphQL holdings API"
+        result: "The full no-credential 14-symbol sweep returned no PFRX rows and stale snapshots for every other symbol: SYNB 2025-10-31; PGRO/PBDC 2026-06-30; PHYD 2026-02-28; PCRB/PULT 2026-01-31; PLDR/PFUT 2026-05-31; PEMX/PVAL/PGRI 2026-07-31; PPIE/PPEM 2026-04-30. No symbol produced a current complete snapshot."
+        evidence_ref: "live:putnam-franklin-full-sweep-2026-09-06"
+    disposition_reason: "putnam: Putnam's current retail ETF catalogue has moved to Franklin Templeton and its public API is executable, but the September 6 no-credential sweep returned no PFRX rows and stale snapshots for every other mapped symbol, ranging from 2025-10-31 through 2026-07-31. Official disclosure materials describe an eight-business-day quarterly complete-holdings cadence; therefore no complete current route is proven and the provider remains non_executable_public_source without SEC reconstruction or native promotion."
     next_action: "putnam: Recheck Franklin Templeton product/API holdings for a complete current snapshot across the mapped 14 symbols; promote only after current-date coverage, parser fixtures, and bounded live tests pass."
     implementation_sha: null
     validation_refs: []

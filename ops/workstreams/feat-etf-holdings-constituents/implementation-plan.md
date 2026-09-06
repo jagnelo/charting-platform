@@ -3377,3 +3377,6 @@ ledger parity correction; Ruff, workstream validation, and diff-check passed.
 The representative public GraphQL probe found no PFRX holdings, a 2025-10-31
 SYNB snapshot, and a 2026-07-31 PGRI snapshot. The route remains executable but
 not current; no successor-native promotion or SEC fallback promotion was made.
+
+The full 14-symbol sweep confirmed that every mapped Putnam symbol is either
+empty or stale; the family-wide fallback disposition remains unchanged.

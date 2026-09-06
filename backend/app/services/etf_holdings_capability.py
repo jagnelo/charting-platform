@@ -1340,6 +1340,7 @@ _register_non_tier_0_audits(
         "web:putnam-quarterly-holdings-disclosure-2026-09-03",
         "live:putnam-franklin-api-stale-or-empty-2026-09-03",
         "live:putnam-franklin-representative-recheck-2026-09-06",
+        "live:putnam-franklin-full-sweep-2026-09-06",
     ),
     next_action=(
         "Recheck Franklin Templeton product/API holdings for a complete current snapshot across "
@@ -1364,11 +1365,12 @@ _register_non_tier_0_audits(
     outcome=UNAVAILABLE,
     evidence_state="non_executable_public_source",
     provider_identity="putnam",
-    investigated_at=date(2026, 9, 3),
+    investigated_at=date(2026, 9, 6),
     evidence_refs=(
         "web:putnam-franklin-current-etf-catalogue-2026-09-03",
         "web:putnam-quarterly-holdings-disclosure-2026-09-03",
         "live:putnam-franklin-api-stale-or-empty-2026-09-03",
+        "live:putnam-franklin-full-sweep-2026-09-06",
     ),
     next_action=(
         "Recheck Franklin Templeton product/API holdings for a complete current snapshot across "

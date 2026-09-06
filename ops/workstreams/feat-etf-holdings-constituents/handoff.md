@@ -4866,3 +4866,6 @@ Representative no-credential probes found PFRX empty, SYNB dated `2025-10-31`,
 and PGRI dated `2026-07-31`. The public successor API therefore remains
 non-current for the Putnam family; all 14 symbols stay unavailable and no
 successor-native promotion is justified.
+
+The full 14-symbol sweep confirmed no current snapshot: PFRX was empty and all
+other symbols were stale, ranging from `2025-10-31` through `2026-07-31`.
