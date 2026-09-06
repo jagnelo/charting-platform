@@ -300,12 +300,24 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "label": "Nasdaq-100 cap-weighted ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.invesco.com/qqq-etf/en/about.html",
+            "history_route": {
+                "status": "sec_filing_reconstruction",
+                "provider": "sec",
+                "policy": "latest_sec_filing_report_on_or_before_requested_date",
+                "source_url": "https://data.sec.gov/submissions/CIK0001067839.json",
+            },
         },
         "equal_weight": {
             "symbol": "QQQE",
             "label": "Nasdaq-100 equal-weight ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.direxion.com/product/nasdaq-100-equal-weighted-index-etf",
+            "history_route": {
+                "status": "sec_filing_reconstruction",
+                "provider": "sec",
+                "policy": "latest_sec_filing_report_on_or_before_requested_date",
+                "source_url": "https://data.sec.gov/submissions/CIK0001424958.json",
+            },
         },
         "value": {
             "symbol": None,

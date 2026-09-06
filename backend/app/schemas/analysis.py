@@ -355,6 +355,10 @@ class BenchmarkFamilyCoverageRoleOut(BaseModel):
     holdings_route_adapter_key: str | None = None
     holdings_route_provider: str | None = None
     holdings_route_status: str = "not_configured"
+    history_route_status: str = "not_reported"
+    history_route_provider: str | None = None
+    history_route_policy: str | None = None
+    history_route_source_url: str | None = None
     available: bool = False
     status: str
     snapshots: list[BenchmarkFamilyCoverageSnapshotOut] = Field(default_factory=list)

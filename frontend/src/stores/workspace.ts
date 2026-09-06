@@ -563,6 +563,10 @@ export interface BenchmarkFamilyCoverageRoleState {
   holdings_route_adapter_key?: string | null
   holdings_route_provider?: string | null
   holdings_route_status?: string
+  history_route_status?: string | null
+  history_route_provider?: string | null
+  history_route_policy?: string | null
+  history_route_source_url?: string | null
   snapshots: BenchmarkFamilyCoverageSnapshotState[]
   continuity_status?: 'not_applicable' | 'no_snapshot' | 'single_snapshot' | 'observed_continuity' | 'gapped' | string
   continuity_gap_count?: number

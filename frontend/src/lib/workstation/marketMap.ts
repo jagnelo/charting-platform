@@ -50,6 +50,10 @@ export interface BenchmarkFamilyCoverageRole {
   holdings_route_adapter_key?: string | null
   holdings_route_provider?: string | null
   holdings_route_status?: string | null
+  history_route_status?: string | null
+  history_route_provider?: string | null
+  history_route_policy?: string | null
+  history_route_source_url?: string | null
   holdings_refresh_provider?: string | null
   holdings_refresh_status?: string | null
   holdings_refresh_last_checked_at?: string | null

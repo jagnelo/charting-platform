@@ -487,6 +487,26 @@ class TestWorkspaces:
         assert mappings["equal_weight"]["symbol"] == "QQQE"
         assert mappings["equal_weight"]["label"] == "Nasdaq-100 equal-weight ETF proxy"
 
+        coverage = client.get(
+            "/api/v1/analysis/benchmark-families/nasdaq100/coverage",
+            headers=auth_headers,
+        )
+        assert coverage.status_code == 200, coverage.text
+        roles = {role["role"]: role for role in coverage.json()["roles"]}
+        assert roles["cap_weight"]["history_route_status"] == "sec_filing_reconstruction"
+        assert roles["cap_weight"]["history_route_provider"] == "sec"
+        assert (
+            roles["cap_weight"]["history_route_policy"]
+            == "latest_sec_filing_report_on_or_before_requested_date"
+        )
+        assert roles["cap_weight"]["history_route_source_url"] == (
+            "https://data.sec.gov/submissions/CIK0001067839.json"
+        )
+        assert roles["equal_weight"]["history_route_status"] == "sec_filing_reconstruction"
+        assert roles["equal_weight"]["history_route_source_url"] == (
+            "https://data.sec.gov/submissions/CIK0001424958.json"
+        )
+
     def test_benchmark_family_coverage_exposes_role_dates_and_point_in_time_filter(
         self, client, auth_headers, db, instrument_type
     ):

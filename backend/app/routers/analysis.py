@@ -3746,6 +3746,8 @@ async def benchmark_family_coverage(
                 route_status = "configured"
             elif route_adapter_key:
                 route_status = "not_registered"
+        history_route = mapping.get("history_route")
+        history_route = history_route if isinstance(history_route, Mapping) else {}
         point_in_time_supported = False
         if instrument is None:
             status = "mapping_unavailable"
@@ -4004,6 +4006,18 @@ async def benchmark_family_coverage(
                 holdings_route_adapter_key=route_adapter_key,
                 holdings_route_provider=route_provider,
                 holdings_route_status=route_status,
+                history_route_status=str(history_route.get("status") or "not_reported"),
+                history_route_provider=(
+                    str(history_route.get("provider")) if history_route.get("provider") else None
+                ),
+                history_route_policy=(
+                    str(history_route.get("policy")) if history_route.get("policy") else None
+                ),
+                history_route_source_url=(
+                    str(history_route.get("source_url"))
+                    if history_route.get("source_url")
+                    else None
+                ),
                 available=instrument is not None,
                 status=status,
                 snapshots=snapshots,
@@ -4138,6 +4152,33 @@ async def benchmark_family_readiness(
                     ),
                     available=False,
                     status="mapping_unavailable",
+                    history_route_status=(
+                        str((mapping.get("history_route") or {}).get("status") or "not_reported")
+                        if isinstance(mapping, Mapping)
+                        and isinstance(mapping.get("history_route"), Mapping)
+                        else "not_reported"
+                    ),
+                    history_route_provider=(
+                        str((mapping.get("history_route") or {}).get("provider"))
+                        if isinstance(mapping, Mapping)
+                        and isinstance(mapping.get("history_route"), Mapping)
+                        and (mapping.get("history_route") or {}).get("provider")
+                        else None
+                    ),
+                    history_route_policy=(
+                        str((mapping.get("history_route") or {}).get("policy"))
+                        if isinstance(mapping, Mapping)
+                        and isinstance(mapping.get("history_route"), Mapping)
+                        and (mapping.get("history_route") or {}).get("policy")
+                        else None
+                    ),
+                    history_route_source_url=(
+                        str((mapping.get("history_route") or {}).get("source_url"))
+                        if isinstance(mapping, Mapping)
+                        and isinstance(mapping.get("history_route"), Mapping)
+                        and (mapping.get("history_route") or {}).get("source_url")
+                        else None
+                    ),
                     composite_readiness_status="unavailable",
                     composite_readiness_reasons=["benchmark_family_not_materialised"],
                 )
