@@ -4452,6 +4452,15 @@ no-key requests for the supported-funds list and daily holdings returned
 license was activated. DXJ/NTSX/MINT/BOND remain unavailable because no
 complete current route was proven.
 
+## StockFit pricing boundary recheck — 2026-09-06
+
+The public StockFit pricing payload lists the ETF plan at `$39/month`; its free
+tier exposes profiles and coverage metadata but not holdings. That exceeds the
+platform-wide 20 EUR/USD-equivalent budget boundary, so StockFit remains a
+researched but ineligible candidate for DXJ/NTSX/MINT/BOND. No account, key,
+entitlement, or paid activation was requested, and no symbol classification
+changed.
+
 ## Deterministic revalidation and dependency refresh — 2026-09-05
 
 The complete deterministic ETF adapter and capability suites were rerun against

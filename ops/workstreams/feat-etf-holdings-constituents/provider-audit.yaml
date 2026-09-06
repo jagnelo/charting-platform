@@ -1808,6 +1808,10 @@ providers:
         result: "StockFit documents issuer-sourced daily holdings, but its free tier exposes profiles and the daily-coverage list while holdings require the ETF plan; the bounded supported-funds and NTSX daily endpoint requests returned Unauthorized without an API key. No free account, entitlement, price, or commercial terms were activated, so DXJ/NTSX coverage remains unproven."
         evidence_ref: "web:stockfit-daily-holdings-contract-2026-09-05; web:stockfit-pricing-2026-09-05; live:stockfit-supported-funds-unauthorized-2026-09-05; live:stockfit-daily-holdings-unauthorized-2026-09-05"
       - date: 2026-09-06
+        source: "https://developer.stockfit.io/pricing"
+        result: "The public StockFit pricing payload's structured offer lists the ETF plan at $39/month, while the free tier exposes profiles and daily-holdings coverage metadata but not holdings. The ETF plan therefore exceeds the platform-wide 20 EUR/USD-equivalent budget boundary; no account, key, entitlement, or activation was requested."
+        evidence_ref: "web:stockfit-pricing-2026-09-06-jsonld"
+      - date: 2026-09-06
         source: "https://www.wisdomtree.com/us/products/equity/dxj; https://www.wisdomtree.com/us/products/capital-efficient/ntsx; https://www.wisdomtree.com/api/fund-holdings/1000549; https://www.wisdomtree.com/api/fund-holdings/1001798"
         result: "A fresh application-equivalent httpx session returned HTTP 403 Cloudflare challenge HTML for both WisdomTree product pages and both symbol-scoped holdings APIs. No complete executable artifact was retrieved and DXJ/NTSX remain unavailable."
         evidence_ref: "live:wisdomtree-public-fund-holdings-api-2026-09-06-httpx-403"
@@ -7849,6 +7853,10 @@ providers:
         source: "https://developer.stockfit.io/etf; https://developer.stockfit.io/pricing; https://api.stockfit.io/v1/api/fund/holdings/daily?symbol=MINT&page=1&pageSize=5000; https://api.stockfit.io/v1/api/fund/holdings/daily?symbol=BOND&page=1&pageSize=5000"
         result: "StockFit documents daily issuer holdings but gates the holdings endpoint behind the ETF plan; bounded MINT and BOND requests returned Unauthorized without an API key. The free tier/plan price and commercial entitlement were not activated or verified, so the candidate cannot be current support under the present free-first boundary."
         evidence_ref: "web:stockfit-daily-holdings-contract-2026-09-05; web:stockfit-pricing-2026-09-05; live:stockfit-mint-bond-daily-unauthorized-2026-09-05"
+      - date: 2026-09-06
+        source: "https://developer.stockfit.io/pricing"
+        result: "The public StockFit pricing payload's structured offer lists the ETF plan at $39/month, while the free tier does not unlock holdings. The ETF plan exceeds the platform-wide 20 EUR/USD-equivalent budget boundary; no account, key, entitlement, or activation was requested."
+        evidence_ref: "web:stockfit-pricing-2026-09-06-jsonld"
       - date: 2026-09-06
         source: "https://fund-ui.pimco.com/fund-detail-api/api/funds/72201R833/topTenHoldings; https://fund-ui.pimco.com/fund-detail-api/api/funds/72201R833/fund-info; https://fund-ui.pimco.com/fund-detail-api/api/funds/72201R775/topTenHoldings; https://fund-ui.pimco.com/fund-detail-api/api/funds/72201R775/fund-info"
         result: "A fresh anonymous application-equivalent request returned HTTP 401 JSON authentication errors for both MINT and BOND topTenHoldings and fund-info routes. The authentication boundary is unchanged; no complete public basket or entitlement was activated."

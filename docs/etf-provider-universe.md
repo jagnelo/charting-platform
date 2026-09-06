@@ -5,6 +5,16 @@ adviser, and white-label publisher identity level because holdings artifacts are
 usually published by product sites, not by a single normalized legal-issuer
 field.
 
+## StockFit pricing boundary recheck — 2026-09-06
+
+The public StockFit pricing payload provides explicit structured pricing: the
+ETF plan is listed at `$39/month`, while the free tier exposes profiles and
+coverage metadata rather than holdings. This exceeds the platform-wide
+20 EUR/USD-equivalent budget boundary, so StockFit remains a researched but
+ineligible candidate for DXJ/NTSX/MINT/BOND. No account, key, entitlement, or
+paid activation was requested. Evidence ref:
+`web:stockfit-pricing-2026-09-06-jsonld`.
+
 ## Current Market Target
 
 The current broad U.S. ETF promoter target is `496` identities.
