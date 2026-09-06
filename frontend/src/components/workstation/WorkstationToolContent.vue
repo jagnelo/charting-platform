@@ -882,7 +882,7 @@ import ChartPlotLibrary from './ChartPlotLibrary.vue'
 import { usePanelStore } from '@/stores/chart'
 import { useDrawingsStore } from '@/stores/drawings'
 import { useAlertsStore } from '@/stores/alerts'
-import { useWorkspaceStore, type BenchmarkFamilyReadinessState, type GenericBreadthHistoryState, type GenericBreadthState, type GroupSnapshotRow, type LinkGroup, type WorkspaceWindowState } from '@/stores/workspace'
+import { useWorkspaceStore, type BenchmarkFamilyCoverageState, type BenchmarkFamilyReadinessState, type GenericBreadthHistoryState, type GenericBreadthState, type GroupSnapshotRow, type LinkGroup, type WorkspaceWindowState } from '@/stores/workspace'
 import { useWatchlistStore } from '@/stores/watchlist'
 import type { Instrument, Watchlist, WatchlistSource } from '@/types'
 import ToolWindow from './ToolWindow.vue'
@@ -2443,10 +2443,21 @@ function familyRefreshLabel(role: { holdings_refresh_status?: string; holdings_r
   const reason = role.holdings_refresh_failure_reason?.trim()
   return `${status}${provider ? ` · ${provider}` : ''}${reason ? ` · reason ${reason}` : ''}${checked ? ` · checked ${checked}` : ''}${success ? ` · success ${success}` : ''}${failure ? ` · failed ${failure}` : ''}${composition ? ` · composition ${composition}` : ''}`
 }
-function familyCanonicalRoleEvidenceLabel(coverage: { roles?: Array<{ role: 'cap_weight' | 'equal_weight' | 'value' | 'growth'; symbol?: string | null; label: string; verification_state?: string; adapter_key?: string | null; adapter_status?: string | null; adapter_confidence?: number | string | null; available?: boolean; status?: string; holdings_route_adapter_key?: string | null; holdings_route_provider?: string | null; holdings_route_status?: string; holdings_refresh_provider?: string | null; holdings_refresh_status?: string; holdings_refresh_last_checked_at?: string | null; holdings_refresh_last_success_at?: string | null; holdings_refresh_last_failure_at?: string | null; holdings_refresh_failure_reason?: string | null; holdings_refresh_composition_date?: string | null; member_bar_history?: { timeframes?: Array<{ timeframe: string; member_count: number; covered_member_count: number; analysis_ready_member_count: number; bar_count: number; required_bar_count?: number; oldest?: string | null; newest?: string | null }> }; point_in_time_supported?: boolean; member_count?: number; placeholder_member_count?: number; weighted_member_count?: number; weights_status?: string; classified_member_count?: number; classification_status?: string; history_ready?: boolean; composite_readiness_status?: string; composite_readiness_reasons?: string[]; entitlement_status?: string; entitlement_provider?: string | null; entitlement_live_probe_status?: string | null; entitlement_revision?: number | null; entitlement_effective_at?: string | null; entitlement_review_due_at?: string | null; entitlement_capabilities?: Record<string, string>; continuity_status?: string | null; continuity_gap_count?: number; continuity_max_interval_days?: number | null; continuity_gaps?: Array<{ from_date: string; to_date: string; interval_days: number }>; continuity_snapshot_limit_reached?: boolean; snapshots?: Array<{ composition_date?: string | null; as_of_date?: string | null; known_at?: string | null; provenance?: string | null; source_quality?: string | null; completeness_status?: string | null; row_count?: number; resolved_count?: number; unresolved_count?: number }> }> }) {
+function familyCanonicalRoleEvidenceLabel(coverage: BenchmarkFamilyCoverageState) {
   const roles = coverage.roles ?? []
-  if (!roles.length) return 'Canonical role evidence: unavailable'
-  return `Canonical role evidence: ${roles.map(role => {
+  const officialName = coverage.official_index_name?.trim()
+  const official = `${coverage.official_index_symbol}${officialName && officialName !== coverage.official_index_symbol ? ` (${officialName})` : ''}`
+  const asOf = coverage.as_of?.slice(0, 10) || 'latest'
+  const provenance = Object.entries(coverage.universe_provenance ?? {})
+    .filter(([, value]) => value == null || ['string', 'number', 'boolean'].includes(typeof value))
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${key.replace(/_/g, ' ')}=${value == null ? 'not reported' : String(value)}`)
+  const exclusions = coverage.exclusions?.length
+    ? `${coverage.exclusions.length} · ${coverage.exclusions.map(item => item.code).join(', ')}`
+    : 'none'
+  const familyEvidence = `Canonical family provenance: ${coverage.family_key} · ${coverage.name} · official index ${official} · as-of ${asOf} · membership version ${coverage.membership_version} · coverage ${(coverage.coverage * 100).toFixed(0)}% · freshness ${coverage.freshness ?? 'not reported'} · universe ${provenance.length ? provenance.join(' · ') : 'not reported'} · exclusions ${exclusions}`
+  if (!roles.length) return `${familyEvidence} · Canonical role evidence: unavailable`
+  return `${familyEvidence} · Canonical role evidence: ${roles.map(role => {
     const name = `${familyRoleLabel(role.role)} ${role.symbol ?? role.label}`
     const verification = role.verification_state?.trim() || 'not reported'
     const adapter = role.adapter_key?.trim() || 'unmapped'

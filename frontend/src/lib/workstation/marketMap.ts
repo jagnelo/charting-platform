@@ -85,8 +85,13 @@ export interface BenchmarkFamilyCoverage {
   family_key: string
   name: string
   official_index_symbol: string
+  official_index_name: string
+  as_of?: string | null
+  membership_version: number
+  universe_provenance: Record<string, unknown>
   coverage: number
   roles: BenchmarkFamilyCoverageRole[]
+  exclusions: Array<{ code: string; message: string; instrument_id?: number | null }>
   freshness: string
 }
 

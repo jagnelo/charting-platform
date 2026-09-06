@@ -717,10 +717,24 @@ function benchmarkRoleEntitlementLabel(role: BenchmarkFamilyCoverageRole): strin
   return `${status}${provider ? ` · ${provider}` : ''}${probe ? ` · probe ${probe.replace(/_/g, ' ')}` : ''}${revision ? ` · ${revision}` : ''}${effective ? ` · effective ${effective}` : ''}${reviewDue ? ` · review due ${reviewDue}` : ''}`
 }
 
+function benchmarkFamilyProvenanceLabel(coverage: BenchmarkFamilyCoverage): string {
+  const officialName = coverage.official_index_name?.trim()
+  const official = `${coverage.official_index_symbol}${officialName && officialName !== coverage.official_index_symbol ? ` (${officialName})` : ''}`
+  const asOf = coverage.as_of?.slice(0, 10) || 'latest'
+  const provenance = Object.entries(coverage.universe_provenance ?? {})
+    .filter(([, value]) => value == null || ['string', 'number', 'boolean'].includes(typeof value))
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${key.replace(/_/g, ' ')}=${value == null ? 'not reported' : String(value)}`)
+  const exclusions = coverage.exclusions?.length
+    ? `${coverage.exclusions.length} · ${coverage.exclusions.map(item => item.code).join(', ')}`
+    : 'none'
+  return `Canonical family provenance: ${coverage.family_key} · ${coverage.name} · official index ${official} · as-of ${asOf} · membership version ${coverage.membership_version} · coverage ${(coverage.coverage * 100).toFixed(0)}% · freshness ${coverage.freshness} · universe ${provenance.length ? provenance.join(' · ') : 'not reported'} · exclusions ${exclusions}`
+}
+
 function benchmarkRoleIdentityEvidenceLabel(coverage: BenchmarkFamilyCoverage): string {
   const roles = coverage.roles ?? []
-  if (!roles.length) return 'Canonical role identity evidence: unavailable'
-  return `Canonical role identity evidence: ${roles.map(role => {
+  if (!roles.length) return `${benchmarkFamilyProvenanceLabel(coverage)} · Canonical role identity evidence: unavailable`
+  return `${benchmarkFamilyProvenanceLabel(coverage)} · Canonical role identity evidence: ${roles.map(role => {
     const name = `${role.label}${role.symbol ? ` ${role.symbol}` : ''}`
     const verification = role.verification_state?.trim() || 'not reported'
     const adapter = role.adapter_key?.trim() || 'unmapped'
