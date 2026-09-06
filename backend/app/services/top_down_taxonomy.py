@@ -62,6 +62,31 @@ _ISHARES_HISTORY_ROUTE = {
     ),
 }
 
+# State Street's verified SPDR adapter exposes a fund-scoped daily workbook for
+# current holdings, but no supported dated/as-of route. Preserve that
+# limitation explicitly in family-history evidence instead of reporting an
+# ambiguous ``not_reported`` state or implying that current membership can be
+# replayed for a historical date.
+_SPDR_HISTORY_ROUTE = {
+    "status": "issuer_current_only",
+    "provider": "spdr",
+    "policy": "issuer_daily_workbook_current_snapshot_only",
+    "source_url": (
+        "https://www.ssga.com/us/en/intermediary/etfs/library-content/"
+        "products/fund-data/etfs/us/holdings-daily-us-en-{symbol_lower}.xlsx"
+    ),
+}
+
+
+def _spdr_history_route(symbol: str) -> dict[str, str]:
+    """Return the current-only SPDR route with a symbol-specific source URL."""
+
+    return {
+        **_SPDR_HISTORY_ROUTE,
+        "source_url": _SPDR_HISTORY_ROUTE["source_url"].format(symbol_lower=symbol.strip().lower()),
+    }
+
+
 # The family registry is deliberately metadata-first.  A configured ETF ticker
 # is an identity candidate, not proof that the ETF is an official constituent
 # source or that its holdings are complete at every historical date.  The
@@ -81,6 +106,7 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "label": "S&P 500 cap-weighted ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ssga.com/us/en/individual/etfs/spdr-sp-500-etf-trust-spy",
+            "history_route": _spdr_history_route("SPY"),
         },
         "equal_weight": {
             "symbol": "RSP",
@@ -93,12 +119,14 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "label": "S&P 500 value ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ssga.com/us/en/individual/etfs/state-street-spdr-portfolio-sp-500-value-etf-spyv",
+            "history_route": _spdr_history_route("SPYV"),
         },
         "growth": {
             "symbol": "SPYG",
             "label": "S&P 500 growth ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ssga.com/us/en/individual/etfs/spdr-portfolio-sp-500-growth-etf-spyg",
+            "history_route": _spdr_history_route("SPYG"),
         },
         "derived_equal_weight": {"allowed": False, "method": None},
     },
@@ -112,6 +140,7 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "label": "S&P MidCap 400 cap-weighted ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ssga.com/us/en/individual/etfs/spdr-sp-midcap-400-etf-trust-mdy",
+            "history_route": _spdr_history_route("MDY"),
         },
         "equal_weight": {
             "symbol": None,
@@ -124,12 +153,14 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "label": "S&P MidCap 400 value ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ssga.com/us/en/individual/etfs/spdr-sp-400-mid-cap-value-etf-mdyv",
+            "history_route": _spdr_history_route("MDYV"),
         },
         "growth": {
             "symbol": "MDYG",
             "label": "S&P MidCap 400 growth ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ssga.com/us/en/individual/etfs/spdr-sp-400-mid-cap-growth-etf-mdyg",
+            "history_route": _spdr_history_route("MDYG"),
         },
         "derived_equal_weight": {
             "allowed": True,
@@ -159,12 +190,14 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "label": "S&P SmallCap 600 value ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ssga.com/us/en/individual/etfs/spdr-sp-600-small-cap-value-etf-slyv",
+            "history_route": _spdr_history_route("SLYV"),
         },
         "growth": {
             "symbol": "SLYG",
             "label": "S&P SmallCap 600 growth ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ssga.com/us/en/individual/etfs/spdr-sp-600-small-cap-growth-etf-slyg",
+            "history_route": _spdr_history_route("SLYG"),
         },
         "derived_equal_weight": {
             "allowed": True,
@@ -181,6 +214,7 @@ BENCHMARK_FAMILY_REGISTRY: tuple[dict[str, Any], ...] = (
             "label": "S&P Composite 1500 cap-weighted ETF proxy",
             "verification_state": "proxy_identity_registered",
             "source_url": "https://www.ssga.com/us/en/individual/etfs/state-street-spdr-portfolio-sp-1500-composite-stock-market-etf-sptm",
+            "history_route": _spdr_history_route("SPTM"),
         },
         "equal_weight": {
             "symbol": None,

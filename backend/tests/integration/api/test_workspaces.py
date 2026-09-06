@@ -507,6 +507,21 @@ class TestWorkspaces:
             "https://data.sec.gov/submissions/CIK0001424958.json"
         )
 
+        sp500_coverage = client.get(
+            "/api/v1/analysis/benchmark-families/sp500/coverage",
+            headers=auth_headers,
+        )
+        assert sp500_coverage.status_code == 200, sp500_coverage.text
+        sp500_roles = {role["role"]: role for role in sp500_coverage.json()["roles"]}
+        assert sp500_roles["cap_weight"]["history_route_status"] == "issuer_current_only"
+        assert sp500_roles["cap_weight"]["history_route_provider"] == "spdr"
+        assert sp500_roles["cap_weight"]["history_route_policy"] == (
+            "issuer_daily_workbook_current_snapshot_only"
+        )
+        assert sp500_roles["cap_weight"]["history_route_source_url"].endswith(
+            "holdings-daily-us-en-spy.xlsx"
+        )
+
     def test_benchmark_family_coverage_exposes_role_dates_and_point_in_time_filter(
         self, client, auth_headers, db, instrument_type
     ):

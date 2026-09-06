@@ -169,6 +169,28 @@ def test_ishares_family_roles_declare_the_supported_as_of_history_route():
     assert observed == expected_symbols
 
 
+def test_spdr_family_roles_declare_current_only_history_route():
+    expected_symbols = {"SPY", "SPYV", "SPYG", "MDY", "MDYV", "MDYG", "SLYV", "SLYG", "SPTM"}
+    observed: set[str] = set()
+    for family in benchmark_family_registry():
+        for role in ("cap_weight", "equal_weight", "value", "growth"):
+            mapping = family[role]
+            if mapping.get("symbol") not in expected_symbols:
+                continue
+            observed.add(mapping["symbol"])
+            assert mapping["history_route"] == {
+                "status": "issuer_current_only",
+                "provider": "spdr",
+                "policy": "issuer_daily_workbook_current_snapshot_only",
+                "source_url": (
+                    "https://www.ssga.com/us/en/intermediary/etfs/library-content/"
+                    "products/fund-data/etfs/us/holdings-daily-us-en-"
+                    f"{mapping['symbol'].lower()}.xlsx"
+                ),
+            }
+    assert observed == expected_symbols
+
+
 def test_every_configured_family_role_has_explicit_route_or_is_unavailable():
     """Keep the family matrix identity-first instead of relying on issuer inference."""
 

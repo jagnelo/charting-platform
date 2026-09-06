@@ -179,6 +179,40 @@ async def test_family_history_plan_preserves_ishares_as_of_route_evidence(monkey
 
 
 @pytest.mark.asyncio
+async def test_family_history_plan_preserves_spdr_current_only_route_evidence(monkeypatch):
+    async def fake_resolve(_db, _user_id, _source_id, *, as_of):
+        assert as_of is None
+        return SimpleNamespace(
+            descriptor=SimpleNamespace(
+                membership_version="pending-v1",
+                provenance={"availability": "holdings_snapshot_not_loaded"},
+            ),
+            members=(),
+            exclusions=({"reason": "holdings_snapshot_not_loaded"},),
+        )
+
+    monkeypatch.setattr(history, "resolve_watchlist_source", fake_resolve)
+    plan = await history.plan_benchmark_family_history_refresh(
+        object(),
+        family_keys=["sp500", "sp400", "sp600", "sp1500"],
+        roles=["cap_weight", "value", "growth"],
+    )
+
+    mapped_legs = [leg for leg in plan["legs"] if leg["history_route_provider"] == "spdr"]
+    assert len(mapped_legs) == 9
+    assert {leg["history_route_status"] for leg in mapped_legs} == {"issuer_current_only"}
+    assert {leg["history_route_policy"] for leg in mapped_legs} == {
+        "issuer_daily_workbook_current_snapshot_only"
+    }
+    expected_sources = {
+        "https://www.ssga.com/us/en/intermediary/etfs/library-content/"
+        f"products/fund-data/etfs/us/holdings-daily-us-en-{symbol.lower()}.xlsx"
+        for symbol in ("SPY", "SPYV", "SPYG", "MDY", "MDYV", "MDYG", "SLYV", "SLYG", "SPTM")
+    }
+    assert {leg["history_route_source_url"] for leg in mapped_legs} == expected_sources
+
+
+@pytest.mark.asyncio
 async def test_queue_snapshot_member_history_deduplicates_canonical_members_and_reports_queue_state():
     class Result:
         def all(self):
