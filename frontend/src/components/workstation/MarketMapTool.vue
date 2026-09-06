@@ -728,7 +728,7 @@ function benchmarkRoleIdentityEvidenceLabel(coverage: BenchmarkFamilyCoverage): 
     const confidence = role.adapter_confidence == null ? null : `confidence ${role.adapter_confidence}`
     const snapshot = [...(role.snapshots ?? [])].sort((left, right) => String(right.composition_date ?? '').localeCompare(String(left.composition_date ?? '')))[0]
     const snapshotEvidence = snapshot
-      ? ` · source quality ${snapshot.source_quality?.trim() || 'not reported'} · completeness ${snapshot.completeness_status?.trim() || 'not reported'}`
+      ? ` · snapshot ${snapshot.composition_date?.slice(0, 10) || 'date not reported'}${snapshot.as_of_date ? ` · as-of ${snapshot.as_of_date.slice(0, 10)}` : ''}${snapshot.known_at ? ` · known ${snapshot.known_at.slice(0, 10)}` : ''} · provenance ${snapshot.provenance?.trim() || 'not reported'} · source quality ${snapshot.source_quality?.trim() || 'not reported'} · completeness ${snapshot.completeness_status?.trim() || 'not reported'} · rows ${Number.isFinite(snapshot.row_count) ? snapshot.row_count : 'not reported'} · resolved ${Number.isFinite(snapshot.resolved_count) ? snapshot.resolved_count : 'not reported'} · unresolved ${Number.isFinite(snapshot.unresolved_count) ? snapshot.unresolved_count : 'not reported'}`
       : ' · snapshot evidence unavailable'
     return `${name} · verification ${verification} · adapter ${adapter}${status ? ` (${status})` : ''}${confidence ? ` · ${confidence}` : ''}${snapshotEvidence}`
   }).join(' | ')}`
