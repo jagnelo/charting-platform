@@ -70,7 +70,9 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-45bdf9bd8d"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ps/workstreams/feat-etf-holdings-constituents/session.json"
+  ],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
@@ -89,13 +91,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "66645647692d853803bf0806ea8a2fcab5ef42fb",
+  "head": "48431809e7e886f8faf18a2f0b4c98a761b6f869",
   "implementation_sha": "bafc63eefabb490c387df6d29ac50d20c0ded96c",
   "last_checkpoint": "2026-09-06T08:32:44.708947+00:00",
   "last_human_progress_update": "2026-09-06T07:32:28.377121+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
-  "plan_hash": "dcec7ea2ab297520086314afdc402a4e28fe2db974b539f49fbf4aedc162530f",
+  "plan_hash": "30f4372d7f627a8c80a00f4b859aa072d73f567a4302ac2dbc000071999a4f16",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -121,7 +123,7 @@
     "total": 14,
     "updated_at": "2026-09-06T07:32:28.377034+00:00"
   },
-  "remote": "66645647692d853803bf0806ea8a2fcab5ef42fb",
+  "remote": "48431809e7e886f8faf18a2f0b4c98a761b6f869",
   "remote_sha": "bafc63eefabb490c387df6d29ac50d20c0ded96c",
   "remote_synchronized": true,
   "schema": 2,
