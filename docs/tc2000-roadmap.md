@@ -5,6 +5,18 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-06
 
+## 2026-09-06 — Carry history routes into dated family refreshes
+
+Product commit `1888f358` carries each benchmark-family mapping's declared
+historical route status, provider, policy, and source URL into the provider-
+backed dated refresh response. Refreshed, route-not-ready, failed, and
+unmapped legs all retain explicit route evidence, so QQQ/QQQE SEC filing
+reconstruction remains distinguishable from local population failures or
+unsupported roles. Focused service coverage passed `12/12`, the selected
+dated-family API regression passed `1/1`, and Ruff/format/diff checks passed.
+No provider selection, fallback, visual, or acceptance policy changed. The
+exact-tip gate at this product tip is pending.
+
 ## 2026-09-06 — Carry canonical history routes into refresh plans
 
 Product commit `97a144bd` carries each benchmark-family history-refresh leg's
