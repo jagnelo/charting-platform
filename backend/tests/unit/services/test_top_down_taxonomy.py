@@ -114,7 +114,7 @@ def test_every_curated_industry_proxy_has_a_canonical_issuer_route():
 def test_benchmark_family_style_proxies_have_explicit_free_source_routes():
     """Family drill-down proxies must enter the holdings pipeline with issuer evidence."""
 
-    spdr_symbols = ("SPYV", "SPYG", "MDY", "MDYV", "MDYG", "SLYV", "SLYG", "SPTM")
+    spdr_symbols = ("SPY", "SPYV", "SPYG", "MDY", "MDYV", "MDYG", "SLYV", "SLYG", "SPTM")
     for symbol in spdr_symbols:
         metadata = known_etf_route_metadata(symbol)
         assert metadata["issuer"] == "State Street Global Advisors"
@@ -178,15 +178,19 @@ def test_spdr_family_roles_declare_explicit_history_routes():
             if mapping.get("symbol") not in expected_symbols:
                 continue
             observed.add(mapping["symbol"])
-            if mapping["symbol"] in {"SPYV", "SPYG", "MDYG", "MDYV", "MDY"}:
+            if mapping["symbol"] in {"SPY", "SPYV", "SPYG", "MDYG", "MDYV", "MDY"}:
                 assert mapping["history_route"] == {
                     "status": "sec_filing_reconstruction",
                     "provider": "sec",
                     "policy": "latest_sec_filing_report_on_or_before_requested_date",
                     "source_url": (
-                        "https://data.sec.gov/submissions/CIK0000936958.json"
-                        if mapping["symbol"] == "MDY"
-                        else "https://data.sec.gov/submissions/CIK0001064642.json"
+                        "https://data.sec.gov/submissions/CIK0000884394.json"
+                        if mapping["symbol"] == "SPY"
+                        else (
+                            "https://data.sec.gov/submissions/CIK0000936958.json"
+                            if mapping["symbol"] == "MDY"
+                            else "https://data.sec.gov/submissions/CIK0001064642.json"
+                        )
                     ),
                 }
             else:

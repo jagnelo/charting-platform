@@ -3631,6 +3631,29 @@ def test_sec_identity_match_accepts_legacy_mdy_series_name_without_class_ids():
     assert status == "verified"
 
 
+def test_sec_identity_match_accepts_spy_registrant_name_without_series_ids():
+    raw_xml = """
+    <edgarSubmission xmlns="http://www.sec.gov/edgar/nport">
+      <formData><genInfo>
+        <regName>State Street(R) SPDR(R) S&amp;P 500(R) ETF Trust</regName>
+        <seriesName>N/A</seriesName>
+      </genInfo></formData>
+    </edgarSubmission>
+    """
+
+    matches, identity, status = _sec_nport_identity_match(
+        raw_xml,
+        identifiers={
+            "sec_cik": "0000884394",
+            "sec_registrant_name_contains": "SPDR",
+        },
+    )
+
+    assert matches is True
+    assert "SPDR" in identity["registrant_name"]
+    assert status == "verified"
+
+
 @pytest.mark.asyncio
 async def test_yieldmax_adapter_filters_account_and_keeps_options_non_tradable(monkeypatch):
     adapter = get_holdings_adapter("yieldmax")

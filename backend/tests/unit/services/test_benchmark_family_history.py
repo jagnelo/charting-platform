@@ -199,7 +199,7 @@ async def test_family_history_plan_preserves_spdr_current_only_route_evidence(mo
     )
 
     mapped_legs = [leg for leg in plan["legs"] if leg["history_route_provider"] == "spdr"]
-    assert len(mapped_legs) == 4
+    assert len(mapped_legs) == 3
     assert {leg["history_route_status"] for leg in mapped_legs} == {"issuer_current_only"}
     assert {
         leg["history_route_policy"]
@@ -209,13 +209,40 @@ async def test_family_history_plan_preserves_spdr_current_only_route_evidence(mo
     expected_sources = {
         "https://www.ssga.com/us/en/intermediary/etfs/library-content/"
         f"products/fund-data/etfs/us/holdings-daily-us-en-{symbol.lower()}.xlsx"
-        for symbol in ("SPY", "SLYV", "SLYG", "SPTM")
+        for symbol in ("SLYV", "SLYG", "SPTM")
     }
     assert {
         leg["history_route_source_url"]
         for leg in mapped_legs
         if leg["history_route_provider"] == "spdr"
     } == expected_sources
+
+
+@pytest.mark.asyncio
+async def test_family_history_plan_preserves_spy_sec_route_evidence(monkeypatch):
+    async def fake_resolve(_db, _user_id, _source_id, *, as_of):
+        assert as_of is None
+        return SimpleNamespace(
+            descriptor=SimpleNamespace(
+                membership_version="pending-v1",
+                provenance={"availability": "holdings_snapshot_not_loaded"},
+            ),
+            members=(),
+            exclusions=({"reason": "holdings_snapshot_not_loaded"},),
+        )
+
+    monkeypatch.setattr(history, "resolve_watchlist_source", fake_resolve)
+    plan = await history.plan_benchmark_family_history_refresh(
+        object(), family_keys=["sp500"], roles=["cap_weight"]
+    )
+
+    leg = plan["legs"][0]
+    assert leg["history_route_status"] == "sec_filing_reconstruction"
+    assert leg["history_route_provider"] == "sec"
+    assert leg["history_route_policy"] == ("latest_sec_filing_report_on_or_before_requested_date")
+    assert leg["history_route_source_url"] == (
+        "https://data.sec.gov/submissions/CIK0000884394.json"
+    )
 
 
 @pytest.mark.asyncio

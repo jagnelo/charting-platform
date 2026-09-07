@@ -306,6 +306,12 @@ def _sec_nport_identity_match(
 
     observed = extract_sec_nport_filing_identity(raw_document)
     targets = {
+        "registrant_name": _identifier(
+            identifiers,
+            "sec_registrant_name",
+            "sec_registrant_name_contains",
+            "registrant_name",
+        ),
         "series_id": _identifier(identifiers, "sec_series_id", "series_id"),
         "series_name": _identifier(
             identifiers, "sec_series_name", "sec_series_name_contains", "series_name"
@@ -331,7 +337,7 @@ def _sec_nport_identity_match(
             if key == "class_ticker" and matched:
                 continue
             return False, observed, f"missing_{key}"
-        if key == "series_name":
+        if key in {"registrant_name", "series_name"}:
             if target not in value:
                 return False, observed, f"mismatch_{key}:{value}!={target}"
         elif value != target:
@@ -3288,6 +3294,14 @@ KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
             "sec_series_id": "S000060812",
             "sec_class_id": "C000197628",
             "sec_fund_tickers_symbol": "RSP",
+        },
+    },
+    "SPY": {
+        "issuer": "State Street Global Advisors",
+        "provider_aliases": {
+            "holdings_adapter": "spdr",
+            "sec_cik": "0000884394",
+            "sec_registrant_name_contains": "SPDR",
         },
     },
     "SPYV": {

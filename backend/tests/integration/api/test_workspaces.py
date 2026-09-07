@@ -513,13 +513,13 @@ class TestWorkspaces:
         )
         assert sp500_coverage.status_code == 200, sp500_coverage.text
         sp500_roles = {role["role"]: role for role in sp500_coverage.json()["roles"]}
-        assert sp500_roles["cap_weight"]["history_route_status"] == "issuer_current_only"
-        assert sp500_roles["cap_weight"]["history_route_provider"] == "spdr"
+        assert sp500_roles["cap_weight"]["history_route_status"] == "sec_filing_reconstruction"
+        assert sp500_roles["cap_weight"]["history_route_provider"] == "sec"
         assert sp500_roles["cap_weight"]["history_route_policy"] == (
-            "issuer_daily_workbook_current_snapshot_only"
+            "latest_sec_filing_report_on_or_before_requested_date"
         )
-        assert sp500_roles["cap_weight"]["history_route_source_url"].endswith(
-            "holdings-daily-us-en-spy.xlsx"
+        assert sp500_roles["cap_weight"]["history_route_source_url"] == (
+            "https://data.sec.gov/submissions/CIK0000884394.json"
         )
         assert sp500_roles["value"]["history_route_status"] == "sec_filing_reconstruction"
         assert sp500_roles["value"]["history_route_provider"] == "sec"

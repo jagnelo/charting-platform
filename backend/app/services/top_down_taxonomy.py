@@ -77,15 +77,23 @@ _SPDR_HISTORY_ROUTE = {
     ),
 }
 
-# SPDR's shared series-trust CIK exposes verified N-PORT identities for SPYV,
-# SPYG, MDYG, and MDYV. The legacy MDY trust has a separate CIK and a stable
-# series-name identity. Keep these dated SEC routes explicit until equivalent
-# identities and live evidence exist for the remaining SPDR family roles.
+# SPDR's trust-level SPY CIK exposes a registrant identity while the shared
+# series-trust CIK exposes verified N-PORT identities for SPYV, SPYG, MDYG, and
+# MDYV. The legacy MDY trust has a separate CIK and a stable series-name
+# identity. Keep these dated SEC routes explicit until equivalent identities and
+# live evidence exist for the remaining SPDR family roles.
 _SPDR_SPYV_HISTORY_ROUTE = {
     "status": "sec_filing_reconstruction",
     "provider": "sec",
     "policy": "latest_sec_filing_report_on_or_before_requested_date",
     "source_url": "https://data.sec.gov/submissions/CIK0001064642.json",
+}
+
+_SPDR_SPY_HISTORY_ROUTE = {
+    "status": "sec_filing_reconstruction",
+    "provider": "sec",
+    "policy": "latest_sec_filing_report_on_or_before_requested_date",
+    "source_url": "https://data.sec.gov/submissions/CIK0000884394.json",
 }
 
 _SPDR_SPYG_HISTORY_ROUTE = {
@@ -121,6 +129,8 @@ def _spdr_history_route(symbol: str) -> dict[str, str]:
     """Return the verified SPDR history route for a mapped symbol."""
 
     normalized_symbol = symbol.strip().upper()
+    if normalized_symbol == "SPY":
+        return dict(_SPDR_SPY_HISTORY_ROUTE)
     if normalized_symbol == "SPYV":
         return dict(_SPDR_SPYV_HISTORY_ROUTE)
     if normalized_symbol == "SPYG":
