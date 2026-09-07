@@ -4878,6 +4878,34 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8u-alert — chart indicators promote into an indicator alert for the active instrument', async ({ page, browserDiagnostics }) => {
+    test.setTimeout(60_000)
+    const instrumentLoaded = page.waitForResponse(response => response.request().method() === 'GET' && response.url().includes('/api/v1/instruments/SPY') && response.ok())
+    await page.goto('/chart/SPY')
+    await instrumentLoaded
+    await expect(page.getByRole('region', { name: 'Major US benchmarks' })).toBeVisible({ timeout: 10_000 })
+    const chart = page.locator('.chart-tool:visible').last()
+    await expect(chart).toBeVisible({ timeout: 10_000 })
+    const plots = chart.locator('button[aria-label="Chart plot library"]')
+    await plots.click()
+    await chart.locator('select[aria-label="Add indicator plot"]').selectOption('ema')
+    await expect(chart.locator('.chart-plots__menu')).toHaveCount(0, { timeout: 10_000 })
+    await plots.click()
+    await chart.locator('select[aria-label="Promotion plot"]').selectOption({ index: 1 })
+    await page.getByRole('combobox', { name: 'Plot promotion target' }).selectOption('alert')
+    await page.getByRole('combobox', { name: 'Plot promotion operator' }).selectOption('gte')
+    await page.getByRole('spinbutton', { name: 'Plot promotion threshold' }).fill('100')
+    await page.getByRole('textbox', { name: 'Plot promotion name' }).fill('EMA indicator alert')
+
+    const conditionSave = page.waitForResponse(response => response.request().method() === 'PUT' && response.url().includes('/api/v1/workspaces/library/conditions/ema-indicator-alert') && response.ok())
+    const alertCreate = page.waitForResponse(response => response.request().method() === 'POST' && response.url().includes('/api/v1/alerts/indicator'))
+    await page.getByRole('button', { name: 'Copy', exact: true }).click()
+    const [, alertResponse] = await Promise.all([conditionSave, alertCreate])
+    expect(alertResponse.ok()).toBeTruthy()
+    await expect(page.locator('.chart-plots__promotion-status')).toContainText('indicator alert', { timeout: 15_000 })
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8v — technical condition trees transfer into Boolean watchlist columns through the real drag path', async ({ page, browserDiagnostics }) => {
     test.setTimeout(90_000)
     await page.goto('/chart/SPY')
