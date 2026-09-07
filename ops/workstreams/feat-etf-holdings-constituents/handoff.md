@@ -92,6 +92,16 @@ and the provider branch is not an ancestor of staging. Neither ref exposes
 `ProviderCapability.ETF_HOLDINGS`; AC10 therefore remains deferred. No
 protected branch or other worktree was modified.
 
+## Complete branch-declared validation — 2026-09-08
+
+The complete branch-declared sequence passed on the synchronized feature tip
+`b65a1544`: 581 deterministic adapter tests; 2 default live tests with 518
+expected skips; 509 opt-in live tests with 11 narrow external skips; Ruff;
+workstream validation; frontend type-check; 17 ETF panel/view tests; and the
+production frontend build. This closes the local verification gap exposed by
+the earlier CI observation; it does not change provider classifications or
+remove the requirement for an exact-SHA remote CI result.
+
 ## PIMCO anonymous route-inventory recheck — 2026-09-06
 
 The public PIMCO fund-detail bundle was rechecked without credentials. Every
