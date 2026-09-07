@@ -75,7 +75,7 @@ only in this branch's registered local worktree.
 
 ## Current validation and dependency boundary — 2026-09-07
 
-The synchronized documentation checkpoint is `5ce9e16f`. The complete opt-in
+The synchronized documentation checkpoint is `dfbc657e`. The complete opt-in
 ETF issuer matrix was rerun locally against the preceding synchronized code
 state and passed `498` cases with `22` narrowly evidenced external skips in
 10m37s. No provider route, source classification, entitlement, paid
