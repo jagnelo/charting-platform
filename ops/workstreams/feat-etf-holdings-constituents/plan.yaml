@@ -291,6 +291,7 @@ remaining_gaps:
   - "The 2026-09-07 Azimut provider recheck found no U.S. ETF holdings publisher: the official catalogue remained general fund research, the Azfund endpoint failed certificate validation for www.azfund.com, and the public StockAnalysis provider endpoint returned HTTP 404. Azimut remains a provider-level non-publisher with explicit SEC fallback eligibility and no native promotion."
   - "The 2026-09-07 M.D. Sass recheck found an issuer-declared 23-row SASS holdings CSV with complete identifiers and weights, but every row was effective 2026-09-08, future-dated relative to observation. A strict provider parser and deterministic fixture now cover the route; SASS remains unavailable and fallback-only until bounded live evidence proves a non-future snapshot."
   - "The 2026-09-07 bounded opt-in SASS live route test passed one selected case, confirming transport, schema, identity, and parser behavior; the 2026-09-08 effective date remains future-dated, so no current-support promotion occurred."
+  - "Dependency recheck on 2026-09-07: origin/feat/market-data-provider-platform is now 32f65fb7, but it is still not an ancestor of origin/staging at 8b885a2f. Both ProviderCapability enums still lack ETF_HOLDINGS in staging and the provider branch, so AC10 remains deferred; the ETF branch added no speculative bridge or duplicate governance."
 progress:
   completed:
     - AC1

@@ -5004,6 +5004,21 @@ test.
 The opt-in live route test also passed against the official CSV; only the
 future effective date prevents current-analysis use and native promotion.
 
+## Provider-platform dependency recheck — 2026-09-07
+
+The synchronized provider-platform remote is `32f65fb7`, while
+`origin/staging` remains `8b885a2f`; the provider branch is still not an
+ancestor of staging. `ProviderCapability` has no `ETF_HOLDINGS` member in
+either ref, so the shared entitlement/quota/health/budget bridge remains
+deferred by policy. No protected worktree was mutated and no duplicate
+ETF-only provider governance was added.
+
+The feature branch remains clean at the exact synchronized tip recorded in
+`session.json`. The next implementation context is the narrow
+`ETF_HOLDINGS` bridge only after the provider capability reaches staging;
+until then, PIMCO MINT/BOND remain unavailable and SASS remains future-dated
+fallback-only.
+
 ## Parnassus PRCS/PRVS route recheck — 2026-09-07
 
 The official daily-holdings pages returned HTTP 200 React application shells,
