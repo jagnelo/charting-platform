@@ -3489,3 +3489,12 @@ HTML table with ticker, name, CUSIP, shares, market value, and weight columns.
 However, the page does not declare a holdings as-of date. The route therefore
 remains unavailable under `non_executable_public_source`; current-support
 promotion requires explicit freshness semantics and bounded parser evidence.
+
+## Nicholas Wealth XFUNDS route recheck — 2026-09-07
+
+Fresh bounded retrieval reached the NGHT, WEPN, and FIAX product pages with
+HTTP 200 HTML, but no executable holdings table or downloadable artifact was
+exposed. The pages contain holdings/download UI markers while the
+backend-equivalent response remains an access-controlled or dynamic shell;
+Nicholas Wealth remains `issuer_access_blocked` and no SEC reconstruction or
+promotion was made.

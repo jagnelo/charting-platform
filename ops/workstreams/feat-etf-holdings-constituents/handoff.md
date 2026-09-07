@@ -4963,6 +4963,14 @@ complete current executable artifact is exposed. Runtime and YAML evidence
 carry the dated live reference; no SEC reconstruction, native promotion, or
 paid activation occurred.
 
+## Nicholas Wealth XFUNDS route recheck — 2026-09-07
+
+NGHT, WEPN, and FIAX pages returned HTTP 200 HTML with holdings/download UI
+markers, but no executable holdings table or downloadable artifact. The
+backend-equivalent response remains dynamic/access-controlled; the symbols
+remain unavailable and `issuer_access_blocked`, with no SEC reconstruction or
+native promotion.
+
 ## Matrix MAVF route recheck — 2026-09-07
 
 Fresh retrieval reached the official Matrix page and exposed a complete 27-row

@@ -5821,7 +5821,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-09-03
+    last_checked: 2026-09-07
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [DRMY, GLDN, NUKX, WEPN, SLVX, GIAX, BHDG, BLOX, NGHT, FIAX, XCSH]
     estimated_us_etf_count: null
@@ -5843,6 +5843,7 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.nicholas_wealth"
       - "runtime:ISSUER_ADAPTER_CONFIGS.nicholas_wealth"
+      - "live:nicholas-wealth-product-recheck-2026-09-07-blocked"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -5860,6 +5861,10 @@ providers:
         source: "https://nicholasx.com/nght/"
         result: "The official product page was reachable only as a Cloudflare challenge in backend-equivalent requests for NGHT, WEPN, GIAX, and DRMY; no issuer-declared holdings CSV or complete current portfolio was executable."
         evidence_ref: "web:nicholas-wealth-access-blocked-2026-09-03"
+      - date: 2026-09-07
+        source: "https://nicholasx.com/nght/, https://nicholasx.com/wepn/, and https://nicholasx.com/fiax/"
+        result: "Fresh bounded retrieval returned HTTP 200 product HTML but no executable holdings table or downloadable artifact; the pages expose holdings/download UI markers while the backend-equivalent response remains an access-controlled/dynamic shell. No complete current portfolio was retrieved, so Nicholas Wealth remains issuer-access-blocked."
+        evidence_ref: "live:nicholas-wealth-product-recheck-2026-09-07-blocked"
     disposition_reason: "nicholas_wealth: The official catalogue identifies current XFUNDS products, but backend-equivalent requests to representative product pages return a Cloudflare challenge before any holdings artifact can be resolved. The provider remains fallback-only as issuer_access_blocked; do not promote through SEC-derived reconstruction."
     next_action: "nicholas_wealth: Re-test the issuer-owned product pages when access permits and promote only after a complete executable current holdings artifact is proven."
     implementation_sha: null
