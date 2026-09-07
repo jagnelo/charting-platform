@@ -4497,7 +4497,7 @@ providers:
     current_holdings_proven: false
     source_format: csv
     parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_m_d_sass_adapter_parses_complete_issuer_csv_and_preserves_future_date
-    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows[m_d_sass-SASS-None-identifiers49-10]
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_m_d_sass_issuer_csv_route_preserves_dated_rows
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.highland_capital"
@@ -5037,7 +5037,7 @@ providers:
         result: "The issuer-declared CSV returned HTTP 200 with 23 SASS rows plus header, complete ticker/CUSIP/name/quantity/weight fields, and a 2026-09-08 effective date. The artifact is complete and identity-bound but future-dated relative to the 2026-09-07 observation, so it remains unavailable for current analysis."
         evidence_ref: "live:m-d-sass-holdings-csv-2026-09-07-future-dated"
       - date: 2026-09-07
-        source: "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows[m_d_sass-SASS-None-identifiers49-10]"
+        source: "backend/tests/live/test_etf_holdings_live_providers.py::test_live_m_d_sass_issuer_csv_route_preserves_dated_rows"
         result: "The bounded opt-in live test fetched the official CSV, parsed complete rows, and preserved issuer provenance; the current-analysis freshness boundary still rejects the future effective date."
         evidence_ref: "live:m-d-sass-opt-in-parser-2026-09-07-passed"
     disposition_reason: "m_d_sass: The issuer-declared SASS CSV is complete and identity-bound, but its 2026-09-08 effective date is future-dated relative to the 2026-09-07 check. Keep the provider fallback-only and unavailable for current analysis until a non-future artifact is revalidated with deterministic parser fixtures and bounded live evidence."
@@ -5045,7 +5045,7 @@ providers:
     implementation_sha: null
     validation_refs:
       - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_m_d_sass_adapter_parses_complete_issuer_csv_and_preserves_future_date"
-      - "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows[m_d_sass-SASS-None-identifiers49-10]"
+      - "backend/tests/live/test_etf_holdings_live_providers.py::test_live_m_d_sass_issuer_csv_route_preserves_dated_rows"
   - adapter_key: madison_avenue
     display_name: madison_avenue
     queue_rank: 72

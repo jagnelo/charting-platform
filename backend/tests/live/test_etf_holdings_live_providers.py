@@ -626,6 +626,17 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+async def test_live_m_d_sass_issuer_csv_route_preserves_dated_rows():
+    adapter = get_holdings_adapter("m_d_sass")
+    assert adapter is not None
+    result = await adapter.fetch_latest(symbol="SASS")
+    _assert_live_holdings_result(result, adapter_key="m_d_sass", min_rows=10)
+    assert result.legal_metadata["route_resolution"] == "md_sass_issuer_declared_daily_holdings_csv"
+    assert result.legal_metadata["composition_date"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
 @pytest.mark.parametrize(
     ("adapter_key", "symbol", "issuer_product_id", "identifiers", "min_rows"),
     [
@@ -785,13 +796,6 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             None,
             {},
             15,
-        ),
-        (
-            "m_d_sass",
-            "SASS",
-            None,
-            {},
-            10,
         ),
         (
             "astoria",
