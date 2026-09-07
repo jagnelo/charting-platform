@@ -3304,6 +3304,16 @@ KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
             "sec_fund_tickers_symbol": "SPYG",
         },
     },
+    "MDYG": {
+        "issuer": "State Street Global Advisors",
+        "provider_aliases": {
+            "holdings_adapter": "spdr",
+            "sec_cik": "0001064642",
+            "sec_series_id": "S000006987",
+            "sec_class_id": "C000019040",
+            "sec_fund_tickers_symbol": "MDYG",
+        },
+    },
     "EEM": {
         "issuer": "iShares",
         "provider_aliases": {

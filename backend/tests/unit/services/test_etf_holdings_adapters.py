@@ -3541,6 +3541,44 @@ async def test_spdr_adapter_uses_curated_sec_identity_for_dated_spyg(monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_spdr_adapter_uses_curated_sec_identity_for_dated_mdyg(monkeypatch):
+    adapter = get_holdings_adapter("spdr")
+    assert adapter is not None
+    calls: list[dict[str, object]] = []
+
+    async def fake_sec_fetch(**kwargs):
+        calls.append(kwargs)
+        return HoldingsFetchResult(
+            rows=[CanonicalHoldingRow(symbol="NVDA", name="NVIDIA Corporation")],
+            legal_metadata={"composition_date": "2025-09-30"},
+        )
+
+    monkeypatch.setattr(adapter, "_fetch_latest_sec_filing_holdings", fake_sec_fetch)
+    identifiers = known_etf_route_metadata("MDYG")["provider_aliases"]
+    result = await adapter.fetch_for_date(
+        symbol="MDYG",
+        requested_date=date(2025, 12, 31),
+        identifiers=identifiers,
+    )
+
+    assert calls == [
+        {
+            "symbol": "MDYG",
+            "issuer_product_id": None,
+            "identifiers": identifiers,
+            "end_date": date(2025, 12, 31),
+            "max_filings": 50,
+        }
+    ]
+    assert result.legal_metadata["source_provider"] == "sec"
+    assert result.legal_metadata["requested_holdings_date"] == "2025-12-31"
+    assert result.legal_metadata["historical_as_of_policy"] == (
+        "latest_sec_filing_report_on_or_before_requested_date"
+    )
+    assert result.legal_metadata["issuer_route"] == "spdr_symbol_daily_holdings_workbook"
+
+
+@pytest.mark.asyncio
 async def test_yieldmax_adapter_filters_account_and_keeps_options_non_tradable(monkeypatch):
     adapter = get_holdings_adapter("yieldmax")
     assert adapter is not None

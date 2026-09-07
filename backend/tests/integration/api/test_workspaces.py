@@ -546,6 +546,22 @@ class TestWorkspaces:
             "https://data.sec.gov/submissions/CIK0001209466.json"
         )
 
+        sp400_coverage = client.get(
+            "/api/v1/analysis/benchmark-families/sp400/coverage",
+            headers=auth_headers,
+        )
+        assert sp400_coverage.status_code == 200, sp400_coverage.text
+        sp400_roles = {role["role"]: role for role in sp400_coverage.json()["roles"]}
+        assert sp400_roles["growth"]["symbol"] == "MDYG"
+        assert sp400_roles["growth"]["history_route_status"] == "sec_filing_reconstruction"
+        assert sp400_roles["growth"]["history_route_provider"] == "sec"
+        assert sp400_roles["growth"]["history_route_policy"] == (
+            "latest_sec_filing_report_on_or_before_requested_date"
+        )
+        assert sp400_roles["growth"]["history_route_source_url"] == (
+            "https://data.sec.gov/submissions/CIK0001064642.json"
+        )
+
     def test_benchmark_family_coverage_exposes_role_dates_and_point_in_time_filter(
         self, client, auth_headers, db, instrument_type
     ):
