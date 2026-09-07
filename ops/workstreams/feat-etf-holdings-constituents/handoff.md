@@ -3304,6 +3304,17 @@ terms-limited, stale, or coverage-incomplete research candidates. MINT and
 BOND remain unavailable. Shared provider-platform integration remains gated
 on that branch reaching staging; no protected worktree was changed.
 
+## Exact-SHA CI after vendor eligibility governance — 2026-09-07
+
+GitHub Actions run `34154962957` passed for exact tip
+`3f7c1116f8da3f71b1f823feb38a89b5a11e2367`. Backend Tests, including
+Docker-backed integration, Frontend Unit Tests, Branch-declared Tests, and
+Playwright E2E all passed. The protected staging/master-only Exhaustive
+Integration Gate was skipped as designed for this feature branch. CI emitted
+only the repository's existing non-blocking Node.js 20 action deprecation
+annotations. This validates the vendor-source governance checkpoint without
+changing provider routes, entitlements, paid activation, or symbol outcomes.
+
 ## Provider-platform contract reconciliation check — 2026-09-05
 
 The external dependency was re-fetched and inspected read-only from the ETF

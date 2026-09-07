@@ -3563,3 +3563,13 @@ low-cost candidate whose PIMCO coverage is unverified, rejects StockFit's
 PortfoliosLab, Finnhub, SecuritiesDB, and DealCharts as unqualified,
 terms-limited, stale, or coverage-incomplete research candidates. MINT and
 BOND remain unavailable for current analysis.
+
+## Exact-SHA CI after vendor eligibility governance — 2026-09-07
+
+GitHub Actions run `34154962957` passed for exact tip
+`3f7c1116f8da3f71b1f823feb38a89b5a11e2367`. Backend Tests, including
+Docker-backed integration, Frontend Unit Tests, Branch-declared Tests, and
+Playwright E2E all passed. The protected staging/master-only Exhaustive
+Integration Gate was skipped as designed for this feature branch. CI emitted
+only the existing non-blocking Node.js 20 action deprecation annotations.
+Provider-platform staging, AC10, unresolved MINT/BOND, and AC14 remain open.
