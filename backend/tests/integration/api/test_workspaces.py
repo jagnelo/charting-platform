@@ -580,6 +580,22 @@ class TestWorkspaces:
             "https://data.sec.gov/submissions/CIK0000936958.json"
         )
 
+        sp600_coverage = client.get(
+            "/api/v1/analysis/benchmark-families/sp600/coverage",
+            headers=auth_headers,
+        )
+        assert sp600_coverage.status_code == 200, sp600_coverage.text
+        sp600_roles = {role["role"]: role for role in sp600_coverage.json()["roles"]}
+        assert sp600_roles["value"]["symbol"] == "SLYV"
+        assert sp600_roles["value"]["history_route_status"] == "sec_filing_reconstruction"
+        assert sp600_roles["value"]["history_route_provider"] == "sec"
+        assert sp600_roles["value"]["history_route_policy"] == (
+            "latest_sec_filing_report_on_or_before_requested_date"
+        )
+        assert sp600_roles["value"]["history_route_source_url"] == (
+            "https://data.sec.gov/submissions/CIK0001064642.json"
+        )
+
     def test_benchmark_family_coverage_exposes_role_dates_and_point_in_time_filter(
         self, client, auth_headers, db, instrument_type
     ):

@@ -178,7 +178,15 @@ def test_spdr_family_roles_declare_explicit_history_routes():
             if mapping.get("symbol") not in expected_symbols:
                 continue
             observed.add(mapping["symbol"])
-            if mapping["symbol"] in {"SPY", "SPYV", "SPYG", "MDYG", "MDYV", "MDY"}:
+            if mapping["symbol"] in {
+                "SPY",
+                "SPYV",
+                "SPYG",
+                "MDYG",
+                "MDYV",
+                "MDY",
+                "SLYV",
+            }:
                 assert mapping["history_route"] == {
                     "status": "sec_filing_reconstruction",
                     "provider": "sec",
