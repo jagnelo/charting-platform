@@ -13,10 +13,10 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  The exact-tip full_stack_browser gate at product tip 63d64bfe passed all
+  The exact-tip full_stack_browser gate at product tip e96ef740 passed all
   locked, backend, frontend, build, stack, runner, and functional-browser
-  stages after the Invesco RSP current-only history route evidence was added.
-  The backend unit and integration phases (1328 and 384), combined coverage
+  stages after enabling bounded SEC filing reconstruction for Invesco RSP.
+  The backend unit and integration phases (1329 and 384), combined coverage
   (80.94%), frontend Vitest (970/970), and functional Playwright (159 passed
   with 106 documented skips across 265 specs) are green. The only remaining
   gate boundary is the six known visual state-oracle diffs:
@@ -118,11 +118,13 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
-    Product commit 63d64bfe adds explicit Invesco RSP current-only history-route
-    evidence. Focused taxonomy/planner/refresh/route checks passed 30/30, the
-    selected family coverage API regression passed 1/1, and static checks
-    passed. The exact-tip gate passed all non-visual stages and functional
-    Playwright (backend 1328 unit and 384 integration tests; 80.94% combined
+    Product commit e96ef740 upgrades Invesco RSP to bounded SEC
+    filing-reconstruction history using its curated CIK/series/class identity;
+    focused taxonomy/planner/refresh/route/adapter checks passed 24/24, the
+    selected family coverage API regression passed 1/1, static checks passed,
+    and opt-in live QQQ/RSP SEC probes passed 2/2. The exact-tip gate passed
+    all non-visual stages and functional Playwright (backend 1329 unit and 384
+    integration tests; 80.94% combined
     coverage; frontend 970/970; functional 159 passed with 106 documented
     skips across 265 specs). The only remaining boundary is the six known
     visual state-oracle diffs; preserve them and the unchanged

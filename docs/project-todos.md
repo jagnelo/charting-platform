@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-09-07 — Enable RSP SEC filing-reconstruction history route
+
+- [x] Upgrade mapped Invesco RSP from issuer-current-only to
+      `sec_filing_reconstruction` using SEC CIK `0001209466`, series
+      `S000060812`, class `C000197628`, and the bounded 20-filing search window;
+      retain the issuer current/monthly route separately. Product commit
+      `e96ef740`.
+- [x] Focused regressions/static checks passed (`24` tests plus the selected
+      API regression); opt-in live QQQ/RSP SEC route probes passed `2/2`.
+- [x] Exact-tip gate passed all non-visual stages: backend `1329` unit and
+      `384` integration tests, `80.94%` combined coverage, frontend `970/970`,
+      and functional Playwright `159` passed with `106` documented skips across
+      `265` specs. Visual parity remains `98/104` with only the six documented
+      state-oracle diffs; cleanup/resource accounting is clean.
+- [ ] Continue the next bounded canonical provider/history population slice;
+      route identity and reconstruction readiness are not proof that all RSP
+      historical holdings, weights, membership, or member bars are populated.
+
 ### 2026-09-07 — Expose Invesco current-only history route evidence
 
 - [x] Declare explicit issuer-current-only route evidence for the mapped

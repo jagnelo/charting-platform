@@ -10,6 +10,31 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-07 — Enable RSP SEC filing-reconstruction history route
+
+Product commit `e96ef740` upgrades Invesco RSP to the verified SEC route
+`sec_filing_reconstruction` using CIK `0001209466`, series `S000060812`, class
+`C000197628`, and `RSP`; the adapter uses a bounded 20-filing search window.
+The issuer current/monthly route remains distinct. Focused checks passed (`24`
+tests plus selected API regression), and opt-in live QQQ/RSP SEC probes passed
+`2/2`. This is route/reconstruction evidence only, not proof of complete RSP
+historical holdings or member-bar population.
+
+## 2026-09-07 — Exact-tip exhaustive gate after RSP SEC history reconstruction
+
+At exact product tip `e96ef740`, all locked, backend/frontend, build,
+compose/provider, stack-health, runner-isolation, and authenticated functional
+browser stages passed (`1329` unit, `384` integration, `80.94%` combined
+coverage, frontend `970/970`, and `159` functional passes with `106` documented
+skips across `265` specs). The visual matrix returned `98/104`; only the six
+known state-oracle diffs remain: watchlist-column-editor-open at 1080p-100/125
+(`13,844` pixels each), workspace-floating at 1080p-100/125 (`12,097` each),
+1440p-100 (`5,512`), and 1440p-125 (`9,770`). No visual/provider/fallback/
+acceptance policy changed. Cleanup removed four generated images and resource
+accounting reported zero containers, volumes, sessions, and known bytes.
+Next action is the next bounded canonical provider/history slice; preserve the
+visual-only boundary.
+
 ## 2026-09-07 — Expose Invesco current-only history route evidence
 
 Product commit `63d64bfe` adds explicit current-only route metadata for the
