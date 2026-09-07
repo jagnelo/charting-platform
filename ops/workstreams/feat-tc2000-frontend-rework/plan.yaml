@@ -13,6 +13,18 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product commit f2dc4a78 adds the compatible Chart Plot Library Market Gauge
+  promotion target through the existing reusable-condition and saved EasyScan
+  contract. Focused component coverage passed 22 tests and frontend
+  type-check passed. The exact-tip gate passed backend 1350 unit and 385
+  integration tests, frontend 971/971, build/compose/provider policy, stack
+  health, runner isolation/resource probes, and functional Playwright 159
+  passed with 106 documented skips; visual parity remains 98/104 with exactly
+  the six unchanged state-oracle diffs. Cleanup removed four generated images
+  and left no assigned resources. Continue broader R1 canonical
+  provider/history population and remaining R2-R7 promotion fan-out while
+  preserving the visual-only boundary. Historical receipts below remain
+  authoritative.
   Product commit ab9ebe56 keeps the reviewed search-provider metadata chain
   moving after an incompatible provider-owned profile; only profiles passing
   canonical-symbol, non-placeholder, quote-type, and name-compatibility
@@ -151,6 +163,14 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
+    Product commit f2dc4a78 adds Chart Plot Library to Market Gauge promotion
+    through the existing reusable-condition and saved EasyScan contract.
+    Focused component coverage passed 22 tests and type-check passed. The
+    exact-tip gate passed backend 1350 unit/385 integration, frontend 971/971,
+    and functional Playwright 159 passed with 106 documented skips; visual
+    parity remains 98/104 with exactly the six unchanged state-oracle diffs.
+    Continue broader R1 canonical provider/history population and R2-R7 while
+    preserving the visual-only boundary.
     Product commit ab9ebe56 keeps the reviewed search-provider metadata chain
     moving after an incompatible provider-owned profile; only profiles passing
     canonical-symbol, non-placeholder, quote-type, and name-compatibility

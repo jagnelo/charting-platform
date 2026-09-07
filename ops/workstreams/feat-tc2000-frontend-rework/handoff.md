@@ -8,6 +8,19 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-07 — Promote chart indicators to Market Gauges
+
+Product commit `f2dc4a78` adds the Chart Plot Library's compatible `Market
+Gauge` promotion target. The frontend reuses the existing condition plus
+`/screeners/from-condition/{key}` contract, preserving the chart timeframe and
+avoiding any new provider or visual-policy behavior. Focused component tests
+passed `22/22`, type-check passed, and the exact-tip gate passed all non-visual
+stages (backend `1350` unit/`385` integration, frontend `971/971`, build,
+compose, stack, runner probes, and functional Playwright `159` passed with
+`106` documented skips). Visual parity remains `98/104` with the six known
+state-oracle diffs; cleanup is clean. Continue broader R1 population/history
+and R2-R7; do not integrate, promote, or deploy.
+
 ## 2026-09-07 — Continue compatible provider metadata fallback
 
 Product commit `ab9ebe56` keeps the reviewed search-provider metadata chain

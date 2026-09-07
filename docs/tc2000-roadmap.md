@@ -5,6 +5,29 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-07
 
+## 2026-09-07 — Promote chart indicators to Market Gauges
+
+Product commit `f2dc4a78` completes a compatible R4 fan-out gap in the Chart
+Plot Library. An indicator threshold can now be copied into a reusable
+condition and its saved EasyScan-backed Market Gauge target, matching the
+existing Study Lab gauge contract. The operation keeps the chart timeframe,
+condition definition, and existing bounded all-instrument scan semantics; no
+new provider, fallback, visual-oracle, or acceptance-policy behavior was
+introduced.
+
+Focused Chart Plot Library coverage passed `22/22`; frontend type-check and
+diff checks passed. The exact-tip gate passed all non-visual stages: backend
+`1350` unit and `385` integration tests with combined coverage above the
+repository floor, frontend `971/971`, production build/compose/provider
+policy, stack health, runner isolation/resource probes, and authenticated
+functional Playwright (`159` passed, `106` documented skips across `265`).
+The unchanged visual matrix returned `98/104`, exactly the six known
+state-oracle diffs (watchlist-column-editor-open at 1080p-100/125 and
+workspace-floating at all four projects). Cleanup removed four generated
+images and left no assigned containers, volumes, sessions, or known bytes.
+Continue broader R1 canonical population/history and the remaining R2-R7
+work; this slice does not imply complete promotion fan-out.
+
 ## 2026-09-07 — Continue compatible provider metadata fallback
 
 Product commit `ab9ebe56` tightens the reviewed search-provider enrichment

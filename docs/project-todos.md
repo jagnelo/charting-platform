@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-07 — Chart Plot Library Market Gauge promotion
+
+- [x] Add a `Market Gauge` promotion target to the Chart Plot Library. It
+      persists the indicator threshold as a reusable condition, creates the
+      existing saved EasyScan target, and reports the gauge availability using
+      the same contract as Study Lab (`f2dc4a78`).
+- [x] Focused Chart Plot Library coverage passed `22/22`; frontend type-check
+      passed; exact-tip gate passed backend `1350` unit/`385` integration,
+      frontend `971/971`, and functional Playwright `159` passed with `106`
+      documented skips. Visual parity remains `98/104` with only the six
+      known state-oracle diffs; cleanup/resource accounting is clean.
+- [ ] Continue the remaining compatible chart/list/gauge and Strategy Lab
+      promotion fan-out alongside canonical provider/history population and
+      R2-R7 roadmap work.
+
 ### 2026-09-07 — Continue compatible provider metadata fallback
 
 - [x] Keep searching the configured provider chain when a provider-owned
