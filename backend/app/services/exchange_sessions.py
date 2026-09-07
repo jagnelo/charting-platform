@@ -59,7 +59,10 @@ async def resolve_session_window(
                 ExchangeSessionRule.session_code == session_code,
                 ExchangeSessionRule.weekday == trade_date.weekday(),
                 ExchangeSessionRule.valid_from <= trade_date,
-                (ExchangeSessionRule.valid_to.is_(None) | (ExchangeSessionRule.valid_to >= trade_date)),
+                (
+                    ExchangeSessionRule.valid_to.is_(None)
+                    | (ExchangeSessionRule.valid_to >= trade_date)
+                ),
             )
             .order_by(ExchangeSessionRule.valid_from.desc())
             .limit(1)

@@ -195,6 +195,7 @@ async def test_universe_reconciliation_rejects_page_without_completion_evidence(
     db.flush()
     provider = SimpleNamespace(supported_discovery_types=lambda: ["EQUITY"])
     resolved = SimpleNamespace(provider_name="fixture-pagination", data_source=source)
+
     async def resolve_fixture(*_args, **_kwargs):
         return [resolved]
 
@@ -236,7 +237,11 @@ async def test_universe_reconciliation_follows_cursor_until_explicit_completion(
 
     async def cursor_pages(*args, **_kwargs):
         page = (
-            {"quotes": [{"symbol": "AAPL", "exchange": "XNAS"}], "next_offset": 1, "next_url": "cursor"}
+            {
+                "quotes": [{"symbol": "AAPL", "exchange": "XNAS"}],
+                "next_offset": 1,
+                "next_url": "cursor",
+            }
             if ":0" in args[2]
             else {"quotes": [{"symbol": "MSFT", "exchange": "XNAS"}], "complete": True}
         )

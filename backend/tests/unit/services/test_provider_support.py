@@ -228,6 +228,11 @@ async def test_resolve_provider_chain_prefers_supported_then_bound_provider(
     monkeypatch.setattr(settings, "ENABLE_LEGACY_YFINANCE_FALLBACK", True)
     monkeypatch.setattr(settings, "ALPACA_API_KEY", "unit-key")
     monkeypatch.setattr(settings, "ALPACA_SECRET_KEY", "unit-secret")
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_LIVE_PROBE_STATUS_SEEDS",
+        {**settings.PROVIDER_LIVE_PROBE_STATUS_SEEDS, "alpaca": "passed"},
+    )
     async_db = AsyncSessionAdapter(db)
     alpha = _resolved_provider(
         db,

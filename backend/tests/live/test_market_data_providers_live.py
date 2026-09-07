@@ -103,7 +103,10 @@ def test_nasdaq_trader_keyless_directory():
     assert all(not row["symbol"].startswith("FILE CREATION") for row in equities["quotes"])
     if equities["total"] > 1000:
         next_page = provider.discover_universe_page("EQUITY", 1000)
-        assert next_page["quotes"] and next_page["quotes"][0]["symbol"] != equities["quotes"][0]["symbol"]
+        assert (
+            next_page["quotes"]
+            and next_page["quotes"][0]["symbol"] != equities["quotes"][0]["symbol"]
+        )
 
 
 def test_nasdaq_trader_full_directory_pagination_is_complete():
@@ -131,7 +134,9 @@ def test_nasdaq_trader_full_directory_pagination_is_complete():
             offset = next_offset
 
         assert declared_total == len(rows)
-        assert len({(row["symbol"], row["exchange_mic"], row["quoteType"]) for row in rows}) == len(rows)
+        assert len({(row["symbol"], row["exchange_mic"], row["quoteType"]) for row in rows}) == len(
+            rows
+        )
 
 
 def test_binance_keyless_crypto_history():
@@ -160,7 +165,8 @@ def test_alpaca_credentialed_history():
 def test_massive_credentialed_reference():
     _require("MASSIVE_API_KEY")
     rows = MassiveProvider().search_instruments("AAPL", limit=1)
-    assert rows and rows[0].symbol == "AAPL"
+    assert rows
+    assert all("AAPL" in f"{row.symbol} {row.name}".upper() for row in rows)
 
 
 def test_alpha_vantage_credentialed_daily():
@@ -180,20 +186,22 @@ def test_fred_credentialed_series():
     _require("FRED_API_KEY")
     start, end = _bounds()
     rows = FREDProvider().fetch_ohlcv("^IRX", Timeframe.D1, start, end)
-    assert rows
+    assert rows and all(row.close > 0 for row in rows)
 
 
 def test_finra_credentialed_short_interest():
     _require("FINRA_CLIENT_ID", "FINRA_CLIENT_SECRET")
     rows = FINRAProvider().fetch_short_interest("AAPL")
-    assert isinstance(rows, list)
+    assert rows
+    assert all(row.settlement_date and row.short_position is not None for row in rows)
+    assert any((row.source_identifier or "").upper() == "AAPL" for row in rows)
 
 
 def test_finra_credentialed_otc_daily_list():
     _require("FINRA_CLIENT_ID", "FINRA_CLIENT_SECRET")
     end = date.today()
-    rows = FINRAProvider().fetch_market_events(start=end - timedelta(days=7), end=end)
-    assert isinstance(rows, list)
+    rows = FINRAProvider().fetch_market_events(start=end - timedelta(days=45), end=end)
+    assert rows
     for row in rows:
         assert row.event_key.startswith("finra:otc_daily_list:")
 
@@ -214,7 +222,6 @@ def test_finra_otc_directory_credentialed_source():
     [
         (TiingoProvider(), ("TIINGO_API_KEY",), "AAPL"),
         (TwelveDataProvider(), ("TWELVE_DATA_API_KEY",), "AAPL"),
-        (FinnhubProvider(), ("FINNHUB_API_KEY",), "AAPL"),
         (MarketstackProvider(), ("MARKETSTACK_API_KEY",), "AAPL"),
         (EODHDProvider(), ("EODHD_API_KEY",), "AAPL"),
         (FMPProvider(), ("FMP_API_KEY",), "AAPL"),
@@ -227,4 +234,16 @@ def test_optional_credentialed_provider_small_read(provider, credentials, symbol
     _require(*credentials)
     start, end = _bounds()
     rows = provider.fetch_ohlcv(symbol, Timeframe.D1, start, end)
-    assert isinstance(rows, list)
+    assert rows
+    assert all(row.ts.tzinfo is not None for row in rows)
+    assert all(row.close > 0 for row in rows)
+
+
+def test_finnhub_credentialed_company_profile():
+    """The observed free key does not entitle the stock-candle endpoint."""
+
+    _require("FINNHUB_API_KEY")
+    profile = FinnhubProvider().get_instrument_profile("AAPL")
+    assert profile is not None
+    assert profile.symbol == "AAPL"
+    assert profile.name and profile.exchange

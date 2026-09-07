@@ -36,6 +36,7 @@ def _provider_capacity_http_error(exc: ProviderRateLimitError) -> HTTPException:
         headers=headers,
     )
 
+
 # Number of bars returned in one page. Chosen to be comfortable for rendering
 # while giving enough history context for indicators (e.g. 200-period SMA).
 PAGE_SIZE = 500

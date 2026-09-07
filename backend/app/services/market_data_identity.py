@@ -48,7 +48,11 @@ def make_domain_key(identifier_type: InstrumentIdentifierType | str, value: str)
     """Return a stable, namespaced key or ``None`` for internal identifiers."""
 
     try:
-        kind = identifier_type if isinstance(identifier_type, InstrumentIdentifierType) else InstrumentIdentifierType(str(identifier_type).lower())
+        kind = (
+            identifier_type
+            if isinstance(identifier_type, InstrumentIdentifierType)
+            else InstrumentIdentifierType(str(identifier_type).lower())
+        )
     except ValueError:
         return None
     prefix = _DOMAIN_PREFIXES.get(kind)
@@ -64,7 +68,11 @@ def choose_domain_key(identifiers: Mapping[InstrumentIdentifierType | str, str])
     normalized: dict[InstrumentIdentifierType, str] = {}
     for key, value in identifiers.items():
         try:
-            kind = key if isinstance(key, InstrumentIdentifierType) else InstrumentIdentifierType(str(key).lower())
+            kind = (
+                key
+                if isinstance(key, InstrumentIdentifierType)
+                else InstrumentIdentifierType(str(key).lower())
+            )
         except ValueError:
             continue
         normalized[kind] = value

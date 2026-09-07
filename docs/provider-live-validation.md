@@ -10,10 +10,38 @@ The command performs a preflight, prints every missing environment variable,
 runs one bounded read per provider, and returns non-zero when a credentialed
 probe is blocked. A missing credential is never reported as a passing skip.
 The wrapper returns exit code `2` for an incomplete credential preflight.
-Secrets belong in the ignored `backend/.env.dev`; do not put them in Git or
-chat. The exact names are in `backend/.env.example` and the provider ledger.
+Local secrets belong in the owner-only
+`~/.config/charting-platform/app.env`. Worktree runtime setup links the ignored
+`.env` and `backend/.env.dev` paths to that external source. Set
+`CHARTING_PLATFORM_SHARED_ENV_FILE` to use another source. The exact variable
+names are in `.env.example` and the provider ledger; never put values in Git.
+
+GitHub uses the separate manually dispatched
+`Credentialed Provider Live Validation` workflow. Configure its
+`provider-live-validation` environment with same-named environment secrets and
+with `EDGAR_USER_AGENT` and `FINRA_OTC_SYMBOL_DIRECTORY_URL` environment
+variables. Keep required reviewers enabled. Ordinary push/PR CI deliberately
+receives no provider secrets and makes no external provider calls, so a forked
+PR cannot spend quotas or exfiltrate keys.
+
+Deployments use a target-owned secret store, never the developer-machine file.
+The RPi deployment already requires `/opt/charting-platform/shared/app.env`
+with mode `0600`; the release Compose contract passes its provider variables
+only to `backend` and `worker`. The network-disabled `research-runner` receives
+none. Other targets must provide an equivalent runtime secret manager or
+permission-restricted env file.
 
 ## Evidence captured in this worktree
+
+On 2026-09-07, the 13 probes covered by operator-supplied credentials passed
+after enforcing non-empty provider-native results: Massive, Alpha Vantage,
+CoinGecko, FRED, FINRA short interest, FINRA OTC Daily List, FINRA OTC Security
+Master, Tiingo, Twelve Data, Finnhub company profile, Marketstack, EODHD, and
+FMP. The run used one bounded read per case (`13 passed, 11 deselected`). It
+also exposed and corrected entitlement/API mismatches: Alpha Vantage's free
+key supports the compact latest-100 daily response rather than full history,
+Finnhub's free key rejected stock candles but supports company profiles, and
+FMP history now uses its current `/stable` API instead of `/api/v3`.
 
 On 2026-09-05, with network access, a temporary non-secret SEC User-Agent, and
 the official FINRA OTC Security Master URL, the public/keyless matrix passed
@@ -56,32 +84,19 @@ originating request-log link. The backend-only
 `/api/v1/market-data/capacity-events` endpoint exposes this evidence to
 administrators.
 
-The full matrix correctly exposed the remaining credentialed blockers (Alpaca,
-Massive, Alpha Vantage, CoinGecko, FRED, FINRA OAuth (short interest and OTC
-Daily List), Tiingo, Twelve Data, Finnhub, Marketstack, EODHD, FMP, Tradier,
-and MarketData.app). The FINRA OTC DAPI source itself is public and full
-pagination is proven above, but it remains non-routable until its terms and
-provider-specific quota are reviewed. The credentialed providers remain
-non-routable or acceptance-blocked until their keys/terms/plan limits are
-supplied and the corresponding probe passes. The conservative Marketstack
-free-plan contract (100 requests/month) and IBKR Web API pacing contract (10
-requests/second plus five concurrent historical requests) are now recorded
-from provider documentation; IBKR remains a descriptor with no routable
-capability. Binance's endpoint-weight accounting, FRED v1's non-numeric
-ceiling, Finnhub/FMP plan-specific limits, and Nasdaq Trader's non-numeric
-polling ceiling remain explicitly tracked rather than guessed.
+The remaining credentialed blockers are Alpaca, Tradier, and MarketData.app;
+SEC EDGAR also needs an operator contact User-Agent. A provider may have a
+green live probe and remain non-routable when any external constraint cannot
+yet be accounted safely. Tiingo, FINRA, and FMP are in that state because their
+monthly bandwidth ceilings are now explicit but the runtime does not yet meter
+response bytes. FRED v1 and Nasdaq Trader remain non-routable because their
+official documentation publishes throttling behavior without a numeric
+ceiling. IBKR remains a descriptor without an authenticated account adapter.
 
-With the public SEC User-Agent and official FINRA OTC DAPI URL supplied for the
-run, the current full preflight passed `9` public probes and reported `15`
-blocked credentialed cases; it returned exit code `2` and makes no acceptance
-claim. It names these missing variables exactly:
-`ALPACA_API_KEY`, `ALPACA_SECRET_KEY`, `MASSIVE_API_KEY`,
-`ALPHA_VANTAGE_API_KEY`, `COINGECKO_API_KEY`, `FRED_API_KEY`,
-`FINRA_CLIENT_ID`, `FINRA_CLIENT_SECRET`, `TIINGO_API_KEY`,
-`TWELVE_DATA_API_KEY`, `FINNHUB_API_KEY`, `MARKETSTACK_API_KEY`,
-`EODHD_API_KEY`, `FMP_API_KEY`, `TRADIER_API_KEY`, and
-`MARKETDATA_APP_API_KEY`. Populate them only in the ignored
-`backend/.env.dev`; never paste secret values into the repository or chat.
+The still-missing variables are `EDGAR_USER_AGENT`, `ALPACA_API_KEY`,
+`ALPACA_SECRET_KEY`, `TRADIER_API_KEY`, and `MARKETDATA_APP_API_KEY`. Until
+those are supplied and their cases pass, the complete 24-case matrix remains
+an open acceptance gate.
 
 The MarketData.app adapter was also checked against the current official API
 root during this checkpoint: versioned resources are under

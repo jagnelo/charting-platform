@@ -500,7 +500,7 @@ class TestAlphaVantageProvider:
         response.raise_for_status.return_value = None
         with (
             patch("app.providers.alpha_vantage.settings") as mock_settings,
-            patch("app.providers.alpha_vantage.httpx.get", return_value=response),
+            patch("app.providers.alpha_vantage.httpx.get", return_value=response) as get,
         ):
             mock_settings.ALPHA_VANTAGE_API_KEY = "key"
             bars = AlphaVantageProvider().fetch_ohlcv(
@@ -510,6 +510,7 @@ class TestAlphaVantageProvider:
                 datetime(2024, 1, 4, tzinfo=UTC),
             )
         assert [bar.close for bar in bars] == [99.0, 102.0]
+        assert get.call_args.kwargs["params"]["outputsize"] == "compact"
 
     def test_listing_status_becomes_paginated_universe_evidence(self):
         response = MagicMock()

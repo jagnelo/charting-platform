@@ -24,6 +24,39 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
+_PROVIDER_CREDENTIAL_SETTINGS = (
+    "ALPACA_API_KEY",
+    "ALPACA_SECRET_KEY",
+    "ALPHA_VANTAGE_API_KEY",
+    "COINGECKO_API_KEY",
+    "EODHD_API_KEY",
+    "FINNHUB_API_KEY",
+    "FINRA_CLIENT_ID",
+    "FINRA_CLIENT_SECRET",
+    "FMP_API_KEY",
+    "FRED_API_KEY",
+    "MARKETDATA_APP_API_KEY",
+    "MARKETSTACK_API_KEY",
+    "MASSIVE_API_KEY",
+    "OPENFIGI_API_KEY",
+    "TIINGO_API_KEY",
+    "TRADIER_API_KEY",
+    "TWELVE_DATA_API_KEY",
+)
+
+
+@pytest.fixture(autouse=True)
+def isolate_external_provider_credentials(request, monkeypatch):
+    """Prevent ordinary tests from inheriting developer live credentials."""
+
+    if request.node.get_closest_marker("live") is not None:
+        return
+    from app.config import settings
+
+    for name in _PROVIDER_CREDENTIAL_SETTINGS:
+        monkeypatch.delenv(name, raising=False)
+        monkeypatch.setattr(settings, name, "")
+
 
 def _record_testcontainer(container) -> None:
     """Persist session IDs so scoped cleanup can find abandoned Ryuk resources."""

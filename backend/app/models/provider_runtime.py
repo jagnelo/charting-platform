@@ -67,7 +67,9 @@ class ProviderPolicy(Base, TimestampMixin):
     quota_contract: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     quota_scope: Mapped[str | None] = mapped_column(String(80), nullable=True)
     quota_source: Mapped[str | None] = mapped_column(String(240), nullable=True)
-    quota_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    quota_verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     freshness_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=3600)
     score_floor: Mapped[Decimal] = mapped_column(
         Numeric(10, 4), nullable=False, default=Decimal("0")
@@ -292,13 +294,22 @@ class ProviderCapacityEvent(Base, TimestampMixin):
     operation: Mapped[str] = mapped_column(String(80), nullable=False)
     scope: Mapped[str | None] = mapped_column(String(80), nullable=True)
     status_code: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    error_type: Mapped[str] = mapped_column(String(80), nullable=False, default="ProviderRateLimitError")
+    error_type: Mapped[str] = mapped_column(
+        String(80), nullable=False, default="ProviderRateLimitError"
+    )
     message: Mapped[str] = mapped_column(Text, nullable=False)
-    retry_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    retry_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
     response_headers: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
-    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
     request_log_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("provider_request_log.id", ondelete="SET NULL"), nullable=True, index=True
+        Integer,
+        ForeignKey("provider_request_log.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
     )
 
     data_source: Mapped["DataSource | None"] = relationship()

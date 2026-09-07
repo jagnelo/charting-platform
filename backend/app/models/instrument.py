@@ -54,7 +54,9 @@ class Instrument(Base, TimestampMixin):
     field_provenance: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     # ``id`` remains the hidden relational surrogate; this stable domain key
     # survives ticker changes and allows future non-US markets.
-    domain_key: Mapped[str | None] = mapped_column(String(120), nullable=True, unique=True, index=True)
+    domain_key: Mapped[str | None] = mapped_column(
+        String(120), nullable=True, unique=True, index=True
+    )
     identity_status: Mapped[str] = mapped_column(String(24), nullable=False, default="provisional")
     issuer_id: Mapped[int | None] = mapped_column(
         BIGINT, ForeignKey("issuer.id", ondelete="SET NULL"), nullable=True, index=True

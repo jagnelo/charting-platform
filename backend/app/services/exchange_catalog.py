@@ -51,6 +51,7 @@ _ALIASES: dict[str, str] = {
     "NASDAQ GLOBAL SELECT MARKET": "XNAS",
     "NASDAQ GLOBAL MARKET": "XNAS",
     "NASDAQ CAPITAL MARKET": "XNAS",
+    "NASDAQ NMS - GLOBAL MARKET": "XNAS",
     "NMS": "XNAS",
     "NAS": "XNAS",
     "NYSE": "XNYS",
@@ -130,14 +131,18 @@ async def ensure_default_session_rules(db: AsyncSession, exchange: Exchange) -> 
 
     valid_from = date(1970, 1, 1)
     existing = (
-        await db.execute(
-            select(ExchangeSessionRule).where(
-                ExchangeSessionRule.exchange_id == exchange.id,
-                ExchangeSessionRule.session_code == "regular",
-                ExchangeSessionRule.valid_from == valid_from,
+        (
+            await db.execute(
+                select(ExchangeSessionRule).where(
+                    ExchangeSessionRule.exchange_id == exchange.id,
+                    ExchangeSessionRule.session_code == "regular",
+                    ExchangeSessionRule.valid_from == valid_from,
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     weekdays = {row.weekday for row in existing}
     for weekday in range(5):
         if weekday in weekdays:

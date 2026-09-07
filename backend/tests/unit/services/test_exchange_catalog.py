@@ -20,6 +20,7 @@ from tests.unit.conftest import AsyncSessionAdapter
     ("value", "expected"),
     [
         ("NASDAQ", "XNAS"),
+        ("NASDAQ NMS - GLOBAL MARKET", "XNAS"),
         ("NMS", "XNAS"),
         ("NYSE", "XNYS"),
         ("PCX", "ARCX"),

@@ -68,7 +68,11 @@ def _parse_file(source_name: str, text: str) -> list[dict[str, Any]]:
     parsed: list[dict[str, Any]] = []
     for row in reader:
         first_value = next(iter(row.values()), "") if row else ""
-        if not row or row.get("File Creation Time") is not None or str(first_value).strip().lower().startswith("file creation time"):
+        if (
+            not row
+            or row.get("File Creation Time") is not None
+            or str(first_value).strip().lower().startswith("file creation time")
+        ):
             continue
         if source_name == "nasdaqlisted":
             symbol = str(row.get("Symbol") or "").strip().upper()
@@ -86,7 +90,9 @@ def _parse_file(source_name: str, text: str) -> list[dict[str, Any]]:
             symbol = str(row.get("ACT Symbol") or "").strip().upper()
             name = str(row.get("Security Name") or symbol).strip()
             code = str(row.get("Exchange") or "").strip().upper()
-            exchange = {"A": "XASE", "N": "XNYS", "P": "ARCX", "Z": "BATS", "V": "IEXG"}.get(code, code or None)
+            exchange = {"A": "XASE", "N": "XNYS", "P": "ARCX", "Z": "BATS", "V": "IEXG"}.get(
+                code, code or None
+            )
             is_etf = str(row.get("ETF") or "N").upper() == "Y"
             financial_status = ""
             active = str(row.get("Test Issue") or "N").upper() != "Y"

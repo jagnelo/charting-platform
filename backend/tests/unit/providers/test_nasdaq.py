@@ -4,7 +4,21 @@ from app.providers.nasdaq import NasdaqProvider, _parse_file
 
 
 def test_official_nasdaq_file_parser_preserves_venue_and_etf_status():
-    text = "|".join(["Symbol", "Security Name", "Market Category", "Test Issue", "Financial Status", "Round Lot Size", "ETF", "NextShares"]) + "\n"
+    text = (
+        "|".join(
+            [
+                "Symbol",
+                "Security Name",
+                "Market Category",
+                "Test Issue",
+                "Financial Status",
+                "Round Lot Size",
+                "ETF",
+                "NextShares",
+            ]
+        )
+        + "\n"
+    )
     text += "AAPL|Apple Inc.|Q|N|N|100|N|N\n"
     text += "SPY|SPDR S&P 500 ETF|G|N|N|100|Y|N\n"
     text += "BANK|Bankrupt Listed|S|N|Q|100|N|N\n"
@@ -18,7 +32,20 @@ def test_official_nasdaq_file_parser_preserves_venue_and_etf_status():
 
 
 def test_official_otherlisted_file_maps_exchange_codes():
-    text = "|".join(["ACT Symbol", "Security Name", "Exchange", "CQS Symbol", "ETF", "Round Lot Size", "Test Issue"]) + "\n"
+    text = (
+        "|".join(
+            [
+                "ACT Symbol",
+                "Security Name",
+                "Exchange",
+                "CQS Symbol",
+                "ETF",
+                "Round Lot Size",
+                "Test Issue",
+            ]
+        )
+        + "\n"
+    )
     text += "IBM|International Business Machines|N|IBM|N|100|N\n"
     text += "VTI|Vanguard Total Stock|P|VTI|Y|100|N\n"
     rows = _parse_file("otherlisted", text)

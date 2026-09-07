@@ -25,7 +25,7 @@ from tests.unit.conftest import AsyncSessionAdapter
 async def test_seed_never_invents_generic_limits_for_unverified_provider(db):
     async_db = AsyncSessionAdapter(db)
     await seed_provider_runtime(async_db)
-    source = db.execute(select(DataSource).where(DataSource.name == "finnhub")).scalar_one()
+    source = db.execute(select(DataSource).where(DataSource.name == "fred")).scalar_one()
     policy = db.execute(
         select(ProviderPolicy).where(
             ProviderPolicy.data_source_id == source.id,
@@ -37,6 +37,39 @@ async def test_seed_never_invents_generic_limits_for_unverified_provider(db):
     assert policy.burst_capacity is None
     assert policy.max_concurrency is None
     assert not policy_has_known_quota(policy)
+
+
+def test_known_request_limit_with_untracked_bandwidth_remains_non_routable():
+    policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.PRICE_HISTORY,
+        quota_contract={
+            "dimensions": [
+                {
+                    "name": "requests_per_day",
+                    "limit": 250,
+                    "window_seconds": 86400,
+                    "unit": "requests",
+                    "scope": "api_key",
+                    "source": "operator-dashboard",
+                }
+            ],
+            "reset": "provider_defined_daily",
+            "untracked_constraints": [
+                {
+                    "name": "bandwidth_per_30_days",
+                    "limit": 512,
+                    "unit": "megabytes",
+                    "source": "operator-dashboard",
+                }
+            ],
+        },
+    )
+    assert not policy_has_known_quota(policy)
+    assert (
+        "quota_contract.untracked_constraints.bandwidth_per_30_days"
+        in quota_contract_missing_dimensions(policy)
+    )
 
 
 @pytest.mark.asyncio
@@ -76,7 +109,9 @@ def test_rate_limit_error_honors_retry_after_and_status():
         headers={"Retry-After": "7", "X-RateLimit-Limit": "5"},
         request=httpx.Request("GET", "https://provider.example/data"),
     )
-    exc = httpx.HTTPStatusError("429 Too Many Requests", request=response.request, response=response)
+    exc = httpx.HTTPStatusError(
+        "429 Too Many Requests", request=response.request, response=response
+    )
     typed = provider_rate_limit_error("example", exc, scope="api_key")
     assert isinstance(typed, ProviderRateLimitError)
     assert typed.status_code == 429
@@ -122,7 +157,16 @@ def test_dynamic_endpoint_contract_is_non_routable_without_operation_costs():
         data_source_id=1,
         capability=ProviderCapability.CRYPTO_HISTORY,
         quota_contract={
-            "dimensions": [{"name": "weight", "limit": 1200, "window_seconds": 60, "unit": "weight", "scope": "ip", "source": "unit-test"}],
+            "dimensions": [
+                {
+                    "name": "weight",
+                    "limit": 1200,
+                    "window_seconds": 60,
+                    "unit": "weight",
+                    "scope": "ip",
+                    "source": "unit-test",
+                }
+            ],
             "reset": "fixed_minute",
             "dynamic_endpoint_weights": True,
         },
@@ -159,7 +203,10 @@ def test_marketstack_and_ibkr_use_provider_specific_pacing_contracts():
 
     ibkr = settings.PROVIDER_RATE_LIMIT_SEEDS["ibkr"]["quota_contract"]
     assert {dimension["limit"] for dimension in ibkr["dimensions"]} == {5, 10}
-    assert all(dimension["source"].startswith("https://ibkrcampus.com/") for dimension in ibkr["dimensions"])
+    assert all(
+        dimension["source"].startswith("https://ibkrcampus.com/")
+        for dimension in ibkr["dimensions"]
+    )
 
 
 def test_marketdata_app_records_documented_daily_credit_and_concurrency_limits():
@@ -171,6 +218,19 @@ def test_marketdata_app_records_documented_daily_credit_and_concurrency_limits()
     assert seed.get("max_concurrency") is None
 
 
+def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
+    finnhub = settings.PROVIDER_RATE_LIMIT_SEEDS["finnhub"]["quota_contract"]
+    assert {item["limit"] for item in finnhub["dimensions"]} == {30, 60}
+
+    finra = settings.PROVIDER_RATE_LIMIT_SEEDS["finra"]["quota_contract"]
+    tiingo = settings.PROVIDER_RATE_LIMIT_SEEDS["tiingo"]["quota_contract"]
+    fmp = settings.PROVIDER_RATE_LIMIT_SEEDS["fmp"]["quota_contract"]
+    assert finra["untracked_constraints"][0]["limit"] == 10 * 1024**3
+    assert tiingo["untracked_constraints"][0]["limit"] == 1024**3
+    assert fmp["dimensions"][0]["limit"] == 250
+    assert fmp["untracked_constraints"][0]["limit"] == 512 * 1024**2
+
+
 def test_credit_contract_requires_the_requested_operation_cost():
     source = DataSource(
         name="marketdata_app",
@@ -180,7 +240,16 @@ def test_credit_contract_requires_the_requested_operation_cost():
         data_source_id=1,
         capability=ProviderCapability.PRICE_HISTORY,
         quota_contract={
-            "dimensions": [{"name": "credits", "limit": 100, "window_seconds": 86400, "unit": "credits", "scope": "api_key", "source": "unit-test"}],
+            "dimensions": [
+                {
+                    "name": "credits",
+                    "limit": 100,
+                    "window_seconds": 86400,
+                    "unit": "credits",
+                    "scope": "api_key",
+                    "source": "unit-test",
+                }
+            ],
             "reset": "provider_defined",
             "operation_costs_required": True,
         },
@@ -228,7 +297,16 @@ def test_dynamic_operation_cost_readiness_is_exposed_separately():
         data_source_id=1,
         capability=ProviderCapability.CRYPTO_HISTORY,
         quota_contract={
-            "dimensions": [{"name": "weight", "limit": 10, "window_seconds": 60, "unit": "weight", "scope": "ip", "source": "unit-test"}],
+            "dimensions": [
+                {
+                    "name": "weight",
+                    "limit": 10,
+                    "window_seconds": 60,
+                    "unit": "weight",
+                    "scope": "ip",
+                    "source": "unit-test",
+                }
+            ],
             "reset": "fixed_minute",
             "dynamic_endpoint_weights": True,
         },

@@ -27,7 +27,9 @@ async def enqueue_refresh_job(
 
     current = now or datetime.now(UTC)
     job = (
-        await db.execute(select(MarketRefreshJob).where(MarketRefreshJob.request_key == request_key))
+        await db.execute(
+            select(MarketRefreshJob).where(MarketRefreshJob.request_key == request_key)
+        )
     ).scalar_one_or_none()
     if job is None:
         job = MarketRefreshJob(

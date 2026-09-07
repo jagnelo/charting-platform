@@ -1,6 +1,8 @@
 import importlib.util
 from pathlib import Path
 
+import pytest
+
 
 def _load_runtime():
     path = Path(__file__).parents[3] / "scripts" / "worktree-runtime.py"
@@ -74,3 +76,59 @@ def test_unregistered_generated_env_files_are_removed(tmp_path, monkeypatch):
     runtime.remove_unregistered_env_files({"allocations": {"active": {"id": "active-id"}}})
     assert (runtime_dir / "active-id.env").exists()
     assert not (runtime_dir / "stale-id.env").exists()
+
+
+def test_shared_env_is_linked_into_ignored_worktree_paths(tmp_path, monkeypatch):
+    runtime = _load_runtime()
+    checkout = tmp_path / "checkout"
+    (checkout / "backend").mkdir(parents=True)
+    source = tmp_path / "operator" / "app.env"
+    source.parent.mkdir()
+    source.write_text("PROVIDER_KEY=secret\n")
+    source.chmod(0o600)
+    monkeypatch.setenv(runtime.SHARED_ENV_OVERRIDE, str(source))
+    monkeypatch.setattr(runtime, "root", lambda: checkout)
+
+    assert runtime.install_shared_env_links() == source.resolve()
+    for relative_target in runtime.SHARED_ENV_TARGETS:
+        target = checkout / relative_target
+        assert target.is_symlink()
+        assert target.resolve() == source.resolve()
+
+    # Re-running is idempotent and never copies secret bytes into the checkout.
+    assert runtime.install_shared_env_links() == source.resolve()
+
+
+def test_shared_env_rejects_unsafe_permissions(tmp_path, monkeypatch):
+    runtime = _load_runtime()
+    source = tmp_path / "app.env"
+    source.write_text("PROVIDER_KEY=secret\n")
+    source.chmod(0o640)
+    monkeypatch.setenv(runtime.SHARED_ENV_OVERRIDE, str(source))
+    monkeypatch.setattr(runtime, "root", lambda: tmp_path / "checkout")
+
+    with pytest.raises(SystemExit, match="chmod 600"):
+        runtime.install_shared_env_links()
+
+
+def test_shared_env_never_replaces_existing_file_or_other_link(tmp_path, monkeypatch):
+    runtime = _load_runtime()
+    checkout = tmp_path / "checkout"
+    (checkout / "backend").mkdir(parents=True)
+    source = tmp_path / "app.env"
+    source.write_text("PROVIDER_KEY=secret\n")
+    source.chmod(0o600)
+    monkeypatch.setenv(runtime.SHARED_ENV_OVERRIDE, str(source))
+    monkeypatch.setattr(runtime, "root", lambda: checkout)
+
+    (checkout / ".env").write_text("LOCAL=keep\n")
+    with pytest.raises(SystemExit, match="refusing to replace existing env file"):
+        runtime.install_shared_env_links()
+
+    (checkout / ".env").unlink()
+    elsewhere = tmp_path / "elsewhere.env"
+    elsewhere.write_text("OTHER=keep\n")
+    elsewhere.chmod(0o600)
+    (checkout / ".env").symlink_to(elsewhere)
+    with pytest.raises(SystemExit, match="pointing elsewhere"):
+        runtime.install_shared_env_links()

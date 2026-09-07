@@ -16,6 +16,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parents[1]
+SHARED_ENV_OVERRIDE = "CHARTING_PLATFORM_SHARED_ENV_FILE"
+DEFAULT_SHARED_ENV = Path.home() / ".config" / "charting-platform" / "app.env"
 
 KEYLESS = ("EDGAR_USER_AGENT",)
 CREDENTIALS = {
@@ -38,6 +40,8 @@ CREDENTIALS = {
 
 
 def changed_provider_code() -> bool:
+    if os.getenv("FORCE_LIVE_PROVIDER_PROBES") == "1":
+        return True
     status = subprocess.run(["git", "status", "--short"], cwd=ROOT, text=True, capture_output=True)
     if any(path.startswith(("backend/app/providers/", "backend/app/services/provider", "backend/app/models/provider", "backend/tests/live/", "backend/alembic/versions/", "scripts/run-live-provider-probes.py")) for path in (line[3:] for line in status.stdout.splitlines() if len(line) > 3)):
         return True
@@ -67,9 +71,15 @@ def changed_provider_code() -> bool:
 
 
 def main() -> int:
-    # Match the backend settings boundary: local operator credentials belong in
-    # the ignored backend/.env.dev file, while explicitly exported variables
-    # retain precedence.  Do not print or persist any loaded secret values.
+    # Prefer an operator-owned source outside Git. Worktree runtime setup links
+    # the usual ignored paths to this file, but loading it directly also makes
+    # this command safe to run before any Make target. Explicit exports retain
+    # precedence. Do not print or persist loaded secret values.
+    shared_env = Path(
+        os.getenv(SHARED_ENV_OVERRIDE, str(DEFAULT_SHARED_ENV))
+    ).expanduser()
+    if shared_env.exists():
+        load_dotenv(shared_env, override=False)
     load_dotenv(ROOT / "backend" / ".env.dev", override=False)
     if not changed_provider_code():
         print("live provider probes: not applicable (no provider-related changes)")

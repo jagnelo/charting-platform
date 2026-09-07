@@ -285,8 +285,7 @@ async def run_availability_probes(
         ):
             classification = "entitlement_exclusion"
         elif (
-            provider_configuration_required(source.name)
-            and not provider_is_configured(source.name)
+            provider_configuration_required(source.name) and not provider_is_configured(source.name)
         ) or not provider_configured(source, entitlement):
             classification = "not_configured"
         else:

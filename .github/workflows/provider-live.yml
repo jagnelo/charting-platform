@@ -1,0 +1,60 @@
+name: Credentialed Provider Live Validation
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: provider-live-validation
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  provider-live:
+    name: Bounded credentialed provider probes
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: provider-live-validation
+    env:
+      RUN_LIVE_PROVIDER_TESTS: "1"
+      FORCE_LIVE_PROVIDER_PROBES: "1"
+      EDGAR_USER_AGENT: ${{ vars.EDGAR_USER_AGENT }}
+      FINRA_OTC_SYMBOL_DIRECTORY_URL: ${{ vars.FINRA_OTC_SYMBOL_DIRECTORY_URL }}
+      ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+      ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+      MASSIVE_API_KEY: ${{ secrets.MASSIVE_API_KEY }}
+      ALPHA_VANTAGE_API_KEY: ${{ secrets.ALPHA_VANTAGE_API_KEY }}
+      COINGECKO_API_KEY: ${{ secrets.COINGECKO_API_KEY }}
+      FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+      FINRA_CLIENT_ID: ${{ secrets.FINRA_CLIENT_ID }}
+      FINRA_CLIENT_SECRET: ${{ secrets.FINRA_CLIENT_SECRET }}
+      TIINGO_API_KEY: ${{ secrets.TIINGO_API_KEY }}
+      TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
+      FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+      MARKETSTACK_API_KEY: ${{ secrets.MARKETSTACK_API_KEY }}
+      EODHD_API_KEY: ${{ secrets.EODHD_API_KEY }}
+      FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+      TRADIER_API_KEY: ${{ secrets.TRADIER_API_KEY }}
+      MARKETDATA_APP_API_KEY: ${{ secrets.MARKETDATA_APP_API_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.7.15"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Install locked backend dependencies
+        run: bash scripts/ci-retry.sh -- bash -c 'cd backend && uv sync --frozen --dev'
+
+      - name: Run one bounded live read per provider
+        run: uv run --project backend python scripts/run-live-provider-probes.py

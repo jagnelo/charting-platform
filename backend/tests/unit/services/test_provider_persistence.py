@@ -83,12 +83,15 @@ async def test_profile_cik_is_attached_to_issuer_not_security_identity(db, instr
     issuer = db.execute(select(Issuer).where(Issuer.cik == "0000320193")).scalar_one()
     assert instrument.issuer_id == issuer.id
     assert issuer.domain_key == "cik:0000320193"
-    assert db.execute(
-        select(InstrumentIdentifier).where(
-            InstrumentIdentifier.instrument_id == instrument.id,
-            InstrumentIdentifier.identifier_type == InstrumentIdentifierType.CIK,
-        )
-    ).scalar_one_or_none() is None
+    assert (
+        db.execute(
+            select(InstrumentIdentifier).where(
+                InstrumentIdentifier.instrument_id == instrument.id,
+                InstrumentIdentifier.identifier_type == InstrumentIdentifierType.CIK,
+            )
+        ).scalar_one_or_none()
+        is None
+    )
 
 
 def _resolved_provider(
@@ -586,7 +589,7 @@ async def test_seed_universe_does_not_promote_ambiguous_sec_ticker(db, monkeypat
 
 
 @pytest.mark.asyncio
-async def test_ingest_provider_profile_normalizes_long_exchange_labels(db):
+async def test_ingest_provider_profile_does_not_invent_mic_from_long_exchange_label(db):
     async_db = AsyncSessionAdapter(db)
 
     profile = InstrumentProfile(
@@ -610,5 +613,5 @@ async def test_ingest_provider_profile_normalizes_long_exchange_labels(db):
     detail = db.execute(
         select(EquityDetail).where(EquityDetail.instrument_id == instrument.id)
     ).scalar_one()
-    assert detail.exchange_mic == "TT"
+    assert detail.exchange_mic is None
     assert instrument.currency is None

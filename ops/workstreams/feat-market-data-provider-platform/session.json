@@ -112,8 +112,8 @@
   "implementation_sha": "bea582bba98d10205887b5508fe1d83321ce6fa4",
   "last_checkpoint": "2026-09-05T19:01:26+00:00",
   "last_human_progress_update": "2026-09-05T15:56:10.567038+00:00",
-  "local_validation_profile": "docker_integration",
-  "next_action": "populate provider credentials, execute every credentialed probe, and obtain approved production NMS/OTC reconciliation and shadow-run evidence",
+  "local_validation_profile": "full_stack_browser",
+  "next_action": "supply the five remaining live inputs, execute the complete credentialed matrix, and obtain approved production NMS/OTC reconciliation and shadow-run evidence",
   "parent_branch": "staging",
   "plan_hash": "4f5679975d4e0f32a8af6c2399fe29b3ebe7afc4526009f0929053ba326e1da0",
   "planning_required": true,
@@ -135,13 +135,14 @@
       "AC-COMPAT",
       "AC-TEST",
       "AC-QUOTA-SAFETY",
-      "AC-RATE-FAILURE"
+      "AC-RATE-FAILURE",
+      "AC-SECRET-DISTRIBUTION"
     ],
-      "current_blocker": "credentialed live probes require operator-populated ignored backend/.env.dev values; production NMS/OTC reconciliation and shadow activation remain gated",
+    "current_blocker": "five credentialed live inputs remain absent (EDGAR User-Agent, Alpaca key/secret, Tradier token, MarketData.app token); production NMS/OTC reconciliation and shadow activation remain gated",
     "current_phase": "credentialed_live_validation",
-    "next_action": "populate provider credentials, run every credentialed probe, resolve failures, and obtain an approved OTC source/quota before review",
-      "total": 14,
-      "updated_at": "2026-09-05T18:27:35+00:00"
+    "next_action": "supply the five remaining live inputs, run every credentialed probe, resolve failures, and obtain an approved OTC source/quota before review",
+      "total": 15,
+      "updated_at": "2026-09-07T15:00:00+00:00"
   },
   "remote": "bea582bba98d10205887b5508fe1d83321ce6fa4",
   "remote_sha": "bea582bba98d10205887b5508fe1d83321ce6fa4",

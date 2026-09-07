@@ -722,7 +722,9 @@ async def reconcile_us_universe(
                         elif total != page_total:
                             raise ValueError("discovery provider changed its declared total")
                         if total < offset + len(page_rows):
-                            raise ValueError("discovery provider total is smaller than observed rows")
+                            raise ValueError(
+                                "discovery provider total is smaller than observed rows"
+                            )
                     next_offset = page.get("next_offset")
                     next_url = bool(page.get("next_url"))
                     if isinstance(next_offset, int) and next_offset > offset:
@@ -748,9 +750,7 @@ async def reconcile_us_universe(
                         raise ValueError(
                             "discovery provider returned an empty page without completion evidence"
                         )
-                    raise ValueError(
-                        "discovery provider omitted total and completion evidence"
-                    )
+                    raise ValueError("discovery provider omitted total and completion evidence")
                 run.expected_count = total if total is not None else len(rows)
                 active_keys = await _reconcile_rows(
                     db,

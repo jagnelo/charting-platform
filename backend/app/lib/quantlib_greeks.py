@@ -43,13 +43,7 @@ def calculate_greeks(
         "dividend_yield": dividend_yield,
         "option_style": "american",
     }
-    if (
-        ql is None
-        or spot <= 0
-        or strike <= 0
-        or implied_vol <= 0
-        or tte_days <= 0
-    ):
+    if ql is None or spot <= 0 or strike <= 0 or implied_vol <= 0 or tte_days <= 0:
         delta, gamma = estimate_greeks(
             spot,
             strike,
@@ -78,7 +72,9 @@ def calculate_greeks(
         day_count = ql.Actual365Fixed()
         calendar = ql.NullCalendar()
         spot_handle = ql.QuoteHandle(ql.SimpleQuote(spot))
-        rate_handle = ql.YieldTermStructureHandle(ql.FlatForward(ql_date, risk_free_rate, day_count))
+        rate_handle = ql.YieldTermStructureHandle(
+            ql.FlatForward(ql_date, risk_free_rate, day_count)
+        )
         div_handle = ql.YieldTermStructureHandle(ql.FlatForward(ql_date, dividend_yield, day_count))
         vol_handle = ql.BlackVolTermStructureHandle(
             ql.BlackConstantVol(ql_date, calendar, implied_vol, day_count)
@@ -88,6 +84,7 @@ def calculate_greeks(
         exercise = ql.AmericanExercise(ql_date, maturity)
         option = ql.VanillaOption(payoff, exercise)
         option.setPricingEngine(ql.BinomialVanillaEngine(process, "crr", max(50, steps)))
+
         def optional_greek(name: str) -> float | None:
             try:
                 return float(getattr(option, name)())

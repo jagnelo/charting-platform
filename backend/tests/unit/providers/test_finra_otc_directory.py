@@ -69,12 +69,8 @@ def test_finra_otc_directory_supports_current_dapi_partition_pagination(monkeypa
 
     with (
         patch.object(directory, "_cache", None),
-        patch(
-            "app.providers.finra_otc_directory.httpx.get", return_value=partitions
-        ) as get,
-        patch(
-            "app.providers.finra_otc_directory.httpx.post", return_value=first_page
-        ) as post,
+        patch("app.providers.finra_otc_directory.httpx.get", return_value=partitions) as get,
+        patch("app.providers.finra_otc_directory.httpx.post", return_value=first_page) as post,
     ):
         page = FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
 

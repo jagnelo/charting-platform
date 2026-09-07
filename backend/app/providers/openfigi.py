@@ -43,10 +43,14 @@ class OpenFigiProvider:
         rows = [row for row in results[0] if isinstance(row, dict)]
         if exchange_code:
             expected_exchange = str(exchange_code).strip().upper()
-            rows = [row for row in rows if str(row.get("exchCode") or "").upper() == expected_exchange]
+            rows = [
+                row for row in rows if str(row.get("exchCode") or "").upper() == expected_exchange
+            ]
         if security_type:
             expected_type = str(security_type).strip().upper()
-            rows = [row for row in rows if str(row.get("securityType") or "").upper() == expected_type]
+            rows = [
+                row for row in rows if str(row.get("securityType") or "").upper() == expected_type
+            ]
         if len(rows) != 1:
             return []
         return self._identifier_records_from_mapping(rows[0])

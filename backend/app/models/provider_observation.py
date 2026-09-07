@@ -167,7 +167,9 @@ class MarketBarObservation(Base):
     is_adjusted: Mapped[bool] = mapped_column(nullable=False, default=True)
     adjustment_basis: Mapped[str] = mapped_column(String(32), nullable=False, default="raw")
     adjustment_version: Mapped[str] = mapped_column(String(80), nullable=False, default="legacy")
-    provider_timestamp: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    provider_timestamp: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     source_payload: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     instrument: Mapped["Instrument"] = relationship()

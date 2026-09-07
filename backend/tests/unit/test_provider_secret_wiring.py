@@ -1,0 +1,53 @@
+import re
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[3]
+PROVIDER_SECRET_NAMES = {
+    "ALPACA_API_KEY",
+    "ALPACA_SECRET_KEY",
+    "MASSIVE_API_KEY",
+    "ALPHA_VANTAGE_API_KEY",
+    "COINGECKO_API_KEY",
+    "FRED_API_KEY",
+    "FINRA_CLIENT_ID",
+    "FINRA_CLIENT_SECRET",
+    "TIINGO_API_KEY",
+    "TWELVE_DATA_API_KEY",
+    "FINNHUB_API_KEY",
+    "MARKETSTACK_API_KEY",
+    "EODHD_API_KEY",
+    "FMP_API_KEY",
+    "TRADIER_API_KEY",
+    "MARKETDATA_APP_API_KEY",
+}
+
+
+def _service_environment(compose: str, service: str) -> str:
+    marker = f"  {service}:\n"
+    start = compose.index(marker) + len(marker)
+    next_service = re.search(r"(?m)^  [A-Za-z][^:\n]*:\s*$", compose[start:])
+    return (
+        compose[start:] if next_service is None else compose[start : start + next_service.start()]
+    )
+
+
+def test_local_and_rpi_compose_pass_secrets_only_to_trusted_provider_processes():
+    for relative_path in ("docker-compose.yml", "deploy/rpi/compose.yml"):
+        compose = (ROOT / relative_path).read_text()
+        backend = _service_environment(compose, "backend")
+        worker = _service_environment(compose, "worker")
+        research = _service_environment(compose, "research-runner")
+        for name in PROVIDER_SECRET_NAMES:
+            assert f"{name}:" in backend, (relative_path, "backend", name)
+            assert f"{name}:" in worker, (relative_path, "worker", name)
+            assert f"{name}:" not in research, (relative_path, "research-runner", name)
+
+
+def test_live_workflow_is_manual_environment_scoped_and_maps_each_secret():
+    workflow = (ROOT / ".github/workflows/provider-live.yml").read_text()
+    assert "workflow_dispatch:" in workflow
+    assert "environment: provider-live-validation" in workflow
+    assert "pull_request_target" not in workflow
+    assert "schedule:" not in workflow
+    for name in PROVIDER_SECRET_NAMES:
+        assert f"{name}: ${{{{ secrets.{name} }}}}" in workflow

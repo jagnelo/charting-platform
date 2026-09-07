@@ -14,6 +14,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.market_data_foundation import (
@@ -47,7 +48,9 @@ class ProviderRequirements:
     priority: int = 100
 
 
-def _entitlement_matches(entitlement: Any, requirements: ProviderRequirements) -> tuple[bool, str | None]:
+def _entitlement_matches(
+    entitlement: Any, requirements: ProviderRequirements
+) -> tuple[bool, str | None]:
     """Check optional structured entitlement declarations without guessing."""
 
     policy = dict(entitlement.quota_policy or {})
@@ -97,16 +100,20 @@ async def reserve_provider_quota(
     else:
         epoch = int(current.timestamp())
         start = datetime.fromtimestamp(epoch - (epoch % window_seconds), tz=UTC)
-    query = select(ProviderQuotaWindow).where(
-        ProviderQuotaWindow.data_source_id == data_source_id,
-        ProviderQuotaWindow.capability == capability,
-        ProviderQuotaWindow.dimension == dimension,
-        ProviderQuotaWindow.window_started_at == start,
-        ProviderQuotaWindow.window_seconds == window_seconds,
-    ).with_for_update()
+    query = (
+        select(ProviderQuotaWindow)
+        .where(
+            ProviderQuotaWindow.data_source_id == data_source_id,
+            ProviderQuotaWindow.capability == capability,
+            ProviderQuotaWindow.dimension == dimension,
+            ProviderQuotaWindow.window_started_at == start,
+            ProviderQuotaWindow.window_seconds == window_seconds,
+        )
+        .with_for_update()
+    )
     window = (await db.execute(query)).scalar_one_or_none()
     if window is None:
-        window = ProviderQuotaWindow(
+        candidate = ProviderQuotaWindow(
             data_source_id=data_source_id,
             capability=capability,
             dimension=dimension,
@@ -116,8 +123,28 @@ async def reserve_provider_quota(
             reserved_units=0,
             consumed_units=0,
         )
-        db.add(window)
-        await db.flush()
+        try:
+            # The initial SELECT cannot lock a row that does not exist. Two
+            # workers can therefore reach this branch for the same provider
+            # window. Keep the INSERT inside a savepoint so a concurrent
+            # unique-key winner does not poison the caller's transaction;
+            # then lock and reuse the row that won the race.
+            savepoint = db.begin_nested()
+            if hasattr(savepoint, "__aenter__"):
+                async with savepoint:
+                    db.add(candidate)
+                    await db.flush()
+            else:
+                # The unit-test AsyncSessionAdapter deliberately exposes the
+                # synchronous SQLite transaction API behind an async facade.
+                with savepoint:
+                    db.add(candidate)
+                    await db.flush()
+            window = candidate
+        except IntegrityError:
+            window = (await db.execute(query)).scalar_one_or_none()
+            if window is None:
+                raise
     available = window.limit_units - window.reserved_units - window.consumed_units
     if available < units:
         return None
@@ -243,11 +270,16 @@ async def select_provider(
             },
         )
         db.add(lease)
-        candidates.append({"provider": resolved.provider_name, "score": str(resolved.policy.effective_score)})
+        candidates.append(
+            {"provider": resolved.provider_name, "score": str(resolved.policy.effective_score)}
+        )
         selected = (resolved, lease)
         break
     if selected is None:
-        candidates.extend({"provider": item.provider_name, "score": str(item.policy.effective_score)} for item in providers)
+        candidates.extend(
+            {"provider": item.provider_name, "score": str(item.policy.effective_score)}
+            for item in providers
+        )
     decision = ProviderRoutingDecision(
         request_key=request_key,
         capability=requirements.capability.value,
@@ -286,32 +318,41 @@ async def settle_workload_lease(
             except (TypeError, ValueError):
                 continue
         windows = (
-            await db.execute(
-                select(ProviderQuotaWindow)
-                .where(ProviderQuotaWindow.id.in_(window_ids))
-                .with_for_update()
+            (
+                await db.execute(
+                    select(ProviderQuotaWindow)
+                    .where(ProviderQuotaWindow.id.in_(window_ids))
+                    .with_for_update()
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         active_windows = list(windows)
     else:
         # Compatibility path for leases created before exact window IDs were
         # persisted. New leases always take the branch above.
         windows = (
-            await db.execute(
-                select(ProviderQuotaWindow)
-                .where(
-                    ProviderQuotaWindow.data_source_id == lease.data_source_id,
-                    ProviderQuotaWindow.capability == lease.capability,
-                    ProviderQuotaWindow.window_started_at <= lease_created_at,
+            (
+                await db.execute(
+                    select(ProviderQuotaWindow)
+                    .where(
+                        ProviderQuotaWindow.data_source_id == lease.data_source_id,
+                        ProviderQuotaWindow.capability == lease.capability,
+                        ProviderQuotaWindow.window_started_at <= lease_created_at,
+                    )
+                    .order_by(ProviderQuotaWindow.window_started_at.desc())
+                    .with_for_update()
                 )
-                .order_by(ProviderQuotaWindow.window_started_at.desc())
-                .with_for_update()
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         active_windows = [
             window
             for window in windows
-            if lease_created_at < window.window_started_at + timedelta(seconds=window.window_seconds)
+            if lease_created_at
+            < window.window_started_at + timedelta(seconds=window.window_seconds)
         ]
     for window in active_windows:
         window.reserved_units = max(0, window.reserved_units - lease.units)

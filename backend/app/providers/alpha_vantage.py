@@ -30,17 +30,23 @@ class AlphaVantageProvider:
     def _get(self, function: str, **params: Any) -> dict[str, Any] | None:
         if not self._key():
             raise ProviderNotConfiguredError("alpha_vantage requires ALPHA_VANTAGE_API_KEY")
-        response = httpx.get(_BASE, params={"function": function, "apikey": self._key(), **params}, timeout=30)
+        response = httpx.get(
+            _BASE, params={"function": function, "apikey": self._key(), **params}, timeout=30
+        )
         response.raise_for_status()
         payload = response.json()
         if isinstance(payload, dict) and (payload.get("Note") or payload.get("Information")):
-            raise ProviderRateLimitError(self.name, str(payload.get("Note") or payload.get("Information")))
+            raise ProviderRateLimitError(
+                self.name, str(payload.get("Note") or payload.get("Information"))
+            )
         return payload if isinstance(payload, dict) else None
 
     def _get_text(self, function: str, **params: Any) -> str | None:
         if not self._key():
             raise ProviderNotConfiguredError("alpha_vantage requires ALPHA_VANTAGE_API_KEY")
-        response = httpx.get(_BASE, params={"function": function, "apikey": self._key(), **params}, timeout=30)
+        response = httpx.get(
+            _BASE, params={"function": function, "apikey": self._key(), **params}, timeout=30
+        )
         response.raise_for_status()
         text = response.text
         if "Thank you for using Alpha Vantage" in text or "higher API call volume" in text:
@@ -74,7 +80,10 @@ class AlphaVantageProvider:
     ) -> list[OHLCVBar]:
         if timeframe is not Timeframe.D1:
             return []
-        payload = self._get("TIME_SERIES_DAILY", symbol=symbol, outputsize="full") or {}
+        # Alpha Vantage's free key currently rejects ``outputsize=full`` as a
+        # premium-only feature. ``compact`` is the documented free response
+        # (latest 100 daily points); older history must use another provider.
+        payload = self._get("TIME_SERIES_DAILY", symbol=symbol, outputsize="compact") or {}
         series = payload.get("Time Series (Daily)") or {}
         bars: list[OHLCVBar] = []
         for date_text, row in series.items():

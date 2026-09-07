@@ -31,7 +31,9 @@ class InstrumentListing(Base, TimestampMixin):
     effective_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     known_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     delisted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    last_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     source: Mapped[str | None] = mapped_column(String(80), nullable=True)
     provenance: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 

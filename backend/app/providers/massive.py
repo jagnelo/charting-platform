@@ -46,7 +46,9 @@ class MassiveProvider:
 
     def _get(self, params: dict[str, Any]) -> dict[str, Any] | None:
         if not self._api_key():
-            raise ProviderNotConfiguredError("massive requires MASSIVE_API_KEY (or MARKETDATA_API_KEY)")
+            raise ProviderNotConfiguredError(
+                "massive requires MASSIVE_API_KEY (or MARKETDATA_API_KEY)"
+            )
         response = httpx.get(f"{_BASE}{_TICKERS_PATH}", params=params, timeout=20)
         response.raise_for_status()
         payload = response.json()

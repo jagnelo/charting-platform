@@ -63,6 +63,30 @@ async def test_provider_chain_excludes_non_free_entitlements(db):
 
 
 @pytest.mark.asyncio
+async def test_provider_chain_requires_positive_live_probe_evidence(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, "ALPACA_API_KEY", "configured-key")
+    monkeypatch.setattr(settings, "ALPACA_SECRET_KEY", "configured-secret")
+    await seed_provider_runtime(async_db)
+
+    chain = await resolve_provider_chain(async_db, ProviderCapability.PRICE_HISTORY)
+    assert all(item.provider_name != "alpaca" for item in chain)
+
+    source = db.execute(select(DataSource).where(DataSource.name == "alpaca")).scalar_one()
+    entitlement = db.execute(
+        select(ProviderEntitlement).where(
+            ProviderEntitlement.data_source_id == source.id,
+            ProviderEntitlement.capability == ProviderCapability.PRICE_HISTORY,
+        )
+    ).scalar_one()
+    entitlement.live_probe_status = "passed"
+    db.commit()
+
+    chain = await resolve_provider_chain(async_db, ProviderCapability.PRICE_HISTORY)
+    assert any(item.provider_name == "alpaca" for item in chain)
+
+
+@pytest.mark.asyncio
 async def test_unreviewed_provider_entitlement_is_not_runtime_usable(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     seeds = {
@@ -238,6 +262,7 @@ async def test_otc_directory_requires_explicit_source_before_resolution(db, monk
                 "configured_plan": "operator-reviewed-directory",
                 "is_free": True,
                 "authentication_required": False,
+                "live_probe_status": "passed",
             },
         },
     )

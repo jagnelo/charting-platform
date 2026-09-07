@@ -119,7 +119,7 @@ def test_daily_adapters_parse_common_rows():
         (TiingoProvider(), "TIINGO_API_KEY", [row]),
         (MarketstackProvider(), "MARKETSTACK_API_KEY", {"data": [row]}),
         (EODHDProvider(), "EODHD_API_KEY", [row]),
-        (FMPProvider(), "FMP_API_KEY", {"historical": [row]}),
+        (FMPProvider(), "FMP_API_KEY", [row]),
     ):
         with (
             patch("app.providers.optional_market_data.settings") as configured,
@@ -134,6 +134,40 @@ def test_daily_adapters_parse_common_rows():
             )
         assert len(bars) == 1
         assert bars[0].close == 10.5
+
+
+def test_fmp_uses_current_stable_history_endpoint():
+    provider = FMPProvider()
+    payload = [
+        {
+            "date": "2024-01-02",
+            "open": 10,
+            "high": 11,
+            "low": 9,
+            "close": 10.5,
+            "volume": 42,
+        }
+    ]
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ) as get,
+    ):
+        configured.FMP_API_KEY = "demo"
+        rows = provider.fetch_ohlcv(
+            "AAPL",
+            Timeframe.D1,
+            datetime(2024, 1, 1, tzinfo=UTC),
+            datetime(2024, 1, 3, tzinfo=UTC),
+        )
+
+    assert rows and rows[0].close == 10.5
+    assert get.call_args.args[0] == (
+        "https://financialmodelingprep.com/stable/historical-price-eod/full"
+    )
+    assert get.call_args.kwargs["params"]["symbol"] == "AAPL"
 
 
 def test_marketdata_app_uses_documented_v1_root_and_parses_candles():

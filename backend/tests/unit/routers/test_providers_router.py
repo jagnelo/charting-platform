@@ -96,10 +96,14 @@ class TestProvidersRouter:
         rows = res.json()
         assert rows
 
-        unreviewed = next(row for row in rows if row["provider"] == "finnhub")
+        unreviewed = next(
+            row
+            for row in rows
+            if row["provider"] == "finnhub" and row["capability"] == "price_history"
+        )
         assert unreviewed["entitlement_state"] == "unreviewed"
         assert unreviewed["routing_eligible"] is False
-        assert "quota_contract" in unreviewed["quota_missing_dimensions"]
+        assert unreviewed["live_probe_status"] == "passed"
 
         target = rows[0]
         provider = target["provider"]

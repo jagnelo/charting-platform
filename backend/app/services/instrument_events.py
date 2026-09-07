@@ -17,7 +17,7 @@ from app.models.provider_observation import DatasetStatus, InstrumentDatasetStat
 from app.models.provider_runtime import ProviderCapability
 from app.providers import provider_symbol_for_instrument
 from app.services.instrument_mastering import ensure_external_identifier
-from app.services.provider_runtime import execute_provider_call
+from app.services.provider_runtime import ProviderNoDataError, execute_provider_call
 
 logger = logging.getLogger(__name__)
 
@@ -191,7 +191,13 @@ async def ensure_instrument_events_loaded(
         or state.fetch_version < EVENT_FETCH_VERSION
         or fresh_dataset is None
     ):
-        await fetch_and_store_instrument_events(db, instrument)
+        try:
+            await fetch_and_store_instrument_events(db, instrument)
+        except ProviderNoDataError:
+            logger.info(
+                "No routable instrument-event provider for %s; serving stored events",
+                instrument.symbol,
+            )
 
 
 async def query_instrument_events(

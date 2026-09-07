@@ -44,6 +44,15 @@ This will:
 - Run frozen `npm ci` in the frontend
 - `ENV_FILE=.env.dev` is passed to all local commands automatically
 
+Provider credentials shared by isolated worktrees belong in the operator-owned
+`~/.config/charting-platform/app.env`, mode `0600` (or the path named by
+`CHARTING_PLATFORM_SHARED_ENV_FILE`). On the first Make/preflight invocation,
+the runtime helper creates ignored `.env` and `backend/.env.dev` symlinks to
+that source. It never copies secret bytes into a checkout and refuses to
+replace an existing file, a link to another source, or a group/world-readable
+source. This file is local-machine configuration: it is not propagated to CI
+or deployments.
+
 ### 3. Start infrastructure
 
 ```bash

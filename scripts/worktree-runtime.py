@@ -13,9 +13,11 @@ import contextlib
 import fcntl
 import hashlib
 import json
+import os
 import shlex
 import shutil
 import socket
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -41,6 +43,10 @@ PORT_BASES = {
     "BACKEND_HOST_PORT": 28000,
     "FRONTEND_HOST_PORT": 28080,
 }
+
+SHARED_ENV_OVERRIDE = "CHARTING_PLATFORM_SHARED_ENV_FILE"
+DEFAULT_SHARED_ENV = Path.home() / ".config" / "charting-platform" / "app.env"
+SHARED_ENV_TARGETS = (Path(".env"), Path("backend/.env.dev"))
 
 
 def run_git(*args: str) -> str:
@@ -296,7 +302,49 @@ def env_file_path() -> Path:
     return common_root() / ".ai" / "runtime" / f"{worktree_id(root())}.env"
 
 
+def shared_env_path() -> Path:
+    """Return the operator-owned secret source shared by local worktrees."""
+
+    configured = os.getenv(SHARED_ENV_OVERRIDE)
+    return Path(configured).expanduser() if configured else DEFAULT_SHARED_ENV
+
+
+def install_shared_env_links() -> Path | None:
+    """Link ignored worktree env paths to one permission-restricted source.
+
+    The source deliberately lives outside Git's common directory. Existing
+    files and links to any other source are never replaced automatically.
+    """
+
+    source = shared_env_path()
+    if not source.exists():
+        return None
+    source_lstat = source.lstat()
+    if not stat.S_ISREG(source_lstat.st_mode):
+        raise SystemExit(f"shared env source must be a regular file: {source}")
+    if stat.S_IMODE(source_lstat.st_mode) & 0o077:
+        raise SystemExit(
+            f"shared env source must be owner-only (chmod 600): {source}"
+        )
+    source = source.resolve(strict=True)
+    checkout = root()
+    for relative_target in SHARED_ENV_TARGETS:
+        target = checkout / relative_target
+        if target.is_symlink():
+            if target.resolve(strict=False) != source:
+                raise SystemExit(
+                    f"refusing to replace env link pointing elsewhere: {target}"
+                )
+            continue
+        if target.exists():
+            raise SystemExit(f"refusing to replace existing env file: {target}")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.symlink_to(source)
+    return source
+
+
 def ensure() -> tuple[dict[str, Any], dict[str, str], Path]:
+    install_shared_env_links()
     with locked_registry() as data:
         allocation = allocate(data)
         remove_unregistered_env_files(data)

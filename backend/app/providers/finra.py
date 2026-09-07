@@ -39,7 +39,9 @@ class FINRAProvider:
         endpoint = str(getattr(settings, "FINRA_SHORT_INTEREST_URL", "") or "").strip()
         if not endpoint:
             endpoint = (
-                str(getattr(settings, "FINRA_API_BASE_URL", self.base_url) or self.base_url).rstrip("/")
+                str(getattr(settings, "FINRA_API_BASE_URL", self.base_url) or self.base_url).rstrip(
+                    "/"
+                )
                 + "/data/group/otcMarket/name/consolidatedShortInterest"
             )
         filters: list[dict[str, Any]] = [
@@ -91,13 +93,17 @@ class FINRAProvider:
             result.append(
                 ShortInterestRecord(
                     settlement_date=settlement,
-                    publication_date=_parse_date(row.get("publicationDate") or row.get("publication_date")),
+                    publication_date=_parse_date(
+                        row.get("publicationDate") or row.get("publication_date")
+                    ),
                     short_position=_decimal(
                         row.get("currentShortPositionQuantity")
                         or row.get("shortPosition")
                         or row.get("short_position")
                     ),
-                    short_percent_float=_decimal(row.get("shortPercentFloat") or row.get("short_percent_float")),
+                    short_percent_float=_decimal(
+                        row.get("shortPercentFloat") or row.get("short_percent_float")
+                    ),
                     days_to_cover=_decimal(
                         row.get("daysToCoverQuantity")
                         or row.get("daysToCover")
@@ -133,7 +139,9 @@ class FINRAProvider:
         endpoint = str(getattr(settings, "FINRA_OTC_DAILY_LIST_URL", "") or "").strip()
         if not endpoint:
             endpoint = (
-                str(getattr(settings, "FINRA_API_BASE_URL", self.base_url) or self.base_url).rstrip("/")
+                str(getattr(settings, "FINRA_API_BASE_URL", self.base_url) or self.base_url).rstrip(
+                    "/"
+                )
                 + "/data/group/otcMarket/name/OTCDAILYLIST"
             )
         filters: list[dict[str, Any]] = []

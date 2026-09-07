@@ -110,10 +110,34 @@ services:
       PROVIDER_CHAIN_SEEDS:      ${PROVIDER_CHAIN_SEEDS:-{"price_history":["alpaca","nasdaq","alpha_vantage","binance","fred"],"latest_price":["alpaca","nasdaq","alpha_vantage","binance","fred"],"universe_discovery":["alpaca","massive","alpha_vantage","binance","coingecko"],"instrument_events":["alpaca","edgar"],"instrument_metadata":["edgar","coingecko"],"instrument_search":["edgar","alpaca","massive","alpha_vantage","coingecko"],"option_chain":["yfinance"]}}
       OPENFIGI_API_KEY:        ${OPENFIGI_API_KEY:-}
       OPENFIGI_TIMEOUT_SECONDS: ${OPENFIGI_TIMEOUT_SECONDS:-10}
+      ALPACA_API_KEY:           ${ALPACA_API_KEY:-}
+      ALPACA_SECRET_KEY:        ${ALPACA_SECRET_KEY:-}
+      ALPACA_DATA_FEED:         ${ALPACA_DATA_FEED:-iex}
       MASSIVE_API_KEY:          ${MASSIVE_API_KEY:-}
       ALPHA_VANTAGE_API_KEY:    ${ALPHA_VANTAGE_API_KEY:-}
-      MARKETDATA_API_KEY:      ${MARKETDATA_API_KEY:-}
-      FMP_API_KEY:             ${FMP_API_KEY:-}
+      MARKETDATA_API_KEY:       ${MARKETDATA_API_KEY:-}
+      FRED_API_KEY:             ${FRED_API_KEY:-}
+      COINGECKO_API_KEY:        ${COINGECKO_API_KEY:-}
+      EDGAR_USER_AGENT:         ${EDGAR_USER_AGENT:-}
+      NASDAQ_USER_AGENT:        ${NASDAQ_USER_AGENT:-charting-platform market-data-universe}
+      FINRA_CLIENT_ID:          ${FINRA_CLIENT_ID:-}
+      FINRA_CLIENT_SECRET:      ${FINRA_CLIENT_SECRET:-}
+      FINRA_TOKEN_URL:          ${FINRA_TOKEN_URL:-https://ews.fip.finra.org/fip/rest/ews/oauth2/access_token}
+      FINRA_API_BASE_URL:       ${FINRA_API_BASE_URL:-https://api.finra.org}
+      FINRA_SHORT_INTEREST_URL: ${FINRA_SHORT_INTEREST_URL:-}
+      FINRA_OTC_DAILY_LIST_URL: ${FINRA_OTC_DAILY_LIST_URL:-}
+      FINRA_OTC_SYMBOL_DIRECTORY_URL: ${FINRA_OTC_SYMBOL_DIRECTORY_URL:-}
+      TIINGO_API_KEY:           ${TIINGO_API_KEY:-}
+      TWELVE_DATA_API_KEY:      ${TWELVE_DATA_API_KEY:-}
+      FINNHUB_API_KEY:          ${FINNHUB_API_KEY:-}
+      MARKETSTACK_API_KEY:      ${MARKETSTACK_API_KEY:-}
+      EODHD_API_KEY:            ${EODHD_API_KEY:-}
+      FMP_API_KEY:              ${FMP_API_KEY:-}
+      TRADIER_API_KEY:          ${TRADIER_API_KEY:-}
+      MARKETDATA_APP_API_KEY:   ${MARKETDATA_APP_API_KEY:-}
+      IBKR_READ_ONLY_URL:       ${IBKR_READ_ONLY_URL:-}
+      COINBASE_API_KEY:         ${COINBASE_API_KEY:-}
+      KRAKEN_API_KEY:           ${KRAKEN_API_KEY:-}
       INSTRUMENT_SYNC_SCHEDULE_ENABLED: ${INSTRUMENT_SYNC_SCHEDULE_ENABLED:-false}
       INSTRUMENT_DISCOVERY_PAGE_DELAY_SECONDS: ${INSTRUMENT_DISCOVERY_PAGE_DELAY_SECONDS:-0.75}
       INSTRUMENT_METADATA_DELAY_SECONDS: ${INSTRUMENT_METADATA_DELAY_SECONDS:-1.0}
@@ -191,10 +215,34 @@ services:
       PROVIDER_CHAIN_SEEDS:      ${PROVIDER_CHAIN_SEEDS:-{"price_history":["alpaca","nasdaq","alpha_vantage","binance","fred"],"latest_price":["alpaca","nasdaq","alpha_vantage","binance","fred"],"universe_discovery":["alpaca","massive","alpha_vantage","binance","coingecko"],"instrument_events":["alpaca","edgar"],"instrument_metadata":["edgar","coingecko"],"instrument_search":["edgar","alpaca","massive","alpha_vantage","coingecko"],"option_chain":["yfinance"]}}
       OPENFIGI_API_KEY:        ${OPENFIGI_API_KEY:-}
       OPENFIGI_TIMEOUT_SECONDS: ${OPENFIGI_TIMEOUT_SECONDS:-10}
+      ALPACA_API_KEY:           ${ALPACA_API_KEY:-}
+      ALPACA_SECRET_KEY:        ${ALPACA_SECRET_KEY:-}
+      ALPACA_DATA_FEED:         ${ALPACA_DATA_FEED:-iex}
       MASSIVE_API_KEY:          ${MASSIVE_API_KEY:-}
       ALPHA_VANTAGE_API_KEY:    ${ALPHA_VANTAGE_API_KEY:-}
-      MARKETDATA_API_KEY:      ${MARKETDATA_API_KEY:-}
-      FMP_API_KEY:             ${FMP_API_KEY:-}
+      MARKETDATA_API_KEY:       ${MARKETDATA_API_KEY:-}
+      FRED_API_KEY:             ${FRED_API_KEY:-}
+      COINGECKO_API_KEY:        ${COINGECKO_API_KEY:-}
+      EDGAR_USER_AGENT:         ${EDGAR_USER_AGENT:-}
+      NASDAQ_USER_AGENT:        ${NASDAQ_USER_AGENT:-charting-platform market-data-universe}
+      FINRA_CLIENT_ID:          ${FINRA_CLIENT_ID:-}
+      FINRA_CLIENT_SECRET:      ${FINRA_CLIENT_SECRET:-}
+      FINRA_TOKEN_URL:          ${FINRA_TOKEN_URL:-https://ews.fip.finra.org/fip/rest/ews/oauth2/access_token}
+      FINRA_API_BASE_URL:       ${FINRA_API_BASE_URL:-https://api.finra.org}
+      FINRA_SHORT_INTEREST_URL: ${FINRA_SHORT_INTEREST_URL:-}
+      FINRA_OTC_DAILY_LIST_URL: ${FINRA_OTC_DAILY_LIST_URL:-}
+      FINRA_OTC_SYMBOL_DIRECTORY_URL: ${FINRA_OTC_SYMBOL_DIRECTORY_URL:-}
+      TIINGO_API_KEY:           ${TIINGO_API_KEY:-}
+      TWELVE_DATA_API_KEY:      ${TWELVE_DATA_API_KEY:-}
+      FINNHUB_API_KEY:          ${FINNHUB_API_KEY:-}
+      MARKETSTACK_API_KEY:      ${MARKETSTACK_API_KEY:-}
+      EODHD_API_KEY:            ${EODHD_API_KEY:-}
+      FMP_API_KEY:              ${FMP_API_KEY:-}
+      TRADIER_API_KEY:          ${TRADIER_API_KEY:-}
+      MARKETDATA_APP_API_KEY:   ${MARKETDATA_APP_API_KEY:-}
+      IBKR_READ_ONLY_URL:       ${IBKR_READ_ONLY_URL:-}
+      COINBASE_API_KEY:         ${COINBASE_API_KEY:-}
+      KRAKEN_API_KEY:           ${KRAKEN_API_KEY:-}
       INSTRUMENT_SYNC_SCHEDULE_ENABLED: ${INSTRUMENT_SYNC_SCHEDULE_ENABLED:-false}
       INSTRUMENT_DISCOVERY_PAGE_DELAY_SECONDS: ${INSTRUMENT_DISCOVERY_PAGE_DELAY_SECONDS:-0.75}
       INSTRUMENT_METADATA_DELAY_SECONDS: ${INSTRUMENT_METADATA_DELAY_SECONDS:-1.0}

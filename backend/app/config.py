@@ -227,6 +227,15 @@ class Settings(BaseSettings):
                     }
                 ],
                 "reset": "rolling_or_provider_defined",
+                "untracked_constraints": [
+                    {
+                        "name": "download_bytes_per_calendar_month",
+                        "limit": 10737418240,
+                        "unit": "bytes",
+                        "scope": "public_credential",
+                        "source": "https://developer.finra.org/support-old",
+                    }
+                ],
             },
             "tokens_per_minute": 1200,
             "quota_scope": "ip",
@@ -314,11 +323,41 @@ class Settings(BaseSettings):
         "tiingo": {
             "quota_contract": {
                 "dimensions": [
-                    {"name": "unique_symbols_per_month", "limit": 500, "window_seconds": 2678400, "unit": "symbols", "scope": "api_key", "source": "https://www.tiingo.com/about/pricing"},
-                    {"name": "requests_per_hour", "limit": 50, "window_seconds": 3600, "unit": "requests", "scope": "api_key", "source": "https://www.tiingo.com/about/pricing"},
-                    {"name": "requests_per_day", "limit": 1000, "window_seconds": 86400, "unit": "requests", "scope": "api_key", "source": "https://www.tiingo.com/about/pricing"},
+                    {
+                        "name": "unique_symbols_per_month",
+                        "limit": 500,
+                        "window_seconds": 2678400,
+                        "unit": "symbols",
+                        "scope": "api_key",
+                        "source": "https://www.tiingo.com/about/pricing",
+                    },
+                    {
+                        "name": "requests_per_hour",
+                        "limit": 50,
+                        "window_seconds": 3600,
+                        "unit": "requests",
+                        "scope": "api_key",
+                        "source": "https://www.tiingo.com/about/pricing",
+                    },
+                    {
+                        "name": "requests_per_day",
+                        "limit": 1000,
+                        "window_seconds": 86400,
+                        "unit": "requests",
+                        "scope": "api_key",
+                        "source": "https://www.tiingo.com/about/pricing",
+                    },
                 ],
                 "reset": "provider_defined",
+                "untracked_constraints": [
+                    {
+                        "name": "bandwidth_bytes_per_month",
+                        "limit": 1073741824,
+                        "unit": "bytes",
+                        "scope": "api_key",
+                        "source": "https://www.tiingo.com/about/pricing",
+                    }
+                ],
             },
             "quota_scope": "api_key",
             "quota_source": "Tiingo Starter pricing documentation",
@@ -326,8 +365,22 @@ class Settings(BaseSettings):
         "twelve_data": {
             "quota_contract": {
                 "dimensions": [
-                    {"name": "credits_per_minute", "limit": 8, "window_seconds": 60, "unit": "credits", "scope": "api_key", "source": "https://twelvedata.com/pricing"},
-                    {"name": "credits_per_day", "limit": 800, "window_seconds": 86400, "unit": "credits", "scope": "api_key", "source": "https://twelvedata.com/pricing"},
+                    {
+                        "name": "credits_per_minute",
+                        "limit": 8,
+                        "window_seconds": 60,
+                        "unit": "credits",
+                        "scope": "api_key",
+                        "source": "https://twelvedata.com/pricing",
+                    },
+                    {
+                        "name": "credits_per_day",
+                        "limit": 800,
+                        "window_seconds": 86400,
+                        "unit": "credits",
+                        "scope": "api_key",
+                        "source": "https://twelvedata.com/pricing",
+                    },
                 ],
                 "reset": "provider_defined",
                 "operation_costs_required": True,
@@ -336,11 +389,51 @@ class Settings(BaseSettings):
             "quota_scope": "api_key",
             "quota_source": "Twelve Data Basic pricing/credits documentation",
         },
+        "finnhub": {
+            "quota_contract": {
+                "dimensions": [
+                    {
+                        "name": "calls_per_minute",
+                        "limit": 60,
+                        "window_seconds": 60,
+                        "unit": "requests",
+                        "scope": "api_key",
+                        "source": "operator_account_dashboard_2026-09-07",
+                    },
+                    {
+                        "name": "hard_calls_per_second",
+                        "limit": 30,
+                        "window_seconds": 1,
+                        "unit": "requests",
+                        "scope": "api_key",
+                        "source": "https://finnhub.io/docs/api",
+                    },
+                ],
+                "reset": "provider_defined_minute_and_rolling_second",
+            },
+            "tokens_per_minute": 60,
+            "quota_scope": "api_key",
+            "quota_source": "Finnhub account dashboard plus API documentation",
+        },
         "eodhd": {
             "quota_contract": {
                 "dimensions": [
-                    {"name": "requests_per_minute", "limit": 20, "window_seconds": 60, "unit": "requests", "scope": "api_key", "source": "https://eodhd.com/"},
-                    {"name": "requests_per_day", "limit": 20, "window_seconds": 86400, "unit": "requests", "scope": "api_key", "source": "https://eodhd.com/"},
+                    {
+                        "name": "requests_per_minute",
+                        "limit": 20,
+                        "window_seconds": 60,
+                        "unit": "requests",
+                        "scope": "api_key",
+                        "source": "https://eodhd.com/",
+                    },
+                    {
+                        "name": "requests_per_day",
+                        "limit": 20,
+                        "window_seconds": 86400,
+                        "unit": "requests",
+                        "scope": "api_key",
+                        "source": "https://eodhd.com/",
+                    },
                 ],
                 "reset": "provider_defined",
             },
@@ -348,10 +441,43 @@ class Settings(BaseSettings):
             "quota_scope": "api_key",
             "quota_source": "EODHD free plan documentation",
         },
+        "fmp": {
+            "quota_contract": {
+                "dimensions": [
+                    {
+                        "name": "calls_per_day",
+                        "limit": 250,
+                        "window_seconds": 86400,
+                        "unit": "requests",
+                        "scope": "api_key",
+                        "source": "operator_account_dashboard_2026-09-07",
+                    }
+                ],
+                "reset": "provider_defined_daily",
+                "untracked_constraints": [
+                    {
+                        "name": "bandwidth_bytes_per_30_days",
+                        "limit": 536870912,
+                        "unit": "bytes",
+                        "scope": "api_key",
+                        "source": "operator_account_dashboard_2026-09-07",
+                    }
+                ],
+            },
+            "quota_scope": "api_key",
+            "quota_source": "FMP operator account dashboard",
+        },
         "marketdata_app": {
             "quota_contract": {
                 "dimensions": [
-                    {"name": "credits_per_day", "limit": 100, "window_seconds": 86400, "unit": "credits", "scope": "api_key", "source": "https://www.marketdata.app/docs/api/rate-limiting/"},
+                    {
+                        "name": "credits_per_day",
+                        "limit": 100,
+                        "window_seconds": 86400,
+                        "unit": "credits",
+                        "scope": "api_key",
+                        "source": "https://www.marketdata.app/docs/api/rate-limiting/",
+                    },
                 ],
                 "reset": "09:30 America/New_York",
                 # This is an account-wide provider ceiling.  It is recorded
@@ -367,7 +493,14 @@ class Settings(BaseSettings):
         "tradier": {
             "quota_contract": {
                 "dimensions": [
-                    {"name": "market_data_requests_per_minute", "limit": 120, "window_seconds": 60, "unit": "requests", "scope": "production_token", "source": "https://docs.tradier.com/docs/rate-limiting"},
+                    {
+                        "name": "market_data_requests_per_minute",
+                        "limit": 120,
+                        "window_seconds": 60,
+                        "unit": "requests",
+                        "scope": "production_token",
+                        "source": "https://docs.tradier.com/docs/rate-limiting",
+                    },
                 ],
                 "reset": "rolling",
             },
@@ -491,7 +624,7 @@ class Settings(BaseSettings):
             "is_free": True,
             "authentication_required": True,
             "usage_terms": "Free API key with documented quota limits.",
-            "history_depth": "Daily history subject to quota",
+            "history_depth": "Latest 100 daily points on the observed free entitlement; full daily output is premium",
             "venue_coverage": "Provider-supported US symbols",
             "freshness_semantics": "EOD/delayed",
         },
@@ -558,6 +691,86 @@ class Settings(BaseSettings):
             "venue_coverage": "CoinGecko asset universe",
             "freshness_semantics": "Delayed/current endpoint response",
         },
+        "tiingo": {
+            "configured_plan": "starter-free",
+            "is_free": True,
+            "authentication_required": True,
+            "usage_terms": "Individual internal use under Tiingo Starter terms; request, symbol, and bandwidth limits apply.",
+            "history_depth": "30+ years of price history; five years of fundamentals per current Starter pricing",
+            "venue_coverage": "Provider-supported US and global securities",
+            "freshness_semantics": "Historical/EOD for the implemented adapter",
+        },
+        "twelve_data": {
+            "configured_plan": "basic-free",
+            "is_free": True,
+            "authentication_required": True,
+            "usage_terms": "Twelve Data Basic credits and licensing terms apply; no redistribution permission inferred.",
+            "history_depth": "Plan and endpoint dependent",
+            "venue_coverage": "Provider-supported US securities",
+            "freshness_semantics": "Plan-dependent delayed/current data",
+        },
+        "finnhub": {
+            "configured_plan": "free-api-key",
+            "is_free": True,
+            "authentication_required": True,
+            "usage_terms": "Finnhub free plan and endpoint-specific licensing terms apply.",
+            "history_depth": "Endpoint and free-plan dependent",
+            "venue_coverage": "Provider-supported US securities",
+            "freshness_semantics": "Plan-dependent delayed/current data",
+            "capabilities": {
+                "price_history": {
+                    "configured_plan": "unreviewed",
+                    "is_free": False,
+                    "usage_terms": "The observed free key returned HTTP 403 for stock/candle; do not route historical candles without a supporting entitlement.",
+                    "history_depth": None,
+                }
+            },
+        },
+        "marketstack": {
+            "configured_plan": "free-100-month",
+            "is_free": True,
+            "authentication_required": True,
+            "usage_terms": "Marketstack free plan; 100 monthly requests and provider licensing terms apply.",
+            "history_depth": "Plan dependent",
+            "venue_coverage": "Provider-supported US securities",
+            "freshness_semantics": "EOD/delayed on the free plan",
+        },
+        "eodhd": {
+            "configured_plan": "free-20-day",
+            "is_free": True,
+            "authentication_required": True,
+            "usage_terms": "EODHD free plan; daily and minute request ceilings and provider terms apply.",
+            "history_depth": "Plan and endpoint dependent",
+            "venue_coverage": "Provider-supported US securities",
+            "freshness_semantics": "Historical/EOD",
+        },
+        "fmp": {
+            "configured_plan": "basic-free",
+            "is_free": True,
+            "authentication_required": True,
+            "usage_terms": "FMP Basic/free account limits and licensing terms apply; bandwidth accounting is required before routing.",
+            "history_depth": "Plan and endpoint dependent",
+            "venue_coverage": "Provider-supported US securities",
+            "freshness_semantics": "Historical/EOD for the implemented adapter",
+        },
+        "tradier": {
+            "configured_plan": "individual-production-token",
+            "is_free": True,
+            "authentication_required": True,
+            "usage_terms": "Individual Tradier Brokerage token; consolidated market-data terms apply.",
+            "history_depth": "Endpoint dependent",
+            "venue_coverage": "US equities, ETFs, indices, and options as entitled",
+            "freshness_semantics": "Production real-time; sandbox delayed 15 minutes",
+        },
+        "marketdata_app": {
+            "configured_plan": "free-forever",
+            "is_free": True,
+            "authentication_required": True,
+            "usage_terms": "MarketData.app Free Forever credits and licensing terms apply.",
+            "history_depth": "Free-plan endpoint dependent",
+            "venue_coverage": "Provider-supported US equities and options",
+            "freshness_semantics": "Plan-dependent delayed/current data",
+        },
         "finra": {
             "configured_plan": "public-dataset",
             "is_free": True,
@@ -576,6 +789,31 @@ class Settings(BaseSettings):
             "venue_coverage": "Legacy adapter dependent",
             "freshness_semantics": "Unofficial/delayed",
         },
+    }
+    # Provider-native bounded probe evidence. A configured credential and a
+    # reviewed plan still do not admit a provider whose probe has not passed.
+    PROVIDER_LIVE_PROBE_STATUS_SEEDS: dict[str, str] = {
+        "alpaca": "not_run",
+        "massive": "passed",
+        "alpha_vantage": "passed",
+        "openfigi": "passed",
+        "edgar": "passed",
+        "finra": "passed",
+        "coingecko": "passed",
+        "binance": "passed",
+        "coinbase": "passed",
+        "kraken": "passed",
+        "nasdaq": "passed",
+        "fred": "passed",
+        "tiingo": "passed",
+        "twelve_data": "passed",
+        "finnhub": "passed",
+        "marketstack": "passed",
+        "eodhd": "passed",
+        "fmp": "passed",
+        "tradier": "not_run",
+        "marketdata_app": "not_run",
+        "yfinance": "not_required",
     }
     OPENFIGI_API_KEY: str = ""
     OPENFIGI_TIMEOUT_SECONDS: float = 10.0
@@ -603,7 +841,7 @@ class Settings(BaseSettings):
     # CoinGecko — crypto universe discovery and metadata (free demo key)
     COINGECKO_API_KEY: str = ""
     # SEC EDGAR — no key required; User-Agent identifies your app to SEC servers
-    EDGAR_USER_AGENT: str = "charting-platform contact@example.com"
+    EDGAR_USER_AGENT: str = ""
     FINRA_CLIENT_ID: str = ""
     FINRA_CLIENT_SECRET: str = ""
     FINRA_TOKEN_URL: str = "https://ews.fip.finra.org/fip/rest/ews/oauth2/access_token"
@@ -654,6 +892,7 @@ class Settings(BaseSettings):
         "PROVIDER_RATE_LIMIT_SEEDS",
         "PROVIDER_FRESHNESS_SEEDS",
         "PROVIDER_USAGE_PROFILE_SEEDS",
+        "PROVIDER_LIVE_PROBE_STATUS_SEEDS",
         mode="before",
     )
     @classmethod

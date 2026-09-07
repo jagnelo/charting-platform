@@ -427,7 +427,9 @@ async def update_provider_policy(
 
     changes = body.model_dump(exclude_unset=True)
     quota_fields = {"max_concurrency", "tokens_per_minute", "burst_capacity", "cooldown_seconds"}
-    if quota_fields.intersection(changes) and not (changes.get("quota_contract") or policy.quota_contract):
+    if quota_fields.intersection(changes) and not (
+        changes.get("quota_contract") or policy.quota_contract
+    ):
         raise HTTPException(
             400,
             "Provider limits require a documentation-backed quota_contract; "

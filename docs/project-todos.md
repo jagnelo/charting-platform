@@ -30,15 +30,25 @@ current capability/quota ledger.
       charge them before execution: single-symbol price is weight 2 and
       exchange-info discovery is weight 20. Multi-page historical candles stay
       fail-closed until their complete request weight can be reserved safely.
-- [ ] Populate credentials in ignored `backend/.env.dev` and execute the
-      credentialed probes for Alpaca, Massive, Alpha Vantage, CoinGecko, FRED,
-      FINRA, the explicitly configured FINRA OTC directory, Tiingo, Twelve
-      Data, Finnhub, Marketstack, EODHD, FMP, Tradier, and MarketData.app. Any
-      provider that fails or exposes an unverified
-      quota remains disabled; no 30-day observation run may start before this
-      gate and the NMS/OTC reconciliation gate are complete. The configured
-      OTC directory adapter still requires operator-approved source/terms/quota
-      evidence before it can route.
+- [x] Store the supplied credentials outside Git in the owner-only shared local
+      env source and live-prove non-empty native results for Massive, Alpha
+      Vantage, CoinGecko, FRED, FINRA short interest and OTC Daily List, FINRA
+      OTC Security Master, Tiingo, Twelve Data, Finnhub company profile,
+      Marketstack, EODHD, and FMP (`13/13`). Fix the free-plan mismatches found
+      by those probes instead of accepting skips or empty lists.
+- [x] Add safe cross-worktree env links, complete backend/worker Compose
+      pass-through, and a manual GitHub environment-scoped live workflow.
+      Routine push/PR CI receives no provider credentials. GitHub environment
+      creation/upload is externally blocked until the repository-owner
+      `jagnelo` account is authenticated in `gh`; the active
+      `jagnelo-symbiotech` account received HTTP 403.
+- [ ] Supply and live-prove `EDGAR_USER_AGENT`, Alpaca Trading API key/secret,
+      a Tradier individual token, and a MarketData.app token. Positive live
+      evidence is now a runtime routing prerequisite, so merely configuring a
+      missing key cannot activate those providers. No 30-day observation run
+      may start before this gate and the NMS/OTC reconciliation gate are
+      complete. Tiingo, FINRA, and FMP also remain non-routable until their
+      monthly bandwidth constraints can be accounted.
 
 ### 2026-09-04 — US-first market-data provider platform foundation
 

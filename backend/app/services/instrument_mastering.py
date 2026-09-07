@@ -22,7 +22,11 @@ from app.models.provider_observation import InstrumentProfileSnapshot
 from app.models.provider_runtime import ProviderCapability
 from app.providers import ensure_data_source, provider_symbol_for_instrument
 from app.providers.base import IdentifierRecord, InstrumentProfile
-from app.services.exchange_catalog import coerce_listing_lifecycle_at, upsert_instrument_listing
+from app.services.exchange_catalog import (
+    coerce_listing_lifecycle_at,
+    normalize_exchange_mic,
+    upsert_instrument_listing,
+)
 from app.services.market_data_identity import apply_domain_identity
 from app.services.provider_observations import store_identifier_snapshot
 from app.services.provider_runtime import execute_provider_call, resolve_provider_chain
@@ -99,20 +103,7 @@ def _mark_field_provenance(
     setattr(target, "field_provenance", provenance)
 
 
-_EXCHANGE_CODE_RE = re.compile(r"^[A-Z0-9.\-]{2,10}$")
 _CURRENCY_CODE_RE = re.compile(r"^[A-Z]{3}$")
-
-
-def _normalize_exchange_code(value: str | None) -> str | None:
-    text = str(value or "").strip().upper()
-    if not text:
-        return None
-    if _EXCHANGE_CODE_RE.fullmatch(text):
-        return text
-    lead = re.split(r"[\s(/]", text, maxsplit=1)[0].strip().upper()
-    if _EXCHANGE_CODE_RE.fullmatch(lead):
-        return lead
-    return None
 
 
 def _normalize_currency_code(value: str | None) -> str | None:
@@ -391,9 +382,7 @@ async def ensure_profile_issuer(
     if cik is None:
         return
 
-    issuer = (
-        await db.execute(select(Issuer).where(Issuer.cik == cik))
-    ).scalar_one_or_none()
+    issuer = (await db.execute(select(Issuer).where(Issuer.cik == cik))).scalar_one_or_none()
     if issuer is None:
         issuer = (
             await db.execute(select(Issuer).where(Issuer.domain_key == f"cik:{cik}"))
@@ -902,7 +891,7 @@ async def apply_profile_to_instrument(
         instrument,
         provider_name=profile.provider,
         provider_symbol=profile.symbol,
-        exchange_mic=profile.exchange,
+        exchange_mic=normalize_exchange_mic(profile.exchange),
         candidate_payload=build_profile_snapshot_payload(profile),
     )
     await upsert_instrument_stats(
@@ -923,7 +912,7 @@ async def apply_profile_to_instrument(
         if detail is None:
             detail = EquityDetail(instrument_id=instrument.id)
             db.add(detail)
-        normalized_exchange = _normalize_exchange_code(profile.exchange)
+        normalized_exchange = normalize_exchange_mic(profile.exchange)
         detail.sector = profile.extra.get("sector") or detail.sector
         detail.industry = profile.extra.get("industry") or detail.industry
         detail.country = profile.extra.get("country") or detail.country

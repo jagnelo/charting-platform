@@ -36,7 +36,9 @@ def aggregate_bars(bars: list[Any], target: Timeframe) -> list[dict[str, Any]]:
         return []
     grouped: dict[tuple[datetime, str], list[Any]] = defaultdict(list)
     for bar in sorted(bars, key=lambda item: item.ts):
-        grouped[(_bucket_timestamp(bar.ts, target), str(getattr(bar, "session", "regular")))].append(bar)
+        grouped[
+            (_bucket_timestamp(bar.ts, target), str(getattr(bar, "session", "regular")))
+        ].append(bar)
 
     result: list[dict[str, Any]] = []
     for (bucket, session), rows in sorted(grouped.items()):
@@ -50,7 +52,9 @@ def aggregate_bars(bars: list[Any], target: Timeframe) -> list[dict[str, Any]]:
                 "high": max(Decimal(str(row.high)) for row in rows),
                 "low": min(Decimal(str(row.low)) for row in rows),
                 "close": Decimal(str(last.close)),
-                "volume": sum((Decimal(str(value)) for value in volumes), Decimal("0")) if volumes else None,
+                "volume": sum((Decimal(str(value)) for value in volumes), Decimal("0"))
+                if volumes
+                else None,
                 "vwap": None,
                 "is_adjusted": bool(getattr(last, "is_adjusted", False)),
                 "adjustment_basis": getattr(last, "adjustment_basis", "raw"),

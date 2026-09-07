@@ -11,6 +11,14 @@ with mode `0600`, and set `RPI_DOCKER_PLATFORM` after checking `uname -m` on the
 Pi. A 32-bit Pi OS normally needs `linux/arm/v7`; a 64-bit Pi OS needs
 `linux/arm64`. The preflight rejects a mismatch rather than guessing.
 
+Provision application and provider secrets separately on the target at
+`/opt/charting-platform/shared/app.env` (or
+`$RPI_DEPLOY_ROOT/shared/app.env`) with mode `0600`. Use the same variable names
+as `.env.example`, but copy them through an approved password/secret manager or
+a secure operator channel. The deployment intentionally does not pull secrets
+from GitHub or from a developer worktree, and release bundles never contain
+them. Compose passes provider credentials only to `backend` and `worker`.
+
 ```bash
 make rpi-preflight
 make rpi-bundle COMMIT=<full-validated-master-sha>
@@ -44,10 +52,13 @@ All commands below assume you set `COMPOSE_PROJECT_NAME` first. For local branch
 # Choose the Compose project name for this checkout/session
 export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-$(./scripts/dev-stack.sh project-name stack)}"
 
-# 1. Copy and fill in the environment file
-cp .env.example .env
-# Required: set SECRET_KEY
-echo "SECRET_KEY=$(openssl rand -hex 32)" >> .env
+# 1. Create the external owner-only environment file. Repository worktree
+# setup links the ignored .env path to it; do not commit or copy it into Git.
+install -d -m 700 ~/.config/charting-platform
+test -e ~/.config/charting-platform/app.env || \
+  install -m 600 /dev/null ~/.config/charting-platform/app.env
+# Fill it through your password/secret manager, including a generated
+# SECRET_KEY and the provider variables required by this deployment.
 
 # 2. Start all containers
 docker compose up -d

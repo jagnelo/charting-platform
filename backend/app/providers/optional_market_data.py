@@ -458,13 +458,45 @@ class TradierProvider(_RESTProvider):
         key = self._key()
         return {"Authorization": f"Bearer {key}", "Accept": "application/json"} if key else {}
 
-    def fetch_ohlcv(self, symbol: str, timeframe: Timeframe, start: datetime, end: datetime, *, adjusted: bool = True, instrument_id: int | None = None, data_source_id: int | None = None) -> list[OHLCVBar]:
+    def fetch_ohlcv(
+        self,
+        symbol: str,
+        timeframe: Timeframe,
+        start: datetime,
+        end: datetime,
+        *,
+        adjusted: bool = True,
+        instrument_id: int | None = None,
+        data_source_id: int | None = None,
+    ) -> list[OHLCVBar]:
         if timeframe not in {Timeframe.D1, Timeframe.W1, Timeframe.MN}:
             return []
-        interval = {Timeframe.D1: "daily", Timeframe.W1: "weekly", Timeframe.MN: "monthly"}[timeframe]
-        payload = self._get("markets/history", {"symbol": symbol.upper(), "interval": interval, "start": _bounded_datetime(start).date().isoformat(), "end": _bounded_datetime(end).date().isoformat()})
+        interval = {Timeframe.D1: "daily", Timeframe.W1: "weekly", Timeframe.MN: "monthly"}[
+            timeframe
+        ]
+        payload = self._get(
+            "markets/history",
+            {
+                "symbol": symbol.upper(),
+                "interval": interval,
+                "start": _bounded_datetime(start).date().isoformat(),
+                "end": _bounded_datetime(end).date().isoformat(),
+            },
+        )
         rows = self._rows(payload, "history")
-        return sorted([bar for bar in (self._bar(row, timeframe, instrument_id=instrument_id, data_source_id=data_source_id) for row in rows) if bar and start <= bar.ts < end], key=lambda bar: bar.ts)
+        return sorted(
+            [
+                bar
+                for bar in (
+                    self._bar(
+                        row, timeframe, instrument_id=instrument_id, data_source_id=data_source_id
+                    )
+                    for row in rows
+                )
+                if bar and start <= bar.ts < end
+            ],
+            key=lambda bar: bar.ts,
+        )
 
     def get_current_price(self, symbol: str) -> float | None:
         payload = self._get("markets/quotes", {"symbols": symbol.upper()})
@@ -475,7 +507,16 @@ class TradierProvider(_RESTProvider):
     def search_instruments(self, query: str, *, limit: int = 10) -> list[ProviderSearchResult]:
         payload = self._get("markets/search", {"q": query, "indexes": "false"})
         rows = self._rows(payload, "securities")
-        return [ProviderSearchResult(symbol=str(row.get("symbol") or "").upper(), name=str(row.get("description") or row.get("symbol") or ""), exchange=str(row.get("exchange") or ""), instrument_type=str(row.get("type") or "EQUITY").upper()) for row in rows[:limit] if row.get("symbol")]
+        return [
+            ProviderSearchResult(
+                symbol=str(row.get("symbol") or "").upper(),
+                name=str(row.get("description") or row.get("symbol") or ""),
+                exchange=str(row.get("exchange") or ""),
+                instrument_type=str(row.get("type") or "EQUITY").upper(),
+            )
+            for row in rows[:limit]
+            if row.get("symbol")
+        ]
 
     def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime:
         return datetime.now(UTC) - timedelta(days=max(30, limit * 2))
@@ -495,18 +536,65 @@ class MarketDataAppProvider(_RESTProvider):
         key = self._key()
         return {"Authorization": f"Bearer {key}"} if key else {}
 
-    def fetch_ohlcv(self, symbol: str, timeframe: Timeframe, start: datetime, end: datetime, *, adjusted: bool = True, instrument_id: int | None = None, data_source_id: int | None = None) -> list[OHLCVBar]:
-        resolution = {Timeframe.M1: "1", Timeframe.M5: "5", Timeframe.M15: "15", Timeframe.H1: "60", Timeframe.D1: "D", Timeframe.W1: "W"}.get(timeframe)
+    def fetch_ohlcv(
+        self,
+        symbol: str,
+        timeframe: Timeframe,
+        start: datetime,
+        end: datetime,
+        *,
+        adjusted: bool = True,
+        instrument_id: int | None = None,
+        data_source_id: int | None = None,
+    ) -> list[OHLCVBar]:
+        resolution = {
+            Timeframe.M1: "1",
+            Timeframe.M5: "5",
+            Timeframe.M15: "15",
+            Timeframe.H1: "60",
+            Timeframe.D1: "D",
+            Timeframe.W1: "W",
+        }.get(timeframe)
         if not resolution:
             return []
-        payload = self._get(f"stocks/candles/{resolution}/{symbol.upper()}", {"from": _bounded_datetime(start).date().isoformat(), "to": _bounded_datetime(end).date().isoformat()})
+        payload = self._get(
+            f"stocks/candles/{resolution}/{symbol.upper()}",
+            {
+                "from": _bounded_datetime(start).date().isoformat(),
+                "to": _bounded_datetime(end).date().isoformat(),
+            },
+        )
         if not isinstance(payload, dict) or payload.get("s") not in {"ok", "no_data"}:
             return []
-        rows = [{"t": ts, "o": o, "h": high, "l": low, "c": close, "v": volume} for ts, o, high, low, close, volume in zip(payload.get("t", []), payload.get("o", []), payload.get("h", []), payload.get("l", []), payload.get("c", []), payload.get("v", []))]
-        return sorted([bar for bar in (self._bar(row, timeframe, instrument_id=instrument_id, data_source_id=data_source_id) for row in rows) if bar and start <= bar.ts < end], key=lambda bar: bar.ts)
+        rows = [
+            {"t": ts, "o": o, "h": high, "l": low, "c": close, "v": volume}
+            for ts, o, high, low, close, volume in zip(
+                payload.get("t", []),
+                payload.get("o", []),
+                payload.get("h", []),
+                payload.get("l", []),
+                payload.get("c", []),
+                payload.get("v", []),
+            )
+        ]
+        return sorted(
+            [
+                bar
+                for bar in (
+                    self._bar(
+                        row, timeframe, instrument_id=instrument_id, data_source_id=data_source_id
+                    )
+                    for row in rows
+                )
+                if bar and start <= bar.ts < end
+            ],
+            key=lambda bar: bar.ts,
+        )
 
     def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime:
-        return datetime.now(UTC) - timedelta(seconds=_TF_SECONDS.get(timeframe, 86400) * max(1, limit))
+        return datetime.now(UTC) - timedelta(
+            seconds=_TF_SECONDS.get(timeframe, 86400) * max(1, limit)
+        )
 
 
 class FinnhubProvider(_RESTProvider):
@@ -839,7 +927,7 @@ class EODHDProvider(_RESTProvider):
 
 class FMPProvider(_RESTProvider):
     name = "fmp"
-    base_url = "https://financialmodelingprep.com/api/v3"
+    base_url = "https://financialmodelingprep.com/stable"
     description = "Financial Modeling Prep optional history, profile, and calendar data"
     key_setting = "FMP_API_KEY"
     key_param = "apikey"
@@ -858,15 +946,16 @@ class FMPProvider(_RESTProvider):
         if timeframe is not Timeframe.D1:
             return []
         payload = self._get(
-            f"historical-price-full/{symbol.upper()}",
+            "historical-price-eod/full",
             {
+                "symbol": symbol.upper(),
                 "from": _bounded_datetime(start).date().isoformat(),
                 "to": _bounded_datetime(end).date().isoformat(),
             },
         )
         bars = [
             self._bar(row, timeframe, instrument_id=instrument_id, data_source_id=data_source_id)
-            for row in self._rows(payload, "historical")
+            for row in self._rows(payload)
         ]
         return sorted(
             [
@@ -878,7 +967,7 @@ class FMPProvider(_RESTProvider):
         )
 
     def get_instrument_profile(self, symbol: str) -> InstrumentProfile | None:
-        rows = self._rows(self._get(f"profile/{symbol.upper()}"))
+        rows = self._rows(self._get("profile", {"symbol": symbol.upper()}))
         row = rows[0] if rows else None
         if not row:
             return None
@@ -906,7 +995,7 @@ class FMPProvider(_RESTProvider):
         normalized = quote_type.strip().upper()
         if normalized not in {"EQUITY", "ETF"} or offset < 0:
             return {"total": 0, "quotes": []}
-        rows = self._rows(self._get("available-traded/list"))
+        rows = self._rows(self._get("stock-list"))
         filtered = []
         for row in rows:
             symbol = str(row.get("symbol") or "").upper()

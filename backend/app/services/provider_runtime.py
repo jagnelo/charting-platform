@@ -163,6 +163,10 @@ def _entitlement_seed(provider_name: str, capability: ProviderCapability) -> dic
         override = capability_overrides.get(capability.value)
         if isinstance(override, dict):
             base.update(override)
+    base.setdefault(
+        "live_probe_status",
+        settings.PROVIDER_LIVE_PROBE_STATUS_SEEDS.get(provider_name, "not_run"),
+    )
     return {
         key: value
         for key, value in base.items()
@@ -223,10 +227,7 @@ def provider_contract_operation_cost_known(
     """
 
     contract = dict(policy.quota_contract or {})
-    if not (
-        contract.get("dynamic_endpoint_weights")
-        or contract.get("operation_costs_required")
-    ):
+    if not (contract.get("dynamic_endpoint_weights") or contract.get("operation_costs_required")):
         return True
     tracking = _usage_tracking_config(data_source)
     costs = tracking.get("operation_costs")
@@ -345,7 +346,12 @@ def _apply_policy_defaults(
     # Quota and concurrency values are external-provider facts, not local
     # tuning defaults.  Leave them NULL when the seed does not explicitly
     # declare a documented value; the resolver will then fail closed.
-    for field_name in ("max_concurrency", "tokens_per_minute", "burst_capacity", "cooldown_seconds"):
+    for field_name in (
+        "max_concurrency",
+        "tokens_per_minute",
+        "burst_capacity",
+        "cooldown_seconds",
+    ):
         if getattr(policy, field_name) is None and rate_seed.get(field_name) is not None:
             setattr(policy, field_name, rate_seed[field_name])
     if policy.quota_contract is None and rate_seed.get("quota_contract"):
@@ -391,7 +397,9 @@ def _get_semaphore(policy: ProviderPolicy, provider_name: str) -> asyncio.Semaph
     # Serialising an unknown-concurrency provider is a local safety measure,
     # not a claim about the vendor's entitlement.  The external quota contract
     # remains the source of truth for admission and is never populated with 1.
-    configured_concurrency = policy.max_concurrency if policy.max_concurrency and policy.max_concurrency > 0 else 1
+    configured_concurrency = (
+        policy.max_concurrency if policy.max_concurrency and policy.max_concurrency > 0 else 1
+    )
     key = _bucket_key(provider_name, policy.capability)
     cached = _semaphores.get(key)
     if cached is None or cached[0] != configured_concurrency:
@@ -456,6 +464,14 @@ def quota_contract_missing_dimensions(policy: ProviderPolicy) -> list[str]:
         return ["quota_contract", "quota_scope", "quota_source"]
 
     missing: list[str] = []
+    untracked = contract.get("untracked_constraints")
+    if isinstance(untracked, list):
+        for item in untracked:
+            if isinstance(item, dict):
+                name = str(item.get("name") or "unknown").strip()
+            else:
+                name = str(item or "unknown").strip()
+            missing.append(f"quota_contract.untracked_constraints.{name}")
     if not str(contract.get("reset") or "").strip():
         missing.append("quota_contract.reset")
     dimensions = contract.get("dimensions")
@@ -498,7 +514,8 @@ def provider_contract_operation_costs_configured(
 def policy_has_known_quota(policy: ProviderPolicy) -> bool:
     """Whether this policy has a complete contract suitable for routing."""
 
-    return bool(quota_dimensions(policy))
+    contract = policy.quota_contract or {}
+    return bool(quota_dimensions(policy)) and not bool(contract.get("untracked_constraints"))
 
 
 def _retry_at_from_headers(headers: Any, *, now: datetime | None = None) -> datetime | None:
@@ -529,11 +546,17 @@ def _retry_at_from_headers(headers: Any, *, now: datetime | None = None) -> date
         except ValueError:
             continue
         # Providers use both Unix epochs and relative seconds for this header.
-        return datetime.fromtimestamp(raw, tz=UTC) if raw > 1_000_000_000 else current + timedelta(seconds=max(0, raw))
+        return (
+            datetime.fromtimestamp(raw, tz=UTC)
+            if raw > 1_000_000_000
+            else current + timedelta(seconds=max(0, raw))
+        )
     return None
 
 
-def provider_rate_limit_error(provider_name: str, exc: Exception, *, scope: str | None = None) -> ProviderRateLimitError | None:
+def provider_rate_limit_error(
+    provider_name: str, exc: Exception, *, scope: str | None = None
+) -> ProviderRateLimitError | None:
     """Convert an HTTP 429/418/quota response to a typed capacity error."""
 
     if isinstance(exc, ProviderRateLimitError):
@@ -545,7 +568,14 @@ def provider_rate_limit_error(provider_name: str, exc: Exception, *, scope: str 
     message = str(exc)
     lower = message.lower()
     is_quota = status_code in {418, 429} or any(
-        marker in lower for marker in ("rate limit", "rate_limit", "too many requests", "quota exceeded", "quota limit")
+        marker in lower
+        for marker in (
+            "rate limit",
+            "rate_limit",
+            "too many requests",
+            "quota exceeded",
+            "quota limit",
+        )
     )
     if not is_quota:
         return None
@@ -715,6 +745,17 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                     for field_name, value in entitlement_seed.items()
                 ):
                     entitlement.revision = int(entitlement.revision or 1) + 1
+            elif (
+                not entitlement_was_new
+                and str(entitlement.live_probe_status or "not_run").strip().lower()
+                not in {"passed", "not_required"}
+                and str(entitlement_seed.get("live_probe_status") or "not_run")
+                in {"passed", "not_required"}
+            ):
+                # Promote only repository-recorded positive evidence. Never
+                # downgrade or overwrite an operator-managed passing status.
+                entitlement.live_probe_status = str(entitlement_seed["live_probe_status"])
+                entitlement.revision = int(entitlement.revision or 1) + 1
             elif entitlement.revision is None or entitlement.revision < 1:
                 entitlement.revision = 1
             if entitlement.revision is None or entitlement.revision < 1:
@@ -814,12 +855,15 @@ async def resolve_provider_chain(
         configured_plan = str(entitlement.configured_plan or "").strip().lower()
         if not configured_plan or configured_plan == "unreviewed":
             continue
+        if str(entitlement.live_probe_status or "not_run").strip().lower() not in {
+            "passed",
+            "not_required",
+        }:
+            continue
         if (
             provider_configuration_required(data_source.name)
             and not provider_is_configured(data_source.name)
-        ) or (
-            entitlement.authentication_required and not provider_is_configured(data_source.name)
-        ):
+        ) or (entitlement.authentication_required and not provider_is_configured(data_source.name)):
             continue
         if (
             data_source.name == "yfinance"
@@ -998,11 +1042,16 @@ async def execute_provider_call(
         )
         if reservations is None:
             continue
-        if resolved.policy.tokens_per_minute is not None and resolved.policy.burst_capacity is not None:
+        if (
+            resolved.policy.tokens_per_minute is not None
+            and resolved.policy.burst_capacity is not None
+        ):
             if not _get_bucket(resolved.policy, resolved.provider_name).try_acquire(
                 max(1, int(usage_units.to_integral_value()))
             ):
-                settle_provider_contract(reservations, units=max(1, int(usage_units.to_integral_value())), success=False)
+                settle_provider_contract(
+                    reservations, units=max(1, int(usage_units.to_integral_value())), success=False
+                )
                 continue
         log_row = ProviderRequestLog(
             data_source_id=resolved.data_source.id,
@@ -1092,9 +1141,11 @@ async def execute_provider_call(
                 if rate_error.retry_at is not None:
                     resolved.health.circuit_open_until = rate_error.retry_at
                 else:
-                    resolved.health.circuit_open_until = datetime.now(UTC) + timedelta(
-                        seconds=resolved.policy.cooldown_seconds or 0
-                    ) if resolved.policy.cooldown_seconds else None
+                    resolved.health.circuit_open_until = (
+                        datetime.now(UTC) + timedelta(seconds=resolved.policy.cooldown_seconds or 0)
+                        if resolved.policy.cooldown_seconds
+                        else None
+                    )
             last_error = exc
             settle_provider_contract(
                 reservations,
@@ -1226,11 +1277,14 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
                 if str(entitlement.configured_plan or "").strip().lower() != "unreviewed"
                 else "unreviewed"
             ),
+            "live_probe_status": entitlement.live_probe_status,
             "routing_eligible": bool(
                 policy.is_enabled
                 and policy_has_known_quota(policy)
                 and provider_is_configured(data_source.name)
                 and str(entitlement.configured_plan or "").strip().lower() != "unreviewed"
+                and str(entitlement.live_probe_status or "not_run").strip().lower()
+                in {"passed", "not_required"}
                 and (entitlement.is_free or settings.ALLOW_PAID_PROVIDER_ROUTING)
                 and provider_contract_operation_costs_configured(policy, data_source)
             ),

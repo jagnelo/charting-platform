@@ -10,8 +10,8 @@ human_closure_authorization: pending
 closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
-local_validation_profile: docker_integration
-local_validation_reason: backend application, database migrations, provider adapters, Redis-backed runtime controls, and worker scheduling require the backend integration stack; no frontend files are in scope.
+local_validation_profile: full_stack_browser
+local_validation_reason: backend application, database migrations, provider adapters, Redis-backed runtime controls, worker scheduling, and Compose secret boundaries require the complete stack gate even though no frontend product files are in scope.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
 goal: "Implement the approved US-first multi-provider market-data platform plan: canonical FIGI-based identity and issuer model; exchange/session calendars; market-series scoped raw/canonical OHLCV with local rollups and adjustments; provider capability/entitlement/quota routing; US universe/lifecycle, events, SEC fundamentals, FINRA short interest, current options with local high-fidelity Greeks, optional futures and crypto providers; backend admin/diagnostic APIs; and disabled 30-day shadow monitoring. Backend/data only; do not modify frontend or ETF constituent provider work."
@@ -25,6 +25,8 @@ scope:
   - backend-only coverage, provider-admin, identity-quarantine, market-session, and shadow-report APIs; symbol compatibility aliases remain additive
   - automated shadow-mode reporting and post-deployment activation evidence; no frontend or ETF constituent adapter implementation
 owned_paths:
+  - .env.example
+  - .github/workflows/provider-live.yml
   - backend/app/models/
   - backend/app/providers/
   - backend/app/services/
@@ -34,10 +36,17 @@ owned_paths:
   - backend/app/workers/
   - backend/alembic/
   - backend/tests/
+  - deploy/rpi/compose.yml
+  - docker-compose.yml
   - docs/architecture.md
   - docs/data-providers.md
+  - docs/deployment.md
+  - docs/development.md
+  - docs/provider-live-validation.md
   - docs/project-todos.md
   - ops/workstreams/feat-market-data-provider-platform/
+  - scripts/run-live-provider-probes.py
+  - scripts/worktree-runtime.py
 dependencies:
   - staging baseline at 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
   - feat/etf-holdings-constituents owns ETF constituent provider adapters; this branch consumes compatible canonical identities only
@@ -72,6 +81,8 @@ acceptance_criteria:
     text: 429/418/quota responses parse provider reset headers where present, stop the affected provider scope, persist a typed capacity event, defer work until the reset (or operator decision), and do not create a retry storm or unsafe fallback.
   - id: AC-LIVE-EVIDENCE
     text: The manifest-driven live matrix covers keyless and credentialed providers separately. Missing credentials identify exact environment variables and block ready-for-review; no live skip is represented as proof.
+  - id: AC-SECRET-DISTRIBUTION
+    text: Local worktrees, GitHub live validation, and deployment targets use separate explicit secret stores; no credential is tracked, routine PR CI receives no provider secret, and provider credentials reach only trusted backend/worker processes.
 branch_tests:
   - backend unit and provider fixture suites for identity, routing, calendars, coverage, events, adjustments, options, and anomaly handling
   - backend migration compatibility and PostgreSQL/Redis integration tests
@@ -84,8 +95,8 @@ migration_impact: multiple additive/transformational PostgreSQL migrations for i
 deployment_impact: new backend/worker configuration, optional provider credentials, QuantLib dependency, Redis-backed quota state, scheduled shadow-report jobs, and feature flags; deployment remains a separate human-authorized master workflow
 status: in_progress
 remaining_gaps:
-  - live credentialed provider probes require operator-populated ignored backend/.env.dev values; exact missing names are emitted by the manifest preflight
-  - provider-specific unknown quotas (FRED v1, Finnhub, FMP, Binance historical OHLCV's multi-request weight, Nasdaq Trader polling, and the configured FINRA OTC source) remain non-routable until their scope/ceiling is recorded; exact Binance weights are recorded for single-symbol price and exchange-info discovery, while conservative Marketstack free-plan and IBKR Web API pacing contracts are recorded but still require account/terms/adapter evidence; FINRA's documented synchronous ceiling still requires credential/terms evidence
+  - full live matrix still requires EDGAR_USER_AGENT, ALPACA_API_KEY, ALPACA_SECRET_KEY, TRADIER_API_KEY, and MARKETDATA_APP_API_KEY; the 13 supplied-credential cases pass with non-empty provider-native assertions
+  - provider-specific incomplete contracts (FRED v1 numeric ceiling, Binance historical OHLCV multi-request weight, Nasdaq Trader polling, configured FINRA OTC source, and Tiingo/FINRA/FMP response-byte accounting) remain non-routable; Finnhub's observed free key is recorded at 60/min plus the documented 30/sec hard cap, but its stock-candle endpoint is not entitled and remains excluded
   - complete production NMS/OTC reconciliation and the separately approved 30-day shadow run remain post-deployment gates; the NMS/SEC directory adapters and bounded keyless evidence are implemented, while FINRA OTC Daily List now supplies lifecycle deltas but OTC still needs an approved complete security-master source
 progress:
   completed:
@@ -108,7 +119,8 @@ progress:
     - CIK evidence is issuer-only: profile ingestion links normalized SEC CIKs to `Issuer`, generic security domain-key selection excludes CIK, and new instrument-level CIK writes are rejected while legacy lookup remains compatible
     - deployed ARQ worker whole-universe refresh now enqueues durable bounded jobs and processes them every 15 minutes instead of making an unbounded provider-call loop inside the daily cron
     - final combined backend unit and PostgreSQL/Redis integration validation
-  total: 14
+    - savepoint-safe durable quota-window creation under concurrent workers, with full seeded Compose/browser validation
+  total: 15
   current_phase: credentialed_live_validation
-  current_blocker: credentialed live probes require operator-populated ignored backend/.env.dev values; NMS/OTC reconciliation and shadow activation remain post-deployment gates
-  next_action: populate provider credentials, execute every credentialed probe, resolve failures, and then reassess readiness; do not reuse prior receipts or activate routing before that evidence
+  current_blocker: full live matrix requires the remaining Alpaca, Tradier, MarketData.app, and SEC User-Agent inputs; complete NMS/OTC reconciliation and shadow activation remain post-deployment gates
+  next_action: obtain the five missing environment values, run the complete 24-case live matrix, then reassess readiness; do not activate routing or deploy before that evidence

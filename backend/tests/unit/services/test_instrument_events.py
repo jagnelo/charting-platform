@@ -5,6 +5,7 @@ import pytest
 from app.models.instrument_event import InstrumentEventFetchState
 from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
 from app.services.instrument_events import EVENT_FETCH_VERSION, ensure_instrument_events_loaded
+from app.services.provider_runtime import ProviderNoDataError
 from tests.unit.conftest import AsyncSessionAdapter
 
 
@@ -60,3 +61,19 @@ async def test_ensure_instrument_events_loaded_handles_multiple_provider_states(
     await ensure_instrument_events_loaded(async_db, instrument)
 
     assert called is False
+
+
+@pytest.mark.asyncio
+async def test_ensure_instrument_events_loaded_degrades_when_no_provider_is_routable(
+    db, instrument, monkeypatch
+):
+    async_db = AsyncSessionAdapter(db)
+
+    async def _no_provider(*_args, **_kwargs):
+        raise ProviderNoDataError("no reviewed provider is routable")
+
+    monkeypatch.setattr(
+        "app.services.instrument_events.fetch_and_store_instrument_events", _no_provider
+    )
+
+    await ensure_instrument_events_loaded(async_db, instrument)

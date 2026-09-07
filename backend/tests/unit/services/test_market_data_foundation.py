@@ -11,7 +11,9 @@ from app.services.market_series import SeriesScope, series_key
 
 def test_figi_domain_key_is_namespaced_and_normalized():
     assert make_domain_key(InstrumentIdentifierType.FIGI, " bbg000b9xry4 ") == "figi:BBG000B9XRY4"
-    assert choose_domain_key({"isin": "us0378331005", "figi": "bbg000b9xry4"}) == "figi:BBG000B9XRY4"
+    assert (
+        choose_domain_key({"isin": "us0378331005", "figi": "bbg000b9xry4"}) == "figi:BBG000B9XRY4"
+    )
 
 
 def test_internal_or_unknown_identifiers_do_not_become_domain_keys():
