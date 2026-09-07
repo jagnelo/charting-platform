@@ -965,8 +965,13 @@ test.describe('Chart', () => {
         await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 1201, versions: [{ id: 1201 }] }) })
         return
       }
-      expect(body).toMatchObject({ kind: 'condition', initial_version: { output_contract: 'boolean', output_name: 'reusable_series', lineage: { output_adapter: 'series_target_to_boolean', series_target: { operator: 'gte', threshold: 3 } } } })
-      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 1202, versions: [{ id: 1202 }] }) })
+      if (codeAssetPosts === 2) {
+        expect(body).toMatchObject({ kind: 'condition', initial_version: { output_contract: 'boolean', output_name: 'reusable_series', lineage: { output_adapter: 'series_target_to_boolean', series_target: { operator: 'gte', threshold: 3 } } } })
+        await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 1202, versions: [{ id: 1202 }] }) })
+        return
+      }
+      expect(body).toMatchObject({ kind: 'signal', initial_version: { output_contract: 'boolean', output_name: 'reusable_series', lineage: { target: 'signal', output_adapter: 'series_target_to_boolean', series_target: { operator: 'gte', threshold: 3 }, semantics: 'study_series_threshold_as_strategy_signal' } } })
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 1205, versions: [{ id: 1205 }] }) })
     })
     await page.route('**/api/v1/research/runs', async route => {
       if (route.request().method() !== 'POST') return route.continue()
@@ -985,6 +990,10 @@ test.describe('Chart', () => {
       expect(route.request().method()).toBe('POST')
       expect(route.request().postDataJSON()).toMatchObject({ universe_type: 'custom', universe_instrument_ids: [7], timeframe: 'D1', provenance: { output_adapter: 'series_target_to_boolean', series_target: { operator: 'gte', threshold: 3 } } })
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 1204, name: 'Reusable series threshold' }) })
+    })
+    await page.route('**/api/v1/strategy-lab/signals/from-code/1205', async route => {
+      expect(route.request().method()).toBe('POST')
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 1206, name: 'Reusable series Strategy signal' }) })
     })
     await page.goto('/chart/SPY')
     await page.getByRole('button', { name: 'Study', exact: true }).click()
@@ -1005,6 +1014,8 @@ test.describe('Chart', () => {
     await study.getByRole('spinbutton', { name: 'Study series condition threshold' }).fill('3')
     await study.getByRole('button', { name: 'Save watchlist filter', exact: true }).click()
     await expect(study).toContainText('Saved series artifact “reusable_series” as a thresholded watchlist filter.', { timeout: 15_000 })
+    await study.getByRole('button', { name: 'Save as Strategy signal', exact: true }).click()
+    await expect(study).toContainText('Saved thresholded series “reusable_series” as Strategy signal “Reusable series Strategy signal” (#1206).', { timeout: 15_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
