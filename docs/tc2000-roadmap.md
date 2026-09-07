@@ -5,6 +5,31 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-07
 
+## 2026-09-07 — Verify canonical member-history backfill against persisted data
+
+Product/test commit `466b11a3` adds a real-Postgres integration regression for
+`backfill_benchmark_family_member_history_task`. The test creates one persisted
+canonical `sec_nport` snapshot and one `controlled_fixture`/`e2e_reference`
+snapshot, then proves the planner selects only the canonical snapshot, queues
+the resolved member through the existing bulk-history path, uses the inclusive
+composition-date end bound, and returns the deterministic idempotence key.
+This closes the database-backed verification gap for the bounded R1 backfill
+mechanism; it does not populate missing provider data or claim complete family
+history.
+
+The exact-tip gate at product tip `466b11a3` passed all non-visual stages:
+locked dependency/migration/workstream checks, Ruff/format/type-check,
+backend `1348` unit and `385` integration tests with combined coverage above
+the repository floor, frontend `970/970` tests, build/compose/provider policy,
+stack health, runner isolation/resource probes, and authenticated functional
+Playwright (`159` passed, `106` documented skips across `265` specs). The
+unchanged visual matrix returned `98/104`; exactly the six known state-oracle
+diffs remain (watchlist-column-editor-open at 1080p-100/125 and
+workspace-floating at all four projects). No baseline, mask, threshold, skip,
+fallback, provider, or acceptance policy changed. Stack teardown removed four
+generated images and left zero assigned containers, volumes, sessions, or
+known bytes. Continue broader canonical provider/history population and R2-R7.
+
 ## 2026-09-07 — Backfill existing canonical family member history
 
 Product commit `cb060f56` adds a bounded, provider-neutral scheduled backfill

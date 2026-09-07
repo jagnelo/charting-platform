@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-07 — Verify canonical member-history backfill against persisted data
+
+- [x] Add a real-Postgres integration regression proving the opt-in backfill
+      selects persisted canonical `sec_nport` snapshots, excludes
+      `controlled_fixture`/`e2e_reference` snapshots, queues resolved members
+      with the inclusive composition-date bound, and preserves the deterministic
+      idempotence key (`466b11a3`).
+- [x] Exact-tip gate passed all non-visual stages: backend `1348` unit and
+      `385` integration tests with combined coverage above the floor, frontend
+      `970/970`, and functional Playwright `159` passed with `106` documented
+      skips across `265` specs. Visual parity remains `98/104` with only the
+      six known state-oracle diffs; stack cleanup/resource accounting is clean.
+- [ ] Populate and verify the broader canonical holdings/member-bar history
+      inventory; this regression proves backfill behavior, not data completeness.
+
 ### 2026-09-07 — Backfill existing canonical family member history
 
 - [x] Add the bounded, provider-neutral `backfill_benchmark_family_member_history_task`

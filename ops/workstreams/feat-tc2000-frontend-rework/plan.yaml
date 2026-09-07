@@ -13,14 +13,19 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  Product commit cb060f56 adds a bounded, provider-neutral scheduled backfill
+  Product/test commit 466b11a3 verifies the bounded, provider-neutral scheduled
+  backfill against persisted canonical data in a real-Postgres integration test;
+  the test selects canonical sec_nport snapshots, excludes controlled/e2e
+  fixtures, queues a resolved member with the inclusive composition-date bound,
+  and preserves the deterministic idempotence key. Product commit cb060f56 adds
+  a bounded, provider-neutral scheduled backfill
   for persisted canonical benchmark-family snapshots with resolved holdings.
   It excludes controlled/e2e fixtures, caps work at 512 snapshots by default,
   queues member history with an inclusive composition-date bound, and remains
   opt-in (BENCHMARK_FAMILY_MEMBER_HISTORY_BACKFILL_ENABLED=false by default).
   Focused service/task/worker checks passed 56 tests and Ruff/compile/diff
   checks passed. The exact-tip full_stack_browser gate passed backend 1348 unit
-  and 384 integration tests, frontend 970/970, and functional Playwright 159
+  and 385 integration tests, frontend 970/970, and functional Playwright 159
   passed with 106 documented skips across 265 specs; combined backend coverage
   passed. The only remaining gate boundary is the six known visual state-oracle
   diffs: watchlist-column-editor-open at 1080p-100/125 and workspace-floating
@@ -132,13 +137,17 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
-    Product commit cb060f56 adds the bounded canonical family member-history
+    Product/test commit 466b11a3 verifies the bounded canonical family
+    member-history backfill against persisted canonical data in a real-Postgres
+    integration test (canonical sec_nport selected; controlled/e2e fixture
+    excluded; inclusive composition-date queue bound and idempotence key
+    asserted). Product commit cb060f56 adds the bounded canonical family member-history
     backfill: deterministic persisted snapshots with resolved holdings only,
     controlled/e2e fixtures excluded, a default 512-snapshot cap, and inclusive
     composition-date queue bounds. It is opt-in and provider-neutral on reads.
     Focused service/task/worker checks passed 56 tests and Ruff/compile/diff
     checks passed. The exact-tip gate passed all non-visual stages and
-    functional Playwright (backend 1348 unit and 384 integration tests;
+    functional Playwright (backend 1348 unit and 385 integration tests;
     frontend 970/970; functional 159 passed with 106 documented skips across
     265 specs; combined backend coverage passed). The only remaining boundary
     is the six known visual state-oracle diffs; preserve them and the unchanged

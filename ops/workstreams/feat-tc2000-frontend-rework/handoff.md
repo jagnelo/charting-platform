@@ -8,6 +8,27 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-07 — Verify canonical member-history backfill against persisted data
+
+Product/test commit `466b11a3` adds a real-Postgres integration regression for
+the bounded member-history backfill. It proves canonical persisted
+`sec_nport` snapshots are selected, controlled/e2e fixtures are excluded, a
+resolved member is queued through the existing bulk-history task with an
+inclusive composition-date end bound, and the idempotence key is stable. This
+is verification of the R1 mechanism only; broader canonical provider/history
+population remains open.
+
+The exact-tip full-stack gate passed every non-visual stage at `466b11a3`:
+backend `1348` unit/`385` integration, combined coverage, frontend `970/970`,
+build/compose/provider policy, stack health, runner isolation/resource probes,
+and authenticated functional Playwright (`159` passed, `106` skips across
+`265`). Visual parity remains `98/104` with the six unchanged state-oracle
+diffs: watchlist-column-editor-open at 1080p-100/125 and workspace-floating at
+all four visual projects. No visual/provider/fallback/acceptance policy was
+changed. Docker cleanup removed four generated images and left assigned
+resources clean. Next action is broader canonical population and R2-R7; do not
+integrate, promote, or deploy.
+
 ## 2026-09-07 — Backfill existing canonical family member history
 
 Product commit `cb060f56` adds an opt-in Sunday worker backfill that plans up to
