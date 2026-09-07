@@ -15,7 +15,7 @@ human_validation_authorization: "The human explicitly approved implementation of
 current_blocker: >-
   The exact-tip full_stack_browser gate at product tip feded2ca passed all
   locked, backend, frontend, build, stack, runner, and functional-browser
-  stages after enabling bounded SEC filing reconstruction for trust-level SPY.
+  stages after enabling bounded SEC filing reconstruction for mapped SPDR SLYV.
   The backend unit and integration phases (1343 and 384), frontend Vitest (970/970),
   and functional Playwright (159 passed with 106 documented skips across 265
   specs) are green; combined backend coverage also passed. The only remaining
