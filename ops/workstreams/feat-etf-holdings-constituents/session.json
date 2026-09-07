@@ -89,7 +89,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "9093f90313f70027586eccde74e838ad999622d5",
+  "head": "91b85ae5b82550e3ccc883035af75acecb4e8643",
   "implementation_sha": "bafc63eefabb490c387df6d29ac50d20c0ded96c",
   "last_checkpoint": "2026-09-06T08:32:44.708947+00:00",
   "last_human_progress_update": "2026-09-06T07:32:28.377121+00:00",
@@ -121,7 +121,7 @@
     "total": 14,
     "updated_at": "2026-09-06T07:32:28.377034+00:00"
   },
-  "remote": "9093f90313f70027586eccde74e838ad999622d5",
+  "remote": "91b85ae5b82550e3ccc883035af75acecb4e8643",
   "remote_sha": "bafc63eefabb490c387df6d29ac50d20c0ded96c",
   "remote_synchronized": true,
   "schema": 2,
