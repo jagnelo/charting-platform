@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-07 — Authenticated browser proof for chart EasyScan and Market Gauge promotion
+
+- [x] Add and run F8u-scan and F8u-gauge: chart indicator promotion creates
+      reusable conditions and EasyScan-backed direct targets, with visible
+      EasyScan/Market Gauge status (`38f7480a`, focused `2/2`).
+- [x] Exact-tip gate recorded backend `1350` unit/`385` integration, frontend
+      `972/972`, and functional Playwright `164` passed with `106` documented
+      skips across `270`; visual parity remains `98/104` with only the six
+      known state-oracle diffs and cleanup/resource accounting is clean.
+- [ ] Continue the remaining Strategy Lab promotion fan-out alongside
+      canonical provider/history population and R2-R7 roadmap work.
+
 ### 2026-09-07 — Authenticated browser proof for chart indicator-alert promotion
 
 - [x] Add and run the consuming F8u-alert Playwright flow: after canonical

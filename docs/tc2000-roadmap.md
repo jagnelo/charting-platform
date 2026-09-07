@@ -5,6 +5,29 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-07
 
+## 2026-09-07 — Prove chart EasyScan and Market Gauge promotion in the authenticated browser
+
+Test commit `38f7480a` adds the consuming-UI F8u-scan and F8u-gauge Playwright
+flows. Each opens a real chart, adds an indicator, selects the corresponding
+Chart Plot Library target, and verifies reusable-condition plus EasyScan
+creation responses and the user-visible promotion status. Focused live
+coverage passed `2/2` against the branch-scoped Docker stack.
+
+The exact-tip gate passed all non-visual stages: backend `1350` unit and `385`
+integration tests with combined coverage above the repository floor, frontend
+`972/972`, production build/compose/provider policy, stack health,
+runner-isolation/resource probes, and authenticated functional Playwright
+`164` passed with `106` documented skips across `270`. The unchanged visual
+matrix returned `98/104`, exactly the six known state-oracle diffs
+(watchlist-column-editor-open at visual-1080p-100/125 and workspace-floating
+at visual-1080p-100/125 and visual-1440p-100/125). No visual baseline, mask,
+threshold, skip, fallback, provider, or acceptance policy changed. Cleanup
+removed four generated images and left no assigned containers, volumes,
+sessions, or known bytes. This closes the Chart Plot Library's direct
+condition/column/filter/scan/gauge/alert browser fan-out evidence; continue
+the remaining Strategy Lab fan-out alongside broader R1 canonical
+population/history and R2-R7 work.
+
 ## 2026-09-07 — Prove chart indicator-alert promotion in the authenticated browser
 
 Test commit `a7d7915d` adds the consuming-UI F8u-alert Playwright flow. It

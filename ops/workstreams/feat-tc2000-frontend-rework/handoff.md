@@ -8,6 +8,25 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-07 — Prove chart EasyScan and Market Gauge promotion in the authenticated browser
+
+Test commit `38f7480a` adds authenticated F8u-scan and F8u-gauge coverage.
+Against the branch-scoped Docker stack, both flows opened a chart, promoted an
+indicator through the Chart Plot Library, verified the reusable condition and
+EasyScan creation responses, and checked the visible target status; focused
+live coverage passed `2/2` with clean browser diagnostics.
+
+The exact-tip gate passed all non-visual stages: backend `1350` unit/`385`
+integration with combined coverage, frontend `972/972`, build/compose/provider
+policy, stack health, runner probes, and functional Playwright `164` passed
+with `106` documented skips across `270`. Visual parity remains `98/104` with
+the six unchanged state-oracle diffs (watchlist-column-editor-open at
+1080p-100/125 and workspace-floating at 1080p-100/125 plus 1440p-100/125).
+No visual, provider, fallback, or acceptance policy changed; Docker cleanup
+removed four generated images and left assigned resources clean. Continue the
+remaining Strategy Lab fan-out, canonical R1 population/history, and R2-R7
+work; do not integrate, promote, or deploy.
+
 ## 2026-09-07 — Prove chart indicator-alert promotion in the authenticated browser
 
 Test commit `a7d7915d` adds the consuming F8u-alert Playwright flow. After
