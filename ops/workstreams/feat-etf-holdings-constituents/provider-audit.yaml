@@ -183,24 +183,24 @@ symbol_audit_ledger:
       provider_identity: manulife
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-09-03
-      evidence_refs: [web:manulife-canadian-etf-catalogue-2026-09-03]
+      investigated_at: 2026-09-07
+      evidence_refs: [web:manulife-canadian-etf-catalogue-2026-09-03, live:manulife-etf-catalogue-2026-09-07-blocked]
       next_action: "Re-test Manulife/John Hancock symbol-scoped routes; promote only if a complete U.S.-listed holdings artifact, mapping, parser fixture, and live proof are established."
     - symbol: UDEF
       tier: 1
       provider_identity: manulife
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-09-03
-      evidence_refs: [web:manulife-canadian-etf-catalogue-2026-09-03]
+      investigated_at: 2026-09-07
+      evidence_refs: [web:manulife-canadian-etf-catalogue-2026-09-03, live:manulife-etf-catalogue-2026-09-07-blocked]
       next_action: "Re-test Manulife/John Hancock symbol-scoped routes; promote only if a complete U.S.-listed holdings artifact, mapping, parser fixture, and live proof are established."
     - symbol: GEDG
       tier: 1
       provider_identity: manulife
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-09-03
-      evidence_refs: [web:manulife-canadian-etf-catalogue-2026-09-03]
+      investigated_at: 2026-09-07
+      evidence_refs: [web:manulife-canadian-etf-catalogue-2026-09-03, live:manulife-etf-catalogue-2026-09-07-blocked]
       next_action: "Re-test Manulife/John Hancock symbol-scoped routes; promote only if a complete U.S.-listed holdings artifact, mapping, parser fixture, and live proof are established."
     - symbol: QVOY
       tier: 1
@@ -1502,7 +1502,7 @@ providers:
     starting_status: issuer_access_blocked
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-09-03
+    last_checked: 2026-09-07
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [GAUD, GAID]
     estimated_us_etf_count: null
@@ -1576,6 +1576,10 @@ providers:
         source: "https://www.manulifeim.com/retail/ca/en/landing-page/etfs"
         result: "Official Manulife material exposes a Canadian ETF catalogue, while bounded catalogue and representative holdings/document requests returned Akamai 403; no complete executable U.S. route is proven."
         evidence_ref: "web:manulife-canadian-etf-catalogue-2026-09-03"
+      - date: 2026-09-07
+        source: "https://www.manulifeim.com/retail/ca/en/landing-page/etfs"
+        result: "A fresh bounded catalogue request returned HTTP 403 Access Denied; no complete current holdings rows or downloadable artifact was exposed for UDIV, UDEF, or GEDG."
+        evidence_ref: "live:manulife-etf-catalogue-2026-09-07-blocked"
       - date: 2026-09-03
         source: "https://www.manulifeim.com/retail/ca/en/landing-page/etfs"
         result: "Backend-equivalent request returned HTTP 403 Akamai access denied."

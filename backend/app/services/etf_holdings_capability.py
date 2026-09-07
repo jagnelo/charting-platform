@@ -768,8 +768,11 @@ _register_non_tier_0_audits(
     outcome=UNAVAILABLE,
     evidence_state="issuer_route_access_blocked",
     provider_identity="manulife",
-    investigated_at=date(2026, 9, 3),
-    evidence_refs=("web:manulife-canadian-etf-catalogue-2026-09-03",),
+    investigated_at=date(2026, 9, 7),
+    evidence_refs=(
+        "web:manulife-canadian-etf-catalogue-2026-09-03",
+        "live:manulife-etf-catalogue-2026-09-07-blocked",
+    ),
     next_action=(
         "Re-test Manulife/John Hancock symbol-scoped routes; promote only if a complete "
         "U.S.-listed holdings artifact, mapping, parser fixture, and live proof are established."

@@ -3401,3 +3401,10 @@ The official Fund Resources route returned HTTP 403 Cloudflare challenge
 content, with no complete executable holdings artifact. GAUD/GAID remain
 unavailable and issuer-access-blocked; re-open only when a complete,
 backend-readable issuer route is exposed.
+
+## Manulife representative-route recheck — 2026-09-07
+
+The official Manulife ETF catalogue returned HTTP 403 Access Denied, with no
+complete executable holdings artifact for UDIV, UDEF, or GEDG. The symbols
+remain unavailable and issuer-access-blocked; re-open only when a complete,
+backend-readable U.S. ETF route is exposed.
