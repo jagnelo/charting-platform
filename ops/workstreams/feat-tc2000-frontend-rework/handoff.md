@@ -10,6 +10,34 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-07 — Expose Invesco current-only history route evidence
+
+Product commit `63d64bfe` adds explicit current-only route metadata for the
+mapped Invesco RSP role. Family-history planning preserves
+`issuer_current_only` / `invesco` /
+`issuer_public_json_catalog_current_monthly_only` and the public CUSIP-based
+catalog URL. This intentionally does not claim dated replay, curated SEC
+reconstruction, populated holdings snapshots, or member-bar history. Focused
+taxonomy, planner, refresh, and route checks passed `30/30`; the selected
+family coverage API regression passed `1/1`; and Ruff/format/diff checks
+passed.
+
+## 2026-09-07 — Exact-tip exhaustive gate after Invesco current-only history route evidence
+
+At exact product tip `63d64bfe`, the exhaustive gate passed all locked,
+backend/frontend, build, compose/provider, stack-health, runner-isolation, and
+authenticated functional-browser stages (`159` passed, `106` documented skips
+across `265` specs; backend `1328` unit and `384` integration tests; `80.94%`
+combined coverage; frontend Vitest `970/970`). The visual matrix returned
+`98/104`, with only the six known state-oracle diffs: watchlist-column-editor-
+open at 1080p-100/125 (`13,844` pixels each), and workspace-floating at
+1080p-100/125 (`12,097` pixels each), 1440p-100 (`9,770`), and 1440p-125
+(`11,901`). Cleanup removed four images and resource accounting is clean with
+zero containers, volumes, sessions, and known bytes. No baseline, mask,
+threshold, skip, fallback, provider, or acceptance policy changed. Next
+action: continue the next bounded canonical provider/history slice while
+preserving the visual-only boundary.
+
 ## 2026-09-06 — Expose SPDR current-only history route evidence
 
 Product commit `9ec4d498` adds explicit current-only route metadata for the

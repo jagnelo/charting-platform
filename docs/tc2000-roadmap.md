@@ -3,7 +3,38 @@
 Status: active implementation roadmap  
 Branch: `feat/tc2000-frontend-rework`  
 Parent: `staging`  
-Last reconciled: 2026-09-06
+Last reconciled: 2026-09-07
+
+## 2026-09-07 — Expose Invesco current-only history route evidence
+
+Product commit `63d64bfe` declares explicit issuer-current-only route evidence
+for the mapped Invesco RSP role. Family-history planning now preserves
+`issuer_current_only` / `invesco` /
+`issuer_public_json_catalog_current_monthly_only` and the public CUSIP-based
+catalog URL. Invesco's current/monthly route is deliberately recorded as
+route capability only: no dated replay, curated SEC reconstruction, populated
+holdings snapshot, or member-bar history is claimed for RSP. Focused taxonomy,
+planner, refresh, and route checks passed `30/30`; the selected family
+coverage API regression passed `1/1`; Ruff, format, and diff checks passed.
+
+## 2026-09-07 — Exact-tip gate after Invesco current-only history route evidence
+
+At exact product tip `63d64bfe`, the `full_stack_browser` gate passed locked
+dependency/migration/workstream checks, Ruff/format/type-check, backend unit
+and integration phases (`1328` unit and `384` integration tests; `80.94%`
+combined coverage), frontend Vitest (`970/970`), production image build,
+compose/provider policy, stack health, research-runner isolation/resource
+probes, and authenticated functional Playwright (`159` passed with `106`
+documented skips across `265` specs). The visual matrix completed `104` cases
+with `98` passes and exactly the same six state-oracle diffs:
+watchlist-column-editor-open at visual-1080p-100/125 (`13,844` pixels each),
+and workspace-floating at visual-1080p-100/125 (`12,097` pixels each),
+visual-1440p-100 (`9,770`), and visual-1440p-125 (`11,901`). No baseline,
+mask, threshold, skip, fallback, provider, or acceptance policy changed. Gate
+cleanup removed four generated images and the post-gate resource audit
+reported zero containers, volumes, sessions, and known bytes. Continue the
+next bounded canonical provider/history population slice while preserving this
+visual-only boundary.
 
 ## 2026-09-06 — Expose SPDR current-only history route evidence
 

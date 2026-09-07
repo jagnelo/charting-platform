@@ -1,5 +1,30 @@
 # Project TODO Memory
 
+### 2026-09-07 — Expose Invesco current-only history route evidence
+
+- [x] Declare explicit issuer-current-only route evidence for the mapped
+      Invesco RSP role and preserve
+      `issuer_current_only` / `invesco` /
+      `issuer_public_json_catalog_current_monthly_only` plus the public
+      CUSIP-based catalog URL through family-history planning. Product commit
+      `63d64bfe`; this does not claim dated replay, curated SEC reconstruction,
+      or populated holdings/member-bar history.
+- [x] Focused taxonomy/planner/refresh/route checks passed `30/30`; the
+      selected family coverage API regression passed `1/1`; Ruff, format, and
+      diff checks passed.
+- [x] Rerun the exact-tip integration gate at product tip `63d64bfe`:
+      backend `1328/1328` unit and `384/384` integration tests, `80.94%`
+      combined coverage, frontend `970/970`, and functional Playwright `159`
+      passed with `106` documented skips across `265` specs. The visual matrix
+      remains `98/104` with the same six state-oracle diffs: column-editor-open
+      (`13,844` pixels at 1080p-100/125) and workspace-floating (`12,097`,
+      `12,097`, `9,770`, `11,901` pixels at 1080p-100/125 and 1440p-100/125).
+      Cleanup/resource accounting is clean; no visual/provider/fallback/
+      acceptance policy changed.
+- [ ] Continue the next bounded canonical provider/history population slice;
+      preserve the six visual state-oracle diffs and do not treat route
+      metadata as populated history.
+
 ### 2026-09-06 — Expose SPDR current-only history route evidence
 
 - [x] Declare explicit issuer-current-only route evidence for the nine mapped
