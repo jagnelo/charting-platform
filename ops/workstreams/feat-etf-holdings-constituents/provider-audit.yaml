@@ -1861,7 +1861,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-09-05
+    last_checked: 2026-09-07
     source_access_declared: issuer_public_holdings_file
     representative_symbols:
       - SPDV
@@ -1885,6 +1885,7 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.advisors_asset_management"
       - "runtime:ISSUER_ADAPTER_CONFIGS.advisors_asset_management"
+      - "live:aam-symbol-routes-2026-09-07-blocked-or-empty"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -2201,7 +2202,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-09-02
+    last_checked: 2026-09-07
     source_access_declared: issuer_public_holdings_file
     representative_symbols:
       - ATTR
@@ -2223,6 +2224,7 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.arin"
       - "runtime:ISSUER_ADAPTER_CONFIGS.arin"
+      - "live:arin-attr-html-holdings-future-effective-date-2026-09-07"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -2429,7 +2431,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: non_executable_public_source
     disposition: non_executable_public_source
-    last_checked: 2026-09-02
+    last_checked: 2026-09-07
     source_access_declared: issuer_public_holdings_file
     representative_symbols:
       - BGGG
@@ -2457,6 +2459,7 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.baillie_gifford"
       - "runtime:ISSUER_ADAPTER_CONFIGS.baillie_gifford"
+      - "live:baillie-gifford-top-holdings-xlsx-2026-09-07"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
