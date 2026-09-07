@@ -5,6 +5,42 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-07
 
+## 2026-09-07 — Enable MDYG SEC filing-reconstruction history route
+
+Product commit `f7a90789` upgrades the mapped State Street/SPDR MDYG role from
+issuer-current-only to `sec_filing_reconstruction` through SEC CIK
+`0001064642`, series `S000006987`, class `C000019040`, and fund ticker
+`MDYG`. The dated policy is
+`latest_sec_filing_report_on_or_before_requested_date` with source
+`https://data.sec.gov/submissions/CIK0001064642.json`; the issuer daily
+workbook route remains available separately for current snapshots. The adapter
+uses the bounded 50-filing SEC window because the shared CIK contains multiple
+fund series. The remaining six mapped SPDR roles stay explicitly
+issuer-current-only. Focused regression/static checks passed (`8` selected
+tests); the opt-in live MDYG SEC route probe passed `1/1` after a transient
+wrong-filing response was discarded and the verified rerun returned 238 rows.
+This proves route identity and bounded dated reconstruction only; it does not
+claim complete historical membership, weights, or member-bar history for MDYG.
+
+## 2026-09-07 — Exact-tip gate after MDYG SEC history reconstruction
+
+At exact product tip `f7a90789`, the `full_stack_browser` gate passed all
+locked dependency/migration/workstream checks, Ruff/format/type-check,
+backend unit and integration phases (`1335` unit and `384` integration tests;
+`80.94%` combined coverage), frontend Vitest (`970/970`), production image
+build, compose/provider policy, stack health, research-runner isolation and
+resource probes, and authenticated functional Playwright (`159` passed with
+`106` documented skips across `265` specs). The visual matrix completed `104`
+cases with `98` passes and exactly six known state-oracle diffs:
+watchlist-column-editor-open at visual-1080p-100/125 (`13,844` pixels each),
+and workspace-floating at visual-1080p-100/125 (`11,901` and `9,770` pixels),
+visual-1440p-100 (`9,770` pixels), and visual-1440p-125 (`9,770` pixels).
+No baseline, mask, threshold, skip, fallback, provider, or acceptance policy
+changed. Docker cleanup removed four generated images; post-gate resource
+accounting was clean with zero containers, volumes, sessions, and known bytes.
+Continue the next bounded canonical provider/history population slice while
+preserving this visual-only boundary.
+
 ## 2026-09-07 — Enable SPYG SEC filing-reconstruction history route
 
 Product commit `7ee30073` upgrades the mapped State Street/SPDR SPYG role from

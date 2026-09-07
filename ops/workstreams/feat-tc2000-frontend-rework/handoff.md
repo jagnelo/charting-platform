@@ -8,6 +8,33 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-07 — Enable MDYG SEC filing-reconstruction history route
+
+Product commit `f7a90789` upgrades MDYG from issuer-current-only to the
+verified SEC route `sec_filing_reconstruction` using CIK `0001064642`, series
+`S000006987`, class `C000019040`, and `MDYG`; the adapter uses a bounded
+50-filing search window because the CIK is shared across series. The issuer
+daily-workbook route remains distinct. Focused checks passed (`8` selected
+tests), and the opt-in live MDYG SEC probe passed `1/1` on the verified rerun
+with 238 rows after discarding a transient wrong-filing response. This is
+route/reconstruction evidence only, not proof of complete historical holdings
+or member-bar population.
+
+## 2026-09-07 — Exact-tip exhaustive gate after MDYG SEC history reconstruction
+
+At exact product tip `f7a90789`, all locked, backend/frontend, build,
+compose/provider, stack-health, runner-isolation, and authenticated functional
+browser stages passed (`1335` unit, `384` integration, `80.94%` combined
+coverage, frontend `970/970`, and `159` functional passes with `106`
+documented skips across `265` specs). The visual matrix returned `98/104`; only
+the six known state-oracle diffs remain: watchlist-column-editor-open at
+1080p-100/125 (`13,844` pixels each), workspace-floating at 1080p-100/125
+(`11,901` and `9,770` pixels), 1440p-100 (`9,770`), and 1440p-125 (`9,770`).
+No visual/provider/fallback/acceptance policy changed. Cleanup removed four
+generated images and resource accounting reported zero containers, volumes,
+sessions, and known bytes. Next action is the next bounded canonical
+provider/history slice; preserve the visual-only boundary.
+
 Update this handoff at each coherent boundary.
 
 ## 2026-09-07 — Enable SPYG SEC filing-reconstruction history route
