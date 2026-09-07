@@ -3394,3 +3394,10 @@ The official TALV route returned a 212-byte Incapsula challenge shell (HTTP
 returned an access-control shell. This is not an executable holdings artifact;
 TALV/TABD remain unavailable and issuer-access-blocked. Re-open only when an
 issuer-supported backend-readable complete holdings route is exposed.
+
+## Guinness Atkinson representative-route recheck — 2026-09-07
+
+The official Fund Resources route returned HTTP 403 Cloudflare challenge
+content, with no complete executable holdings artifact. GAUD/GAID remain
+unavailable and issuer-access-blocked; re-open only when a complete,
+backend-readable issuer route is exposed.

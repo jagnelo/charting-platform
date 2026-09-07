@@ -753,8 +753,11 @@ _register_non_tier_0_audits(
     outcome=UNAVAILABLE,
     evidence_state="issuer_route_access_blocked",
     provider_identity="guinness_atkinson",
-    investigated_at=date(2026, 9, 3),
-    evidence_refs=("web:guinness-atkinson-fund-resources-2026-09-03",),
+    investigated_at=date(2026, 9, 7),
+    evidence_refs=(
+        "web:guinness-atkinson-fund-resources-2026-09-03",
+        "live:guinness-atkinson-fund-resources-2026-09-07-blocked",
+    ),
     next_action=(
         "Re-test the official Fund Resources and symbol-scoped ETF routes; promote only "
         "after complete rows, mapping, parser fixtures, and bounded live evidence are available."

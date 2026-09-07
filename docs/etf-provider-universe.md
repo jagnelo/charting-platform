@@ -2222,3 +2222,10 @@ the TABD page, and an access-control shell for the ETF catalogue. No complete
 current holdings rows or downloadable CSV/JSON artifact was exposed. TALV and
 TABD therefore remain unavailable and Aegon remains issuer-access-blocked; no
 SEC reconstruction, native promotion, or paid source was used.
+
+## Guinness Atkinson representative-route recheck — 2026-09-07
+
+The official Fund Resources route still returned HTTP 403 Cloudflare challenge
+content. No complete current holdings rows or downloadable artifact was
+exposed, so GAUD/GAID remain unavailable and Guinness Atkinson remains
+issuer-access-blocked; no promotion or paid activation was made.

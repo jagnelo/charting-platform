@@ -4885,3 +4885,10 @@ access-control shell for the ETF catalogue. No complete current artifact was
 available, so TALV/TABD remain unavailable and Aegon remains
 issuer-access-blocked. The runtime and YAML ledgers carry the same dated live
 evidence; no promotion or paid activation occurred.
+
+## Guinness Atkinson representative-route recheck — 2026-09-07
+
+The official Fund Resources route returned HTTP 403 Cloudflare challenge
+content again. No complete current holdings artifact was exposed; GAUD/GAID
+remain unavailable and issuer-access-blocked. Runtime and YAML evidence were
+updated in lockstep without promotion or paid activation.
