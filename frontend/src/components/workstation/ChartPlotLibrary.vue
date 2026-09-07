@@ -35,12 +35,12 @@
         <small v-if="scanStatus">{{ scanStatus }}</small>
       </section>
       <div v-if="selectedPromotionIndex !== ''" class="chart-plots__promotion">
-        <select v-model="promotionTarget" aria-label="Plot promotion target"><option value="condition">Condition</option><option value="scan">EasyScan</option><option value="filter">Watchlist filter</option><option value="gauge">Market Gauge</option><option value="alert">Indicator alert</option></select>
-        <select v-if="promotionTarget === 'filter'" v-model="selectedFilterTarget" aria-label="Plot promotion watchlist"><option value="" disabled>Select watchlist…</option><option v-for="target in watchlistTargets" :key="target.instance_key" :value="target.instance_key">{{ target.title || target.instance_key }}</option></select>
+        <select v-model="promotionTarget" aria-label="Plot promotion target"><option value="condition">Condition</option><option value="column">Boolean column</option><option value="scan">EasyScan</option><option value="filter">Watchlist filter</option><option value="gauge">Market Gauge</option><option value="alert">Indicator alert</option></select>
+        <select v-if="promotionTarget === 'filter' || promotionTarget === 'column'" v-model="selectedFilterTarget" aria-label="Plot promotion watchlist"><option value="" disabled>Select watchlist…</option><option v-for="target in watchlistTargets" :key="target.instance_key" :value="target.instance_key">{{ target.title || target.instance_key }}</option></select>
         <select v-model="promotionOperator" aria-label="Plot promotion operator"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option></select>
         <input v-model.number="promotionThreshold" aria-label="Plot promotion threshold" type="number" step="any" />
         <input v-model.trim="promotionName" aria-label="Plot promotion name" placeholder="Name" />
-        <button type="button" :disabled="promotionBusy || !promotionName || !Number.isFinite(promotionThreshold) || (promotionTarget === 'filter' && !selectedFilterTarget)" @click="promoteSelected">{{ promotionBusy ? 'Saving…' : 'Copy' }}</button>
+        <button type="button" :disabled="promotionBusy || !promotionName || !Number.isFinite(promotionThreshold) || ((promotionTarget === 'filter' || promotionTarget === 'column') && !selectedFilterTarget)" @click="promoteSelected">{{ promotionBusy ? 'Saving…' : 'Copy' }}</button>
       </div>
       <p v-if="promotionStatus" class="chart-plots__promotion-status" role="status" aria-live="polite" aria-atomic="true">{{ promotionStatus }}</p>
       <p>Price history <small>active</small></p>
@@ -139,7 +139,7 @@ const linkedChartCount = computed(() => chartTargets.value.filter(window => wind
 const linkedTargets = computed(() => linkedChartCount.value > 0)
 const copyTargetAvailable = computed(() => selectedCopyTarget.value === 'linked' ? linkedTargets.value : chartTargets.value.some(window => window.instance_key === selectedCopyTarget.value))
 const selectedPromotionIndex = ref('')
-const promotionTarget = ref<'condition' | 'scan' | 'filter' | 'gauge' | 'alert'>('condition')
+const promotionTarget = ref<'condition' | 'column' | 'scan' | 'filter' | 'gauge' | 'alert'>('condition')
 const selectedFilterTarget = ref('')
 const promotionOperator = ref('gt')
 const promotionThreshold = ref(0)
@@ -401,7 +401,21 @@ async function promoteSelected() {
       name: promotionName.value, condition: promotionCondition(item),
       dependency_metadata: { source: 'chart-plot-library', indicator_type: item.type, timeframe: chartStore.timeframe },
     })
-    if (promotionTarget.value === 'scan' || promotionTarget.value === 'filter' || promotionTarget.value === 'gauge') {
+    if (promotionTarget.value === 'column') {
+      const target = watchlistTargets.value.find(window => window.instance_key === selectedFilterTarget.value)
+      if (!target) throw new Error('Select a watchlist window before adding a Boolean column')
+      const scan = await api.post<{ id: number }>(`/screeners/from-condition/${encodeURIComponent(key)}`, { name: `${promotionName.value} Boolean`, universe_type: 'all', timeframe: chartStore.timeframe })
+      await api.post(`/screeners/${scan.id}/run`, {})
+      const columns = Array.isArray(target.configuration.condition_columns) ? target.configuration.condition_columns : []
+      const columnKey = `condition:${key}`
+      if (!columns.some((column: any) => column?.key === columnKey)) {
+        const column = { key: columnKey, name: promotionName.value, screener_id: scan.id, timeframe: chartStore.timeframe }
+        const configuredKeys = Array.isArray(target.configuration.column_keys) ? target.configuration.column_keys : []
+        target.configuration = { ...target.configuration, condition_columns: [...columns, column], column_keys: configuredKeys.includes(columnKey) ? configuredKeys : [...configuredKeys, columnKey] }
+        workspaceStore.scheduleSnapshot()
+      }
+      promotionStatus.value = `Copied ${label(item)} to ${target.title || target.instance_key} Boolean column`
+    } else if (promotionTarget.value === 'scan' || promotionTarget.value === 'filter' || promotionTarget.value === 'gauge') {
       const scan = await api.post<{ id: number }>(`/screeners/from-condition/${encodeURIComponent(key)}`, { name: `${promotionName.value} Scan`, universe_type: 'all', timeframe: chartStore.timeframe })
       if (promotionTarget.value === 'filter') {
         const target = watchlistTargets.value.find(window => window.instance_key === selectedFilterTarget.value)

@@ -415,4 +415,38 @@ describe('ChartPlotLibrary', () => {
     expect(scheduleSnapshot).toHaveBeenCalled()
     expect(wrapper.get('[role="status"]').text()).toContain('Momentum filter')
   })
+
+  it('promotes a plot into a Boolean watchlist column backed by an EasyScan', async () => {
+    const workspace = useWorkspaceStore()
+    workspace.workspace = {
+      id: 1, user_id: 1, name: 'Test', is_default: true, position: 0, revision: 1, schema_version: 1, settings: {},
+      tabs: [{ id: 1, stable_key: 'test', name: 'Test', position: 0, active_window_key: 'source', layout_config: {}, windows: [
+        { id: 1, instance_key: 'source', tool_type: 'chart', title: 'Source', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0 },
+        { id: 2, instance_key: 'target-list', tool_type: 'watchlist', title: 'Momentum', link_group: 'grey', configuration: {}, style: {}, state_schema_version: 1, position: 1 },
+      ] }],
+    }
+    workspace.activeTabKey = 'test'
+    const scheduleSnapshot = vi.spyOn(workspace, 'scheduleSnapshot').mockImplementation(() => {})
+    apiMock.post.mockImplementation((path: string) => path.startsWith('/screeners/from-condition/') ? Promise.resolve({ id: 99 }) : Promise.resolve({}))
+    const chart = usePanelStore('column-promotion-test')
+    chart.setIndicators([{ type: 'rsi', params: { period: 14 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'separate' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'column-promotion-test' } } })
+
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('[aria-label="Promote RSI(14)"]').trigger('click')
+    await wrapper.get('[aria-label="Plot promotion target"]').setValue('column')
+    await wrapper.get('[aria-label="Plot promotion threshold"]').setValue('65')
+    await wrapper.get('[aria-label="Plot promotion name"]').setValue('RSI bool column')
+    await wrapper.get('.chart-plots__promotion button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.find('[role="status"]').exists()).toBe(true))
+
+    expect(apiMock.post).toHaveBeenCalledWith('/screeners/from-condition/rsi-bool-column', expect.objectContaining({ name: 'RSI bool column Boolean', timeframe: 'D1' }))
+    expect(apiMock.post).toHaveBeenCalledWith('/screeners/99/run', {})
+    expect(workspace.activeTab?.windows[1].configuration).toMatchObject({
+      condition_columns: [{ key: 'condition:rsi-bool-column', name: 'RSI bool column', screener_id: 99, timeframe: 'D1' }],
+      column_keys: ['condition:rsi-bool-column'],
+    })
+    expect(scheduleSnapshot).toHaveBeenCalled()
+    expect(wrapper.get('[role="status"]').text()).toContain('Boolean column')
+  })
 })
