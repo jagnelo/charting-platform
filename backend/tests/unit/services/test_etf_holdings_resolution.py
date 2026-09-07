@@ -218,6 +218,14 @@ class SearchAndMetadataProvider(FakeNameSearchProvider):
         return NameSearchMetadataProvider().get_instrument_profile(symbol)
 
 
+class IncompatibleSearchAndMetadataProvider(SearchAndMetadataProvider):
+    def get_instrument_profile(self, symbol: str) -> InstrumentProfile | None:
+        profile = super().get_instrument_profile(symbol)
+        if profile is not None:
+            profile.name = "AstraZeneca debt note"
+        return profile
+
+
 @pytest.mark.asyncio
 async def test_resolver_enriches_security_rows_through_provider_metadata(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
@@ -926,6 +934,53 @@ async def test_resolver_uses_search_provider_metadata_before_default_provider(db
     monkeypatch.setattr(
         "app.services.etf_holdings.get_search_provider_chain",
         lambda: [search_provider],
+    )
+
+    def unavailable_default_provider():
+        raise AssertionError("the default metadata provider should not be required")
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_default_metadata_provider",
+        unavailable_default_provider,
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_identifier_providers",
+        lambda: [],
+    )
+
+    instrument, confidence, note = await _resolve_or_create_constituent(
+        async_db,
+        CanonicalHoldingRow(
+            symbol=None,
+            name="AstraZeneca PLC",
+            isin="US0463531089",
+            currency="USD",
+            holding_type="equity",
+            row_type="security",
+        ),
+        source_provider="sec",
+    )
+    db.flush()
+
+    assert instrument is not None
+    assert instrument.symbol == "AZN"
+    assert confidence == Decimal("0.8600")
+    assert note == "Matched through unique provider-backed name search."
+
+
+@pytest.mark.asyncio
+async def test_resolver_skips_incompatible_search_metadata_and_tries_next_provider(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr("app.services.etf_holdings.settings.APP_ENV", "development")
+    first_provider = IncompatibleSearchAndMetadataProvider(
+        [ProviderSearchResult(symbol="AZN", name="AstraZeneca PLC", instrument_type="EQUITY")]
+    )
+    second_provider = SearchAndMetadataProvider(
+        [ProviderSearchResult(symbol="AZN", name="AstraZeneca PLC", instrument_type="EQUITY")]
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_search_provider_chain",
+        lambda: [first_provider, second_provider],
     )
 
     def unavailable_default_provider():

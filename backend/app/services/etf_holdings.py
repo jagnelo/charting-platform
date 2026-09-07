@@ -497,10 +497,17 @@ async def _provider_enriched_constituent_instrument(
                     if not callable(get_profile):
                         continue
                     try:
-                        profile = get_profile(candidate_symbol)
+                        candidate_profile = get_profile(candidate_symbol)
                     except Exception:
-                        profile = None
-                    if profile is not None:
+                        candidate_profile = None
+                    if (
+                        candidate_profile is not None
+                        and candidate_profile.canonical_symbol
+                        and not _is_placeholder_symbol(candidate_profile.canonical_symbol)
+                        and _constituent_quote_type_allowed(candidate_profile)
+                        and _names_look_compatible(row.name, candidate_profile.name)
+                    ):
+                        profile = candidate_profile
                         break
                 if profile is None:
                     try:
