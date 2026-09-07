@@ -349,7 +349,7 @@ remain fallback-only; Elm is now native-promoted through the same declared route
 as the existing Cygnet parent identity).
 The fallback audit statuses are:
 
-- `issuer_access_blocked`: `8`
+- `issuer_access_blocked`: `7`
 - `needs_first_party_route_discovery`: `63`
 - `non_executable_public_source`: `3`
 - `provider_not_a_portfolio_publisher`: `7`

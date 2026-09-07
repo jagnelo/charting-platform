@@ -5089,3 +5089,12 @@ dispositions: three `non_executable_public_source` and two
 the ledger has no uncontrolled status and remains 60 native-promoted plus 80
 fallback records. The full adapter suite passed 580 tests, with Ruff,
 workstream validation, and diff-check green.
+
+## Provider-universe status parity — 2026-09-07
+
+The provider-universe document had retained an obsolete eight-provider
+`issuer_access_blocked` count while runtime `FALLBACK_ISSUER_AUDITS` derived
+seven. The published count is now corrected to seven, and the ledger parity
+test checks all four runtime fallback status counts in the document. Focused
+parity tests, Ruff, workstream validation, and diff-check passed; no route,
+provider, source, or capability classification changed.

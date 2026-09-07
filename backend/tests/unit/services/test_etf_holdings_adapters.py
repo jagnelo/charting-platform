@@ -28517,6 +28517,9 @@ def test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers():
         / "workstreams"
         / "feat-etf-holdings-constituents"
     )
+    provider_universe = (
+        Path(__file__).resolve().parents[4] / "docs" / "etf-provider-universe.md"
+    ).read_text()
     ledger = yaml.safe_load((workstream_root / "provider-audit.yaml").read_text())
     plan = yaml.safe_load((workstream_root / "plan.yaml").read_text())
     session = json.loads((workstream_root / "session.json").read_text())
@@ -28527,6 +28530,17 @@ def test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers():
     tier_one_count = len(_NON_TIER_0_SYMBOL_AUDITS)
 
     assert ledger["current_fallback_count"] == fallback_count
+    runtime_status_counts = {
+        status: sum(audit.status == status for audit in FALLBACK_ISSUER_AUDITS.values())
+        for status in {
+            "issuer_access_blocked",
+            "needs_first_party_route_discovery",
+            "non_executable_public_source",
+            "provider_not_a_portfolio_publisher",
+        }
+    }
+    for status, count in runtime_status_counts.items():
+        assert f"- `{status}`: `{count}`" in provider_universe
     assert len(ledger["symbol_priority_ledger"]["symbols"]) == tier_zero_count
     assert len(ledger["symbol_audit_ledger"]["symbols"]) == tier_one_count
 
