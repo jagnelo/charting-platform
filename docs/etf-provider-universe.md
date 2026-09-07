@@ -5,6 +5,27 @@ adviser, and white-label publisher identity level because holdings artifacts are
 usually published by product sites, not by a single normalized legal-issuer
 field.
 
+## Machine-readable vendor eligibility boundary — 2026-09-07
+
+The branch-owned `vendor_source_candidates` ledger in
+`ops/workstreams/feat-etf-holdings-constituents/provider-audit.yaml` now records
+the free-first and low-cost screening boundary for unresolved Tier-0 symbols.
+Each candidate carries target coverage, access and pricing model, published
+minimum/monthly cost where known, freshness and quota evidence, terms status,
+activation status, and the next review action. Every candidate is explicitly
+`current_support_eligible: false` and `activation_status: not_authorized` until
+the shared provider-platform entitlement, quota, health, and aggregate 20
+EUR/USD-equivalent monthly budget contracts are available and a human separately
+approves activation. This ledger is evidence and governance only; it is not a
+provider runtime or an implicit fallback.
+
+The current records preserve ETF Holdings API as a potentially low-cost
+candidate whose PIMCO coverage is unverified, reject StockFit's `$39/month`
+ETF plan as over the budget boundary, and retain MarketXLS, PortfoliosLab,
+Finnhub, SecuritiesDB, and DealCharts as unqualified, terms-limited, stale,
+or coverage-incomplete research candidates. MINT and BOND therefore remain
+unavailable for current analysis.
+
 ## PIMCO anonymous fund-detail route inventory — 2026-09-06
 
 The public PIMCO fund-detail bundle was rechecked for MINT (`72201R833`) and

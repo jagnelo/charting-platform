@@ -3285,6 +3285,25 @@ was pushed without changing provider counts or source dispositions. The shared
 provider-platform branch remains absent from staging; AC10 and AC14 remain
 open.
 
+## Machine-readable vendor eligibility boundary — 2026-09-07
+
+`provider-audit.yaml` now contains a `vendor_source_candidates` ledger for the
+seven researched free/low-cost/licensed candidates considered for unresolved
+Tier-0 coverage. It records target symbols, access/pricing, known minimum or
+monthly cost, coverage/freshness/quota/terms evidence, budget disposition,
+activation status, and next action. Every candidate is explicitly
+`not_authorized` and `current_support_eligible: false`; the ledger cannot
+activate a credential, entitlement, or paid source and does not alter fallback
+behavior.
+
+The new regression keeps ETF Holdings API as a potentially low-cost candidate
+with unverified PIMCO coverage, rejects StockFit's `$39/month` ETF plan under
+the aggregate 20 EUR/USD-equivalent boundary, and preserves MarketXLS,
+PortfoliosLab, Finnhub, SecuritiesDB, and DealCharts as unqualified,
+terms-limited, stale, or coverage-incomplete research candidates. MINT and
+BOND remain unavailable. Shared provider-platform integration remains gated
+on that branch reaching staging; no protected worktree was changed.
+
 ## Provider-platform contract reconciliation check — 2026-09-05
 
 The external dependency was re-fetched and inspected read-only from the ETF

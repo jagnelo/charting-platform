@@ -11,6 +11,124 @@ generated_at: 2026-09-06T00:00:00Z
 ranking_method: "Lexicographic descending estimated US ETF count, descending estimated AUM, descending US-equity breadth, descending source freshness, then ascending adapter_key; unknown metrics sort after known values."
 baseline_queue_order: "Until issuer-specific metrics are collected, queue_rank is a deterministic status-priority then adapter-key order (blocked, discovery, non-executable, non-publisher). Replace ranks only with committed evidence-backed metrics."
 evidence_policy: "This is the initial exhaustive ledger checkpoint. Each record points to the code-derived runtime audit and adapter configuration. The implementation pass must append issuer-specific first-party route attempts before treating a disposition as terminal or promoting native."
+vendor_source_candidates:
+  policy: "Research-only candidates are recorded for the shared provider-platform entitlement review. A candidate never changes symbol capability, is never used as an implicit fallback, and cannot be activated from this feature branch. First-party free or already-entitled artifacts remain higher priority than every candidate below."
+  aggregate_monthly_budget_units: 20
+  currency_basis: "EUR/USD-equivalent units"
+  activation_authorized: false
+  candidates:
+    - key: etf_holdings_api
+      display_name: "ETF Holdings API"
+      target_symbols: [DXJ, NTSX, MINT, BOND]
+      access_model: bearer_key
+      pricing_model: usage
+      published_minimum_activation_usd: 10
+      published_monthly_cost_usd: null
+      coverage_evidence: "WisdomTree is named in public issuer coverage; PIMCO is not named."
+      freshness_evidence: "Issuer-backed current snapshots are described, but target-symbol coverage and terms remain unverified."
+      quota_evidence: "Usage is published as $1 per 100,000 holdings."
+      terms_evidence: "Commercial-use and entitlement terms require review before activation."
+      budget_disposition: pending_coverage_and_entitlement
+      activation_status: not_authorized
+      current_support_eligible: false
+      evidence_refs: [web:etf-holdings-api-contract-2026-09-06]
+      next_action: "Verify target-symbol coverage, freshness, commercial terms, and shared-provider entitlement before any human-authorized activation."
+    - key: stockfit
+      display_name: StockFit
+      target_symbols: [DXJ, NTSX, MINT, BOND]
+      access_model: account
+      pricing_model: monthly_subscription
+      published_minimum_activation_usd: 39
+      published_monthly_cost_usd: 39
+      coverage_evidence: "Free-tier coverage metadata does not establish holdings access for the target symbols."
+      freshness_evidence: "Issuer-sourced daily holdings are advertised, but no entitled target-symbol fetch was performed."
+      quota_evidence: "No applicable quota was established without an account."
+      terms_evidence: "Paid ETF plan required for holdings access."
+      budget_disposition: over_aggregate_budget
+      activation_status: not_authorized
+      current_support_eligible: false
+      evidence_refs: [web:stockfit-pricing-2026-09-06-jsonld]
+      next_action: "Do not activate under the current 20-unit boundary; reconsider only after a separately approved budget or a materially cheaper compliant tier is documented."
+    - key: marketxls
+      display_name: MarketXLS
+      target_symbols: [MINT, BOND]
+      access_model: paid_account
+      pricing_model: subscription
+      published_minimum_activation_usd: null
+      published_monthly_cost_usd: null
+      coverage_evidence: "Complete MINT/BOND tables are advertised, but no entitlement or application access was used."
+      freshness_evidence: "Advertised current tables were not independently fetched or validated."
+      quota_evidence: "Not established without an account."
+      terms_evidence: "Public terms indicate paid FundXLS access and personal-use restrictions."
+      budget_disposition: terms_and_price_unapproved
+      activation_status: not_authorized
+      current_support_eligible: false
+      evidence_refs: [web:pimco-third-party-holdings-candidates-2026-09-05]
+      next_action: "Keep as a research candidate only; obtain human approval for terms, commercial use, price, and shared-provider entitlement before fixture-only evaluation."
+    - key: portfolioslab
+      display_name: PortfoliosLab
+      target_symbols: [MINT, BOND]
+      access_model: public_web
+      pricing_model: unknown
+      published_minimum_activation_usd: null
+      published_monthly_cost_usd: null
+      coverage_evidence: "Public holdings pages expose target symbols."
+      freshness_evidence: "Observed holdings are derived from SEC N-PORT data and were stale for current analysis."
+      quota_evidence: "Not applicable to the observed public pages."
+      terms_evidence: "Commercial redistribution terms were not established."
+      budget_disposition: non_current_sec_derived
+      activation_status: not_authorized
+      current_support_eligible: false
+      evidence_refs: [web:portfolioslab-mint-nport-holdings-2026-09-05]
+      next_action: "Do not use as current issuer support; reassess only if a separately entitled, current, legally usable source contract is proven."
+    - key: finnhub
+      display_name: Finnhub ETF holdings endpoint
+      target_symbols: [MINT, BOND]
+      access_model: premium_token
+      pricing_model: premium_subscription
+      published_minimum_activation_usd: null
+      published_monthly_cost_usd: null
+      coverage_evidence: "Premium ETF holdings capability is documented, but target-symbol coverage was not proven."
+      freshness_evidence: "No entitled target-symbol response was retrieved."
+      quota_evidence: "Premium quota and rate terms require an account review."
+      terms_evidence: "Premium endpoint and token required; no entitlement or license approval exists."
+      budget_disposition: entitlement_unapproved
+      activation_status: not_authorized
+      current_support_eligible: false
+      evidence_refs: [web:pimco-third-party-holdings-candidates-2026-09-05]
+      next_action: "Keep unqualified until target coverage, quota, price, commercial terms, and shared-provider entitlement are independently approved."
+    - key: securitiesdb
+      display_name: SecuritiesDB
+      target_symbols: [MINT, BOND]
+      access_model: public_web
+      pricing_model: free_observed
+      published_minimum_activation_usd: 0
+      published_monthly_cost_usd: 0
+      coverage_evidence: "Public target-symbol pages were checked without a credential."
+      freshness_evidence: "No complete target holdings artifact was returned; control symbols exposed future metadata."
+      quota_evidence: "No quota was established."
+      terms_evidence: "Commercial terms were not established."
+      budget_disposition: no_complete_target_coverage
+      activation_status: not_authorized
+      current_support_eligible: false
+      evidence_refs: [web:securitiesdb-free-etf-holdings-api-2026-09-05, live:securitiesdb-mint-bond-no-holdings-2026-09-05]
+      next_action: "Keep as an observed free candidate only; re-test after a complete identity-bound target artifact is exposed and terms are reviewed."
+    - key: dealcharts
+      display_name: DealCharts
+      target_symbols: [MINT, BOND]
+      access_model: public_web
+      pricing_model: free_observed
+      published_minimum_activation_usd: 0
+      published_monthly_cost_usd: 0
+      coverage_evidence: "Public target-symbol facts pages were reachable without a credential."
+      freshness_evidence: "Observed holdings were quarterly SEC-derived snapshots and stale for current analysis."
+      quota_evidence: "No quota was established."
+      terms_evidence: "Commercial terms were not established."
+      budget_disposition: non_current_sec_derived
+      activation_status: not_authorized
+      current_support_eligible: false
+      evidence_refs: [web:dealcharts-free-sec-nport-aggregator-2026-09-05, live:dealcharts-mint-facts-2026-09-05-quarterly-stale]
+      next_action: "Do not promote SEC-derived public facts to current support; reassess only if a current, complete, legally usable artifact appears."
 symbol_priority_ledger:
   policy: "Tier 0 symbols are high-relevance U.S.-listed ETFs selected from benchmark/proxy roles, platform usage, and the approved WisdomTree, PIMCO, and F/m priority families. Tier 1 entries below are the first ranked fallback cohort. Outcomes are symbol-level observations and must not be inferred from an identity-level adapter registration."
   free_first_monthly_budget: "20 EUR/USD-equivalent platform-wide; no paid source activation or credentials are authorized by this ledger."

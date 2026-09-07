@@ -3543,3 +3543,23 @@ required before native promotion.
 The bounded opt-in live route test passed against the official CSV, confirming
 transport, schema, identity, and parser behavior without relaxing the freshness
 boundary.
+
+## Machine-readable vendor eligibility boundary — 2026-09-07
+
+The branch-owned `vendor_source_candidates` ledger now makes the free-first
+cost and activation boundary machine-checkable for seven researched sources.
+Each candidate records target coverage, access and pricing model, published
+minimum/monthly cost where known, freshness, quota, terms, evidence refs,
+budget disposition, activation status, and next action. Every candidate is
+explicitly not authorized and not current-support eligible until the shared
+provider-platform entitlement, quota, health, and aggregate 20 EUR/USD-
+equivalent budget contracts are available and a human separately approves
+activation. The ledger is governance evidence only; it is not a provider
+runtime or an implicit fallback.
+
+The focused ledger regression preserves ETF Holdings API as a potentially
+low-cost candidate whose PIMCO coverage is unverified, rejects StockFit's
+`$39/month` ETF plan as over the budget boundary, and retains MarketXLS,
+PortfoliosLab, Finnhub, SecuritiesDB, and DealCharts as unqualified,
+terms-limited, stale, or coverage-incomplete research candidates. MINT and
+BOND remain unavailable for current analysis.

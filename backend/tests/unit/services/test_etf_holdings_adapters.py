@@ -28509,6 +28509,62 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
         assert record["attempt_history"]
 
 
+def test_vendor_source_candidates_are_cost_and_activation_governed():
+    """Research candidates cannot silently become an entitled current source."""
+
+    ledger_path = (
+        Path(__file__).resolve().parents[4]
+        / "ops"
+        / "workstreams"
+        / "feat-etf-holdings-constituents"
+        / "provider-audit.yaml"
+    )
+    ledger = yaml.safe_load(ledger_path.read_text())
+    candidates = ledger["vendor_source_candidates"]
+    rows = candidates["candidates"]
+
+    assert candidates["aggregate_monthly_budget_units"] == 20
+    assert candidates["currency_basis"] == "EUR/USD-equivalent units"
+    assert candidates["activation_authorized"] is False
+    assert rows
+    assert len({row["key"] for row in rows}) == len(rows)
+
+    required_fields = {
+        "key",
+        "display_name",
+        "target_symbols",
+        "access_model",
+        "pricing_model",
+        "coverage_evidence",
+        "freshness_evidence",
+        "quota_evidence",
+        "terms_evidence",
+        "budget_disposition",
+        "activation_status",
+        "current_support_eligible",
+        "evidence_refs",
+        "next_action",
+    }
+    for row in rows:
+        assert required_fields <= row.keys()
+        assert row["target_symbols"]
+        assert row["activation_status"] == "not_authorized"
+        assert row["current_support_eligible"] is False
+        assert row["evidence_refs"]
+        assert row["next_action"]
+        for field in ("published_minimum_activation_usd", "published_monthly_cost_usd"):
+            value = row.get(field)
+            assert value is None or (isinstance(value, int | float) and value >= 0)
+
+    stockfit = next(row for row in rows if row["key"] == "stockfit")
+    assert stockfit["published_monthly_cost_usd"] == 39
+    assert stockfit["budget_disposition"] == "over_aggregate_budget"
+
+    low_cost = next(row for row in rows if row["key"] == "etf_holdings_api")
+    assert low_cost["published_minimum_activation_usd"] == 10
+    assert low_cost["budget_disposition"] == "pending_coverage_and_entitlement"
+
+
 def test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers():
     """Current durable summaries must not drift from code-derived coverage."""
     workstream_root = (
