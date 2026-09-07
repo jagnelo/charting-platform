@@ -4971,6 +4971,13 @@ backend-equivalent response remains dynamic/access-controlled; the symbols
 remain unavailable and `issuer_access_blocked`, with no SEC reconstruction or
 native promotion.
 
+## Parnassus PRCS/PRVS route recheck — 2026-09-07
+
+The official daily-holdings pages returned HTTP 200 React application shells,
+but no embedded rows, stable download URL, or current date was available to
+the backend transport. PRCS/PRVS remain unavailable and
+`issuer_access_blocked`; no SEC reconstruction or native promotion occurred.
+
 ## Matrix MAVF route recheck — 2026-09-07
 
 Fresh retrieval reached the official Matrix page and exposed a complete 27-row

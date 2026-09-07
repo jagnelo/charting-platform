@@ -3498,3 +3498,10 @@ exposed. The pages contain holdings/download UI markers while the
 backend-equivalent response remains an access-controlled or dynamic shell;
 Nicholas Wealth remains `issuer_access_blocked` and no SEC reconstruction or
 promotion was made.
+
+## Parnassus PRCS/PRVS route recheck — 2026-09-07
+
+Both official daily-holdings routes returned HTTP 200 HTML shells that load a
+React CSV application, but no holdings rows, stable download URL, or current
+date was embedded in the backend-retrievable document. PRCS/PRVS remain
+`issuer_access_blocked`; no SEC reconstruction or promotion was made.
