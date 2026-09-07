@@ -187,6 +187,7 @@ def test_spdr_family_roles_declare_explicit_history_routes():
                 "MDY",
                 "SLYV",
                 "SLYG",
+                "SPTM",
             }:
                 assert mapping["history_route"] == {
                     "status": "sec_filing_reconstruction",

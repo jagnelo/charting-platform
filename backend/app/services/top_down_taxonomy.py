@@ -110,6 +110,13 @@ _SPDR_SLYG_HISTORY_ROUTE = {
     "source_url": "https://data.sec.gov/submissions/CIK0001064642.json",
 }
 
+_SPDR_SPTM_HISTORY_ROUTE = {
+    "status": "sec_filing_reconstruction",
+    "provider": "sec",
+    "policy": "latest_sec_filing_report_on_or_before_requested_date",
+    "source_url": "https://data.sec.gov/submissions/CIK0001064642.json",
+}
+
 _SPDR_SPYG_HISTORY_ROUTE = {
     "status": "sec_filing_reconstruction",
     "provider": "sec",
@@ -149,6 +156,8 @@ def _spdr_history_route(symbol: str) -> dict[str, str]:
         return dict(_SPDR_SLYV_HISTORY_ROUTE)
     if normalized_symbol == "SLYG":
         return dict(_SPDR_SLYG_HISTORY_ROUTE)
+    if normalized_symbol == "SPTM":
+        return dict(_SPDR_SPTM_HISTORY_ROUTE)
     if normalized_symbol == "SPYV":
         return dict(_SPDR_SPYV_HISTORY_ROUTE)
     if normalized_symbol == "SPYG":

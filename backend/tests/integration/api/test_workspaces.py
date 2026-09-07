@@ -604,6 +604,18 @@ class TestWorkspaces:
         assert sp600_roles["growth"]["history_route_source_url"] == (
             "https://data.sec.gov/submissions/CIK0001064642.json"
         )
+        sp1500_coverage = client.get(
+            "/api/v1/analysis/benchmark-families/sp1500/coverage",
+            headers=auth_headers,
+        )
+        assert sp1500_coverage.status_code == 200, sp1500_coverage.text
+        sp1500_roles = {role["role"]: role for role in sp1500_coverage.json()["roles"]}
+        assert sp1500_roles["cap_weight"]["symbol"] == "SPTM"
+        assert sp1500_roles["cap_weight"]["history_route_status"] == "sec_filing_reconstruction"
+        assert sp1500_roles["cap_weight"]["history_route_provider"] == "sec"
+        assert sp1500_roles["cap_weight"]["history_route_source_url"] == (
+            "https://data.sec.gov/submissions/CIK0001064642.json"
+        )
 
     def test_benchmark_family_coverage_exposes_role_dates_and_point_in_time_filter(
         self, client, auth_headers, db, instrument_type
