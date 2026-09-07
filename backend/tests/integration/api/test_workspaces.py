@@ -529,6 +529,14 @@ class TestWorkspaces:
         assert sp500_roles["value"]["history_route_source_url"] == (
             "https://data.sec.gov/submissions/CIK0001064642.json"
         )
+        assert sp500_roles["growth"]["history_route_status"] == "sec_filing_reconstruction"
+        assert sp500_roles["growth"]["history_route_provider"] == "sec"
+        assert sp500_roles["growth"]["history_route_policy"] == (
+            "latest_sec_filing_report_on_or_before_requested_date"
+        )
+        assert sp500_roles["growth"]["history_route_source_url"] == (
+            "https://data.sec.gov/submissions/CIK0001064642.json"
+        )
         assert sp500_roles["equal_weight"]["history_route_status"] == "sec_filing_reconstruction"
         assert sp500_roles["equal_weight"]["history_route_provider"] == "sec"
         assert sp500_roles["equal_weight"]["history_route_policy"] == (
