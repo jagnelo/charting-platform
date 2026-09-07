@@ -801,16 +801,17 @@ def test_seventh_ranked_fallback_madison_alias_is_not_a_publisher():
     assert result.provider_identity == "madison_avenue"
 
 
-def test_seventh_ranked_fallback_matrix_remains_unavailable_when_cloudflare_blocked():
+def test_seventh_ranked_fallback_matrix_remains_unavailable_without_holdings_date():
     result = symbol_audit_for_profile(profile_with_symbol("MAVF", "matrix"))
 
     assert result.tier == 1
     assert result.outcome == UNAVAILABLE
-    assert result.evidence_state == "issuer_route_access_blocked"
+    assert result.evidence_state == "non_executable_public_source"
     assert result.provider_identity == "matrix"
     assert result.evidence_refs == (
         "web:matrix-mavf-official-page-2026-09-03",
         "live:matrix-mavf-cloudflare-block-2026-09-03",
+        "live:matrix-mavf-page-recheck-2026-09-07-undated",
     )
 
 

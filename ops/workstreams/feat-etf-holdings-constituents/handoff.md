@@ -4963,6 +4963,14 @@ complete current executable artifact is exposed. Runtime and YAML evidence
 carry the dated live reference; no SEC reconstruction, native promotion, or
 paid activation occurred.
 
+## Matrix MAVF route recheck — 2026-09-07
+
+Fresh retrieval reached the official Matrix page and exposed a complete 27-row
+MAVF table with ticker, name, CUSIP, shares, market value, and weight columns,
+but no holdings as-of date. MAVF remains unavailable and
+`non_executable_public_source`; no SEC reconstruction or native promotion was
+made until explicit freshness semantics are available.
+
 ## Highland Capital AQLG route recheck — 2026-09-07
 
 The official AQLG page and linked CSV were reachable. The 130-row CSV is

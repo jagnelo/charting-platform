@@ -1191,17 +1191,18 @@ _register_non_tier_0_audits(
 _register_non_tier_0_audits(
     ("MAVF",),
     outcome=UNAVAILABLE,
-    evidence_state="issuer_route_access_blocked",
+    evidence_state="non_executable_public_source",
     provider_identity="matrix",
-    investigated_at=date(2026, 9, 3),
+    investigated_at=date(2026, 9, 7),
     evidence_refs=(
         "web:matrix-mavf-official-page-2026-09-03",
         "live:matrix-mavf-cloudflare-block-2026-09-03",
+        "live:matrix-mavf-page-recheck-2026-09-07-undated",
     ),
     next_action=(
-        "Re-test the official MAVF page from an allowed backend path; promote only after the "
-        "complete table is executable, identity/date semantics are captured, and deterministic "
-        "plus bounded live parser coverage is added."
+        "Re-test the official MAVF page after it declares a stable holdings as-of date; promote "
+        "only after the complete table is executable, identity/date semantics are captured, and "
+        "deterministic plus bounded live parser coverage is added."
     ),
 )
 _register_non_tier_0_audits(

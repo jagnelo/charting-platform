@@ -726,10 +726,10 @@ symbol_audit_ledger:
       tier: 1
       provider_identity: matrix
       current_outcome: unavailable
-      evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-09-03
-      evidence_refs: ["web:matrix-mavf-official-page-2026-09-03", "live:matrix-mavf-cloudflare-block-2026-09-03"]
-      next_action: "Re-test the official MAVF page from an allowed backend path; promote only after the complete table is executable, identity/date semantics are captured, and deterministic plus bounded live parser coverage is added."
+      evidence_state: non_executable_public_source
+      investigated_at: 2026-09-07
+      evidence_refs: ["web:matrix-mavf-official-page-2026-09-03", "live:matrix-mavf-cloudflare-block-2026-09-03", "live:matrix-mavf-page-recheck-2026-09-07-undated"]
+      next_action: "Re-test the official MAVF page after it declares a stable holdings as-of date; promote only after the complete table is executable, identity/date semantics are captured, and deterministic plus bounded live parser coverage is added."
     - symbol: STGF
       tier: 1
       provider_identity: merk
@@ -5063,16 +5063,16 @@ providers:
     display_name: matrix
     queue_rank: 73
     starting_status: needs_first_party_route_discovery
-    current_status: issuer_access_blocked
-    disposition: issuer_access_blocked
-    last_checked: 2026-09-03
+    current_status: non_executable_public_source
+    disposition: non_executable_public_source
+    last_checked: 2026-09-07
     source_access_declared: issuer_public_holdings_file
     representative_symbols:
       - MAVF
     estimated_us_etf_count: 1
     estimated_us_etf_aum: null
     us_equity_breadth: 1
-    source_freshness: daily
+    source_freshness: undated
     first_party_domains:
       - matrixadvisorsvalueetf.com
       - sec.gov
@@ -5091,6 +5091,7 @@ providers:
       - "runtime:ISSUER_ADAPTER_CONFIGS.matrix"
       - "web:matrix-mavf-official-page-2026-09-03"
       - "live:matrix-mavf-cloudflare-block-2026-09-03"
+      - "live:matrix-mavf-page-recheck-2026-09-07-undated"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -5104,8 +5105,12 @@ providers:
         source: "https://matrixadvisorsvalueetf.com/ direct HTTP request"
         result: "The bounded direct request returned a Cloudflare 'Attention Required' block for wpenginepowered.com, so issuer access is not currently executable from the adapter transport."
         evidence_ref: "live:matrix-mavf-cloudflare-block-2026-09-03"
-    disposition_reason: "matrix: Matrix Asset Advisors' official MAVF page appears to publish a complete holdings table, but the issuer route is Cloudflare-blocked to backend-equivalent requests and cannot yet be captured or parsed reproducibly. Keep the provider fallback-only as issuer_access_blocked rather than promoting indexed content or SEC holdings."
-    next_action: "matrix: Re-test the official MAVF page from an allowed backend path; promote only after the complete table is executable, identity/date semantics are captured, and deterministic plus bounded live parser coverage is added."
+      - date: 2026-09-07
+        source: "https://matrixadvisorsvalueetf.com/"
+        result: "Fresh retrieval returned a complete 27-row MAVF HTML table with ticker, name, CUSIP, shares, market value, and weight columns, but the page did not declare a holdings as-of date. The route is reachable, yet the missing freshness semantics prevent current-support promotion."
+        evidence_ref: "live:matrix-mavf-page-recheck-2026-09-07-undated"
+    disposition_reason: "matrix: Matrix Asset Advisors' official MAVF page is now reachable and exposes a complete 27-row table, but it does not declare a holdings as-of date. Without freshness semantics the route cannot satisfy current-support criteria, so it remains fallback-only as a non_executable_public_source rather than being promoted or reconstructed through SEC data."
+    next_action: "matrix: Re-test after the official page declares a stable holdings as-of date; promote only after complete table execution, identity/date semantics, deterministic parser fixtures, and bounded live coverage are proven."
     implementation_sha: null
     validation_refs: []
   - adapter_key: max

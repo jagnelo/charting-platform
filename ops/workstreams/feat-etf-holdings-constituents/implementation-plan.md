@@ -3481,3 +3481,11 @@ blank. The artifact remains materially complete but cannot satisfy canonical
 symbol mapping without an issuer-declared mapping, so AQLG remains unavailable
 under `non_executable_public_source`; no SEC reconstruction or promotion was
 made.
+
+## Matrix MAVF route recheck — 2026-09-07
+
+The official Matrix page is now reachable and exposes a complete 27-row MAVF
+HTML table with ticker, name, CUSIP, shares, market value, and weight columns.
+However, the page does not declare a holdings as-of date. The route therefore
+remains unavailable under `non_executable_public_source`; current-support
+promotion requires explicit freshness semantics and bounded parser evidence.
