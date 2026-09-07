@@ -6263,7 +6263,7 @@ providers:
     display_name: performance_trust
     queue_rank: 95
     starting_status: needs_first_party_route_discovery
-    current_status: audited
+    current_status: non_executable_public_source
     disposition: non_executable_public_source
     last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
@@ -6369,7 +6369,7 @@ providers:
     display_name: premise_capital
     queue_rank: 97
     starting_status: needs_first_party_route_discovery
-    current_status: audited
+    current_status: issuer_access_blocked
     disposition: issuer_access_blocked
     last_checked: 2026-09-03
     source_access_declared: issuer_public_holdings_file
@@ -6415,7 +6415,7 @@ providers:
     display_name: putnam
     queue_rank: 98
     starting_status: needs_first_party_route_discovery
-    current_status: audited
+    current_status: non_executable_public_source
     disposition: non_executable_public_source
     last_checked: 2026-09-06
     source_access_declared: issuer_successor_graphql_holdings_periodic_disclosure
@@ -6467,7 +6467,7 @@ providers:
     display_name: pzena
     queue_rank: 99
     starting_status: needs_first_party_route_discovery
-    current_status: audited
+    current_status: issuer_access_blocked
     disposition: issuer_access_blocked
     last_checked: 2026-09-07
     source_access_declared: issuer_public_etf_page_daily_holdings
@@ -6566,7 +6566,7 @@ providers:
     display_name: rareview_funds
     queue_rank: 101
     starting_status: needs_first_party_route_discovery
-    current_status: audited
+    current_status: non_executable_public_source
     disposition: non_executable_public_source
     last_checked: 2026-09-03
     source_access_declared: issuer_public_product_page_stale_holdings_table

@@ -28486,7 +28486,9 @@ def test_provider_audit_ledger_matches_code_derived_fallback_universe():
             audit = FALLBACK_ISSUER_AUDITS[key]
             assert record["starting_status"] == audit.status
             assert audit.status in allowed_statuses
+            assert record["current_status"] in allowed_statuses
             assert record["disposition"] in allowed_statuses
+            assert record["current_status"] == record["disposition"]
             assert date.fromisoformat(str(record["last_checked"])) >= audit.last_checked
             assert record["evidence_refs"][:2] == [
                 f"runtime:FALLBACK_ISSUER_AUDITS.{key}",
