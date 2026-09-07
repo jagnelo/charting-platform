@@ -8,6 +8,31 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-07 — Enable SLYV SEC filing-reconstruction history route
+
+Product commit `feded2ca` upgrades SLYV from issuer-current-only to the verified
+SEC `sec_filing_reconstruction` route using CIK `0001064642`, series
+`S000006974`, class `C000019027`, and ticker `SLYV`. The adapter retains the
+bounded 50-filing search window because the CIK is shared across fund series;
+the issuer daily-workbook route remains distinct. Focused checks passed (`14`
+selected tests), the selected family coverage API regression passed `1/1`, and
+the opt-in live SLYV SEC probe passed `1/1` on the verified result. This is
+route/reconstruction evidence only, not proof of complete historical holdings
+or member-bar population. SLYG and SPTM remain mapped SPDR current-only roles.
+
+## 2026-09-07 — Exact-tip exhaustive gate after SLYV SEC history reconstruction
+
+At exact product tip `feded2ca`, all locked, backend/frontend, build,
+compose/provider, stack-health, runner-isolation, and authenticated functional
+browser stages passed (`1343` unit, `384` integration, frontend `970/970`, and
+`159` functional passes with `106` documented skips across `265` specs). The
+visual matrix returned `98/104`; six known state-oracle diffs remain in
+watchlist-column-editor-open at 1080p-100/125 and workspace-floating at all four
+projects. No visual/provider/fallback/acceptance policy changed. Cleanup removed
+four generated images and resource accounting reported zero containers, volumes,
+sessions, and known bytes. Next action is the next bounded canonical
+provider/history slice; preserve the visual-only boundary.
+
 ## 2026-09-07 — Enable SPY SEC filing-reconstruction history route
 
 Product commit `de94e8b1` upgrades SPY from issuer-current-only to the verified

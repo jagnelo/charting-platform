@@ -1,5 +1,31 @@
 # Project TODO Memory
 
+### 2026-09-07 — Enable SLYV SEC filing-reconstruction history route
+
+- [x] Upgrade mapped SPDR SLYV from issuer-current-only to
+      `sec_filing_reconstruction` using SEC CIK `0001064642`, series
+      `S000006974`, class `C000019027`, fund ticker `SLYV`, and a bounded
+      50-filing search window; retain the issuer daily-workbook route separately.
+      Product commit `feded2ca`.
+- [x] Focused regression/static checks passed (`14` selected tests), the
+      selected family coverage API regression passed `1/1`, and the opt-in live
+      SLYV SEC route probe passed `1/1` on the verified result (the command's
+      global coverage warning is unrelated to the underlying test).
+- [x] Exact-tip gate passed all non-visual stages: backend `1343` unit and
+      `384` integration tests, frontend `970/970`, and functional Playwright
+      `159` passed with `106` documented skips across `265` specs. Visual parity
+      remains `98/104` with only the six documented state-oracle diffs;
+      cleanup/resource accounting is clean.
+- [ ] Continue the next bounded canonical provider/history population slice;
+      route identity and reconstruction readiness are not proof that all SLYV
+      historical holdings, weights, membership, or member bars are populated.
+
+### 2026-09-07 — Exact-tip gate after SLYV SEC history reconstruction
+
+- [x] Recorded the exact-tip gate at product commit `feded2ca`; the six visual
+      state-oracle diffs remain unchanged and no oracle or provider policy was
+      weakened.
+
 ### 2026-09-07 — Enable SPY SEC filing-reconstruction history route
 
 - [x] Upgrade mapped SPDR SPY from issuer-current-only to
