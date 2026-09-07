@@ -269,6 +269,7 @@ remaining_gaps:
   - "Focused validation after the Amplius evidence refresh passed 669 ETF capability and adapter tests, Ruff, workstream validation, and diff-check. The ledger parity correction keeps the runtime AAAA audit and YAML symbol record aligned; no provider classification changed."
   - "The 2026-09-06 representative Putnam-to-Franklin successor probe found no PFRX rows, a 2025-10-31 SYNB snapshot, and a 2026-07-31 PGRI snapshot. The public route remains materially stale or empty; the 14-symbol family remains unavailable/fallback-only and no successor-native or SEC-derived promotion occurred."
   - "The complete 2026-09-06 no-credential Putnam-to-Franklin sweep found no current complete artifact across all 14 mapped symbols: PFRX was empty and every other snapshot was dated 2025-10-31 through 2026-07-31. Runtime and YAML symbol evidence now carry the full-sweep reference; no promotion occurred."
+  - "The 2026-09-07 Pzena recheck found HTTP 200 PZIV/PZLV pages and a public FundPress holdings application declaration, but only an app shell was exposed without anonymous complete rows or a downloadable artifact. PZIV/PZLV remain unavailable/issuer-access-blocked; no promotion or SEC reconstruction occurred."
 progress:
   completed:
     - AC1

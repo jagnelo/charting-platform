@@ -1063,16 +1063,16 @@ symbol_audit_ledger:
       provider_identity: pzena
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-09-03
-      evidence_refs: ["web:pzena-current-etf-catalogue-2026-09-03", "web:pzena-daily-holdings-disclosure-2026-09-03", "live:pzena-etf-page-shell-blocked-2026-09-03"]
+      investigated_at: 2026-09-07
+      evidence_refs: ["web:pzena-current-etf-catalogue-2026-09-03", "web:pzena-daily-holdings-disclosure-2026-09-03", "live:pzena-etf-page-shell-blocked-2026-09-03", "live:pzena-public-product-page-200-2026-09-07", "live:pzena-fundpress-holdings-app-shell-2026-09-07"]
       next_action: "Re-test the official Pzena /etfs and product pages with an issuer-supported backend-readable holdings payload; promote only after complete symbol-scoped parsing and live validation."
     - symbol: PZLV
       tier: 1
       provider_identity: pzena
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-09-03
-      evidence_refs: ["web:pzena-current-etf-catalogue-2026-09-03", "web:pzena-daily-holdings-disclosure-2026-09-03", "live:pzena-etf-page-shell-blocked-2026-09-03"]
+      investigated_at: 2026-09-07
+      evidence_refs: ["web:pzena-current-etf-catalogue-2026-09-03", "web:pzena-daily-holdings-disclosure-2026-09-03", "live:pzena-etf-page-shell-blocked-2026-09-03", "live:pzena-public-product-page-200-2026-09-07", "live:pzena-fundpress-holdings-app-shell-2026-09-07"]
       next_action: "Re-test the official Pzena /etfs and product pages with an issuer-supported backend-readable holdings payload; promote only after complete symbol-scoped parsing and live validation."
     - symbol: RFDI
       tier: 1
@@ -6360,7 +6360,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: audited
     disposition: issuer_access_blocked
-    last_checked: 2026-09-03
+    last_checked: 2026-09-07
     source_access_declared: issuer_public_etf_page_daily_holdings
     representative_symbols: [PZIV, PZLV]
     estimated_us_etf_count: null
@@ -6385,6 +6385,8 @@ providers:
       - "web:pzena-current-etf-catalogue-2026-09-03"
       - "web:pzena-daily-holdings-disclosure-2026-09-03"
       - "live:pzena-etf-page-shell-blocked-2026-09-03"
+      - "live:pzena-public-product-page-200-2026-09-07"
+      - "live:pzena-fundpress-holdings-app-shell-2026-09-07"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -6394,7 +6396,15 @@ providers:
         source: "Pzena official ETF catalogue and advertised holdings pages"
         result: "Pzena's catalogue identifies PZIV and PZLV and its prospectuses advertise daily holdings at pzena.com/etfs. Backend-equivalent requests to the issuer pages returned an unusable shell without a holdings payload, so the route is access-blocked and no complete rows can be parsed."
         evidence_ref: "live:pzena-etf-page-shell-blocked-2026-09-03"
-    disposition_reason: "pzena: The official catalogue confirms PZIV and PZLV and advertises daily portfolio holdings, but backend-equivalent access returned only an unusable page shell without a holdings payload. The issuer route is therefore issuer_access_blocked; no SEC-derived reconstruction or unproven native adapter is counted."
+      - date: 2026-09-07
+        source: "Pzena official ETF pages and public FundPress holdings application"
+        result: "The /etfs redirect and both PZIV/PZLV product pages now return HTTP 200 and declare a public FundPress holdings application, but the raw HTML contains only the application shell and no holdings rows or downloadable CSV/JSON artifact. The route remains unresolved for backend-equivalent complete ingestion."
+        evidence_ref: "live:pzena-public-product-page-200-2026-09-07"
+      - date: 2026-09-07
+        source: "https://api-us.fundpress.io/applicationManager/apps/175a2a0b-da3d-4679-a4be-76e1387207fd/main-ksys-app-manager.js"
+        result: "The public app manager bundle confirms a holdings configuration and client-scoped application bootstrap, but no anonymous complete holdings endpoint or payload was exposed by the bounded metadata inspection. No credential or authenticated request was used."
+        evidence_ref: "live:pzena-fundpress-holdings-app-shell-2026-09-07"
+    disposition_reason: "pzena: The official catalogue confirms PZIV and PZLV and advertises daily portfolio holdings. The September 7 pages are HTTP 200 and declare a public FundPress holdings application, but no anonymous complete rows or downloadable artifact were exposed by bounded backend-equivalent inspection. The route remains issuer_access_blocked; no SEC-derived reconstruction or unproven native adapter is counted."
     next_action: "pzena: Re-test the official /etfs and product pages with an issuer-supported backend-readable holdings payload; promote only after complete symbol-scoped parsing and live validation."
     implementation_sha: null
     validation_refs: []

@@ -2204,3 +2204,12 @@ complete artifact: PFRX returned no rows, while the remaining symbols returned
 snapshots dated between `2025-10-31` and `2026-07-31`. The family remains
 unavailable and fallback-only; no successor-native or SEC-derived promotion was
 made.
+
+## Pzena public holdings application recheck — 2026-09-07
+
+The Pzena catalogue redirect and both PZIV/PZLV product pages now return HTTP
+200 and declare a public FundPress holdings application. The bounded raw-page
+and app-manager inspection still exposed only the application shell, with no
+anonymous complete holdings rows or downloadable CSV/JSON artifact. PZIV/PZLV
+therefore remain unavailable and Pzena remains issuer-access-blocked; no SEC
+reconstruction or native promotion was made.

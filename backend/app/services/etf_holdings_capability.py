@@ -1383,11 +1383,13 @@ _register_non_tier_0_audits(
     outcome=UNAVAILABLE,
     evidence_state="issuer_route_access_blocked",
     provider_identity="pzena",
-    investigated_at=date(2026, 9, 3),
+    investigated_at=date(2026, 9, 7),
     evidence_refs=(
         "web:pzena-current-etf-catalogue-2026-09-03",
         "web:pzena-daily-holdings-disclosure-2026-09-03",
         "live:pzena-etf-page-shell-blocked-2026-09-03",
+        "live:pzena-public-product-page-200-2026-09-07",
+        "live:pzena-fundpress-holdings-app-shell-2026-09-07",
     ),
     next_action=(
         "Re-test the official Pzena /etfs and product pages with an issuer-supported backend-readable "

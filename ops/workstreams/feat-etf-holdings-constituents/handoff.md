@@ -4867,5 +4867,12 @@ and PGRI dated `2026-07-31`. The public successor API therefore remains
 non-current for the Putnam family; all 14 symbols stay unavailable and no
 successor-native promotion is justified.
 
+## Pzena public holdings application recheck — 2026-09-07
+
+Both official Pzena ETF pages now load HTTP 200 and declare a public FundPress
+holdings app, but no anonymous complete holdings payload was exposed by the
+bounded HTML/bundle inspection. PZIV/PZLV remain unavailable and no route or
+source classification changed.
+
 The full 14-symbol sweep confirmed no current snapshot: PFRX was empty and all
 other symbols were stale, ranging from `2025-10-31` through `2026-07-31`.
