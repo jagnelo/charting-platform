@@ -143,16 +143,16 @@ symbol_audit_ledger:
       provider_identity: aegon
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-09-03
-      evidence_refs: [web:aegonam-us-asset-management-capabilities-2026-09-03]
+      investigated_at: 2026-09-07
+      evidence_refs: [web:aegonam-us-asset-management-capabilities-2026-09-03, live:transamerica-talv-incapsula-tabd-404-2026-09-07]
       next_action: "Re-test the official Transamerica TALV/TABD product and holdings routes; promote only after complete current rows, symbol mapping, parser coverage, and bounded live evidence are proven."
     - symbol: TABD
       tier: 1
       provider_identity: aegon
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-09-03
-      evidence_refs: [web:aegonam-us-asset-management-capabilities-2026-09-03]
+      investigated_at: 2026-09-07
+      evidence_refs: [web:aegonam-us-asset-management-capabilities-2026-09-03, live:transamerica-talv-incapsula-tabd-404-2026-09-07]
       next_action: "Re-test the official Transamerica TALV/TABD product and holdings routes; promote only after complete current rows, symbol mapping, parser coverage, and bounded live evidence are proven."
     - symbol: ADFI
       tier: 1
@@ -1417,7 +1417,7 @@ providers:
     starting_status: issuer_access_blocked
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-09-03
+    last_checked: 2026-09-07
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [TALV, TABD]
     estimated_us_etf_count: null
@@ -1446,6 +1446,10 @@ providers:
         source: "https://www.aegonam.com/"
         result: "Aegon Asset Management publishes asset-management capabilities but no executable U.S. ETF holdings route; representative Transamerica TALV/TABD probes returned the Incapsula shell or 404, so native promotion remains blocked."
         evidence_ref: "web:aegonam-us-asset-management-capabilities-2026-09-03"
+      - date: 2026-09-07
+        source: "https://www.transamerica.com/individual/products/mutual-funds/etfs/talv"
+        result: "TALV returned HTTP 200 with a 212-byte Incapsula challenge shell; TABD returned HTTP 404 with Incapsula markers and the catalogue route returned only an access-control shell. No complete holdings rows or downloadable artifact were exposed."
+        evidence_ref: "live:transamerica-talv-incapsula-tabd-404-2026-09-07"
     disposition_reason: "aegon: Official Aegon/Transamerica surfaces identify the asset manager and ETF catalogue, but bounded TALV/TABD holdings routes return access-control shells or 404 pages; no complete executable artifact is proven."
     next_action: "aegon: Re-test the official Transamerica TALV/TABD product and holdings routes; promote only after complete current rows, symbol mapping, parser coverage, and bounded live evidence are proven."
     implementation_sha: null

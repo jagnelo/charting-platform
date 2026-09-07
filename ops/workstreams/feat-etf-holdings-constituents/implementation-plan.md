@@ -3386,3 +3386,11 @@ found. PZIV/PZLV remain issuer-access-blocked and no native promotion was made.
 
 The full 14-symbol sweep confirmed that every mapped Putnam symbol is either
 empty or stale; the family-wide fallback disposition remains unchanged.
+
+## Aegon/Transamerica representative-route recheck — 2026-09-07
+
+The official TALV route returned a 212-byte Incapsula challenge shell (HTTP
+200), TABD returned HTTP 404 with Incapsula markers, and the catalogue route
+returned an access-control shell. This is not an executable holdings artifact;
+TALV/TABD remain unavailable and issuer-access-blocked. Re-open only when an
+issuer-supported backend-readable complete holdings route is exposed.

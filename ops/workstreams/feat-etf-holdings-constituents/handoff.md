@@ -4876,3 +4876,12 @@ source classification changed.
 
 The full 14-symbol sweep confirmed no current snapshot: PFRX was empty and all
 other symbols were stale, ranging from `2025-10-31` through `2026-07-31`.
+
+## Aegon/Transamerica representative-route recheck — 2026-09-07
+
+Official Transamerica probes returned an Incapsula challenge shell for TALV
+(HTTP 200, 212 bytes), HTTP 404 with Incapsula markers for TABD, and an
+access-control shell for the ETF catalogue. No complete current artifact was
+available, so TALV/TABD remain unavailable and Aegon remains
+issuer-access-blocked. The runtime and YAML ledgers carry the same dated live
+evidence; no promotion or paid activation occurred.

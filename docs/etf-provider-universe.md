@@ -2213,3 +2213,12 @@ and app-manager inspection still exposed only the application shell, with no
 anonymous complete holdings rows or downloadable CSV/JSON artifact. PZIV/PZLV
 therefore remain unavailable and Pzena remains issuer-access-blocked; no SEC
 reconstruction or native promotion was made.
+
+## Aegon/Transamerica representative-route recheck — 2026-09-07
+
+The bounded first-party recheck returned an Incapsula challenge shell for the
+official TALV page (HTTP 200, 212 bytes), HTTP 404 with Incapsula markers for
+the TABD page, and an access-control shell for the ETF catalogue. No complete
+current holdings rows or downloadable CSV/JSON artifact was exposed. TALV and
+TABD therefore remain unavailable and Aegon remains issuer-access-blocked; no
+SEC reconstruction, native promotion, or paid source was used.
