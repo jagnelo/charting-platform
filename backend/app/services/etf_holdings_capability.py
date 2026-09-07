@@ -1020,11 +1020,12 @@ _register_non_tier_0_audits(
     outcome=UNAVAILABLE,
     evidence_state="non_executable_public_source",
     provider_identity="first_manhattan",
-    investigated_at=date(2026, 9, 2),
+    investigated_at=date(2026, 9, 7),
     evidence_refs=(
         "web:first-manhattan-official-etf-catalogue-2026-09-02",
         "web:first-manhattan-daily-holdings-disclosure-2026-09-02",
         "web:first-manhattan-fmcx-prospectus-2026-09-02",
+        "live:first-manhattan-route-recheck-2026-09-07-non-executable",
     ),
     next_action=(
         "Re-test only if First Manhattan publishes a complete executable current holdings "

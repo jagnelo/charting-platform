@@ -479,16 +479,16 @@ symbol_audit_ledger:
       provider_identity: first_manhattan
       current_outcome: unavailable
       evidence_state: non_executable_public_source
-      investigated_at: 2026-09-02
-      evidence_refs: [web:first-manhattan-official-etf-catalogue-2026-09-02, web:first-manhattan-daily-holdings-disclosure-2026-09-02, web:first-manhattan-fmcx-prospectus-2026-09-02]
+      investigated_at: 2026-09-07
+      evidence_refs: [web:first-manhattan-official-etf-catalogue-2026-09-02, web:first-manhattan-daily-holdings-disclosure-2026-09-02, web:first-manhattan-fmcx-prospectus-2026-09-02, live:first-manhattan-route-recheck-2026-09-07-non-executable]
       next_action: "Re-test only if First Manhattan publishes a complete executable current holdings artifact for FMCX and FMCE; then prove symbol mapping, current-date provenance, parser fixtures, and bounded live coverage before native promotion."
     - symbol: FMCE
       tier: 1
       provider_identity: first_manhattan
       current_outcome: unavailable
       evidence_state: non_executable_public_source
-      investigated_at: 2026-09-02
-      evidence_refs: [web:first-manhattan-official-etf-catalogue-2026-09-02, web:first-manhattan-daily-holdings-disclosure-2026-09-02, web:first-manhattan-fmcx-prospectus-2026-09-02]
+      investigated_at: 2026-09-07
+      evidence_refs: [web:first-manhattan-official-etf-catalogue-2026-09-02, web:first-manhattan-daily-holdings-disclosure-2026-09-02, web:first-manhattan-fmcx-prospectus-2026-09-02, live:first-manhattan-route-recheck-2026-09-07-non-executable]
       next_action: "Re-test only if First Manhattan publishes a complete executable current holdings artifact for FMCX and FMCE; then prove symbol mapping, current-date provenance, parser fixtures, and bounded live coverage before native promotion."
     - symbol: FFHG
       tier: 1
@@ -2152,7 +2152,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-09-02
+    last_checked: 2026-09-07
     source_access_declared: issuer_public_holdings_file
     representative_symbols:
       - AMID
@@ -3771,6 +3771,7 @@ providers:
       - "web:first-manhattan-official-etf-catalogue-2026-09-02"
       - "web:first-manhattan-daily-holdings-disclosure-2026-09-02"
       - "web:first-manhattan-fmcx-prospectus-2026-09-02"
+      - "live:first-manhattan-route-recheck-2026-09-07-non-executable"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -3788,6 +3789,10 @@ providers:
         source: "https://fmexcelsioretfs.com/download/1827/?tmstv=1751928122"
         result: "The official FMCX prospectus confirms that FMCX is a non-transparent ETF and does not tell the public its assets each day; the disclosed quarterly report path cannot satisfy the current holdings freshness and executable-route contract."
         evidence_ref: "web:first-manhattan-fmcx-prospectus-2026-09-02"
+      - date: 2026-09-07
+        source: "https://fmexcelsioretfs.com/, https://fmexcelsioretfs.com/fmcx/, https://fmexcelsioretfs.com/fmce/, and https://fmexcelsioretfs.com/download/1827/?tmstv=1751928122"
+        result: "Fresh bounded retrieval reached the official catalogue and both product routes with HTTP 200 HTML, but the responses contained access-denied/CAPTCHA challenge markers; the declared download route returned a PDF prospectus rather than a holdings export. No complete current executable artifact was retrieved, so the existing non-transparent quarterly/sixty-day boundary remains unchanged."
+        evidence_ref: "live:first-manhattan-route-recheck-2026-09-07-non-executable"
     disposition_reason: "first_manhattan: First Manhattan's official FMCX and FMCE pages identify two active U.S. ETFs but explicitly withhold daily holdings, providing positions only sixty days after each quarter-end. No complete current first-party holdings artifact or executable route is available for native ingestion, so this provider remains fallback-only as a non-executable public source."
     next_action: "first_manhattan: Re-test only if First Manhattan publishes a complete executable current holdings artifact (preferably daily) for FMCX and FMCE; then prove symbol mapping, current-date provenance, parser fixtures, and bounded live coverage before any native promotion."
     implementation_sha: null

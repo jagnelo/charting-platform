@@ -3461,3 +3461,13 @@ The four official routes returned dated XLSX top-ten files, not complete
 constituent artifacts: each file contained ten names and weights and omitted
 tickers and identifiers. Keep BGGG, BGIA, BGEG, and BGUS unavailable until a
 complete issuer export is available.
+
+## First Manhattan route recheck — 2026-09-07
+
+Fresh bounded retrieval reached the official First Manhattan catalogue and both
+FMCX/FMCE product routes with HTTP 200 HTML, but the responses contained
+access-denied/CAPTCHA challenge markers. The declared download route returned a
+prospectus PDF rather than a holdings export. No complete current executable
+artifact was retrieved, so FMCX/FMCE remain unavailable under the existing
+`non_executable_public_source` disposition; no SEC reconstruction, native
+promotion, or paid activation was made.

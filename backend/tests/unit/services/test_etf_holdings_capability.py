@@ -698,6 +698,7 @@ def test_fifth_ranked_fallback_first_manhattan_symbols_remain_unavailable():
         "web:first-manhattan-official-etf-catalogue-2026-09-02",
         "web:first-manhattan-daily-holdings-disclosure-2026-09-02",
         "web:first-manhattan-fmcx-prospectus-2026-09-02",
+        "live:first-manhattan-route-recheck-2026-09-07-non-executable",
     )
 
 

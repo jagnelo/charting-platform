@@ -4952,3 +4952,13 @@ All four official API routes returned HTTP 200 XLSX files dated `2026-09-04`,
 each with exactly ten names and weights but no complete universe, tickers, or
 stable identifiers. The four symbols remain unavailable and non-executable for
 native support; no promotion occurred.
+
+## First Manhattan route recheck — 2026-09-07
+
+Fresh bounded retrieval reached the official catalogue and FMCX/FMCE product
+routes with HTTP 200 challenge HTML containing access-denied/CAPTCHA markers;
+the declared download route returned a prospectus PDF rather than holdings.
+FMCX/FMCE remain unavailable and `non_executable_public_source` because no
+complete current executable artifact is exposed. Runtime and YAML evidence
+carry the dated live reference; no SEC reconstruction, native promotion, or
+paid activation occurred.
