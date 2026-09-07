@@ -3529,3 +3529,12 @@ not be validated because its certificate does not match `www.azfund.com`, and
 the public StockAnalysis Azimut provider endpoint returned HTTP 404. Azimut
 therefore remains a provider-level non-publisher with explicit SEC fallback
 eligibility; no symbol route or native promotion was invented.
+
+## M.D. Sass SASS holdings CSV recheck — 2026-09-07
+
+The issuer-declared SASS CSV returned HTTP 200 with 23 holdings rows plus
+header, complete ticker/CUSIP/name/quantity/weight fields, and effective date
+`2026-09-08`. The route is now proven as a complete identity-bound artifact,
+but remains unavailable for current analysis because the snapshot is
+future-dated. A strict provider-specific parser and bounded live validation are
+still required before native promotion.

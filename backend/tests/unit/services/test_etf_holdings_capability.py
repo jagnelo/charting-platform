@@ -785,13 +785,18 @@ def test_seventh_ranked_fallback_m2_adviser_is_not_a_publisher():
     assert result.provider_identity == "m2_financial"
 
 
-def test_seventh_ranked_fallback_m_d_sass_placeholder_remains_unavailable():
+def test_seventh_ranked_fallback_m_d_sass_future_dated_source_remains_unavailable():
     result = symbol_audit_for_profile(profile_with_symbol("SASS", "m_d_sass"))
 
     assert result.tier == 1
     assert result.outcome == UNAVAILABLE
-    assert result.evidence_state == "non_executable_public_source"
+    assert result.evidence_state == "future_dated_source"
     assert result.provider_identity == "m_d_sass"
+    assert result.investigated_at == date(2026, 9, 7)
+    assert result.evidence_refs == (
+        "web:m-d-sass-official-page-placeholder-holdings-2026-09-03",
+        "live:m-d-sass-holdings-csv-2026-09-07-future-dated",
+    )
 
 
 def test_seventh_ranked_fallback_madison_alias_is_not_a_publisher():

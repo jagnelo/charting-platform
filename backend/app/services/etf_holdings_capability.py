@@ -1167,13 +1167,16 @@ _register_non_tier_0_audits(
 _register_non_tier_0_audits(
     ("SASS",),
     outcome=UNAVAILABLE,
-    evidence_state="non_executable_public_source",
+    evidence_state="future_dated_source",
     provider_identity="m_d_sass",
-    investigated_at=date(2026, 9, 3),
-    evidence_refs=("web:m-d-sass-official-page-placeholder-holdings-2026-09-03",),
+    investigated_at=date(2026, 9, 7),
+    evidence_refs=(
+        "web:m-d-sass-official-page-placeholder-holdings-2026-09-03",
+        "live:m-d-sass-holdings-csv-2026-09-07-future-dated",
+    ),
     next_action=(
-        "Re-test the official SASS page for a populated complete holdings export or table with "
-        "current date and ticker/identifier mapping; promote only after parser fixtures and "
+        "Re-test the official SASS holdings CSV after its effective date is no longer future; "
+        "retain the issuer route and promote only after deterministic parser fixtures and "
         "bounded live evidence are added."
     ),
 )

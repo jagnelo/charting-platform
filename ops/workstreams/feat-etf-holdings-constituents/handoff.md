@@ -4993,6 +4993,13 @@ backend-equivalent response remains dynamic/access-controlled; the symbols
 remain unavailable and `issuer_access_blocked`, with no SEC reconstruction or
 native promotion.
 
+## M.D. Sass SASS holdings CSV recheck — 2026-09-07
+
+The official SASS holdings CSV returned 23 rows with complete identifiers and
+weights, but all rows were effective `2026-09-08`, future-dated relative to the
+observation. SASS remains unavailable and fallback-only until a non-future
+artifact is revalidated through a strict provider parser and bounded live test.
+
 ## Parnassus PRCS/PRVS route recheck — 2026-09-07
 
 The official daily-holdings pages returned HTTP 200 React application shells,

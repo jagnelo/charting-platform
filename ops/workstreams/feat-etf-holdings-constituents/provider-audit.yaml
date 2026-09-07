@@ -4996,24 +4996,24 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: non_executable_public_source
     disposition: non_executable_public_source
-    last_checked: 2026-09-03
+    last_checked: 2026-09-07
     source_access_declared: issuer_public_holdings_file
     representative_symbols:
       - SASS
     estimated_us_etf_count: 1
     estimated_us_etf_aum: null
     us_equity_breadth: 1
-    source_freshness: page_placeholder_no_current_date
+    source_freshness: future_dated_2026_09_08
     first_party_domains:
       - mdsassetf.com
       - sec.gov
     candidate_routes:
       - https://www.mdsassetf.com/
       - https://www.mdsassetf.com/assets/pdfs/MD_Sass_SAI.pdf
-    route_complete: false
-    symbol_mapping_proven: false
-    current_holdings_proven: false
-    source_format: html
+    route_complete: true
+    symbol_mapping_proven: true
+    current_holdings_proven: true
+    source_format: csv
     parser_fixture: null
     live_test: null
     credential_required: false
@@ -5021,6 +5021,7 @@ providers:
       - "runtime:FALLBACK_ISSUER_AUDITS.m_d_sass"
       - "runtime:ISSUER_ADAPTER_CONFIGS.m_d_sass"
       - "web:m-d-sass-official-page-placeholder-holdings-2026-09-03"
+      - "live:m-d-sass-holdings-csv-2026-09-07-future-dated"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -5030,8 +5031,12 @@ providers:
         source: "https://www.mdsassetf.com/ and https://www.mdsassetf.com/assets/pdfs/MD_Sass_SAI.pdf"
         result: "The official M.D. Sass page identifies SASS and a Top 10 Holdings table but serves XX/XX/XXXX placeholders and dash values for every holding, NAV, and AUM field. The official SAI identifies M.D. Sass as adviser but is a regulatory document rather than a current complete holdings artifact; no executable ticker-bearing portfolio export is declared."
         evidence_ref: "web:m-d-sass-official-page-placeholder-holdings-2026-09-03"
-    disposition_reason: "m_d_sass: The official M.D. Sass SASS page exposes only placeholder holdings/date values and no complete executable current portfolio artifact; its SAI confirms fund/adviser identity but cannot substitute for daily holdings. Third-party tables and 13F data are not promoted as native holdings sources, so the provider remains a dated non_executable_public_source."
-    next_action: "m_d_sass: Re-test the official SASS page for a populated complete holdings export or table with current date, ticker/identifier mapping, and all constituents; promote only after deterministic parser fixtures and bounded live evidence are added."
+      - date: 2026-09-07
+        source: "https://www.mdsassetf.com/assets/data/FilepointMDSass.40D4.D4_ETF_Holdings.csv"
+        result: "The issuer-declared CSV returned HTTP 200 with 23 SASS rows plus header, complete ticker/CUSIP/name/quantity/weight fields, and a 2026-09-08 effective date. The artifact is complete and identity-bound but future-dated relative to the 2026-09-07 observation, so it remains unavailable for current analysis."
+        evidence_ref: "live:m-d-sass-holdings-csv-2026-09-07-future-dated"
+    disposition_reason: "m_d_sass: The issuer-declared SASS CSV is complete and identity-bound, but its 2026-09-08 effective date is future-dated relative to the 2026-09-07 check. Keep the provider fallback-only and unavailable for current analysis until a non-future artifact is revalidated with deterministic parser fixtures and bounded live evidence."
+    next_action: "m_d_sass: Re-test the issuer CSV after the effective date is no longer future; implement and validate a strict provider-specific parser before any native promotion."
     implementation_sha: null
     validation_refs: []
   - adapter_key: madison_avenue
