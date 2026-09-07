@@ -8,6 +8,24 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-07 — Prove chart indicator-alert promotion in the authenticated browser
+
+Test commit `a7d7915d` adds the consuming F8u-alert Playwright flow. After
+canonical SPY instrument hydration it promotes EMA from a real chart into a
+reusable condition and indicator alert, and verifies both creation responses;
+focused live coverage passed `1/1` with clean browser diagnostics.
+
+The exact-tip gate passed all non-visual stages: backend `1350` unit/`385`
+integration with combined coverage, frontend `972/972`, build/compose/provider
+policy, stack health, runner probes, and functional Playwright `162` passed
+with `106` documented skips across `268`. Visual parity remains `98/104` with
+the six unchanged state-oracle diffs (watchlist-column-editor-open at
+1080p-100/125 and workspace-floating at 1080p-100/125 plus 1440p-100/125).
+No visual, provider, fallback, or acceptance policy changed; Docker cleanup
+removed four generated images and left assigned resources clean. Continue the
+remaining compatible promotion fan-out, canonical R1 population/history, and
+R2-R7 work; do not integrate, promote, or deploy.
+
 ## 2026-09-07 — Prove chart watchlist-filter promotion in the authenticated browser
 
 Test commit `91c470dc` adds the consuming F8u-filter Playwright flow. It

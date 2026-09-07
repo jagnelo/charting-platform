@@ -13,6 +13,18 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Test commit a7d7915d adds authenticated consuming-UI proof for chart
+  indicator to indicator-alert promotion (F8u-alert). The focused live flow
+  passed 1/1 after canonical SPY instrument hydration and verified reusable
+  condition plus indicator-alert creation responses. The exact-tip gate passed
+  all non-visual stages: backend 1350 unit and 385 integration tests, frontend
+  972/972, build/compose/provider policy, stack health, runner probes, and
+  functional Playwright 162 passed with 106 documented skips across 268.
+  Visual parity remains 98/104 with exactly the six known state-oracle diffs;
+  cleanup removed four generated images and left no assigned resources.
+  Continue remaining promotion fan-out and broader R1 canonical provider/
+  history plus R2-R7 work while preserving the visual-only boundary.
+  Historical receipts below remain authoritative.
   Test commit 91c470dc adds authenticated consuming-UI proof for chart
   indicator to active watchlist-filter promotion (F8u-filter). The focused
   live flow passed 1/1 against the branch-scoped stack and verified the saved
