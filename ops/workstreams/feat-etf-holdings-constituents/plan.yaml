@@ -287,6 +287,7 @@ remaining_gaps:
   - "The 2026-09-07 Nicholas Wealth recheck reached NGHT, WEPN, and FIAX product pages with HTTP 200 HTML and holdings/download UI markers, but no executable table or downloadable artifact. The dynamic/access-controlled boundary remains; Nicholas Wealth stays issuer-access-blocked with no SEC reconstruction or promotion."
   - "The 2026-09-07 Parnassus recheck reached both PRCS/PRVS daily-holdings routes with HTTP 200 React HTML shells, but no embedded holdings rows, stable download URL, or current date. PRCS/PRVS remain issuer-access-blocked with no SEC reconstruction or promotion."
   - "The 2026-09-07 Saturna recheck returned HTTP 403 Cloudflare challenge HTML from all three official Amana ETF routes. AMEI/AMGR/AMEM remain issuer-access-blocked; no complete artifact or promotion was found."
+  - "The 2026-09-07 Amplius AAAA recheck returned HTTP 200 with 45 complete rows, but every row remained effective 2026-09-08, future-dated relative to observation. Runtime and provider-audit evidence advanced to the new check date; AAAA remains unavailable and Amplius fallback-only, with no promotion or paid activation."
 progress:
   completed:
     - AC1

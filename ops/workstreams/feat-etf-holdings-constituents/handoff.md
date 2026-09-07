@@ -4963,6 +4963,14 @@ complete current executable artifact is exposed. Runtime and YAML evidence
 carry the dated live reference; no SEC reconstruction, native promotion, or
 paid activation occurred.
 
+## Amplius AAAA effective-date recheck — 2026-09-07
+
+The official Amplius page returned HTTP 200 with 45 complete AAAA holdings
+rows, but every row still carried effective date `2026-09-08`, future-dated
+relative to the observation. AAAA remains unavailable and fallback-only under
+the freshness boundary; no native promotion, SEC reconstruction, or paid
+activation occurred.
+
 ## Saturna Amana route recheck — 2026-09-07
 
 The official AMEI, AMGR, and AMEM product routes again returned HTTP 403
