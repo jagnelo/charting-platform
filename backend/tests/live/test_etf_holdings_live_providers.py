@@ -2479,6 +2479,11 @@ async def test_live_issuer_direct_holdings_routes_return_parseable_rows(
                 and symbol == "USAF"
                 and "tlsv1 alert internal error" in str(exc).lower()
             )
+            or (
+                adapter_key == "cohanzick"
+                and "409 client error" in str(exc).lower()
+                and "temp4.catapultmysite.com/adapter.php?file=etfholdings" in str(exc).lower()
+            )
             or _is_external_live_access_failure(exc)
         ):
             pytest.skip(str(exc))
