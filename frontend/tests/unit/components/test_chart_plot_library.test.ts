@@ -369,6 +369,24 @@ describe('ChartPlotLibrary', () => {
     expect(wrapper.get('[role="status"]').text()).toContain('indicator alert')
   })
 
+  it('promotes a plot into a Market Gauge through the saved EasyScan condition', async () => {
+    apiMock.post.mockImplementation((path: string) => path.startsWith('/screeners/from-condition/') ? Promise.resolve({ id: 88 }) : Promise.resolve({}))
+    const chart = usePanelStore('gauge-promotion-test')
+    chart.setIndicators([{ type: 'rsi', params: { period: 14 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'separate' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'gauge-promotion-test' } } })
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('[aria-label="Promote RSI(14)"]').trigger('click')
+    await wrapper.get('[aria-label="Plot promotion target"]').setValue('gauge')
+    await wrapper.get('[aria-label="Plot promotion threshold"]').setValue('70')
+    await wrapper.get('[aria-label="Plot promotion name"]').setValue('RSI breadth gauge')
+    await wrapper.get('.chart-plots__promotion button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.find('[role="status"]').exists()).toBe(true))
+
+    expect(apiMock.put).toHaveBeenCalledWith('/workspaces/library/conditions/rsi-breadth-gauge', expect.objectContaining({ name: 'RSI breadth gauge' }))
+    expect(apiMock.post).toHaveBeenCalledWith('/screeners/from-condition/rsi-breadth-gauge', expect.objectContaining({ name: 'RSI breadth gauge Scan', timeframe: 'D1' }))
+    expect(wrapper.get('[role="status"]').text()).toContain('Market Gauge')
+  })
+
   it('promotes a plot into a selected watchlist filter and persists its active condition', async () => {
     const workspace = useWorkspaceStore()
     workspace.workspace = {
