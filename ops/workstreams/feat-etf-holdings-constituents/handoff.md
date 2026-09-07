@@ -73,6 +73,25 @@ The schema-4 contract is `plan.yaml`. A later Codex implementation model must
 read both completely, follow the automatic agent-session workflow, and work
 only in this branch's registered local worktree.
 
+## Current validation and dependency boundary — 2026-09-07
+
+The synchronized documentation checkpoint is `5ce9e16f`. The complete opt-in
+ETF issuer matrix was rerun locally against the preceding synchronized code
+state and passed `498` cases with `22` narrowly evidenced external skips in
+10m37s. No provider route, source classification, entitlement, paid
+activation, or capability outcome changed.
+
+The previous exact-SHA CI run `34158622853` had Backend Tests and Frontend
+Unit Tests green, but its Branch-declared Tests job reported failure while
+Playwright was still running. GitHub API rate limiting prevented retrieval of
+the failed-step log at this checkpoint; the local full matrix passes, so this
+must remain an unresolved CI observation rather than a green claim.
+
+The provider-platform remote remains `32f65fb7`, staging remains `8b885a2f`,
+and the provider branch is not an ancestor of staging. Neither ref exposes
+`ProviderCapability.ETF_HOLDINGS`; AC10 therefore remains deferred. No
+protected branch or other worktree was modified.
+
 ## PIMCO anonymous route-inventory recheck — 2026-09-06
 
 The public PIMCO fund-detail bundle was rechecked without credentials. Every
