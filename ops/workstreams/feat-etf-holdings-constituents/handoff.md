@@ -4963,6 +4963,20 @@ complete current executable artifact is exposed. Runtime and YAML evidence
 carry the dated live reference; no SEC reconstruction, native promotion, or
 paid activation occurred.
 
+## Cohanzick live-matrix classification fix — 2026-09-07
+
+Exact-SHA CI run `34133116452` exposed one failure in the opt-in live matrix:
+the public Cohanzick/CUSD endpoint returned HTTP 409 Conflict. Backend Tests,
+Frontend Unit Tests, and Playwright E2E all passed; the failure was in the
+generic request-exception branch, which did not share the existing bounded
+issuer/status/URL skip used by the dedicated Cohanzick test.
+
+Commit `718a2d6b` adds that narrowly scoped classification. The complete local
+opt-in matrix then passed `498` cases with `22` documented external skips, and
+Ruff plus the focused Cohanzick tests passed. No adapter, source, entitlement,
+or current-support classification changed; the 409 remains an external route
+availability observation rather than a usable holdings result.
+
 ## Amplius AAAA effective-date recheck — 2026-09-07
 
 The official Amplius page returned HTTP 200 with 45 complete AAAA holdings
