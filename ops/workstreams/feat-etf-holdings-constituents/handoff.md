@@ -5110,3 +5110,16 @@ Local focused probes skipped both cases because this environment could not
 resolve the issuer hostnames. The deterministic adapter suite passed 580
 tests, Ruff, workstream validation, and diff-check passed. No adapter route,
 provider disposition, capability outcome, or paid source was changed.
+
+## Exact-SHA CI after timeout-boundary fix — 2026-09-07
+
+GitHub Actions run `34150900668` passed for `8a1a067571155b6ab9eb700a7bc5af1409f881dc`.
+Backend Tests passed with Docker-backed integration, Frontend Unit Tests
+passed, the complete Branch-declared Tests suite passed, and Playwright E2E
+passed. The branch-declared receipt was 580 deterministic adapter tests;
+default live contracts 2 passed/518 skipped; opt-in live matrix 490
+passed/30 narrow external skips; Ruff/workstream validation; frontend
+type-check; 17 ETF frontend tests; and production build. The protected
+staging/master-only Exhaustive Integration Gate was skipped as designed. This
+validates the timeout handling only; provider-platform staging/AC10, remaining
+fallback remediation/AC11, and post-integration AC14 remain open.
