@@ -293,6 +293,7 @@ remaining_gaps:
   - "The 2026-09-07 bounded opt-in SASS live route test passed one selected case, confirming transport, schema, identity, and parser behavior; the 2026-09-08 effective date remains future-dated, so no current-support promotion occurred."
   - "Dependency recheck on 2026-09-07: origin/feat/market-data-provider-platform is now 32f65fb7, but it is still not an ancestor of origin/staging at 8b885a2f. Both ProviderCapability enums still lack ETF_HOLDINGS in staging and the provider branch, so AC10 remains deferred; the ETF branch added no speculative bridge or duplicate governance."
   - "Exact-SHA CI run 34133116452 initially failed only because Cohanzick's public CUSD route returned an external HTTP 409 and the generic live-matrix request-error branch did not apply the existing bounded skip. Backend Tests, Frontend Unit Tests, and Playwright E2E passed. Checkpoint 718a2d6b applies the same issuer/URL/status-specific skip to request exceptions; the complete local opt-in matrix then passed 498 with 22 documented external skips, with no production route or capability classification change."
+  - "Exact-SHA CI run 34136988502 at the synchronized checkpoint passed Backend Tests, Frontend Unit Tests, Branch-declared Tests, and Playwright E2E after the Cohanzick classification fix. The protected staging/master-only Exhaustive Integration Gate was skipped as designed for this feature branch; AC10 remains deferred because the provider-platform branch is not yet staged."
 progress:
   completed:
     - AC1

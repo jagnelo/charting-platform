@@ -4963,6 +4963,18 @@ complete current executable artifact is exposed. Runtime and YAML evidence
 carry the dated live reference; no SEC reconstruction, native promotion, or
 paid activation occurred.
 
+## Cohanzick fix exact-SHA CI green — 2026-09-07
+
+Exact-SHA GitHub Actions run `34136988502` at the synchronized checkpoint
+passed Backend Tests (unit and testcontainer integration), Frontend Unit Tests,
+the complete Branch-declared Tests suite, and Playwright E2E. The protected
+staging/master-only Exhaustive Integration Gate was skipped as designed for
+this feature branch. The Cohanzick HTTP 409 remains an evidence-backed
+external skip and is not current holdings support; no adapter, entitlement,
+or capability classification changed. AC10 remains deferred pending the
+shared provider-platform branch reaching staging, and AC14 remains a
+post-integration/deployment gate.
+
 ## Cohanzick live-matrix classification fix — 2026-09-07
 
 Exact-SHA CI run `34133116452` exposed one failure in the opt-in live matrix:
