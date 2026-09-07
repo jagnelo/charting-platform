@@ -13,18 +13,18 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  The exact-tip full_stack_browser gate at product tip 49d8d98f passed all
+  The exact-tip full_stack_browser gate at product tip f30fe002 passed all
   locked, backend, frontend, build, stack, runner, and functional-browser
-  stages after enabling bounded SEC filing reconstruction for mapped SPDR SLYG.
-  The backend unit and integration phases (1344 and 384), frontend Vitest (970/970),
+  stages after enabling bounded SEC filing reconstruction for mapped SPDR SPTM.
+  The backend unit and integration phases (1345 and 384), frontend Vitest (970/970),
   and functional Playwright (159 passed with 106 documented skips across 265
   specs) are green; combined backend coverage also passed. The only remaining
   gate boundary is the six known visual state-oracle diffs:
   watchlist-column-editor-open at 1080p-100/125 and workspace-floating at all
   four visual projects. Continue the next bounded canonical provider/history
   population slice while preserving the visual-only boundary and unchanged
-  provider/fallback/acceptance policy. One mapped SPDR role remains
-  issuer-current-only: SPTM.
+  provider/fallback/acceptance policy. All mapped SPDR roles now have explicit
+  SEC route identities; no mapped SPDR role remains issuer-current-only.
   Historical product commit 7ee30073 upgraded SPYG to bounded SEC filing
   reconstruction using its curated CIK/series/class identity; focused and live
   evidence is retained in the durable history below.
@@ -129,19 +129,19 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
-    Product commit 49d8d98f upgrades mapped SPDR SLYG to bounded SEC
-    filing-reconstruction history using CIK 0001064642, series S000006984,
-    class C000019037, and fund ticker SLYG; focused taxonomy/planner/route/
+    Product commit f30fe002 upgrades mapped SPDR SPTM to bounded SEC
+    filing-reconstruction history using CIK 0001064642, series S000006973,
+    class C000019026, and fund ticker SPTM; focused taxonomy/planner/route/
     adapter checks passed 8/8, the selected family coverage API regression passed
-    1/1, static checks passed, and the opt-in live SLYG SEC probe passed 1/1 on
+    1/1, static checks passed, and the opt-in live SPTM SEC probe passed 1/1 on
     the verified result. The exact-tip gate passed all non-visual stages and
-    functional Playwright (backend 1344 unit and 384 integration tests;
+    functional Playwright (backend 1345 unit and 384 integration tests;
     frontend 970/970; functional 159 passed with 106 documented skips across
     265 specs). The only remaining boundary is the six known visual
     state-oracle diffs; preserve them and the unchanged provider/fallback/
     acceptance policy while continuing the next bounded canonical
-    provider/history slice. One mapped SPDR role remains issuer-current-only:
-    SPTM.
+    provider/history slice. All mapped SPDR roles now have explicit SEC route
+    identities; no mapped SPDR role remains issuer-current-only.
     Historical product commit 7ee30073 upgraded SPYG to bounded SEC
     filing-reconstruction history using its curated CIK/series/class identity;
     focused and live evidence is retained in the durable history below.
