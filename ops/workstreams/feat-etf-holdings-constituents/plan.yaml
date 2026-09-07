@@ -275,6 +275,7 @@ remaining_gaps:
   - "The 2026-09-07 Manulife recheck returned HTTP 403 Access Denied from the official ETF catalogue. UDIV/UDEF/GEDG remain unavailable and issuer-access-blocked; no complete artifact, promotion, or paid activation was found."
   - "The 2026-09-07 Q3/QVOY recheck returned HTTP 503 site-owner access-limited content from both the official page and declared holdings route. QVOY remains unavailable and issuer-access-blocked; no complete artifact, promotion, or paid activation was found."
   - "The 2026-09-07 Ridgeline/ACVF recheck returned HTTP 403 again and confirmed Ridgeline remains an adviser while ACV owns the holdings publisher route. ACVF remains under the existing ACV mapping; no duplicate adapter or promotion was made."
+  - "The 2026-09-07 Westwood/MDST recheck returned HTTP 403 Cloudflare HTML from both the official page and declared CSV route. MDST remains unavailable and issuer-access-blocked; no complete artifact, promotion, or paid activation was found."
 progress:
   completed:
     - AC1

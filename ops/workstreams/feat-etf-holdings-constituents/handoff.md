@@ -4912,3 +4912,9 @@ YAML evidence were updated without promotion or paid activation.
 The official ACVF route returned HTTP 403 again. The page remains an adviser
 surface for Ridgeline with ACV as the holdings publisher, so ACVF stays under
 the existing ACV route and no separate Ridgeline adapter was promoted.
+
+## Westwood/MDST representative-route recheck — 2026-09-07
+
+The official MDST page and declared CSV route both returned HTTP 403 Cloudflare
+HTML again. No complete current artifact was exposed; MDST remains unavailable
+and issuer-access-blocked without promotion or paid activation.

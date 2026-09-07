@@ -3421,3 +3421,9 @@ after the issuer route returns complete rows and bounded live proof.
 The official ACVF route returned HTTP 403 again. Ridgeline remains an adviser
 identity while ACV owns the holdings publisher route; preserve the existing
 ACV mapping and do not create a duplicate Ridgeline adapter.
+
+## Westwood/MDST representative-route recheck — 2026-09-07
+
+The official MDST page and declared CSV route both returned HTTP 403 Cloudflare
+HTML again, with no complete executable artifact. MDST remains unavailable and
+issuer-access-blocked; re-open only when the complete route is reachable.

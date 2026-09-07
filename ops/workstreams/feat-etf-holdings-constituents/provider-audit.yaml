@@ -223,8 +223,8 @@ symbol_audit_ledger:
       provider_identity: westwood
       current_outcome: unavailable
       evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-09-05
-      evidence_refs: [web:westwood-mdst-current-holdings-2026-09-03, web:westwood-mdst-current-holdings-2026-09-05, live:westwood-mdst-current-holdings-page-2026-09-05-403, live:westwood-mdst-current-holdings-csv-2026-09-05-403]
+      investigated_at: 2026-09-07
+      evidence_refs: [web:westwood-mdst-current-holdings-2026-09-03, web:westwood-mdst-current-holdings-2026-09-05, live:westwood-mdst-current-holdings-page-2026-09-05-403, live:westwood-mdst-current-holdings-csv-2026-09-05-403, live:westwood-mdst-route-recheck-2026-09-07-403]
       next_action: "Periodically re-test the official MDST page and declared CSV; promote only after complete rows, mapping, parser fixtures, and bounded live evidence are available."
     - symbol: SPDV
       tier: 1
@@ -1594,7 +1594,7 @@ providers:
     starting_status: issuer_access_blocked
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-09-05
+    last_checked: 2026-09-07
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [QVOY]
     estimated_us_etf_count: null
@@ -1731,6 +1731,10 @@ providers:
         source: "https://westwoodgroup.com/wp-content/themes/westwood/data/ultimus/1471-MDST/1471-Holdings.csv"
         result: "The declared CSV route returned HTTP 403 text/html to the application client and no complete artifact was retrieved."
         evidence_ref: "live:westwood-mdst-current-holdings-csv-2026-09-05-403"
+      - date: 2026-09-07
+        source: "https://westwoodgroup.com/product/westwood-salient-enhanced-midstream-income/"
+        result: "Both the official MDST page and declared CSV route returned HTTP 403 Cloudflare HTML again; no complete executable artifact was retrieved."
+        evidence_ref: "live:westwood-mdst-route-recheck-2026-09-07-403"
     disposition_reason: "westwood: The current official MDST page documents a 23-holding portfolio and dated top holdings, but both product and exact CSV requests remain HTTP 403 text/html to the application client; no stable executable route is proven."
     next_action: "westwood: Periodically re-test the official MDST page and declared CSV; promote only after complete rows, mapping, parser fixtures, and bounded live evidence are available."
     implementation_sha: null
