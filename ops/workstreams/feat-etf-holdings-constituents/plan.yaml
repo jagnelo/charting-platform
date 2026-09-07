@@ -288,6 +288,7 @@ remaining_gaps:
   - "The 2026-09-07 Parnassus recheck reached both PRCS/PRVS daily-holdings routes with HTTP 200 React HTML shells, but no embedded holdings rows, stable download URL, or current date. PRCS/PRVS remain issuer-access-blocked with no SEC reconstruction or promotion."
   - "The 2026-09-07 Saturna recheck returned HTTP 403 Cloudflare challenge HTML from all three official Amana ETF routes. AMEI/AMGR/AMEM remain issuer-access-blocked; no complete artifact or promotion was found."
   - "The 2026-09-07 Amplius AAAA recheck returned HTTP 200 with 45 complete rows, but every row remained effective 2026-09-08, future-dated relative to observation. Runtime and provider-audit evidence advanced to the new check date; AAAA remains unavailable and Amplius fallback-only, with no promotion or paid activation."
+  - "The 2026-09-07 Azimut provider recheck found no U.S. ETF holdings publisher: the official catalogue remained general fund research, the Azfund endpoint failed certificate validation for www.azfund.com, and the public StockAnalysis provider endpoint returned HTTP 404. Azimut remains a provider-level non-publisher with explicit SEC fallback eligibility and no native promotion."
 progress:
   completed:
     - AC1

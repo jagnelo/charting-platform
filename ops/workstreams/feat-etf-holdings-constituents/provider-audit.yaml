@@ -2393,7 +2393,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: provider_not_a_portfolio_publisher
     disposition: provider_not_a_portfolio_publisher
-    last_checked: 2026-09-02
+    last_checked: 2026-09-07
     source_access_declared: issuer_public_holdings_file
     representative_symbols: []
     estimated_us_etf_count: null
@@ -2418,6 +2418,9 @@ providers:
       - "runtime:ISSUER_ADAPTER_CONFIGS.azimut"
       - "web:azimut-official-fund-catalogue-2026-09-02"
       - "web:azimut-provider-page-404-2026-09-02"
+      - "live:azimut-official-catalogue-recheck-2026-09-07"
+      - "live:azfund-catalogue-tls-mismatch-2026-09-07"
+      - "live:azimut-provider-page-404-2026-09-07"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -2431,7 +2434,19 @@ providers:
         source: "https://stockanalysis.com/etf/provider/azimut/"
         result: "The expected public U.S. ETF provider endpoint returns HTTP 404, corroborating that no active U.S. ETF provider holdings catalogue is available for this identity."
         evidence_ref: "web:azimut-provider-page-404-2026-09-02"
-    disposition_reason: "azimut: First-party Azimut catalogues expose mutual-fund/UCITS products rather than a U.S. ETF portfolio publisher, and the public U.S. ETF provider endpoint is 404; retain explicit SEC fallback eligibility without native promotion."
+      - date: 2026-09-07
+        source: "https://www.azimutinvestments.com/home/-/fund/"
+        result: "The official Azimut catalogue remains reachable, but its rendered content exposes general Azimut fund research and only generic ETF references; no U.S. ETF product-level holdings route or complete portfolio publisher was found."
+        evidence_ref: "live:azimut-official-catalogue-recheck-2026-09-07"
+      - date: 2026-09-07
+        source: "https://www.azfund.com/en/funds/"
+        result: "The Azfund catalogue could not be validated by the bounded client because the endpoint certificate subject does not match www.azfund.com; no holdings artifact was retrieved."
+        evidence_ref: "live:azfund-catalogue-tls-mismatch-2026-09-07"
+      - date: 2026-09-07
+        source: "https://stockanalysis.com/etf/provider/azimut/"
+        result: "The public U.S. ETF provider endpoint still returns HTTP 404; no active U.S. ETF provider holdings catalogue is available for this identity."
+        evidence_ref: "live:azimut-provider-page-404-2026-09-07"
+    disposition_reason: "azimut: Fresh first-party catalogue checks still expose general Azimut fund research rather than a U.S. ETF portfolio publisher; the Azfund endpoint has a certificate mismatch and the public U.S. ETF provider endpoint remains 404. Retain explicit SEC fallback eligibility without native promotion."
     next_action: "azimut: Keep fallback-only unless Azimut launches a U.S. ETF and publishes a complete executable first-party holdings route with symbol mapping and current-date provenance."
     implementation_sha: null
     validation_refs: []

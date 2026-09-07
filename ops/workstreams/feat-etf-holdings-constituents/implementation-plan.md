@@ -3520,3 +3520,12 @@ complete AAAA holdings rows. Every row still reports effective date
 boundary correctly keeps AAAA unavailable and Amplius fallback-only. No native
 promotion, SEC reconstruction, paid activation, or parser classification
 change was made.
+
+## Azimut provider-catalogue recheck — 2026-09-07
+
+The official Azimut catalogue remained reachable but exposed general fund
+research rather than a U.S. ETF holdings publisher. The Azfund catalogue could
+not be validated because its certificate does not match `www.azfund.com`, and
+the public StockAnalysis Azimut provider endpoint returned HTTP 404. Azimut
+therefore remains a provider-level non-publisher with explicit SEC fallback
+eligibility; no symbol route or native promotion was invented.

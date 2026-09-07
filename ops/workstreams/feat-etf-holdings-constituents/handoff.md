@@ -4971,6 +4971,14 @@ relative to the observation. AAAA remains unavailable and fallback-only under
 the freshness boundary; no native promotion, SEC reconstruction, or paid
 activation occurred.
 
+## Azimut provider-catalogue recheck — 2026-09-07
+
+Azimut's official catalogue still exposes general fund research rather than a
+U.S. ETF portfolio publisher. The Azfund endpoint failed certificate
+validation for `www.azfund.com`, while StockAnalysis returned HTTP 404 for the
+Azimut ETF-provider page. The provider remains non-publisher and fallback-only
+with no representative symbol or native promotion.
+
 ## Saturna Amana route recheck — 2026-09-07
 
 The official AMEI, AMGR, and AMEM product routes again returned HTTP 403
