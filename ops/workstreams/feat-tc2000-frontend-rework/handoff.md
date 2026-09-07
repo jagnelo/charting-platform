@@ -8,6 +8,21 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-07 — Backfill existing canonical family member history
+
+Product commit `cb060f56` adds an opt-in Sunday worker backfill that plans up to
+512 deterministic persisted canonical benchmark-family snapshots with resolved
+holdings, excludes controlled/e2e fixtures, and queues member bars through the
+existing history path with an inclusive composition-date bound. It is disabled
+by default and provider-neutral on interactive reads. Focused checks passed 56
+tests plus Ruff/compile/diff checks. The exact-tip gate passed backend 1348
+unit/384 integration, combined coverage, frontend 970/970, and functional
+Playwright 159 passed with 106 skips; visual parity remains 98/104 with the six
+documented state-oracle diffs. Docker teardown removed four generated images and
+left assigned resources clean. This is bounded R1 readiness work, not a claim
+of complete historical population; continue canonical inventory/population and
+R2-R7, with no integration, promotion, or deployment.
+
 ## 2026-09-07 — Enable SPTM SEC filing-reconstruction history route
 
 Product commit `f30fe002` upgrades SPTM from issuer-current-only to the verified

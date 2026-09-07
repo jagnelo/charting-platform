@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-09-07 — Backfill existing canonical family member history
+
+- [x] Add the bounded, provider-neutral `backfill_benchmark_family_member_history_task`
+      and deterministic persisted-snapshot planner; exclude controlled/e2e
+      fixtures, cap work at 512 snapshots by default, and use inclusive
+      composition-date history bounds. The task is opt-in and scheduled only
+      when `BENCHMARK_FAMILY_MEMBER_HISTORY_BACKFILL_ENABLED=true`.
+- [x] Focused service/task/worker checks passed 56 tests; Ruff, compile, and
+      diff checks passed (the selected-only run's global coverage warning is
+      expected).
+- [x] Exact-tip gate passed all non-visual stages and functional Playwright
+      (1348 unit, 384 integration, frontend 970/970, 159 functional passes,
+      106 documented skips); visual parity remains 98/104 with the six known
+      state-oracle diffs and cleanup/resource accounting clean.
+- [ ] Populate and verify the broader canonical holdings/member-bar history
+      inventory; route identity and a bounded backfill mechanism are not proof
+      that every family/date/member bar is populated.
+
 ### 2026-09-07 — Enable SPTM SEC filing-reconstruction history route
 
 - [x] Upgrade mapped SPDR SPTM from issuer-current-only to

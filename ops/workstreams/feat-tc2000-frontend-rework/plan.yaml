@@ -13,18 +13,21 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  The exact-tip full_stack_browser gate at product tip f30fe002 passed all
-  locked, backend, frontend, build, stack, runner, and functional-browser
-  stages after enabling bounded SEC filing reconstruction for mapped SPDR SPTM.
-  The backend unit and integration phases (1345 and 384), frontend Vitest (970/970),
-  and functional Playwright (159 passed with 106 documented skips across 265
-  specs) are green; combined backend coverage also passed. The only remaining
-  gate boundary is the six known visual state-oracle diffs:
-  watchlist-column-editor-open at 1080p-100/125 and workspace-floating at all
-  four visual projects. Continue the next bounded canonical provider/history
-  population slice while preserving the visual-only boundary and unchanged
-  provider/fallback/acceptance policy. All mapped SPDR roles now have explicit
-  SEC route identities; no mapped SPDR role remains issuer-current-only.
+  Product commit cb060f56 adds a bounded, provider-neutral scheduled backfill
+  for persisted canonical benchmark-family snapshots with resolved holdings.
+  It excludes controlled/e2e fixtures, caps work at 512 snapshots by default,
+  queues member history with an inclusive composition-date bound, and remains
+  opt-in (BENCHMARK_FAMILY_MEMBER_HISTORY_BACKFILL_ENABLED=false by default).
+  Focused service/task/worker checks passed 56 tests and Ruff/compile/diff
+  checks passed. The exact-tip full_stack_browser gate passed backend 1348 unit
+  and 384 integration tests, frontend 970/970, and functional Playwright 159
+  passed with 106 documented skips across 265 specs; combined backend coverage
+  passed. The only remaining gate boundary is the six known visual state-oracle
+  diffs: watchlist-column-editor-open at 1080p-100/125 and workspace-floating
+  at all four visual projects. Preserve the unchanged visual/provider/fallback/
+  acceptance policy while continuing broader canonical provider/history
+  population and the remaining R2-R7 roadmap work. All mapped SPDR roles now
+  have explicit SEC route identities; no mapped SPDR role remains issuer-current-only.
   Historical product commit 7ee30073 upgraded SPYG to bounded SEC filing
   reconstruction using its curated CIK/series/class identity; focused and live
   evidence is retained in the durable history below.
@@ -129,18 +132,18 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
-    Product commit f30fe002 upgrades mapped SPDR SPTM to bounded SEC
-    filing-reconstruction history using CIK 0001064642, series S000006973,
-    class C000019026, and fund ticker SPTM; focused taxonomy/planner/route/
-    adapter checks passed 8/8, the selected family coverage API regression passed
-    1/1, static checks passed, and the opt-in live SPTM SEC probe passed 1/1 on
-    the verified result. The exact-tip gate passed all non-visual stages and
-    functional Playwright (backend 1345 unit and 384 integration tests;
+    Product commit cb060f56 adds the bounded canonical family member-history
+    backfill: deterministic persisted snapshots with resolved holdings only,
+    controlled/e2e fixtures excluded, a default 512-snapshot cap, and inclusive
+    composition-date queue bounds. It is opt-in and provider-neutral on reads.
+    Focused service/task/worker checks passed 56 tests and Ruff/compile/diff
+    checks passed. The exact-tip gate passed all non-visual stages and
+    functional Playwright (backend 1348 unit and 384 integration tests;
     frontend 970/970; functional 159 passed with 106 documented skips across
-    265 specs). The only remaining boundary is the six known visual
-    state-oracle diffs; preserve them and the unchanged provider/fallback/
-    acceptance policy while continuing the next bounded canonical
-    provider/history slice. All mapped SPDR roles now have explicit SEC route
+    265 specs; combined backend coverage passed). The only remaining boundary
+    is the six known visual state-oracle diffs; preserve them and the unchanged
+    provider/fallback/acceptance policy while continuing broader canonical
+    population and R2-R7. All mapped SPDR roles now have explicit SEC route
     identities; no mapped SPDR role remains issuer-current-only.
     Historical product commit 7ee30073 upgraded SPYG to bounded SEC
     filing-reconstruction history using its curated CIK/series/class identity;
@@ -391,7 +394,7 @@ progress:
     rule, or acceptance policy changed; assigned stack teardown and resource accounting were clean.
     Canonical provider/history, richer Study targets, native-window/accessibility/security,
     dense-data, and visual-oracle review remain open.
-  next_action: "Continue the next bounded canonical provider/history slice, then rerun make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework at the next documentation tip while preserving the six visual state-oracle assertions and unchanged visual/provider fallback policy."
+  next_action: "Continue broader canonical holdings/member-bar population and evidence, then rerun make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework at the next product tip while preserving the six visual state-oracle assertions and unchanged visual/provider fallback policy."
 remaining_gaps:
   - "Product tip 80f7f266 adds an accessible labelled readiness status for canonical universe provenance (registry, family count, point-in-time/latest mode, missing-family count, and provider-call boundary) without provider calls, route selection, readiness inference, fallback, visual-oracle, or acceptance-policy changes. Full frontend Vitest passed 970/970; type-check/build passed; rebuilt authenticated Chromium passed both evidence assertions 2/2; teardown/resource accounting were clean. The corrected exact-tip gate at docs b57e5893 passed all locked/non-visual and functional checks; the visual matrix is 98/104 with exactly the six known watchlist/floating diffs."
   - "Product tip da417508 keeps the backend provider-neutral readiness probe count, pass count, recovery count, and latest observation date as an accessible labelled status without changing benchmark-header layout pixels. The corrected exact-tip gate at docs 4b16ddc1 passed all locked/non-visual and functional checks; the visual matrix is 98/104 with exactly the six known watchlist/floating diffs. Preserve unchanged provider/fallback/baseline/acceptance policy."

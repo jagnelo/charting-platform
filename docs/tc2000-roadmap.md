@@ -5,6 +5,33 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-07
 
+## 2026-09-07 — Backfill existing canonical family member history
+
+Product commit `cb060f56` adds a bounded, provider-neutral scheduled backfill
+for member-bar history already represented by persisted canonical benchmark
+family snapshots. The planner selects deterministic, mapped-family snapshots
+with resolved holdings, excludes controlled/e2e fixtures, and caps work at
+`BENCHMARK_FAMILY_MEMBER_HISTORY_BACKFILL_MAX_SNAPSHOTS` (default `512`). The
+opt-in worker task queues each selected snapshot through the existing member
+history path using an inclusive composition-date end bound, preserving
+point-in-time semantics and avoiding future leakage. It is disabled by default
+(`BENCHMARK_FAMILY_MEMBER_HISTORY_BACKFILL_ENABLED=false`) and scheduled for
+Sunday 09:00 only when enabled; it makes no interactive provider calls and adds
+no UI or fallback behavior.
+
+Focused service/task/worker checks passed `56` tests; the selected-only command
+reported the repository's expected global coverage warning because it does not
+exercise the full suite. Ruff, compile, and diff checks passed. The exact-tip
+gate then passed all locked, backend, frontend, build, compose/provider,
+stack-health, runner-isolation, and authenticated functional stages (`1348`
+unit, `384` integration, frontend `970/970`, and `159` functional passes with
+`106` documented skips across `265` specs). The unchanged visual matrix was
+`98/104`, with exactly the six known state-oracle diffs in
+watchlist-column-editor-open at both 1080p projects and workspace-floating at
+all four projects. Cleanup removed four generated images and left zero assigned
+containers, volumes, sessions, or known bytes. This closes a bounded R1
+mechanical gap only; broad canonical population and R2-R7 remain open.
+
 ## 2026-09-07 — Enable SPTM SEC filing-reconstruction history route
 
 Product commit `f30fe002` upgrades the mapped State Street/SPDR SPTM role from
