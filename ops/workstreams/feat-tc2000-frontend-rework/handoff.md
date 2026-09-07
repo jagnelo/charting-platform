@@ -8,6 +8,23 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-07 — Prove chart Boolean-column promotion in the authenticated browser
+
+Test commit `a229a145` adds the consuming F8u-boolean Playwright flow. It
+promotes RSI from a real chart into a selected persisted Boolean watchlist
+column and verifies the rendered column in the authenticated workstation;
+focused live coverage passed `1/1` with clean browser diagnostics.
+
+The exact-tip gate passed all non-visual stages: backend `1350` unit/`385`
+integration with combined coverage, frontend `972/972`, build/compose/provider
+policy, stack health, runner probes, and functional Playwright `160` passed
+with `106` documented skips across `266`. Visual parity remains `98/104` with
+the six unchanged state-oracle diffs (watchlist-column-editor-open at
+1080p-100/125 and workspace-floating at all four visual projects). No visual,
+provider, fallback, or acceptance policy changed; Docker cleanup removed four
+generated images and left assigned resources clean. Continue R1
+canonical population/history and R2-R7; do not integrate, promote, or deploy.
+
 ## 2026-09-07 — Promote chart indicators to Boolean watchlist columns
 
 Product commit `191aa889` adds the Chart Plot Library's compatible Boolean

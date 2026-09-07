@@ -5,6 +5,28 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-07
 
+## 2026-09-07 — Prove chart Boolean-column promotion in the authenticated browser
+
+Test commit `a229a145` adds the consuming-UI F8u-boolean Playwright flow. It
+opens a real chart, adds RSI, selects the Boolean-column promotion target and
+an existing watchlist, submits the promotion, and verifies the persisted
+Boolean column is visible in that watchlist while checking browser diagnostics.
+The focused live flow passed `1/1` against the branch-scoped Docker stack.
+
+The exact-tip gate passed all non-visual stages: backend `1350` unit and `385`
+integration tests with combined coverage above the repository floor, frontend
+`972/972`, production build/compose/provider policy, stack health,
+runner-isolation/resource probes, and authenticated functional Playwright
+`160` passed with `106` documented skips across `266`. The unchanged visual
+matrix returned `98/104`, exactly the six known state-oracle diffs
+(watchlist-column-editor-open at visual-1080p-100/125 and workspace-floating at
+visual-1080p-100/125 and visual-1440p-100/125). No visual baseline, mask,
+threshold, skip, fallback, provider, or acceptance policy changed. Cleanup
+removed four generated images and left no assigned containers, volumes,
+sessions, or known bytes. Continue broader R1 canonical population/history and
+the remaining R2-R7 work; this closes browser proof for this fan-out slice but
+does not imply complete promotion fan-out.
+
 ## 2026-09-07 — Promote chart indicators to Boolean watchlist columns
 
 Product commit `191aa889` completes another compatible R4 fan-out slice in the
