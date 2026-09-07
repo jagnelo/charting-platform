@@ -4841,6 +4841,43 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8u-filter — chart indicators promote into a persisted watchlist filter', async ({ page, browserDiagnostics }) => {
+    test.setTimeout(60_000)
+    await page.goto('/chart/SPY')
+    await expect(page.getByRole('region', { name: 'Major US benchmarks' })).toBeVisible({ timeout: 10_000 })
+    const chart = page.locator('.chart-tool:visible').last()
+    await expect(chart).toBeVisible({ timeout: 10_000 })
+    const plots = chart.locator('button[aria-label="Chart plot library"]')
+    await plots.click()
+    await chart.locator('select[aria-label="Add indicator plot"]').selectOption('rsi')
+    await expect(chart.locator('.chart-plots__menu')).toHaveCount(0, { timeout: 10_000 })
+    await plots.click()
+    await chart.locator('select[aria-label="Promotion plot"]').selectOption({ index: 1 })
+    await page.getByRole('combobox', { name: 'Plot promotion target' }).selectOption('filter')
+    const targetPicker = page.getByRole('combobox', { name: 'Plot promotion watchlist' })
+    await expect(targetPicker).toBeVisible({ timeout: 10_000 })
+    const targetOption = targetPicker.locator('option').nth(1)
+    const targetKey = await targetOption.getAttribute('value')
+    const targetTitle = (await targetOption.textContent())?.trim() || ''
+    expect(targetKey).toBeTruthy()
+    await targetPicker.selectOption(targetKey!)
+    await page.getByRole('spinbutton', { name: 'Plot promotion threshold' }).fill('65')
+    await page.getByRole('textbox', { name: 'Plot promotion name' }).fill('RSI watchlist filter')
+    const conditionSave = page.waitForResponse(response => response.request().method() === 'PUT' && response.url().includes('/api/v1/workspaces/library/conditions/rsi-watchlist-filter') && response.ok())
+    const scanCreate = page.waitForResponse(response => response.request().method() === 'POST' && response.url().includes('/api/v1/screeners/from-condition/rsi-watchlist-filter') && response.ok())
+    const snapshotSave = page.waitForResponse(async response => {
+      if (response.request().method() !== 'PUT' || !response.url().includes('/api/v1/workspaces/') || !response.url().endsWith('/snapshot') || !response.ok()) return false
+      const body = response.request().postDataJSON?.() as { tabs?: Array<{ windows?: Array<{ instance_key?: string; configuration?: Record<string, unknown> }> }> } | undefined
+      const target = body?.tabs?.flatMap(tab => tab.windows ?? []).find(window => window.instance_key === targetKey)
+      return target?.configuration?.condition_filter_mode === 'active' && Number.isInteger(target?.configuration?.condition_screener_id)
+    })
+    await page.getByRole('button', { name: 'Copy', exact: true }).click()
+    await Promise.all([conditionSave, scanCreate, snapshotSave])
+    await expect(page.locator('.chart-plots__promotion-status')).toContainText('filter', { timeout: 15_000 })
+    await expect(page.getByRole('region', { name: targetTitle })).toBeVisible({ timeout: 10_000 })
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8v — technical condition trees transfer into Boolean watchlist columns through the real drag path', async ({ page, browserDiagnostics }) => {
     test.setTimeout(90_000)
     await page.goto('/chart/SPY')
