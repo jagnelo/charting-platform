@@ -10,6 +10,32 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 Update this handoff at each coherent boundary.
 
+## 2026-09-07 — Enable SPYV SEC filing-reconstruction history route
+
+Product commit `2b46d6e5` upgrades SPYV from issuer-current-only to the
+verified SEC route `sec_filing_reconstruction` using CIK `0001064642`, series
+`S000006985`, class `C000019038`, and `SPYV`; the adapter uses a bounded
+50-filing search window because the CIK is shared across series. The issuer
+daily-workbook route remains distinct. Focused checks passed (`7` selected
+tests), and the opt-in live SPYV SEC probe passed `1/1`. This is
+route/reconstruction evidence only, not proof of complete historical holdings
+or member-bar population.
+
+## 2026-09-07 — Exact-tip exhaustive gate after SPYV SEC history reconstruction
+
+At exact product tip `2b46d6e5`, all locked, backend/frontend, build,
+compose/provider, stack-health, runner-isolation, and authenticated functional
+browser stages passed (`1331` unit, `384` integration, `80.94%` combined
+coverage, frontend `970/970`, and `159` functional passes with `106` documented
+skips across `265` specs). The visual matrix returned `98/104`; only the six
+known state-oracle diffs remain: watchlist-column-editor-open at 1080p-100/125
+(`13,844` pixels each), workspace-floating at 1080p-100/125 (`12,097` each),
+1440p-100 (`9,770`), and 1440p-125 (`12,097`). No visual/provider/fallback/
+acceptance policy changed. Cleanup removed four generated images and resource
+accounting reported zero containers, volumes, sessions, and known bytes. Next
+action is the next bounded canonical provider/history slice; preserve the
+visual-only boundary.
+
 ## 2026-09-07 — Enable RSP SEC filing-reconstruction history route
 
 Product commit `e96ef740` upgrades Invesco RSP to the verified SEC route

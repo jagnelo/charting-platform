@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-09-07 — Enable SPYV SEC filing-reconstruction history route
+
+- [x] Upgrade mapped SPDR SPYV from issuer-current-only to
+      `sec_filing_reconstruction` using SEC CIK `0001064642`, series
+      `S000006985`, class `C000019038`, and a bounded 50-filing search window;
+      retain the issuer daily-workbook route separately. Product commit
+      `2b46d6e5`.
+- [x] Focused regressions/static checks passed (`7` selected tests) and the
+      opt-in live SPYV SEC route probe passed `1/1`.
+- [x] Exact-tip gate passed all non-visual stages: backend `1331` unit and
+      `384` integration tests, `80.94%` combined coverage, frontend `970/970`,
+      and functional Playwright `159` passed with `106` documented skips across
+      `265` specs. Visual parity remains `98/104` with only the six documented
+      state-oracle diffs; cleanup/resource accounting is clean.
+- [ ] Continue the next bounded canonical provider/history population slice;
+      route identity and reconstruction readiness are not proof that all SPYV
+      historical holdings, weights, membership, or member bars are populated.
+
 ### 2026-09-07 — Enable RSP SEC filing-reconstruction history route
 
 - [x] Upgrade mapped Invesco RSP from issuer-current-only to

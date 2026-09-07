@@ -13,10 +13,10 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  The exact-tip full_stack_browser gate at product tip e96ef740 passed all
+  The exact-tip full_stack_browser gate at product tip 2b46d6e5 passed all
   locked, backend, frontend, build, stack, runner, and functional-browser
-  stages after enabling bounded SEC filing reconstruction for Invesco RSP.
-  The backend unit and integration phases (1329 and 384), combined coverage
+  stages after enabling bounded SEC filing reconstruction for SPYV. The
+  backend unit and integration phases (1331 and 384), combined coverage
   (80.94%), frontend Vitest (970/970), and functional Playwright (159 passed
   with 106 documented skips across 265 specs) are green. The only remaining
   gate boundary is the six known visual state-oracle diffs:
@@ -24,6 +24,10 @@ current_blocker: >-
   1080p-100/125 and 1440p-100/125. Continue the next bounded canonical
   provider/history population slice while preserving the visual-only boundary
   and unchanged provider/fallback/acceptance policy.
+  Historical product commit e96ef740 upgraded Invesco RSP to bounded SEC
+  locked, backend, frontend, build, stack, runner, and functional-browser
+  filing reconstruction using its curated CIK/series/class identity; focused
+  and live evidence is retained in the durable history below.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "The roadmap changes frontend workstation behavior, backend canonical provider/history contracts, authenticated browser workflows, Playwright visual assertions, worker-backed data readiness, and full integration evidence."
@@ -118,18 +122,21 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
-    Product commit e96ef740 upgrades Invesco RSP to bounded SEC
+    Product commit 2b46d6e5 upgrades SPYV to bounded SEC
     filing-reconstruction history using its curated CIK/series/class identity;
-    focused taxonomy/planner/refresh/route/adapter checks passed 24/24, the
+    focused taxonomy/planner/refresh/route/adapter checks passed 7/7, the
     selected family coverage API regression passed 1/1, static checks passed,
-    and opt-in live QQQ/RSP SEC probes passed 2/2. The exact-tip gate passed
-    all non-visual stages and functional Playwright (backend 1329 unit and 384
-    integration tests; 80.94% combined
-    coverage; frontend 970/970; functional 159 passed with 106 documented
-    skips across 265 specs). The only remaining boundary is the six known
-    visual state-oracle diffs; preserve them and the unchanged
-    provider/fallback/acceptance policy while continuing the next bounded
-    canonical provider/history slice.
+    and the opt-in live SPYV SEC probe passed 1/1. The exact-tip gate passed all
+    non-visual stages and functional Playwright (backend 1331 unit and 384
+    integration tests; 80.94% combined coverage; frontend 970/970; functional
+    159 passed with 106 documented skips across 265 specs). The only remaining
+    boundary is the six known visual state-oracle diffs; preserve them and the
+    unchanged provider/fallback/acceptance policy while continuing the next
+    bounded canonical provider/history slice.
+    Historical product commit e96ef740 upgraded Invesco RSP to bounded SEC
+    filing-reconstruction history using its curated CIK/series/class identity;
+    focused taxonomy/planner/refresh/route/adapter checks passed 24/24 and
+    opt-in live QQQ/RSP SEC probes passed 2/2.
     Corrected exact-tip gate at product da417508 and docs 4b16ddc1 passed all
     locked/non-visual stages and functional Playwright 158/158 with 106
     documented skips across 264 specs. The visual matrix is 98/104 with the
