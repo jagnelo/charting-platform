@@ -13,17 +13,18 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  The exact-tip full_stack_browser gate at product tip f7bd23a3 passed all
+  The exact-tip full_stack_browser gate at product tip ebbb0664 passed all
   locked, backend, frontend, build, stack, runner, and functional-browser
-  stages after enabling bounded SEC filing reconstruction for MDYV. The
-  backend unit and integration phases (1337 and 384), combined coverage
-  (80.94%), frontend Vitest (970/970), and functional Playwright (159 passed
-  with 106 documented skips across 265 specs) are green. The only remaining
+  stages after enabling bounded SEC filing reconstruction for legacy MDY. The
+  backend unit and integration phases (1339 and 384), frontend Vitest (970/970),
+  and functional Playwright (159 passed with 106 documented skips across 265
+  specs) are green; combined backend coverage also passed. The only remaining
   gate boundary is the six known visual state-oracle diffs:
-  watchlist-column-editor-open at 1080p-100/125 and workspace-floating at
-  1080p-100/125 and 1440p-100/125. Continue the next bounded canonical
-  provider/history population slice while preserving the visual-only boundary
-  and unchanged provider/fallback/acceptance policy.
+  watchlist-column-editor-open at 1080p-100/125 and workspace-floating at all
+  four visual projects. Continue the next bounded canonical provider/history
+  population slice while preserving the visual-only boundary and unchanged
+  provider/fallback/acceptance policy. Four mapped SPDR roles remain
+  issuer-current-only: SPY, SLYV, SLYG, and SPTM.
   Historical product commit 7ee30073 upgraded SPYG to bounded SEC filing
   reconstruction using its curated CIK/series/class identity; focused and live
   evidence is retained in the durable history below.
@@ -128,18 +129,19 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
-    Product commit f7bd23a3 upgrades MDYV to bounded SEC
-    filing-reconstruction history using its curated CIK/series/class identity;
-    focused taxonomy/planner/refresh/route/adapter checks passed 8/8, the
-    selected family coverage API regression passed 1/1, static checks passed,
-    and the opt-in live MDYV SEC probe passed 1/1 on the verified result. The
-    exact-tip gate passed all non-visual stages and functional Playwright
-    (backend 1337 unit and 384 integration tests; 80.94% combined coverage;
+    Product commit ebbb0664 upgrades legacy MDY to bounded SEC
+    filing-reconstruction history using CIK 0000936958 and legacy series-name
+    identity MidCap 400 ETF Trust; focused taxonomy/planner/route/adapter
+    checks passed 11/11, the selected family coverage API regression passed
+    1/1, static checks passed, and the opt-in live MDY SEC probe passed 1/1 on
+    the verified result. The exact-tip gate passed all non-visual stages and
+    functional Playwright (backend 1339 unit and 384 integration tests;
     frontend 970/970; functional 159 passed with 106 documented skips across
     265 specs). The only remaining boundary is the six known visual
     state-oracle diffs; preserve them and the unchanged provider/fallback/
     acceptance policy while continuing the next bounded canonical
-    provider/history slice.
+    provider/history slice. Four mapped SPDR roles remain issuer-current-only:
+    SPY, SLYV, SLYG, and SPTM.
     Historical product commit 7ee30073 upgraded SPYG to bounded SEC
     filing-reconstruction history using its curated CIK/series/class identity;
     focused and live evidence is retained in the durable history below.

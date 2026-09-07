@@ -1,5 +1,25 @@
 # Project TODO Memory
 
+### 2026-09-07 — Enable MDY SEC filing-reconstruction history route
+
+- [x] Upgrade mapped SPDR MDY from issuer-current-only to
+      `sec_filing_reconstruction` using SEC CIK `0000936958`, legacy N-PORT
+      series-name identity `MidCap 400 ETF Trust`, and a bounded 50-filing
+      search window; retain the issuer daily-workbook route separately. Product
+      commit `ebbb0664`.
+- [x] Focused regression/static checks passed (`11` selected tests), the
+      selected family coverage API regression passed `1/1`, and the opt-in live
+      MDY SEC route probe passed `1/1` on the verified result (the command's
+      global coverage warning is unrelated to the underlying test).
+- [x] Exact-tip gate passed all non-visual stages: backend `1339` unit and
+      `384` integration tests, frontend `970/970`, and functional Playwright
+      `159` passed with `106` documented skips across `265` specs. Visual parity
+      remains `98/104` with only the six documented state-oracle diffs;
+      cleanup/resource accounting is clean.
+- [ ] Continue the next bounded canonical provider/history population slice;
+      route identity and reconstruction readiness are not proof that all MDY
+      historical holdings, weights, membership, or member bars are populated.
+
 ### 2026-09-07 — Enable MDYV SEC filing-reconstruction history route
 
 - [x] Upgrade mapped SPDR MDYV from issuer-current-only to
