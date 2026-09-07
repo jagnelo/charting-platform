@@ -4804,6 +4804,43 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8u-boolean — chart indicators promote into a persisted Boolean watchlist column', async ({ page, browserDiagnostics }) => {
+    test.setTimeout(60_000)
+    await page.goto('/chart/SPY')
+    await expect(page.getByRole('region', { name: 'Major US benchmarks' })).toBeVisible({ timeout: 10_000 })
+    const chart = page.locator('.chart-tool:visible').last()
+    await expect(chart).toBeVisible({ timeout: 10_000 })
+    const plots = chart.locator('button[aria-label="Chart plot library"]')
+    await plots.click()
+    await chart.locator('select[aria-label="Add indicator plot"]').selectOption('rsi')
+    await expect(chart.locator('.chart-plots__menu')).toHaveCount(0, { timeout: 10_000 })
+    await plots.click()
+    const plot = chart.locator('.chart-plots li').filter({ hasText: 'RSI' }).last()
+    await expect(plot).toBeVisible({ timeout: 10_000 })
+    await chart.getByRole('combobox', { name: 'Promotion plot' }).selectOption({ index: 1 })
+
+    await page.getByRole('combobox', { name: 'Plot promotion target' }).selectOption('column')
+    const targetPicker = page.getByRole('combobox', { name: 'Plot promotion watchlist' })
+    await expect(targetPicker).toBeVisible({ timeout: 10_000 })
+    const targetOption = targetPicker.locator('option').nth(1)
+    const targetKey = await targetOption.getAttribute('value')
+    const targetTitle = (await targetOption.textContent())?.trim() || ''
+    expect(targetKey).toBeTruthy()
+    await targetPicker.selectOption(targetKey!)
+    await page.getByRole('spinbutton', { name: 'Plot promotion threshold' }).fill('65')
+    await page.getByRole('textbox', { name: 'Plot promotion name' }).fill('RSI Boolean column')
+
+    const conditionSave = page.waitForResponse(response => response.request().method() === 'PUT' && response.url().includes('/api/v1/workspaces/library/conditions/rsi-boolean-column') && response.ok())
+    const scanCreate = page.waitForResponse(response => response.request().method() === 'POST' && response.url().includes('/api/v1/screeners/from-condition/rsi-boolean-column') && response.ok())
+    await page.getByRole('button', { name: 'Copy', exact: true }).click()
+    await Promise.all([conditionSave, scanCreate])
+    await expect(page.locator('.chart-plots__promotion-status')).toContainText('Boolean column', { timeout: 15_000 })
+
+    const target = page.getByRole('region', { name: targetTitle })
+    await expect(target.locator('.watchlist__header button').filter({ hasText: 'RSI Boolean column' })).toBeVisible({ timeout: 15_000 })
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8v — technical condition trees transfer into Boolean watchlist columns through the real drag path', async ({ page, browserDiagnostics }) => {
     test.setTimeout(90_000)
     await page.goto('/chart/SPY')
