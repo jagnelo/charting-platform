@@ -4975,6 +4975,15 @@ or capability classification changed. AC10 remains deferred pending the
 shared provider-platform branch reaching staging, and AC14 remains a
 post-integration/deployment gate.
 
+## ETF holdings API integration validation — 2026-09-07
+
+The complete `backend/tests/integration/api/test_etf_holdings.py` suite passed
+`72` tests when rerun with Docker socket access for its Redis testcontainer.
+The unprivileged attempt was rejected by the managed sandbox before the
+container could start; this was an environment permission boundary, not a
+test or application failure. Two dependency deprecation warnings were emitted
+by Nautilus/NumPy. No source behavior or capability classification changed.
+
 ## Cohanzick live-matrix classification fix — 2026-09-07
 
 Exact-SHA CI run `34133116452` exposed one failure in the opt-in live matrix:
