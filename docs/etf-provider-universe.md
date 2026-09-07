@@ -2258,6 +2258,13 @@ Cloudflare HTML again. No complete executable artifact was retrieved, so MDST
 remains unavailable and Westwood remains issuer-access-blocked; no promotion
 or paid activation was made.
 
+## Argent HTML holdings recheck — 2026-09-07
+
+The AMID, ABIG, and ALIL first-party pages returned complete HTML holdings
+tables, but every row carried effective date `2026-09-08`, one day future to
+the observation. The route is reachable, yet the freshness boundary correctly
+keeps all three unavailable for current analysis; no native promotion was made.
+
 ## Advisors Asset Management representative-route recheck — 2026-09-07
 
 Fresh AAM symbol-scoped probes returned HTTP 403 for SPDV and empty-server

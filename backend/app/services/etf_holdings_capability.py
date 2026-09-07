@@ -893,13 +893,16 @@ _register_non_tier_0_audits(
 _register_non_tier_0_audits(
     ("AMID", "ABIG", "ALIL"),
     outcome=UNAVAILABLE,
-    evidence_state="issuer_route_access_blocked",
+    evidence_state="future_dated_source",
     provider_identity="argent",
-    investigated_at=date(2026, 9, 2),
-    evidence_refs=("web:argent-etf-holdings-cloudflare-2026-09-02",),
+    investigated_at=date(2026, 9, 7),
+    evidence_refs=(
+        "web:argent-etf-holdings-cloudflare-2026-09-02",
+        "live:argent-html-holdings-future-effective-date-2026-09-07",
+    ),
     next_action=(
-        "Re-test symbol-scoped pages or identify an issuer-published machine-readable export accessible "
-        "without challenge state; promote only after parser and bounded live evidence."
+        "Re-test Argent symbol-scoped pages after the effective date is no longer future-dated; "
+        "promote only after parser, identity, freshness, and bounded live evidence pass."
     ),
 )
 _register_non_tier_0_audits(

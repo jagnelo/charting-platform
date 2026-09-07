@@ -4919,6 +4919,13 @@ The official MDST page and declared CSV route both returned HTTP 403 Cloudflare
 HTML again. No complete current artifact was exposed; MDST remains unavailable
 and issuer-access-blocked without promotion or paid activation.
 
+## Argent HTML holdings recheck — 2026-09-07
+
+AMID, ABIG, and ALIL pages returned complete HTML holdings tables, but all rows
+were effective `2026-09-08`, future-dated relative to the observation. The
+route is reachable but the symbols remain unavailable until a non-future,
+identity-bound snapshot is proven; no promotion occurred.
+
 ## Advisors Asset Management representative-route recheck — 2026-09-07
 
 Fresh AAM symbol-scoped probes returned HTTP 403 for SPDV and empty-server

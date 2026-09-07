@@ -310,26 +310,26 @@ symbol_audit_ledger:
       tier: 1
       provider_identity: argent
       current_outcome: unavailable
-      evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-09-02
-      evidence_refs: [web:argent-etf-holdings-cloudflare-2026-09-02]
-      next_action: "Re-test symbol-scoped pages or identify an issuer-published machine-readable export accessible without challenge state; promote only after parser and bounded live evidence."
+      evidence_state: future_dated_source
+      investigated_at: 2026-09-07
+      evidence_refs: [web:argent-etf-holdings-cloudflare-2026-09-02, live:argent-html-holdings-future-effective-date-2026-09-07]
+      next_action: "Re-test Argent symbol-scoped pages after the effective date is no longer future-dated; promote only after parser, identity, freshness, and bounded live evidence pass."
     - symbol: ABIG
       tier: 1
       provider_identity: argent
       current_outcome: unavailable
-      evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-09-02
-      evidence_refs: [web:argent-etf-holdings-cloudflare-2026-09-02]
-      next_action: "Re-test symbol-scoped pages or identify an issuer-published machine-readable export accessible without challenge state; promote only after parser and bounded live evidence."
+      evidence_state: future_dated_source
+      investigated_at: 2026-09-07
+      evidence_refs: [web:argent-etf-holdings-cloudflare-2026-09-02, live:argent-html-holdings-future-effective-date-2026-09-07]
+      next_action: "Re-test Argent symbol-scoped pages after the effective date is no longer future-dated; promote only after parser, identity, freshness, and bounded live evidence pass."
     - symbol: ALIL
       tier: 1
       provider_identity: argent
       current_outcome: unavailable
-      evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-09-02
-      evidence_refs: [web:argent-etf-holdings-cloudflare-2026-09-02]
-      next_action: "Re-test symbol-scoped pages or identify an issuer-published machine-readable export accessible without challenge state; promote only after parser and bounded live evidence."
+      evidence_state: future_dated_source
+      investigated_at: 2026-09-07
+      evidence_refs: [web:argent-etf-holdings-cloudflare-2026-09-02, live:argent-html-holdings-future-effective-date-2026-09-07]
+      next_action: "Re-test Argent symbol-scoped pages after the effective date is no longer future-dated; promote only after parser, identity, freshness, and bounded live evidence pass."
     - symbol: ATTR
       tier: 1
       provider_identity: arin
@@ -1916,7 +1916,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: inactive_or_successor_disposition
     disposition: inactive_or_successor_disposition
-    last_checked: 2026-09-02
+    last_checked: 2026-09-07
     source_access_declared: issuer_public_holdings_file
     representative_symbols:
       - ALFA
@@ -2187,8 +2187,12 @@ providers:
         source: "https://argentetfs.com/alil/"
         result: "Argent's public AMID, ABIG, and ALIL pages visibly expose current holdings tables, but the backend request is blocked by Cloudflare before a stable executable artifact can be captured."
         evidence_ref: "web:argent-etf-holdings-cloudflare-2026-09-02"
-    disposition_reason: "argent: First-party product pages expose complete current holdings tables, but backend requests are Cloudflare-blocked; no stable executable route is proven for native promotion."
-    next_action: "argent: Re-test symbol-scoped pages or identify an issuer-published machine-readable export accessible without challenge state; promote only after parser and bounded live evidence."
+      - date: 2026-09-07
+        source: "https://argentetfs.com/amid/; https://argentetfs.com/abig/; https://argentetfs.com/alil/"
+        result: "All three public pages returned complete HTML holdings tables with effective date 2026-09-08, future-dated relative to the 2026-09-07 observation. The routes are reachable, but the freshness boundary keeps all symbols unavailable for current analysis."
+        evidence_ref: "live:argent-html-holdings-future-effective-date-2026-09-07"
+    disposition_reason: "argent: First-party product pages now expose complete HTML holdings tables, but every row is future-dated relative to the 2026-09-07 observation; the route remains non-current until freshness and identity checks pass."
+    next_action: "argent: Re-test symbol-scoped pages after the effective date is no longer future-dated; promote only after parser, identity, freshness, and bounded live evidence pass."
     implementation_sha: null
     validation_refs: []
   - adapter_key: arin
