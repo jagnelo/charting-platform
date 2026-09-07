@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-09-07 — Enable MDYV SEC filing-reconstruction history route
+
+- [x] Upgrade mapped SPDR MDYV from issuer-current-only to
+      `sec_filing_reconstruction` using SEC CIK `0001064642`, series
+      `S000006988`, class `C000019041`, and a bounded 50-filing search window;
+      retain the issuer daily-workbook route separately. Product commit
+      `f7bd23a3`.
+- [x] Focused regressions/static checks passed (`8` selected tests) and the
+      opt-in live MDYV SEC route probe passed `1/1` on the verified result.
+- [x] Exact-tip gate passed all non-visual stages: backend `1337` unit and
+      `384` integration tests, `80.94%` combined coverage, frontend `970/970`,
+      and functional Playwright `159` passed with `106` documented skips
+      across `265` specs. Visual parity remains `98/104` with only the six
+      documented state-oracle diffs; cleanup/resource accounting is clean.
+- [ ] Continue the next bounded canonical provider/history population slice;
+      route identity and reconstruction readiness are not proof that all MDYV
+      historical holdings, weights, membership, or member bars are populated.
+
 ### 2026-09-07 — Enable MDYG SEC filing-reconstruction history route
 
 - [x] Upgrade mapped SPDR MDYG from issuer-current-only to
