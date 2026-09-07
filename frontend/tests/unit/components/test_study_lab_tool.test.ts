@@ -776,6 +776,30 @@ describe('StudyLabTool', () => {
     await vi.waitFor(() => expect(wrapper.text()).toContain('Promoted series artifact “trend” to a thresholded scan alert.'))
     expect(apiPost.mock.calls.filter(call => String(call[0]).startsWith('/screeners/from-python-condition/'))).toHaveLength(1)
     expect(apiPost).toHaveBeenCalledWith('/alerts/screener', { screener_id: 150, trigger_type: 'entered', repeat: true, notes: 'Created from Study Lab series run 149 (trend)' })
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 154 }] })
+      if (path === '/strategy-lab/signals/from-code/154') return Promise.resolve({ id: 155, name: 'trend Strategy signal' })
+      return Promise.resolve({})
+    })
+    await wrapper.findAll('[aria-label="Study series threshold condition"] button').find(button => button.text() === 'Save as Strategy signal')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved thresholded series “trend” as Strategy signal “trend Strategy signal” (#155).'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'signal',
+      initial_version: expect.objectContaining({
+        output_contract: 'boolean',
+        output_name: 'trend',
+        lineage: expect.objectContaining({
+          target: 'signal',
+          output_adapter: 'series_target_to_boolean',
+          series_target: { operator: 'gt', threshold: 5 },
+          semantics: 'study_series_threshold_as_strategy_signal',
+          source_instrument_ids: [7],
+          source_universe_source_id: 'watchlist:7',
+          source_membership_version: 'watchlist:7:v2',
+        }),
+      }),
+    }))
+    expect(apiPost).toHaveBeenCalledWith('/strategy-lab/signals/from-code/154', {})
   })
 
   it('promotes a direct Study Lab range center through an explicit threshold condition', async () => {
@@ -821,6 +845,27 @@ describe('StudyLabTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/screeners/from-python-condition/151', expect.objectContaining({
       provenance: expect.objectContaining({ output_adapter: 'range_center_target_to_boolean', series_target: { operator: 'gt', threshold: 2.5 } }),
     }))
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 156 }] })
+      if (path === '/strategy-lab/signals/from-code/156') return Promise.resolve({ id: 157, name: 'confidence Strategy signal' })
+      return Promise.resolve({})
+    })
+    await wrapper.findAll('[aria-label="Study range center threshold condition"] button').find(button => button.text() === 'Save as Strategy signal')!.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved thresholded range center “confidence” as Strategy signal “confidence Strategy signal” (#157).'))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'signal',
+      initial_version: expect.objectContaining({
+        output_contract: 'boolean',
+        output_name: 'confidence',
+        lineage: expect.objectContaining({
+          target: 'signal',
+          output_adapter: 'range_center_target_to_boolean',
+          series_target: { operator: 'gt', threshold: 2.5 },
+          semantics: 'study_range_center_threshold_as_strategy_signal',
+        }),
+      }),
+    }))
+    expect(apiPost).toHaveBeenCalledWith('/strategy-lab/signals/from-code/156', {})
   })
 
   it('promotes a completed event study without coercing its event contract', async () => {

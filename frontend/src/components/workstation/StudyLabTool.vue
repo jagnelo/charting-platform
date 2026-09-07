@@ -394,10 +394,10 @@ const metricArtifacts = computed(() => (run.value?.artifacts ?? []).filter(artif
 const nonScalarArtifacts = computed(() => (run.value?.artifacts ?? []).filter(artifact => !['scalar', 'boolean'].includes(artifact.artifact_type)))
 type PromotionTarget = 'column' | 'plot' | 'filter' | 'scan' | 'gauge' | 'alert' | 'signal'
 type ArtifactPromotion = { artifact: Artifact; target: PromotionTarget; label: string }
-type SeriesConditionTarget = 'column' | 'filter' | 'scan' | 'gauge' | 'alert'
-const seriesConditionTargets: SeriesConditionTarget[] = ['filter', 'scan', 'gauge', 'alert']
+type SeriesConditionTarget = 'column' | 'filter' | 'scan' | 'gauge' | 'alert' | 'signal'
+const seriesConditionTargets: SeriesConditionTarget[] = ['filter', 'scan', 'gauge', 'alert', 'signal']
 function seriesConditionLabel(target: SeriesConditionTarget) {
-  return target === 'column' ? 'Save Boolean column' : target === 'filter' ? 'Save watchlist filter' : target === 'scan' ? 'Promote scan' : target === 'gauge' ? 'Use as Market Gauge' : 'Promote alert'
+  return target === 'column' ? 'Save Boolean column' : target === 'filter' ? 'Save watchlist filter' : target === 'scan' ? 'Promote scan' : target === 'gauge' ? 'Use as Market Gauge' : target === 'alert' ? 'Promote alert' : 'Save as Strategy signal'
 }
 function seriesConditionKey(artifact?: Artifact, adapter = 'series_target_to_boolean') {
   const selected = artifact ?? run.value?.artifacts?.find(item => item.artifact_type === 'series')
@@ -423,6 +423,55 @@ function studySourceId() {
 function studyMembershipVersion() {
   const sourceManifest = run.value?.dataset_manifest ?? {}
   return typeof sourceManifest.universe_membership_version === 'string' && sourceManifest.universe_membership_version.trim() ? sourceManifest.universe_membership_version : null
+}
+
+async function promoteThresholdedStrategySignal(
+  studyRun: Run,
+  artifact: Artifact,
+  seriesTarget: { operator: string; threshold: number },
+  outputAdapter: 'series_target_to_boolean' | 'range_center_target_to_boolean',
+  semantics: 'study_series_threshold_as_strategy_signal' | 'study_range_center_threshold_as_strategy_signal',
+) {
+  const declaredInstrumentIds = declaredStudyInstrumentIds()
+  if (!declaredInstrumentIds.length) throw new Error('The study dataset has no declared canonical members; refusing to widen the Strategy signal universe.')
+  if (!runSource.value) throw new Error('The immutable source code version for this study is unavailable.')
+  const sourceManifest = studyRun.dataset_manifest ?? {}
+  const sourceRunConfig = studyRun.run_config ?? {}
+  const lineage = {
+    type: 'study_run_promotion',
+    source_run_id: studyRun.id,
+    source_code_version_id: studyRun.code_version_id ?? runCodeVersionId.value,
+    source_reproducibility_hash: studyRun.reproducibility_hash ?? null,
+    source_dataset_manifest: sourceManifest,
+    source_run_config: sourceRunConfig,
+    source_output_name: artifact.name,
+    source_instrument_ids: declaredInstrumentIds,
+    source_universe_source_id: studySourceId(),
+    source_membership_version: studyMembershipVersion(),
+    target: 'signal',
+    output_adapter: outputAdapter,
+    series_target: seriesTarget,
+    semantics,
+    point_in_time_source_preserved: false,
+  }
+  const asset = await api.post<{ id?: number; name?: string; versions?: Array<{ id?: number }> }>('/code/assets', {
+    stable_key: uniqueAssetKey(`${name.value}-${artifact.name}-signal`, 'signal'),
+    name: `${artifact.name} Strategy signal`,
+    kind: 'signal',
+    initial_version: {
+      source: runSource.value,
+      output_contract: 'boolean',
+      output_name: artifact.name,
+      parameter_schema: parsedParameterSchema.value ?? {},
+      default_parameters: buildParameters(),
+      lineage,
+    },
+  })
+  void invalidateCodeAssets(queryClient)
+  const codeVersionId = asset.versions?.[0]?.id ?? asset.id
+  if (typeof codeVersionId !== 'number') throw new Error('The thresholded Strategy signal asset did not return an immutable code version.')
+  const promoted = await api.post<{ id: number; name: string }>(`/strategy-lab/signals/from-code/${codeVersionId}`, {})
+  promotionStatus.value = `Saved thresholded ${outputAdapter === 'range_center_target_to_boolean' ? 'range center' : 'series'} “${artifact.name}” as Strategy signal “${promoted.name}” (#${promoted.id}).`
 }
 const artifactPromotions = computed<ArtifactPromotion[]>(() => {
   if (!run.value || run.value.status !== 'completed' || !runSource.value) return []
@@ -995,6 +1044,16 @@ async function promoteSeriesCondition(target: SeriesConditionTarget) {
       semantics: 'study_series_threshold_as_boolean',
       point_in_time_source_preserved: false,
     }
+    if (target === 'signal') {
+      await promoteThresholdedStrategySignal(
+        studyRun,
+        artifact,
+        seriesTarget,
+        'series_target_to_boolean',
+        'study_series_threshold_as_strategy_signal',
+      )
+      return
+    }
     let codeVersionId = target === 'column' ? cached.columnCodeVersionId : cached.codeVersionId
     if (typeof codeVersionId !== 'number') {
       const kind = target === 'column' ? 'column' : 'condition'
@@ -1088,6 +1147,16 @@ async function promoteRangeCenterCondition(target: SeriesConditionTarget) {
       series_target: seriesTarget,
       semantics: 'study_range_center_threshold_as_boolean',
       point_in_time_source_preserved: false,
+    }
+    if (target === 'signal') {
+      await promoteThresholdedStrategySignal(
+        studyRun,
+        artifact,
+        seriesTarget,
+        'range_center_target_to_boolean',
+        'study_range_center_threshold_as_strategy_signal',
+      )
+      return
     }
     const kind = target === 'column' ? 'column' : 'condition'
     let codeVersionId = target === 'column' ? cached.columnCodeVersionId : cached.codeVersionId
