@@ -2257,3 +2257,9 @@ Both the official MDST product page and declared CSV route returned HTTP 403
 Cloudflare HTML again. No complete executable artifact was retrieved, so MDST
 remains unavailable and Westwood remains issuer-access-blocked; no promotion
 or paid activation was made.
+
+## Advisors Asset Management representative-route recheck — 2026-09-07
+
+Fresh AAM symbol-scoped probes returned HTTP 403 for SPDV and empty-server
+replies for BDIV, TRFM, and PFLD. No complete export or stable holdings
+transport was retrieved; all four remain unavailable and issuer-access-blocked.

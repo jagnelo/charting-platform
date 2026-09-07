@@ -4918,3 +4918,9 @@ the existing ACV route and no separate Ridgeline adapter was promoted.
 The official MDST page and declared CSV route both returned HTTP 403 Cloudflare
 HTML again. No complete current artifact was exposed; MDST remains unavailable
 and issuer-access-blocked without promotion or paid activation.
+
+## Advisors Asset Management representative-route recheck — 2026-09-07
+
+Fresh AAM symbol-scoped probes returned HTTP 403 for SPDV and empty-server
+replies for BDIV, TRFM, and PFLD. No complete export or stable holdings
+transport was retrieved; all four remain unavailable and issuer-access-blocked.
