@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-07 — Authenticated browser proof for chart watchlist-filter promotion
+
+- [x] Add and run the consuming F8u-filter Playwright flow: chart RSI
+      promotion reaches a selected persisted active watchlist filter and the
+      saved workspace snapshot retains the filter mode and EasyScan identifier
+      (`91c470dc`, focused `1/1`).
+- [x] Exact-tip gate recorded backend `1350` unit/`385` integration, frontend
+      `972/972`, and functional Playwright `161` passed with `106` documented
+      skips across `267`; visual parity remains `98/104` with only the six
+      known state-oracle diffs and cleanup/resource accounting is clean.
+- [ ] Continue the remaining compatible chart/list/gauge and Strategy Lab
+      promotion fan-out alongside canonical provider/history population and
+      R2-R7 roadmap work.
+
 ### 2026-09-07 — Authenticated browser proof for chart Boolean-column promotion
 
 - [x] Add and run the consuming F8u-boolean Playwright flow: chart RSI

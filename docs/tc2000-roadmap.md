@@ -5,6 +5,30 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-07
 
+## 2026-09-07 — Prove chart watchlist-filter promotion in the authenticated browser
+
+Test commit `91c470dc` adds the consuming-UI F8u-filter Playwright flow. It
+opens a real chart, adds RSI, selects the active-filter promotion target and an
+existing watchlist, submits the promotion, and verifies the persisted filter
+mode and EasyScan identifier in the saved workspace snapshot while checking
+browser diagnostics. The focused live flow passed `1/1` against the
+branch-scoped Docker stack.
+
+The exact-tip gate passed all non-visual stages: backend `1350` unit and `385`
+integration tests with combined coverage above the repository floor, frontend
+`972/972`, production build/compose/provider policy, stack health,
+runner-isolation/resource probes, and authenticated functional Playwright
+`161` passed with `106` documented skips across `267`. The unchanged visual
+matrix returned `98/104`, exactly the six known state-oracle diffs
+(watchlist-column-editor-open at visual-1080p-100/125 and workspace-floating
+at visual-1080p-100/125 and visual-1440p-100/125). No visual baseline, mask,
+threshold, skip, fallback, provider, or acceptance policy changed. Cleanup
+removed four generated images and left no assigned containers, volumes,
+sessions, or known bytes. Continue the remaining compatible chart/list/gauge
+and Strategy Lab fan-out alongside broader R1 canonical population/history and
+R2-R7 work; this closes browser proof for the filter fan-out slice but does not
+imply complete promotion fan-out.
+
 ## 2026-09-07 — Prove chart Boolean-column promotion in the authenticated browser
 
 Test commit `a229a145` adds the consuming-UI F8u-boolean Playwright flow. It
