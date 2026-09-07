@@ -3314,6 +3314,16 @@ KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
             "sec_fund_tickers_symbol": "MDYG",
         },
     },
+    "MDYV": {
+        "issuer": "State Street Global Advisors",
+        "provider_aliases": {
+            "holdings_adapter": "spdr",
+            "sec_cik": "0001064642",
+            "sec_series_id": "S000006988",
+            "sec_class_id": "C000019041",
+            "sec_fund_tickers_symbol": "MDYV",
+        },
+    },
     "EEM": {
         "issuer": "iShares",
         "provider_aliases": {
