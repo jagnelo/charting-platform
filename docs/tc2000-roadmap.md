@@ -5,6 +5,39 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-07
 
+## 2026-09-07 — Enable SLYG SEC filing-reconstruction history route
+
+Product commit `49d8d98f` upgrades the mapped State Street/SPDR SLYG role from
+issuer-current-only to `sec_filing_reconstruction` through SEC CIK
+`0001064642`, series `S000006984`, class `C000019037`, and fund ticker
+`SLYG`. The dated policy is `latest_sec_filing_report_on_or_before_requested_date`
+with source `https://data.sec.gov/submissions/CIK0001064642.json`; the issuer
+daily workbook route remains available separately for current snapshots. The
+adapter uses the bounded 50-filing SEC window because the CIK contains multiple
+fund series. The remaining mapped SPDR role stays explicitly issuer-current-only:
+SPTM. Focused regression/static checks passed (`8` selected tests); the selected
+family coverage API regression passed `1/1`; the opt-in live SLYG SEC route probe
+passed `1/1` on the verified result (the command's global coverage threshold
+warning is unrelated to the underlying test). This proves route identity and
+bounded dated reconstruction only; it does not claim complete historical
+membership, weights, or member-bar history for SLYG.
+
+## 2026-09-07 — Exact-tip gate after SLYG SEC history reconstruction
+
+At exact product tip `49d8d98f`, all locked dependency/migration/workstream,
+Ruff/format/type-check, backend unit/integration and coverage, frontend
+Vitest/build, compose/provider policy, stack health, research-runner
+isolation/resource probes, and authenticated functional Playwright stages passed
+(`1344` unit, `384` integration, frontend `970/970`, and `159` functional passes
+with `106` documented skips across `265` specs). The unchanged visual matrix
+completed `104` cases with `98` passes and exactly six known state-oracle diffs:
+watchlist-column-editor-open at visual-1080p-100/125 and workspace-floating at
+all four visual projects. No baseline, mask, threshold, skip, fallback, provider,
+or acceptance policy changed. Docker cleanup removed four generated images and
+post-gate resource accounting was clean with zero containers, volumes, sessions,
+and known bytes. Continue the final bounded canonical provider/history slice
+while preserving this visual-only boundary.
+
 ## 2026-09-07 — Enable SLYV SEC filing-reconstruction history route
 
 Product commit `feded2ca` upgrades the mapped State Street/SPDR SLYV role from
