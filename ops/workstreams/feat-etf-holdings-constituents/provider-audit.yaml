@@ -351,32 +351,32 @@ symbol_audit_ledger:
       provider_identity: baillie_gifford
       current_outcome: unavailable
       evidence_state: non_executable_public_source
-      investigated_at: 2026-09-02
-      evidence_refs: [web:baillie-gifford-top-ten-only-2026-09-02]
+      investigated_at: 2026-09-07
+      evidence_refs: [web:baillie-gifford-top-ten-only-2026-09-02, live:baillie-gifford-top-holdings-xlsx-2026-09-07]
       next_action: "Locate a complete constituent export for each U.S. ETF, prove symbol mapping and identifiers, then add a provider-specific parser and live route test."
     - symbol: BGIA
       tier: 1
       provider_identity: baillie_gifford
       current_outcome: unavailable
       evidence_state: non_executable_public_source
-      investigated_at: 2026-09-02
-      evidence_refs: [web:baillie-gifford-top-ten-only-2026-09-02]
+      investigated_at: 2026-09-07
+      evidence_refs: [web:baillie-gifford-top-ten-only-2026-09-02, live:baillie-gifford-top-holdings-xlsx-2026-09-07]
       next_action: "Locate a complete constituent export for each U.S. ETF, prove symbol mapping and identifiers, then add a provider-specific parser and live route test."
     - symbol: BGEG
       tier: 1
       provider_identity: baillie_gifford
       current_outcome: unavailable
       evidence_state: non_executable_public_source
-      investigated_at: 2026-09-02
-      evidence_refs: [web:baillie-gifford-top-ten-only-2026-09-02]
+      investigated_at: 2026-09-07
+      evidence_refs: [web:baillie-gifford-top-ten-only-2026-09-02, live:baillie-gifford-top-holdings-xlsx-2026-09-07]
       next_action: "Locate a complete constituent export for each U.S. ETF, prove symbol mapping and identifiers, then add a provider-specific parser and live route test."
     - symbol: BGUS
       tier: 1
       provider_identity: baillie_gifford
       current_outcome: unavailable
       evidence_state: non_executable_public_source
-      investigated_at: 2026-09-02
-      evidence_refs: [web:baillie-gifford-top-ten-only-2026-09-02]
+      investigated_at: 2026-09-07
+      evidence_refs: [web:baillie-gifford-top-ten-only-2026-09-02, live:baillie-gifford-top-holdings-xlsx-2026-09-07]
       next_action: "Locate a complete constituent export for each U.S. ETF, prove symbol mapping and identifiers, then add a provider-specific parser and live route test."
     - symbol: CHRG
       tier: 1
@@ -2001,7 +2001,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: provider_not_a_portfolio_publisher
     disposition: provider_not_a_portfolio_publisher
-    last_checked: 2026-09-02
+    last_checked: 2026-09-07
     source_access_declared: issuer_public_holdings_file
     representative_symbols: []
     estimated_us_etf_count: null
@@ -2466,6 +2466,10 @@ providers:
         source: "https://www.bailliegifford.com/api/top-holdings?fundId=61715"
         result: "The issuer's advertised holdings spreadsheet returns an XLSX with a title row plus ten top holdings and only Holding Name/Fund % columns; it omits the complete constituent universe and stable identifiers."
         evidence_ref: "web:baillie-gifford-top-ten-only-2026-09-02"
+      - date: 2026-09-07
+        source: "https://www.bailliegifford.com/api/top-holdings?fundId={fund_id}"
+        result: "All four representative routes returned HTTP 200 XLSX files dated 2026-09-04 containing exactly ten top holdings with names and weights but no complete universe, ticker, or stable identifier columns."
+        evidence_ref: "live:baillie-gifford-top-holdings-xlsx-2026-09-07"
     disposition_reason: "baillie_gifford: The issuer's public spreadsheet endpoint is executable but only supplies top-ten holdings without ticker/identifier columns, so it is not a complete holdings source for native promotion."
     next_action: "baillie_gifford: Locate a complete constituent export for each US ETF, prove symbol mapping and identifiers, then add a provider-specific parser and live route test."
     implementation_sha: null

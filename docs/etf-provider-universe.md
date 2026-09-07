@@ -2278,6 +2278,14 @@ HTML holdings table, but its effective-date table reported `2026-09-08`, future
 to the observation. The route is reachable, yet ATTR remains unavailable until
 a non-future, identity-bound snapshot is proven.
 
+## Baillie Gifford top-holdings route recheck — 2026-09-07
+
+All four official API routes returned HTTP 200 XLSX files dated `2026-09-04`,
+but each contained exactly ten top holdings with names and weights only. The
+files omit the complete constituent universe, tickers, and stable identifiers;
+BGGG, BGIA, BGEG, and BGUS remain unavailable and non-executable for native
+support.
+
 ## Avos AVOS HTML holdings recheck — 2026-09-07
 
 The official AVOS page returned a complete HTML holdings table, but every row

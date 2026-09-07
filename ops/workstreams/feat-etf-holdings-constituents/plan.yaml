@@ -280,6 +280,7 @@ remaining_gaps:
   - "The 2026-09-07 Argent recheck found complete AMID/ABIG/ALIL HTML holdings tables, but all rows were effective 2026-09-08, future-dated relative to observation. The freshness boundary keeps all three unavailable; no native promotion was made."
   - "The 2026-09-07 Arin recheck found a complete ATTR HTML holdings table, but its effective-date table reported 2026-09-08, future-dated relative to observation. ATTR remains unavailable until a non-future snapshot is proven; no native promotion was made."
   - "The 2026-09-07 Avos recheck found a complete AVOS HTML holdings table, but all rows were effective 2026-09-08, future-dated relative to observation. AVOS remains unavailable until a non-future snapshot is proven; no native promotion was made."
+  - "The 2026-09-07 Baillie Gifford recheck found HTTP 200 XLSX files for all four routes, dated 2026-09-04 but limited to ten names/weights without complete constituents, tickers, or identifiers. BGGG/BGIA/BGEG/BGUS remain unavailable; no native promotion was made."
 progress:
   completed:
     - AC1

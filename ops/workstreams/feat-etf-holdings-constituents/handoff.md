@@ -4945,3 +4945,10 @@ The official AVOS page returned a complete HTML holdings table, but all rows
 were effective `2026-09-08`, future-dated relative to the observation. AVOS
 remains unavailable until a non-future, identity-bound snapshot is proven; no
 promotion occurred.
+
+## Baillie Gifford top-holdings route recheck — 2026-09-07
+
+All four official API routes returned HTTP 200 XLSX files dated `2026-09-04`,
+each with exactly ten names and weights but no complete universe, tickers, or
+stable identifiers. The four symbols remain unavailable and non-executable for
+native support; no promotion occurred.

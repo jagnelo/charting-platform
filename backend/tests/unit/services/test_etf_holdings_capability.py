@@ -553,8 +553,11 @@ def test_ranked_fallback_non_executable_symbols_remain_unavailable():
     assert result.outcome == UNAVAILABLE
     assert result.evidence_state == "non_executable_public_source"
     assert result.provider_identity == "baillie_gifford"
-    assert result.investigated_at == date(2026, 9, 2)
-    assert result.evidence_refs == ("web:baillie-gifford-top-ten-only-2026-09-02",)
+    assert result.investigated_at == date(2026, 9, 7)
+    assert result.evidence_refs == (
+        "web:baillie-gifford-top-ten-only-2026-09-02",
+        "live:baillie-gifford-top-holdings-xlsx-2026-09-07",
+    )
 
 
 def test_ranked_fallback_symbol_audit_uses_explicit_issuer_evidence():

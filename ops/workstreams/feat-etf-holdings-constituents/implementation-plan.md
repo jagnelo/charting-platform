@@ -3454,3 +3454,10 @@ The official AVOS page returned a complete HTML table with effective date
 `2026-09-08`, future to the observation. Keep AVOS unavailable until freshness
 and identity checks pass; do not promote the route solely because it is
 reachable.
+
+## Baillie Gifford top-holdings route recheck — 2026-09-07
+
+The four official routes returned dated XLSX top-ten files, not complete
+constituent artifacts: each file contained ten names and weights and omitted
+tickers and identifiers. Keep BGGG, BGIA, BGEG, and BGUS unavailable until a
+complete issuer export is available.
