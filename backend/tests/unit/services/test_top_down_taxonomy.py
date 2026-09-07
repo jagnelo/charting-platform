@@ -178,12 +178,16 @@ def test_spdr_family_roles_declare_explicit_history_routes():
             if mapping.get("symbol") not in expected_symbols:
                 continue
             observed.add(mapping["symbol"])
-            if mapping["symbol"] in {"SPYV", "SPYG", "MDYG", "MDYV"}:
+            if mapping["symbol"] in {"SPYV", "SPYG", "MDYG", "MDYV", "MDY"}:
                 assert mapping["history_route"] == {
                     "status": "sec_filing_reconstruction",
                     "provider": "sec",
                     "policy": "latest_sec_filing_report_on_or_before_requested_date",
-                    "source_url": "https://data.sec.gov/submissions/CIK0001064642.json",
+                    "source_url": (
+                        "https://data.sec.gov/submissions/CIK0000936958.json"
+                        if mapping["symbol"] == "MDY"
+                        else "https://data.sec.gov/submissions/CIK0001064642.json"
+                    ),
                 }
             else:
                 assert mapping["history_route"] == {

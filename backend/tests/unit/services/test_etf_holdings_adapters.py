@@ -44,6 +44,7 @@ from app.services.etf_holdings_adapters import (
     _format_template,
     _parse_ishares_inline_top_holdings,
     _row_dict,
+    _sec_nport_identity_match,
     etf_promoter_universe_status,
     get_holdings_adapter,
     holdings_adapter_catalog,
@@ -3602,6 +3603,32 @@ async def test_spdr_adapter_uses_curated_sec_identity_for_dated_mdyv(monkeypatch
     assert calls[0]["identifiers"] == identifiers
     assert calls[0]["max_filings"] == 50
     assert result.legal_metadata["source_provider"] == "sec"
+
+
+def test_sec_identity_match_accepts_legacy_mdy_series_name_without_class_ids():
+    raw_xml = """
+    <edgarSubmission xmlns="http://www.sec.gov/edgar/nport">
+      <headerData><filerInfo><filer><issuerCredentials>
+        <cik>0000936958</cik>
+      </issuerCredentials></filer></filerInfo></headerData>
+      <formData><genInfo>
+        <seriesName>SPDR S&amp;P MidCap 400 ETF Trust</seriesName>
+      </genInfo></formData>
+    </edgarSubmission>
+    """
+
+    matches, identity, status = _sec_nport_identity_match(
+        raw_xml,
+        identifiers={
+            "sec_cik": "0000936958",
+            "sec_series_name_contains": "MidCap 400 ETF Trust",
+            "sec_fund_tickers_symbol": "MDY",
+        },
+    )
+
+    assert matches is True
+    assert identity["series_name"] == "SPDR S&P MidCap 400 ETF Trust"
+    assert status == "verified"
 
 
 @pytest.mark.asyncio

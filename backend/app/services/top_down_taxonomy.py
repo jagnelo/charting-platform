@@ -77,8 +77,9 @@ _SPDR_HISTORY_ROUTE = {
     ),
 }
 
-# SPDR's shared series-trust CIK also exposes verified N-PORT identities for
-# SPYV, SPYG, MDYG, and MDYV. Keep these dated SEC routes explicit until equivalent
+# SPDR's shared series-trust CIK exposes verified N-PORT identities for SPYV,
+# SPYG, MDYG, and MDYV. The legacy MDY trust has a separate CIK and a stable
+# series-name identity. Keep these dated SEC routes explicit until equivalent
 # identities and live evidence exist for the remaining SPDR family roles.
 _SPDR_SPYV_HISTORY_ROUTE = {
     "status": "sec_filing_reconstruction",
@@ -108,6 +109,13 @@ _SPDR_MDYV_HISTORY_ROUTE = {
     "source_url": "https://data.sec.gov/submissions/CIK0001064642.json",
 }
 
+_SPDR_MDY_HISTORY_ROUTE = {
+    "status": "sec_filing_reconstruction",
+    "provider": "sec",
+    "policy": "latest_sec_filing_report_on_or_before_requested_date",
+    "source_url": "https://data.sec.gov/submissions/CIK0000936958.json",
+}
+
 
 def _spdr_history_route(symbol: str) -> dict[str, str]:
     """Return the verified SPDR history route for a mapped symbol."""
@@ -121,6 +129,8 @@ def _spdr_history_route(symbol: str) -> dict[str, str]:
         return dict(_SPDR_MDYG_HISTORY_ROUTE)
     if normalized_symbol == "MDYV":
         return dict(_SPDR_MDYV_HISTORY_ROUTE)
+    if normalized_symbol == "MDY":
+        return dict(_SPDR_MDY_HISTORY_ROUTE)
 
     return {
         **_SPDR_HISTORY_ROUTE,

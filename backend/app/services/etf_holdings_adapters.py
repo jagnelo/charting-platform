@@ -307,6 +307,9 @@ def _sec_nport_identity_match(
     observed = extract_sec_nport_filing_identity(raw_document)
     targets = {
         "series_id": _identifier(identifiers, "sec_series_id", "series_id"),
+        "series_name": _identifier(
+            identifiers, "sec_series_name", "sec_series_name_contains", "series_name"
+        ),
         "class_id": _identifier(identifiers, "sec_class_id", "class_id"),
         "class_ticker": _identifier(
             identifiers, "sec_fund_tickers_symbol", "class_ticker", "ticker"
@@ -328,7 +331,10 @@ def _sec_nport_identity_match(
             if key == "class_ticker" and matched:
                 continue
             return False, observed, f"missing_{key}"
-        if value != target:
+        if key == "series_name":
+            if target not in value:
+                return False, observed, f"mismatch_{key}:{value}!={target}"
+        elif value != target:
             return False, observed, f"mismatch_{key}:{value}!={target}"
         matched = True
     return True, observed, "verified"
@@ -3322,6 +3328,15 @@ KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
             "sec_series_id": "S000006988",
             "sec_class_id": "C000019041",
             "sec_fund_tickers_symbol": "MDYV",
+        },
+    },
+    "MDY": {
+        "issuer": "State Street Global Advisors",
+        "provider_aliases": {
+            "holdings_adapter": "spdr",
+            "sec_cik": "0000936958",
+            "sec_series_name_contains": "MidCap 400 ETF Trust",
+            "sec_fund_tickers_symbol": "MDY",
         },
     },
     "EEM": {

@@ -199,17 +199,51 @@ async def test_family_history_plan_preserves_spdr_current_only_route_evidence(mo
     )
 
     mapped_legs = [leg for leg in plan["legs"] if leg["history_route_provider"] == "spdr"]
-    assert len(mapped_legs) == 5
+    assert len(mapped_legs) == 4
     assert {leg["history_route_status"] for leg in mapped_legs} == {"issuer_current_only"}
-    assert {leg["history_route_policy"] for leg in mapped_legs} == {
-        "issuer_daily_workbook_current_snapshot_only"
-    }
+    assert {
+        leg["history_route_policy"]
+        for leg in mapped_legs
+        if leg["history_route_provider"] == "spdr"
+    } == {"issuer_daily_workbook_current_snapshot_only"}
     expected_sources = {
         "https://www.ssga.com/us/en/intermediary/etfs/library-content/"
         f"products/fund-data/etfs/us/holdings-daily-us-en-{symbol.lower()}.xlsx"
-        for symbol in ("SPY", "MDY", "SLYV", "SLYG", "SPTM")
+        for symbol in ("SPY", "SLYV", "SLYG", "SPTM")
     }
-    assert {leg["history_route_source_url"] for leg in mapped_legs} == expected_sources
+    assert {
+        leg["history_route_source_url"]
+        for leg in mapped_legs
+        if leg["history_route_provider"] == "spdr"
+    } == expected_sources
+
+
+@pytest.mark.asyncio
+async def test_family_history_plan_preserves_mdy_sec_route_evidence(monkeypatch):
+    async def fake_resolve(_db, _user_id, _source_id, *, as_of):
+        assert as_of is None
+        return SimpleNamespace(
+            descriptor=SimpleNamespace(
+                membership_version="pending-v1",
+                provenance={"availability": "holdings_snapshot_not_loaded"},
+            ),
+            members=(),
+            exclusions=({"reason": "holdings_snapshot_not_loaded"},),
+        )
+
+    monkeypatch.setattr(history, "resolve_watchlist_source", fake_resolve)
+    plan = await history.plan_benchmark_family_history_refresh(
+        object(), family_keys=["sp400"], roles=["cap_weight"]
+    )
+
+    leg = plan["legs"][0]
+    assert leg["family_key"] == "sp400"
+    assert leg["role"] == "cap_weight"
+    assert leg["history_route_status"] == "sec_filing_reconstruction"
+    assert leg["history_route_provider"] == "sec"
+    assert leg["history_route_source_url"] == (
+        "https://data.sec.gov/submissions/CIK0000936958.json"
+    )
 
 
 @pytest.mark.asyncio
