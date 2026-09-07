@@ -137,3 +137,56 @@ async def refresh_benchmark_family_holdings_task(ctx: dict) -> dict:
         "queue_error_count": len(queue_errors),
         "queue_unavailable": False,
     }
+
+
+async def backfill_benchmark_family_member_history_task(ctx: dict) -> dict:
+    """Queue member bars for existing canonical family snapshots.
+
+    This complements the dated holdings refresh task: snapshots already stored
+    before a deployment still need bounded D1/W1/MN hydration, and the work must
+    remain outside interactive reads.
+    """
+
+    if not getattr(settings, "BENCHMARK_FAMILY_MEMBER_HISTORY_BACKFILL_ENABLED", False):
+        logger.info("Benchmark family member-history backfill disabled; skipping")
+        return {"skipped": True, "reason": "benchmark family member-history backfill disabled"}
+
+    from app.database import AsyncSessionLocal
+    from app.services.benchmark_family_history import (
+        history_end_for_date,
+        plan_benchmark_family_snapshot_history_refresh,
+        queue_snapshot_member_history,
+    )
+
+    redis = ctx.get("redis")
+    async with AsyncSessionLocal() as db:
+        plan = await plan_benchmark_family_snapshot_history_refresh(
+            db,
+            max_snapshots=settings.BENCHMARK_FAMILY_MEMBER_HISTORY_BACKFILL_MAX_SNAPSHOTS,
+        )
+        queued = already_queued = 0
+        unresolved = queue_error_count = 0
+        queue_errors: list[dict] = []
+        for item in plan["snapshots"]:
+            summary = await queue_snapshot_member_history(
+                db,
+                redis,
+                [int(item["snapshot_id"])],
+                end=history_end_for_date(item["composition_date"]),
+            )
+            queued += int(summary.get("queued", 0))
+            already_queued += int(summary.get("already_queued", 0))
+            unresolved += int(summary.get("unresolved_count", 0))
+            queue_error_count += int(summary.get("queue_error_count", 0))
+            queue_errors.extend(summary.get("queue_errors", []))
+        return {
+            **{key: plan[key] for key in ("family_keys", "roles", "max_snapshots", "limited")},
+            "available_snapshot_count": plan.get("available_snapshot_count", 0),
+            "selected_snapshot_count": plan["selected_snapshot_count"],
+            "queued": queued,
+            "already_queued": already_queued,
+            "unresolved_count": unresolved,
+            "queue_errors": queue_errors,
+            "queue_error_count": queue_error_count,
+            "queue_unavailable": redis is None,
+        }

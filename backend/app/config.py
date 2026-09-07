@@ -61,6 +61,8 @@ class Settings(BaseSettings):
     # canonical member history; interactive source reads never fan out.
     BENCHMARK_FAMILY_HOLDINGS_REFRESH_ENABLED: bool = False
     BENCHMARK_FAMILY_HOLDINGS_REFRESH_LOOKBACK_DATES: int = 1
+    BENCHMARK_FAMILY_MEMBER_HISTORY_BACKFILL_ENABLED: bool = False
+    BENCHMARK_FAMILY_MEMBER_HISTORY_BACKFILL_MAX_SNAPSHOTS: int = 512
     # A fresh deployment should hydrate the small immutable workstation
     # universe through the normal canonical provider services.  The worker
     # performs this asynchronously; API startup remains non-blocking.

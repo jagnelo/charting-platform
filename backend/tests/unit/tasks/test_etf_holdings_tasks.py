@@ -111,3 +111,76 @@ def test_benchmark_family_dated_refresh_retains_per_root_queue_failures(monkeypa
     ]
     assert result["queued"] == len(result["family_keys"]) - 1
     assert len(calls) == len(result["family_keys"])
+
+
+def test_benchmark_family_member_history_backfill_is_disabled_by_default(monkeypatch):
+    monkeypatch.setattr(settings, "BENCHMARK_FAMILY_MEMBER_HISTORY_BACKFILL_ENABLED", False)
+
+    result = asyncio.run(etf_holdings_tasks.backfill_benchmark_family_member_history_task({}))
+
+    assert result == {
+        "skipped": True,
+        "reason": "benchmark family member-history backfill disabled",
+    }
+
+
+def test_benchmark_family_member_history_backfill_queues_existing_snapshots(monkeypatch):
+    class Session:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+    queued: list[tuple[int, str]] = []
+
+    async def fake_plan(_db, **kwargs):
+        assert kwargs["max_snapshots"] == 2
+        return {
+            "family_keys": ["sp500"],
+            "roles": ["cap_weight", "equal_weight", "value", "growth"],
+            "max_snapshots": 2,
+            "limited": True,
+            "available_snapshot_count": 3,
+            "selected_snapshot_count": 2,
+            "snapshots": [
+                {"snapshot_id": 10, "composition_date": date(2026, 7, 31)},
+                {"snapshot_id": 11, "composition_date": date(2026, 6, 30)},
+            ],
+        }
+
+    async def fake_queue(_db, _redis, snapshot_ids, *, end):
+        queued.append((snapshot_ids[0], end.isoformat()))
+        return {
+            "queued": 2,
+            "already_queued": 1,
+            "unresolved_count": 3,
+            "queue_error_count": 0,
+            "queue_errors": [],
+        }
+
+    monkeypatch.setattr(settings, "BENCHMARK_FAMILY_MEMBER_HISTORY_BACKFILL_ENABLED", True)
+    monkeypatch.setattr(settings, "BENCHMARK_FAMILY_MEMBER_HISTORY_BACKFILL_MAX_SNAPSHOTS", 2)
+    monkeypatch.setattr("app.database.AsyncSessionLocal", lambda: Session())
+    monkeypatch.setattr(
+        "app.services.benchmark_family_history.plan_benchmark_family_snapshot_history_refresh",
+        fake_plan,
+    )
+    monkeypatch.setattr(
+        "app.services.benchmark_family_history.queue_snapshot_member_history",
+        fake_queue,
+    )
+
+    result = asyncio.run(
+        etf_holdings_tasks.backfill_benchmark_family_member_history_task({"redis": object()})
+    )
+
+    assert result["selected_snapshot_count"] == 2
+    assert result["available_snapshot_count"] == 3
+    assert result["queued"] == 4
+    assert result["already_queued"] == 2
+    assert result["unresolved_count"] == 6
+    assert queued == [
+        (10, "2026-07-31T23:59:59.999999+00:00"),
+        (11, "2026-06-30T23:59:59.999999+00:00"),
+    ]

@@ -15,7 +15,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.etf_holdings import ETFHolding
+from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
 from app.models.instrument import Instrument
 from app.models.ohlcv import Timeframe
 from app.services.etf_holdings import is_equity_holding_type, is_placeholder_symbol
@@ -27,6 +27,7 @@ from app.services.watchlist_sources import (
 
 DEFAULT_HISTORY_TIMEFRAMES = (Timeframe.MN.value, Timeframe.W1.value, Timeframe.D1.value)
 MAX_HISTORY_INSTRUMENTS = 5000
+MAX_HISTORY_SNAPSHOTS = 512
 BENCHMARK_FAMILY_ROLES = ("cap_weight", "equal_weight", "value", "growth")
 
 
@@ -101,6 +102,104 @@ def normalize_history_timeframes(timeframes: list[str] | None) -> list[str]:
     if not normalized:
         raise ValueError("At least one history timeframe is required.")
     return normalized
+
+
+async def plan_benchmark_family_snapshot_history_refresh(
+    db: AsyncSession,
+    *,
+    family_keys: list[str] | None = None,
+    roles: list[str] | None = None,
+    max_snapshots: int = MAX_HISTORY_SNAPSHOTS,
+) -> dict[str, Any]:
+    """Plan bounded member-history hydration for already persisted disclosures.
+
+    The normal dated refresh path queues member bars for snapshots it creates. A
+    deployment may already contain older canonical disclosures, however, and
+    those rows must be queued independently of a new provider fetch. This
+    planner is deliberately local-only: it selects persisted, resolved family
+    snapshots and leaves provider work to the existing per-instrument worker.
+    """
+
+    if max_snapshots < 1 or max_snapshots > MAX_HISTORY_SNAPSHOTS:
+        raise ValueError(f"max_snapshots must be between 1 and {MAX_HISTORY_SNAPSHOTS}.")
+
+    normalized_families = normalize_family_keys(family_keys)
+    normalized_roles = normalize_family_roles(roles)
+    symbol_roles: dict[str, list[tuple[str, str]]] = {}
+    for family in BENCHMARK_FAMILY_REGISTRY:
+        family_key = str(family.get("logical_key") or "").strip().lower()
+        if family_key not in normalized_families:
+            continue
+        for role in normalized_roles:
+            mapping = family.get(role)
+            if not isinstance(mapping, dict) or not mapping.get("symbol"):
+                continue
+            symbol = str(mapping["symbol"]).strip().upper()
+            symbol_roles.setdefault(symbol, []).append((family_key, role))
+
+    if not symbol_roles:
+        return {
+            "family_keys": normalized_families,
+            "roles": normalized_roles,
+            "max_snapshots": max_snapshots,
+            "snapshots": [],
+            "selected_snapshot_count": 0,
+            "limited": False,
+        }
+
+    rows = (
+        await db.execute(
+            select(
+                ETFHoldingsSnapshot.id,
+                ETFHoldingsSnapshot.composition_date,
+                ETFHoldingsSnapshot.resolved_count,
+                Instrument.symbol,
+            )
+            .join(ETFProfile, ETFProfile.id == ETFHoldingsSnapshot.etf_profile_id)
+            .join(Instrument, Instrument.id == ETFProfile.instrument_id)
+            .where(
+                Instrument.symbol.in_(tuple(symbol_roles)),
+                ETFHoldingsSnapshot.resolved_count > 0,
+                ETFHoldingsSnapshot.provenance != "controlled_fixture",
+                ETFHoldingsSnapshot.source_provider != "e2e_reference",
+            )
+            .order_by(
+                ETFHoldingsSnapshot.composition_date.desc(),
+                ETFHoldingsSnapshot.known_at.desc().nullslast(),
+                ETFHoldingsSnapshot.id.desc(),
+            )
+        )
+    ).all()
+    snapshots: list[dict[str, Any]] = []
+    seen_ids: set[int] = set()
+    for snapshot_id, composition_date, resolved_count, symbol in rows:
+        canonical_id = int(snapshot_id)
+        if canonical_id in seen_ids:
+            continue
+        seen_ids.add(canonical_id)
+        snapshots.append(
+            {
+                "snapshot_id": canonical_id,
+                "symbol": str(symbol).strip().upper(),
+                "composition_date": composition_date,
+                "resolved_count": int(resolved_count or 0),
+                "legs": [
+                    {"family_key": family_key, "role": role}
+                    for family_key, role in symbol_roles.get(str(symbol).strip().upper(), [])
+                ],
+            }
+        )
+    limited = len(snapshots) > max_snapshots
+    selected = snapshots[:max_snapshots]
+    return {
+        "family_keys": normalized_families,
+        "roles": normalized_roles,
+        "max_snapshots": max_snapshots,
+        "snapshots": selected,
+        "available_snapshot_count": len(snapshots),
+        "selected_snapshot_count": len(selected),
+        "limited": limited,
+    }
 
 
 async def plan_benchmark_family_history_refresh(

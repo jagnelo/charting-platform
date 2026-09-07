@@ -649,3 +649,45 @@ async def test_queue_snapshot_member_history_retains_member_queue_errors_and_con
         }
     ]
     assert [call[0][1] for call in redis.calls] == [10, 20, 30]
+
+
+@pytest.mark.asyncio
+async def test_snapshot_history_plan_is_bounded_and_excludes_fixture_rows(monkeypatch):
+    monkeypatch.setattr(
+        history,
+        "BENCHMARK_FAMILY_REGISTRY",
+        (
+            {
+                "logical_key": "sp500",
+                "cap_weight": {"symbol": "SPY"},
+                "equal_weight": {"symbol": None},
+                "value": {"symbol": "SPYV"},
+                "growth": {"symbol": "SPYG"},
+            },
+        ),
+    )
+
+    class Result:
+        def all(self):
+            return [
+                (101, date(2026, 7, 31), 500, "SPY"),
+                (102, date(2026, 6, 30), 400, "SPYV"),
+                (103, date(2026, 5, 31), 300, "SPYG"),
+            ]
+
+    class Session:
+        async def execute(self, _statement):
+            return Result()
+
+    plan = await history.plan_benchmark_family_snapshot_history_refresh(
+        Session(),
+        family_keys=["sp500"],
+        roles=["cap_weight", "value", "growth"],
+        max_snapshots=2,
+    )
+
+    assert plan["available_snapshot_count"] == 3
+    assert plan["selected_snapshot_count"] == 2
+    assert plan["limited"] is True
+    assert [item["snapshot_id"] for item in plan["snapshots"]] == [101, 102]
+    assert plan["snapshots"][0]["legs"] == [{"family_key": "sp500", "role": "cap_weight"}]
