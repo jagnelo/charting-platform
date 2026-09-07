@@ -412,6 +412,7 @@ async def _provider_enriched_constituent_instrument(
     # prevents arbitrary symbol guessing or ambiguous cross-listed promotion.
     if row.name and not _normalize_symbol(row.symbol):
         search_results = []
+        search_result_providers: dict[str, list[object]] = {}
         try:
             search_providers = get_search_provider_chain()
         except Exception:
@@ -420,6 +421,12 @@ async def _provider_enriched_constituent_instrument(
             try:
                 provider_results = search_provider.search_instruments(row.name, limit=8) or []
                 search_results.extend(provider_results)
+                for provider_result in provider_results:
+                    provider_symbol = _normalize_symbol(getattr(provider_result, "symbol", None))
+                    if provider_symbol:
+                        search_result_providers.setdefault(provider_symbol, []).append(
+                            search_provider
+                        )
                 # Preserve each successful bounded observation so maintenance
                 # decisions remain auditable after the provider call has
                 # completed. Providers supplied by focused tests or local
@@ -477,12 +484,31 @@ async def _provider_enriched_constituent_instrument(
             # identifier source rather than silently selecting one.
             if len(best_symbols) == 1:
                 candidate_symbol = best_symbols[0]
-                try:
-                    profile = get_default_metadata_provider().get_instrument_profile(
-                        candidate_symbol
-                    )
-                except Exception:
-                    profile = None
+                profile = None
+                # Prefer the metadata capability of the provider that returned
+                # the candidate. This keeps a public identity/search provider
+                # (for example SEC EDGAR) self-contained when the deployment's
+                # default metadata provider is unavailable or unentitled.
+                # The provider-backed profile remains subject to the same full
+                # name, quote-type, and canonical-symbol checks below.
+                metadata_providers = search_result_providers.get(candidate_symbol, [])
+                for metadata_provider in metadata_providers:
+                    get_profile = getattr(metadata_provider, "get_instrument_profile", None)
+                    if not callable(get_profile):
+                        continue
+                    try:
+                        profile = get_profile(candidate_symbol)
+                    except Exception:
+                        profile = None
+                    if profile is not None:
+                        break
+                if profile is None:
+                    try:
+                        profile = get_default_metadata_provider().get_instrument_profile(
+                            candidate_symbol
+                        )
+                    except Exception:
+                        profile = None
                 if (
                     profile is not None
                     and profile.canonical_symbol
