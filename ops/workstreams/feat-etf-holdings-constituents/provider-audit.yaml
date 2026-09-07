@@ -6965,7 +6965,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-09-04
+    last_checked: 2026-09-07
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [AMEI, AMGR, AMEM, AMSU]
     estimated_us_etf_count: null
@@ -6988,6 +6988,7 @@ providers:
       - "runtime:ISSUER_ADAPTER_CONFIGS.saturna"
       - "web:saturna-current-amana-etf-holdings-pages-2026-09-04"
       - "live:saturna-current-amana-etf-holdings-pages-2026-09-04-blocked"
+      - "live:saturna-amana-route-recheck-2026-09-07-blocked"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -6997,6 +6998,10 @@ providers:
         source: "Saturna Capital official Amana ETF product pages and bounded backend requests"
         result: "Official pages document current AMEI, AMGR, and AMEM holdings tables, but both httpx and requests received HTTP 403 for all three routes under the bounded live check; no executable adapter route is promoted."
         evidence_ref: "live:saturna-current-amana-etf-holdings-pages-2026-09-04-blocked"
+      - date: 2026-09-07
+        source: "https://www.saturna.com/products/amana-equity-income-etf, https://www.saturna.com/products/amana-growth-etf, and https://www.saturna.com/products/amana-developing-world-etf"
+        result: "Fresh bounded retrieval returned HTTP 403 Cloudflare challenge HTML for all three official Amana routes. No complete current holdings artifact was exposed; AMEI, AMGR, and AMEM remain issuer-access-blocked."
+        evidence_ref: "live:saturna-amana-route-recheck-2026-09-07-blocked"
     disposition_reason: "saturna: Saturna's official pages advertise complete Amana ETF holdings, but the issuer WAF returned HTTP 403 to both backend-equivalent transports for AMEI, AMGR, and AMEM. Preserve the issuer-access-blocked fallback until a complete holdings artifact is executable."
     next_action: "saturna: Periodically re-test the official Amana ETF pages and any declared holdings downloads; promote only after bounded backend access returns complete current rows with proven mapping."
     implementation_sha: null

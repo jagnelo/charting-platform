@@ -4963,6 +4963,12 @@ complete current executable artifact is exposed. Runtime and YAML evidence
 carry the dated live reference; no SEC reconstruction, native promotion, or
 paid activation occurred.
 
+## Saturna Amana route recheck — 2026-09-07
+
+The official AMEI, AMGR, and AMEM product routes again returned HTTP 403
+Cloudflare challenge HTML. No executable holdings artifact was exposed; the
+symbols remain unavailable and `issuer_access_blocked`.
+
 ## Nicholas Wealth XFUNDS route recheck — 2026-09-07
 
 NGHT, WEPN, and FIAX pages returned HTTP 200 HTML with holdings/download UI

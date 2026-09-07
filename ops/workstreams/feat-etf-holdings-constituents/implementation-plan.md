@@ -3505,3 +3505,9 @@ Both official daily-holdings routes returned HTTP 200 HTML shells that load a
 React CSV application, but no holdings rows, stable download URL, or current
 date was embedded in the backend-retrievable document. PRCS/PRVS remain
 `issuer_access_blocked`; no SEC reconstruction or promotion was made.
+
+## Saturna Amana route recheck — 2026-09-07
+
+All three official Amana ETF routes returned HTTP 403 Cloudflare challenge
+HTML. No complete current holdings artifact was exposed; AMEI, AMGR, and AMEM
+remain `issuer_access_blocked` and no promotion was made.
