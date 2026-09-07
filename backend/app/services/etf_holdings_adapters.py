@@ -3278,6 +3278,10 @@ KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
         "provider_aliases": {
             "cusip": "46137V357",
             "holdings_adapter": "invesco",
+            "sec_cik": "0001209466",
+            "sec_series_id": "S000060812",
+            "sec_class_id": "C000197628",
+            "sec_fund_tickers_symbol": "RSP",
         },
     },
     "EEM": {
@@ -4527,6 +4531,11 @@ class WellingtonHoldingsAdapter(VanguardHoldingsAdapter):
 
 
 class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    # The Invesco trust files many funds under one CIK.  Dated reconstruction
+    # must inspect enough recent N-PORT filings to reach the requested series,
+    # rather than stopping at the first five unrelated trust series.
+    _DATED_SEC_MAX_FILINGS = 20
+
     _PRODUCT_CATALOG_URL = (
         "https://dng-api.invesco.com/product/search?"
         "fq=countryCode:%22US%22&fq=language:%22en_us%22&fq=accountType:%22ETF%22&"
@@ -4629,8 +4638,8 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
         """Complete SEC fallback identity from verified canonical route metadata.
 
         Invesco's current holdings endpoint can fail independently of SEC EDGAR.
-        The canonical QQQ route already records the fund's SEC identifiers, but
-        older profiles and direct adapter calls may arrive without them.  Copy
+        Canonical Invesco routes record verified fund SEC identifiers, but older
+        profiles and direct adapter calls may arrive without them.  Copy
         only explicitly curated SEC aliases; never infer a CIK from ticker text.
         """
 
@@ -4786,7 +4795,7 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
         Invesco's public holdings endpoint is current/monthly and does not
         expose a dated URL contract. SEC EDGAR is the independent free
-        historical route, so dated QQQ snapshots must be labelled as filing
+        historical route, so dated snapshots must be labelled as filing
         reconstructions rather than presented as daily issuer history.
         """
 
@@ -4796,6 +4805,7 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
             issuer_product_id=issuer_product_id,
             identifiers=identifiers or {},
             end_date=requested_date,
+            max_filings=self._DATED_SEC_MAX_FILINGS,
         )
         if result is None:
             raise ValueError(

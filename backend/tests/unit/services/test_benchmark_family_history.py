@@ -213,7 +213,7 @@ async def test_family_history_plan_preserves_spdr_current_only_route_evidence(mo
 
 
 @pytest.mark.asyncio
-async def test_family_history_plan_preserves_invesco_current_only_route_evidence(monkeypatch):
+async def test_family_history_plan_preserves_invesco_sec_route_evidence(monkeypatch):
     async def fake_resolve(_db, _user_id, _source_id, *, as_of):
         assert as_of is None
         return SimpleNamespace(
@@ -233,11 +233,11 @@ async def test_family_history_plan_preserves_invesco_current_only_route_evidence
     )
 
     leg = plan["legs"][0]
-    assert leg["history_route_status"] == "issuer_current_only"
-    assert leg["history_route_provider"] == "invesco"
-    assert leg["history_route_policy"] == "issuer_public_json_catalog_current_monthly_only"
-    assert leg["history_route_source_url"].endswith(
-        "shareclasses/46137V357/holdings/fund?idType=cusip&interval=monthly&productType=ETF"
+    assert leg["history_route_status"] == "sec_filing_reconstruction"
+    assert leg["history_route_provider"] == "sec"
+    assert leg["history_route_policy"] == "latest_sec_filing_report_on_or_before_requested_date"
+    assert leg["history_route_source_url"] == (
+        "https://data.sec.gov/submissions/CIK0001209466.json"
     )
 
 

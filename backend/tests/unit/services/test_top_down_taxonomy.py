@@ -191,19 +191,16 @@ def test_spdr_family_roles_declare_current_only_history_route():
     assert observed == expected_symbols
 
 
-def test_invesco_family_roles_declare_current_only_history_route():
+def test_invesco_family_roles_declare_sec_history_route():
     mapping = next(
         family for family in benchmark_family_registry() if family["logical_key"] == "sp500"
     )["equal_weight"]
     assert mapping["symbol"] == "RSP"
     assert mapping["history_route"] == {
-        "status": "issuer_current_only",
-        "provider": "invesco",
-        "policy": "issuer_public_json_catalog_current_monthly_only",
-        "source_url": (
-            "https://dng-api.invesco.com/cache/v1/accounts/en_US/shareclasses/"
-            "46137V357/holdings/fund?idType=cusip&interval=monthly&productType=ETF"
-        ),
+        "status": "sec_filing_reconstruction",
+        "provider": "sec",
+        "policy": "latest_sec_filing_report_on_or_before_requested_date",
+        "source_url": "https://data.sec.gov/submissions/CIK0001209466.json",
     }
 
 

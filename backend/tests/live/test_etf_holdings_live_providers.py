@@ -6,6 +6,7 @@ import pytest
 from app.services.etf_holdings_adapters import (
     ISSUER_ADAPTER_CONFIGS,
     get_holdings_adapter,
+    known_etf_route_metadata,
 )
 
 LIVE_BACKED_ISSUER_ADAPTERS = {
@@ -2157,6 +2158,35 @@ async def test_live_invesco_qqq_historical_fallback_is_sec_labelled():
         symbol="QQQ",
         requested_date=requested_date,
         identifiers={"sec_cik": "0001067839"},
+    )
+
+    _assert_live_holdings_result(result, adapter_key="invesco", min_rows=100)
+    metadata = result.legal_metadata or {}
+    assert metadata["source_access"] == "sec_filing"
+    assert metadata["source_provider"] == "sec"
+    assert metadata["requested_holdings_date"] == requested_date.isoformat()
+    assert metadata["historical_as_of_policy"] == (
+        "latest_sec_filing_report_on_or_before_requested_date"
+    )
+    assert metadata["issuer_route"] == "invesco_current_monthly_only"
+    assert date.fromisoformat(str(metadata["composition_date"])) <= requested_date
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+@_covers_live_provider("invesco")
+async def test_live_invesco_rsp_historical_route_is_sec_labelled():
+    """Prove the canonical RSP identity supports dated SEC reconstruction."""
+
+    adapter = get_holdings_adapter("invesco")
+    assert adapter is not None
+
+    requested_date = date(2025, 12, 31)
+    identifiers = known_etf_route_metadata("RSP")["provider_aliases"]
+    result = await adapter.fetch_for_date(
+        symbol="RSP",
+        requested_date=requested_date,
+        identifiers=identifiers,
     )
 
     _assert_live_holdings_result(result, adapter_key="invesco", min_rows=100)

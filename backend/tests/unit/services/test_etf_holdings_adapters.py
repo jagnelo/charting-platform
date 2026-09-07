@@ -6950,13 +6950,14 @@ async def test_invesco_dated_fetch_uses_sec_filing_at_or_before_requested_date(m
     assert adapter is not None
     observed: dict[str, object] = {}
 
-    async def fake_sec_fallback(*, symbol, issuer_product_id, identifiers, end_date):
+    async def fake_sec_fallback(*, symbol, issuer_product_id, identifiers, end_date, max_filings):
         observed.update(
             {
                 "symbol": symbol,
                 "issuer_product_id": issuer_product_id,
                 "identifiers": identifiers,
                 "end_date": end_date,
+                "max_filings": max_filings,
             }
         )
         return HoldingsFetchResult(
@@ -6981,6 +6982,52 @@ async def test_invesco_dated_fetch_uses_sec_filing_at_or_before_requested_date(m
         "issuer_product_id": None,
         "identifiers": {"sec_cik": "0001067839"},
         "end_date": date(2026, 7, 15),
+        "max_filings": 20,
+    }
+    assert result.legal_metadata["requested_holdings_date"] == "2026-07-15"
+    assert result.legal_metadata["historical_as_of_policy"] == (
+        "latest_sec_filing_report_on_or_before_requested_date"
+    )
+    assert result.legal_metadata["issuer_route"] == "invesco_current_monthly_only"
+
+
+@pytest.mark.asyncio
+async def test_invesco_rsp_dated_fetch_uses_curated_sec_identity(monkeypatch):
+    adapter = get_holdings_adapter("invesco")
+    assert adapter is not None
+    observed: dict[str, object] = {}
+
+    async def fake_sec_fallback(*, symbol, issuer_product_id, identifiers, end_date, max_filings):
+        observed.update(
+            {
+                "symbol": symbol,
+                "issuer_product_id": issuer_product_id,
+                "identifiers": identifiers,
+                "end_date": end_date,
+                "max_filings": max_filings,
+            }
+        )
+        return HoldingsFetchResult(
+            rows=[CanonicalHoldingRow(symbol="NVDA", name="NVIDIA Corporation")],
+            source_url="https://www.sec.gov/Archives/edgar/data/1209466/fixture.xml",
+            source_identifier="0001209466-26-000001",
+            legal_metadata={"route_resolution": "sec_edgar_filing_fallback"},
+        )
+
+    monkeypatch.setattr(adapter, "_fetch_latest_sec_filing_holdings", fake_sec_fallback)
+    metadata = known_etf_route_metadata("RSP")
+    result = await adapter.fetch_for_date(
+        symbol="RSP",
+        requested_date=date(2026, 7, 15),
+        identifiers=metadata["provider_aliases"],
+    )
+
+    assert observed == {
+        "symbol": "RSP",
+        "issuer_product_id": None,
+        "identifiers": metadata["provider_aliases"],
+        "end_date": date(2026, 7, 15),
+        "max_filings": 20,
     }
     assert result.legal_metadata["requested_holdings_date"] == "2026-07-15"
     assert result.legal_metadata["historical_as_of_policy"] == (
@@ -19866,6 +19913,10 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     assert rsp["issuer"] == "Invesco"
     assert rsp["provider_aliases"]["holdings_adapter"] == "invesco"
     assert rsp["provider_aliases"]["cusip"] == "46137V357"
+    assert rsp["provider_aliases"]["sec_cik"] == "0001209466"
+    assert rsp["provider_aliases"]["sec_series_id"] == "S000060812"
+    assert rsp["provider_aliases"]["sec_class_id"] == "C000197628"
+    assert rsp["provider_aliases"]["sec_fund_tickers_symbol"] == "RSP"
     invesco = holdings_adapter_catalog()
     invesco_entry = next(item for item in invesco if item["adapter_key"] == "invesco")
     assert invesco_entry["source_access"] == "issuer_public_json_catalog_cusip"
