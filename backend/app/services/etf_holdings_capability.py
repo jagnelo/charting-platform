@@ -783,12 +783,13 @@ _register_non_tier_0_audits(
     outcome=UNAVAILABLE,
     evidence_state="issuer_route_access_blocked",
     provider_identity="q3",
-    investigated_at=date(2026, 9, 5),
+    investigated_at=date(2026, 9, 7),
     evidence_refs=(
         "web:q3-qvoy-official-etf-page-2026-09-03",
         "web:q3-qvoy-official-etf-page-2026-09-05",
         "live:q3-qvoy-official-etf-page-2026-09-05-application-503",
         "live:q3-qvoy-download-route-2026-09-05-application-503",
+        "live:q3-qvoy-route-recheck-2026-09-07-503",
     ),
     next_action=(
         "Re-test the QVOY page and declared holdings route after the issuer throttle clears; "

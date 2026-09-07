@@ -2236,3 +2236,10 @@ The official Manulife ETF catalogue returned HTTP 403 Access Denied again. No
 complete current holdings rows or downloadable artifact was exposed for UDIV,
 UDEF, or GEDG, so all three remain unavailable and Manulife remains
 issuer-access-blocked; no promotion or paid activation was made.
+
+## Q3/QVOY representative-route recheck — 2026-09-07
+
+Both the official QVOY page and its declared holdings-download route returned
+HTTP 503 site-owner access-limited content again. No complete executable
+artifact was retrieved, so QVOY remains unavailable and Q3 remains
+issuer-access-blocked; no promotion or paid activation was made.

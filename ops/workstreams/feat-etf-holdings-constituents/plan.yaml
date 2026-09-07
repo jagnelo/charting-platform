@@ -273,6 +273,7 @@ remaining_gaps:
   - "The 2026-09-07 Aegon/Transamerica representative-route recheck found a 212-byte Incapsula challenge shell for TALV, HTTP 404 with Incapsula markers for TABD, and an access-control shell for the catalogue. TALV/TABD remain unavailable and issuer-access-blocked; no promotion, SEC reconstruction, or paid activation occurred."
   - "The 2026-09-07 Guinness Atkinson recheck returned HTTP 403 Cloudflare challenge content from the official Fund Resources route. GAUD/GAID remain unavailable and issuer-access-blocked; no complete artifact, promotion, or paid activation was found."
   - "The 2026-09-07 Manulife recheck returned HTTP 403 Access Denied from the official ETF catalogue. UDIV/UDEF/GEDG remain unavailable and issuer-access-blocked; no complete artifact, promotion, or paid activation was found."
+  - "The 2026-09-07 Q3/QVOY recheck returned HTTP 503 site-owner access-limited content from both the official page and declared holdings route. QVOY remains unavailable and issuer-access-blocked; no complete artifact, promotion, or paid activation was found."
 progress:
   completed:
     - AC1
