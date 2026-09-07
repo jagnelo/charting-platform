@@ -5077,3 +5077,15 @@ but every `Ticker` field is blank; names/CUSIPs alone do not establish the
 canonical symbol mapping contract. AQLG remains unavailable and
 `non_executable_public_source`; no SEC reconstruction, native promotion, or
 paid activation occurred.
+
+## Provider-audit status normalization — 2026-09-07
+
+The durable 140-record provider ledger contained five legacy `current_status:
+audited` values even though each record already had a controlled terminal
+disposition and dated evidence. Those records are now normalized to their
+dispositions: three `non_executable_public_source` and two
+`issuer_access_blocked`. A regression now requires every provider record's
+`current_status` to use the controlled vocabulary and equal its disposition;
+the ledger has no uncontrolled status and remains 60 native-promoted plus 80
+fallback records. The full adapter suite passed 580 tests, with Ruff,
+workstream validation, and diff-check green.
