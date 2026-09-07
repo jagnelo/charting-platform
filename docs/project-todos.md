@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-09-07 — Enable SPYG SEC filing-reconstruction history route
+
+- [x] Upgrade mapped SPDR SPYG from issuer-current-only to
+      `sec_filing_reconstruction` using SEC CIK `0001064642`, series
+      `S000006984`, class `C000019037`, and the bounded 50-filing search
+      window; retain the issuer daily-workbook route separately. Product
+      commit `7ee30073`.
+- [x] Focused regressions/static checks passed (`9` selected tests) and the
+      opt-in live SPYG SEC route probe passed `1/1`.
+- [x] Exact-tip gate passed all non-visual stages: backend `1333` unit and
+      `384` integration tests, `80.94%` combined coverage, frontend `970/970`,
+      and functional Playwright `159` passed with `106` documented skips across
+      `265` specs. Visual parity remains `98/104` with only the six documented
+      state-oracle diffs; cleanup/resource accounting is clean.
+- [ ] Continue the next bounded canonical provider/history population slice;
+      route identity and reconstruction readiness are not proof that all SPYG
+      historical holdings, weights, membership, or member bars are populated.
+
 ### 2026-09-07 — Enable SPYV SEC filing-reconstruction history route
 
 - [x] Upgrade mapped SPDR SPYV from issuer-current-only to
