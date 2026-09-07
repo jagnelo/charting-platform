@@ -334,10 +334,10 @@ symbol_audit_ledger:
       tier: 1
       provider_identity: arin
       current_outcome: unavailable
-      evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-09-02
-      evidence_refs: [web:arin-attr-holdings-cloudflare-2026-09-02]
-      next_action: "Re-test the ATTR page or identify an issuer-published machine-readable export accessible without challenge state; promote only after parser and bounded live evidence."
+      evidence_state: future_dated_source
+      investigated_at: 2026-09-07
+      evidence_refs: [web:arin-attr-holdings-cloudflare-2026-09-02, live:arin-attr-html-holdings-future-effective-date-2026-09-07]
+      next_action: "Re-test the official ATTR route after the effective date is no longer future-dated; promote only after parser, identity, freshness, and bounded live evidence pass."
     - symbol: AVOS
       tier: 1
       provider_identity: avos
@@ -1959,7 +1959,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: inactive_or_successor_disposition
     disposition: inactive_or_successor_disposition
-    last_checked: 2026-09-02
+    last_checked: 2026-09-07
     source_access_declared: issuer_public_holdings_file
     representative_symbols:
       - SMCP
@@ -2232,6 +2232,10 @@ providers:
         source: "https://arinetfs.com/"
         result: "The first-party ATTR page visibly exposes a current 25-row options/equity holdings table, but the backend HTTP request is Cloudflare-blocked before a stable executable artifact can be captured."
         evidence_ref: "web:arin-attr-holdings-cloudflare-2026-09-02"
+      - date: 2026-09-07
+        source: "https://arinetfs.com/attr"
+        result: "The official route redirected to the Arin homepage and returned a complete HTML holdings table whose effective-date table reported 2026-09-08, future-dated relative to the observation; current analysis remains unavailable."
+        evidence_ref: "live:arin-attr-html-holdings-future-effective-date-2026-09-07"
     disposition_reason: "arin: The issuer page exposes current ATTR holdings, but backend requests are Cloudflare-blocked; no stable executable route is proven for native promotion."
     next_action: "arin: Re-test the ATTR page or identify an issuer-published machine-readable export accessible without challenge state; promote only after parser and bounded live evidence."
     implementation_sha: null

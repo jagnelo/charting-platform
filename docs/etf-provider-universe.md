@@ -2270,3 +2270,10 @@ keeps all three unavailable for current analysis; no native promotion was made.
 Fresh AAM symbol-scoped probes returned HTTP 403 for SPDV and empty-server
 replies for BDIV, TRFM, and PFLD. No complete export or stable holdings
 transport was retrieved; all four remain unavailable and issuer-access-blocked.
+
+## Arin ATTR HTML holdings recheck — 2026-09-07
+
+The official ATTR route redirected to Arin's homepage and exposed a complete
+HTML holdings table, but its effective-date table reported `2026-09-08`, future
+to the observation. The route is reachable, yet ATTR remains unavailable until
+a non-future, identity-bound snapshot is proven.

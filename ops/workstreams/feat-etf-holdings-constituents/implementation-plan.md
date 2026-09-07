@@ -3440,3 +3440,10 @@ the route solely because the page is reachable.
 Fresh symbol-scoped probes returned HTTP 403 for SPDV and empty-server replies
 for BDIV, TRFM, and PFLD. No complete executable export was retrieved; all
 four remain unavailable and issuer-access-blocked.
+
+## Arin ATTR HTML holdings recheck — 2026-09-07
+
+The official ATTR route redirected to the Arin homepage and exposed a complete
+HTML holdings table with effective date `2026-09-08`, future to the observation.
+Keep ATTR unavailable until freshness and identity checks pass; do not promote
+the route solely because it is reachable.
