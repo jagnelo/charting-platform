@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-07 — Let identity search providers complete canonical enrichment
+
+- [x] Use metadata from the reviewed provider that supplied a unique
+      identifier-only search candidate before falling back to the configured
+      default metadata provider. Promotion still requires compatible names,
+      canonical non-placeholder symbols, and an equity-like quote type; the
+      operation remains bounded maintenance-only (`53f7b07b`).
+- [x] Focused ETF resolver coverage passed `23/23`; exact-tip gate passed
+      backend `1349` unit/`385` integration, frontend `970/970`, and functional
+      Playwright `159` passed with `106` documented skips. Visual parity remains
+      `98/104` with only the six known state-oracle diffs; cleanup is clean.
+- [ ] Continue separately authorized, auditable enrichment and canonical
+      member-bar population; this removes a provider-boundary gap but does not
+      prove complete family/date/member coverage.
+
 ### 2026-09-07 — Verify canonical member-history backfill against persisted data
 
 - [x] Add a real-Postgres integration regression proving the opt-in backfill

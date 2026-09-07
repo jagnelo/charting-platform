@@ -8,6 +8,26 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-07 — Let identity search providers complete canonical enrichment
+
+Product commit `53f7b07b` allows a reviewed instrument-search provider to supply
+its own canonical metadata profile for a unique identifier-only candidate before
+the default metadata provider is attempted. Existing name compatibility,
+canonical-symbol, quote-type, and maintenance-only safeguards remain in force;
+ambiguous or weak matches stay unresolved. This is a bounded R1 provider
+boundary improvement, not proof of complete canonical family history.
+
+The exact-tip full-stack gate passed all non-visual stages at `53f7b07b`:
+backend `1349` unit/`385` integration, combined coverage, frontend `970/970`,
+build/compose/provider policy, stack health, runner isolation/resource probes,
+and authenticated functional Playwright (`159` passed, `106` skips across
+`265`). Visual parity remains `98/104` with the six unchanged state-oracle
+diffs: watchlist-column-editor-open at 1080p-100/125 and workspace-floating at
+all four visual projects. No visual/provider/fallback/acceptance policy was
+changed. Docker cleanup removed four generated images and assigned resources
+were clean. Continue auditable canonical population and R2-R7; do not
+integrate, promote, or deploy.
+
 ## 2026-09-07 — Verify canonical member-history backfill against persisted data
 
 Product/test commit `466b11a3` adds a real-Postgres integration regression for

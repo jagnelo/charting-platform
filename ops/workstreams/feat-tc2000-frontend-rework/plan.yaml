@@ -13,7 +13,11 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  Product/test commit 466b11a3 verifies the bounded, provider-neutral scheduled
+  Product commit 53f7b07b lets the reviewed identity-search provider that
+  supplied a unique candidate also supply canonical metadata before the default
+  metadata provider; full name, canonical-symbol, quote-type, ambiguity, and
+  maintenance-only safeguards remain enforced. Product/test commit 466b11a3
+  verifies the bounded, provider-neutral scheduled
   backfill against persisted canonical data in a real-Postgres integration test;
   the test selects canonical sec_nport snapshots, excludes controlled/e2e
   fixtures, queues a resolved member with the inclusive composition-date bound,
@@ -137,7 +141,11 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
-    Product/test commit 466b11a3 verifies the bounded canonical family
+    Product commit 53f7b07b lets a reviewed identity-search provider supply its
+    own canonical metadata for a unique candidate before the default metadata
+    provider, while preserving full-name, canonical-symbol, quote-type,
+    ambiguity, and maintenance-only safeguards. Product/test commit 466b11a3
+    verifies the bounded canonical family
     member-history backfill against persisted canonical data in a real-Postgres
     integration test (canonical sec_nport selected; controlled/e2e fixture
     excluded; inclusive composition-date queue bound and idempotence key
@@ -147,7 +155,7 @@ progress:
     composition-date queue bounds. It is opt-in and provider-neutral on reads.
     Focused service/task/worker checks passed 56 tests and Ruff/compile/diff
     checks passed. The exact-tip gate passed all non-visual stages and
-    functional Playwright (backend 1348 unit and 385 integration tests;
+    functional Playwright (backend 1349 unit and 385 integration tests;
     frontend 970/970; functional 159 passed with 106 documented skips across
     265 specs; combined backend coverage passed). The only remaining boundary
     is the six known visual state-oracle diffs; preserve them and the unchanged

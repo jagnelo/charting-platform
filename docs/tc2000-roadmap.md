@@ -5,6 +5,29 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-07
 
+## 2026-09-07 — Let identity search providers complete canonical enrichment
+
+Product commit `53f7b07b` closes a bounded R1 enrichment gap: when a reviewed
+instrument-search provider returns a unique candidate, its own metadata
+capability is now tried before the deployment default metadata provider. This
+allows a self-contained public identity route such as SEC EDGAR to promote a
+holding only when the existing full name, canonical-symbol, and equity-like
+quote-type checks pass. Search remains maintenance-only, bounded, and
+auditable; ambiguous matches, unavailable metadata, symbol guesses, and
+interactive provider fan-out remain rejected or explicit.
+
+The exact-tip gate at `53f7b07b` passed all non-visual stages: backend `1349`
+unit and `385` integration tests with combined coverage above the repository
+floor, frontend `970/970`, build/compose/provider policy, stack health, runner
+isolation/resource probes, and authenticated functional Playwright (`159`
+passed, `106` documented skips across `265` specs). The unchanged visual matrix
+returned `98/104`, with exactly the six known state-oracle diffs (watchlist
+column-editor-open at 1080p-100/125 and workspace-floating at all four
+projects). No baseline, mask, threshold, skip, fallback, provider, or
+acceptance policy changed. Teardown removed four generated images and left zero
+assigned containers, volumes, sessions, or known bytes. Broader canonical
+population/history and R2-R7 remain open.
+
 ## 2026-09-07 — Verify canonical member-history backfill against persisted data
 
 Product/test commit `466b11a3` adds a real-Postgres integration regression for
