@@ -7,6 +7,7 @@ Integration tests for background tasks:
 These tests patch provider-facing market data calls and OneSignal while using a real DB.
 """
 
+from datetime import date
 from decimal import Decimal
 from unittest.mock import AsyncMock, patch
 
@@ -299,3 +300,111 @@ class TestDataPipeline:
 
         assert result["instruments_refreshed"] >= 2
         assert mock_fetch.call_count >= 2
+
+
+class TestBenchmarkFamilyHistoryBackfill:
+    async def test_backfill_uses_persisted_canonical_snapshot_and_excludes_fixture(
+        self, db, instrument, instrument_type, monkeypatch
+    ):
+        """The scheduled handoff must plan real canonical rows, not fixture snapshots."""
+
+        from app.config import settings
+        from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
+        from app.models.instrument import Instrument
+        from app.tasks.etf_holdings_tasks import backfill_benchmark_family_member_history_task
+
+        benchmark = Instrument(
+            symbol="SPY",
+            name="SPDR S&P 500 ETF Trust",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add(benchmark)
+        db.flush()
+        profile = ETFProfile(
+            instrument_id=benchmark.id, adapter_key="spdr", adapter_status="resolved"
+        )
+        db.add(profile)
+        db.flush()
+
+        canonical = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=date(2026, 6, 30),
+            provenance="sec_nport",
+            source_provider="sec",
+            source_quality="sec_disclosed",
+            completeness_status="complete",
+            row_count=1,
+            resolved_count=1,
+            unresolved_count=0,
+            snapshot_hash="integration-history-canonical",
+        )
+        fixture = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            composition_date=date(2026, 7, 31),
+            provenance="controlled_fixture",
+            source_provider="e2e_reference",
+            source_quality="fixture",
+            completeness_status="complete",
+            row_count=1,
+            resolved_count=1,
+            unresolved_count=0,
+            snapshot_hash="integration-history-fixture",
+        )
+        db.add_all([canonical, fixture])
+        db.flush()
+        db.add(
+            ETFHolding(
+                snapshot_id=canonical.id,
+                constituent_instrument_id=instrument.id,
+                position=1,
+                reported_symbol=instrument.symbol,
+                reported_name=instrument.name,
+                holding_type="equity",
+                row_type="security",
+                source_row_hash="integration-history-member",
+                is_resolved=True,
+            )
+        )
+        db.flush()
+
+        class Redis:
+            def __init__(self):
+                self.calls = []
+
+            async def enqueue_job(self, *args, **kwargs):
+                self.calls.append((args, kwargs))
+                return object()
+
+        redis = Redis()
+        monkeypatch.setattr(settings, "BENCHMARK_FAMILY_MEMBER_HISTORY_BACKFILL_ENABLED", True)
+        monkeypatch.setattr(settings, "BENCHMARK_FAMILY_MEMBER_HISTORY_BACKFILL_MAX_SNAPSHOTS", 8)
+        with patch(
+            "app.database.AsyncSessionLocal",
+            return_value=AsyncSessionContext(db),
+        ):
+            result = await backfill_benchmark_family_member_history_task({"redis": redis})
+
+        assert result["available_snapshot_count"] == 1
+        assert result["selected_snapshot_count"] == 1
+        assert result["limited"] is False
+        assert result["queued"] == 1
+        assert result["unresolved_count"] == 0
+        assert redis.calls == [
+            (
+                (
+                    "task_bulk_fetch_instrument",
+                    instrument.id,
+                    ["MN", "W1", "D1"],
+                    None,
+                    "2026-06-30T23:59:59.999999+00:00",
+                ),
+                {
+                    "_job_id": (
+                        f"watchlist-source-history:{instrument.id}:MN,W1,D1:"
+                        "end=2026-06-30T23:59:59.999999+00:00"
+                    )
+                },
+            )
+        ]
