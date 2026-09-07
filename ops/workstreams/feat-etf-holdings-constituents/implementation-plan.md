@@ -3447,3 +3447,10 @@ The official ATTR route redirected to the Arin homepage and exposed a complete
 HTML holdings table with effective date `2026-09-08`, future to the observation.
 Keep ATTR unavailable until freshness and identity checks pass; do not promote
 the route solely because it is reachable.
+
+## Avos AVOS HTML holdings recheck — 2026-09-07
+
+The official AVOS page returned a complete HTML table with effective date
+`2026-09-08`, future to the observation. Keep AVOS unavailable until freshness
+and identity checks pass; do not promote the route solely because it is
+reachable.

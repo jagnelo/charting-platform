@@ -639,12 +639,13 @@ def test_follow_on_ranked_fallback_avos_symbol_preserves_blocked_route_evidence(
 
     assert result.tier == 1
     assert result.outcome == UNAVAILABLE
-    assert result.evidence_state == "issuer_route_access_blocked"
+    assert result.evidence_state == "future_dated_source"
     assert result.provider_identity == "avos"
-    assert result.investigated_at == date(2026, 9, 4)
+    assert result.investigated_at == date(2026, 9, 7)
     assert result.evidence_refs == (
         "web:avos-current-holdings-page-2026-09-04",
         "live:avos-current-holdings-page-2026-09-04-blocked",
+        "live:avos-html-holdings-future-effective-date-2026-09-07",
     )
 
 

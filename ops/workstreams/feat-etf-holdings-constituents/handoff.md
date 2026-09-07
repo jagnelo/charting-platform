@@ -4938,3 +4938,10 @@ The official ATTR route redirected to the Arin homepage and exposed a complete
 HTML holdings table, but the effective-date table reported `2026-09-08`, future
 to the observation. ATTR remains unavailable until a non-future, identity-bound
 snapshot is proven; no promotion occurred.
+
+## Avos AVOS HTML holdings recheck — 2026-09-07
+
+The official AVOS page returned a complete HTML holdings table, but all rows
+were effective `2026-09-08`, future-dated relative to the observation. AVOS
+remains unavailable until a non-future, identity-bound snapshot is proven; no
+promotion occurred.

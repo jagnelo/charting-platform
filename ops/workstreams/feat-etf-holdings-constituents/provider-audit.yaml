@@ -342,10 +342,10 @@ symbol_audit_ledger:
       tier: 1
       provider_identity: avos
       current_outcome: unavailable
-      evidence_state: issuer_route_access_blocked
-      investigated_at: 2026-09-04
-      evidence_refs: [web:avos-current-holdings-page-2026-09-04, live:avos-current-holdings-page-2026-09-04-blocked]
-      next_action: "Periodically re-test the official AVOS page; promote only after backend access returns complete current rows with proven mapping."
+      evidence_state: future_dated_source
+      investigated_at: 2026-09-07
+      evidence_refs: [web:avos-current-holdings-page-2026-09-04, live:avos-current-holdings-page-2026-09-04-blocked, live:avos-html-holdings-future-effective-date-2026-09-07]
+      next_action: "Re-test the official AVOS page after the effective date is no longer future-dated; promote only after parser, identity, freshness, and bounded live evidence pass."
     - symbol: BGGG
       tier: 1
       provider_identity: baillie_gifford
@@ -2337,7 +2337,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-09-04
+    last_checked: 2026-09-07
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [AVOS]
     estimated_us_etf_count: null
@@ -2367,8 +2367,12 @@ providers:
         source: "Avos Global Equities official AVOS product page"
         result: "The official page exposes a complete 2026-09-02 holdings table, but bounded backend-equivalent access returned HTTP 403; no executable native route is retained."
         evidence_ref: "live:avos-current-holdings-page-2026-09-04-blocked"
-    disposition_reason: "avos: Avos Global Equities' official AVOS page exposes current holdings in browser-facing evidence, but bounded backend-equivalent access returns HTTP 403, so native promotion is not justified."
-    next_action: "avos: Periodically re-test the official AVOS page; promote only after backend access returns complete current rows with proven mapping."
+      - date: 2026-09-07
+        source: "https://avosglobalequities.com/"
+        result: "The official page returned a complete HTML holdings table with effective date 2026-09-08, future-dated relative to the observation; the route is reachable but current analysis remains unavailable."
+        evidence_ref: "live:avos-html-holdings-future-effective-date-2026-09-07"
+    disposition_reason: "avos: The official AVOS page exposes a complete HTML holdings table, but its effective date is future-dated relative to the 2026-09-07 observation; the freshness boundary keeps native support unavailable."
+    next_action: "avos: Re-test the official AVOS page after the effective date is no longer future-dated; promote only after parser, identity, freshness, and bounded live evidence pass."
     implementation_sha: null
     validation_refs: []
   - adapter_key: azimut

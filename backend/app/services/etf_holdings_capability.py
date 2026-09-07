@@ -923,16 +923,17 @@ _register_non_tier_0_audits(
 _register_non_tier_0_audits(
     ("AVOS",),
     outcome=UNAVAILABLE,
-    evidence_state="issuer_route_access_blocked",
+    evidence_state="future_dated_source",
     provider_identity="avos",
-    investigated_at=date(2026, 9, 4),
+    investigated_at=date(2026, 9, 7),
     evidence_refs=(
         "web:avos-current-holdings-page-2026-09-04",
         "live:avos-current-holdings-page-2026-09-04-blocked",
+        "live:avos-html-holdings-future-effective-date-2026-09-07",
     ),
     next_action=(
-        "Periodically re-test the official AVOS page; promote only after backend access "
-        "returns complete current rows with proven mapping."
+        "Re-test the official AVOS page after the effective date is no longer future-dated; "
+        "promote only after parser, identity, freshness, and bounded live evidence pass."
     ),
 )
 _register_non_tier_0_audits(
