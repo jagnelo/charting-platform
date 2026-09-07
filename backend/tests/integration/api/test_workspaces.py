@@ -595,6 +595,15 @@ class TestWorkspaces:
         assert sp600_roles["value"]["history_route_source_url"] == (
             "https://data.sec.gov/submissions/CIK0001064642.json"
         )
+        assert sp600_roles["growth"]["symbol"] == "SLYG"
+        assert sp600_roles["growth"]["history_route_status"] == "sec_filing_reconstruction"
+        assert sp600_roles["growth"]["history_route_provider"] == "sec"
+        assert sp600_roles["growth"]["history_route_policy"] == (
+            "latest_sec_filing_report_on_or_before_requested_date"
+        )
+        assert sp600_roles["growth"]["history_route_source_url"] == (
+            "https://data.sec.gov/submissions/CIK0001064642.json"
+        )
 
     def test_benchmark_family_coverage_exposes_role_dates_and_point_in_time_filter(
         self, client, auth_headers, db, instrument_type

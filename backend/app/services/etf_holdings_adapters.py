@@ -3363,6 +3363,16 @@ KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
             "sec_fund_tickers_symbol": "SLYV",
         },
     },
+    "SLYG": {
+        "issuer": "State Street Global Advisors",
+        "provider_aliases": {
+            "holdings_adapter": "spdr",
+            "sec_cik": "0001064642",
+            "sec_series_id": "S000006984",
+            "sec_class_id": "C000019037",
+            "sec_fund_tickers_symbol": "SLYG",
+        },
+    },
     "EEM": {
         "issuer": "iShares",
         "provider_aliases": {
