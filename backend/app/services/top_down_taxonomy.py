@@ -77,9 +77,22 @@ _SPDR_HISTORY_ROUTE = {
     ),
 }
 
+# SPDR's shared series-trust CIK also exposes a verified N-PORT identity for
+# SPYV. Keep this one dated SEC route explicit until equivalent identities and
+# live evidence exist for the remaining SPDR family roles.
+_SPDR_SPYV_HISTORY_ROUTE = {
+    "status": "sec_filing_reconstruction",
+    "provider": "sec",
+    "policy": "latest_sec_filing_report_on_or_before_requested_date",
+    "source_url": "https://data.sec.gov/submissions/CIK0001064642.json",
+}
+
 
 def _spdr_history_route(symbol: str) -> dict[str, str]:
-    """Return the current-only SPDR route with a symbol-specific source URL."""
+    """Return the verified SPDR history route for a mapped symbol."""
+
+    if symbol.strip().upper() == "SPYV":
+        return dict(_SPDR_SPYV_HISTORY_ROUTE)
 
     return {
         **_SPDR_HISTORY_ROUTE,

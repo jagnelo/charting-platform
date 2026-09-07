@@ -3284,6 +3284,16 @@ KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
             "sec_fund_tickers_symbol": "RSP",
         },
     },
+    "SPYV": {
+        "issuer": "State Street Global Advisors",
+        "provider_aliases": {
+            "holdings_adapter": "spdr",
+            "sec_cik": "0001064642",
+            "sec_series_id": "S000006985",
+            "sec_class_id": "C000019038",
+            "sec_fund_tickers_symbol": "SPYV",
+        },
+    },
     "EEM": {
         "issuer": "iShares",
         "provider_aliases": {
@@ -3851,6 +3861,9 @@ class SpdrHoldingsAdapter(IssuerCsvHoldingsAdapter):
     # generic CSV fallback: identity is taken from the workbook preamble and
     # the fields are normalized into the same canonical rows.
     _COMPACT_HEADERS = frozenset({"Ticker", "Name", "Weight (%)", "Shares", "Currency"})
+    # SPDR Series Trust files many funds under one CIK; inspect a bounded set
+    # of filings so identity matching can reach the requested series.
+    _DATED_SEC_MAX_FILINGS = 50
 
     def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
         normalized_symbol = symbol.strip().upper()
@@ -3944,6 +3957,57 @@ class SpdrHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 **({"composition_date": composition_date.isoformat()} if composition_date else {}),
             },
         )
+
+    async def fetch_for_date(
+        self,
+        *,
+        symbol: str,
+        requested_date: date,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        """Use explicit SEC identity for dated SPDR reconstruction.
+
+        The native SPDR workbook is current-only. A dated request is allowed
+        only when the caller supplies a curated SEC CIK/series/class identity;
+        otherwise retain the existing explicit-route error.
+        """
+
+        identifiers = identifiers or {}
+        sec_cik = _identifier(identifiers, "sec_cik")
+        if not sec_cik:
+            return await super().fetch_for_date(
+                symbol=symbol,
+                requested_date=requested_date,
+                issuer_product_id=issuer_product_id,
+                source_url=source_url,
+                identifiers=identifiers,
+            )
+
+        result = await self._fetch_latest_sec_filing_holdings(
+            symbol=symbol,
+            issuer_product_id=issuer_product_id,
+            identifiers=identifiers,
+            end_date=requested_date,
+            max_filings=self._DATED_SEC_MAX_FILINGS,
+        )
+        if result is None:
+            raise ValueError(
+                f"SPDR has no SEC holdings filing at or before {requested_date.isoformat()} "
+                f"for {symbol}."
+            )
+        result.legal_metadata = {
+            **(result.legal_metadata or {}),
+            "source_access": "sec_filing",
+            "source_provider": "sec",
+            "adapter_key": self.adapter_key,
+            "requested_holdings_date": requested_date.isoformat(),
+            "historical_as_of_policy": "latest_sec_filing_report_on_or_before_requested_date",
+            "issuer_route": "spdr_symbol_daily_holdings_workbook",
+            "terms_note": self.config.terms_note,
+        }
+        return result
 
     @classmethod
     def _workbook_url(cls, symbol: str) -> str:

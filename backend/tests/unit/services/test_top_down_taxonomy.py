@@ -169,7 +169,7 @@ def test_ishares_family_roles_declare_the_supported_as_of_history_route():
     assert observed == expected_symbols
 
 
-def test_spdr_family_roles_declare_current_only_history_route():
+def test_spdr_family_roles_declare_explicit_history_routes():
     expected_symbols = {"SPY", "SPYV", "SPYG", "MDY", "MDYV", "MDYG", "SLYV", "SLYG", "SPTM"}
     observed: set[str] = set()
     for family in benchmark_family_registry():
@@ -178,16 +178,24 @@ def test_spdr_family_roles_declare_current_only_history_route():
             if mapping.get("symbol") not in expected_symbols:
                 continue
             observed.add(mapping["symbol"])
-            assert mapping["history_route"] == {
-                "status": "issuer_current_only",
-                "provider": "spdr",
-                "policy": "issuer_daily_workbook_current_snapshot_only",
-                "source_url": (
-                    "https://www.ssga.com/us/en/intermediary/etfs/library-content/"
-                    "products/fund-data/etfs/us/holdings-daily-us-en-"
-                    f"{mapping['symbol'].lower()}.xlsx"
-                ),
-            }
+            if mapping["symbol"] == "SPYV":
+                assert mapping["history_route"] == {
+                    "status": "sec_filing_reconstruction",
+                    "provider": "sec",
+                    "policy": "latest_sec_filing_report_on_or_before_requested_date",
+                    "source_url": "https://data.sec.gov/submissions/CIK0001064642.json",
+                }
+            else:
+                assert mapping["history_route"] == {
+                    "status": "issuer_current_only",
+                    "provider": "spdr",
+                    "policy": "issuer_daily_workbook_current_snapshot_only",
+                    "source_url": (
+                        "https://www.ssga.com/us/en/intermediary/etfs/library-content/"
+                        "products/fund-data/etfs/us/holdings-daily-us-en-"
+                        f"{mapping['symbol'].lower()}.xlsx"
+                    ),
+                }
     assert observed == expected_symbols
 
 

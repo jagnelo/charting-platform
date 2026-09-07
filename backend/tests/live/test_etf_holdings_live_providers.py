@@ -2219,6 +2219,35 @@ async def test_live_ishares_family_legs_support_historical_as_of_snapshots(symbo
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@_covers_live_provider("spdr")
+async def test_live_spdr_spyv_historical_route_is_sec_labelled():
+    """Prove curated SPYV identity reaches a dated SEC filing."""
+
+    adapter = get_holdings_adapter("spdr")
+    assert adapter is not None
+
+    requested_date = date(2025, 12, 31)
+    identifiers = known_etf_route_metadata("SPYV")["provider_aliases"]
+    result = await adapter.fetch_for_date(
+        symbol="SPYV",
+        requested_date=requested_date,
+        identifiers=identifiers,
+    )
+
+    _assert_live_holdings_result(result, adapter_key="spdr", min_rows=100)
+    metadata = result.legal_metadata or {}
+    assert metadata["source_access"] == "sec_filing"
+    assert metadata["source_provider"] == "sec"
+    assert metadata["requested_holdings_date"] == requested_date.isoformat()
+    assert metadata["historical_as_of_policy"] == (
+        "latest_sec_filing_report_on_or_before_requested_date"
+    )
+    assert metadata["issuer_route"] == "spdr_symbol_daily_holdings_workbook"
+    assert date.fromisoformat(str(metadata["composition_date"])) <= requested_date
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
 @pytest.mark.parametrize(
     ("adapter_key", "symbol", "identifiers", "expected_route_resolution"),
     [
