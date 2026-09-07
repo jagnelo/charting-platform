@@ -3471,3 +3471,13 @@ prospectus PDF rather than a holdings export. No complete current executable
 artifact was retrieved, so FMCX/FMCE remain unavailable under the existing
 `non_executable_public_source` disposition; no SEC reconstruction, native
 promotion, or paid activation was made.
+
+## Highland Capital AQLG route recheck — 2026-09-07
+
+Fresh retrieval returned the official AQLG page and its linked 130-row CSV.
+The page identifies AQLG and reports holdings as of `2026-08-25`; the CSV
+contains names, CUSIPs, quantities, and weights but leaves every `Ticker` field
+blank. The artifact remains materially complete but cannot satisfy canonical
+symbol mapping without an issuer-declared mapping, so AQLG remains unavailable
+under `non_executable_public_source`; no SEC reconstruction or promotion was
+made.

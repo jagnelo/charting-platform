@@ -752,6 +752,7 @@ def test_sixth_ranked_fallback_highland_symbol_remains_unavailable_without_mappi
     assert result.evidence_refs == (
         "web:highland-aqlg-page-and-csv-2026-09-03",
         "web:highland-sec-prospectus-2026-09-03",
+        "live:highland-aqlg-page-and-csv-2026-09-07-non-executable",
     )
 
 

@@ -4962,3 +4962,12 @@ FMCX/FMCE remain unavailable and `non_executable_public_source` because no
 complete current executable artifact is exposed. Runtime and YAML evidence
 carry the dated live reference; no SEC reconstruction, native promotion, or
 paid activation occurred.
+
+## Highland Capital AQLG route recheck — 2026-09-07
+
+The official AQLG page and linked CSV were reachable. The 130-row CSV is
+materially complete and dated through the page's `2026-08-25` holdings date,
+but every `Ticker` field is blank; names/CUSIPs alone do not establish the
+canonical symbol mapping contract. AQLG remains unavailable and
+`non_executable_public_source`; no SEC reconstruction, native promotion, or
+paid activation occurred.

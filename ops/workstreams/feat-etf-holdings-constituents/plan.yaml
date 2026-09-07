@@ -282,6 +282,7 @@ remaining_gaps:
   - "The 2026-09-07 Avos recheck found a complete AVOS HTML holdings table, but all rows were effective 2026-09-08, future-dated relative to observation. AVOS remains unavailable until a non-future snapshot is proven; no native promotion was made."
   - "The 2026-09-07 Baillie Gifford recheck found HTTP 200 XLSX files for all four routes, dated 2026-09-04 but limited to ten names/weights without complete constituents, tickers, or identifiers. BGGG/BGIA/BGEG/BGUS remain unavailable; no native promotion was made."
   - "The 2026-09-07 First Manhattan recheck reached the official catalogue and FMCX/FMCE pages with HTTP 200 challenge HTML containing access-denied/CAPTCHA markers; the declared download returned a prospectus PDF rather than holdings. FMCX/FMCE remain unavailable and non-executable because no complete current artifact is exposed; no promotion or paid activation occurred."
+  - "The 2026-09-07 Highland Capital recheck returned the official AQLG page and its 130-row CSV, dated 2026-08-25, but every CSV Ticker field remained blank. The artifact is materially complete yet not canonically symbol-mappable; AQLG remains unavailable and non-executable with no SEC reconstruction or promotion."
 progress:
   completed:
     - AC1

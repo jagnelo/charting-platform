@@ -615,8 +615,8 @@ symbol_audit_ledger:
       provider_identity: highland_capital
       current_outcome: unavailable
       evidence_state: non_executable_public_source
-      investigated_at: 2026-09-03
-      evidence_refs: [web:highland-aqlg-page-and-csv-2026-09-03, web:highland-sec-prospectus-2026-09-03]
+      investigated_at: 2026-09-07
+      evidence_refs: [web:highland-aqlg-page-and-csv-2026-09-03, web:highland-sec-prospectus-2026-09-03, live:highland-aqlg-page-and-csv-2026-09-07-non-executable]
       next_action: "Re-test the official AQLG/AQLV pages for a ticker-bearing complete export or an issuer-declared mapping; promote only after symbol mapping, current-date semantics, parser fixtures, and bounded live evidence are all proven."
     - symbol: QYLD
       tier: 1
@@ -4449,7 +4449,7 @@ providers:
     starting_status: needs_first_party_route_discovery
     current_status: non_executable_public_source
     disposition: non_executable_public_source
-    last_checked: 2026-09-03
+    last_checked: 2026-09-07
     source_access_declared: issuer_public_holdings_file
     representative_symbols:
       - AQLG
@@ -4474,6 +4474,7 @@ providers:
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.highland_capital"
       - "runtime:ISSUER_ADAPTER_CONFIGS.highland_capital"
+      - "live:highland-aqlg-page-and-csv-2026-09-07-non-executable"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -4487,6 +4488,10 @@ providers:
         source: "https://www.sec.gov/Archives/edgar/data/1771146/000177114626000253/ck0001771146-20260129.htm"
         result: "The current Highland prospectus identifies AQLG and a not-yet-assigned Highland Capital Large Cap Value ETF, and directs investors to highlandcap.com for daily holdings; it corroborates product identity but does not supply the missing ticker-bearing executable artifact."
         evidence_ref: "web:highland-sec-prospectus-2026-09-03"
+      - date: 2026-09-07
+        source: "https://www.highlandcap.com/etf/ and https://www.highlandcap.com/wp-content/uploads/etf-holdings/AQLG_holdings_current.csv"
+        result: "Fresh retrieval returned the official AQLG page and its 130-row CSV. The page identifies AQLG and reports holdings as of 2026-08-25; the CSV contains names, CUSIPs, quantities, and weights but leaves every Ticker field blank. The artifact remains materially complete but cannot satisfy canonical symbol mapping without an issuer-declared mapping, so no native promotion is made."
+        evidence_ref: "live:highland-aqlg-page-and-csv-2026-09-07-non-executable"
     disposition_reason: "highland_capital: Highland's issuer-owned AQLG CSV is reachable and materially complete but omits all ticker symbols, while the second prospectus fund has no assigned ticker/current holdings route. Without provider-published symbol mapping, the artifact cannot satisfy the native constituent contract; it remains a dated non_executable_public_source rather than being reconstructed through SEC or third-party CUSIP lookups."
     next_action: "highland_capital: Re-test the official AQLG/AQLV pages for a ticker-bearing complete export or an issuer-declared mapping; promote only after symbol mapping, current-date semantics, parser fixtures, and bounded live evidence are all proven."
     implementation_sha: null

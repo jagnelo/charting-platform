@@ -1104,10 +1104,11 @@ _register_non_tier_0_audits(
     outcome=UNAVAILABLE,
     evidence_state="non_executable_public_source",
     provider_identity="highland_capital",
-    investigated_at=date(2026, 9, 3),
+    investigated_at=date(2026, 9, 7),
     evidence_refs=(
         "web:highland-aqlg-page-and-csv-2026-09-03",
         "web:highland-sec-prospectus-2026-09-03",
+        "live:highland-aqlg-page-and-csv-2026-09-07-non-executable",
     ),
     next_action=(
         "Re-test the official AQLG/AQLV pages for a ticker-bearing complete export or an "
