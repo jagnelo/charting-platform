@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-07 — Continue compatible provider metadata fallback
+
+- [x] Keep searching the configured provider chain when a provider-owned
+      metadata profile is non-null but fails canonical name, symbol,
+      placeholder, or equity-like quote-type checks; accept the first fully
+      admissible profile and retain safe default fallback (`ab9ebe56`).
+- [x] Focused ETF resolver coverage passed `24/24`; exact-tip gate passed
+      backend `1350` unit/`385` integration, frontend `970/970`, and
+      functional Playwright `159` passed with `106` documented skips. Visual
+      parity remains `98/104` with only the six known state-oracle diffs;
+      cleanup is clean.
+- [ ] Continue separately authorized, auditable enrichment and canonical
+      member-bar population; provider-chain safety does not prove complete
+      family/date/member coverage.
+
 ### 2026-09-07 — Let identity search providers complete canonical enrichment
 
 - [x] Use metadata from the reviewed provider that supplied a unique

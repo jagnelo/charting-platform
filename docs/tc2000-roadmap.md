@@ -5,6 +5,30 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-07
 
+## 2026-09-07 — Continue compatible provider metadata fallback
+
+Product commit `ab9ebe56` tightens the reviewed search-provider enrichment
+chain. A provider-owned metadata profile is accepted only after the same
+canonical-symbol, placeholder, quote-type, and name-compatibility checks used
+by the default path; an incompatible profile no longer blocks a later
+configured provider or the safe default fallback. The new regression covers a
+first incompatible provider followed by a compatible provider, while the
+existing unique-candidate enrichment remains covered. This preserves bounded,
+maintenance-only search and rejects weak metadata rather than promoting it.
+
+Focused resolver coverage passed `24/24`; Ruff/format and diff checks passed.
+The exact-tip gate at `ab9ebe56` passed all non-visual stages: backend `1350`
+unit and `385` integration tests with combined coverage above the repository
+floor, frontend `970/970`, build/compose/provider policy, stack health, runner
+isolation/resource probes, and authenticated functional Playwright (`159`
+passed, `106` documented skips across `265` specs). The unchanged visual
+matrix returned `98/104`, with exactly the six known state-oracle diffs
+(watchlist-column-editor-open at 1080p-100/125 and workspace-floating at all
+four projects). No baseline, mask, threshold, skip, fallback, provider, or
+acceptance policy changed. Teardown removed four generated images and left
+zero assigned containers, volumes, sessions, or known bytes. Broader canonical
+population/history and R2-R7 remain open.
+
 ## 2026-09-07 — Let identity search providers complete canonical enrichment
 
 Product commit `53f7b07b` closes a bounded R1 enrichment gap: when a reviewed

@@ -13,6 +13,16 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product commit ab9ebe56 keeps the reviewed search-provider metadata chain
+  moving after an incompatible provider-owned profile; only profiles passing
+  canonical-symbol, non-placeholder, quote-type, and name-compatibility
+  checks are accepted, with later configured providers and safe default
+  fallback still available. Focused resolver coverage passed 24 tests and the
+  exact-tip gate passed 1350 unit and 385 integration tests, frontend 970/970,
+  and functional Playwright 159 passed with 106 documented skips; the only
+  remaining boundary is the six unchanged visual state-oracle diffs. Continue
+  broader canonical provider/history population and R2-R7 while preserving
+  the visual-only boundary. Historical receipts below remain authoritative.
   Product commit 53f7b07b lets the reviewed identity-search provider that
   supplied a unique candidate also supply canonical metadata before the default
   metadata provider; full name, canonical-symbol, quote-type, ambiguity, and
@@ -141,6 +151,17 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
+    Product commit ab9ebe56 keeps the reviewed search-provider metadata chain
+    moving after an incompatible provider-owned profile; only profiles passing
+    canonical-symbol, non-placeholder, quote-type, and name-compatibility
+    checks are accepted, with later configured providers and safe default
+    fallback still available. Focused resolver coverage passed 24 tests and
+    the exact-tip gate passed 1350 unit and 385 integration tests, frontend
+    970/970, and functional Playwright 159 passed with 106 documented skips;
+    the only remaining boundary is the six unchanged visual state-oracle
+    diffs. Continue broader canonical provider/history population and R2-R7
+    while preserving the visual-only boundary. Historical receipts below
+    remain authoritative.
     Product commit 53f7b07b lets a reviewed identity-search provider supply its
     own canonical metadata for a unique candidate before the default metadata
     provider, while preserving full-name, canonical-symbol, quote-type,

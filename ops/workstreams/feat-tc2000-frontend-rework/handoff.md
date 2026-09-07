@@ -8,6 +8,28 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-07 — Continue compatible provider metadata fallback
+
+Product commit `ab9ebe56` keeps the reviewed search-provider metadata chain
+moving after an incompatible provider-owned profile. Only profiles satisfying
+the existing canonical-symbol, non-placeholder, equity-like quote-type, and
+name-compatibility checks are accepted; later configured providers and then
+the default provider remain available. A focused regression covers this
+fallback ordering. The change is bounded maintenance-only enrichment and does
+not claim complete canonical population.
+
+Focused resolver coverage passed `24/24`, and Ruff/format/diff checks passed.
+The exact-tip full-stack gate passed every non-visual stage at `ab9ebe56`:
+backend `1350` unit/`385` integration, combined coverage, frontend `970/970`,
+build/compose/provider policy, stack health, runner isolation/resource probes,
+and authenticated functional Playwright (`159` passed, `106` skips across
+`265`). Visual parity remains `98/104` with the six unchanged state-oracle
+diffs: watchlist-column-editor-open at 1080p-100/125 and workspace-floating
+at all four visual projects. No oracle or provider/fallback/acceptance policy
+changed. Docker cleanup removed four generated images and assigned resources
+were clean. Continue broader canonical population/history and R2-R7; do not
+integrate, promote, or deploy.
+
 ## 2026-09-07 — Let identity search providers complete canonical enrichment
 
 Product commit `53f7b07b` allows a reviewed instrument-search provider to supply
