@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-07 — Chart Plot Library Boolean watchlist-column promotion
+
+- [x] Add a typed `Boolean column` promotion target to the Chart Plot Library.
+      It persists the indicator threshold as a reusable condition, creates the
+      existing EasyScan backing, and adds `condition:<key>` plus its visibility
+      key to a selected watchlist (`191aa889`).
+- [x] Focused Chart Plot Library coverage passed `23/23`; frontend type-check
+      passed; exact-tip gate passed backend `1350` unit/`385` integration,
+      frontend `972/972`, and functional Playwright `159` passed with `106`
+      documented skips. Visual parity remains `98/104` with only the six
+      known state-oracle diffs; cleanup/resource accounting is clean.
+- [ ] Continue the remaining compatible chart/list/gauge and Strategy Lab
+      promotion fan-out alongside canonical provider/history population and
+      R2-R7 roadmap work.
+
 ### 2026-09-07 — Chart Plot Library Market Gauge promotion
 
 - [x] Add a `Market Gauge` promotion target to the Chart Plot Library. It

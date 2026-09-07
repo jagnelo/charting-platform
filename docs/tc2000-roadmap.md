@@ -5,6 +5,30 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-07
 
+## 2026-09-07 — Promote chart indicators to Boolean watchlist columns
+
+Product commit `191aa889` completes another compatible R4 fan-out slice in the
+Chart Plot Library. An indicator threshold can now be copied into a reusable
+condition, a saved EasyScan-backed Boolean column, and a selected watchlist
+window. The adapter uses the existing `condition:<key>` and `column_keys`
+workspace contract, preserves the chart timeframe, validates the target before
+creating the scan, and reports the resulting column without changing provider,
+fallback, visual-oracle, or acceptance-policy behavior.
+
+Focused Chart Plot Library coverage passed `23/23`; frontend type-check and
+diff checks passed. The exact-tip gate passed all non-visual stages: backend
+`1350` unit and `385` integration tests with combined coverage above the
+repository floor, frontend `972/972`, production build/compose/provider
+policy, stack health, runner isolation/resource probes, and authenticated
+functional Playwright (`159` passed, `106` documented skips across `265`). The
+unchanged visual matrix returned `98/104`, exactly the six known state-oracle
+diffs (watchlist-column-editor-open at visual-1080p-100/125 and
+workspace-floating at visual-1080p-100/125 and visual-1440p-100/125). Cleanup
+removed four generated images and left no assigned containers, volumes,
+sessions, or known bytes. Continue broader R1 canonical population/history and
+the remaining R2-R7 work; this slice does not imply complete promotion
+fan-out.
+
 ## 2026-09-07 — Promote chart indicators to Market Gauges
 
 Product commit `f2dc4a78` completes a compatible R4 fan-out gap in the Chart

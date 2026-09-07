@@ -8,6 +8,19 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-07 — Promote chart indicators to Boolean watchlist columns
+
+Product commit `191aa889` adds the Chart Plot Library's compatible Boolean
+watchlist-column target. It reuses the saved condition and EasyScan contracts,
+then persists a typed `condition:<key>` column and `column_keys` visibility
+entry on the selected watchlist after validating that target. Focused component
+tests passed `23/23`, type-check passed, and the exact-tip gate passed all
+non-visual stages (backend `1350` unit/`385` integration, frontend `972/972`,
+build, compose, stack, runner probes, and functional Playwright `159` passed
+with `106` documented skips). Visual parity remains `98/104` with the six
+known state-oracle diffs; cleanup is clean. Continue broader R1
+population/history and R2-R7; do not integrate, promote, or deploy.
+
 ## 2026-09-07 — Promote chart indicators to Market Gauges
 
 Product commit `f2dc4a78` adds the Chart Plot Library's compatible `Market
