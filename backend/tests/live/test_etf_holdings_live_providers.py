@@ -3197,7 +3197,12 @@ async def test_live_ershares_ssnc_full_holdings_api():
     adapter = get_holdings_adapter("ershares")
     assert adapter is not None
 
-    result = await adapter.fetch_latest(symbol="XOVR")
+    try:
+        result = await adapter.fetch_latest(symbol="XOVR")
+    except (httpx.HTTPError, requests.RequestException, TimeoutError) as exc:
+        if _is_external_live_access_failure(exc):
+            pytest.skip(str(exc) or exc.__class__.__name__)
+        raise
 
     _assert_live_holdings_result(result, adapter_key="ershares", min_rows=20)
     assert result.legal_metadata["route_resolution"] == ("ershares_public_ssnc_full_holdings_api")
@@ -4004,7 +4009,12 @@ async def test_live_lsv_lsvd_product_page_declared_holdings_csv():
     adapter = get_holdings_adapter("lsv")
     assert adapter is not None
 
-    result = await adapter.fetch_latest(symbol="LSVD")
+    try:
+        result = await adapter.fetch_latest(symbol="LSVD")
+    except (httpx.HTTPError, requests.RequestException, TimeoutError) as exc:
+        if _is_external_live_access_failure(exc):
+            pytest.skip(str(exc) or exc.__class__.__name__)
+        raise
 
     _assert_live_holdings_result(result, adapter_key="lsv", min_rows=100)
     assert result.legal_metadata["route_resolution"] == "lsv_product_page_declared_holdings_csv"

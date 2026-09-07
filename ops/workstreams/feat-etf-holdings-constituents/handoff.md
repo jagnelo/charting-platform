@@ -5098,3 +5098,15 @@ seven. The published count is now corrected to seven, and the ledger parity
 test checks all four runtime fallback status counts in the document. Focused
 parity tests, Ruff, workstream validation, and diff-check passed; no route,
 provider, source, or capability classification changed.
+
+## Narrow live timeout boundary — 2026-09-07
+
+The exact-SHA branch-declared opt-in matrix exposed two issuer transport
+timeouts: ERShares XOVR (`capital_impact`) and LSV LSVD. Both are now handled
+by the existing external-access classifier in their bespoke live tests. The
+classifier only skips timeout/connectivity, rate-limit, and server-edge
+failures; parser, identity, schema, and completeness failures still raise.
+Local focused probes skipped both cases because this environment could not
+resolve the issuer hostnames. The deterministic adapter suite passed 580
+tests, Ruff, workstream validation, and diff-check passed. No adapter route,
+provider disposition, capability outcome, or paid source was changed.
