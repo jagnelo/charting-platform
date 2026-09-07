@@ -801,8 +801,11 @@ _register_non_tier_0_audits(
     outcome=NOT_APPLICABLE,
     evidence_state="identity_not_portfolio_publisher",
     provider_identity="ridgeline",
-    investigated_at=date(2026, 9, 3),
-    evidence_refs=("web:ridgeline-acvf-adviser-identity-2026-09-03",),
+    investigated_at=date(2026, 9, 7),
+    evidence_refs=(
+        "web:ridgeline-acvf-adviser-identity-2026-09-03",
+        "live:ridgeline-acvf-route-2026-09-07-403",
+    ),
     next_action=(
         "Keep ACVF under its existing ACV publisher route; reopen Ridgeline only if a distinct "
         "issuer-owned ETF holdings publisher is identified."

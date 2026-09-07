@@ -215,8 +215,8 @@ symbol_audit_ledger:
       provider_identity: ridgeline
       current_outcome: not_applicable
       evidence_state: identity_not_portfolio_publisher
-      investigated_at: 2026-09-03
-      evidence_refs: [web:ridgeline-acvf-adviser-identity-2026-09-03]
+      investigated_at: 2026-09-07
+      evidence_refs: [web:ridgeline-acvf-adviser-identity-2026-09-03, live:ridgeline-acvf-route-2026-09-07-403]
       next_action: "Keep ACVF under its existing ACV publisher route; reopen Ridgeline only if a distinct issuer-owned ETF holdings publisher is identified."
     - symbol: MDST
       tier: 1
@@ -1648,7 +1648,7 @@ providers:
     starting_status: issuer_access_blocked
     current_status: issuer_access_blocked
     disposition: issuer_access_blocked
-    last_checked: 2026-09-03
+    last_checked: 2026-09-07
     source_access_declared: issuer_public_holdings_file
     representative_symbols: [ACVF]
     estimated_us_etf_count: null
@@ -1676,6 +1676,10 @@ providers:
         source: "https://acvetfs.com/fund/acv-etf-fund-data/"
         result: "The official ACVF page identifies Ridgeline Research as adviser and exposes the ACV holdings route, so Ridgeline is not a separate portfolio publisher; bounded access returned 403."
         evidence_ref: "web:ridgeline-acvf-adviser-identity-2026-09-03"
+      - date: 2026-09-07
+        source: "https://acvetfs.com/fund/acv-etf-fund-data/"
+        result: "A fresh bounded request returned HTTP 403; the route remains the ACV publisher surface and does not justify a separate Ridgeline adapter."
+        evidence_ref: "live:ridgeline-acvf-route-2026-09-07-403"
     disposition_reason: "ridgeline: The official ACVF page identifies Ridgeline Research as adviser and ACV as the holdings publisher; the separate Ridgeline identity must not be promoted through that route, and bounded access is blocked."
     next_action: "ridgeline: Keep ACVF under its existing ACV publisher route; reopen Ridgeline only if a distinct issuer-owned ETF holdings publisher is identified."
     implementation_sha: null

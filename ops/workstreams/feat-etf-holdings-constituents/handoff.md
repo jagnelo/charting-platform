@@ -4906,3 +4906,9 @@ The official QVOY page and declared CSV route both returned HTTP 503
 site-owner access-limited content. No complete executable artifact was
 retrieved; QVOY remains unavailable and issuer-access-blocked. Runtime and
 YAML evidence were updated without promotion or paid activation.
+
+## Ridgeline/ACVF identity recheck — 2026-09-07
+
+The official ACVF route returned HTTP 403 again. The page remains an adviser
+surface for Ridgeline with ACV as the holdings publisher, so ACVF stays under
+the existing ACV route and no separate Ridgeline adapter was promoted.
