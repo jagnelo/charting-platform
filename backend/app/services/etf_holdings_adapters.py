@@ -68018,6 +68018,18 @@ ISSUER_ADAPTER_CONFIGS: dict[str, IssuerCsvAdapterConfig] = {
         live_tested_default_route=True,
         terms_note="Akre public FilePoint ETF holdings files may be subject to issuer terms.",
     ),
+    "m_d_sass": IssuerCsvAdapterConfig(
+        adapter_key="m_d_sass",
+        source_provider="m_d_sass",
+        source_access="issuer_public_symbol_scoped_holdings_csv",
+        expected_cadence="daily",
+        url_templates=(
+            "https://www.mdsassetf.com/assets/data/"
+            "FilepointMDSass.40D4.D4_ETF_Holdings.csv",
+        ),
+        product_page_templates=("https://www.mdsassetf.com/",),
+        terms_note="M.D. Sass publishes SASS holdings through an issuer-declared public CSV; issuer terms govern use.",
+    ),
     "rayliant": IssuerCsvAdapterConfig(
         adapter_key="rayliant",
         source_provider="rayliant",
@@ -72542,8 +72554,148 @@ class M2FinancialReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
     """ETFDB issuer-league fallback adapter pending M2 Financial discovery."""
 
 
-class MDSassReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
-    """ETFDB issuer-league fallback adapter pending M. D. Sass discovery."""
+class MDSassHoldingsAdapter(IssuerCsvHoldingsAdapter):
+    """Parse the issuer-declared daily SASS holdings CSV."""
+
+    HOLDINGS_URL = (
+        "https://www.mdsassetf.com/assets/data/"
+        "FilepointMDSass.40D4.D4_ETF_Holdings.csv"
+    )
+    FUND_SYMBOL = "SASS"
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        del name, identifiers
+        normalized_symbol = symbol.strip().upper()
+        return HoldingsAdapterProbe(
+            adapter_key=self.adapter_key,
+            confidence=Decimal("0.9600") if normalized_symbol == self.FUND_SYMBOL else Decimal("0.3000"),
+            status="ready" if normalized_symbol == self.FUND_SYMBOL else "needs_issuer_route",
+            reason=(
+                "M.D. Sass publishes SASS through an issuer-declared daily CSV."
+                if normalized_symbol == self.FUND_SYMBOL
+                else f"M.D. Sass's verified public route currently supports only {self.FUND_SYMBOL}."
+            ),
+            source_url=self.HOLDINGS_URL if normalized_symbol == self.FUND_SYMBOL else None,
+            issuer_product_id=normalized_symbol if normalized_symbol == self.FUND_SYMBOL else None,
+        )
+
+    async def fetch_latest(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        source_url: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        del issuer_product_id, identifiers
+        normalized_symbol = symbol.strip().upper()
+        if normalized_symbol != self.FUND_SYMBOL:
+            raise ValueError(f"M.D. Sass's public holdings route currently supports only {self.FUND_SYMBOL}.")
+        if source_url and source_url.rstrip("/") != self.HOLDINGS_URL.rstrip("/"):
+            raise ValueError("M.D. Sass holdings must use the verified issuer CSV route.")
+
+        async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                self.HOLDINGS_URL,
+                headers=_holdings_request_headers(accept="text/csv,*/*"),
+                follow_redirects=True,
+            )
+        if getattr(response, "status_code", 200) == 403:
+            response = await asyncio.to_thread(
+                requests.get,
+                self.HOLDINGS_URL,
+                headers=_holdings_request_headers(accept="text/csv,*/*"),
+                timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                allow_redirects=True,
+            )
+        response.raise_for_status()
+        rows, composition_date = self._parse_holdings_csv(response.text)
+        if not rows or composition_date is None:
+            raise ValueError("M.D. Sass's public holdings CSV did not expose complete dated SASS rows.")
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=response.text,
+            source_url=str(getattr(response, "url", self.HOLDINGS_URL)),
+            source_identifier=self.FUND_SYMBOL,
+            legal_metadata={
+                "source_access": self.config.source_access,
+                "source_provider": self.source_provider,
+                "adapter_key": self.adapter_key,
+                "source_format": "csv",
+                "route_resolution": "md_sass_issuer_declared_daily_holdings_csv",
+                "composition_date": composition_date.isoformat(),
+                "as_of_date": composition_date.isoformat(),
+                "terms_note": self.config.terms_note,
+            },
+        )
+
+    @classmethod
+    def _parse_holdings_csv(cls, raw_csv: str) -> tuple[list[CanonicalHoldingRow], date | None]:
+        required_columns = {
+            "Date",
+            "Account",
+            "StockTicker",
+            "CUSIP",
+            "SecurityName",
+            "Shares",
+            "MarketValue",
+            "Weightings",
+        }
+        reader = csv.DictReader(StringIO(raw_csv.strip()))
+        if not reader.fieldnames or not required_columns.issubset(set(reader.fieldnames)):
+            raise ValueError("M.D. Sass holdings CSV is missing required columns.")
+        rows: list[CanonicalHoldingRow] = []
+        composition_dates: set[date] = set()
+        for index, item in enumerate(reader, start=1):
+            if (_clean(item.get("Account")) or "").upper() != cls.FUND_SYMBOL:
+                continue
+            row_date = _parse_issuer_date(item.get("Date"))
+            if row_date is None:
+                raise ValueError("M.D. Sass holdings CSV contains an undated SASS row.")
+            composition_dates.add(row_date)
+            raw_symbol = _clean(item.get("StockTicker"))
+            name = _clean(item.get("SecurityName"))
+            money_market_flag = _clean(item.get("MoneyMarketFlag"))
+            text = " ".join(value.upper() for value in (raw_symbol, name, money_market_flag) if value)
+            holding_type = "cash" if money_market_flag == "Y" or "CASH" in text else "equity"
+            row_type = "cash" if holding_type == "cash" else "security"
+            raw_cusip = _clean(item.get("CUSIP"))
+            rows.append(
+                CanonicalHoldingRow(
+                    symbol=cls._tradable_symbol(raw_symbol) if row_type == "security" else None,
+                    name=name,
+                    cusip=raw_cusip if _looks_like_cusip(raw_cusip) else None,
+                    weight=_decimal(item.get("Weightings")),
+                    shares=_decimal(item.get("Shares")),
+                    market_value=_decimal(item.get("MarketValue")),
+                    holding_type=holding_type,
+                    row_type=row_type,
+                    source_row_id=f"{cls.FUND_SYMBOL}:{index}",
+                    extra_data={
+                        **{
+                            key: value
+                            for key, value in item.items()
+                            if key is not None and _clean(value) is not None
+                        },
+                        "source_symbol": raw_symbol,
+                        "source": "md_sass_issuer_declared_daily_holdings_csv",
+                    },
+                )
+            )
+        if len(composition_dates) > 1:
+            raise ValueError("M.D. Sass holdings CSV contains mixed SASS effective dates.")
+        return rows, next(iter(composition_dates), None)
+
+    @staticmethod
+    def _tradable_symbol(value: str | None) -> str | None:
+        normalized = _clean(value)
+        if not normalized or " " in normalized or _looks_like_cusip(normalized):
+            return None
+        return (
+            normalized.upper()
+            if re.fullmatch(r"[A-Z][A-Z0-9.=-]{0,11}", normalized.upper())
+            else None
+        )
 
 
 class MerchantInvestmentManagementReconciledFallbackHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -75387,7 +75539,7 @@ def _issuer_adapter_from_config(config: IssuerCsvAdapterConfig) -> ETFHoldingsAd
         "long_pond": LongPondHoldingsAdapter,
         "lsv": LsvHoldingsAdapter,
         "m2_financial": M2FinancialReconciledFallbackHoldingsAdapter,
-        "m_d_sass": MDSassReconciledFallbackHoldingsAdapter,
+        "m_d_sass": MDSassHoldingsAdapter,
         "madison_avenue": MadisonAvenueReconciledFallbackHoldingsAdapter,
         "manulife": ManulifeAuditedFallbackHoldingsAdapter,
         "marathon": MarathonAuditedFallbackHoldingsAdapter,

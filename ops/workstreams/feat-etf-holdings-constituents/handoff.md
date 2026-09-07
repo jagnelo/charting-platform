@@ -4998,7 +4998,11 @@ native promotion.
 The official SASS holdings CSV returned 23 rows with complete identifiers and
 weights, but all rows were effective `2026-09-08`, future-dated relative to the
 observation. SASS remains unavailable and fallback-only until a non-future
-artifact is revalidated through a strict provider parser and bounded live test.
+artifact is revalidated through the strict provider parser and a bounded live
+test.
+
+The opt-in live route test also passed against the official CSV; only the
+future effective date prevents current-analysis use and native promotion.
 
 ## Parnassus PRCS/PRVS route recheck — 2026-09-07
 

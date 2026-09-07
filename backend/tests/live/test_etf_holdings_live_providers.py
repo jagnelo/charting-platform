@@ -787,6 +787,13 @@ def _assert_live_holdings_result(result, *, adapter_key: str, min_rows: int = 10
             15,
         ),
         (
+            "m_d_sass",
+            "SASS",
+            None,
+            {},
+            10,
+        ),
+        (
             "astoria",
             "ROE",
             None,

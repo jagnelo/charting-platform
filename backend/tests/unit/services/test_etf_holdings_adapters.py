@@ -1866,6 +1866,46 @@ async def test_akre_adapter_parses_filepoint_daily_holdings_without_inventing_lo
 
 
 @pytest.mark.asyncio
+async def test_m_d_sass_adapter_parses_complete_issuer_csv_and_preserves_future_date(monkeypatch):
+    adapter = get_holdings_adapter("m_d_sass")
+    assert adapter is not None
+    assert type(adapter).__name__ == "MDSassHoldingsAdapter"
+    assert (
+        adapter.probe(symbol="SASS", name="M.D. Sass Concentrated Value ETF", identifiers={}).status
+        == "ready"
+    )
+
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,MoneyMarketFlag",
+                    "09/08/2026,SASS,ADI,032654105,Analog Devices Inc,10056,362.25,3642786,4.67%,77987725.20,",
+                    "09/08/2026,SASS,AMZN,023135106,Amazon.com Inc,21410,258.51,5534699.10,7.10%,77987725.20,",
+                    "09/08/2026,SASS,Cash&Other,Cash&Other,Cash & Other,89133.68,1,89133.68,0.11%,77987725.20,Y",
+                    "09/08/2026,OTHER,MSFT,594918104,Microsoft Corp,10,1,10,1%,10,",
+                ]
+            ),
+            url=adapter.HOLDINGS_URL,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="SASS")
+
+    assert FakeAsyncClient.requested[0][0] == adapter.HOLDINGS_URL
+    assert len(result.rows) == 3
+    assert result.rows[0].symbol == "ADI"
+    assert result.rows[0].cusip == "032654105"
+    assert result.rows[0].weight == Decimal("0.0467")
+    assert result.rows[-1].symbol is None
+    assert result.rows[-1].holding_type == "cash"
+    assert result.legal_metadata["route_resolution"] == "md_sass_issuer_declared_daily_holdings_csv"
+    assert result.legal_metadata["composition_date"] == "2026-09-08"
+
+
+@pytest.mark.asyncio
 async def test_kensington_adapter_filters_account_validates_identity_and_preserves_non_tradable_rows(
     monkeypatch,
 ):
@@ -23095,7 +23135,10 @@ def test_etfdb_issuer_league_reconciliation_batch_is_registered_and_audited():
         assert audit.status == "needs_first_party_route_discovery"
         adapter = get_holdings_adapter(adapter_key)
         assert adapter is not None
-        assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
+        if adapter_key == "m_d_sass":
+            assert type(adapter).__name__ == "MDSassHoldingsAdapter"
+        else:
+            assert type(adapter).__name__.endswith("ReconciledFallbackHoldingsAdapter")
     for adapter_key in promoted_native:
         assert ISSUER_ADAPTER_CONFIGS[adapter_key].live_tested_default_route is True
         adapter = get_holdings_adapter(adapter_key)
@@ -23603,7 +23646,7 @@ def test_us_etf_promoter_universe_status_tracks_broad_market_target():
 
 def test_every_registered_adapter_can_probe_ready_with_sec_identifiers():
     for adapter_key, config in ISSUER_ADAPTER_CONFIGS.items():
-        if adapter_key in {"milliman", "nestyield", "river1", "trimtabs"}:
+        if adapter_key in {"milliman", "m_d_sass", "nestyield", "river1", "trimtabs"}:
             # Milliman is intentionally symbol-scoped to its two verified
             # product pages and must not claim a route for an arbitrary symbol.
             continue

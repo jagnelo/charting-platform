@@ -678,10 +678,10 @@ symbol_audit_ledger:
       tier: 1
       provider_identity: m_d_sass
       current_outcome: unavailable
-      evidence_state: non_executable_public_source
-      investigated_at: 2026-09-03
-      evidence_refs: ["web:m-d-sass-official-page-placeholder-holdings-2026-09-03"]
-      next_action: "Re-test the official SASS page for a populated complete holdings export or table with current date and ticker/identifier mapping; promote only after parser fixtures and bounded live evidence are added."
+      evidence_state: future_dated_source
+      investigated_at: 2026-09-07
+      evidence_refs: ["web:m-d-sass-official-page-placeholder-holdings-2026-09-03", "live:m-d-sass-holdings-csv-2026-09-07-future-dated", "live:m-d-sass-opt-in-parser-2026-09-07-passed"]
+      next_action: "Re-test the official SASS holdings CSV after its effective date is no longer future; retain the strict issuer parser and promote only after bounded live evidence proves a non-future complete snapshot."
     - symbol: SIXH
       tier: 1
       provider_identity: madison_avenue
@@ -2454,8 +2454,8 @@ providers:
     display_name: baillie_gifford
     queue_rank: 21
     starting_status: needs_first_party_route_discovery
-    current_status: non_executable_public_source
-    disposition: non_executable_public_source
+    current_status: needs_first_party_route_discovery
+    disposition: needs_first_party_route_discovery
     last_checked: 2026-09-07
     source_access_declared: issuer_public_holdings_file
     representative_symbols:
@@ -2478,7 +2478,7 @@ providers:
     route_complete: false
     symbol_mapping_proven: false
     current_holdings_proven: false
-    parser_fixture: null
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_m_d_sass_adapter_parses_complete_issuer_csv_and_preserves_future_date
     live_test: null
     credential_required: false
     evidence_refs:
@@ -4496,8 +4496,8 @@ providers:
     symbol_mapping_proven: false
     current_holdings_proven: false
     source_format: csv
-    parser_fixture: null
-    live_test: null
+    parser_fixture: backend/tests/unit/services/test_etf_holdings_adapters.py::test_m_d_sass_adapter_parses_complete_issuer_csv_and_preserves_future_date
+    live_test: backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows[m_d_sass-SASS-None-identifiers49-10]
     credential_required: false
     evidence_refs:
       - "runtime:FALLBACK_ISSUER_AUDITS.highland_capital"
@@ -4997,7 +4997,7 @@ providers:
     current_status: non_executable_public_source
     disposition: non_executable_public_source
     last_checked: 2026-09-07
-    source_access_declared: issuer_public_holdings_file
+    source_access_declared: issuer_public_symbol_scoped_holdings_csv
     representative_symbols:
       - SASS
     estimated_us_etf_count: 1
@@ -5022,6 +5022,7 @@ providers:
       - "runtime:ISSUER_ADAPTER_CONFIGS.m_d_sass"
       - "web:m-d-sass-official-page-placeholder-holdings-2026-09-03"
       - "live:m-d-sass-holdings-csv-2026-09-07-future-dated"
+      - "live:m-d-sass-opt-in-parser-2026-09-07-passed"
     attempt_history:
       - date: 2026-07-26
         source: "code-derived fallback audit manifest"
@@ -5035,10 +5036,16 @@ providers:
         source: "https://www.mdsassetf.com/assets/data/FilepointMDSass.40D4.D4_ETF_Holdings.csv"
         result: "The issuer-declared CSV returned HTTP 200 with 23 SASS rows plus header, complete ticker/CUSIP/name/quantity/weight fields, and a 2026-09-08 effective date. The artifact is complete and identity-bound but future-dated relative to the 2026-09-07 observation, so it remains unavailable for current analysis."
         evidence_ref: "live:m-d-sass-holdings-csv-2026-09-07-future-dated"
+      - date: 2026-09-07
+        source: "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows[m_d_sass-SASS-None-identifiers49-10]"
+        result: "The bounded opt-in live test fetched the official CSV, parsed complete rows, and preserved issuer provenance; the current-analysis freshness boundary still rejects the future effective date."
+        evidence_ref: "live:m-d-sass-opt-in-parser-2026-09-07-passed"
     disposition_reason: "m_d_sass: The issuer-declared SASS CSV is complete and identity-bound, but its 2026-09-08 effective date is future-dated relative to the 2026-09-07 check. Keep the provider fallback-only and unavailable for current analysis until a non-future artifact is revalidated with deterministic parser fixtures and bounded live evidence."
-    next_action: "m_d_sass: Re-test the issuer CSV after the effective date is no longer future; implement and validate a strict provider-specific parser before any native promotion."
+    next_action: "m_d_sass: Re-test the issuer CSV after the effective date is no longer future; retain the strict provider-specific parser and promote only after bounded live evidence proves a non-future complete snapshot."
     implementation_sha: null
-    validation_refs: []
+    validation_refs:
+      - "backend/tests/unit/services/test_etf_holdings_adapters.py::test_m_d_sass_adapter_parses_complete_issuer_csv_and_preserves_future_date"
+      - "backend/tests/live/test_etf_holdings_live_providers.py::test_live_issuer_direct_holdings_routes_return_parseable_rows[m_d_sass-SASS-None-identifiers49-10]"
   - adapter_key: madison_avenue
     display_name: madison_avenue
     queue_rank: 72

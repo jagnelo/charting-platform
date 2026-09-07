@@ -289,7 +289,8 @@ remaining_gaps:
   - "The 2026-09-07 Saturna recheck returned HTTP 403 Cloudflare challenge HTML from all three official Amana ETF routes. AMEI/AMGR/AMEM remain issuer-access-blocked; no complete artifact or promotion was found."
   - "The 2026-09-07 Amplius AAAA recheck returned HTTP 200 with 45 complete rows, but every row remained effective 2026-09-08, future-dated relative to observation. Runtime and provider-audit evidence advanced to the new check date; AAAA remains unavailable and Amplius fallback-only, with no promotion or paid activation."
   - "The 2026-09-07 Azimut provider recheck found no U.S. ETF holdings publisher: the official catalogue remained general fund research, the Azfund endpoint failed certificate validation for www.azfund.com, and the public StockAnalysis provider endpoint returned HTTP 404. Azimut remains a provider-level non-publisher with explicit SEC fallback eligibility and no native promotion."
-  - "The 2026-09-07 M.D. Sass recheck found an issuer-declared 23-row SASS holdings CSV with complete identifiers and weights, but every row was effective 2026-09-08, future-dated relative to observation. SASS remains unavailable and fallback-only; parser implementation and bounded live validation are required before native promotion."
+  - "The 2026-09-07 M.D. Sass recheck found an issuer-declared 23-row SASS holdings CSV with complete identifiers and weights, but every row was effective 2026-09-08, future-dated relative to observation. A strict provider parser and deterministic fixture now cover the route; SASS remains unavailable and fallback-only until bounded live evidence proves a non-future snapshot."
+  - "The 2026-09-07 bounded opt-in SASS live route test passed one selected case, confirming transport, schema, identity, and parser behavior; the 2026-09-08 effective date remains future-dated, so no current-support promotion occurred."
 progress:
   completed:
     - AC1

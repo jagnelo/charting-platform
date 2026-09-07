@@ -3536,5 +3536,10 @@ The issuer-declared SASS CSV returned HTTP 200 with 23 holdings rows plus
 header, complete ticker/CUSIP/name/quantity/weight fields, and effective date
 `2026-09-08`. The route is now proven as a complete identity-bound artifact,
 but remains unavailable for current analysis because the snapshot is
-future-dated. A strict provider-specific parser and bounded live validation are
-still required before native promotion.
+future-dated. A strict provider-specific parser and deterministic fixture now
+cover the CSV; bounded live validation against a non-future snapshot remains
+required before native promotion.
+
+The bounded opt-in live route test passed against the official CSV, confirming
+transport, schema, identity, and parser behavior without relaxing the freshness
+boundary.

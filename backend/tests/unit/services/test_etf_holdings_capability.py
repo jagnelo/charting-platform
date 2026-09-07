@@ -796,6 +796,7 @@ def test_seventh_ranked_fallback_m_d_sass_future_dated_source_remains_unavailabl
     assert result.evidence_refs == (
         "web:m-d-sass-official-page-placeholder-holdings-2026-09-03",
         "live:m-d-sass-holdings-csv-2026-09-07-future-dated",
+        "live:m-d-sass-opt-in-parser-2026-09-07-passed",
     )
 
 

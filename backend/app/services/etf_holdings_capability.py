@@ -1173,11 +1173,12 @@ _register_non_tier_0_audits(
     evidence_refs=(
         "web:m-d-sass-official-page-placeholder-holdings-2026-09-03",
         "live:m-d-sass-holdings-csv-2026-09-07-future-dated",
+        "live:m-d-sass-opt-in-parser-2026-09-07-passed",
     ),
     next_action=(
         "Re-test the official SASS holdings CSV after its effective date is no longer future; "
-        "retain the issuer route and promote only after deterministic parser fixtures and "
-        "bounded live evidence are added."
+        "retain the strict issuer parser and promote only after bounded live evidence proves "
+        "a non-future complete snapshot."
     ),
 )
 _register_non_tier_0_audits(
