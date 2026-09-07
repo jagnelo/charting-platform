@@ -72,8 +72,25 @@
   },
   "dirty_paths": [],
   "docker": {
-    "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-etf-holdings-constituents-45bdf9bd",
+      "charting-stack-feat-etf-holdings-constituents-45bdf9bd"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "feat-etf-holdings-constituents-45bdf9bd8d"
   },
   "docker_ready": {
     "ready": true,
@@ -89,13 +106,13 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "a0f416cc9b118244455b3eba18d4d585ac46c4c3",
+  "head": "08a90f3b8b9731f81379e48e2269f7e5f752a1d3",
   "implementation_sha": "bafc63eefabb490c387df6d29ac50d20c0ded96c",
   "last_checkpoint": "2026-09-06T08:32:44.708947+00:00",
   "last_human_progress_update": "2026-09-06T07:32:28.377121+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
-  "plan_hash": "5778073caca6c1960e9bae194f59298b00cfaf5b0c4970397c7f4d56c7176a55",
+  "plan_hash": "f7c209182401059652fa36227904e3094e594c4b2b6c29a09ac9fdd4ae1546b2",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -121,7 +138,7 @@
     "total": 14,
     "updated_at": "2026-09-06T07:32:28.377034+00:00"
   },
-  "remote": "a0f416cc9b118244455b3eba18d4d585ac46c4c3",
+  "remote": "08a90f3b8b9731f81379e48e2269f7e5f752a1d3",
   "remote_sha": "bafc63eefabb490c387df6d29ac50d20c0ded96c",
   "remote_synchronized": true,
   "schema": 2,
