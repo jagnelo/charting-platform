@@ -5,6 +5,27 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-08
 
+## 2026-09-08 — Controlled network-scale workstation row-budget oracle
+
+The branch now has an opt-in, explicitly non-canonical dense-universe fixture
+(`E2E_SEED_LARGE_UNIVERSE=true`, capped at 10,000 identities) for exercising
+real instrument browse, watchlist mutation, and workstation transport. The
+first browser run exposed unbounded eager quote fan-out: 10,000 concurrent
+requests exhausted browser resources. Quote hydration is now bounded to a
+24-worker pool. The rerun passed `1/1` in `7.2s`: all 10,000 rows hydrated
+over the network, the virtual watchlist reported `data-row-budget="within"`,
+fewer than 100 DOM rows were mounted, and no critical browser diagnostics were
+reported. This closes controlled transport/performance evidence only; the
+fixture has no canonical provider bars and does not close R1/R2 canonical
+history/readiness.
+
+The required full integration gate after this product change passed all
+non-visual stages, including backend `1356` unit and `386` integration tests,
+frontend Vitest `974/974`, build/compose/provider/runner probes, and functional
+Playwright `165` passed with `107` documented skips across `272`. Visual parity
+remains `98/104` with the same six unchanged state-oracle diffs; no visual or
+acceptance policy changed.
+
 ## 2026-09-08 — Expose workstation dense-row budget telemetry
 
 The virtual watchlist now exposes provider-neutral DOM telemetry for the

@@ -8,6 +8,24 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-08 — Controlled network-scale workstation row-budget oracle
+
+The implementation adds an opt-in, capped 10,000-identity E2E fixture marked
+controlled/non-canonical. The first browser attempt demonstrated a real defect:
+unbounded eager quote hydration opened 10,000 requests concurrently and
+exhausted browser resources. Frontend quote hydration now uses a 24-worker
+pool. The rerun passed `1/1` in `7.2s`, hydrated all 10,000 rows through the
+network, kept mounted virtual rows below 100, reported row-budget `within`, and
+reported no critical diagnostics. The fixture carries no provider bars, so
+canonical family history/readiness remains open.
+
+The post-change full integration gate passed all non-visual stages: backend
+`1356` unit and `386` integration tests, frontend Vitest `974/974`, build,
+compose/provider/runner probes, and functional Playwright `165` passed with
+`107` documented skips across `272`. Visual parity remains `98/104` with the
+same six unchanged state-oracle diffs. Stack teardown and scoped cleanup
+completed; no visual or acceptance policy changed.
+
 ## 2026-09-08 — Expose workstation dense-row budget telemetry
 
 Product commit `8c9af988` adds explicit `data-row-count`,

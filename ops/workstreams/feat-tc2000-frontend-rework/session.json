@@ -51,27 +51,17 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ocs/project-todos.md",
+    "docs/tc2000-roadmap.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-tc2000-frontend-rework-db4ca1c4",
-      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
-    "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -110,14 +100,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "bfe85ce3e2f1e9ebfe0e307fea30ed88a9d39bd0",
+  "head": "c206b0e48f311d96e9da7589bb6a410e9b308eb3",
   "implementation_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
   "interrupted": false,
   "last_checkpoint": "2026-09-08T08:30:03.720845+00:00",
-  "last_human_progress_update": "2026-09-08T08:28:18.080232+00:00",
+  "last_human_progress_update": "2026-09-08T09:08:34.760938+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue canonical provider/history population or the next compatible Study target slice with focused regression coverage, then rerun the exact-tip exhaustive gate at the new coherent tip; preserve visual policy and provider fallback rules.",
-  "plan_hash": "c3d79f3b1c376c1bd8b89f5ed3d9454c9a9010606f29ba1d2ab7c9be6c08a714",
+  "plan_hash": "352bc15aae52f0aaeae394cc1d3c095237ed83aa7aecc7b9dbd2bd8fb68554f1",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [],
@@ -127,11 +117,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Full gate non-visual stages pass; visual parity remains 98/104 with six unchanged state-oracle diffs, and live network-hydrated 10000-row evidence plus canonical history/readiness remain open.",
+    "current_blocker": "Controlled 10000-row network oracle passes, but canonical family history/readiness, six unchanged visual state-oracle diffs, native-window and broader accessibility/security evidence remain open.",
     "current_phase": "R6_dense_row_budget",
-    "next_action": "Use row-budget telemetry in a live network-hydrated 10000-row workstation oracle; continue canonical family history/readiness and R2-R7 evidence.",
+    "next_action": "Continue canonical family history/readiness and R2-R7 evidence; controlled network row-budget oracle is complete.",
     "total": 10,
-    "updated_at": "2026-09-08T08:28:18.080159+00:00"
+    "updated_at": "2026-09-08T09:08:34.760865+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

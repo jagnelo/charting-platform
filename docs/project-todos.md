@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-08 — Controlled network-scale workstation row-budget oracle
+
+- [x] Add an opt-in, capped 10,000-identity E2E fixture that is explicitly
+      marked controlled/non-canonical and exercises real browse/watchlist/API
+      transport.
+- [x] Bound eager quote hydration to a 24-worker pool after the first live run
+      showed unbounded fan-out exhausting browser resources.
+- [x] Verify the authenticated network oracle: `1/1` passed in `7.2s`, all
+      10,000 rows hydrated, virtualized DOM stayed below 100 mounted rows,
+      row-budget state was `within`, and no critical diagnostics were reported.
+- [ ] Repeat the workstation budget check against canonical provider-backed
+      data when a supported dense universe and history are available; this
+      controlled fixture does not establish canonical R1/R2 readiness.
+
 ### 2026-09-08 — Expose workstation dense-row budget telemetry
 
 - [x] Add provider-neutral row-universe, mounted-window, and within/exceeded

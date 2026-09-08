@@ -13,14 +13,17 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
-  Latest product slice exposes provider-neutral dense-row telemetry on virtual
-  watchlists (total filtered rows, mounted virtual rows, and within/exceeded
-  10000-row state). Focused coverage passed 68/68 and the full gate passed all
-  non-visual stages; visual parity remains 98/104 with the same six unchanged
-  state-oracle diffs. This enables but does not satisfy live network-hydrated
-  10000-row workstation evidence. Continue canonical family history/readiness,
-  live dense-data oracle, development-tool security remediation, native-window
-  and broader accessibility/security checks, and R2-R7 evidence.
+  The controlled network-scale workstation oracle now passes 1/1 in 7.2s after
+  eager quote hydration was bounded to a 24-worker pool; all 10000 rows
+  hydrated over the network, fewer than 100 DOM rows mounted, and no critical
+  diagnostics were reported. This fixture is explicitly non-canonical and has
+  no provider bars, so canonical family history/readiness remains open. The
+  post-change full gate passes every non-visual stage (backend 1356 unit and
+  386 integration, frontend 974/974, and functional Playwright 165 passed with
+  107 documented skips across 272); visual parity remains 98/104 with the same
+  six unchanged state-oracle diffs. Continue canonical history/readiness,
+  canonical dense-data evidence, development-tool security remediation,
+  native-window and broader accessibility/security checks, and R2-R7 evidence.
   Historical receipts below remain authoritative.
   Latest full integration gate after the bounded-history maintenance change
   passed every non-visual stage: backend 1353 unit and 386 integration tests,
