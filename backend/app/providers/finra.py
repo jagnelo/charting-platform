@@ -95,16 +95,56 @@ class FINRAProvider:
             raw_payload=body,
         )
 
-    def download_async_result(self, result_link: str) -> bytes:
-        """Download a completed presigned result without forwarding OAuth credentials."""
+    def download_async_result(
+        self, result_link: str, *, max_bytes: int | None = None
+    ) -> bytes:
+        """Download a bounded completed presigned result without OAuth credentials.
+
+        FINRA documents asynchronous result payloads as unbounded. The adapter
+        therefore refuses to download a result unless the caller (or
+        ``FINRA_ASYNC_MAX_RESULT_BYTES``) supplies a positive bound. This is
+        an adapter safety limit, not a provider quota and must not be used to
+        make the asynchronous capability routable without durable monthly
+        bandwidth accounting.
+        """
 
         link = str(result_link or "").strip()
         if not link:
             raise ValueError("FINRA async resultLink is required")
+        configured_limit = getattr(settings, "FINRA_ASYNC_MAX_RESULT_BYTES", None)
+        limit = max_bytes if max_bytes is not None else configured_limit
+        try:
+            limit = int(limit or 0)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("FINRA async result byte bound must be a positive integer") from exc
+        if limit <= 0:
+            raise ValueError(
+                "FINRA async result download requires FINRA_ASYNC_MAX_RESULT_BYTES "
+                "or an explicit max_bytes bound"
+            )
         response = httpx.get(link, headers={"Accept": "application/octet-stream"}, timeout=120)
         observe_response(response)
         response.raise_for_status()
-        return bytes(response.content)
+        declared = response.headers.get("content-length")
+        if declared is not None:
+            try:
+                declared_bytes = int(str(declared).strip())
+            except (TypeError, ValueError) as exc:
+                raise ValueError("FINRA async result returned an invalid Content-Length") from exc
+            if declared_bytes < 0:
+                raise ValueError("FINRA async result returned a negative Content-Length")
+            if declared_bytes > limit:
+                raise ValueError(
+                    f"FINRA async result exceeds configured byte bound ({declared_bytes} > {limit})"
+                )
+        body = bytes(response.content)
+        if len(body) > limit:
+            raise ValueError(
+                f"FINRA async result exceeds configured byte bound ({len(body)} > {limit})"
+            )
+        if declared is not None and int(str(declared).strip()) != len(body):
+            raise ValueError("FINRA async result Content-Length did not match the downloaded body")
+        return body
 
     def fetch_short_interest(
         self,

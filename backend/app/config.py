@@ -1100,6 +1100,10 @@ class Settings(BaseSettings):
     # docs/data-providers.md; keep this empty until operations explicitly
     # approves the source, terms, and polling contract.
     FINRA_OTC_SYMBOL_DIRECTORY_URL: str = ""
+    # Async FINRA results are provider-unbounded; keep zero until an
+    # operator selects a safe per-download adapter bound. This does not make
+    # the async capability routable without durable monthly accounting.
+    FINRA_ASYNC_MAX_RESULT_BYTES: int = 0
     INSTRUMENT_DISCOVERY_PAGE_DELAY_SECONDS: float = 0.75
     INSTRUMENT_METADATA_DELAY_SECONDS: float = 1.0
     INSTRUMENT_IDENTIFIER_DELAY_SECONDS: float = 1.0

@@ -432,6 +432,13 @@ retention policy, polling allowance, and redistribution boundaries. The Daily
 List adapter remains the lifecycle-delta path and is not substituted for this
 current security master.
 
+FINRA's asynchronous Query API result payloads are documented as unbounded.
+The adapter therefore requires a positive `FINRA_ASYNC_MAX_RESULT_BYTES` (or
+an explicit per-call bound), validates `Content-Length` when supplied, and
+rejects bodies above the bound. This is only an adapter safety guard; the
+async capability remains non-routable until durable monthly bandwidth
+accounting can reserve and settle the provider's 10 GiB credential budget.
+
 ### SEC Company Facts (`edgar`)
 
 The EDGAR adapter exposes raw Company Facts observations with namespace, fact,
@@ -471,6 +478,7 @@ FINRA_API_BASE_URL=https://api.finra.org
 FINRA_SHORT_INTEREST_URL=
 FINRA_OTC_DAILY_LIST_URL=
 FINRA_OTC_SYMBOL_DIRECTORY_URL=https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster
+FINRA_ASYNC_MAX_RESULT_BYTES=0
 
 # Optional adapters (disabled until governance records reviewed entitlements)
 TIINGO_API_KEY=
