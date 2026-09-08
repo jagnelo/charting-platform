@@ -13,6 +13,15 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Commit c9e017e0 hardens the bounded dated-enrichment summary against missing
+  equity_detail relationships. The exact integration gate completed all
+  non-visual stages at this tip: backend 1351 unit and 386 integration tests,
+  frontend Vitest 974/974, production build/compose/provider policy, healthy
+  stack and runner probes, and functional Playwright 165 passed with 106
+  documented skips across 271. Visual parity remains 98/104 with exactly the
+  same six state-oracle diffs. The next evidence gate is still opt-in
+  persisted provider maintenance plus population, continuity, and D1/W1/MN
+  member-bar verification. Historical receipts below remain authoritative.
   Product commit cb3191fe extends the opt-in canonical ETF holding-enrichment
   maintenance pass across up to four persisted non-fixture snapshots per ETF
   profile, with one configurable per-profile resolver budget shared across

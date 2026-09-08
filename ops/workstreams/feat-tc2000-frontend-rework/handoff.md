@@ -8,6 +8,17 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-08 — Exact-tip gate after historical enrichment safety fix
+
+Commit `c9e017e0` guards the dated-enrichment summary when an instrument has
+no `equity_detail`. The exhaustive gate completed every non-visual stage:
+backend `1351` unit and `386` integration tests, frontend Vitest `974/974`,
+production build/compose/provider policy, healthy stack and runner probes, and
+functional Playwright `165` passed with `106` documented skips across `271`.
+Visual acceptance remains `98/104` with the same six known state-oracle diffs
+and no visual-policy changes. The branch still needs opt-in persisted
+provider maintenance and D1/W1/MN continuity evidence.
+
 ## 2026-09-08 — Bound canonical holding enrichment across dated snapshots
 
 Product commit `cb3191fe` updates the opt-in ETF holding-enrichment worker to

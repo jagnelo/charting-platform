@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-08 — Exact-tip gate after historical enrichment safety fix
+
+- [x] Guard the dated-enrichment summary when an instrument has no
+      `equity_detail` relationship (`c9e017e0`).
+- [x] Exhaustive gate completed all non-visual stages: backend `1351` unit
+      and `386` integration tests, frontend Vitest `974/974`, production
+      build/compose/provider policy, healthy stack and runner probes, and
+      functional Playwright `165` passed with `106` documented skips across
+      `271` tests.
+- [x] Visual matrix remains `98/104`; only the six unchanged
+      watchlist-column-editor-open/workspace-floating state-oracle diffs fail.
+- [ ] Execute opt-in provider maintenance and verify persisted populations,
+      continuity, and D1/W1/MN member-bar floors.
+
 ### 2026-09-08 — Bounded canonical enrichment across dated snapshots
 
 - [x] Extend the scheduled canonical holding-enrichment pass from latest-only
