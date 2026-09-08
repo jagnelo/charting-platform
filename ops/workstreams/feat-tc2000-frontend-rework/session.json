@@ -51,7 +51,9 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ps/workstreams/feat-tc2000-frontend-rework/session.json"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -110,24 +112,24 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "fe7799c803054a17c416d4abf3e40bc3a4fb1ac2",
+  "head": "206ce6bb34762be9e3ca4687ca7104b47bdef411",
   "implementation_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
   "interrupted": false,
   "last_checkpoint": "2026-09-08T06:42:13.201952+00:00",
-  "last_human_progress_update": "2026-09-08T06:41:59.597979+00:00",
+  "last_human_progress_update": "2026-09-08T06:47:56.743872+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue canonical provider/history population or the next compatible Study target slice with focused regression coverage, then rerun the exact-tip exhaustive gate at the new coherent tip; preserve visual policy and provider fallback rules.",
-  "plan_hash": "8ad49d740ee17dfb6528e66c54efc7b5eedbcaa24435f4edf1b855dbfad02758",
+  "plan_hash": "a4cce1622b0ec392f624d7a33017aa6f74636bf9ea973469b53d3fccad8e17d6",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [],
   "progress": {
     "completed": [],
-    "current_blocker": "Latest seeded authenticated top-down/source slice passed 11/11 in 44.1s with no critical diagnostics, covering family/source matrix, Market Map handoff, watchlists, breadth loading/error/ratios, and recursive Python breadth. It remains fixture-backed; canonical provider-backed traversal/history, remaining R1 enrichment, native-window and broader accessibility/security, dense-data, and visual evidence stay open.",
-    "current_phase": "R2_top_down_browser_evidence",
-    "next_action": "Continue canonical provider-backed family history/enrichment and then expand R6 native/security/dense-data evidence; keep exact-tip gate and six visual diffs unchanged.",
+    "current_blocker": "Latest bounded SP600 enrichment refreshed IJR/SLYV/SLYG with zero failures, enriched 76 records, and left 1171 pending; IJR 60/2, SLYV 38/7, SLYG 6/114 classified/placeholder. No D1/W1/MN bars are present. Continue canonical provider-backed history/enrichment, native-window and broader accessibility/security, dense-data, visual review, and R2-R5 evidence.",
+    "current_phase": "R1_canonical_enrichment_history",
+    "next_action": "Continue bounded canonical enrichment on another family and pursue the remaining live/history and R6 evidence gates.",
     "total": 10,
-    "updated_at": "2026-09-08T06:41:59.597291+00:00"
+    "updated_at": "2026-09-08T06:47:56.743033+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
