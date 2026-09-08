@@ -51,7 +51,9 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ps/workstreams/feat-tc2000-frontend-rework/session.json"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -110,24 +112,24 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "212aa17ac766e8479133a91cf1001fcc1ef19b84",
+  "head": "2df3cfee0f4934072ed49854482dcf59731e81e5",
   "implementation_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
   "interrupted": false,
-  "last_checkpoint": "2026-09-08T07:23:27.327243+00:00",
-  "last_human_progress_update": "2026-09-08T07:23:03.506030+00:00",
+  "last_checkpoint": "2026-09-08T07:53:10.733150+00:00",
+  "last_human_progress_update": "2026-09-08T07:52:46.053526+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue canonical provider/history population or the next compatible Study target slice with focused regression coverage, then rerun the exact-tip exhaustive gate at the new coherent tip; preserve visual policy and provider fallback rules.",
-  "plan_hash": "ac46e4e66492d319dc357c5be98850a7e1fb3708bb019b5e71e15073899a8ca4",
+  "plan_hash": "4742bf0c98e68f1f5c817b6c180776734ea8713540f1886f89698af48e46b135",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [],
   "progress": {
     "completed": [],
-    "current_blocker": "Canonical QQQ history queue now proves 27 eligible members queued, 23/27 with adjusted D1 bars above the 252-bar floor (45199 bars), while 74 placeholders remain excluded and W1/MN providers exhaust without data. Eight-family population remains partial (4144 pending); development npm graph still has five audit findings.",
+    "current_blocker": "Canonical family history remains incomplete: QQQ D1 covered 23/27 queued members with 45199 bars but W1/MN provider exhaustion; fresh eight-family readiness found zero D1/W1/MN member bars. Full integration gate at 2df3cfee passed all non-visual stages; visual parity remains 98/104 with the same six unchanged state-oracle diffs. Development npm graph still has five findings.",
     "current_phase": "R1_canonical_enrichment_history",
-    "next_action": "Continue bounded canonical placeholder enrichment and history queues for supported roles, then select the next compatible R2-R6 implementation/evidence slice while preserving explicit W1/MN/provider gaps and rerun the exact-tip gate after product changes.",
+    "next_action": "Continue bounded canonical placeholder enrichment/history and select the next R2-R6 implementation slice; preserve canonical-only, provider-neutral, visual-policy boundaries and rerun the exact-tip gate after product changes.",
     "total": 10,
-    "updated_at": "2026-09-08T07:23:03.505251+00:00"
+    "updated_at": "2026-09-08T07:52:46.053403+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
