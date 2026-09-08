@@ -89,12 +89,79 @@ async def reserve_provider_quota(
     dimension: str = "default",
     window_started_at: datetime | None = None,
     now: datetime | None = None,
+    rolling: bool = False,
 ) -> ProviderQuotaWindow | None:
-    """Atomically reserve units in a durable rolling window."""
+    """Atomically reserve units in a durable fixed or rolling window."""
 
     if units <= 0 or limit_units <= 0:
         return None
     current = now or datetime.now(UTC)
+    if rolling:
+        # Rolling provider limits are enforced over all second buckets that
+        # overlap the active interval. Each bucket remains durable so workers
+        # can lock and settle their own reservation without a process-local
+        # counter or an invented fixed-window reset.
+        cutoff = current - timedelta(seconds=window_seconds)
+        active_query = (
+            select(ProviderQuotaWindow)
+            .where(
+                ProviderQuotaWindow.data_source_id == data_source_id,
+                ProviderQuotaWindow.capability == capability,
+                ProviderQuotaWindow.dimension == dimension,
+                ProviderQuotaWindow.window_started_at >= cutoff,
+                ProviderQuotaWindow.window_seconds == window_seconds,
+            )
+            .with_for_update()
+        )
+        active = (await db.execute(active_query)).scalars().all()
+        start = datetime.fromtimestamp(int(current.timestamp()), tz=UTC)
+        window = next((row for row in active if row.window_started_at == start), None)
+        if window is None:
+            candidate = ProviderQuotaWindow(
+                data_source_id=data_source_id,
+                capability=capability,
+                dimension=dimension,
+                window_started_at=start,
+                window_seconds=window_seconds,
+                limit_units=limit_units,
+                reserved_units=0,
+                consumed_units=0,
+            )
+            try:
+                savepoint = db.begin_nested()
+                if hasattr(savepoint, "__aenter__"):
+                    async with savepoint:
+                        db.add(candidate)
+                        await db.flush()
+                else:
+                    with savepoint:
+                        db.add(candidate)
+                        await db.flush()
+                window = candidate
+            except IntegrityError:
+                window = (
+                    await db.execute(
+                        select(ProviderQuotaWindow)
+                        .where(
+                            ProviderQuotaWindow.data_source_id == data_source_id,
+                            ProviderQuotaWindow.capability == capability,
+                            ProviderQuotaWindow.dimension == dimension,
+                            ProviderQuotaWindow.window_started_at == start,
+                            ProviderQuotaWindow.window_seconds == window_seconds,
+                        )
+                        .with_for_update()
+                    )
+                ).scalar_one_or_none()
+                if window is None:
+                    raise
+            active = (await db.execute(active_query)).scalars().all()
+        available = window.limit_units - sum(
+            row.reserved_units + row.consumed_units for row in active
+        )
+        if available < units:
+            return None
+        window.reserved_units += units
+        return window
     if window_started_at is not None:
         start = window_started_at.astimezone(UTC)
     else:
@@ -158,6 +225,7 @@ async def reserve_provider_contract(
     resolved: ResolvedProvider,
     capability: str,
     units: int,
+    dimension_units: dict[str, int] | None = None,
     now: datetime,
 ) -> list[ProviderQuotaWindow] | None:
     """Reserve every documented quota dimension or none of them."""
@@ -167,44 +235,74 @@ async def reserve_provider_contract(
     windows: list[ProviderQuotaWindow] = []
     reset = str((resolved.policy.quota_contract or {}).get("reset") or "")
     for dimension in quota_dimensions(resolved.policy):
+        dimension_name = str(dimension["name"])
+        raw_reserved_units = (dimension_units or {}).get(dimension_name, units)
+        if int(raw_reserved_units) <= 0:
+            continue
+        reserved_units = max(1, int(raw_reserved_units))
         window_start = None
-        if "calendar_month" in reset and int(dimension["window_seconds"]) >= 2_500_000:
+        dimension_reset = str(dimension.get("reset") or reset)
+        if "calendar_month" in dimension_reset and int(dimension["window_seconds"]) >= 2_500_000:
             window_start = datetime(now.year, now.month, 1, tzinfo=UTC)
-        elif reset.startswith("09:30") and int(dimension["window_seconds"]) >= 86400:
+        elif dimension_reset.startswith("09:30") and int(dimension["window_seconds"]) >= 86400:
             eastern = now.astimezone(ZoneInfo("America/New_York"))
             reset_local = eastern.replace(hour=9, minute=30, second=0, microsecond=0)
             if eastern < reset_local:
                 reset_local -= timedelta(days=1)
             window_start = reset_local.astimezone(UTC)
+        rolling = "rolling" in dimension_reset and window_start is None
         window = await reserve_provider_quota(
             db,
             data_source_id=resolved.data_source.id,
             capability=capability,
-            dimension=str(dimension["name"]),
-            units=max(1, units),
+            dimension=dimension_name,
+            units=reserved_units,
             limit_units=int(dimension["limit"]),
             window_seconds=int(dimension["window_seconds"]),
             window_started_at=window_start,
             now=now,
+            rolling=rolling,
         )
         if window is None:
             for prior in windows:
-                prior.reserved_units = max(0, prior.reserved_units - max(1, units))
+                prior_name = str(prior.dimension)
+                prior.reserved_units = max(
+                    0,
+                    prior.reserved_units
+                    - max(
+                        0,
+                        int((dimension_units or {}).get(prior_name, units)),
+                    ),
+                )
             return None
         windows.append(window)
     return windows
 
 
 def settle_provider_contract(
-    windows: list[ProviderQuotaWindow], *, units: int, success: bool = True
+    windows: list[ProviderQuotaWindow],
+    *,
+    units: int,
+    success: bool = True,
+    reserved_dimension_units: dict[str, int] | None = None,
+    consumed_dimension_units: dict[str, int] | None = None,
 ) -> None:
     """Move one runtime reservation into consumption without a separate lease."""
 
     settled_units = max(0, units)
     for window in windows:
-        window.reserved_units = max(0, window.reserved_units - settled_units)
+        dimension = str(window.dimension)
+        reserved = max(
+            0,
+            int((reserved_dimension_units or {}).get(dimension, settled_units)),
+        )
+        consumed = max(
+            0,
+            int((consumed_dimension_units or {}).get(dimension, settled_units)),
+        )
+        window.reserved_units = max(0, window.reserved_units - reserved)
         if success:
-            window.consumed_units += settled_units
+            window.consumed_units += consumed
 
 
 async def select_provider(

@@ -238,18 +238,30 @@ class Settings(BaseSettings):
                         "unit": "requests",
                         "scope": "ip",
                         "source": "https://developer.finra.org/docs",
-                    }
-                ],
-                "reset": "rolling_or_provider_defined",
-                "untracked_constraints": [
+                        "reset": "rolling",
+                    },
+                    {
+                        "name": "asynchronous_requests_per_minute_dataset",
+                        "limit": 20,
+                        "window_seconds": 60,
+                        "unit": "requests",
+                        "scope": "api_account_and_dataset",
+                        "source": "https://developer.finra.org/node/1146",
+                        "reset": "rolling",
+                    },
                     {
                         "name": "download_bytes_per_calendar_month",
                         "limit": 10737418240,
+                        "window_seconds": 2678400,
                         "unit": "bytes",
                         "scope": "public_credential",
                         "source": "https://developer.finra.org/support-old",
+                        "reset": "calendar_month",
                     }
                 ],
+                "reset": "rolling_or_provider_defined",
+                "dimension_costs_required": True,
+                "maximum_synchronous_response_bytes": 3145728,
             },
             "tokens_per_minute": 1200,
             "quota_scope": "ip",
@@ -679,6 +691,24 @@ class Settings(BaseSettings):
                 "fetch_ohlcv": 1,
                 "fetch_latest_ohlcv": 1,
                 "get_current_price": 1,
+            },
+        },
+        "finra": {
+            "mode": "multi_dimensional",
+            "unit_label": "requests",
+            "operation_costs": {
+                "fetch_short_interest": 1,
+                "fetch_market_events": 1,
+            },
+            # FINRA documents a 3 MB maximum synchronous response. Reserve
+            # that upper bound against the credential's monthly download
+            # budget before execution, then settle to measured bytes.
+            "dimension_costs": {
+                "asynchronous_requests_per_minute_dataset": {},
+                "download_bytes_per_calendar_month": {
+                    "fetch_short_interest": 3145728,
+                    "fetch_market_events": 3145728,
+                }
             },
         },
     }

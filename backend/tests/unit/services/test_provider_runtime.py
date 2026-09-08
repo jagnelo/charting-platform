@@ -8,6 +8,7 @@ from sqlalchemy import select
 
 from app.config import settings
 from app.models.data_source import DataSource
+from app.models.market_data_foundation import ProviderQuotaWindow
 from app.models.provider_runtime import (
     ProviderCapability,
     ProviderEntitlement,
@@ -32,7 +33,16 @@ from tests.unit.conftest import AsyncSessionAdapter
 @pytest.mark.asyncio
 async def test_execute_provider_call_persists_transport_measurement(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
-    source = DataSource(name="measured-provider", is_active=True)
+    source = DataSource(
+        name="measured-provider",
+        is_active=True,
+        config={
+            "usage_tracking": {
+                "operation_costs": {"get_current_price": 1},
+                "dimension_costs": {"response_bytes": {"get_current_price": 100}},
+            }
+        },
+    )
     db.add(source)
     db.flush()
     policy = ProviderPolicy(
@@ -52,8 +62,17 @@ async def test_execute_provider_call_persists_transport_measurement(db, monkeypa
                     "unit": "requests",
                     "scope": "api_key",
                     "source": "unit-test contract",
-                }
+                },
+                {
+                    "name": "response_bytes",
+                    "limit": 10_000,
+                    "window_seconds": 60,
+                    "unit": "bytes",
+                    "scope": "api_key",
+                    "source": "unit-test contract",
+                },
             ],
+            "dimension_costs_required": True,
         },
         score_floor=Decimal("0"),
         score_ceiling=Decimal("100"),
@@ -102,6 +121,13 @@ async def test_execute_provider_call_persists_transport_measurement(db, monkeypa
     assert row.http_requests == 1
     assert row.response_bytes == len(b"measured-response")
     assert row.response_headers == {"x-ratelimit-remaining": "9"}
+    windows = {
+        item.dimension: item
+        for item in db.execute(select(ProviderQuotaWindow)).scalars().all()
+    }
+    assert windows["requests_per_minute"].consumed_units == 1
+    assert windows["response_bytes"].consumed_units == len(b"measured-response")
+    assert all(item.reserved_units == 0 for item in windows.values())
 
 
 @pytest.mark.asyncio

@@ -93,7 +93,10 @@ response bytes, and selected provider headers for instrumented adapters,
 including Tiingo, FINRA, FMP, Binance, FRED, and tokenized providers. That
 telemetry is durable in `provider_request_log`, but byte ceilings and dynamic
 response-header/account budgets are not yet reserved or enforced in quota
-windows, so Tiingo, FINRA, and FMP remain non-routable. FRED v1 and Nasdaq
+windows, so Tiingo and FMP remain non-routable. FINRA's synchronous short-
+interest and OTC Daily List calls now reserve the documented 3 MB maximum
+response against the 10 GB monthly credential budget and settle to measured
+bytes; its asynchronous dataset path is not implemented. FRED v1 and Nasdaq
 Trader remain non-routable because their official documentation publishes
 throttling behavior without a numeric ceiling. IBKR remains a descriptor
 without an authenticated account adapter.

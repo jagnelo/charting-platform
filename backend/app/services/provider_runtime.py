@@ -216,6 +216,72 @@ def _usage_cost_for_operation(data_source: DataSource, operation: str) -> tuple[
     return mode, unit_label, cost
 
 
+def _dimension_costs_for_operation(
+    policy: ProviderPolicy,
+    data_source: DataSource,
+    operation: str,
+    default_units: Decimal,
+) -> dict[str, int]:
+    """Return conservative per-dimension reservation units for one call.
+
+    Request/credit/weight dimensions use the operation's ordinary cost. A
+    provider may declare dimensions with a different unit (for example bytes)
+    and provide an explicit operation-specific upper bound in
+    ``usage_tracking.dimension_costs``. Missing bounds are rejected by
+    ``provider_contract_operation_cost_known`` rather than guessed here.
+    """
+    tracking = _usage_tracking_config(data_source)
+    explicit = tracking.get("dimension_costs")
+    contract = dict(policy.quota_contract or {})
+    result: dict[str, int] = {}
+    for dimension in quota_dimensions(policy):
+        name = str(dimension["name"])
+        value: Any = default_units
+        if isinstance(explicit, dict):
+            raw = explicit.get(name)
+            if isinstance(raw, dict):
+                if not raw:
+                    # An explicitly empty operation map means this quota
+                    # dimension does not apply to this adapter operation (for
+                    # example FINRA's asynchronous budget for a synchronous
+                    # POST). It must not be charged as one request.
+                    result[name] = 0
+                    continue
+                family = _operation_family(operation)
+                raw = raw.get(family, raw.get(operation))
+            if raw is not None:
+                value = raw
+        try:
+            result[name] = max(1, int(Decimal(str(value))))
+        except (ArithmeticError, TypeError, ValueError):
+            result[name] = max(1, int(default_units))
+    if contract.get("dimension_costs_required") and not explicit:
+        return {}
+    return result
+
+
+def _consumed_dimension_costs(
+    policy: ProviderPolicy,
+    measurement: Any,
+    reserved_units: dict[str, int],
+) -> dict[str, int]:
+    """Settle byte dimensions from observed transport, conservatively otherwise."""
+    consumed: dict[str, int] = {}
+    for dimension in quota_dimensions(policy):
+        name = str(dimension["name"])
+        unit = str(dimension.get("unit") or "").lower()
+        reserved = max(1, int(reserved_units.get(name, 1)))
+        if unit in {"byte", "bytes"}:
+            # If an adapter did not emit telemetry, retain the full
+            # reservation rather than under-reporting a bandwidth budget.
+            observed_requests = int(getattr(measurement, "http_requests", 0) or 0)
+            observed_bytes = int(getattr(measurement, "response_bytes", 0) or 0)
+            consumed[name] = max(0, observed_bytes) if observed_requests else reserved
+        else:
+            consumed[name] = reserved
+    return consumed
+
+
 def provider_contract_operation_cost_known(
     policy: ProviderPolicy,
     data_source: DataSource,
@@ -231,11 +297,20 @@ def provider_contract_operation_cost_known(
 
     contract = dict(policy.quota_contract or {})
     if not (contract.get("dynamic_endpoint_weights") or contract.get("operation_costs_required")):
-        return True
+        # A dimension-cost contract is also operation-specific: a request may
+        # reserve a different unit count for a byte/record budget than for the
+        # request-rate dimension.
+        if not contract.get("dimension_costs_required"):
+            return True
     tracking = _usage_tracking_config(data_source)
     costs = tracking.get("operation_costs")
-    if not isinstance(costs, dict) or not costs:
-        return False
+    if (
+        contract.get("dynamic_endpoint_weights")
+        or contract.get("operation_costs_required")
+        or contract.get("dimension_costs_required")
+    ):
+        if not isinstance(costs, dict) or not costs:
+            return False
     if operation is None:
         # A provider may have a cost table while the caller has not named the
         # operation.  Selecting it anyway would silently charge one request
@@ -243,7 +318,20 @@ def provider_contract_operation_cost_known(
         # fail-closed.
         return False
     family = _operation_family(operation)
-    return family in costs or operation in costs
+    if not (family in costs or operation in costs):
+        return False
+    if contract.get("dimension_costs_required"):
+        dimension_costs = tracking.get("dimension_costs")
+        if not isinstance(dimension_costs, dict):
+            return False
+        for dimension in quota_dimensions(policy):
+            raw = dimension_costs.get(str(dimension["name"]))
+            unit = str(dimension.get("unit") or "").lower()
+            if unit in {"request", "requests", "credit", "credits", "weight"}:
+                continue
+            if not isinstance(raw, dict) or not (family in raw or operation in raw):
+                return False
+    return True
 
 
 class TokenBucket:
@@ -1027,6 +1115,14 @@ async def execute_provider_call(
             resolved.data_source,
             operation,
         )
+        dimension_units = _dimension_costs_for_operation(
+            resolved.policy,
+            resolved.data_source,
+            operation,
+            usage_units,
+        )
+        if quota_dimensions(resolved.policy) and not dimension_units:
+            continue
         # A runtime call participates in the same durable multi-dimensional
         # budget used by queued workloads.  This prevents concurrent workers
         # from multiplying a provider/IP/key allowance in process-local
@@ -1042,6 +1138,7 @@ async def execute_provider_call(
             resolved=resolved,
             capability=capability.value,
             units=max(1, int(usage_units.to_integral_value())),
+            dimension_units=dimension_units,
             now=datetime.now(UTC),
         )
         if reservations is None:
@@ -1054,7 +1151,11 @@ async def execute_provider_call(
                 max(1, int(usage_units.to_integral_value()))
             ):
                 settle_provider_contract(
-                    reservations, units=max(1, int(usage_units.to_integral_value())), success=False
+                    reservations,
+                    units=max(1, int(usage_units.to_integral_value())),
+                    success=False,
+                    reserved_dimension_units=dimension_units,
+                    consumed_dimension_units={name: 0 for name in dimension_units},
                 )
                 continue
         log_row = ProviderRequestLog(
@@ -1109,6 +1210,10 @@ async def execute_provider_call(
                 reservations,
                 units=max(1, int(usage_units.to_integral_value())),
                 success=True,
+                reserved_dimension_units=dimension_units,
+                consumed_dimension_units=_consumed_dimension_costs(
+                    resolved.policy, measurement, dimension_units
+                ),
             )
             if instrument_id is not None:
                 await record_provider_support(
@@ -1169,6 +1274,10 @@ async def execute_provider_call(
                 reservations,
                 units=max(1, int(usage_units.to_integral_value())),
                 success=False,
+                reserved_dimension_units=dimension_units,
+                consumed_dimension_units=_consumed_dimension_costs(
+                    resolved.policy, measurement, dimension_units
+                ),
             )
             latency_ms = int((time.perf_counter() - started) * 1000)
             await _record_result(
