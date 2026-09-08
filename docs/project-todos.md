@@ -14,6 +14,14 @@
       explicit, and the disposable stack had no D1/W1/MN bars because market
       data seeding was disabled.
 
+### 2026-09-08 — Seeded member-bar floor probe
+
+- [x] Market-data-seeded disposable stack confirmed controlled six-member
+      QQQ/QQQE fixtures only: 520 D1 bars per proxy and D1 floor readiness;
+      W1/MN bars were zero and value/growth mappings unavailable.
+- [ ] Treat this as fixture evidence only; continue provider-backed family
+      population, continuity, and W1/MN member-bar verification.
+
 ### 2026-09-08 — Exact-tip gate after QQQ identity repair
 
 - [x] Permit curated SEC filings with omitted series/class IDs only when the

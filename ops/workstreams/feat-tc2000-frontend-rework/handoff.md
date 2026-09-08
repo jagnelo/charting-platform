@@ -8,6 +8,14 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-08 — Seeded member-bar floor probe
+
+The market-data-seeded disposable stack contained only controlled six-member
+QQQ/QQQE fixture snapshots. Each proxy had 520 D1 bars and met the 252-bar D1
+floor; W1/MN had zero bars and value/growth mappings were unavailable. This
+does not claim provider-backed family population, continuity, or W1/MN
+readiness. The stack was torn down with no resources retained.
+
 ## 2026-09-08 — Exact-tip gate after QQQ identity repair
 
 Product commit `40a67a9c` allows curated SEC filings with omitted series/class

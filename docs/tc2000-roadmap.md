@@ -42,6 +42,17 @@ post-cleanup resource probe was unable to query Docker because the host daemon
 socket was permission-denied. Continue broader R1 family population,
 continuity, and D1/W1/MN member-bar evidence, then the remaining R2-R7 work.
 
+## 2026-09-08 — Seeded member-bar floor probe
+
+An isolated stack with market-data fixtures enabled confirmed the remaining
+readiness boundary: the fresh database contains only controlled six-member
+QQQ/QQQE fixture snapshots, not the provider-backed dated snapshots. Those
+fixture members have 520 D1 bars each and meet the 252-bar D1 floor, while W1
+and MN contain zero bars; value/growth mappings are unavailable. This is
+fixture evidence only and does not claim family-wide provider population,
+continuity, or W1/MN readiness. The stack was torn down with no resources
+retained.
+
 ## 2026-09-08 — Exact-tip gate after alert-promotion hydration stabilization
 
 Test commit `e227eda8` adds the bounded two-second canonical-instrument
