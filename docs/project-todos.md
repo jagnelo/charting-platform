@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-09-08 — S&P SmallCap 600 provider population
+
+- [x] Persist IJR `636/644` resolved rows (eight unresolved), SLYV `461/461`,
+      and SLYG `142/142` SEC-reconstructed rows with zero refresh failures.
+- [x] Keep the equal-weight role explicitly unavailable because no verified
+      mapped proxy exists; retain the provider population gaps in readiness.
+- [ ] Resolve the two IJR, six SLYV, and 141 SLYG placeholders, then verify
+      family continuity and D1/W1/MN member-bar floors before claiming readiness.
+
 ### 2026-09-08 — Bounded Nasdaq-100 canonical provider-history maintenance
 
 - [x] Execute a bounded persisted Nasdaq-100 dated refresh for QQQ/QQQE.

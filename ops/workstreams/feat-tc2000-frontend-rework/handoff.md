@@ -8,6 +8,16 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-08 — S&P SmallCap 600 provider population
+
+The bounded provider slice persisted IJR `636/644` resolved rows (eight
+unresolved), SLYV `461/461`, and SLYG `142/142` SEC-reconstructed rows with
+zero refresh failures. Equal-weight has no verified mapped proxy and remains
+explicitly unavailable. The readiness report retained two IJR placeholders,
+six SLYV placeholders, and 141 SLYG placeholders; all roles remained
+`history_ready=false`, with no continuity or D1/W1/MN floor claim. Cleanup
+removed all branch-scoped resources.
+
 ## 2026-09-08 — S&P MidCap 400 provider population
 
 The bounded provider slice persisted MDY `401/401` (latest available

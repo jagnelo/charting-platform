@@ -5,6 +5,17 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-08
 
+## 2026-09-08 — S&P SmallCap 600 provider population
+
+The bounded provider slice persisted three SEC-reconstructed S&P SmallCap 600
+legs with zero refresh failures: IJR `636/644` resolved rows (eight remained
+unresolved), SLYV `461/461`, and SLYG `142/142`. Equal-weight has no verified
+mapped proxy and was reported unavailable. Readiness remains incomplete: the
+coverage report retained two IJR placeholders, six SLYV placeholders, and 141
+SLYG placeholders; no role was history-ready and no D1/W1/MN member-bar floor
+or continuity was claimed. The branch-scoped stack was torn down and cleanup
+removed all generated resources.
+
 ## 2026-09-08 — Bounded Nasdaq-100 canonical provider-history maintenance
 
 Against the isolated branch-scoped Docker stack, the opt-in dated refresh
