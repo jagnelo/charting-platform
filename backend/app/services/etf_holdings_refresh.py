@@ -699,23 +699,19 @@ async def reconcile_all_etf_holdings_classifications(
             continue
         snapshots_selected += len(snapshots)
 
-        def missing_rows(snapshot: ETFHoldingsSnapshot) -> int:
-            return sum(
-                1
-                for row in snapshot.rows
-                if row.constituent_instrument is None
+        def row_needs_enrichment(row: ETFHolding) -> bool:
+            instrument = row.constituent_instrument
+            if (
+                instrument is None
                 or not row.is_resolved
-                or is_placeholder_symbol(
-                    row.constituent_instrument.symbol
-                    if row.constituent_instrument is not None
-                    else None
-                )
-                or row.constituent_instrument.equity_detail is None
-                or not (
-                    row.constituent_instrument.equity_detail.industry
-                    or row.constituent_instrument.equity_detail.sector
-                )
-            )
+                or is_placeholder_symbol(instrument.symbol)
+            ):
+                return True
+            detail = instrument.equity_detail
+            return detail is None or not (detail.industry or detail.sector)
+
+        def missing_rows(snapshot: ETFHoldingsSnapshot) -> int:
+            return sum(1 for row in snapshot.rows if row_needs_enrichment(row))
 
         if not any(missing_rows(snapshot) for snapshot in snapshots):
             continue
