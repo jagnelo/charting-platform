@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-09-08 — Russell 1000 provider population
+
+- [x] Persist IWB `1014/1017`, IWD `873/876`, and IWF `393/396` resolved
+      iShares rows for `2025-12-31` with zero refresh failures.
+- [x] Keep equal-weight explicitly unavailable because no verified mapped
+      proxy exists; preserve one placeholder in IWB/IWD and none in IWF.
+- [ ] Finish placeholder enrichment and classification, then verify continuity
+      plus D1/W1/MN floors before claiming readiness.
+
 ### 2026-09-08 — Russell 2000 provider population
 
 - [x] Persist IWM `1963/1967`, IWN `1422/1425`, and IWO `1101/1104`
