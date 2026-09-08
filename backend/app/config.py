@@ -795,13 +795,14 @@ class Settings(BaseSettings):
             "freshness_semantics": "Directory publication/update time",
         },
         "finra_otc_directory": {
-            "configured_plan": "finra-public-dapi",
+            "configured_plan": "unreviewed",
             "is_free": True,
             "authentication_required": False,
             "usage_terms": "Public FINRA OTC Security Master DAPI; source terms, polling allowance, and redistribution boundary require operator review.",
             "history_depth": "Current as-of-date OTC security-master snapshot",
             "venue_coverage": "FINRA OTC securities represented by the configured DAPI source",
             "freshness_semantics": "Provider as-of-date partition and response time",
+            "live_probe_status": "passed",
         },
         "openfigi": {
             "configured_plan": "free-api",

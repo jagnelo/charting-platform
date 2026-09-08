@@ -511,6 +511,25 @@ async def test_otc_directory_requires_explicit_source_before_resolution(db, monk
 
 
 @pytest.mark.asyncio
+async def test_otc_directory_default_entitlement_remains_unreviewed(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(
+        settings,
+        "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+        "https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster",
+    )
+    await seed_provider_runtime(async_db)
+    chain = await resolve_provider_chain(async_db, ProviderCapability.UNIVERSE_DISCOVERY)
+
+    assert all(item.provider_name != "finra_otc_directory" for item in chain)
+    entitlement = db.execute(
+        select(ProviderEntitlement).join(DataSource).where(DataSource.name == "finra_otc_directory")
+    ).scalar_one()
+    assert entitlement.configured_plan == "unreviewed"
+    assert entitlement.live_probe_status == "passed"
+
+
+@pytest.mark.asyncio
 async def test_explicit_legacy_yfinance_requires_a_verified_quota(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     await seed_provider_runtime(async_db)
