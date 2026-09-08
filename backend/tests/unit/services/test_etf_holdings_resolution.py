@@ -156,6 +156,37 @@ class FakeIdentifierProvider:
         )
 
 
+class ForeignListingIdentifierProvider(FakeIdentifierProvider):
+    """Return a valid identity mapped to a non-US listing."""
+
+    def resolve_instrument_profile(
+        self,
+        *,
+        isin: str | None = None,
+        cusip: str | None = None,
+        sedol: str | None = None,
+    ) -> InstrumentProfile | None:
+        if (isin or "").strip().upper() != "US0463531089":
+            return None
+        return InstrumentProfile(
+            provider="openfigi",
+            symbol="AZNN",
+            canonical_symbol="AZNN",
+            name="AstraZeneca PLC",
+            currency=None,
+            quote_type="EQUITY",
+            exchange="MM",
+            identifiers=[
+                IdentifierRecord(
+                    identifier_type="ISIN",
+                    identifier_value="US0463531089",
+                    source="openfigi",
+                )
+            ],
+            listings=[ListingRecord(provider_symbol="AZNN", exchange_code="MM")],
+        )
+
+
 class FakeNameSearchProvider:
     def __init__(self, results: list[ProviderSearchResult]):
         self.results = results
@@ -295,6 +326,48 @@ async def test_resolver_enriches_security_rows_through_provider_metadata(db, mon
     assert "US5949181045" in identifier_values
     assert "BBG000BPH459" in identifier_values
     assert "BBG000BPH45" in identifier_values
+
+
+@pytest.mark.asyncio
+async def test_resolver_rejects_foreign_listing_for_us_isin_and_uses_us_search_bridge(
+    db, monkeypatch
+):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr("app.services.etf_holdings.settings.APP_ENV", "development")
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_identifier_providers",
+        lambda: [ForeignListingIdentifierProvider({})],
+    )
+    search_provider = SearchAndMetadataProvider(
+        [ProviderSearchResult(symbol="AZN", name="AstraZeneca PLC", instrument_type="EQUITY")]
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_search_provider_chain", lambda: [search_provider]
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings.get_default_metadata_provider",
+        lambda: NameSearchMetadataProvider(),
+    )
+
+    instrument, confidence, note = await _resolve_or_create_constituent(
+        async_db,
+        CanonicalHoldingRow(
+            symbol=None,
+            name="AstraZeneca PLC",
+            isin="US0463531089",
+            cusip="046353108",
+            currency="USD",
+            holding_type="equity",
+            row_type="security",
+        ),
+        source_provider="sec",
+    )
+
+    assert instrument is not None
+    assert instrument.symbol == "AZN"
+    assert confidence == Decimal("0.8600")
+    assert note == "Matched through unique provider-backed name search."
+    assert search_provider.calls == [("AstraZeneca PLC", 8)]
 
 
 @pytest.mark.asyncio

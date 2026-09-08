@@ -3731,3 +3731,21 @@ growth remained unavailable. The member rows had no explicit provider-symbol rel
 the governed canonical-symbol fallback succeeded. The earlier empty family result was not
 reproduced, so no provider policy change is justified. Family-wide history/readiness remains
 open pending auditable placeholder enrichment, MN/W1 coverage, and rebalance continuity.
+
+## 2026-09-09 — US-ISIN foreign-listing guard
+
+The resolver now rejects foreign identifier-provider listings for US ISIN holdings
+and preserves the existing bounded provider-backed name bridge after stable
+identifier candidates are exhausted. Focused resolver tests passed `26/26`; Ruff passed on the
+changed files. On the rebuilt seeded stack, AZN/TEAM/HON promotions were verified;
+`54/54` queued canonical D1 jobs completed, `53` met the 252-bar floor (`51–2344`),
+and W1/MN remained unavailable. The exact snapshots contained `55` canonical
+symbols and `115` placeholder rows. R1 remains bounded/pending; R2–R7 and final
+family readiness are not claimed.
+
+The exact-tip full integration gate passed every non-visual stage: backend
+`1,357` unit and `386` integration tests (combined coverage `67%`), frontend
+type-check/build, compose/provider/runner checks, and functional Playwright
+`165/272` with `107` documented skips. Visual parity remained `98/104` with
+the same six established state-oracle diffs. Teardown and resource cleanup
+were clean.

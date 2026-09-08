@@ -333,6 +333,60 @@ def _constituent_quote_type_allowed(profile: InstrumentProfile | None) -> bool:
     return (profile.quote_type or "EQUITY").upper() in {"EQUITY", "ETF", "MUTUALFUND", "INDEX"}
 
 
+# OpenFIGI may resolve a US ISIN to a foreign listing when the issuer has
+# several venues (for example, AZNN/MM instead of the US ADR AZN).  The
+# configured price-history providers use US symbols for this workstation's
+# US benchmark families.  Keep the exchange check deliberately narrow and
+# apply it only when the holding itself carries an explicit US ISIN; foreign
+# holdings and profiles without exchange evidence retain the prior behaviour.
+_US_LISTING_CODES = frozenset(
+    {
+        "US",
+        "UN",
+        "UW",
+        "UA",
+        "UF",
+        "UP",
+        "UR",
+        "UQ",
+        "UC",
+        "UV",
+        "UM",
+        "UY",
+        "NYSE",
+        "NASDAQ",
+        "XNAS",
+        "XNYS",
+        "ARCX",
+        "BATS",
+        "BAT",
+    }
+)
+
+
+def _profile_has_us_listing(profile: InstrumentProfile) -> bool:
+    exchanges = [profile.exchange, *(listing.exchange_code for listing in profile.listings)]
+    normalized = {
+        str(exchange or "").strip().upper() for exchange in exchanges if str(exchange or "").strip()
+    }
+    if not normalized:
+        return True
+    return bool(normalized & _US_LISTING_CODES)
+
+
+def _profile_matches_holding(row: CanonicalHoldingRow, profile: InstrumentProfile | None) -> bool:
+    """Apply conservative identity checks before promoting a holding row."""
+
+    if not _constituent_quote_type_allowed(profile) or profile is None:
+        return False
+    if not _names_look_compatible(row.name, profile.name):
+        return False
+    us_isin = _normalize_holding_identifier_value(row.isin)
+    if us_isin and us_isin.startswith("US") and not _profile_has_us_listing(profile):
+        return False
+    return True
+
+
 async def _provider_enriched_constituent_instrument(
     db: AsyncSession,
     row: CanonicalHoldingRow,
@@ -357,9 +411,7 @@ async def _provider_enriched_constituent_instrument(
             continue
         if profile is None:
             continue
-        if not _constituent_quote_type_allowed(profile):
-            continue
-        if not _names_look_compatible(row.name, profile.name):
+        if not _profile_matches_holding(row, profile):
             continue
 
         instrument = existing_instrument
@@ -504,8 +556,7 @@ async def _provider_enriched_constituent_instrument(
                         candidate_profile is not None
                         and candidate_profile.canonical_symbol
                         and not _is_placeholder_symbol(candidate_profile.canonical_symbol)
-                        and _constituent_quote_type_allowed(candidate_profile)
-                        and _names_look_compatible(row.name, candidate_profile.name)
+                        and _profile_matches_holding(row, candidate_profile)
                     ):
                         profile = candidate_profile
                         break
@@ -520,8 +571,7 @@ async def _provider_enriched_constituent_instrument(
                     profile is not None
                     and profile.canonical_symbol
                     and not _is_placeholder_symbol(profile.canonical_symbol)
-                    and _constituent_quote_type_allowed(profile)
-                    and _names_look_compatible(row.name, profile.name)
+                    and _profile_matches_holding(row, profile)
                 ):
                     instrument = existing_instrument
                     if instrument is None:

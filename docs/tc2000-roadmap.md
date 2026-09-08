@@ -2994,3 +2994,29 @@ relationship, the governed canonical-symbol fallback succeeded. The earlier empt
 was not reproduced, so no provider, fallback, credential, or acceptance policy change is
 justified. Family-wide readiness remains open pending auditable placeholder enrichment, MN/W1
 coverage, rebalance continuity, and broader family/root coverage.
+
+## 2026-09-09 — Reject foreign identifier listings during Nasdaq enrichment
+
+The ETF constituent resolver now applies a conservative US-listing compatibility
+check when a US ISIN resolves through an identifier provider. Foreign OpenFIGI
+listings are rejected before promotion, while the existing bounded
+provider-backed name bridge remains available after stable-identifier candidates
+are exhausted.
+This preserves the existing provider/search order and acceptance thresholds while
+preventing non-US listings from becoming canonical US holdings. Focused resolver
+coverage passed `26/26` tests and Ruff passed on the changed files.
+
+On the rebuilt seeded stack, the dated QQQ/QQQE maintenance path promoted the
+representative AZN, TEAM, and HON rows, then queued `54` canonical members for
+history. All `54` D1 jobs completed; `53` met the 252-bar floor (range `51–2344`),
+with no W1/MN bars. The exact two snapshots now contain `55` distinct canonical
+symbols and `115` placeholder rows; this is bounded identity/history evidence,
+not complete family readiness. Auditable enrichment, W1/MN coverage, rebalance
+continuity, and R2–R7 requirements remain open.
+
+The required exact-tip integration gate then passed all non-visual stages:
+backend `1,357` unit and `386` integration tests (combined coverage `67%`),
+frontend type-check/build, compose/provider/runner checks, and functional
+Playwright `165/272` with `107` documented skips. Visual parity remained
+`98/104` with the same six state-oracle diffs; teardown and resource cleanup
+were clean.

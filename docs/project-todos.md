@@ -18063,3 +18063,16 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Auditable enrichment for the `197` placeholders, MN/W1 floors, rebalance continuity,
       complete family/root coverage, and final canonical readiness remain open. The prior empty
       family result was not reproduced, and no provider/fallback/acceptance policy changed.
+
+### 2026-09-09 — US-ISIN foreign-listing guard
+
+- [x] Reject foreign identifier-provider listings for US ISIN holdings before
+      canonical promotion, while retaining the existing bounded provider-backed
+      name bridge after stable-identifier candidates are exhausted (`26/26`
+      resolver tests; Ruff clean).
+- [x] Rebuilt-stack receipt: AZN/TEAM/HON promotions verified; `54/54` queued
+      canonical D1 jobs completed, `53` met the 252-bar floor (`51–2344` bars),
+      W1/MN coverage remained `0`, and the two exact snapshots held `55`
+      canonical symbols plus `115` placeholder rows.
+- [ ] Continue auditable placeholder enrichment, W1/MN history, rebalance
+      continuity, and the remaining R2–R7 acceptance evidence.
