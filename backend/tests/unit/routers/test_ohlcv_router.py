@@ -91,6 +91,21 @@ class TestOHLCVRouter:
                 for row in payload
             )
 
+    def test_transformed_local_coarse_read_materializes_from_canonical_d1(
+        self, client, auth_headers, instrument, ohlcv_bars
+    ):
+        """Transformed local reads use the same provider-free coarse seam."""
+        response = client.get(
+            f"/api/v1/ohlcv/{instrument.symbol}/W1/transformed",
+            params={"bar_type": "heikin_ashi", "local_only": "true"},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload
+        assert all(set(("ts", "open", "high", "low", "close")).issubset(row) for row in payload)
+
     def test_transformed_chart_ignores_parameters_for_other_types(
         self, client, auth_headers, instrument, monkeypatch
     ):

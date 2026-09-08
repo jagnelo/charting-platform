@@ -652,6 +652,15 @@ async def fetch_ohlcv(
         return cached
 
     if not allow_provider_fetch:
+        # Local-only coarse reads may still be served from canonical adjusted
+        # D1 evidence.  Materialization is provider-free and preserves the
+        # shared lineage contract; a cold instrument remains an empty read.
+        if not cached and timeframe in (Timeframe.W1, Timeframe.MN):
+            cached = [
+                bar
+                for bar in await _materialize_derived_for_read(db, instrument, timeframe, adjusted)
+                if start <= bar.ts <= end
+            ]
         cached.sort(key=lambda b: b.ts)
         return cached
 
@@ -876,6 +885,10 @@ async def fetch_ohlcv_latest(
         return rows
 
     if not allow_provider_fetch:
+        if not rows and timeframe in (Timeframe.W1, Timeframe.MN):
+            rows = await _materialize_derived_for_read(db, instrument, timeframe, adjusted)
+            rows = rows[-limit:] if len(rows) > limit else rows
+            rows.sort(key=lambda b: b.ts)
         return rows
 
     provider_gap: Exception | None = None
@@ -1056,6 +1069,12 @@ async def fetch_ohlcv_page_before(
         return rows
 
     if not allow_provider_fetch:
+        if not rows and timeframe in (Timeframe.W1, Timeframe.MN):
+            rows = [
+                row
+                for row in await _materialize_derived_for_read(db, instrument, timeframe, adjusted)
+                if row.ts < before
+            ][-limit:]
         rows.sort(key=lambda b: b.ts)
         return rows
 
