@@ -1413,9 +1413,7 @@ async def test_classification_maintenance_visits_bounded_historical_snapshots(db
     """Canonical dated snapshots are not left permanently unresolved behind latest-only work."""
 
     async_db = AsyncSessionAdapter(db)
-    etf = await ensure_lightweight_etf_instrument(
-        async_db, symbol="QQQ", name="Invesco QQQ Trust"
-    )
+    etf = await ensure_lightweight_etf_instrument(async_db, symbol="QQQ", name="Invesco QQQ Trust")
     await ensure_etf_profile(async_db, etf, issuer="Invesco")
     snapshots = []
     for composition_date in (date(2026, 8, 31), date(2026, 6, 30)):

@@ -671,26 +671,30 @@ async def reconcile_all_etf_holdings_classifications(
         if profile.instrument is None:
             continue
         snapshots = (
-            await db.execute(
-                select(ETFHoldingsSnapshot)
-                .options(
-                    selectinload(ETFHoldingsSnapshot.rows)
-                    .selectinload(ETFHolding.constituent_instrument)
-                    .selectinload(Instrument.equity_detail)
+            (
+                await db.execute(
+                    select(ETFHoldingsSnapshot)
+                    .options(
+                        selectinload(ETFHoldingsSnapshot.rows)
+                        .selectinload(ETFHolding.constituent_instrument)
+                        .selectinload(Instrument.equity_detail)
+                    )
+                    .where(
+                        ETFHoldingsSnapshot.etf_profile_id == profile.id,
+                        ETFHoldingsSnapshot.provenance != "controlled_fixture",
+                        ETFHoldingsSnapshot.source_provider != "e2e_reference",
+                    )
+                    .order_by(
+                        ETFHoldingsSnapshot.composition_date.desc(),
+                        ETFHoldingsSnapshot.known_at.desc().nullslast(),
+                        ETFHoldingsSnapshot.id.desc(),
+                    )
+                    .limit(max(0, max_snapshots_per_profile))
                 )
-                .where(
-                    ETFHoldingsSnapshot.etf_profile_id == profile.id,
-                    ETFHoldingsSnapshot.provenance != "controlled_fixture",
-                    ETFHoldingsSnapshot.source_provider != "e2e_reference",
-                )
-                .order_by(
-                    ETFHoldingsSnapshot.composition_date.desc(),
-                    ETFHoldingsSnapshot.known_at.desc().nullslast(),
-                    ETFHoldingsSnapshot.id.desc(),
-                )
-                .limit(max(0, max_snapshots_per_profile))
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         if not snapshots:
             continue
         snapshots_selected += len(snapshots)
