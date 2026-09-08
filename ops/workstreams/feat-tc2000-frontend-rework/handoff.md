@@ -8,6 +8,19 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-08 — Exact-tip gate after alert-promotion hydration stabilization
+
+Test commit `e227eda8` adds the bounded two-second canonical-instrument
+settling window used by F8u-signal to F8u-alert; focused authenticated coverage
+passed `3/3` on a fresh stack. The exact-tip gate passed every non-visual
+stage: backend `1352` unit/`386` integration, frontend Vitest `974/974`,
+production build/compose/provider policy, healthy stack and runner probes, and
+functional Playwright `165` passed with `106` documented skips across `271`.
+Visual acceptance remains `98/104` with the same six state-oracle diffs; no
+product, visual-policy, fallback, provider, or acceptance-policy changes were
+made. Continue with opt-in persisted provider maintenance and
+population/continuity/D1-W1-MN evidence.
+
 ## 2026-09-08 — Exact-tip gate after historical enrichment safety fix
 
 ## 2026-09-08 — Exact-tip gate after worker Compose wiring

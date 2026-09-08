@@ -5,6 +5,24 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-08
 
+## 2026-09-08 — Exact-tip gate after alert-promotion hydration stabilization
+
+Test commit `e227eda8` adds the bounded two-second canonical-instrument
+settling window already used by F8u-signal to the suite-order-sensitive
+F8u-alert flow. Focused authenticated coverage passed `3/3` on a fresh stack.
+The exact-tip gate then completed all non-visual stages: backend `1352` unit
+and `386` integration tests, frontend Vitest `974/974`, production
+build/compose/provider policy, healthy stack and runner probes, and functional
+Playwright `165` passed with `106` documented skips across `271`. The visual
+matrix remains `98/104` with exactly the six unchanged state-oracle diffs
+(watchlist-column-editor-open at visual-1080p-100/125 and workspace-floating at
+visual-1080p-100/125 and visual-1440p-100/125). No product, visual-policy,
+fallback, provider-selection, or acceptance rule changed.
+
+The next R1 gate remains opt-in provider maintenance against persisted
+snapshots, followed by evidence for resolved populations, historical
+continuity, and D1/W1/MN member-bar floors.
+
 ## 2026-09-08 — Exact-tip gate after historical enrichment safety fix
 
 ## 2026-09-08 — Exact-tip gate after worker Compose wiring
