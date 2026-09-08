@@ -44,6 +44,14 @@
 - [ ] Continue enrichment and populate D1/W1/MN member history; no readiness
       is inferred from partial classification.
 
+### 2026-09-08 — Frontend dependency security audit
+
+- [x] Run authoritative npm audits: production dependencies report zero
+      vulnerabilities; the development graph reports five findings (two
+      critical, one high, two moderate).
+- [ ] Plan and execute a compatibility-tested major upgrade of Vite/Vitest/
+      coverage tooling, then rerun the complete integration gate.
+
 ### 2026-09-08 — Bounded Russell 1000 canonical enrichment
 
 - [x] Run bounded enrichment across the three Russell 1000 dated snapshots:

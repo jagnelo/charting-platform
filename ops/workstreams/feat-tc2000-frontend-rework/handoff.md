@@ -8,6 +8,14 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-08 — Frontend dependency security audit
+
+Production dependency audit is clean (`68` dependencies, zero findings). The
+development graph has five findings: two critical Vitest/coverage, one high
+Vite, and two moderate Vite/esbuild. npm recommends major upgrades (Vitest /
+coverage `5.x`, Vite `8.x`); compatibility work and a full gate are required
+before remediation. This remains an explicit R6 security limitation.
+
 ## 2026-09-08 — Bounded S&P SmallCap 600 canonical enrichment
 
 The isolated stack refreshed IJR/SLYV/SLYG for `2025-12-31` with zero

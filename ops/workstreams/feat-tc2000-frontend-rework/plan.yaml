@@ -13,6 +13,13 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Authoritative npm audits report zero production vulnerabilities across 68
+  dependencies, but five development-tool findings remain (two critical
+  Vitest/coverage, one high Vite, two moderate Vite/esbuild). npm's fixes are
+  major upgrades (Vitest/coverage 5.x and Vite 8.x); compatibility migration
+  and a full gate are still required. Continue canonical enrichment/history,
+  native-window/accessibility/security, dense-data, visual review, and R2-R5
+  evidence. Historical receipts below remain authoritative.
   Latest bounded S&P SmallCap 600 enrichment refreshed IJR/SLYV/SLYG with zero
   failures, enriched 76 records, and left 1171 pending; classified /
   placeholder counts are IJR 60/2, SLYV 38/7, and SLYG 6/114. No D1/W1/MN

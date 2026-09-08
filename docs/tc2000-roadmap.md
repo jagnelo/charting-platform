@@ -5,6 +5,16 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-08
 
+## 2026-09-08 — Frontend dependency security audit
+
+The authoritative npm audit found zero vulnerabilities in the `68` production
+dependencies. The development graph has five findings: two critical Vitest /
+coverage issues, one high Vite issue, and two moderate Vite/esbuild issues.
+Available fixes require major upgrades (Vitest/coverage `5.x`, Vite `8.x`),
+which are not being applied without compatibility work and a full gate rerun.
+This is an explicit R6 remediation item; production runtime security is clean,
+but the branch is not claiming a vulnerability-free development toolchain.
+
 ## 2026-09-08 — Bounded S&P SmallCap 600 canonical enrichment
 
 The isolated stack refreshed the three mapped SP600 legs for `2025-12-31`
