@@ -6,16 +6,18 @@
       completed and retained D1 availability despite expected coarser-TF gaps.
 - [x] Run a fresh XLK MN/W1/D1 job; MN/W1 reported coverage errors while D1
       persisted 2,344 bars through 2025-12-31.
-- [ ] Reproduce the earlier empty result with the exact canonical snapshot
+- [x] Reproduce the earlier empty result with the exact canonical snapshot
       member set and inspect per-member symbol provenance/transient provider
-      conditions before considering any runtime change.
+      conditions. The empty result was not reproduced; governed canonical-symbol
+      fallback succeeded and no runtime/provider policy change was justified.
 
 ### 2026-09-09 — Canonical Nasdaq ARQ worker path confirmed
 
 - [x] Enqueue one bounded canonical NVDA `task_bulk_fetch_instrument` D1 job;
       the real ARQ worker returned `{'D1': 2344}` through `2025-12-31`.
-- [ ] Investigate family-scale queue behavior under explicit provider
-      concurrency/rate limits and establish D1/W1/MN continuity/readiness.
+- [x] Investigate family-scale queue behavior under an explicit bounded fan-out:
+      all `54/54` queued canonical member D1 jobs completed without worker
+      errors. D1-only success does not establish W1/MN continuity/readiness.
 
 ### 2026-09-09 — Canonical Nasdaq provider path rechecked
 
@@ -24,9 +26,10 @@
       chain.
 - [x] Run one bounded QQQ D1 fetch through `bulk_fetch_instrument`; `2,344`
       adjusted bars persisted through `2025-12-31` on the fresh scoped stack.
-- [ ] Re-run bounded family member history under an explicit rate/concurrency
-      budget and establish D1/W1/MN continuity; this probe does not claim
-      family-wide readiness.
+- [x] Re-run bounded family member history under the explicit queue budget;
+      `54/54` canonical D1 jobs completed and `53` met the 252-bar floor.
+- [ ] Establish D1/W1/MN continuity and family-wide readiness; this bounded
+      probe leaves W1/MN unavailable and does not claim completeness.
 
 ### 2026-09-08 — Controlled network-scale workstation row-budget oracle
 

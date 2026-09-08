@@ -5,6 +5,14 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-08
 
+## 2026-09-09 — Bounded Nasdaq family fan-out recheck
+
+The exact dated QQQ/QQQE member set was rerun with the configured bounded
+history queue. The earlier empty family result was not reproduced: all `54/54`
+queued canonical member D1 jobs completed without worker errors, with `53`
+meeting the 252-bar floor. The run still has no W1/MN bars and does not prove
+rebalance continuity or family-wide readiness; those remain explicit R1 gaps.
+
 ## 2026-09-09 — Mixed-timeframe queue reproduction remains healthy
 
 Four concurrent canonical seeded ARQ jobs (`AAPL`, `SPY`, `QQQ`, `NVDA`) ran
