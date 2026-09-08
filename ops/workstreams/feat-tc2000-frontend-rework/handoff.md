@@ -26,6 +26,19 @@ implements the cached coarse-timeframe seam but does not close R1: family
 population, placeholders, rebalance continuity, and R2–R7 evidence remain
 open. No visual acceptance artifact changed.
 
+## 2026-09-08 — Merge partial provider coarse reads with canonical derivations
+
+Product commit `2ef85fd0` closes a local read-consistency edge case. The
+canonical `/local` route and chart `local_only` service paths now re-read the
+complete coarse cache when D1 evidence exists, so partial provider W1/MN rows
+are merged with derived periods while provider rows retain calendar-period
+precedence. An existing derived cache is reused instead of being rebuilt on
+every read. Focused mixed-source coverage passes `13/13`; the exact full gate
+passes all non-visual stages and functional Playwright (`165` passed, `107`
+documented skips), while visual parity remains `98/104` with the established
+six state-oracle diffs. R1 canonical population/provenance/continuity and
+R2–R7 remain open; no provider or visual policy changed.
+
 ## 2026-09-09 — Mixed-timeframe queue reproduction remains healthy
 
 Four concurrent seeded canonical jobs (`AAPL`, `SPY`, `QQQ`, `NVDA`) completed

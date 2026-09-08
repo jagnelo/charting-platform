@@ -5,6 +5,21 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-08
 
+## 2026-09-08 — Merge partial provider coarse reads with canonical derivations
+
+Local and chart OHLCV reads now reconcile partial provider W1/MN coverage with
+derived periods from persisted canonical adjusted D1 evidence. Provider rows
+continue to own their calendar periods; derived rows fill only uncovered
+periods and retain explicit lineage. The read path avoids rebuilding an
+already-materialized derived cache on every request, while still completing a
+partial provider cache when no derived periods exist. Focused mixed-source
+coverage passes `13/13`, and the exact full gate at commit `2ef85fd0` passes all
+non-visual stages and functional Playwright (`165` passed, `107` documented
+skips); visual parity remains `98/104` with the six established state-oracle
+diffs. This closes a local read-consistency gap only; canonical population,
+placeholder disposition, adjustment provenance, rebalance continuity, and
+R2–R7 remain open.
+
 ## 2026-09-08 — Canonical derived W1/MN materialization policy implemented
 
 The maintenance history path now materializes W1 and MN bars from persisted
