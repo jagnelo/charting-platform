@@ -18052,3 +18052,14 @@ The current source also passes the focused authenticated top-down browser slice 
       failure. Stack teardown and resource audit reported zero retained resources.
 - [ ] Native multi-monitor behavior, dense-data budgets, accessibility/security, and remaining
       R6 evidence are still open; browser simulation does not substitute for native proof.
+
+### 2026-09-09 — Exact Nasdaq snapshot-member history rerun
+
+- [x] Re-ran the dated `nasdaq100` refresh and awaited every exact queued canonical member job.
+      Seven QQQE members persisted adjusted D1 history through `2025-12-31`: BIIB/CDW/LULU/ON
+      `2,344` bars each, SOLS `51`, TTD `2,333`, and GFS `1,048`; MN/W1 returned expected
+      no-data outcomes. The snapshot excluded `197` unresolved/placeholders and value/growth
+      remained explicitly unavailable.
+- [ ] Auditable enrichment for the `197` placeholders, MN/W1 floors, rebalance continuity,
+      complete family/root coverage, and final canonical readiness remain open. The prior empty
+      family result was not reproduced, and no provider/fallback/acceptance policy changed.

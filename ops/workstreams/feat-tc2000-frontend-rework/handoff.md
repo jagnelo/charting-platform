@@ -3720,3 +3720,14 @@ two-pop-out churn stayed within the existing bounds, with no source-workspace to
 or convergence failure. Teardown/resource accounting was clean: zero containers, volumes, test
 sessions, and known bytes. This is browser-simulation evidence; native multi-monitor, dense-data,
 accessibility, security, logging, and other R6 gaps remain separate.
+
+## 2026-09-09 — Exact Nasdaq snapshot-member history rerun
+
+The exact dated `nasdaq100` refresh was rerun and all seven queued canonical QQQE member jobs
+were awaited to completion. BIIB, CDW, LULU, and ON each persisted `2,344` adjusted D1 bars;
+SOLS persisted `51`, TTD `2,333`, and GFS `1,048`, all through `2025-12-31`. Each job reported
+expected MN/W1 no-data outcomes. The snapshot excluded `197` unresolved/placeholders; value and
+growth remained unavailable. The member rows had no explicit provider-symbol relationship, but
+the governed canonical-symbol fallback succeeded. The earlier empty family result was not
+reproduced, so no provider policy change is justified. Family-wide history/readiness remains
+open pending auditable placeholder enrichment, MN/W1 coverage, and rebalance continuity.

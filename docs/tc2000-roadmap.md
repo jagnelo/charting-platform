@@ -2981,3 +2981,16 @@ extended churn completed without source-workspace growth or convergence failures
 resource accounting were clean (`0` containers, volumes, sessions, and known bytes). This
 strengthens browser-simulation evidence only; native multi-monitor, dense-data, accessibility,
 security, and other R6 requirements remain open.
+
+## 2026-09-09 — Exact Nasdaq snapshot-member history rerun
+
+The exact dated `nasdaq100` refresh was rerun on a fresh seeded stack and every queued canonical
+member job was awaited to completion. SEC-backed QQQ/QQQE snapshots selected seven canonical
+QQQE members and excluded `197` unresolved/placeholders; value/growth remained explicitly
+unavailable. BIIB, CDW, LULU, and ON each persisted `2,344` adjusted D1 bars through
+`2025-12-31`; SOLS persisted `51`, TTD `2,333`, and GFS `1,048`. Each job retained the
+expected MN/W1 no-data outcomes. Although the member rows had no explicit provider-symbol
+relationship, the governed canonical-symbol fallback succeeded. The earlier empty family result
+was not reproduced, so no provider, fallback, credential, or acceptance policy change is
+justified. Family-wide readiness remains open pending auditable placeholder enrichment, MN/W1
+coverage, rebalance continuity, and broader family/root coverage.
