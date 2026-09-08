@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-08 — Bounded canonical enrichment across dated snapshots
+
+- [x] Extend the scheduled canonical holding-enrichment pass from latest-only
+      to up to four persisted non-fixture snapshots per ETF profile, with one
+      per-profile resolver budget and caps covering unresolved rows as well as
+      missing classifications (`cb3191fe`).
+- [x] Focused resolution coverage passed `25/25`; bounded worker/configuration
+      checks passed `6/6`; Ruff, compile, and diff checks passed.
+- [ ] Execute the opt-in maintenance against persisted provider snapshots and
+      verify resolved populations, continuity, and D1/W1/MN member-bar floors;
+      this code change does not fabricate symbols or claim data completeness.
+
 ### 2026-09-08 — Study Lab threshold Strategy-signal promotion
 
 - [x] Add direct `Save as Strategy signal` targets for numeric series and

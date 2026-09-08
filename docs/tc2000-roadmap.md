@@ -5,6 +5,27 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-08
 
+## 2026-09-08 — Bound canonical holding enrichment across dated snapshots
+
+Product commit `cb3191fe` closes a bounded R1 maintenance gap in the canonical
+ETF holding reconciliation path. The scheduled enrichment pass now visits up
+to four persisted non-fixture snapshots per ETF profile (configurable through
+`ETF_HOLDINGS_CLASSIFICATION_MAX_SNAPSHOTS_PER_PROFILE`) instead of examining
+only the latest snapshot. A single per-profile enrichment budget is carried
+across those dates, and the resolver cap applies to every unresolved or
+unclassified row, including rows whose source did not materialize an
+instrument. Snapshot selection remains canonical-data-only and excludes
+`controlled_fixture`/`e2e_reference` records; interactive reads still do not
+fan out to providers.
+
+Focused resolution coverage passed `25/25`; the bounded worker/configuration
+checks passed `6/6`; Ruff, compile, and diff checks passed. This makes dated
+maintenance progress durable and auditable but does not claim that QQQ/QQQE or
+the other family legs are fully populated, continuous, or at D1/W1/MN floors;
+provider route availability and persisted data still require separate
+maintenance execution and live/database evidence. No visual, fallback,
+provider-selection, or acceptance policy changed.
+
 ## 2026-09-08 — Promote Study Lab thresholds to Strategy signals
 
 Product commit `9352c43a` closes the direct Study Lab R4 threshold-promotion

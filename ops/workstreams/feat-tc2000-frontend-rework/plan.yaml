@@ -13,6 +13,16 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product commit cb3191fe extends the opt-in canonical ETF holding-enrichment
+  maintenance pass across up to four persisted non-fixture snapshots per ETF
+  profile, with one configurable per-profile resolver budget shared across
+  dates and a cap that covers unresolved rows as well as missing
+  classifications. Focused resolution coverage passed 25/25; bounded
+  worker/configuration checks passed 6/6; Ruff, compile, and diff checks
+  passed. This improves durable dated maintenance but does not claim persisted
+  QQQ/QQQE population, continuity, or D1/W1/MN floors; live execution and
+  database evidence remain open. Historical receipts below remain
+  authoritative.
   Product commit 9352c43a adds direct Study Lab threshold promotion to
   Strategy signals for numeric series and range-center artifacts. It requires
   declared canonical member IDs and immutable source data, and persists source

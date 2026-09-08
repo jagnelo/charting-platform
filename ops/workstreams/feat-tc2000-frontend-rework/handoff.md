@@ -8,6 +8,18 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-08 — Bound canonical holding enrichment across dated snapshots
+
+Product commit `cb3191fe` updates the opt-in ETF holding-enrichment worker to
+visit up to four persisted canonical snapshots per ETF profile, controlled by
+`ETF_HOLDINGS_CLASSIFICATION_MAX_SNAPSHOTS_PER_PROFILE`. The configured
+per-profile row budget is shared across dates, and every resolver attempt is
+bounded, including unresolved rows with no materialized instrument. Controlled
+and e2e fixtures remain excluded. Focused resolution coverage passed `25/25`,
+the bounded worker/configuration checks passed `6/6`, and Ruff/compile/diff
+checks passed. This is a maintenance-path improvement only; live provider
+execution, persisted population, continuity, and D1/W1/MN floors remain open.
+
 ## 2026-09-08 — Promote Study Lab thresholds to Strategy signals
 
 Product commit `9352c43a` adds direct Study Lab `Save as Strategy signal`
