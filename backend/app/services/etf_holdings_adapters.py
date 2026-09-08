@@ -328,6 +328,13 @@ def _sec_nport_identity_match(
     if not normalized_targets:
         return True, observed, "registrant_only_unverified"
 
+    observed_series_name = normalized_observed.get("series_name")
+    target_series_name = normalized_targets.get("series_name")
+    series_name_matches = bool(
+        observed_series_name
+        and target_series_name
+        and target_series_name in observed_series_name
+    )
     matched = False
     for key, target in normalized_targets.items():
         value = normalized_observed.get(key)
@@ -335,6 +342,13 @@ def _sec_nport_identity_match(
             # A class ticker is not consistently present in N-PORT documents;
             # class/series IDs still provide authoritative identity.
             if key == "class_ticker" and matched:
+                continue
+            # Some older N-PORT filings omit both IDs while preserving the
+            # exact series name. Treat that name as the authoritative fallback
+            # only when the curated route declares it; never infer identity from
+            # a registrant CIK alone.
+            if key in {"series_id", "class_id"} and series_name_matches:
+                matched = True
                 continue
             return False, observed, f"missing_{key}"
         if key in {"registrant_name", "series_name"}:
@@ -3204,6 +3218,7 @@ KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL: dict[str, dict[str, Any]] = {
             "sec_cik": "0001067839",
             "sec_series_id": "S000101292",
             "sec_class_id": "C000271435",
+            "sec_series_name_contains": "Invesco QQQ Trust, Series 1",
             "sec_fund_tickers_symbol": "QQQ",
         },
     },

@@ -3654,6 +3654,32 @@ def test_sec_identity_match_accepts_spy_registrant_name_without_series_ids():
     assert status == "verified"
 
 
+def test_sec_identity_match_accepts_qqq_series_name_when_filing_omits_ids():
+    raw_xml = """
+    <edgarSubmission xmlns="http://www.sec.gov/edgar/nport">
+      <formData><genInfo>
+        <regName>Invesco QQQ Trust, Series 1</regName>
+        <seriesName>Invesco QQQ Trust, Series 1</seriesName>
+      </genInfo></formData>
+    </edgarSubmission>
+    """
+
+    matches, identity, status = _sec_nport_identity_match(
+        raw_xml,
+        identifiers={
+            "sec_cik": "0001067839",
+            "sec_series_id": "S000101292",
+            "sec_class_id": "C000271435",
+            "sec_series_name_contains": "Invesco QQQ Trust, Series 1",
+            "sec_fund_tickers_symbol": "QQQ",
+        },
+    )
+
+    assert matches is True
+    assert identity["series_name"] == "Invesco QQQ Trust, Series 1"
+    assert status == "verified"
+
+
 @pytest.mark.asyncio
 async def test_yieldmax_adapter_filters_account_and_keeps_options_non_tradable(monkeypatch):
     adapter = get_holdings_adapter("yieldmax")
