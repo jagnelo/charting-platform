@@ -3,8 +3,9 @@
 FINRA's current OTC site uses the public DAPI ``otcSecurityMaster`` dataset;
 the adapter also accepts the documented legacy pipe-delimited directory shape
 for an operator-approved mirror or archive. The source URL is still explicit
-configuration and this provider has no inferred quota, so it remains
-non-routable until terms, completeness, and a quota contract are recorded.
+configuration; the official synchronous request/payload ceilings are recorded
+in the provider contract, while source terms, completeness, polling, and
+redistribution boundaries remain operator-reviewed gates.
 """
 
 from __future__ import annotations

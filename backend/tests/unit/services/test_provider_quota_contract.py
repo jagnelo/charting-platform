@@ -805,6 +805,7 @@ def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
     assert {item["limit"] for item in finnhub["dimensions"]} == {30, 60}
 
     finra = settings.PROVIDER_RATE_LIMIT_SEEDS["finra"]["quota_contract"]
+    finra_otc = settings.PROVIDER_RATE_LIMIT_SEEDS["finra_otc_directory"]["quota_contract"]
     tiingo = settings.PROVIDER_RATE_LIMIT_SEEDS["tiingo"]["quota_contract"]
     fmp = settings.PROVIDER_RATE_LIMIT_SEEDS["fmp"]["quota_contract"]
     finra_bytes = next(
@@ -812,6 +813,9 @@ def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
     )
     assert finra_bytes["limit"] == 10 * 1024**3
     assert finra["dimension_costs_required"] is True
+    assert finra_otc["dimensions"][0]["limit"] == 1200
+    assert finra_otc["dimensions"][0]["scope"] == "ip"
+    assert finra_otc["maximum_synchronous_response_bytes"] == 3 * 1024**2
     assert tiingo["untracked_constraints"][0]["limit"] == 1024**3
     assert fmp["dimensions"][0]["limit"] == 250
     assert fmp["untracked_constraints"][0]["limit"] == 512 * 1024**2

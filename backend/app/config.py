@@ -270,6 +270,26 @@ class Settings(BaseSettings):
             "quota_scope": "ip",
             "quota_source": "FINRA API Platform usage limits",
         },
+        "finra_otc_directory": {
+            "quota_contract": {
+                "dimensions": [
+                    {
+                        "name": "synchronous_requests_per_minute",
+                        "limit": 1200,
+                        "window_seconds": 60,
+                        "unit": "requests",
+                        "scope": "ip",
+                        "source": "https://developer.finra.org/node/1146",
+                        "reset": "rolling",
+                    }
+                ],
+                "reset": "rolling",
+                "maximum_synchronous_response_bytes": 3 * 1024**2,
+            },
+            "tokens_per_minute": 1200,
+            "quota_scope": "ip",
+            "quota_source": "FINRA API Platform usage limits",
+        },
         "coingecko": {
             "quota_contract": {
                 "dimensions": [
@@ -773,6 +793,15 @@ class Settings(BaseSettings):
             "history_depth": "Directory snapshots and lifecycle evidence only",
             "venue_coverage": "US NMS venues represented in official directory files",
             "freshness_semantics": "Directory publication/update time",
+        },
+        "finra_otc_directory": {
+            "configured_plan": "finra-public-dapi",
+            "is_free": True,
+            "authentication_required": False,
+            "usage_terms": "Public FINRA OTC Security Master DAPI; source terms, polling allowance, and redistribution boundary require operator review.",
+            "history_depth": "Current as-of-date OTC security-master snapshot",
+            "venue_coverage": "FINRA OTC securities represented by the configured DAPI source",
+            "freshness_semantics": "Provider as-of-date partition and response time",
         },
         "openfigi": {
             "configured_plan": "free-api",

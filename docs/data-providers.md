@@ -43,7 +43,7 @@ re-reviewed when credentials or billing plans change.
 | Kraken | public crypto OHLC, ticker, USD pairs | none | safe public frequency <=1 request/sec; pair/IP limits apply | IP/pair / rolling | contract recorded; keyless live evidence required |
 | CoinGecko Demo | crypto search, metadata, market-cap universe | `COINGECKO_API_KEY` | 100 calls/min and 10,000 calls/month | Demo key / minute + calendar month | credentialed search live-proven |
 | FINRA | consolidated short interest (OAuth Query API), OTC Daily List lifecycle/corporate-action deltas, and generic asynchronous Query API jobs | `FINRA_CLIENT_ID`, `FINRA_CLIENT_SECRET` | 1,200 synchronous requests/minute/IP; 20 asynchronous submissions/minute/dataset/account; max 5,000 records and 3 MB per synchronous response; public credential capped at 10 GB downloaded/month | OAuth client / IP + dataset/account + calendar-month credential bandwidth | synchronous datasets live-proven; async submit/poll/presigned-download flow is fixture-tested but remains non-routable until unbounded async-result byte accounting is safely reserved |
-| FINRA OTC directory | current `otcSecurityMaster` DAPI snapshot, or configured pipe-delimited OTC/OTCBB mirror | `FINRA_OTC_SYMBOL_DIRECTORY_URL` | Source-specific; no public numeric limit assumed | configured source / unknown until reviewed | full current DAPI pagination is live-proven; adapter remains non-routable until terms and quota evidence are recorded |
+| FINRA OTC directory | current `otcSecurityMaster` DAPI snapshot, or configured pipe-delimited OTC/OTCBB mirror | `FINRA_OTC_SYMBOL_DIRECTORY_URL` | Official FINRA synchronous platform ceiling: 1,200 requests/minute/IP and 3 MB maximum response; source-specific polling and redistribution terms still require review | configured source / rolling IP request window | full current DAPI pagination is live-proven; explicit quota is recorded, but adapter remains non-routable until source configuration and terms review are complete |
 | FRED | macro/rates/FX daily series | `FRED_API_KEY` | The deployed adapter uses FRED v1; its official errors page documents 429 throttling but no fixed numeric ceiling, so no limit is inferred from the separate v2 documentation | API key / provider-defined | **not routable until the deployed API version's ceiling is verified** |
 | Nasdaq Trader | official `nasdaqlisted.txt`/`otherlisted.txt` US NMS listing/lifecycle files | none | No numeric public limit in the symbol-directory definition; poll conservatively and record response headers | public service / unknown | **discovery evidence only; quota unknown** |
 | Tiingo | EOD history, search, profiles | `TIINGO_API_KEY` | 500 unique symbols/month, 50/hour, 1,000/day, 1 GB/month (free Starter); monthly bandwidth resets on the first day at midnight Eastern | API key / multiple windows | EOD live-proven; response bytes are now observed and durable, but **not routable until byte-budget reservation/enforcement exists** |
@@ -424,11 +424,13 @@ record, and exposes the source URL in every page. The recommended source is:
 `https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster`.
 
 The source is publicly reachable and full pagination is covered by the live
-probe, but no numeric quota or redistribution allowance is inferred. The
-provider therefore remains non-routable until operations records current
-terms, completeness/retention policy, polling allowance, and a provider-specific
-quota contract. The Daily List adapter remains the lifecycle-delta path and is
-not substituted for this current security master.
+probe. FINRA's platform documentation publishes the synchronous 1,200
+requests/minute/IP and 3 MB response ceilings, which are recorded in the
+provider contract. The provider remains non-routable until the source URL is
+explicitly configured and operations records current terms, completeness/
+retention policy, polling allowance, and redistribution boundaries. The Daily
+List adapter remains the lifecycle-delta path and is not substituted for this
+current security master.
 
 ### SEC Company Facts (`edgar`)
 

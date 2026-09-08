@@ -96,7 +96,7 @@ deployment_impact: new backend/worker configuration, optional provider credentia
 status: in_progress
 remaining_gaps:
   - full live matrix still requires EDGAR_USER_AGENT, ALPACA_API_KEY, ALPACA_SECRET_KEY, TRADIER_API_KEY, and MARKETDATA_APP_API_KEY; the 13 supplied-credential cases pass with non-empty provider-native assertions
-  - provider-specific incomplete contracts (FRED v1 numeric ceiling, Nasdaq Trader polling, configured FINRA OTC source, and Tiingo/FMP byte-budget reservation/enforcement) remain non-routable; Binance historical OHLCV now computes and reserves the conservative documented multi-page request weight before execution; FINRA synchronous short-interest and OTC Daily List calls now reserve the documented 3 MB maximum response against the 10 GB monthly budget and settle to observed bytes; the documentation-faithful FINRA async submit/poll/presigned-download adapter is implemented and fixture-tested but remains non-routable until unbounded async-result byte accounting is safely reserved; every registered synchronous provider adapter now reports observed HTTP request counts, response bytes, and selected rate-limit headers into the runtime telemetry context; Finnhub's observed free key is recorded at 60/min plus the documented 30/sec hard cap, but its stock-candle endpoint is not entitled and remains excluded
+  - provider-specific incomplete contracts (FRED v1 numeric ceiling, Nasdaq Trader polling, FINRA OTC source terms/polling approval, and Tiingo/FMP byte-budget reservation/enforcement) remain non-routable; Binance historical OHLCV now computes and reserves the conservative documented multi-page request weight before execution; FINRA synchronous short-interest, OTC Daily List, and the configurable OTC Security Master path now record the documented 1,200/minute/IP and 3 MB synchronous platform limits, with the credentialed datasets reserving the 3 MB maximum against the 10 GB monthly budget and settling to observed bytes; the documentation-faithful FINRA async submit/poll/presigned-download adapter is implemented and fixture-tested but remains non-routable until unbounded async-result byte accounting is safely reserved; every registered synchronous provider adapter now reports observed HTTP request counts, response bytes, and selected rate-limit headers into the runtime telemetry context; Finnhub's observed free key is recorded at 60/min plus the documented 30/sec hard cap, but its stock-candle endpoint is not entitled and remains excluded
   - complete production NMS/OTC reconciliation and the separately approved 30-day shadow run remain post-deployment gates; the NMS/SEC directory adapters and bounded keyless evidence are implemented, while FINRA OTC Daily List now supplies lifecycle deltas but OTC still needs an approved complete security-master source
 progress:
   completed:
@@ -108,7 +108,7 @@ progress:
     - OAuth-shaped FINRA client configuration and typed provider-not-configured/rate-limit failures
     - FINRA Query API dataset shape, OAuth expiry handling, documented synchronous quota contract, and credential-required entitlement
     - FINRA OTC Daily List lifecycle-event normalization with explicit delta-feed versus complete-universe boundary
-    - fail-closed configurable FINRA OTC symbol-directory pagination adapter; no default URL or quota is invented
+    - fail-closed configurable FINRA OTC symbol-directory pagination adapter with the official synchronous request/payload contract; no default source URL or unreviewed terms are invented
     - worker-only universe lifecycle observations, repeated-missing deactivation, and exchange-aware core D1 coverage
     - paid-routing switches cannot bypass blank or unreviewed provider entitlements
     - admin status exposes exact missing quota-contract dimensions, entitlement review state, and weighted/credit operation-cost readiness
@@ -128,6 +128,7 @@ progress:
     - Tiingo's documented first-of-month Eastern bandwidth reset is represented explicitly and durable reservation windows honor the America/New_York calendar boundary; Tiingo remains fail-closed until a reviewed per-operation byte reservation exists
     - FMP's operator-verified 512 MiB bandwidth pool is represented as a rolling 30-day constraint; FMP remains fail-closed until a reviewed per-operation byte reservation exists
     - provider-defined and otherwise unspecified quota reset labels use conservative rolling windows rather than invented UTC epoch buckets; explicit calendar/session resets remain provider-specific
+    - FINRA OTC Security Master now has the official synchronous 1,200-requests/minute/IP and 3 MB response contract; source URL configuration and terms/polling review remain required before routing
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: full live matrix requires the three remaining credential domains (Alpaca, Tradier, MarketData.app) plus an operator-supplied SEC User-Agent; complete NMS/OTC reconciliation and shadow activation remain post-deployment gates
