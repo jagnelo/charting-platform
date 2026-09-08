@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-08 — Expose workstation dense-row budget telemetry
+
+- [x] Add provider-neutral row-universe, mounted-window, and within/exceeded
+      10,000-row budget attributes to the virtual watchlist without truncating
+      or substituting data.
+- [x] Verify focused virtual-watchlist coverage `68/68`, frontend
+      type-check/build, and the full gate: all non-visual stages passed;
+      visual parity remains `98/104` with the same six unchanged state-oracle
+      diffs.
+- [ ] Use the telemetry in a live network-hydrated 10,000-row workstation
+      oracle; controlled component evidence remains insufficient.
+
 ### 2026-09-08 — Configurable bounded canonical history fan-out
 
 - [x] Expose the per-snapshot canonical history queue ceiling through Settings

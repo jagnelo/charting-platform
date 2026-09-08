@@ -8,6 +8,19 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-08 — Expose workstation dense-row budget telemetry
+
+Product commit `8c9af988` adds explicit `data-row-count`,
+`data-rendered-row-count`, and `data-row-budget` telemetry to the virtual
+watchlist plus a shared 10,000-row budget helper. The complete input universe
+is preserved even when the budget is exceeded; this is an observability
+contract, not a truncation or acceptance-policy change. Focused coverage passed
+`68/68`; frontend type-check/build passed. The full gate passed all non-visual
+stages (`1353` unit, `386` integration, frontend `974/974`, functional
+Playwright `165` passed with `106` documented skips); visual parity remains
+`98/104` with the same six unchanged state-oracle diffs. A live
+network-hydrated 10,000-row browser oracle is still open.
+
 ## 2026-09-08 — Configurable bounded canonical history fan-out
 
 R1 maintenance now exposes `BENCHMARK_FAMILY_MEMBER_HISTORY_MAX_INSTRUMENTS_PER_SNAPSHOT`

@@ -5,6 +5,21 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-08
 
+## 2026-09-08 — Expose workstation dense-row budget telemetry
+
+The virtual watchlist now exposes provider-neutral DOM telemetry for the
+filtered row universe (`data-row-count`), mounted virtual window
+(`data-rendered-row-count`), and the documented 10,000-row budget state. The
+state is observational only: rows are never truncated or substituted, and
+over-budget universes remain fully represented in the virtual canvas. Focused
+coverage passes `68/68`, frontend type-check/build pass, and the full
+branch-scoped gate passes all non-visual stages (`1353` unit, `386` integration,
+frontend `974/974`, functional Playwright `165` passed with `106` documented
+skips). Visual parity remains `98/104` with the same six unchanged state-oracle
+diffs; no visual or acceptance policy changed. This enables a future live
+network-hydrated workstation budget oracle but does not itself provide that
+canonical 10,000-row evidence.
+
 ## 2026-09-08 — Configurable bounded canonical history fan-out
 
 The R1 maintenance path now exposes the per-snapshot canonical member-history

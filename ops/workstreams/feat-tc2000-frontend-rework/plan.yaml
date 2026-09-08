@@ -13,6 +13,15 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Latest product slice exposes provider-neutral dense-row telemetry on virtual
+  watchlists (total filtered rows, mounted virtual rows, and within/exceeded
+  10000-row state). Focused coverage passed 68/68 and the full gate passed all
+  non-visual stages; visual parity remains 98/104 with the same six unchanged
+  state-oracle diffs. This enables but does not satisfy live network-hydrated
+  10000-row workstation evidence. Continue canonical family history/readiness,
+  live dense-data oracle, development-tool security remediation, native-window
+  and broader accessibility/security checks, and R2-R7 evidence.
+  Historical receipts below remain authoritative.
   Latest full integration gate after the bounded-history maintenance change
   passed every non-visual stage: backend 1353 unit and 386 integration tests,
   combined coverage 80.98%, frontend Vitest 974/974, build/compose/provider and
