@@ -3359,3 +3359,12 @@ deselected). The adapters returned parseable holdings and satisfied their route/
 contracts. These probes do not write repository data or establish persisted family snapshots,
 resolved member populations, or D1/W1/MN analysis-ready bars; retain the R1 population/history
 gap and do not infer completeness from route health.
+
+## 2026-09-08 — Extended workstation pop-out endurance
+
+Against a fresh branch-scoped stack, `TC2000_POP_OUT_CHURN_ROUNDS=250` completed both Chromium
+workstation performance guards (`2/2`, 3.8 minutes). Initial multi-window recovery and extended
+two-pop-out churn stayed within the existing bounds, with no source-workspace tool/canvas growth
+or convergence failure. Teardown/resource accounting was clean: zero containers, volumes, test
+sessions, and known bytes. This is browser-simulation evidence; native multi-monitor, dense-data,
+accessibility, security, logging, and other R6 gaps remain separate.

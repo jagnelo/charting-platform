@@ -2532,3 +2532,13 @@ including route/provider/date assertions and parseable holdings rows. This is cu
 evidence only; it does not persist snapshots, resolve the remaining member placeholders, or prove
 D1/W1/MN analysis floors. R1 therefore remains open for durable population, continuity, and
 member-bar history.
+
+## 2026-09-08 — Extend workstation pop-out endurance evidence
+
+The R6 workstation performance guard was rerun against a fresh branch-scoped stack with
+`TC2000_POP_OUT_CHURN_ROUNDS=250`. Both Chromium specs passed (`2/2` in 3.8 minutes): initial
+multi-window recovery stayed within the existing canvas/tool and elapsed-time bounds, and the
+extended churn completed without source-workspace growth or convergence failures. Teardown and
+resource accounting were clean (`0` containers, volumes, sessions, and known bytes). This
+strengthens browser-simulation evidence only; native multi-monitor, dense-data, accessibility,
+security, and other R6 requirements remain open.

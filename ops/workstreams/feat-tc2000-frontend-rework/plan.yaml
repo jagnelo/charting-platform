@@ -172,6 +172,11 @@ current_blocker: >-
   evidence only: no persisted snapshots, resolved member population, continuity, or D1/W1/MN
   analysis floors are claimed. Keep R1 canonical population/history open and preserve the
   visual-only boundary. Historical receipts below remain authoritative.
+  The 2026-09-08 R6 browser endurance guard ran with TC2000_POP_OUT_CHURN_ROUNDS=250; both
+  workstation performance specs passed 2/2 in 3.8 minutes, with no tool/canvas growth or
+  convergence failure, and teardown/resource accounting reported zero retained resources. This
+  does not establish native multi-monitor, dense-data, accessibility, security, or full R6
+  completion. Preserve the visual-only boundary; historical receipts below remain authoritative.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "The roadmap changes frontend workstation behavior, backend canonical provider/history contracts, authenticated browser workflows, Playwright visual assertions, worker-backed data readiness, and full integration evidence."

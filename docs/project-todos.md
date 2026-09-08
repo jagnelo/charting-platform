@@ -17687,3 +17687,11 @@ The current source also passes the focused authenticated top-down browser slice 
       provider probes with network access; all `3/3` passed with route/date/row assertions.
 - [ ] Treat this as route health evidence only. Persisted dated snapshots, unresolved member
       replacement, D1/W1/MN bar floors, and continuity across rebalance dates remain open.
+
+### 2026-09-08 — Extend workstation pop-out endurance evidence
+
+- [x] Rerun `workstation_performance.spec.ts` with `TC2000_POP_OUT_CHURN_ROUNDS=250`; both
+      Chromium guards passed `2/2` in 3.8 minutes with no tool/canvas growth or convergence
+      failure. Stack teardown and resource audit reported zero retained resources.
+- [ ] Native multi-monitor behavior, dense-data budgets, accessibility/security, and remaining
+      R6 evidence are still open; browser simulation does not substitute for native proof.
