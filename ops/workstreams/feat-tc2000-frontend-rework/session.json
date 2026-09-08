@@ -51,7 +51,9 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ps/workstreams/feat-tc2000-frontend-rework/session.json"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -110,11 +112,11 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "148c41b53c64543a3e9d13e5536d00d45f4e73d2",
+  "head": "39645f8b8cbf0f45109518e542033dc9d8508e0a",
   "implementation_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
   "interrupted": false,
-  "last_checkpoint": "2026-09-08T11:34:18.232563+00:00",
-  "last_human_progress_update": "2026-09-08T11:32:15.816765+00:00",
+  "last_checkpoint": "2026-09-08T12:01:42.476996+00:00",
+  "last_human_progress_update": "2026-09-08T12:01:40.129866+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue canonical provider/history population or the next compatible Study target slice with focused regression coverage, then rerun the exact-tip exhaustive gate at the new coherent tip; preserve visual policy and provider fallback rules.",
   "plan_hash": "8bdb58e487c6847f27cba46516e398027e8758b8859c6e8162e74c605274115a",
@@ -127,11 +129,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "The US-ISIN foreign-listing guard and bounded live Nasdaq history slice are green. Family-wide canonical enrichment still has 115 placeholder rows, W1/MN remain unavailable, and rebalance continuity plus R2-R7 evidence are open; the full gate preserves the six known visual diffs.",
+    "current_blocker": "The refined foreign-listing guard preserves stable-identifier collapse and passes the exact full gate. Family-wide canonical enrichment still has placeholder rows, W1/MN remain unavailable, and rebalance continuity plus R2-R7 evidence remain open; six known visual state diffs are unchanged.",
     "current_phase": "R1_canonical_provider_history_readiness",
     "next_action": "Continue bounded family/history enrichment and rebalance continuity checks, then proceed through remaining R2-R7 evidence slices without changing provider, fallback, visual, or acceptance policy.",
     "total": 10,
-    "updated_at": "2026-09-08T11:32:15.816638+00:00"
+    "updated_at": "2026-09-08T12:01:40.129742+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
