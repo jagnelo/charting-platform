@@ -22,6 +22,7 @@ _FILES = {"nasdaqlisted": f"{_BASE}/nasdaqlisted.txt", "otherlisted": f"{_BASE}/
 _PAGE_SIZE = 1000
 _CACHE_TTL_SECONDS = 900
 _cache: tuple[float, list[dict[str, Any]]] | None = None
+_file_cache: dict[str, tuple[list[dict[str, Any]], dict[str, str]]] = {}
 
 
 class NasdaqProvider:
@@ -53,14 +54,34 @@ def _directory_rows() -> list[dict[str, Any]]:
         return list(_cache[1])
     rows: list[dict[str, Any]] = []
     for source_name, url in _FILES.items():
+        cached_file = _file_cache.get(source_name)
+        request_headers = {"User-Agent": settings.NASDAQ_USER_AGENT}
+        if cached_file:
+            validators = cached_file[1]
+            if validators.get("etag"):
+                request_headers["If-None-Match"] = validators["etag"]
+            if validators.get("last-modified"):
+                request_headers["If-Modified-Since"] = validators["last-modified"]
         response = httpx.get(
             url,
-            headers={"User-Agent": settings.NASDAQ_USER_AGENT},
+            headers=request_headers,
             timeout=30,
         )
         observe_response(response)
+        if response.status_code == 304:
+            if cached_file is None:
+                raise RuntimeError(f"Nasdaq returned 304 without a local {source_name} cache")
+            rows.extend(cached_file[0])
+            continue
         response.raise_for_status()
-        rows.extend(_parse_file(source_name, response.text))
+        parsed = _parse_file(source_name, response.text)
+        rows.extend(parsed)
+        response_headers = {
+            str(key).lower(): str(value)
+            for key, value in response.headers.items()
+            if str(key).lower() in {"etag", "last-modified"}
+        }
+        _file_cache[source_name] = (parsed, response_headers)
     _cache = (now, rows)
     return list(rows)
 

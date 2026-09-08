@@ -71,6 +71,11 @@ The adapter excludes test issues, retains Nasdaq Financial Status Indicators
 (including deficient or bankrupt-but-listed issues), and uses repeated complete
 absence plus separate lifecycle evidence before marking a listing inactive.
 See the [official symbol-directory definitions](https://nasdaqtrader.com/Trader.aspx?id=SymbolDirDefs).
+The adapter also sends `If-None-Match` and `If-Modified-Since` on subsequent
+polls when Nasdaq returns `ETag` or `Last-Modified`, reusing the cached parsed
+file on a `304 Not Modified`. This reduces repeated downloads without
+inventing a numeric polling allowance; quota admission remains disabled until
+Nasdaq publishes a reviewed contract.
 
 The FRED adapter uses the v1 endpoint. Its [v1 errors documentation](https://fred.stlouisfed.org/docs/api/fred/errors.html)
 confirms 429 throttling but does not publish a fixed number; the v2 page's
