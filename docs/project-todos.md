@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-08 — Bounded canonical Nasdaq-100 member-history queue
+
+- [x] Verify unresolved QQQ rows are excluded from history fan-out, then
+      promote two rows and queue 27 canonical members with 74 unresolved rows
+      excluded.
+- [x] Persist adjusted D1 history for 23/27 queued members: 45,199 bars and
+      every covered member above the 252-bar floor (minimum 613).
+- [ ] Resolve the remaining QQQ placeholders and hydrate W1/MN history;
+      provider exhaustion leaves `history_ready=false` and no continuity claim.
+
 ### 2026-09-08 — Bounded eight-family canonical enrichment pass
 
 - [x] Exercise all eight configured family refresh paths and select nine dated

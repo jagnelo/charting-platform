@@ -8,6 +8,17 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-08 — Bounded canonical Nasdaq-100 member-history queue
+
+On a fresh stack, the first QQQ snapshot had `101` unresolved rows and the
+canonical-only planner queued zero members. After two bounded classifications,
+`27` canonical members were queued and `74` unresolved/placeholders excluded.
+The worker produced adjusted D1 bars for `23/27` members (`45,199` bars); all
+covered members exceeded the `252`-bar floor (minimum `613`), with newest data
+bounded at `2025-12-31`. W1/MN provider requests exhausted without usable data,
+so `history_ready=false` and family continuity/readiness remain open. Cleanup
+removed all branch-scoped resources.
+
 ## 2026-09-08 — Bounded eight-family canonical enrichment pass
 
 The fresh branch-scoped stack exercised all eight configured family refresh

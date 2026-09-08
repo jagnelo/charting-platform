@@ -15,6 +15,18 @@ which are not being applied without compatibility work and a full gate rerun.
 This is an explicit R6 remediation item; production runtime security is clean,
 but the branch is not claiming a vulnerability-free development toolchain.
 
+## 2026-09-08 — Bounded canonical Nasdaq-100 member-history queue
+
+The fresh stack first confirmed that a QQQ snapshot containing `101` unresolved
+rows queues zero history jobs. After the bounded classifier promoted two rows,
+the canonical-only planner selected and queued `27` members while excluding `74`
+unresolved/placeholders. Worker completion produced adjusted D1 bars for `23/27`
+members (`45,199` bars); every covered member exceeded the `252`-bar floor
+(minimum `613` bars), and the newest timestamp was bounded at
+`2025-12-31`. W1/MN requests exhausted the configured provider chain with no
+usable data, so `history_ready=false` and no continuity or complete-family
+readiness is claimed. Cleanup removed all branch-scoped resources.
+
 ## 2026-09-08 — Bounded eight-family canonical enrichment pass
 
 The fresh branch-scoped stack exercised all eight configured benchmark-family

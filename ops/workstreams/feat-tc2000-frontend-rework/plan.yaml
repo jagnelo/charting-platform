@@ -13,6 +13,14 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Latest bounded canonical Nasdaq-100 history queue excluded 74 unresolved
+  QQQ placeholders, queued 27 canonical members after two classifications, and
+  produced adjusted D1 bars for 23/27 members (45199 bars; minimum 613, newest
+  2025-12-31). W1/MN provider requests exhausted without usable data, so
+  history_ready=false and family continuity/readiness remain open. Continue
+  placeholder enrichment, W1/MN hydration, canonical continuity/floors,
+  native-window/accessibility/security, dense-data, visual review, and R2-R7
+  evidence. Historical receipts below remain authoritative.
   Latest bounded eight-family enrichment exercised all configured refresh paths;
   nine dated snapshots across eight profiles were selected, 181 records were
   enriched with zero failures, and 4144 remain pending. The fresh-stack
