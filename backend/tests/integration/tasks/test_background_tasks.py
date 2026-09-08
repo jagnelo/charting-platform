@@ -380,6 +380,9 @@ class TestBenchmarkFamilyHistoryBackfill:
         redis = Redis()
         monkeypatch.setattr(settings, "BENCHMARK_FAMILY_MEMBER_HISTORY_BACKFILL_ENABLED", True)
         monkeypatch.setattr(settings, "BENCHMARK_FAMILY_MEMBER_HISTORY_BACKFILL_MAX_SNAPSHOTS", 8)
+        monkeypatch.setattr(
+            settings, "BENCHMARK_FAMILY_MEMBER_HISTORY_MAX_INSTRUMENTS_PER_SNAPSHOT", 7
+        )
         with patch(
             "app.database.AsyncSessionLocal",
             return_value=AsyncSessionContext(db),

@@ -64,6 +64,10 @@ class Settings(BaseSettings):
     BENCHMARK_FAMILY_HOLDINGS_REFRESH_LOOKBACK_DATES: int = 1
     BENCHMARK_FAMILY_MEMBER_HISTORY_BACKFILL_ENABLED: bool = False
     BENCHMARK_FAMILY_MEMBER_HISTORY_BACKFILL_MAX_SNAPSHOTS: int = 512
+    # Bound canonical member-history fan-out per snapshot. A large default
+    # preserves the existing ceiling, while deployments can lower it to keep
+    # scheduled maintenance predictable under provider/rate-limit budgets.
+    BENCHMARK_FAMILY_MEMBER_HISTORY_MAX_INSTRUMENTS_PER_SNAPSHOT: int = 5000
     # A fresh deployment should hydrate the small immutable workstation
     # universe through the normal canonical provider services.  The worker
     # performs this asynchronously; API startup remains non-blocking.

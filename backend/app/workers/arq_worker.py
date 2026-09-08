@@ -178,6 +178,7 @@ async def task_refresh_benchmark_family_holdings_run(ctx: dict, run_id: int):
                             db,
                             ctx.get("redis"),
                             refreshed_snapshot_ids,
+                            max_instruments=settings.BENCHMARK_FAMILY_MEMBER_HISTORY_MAX_INSTRUMENTS_PER_SNAPSHOT,
                             end=history_end,
                         )
                     except Exception as exc:  # noqa: BLE001 - retain bounded queue evidence.
@@ -328,6 +329,7 @@ async def task_refresh_scheduled_benchmark_family_holdings_unit(
                 db,
                 ctx.get("redis"),
                 snapshot_ids,
+                max_instruments=settings.BENCHMARK_FAMILY_MEMBER_HISTORY_MAX_INSTRUMENTS_PER_SNAPSHOT,
                 end=history_end,
             )
         except Exception as exc:  # noqa: BLE001 - retain bounded queue failure evidence.

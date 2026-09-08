@@ -173,6 +173,7 @@ async def backfill_benchmark_family_member_history_task(ctx: dict) -> dict:
                 db,
                 redis,
                 [int(item["snapshot_id"])],
+                max_instruments=settings.BENCHMARK_FAMILY_MEMBER_HISTORY_MAX_INSTRUMENTS_PER_SNAPSHOT,
                 end=history_end_for_date(item["composition_date"]),
             )
             queued += int(summary.get("queued", 0))

@@ -8,6 +8,18 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-08 — Configurable bounded canonical history fan-out
+
+R1 maintenance now exposes `BENCHMARK_FAMILY_MEMBER_HISTORY_MAX_INSTRUMENTS_PER_SNAPSHOT`
+through Settings/Compose (default `5000`) and passes it from both scheduled
+refresh and persisted-snapshot backfill into the canonical history queue.
+Focused unit/worker and real-Postgres regressions passed. The full integration
+gate passed every non-visual stage (backend `1353` unit + `386` integration,
+frontend `974/974`, functional Playwright `165` passed with `106` documented
+skips); visual parity remains `98/104` with the same six unchanged state-oracle
+diffs. No visual/acceptance policy changed. Continue canonical family
+history/readiness, development-tool security remediation, and R2-R7 evidence.
+
 ## 2026-09-08 — Bounded canonical Nasdaq-100 member-history queue
 
 On a fresh stack, the first QQQ snapshot had `101` unresolved rows and the

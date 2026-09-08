@@ -5,6 +5,20 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-08
 
+## 2026-09-08 — Configurable bounded canonical history fan-out
+
+The R1 maintenance path now exposes the per-snapshot canonical member-history
+queue ceiling as `BENCHMARK_FAMILY_MEMBER_HISTORY_MAX_INSTRUMENTS_PER_SNAPSHOT`
+through Settings and Compose (default `5000`). Scheduled refresh and persisted-
+snapshot backfill both pass the bound to the canonical queue; focused unit,
+worker, and real-Postgres integration regressions pass. The full integration
+gate passed all non-visual stages (backend `1353` unit + `386` integration,
+combined coverage `80.98%`, frontend Vitest `974/974`, build/compose/provider and
+runner probes, functional Playwright `165` passed with `106` documented skips).
+Visual parity remains `98/104` with the same six unchanged state-oracle diffs;
+no visual or acceptance policy was changed. Canonical family history/readiness,
+development-tool vulnerability remediation, and R2-R7 evidence remain open.
+
 ## 2026-09-08 — Frontend dependency security audit
 
 The authoritative npm audit found zero vulnerabilities in the `68` production

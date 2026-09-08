@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-08 — Configurable bounded canonical history fan-out
+
+- [x] Expose the per-snapshot canonical history queue ceiling through Settings
+      and Compose, and pass it through scheduled refresh and persisted-snapshot
+      backfill (default `5000`).
+- [x] Verify focused unit, worker, and real-Postgres integration coverage, then
+      rerun the full gate: all non-visual stages passed; visual parity remains
+      `98/104` with the same six unchanged state-oracle diffs.
+- [ ] Continue canonical family history/readiness and R2-R7 evidence; do not
+      treat the configurable bound as history hydration or readiness.
+
 ### 2026-09-08 — Bounded canonical Nasdaq-100 member-history queue
 
 - [x] Verify unresolved QQQ rows are excluded from history fan-out, then

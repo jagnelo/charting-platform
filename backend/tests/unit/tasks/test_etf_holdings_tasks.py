@@ -188,7 +188,8 @@ def test_benchmark_family_member_history_backfill_queues_existing_snapshots(monk
             ],
         }
 
-    async def fake_queue(_db, _redis, snapshot_ids, *, end):
+    async def fake_queue(_db, _redis, snapshot_ids, *, max_instruments, end):
+        assert max_instruments == 5000
         queued.append((snapshot_ids[0], end.isoformat()))
         return {
             "queued": 2,

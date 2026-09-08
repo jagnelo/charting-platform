@@ -186,7 +186,8 @@ async def test_scheduled_family_unit_refreshes_one_family_and_queues_history(mon
             "legs": [{"status": "refreshed", "snapshot_id": 12}],
         }
 
-    async def fake_queue(_db, redis, snapshot_ids, *, end):
+    async def fake_queue(_db, redis, snapshot_ids, *, max_instruments, end):
+        assert max_instruments == 5000
         assert session.commits == 1
         queue_calls.append((redis, snapshot_ids, end))
         return {"status": "queued", "queued": 4, "already_queued": 0}
@@ -437,7 +438,8 @@ async def test_family_holdings_refresh_worker_handoffs_refreshed_snapshots_to_me
             "legs": [{"role": "cap_weight", "status": "refreshed", "snapshot_id": 101}],
         }
 
-    async def fake_queue(_db, redis, snapshot_ids, *, end):
+    async def fake_queue(_db, redis, snapshot_ids, *, max_instruments, end):
+        assert max_instruments == 5000
         assert session.commits == 2
         queue_calls.append((redis, snapshot_ids, end))
         return {"status": "queued", "queued": 3, "already_queued": 1}

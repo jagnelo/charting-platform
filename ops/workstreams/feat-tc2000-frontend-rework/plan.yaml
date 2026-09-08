@@ -13,6 +13,18 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Latest full integration gate after the bounded-history maintenance change
+  passed every non-visual stage: backend 1353 unit and 386 integration tests,
+  combined coverage 80.98%, frontend Vitest 974/974, build/compose/provider and
+  runner probes, and functional Playwright 165 passed with 106 documented
+  skips across 271. Visual parity remains 98/104 with the same six unchanged
+  state-oracle diffs (column editor at 1080p 100/125; floating workspace at
+  1080p 100/125 and 1440p 100/125). No visual or acceptance policy changed.
+  The queue bound is now configurable through Settings/Compose and is passed
+  through scheduled refresh and persisted-snapshot backfill. Continue
+  canonical family history/readiness, development-tool security remediation,
+  native-window/accessibility/security, dense-data, and R2-R7 evidence.
+  Historical receipts below remain authoritative.
   Latest bounded canonical Nasdaq-100 history queue excluded 74 unresolved
   QQQ placeholders, queued 27 canonical members after two classifications, and
   produced adjusted D1 bars for 23/27 members (45199 bars; minimum 613, newest
