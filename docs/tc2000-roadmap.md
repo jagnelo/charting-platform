@@ -5,6 +5,17 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-08
 
+## 2026-09-08 — Seeded authenticated top-down/source workflow slice
+
+The seeded branch-scoped browser run passed `11/11` targeted flows in `44.1s`:
+coverage and top-down watchlists (including scoped failure), locked/personal
+Market Map handoff, family constituent drill-down and all-eight-family source
+matrix, breadth loading/error semantics, role-aware family ratios, and three
+recursive Python breadth contracts (series, tree, and comparison). This is
+deterministic fixture-backed evidence; canonical live-provider traversal and
+history remain separate R1/R2 gates. No critical browser diagnostics were
+reported.
+
 ## 2026-09-08 — Bounded S&P MidCap 400 canonical enrichment
 
 The isolated stack refreshed all three mapped SP400 legs for the requested

@@ -26,6 +26,15 @@
 - [ ] Continue enrichment and populate D1/W1/MN member history; no readiness
       is inferred from partial classification.
 
+### 2026-09-08 — Seeded authenticated top-down/source workflow slice
+
+- [x] Run the targeted seeded browser slice: coverage/watchlists, locked and
+      personal Market Map handoff, family drill-down/source matrix, breadth
+      loading/error and ratios, and recursive Python breadth comparisons passed
+      `11/11` in `44.1s` with no critical diagnostics.
+- [ ] Repeat the top-down journey against canonical provider-backed data and
+      preserve synchronized history/source-readiness evidence.
+
 ### 2026-09-08 — Bounded Russell 1000 canonical enrichment
 
 - [x] Run bounded enrichment across the three Russell 1000 dated snapshots:

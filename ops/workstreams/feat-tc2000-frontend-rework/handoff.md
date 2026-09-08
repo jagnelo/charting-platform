@@ -8,6 +8,15 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-08 — Seeded authenticated top-down/source workflow slice
+
+The seeded browser run passed `11/11` targeted flows in `44.1s`: coverage and
+top-down watchlists (including scoped failure), locked/personal Market Map
+handoff, family drill-down and all-eight-family source identity, breadth
+loading/error and role-aware ratios, and recursive Python breadth contracts.
+No critical browser diagnostics were reported. This is fixture-backed
+evidence; canonical provider-backed traversal and history remain open.
+
 ## 2026-09-08 — Bounded S&P MidCap 400 canonical enrichment
 
 The isolated stack refreshed MDY/MDYV/MDYG for requested `2025-12-31` with
