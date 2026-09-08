@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.models.data_source import DataSource
+from app.models.market_data_foundation import ProviderQuotaWindow
 from app.models.provider_runtime import ProviderRequestLog
 from app.services.provider_runtime import seed_provider_runtime
 
@@ -111,11 +112,52 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
         .scalars()
         .all()
     )
+    quota_windows = (
+        (
+            await db.execute(
+                select(ProviderQuotaWindow)
+                .where(
+                    ProviderQuotaWindow.window_started_at <= now,
+                    ProviderQuotaWindow.window_started_at >= now - timedelta(days=400),
+                )
+                .order_by(ProviderQuotaWindow.data_source_id, ProviderQuotaWindow.dimension)
+            )
+        )
+        .scalars()
+        .all()
+    )
 
     logs_by_source: dict[int, list[ProviderRequestLog]] = defaultdict(list)
     for log in logs:
         if log.data_source_id is not None:
             logs_by_source[log.data_source_id].append(log)
+
+    active_windows_by_source: dict[int, list[dict[str, Any]]] = defaultdict(list)
+    for window in quota_windows:
+        started_at = _ensure_aware(window.window_started_at)
+        if started_at is None:
+            continue
+        window_seconds = max(1, int(window.window_seconds or 1))
+        ends_at = started_at + timedelta(seconds=window_seconds)
+        if ends_at <= now:
+            continue
+        active_windows_by_source[window.data_source_id].append(
+            {
+                "dimension": window.dimension,
+                "window_started_at": started_at,
+                "window_ends_at": ends_at,
+                "window_seconds": window_seconds,
+                "limit_units": int(window.limit_units),
+                "reserved_units": int(window.reserved_units),
+                "consumed_units": int(window.consumed_units),
+                "available_units": max(
+                    0,
+                    int(window.limit_units)
+                    - int(window.reserved_units)
+                    - int(window.consumed_units),
+                ),
+            }
+        )
 
     hourly_starts = _iter_buckets(
         (now - timedelta(hours=23)).replace(minute=0, second=0, microsecond=0),
@@ -291,6 +333,10 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
                 "last_response_headers": dict(provider_logs[-1].response_headers or {})
                 if provider_logs
                 else {},
+                "active_quota_windows": sorted(
+                    active_windows_by_source.get(data_source.id, []),
+                    key=lambda row: (row["dimension"], row["window_started_at"]),
+                ),
                 "last_success_at": max(
                     (
                         _ensure_aware(log.completed_at)

@@ -6,6 +6,7 @@ from decimal import Decimal
 import pytest
 
 from app.models.data_source import DataSource
+from app.models.market_data_foundation import ProviderQuotaWindow
 from app.models.provider_runtime import ProviderCapability, ProviderRequestLog
 from app.services.provider_usage import summarize_provider_usage
 from tests.unit.conftest import AsyncSessionAdapter
@@ -64,6 +65,18 @@ async def test_summarize_provider_usage_tracks_plain_request_counts(db):
             ),
         ]
     )
+    db.add(
+        ProviderQuotaWindow(
+            data_source_id=source.id,
+            capability=ProviderCapability.INSTRUMENT_SEARCH,
+            dimension="requests_per_hour",
+            window_started_at=now - timedelta(minutes=10),
+            window_seconds=3600,
+            limit_units=100,
+            reserved_units=3,
+            consumed_units=20,
+        )
+    )
     db.commit()
 
     rows = await summarize_provider_usage(async_db)
@@ -79,6 +92,8 @@ async def test_summarize_provider_usage_tracks_plain_request_counts(db):
     assert summary["timeout_rate_24h"] == pytest.approx(50.0)
     assert summary["top_operations"][0]["operation_family"] == "search_instruments"
     assert summary["last_response_headers"] == {"x-ratelimit-remaining": "17"}
+    assert summary["active_quota_windows"][0]["available_units"] == 77
+    assert summary["active_quota_windows"][0]["reserved_units"] == 3
 
 
 @pytest.mark.asyncio

@@ -92,7 +92,8 @@ yet be accounted safely. Every registered synchronous adapter now reports
 observed HTTP request counts, response bytes, and selected provider headers
 into the runtime context; that telemetry is durable in
 `provider_request_log`, and the provider usage endpoint exposes the latest
-filtered header snapshot for operator inspection. Byte ceilings and dynamic
+filtered header snapshot plus active durable quota-window reservations for
+operator inspection. Byte ceilings and dynamic
 response-header/account
 budgets are not yet reserved or enforced in quota windows, so Tiingo and FMP
 remain non-routable. FINRA's synchronous short-interest and OTC Daily List

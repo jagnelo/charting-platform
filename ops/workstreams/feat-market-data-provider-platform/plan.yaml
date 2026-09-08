@@ -121,7 +121,7 @@ progress:
     - final combined backend unit and PostgreSQL/Redis integration validation
     - savepoint-safe durable quota-window creation under concurrent workers, with full seeded Compose/browser validation
     - complete direct-transport instrumentation across registered synchronous adapters so durable request logs do not undercount calls, response bytes, or provider headers
-    - provider usage diagnostics expose the latest filtered provider-header snapshot alongside durable request, unit, and byte aggregates
+    - provider usage diagnostics expose the latest filtered provider-header snapshot and active durable quota-window reservations alongside request, unit, and byte aggregates
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: full live matrix requires the three remaining credential domains (Alpaca, Tradier, MarketData.app) plus an operator-supplied SEC User-Agent; complete NMS/OTC reconciliation and shadow activation remain post-deployment gates
