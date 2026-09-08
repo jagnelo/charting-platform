@@ -683,6 +683,65 @@ async def test_eastern_calendar_month_reservation_follows_tiingo_reset_boundary(
     assert after_reset[0].window_started_at == datetime(2026, 10, 1, 4, tzinfo=UTC)
 
 
+@pytest.mark.asyncio
+async def test_rolling_thirty_day_reservation_expires_at_exact_fmp_boundary(db):
+    async_db = AsyncSessionAdapter(db)
+    source = DataSource(name="rolling-thirty-day-provider", is_active=True)
+    db.add(source)
+    db.flush()
+    policy = ProviderPolicy(
+        data_source_id=source.id,
+        capability=ProviderCapability.PRICE_HISTORY,
+        quota_scope="api_key",
+        quota_contract={
+            "reset": "provider_defined",
+            "dimensions": [
+                {
+                    "name": "bandwidth_bytes_per_30_days",
+                    "limit": 1,
+                    "window_seconds": 2_592_000,
+                    "unit": "bytes",
+                    "scope": "api_key",
+                    "source": "operator_account_dashboard_2026-09-07",
+                    "reset": "rolling_30_days",
+                }
+            ],
+        },
+    )
+    resolved = ResolvedProvider(
+        provider_name="rolling-thirty-day-provider",
+        provider=object(),
+        data_source=source,
+        policy=policy,
+        health=None,  # type: ignore[arg-type]
+    )
+    start = datetime(2026, 9, 1, 12, 0, tzinfo=UTC)
+    first = await reserve_provider_contract(
+        async_db,
+        resolved=resolved,
+        capability=ProviderCapability.PRICE_HISTORY.value,
+        units=1,
+        now=start,
+    )
+    still_active = await reserve_provider_contract(
+        async_db,
+        resolved=resolved,
+        capability=ProviderCapability.PRICE_HISTORY.value,
+        units=1,
+        now=start + timedelta(seconds=2_592_000 - 1),
+    )
+    expired = await reserve_provider_contract(
+        async_db,
+        resolved=resolved,
+        capability=ProviderCapability.PRICE_HISTORY.value,
+        units=1,
+        now=start + timedelta(seconds=2_592_000 + 1),
+    )
+    assert first is not None
+    assert still_active is None
+    assert expired is not None
+
+
 def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
     finnhub = settings.PROVIDER_RATE_LIMIT_SEEDS["finnhub"]["quota_contract"]
     assert {item["limit"] for item in finnhub["dimensions"]} == {30, 60}
@@ -698,6 +757,7 @@ def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
     assert tiingo["untracked_constraints"][0]["limit"] == 1024**3
     assert fmp["dimensions"][0]["limit"] == 250
     assert fmp["untracked_constraints"][0]["limit"] == 512 * 1024**2
+    assert fmp["untracked_constraints"][0]["window_seconds"] == 2_592_000
     assert fmp["untracked_constraints"][0]["reset"] == "rolling_30_days"
 
 

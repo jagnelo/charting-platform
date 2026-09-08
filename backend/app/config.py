@@ -578,6 +578,7 @@ class Settings(BaseSettings):
                         "unit": "bytes",
                         "scope": "api_key",
                         "source": "operator_account_dashboard_2026-09-07",
+                        "window_seconds": 2_592_000,
                         "reset": "rolling_30_days",
                     }
                 ],
