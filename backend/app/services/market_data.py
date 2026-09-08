@@ -677,7 +677,7 @@ async def fetch_ohlcv(
         if timeframe in (Timeframe.W1, Timeframe.MN):
             materialized = await _materialize_derived_for_read(db, instrument, timeframe, adjusted)
             if materialized:
-                cached = [bar for bar in materialized if start <= bar.ts <= end]
+                cached = [bar for bar in materialized if start <= _as_utc(bar.ts) <= end]
         cached.sort(key=lambda b: b.ts)
         return cached
 
@@ -749,6 +749,15 @@ async def fetch_ohlcv(
             ]
             if not cached:
                 raise provider_gap
+
+    # Provider-enabled coarse reads must observe the same canonical merge as
+    # local-only reads. A provider may return only a subset of W1/MN periods;
+    # persisted adjusted D1 evidence fills the remaining periods while
+    # preserving provider precedence for overlapping calendar periods.
+    if timeframe in (Timeframe.W1, Timeframe.MN):
+        materialized = await _materialize_derived_for_read(db, instrument, timeframe, adjusted)
+        if materialized:
+            cached = [bar for bar in materialized if start <= _as_utc(bar.ts) <= end]
 
     cached.sort(key=lambda b: b.ts)
     return cached
@@ -1014,6 +1023,12 @@ async def fetch_ohlcv_latest(
                 await db.rollback()
                 logger.error(f"Failed to save refreshed bars: {e}")
 
+    if timeframe in (Timeframe.W1, Timeframe.MN):
+        materialized = await _materialize_derived_for_read(db, instrument, timeframe, adjusted)
+        if materialized:
+            rows = materialized[-limit:] if len(materialized) > limit else materialized
+            rows.sort(key=lambda b: b.ts)
+
     return rows
 
 
@@ -1090,7 +1105,7 @@ async def fetch_ohlcv_page_before(
         if timeframe in (Timeframe.W1, Timeframe.MN):
             materialized = await _materialize_derived_for_read(db, instrument, timeframe, adjusted)
             if materialized:
-                rows = [row for row in materialized if row.ts < before][-limit:]
+                rows = [row for row in materialized if _as_utc(row.ts) < before][-limit:]
         rows.sort(key=lambda b: b.ts)
         return rows
 
@@ -1129,8 +1144,13 @@ async def fetch_ohlcv_page_before(
             rows = [
                 row
                 for row in await _materialize_derived_for_read(db, instrument, timeframe, adjusted)
-                if row.ts < before
+                if _as_utc(row.ts) < before
             ][-limit:]
+
+    if timeframe in (Timeframe.W1, Timeframe.MN):
+        materialized = await _materialize_derived_for_read(db, instrument, timeframe, adjusted)
+        if materialized:
+            rows = [row for row in materialized if _as_utc(row.ts) < before][-limit:]
 
     rows.sort(key=lambda b: b.ts)
     return rows

@@ -1,5 +1,8 @@
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from types import SimpleNamespace
+
+import pytest
 
 from app.models.ohlcv import TIMEFRAME_SECONDS, Timeframe
 from app.services.market_data import (
@@ -7,6 +10,9 @@ from app.services.market_data import (
     _is_positive_repair_slice,
     _is_recoverable_provider_gap,
     _needs_fetch_for_range,
+    fetch_ohlcv,
+    fetch_ohlcv_latest,
+    fetch_ohlcv_page_before,
 )
 from app.services.ohlcv_coverage import (
     CoverageStatus,
@@ -14,6 +20,7 @@ from app.services.ohlcv_coverage import (
     missing_range_slices,
 )
 from app.services.provider_runtime import ProviderNoDataError
+from tests.unit.conftest import AsyncSessionAdapter
 
 
 def test_historical_repair_start_is_bounded_to_the_missing_tail():
@@ -139,3 +146,116 @@ def test_coverage_planner_reports_cold_range_and_bounded_slice():
     assert assessment.status is CoverageStatus.MISSING
     assert assessment.missing_slices == ((start, end),)
     assert assessment.bar_count == 0
+
+
+def _provider_coarse_bar(instrument_id: int, ts: datetime):
+    from app.models.ohlcv import OHLCVBar
+
+    return OHLCVBar(
+        instrument_id=instrument_id,
+        timeframe=Timeframe.W1,
+        ts=ts,
+        open=Decimal("999"),
+        high=Decimal("1001"),
+        low=Decimal("998"),
+        close=Decimal("1000"),
+        volume=Decimal("1"),
+        is_adjusted=True,
+        is_derived=False,
+    )
+
+
+@pytest.mark.asyncio
+async def test_provider_enabled_range_merges_partial_coarse_rows_with_derived_history(
+    db, instrument, ohlcv_bars, monkeypatch
+):
+    from app.models.ohlcv import OHLCVBar
+
+    provider_ts = datetime(2024, 1, 1, tzinfo=UTC)
+    db.add(_provider_coarse_bar(instrument.id, provider_ts))
+    db.flush()
+    monkeypatch.setattr(
+        "app.services.market_data._needs_fetch_for_range", lambda *_args, **_kwargs: False
+    )
+
+    rows = await fetch_ohlcv(
+        AsyncSessionAdapter(db),
+        instrument,
+        Timeframe.W1,
+        provider_ts,
+        datetime(2024, 1, 31, tzinfo=UTC),
+        allow_provider_fetch=True,
+    )
+
+    assert any(row.is_derived is False and row.close == Decimal("1000") for row in rows)
+    assert any(row.is_derived is True for row in rows)
+    assert (
+        db.query(OHLCVBar)
+        .filter(
+            OHLCVBar.instrument_id == instrument.id,
+            OHLCVBar.timeframe == Timeframe.W1,
+            OHLCVBar.is_derived.is_(True),
+        )
+        .count()
+        > 0
+    )
+
+
+@pytest.mark.asyncio
+async def test_provider_enabled_latest_merges_partial_coarse_rows_with_derived_history(
+    db, instrument, ohlcv_bars, monkeypatch
+):
+    provider_ts = datetime(2024, 1, 1, tzinfo=UTC)
+    db.add(_provider_coarse_bar(instrument.id, provider_ts))
+    db.flush()
+
+    async def _no_provider_data(*_args, **_kwargs):
+        raise ProviderNoDataError("coarse provider unavailable")
+
+    monkeypatch.setattr("app.services.market_data._fetch_provider", _no_provider_data)
+    monkeypatch.setattr("app.services.market_data._needs_fetch", lambda *_args: False)
+
+    async def _repair_start(*_args):
+        return provider_ts - timedelta(days=7)
+
+    monkeypatch.setattr("app.services.market_data._latest_window_start", _repair_start)
+
+    rows = await fetch_ohlcv_latest(
+        AsyncSessionAdapter(db),
+        instrument,
+        Timeframe.W1,
+        500,
+        allow_provider_fetch=True,
+    )
+
+    assert any(row.is_derived is False and row.close == Decimal("1000") for row in rows)
+    assert any(row.is_derived is True for row in rows)
+    assert rows == sorted(rows, key=lambda row: row.ts)
+
+
+@pytest.mark.asyncio
+async def test_provider_enabled_historical_page_merges_partial_coarse_rows_with_derived_history(
+    db, instrument, ohlcv_bars, monkeypatch
+):
+    provider_ts = datetime(2024, 1, 1, tzinfo=UTC)
+    db.add(_provider_coarse_bar(instrument.id, provider_ts))
+    db.flush()
+
+    async def _no_provider_data(*_args, **_kwargs):
+        raise ProviderNoDataError("coarse provider unavailable")
+
+    monkeypatch.setattr("app.services.market_data._fetch_provider", _no_provider_data)
+
+    rows = await fetch_ohlcv_page_before(
+        AsyncSessionAdapter(db),
+        instrument,
+        Timeframe.W1,
+        datetime(2024, 6, 1, tzinfo=UTC),
+        500,
+        allow_provider_fetch=True,
+    )
+
+    assert any(row.is_derived is False and row.close == Decimal("1000") for row in rows)
+    assert any(row.is_derived is True for row in rows)
+    assert all(row.ts.replace(tzinfo=UTC) < datetime(2024, 6, 1, tzinfo=UTC) for row in rows)
+    assert rows == sorted(rows, key=lambda row: row.ts)
