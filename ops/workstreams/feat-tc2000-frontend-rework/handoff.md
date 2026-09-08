@@ -8,6 +8,16 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-09 — Mixed-timeframe queue reproduction remains healthy
+
+Four concurrent seeded canonical jobs (`AAPL`, `SPY`, `QQQ`, `NVDA`) completed
+MN/W1/D1 requests; their expected coarser-timeframe no-data outcomes did not
+prevent D1 history. A fresh XLK mixed job likewise returned MN/W1 coverage
+errors and persisted 2,344 D1 bars through 2025-12-31. The earlier empty family
+queue therefore remains specific to its canonical member set, symbol
+provenance, or transient provider conditions, with no evidence for a provider
+policy change.
+
 ## 2026-09-09 — Canonical Nasdaq ARQ worker path confirmed
 
 An actual queued `task_bulk_fetch_instrument` job for canonical NVDA (`D1`,

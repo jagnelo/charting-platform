@@ -5,6 +5,17 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-08
 
+## 2026-09-09 — Mixed-timeframe queue reproduction remains healthy
+
+Four concurrent canonical seeded ARQ jobs (`AAPL`, `SPY`, `QQQ`, `NVDA`) ran
+`MN/W1/D1` with a dated end and all completed. Expected MN/W1 no-data errors
+fell through to the configured chain while D1 remained available; a fresh XLK
+mixed-timeframe job returned the same MN/W1 coverage errors and persisted
+`2,344` D1 bars. This rules out the mixed-timeframe circuit path as the cause
+of the earlier empty family queue. The remaining investigation is specific to
+the actual canonical snapshot member set, symbol provenance, or transient
+provider conditions; no provider policy change is justified.
+
 ## 2026-09-09 — Canonical Nasdaq ARQ worker path confirmed
 
 The same fresh seeded stack was used to enqueue one bounded `task_bulk_fetch_instrument`

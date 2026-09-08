@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-09 — Mixed-timeframe queue reproduction remains healthy
+
+- [x] Run four concurrent canonical seeded ARQ jobs across MN/W1/D1; all
+      completed and retained D1 availability despite expected coarser-TF gaps.
+- [x] Run a fresh XLK MN/W1/D1 job; MN/W1 reported coverage errors while D1
+      persisted 2,344 bars through 2025-12-31.
+- [ ] Reproduce the earlier empty result with the exact canonical snapshot
+      member set and inspect per-member symbol provenance/transient provider
+      conditions before considering any runtime change.
+
 ### 2026-09-09 — Canonical Nasdaq ARQ worker path confirmed
 
 - [x] Enqueue one bounded canonical NVDA `task_bulk_fetch_instrument` D1 job;
