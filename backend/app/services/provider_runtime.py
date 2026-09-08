@@ -287,6 +287,36 @@ def _consumed_dimension_costs(
     return consumed
 
 
+def _observed_dimension_totals(policy: ProviderPolicy, measurement: Any) -> dict[str, int]:
+    """Translate provider-native cumulative credit headers into safe totals.
+
+    Twelve Data returns the current credit usage and remaining credits after
+    each request. We only apply the observation when ``used + left`` exactly
+    matches the documented minute-window limit; otherwise the header is kept
+    as telemetry but cannot safely alter quota accounting.
+    """
+
+    headers = {
+        str(key).lower(): str(value)
+        for key, value in (getattr(measurement, "response_headers", {}) or {}).items()
+    }
+    try:
+        used = int(headers["api-credits-used"])
+        left = int(headers["api-credits-left"])
+    except (KeyError, TypeError, ValueError):
+        return {}
+    if used < 0 or left < 0:
+        return {}
+    totals: dict[str, int] = {}
+    for dimension in quota_dimensions(policy):
+        unit = str(dimension.get("unit") or "").lower()
+        if unit not in {"credit", "credits"} or int(dimension["window_seconds"]) != 60:
+            continue
+        if used + left == int(dimension["limit"]):
+            totals[str(dimension["name"])] = min(used, int(dimension["limit"]))
+    return totals
+
+
 def provider_contract_operation_cost_known(
     policy: ProviderPolicy,
     data_source: DataSource,
@@ -704,6 +734,7 @@ def _capacity_response_headers(headers: dict[str, str] | None) -> dict[str, str]
         return {}
     allowed = {
         "retry-after",
+        "api-credits-request",
         "api-credits-used",
         "api-credits-left",
         "x-ratelimit-limit",
@@ -1252,6 +1283,9 @@ async def execute_provider_call(
                 reserved_dimension_units=dimension_units,
                 consumed_dimension_units=_consumed_dimension_costs(
                     resolved.policy, measurement, dimension_units
+                ),
+                observed_dimension_totals=_observed_dimension_totals(
+                    resolved.policy, measurement
                 ),
             )
             if instrument_id is not None:

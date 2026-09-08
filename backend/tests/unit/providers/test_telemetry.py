@@ -38,6 +38,7 @@ def test_transport_measurement_records_provider_specific_usage_headers():
     response.headers = {
         "api-credits-used": "3",
         "api-credits-left": "5",
+        "Api-Credits-Request": "1",
         "X-Ratelimit-Available": "117",
         "X-Ratelimit-Expiry": "1700000000",
         "X-Bapi-Limit": "50",
@@ -54,6 +55,7 @@ def test_transport_measurement_records_provider_specific_usage_headers():
     assert measurement.response_headers == {
         "api-credits-used": "3",
         "api-credits-left": "5",
+        "api-credits-request": "1",
         "x-ratelimit-available": "117",
         "x-ratelimit-expiry": "1700000000",
         "x-bapi-limit": "50",

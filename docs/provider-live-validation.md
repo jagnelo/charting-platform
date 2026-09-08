@@ -74,7 +74,7 @@ RUN_LIVE_PROVIDER_TESTS=1 rtk uv run --project backend pytest \
 
 The backend deterministic gates pass on the current corrective revision:
 
-- unit suite: `1371 passed`
+- unit suite: `1372 passed`
 - Docker-backed integration suite: `370 passed`
 - focused capacity/quota/runtime/provider-support tests: `17 passed`; capacity-admin plus provider API integration: `8 passed`
 - migration compatibility: passed against the previous release head
@@ -93,10 +93,12 @@ observed HTTP request counts, response bytes, and selected provider headers
 into the runtime context; that telemetry is durable in
 `provider_request_log`, and the provider usage endpoint exposes the latest
 filtered header snapshot plus active durable quota-window reservations for
-operator inspection. Byte ceilings and dynamic
-response-header/account
-budgets are not yet reserved or enforced in quota windows, so Tiingo and FMP
-remain non-routable. FINRA's synchronous short-interest and OTC Daily List
+operator inspection. Twelve Data's cumulative
+`api-credits-used`/`api-credits-left` headers are reconciled into its minute
+window only when they exactly match the reviewed plan limit; stale observations
+cannot reduce local consumption. Other byte ceilings and dynamic
+response-header/account budgets are not yet reserved or enforced in quota
+windows, so Tiingo and FMP remain non-routable. FINRA's synchronous short-interest and OTC Daily List
 calls reserve the documented 3 MB maximum response against the 10 GB monthly
 credential budget and settle to measured bytes; its asynchronous
 submit/poll/presigned-download path is implemented as a documentation-faithful

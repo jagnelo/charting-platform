@@ -17,6 +17,7 @@ _OBSERVED_HEADERS = (
     "content-length",
     "retry-after",
     # Twelve Data exposes credit-pool state with these provider-native names.
+    "api-credits-request",
     "api-credits-used",
     "api-credits-left",
     # Tradier exposes a token-window snapshot with these headers.

@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 
 import httpx
 import pytest
@@ -16,6 +17,7 @@ from app.services.provider_routing import (
 from app.services.provider_runtime import (
     ProviderRateLimitError,
     ResolvedProvider,
+    _observed_dimension_totals,
     policy_has_known_quota,
     provider_contract_operation_cost_known,
     provider_contract_operation_costs_configured,
@@ -484,6 +486,35 @@ def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
         "rolling",
         "calendar_day_gmt",
     ]
+
+
+def test_twelve_data_cumulative_credit_headers_update_only_matching_minute_window():
+    policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.PRICE_HISTORY,
+        quota_contract={
+            "reset": "fixed_minute",
+            "dimensions": [
+                {
+                    "name": "credits_per_minute",
+                    "limit": 8,
+                    "window_seconds": 60,
+                    "unit": "credits",
+                    "scope": "api_key",
+                    "source": "https://support.twelvedata.com/en/articles/5713553-control-over-usage",
+                }
+            ]
+        },
+    )
+    measurement = SimpleNamespace(
+        response_headers={"Api-Credits-Used": "3", "api-credits-left": "5"}
+    )
+    assert _observed_dimension_totals(policy, measurement) == {"credits_per_minute": 3}
+
+    mismatched = SimpleNamespace(
+        response_headers={"api-credits-used": "3", "api-credits-left": "4"}
+    )
+    assert _observed_dimension_totals(policy, mismatched) == {}
 
 
 @pytest.mark.asyncio

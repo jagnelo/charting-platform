@@ -55,7 +55,10 @@ async def test_execute_provider_call_persists_transport_measurement(db, monkeypa
         config={
             "usage_tracking": {
                 "operation_costs": {"get_current_price": 1},
-                "dimension_costs": {"response_bytes": {"get_current_price": 100}},
+                "dimension_costs": {
+                    "response_bytes": {"get_current_price": 100},
+                    "credits_per_minute": {"get_current_price": 1},
+                },
             }
         },
     )
@@ -86,6 +89,14 @@ async def test_execute_provider_call_persists_transport_measurement(db, monkeypa
                     "unit": "bytes",
                     "scope": "api_key",
                     "source": "unit-test contract",
+                },
+                {
+                    "name": "credits_per_minute",
+                    "limit": 8,
+                    "window_seconds": 60,
+                    "unit": "credits",
+                    "scope": "api_key",
+                    "source": "https://support.twelvedata.com/en/articles/5713553-control-over-usage",
                 },
             ],
             "dimension_costs_required": True,
@@ -122,7 +133,14 @@ async def test_execute_provider_call_persists_transport_measurement(db, monkeypa
         response = type(
             "Response",
             (),
-            {"content": b"measured-response", "headers": {"x-ratelimit-remaining": "9"}},
+            {
+                "content": b"measured-response",
+                "headers": {
+                    "x-ratelimit-remaining": "9",
+                    "api-credits-used": "3",
+                    "api-credits-left": "5",
+                },
+            },
         )()
         observe_response(response)
         return 123.45
@@ -136,13 +154,18 @@ async def test_execute_provider_call_persists_transport_measurement(db, monkeypa
     row = db.execute(select(ProviderRequestLog)).scalar_one()
     assert row.http_requests == 1
     assert row.response_bytes == len(b"measured-response")
-    assert row.response_headers == {"x-ratelimit-remaining": "9"}
+    assert row.response_headers == {
+        "x-ratelimit-remaining": "9",
+        "api-credits-used": "3",
+        "api-credits-left": "5",
+    }
     windows = {
         item.dimension: item
         for item in db.execute(select(ProviderQuotaWindow)).scalars().all()
     }
     assert windows["requests_per_minute"].consumed_units == 1
     assert windows["response_bytes"].consumed_units == len(b"measured-response")
+    assert windows["credits_per_minute"].consumed_units == 3
     assert all(item.reserved_units == 0 for item in windows.values())
 
 

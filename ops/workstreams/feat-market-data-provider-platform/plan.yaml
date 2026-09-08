@@ -124,6 +124,7 @@ progress:
     - provider usage diagnostics expose the latest filtered provider-header snapshot and active durable quota-window reservations alongside request, unit, and byte aggregates
     - capacity-event persistence retains Binance weight and Bybit V5 limit/reset headers without retaining sensitive credentials
     - FINRA asynchronous Query API submit/status/presigned-result flow with OAuth on API legs and no Authorization header on the signed download leg
+    - Twelve Data provider-native credit headers are retained and reconciled into durable minute-window consumption only when the observed used-plus-left total exactly matches the reviewed contract limit; stale observations cannot reduce local accounting
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: full live matrix requires the three remaining credential domains (Alpaca, Tradier, MarketData.app) plus an operator-supplied SEC User-Agent; complete NMS/OTC reconciliation and shadow activation remain post-deployment gates

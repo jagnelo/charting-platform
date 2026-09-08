@@ -290,6 +290,7 @@ def settle_provider_contract(
     success: bool = True,
     reserved_dimension_units: dict[str, int] | None = None,
     consumed_dimension_units: dict[str, int] | None = None,
+    observed_dimension_totals: dict[str, int] | None = None,
 ) -> None:
     """Move one runtime reservation into consumption without a separate lease."""
 
@@ -307,6 +308,12 @@ def settle_provider_contract(
         window.reserved_units = max(0, window.reserved_units - reserved)
         if success:
             window.consumed_units += consumed
+            observed_total = (observed_dimension_totals or {}).get(dimension)
+            if observed_total is not None:
+                # Provider-native usage headers may include calls made by
+                # other workers/processes. Never let a stale or malformed
+                # observation reduce locally recorded consumption.
+                window.consumed_units = max(window.consumed_units, int(observed_total))
 
 
 async def select_provider(
