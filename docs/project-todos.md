@@ -1,5 +1,12 @@
 # Project TODO Memory
 
+### 2026-09-08 — 10,000-row virtual watchlist validation
+
+- [x] Run the focused virtual-watchlist suite: `67/67` passed, including the
+      10,000-row universe and wide-column virtualization guards.
+- [ ] Obtain live network-hydrated 10,000-row browser evidence; component
+      virtualization coverage does not prove transport-scale readiness.
+
 ### 2026-09-08 — 100,000-point uPlot interaction validation
 
 - [x] Run the real-browser 100,000-point uPlot history guard; 40 zoom/pan

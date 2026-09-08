@@ -8,6 +8,13 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-08 — 10,000-row virtual watchlist validation
+
+The focused virtual-watchlist suite passed `67/67` tests, including the
+10,000-row universe and wide-column virtualization guards. This is component
+harness evidence; live network-hydrated 10,000-row browser evidence remains
+open.
+
 ## 2026-09-08 — 100,000-point uPlot interaction validation
 
 The real-browser uPlot performance oracle passed a 100,000-point history and

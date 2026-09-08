@@ -13,6 +13,12 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Latest R6 row-grid guard passed 67/67 virtual-watchlist tests, including the
+  10000-row universe and wide-column virtualization checks. This is component
+  harness evidence only; live network-hydrated 10000-row proof remains open,
+  alongside native-window, accessibility/security, visual-oracle, canonical
+  enrichment, and R2-R5 evidence. Historical receipts below remain
+  authoritative.
   Latest R6 dense-history guard passed in a real browser for 100000 uPlot points
   and 40 zoom/pan cycles inside the 2500 ms budget. This is renderer-only
   evidence; the separate 10000-row workstation budget remains open alongside

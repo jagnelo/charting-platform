@@ -5,6 +5,13 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-08
 
+## 2026-09-08 — 10,000-row virtual watchlist validation
+
+The focused virtual-watchlist suite passed `67/67` tests, including the
+10,000-row universe guard and wide-column virtualization checks. This proves
+the row-grid virtualization contract in the component harness; live 10,000-row
+network hydration remains separate evidence.
+
 ## 2026-09-08 — 100,000-point uPlot interaction validation
 
 The real-browser uPlot guard passed: a full 100,000-point history rendered and
