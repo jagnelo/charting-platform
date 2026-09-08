@@ -51,27 +51,12 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ps/workstreams/feat-tc2000-frontend-rework/session.json"
+  ],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-tc2000-frontend-rework-db4ca1c4",
-      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
-    "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -110,24 +95,24 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "6e642a360952cc7fad9b27c3cd4e85f32a1a7a58",
+  "head": "dbefacaec4cbf7bdbeac909c0b79c647d8e1b4dc",
   "implementation_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
   "interrupted": false,
   "last_checkpoint": "2026-09-08T06:37:26.747816+00:00",
-  "last_human_progress_update": "2026-09-08T06:36:29.085371+00:00",
+  "last_human_progress_update": "2026-09-08T06:41:59.597979+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue canonical provider/history population or the next compatible Study target slice with focused regression coverage, then rerun the exact-tip exhaustive gate at the new coherent tip; preserve visual policy and provider fallback rules.",
-  "plan_hash": "f6c6c6a873c0d230ec9d4f71d22c68e69e946f8ceac043347ec12dfa8cbc51da",
+  "plan_hash": "8ad49d740ee17dfb6528e66c54efc7b5eedbcaa24435f4edf1b855dbfad02758",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [],
   "progress": {
     "completed": [],
-    "current_blocker": "Latest bounded SP400 enrichment refreshed MDY/MDYV/MDYG with zero failures, enriched 113 records, and left 824 pending; MDY 76/0, MDYV 56/9, MDYG 47/9 classified/placeholder. No D1/W1/MN bars are present. Focused authenticated keyboard/accessibility slice passed 5/5 in 9.5s with no critical diagnostics. Continue bounded enrichment/history, native-window and broader accessibility/security, dense live-data, visual review, and R2-R5 evidence.",
-    "current_phase": "R1_canonical_enrichment_history",
-    "next_action": "Continue bounded canonical enrichment/history on another persisted family or close a focused R6 gap; record evidence and keep branch-owned receipts current.",
+    "current_blocker": "Latest seeded authenticated top-down/source slice passed 11/11 in 44.1s with no critical diagnostics, covering family/source matrix, Market Map handoff, watchlists, breadth loading/error/ratios, and recursive Python breadth. It remains fixture-backed; canonical provider-backed traversal/history, remaining R1 enrichment, native-window and broader accessibility/security, dense-data, and visual evidence stay open.",
+    "current_phase": "R2_top_down_browser_evidence",
+    "next_action": "Continue canonical provider-backed family history/enrichment and then expand R6 native/security/dense-data evidence; keep exact-tip gate and six visual diffs unchanged.",
     "total": 10,
-    "updated_at": "2026-09-08T06:36:29.084841+00:00"
+    "updated_at": "2026-09-08T06:41:59.597291+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
