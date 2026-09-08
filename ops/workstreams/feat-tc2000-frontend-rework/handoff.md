@@ -3860,3 +3860,13 @@ failed. The queue selected exactly 32 canonical members from 401 resolved rows a
 through 2025-12-31; W1/MN returned no usable data. Worker configuration and clean teardown were
 verified. This narrows R1's worker-handoff gap but does not claim full-family readiness,
 placeholder disposition, rebalance continuity, or R2–R7 completion.
+
+## 2026-09-08 — Bounded eight-family ARQ handoff
+
+All eight dated family units were run serially with the worker cap set to eight canonical members
+per snapshot. The real path refreshed 20 mapped roles, marked 12 roles explicitly unavailable
+for lack of verified proxies, and recorded zero failed roles. Bounded selections totaled 56 member
+slots with idempotent overlap reuse. After the handoff no active ARQ queue key remained; aggregate
+coverage across the refreshed snapshots was 44 instruments / 94,540 adjusted D1 bars through
+2025-12-31, while W1/MN remained unavailable. This is bounded R1 evidence only; full population,
+placeholder/rebalance disposition, W1/MN floors, and R2–R7 completion remain open.

@@ -3127,3 +3127,18 @@ This is the first bounded real worker handoff receipt for a non-Nasdaq family, n
 readiness: placeholder disposition, full-family population, W1/MN floors, rebalance continuity,
 and R2–R7 evidence remain open. The earlier uncapped attempt was interrupted and discarded as
 non-qualifying evidence; no provider, fallback, credential, visual, or acceptance policy changed.
+
+## 2026-09-08 — Bounded eight-family ARQ handoff
+
+All eight configured family/date units were then run serially for `2025-12-31` with the worker
+cap fixed at `8` canonical members per snapshot. The real ARQ path refreshed `20` mapped roles,
+reported `12` roles explicitly unavailable because no verified proxy is configured, and reported
+`0` failed roles. Every bounded selection stayed at or below eight members: the run selected `56`
+member slots in total, with idempotent reuse for overlapping canonical instruments. After the
+handoff, no active ARQ queue key remained; aggregate local coverage across the refreshed snapshots
+was `44` instruments / `94,540` adjusted D1 bars through `2025-12-31`. W1/MN remained at zero.
+
+This strengthens bounded family/provider evidence but is not full R1 readiness: the selected
+history is intentionally capped, placeholder and rebalance disposition remain incomplete, W1/MN
+floors are unavailable, and canonical top-down/R2–R7 evidence remains open. No provider,
+fallback, credential, visual, or acceptance policy changed.

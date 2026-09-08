@@ -18156,3 +18156,14 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Continue full-family canonical population, placeholder disposition, W1/MN floors, dated
       rebalance continuity, and the remaining R2–R7 evidence. The prior uncapped probe was
       interrupted and is not treated as a receipt; no provider/fallback/acceptance policy changed.
+
+### 2026-09-08 — Bounded eight-family ARQ handoff
+
+- [x] Ran all eight configured dated family units serially with the worker cap fixed at `8`:
+      `20` mapped roles refreshed, `12` explicitly unavailable roles, and `0` failed roles.
+- [x] Bounded selections totaled `56` member slots with idempotent overlap reuse; no active ARQ
+      queue key remained after the handoff. Aggregate refreshed-snapshot coverage reached
+      `44` instruments / `94,540` adjusted D1 bars through `2025-12-31`; W1/MN remained zero.
+- [ ] Continue uncapped-but-governed population, placeholder disposition, dated rebalance
+      continuity, W1/MN floors, and the remaining R2–R7 evidence. No provider/fallback/
+      acceptance policy changed.
