@@ -62,6 +62,7 @@ async def reconcile_etf_holdings_classifications_task(ctx: dict) -> dict:
             db,
             max_profiles=settings.ETF_HOLDINGS_CLASSIFICATION_MAX_PROFILES,
             max_enrichments_per_profile=settings.ETF_HOLDINGS_CLASSIFICATION_MAX_ENRICHMENTS_PER_PROFILE,
+            max_snapshots_per_profile=settings.ETF_HOLDINGS_CLASSIFICATION_MAX_SNAPSHOTS_PER_PROFILE,
         )
         await db.commit()
         return summary

@@ -642,8 +642,16 @@ async def reconcile_all_etf_holdings_classifications(
     *,
     max_profiles: int = 50,
     max_enrichments_per_profile: int = 32,
+    max_snapshots_per_profile: int = 4,
 ) -> dict:
-    """Resume missing free-source constituent classifications in bounded batches."""
+    """Resume missing free-source constituent enrichment in bounded batches.
+
+    Maintenance must eventually cover dated canonical snapshots as well as the
+    latest one.  Keep the work bounded in both dimensions: a run visits at
+    most ``max_profiles`` ETF profiles, at most ``max_snapshots_per_profile``
+    snapshots per profile, and at most ``max_enrichments_per_profile`` rows per
+    profile.  Controlled/e2e fixtures remain excluded.
+    """
 
     profiles = (
         (
@@ -657,11 +665,12 @@ async def reconcile_all_etf_holdings_classifications(
         .all()
     )
     processed = enriched = remaining = failed = 0
+    snapshots_selected = snapshots_processed = snapshots_skipped = 0
     candidate_profiles = 0
     for profile in profiles:
         if profile.instrument is None:
             continue
-        snapshot = (
+        snapshots = (
             await db.execute(
                 select(ETFHoldingsSnapshot)
                 .options(
@@ -679,84 +688,112 @@ async def reconcile_all_etf_holdings_classifications(
                     ETFHoldingsSnapshot.known_at.desc().nullslast(),
                     ETFHoldingsSnapshot.id.desc(),
                 )
-                .limit(1)
+                .limit(max(0, max_snapshots_per_profile))
             )
-        ).scalar_one_or_none()
-        if snapshot is None:
+        ).scalars().all()
+        if not snapshots:
             continue
-        missing_before = sum(
-            1
-            for row in snapshot.rows
-            if row.constituent_instrument is not None
-            and (
-                row.constituent_instrument.equity_detail is None
+        snapshots_selected += len(snapshots)
+
+        def missing_rows(snapshot: ETFHoldingsSnapshot) -> int:
+            return sum(
+                1
+                for row in snapshot.rows
+                if row.constituent_instrument is None
+                or not row.is_resolved
+                or is_placeholder_symbol(
+                    row.constituent_instrument.symbol
+                    if row.constituent_instrument is not None
+                    else None
+                )
+                or row.constituent_instrument.equity_detail is None
                 or not (
                     row.constituent_instrument.equity_detail.industry
                     or row.constituent_instrument.equity_detail.sector
                 )
             )
-        )
-        if missing_before == 0:
+
+        if not any(missing_rows(snapshot) for snapshot in snapshots):
             continue
         if candidate_profiles >= max(0, max_profiles):
             break
         candidate_profiles += 1
-        before = sum(
-            1
-            for row in snapshot.rows
-            if row.constituent_instrument is not None
-            and row.constituent_instrument.equity_detail is not None
-            and (
-                row.constituent_instrument.equity_detail.industry
-                or row.constituent_instrument.equity_detail.sector
-            )
-        )
-        try:
-            await reconcile_snapshot_constituents(
-                db,
-                snapshot,
-                max_classification_enrichment=max_enrichments_per_profile,
-            )
-        except Exception as exc:  # noqa: BLE001 - isolate one profile's maintenance failure.
-            failed += 1
-            await _record_failure(db, profile, exc)
-            await db.flush()
-            continue
-        # Re-load the rows after reconciliation. Assigning a new instrument
-        # foreign key does not guarantee that an already-eager-loaded
-        # relationship exposes the newly created profile/detail in every
-        # SQLAlchemy session mode. Counting the refreshed rows keeps the
-        # maintenance receipt truthful for both identifier promotion and
-        # classification enrichment.
-        refreshed_rows = (
-            await db.execute(
-                select(
-                    ETFHolding.constituent_instrument_id,
-                    Instrument.symbol,
-                    EquityDetail.industry,
-                    EquityDetail.sector,
+        profile_budget = max(0, max_enrichments_per_profile)
+        for snapshot in snapshots:
+            missing_before = missing_rows(snapshot)
+            if missing_before == 0:
+                continue
+            if profile_budget == 0:
+                snapshots_skipped += 1
+                remaining += missing_before
+                continue
+            before = sum(
+                1
+                for row in snapshot.rows
+                if row.constituent_instrument is not None
+                and not is_placeholder_symbol(row.constituent_instrument.symbol)
+                and row.constituent_instrument.equity_detail is not None
+                and (
+                    row.constituent_instrument.equity_detail.industry
+                    or row.constituent_instrument.equity_detail.sector
                 )
-                .outerjoin(Instrument, Instrument.id == ETFHolding.constituent_instrument_id)
-                .outerjoin(EquityDetail, EquityDetail.instrument_id == Instrument.id)
-                .where(ETFHolding.snapshot_id == snapshot.id)
             )
-        ).all()
-        after = sum(
-            1
-            for row in refreshed_rows
-            if row[0] is not None and not is_placeholder_symbol(row[1]) and (row[2] or row[3])
-        )
-        processed += 1
-        enriched += max(0, after - before)
-        remaining += sum(
-            1
-            for row in refreshed_rows
-            if row[0] is None or is_placeholder_symbol(row[1]) or not (row[2] or row[3])
-        )
+            # Pass the remaining configured cap through to the snapshot
+            # reconciler. It applies the cap to individual resolver attempts;
+            # decrement the profile budget by the number of rows that could
+            # have consumed it, keeping the bound across dated snapshots.
+            attempt_limit = profile_budget
+            try:
+                await reconcile_snapshot_constituents(
+                    db,
+                    snapshot,
+                    max_classification_enrichment=attempt_limit,
+                )
+            except Exception as exc:  # noqa: BLE001 - isolate one profile's maintenance failure.
+                failed += 1
+                await _record_failure(db, profile, exc)
+                await db.flush()
+                continue
+            profile_budget -= min(profile_budget, missing_before)
+            snapshots_processed += 1
+            processed += 1
+            # Re-load the rows after reconciliation. Assigning a new instrument
+            # foreign key does not guarantee that an already-eager-loaded
+            # relationship exposes the newly created profile/detail in every
+            # SQLAlchemy session mode. Counting the refreshed rows keeps the
+            # maintenance receipt truthful for both identifier promotion and
+            # classification enrichment.
+            refreshed_rows = (
+                await db.execute(
+                    select(
+                        ETFHolding.constituent_instrument_id,
+                        Instrument.symbol,
+                        EquityDetail.industry,
+                        EquityDetail.sector,
+                    )
+                    .outerjoin(Instrument, Instrument.id == ETFHolding.constituent_instrument_id)
+                    .outerjoin(EquityDetail, EquityDetail.instrument_id == Instrument.id)
+                    .where(ETFHolding.snapshot_id == snapshot.id)
+                )
+            ).all()
+            after = sum(
+                1
+                for row in refreshed_rows
+                if row[0] is not None and not is_placeholder_symbol(row[1]) and (row[2] or row[3])
+            )
+            enriched += max(0, after - before)
+            remaining += sum(
+                1
+                for row in refreshed_rows
+                if row[0] is None or is_placeholder_symbol(row[1]) or not (row[2] or row[3])
+            )
     await db.flush()
     return {
         "profiles": candidate_profiles,
         "processed": processed,
+        "snapshots_selected": snapshots_selected,
+        "snapshots_processed": snapshots_processed,
+        "snapshots_skipped": snapshots_skipped,
         "enriched": enriched,
         "remaining": remaining,
         "failed": failed,

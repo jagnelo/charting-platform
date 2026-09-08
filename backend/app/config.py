@@ -55,6 +55,7 @@ class Settings(BaseSettings):
     ETF_HOLDINGS_CLASSIFICATION_REFRESH_ENABLED: bool = False
     ETF_HOLDINGS_CLASSIFICATION_MAX_PROFILES: int = 50
     ETF_HOLDINGS_CLASSIFICATION_MAX_ENRICHMENTS_PER_PROFILE: int = 32
+    ETF_HOLDINGS_CLASSIFICATION_MAX_SNAPSHOTS_PER_PROFILE: int = 4
     ETF_HOLDINGS_SEC_BACKFILL_ENABLED: bool = False
     # Bounded dated family maintenance is opt-in. It refreshes completed
     # month-end candidates through the existing provider adapters and queues

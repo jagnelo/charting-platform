@@ -1409,6 +1409,67 @@ async def test_classification_maintenance_is_bounded_per_profile(db, monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_classification_maintenance_visits_bounded_historical_snapshots(db, monkeypatch):
+    """Canonical dated snapshots are not left permanently unresolved behind latest-only work."""
+
+    async_db = AsyncSessionAdapter(db)
+    etf = await ensure_lightweight_etf_instrument(
+        async_db, symbol="QQQ", name="Invesco QQQ Trust"
+    )
+    await ensure_etf_profile(async_db, etf, issuer="Invesco")
+    snapshots = []
+    for composition_date in (date(2026, 8, 31), date(2026, 6, 30)):
+        snapshots.append(
+            await ingest_holdings_snapshot(
+                async_db,
+                etf_instrument=etf,
+                rows=[
+                    CanonicalHoldingRow(
+                        symbol=None,
+                        name="Historical Maintenance Security",
+                        isin=f"US00000000{composition_date.month:02d}",
+                        weight=Decimal("0.10"),
+                        holding_type="equity",
+                        row_type="security",
+                    )
+                ],
+                composition_date=composition_date,
+                provenance="sec_nport",
+                source_provider="sec",
+                allow_provider_enrichment=False,
+            )
+        )
+    db.flush()
+
+    calls = []
+
+    async def fake_reconcile(db_arg, snapshot_arg, *, max_classification_enrichment):
+        calls.append((db_arg, snapshot_arg.id, max_classification_enrichment))
+        return snapshot_arg
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.reconcile_snapshot_constituents",
+        fake_reconcile,
+    )
+
+    summary = await reconcile_all_etf_holdings_classifications(
+        async_db,
+        max_profiles=1,
+        max_enrichments_per_profile=7,
+        max_snapshots_per_profile=2,
+    )
+
+    assert summary["profiles"] == 1
+    assert summary["snapshots_selected"] == 2
+    assert summary["snapshots_processed"] == 2
+    assert summary["snapshots_skipped"] == 0
+    assert calls == [
+        (async_db, snapshots[0].id, 7),
+        (async_db, snapshots[1].id, 6),
+    ]
+
+
+@pytest.mark.asyncio
 async def test_classification_maintenance_reports_name_search_promotions(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     monkeypatch.setattr("app.services.etf_holdings.settings.APP_ENV", "test")

@@ -1398,28 +1398,22 @@ async def reconcile_snapshot_constituents(
     resolved = 0
     unresolved = 0
     source_provider = snapshot.source_provider or ETF_HOLDINGS_INTERNAL_PROVIDER
-    classification_attempts = 0
+    enrichment_attempts = 0
 
     for row in snapshot.rows:
         row.cusip = _normalize_holding_identifier_value(row.cusip)
         row.isin = _normalize_holding_identifier_value(row.isin)
         row.sedol = _normalize_holding_identifier_value(row.sedol)
         needs_reconcile = _holding_needs_reconcile(row)
-        missing_classification = bool(
-            row.constituent_instrument is not None
-            and (
-                row.constituent_instrument.equity_detail is None
-                or not row.constituent_instrument.equity_detail.industry
-            )
-        )
-        if missing_classification and classification_attempts >= max_classification_enrichment:
+        if needs_reconcile and enrichment_attempts >= max_classification_enrichment:
             # Keep this snapshot usable and honest. A later scheduled pass can
             # continue the bounded enrichment without making an interactive
-            # bootstrap fan out across hundreds of SEC submissions.
+            # bootstrap fan out across hundreds of SEC submissions. The cap
+            # applies to every resolver attempt, including rows whose source
+            # did not expose a constituent instrument at all.
             needs_reconcile = False
         if needs_reconcile:
-            if missing_classification:
-                classification_attempts += 1
+            enrichment_attempts += 1
             instrument, confidence, note = await _resolve_or_create_constituent(
                 db,
                 _holding_to_canonical_row(row),
