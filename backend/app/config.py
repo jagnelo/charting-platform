@@ -817,7 +817,11 @@ class Settings(BaseSettings):
             "configured_plan": "free-api-key",
             "is_free": True,
             "authentication_required": True,
-            "usage_terms": "Free FRED API key subject to published rate limits.",
+            "usage_terms": (
+                "FRED API terms permit the provider to change bandwidth/transaction limits; "
+                "third-party series copyrights and redistribution restrictions remain the "
+                "operator's responsibility, and the required non-endorsement notice applies."
+            ),
             "history_depth": "Series-dependent macro history",
             "venue_coverage": "FRED series",
             "freshness_semantics": "Series publication/update time",

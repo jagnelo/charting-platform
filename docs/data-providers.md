@@ -79,7 +79,12 @@ Nasdaq publishes a reviewed contract.
 
 The FRED adapter uses the v1 endpoint. Its [v1 errors documentation](https://fred.stlouisfed.org/docs/api/fred/errors.html)
 confirms 429 throttling but does not publish a fixed number; the v2 page's
-two-requests-per-second example is therefore not applied to this adapter.
+two-requests-per-second example is therefore not applied to this adapter. The
+[FRED API terms](https://fred.stlouisfed.org/docs/api/terms_of_use.html) also
+allow the provider to change bandwidth/transaction limits, place
+series-specific copyright restrictions on third-party data, and require a
+non-endorsement notice. FRED remains non-routable until the deployed v1 quota
+contract and downstream usage/redistribution policy are explicitly reviewed.
 Marketstack's [pricing page](https://marketstack.com/pricing) publishes the
 free 100-request/month plan; its [FAQ](https://marketstack.com/faq) contains a
 conflicting 1,000-request sentence, so the runtime records the lower 100 limit
