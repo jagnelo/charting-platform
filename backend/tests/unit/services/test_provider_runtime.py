@@ -21,6 +21,7 @@ from app.providers.telemetry import observe_response
 from app.services.provider_runtime import (
     ResolvedProvider,
     TokenBucket,
+    _capacity_response_headers,
     _get_bucket,
     _get_semaphore,
     execute_provider_call,
@@ -28,6 +29,21 @@ from app.services.provider_runtime import (
     seed_provider_runtime,
 )
 from tests.unit.conftest import AsyncSessionAdapter
+
+
+def test_capacity_response_headers_retain_provider_native_usage_state_only():
+    assert _capacity_response_headers(
+        {
+            "X-Bapi-Limit": "50",
+            "X-Bapi-Limit-Status": "49",
+            "X-Bapi-Limit-Reset-Timestamp": "1700000000000",
+            "Authorization": "secret",
+        }
+    ) == {
+        "x-bapi-limit": "50",
+        "x-bapi-limit-status": "49",
+        "x-bapi-limit-reset-timestamp": "1700000000000",
+    }
 
 
 @pytest.mark.asyncio
