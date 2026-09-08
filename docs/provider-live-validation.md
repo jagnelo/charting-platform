@@ -77,7 +77,7 @@ The backend deterministic gates pass on the current corrective revision:
 - unit suite: `1384 passed`
 - Docker-backed integration suite: `371 passed` on the current branch; the
   isolated testcontainer resources were cleaned after the run
-- combined unit + Docker-backed coverage gate: `1756 passed`, `80.11%` line
+- combined unit + Docker-backed coverage gate: `1758 passed`, `80.11%` line
   coverage, above the repository `75%` threshold
 - focused capacity/quota/runtime/provider-support tests: `17 passed`; capacity-admin plus provider API integration: `8 passed`
 - migration compatibility: passed against the previous release head
