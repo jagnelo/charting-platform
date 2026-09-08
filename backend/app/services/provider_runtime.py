@@ -291,9 +291,11 @@ def _observed_dimension_totals(policy: ProviderPolicy, measurement: Any) -> dict
     """Translate provider-native cumulative credit headers into safe totals.
 
     Twelve Data returns the current credit usage and remaining credits after
-    each request. We only apply the observation when ``used + left`` exactly
-    matches the documented minute-window limit; otherwise the header is kept
-    as telemetry but cannot safely alter quota accounting.
+    each request. Tradier returns an allowed/used/available token-window
+    snapshot, and Binance returns cumulative one-minute request weight. Each
+    observation is restricted to its provider-specific contract shape; a
+    header that does not prove the configured limit is kept as telemetry but
+    cannot safely alter quota accounting.
     """
 
     headers = {
@@ -304,16 +306,46 @@ def _observed_dimension_totals(policy: ProviderPolicy, measurement: Any) -> dict
         used = int(headers["api-credits-used"])
         left = int(headers["api-credits-left"])
     except (KeyError, TypeError, ValueError):
-        return {}
-    if used < 0 or left < 0:
-        return {}
+        used = left = None
+    if used is not None and (used < 0 or left is None or left < 0):
+        used = left = None
     totals: dict[str, int] = {}
     for dimension in quota_dimensions(policy):
+        name = str(dimension["name"])
+        source = str(dimension.get("source") or "").lower()
         unit = str(dimension.get("unit") or "").lower()
-        if unit not in {"credit", "credits"} or int(dimension["window_seconds"]) != 60:
+        limit = int(dimension["limit"])
+        window_seconds = int(dimension["window_seconds"])
+        if unit in {"credit", "credits"} and window_seconds == 60:
+            if used is not None and left is not None and used + left == limit:
+                totals[name] = min(used, limit)
             continue
-        if used + left == int(dimension["limit"]):
-            totals[str(dimension["name"])] = min(used, int(dimension["limit"]))
+        if (
+            unit in {"request", "requests"}
+            and window_seconds == 60
+            and "tradier.com" in source
+        ):
+            try:
+                allowed = int(headers["x-ratelimit-allowed"])
+                token_used = int(headers["x-ratelimit-used"])
+                available = int(headers["x-ratelimit-available"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            if (
+                allowed == limit
+                and token_used >= 0
+                and available >= 0
+                and token_used + available == allowed
+            ):
+                totals[name] = min(token_used, limit)
+            continue
+        if unit == "weight" and window_seconds == 60 and "binance.com" in source:
+            try:
+                weight_used = int(headers["x-mbx-used-weight-1m"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            if 0 <= weight_used <= limit:
+                totals[name] = weight_used
     return totals
 
 

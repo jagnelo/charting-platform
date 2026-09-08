@@ -517,6 +517,68 @@ def test_twelve_data_cumulative_credit_headers_update_only_matching_minute_windo
     assert _observed_dimension_totals(policy, mismatched) == {}
 
 
+def test_provider_native_tradier_and_binance_counters_require_contract_match():
+    tradier_policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.LATEST_PRICE,
+        quota_contract={
+            "reset": "rolling",
+            "dimensions": [
+                {
+                    "name": "market_data_requests_per_minute",
+                    "limit": 120,
+                    "window_seconds": 60,
+                    "unit": "requests",
+                    "scope": "production_token",
+                    "source": "https://docs.tradier.com/docs/rate-limiting",
+                }
+            ],
+        },
+    )
+    assert _observed_dimension_totals(
+        tradier_policy,
+        SimpleNamespace(
+            response_headers={
+                "x-ratelimit-allowed": "120",
+                "x-ratelimit-used": "17",
+                "x-ratelimit-available": "103",
+            }
+        ),
+    ) == {"market_data_requests_per_minute": 17}
+    assert _observed_dimension_totals(
+        tradier_policy,
+        SimpleNamespace(
+            response_headers={
+                "x-ratelimit-allowed": "60",
+                "x-ratelimit-used": "17",
+                "x-ratelimit-available": "43",
+            }
+        ),
+    ) == {}
+
+    binance_policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.LATEST_PRICE,
+        quota_contract={
+            "reset": "fixed_minute",
+            "dimensions": [
+                {
+                    "name": "request_weight_per_minute",
+                    "limit": 6000,
+                    "window_seconds": 60,
+                    "unit": "weight",
+                    "scope": "ip",
+                    "source": "https://developers.binance.com/en/docs/products/spot/rest-api",
+                }
+            ],
+        },
+    )
+    assert _observed_dimension_totals(
+        binance_policy,
+        SimpleNamespace(response_headers={"x-mbx-used-weight-1m": "42"}),
+    ) == {"request_weight_per_minute": 42}
+
+
 @pytest.mark.asyncio
 async def test_calendar_day_reservation_changes_at_utc_midnight(db):
     async_db = AsyncSessionAdapter(db)
