@@ -42,6 +42,24 @@ post-cleanup resource probe was unable to query Docker because the host daemon
 socket was permission-denied. Continue broader R1 family population,
 continuity, and D1/W1/MN member-bar evidence, then the remaining R2-R7 work.
 
+## 2026-09-08 — S&P 500 provider population and PostgreSQL identity repair
+
+Product commit `d9f95faa` fixes a PostgreSQL ordering defect in internal ISIN
+reassignment: the old instrument's unique ISIN ownership is flushed clear
+before a reconciled instrument receives that same alias. The bounded S&P 500
+`2025-12-31` refresh then completed all four mapped SEC legs with zero
+failures—SPY `503/503`, RSP `507/507` (latest available `2025-10-31`), SPYV
+`446/446`, and SPYG `142/142` resolved rows. Placeholder-member promotion and
+D1/W1/MN history remain separate enrichment/data gates.
+
+The exact-tip gate at `d9f95faa` passed backend `1353` unit and `386`
+integration tests, coverage `80.98%`, frontend Vitest `974/974`, build,
+compose/provider policy, stack/runner probes, and functional Playwright `165`
+passed with `106` documented skips across `271`. Visual parity remains
+`98/104` with the same six state-oracle diffs; no visual or acceptance policy
+changed. Cleanup removed all branch-scoped resources. Continue canonical
+placeholder enrichment, family continuity, and D1/W1/MN member-bar floors.
+
 ## 2026-09-08 — Seeded member-bar floor probe
 
 An isolated stack with market-data fixtures enabled confirmed the remaining

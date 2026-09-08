@@ -14,6 +14,19 @@
       explicit, and the disposable stack had no D1/W1/MN bars because market
       data seeding was disabled.
 
+### 2026-09-08 — S&P 500 provider population and PostgreSQL identity repair
+
+- [x] Fix PostgreSQL-safe internal ISIN reassignment by releasing old unique
+      ownership before assigning the alias to the reconciled instrument
+      (`d9f95faa`); focused regression passed.
+- [x] Persist four SEC-reconstructed S&P 500 legs with zero refresh failures:
+      SPY `503/503`, RSP `507/507`, SPYV `446/446`, SPYG `142/142`.
+- [x] Exact-tip gate passed `1353` unit / `386` integration, coverage
+      `80.98%`, Vitest `974/974`, and Playwright `165/271` with `106` skips;
+      visual remains `98/104` with the six known state-oracle diffs.
+- [ ] Enrich placeholder members and verify family continuity plus D1/W1/MN
+      floors; no readiness is inferred from resolved placeholder rows.
+
 ### 2026-09-08 — Seeded member-bar floor probe
 
 - [x] Market-data-seeded disposable stack confirmed controlled six-member

@@ -8,6 +8,18 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-08 — S&P 500 provider population and PostgreSQL identity repair
+
+Product commit `d9f95faa` makes internal ISIN alias reassignment safe under
+PostgreSQL's unique index by flushing old ownership before reassignment. The
+bounded S&P 500 dated refresh then persisted SEC-reconstructed rows with zero
+failures: SPY `503/503`, RSP `507/507`, SPYV `446/446`, and SPYG `142/142`
+(RSP's latest available composition was `2025-10-31`). Placeholder promotion
+and D1/W1/MN history remain open. The exact-tip gate passed `1353/386`
+backend tests, `80.98%` coverage, Vitest `974/974`, functional Playwright
+`165` passed with `106` skips, and visual `98/104` with the same six diffs.
+Cleanup removed all branch-scoped resources.
+
 ## 2026-09-08 — Seeded member-bar floor probe
 
 The market-data-seeded disposable stack contained only controlled six-member
