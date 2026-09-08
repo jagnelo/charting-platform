@@ -29,4 +29,3 @@ def downgrade() -> None:
     op.drop_column("provider_request_log", "response_headers")
     op.drop_column("provider_request_log", "response_bytes")
     op.drop_column("provider_request_log", "http_requests")
-
