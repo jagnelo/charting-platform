@@ -493,6 +493,15 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
+    The controlled 10000-row network oracle now passes 1/1 in 7.2s after
+    bounded 24-worker quote hydration; all rows hydrated and virtualized DOM
+    stayed below 100 rows. The opt-in identities are explicitly non-canonical
+    and have no provider bars, so canonical family history/readiness remains
+    open. The post-change full gate passed all non-visual stages and functional
+    Playwright 165 passed with 107 documented skips across 272; visual parity
+    remains 98/104 with the same six unchanged state-oracle diffs. Continue
+    canonical history/readiness, canonical dense-data evidence, native-window
+    and broader accessibility/security checks, and remaining R2-R7 work.
     Product commit f2dc4a78 adds Chart Plot Library to Market Gauge promotion
     through the existing reusable-condition and saved EasyScan contract.
     Focused component coverage passed 22 tests and type-check passed. The
