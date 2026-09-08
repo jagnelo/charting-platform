@@ -46,6 +46,26 @@ async def test_seed_never_invents_generic_limits_for_unverified_provider(db):
     assert not policy_has_known_quota(policy)
 
 
+@pytest.mark.asyncio
+async def test_seeded_tiingo_and_fmp_bandwidth_pools_remain_non_routable(db):
+    async_db = AsyncSessionAdapter(db)
+    await seed_provider_runtime(async_db)
+
+    for provider_name in ("tiingo", "fmp"):
+        source = db.execute(select(DataSource).where(DataSource.name == provider_name)).scalar_one()
+        policy = db.execute(
+            select(ProviderPolicy).where(
+                ProviderPolicy.data_source_id == source.id,
+                ProviderPolicy.capability == ProviderCapability.PRICE_HISTORY,
+            )
+        ).scalar_one()
+        assert not policy_has_known_quota(policy)
+        assert any(
+            item.startswith("quota_contract.untracked_constraints.bandwidth_bytes")
+            for item in quota_contract_missing_dimensions(policy)
+        )
+
+
 def test_known_request_limit_with_untracked_bandwidth_remains_non_routable():
     policy = ProviderPolicy(
         data_source_id=1,
