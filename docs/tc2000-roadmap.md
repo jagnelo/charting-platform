@@ -5,6 +5,17 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-08
 
+## 2026-09-08 — Russell 2000 provider population
+
+The bounded iShares slice persisted three Russell 2000 legs for `2025-12-31`
+with zero refresh failures: IWM `1963/1967` resolved (`1960` canonical and
+three placeholders), IWN `1422/1425` resolved (`1419` canonical and three
+placeholders), and IWO `1101/1104` resolved (`1098` canonical and three
+placeholders). Equal-weight has no verified mapped proxy and was reported
+unavailable. Mapped roles had complete weights but pending classification, no
+D1/W1/MN bars, and `history_ready=false`; no continuity or analysis floor is
+claimed. Cleanup removed all branch-scoped resources.
+
 ## 2026-09-08 — S&P Composite 1500 provider population
 
 The bounded provider slice persisted the mapped SPTM cap-weighted leg for

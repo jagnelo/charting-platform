@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-09-08 — Russell 2000 provider population
+
+- [x] Persist IWM `1963/1967`, IWN `1422/1425`, and IWO `1101/1104`
+      resolved iShares rows for `2025-12-31` with zero refresh failures.
+- [x] Keep equal-weight explicitly unavailable because no verified mapped
+      proxy exists; mapped legs retained complete weights and explicit gaps.
+- [ ] Finish the three placeholders per mapped leg, classify all canonical
+      members, and verify continuity plus D1/W1/MN floors before readiness.
+
 ### 2026-09-08 — S&P Composite 1500 provider population
 
 - [x] Persist the mapped SPTM cap-weighted leg for `2025-12-31` with zero
