@@ -71,11 +71,20 @@ def test_bybit_public_xstocks_asset_and_price():
 
 def test_gate_public_tradfi_asset_and_orderbook():
     provider = GateTradfiProvider()
-    rows = provider.discover_tokenized_assets(page=0, page_size=1)
+    # The first Gate symbol may be listed but have no active order book. Probe
+    # a small bounded page and require one quote-bearing symbol so this test
+    # proves the market-data surface rather than merely catalogue metadata.
+    rows = provider.discover_tokenized_assets(page=0, page_size=5)
     assert rows
-    _assert_asset(rows[0])
-    priced = provider.get_tokenized_price(rows[0].symbol)
-    _assert_asset(priced, require_quote=True)
+    quote_record = None
+    for row in rows:
+        _assert_asset(row)
+        priced = provider.get_tokenized_price(row.symbol)
+        _assert_asset(priced)
+        if priced and (priced.price is not None or priced.bid is not None or priced.ask is not None):
+            quote_record = priced
+            break
+    _assert_asset(quote_record, require_quote=True)
 
 
 def test_kraken_public_xstocks_asset_and_ticker():
