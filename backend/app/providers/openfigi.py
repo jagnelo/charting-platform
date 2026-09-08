@@ -7,6 +7,7 @@ import httpx
 
 from app.config import settings
 from app.providers.base import IdentifierRecord, InstrumentProfile, ListingRecord
+from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +109,7 @@ class OpenFigiProvider:
                 json=payload,
                 headers=headers,
             )
+        observe_response(response)
         if hasattr(response, "raise_for_status"):
             response.raise_for_status()
         elif getattr(response, "status_code", 200) != 200:

@@ -120,7 +120,7 @@ progress:
     - deployed ARQ worker whole-universe refresh now enqueues durable bounded jobs and processes them every 15 minutes instead of making an unbounded provider-call loop inside the daily cron
     - final combined backend unit and PostgreSQL/Redis integration validation
     - savepoint-safe durable quota-window creation under concurrent workers, with full seeded Compose/browser validation
-    - complete direct-transport instrumentation across registered synchronous adapters so durable request logs do not undercount calls, response bytes, or provider headers
+    - complete direct-transport instrumentation across registered synchronous adapters, including OpenFIGI's pooled HTTP client, so durable request logs do not undercount calls, response bytes, or provider headers
     - provider usage diagnostics expose the latest filtered provider-header snapshot and active durable quota-window reservations alongside request, unit, and byte aggregates
   total: 15
   current_phase: credentialed_live_validation

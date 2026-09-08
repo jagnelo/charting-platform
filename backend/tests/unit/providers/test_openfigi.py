@@ -2,12 +2,15 @@ from __future__ import annotations
 
 from app.providers.base import InstrumentProfile
 from app.providers.openfigi import OpenFigiProvider
+from app.providers.telemetry import activate, deactivate
 
 
 class FakeResponse:
     def __init__(self, payload, status_code: int = 200):
         self._payload = payload
         self.status_code = status_code
+        self.content = b"openfigi-payload"
+        self.headers = {"x-ratelimit-remaining": "24"}
 
     def json(self):
         return self._payload
@@ -93,3 +96,18 @@ def test_resolve_instrument_profile_uses_cusip_mapping(monkeypatch):
         record.identifier_type == "CUSIP" and record.identifier_value == "882508104"
         for record in profile.identifiers
     )
+
+
+def test_openfigi_mapping_reports_transport_usage(monkeypatch):
+    monkeypatch.setattr("app.providers.openfigi.httpx.Client", FakeClient)
+    FakeClient.next_payload = [{"data": []}]
+
+    measurement, token = activate()
+    try:
+        OpenFigiProvider().fetch_stable_identifiers("AAPL")
+    finally:
+        deactivate(token)
+
+    assert measurement.http_requests == 1
+    assert measurement.response_bytes == len(b"openfigi-payload")
+    assert measurement.response_headers == {"x-ratelimit-remaining": "24"}
