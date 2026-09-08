@@ -51,7 +51,9 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ps/workstreams/feat-tc2000-frontend-rework/session.json"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -110,24 +112,24 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "9ab50fddddd423a93037798aeb1de1aade35bda7",
+  "head": "dd59959741c4f3147b07d7b44c76daf9fea4a519",
   "implementation_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
   "interrupted": false,
   "last_checkpoint": "2026-09-08T06:57:49.587948+00:00",
-  "last_human_progress_update": "2026-09-08T06:57:05.912521+00:00",
+  "last_human_progress_update": "2026-09-08T07:09:22.974595+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue canonical provider/history population or the next compatible Study target slice with focused regression coverage, then rerun the exact-tip exhaustive gate at the new coherent tip; preserve visual policy and provider fallback rules.",
-  "plan_hash": "5b8fff3e7a745e79f7f6e08adb8a87883d116f8ec635d61671a2bf425bb14a8a",
+  "plan_hash": "e23da486b8b926cf144e49a87ca7cd5e943040303200a640a5639e7c52d5c0e4",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [],
   "progress": {
     "completed": [],
-    "current_blocker": "Russell 2000 enrichment is bounded only: 101 records enriched, 4376 pending; IWM/IWN/IWO retain three placeholders each and have no D1/W1/MN member bars. Development npm graph still has five audit findings requiring major tooling upgrades. Continue canonical enrichment/history plus R2-R7 evidence.",
+    "current_blocker": "Eight-family bounded enrichment completed with zero refresh/classification failures: 181 records enriched, 4144 pending, and the fresh-stack readiness query found zero canonical D1/W1/MN member bars. Continue canonical history hydration, continuity/floors, and remaining R2-R7 evidence; dev npm graph still has five audit findings requiring major tooling upgrades.",
     "current_phase": "R1_canonical_enrichment_history",
-    "next_action": "Continue bounded family enrichment and canonical D1/W1/MN history verification, then address R2-R7 evidence including compatibility-tested Vite/Vitest upgrade and full gate.",
+    "next_action": "Select the next bounded canonical history or compatible R2-R5 consumer slice, preserving provider/fallback policy, then rerun focused regression and the exact-tip gate after coherent product changes.",
     "total": 10,
-    "updated_at": "2026-09-08T06:57:05.912133+00:00"
+    "updated_at": "2026-09-08T07:09:22.973555+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
