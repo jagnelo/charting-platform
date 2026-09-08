@@ -970,6 +970,7 @@ async def refresh_etf_holdings_for_date(
     profile: ETFProfile,
     *,
     requested_date: date,
+    record_failure: bool = True,
 ):
     """Fetch and persist a dated issuer holdings snapshot from an explicit template route."""
 
@@ -1058,8 +1059,14 @@ async def refresh_etf_holdings_for_date(
             allow_provider_enrichment=False,
         )
     except Exception as exc:
-        await _record_failure(db, profile, exc)
-        await db.flush()
+        # A family refresh invokes this function inside a per-role savepoint.
+        # Let that savepoint roll back before mutating the adapter state; an
+        # integrity error would otherwise leave the session inside a failed
+        # transaction and replace the provider error with SQLAlchemy's
+        # misleading "closed transaction" message.
+        if record_failure:
+            await _record_failure(db, profile, exc)
+            await db.flush()
         raise
 
     await _record_success(db, profile, snapshot=snapshot)
@@ -1150,6 +1157,7 @@ async def refresh_benchmark_family_holdings_for_date(
                     db,
                     profile,
                     requested_date=requested_date,
+                    record_failure=False,
                 )
         except ETFHoldingsRouteNotReadyError as exc:
             unavailable += 1
@@ -1163,6 +1171,14 @@ async def refresh_benchmark_family_holdings_for_date(
                 }
             )
         except Exception as exc:  # noqa: BLE001 - isolate one family leg's backfill failure.
+            try:
+                await _record_failure(db, profile, exc)
+                await db.flush()
+            except Exception:  # noqa: BLE001 - preserve the provider/parser root cause.
+                # Failure telemetry is best effort after a provider/database
+                # rollback.  Never replace the original leg error with a
+                # secondary state-recording failure.
+                pass
             failed += 1
             legs.append(
                 {

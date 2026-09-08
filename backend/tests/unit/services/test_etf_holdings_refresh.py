@@ -23,7 +23,8 @@ async def test_dated_family_refresh_preserves_declared_history_route_evidence(mo
     async def fake_probe(_db, _profile):
         return SimpleNamespace(status="ready", reason=None)
 
-    async def fake_refresh(_db, _profile, *, requested_date):
+    async def fake_refresh(_db, _profile, *, requested_date, record_failure):
+        assert record_failure is False
         return SimpleNamespace(id=42, composition_date=requested_date)
 
     monkeypatch.setattr(refresh, "ensure_lightweight_etf_instrument", fake_instrument)
@@ -91,7 +92,8 @@ async def test_dated_family_refresh_isolates_role_transaction_failures(monkeypat
     async def fake_probe(_db, _profile):
         return SimpleNamespace(status="ready", reason=None)
 
-    async def fake_refresh(_db, profile, *, requested_date):
+    async def fake_refresh(_db, profile, *, requested_date, record_failure):
+        assert record_failure is False
         return SimpleNamespace(id=42, composition_date=requested_date)
 
     monkeypatch.setattr(refresh, "ensure_lightweight_etf_instrument", fake_instrument)

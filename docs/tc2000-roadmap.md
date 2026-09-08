@@ -3091,3 +3091,12 @@ coverage is `102` instruments / `220,106` bars; W1/MN remain unavailable. This i
 bounded R1 evidence, not family readiness: residual disposition, W1/MN floors,
 rebalance continuity, and remaining families/roots remain open. No visual or
 acceptance policy changed.
+
+## 2026-09-08 — Family refresh failure telemetry boundary
+
+Family refreshes now defer failure-state writes until after each role's SQLAlchemy savepoint has
+rolled back, preserving the provider/parser root exception and preventing a misleading closed-
+transaction error. Focused service/bootstrap coverage passed `17/17`; a serial rebuilt-stack run
+across all eight configured families produced `18` refreshed roles, `10` explicitly unavailable
+roles, and `0` failed roles. This is transaction-boundary evidence only: canonical population,
+placeholder disposition, D1/W1/MN floors, rebalance continuity, and R2–R7 acceptance remain open.

@@ -3804,3 +3804,30 @@ Earlier successful legs also persisted SP400 (`3` refreshed plus one unavailable
 Russell 3000 (`1` refreshed plus three unavailable roles). Remaining families must be rerun under
 the corrected boundary; R1/R2–R7 readiness is not claimed and no provider/fallback/acceptance
 policy changed.
+
+## 2026-09-08 — Preserve family-leg root failures after rollback
+
+The first per-role savepoint fix stopped one failed family leg from poisoning later roles, but
+the nested refresh still attempted to write failure telemetry while its savepoint was in a failed
+transaction state. That secondary flush could replace the useful provider/parser exception with
+`closed transaction inside context manager`. The nested dated refresh now accepts
+`record_failure=False` for family calls; the savepoint rolls back first, and the family handler
+then records failure on a best-effort basis while preserving the original exception if telemetry
+itself fails. Direct non-family callers retain the existing default telemetry behavior.
+
+Focused service/bootstrap tests passed `17/17`, Ruff passed, and `git diff --check` was clean.
+On a rebuilt seeded branch stack, a serial pass over all eight configured families completed `18`
+mapped role refreshes, reported `10` roles as explicitly unavailable (because no verified role
+proxy is configured), and reported `0` failed roles. This confirms the transaction boundary and
+does not establish complete canonical populations, placeholder disposition, D1/W1/MN floors,
+rebalance continuity, or final R1–R7 readiness. No provider, fallback, credential, visual, or
+acceptance policy changed.
+
+The exact required integration gate was also rerun. All repository, backend (`1,359` unit and
+`386` integration; `80.98%` combined coverage), frontend Vitest/build, compose/provider/runner,
+and stack-health stages passed. Functional Playwright could not launch Chromium: both F8u-boolean
+and F8x-library stopped at browser startup with macOS
+`bootstrap_check_in ... Permission denied`; the run therefore recorded `163` completed passes,
+`107` documented skips, and `2` environment-level failures, and visual parity was not reached.
+This is a host browser-launch failure, not a product assertion or visual-policy change; rerun on
+a permitted Chromium host before treating the gate as complete.

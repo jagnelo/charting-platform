@@ -18118,3 +18118,16 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Rerun the remaining families under the corrected boundary and close the broader R1 gaps:
       complete root/role population, residual disposition, W1/MN history floors, and rebalance
       continuity. No provider, fallback, credential, visual, or acceptance policy changed.
+
+### 2026-09-08 — Preserve family-leg provider failures after savepoint rollback
+
+- [x] Keep per-role family savepoints, but defer failure telemetry until the failed savepoint
+      has rolled back (`record_failure=False` for the nested dated refresh). This preserves the
+      provider/parser root exception instead of replacing it with SQLAlchemy's closed-transaction
+      message; failure telemetry is best effort after rollback.
+- [x] Focused service/bootstrap coverage passed `17/17`; Ruff and `git diff --check` passed.
+- [x] A serial rebuilt-stack pass across all eight configured families completed `18` mapped
+      role refreshes, reported `10` explicitly unavailable roles, and reported `0` failed roles.
+- [ ] Rerun/close the broader R1 gaps (canonical population, residual placeholders, D1/W1/MN
+      floors, and dated rebalance continuity), then complete R2–R7. No provider, fallback,
+      credential, visual, or acceptance policy changed.
