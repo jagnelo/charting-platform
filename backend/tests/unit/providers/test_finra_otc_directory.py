@@ -86,3 +86,38 @@ def test_finra_otc_directory_supports_current_dapi_partition_pagination(monkeypa
     )
     post.assert_called_once()
     assert post.call_args.kwargs["json"]["compareFilters"][0]["fieldValue"] == "2026-09-04"
+
+
+def test_finra_otc_directory_continues_after_payload_capped_short_page(monkeypatch):
+    dapi_url = "https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster"
+    monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", dapi_url)
+
+    partitions = Mock()
+    partitions.json.return_value = {"availablePartitions": [{"partitions": ["2026-09-04"]}]}
+    partitions.raise_for_status.return_value = None
+
+    def page_response(symbol: str) -> Mock:
+        response = Mock()
+        response.headers = {"record-total": "2", "record-limit": "1"}
+        response.json.return_value = [
+            {
+                "issueSymbolIdentifier": symbol,
+                "securityDescription": f"{symbol} Corp Common Stock",
+                "asOfDate": "2026-09-04",
+            }
+        ]
+        response.raise_for_status.return_value = None
+        return response
+
+    with (
+        patch.object(directory, "_cache", None),
+        patch("app.providers.finra_otc_directory.httpx.get", return_value=partitions),
+        patch(
+            "app.providers.finra_otc_directory.httpx.post",
+            side_effect=[page_response("AAA"), page_response("BBB")],
+        ) as post,
+    ):
+        rows = directory._fetch_dapi_rows(dapi_url)
+
+    assert [row["symbol"] for row in rows] == ["AAA", "BBB"]
+    assert [call.kwargs["json"]["offset"] for call in post.call_args_list] == [0, 1]

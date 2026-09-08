@@ -148,11 +148,16 @@ def _fetch_dapi_rows(url: str) -> list[dict[str, Any]]:
         if not payload:
             raise ValueError("FINRA OTC DAPI ended before record-total was reached")
         rows.extend(_normalize_dapi_row(row) for row in payload if isinstance(row, dict))
+        previous_offset = offset
         offset += len(payload)
+        if offset <= previous_offset or offset > total:
+            raise ValueError("FINRA OTC DAPI returned an invalid pagination progress")
         if offset >= total:
             break
-        if len(payload) < _DAPI_PAGE_SIZE:
-            raise ValueError("FINRA OTC DAPI page ended before record-total was reached")
+        # FINRA may return fewer rows than requested when the response-payload
+        # ceiling is reached.  ``record-total`` remains authoritative; keep
+        # paging from the number actually returned instead of treating a
+        # short page as an incomplete universe.
     if len(rows) != total:
         raise ValueError(f"FINRA OTC DAPI returned {len(rows)} rows, expected {total}")
     return rows
