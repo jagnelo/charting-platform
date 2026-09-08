@@ -114,7 +114,7 @@
   "implementation_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
   "interrupted": false,
   "last_checkpoint": "2026-09-08T07:54:14.322736+00:00",
-  "last_human_progress_update": "2026-09-08T07:52:46.053526+00:00",
+  "last_human_progress_update": "2026-09-08T08:28:18.080232+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue canonical provider/history population or the next compatible Study target slice with focused regression coverage, then rerun the exact-tip exhaustive gate at the new coherent tip; preserve visual policy and provider fallback rules.",
   "plan_hash": "4742bf0c98e68f1f5c817b6c180776734ea8713540f1886f89698af48e46b135",
@@ -122,12 +122,16 @@
   "planning_state": "ready",
   "previous_session_ids": [],
   "progress": {
-    "completed": [],
-    "current_blocker": "Canonical family history remains incomplete: QQQ D1 covered 23/27 queued members with 45199 bars but W1/MN provider exhaustion; fresh eight-family readiness found zero D1/W1/MN member bars. Full integration gate at 2df3cfee passed all non-visual stages; visual parity remains 98/104 with the same six unchanged state-oracle diffs. Development npm graph still has five findings.",
-    "current_phase": "R1_canonical_enrichment_history",
-    "next_action": "Continue bounded canonical placeholder enrichment/history and select the next R2-R6 implementation slice; preserve canonical-only, provider-neutral, visual-policy boundaries and rerun the exact-tip gate after product changes.",
+    "completed": [
+      "AC1",
+      "AC8",
+      "AC9"
+    ],
+    "current_blocker": "Full gate non-visual stages pass; visual parity remains 98/104 with six unchanged state-oracle diffs, and live network-hydrated 10000-row evidence plus canonical history/readiness remain open.",
+    "current_phase": "R6_dense_row_budget",
+    "next_action": "Use row-budget telemetry in a live network-hydrated 10000-row workstation oracle; continue canonical family history/readiness and R2-R7 evidence.",
     "total": 10,
-    "updated_at": "2026-09-08T07:52:46.053403+00:00"
+    "updated_at": "2026-09-08T08:28:18.080159+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
