@@ -51,7 +51,9 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ps/workstreams/feat-tc2000-frontend-rework/session.json"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -110,14 +112,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "0fa39ab5313b5ad51a14998aa53e944288c911aa",
+  "head": "1472cda2022eb7332216641f2cecaf25c61c3917",
   "implementation_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
   "interrupted": false,
   "last_checkpoint": "2026-09-08T07:54:14.322736+00:00",
   "last_human_progress_update": "2026-09-08T08:28:18.080232+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue canonical provider/history population or the next compatible Study target slice with focused regression coverage, then rerun the exact-tip exhaustive gate at the new coherent tip; preserve visual policy and provider fallback rules.",
-  "plan_hash": "4742bf0c98e68f1f5c817b6c180776734ea8713540f1886f89698af48e46b135",
+  "plan_hash": "c3d79f3b1c376c1bd8b89f5ed3d9454c9a9010606f29ba1d2ab7c9be6c08a714",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [],
