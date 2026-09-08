@@ -316,7 +316,11 @@ def _observed_dimension_totals(policy: ProviderPolicy, measurement: Any) -> dict
         unit = str(dimension.get("unit") or "").lower()
         limit = int(dimension["limit"])
         window_seconds = int(dimension["window_seconds"])
-        if unit in {"credit", "credits"} and window_seconds == 60:
+        if (
+            unit in {"credit", "credits"}
+            and window_seconds == 60
+            and "twelvedata.com" in source
+        ):
             if used is not None and left is not None and used + left == limit:
                 totals[name] = min(used, limit)
             continue
