@@ -21,8 +21,6 @@ product, visual-policy, fallback, provider, or acceptance-policy changes were
 made. Continue with opt-in persisted provider maintenance and
 population/continuity/D1-W1-MN evidence.
 
-## 2026-09-08 — Exact-tip gate after historical enrichment safety fix
-
 ## 2026-09-08 — Exact-tip gate after worker Compose wiring
 
 Product commit `abf0bb69` wires the bounded historical-enrichment snapshot cap

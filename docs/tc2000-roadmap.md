@@ -23,8 +23,6 @@ The next R1 gate remains opt-in provider maintenance against persisted
 snapshots, followed by evidence for resolved populations, historical
 continuity, and D1/W1/MN member-bar floors.
 
-## 2026-09-08 — Exact-tip gate after historical enrichment safety fix
-
 ## 2026-09-08 — Exact-tip gate after worker Compose wiring
 
 Product commit `abf0bb69` wires the bounded historical-enrichment snapshot cap
