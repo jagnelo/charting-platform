@@ -53,10 +53,20 @@ def canonical_history_job_id(
 ) -> str:
     """Return the shared idempotence key for every canonical history request."""
 
+    # Timeframe order is a request-detail, not part of the history identity.
+    # Normalize the key so retries from callers with a different ordering
+    # cannot enqueue duplicate provider work for the same instrument/bound.
+    timeframe_order = {timeframe.value: index for index, timeframe in enumerate(Timeframe)}
+    canonical_timeframes = sorted(
+        {str(value).strip().upper() for value in timeframes if str(value).strip()},
+        key=lambda value: (timeframe_order.get(value, len(timeframe_order)), value),
+    )
     end_key = ""
     if end is not None:
         end_key = f":end={history_end_iso(end)}"
-    return f"watchlist-source-history:{int(instrument_id)}:{','.join(timeframes)}{end_key}"
+    return (
+        f"watchlist-source-history:{int(instrument_id)}:{','.join(canonical_timeframes)}{end_key}"
+    )
 
 
 def normalize_family_keys(family_keys: list[str] | None) -> list[str]:

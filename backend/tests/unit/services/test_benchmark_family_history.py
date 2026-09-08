@@ -22,6 +22,9 @@ def test_history_end_iso_normalizes_naive_and_offset_aware_bounds():
 
 def test_canonical_history_job_id_separates_historical_end_bounds():
     assert history.canonical_history_job_id(7, ["D1"]) == "watchlist-source-history:7:D1"
+    assert history.canonical_history_job_id(7, ["W1", "D1", "W1"]) == (
+        "watchlist-source-history:7:D1,W1"
+    )
     assert (
         history.canonical_history_job_id(7, ["D1"], history.datetime(2024, 1, 2))
         == "watchlist-source-history:7:D1:end=2024-01-02T00:00:00+00:00"
