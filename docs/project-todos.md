@@ -18131,3 +18131,15 @@ The current source also passes the focused authenticated top-down browser slice 
 - [ ] Rerun/close the broader R1 gaps (canonical population, residual placeholders, D1/W1/MN
       floors, and dated rebalance continuity), then complete R2–R7. No provider, fallback,
       credential, visual, or acceptance policy changed.
+
+### 2026-09-08 — Exact-tip gate after family failure-telemetry fix
+
+- [x] Targeted F8u-boolean and F8x-library browser rerun passed `2/2` with elevated host browser
+      permissions; the earlier failures were Chromium sandbox launch errors, not product failures.
+- [x] Exact required gate passed backend `1,359` unit and `386` integration tests (`80.98%`),
+      frontend Vitest/build, compose/provider/runner and health checks, and functional Playwright
+      `165/272` with `107` documented skips.
+- [x] Visual matrix completed `98/104`; the only six failures are the established unchanged
+      column-editor/floating-workspace state-oracle diffs. Scoped teardown removed all resources.
+- [ ] Visual review/approval, canonical family history/readiness, native-window and broader
+      accessibility/security evidence, and the remaining R2–R7 acceptance work remain open.

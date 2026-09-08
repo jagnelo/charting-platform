@@ -3100,3 +3100,14 @@ transaction error. Focused service/bootstrap coverage passed `17/17`; a serial r
 across all eight configured families produced `18` refreshed roles, `10` explicitly unavailable
 roles, and `0` failed roles. This is transaction-boundary evidence only: canonical population,
 placeholder disposition, D1/W1/MN floors, rebalance continuity, and R2–R7 acceptance remain open.
+
+## 2026-09-08 — Exact-tip functional and visual gate after browser-context correction
+
+The two functional cases that previously stopped at Chromium startup both pass (`2/2`) under the
+permitted host browser context. The complete exact-tip gate at `80977234` passes all non-visual
+stages, backend `1,359` unit plus `386` integration tests (`80.98%` combined coverage), frontend
+Vitest/build, compose/provider/runner and health probes, and functional Playwright `165/272` with
+`107` documented skips. Visual parity remains `98/104`, with exactly the six established
+watchlist-column-editor-open and workspace-floating state-oracle diffs. No visual baseline,
+threshold, skip, provider, fallback, or acceptance policy changed; canonical family/history
+readiness and the remaining R2–R7 evidence remain open.

@@ -3831,3 +3831,21 @@ and F8x-library stopped at browser startup with macOS
 `107` documented skips, and `2` environment-level failures, and visual parity was not reached.
 This is a host browser-launch failure, not a product assertion or visual-policy change; rerun on
 a permitted Chromium host before treating the gate as complete.
+
+## 2026-09-08 — Exact-tip gate after permitted Chromium rerun
+
+The two cases that previously failed at browser startup were rerun with the permitted host
+execution context and both passed (`2/2`): F8u-boolean (chart indicator to persisted Boolean
+watchlist column) and F8x-library (Python study asset version/clone/archive lifecycle).
+
+The complete exact-tip gate then passed backend `1,359` unit and `386` integration tests with
+`80.98%` combined coverage, frontend Vitest/build/type checks, compose/provider/runner and health
+probes, and functional Playwright `165/272` with `107` documented skips. The four-project visual
+matrix completed `98/104`; its six failures are unchanged and remain limited to the established
+watchlist-column-editor-open states at 1080p 100/125 and workspace-floating at 1080p 100/125 and
+1440p 100/125. No baseline, mask, threshold, skip, provider, fallback, or acceptance policy was
+changed. Scoped teardown and resource accounting were clean.
+
+This moves the branch back to a complete non-visual gate with the known visual review boundary;
+it does not close canonical family/history readiness, native-window or broader accessibility/
+security evidence, or the remaining R2–R7 acceptance work.
