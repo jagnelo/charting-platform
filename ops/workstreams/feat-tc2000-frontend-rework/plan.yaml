@@ -13,6 +13,12 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Latest bounded provider slice persisted S&P MidCap 400 SEC-reconstructed
+  MDY 401/401 (2025-09-30), MDYV 309/309, and MDYG 238/238 rows with zero
+  failures; equal-weight is explicitly unmapped. MDYV and MDYG retain nine
+  placeholder members each and all roles remain history_ready=false. Continue
+  placeholder enrichment, family continuity, and D1/W1/MN floors. Historical
+  receipts below remain authoritative.
   Latest exact-tip gate at d9f95faa passed every non-visual stage: backend 1353
   unit and 386 integration tests, coverage 80.98%, frontend Vitest 974/974,
   build/compose/provider policy, stack and runner probes, and Playwright 165

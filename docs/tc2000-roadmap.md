@@ -42,6 +42,16 @@ post-cleanup resource probe was unable to query Docker because the host daemon
 socket was permission-denied. Continue broader R1 family population,
 continuity, and D1/W1/MN member-bar evidence, then the remaining R2-R7 work.
 
+## 2026-09-08 — S&P MidCap 400 provider population
+
+The next bounded provider slice persisted three SEC-reconstructed S&P MidCap
+400 legs with zero failures: MDY `401/401` (latest available composition
+`2025-09-30`), MDYV `309/309`, and MDYG `238/238`. Equal-weight has no
+verified mapped proxy and was reported unavailable. The readiness report kept
+the real gaps visible: MDYV and MDYG each retained nine placeholder members,
+all roles had `history_ready=false`, and no family continuity or D1/W1/MN
+member-bar floor was claimed. Cleanup removed all branch-scoped resources.
+
 ## 2026-09-08 — S&P 500 provider population and PostgreSQL identity repair
 
 Product commit `d9f95faa` fixes a PostgreSQL ordering defect in internal ISIN

@@ -14,6 +14,16 @@
       explicit, and the disposable stack had no D1/W1/MN bars because market
       data seeding was disabled.
 
+### 2026-09-08 — S&P MidCap 400 provider population
+
+- [x] Persist MDY `401/401` (2025-09-30), MDYV `309/309`, and MDYG `238/238`
+      SEC-reconstructed rows with zero refresh failures.
+- [x] Keep the equal-weight role explicitly unavailable because no verified
+      proxy is mapped; readiness reports retained placeholders and no history
+      floors were inferred.
+- [ ] Enrich placeholders and verify continuity plus D1/W1/MN member-bar
+      floors for this family.
+
 ### 2026-09-08 — S&P 500 provider population and PostgreSQL identity repair
 
 - [x] Fix PostgreSQL-safe internal ISIN reassignment by releasing old unique

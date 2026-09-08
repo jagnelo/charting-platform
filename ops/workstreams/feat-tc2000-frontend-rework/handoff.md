@@ -8,6 +8,15 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-08 — S&P MidCap 400 provider population
+
+The bounded provider slice persisted MDY `401/401` (latest available
+`2025-09-30`), MDYV `309/309`, and MDYG `238/238` SEC-reconstructed rows with
+zero failures. Equal-weight is explicitly unmapped. MDYV/MDYG retained nine
+placeholder members each; all roles remain `history_ready=false`, with no
+continuity or D1/W1/MN floor claim. The disposable stack and scoped cleanup
+completed successfully.
+
 ## 2026-09-08 — S&P 500 provider population and PostgreSQL identity repair
 
 Product commit `d9f95faa` makes internal ISIN alias reassignment safe under
