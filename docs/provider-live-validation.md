@@ -74,7 +74,7 @@ RUN_LIVE_PROVIDER_TESTS=1 rtk uv run --project backend pytest \
 
 The backend deterministic gates pass on the current corrective revision:
 
-- unit suite: `1367 passed`
+- unit suite: `1368 passed`
 - Docker-backed integration suite: `370 passed`
 - focused capacity/quota/runtime/provider-support tests: `17 passed`; capacity-admin plus provider API integration: `8 passed`
 - migration compatibility: passed against the previous release head
@@ -88,18 +88,17 @@ administrators.
 The remaining credentialed blockers are Alpaca, Tradier, and MarketData.app;
 SEC EDGAR also needs an operator contact User-Agent. A provider may have a
 green live probe and remain non-routable when any external constraint cannot
-yet be accounted safely. The runtime now records observed HTTP request counts,
-response bytes, and selected provider headers for instrumented adapters,
-including Tiingo, FINRA, FMP, Binance, FRED, and tokenized providers. That
-telemetry is durable in `provider_request_log`, but byte ceilings and dynamic
-response-header/account budgets are not yet reserved or enforced in quota
-windows, so Tiingo and FMP remain non-routable. FINRA's synchronous short-
-interest and OTC Daily List calls now reserve the documented 3 MB maximum
-response against the 10 GB monthly credential budget and settle to measured
-bytes; its asynchronous dataset path is not implemented. FRED v1 and Nasdaq
-Trader remain non-routable because their official documentation publishes
-throttling behavior without a numeric ceiling. IBKR remains a descriptor
-without an authenticated account adapter.
+yet be accounted safely. Every registered synchronous adapter now reports
+observed HTTP request counts, response bytes, and selected provider headers
+into the runtime context; that telemetry is durable in
+`provider_request_log`. Byte ceilings and dynamic response-header/account
+budgets are not yet reserved or enforced in quota windows, so Tiingo and FMP
+remain non-routable. FINRA's synchronous short-interest and OTC Daily List
+calls reserve the documented 3 MB maximum response against the 10 GB monthly
+credential budget and settle to measured bytes; its asynchronous dataset path
+is not implemented. FRED v1 and Nasdaq Trader remain non-routable because
+their official documentation publishes throttling behavior without a numeric
+ceiling. IBKR remains a descriptor without an authenticated account adapter.
 
 The public tokenized matrix is maintained separately in
 `tests/live/test_tokenized_providers_live.py`. It covers xStocks, Robinhood

@@ -19,6 +19,7 @@ import httpx
 
 from app.config import settings
 from app.providers.errors import ProviderNotConfiguredError
+from app.providers.telemetry import observe_response
 
 _PAGE_SIZE = 1000
 _DAPI_PAGE_SIZE = 5000
@@ -71,6 +72,7 @@ def _directory_rows() -> list[dict[str, Any]]:
             headers={"User-Agent": settings.NASDAQ_USER_AGENT, "Accept": "text/plain"},
             timeout=30,
         )
+        observe_response(response)
         response.raise_for_status()
         rows = _parse_directory(response.text)
     if not rows:
@@ -95,6 +97,7 @@ def _dapi_partitions_url(url: str) -> str:
 def _fetch_dapi_rows(url: str) -> list[dict[str, Any]]:
     headers = {"User-Agent": settings.NASDAQ_USER_AGENT, "Accept": "application/json"}
     partitions_response = httpx.get(_dapi_partitions_url(url), headers=headers, timeout=30)
+    observe_response(partitions_response)
     partitions_response.raise_for_status()
     partitions_payload = partitions_response.json()
     partitions = [
@@ -129,6 +132,7 @@ def _fetch_dapi_rows(url: str) -> list[dict[str, Any]]:
             },
             timeout=30,
         )
+        observe_response(response)
         response.raise_for_status()
         payload = response.json()
         if not isinstance(payload, list):

@@ -28,6 +28,7 @@ from app.config import settings
 from app.models.instrument_event import EventTimeHint, InstrumentEventType
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.providers.base import InstrumentEventRecord
+from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
 
@@ -136,6 +137,7 @@ class AlpacaProvider:
                 params["page_token"] = page_token
             try:
                 r = httpx.get(url, params=params, headers=self._headers(), timeout=30)
+                observe_response(r)
                 r.raise_for_status()
                 data = r.json()
             except Exception as exc:
@@ -209,6 +211,7 @@ class AlpacaProvider:
             params["feed"] = settings.ALPACA_DATA_FEED
         try:
             r = httpx.get(url, params=params, headers=self._headers(), timeout=10)
+            observe_response(r)
             r.raise_for_status()
             bar = r.json().get("bars", {}).get(alpaca_sym)
             return float(bar["c"]) if bar else None
@@ -236,6 +239,7 @@ class AlpacaProvider:
                 headers=self._headers(),
                 timeout=30,
             )
+            observe_response(r)
             r.raise_for_status()
             raw = r.json()
         except Exception as exc:
@@ -391,6 +395,7 @@ def _cached_assets(headers: dict, asset_class: str) -> list[dict]:
             headers=headers,
             timeout=30,
         )
+        observe_response(r)
         r.raise_for_status()
         assets = [a for a in r.json() if a.get("tradable")]
         _asset_cache[asset_class] = assets

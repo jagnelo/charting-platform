@@ -8,6 +8,7 @@ from typing import Any
 import httpx
 
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.providers.telemetry import observe_response
 
 _TF_SECONDS = {
     Timeframe.M1: 60,
@@ -56,6 +57,7 @@ class CoinbaseProvider:
             },
             timeout=30,
         )
+        observe_response(response)
         response.raise_for_status()
         rows = response.json()
         bars: list[OHLCVBar] = []
@@ -109,6 +111,7 @@ class CoinbaseProvider:
         response = httpx.get(
             f"{self.base_url}/products/{_coinbase_product(symbol)}/ticker", timeout=15
         )
+        observe_response(response)
         response.raise_for_status()
         payload = response.json()
         return (
@@ -119,6 +122,7 @@ class CoinbaseProvider:
         if quote_type.upper() != "CRYPTOCURRENCY":
             return {"total": 0, "quotes": []}
         response = httpx.get(f"{self.base_url}/products", timeout=30)
+        observe_response(response)
         response.raise_for_status()
         products = [
             item
@@ -173,6 +177,7 @@ class KrakenProvider:
             },
             timeout=30,
         )
+        observe_response(response)
         response.raise_for_status()
         payload = response.json()
         result = payload.get("result", {}) if isinstance(payload, dict) else {}
@@ -233,6 +238,7 @@ class KrakenProvider:
         response = httpx.get(
             f"{self.base_url}/Ticker", params={"pair": _kraken_pair(symbol)}, timeout=15
         )
+        observe_response(response)
         response.raise_for_status()
         result = response.json().get("result", {})
         row = next(iter(result.values()), {})
@@ -242,6 +248,7 @@ class KrakenProvider:
         if quote_type.upper() != "CRYPTOCURRENCY":
             return {"total": 0, "quotes": []}
         response = httpx.get(f"{self.base_url}/AssetPairs", timeout=30)
+        observe_response(response)
         response.raise_for_status()
         result = response.json().get("result", {})
         products = [

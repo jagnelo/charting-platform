@@ -30,6 +30,7 @@ import httpx
 from app.config import settings
 from app.providers.base import InstrumentProfile, ListingRecord, ProviderSearchResult
 from app.providers.errors import ProviderNotConfiguredError
+from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +71,7 @@ class CoinGeckoProvider:
             headers=self._headers(),
             timeout=20,
         )
+        observe_response(r)
         r.raise_for_status()
         return r.json()
 
@@ -214,6 +216,7 @@ def _ensure_coin_list(headers: dict) -> None:
         return
     try:
         r = httpx.get(f"{_BASE}/coins/list", headers=headers, timeout=30)
+        observe_response(r)
         r.raise_for_status()
         coins = r.json()
         mapping: dict[str, list[dict]] = {}

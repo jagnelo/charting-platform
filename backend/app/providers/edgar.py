@@ -37,6 +37,7 @@ from app.providers.base import (
     ListingRecord,
     ProviderSearchResult,
 )
+from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
 
@@ -142,6 +143,7 @@ class EdgarProvider:
                 headers=self._headers(),
                 timeout=20,
             )
+            observe_response(r)
             r.raise_for_status()
             sub = r.json()
         except Exception as exc:
@@ -238,6 +240,7 @@ class EdgarProvider:
                 headers=self._headers(),
                 timeout=20,
             )
+            observe_response(r)
             r.raise_for_status()
             sub = r.json()
         except Exception as exc:
@@ -286,6 +289,7 @@ class EdgarProvider:
                 headers=self._headers(),
                 timeout=30,
             )
+            observe_response(response)
             response.raise_for_status()
             payload = response.json()
         except Exception as exc:
@@ -372,6 +376,7 @@ def _ensure_ticker_map(headers: dict) -> None:
         return
     try:
         r = httpx.get(_TICKERS_URL, headers=headers, timeout=30)
+        observe_response(r)
         r.raise_for_status()
         raw = r.json()
         mapping: dict[str, dict] = {}
@@ -397,6 +402,7 @@ def _ensure_exchange_directory(headers: dict) -> None:
         return
     try:
         response = httpx.get(_TICKERS_EXCHANGE_URL, headers=headers, timeout=30)
+        observe_response(response)
         response.raise_for_status()
         payload = response.json()
         fields = payload.get("fields") if isinstance(payload, dict) else None

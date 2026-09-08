@@ -17,6 +17,7 @@ import httpx
 from app.config import settings
 from app.providers.base import ProviderSearchResult
 from app.providers.errors import ProviderNotConfiguredError
+from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +51,7 @@ class MassiveProvider:
                 "massive requires MASSIVE_API_KEY (or MARKETDATA_API_KEY)"
             )
         response = httpx.get(f"{_BASE}{_TICKERS_PATH}", params=params, timeout=20)
+        observe_response(response)
         response.raise_for_status()
         payload = response.json()
         return payload if isinstance(payload, dict) else None

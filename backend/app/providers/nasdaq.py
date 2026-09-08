@@ -15,6 +15,7 @@ from typing import Any
 import httpx
 
 from app.config import settings
+from app.providers.telemetry import observe_response
 
 _BASE = "https://www.nasdaqtrader.com/dynamic/SymDir"
 _FILES = {"nasdaqlisted": f"{_BASE}/nasdaqlisted.txt", "otherlisted": f"{_BASE}/otherlisted.txt"}
@@ -57,6 +58,7 @@ def _directory_rows() -> list[dict[str, Any]]:
             headers={"User-Agent": settings.NASDAQ_USER_AGENT},
             timeout=30,
         )
+        observe_response(response)
         response.raise_for_status()
         rows.extend(_parse_file(source_name, response.text))
     _cache = (now, rows)

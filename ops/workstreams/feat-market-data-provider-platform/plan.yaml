@@ -96,7 +96,7 @@ deployment_impact: new backend/worker configuration, optional provider credentia
 status: in_progress
 remaining_gaps:
   - full live matrix still requires EDGAR_USER_AGENT, ALPACA_API_KEY, ALPACA_SECRET_KEY, TRADIER_API_KEY, and MARKETDATA_APP_API_KEY; the 13 supplied-credential cases pass with non-empty provider-native assertions
-  - provider-specific incomplete contracts (FRED v1 numeric ceiling, Nasdaq Trader polling, configured FINRA OTC source, and Tiingo/FMP byte-budget reservation/enforcement) remain non-routable; Binance historical OHLCV now computes and reserves the conservative documented multi-page request weight before execution; FINRA synchronous short-interest and OTC Daily List calls now reserve the documented 3 MB maximum response against the 10 GB monthly budget and settle to observed bytes, while asynchronous dataset submission remains unimplemented; transport telemetry records observed HTTP request counts, response bytes, and selected rate-limit headers for the instrumented adapters; Finnhub's observed free key is recorded at 60/min plus the documented 30/sec hard cap, but its stock-candle endpoint is not entitled and remains excluded
+  - provider-specific incomplete contracts (FRED v1 numeric ceiling, Nasdaq Trader polling, configured FINRA OTC source, and Tiingo/FMP byte-budget reservation/enforcement) remain non-routable; Binance historical OHLCV now computes and reserves the conservative documented multi-page request weight before execution; FINRA synchronous short-interest and OTC Daily List calls now reserve the documented 3 MB maximum response against the 10 GB monthly budget and settle to observed bytes, while asynchronous dataset submission remains unimplemented; every registered synchronous provider adapter now reports observed HTTP request counts, response bytes, and selected rate-limit headers into the runtime telemetry context; Finnhub's observed free key is recorded at 60/min plus the documented 30/sec hard cap, but its stock-candle endpoint is not entitled and remains excluded
   - complete production NMS/OTC reconciliation and the separately approved 30-day shadow run remain post-deployment gates; the NMS/SEC directory adapters and bounded keyless evidence are implemented, while FINRA OTC Daily List now supplies lifecycle deltas but OTC still needs an approved complete security-master source
 progress:
   completed:
@@ -120,6 +120,7 @@ progress:
     - deployed ARQ worker whole-universe refresh now enqueues durable bounded jobs and processes them every 15 minutes instead of making an unbounded provider-call loop inside the daily cron
     - final combined backend unit and PostgreSQL/Redis integration validation
     - savepoint-safe durable quota-window creation under concurrent workers, with full seeded Compose/browser validation
+    - complete direct-transport instrumentation across registered synchronous adapters so durable request logs do not undercount calls, response bytes, or provider headers
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: full live matrix requires the three remaining credential domains (Alpaca, Tradier, MarketData.app) plus an operator-supplied SEC User-Agent; complete NMS/OTC reconciliation and shadow activation remain post-deployment gates
