@@ -633,6 +633,64 @@ async def test_calendar_day_reservation_changes_at_utc_midnight(db):
 
 
 @pytest.mark.asyncio
+async def test_provider_defined_daily_reservation_uses_conservative_rolling_boundary(db):
+    async_db = AsyncSessionAdapter(db)
+    source = DataSource(name="provider-defined-daily", is_active=True)
+    db.add(source)
+    db.flush()
+    policy = ProviderPolicy(
+        data_source_id=source.id,
+        capability=ProviderCapability.PRICE_HISTORY,
+        quota_scope="api_key",
+        quota_contract={
+            "reset": "provider_defined_daily",
+            "dimensions": [
+                {
+                    "name": "requests_per_day",
+                    "limit": 1,
+                    "window_seconds": 86400,
+                    "unit": "requests",
+                    "scope": "api_key",
+                    "source": "operator-dashboard",
+                }
+            ],
+        },
+    )
+    resolved = ResolvedProvider(
+        provider_name="provider-defined-daily",
+        provider=object(),
+        data_source=source,
+        policy=policy,
+        health=None,  # type: ignore[arg-type]
+    )
+    start = datetime(2026, 9, 5, 23, 59, tzinfo=UTC)
+    first = await reserve_provider_contract(
+        async_db,
+        resolved=resolved,
+        capability=ProviderCapability.PRICE_HISTORY.value,
+        units=1,
+        now=start,
+    )
+    before_expiry = await reserve_provider_contract(
+        async_db,
+        resolved=resolved,
+        capability=ProviderCapability.PRICE_HISTORY.value,
+        units=1,
+        now=start + timedelta(seconds=86400 - 1),
+    )
+    after_expiry = await reserve_provider_contract(
+        async_db,
+        resolved=resolved,
+        capability=ProviderCapability.PRICE_HISTORY.value,
+        units=1,
+        now=start + timedelta(seconds=86400 + 1),
+    )
+    assert first is not None
+    assert before_expiry is None
+    assert after_expiry is not None
+
+
+@pytest.mark.asyncio
 async def test_eastern_calendar_month_reservation_follows_tiingo_reset_boundary(db):
     async_db = AsyncSessionAdapter(db)
     source = DataSource(name="eastern-month-provider", is_active=True)

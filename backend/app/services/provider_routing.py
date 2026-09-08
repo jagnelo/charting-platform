@@ -258,7 +258,18 @@ async def reserve_provider_contract(
             if eastern < reset_local:
                 reset_local -= timedelta(days=1)
             window_start = reset_local.astimezone(UTC)
-        rolling = "rolling" in dimension_reset and window_start is None
+        # A provider-defined reset has no safe calendar boundary unless the
+        # dimension explicitly declares one.  Treat those dimensions as
+        # rolling windows instead of inventing a UTC epoch bucket; this is
+        # conservative for daily/monthly allowances whose reset timezone or
+        # anchor the provider does not publish.
+        rolling = (
+            window_start is None
+            and (
+                "rolling" in dimension_reset
+                or dimension_reset in {"provider_defined", "provider_defined_daily", "per_dimension"}
+            )
+        )
         window = await reserve_provider_quota(
             db,
             data_source_id=resolved.data_source.id,
