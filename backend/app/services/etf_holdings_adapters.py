@@ -331,9 +331,7 @@ def _sec_nport_identity_match(
     observed_series_name = normalized_observed.get("series_name")
     target_series_name = normalized_targets.get("series_name")
     series_name_matches = bool(
-        observed_series_name
-        and target_series_name
-        and target_series_name in observed_series_name
+        observed_series_name and target_series_name and target_series_name in observed_series_name
     )
     matched = False
     for key, target in normalized_targets.items():
