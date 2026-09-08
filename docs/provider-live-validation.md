@@ -112,7 +112,7 @@ permission to guess a ticker or a quota.
 
 The still-missing variables are `EDGAR_USER_AGENT`, `ALPACA_API_KEY`,
 `ALPACA_SECRET_KEY`, `TRADIER_API_KEY`, and `MARKETDATA_APP_API_KEY`. Until
-those are supplied and their cases pass, the complete 24-case matrix remains
+those are supplied and their cases pass, the complete 29-case matrix remains
 an open acceptance gate.
 
 The MarketData.app adapter was also checked against the current official API

@@ -198,11 +198,16 @@ def _usage_tracking_config(data_source: DataSource) -> dict[str, Any]:
     return tracking if isinstance(tracking, dict) else {}
 
 
-def _usage_cost_for_operation(data_source: DataSource, operation: str) -> tuple[str, str, Decimal]:
+def _usage_cost_for_operation(
+    data_source: DataSource,
+    operation: str,
+    policy: ProviderPolicy | None = None,
+) -> tuple[str, str, Decimal]:
     tracking = _usage_tracking_config(data_source)
     mode = str(tracking.get("mode") or "call_count")
     unit_label = str(tracking.get("unit_label") or "requests")
-    operation_costs = tracking.get("operation_costs") or {}
+    contract = dict(policy.quota_contract or {}) if policy is not None else {}
+    operation_costs = tracking.get("operation_costs") or contract.get("operation_costs") or {}
     family = _operation_family(operation)
     raw_cost = 1
     if isinstance(operation_costs, dict):
@@ -231,8 +236,8 @@ def _dimension_costs_for_operation(
     ``provider_contract_operation_cost_known`` rather than guessed here.
     """
     tracking = _usage_tracking_config(data_source)
-    explicit = tracking.get("dimension_costs")
     contract = dict(policy.quota_contract or {})
+    explicit = tracking.get("dimension_costs") or contract.get("dimension_costs")
     result: dict[str, int] = {}
     for dimension in quota_dimensions(policy):
         name = str(dimension["name"])
@@ -286,6 +291,7 @@ def provider_contract_operation_cost_known(
     policy: ProviderPolicy,
     data_source: DataSource,
     operation: str | None = None,
+    operation_cost_override: int | Decimal | None = None,
 ) -> bool:
     """Return whether a quota contract can be safely charged for this call.
 
@@ -303,13 +309,13 @@ def provider_contract_operation_cost_known(
         if not contract.get("dimension_costs_required"):
             return True
     tracking = _usage_tracking_config(data_source)
-    costs = tracking.get("operation_costs")
+    costs = tracking.get("operation_costs") or contract.get("operation_costs")
     if (
         contract.get("dynamic_endpoint_weights")
         or contract.get("operation_costs_required")
         or contract.get("dimension_costs_required")
     ):
-        if not isinstance(costs, dict) or not costs:
+        if operation_cost_override is None and (not isinstance(costs, dict) or not costs):
             return False
     if operation is None:
         # A provider may have a cost table while the caller has not named the
@@ -318,10 +324,10 @@ def provider_contract_operation_cost_known(
         # fail-closed.
         return False
     family = _operation_family(operation)
-    if not (family in costs or operation in costs):
+    if operation_cost_override is None and not (family in costs or operation in costs):
         return False
     if contract.get("dimension_costs_required"):
-        dimension_costs = tracking.get("dimension_costs")
+        dimension_costs = tracking.get("dimension_costs") or contract.get("dimension_costs")
         if not isinstance(dimension_costs, dict):
             return False
         for dimension in quota_dimensions(policy):
@@ -596,6 +602,15 @@ def provider_contract_operation_costs_configured(
     """Whether a weighted/credit contract has an operation-cost map."""
 
     contract = dict(policy.quota_contract or {})
+    if contract.get("dimension_costs_required"):
+        tracking = _usage_tracking_config(data_source)
+        dimension_costs = tracking.get("dimension_costs") or contract.get("dimension_costs")
+        operation_costs = tracking.get("operation_costs") or contract.get("operation_costs")
+        return bool(
+            isinstance(operation_costs, dict)
+            and operation_costs
+            and isinstance(dimension_costs, dict)
+        )
     if not (contract.get("dynamic_endpoint_weights") or contract.get("operation_costs_required")):
         return True
     tracking = _usage_tracking_config(data_source)
@@ -900,6 +915,7 @@ async def resolve_provider_chain(
     *,
     instrument_id: int | None = None,
     operation: str | None = None,
+    operation_cost_overrides: dict[str, int] | None = None,
 ) -> list[ResolvedProvider]:
     await seed_provider_runtime(db)
     rows = (
@@ -989,7 +1005,10 @@ async def resolve_provider_chain(
             # configuration state, never a reason to guess a safe default.
             continue
         if operation is not None and not provider_contract_operation_cost_known(
-            policy, data_source, operation
+            policy,
+            data_source,
+            operation,
+            (operation_cost_overrides or {}).get(data_source.name),
         ):
             # Weighted/credit providers are not candidates until this exact
             # operation has a documented charge in the local usage profile.
@@ -1091,6 +1110,7 @@ async def execute_provider_call(
     instrument_id: int | None = None,
     provider_symbol: str | None = None,
     provider_name: str | None = None,
+    operation_cost_overrides: dict[str, int] | None = None,
     invoke: Callable[[Any, str | None], T],
     response_items: Callable[[T], int | None] | None = None,
     treat_empty_as_failure: bool = False,
@@ -1100,6 +1120,7 @@ async def execute_provider_call(
         capability,
         instrument_id=instrument_id,
         operation=operation,
+        operation_cost_overrides=operation_cost_overrides,
     )
     if provider_name is not None:
         chain = [resolved for resolved in chain if resolved.provider_name == provider_name]
@@ -1114,7 +1135,11 @@ async def execute_provider_call(
         usage_mode, usage_unit_label, usage_units = _usage_cost_for_operation(
             resolved.data_source,
             operation,
+            resolved.policy,
         )
+        override = (operation_cost_overrides or {}).get(resolved.provider_name)
+        if override is not None:
+            usage_units = Decimal(str(max(1, int(override))))
         dimension_units = _dimension_costs_for_operation(
             resolved.policy,
             resolved.data_source,

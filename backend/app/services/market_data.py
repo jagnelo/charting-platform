@@ -34,6 +34,10 @@ from app.providers import (
     provider_symbol_for_instrument,
 )
 from app.providers.base import InstrumentProfile
+from app.providers.binance import (
+    estimate_latest_ohlcv_request_weight,
+    estimate_ohlcv_request_weight,
+)
 from app.services.instrument_mastering import ingest_provider_profile, reconcile_instrument_profile
 from app.services.ohlcv_coverage import assess_ohlcv_coverage, missing_range_slices
 from app.services.provider_observations import (
@@ -743,6 +747,13 @@ async def _fetch_provider(
         ProviderCapability.PRICE_HISTORY,
         f"fetch_ohlcv:{timeframe.value}",
         instrument_id=instrument.id,
+        operation_cost_overrides=(
+            {
+                "binance": estimate_ohlcv_request_weight(timeframe, start, end)
+            }
+            if estimate_ohlcv_request_weight(timeframe, start, end) is not None
+            else None
+        ),
         invoke=lambda provider, _provider_symbol: provider.fetch_ohlcv(
             provider_symbol_for_instrument(instrument, provider.name),
             timeframe,
@@ -1051,6 +1062,13 @@ async def _fetch_provider_latest(
         ProviderCapability.PRICE_HISTORY,
         f"fetch_latest_ohlcv:{timeframe.value}",
         instrument_id=instrument.id,
+        operation_cost_overrides=(
+            {
+                "binance": estimate_latest_ohlcv_request_weight(timeframe, limit)
+            }
+            if estimate_latest_ohlcv_request_weight(timeframe, limit) is not None
+            else None
+        ),
         invoke=lambda provider, _provider_symbol: provider.fetch_latest_ohlcv(
             provider_symbol_for_instrument(instrument, provider.name),
             timeframe,

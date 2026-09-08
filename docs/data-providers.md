@@ -38,7 +38,7 @@ re-reviewed when credentials or billing plans change.
 | Alpha Vantage | Daily OHLCV, symbol search, listings, IPO events | `ALPHA_VANTAGE_API_KEY` | 25 requests/day (free key); `compact` daily output is latest 100 points, `full` is premium | API key / provider-defined day | compact daily history live-proven |
 | SEC EDGAR | issuer/ticker/exchange directory, profiles, filings/earnings, XBRL facts | `EDGAR_USER_AGENT` | 10 requests/sec total across an IP | IP / rolling fair-access window | contract recorded; keyless live evidence required |
 | OpenFIGI | FIGI/ISIN/CUSIP/SEDOL mapping and profile enrichment | optional `OPENFIGI_API_KEY` | 25 requests/min without key (keyed plan has separate 6-sec/100-job contract) | IP or key / rolling | keyless contract recorded; live probe required |
-| Binance | public crypto OHLCV, ticker, USDT universe | none | Current Spot REST documentation exposes a 6,000 request-weight/min IP ceiling. Adapter operations use documented weights: single-symbol price 2 and exchange-info discovery 20. Historical OHLCV can page over arbitrary ranges and remains fail-closed until its total weight is reservable before execution; response `X-MBX-USED-WEIGHT-*` and `Retry-After` headers are retained on capacity failures | IP / fixed minute; 429/418 protection | exact-weight price/discovery operations admitted only when selected; historical candles remain non-routable |
+| Binance | public crypto OHLCV, ticker, USDT universe | none | Current Spot REST documentation exposes a 6,000 request-weight/min IP ceiling. Adapter operations use documented weights: single-symbol price 2 and exchange-info discovery 20. Historical OHLCV costs weight 2 per 1,000-candle page; the requested range is conservatively paged and reserved before execution; response `X-MBX-USED-WEIGHT-*` and `Retry-After` headers are retained on capacity failures | IP / fixed minute; 429/418 protection | exact-weight price/discovery and bounded historical operations admitted only when the calculated weight fits |
 | Coinbase Exchange | public crypto candles, ticker, USD products | none | 10 public requests/sec, burst up to 15 | IP / rolling | contract recorded; keyless live evidence required |
 | Kraken | public crypto OHLC, ticker, USD pairs | none | safe public frequency <=1 request/sec; pair/IP limits apply | IP/pair / rolling | contract recorded; keyless live evidence required |
 | CoinGecko Demo | crypto search, metadata, market-cap universe | `COINGECKO_API_KEY` | 100 calls/min and 10,000 calls/month | Demo key / minute + calendar month | credentialed search live-proven |
@@ -294,11 +294,12 @@ exposes a 6,000 request-weight/minute IP ceiling; the official [Spot REST
 endpoint definitions](https://github.com/binance/binance-spot-api-docs/blob/master/rest-api.md)
 define weight 2 for `/api/v3/ticker/price` with one `symbol` and weight 20 for
 `/api/v3/exchangeInfo`. The adapter charges those exact values. Historical
-`/api/v3/klines` calls cost weight 2 each, but a broad range may issue multiple
-requests, so the platform leaves that operation non-routable until it can reserve
-the complete request count safely. Repeated 429 violations can produce an HTTP
-418 IP ban; response usage and reset headers are captured when capacity failures
-occur.
+`/api/v3/klines` calls cost weight 2 each; the runtime calculates the
+conservative number of 1,000-candle pages from the requested range and reserves
+the complete weight before execution. A range whose calculated weight cannot fit
+the current documented window is deferred rather than charged as one call.
+Repeated 429 violations can produce an HTTP 418 IP ban; response usage and reset
+headers are captured when capacity failures occur.
 
 **No configuration required.**
 
@@ -408,8 +409,10 @@ routing.
 ignored `.env.dev`. `FINRA_SHORT_INTEREST_URL` and
 `FINRA_OTC_DAILY_LIST_URL` are optional endpoint overrides; otherwise the
 adapter uses the documented API base and OAuth bearer flow. Do not put client
-secrets in commits or chat. The adapter remains non-routable until the
-credential preflight, both live probes, and current terms review pass.
+secrets in commits or chat. Synchronous short-interest and Daily List operations
+have a conservative documented quota contract and can be routed after credential,
+live, and terms gates; the separate OTC security-master directory remains
+non-routable until its current terms and quota are reviewed.
 
 ### FINRA OTC directory (`finra_otc_directory`)
 

@@ -96,7 +96,7 @@ deployment_impact: new backend/worker configuration, optional provider credentia
 status: in_progress
 remaining_gaps:
   - full live matrix still requires EDGAR_USER_AGENT, ALPACA_API_KEY, ALPACA_SECRET_KEY, TRADIER_API_KEY, and MARKETDATA_APP_API_KEY; the 13 supplied-credential cases pass with non-empty provider-native assertions
-  - provider-specific incomplete contracts (FRED v1 numeric ceiling, Binance historical OHLCV multi-request weight, Nasdaq Trader polling, configured FINRA OTC source, and Tiingo/FMP byte-budget reservation/enforcement) remain non-routable; FINRA synchronous short-interest and OTC Daily List calls now reserve the documented 3 MB maximum response against the 10 GB monthly budget and settle to observed bytes, while asynchronous dataset submission remains unimplemented; transport telemetry records observed HTTP request counts, response bytes, and selected rate-limit headers for the instrumented adapters; Finnhub's observed free key is recorded at 60/min plus the documented 30/sec hard cap, but its stock-candle endpoint is not entitled and remains excluded
+  - provider-specific incomplete contracts (FRED v1 numeric ceiling, Nasdaq Trader polling, configured FINRA OTC source, and Tiingo/FMP byte-budget reservation/enforcement) remain non-routable; Binance historical OHLCV now computes and reserves the conservative documented multi-page request weight before execution; FINRA synchronous short-interest and OTC Daily List calls now reserve the documented 3 MB maximum response against the 10 GB monthly budget and settle to observed bytes, while asynchronous dataset submission remains unimplemented; transport telemetry records observed HTTP request counts, response bytes, and selected rate-limit headers for the instrumented adapters; Finnhub's observed free key is recorded at 60/min plus the documented 30/sec hard cap, but its stock-candle endpoint is not entitled and remains excluded
   - complete production NMS/OTC reconciliation and the separately approved 30-day shadow run remain post-deployment gates; the NMS/SEC directory adapters and bounded keyless evidence are implemented, while FINRA OTC Daily List now supplies lifecycle deltas but OTC still needs an approved complete security-master source
 progress:
   completed:
@@ -113,7 +113,7 @@ progress:
     - paid-routing switches cannot bypass blank or unreviewed provider entitlements
     - admin status exposes exact missing quota-contract dimensions, entitlement review state, and weighted/credit operation-cost readiness
     - typed 429/418/quota capacity events persist reset headers and retry timestamps and are exposed through backend admin diagnostics
-    - Binance exact request-weight accounting for single-symbol price (2) and exchange-info discovery (20); weighted local buckets charge the documented units and multi-page historical candles remain fail-closed
+    - Binance exact request-weight accounting for single-symbol price (2) and exchange-info discovery (20); weighted local buckets charge the documented units and historical candles reserve their calculated multi-page weight before execution
     - Marketstack's conservative 100-request/month free-plan contract and IBKR's documented 10-request/second plus five-concurrent-history pacing contract
     - MarketData.app now uses the documented `/v1` API root, records its 100-credit 09:30 America/New_York reset window and 50-request concurrency ceiling, and has an adapter request-path/auth fixture test
     - CIK evidence is issuer-only: profile ingestion links normalized SEC CIKs to `Issuer`, generic security domain-key selection excludes CIK, and new instrument-level CIK writes are rejected while legacy lookup remains compatible
@@ -123,4 +123,4 @@ progress:
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: full live matrix requires the remaining Alpaca, Tradier, MarketData.app, and SEC User-Agent inputs; complete NMS/OTC reconciliation and shadow activation remain post-deployment gates
-  next_action: obtain the five missing environment values, run the complete 24-case live matrix, then reassess readiness; do not activate routing or deploy before that evidence
+  next_action: obtain the three missing credential domains (plus an operator-supplied SEC User-Agent), run the complete 29-case live matrix, then reassess readiness; do not activate routing or deploy before that evidence

@@ -6,7 +6,7 @@ All tests are pure-Python / no-network: HTTP calls are mocked where needed.
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -18,7 +18,13 @@ from app.providers.alpaca import (
     _to_alpaca_crypto,
 )
 from app.providers.alpha_vantage import AlphaVantageProvider
-from app.providers.binance import BinanceProvider, _from_binance, _to_binance
+from app.providers.binance import (
+    BinanceProvider,
+    _from_binance,
+    _to_binance,
+    estimate_latest_ohlcv_request_weight,
+    estimate_ohlcv_request_weight,
+)
 from app.providers.coingecko import CoinGeckoProvider
 from app.providers.edgar import EdgarProvider, _ensure_ticker_map
 from app.providers.errors import ProviderNotConfiguredError
@@ -330,6 +336,12 @@ class TestBinanceOHLCVParsing:
         assert len(bars) == 1
         assert float(bars[0].open) == 42000.0
         assert float(bars[0].close) == 42500.0
+
+    def test_historical_weight_estimate_rounds_up_per_1000_candle_page(self):
+        start = datetime(2024, 1, 1, tzinfo=UTC)
+        end = start + timedelta(days=1001)
+        assert estimate_ohlcv_request_weight(Timeframe.D1, start, end) == 4
+        assert estimate_latest_ohlcv_request_weight(Timeframe.D1, 1001) == 4
 
 
 # ── FRED series map ───────────────────────────────────────────────────────────

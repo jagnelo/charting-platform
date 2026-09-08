@@ -234,6 +234,9 @@ def test_dynamic_endpoint_contract_is_non_routable_without_operation_costs():
     )
     assert not provider_contract_operation_cost_known(policy, source)
     assert not provider_contract_operation_cost_known(policy, source, "fetch_ohlcv")
+    assert provider_contract_operation_cost_known(
+        policy, source, "fetch_ohlcv", operation_cost_override=4
+    )
 
 
 def test_byte_dimension_requires_explicit_operation_bound():
@@ -285,6 +288,32 @@ def test_byte_dimension_requires_explicit_operation_bound():
     assert provider_contract_operation_cost_known(policy, source, "fetch_short_interest")
     source.config["usage_tracking"].pop("dimension_costs")
     assert not provider_contract_operation_cost_known(policy, source, "fetch_short_interest")
+
+
+def test_operation_and_dimension_costs_may_be_carried_in_reviewed_contract():
+    source = DataSource(name="contract-cost-provider", config={})
+    policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.SHORT_INTEREST,
+        quota_contract={
+            "dimensions": [
+                {
+                    "name": "download_bytes",
+                    "limit": 1000,
+                    "window_seconds": 60,
+                    "unit": "bytes",
+                    "scope": "api_key",
+                    "source": "operator-review",
+                }
+            ],
+            "reset": "rolling",
+            "operation_costs_required": True,
+            "operation_costs": {"fetch_short_interest": 1},
+            "dimension_costs_required": True,
+            "dimension_costs": {"download_bytes": {"fetch_short_interest": 100}},
+        },
+    )
+    assert provider_contract_operation_cost_known(policy, source, "fetch_short_interest")
 
 
 @pytest.mark.asyncio

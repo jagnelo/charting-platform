@@ -66,6 +66,9 @@ _TF_SECONDS: dict[Timeframe, int] = {
     Timeframe.MN: 2592000,
 }
 
+_KLINES_LIMIT = 1000
+_KLINES_WEIGHT = 2
+
 # Module-level universe cache
 _usdt_pairs: list[dict] = []
 _usdt_pairs_ts: float = 0.0
@@ -219,6 +222,32 @@ class BinanceProvider:
 
     def supported_discovery_types(self) -> list[str]:
         return ["CRYPTOCURRENCY"]
+
+
+def estimate_ohlcv_request_weight(
+    timeframe: Timeframe,
+    start: datetime,
+    end: datetime,
+) -> int | None:
+    """Return the exact conservative `/klines` weight before execution.
+
+    Binance permits at most 1,000 candles per `/klines` request and the
+    documented endpoint weight for this adapter is two per request.  The
+    estimate intentionally rounds up: a short final page is still a request,
+    and a provider returning fewer rows can never make the reservation unsafe.
+    """
+    seconds = _TF_SECONDS.get(timeframe)
+    if seconds is None or end <= start:
+        return None
+    candles = max(1, int((end - start).total_seconds() + seconds - 1) // seconds)
+    requests = (candles + _KLINES_LIMIT - 1) // _KLINES_LIMIT
+    return requests * _KLINES_WEIGHT
+
+
+def estimate_latest_ohlcv_request_weight(timeframe: Timeframe, limit: int) -> int | None:
+    if limit <= 0 or timeframe not in _TF_SECONDS:
+        return None
+    return max(1, (int(limit) + _KLINES_LIMIT - 1) // _KLINES_LIMIT) * _KLINES_WEIGHT
 
 
 # ── Module helpers ────────────────────────────────────────────────────────────
