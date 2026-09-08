@@ -8,6 +8,20 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-08 — Bounded Nasdaq-100 canonical provider-history maintenance
+
+The isolated branch stack completed a bounded dated refresh for `nasdaq100`
+(`cap_weight`, `equal_weight`) and persisted four SEC-reconstructed snapshots:
+QQQ `2025-12-31` with `101/101` resolved rows, plus QQQE
+`2025-10-31`, `2024-10-31`, and `2024-04-30` with `103/103`, `102/102`, and
+`102/102` resolved rows. Older QQQ dates remain rejected by the existing
+`missing_series_id` identity guard; one QQQE date remains rejected by existing
+series/legacy-artifact checks. The bounded classifier selected all four
+snapshots and returned `enriched=1, remaining=407, failed=0`. The planner
+reports four available canonical snapshots. Because this disposable stack used
+`E2E_SEED_MARKET_DATA=false`, no D1/W1/MN bars are claimed; family-wide
+population, continuity, and analysis floors remain open.
+
 ## 2026-09-08 — Exact-tip gate after alert-promotion hydration stabilization
 
 Test commit `e227eda8` adds the bounded two-second canonical-instrument

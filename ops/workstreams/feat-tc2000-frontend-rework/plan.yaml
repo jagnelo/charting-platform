@@ -13,6 +13,15 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  2026-09-08 bounded Nasdaq-100 maintenance persisted four canonical SEC
+  snapshots with all rows resolved (QQQ 101/101 at 2025-12-31; QQQE 103/103,
+  102/102, and 102/102 at 2025-10-31, 2024-10-31, and 2024-04-30). The
+  bounded classifier selected all four and returned enriched=1, remaining=407,
+  failed=0. The history planner reports four available snapshots, but the
+  disposable stack had market-data seeding disabled, so D1/W1/MN bars remain
+  unverified. Older QQQ requests and one QQQE request remain explicit SEC
+  identity/legacy-artifact failures; no fabricated or fallback data was used.
+  Continue family-wide population, continuity, and member-bar floors.
   Test commit e227eda8 adds the bounded two-second canonical-instrument
   settling window used by F8u-signal to F8u-alert; focused authenticated
   coverage passed 3/3 on a fresh stack. The exact integration gate then

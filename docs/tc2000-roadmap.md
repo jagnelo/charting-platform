@@ -5,6 +5,23 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-08
 
+## 2026-09-08 — Bounded Nasdaq-100 canonical provider-history maintenance
+
+Against the isolated branch-scoped Docker stack, the opt-in dated refresh
+persisted four SEC-reconstructed Nasdaq-100 snapshots: QQQ at `2025-12-31`
+(`101/101` rows resolved) and QQQE at `2025-10-31`, `2024-10-31`, and
+`2024-04-30` (`103/103`, `102/102`, and `102/102` rows resolved). The QQQ
+requests for older dates were rejected by the existing SEC identity guard
+(`missing_series_id`), and the QQQE `2025-06-30` request was rejected by
+existing series/legacy-artifact identity checks; these are explicit route/data
+limitations, not substituted current data. The bounded classification pass
+selected all four persisted snapshots and completed with `enriched=1,
+remaining=407, failed=0` under the configured per-profile budget. The
+history planner reports `4` available canonical snapshots, but this stack was
+started with `E2E_SEED_MARKET_DATA=false`, so no D1/W1/MN member bars are
+claimed. Broader family population, historical continuity, and analysis floors
+remain open.
+
 ## 2026-09-08 — Exact-tip gate after alert-promotion hydration stabilization
 
 Test commit `e227eda8` adds the bounded two-second canonical-instrument

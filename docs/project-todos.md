@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-08 — Bounded Nasdaq-100 canonical provider-history maintenance
+
+- [x] Execute a bounded persisted Nasdaq-100 dated refresh for QQQ/QQQE.
+      Four SEC-reconstructed snapshots persisted with every row identity
+      resolved: QQQ `2025-12-31` (`101/101`) and QQQE `2025-10-31`,
+      `2024-10-31`, `2024-04-30` (`103/103`, `102/102`, `102/102`).
+- [x] Run the bounded classification pass over the four selected snapshots;
+      it completed `enriched=1, remaining=407, failed=0` without provider or
+      fallback-policy changes.
+- [ ] Continue family-wide population and historical continuity. QQQ older
+      SEC identity rejections and one QQQE legacy/series rejection remain
+      explicit, and the disposable stack had no D1/W1/MN bars because market
+      data seeding was disabled.
+
 ### 2026-09-08 — Exact-tip gate after alert-promotion hydration stabilization
 
 - [x] Add the bounded canonical-instrument settling window to F8u-alert,
