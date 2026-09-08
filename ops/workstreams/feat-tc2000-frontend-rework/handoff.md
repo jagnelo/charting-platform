@@ -26,6 +26,12 @@ compose/provider/runner probes, and functional Playwright `165` passed with
 same six unchanged state-oracle diffs. Stack teardown and scoped cleanup
 completed; no visual or acceptance policy changed.
 
+The exact-tip gate at the current documentation checkpoint repeated the same
+result: all non-visual stages passed, functional Playwright passed `165` with
+`107` documented skips across `272`, and the visual matrix remained `98/104`
+with exactly the established six state-oracle diffs. Scoped teardown and
+resource cleanup were clean.
+
 ## 2026-09-08 — Canonical Nasdaq-100 dated refresh and queue handoff
 
 The branch-scoped stack ran a real dated `nasdaq100` worker refresh for

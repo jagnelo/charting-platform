@@ -14,6 +14,14 @@
       data when a supported dense universe and history are available; this
       controlled fixture does not establish canonical R1/R2 readiness.
 
+### 2026-09-08 — Exact-tip integration gate after canonical maintenance
+
+- [x] Re-run the full branch-scoped gate at the current documentation tip:
+      all non-visual stages passed and functional Playwright passed 165 with
+      107 documented skips across 272 cases.
+- [x] Preserve the unchanged visual result: 98/104 passed with exactly the
+      six known state-oracle diffs; scoped teardown and cleanup were clean.
+
 ### 2026-09-08 — Canonical Nasdaq-100 dated refresh and queue handoff
 
 - [x] Run the real worker path for a dated `nasdaq100` refresh: QQQ and QQQE

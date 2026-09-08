@@ -26,6 +26,14 @@ Playwright `165` passed with `107` documented skips across `272`. Visual parity
 remains `98/104` with the same six unchanged state-oracle diffs; no visual or
 acceptance policy changed.
 
+The exact-tip full integration gate at the current documentation checkpoint
+repeated the same boundary: backend unit/integration, frontend type-check/build,
+compose/provider/runner probes, and functional Playwright all passed
+(`165` passed, `107` documented skips across `272`). The four-project visual
+matrix remained `98/104`, with only the established column-editor and floating
+workspace state-oracle diffs. Teardown removed the scoped stack and generated
+resources; no visual, provider, fallback, or acceptance policy changed.
+
 ## 2026-09-08 — Canonical Nasdaq-100 dated refresh and queue handoff
 
 With the branch-scoped Docker stack available, a bounded dated `nasdaq100`
