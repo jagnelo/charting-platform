@@ -135,6 +135,7 @@ progress:
     - transport telemetry retains FINRA pagination and payload-ceiling headers (`record-total`, effective limits, offsets, and response payload maximum) alongside existing provider-native usage headers
     - Robinhood tokenized-price reads use a finite provider-specific 429 retry budget with `Retry-After` support; repeated throttles remain observable and fail rather than entering a retry storm
     - Nasdaq Trader directory polling preserves provider `ETag`/`Last-Modified` validators and reuses parsed files on `304 Not Modified`; this reduces bandwidth without inferring an undocumented polling quota, so routing remains gated on the unknown contract
+    - local and RPi Compose backend/worker environments now pass the FINRA async result bound and Tiingo/FMP operation-byte maps; research-runner receives none, with regression coverage for the trusted-process boundary
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: full live matrix requires the three remaining credential domains (Alpaca, Tradier, MarketData.app) plus an operator-supplied SEC User-Agent; FINRA OTC source terms/redistribution approval, complete NMS/OTC reconciliation, and shadow activation remain post-deployment or operator-review gates

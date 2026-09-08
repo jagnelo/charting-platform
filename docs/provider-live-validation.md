@@ -28,7 +28,9 @@ PR cannot spend quotas or exfiltrate keys.
 Deployments use a target-owned secret store, never the developer-machine file.
 The RPi deployment already requires `/opt/charting-platform/shared/app.env`
 with mode `0600`; the release Compose contract passes its provider variables
-only to `backend` and `worker`. The network-disabled `research-runner` receives
+only to `backend` and `worker`. This includes the non-secret FINRA async result
+bound and Tiingo/FMP operation-byte maps that control whether their bandwidth
+dimensions can be admitted. The network-disabled `research-runner` receives
 none. Other targets must provide an equivalent runtime secret manager or
 permission-restricted env file.
 
