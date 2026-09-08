@@ -805,6 +805,8 @@ async def test_register_identifier_reassigns_internal_alias_conflicts(db):
         )
     ).scalar_one()
     assert moved_identifier.instrument_id == corrected.id
+    assert wrong_match.isin is None
+    assert corrected.isin == "CA82509L1076"
 
 
 @pytest.mark.asyncio

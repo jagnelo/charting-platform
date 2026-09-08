@@ -499,13 +499,18 @@ async def register_identifier(
         previous_instrument = (
             await db.execute(select(Instrument).where(Instrument.id == existing.instrument_id))
         ).scalar_one_or_none()
-        existing.instrument_id = instrument.id
         if (
             previous_instrument is not None
             and existing.identifier_type == InstrumentIdentifierType.ISIN
             and previous_instrument.isin == existing.identifier_value
         ):
+            # PostgreSQL enforces the unique instrument.isin index per statement.
+            # Release the old ownership before assigning the same internal ISIN to
+            # the reconciled instrument, otherwise a provider refresh can roll back
+            # the whole family leg on an otherwise safe alias correction.
             previous_instrument.isin = None
+            await db.flush()
+        existing.instrument_id = instrument.id
 
     if existing is None:
         existing = InstrumentIdentifier(
