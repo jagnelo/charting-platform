@@ -5,6 +5,16 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-08
 
+## 2026-09-09 — Canonical Nasdaq ARQ worker path confirmed
+
+The same fresh seeded stack was used to enqueue one bounded `task_bulk_fetch_instrument`
+job for canonical NVDA (`D1`, end `2025-12-31`). The real ARQ worker returned
+`{'D1': 2344}` and persisted the history successfully. Together with the QQQ
+service-path probe below, this confirms the worker and provider binding path for
+representative symbols; the earlier family queue's empty result still needs a
+bounded concurrency/rate-limit investigation and does not establish family
+readiness.
+
 ## 2026-09-09 — Canonical Nasdaq provider path rechecked through service runtime
 
 After the earlier bounded Nasdaq-100 queue reported provider exhaustion, a

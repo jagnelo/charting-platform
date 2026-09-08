@@ -8,6 +8,14 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-09 — Canonical Nasdaq ARQ worker path confirmed
+
+An actual queued `task_bulk_fetch_instrument` job for canonical NVDA (`D1`,
+end `2025-12-31`) returned `{'D1': 2344}` on the fresh seeded stack. This
+confirms the ARQ worker can persist representative Nasdaq history. The earlier
+family queue's empty result remains a bounded concurrency/rate-limit
+investigation; family-wide D1/W1/MN continuity and readiness are still open.
+
 ## 2026-09-09 — Canonical Nasdaq provider path rechecked through service runtime
 
 The earlier dated queue's empty-bar result was rechecked on a fresh seeded

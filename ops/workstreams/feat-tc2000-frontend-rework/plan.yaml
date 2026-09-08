@@ -13,6 +13,14 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  The real queued ARQ path has now been confirmed: canonical NVDA D1 returned
+  2344 persisted bars through 2025-12-31 on a fresh seeded stack, complementing
+  the QQQ service-path probe. The earlier family queue's empty result therefore
+  remains a run-level concurrency/rate-limit investigation. Family-wide
+  D1/W1/MN continuity/readiness, canonical dense-data evidence, development-
+  tool security remediation, native-window/accessibility/security checks,
+  visual review, and R2-R7 evidence remain open. Historical receipts below
+  remain authoritative.
   A fresh seeded runtime recheck confirmed active Nasdaq bindings for QQQ, SPY,
   and NVDA, Nasdaq first in the price-history chain, and a bounded QQQ D1
   bulk-fetch success of 2344 adjusted bars through 2025-12-31. The earlier

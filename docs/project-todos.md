@@ -1,5 +1,12 @@
 # Project TODO Memory
 
+### 2026-09-09 — Canonical Nasdaq ARQ worker path confirmed
+
+- [x] Enqueue one bounded canonical NVDA `task_bulk_fetch_instrument` D1 job;
+      the real ARQ worker returned `{'D1': 2344}` through `2025-12-31`.
+- [ ] Investigate family-scale queue behavior under explicit provider
+      concurrency/rate limits and establish D1/W1/MN continuity/readiness.
+
 ### 2026-09-09 — Canonical Nasdaq provider path rechecked
 
 - [x] Verify representative canonical QQQ/SPY/NVDA identities resolve to active
