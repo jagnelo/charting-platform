@@ -53,25 +53,8 @@
   },
   "dirty_paths": [],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-tc2000-frontend-rework-db4ca1c4",
-      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
-    "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -110,14 +93,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
+  "head": "729661632f5f77c4bcb9b047981fa0e491fa2306",
   "implementation_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
   "interrupted": false,
   "last_checkpoint": "2026-09-05T05:28:51.366602+00:00",
-  "last_human_progress_update": "2026-09-05T05:27:30.140595+00:00",
+  "last_human_progress_update": "2026-09-08T06:05:37.329770+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue canonical provider/history population or the next compatible Study target slice with focused regression coverage, then rerun the exact-tip exhaustive gate at the new coherent tip; preserve visual policy and provider fallback rules.",
-  "plan_hash": "84f46949315a30463540769bb23dc74bd974339f3432b3f022541fd39e0c94ee",
+  "plan_hash": "343aaa0860ad64e5a557b022a7247eaede40eb9788425b2df06d673cb48cef00",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [],
@@ -125,15 +108,15 @@
     "completed": [
       "AC1"
     ],
-    "current_blocker": "Exact-tip gate at metadata tip 70d99baf (product tip ad90b988) passed backend units 1315/1315, integration 383/383, combined coverage 80.90%, frontend 947/947, functional E2E 155 passed with 106 documented skips; visual matrix remains 98/104 with six unchanged screenshot diffs: watchlist-column-editor-open 13844 pixels at 1080p-100/125 and workspace-floating 11901/12097/12097/5512 pixels at 1080p-100/125/1440p-100/125. Canonical provider/history, richer Study, native-window/accessibility/security, dense-data, and visual-oracle evidence remain open. The first full run had one transient F8r-python-library-narrow window-discovery failure; a fresh-stack isolated rerun passed 1/1 plus 3/3 repeats.",
+    "current_blocker": "Exact-tip non-visual gate remains green at d9f95faa with 1353 unit, 386 integration, 80.98% coverage, Vitest 974/974, functional Playwright 165 passed with 106 documented skips, and visual 98/104 with six unchanged state-oracle diffs. Provider receipts through 36384cc1 now cover all eight curated benchmark families: QQQ, S&P 500/400/600/Composite 1500, and Russell 1000/2000/3000. Mapped legs still lack complete classification and D1/W1/MN history; unsupported roles remain explicit. Continue enrichment, continuity, history floors, then R2-R7.",
     "current_phase": "R1_R2_canonical_provider_history",
-    "next_action": "Continue canonical provider/history population or the next compatible Study target slice with focused regression coverage, then rerun the exact-tip exhaustive gate at the new coherent tip; preserve visual policy and provider fallback rules.",
+    "next_action": "Run a bounded canonical enrichment/history target or the next compatible Study/R2 slice, record explicit readiness gaps, and preserve the exact-tip exhaustive gate boundary.",
     "total": 10,
-    "updated_at": "2026-09-05T05:27:30.140154+00:00"
+    "updated_at": "2026-09-08T06:05:37.329468+00:00"
   },
-  "remote": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
+  "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
-  "remote_synchronized": true,
+  "remote_synchronized": false,
   "retained_docker_resources": [],
   "schema": 2,
   "session_id": "ce1948d0-bd3b-49d2-847e-f4ba0c1ee6fb",
