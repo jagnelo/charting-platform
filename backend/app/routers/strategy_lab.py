@@ -105,6 +105,27 @@ async def promote_code_signal(
             status_code=422, detail="Signal code must produce Boolean or event output"
         )
 
+    promotion_lineage = next(
+        (
+            item.get("lineage")
+            for item in (version.diagnostics or [])
+            if isinstance(item, dict)
+            and item.get("code") == "promotion_lineage"
+            and isinstance(item.get("lineage"), dict)
+        ),
+        None,
+    )
+    promotion_type = promotion_lineage.get("type") if isinstance(promotion_lineage, dict) else None
+    origin = (
+        "chart_plot_promotion"
+        if promotion_type == "chart_plot_promotion"
+        else "study_lab_promotion"
+    )
+    description = (
+        "Canonical chart indicator threshold promoted as a Strategy Lab signal."
+        if origin == "chart_plot_promotion"
+        else "Unified-Python signal promoted from Study Lab."
+    )
     base_name = f"{version.asset.name} Strategy Signal"
     name = base_name
     suffix = 2
@@ -124,13 +145,15 @@ async def promote_code_signal(
     strategy = StrategyDefinition(
         user_id=current_user.id,
         name=name,
-        description="Unified-Python signal promoted from Study Lab.",
+        description=description,
         source_type="custom",
         definition_type="python",
         is_active=True,
-        tags=["study-lab", "python-signal"],
+        tags=["chart-plot", "python-signal"]
+        if origin == "chart_plot_promotion"
+        else ["study-lab", "python-signal"],
         metadata_json={
-            "origin": "study_lab_promotion",
+            "origin": origin,
             "code_asset_id": version.code_asset_id,
             "code_version_id": version.id,
             "output_contract": version.output_contract,

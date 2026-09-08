@@ -35,7 +35,7 @@
         <small v-if="scanStatus">{{ scanStatus }}</small>
       </section>
       <div v-if="selectedPromotionIndex !== ''" class="chart-plots__promotion">
-        <select v-model="promotionTarget" aria-label="Plot promotion target"><option value="condition">Condition</option><option value="column">Boolean column</option><option value="scan">EasyScan</option><option value="filter">Watchlist filter</option><option value="gauge">Market Gauge</option><option value="alert">Indicator alert</option></select>
+        <select v-model="promotionTarget" aria-label="Plot promotion target"><option value="condition">Condition</option><option value="column">Boolean column</option><option value="scan">EasyScan</option><option value="filter">Watchlist filter</option><option value="gauge">Market Gauge</option><option value="alert">Indicator alert</option><option value="signal">Strategy signal</option></select>
         <select v-if="promotionTarget === 'filter' || promotionTarget === 'column'" v-model="selectedFilterTarget" aria-label="Plot promotion watchlist"><option value="" disabled>Select watchlist…</option><option v-for="target in watchlistTargets" :key="target.instance_key" :value="target.instance_key">{{ target.title || target.instance_key }}</option></select>
         <select v-model="promotionOperator" aria-label="Plot promotion operator"><option value="gt">&gt;</option><option value="gte">≥</option><option value="lt">&lt;</option><option value="lte">≤</option></select>
         <input v-model.number="promotionThreshold" aria-label="Plot promotion threshold" type="number" step="any" />
@@ -139,7 +139,7 @@ const linkedChartCount = computed(() => chartTargets.value.filter(window => wind
 const linkedTargets = computed(() => linkedChartCount.value > 0)
 const copyTargetAvailable = computed(() => selectedCopyTarget.value === 'linked' ? linkedTargets.value : chartTargets.value.some(window => window.instance_key === selectedCopyTarget.value))
 const selectedPromotionIndex = ref('')
-const promotionTarget = ref<'condition' | 'column' | 'scan' | 'filter' | 'gauge' | 'alert'>('condition')
+const promotionTarget = ref<'condition' | 'column' | 'scan' | 'filter' | 'gauge' | 'alert' | 'signal'>('condition')
 const selectedFilterTarget = ref('')
 const promotionOperator = ref('gt')
 const promotionThreshold = ref(0)
@@ -391,11 +391,73 @@ function promotionCondition(item: IndicatorConfig) {
 function promotionKey(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 72) || 'chart-plot-condition'
 }
+function uniqueAssetKey(value: string, kind = 'plot') {
+  const base = value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 56) || 'chart-plot'
+  return `${base}-${kind}-${Date.now().toString(36)}`.slice(0, 80)
+}
+const MULTI_OUTPUT_INDICATORS = new Set(['bb', 'keltner', 'donchian', 'ichimoku', 'pivot_points', 'macd', 'stoch', 'adx', 'aroon'])
+function chartIndicatorOutput(item: IndicatorConfig) {
+  if (MULTI_OUTPUT_INDICATORS.has(item.type)) return null
+  const outputByType: Record<string, string> = {
+    sma: 'sma', ema: 'ema', wma: 'wma', hma: 'hma', dema: 'dema', tema: 'tema',
+    vwap: 'vwap', avwap: 'avwap', psar: 'psar', rsi: 'rsi', cci: 'cci',
+    williams_r: 'williams_r', mfi: 'mfi', roc: 'roc', momentum: 'momentum',
+    stddev: 'stddev', cmf: 'cmf', obv: 'obv', atr: 'atr', trix: 'trix',
+    ppo: 'ppo', volume: 'volume', volume_ratio: 'volume_ratio',
+  }
+  return outputByType[item.type] ?? null
+}
+function chartSignalSource(item: IndicatorConfig, output: string) {
+  const params = JSON.stringify(item.params ?? {})
+  const threshold = JSON.stringify(Number(promotionThreshold.value))
+  const operator = promotionOperator.value
+  const expression = operator === 'gte' ? `latest >= ${threshold}` : operator === 'lt' ? `latest < ${threshold}` : operator === 'lte' ? `latest <= ${threshold}` : `latest > ${threshold}`
+  return `values = ta.indicator(${JSON.stringify(item.type)}, ${params}, ${JSON.stringify(output)})\nlatest = values[-1] if values else float('nan')\noutput.boolean(${JSON.stringify(item.type)}, bool(${expression}))`
+}
 async function promoteSelected() {
   const item = chartStore.indicators[Number(selectedPromotionIndex.value)]
   if (!item || !promotionName.value || !Number.isFinite(promotionThreshold.value) || promotionBusy.value) return
   promotionBusy.value = true; promotionStatus.value = ''
   try {
+    if (promotionTarget.value === 'signal') {
+      const output = chartIndicatorOutput(item)
+      if (!output) throw new Error('Select a single-output indicator before creating a Strategy signal; multi-output plots need an explicit output selection.')
+      const instrumentId = chartStore.instrument?.id
+      if (!instrumentId) throw new Error('Select a canonical instrument before creating a Strategy signal')
+      const source = chartSignalSource(item, output)
+      const asset = await api.post<{ id?: number; versions?: Array<{ id?: number }> }>('/code/assets', {
+        stable_key: uniqueAssetKey(`${promotionName.value}-signal`, 'signal'),
+        name: `${promotionName.value} Strategy signal`,
+        kind: 'signal',
+        initial_version: {
+          source,
+          output_contract: 'boolean',
+          output_name: item.type,
+          parameter_schema: {},
+          default_parameters: {},
+          lineage: {
+            type: 'chart_plot_promotion',
+            source: 'chart_plot_library',
+            source_instrument_id: instrumentId,
+            source_symbol: chartStore.instrument?.symbol ?? null,
+            source_timeframe: chartStore.timeframe,
+            indicator_type: item.type,
+            indicator_params: { ...item.params },
+            indicator_output: output,
+            target: 'signal',
+            output_adapter: 'indicator_threshold_to_boolean',
+            series_target: { operator: promotionOperator.value, threshold: Number(promotionThreshold.value) },
+            semantics: 'chart_indicator_threshold_as_strategy_signal',
+            point_in_time_source_preserved: false,
+          },
+        },
+      })
+      const codeVersionId = asset.versions?.[0]?.id ?? asset.id
+      if (typeof codeVersionId !== 'number') throw new Error('The chart Strategy signal asset did not return an immutable code version.')
+      const promoted = await api.post<{ id: number; name: string }>(`/strategy-lab/signals/from-code/${codeVersionId}`, {})
+      promotionStatus.value = `Saved ${label(item)} as Strategy signal “${promoted.name}” (#${promoted.id}).`
+      return
+    }
     const key = promotionKey(promotionName.value)
     await api.put(`/workspaces/library/conditions/${encodeURIComponent(key)}`, {
       name: promotionName.value, condition: promotionCondition(item),

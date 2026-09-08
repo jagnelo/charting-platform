@@ -449,4 +449,58 @@ describe('ChartPlotLibrary', () => {
     expect(scheduleSnapshot).toHaveBeenCalled()
     expect(wrapper.get('[role="status"]').text()).toContain('Boolean column')
   })
+
+  it('promotes a canonical single-output chart indicator into a Strategy signal', async () => {
+    apiMock.post.mockImplementation((path: string) => {
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 121 }] })
+      if (path === '/strategy-lab/signals/from-code/121') return Promise.resolve({ id: 122, name: 'RSI signal Strategy Signal' })
+      return Promise.resolve({})
+    })
+    const chart = usePanelStore('signal-promotion-test')
+    chart.instrument = { id: 42, symbol: 'SPY' } as any
+    chart.setIndicators([{ type: 'rsi', params: { period: 14 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'separate' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'signal-promotion-test' } } })
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('[aria-label="Promote RSI(14)"]').trigger('click')
+    await wrapper.get('[aria-label="Plot promotion target"]').setValue('signal')
+    await wrapper.get('[aria-label="Plot promotion threshold"]').setValue('70')
+    await wrapper.get('[aria-label="Plot promotion name"]').setValue('RSI signal')
+    await wrapper.get('.chart-plots__promotion button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.get('[role="status"]').text()).toContain('Strategy signal'))
+    expect(apiMock.put).not.toHaveBeenCalledWith(expect.stringContaining('/workspaces/library/conditions/'), expect.anything())
+    expect(apiMock.post).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      kind: 'signal',
+      initial_version: expect.objectContaining({
+        source: expect.stringContaining('ta.indicator("rsi", {"period":14}, "rsi")'),
+        output_contract: 'boolean',
+        output_name: 'rsi',
+        lineage: expect.objectContaining({
+          type: 'chart_plot_promotion',
+          source_instrument_id: 42,
+          source_symbol: 'SPY',
+          indicator_type: 'rsi',
+          indicator_output: 'rsi',
+          output_adapter: 'indicator_threshold_to_boolean',
+          series_target: { operator: 'gt', threshold: 70 },
+          semantics: 'chart_indicator_threshold_as_strategy_signal',
+        }),
+      }),
+    }))
+    expect(apiMock.post).toHaveBeenCalledWith('/strategy-lab/signals/from-code/121', {})
+  })
+
+  it('refuses an ambiguous multi-output chart indicator Strategy signal', async () => {
+    const chart = usePanelStore('multi-output-signal-test')
+    chart.instrument = { id: 42, symbol: 'SPY' } as any
+    chart.setIndicators([{ type: 'bb', params: { period: 20, std_dev: 2 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'main' }])
+    const wrapper = mount(ChartPlotLibrary, { props: { sourceWindowKey: 'source', linkGroup: 'blue' }, global: { provide: { panelId: 'multi-output-signal-test' } } })
+    await wrapper.get('button[aria-label="Chart plot library"]').trigger('click')
+    await wrapper.get('[aria-label="Promote BB(20,2)"]').trigger('click')
+    await wrapper.get('[aria-label="Plot promotion target"]').setValue('signal')
+    await wrapper.get('[aria-label="Plot promotion threshold"]').setValue('100')
+    await wrapper.get('[aria-label="Plot promotion name"]').setValue('BB signal')
+    await wrapper.get('.chart-plots__promotion button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.get('[role="status"]').text()).toContain('multi-output'))
+    expect(apiMock.post).not.toHaveBeenCalledWith('/code/assets', expect.anything())
+  })
 })

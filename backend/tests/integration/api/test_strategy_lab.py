@@ -123,6 +123,47 @@ class TestStrategyLabAPI:
         assert promotion_res.status_code == 201
         assert promotion_res.json()["metadata"]["code_version_id"] == version_id
 
+    def test_chart_indicator_code_version_keeps_chart_promotion_origin(self, client, auth_headers):
+        asset_res = client.post(
+            "/api/v1/code/assets",
+            headers=auth_headers,
+            json={
+                "stable_key": "chart-rsi-signal",
+                "name": "RSI threshold",
+                "kind": "signal",
+                "initial_version": {
+                    "source": "values = ta.indicator('rsi', {'period': 14}, 'rsi')\nlatest = values[-1] if values else float('nan')\noutput.boolean('rsi', bool(latest > 70))",
+                    "output_contract": "boolean",
+                    "output_name": "rsi",
+                    "lineage": {
+                        "type": "chart_plot_promotion",
+                        "source": "chart_plot_library",
+                        "source_instrument_id": 42,
+                        "indicator_type": "rsi",
+                        "indicator_output": "rsi",
+                        "output_adapter": "indicator_threshold_to_boolean",
+                        "series_target": {"operator": "gt", "threshold": 70},
+                        "semantics": "chart_indicator_threshold_as_strategy_signal",
+                        "point_in_time_source_preserved": False,
+                    },
+                },
+            },
+        )
+        assert asset_res.status_code == 201, asset_res.text
+        version_id = asset_res.json()["versions"][0]["id"]
+        promotion_res = client.post(
+            f"/api/v1/strategy-lab/signals/from-code/{version_id}",
+            headers=auth_headers,
+            json={},
+        )
+        assert promotion_res.status_code == 201, promotion_res.text
+        payload = promotion_res.json()
+        assert payload["metadata"]["origin"] == "chart_plot_promotion"
+        assert (
+            payload["description"]
+            == "Canonical chart indicator threshold promoted as a Strategy Lab signal."
+        )
+
     def test_research_event_artifact_promotes_to_scoped_python_filter(
         self, client, auth_headers, db, user
     ):
