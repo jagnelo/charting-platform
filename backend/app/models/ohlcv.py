@@ -66,7 +66,7 @@ class OHLCVBar(Base):
     instrument_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("instrument.id", ondelete="CASCADE"), nullable=False
     )
-    data_source_id: Mapped[int] = mapped_column(
+    data_source_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("data_source.id"), nullable=True
     )
     timeframe: Mapped[Timeframe] = mapped_column(SAEnum(Timeframe), nullable=False)
@@ -85,6 +85,20 @@ class OHLCVBar(Base):
     vwap: Mapped[Decimal] = mapped_column(Numeric(20, 8), nullable=True)  # if provided by source
 
     is_adjusted: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+    # Provider bars are the default.  When a provider does not expose a
+    # requested coarse timeframe, the maintenance pipeline may materialise a
+    # local bar from canonical D1 rows.  Keep that lineage explicit so a
+    # derived value can never masquerade as provider evidence.
+    is_derived: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false", nullable=False
+    )
+    source_timeframe: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    derivation_method: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    derived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    source_bar_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    source_start: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    source_end: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     instrument: Mapped["Instrument"] = relationship(back_populates="ohlcv_bars")
     data_source: Mapped["DataSource"] = relationship(back_populates="ohlcv_bars")

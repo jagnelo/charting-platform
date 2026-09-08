@@ -8,6 +8,24 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-08 — Canonical derived W1/MN timeframe materialization
+
+The bulk maintenance path now rebuilds local W1/MN bars from persisted
+adjusted D1 rows when provider history is unavailable. The implementation uses
+XNYS calendar periods, retains the first/last observed source timestamps and
+source bar count in the aggregation contract, never fills gaps, and marks each
+row with explicit derivation lineage (`is_derived`, `source_timeframe`,
+`derivation_method`, `derived_at`). Provider rows remain authoritative for a
+calendar period and derived rows have no provider source ID. The Alembic
+migration and API schema expose the lineage without altering the provider or
+fallback policy.
+
+Focused derivation coverage, the full backend unit suite (`1,361` passed), and
+the Docker-backed PostgreSQL integration suite (`386` passed) are green. This
+implements the cached coarse-timeframe seam but does not close R1: family
+population, placeholders, rebalance continuity, and R2–R7 evidence remain
+open. No visual acceptance artifact changed.
+
 ## 2026-09-09 — Mixed-timeframe queue reproduction remains healthy
 
 Four concurrent seeded canonical jobs (`AAPL`, `SPY`, `QQQ`, `NVDA`) completed

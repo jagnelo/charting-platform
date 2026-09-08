@@ -13,6 +13,15 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Canonical coarse-timeframe materialization is now implemented: bulk
+  maintenance rebuilds explicitly derived W1/MN rows from persisted adjusted
+  D1 XNYS-calendar bars, preserves provider-row precedence, and exposes
+  derivation lineage; focused, 1361-unit, and 386-Postgres-integration checks
+  are green. This closes the cached W1/MN implementation seam but does not
+  establish readiness. Full canonical population, placeholder disposition,
+  adjustment-factor/version provenance, raw-versus-derived storage redesign,
+  rebalance continuity, native-window/accessibility/security checks, visual
+  review, and R2-R7 evidence remain open.
   Four concurrent mixed MN/W1/D1 ARQ jobs and a fresh XLK mixed job retained
   D1 history despite expected coarser-timeframe no-data errors; the mixed
   timeframe path does not reproduce the earlier empty family queue. The next

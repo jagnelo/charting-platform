@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-09-08 — Canonical derived W1/MN timeframe materialization
+
+- [x] Add explicit OHLCV derivation lineage (`is_derived`, source timeframe,
+      method, and materialization time) with an Alembic migration and API
+      response fields.
+- [x] Materialize W1/MN from persisted adjusted D1 bars during scheduled/bulk
+      maintenance using XNYS calendar periods; preserve observed bounds and do
+      not forward-fill gaps.
+- [x] Keep provider-supplied coarse bars authoritative per calendar period and
+      leave derived rows without a provider source ID; verify the policy with
+      focused tests plus the full unit and PostgreSQL integration suites.
+- [ ] Rebuild adjustment-factor/version provenance and physically separate raw
+      provider storage from the derived cache as the broader historical-data
+      model is completed; this slice is an explicit, tagged representation in
+      the existing OHLCV table, not the final storage redesign.
+- [ ] Re-run bounded family maintenance and prove D1/W1/MN analysis floors,
+      rebalance continuity, and UI readiness against canonical data.
+
 ### 2026-09-09 — Mixed-timeframe queue reproduction remains healthy
 
 - [x] Run four concurrent canonical seeded ARQ jobs across MN/W1/D1; all

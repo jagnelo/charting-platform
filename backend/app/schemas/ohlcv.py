@@ -15,6 +15,13 @@ class OHLCVBarOut(BaseModel):
     volume: float | None = None
     vwap: float | None = None
     is_adjusted: bool
+    is_derived: bool = False
+    source_timeframe: str | None = None
+    derivation_method: str | None = None
+    derived_at: datetime | None = None
+    source_bar_count: int | None = None
+    source_start: datetime | None = None
+    source_end: datetime | None = None
 
 
 class OHLCVRequest(BaseModel):

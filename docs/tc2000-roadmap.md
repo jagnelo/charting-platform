@@ -5,6 +5,25 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-08
 
+## 2026-09-08 — Canonical derived W1/MN materialization policy implemented
+
+The maintenance history path now materializes W1 and MN bars from persisted
+canonical adjusted D1 bars when providers do not expose those coarse
+timeframes. Aggregation uses XNYS calendar periods, preserves observed source
+bounds/counts, never forward-fills missing sessions, and stores explicit
+`is_derived`, source-timeframe, derivation-method, and timestamp lineage on each
+row. Provider-supplied W1/MN rows take precedence for their calendar period;
+derived rows have no provider source ID and are never presented as provider
+evidence. The local OHLCV response exposes this metadata.
+
+The migration and service regressions passed the complete backend unit suite
+(`1,361/1,361`, `67.40%` unit coverage) and Docker-backed integration suite
+(`386/386`), including PostgreSQL migration application. This closes the
+implementation seam for cached coarse timeframes but does not claim family
+readiness: full canonical population, placeholder disposition, rebalance
+continuity, and the R2–R7 gates remain open. No provider, fallback, visual, or
+acceptance policy was changed.
+
 ## 2026-09-09 — Bounded Nasdaq family fan-out recheck
 
 The exact dated QQQ/QQQE member set was rerun with the configured bounded

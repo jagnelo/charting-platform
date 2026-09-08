@@ -1,11 +1,40 @@
 from datetime import UTC, datetime
+from decimal import Decimal
 from types import SimpleNamespace
 
-from app.models.ohlcv import Timeframe
+from app.models.ohlcv import OHLCVBar, Timeframe
 from app.services.provider_runtime import ProviderNoDataError
 
 
 class TestOHLCVRouter:
+    def test_local_shape_exposes_derived_lineage(self, client, auth_headers, db, instrument):
+        db.add(
+            OHLCVBar(
+                instrument_id=instrument.id,
+                timeframe=Timeframe.W1,
+                ts=datetime(2025, 1, 2, tzinfo=UTC),
+                open=Decimal("10"),
+                high=Decimal("12"),
+                low=Decimal("9"),
+                close=Decimal("11"),
+                is_adjusted=True,
+                is_derived=True,
+                source_timeframe="D1",
+                derivation_method="d1_ohlcv_xnys_calendar_aggregation",
+                source_bar_count=4,
+                source_start=datetime(2024, 12, 30, tzinfo=UTC),
+                source_end=datetime(2025, 1, 2, tzinfo=UTC),
+            )
+        )
+        db.flush()
+
+        response = client.get(f"/api/v1/ohlcv/local/{instrument.symbol}/W1", headers=auth_headers)
+
+        assert response.status_code == 200
+        assert response.json()[0]["is_derived"] is True
+        assert response.json()[0]["source_timeframe"] == "D1"
+        assert response.json()[0]["source_bar_count"] == 4
+
     def test_transformed_chart_types_return_server_shape(
         self, client, auth_headers, instrument, monkeypatch
     ):

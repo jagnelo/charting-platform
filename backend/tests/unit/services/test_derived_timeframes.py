@@ -1,0 +1,112 @@
+from datetime import UTC, datetime
+from decimal import Decimal
+from types import SimpleNamespace
+
+import pytest
+from sqlalchemy import select
+
+from app.models.ohlcv import OHLCVBar, Timeframe
+from app.services.derived_timeframes import (
+    DERIVATION_METHOD,
+    aggregate_d1_bars,
+    materialize_derived_timeframes,
+)
+from tests.unit.conftest import AsyncSessionAdapter
+
+
+def _bar(day: int, *, close: str, volume: str = "100"):
+    return SimpleNamespace(
+        ts=datetime(2025, 1, day, tzinfo=UTC),
+        open=Decimal(close) - 1,
+        high=Decimal(close) + 2,
+        low=Decimal(close) - 2,
+        close=Decimal(close),
+        volume=Decimal(volume),
+        vwap=Decimal(close),
+    )
+
+
+def test_aggregate_d1_bars_uses_calendar_periods_without_filling_gaps():
+    payloads = aggregate_d1_bars(
+        [_bar(2, close="10"), _bar(3, close="11"), _bar(9, close="13")],
+        Timeframe.W1,
+    )
+
+    assert len(payloads) == 2
+    assert payloads[0]["period_key"] == (2025, 1)
+    assert payloads[0]["source_bar_count"] == 2
+    assert payloads[0]["open"] == Decimal("9")
+    assert payloads[0]["close"] == Decimal("11")
+    assert payloads[1]["period_key"] == (2025, 2)
+
+
+@pytest.mark.asyncio
+async def test_materialize_derived_timeframes_persists_lineage_and_preserves_provider_rows(
+    db, instrument
+):
+    for day, close in ((2, "10"), (3, "11"), (9, "13"), (10, "14")):
+        db.add(
+            OHLCVBar(
+                instrument_id=instrument.id,
+                timeframe=Timeframe.D1,
+                ts=datetime(2025, 1, day, tzinfo=UTC),
+                open=Decimal(close) - 1,
+                high=Decimal(close) + 2,
+                low=Decimal(close) - 2,
+                close=Decimal(close),
+                volume=Decimal("100"),
+                is_adjusted=True,
+            )
+        )
+    # A provider W1 row owns the first calendar week and must not be replaced.
+    db.add(
+        OHLCVBar(
+            instrument_id=instrument.id,
+            timeframe=Timeframe.W1,
+            ts=datetime(2025, 1, 2, tzinfo=UTC),
+            open=Decimal("9"),
+            high=Decimal("99"),
+            low=Decimal("8"),
+            close=Decimal("90"),
+            volume=Decimal("200"),
+            is_adjusted=True,
+            is_derived=False,
+        )
+    )
+    db.flush()
+
+    result = await materialize_derived_timeframes(AsyncSessionAdapter(db), instrument.id)
+    assert result == {"W1": 1, "MN": 1}
+
+    weekly = (
+        db.execute(
+            select(OHLCVBar)
+            .where(OHLCVBar.instrument_id == instrument.id, OHLCVBar.timeframe == Timeframe.W1)
+            .order_by(OHLCVBar.ts)
+        )
+        .scalars()
+        .all()
+    )
+    assert len(weekly) == 2
+    assert weekly[0].is_derived is False
+    assert weekly[0].close == Decimal("90")
+    assert weekly[1].is_derived is True
+    assert weekly[1].source_timeframe == "D1"
+    assert weekly[1].derivation_method == DERIVATION_METHOD
+    assert weekly[1].data_source_id is None
+    assert weekly[1].source_bar_count == 2
+    assert weekly[1].source_start.replace(tzinfo=UTC) == datetime(2025, 1, 9, tzinfo=UTC)
+    assert weekly[1].source_end.replace(tzinfo=UTC) == datetime(2025, 1, 10, tzinfo=UTC)
+
+    monthly = (
+        db.execute(
+            select(OHLCVBar).where(
+                OHLCVBar.instrument_id == instrument.id, OHLCVBar.timeframe == Timeframe.MN
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert len(monthly) == 1
+    assert monthly[0].is_derived is True
+    assert monthly[0].source_timeframe == "D1"

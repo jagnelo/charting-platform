@@ -22,13 +22,14 @@ import logging
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_runtime import ProviderCapability
 from app.providers import provider_symbol_for_instrument
+from app.services.derived_timeframes import materialize_derived_timeframes
 from app.services.market_data import _record_bar_observations, _touch_ohlcv_dataset_state
 from app.services.provider_runtime import execute_provider_call
 
@@ -138,6 +139,17 @@ async def bulk_fetch_instrument(
 
         await _publish_progress(redis, instrument.id, "in_progress", timeframes, summary)
         await asyncio.sleep(INTER_TF_DELAY_SECONDS)
+
+    # Public providers commonly expose D1 but not W1/MN.  Rebuild local coarse
+    # bars only after all provider attempts finish so provider rows win and the
+    # derived lineage is committed as one maintenance operation.  The guard
+    # keeps lightweight cancellation/unit-test session doubles provider-free.
+    if hasattr(db, "execute") and any(
+        tf in timeframes for tf in (Timeframe.D1, Timeframe.W1, Timeframe.MN)
+    ):
+        derived = await materialize_derived_timeframes(db, instrument.id, adjusted=adjusted)
+        summary["derived"] = derived
+        await db.commit()
 
     if await _is_cancel_requested(redis, cancel_key):
         await _publish_progress(redis, instrument.id, "canceled", timeframes, summary)
@@ -250,6 +262,20 @@ async def _do_fetch_and_store(
         )
         await db.commit()
         return 0
+
+    # A later provider response must be allowed to replace a previously
+    # materialised coarse bar.  Remove only derived rows; provider rows remain
+    # immutable source evidence and are still de-duplicated below.
+    if timeframe in (Timeframe.W1, Timeframe.MN):
+        await db.execute(
+            delete(OHLCVBar).where(
+                OHLCVBar.instrument_id == instrument.id,
+                OHLCVBar.timeframe == timeframe,
+                OHLCVBar.is_adjusted.is_(adjusted),
+                OHLCVBar.is_derived.is_(True),
+            )
+        )
+        await db.flush()
 
     existing_ts = await _existing_timestamps(db, instrument.id, timeframe, adjusted)
 
