@@ -22,6 +22,26 @@ started with `E2E_SEED_MARKET_DATA=false`, so no D1/W1/MN member bars are
 claimed. Broader family population, historical continuity, and analysis floors
 remain open.
 
+## 2026-09-08 — Exact-tip gate after QQQ identity repair
+
+Product commit `40a67a9c` permits curated SEC filings that omit series/class
+IDs to pass identity matching only when their observed series name matches the
+route's curated series-name constraint; mismatches and CIK-only inference still
+fail closed. The live QQQ `2024-12-31` SEC refresh then persisted one canonical
+snapshot with `101/101` rows resolved and no failures. Formatter commit
+`ed43faa4` completed the exact-tip gate: backend `1353` unit and `386`
+integration tests, combined coverage `80.98%`, frontend Vitest `974/974`,
+production build/compose/provider policy, healthy stack and runner probes, and
+functional Playwright `165` passed with `106` documented skips across `271`.
+The unchanged visual matrix remains `98/104` with exactly six known
+state-oracle diffs (watchlist-column-editor-open at visual-1080p-100/125 and
+workspace-floating at visual-1080p-100/125, visual-1440p-100, and
+visual-1440p-125). No baseline, mask, threshold, skip, fallback, provider, or
+acceptance policy changed. Gate cleanup removed branch-scoped resources; a
+post-cleanup resource probe was unable to query Docker because the host daemon
+socket was permission-denied. Continue broader R1 family population,
+continuity, and D1/W1/MN member-bar evidence, then the remaining R2-R7 work.
+
 ## 2026-09-08 — Exact-tip gate after alert-promotion hydration stabilization
 
 Test commit `e227eda8` adds the bounded two-second canonical-instrument

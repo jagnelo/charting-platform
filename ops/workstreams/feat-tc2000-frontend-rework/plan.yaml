@@ -13,6 +13,17 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Latest exact-tip gate at ed43faa4 passed every non-visual stage: backend 1353
+  unit and 386 integration tests, coverage 80.98%, frontend Vitest 974/974,
+  build/compose/provider policy, stack and runner probes, and Playwright 165
+  passed with 106 documented skips across 271. Visual acceptance remains
+  98/104 with exactly six unchanged state-oracle diffs. Product commit
+  40a67a9c repaired curated nameless QQQ SEC identity matching and live QQQ
+  2024-12-31 refresh persisted 101/101 resolved rows. Gate cleanup removed
+  branch-scoped resources; post-cleanup Docker probing was host-permission
+  denied. Continue R1 family population, continuity, and D1/W1/MN member-bar
+  floors, then R2-R7. The historical gate and maintenance receipts below
+  remain authoritative.
   2026-09-08 bounded Nasdaq-100 maintenance persisted four canonical SEC
   snapshots with all rows resolved (QQQ 101/101 at 2025-12-31; QQQE 103/103,
   102/102, and 102/102 at 2025-10-31, 2024-10-31, and 2024-04-30). The

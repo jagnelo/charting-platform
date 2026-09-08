@@ -14,6 +14,21 @@
       explicit, and the disposable stack had no D1/W1/MN bars because market
       data seeding was disabled.
 
+### 2026-09-08 — Exact-tip gate after QQQ identity repair
+
+- [x] Permit curated SEC filings with omitted series/class IDs only when the
+      observed series name matches the curated route constraint; mismatches and
+      CIK-only inference still fail closed (`40a67a9c`). Live QQQ
+      `2024-12-31` refresh persisted `101/101` resolved rows.
+- [x] Exhaustive gate completed all non-visual stages: backend `1353` unit and
+      `386` integration tests, coverage `80.98%`, frontend Vitest `974/974`,
+      build/compose/provider policy, stack/runner probes, and Playwright `165`
+      passed with `106` documented skips across `271` tests.
+- [x] Visual matrix remains `98/104`; exactly the six unchanged
+      watchlist-column-editor-open/workspace-floating state-oracle diffs fail.
+- [ ] Continue family-wide R1 population, historical continuity, and D1/W1/MN
+      member-bar floors, then the remaining R2-R7 work.
+
 ### 2026-09-08 — Exact-tip gate after alert-promotion hydration stabilization
 
 - [x] Add the bounded canonical-instrument settling window to F8u-alert,

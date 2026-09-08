@@ -8,6 +8,21 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-08 — Exact-tip gate after QQQ identity repair
+
+Product commit `40a67a9c` allows curated SEC filings with omitted series/class
+IDs only when the observed series name matches the route's curated constraint;
+mismatches and CIK-only inference remain fail-closed. Live QQQ `2024-12-31`
+refresh persisted `101/101` resolved rows. Formatter commit `ed43faa4` then
+passed the full gate's non-visual stages: backend `1353` unit/`386`
+integration, coverage `80.98%`, Vitest `974/974`, build/compose/provider
+policy, stack and runner probes, and Playwright `165` passed with `106`
+documented skips across `271`. Visual acceptance remains `98/104` with the
+same six state-oracle diffs; no visual or provider policy changed. Continue
+R1 family population/continuity/D1-W1-MN evidence and R2-R7. The gate cleaned
+its branch-scoped resources; the post-cleanup Docker resource probe was
+permission-denied by the host daemon socket.
+
 ## 2026-09-08 — Bounded Nasdaq-100 canonical provider-history maintenance
 
 The isolated branch stack completed a bounded dated refresh for `nasdaq100`
