@@ -397,6 +397,7 @@ async def _provider_enriched_constituent_instrument(
     if settings.APP_ENV == "test":
         return None, None, None
 
+    identifier_profile_rejected = False
     for provider in get_identifier_providers():
         resolve_profile = getattr(provider, "resolve_instrument_profile", None)
         if not callable(resolve_profile):
@@ -412,6 +413,7 @@ async def _provider_enriched_constituent_instrument(
         if profile is None:
             continue
         if not _profile_matches_holding(row, profile):
+            identifier_profile_rejected = True
             continue
 
         instrument = existing_instrument
@@ -462,7 +464,7 @@ async def _provider_enriched_constituent_instrument(
     # A unique best name match must still hydrate a full metadata profile before
     # the placeholder can be promoted. This keeps the operation auditable and
     # prevents arbitrary symbol guessing or ambiguous cross-listed promotion.
-    if row.name and not _normalize_symbol(row.symbol):
+    if row.name and (not _normalize_symbol(row.symbol) or identifier_profile_rejected):
         search_results = []
         search_result_providers: dict[str, list[object]] = {}
         try:

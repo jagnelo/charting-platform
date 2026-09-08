@@ -3028,3 +3028,9 @@ frontend type-check/build, compose/provider/runner checks, and functional
 Playwright `165/272` with `107` documented skips. Visual parity remained
 `98/104` with the same six state-oracle diffs; teardown and resource cleanup
 were clean.
+
+The resolver follow-up retained the stable-identifier duplicate-collapse path:
+the name bridge is enabled for a ticker-bearing row only when an identifier
+profile was rejected (such as a foreign listing). The corrected implementation
+again passed the exact gate with backend `1,357` unit and `386` integration tests,
+functional `165/272`, and unchanged visual `98/104` with the same six diffs.

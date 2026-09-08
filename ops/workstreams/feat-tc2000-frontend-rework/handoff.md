@@ -3749,3 +3749,8 @@ type-check/build, compose/provider/runner checks, and functional Playwright
 `165/272` with `107` documented skips. Visual parity remained `98/104` with
 the same six established state-oracle diffs. Teardown and resource cleanup
 were clean.
+
+The follow-up refinement preserves duplicate-symbol collapse by enabling the
+name bridge with a reported ticker only after an identifier profile is rejected.
+The corrected implementation passed the same exact gate again; no provider,
+fallback, visual, or acceptance policy changed.

@@ -352,7 +352,7 @@ async def test_resolver_rejects_foreign_listing_for_us_isin_and_uses_us_search_b
     instrument, confidence, note = await _resolve_or_create_constituent(
         async_db,
         CanonicalHoldingRow(
-            symbol=None,
+            symbol="AZN",
             name="AstraZeneca PLC",
             isin="US0463531089",
             cusip="046353108",
