@@ -704,9 +704,15 @@ def _capacity_response_headers(headers: dict[str, str] | None) -> dict[str, str]
         return {}
     allowed = {
         "retry-after",
+        "api-credits-used",
+        "api-credits-left",
         "x-ratelimit-limit",
         "x-ratelimit-remaining",
         "x-ratelimit-reset",
+        "x-ratelimit-allowed",
+        "x-ratelimit-used",
+        "x-ratelimit-available",
+        "x-ratelimit-expiry",
         "x-rate-limit-limit",
         "x-rate-limit-remaining",
         "x-rate-limit-reset",

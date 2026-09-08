@@ -16,6 +16,14 @@ from typing import Any
 _OBSERVED_HEADERS = (
     "content-length",
     "retry-after",
+    # Twelve Data exposes credit-pool state with these provider-native names.
+    "api-credits-used",
+    "api-credits-left",
+    # Tradier exposes a token-window snapshot with these headers.
+    "x-ratelimit-allowed",
+    "x-ratelimit-used",
+    "x-ratelimit-available",
+    "x-ratelimit-expiry",
     "x-mbx-used-weight-1m",
     "x-mbx-order-count-1m",
     "x-ratelimit-limit",
@@ -45,8 +53,9 @@ class ProviderTransportMeasurement:
         headers = getattr(response, "headers", None)
         if headers is None:
             return
+        normalized_headers = {str(key).lower(): value for key, value in headers.items()}
         for name in _OBSERVED_HEADERS:
-            value = headers.get(name)
+            value = normalized_headers.get(name)
             if value is not None:
                 self.response_headers[name] = str(value)
 
@@ -76,4 +85,3 @@ def observe_response(response: Any) -> None:
     measurement = _current.get()
     if measurement is not None:
         measurement.observe(response)
-
