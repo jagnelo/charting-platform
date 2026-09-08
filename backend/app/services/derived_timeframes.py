@@ -24,6 +24,7 @@ _BarLike = TypeVar("_BarLike", bound=OHLCVBar)
 
 def _period_key(ts: datetime, timeframe: Timeframe) -> tuple[int, int]:
     value = ts if ts.tzinfo is not None else ts.replace(tzinfo=UTC)
+    value = value.astimezone(UTC)
     if timeframe == Timeframe.W1:
         iso = value.date().isocalendar()
         return (iso.year, iso.week)
@@ -47,14 +48,27 @@ def aggregate_d1_bars(bars: Iterable[_BarLike], timeframe: Timeframe) -> list[di
 
     payloads: list[dict[str, object]] = []
     for members in groups.values():
-        ordered = sorted(members, key=lambda item: item.ts)
+        ordered = sorted(
+            members,
+            key=lambda item: (
+                item.ts if item.ts.tzinfo is not None else item.ts.replace(tzinfo=UTC)
+            ).astimezone(UTC),
+        )
+        first_ts = (
+            ordered[0].ts if ordered[0].ts.tzinfo is not None else ordered[0].ts.replace(tzinfo=UTC)
+        ).astimezone(UTC)
+        last_ts = (
+            ordered[-1].ts
+            if ordered[-1].ts.tzinfo is not None
+            else ordered[-1].ts.replace(tzinfo=UTC)
+        ).astimezone(UTC)
         volumes = [bar.volume for bar in ordered if bar.volume is not None]
         vwap = None
         if volumes and len(volumes) == len(ordered) and sum(volumes) > 0:
             vwap = sum((bar.vwap or bar.close) * bar.volume for bar in ordered) / sum(volumes)
         payloads.append(
             {
-                "ts": ordered[0].ts,
+                "ts": first_ts,
                 "open": ordered[0].open,
                 "high": max(bar.high for bar in ordered),
                 "low": min(bar.low for bar in ordered),
@@ -62,8 +76,8 @@ def aggregate_d1_bars(bars: Iterable[_BarLike], timeframe: Timeframe) -> list[di
                 "volume": sum(volumes) if len(volumes) == len(ordered) else None,
                 "vwap": vwap,
                 "source_bar_count": len(ordered),
-                "source_start": ordered[0].ts,
-                "source_end": ordered[-1].ts,
+                "source_start": first_ts,
+                "source_end": last_ts,
                 "period_key": _period_key(ordered[0].ts, timeframe),
             }
         )

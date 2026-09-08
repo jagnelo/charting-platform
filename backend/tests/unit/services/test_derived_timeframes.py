@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta, timezone
 from decimal import Decimal
 from types import SimpleNamespace
 
@@ -38,6 +38,20 @@ def test_aggregate_d1_bars_uses_calendar_periods_without_filling_gaps():
     assert payloads[0]["open"] == Decimal("9")
     assert payloads[0]["close"] == Decimal("11")
     assert payloads[1]["period_key"] == (2025, 2)
+
+
+def test_aggregate_d1_bars_normalizes_offset_timestamps_to_utc_calendar():
+    bar = _bar(2, close="10")
+    # Sunday in the source offset is Monday in UTC.  XNYS periods must use the
+    # canonical UTC timestamp, not the provider's presentation offset.
+    bar.ts = datetime(2025, 1, 5, 23, tzinfo=timezone(timedelta(hours=-5)))
+
+    payload = aggregate_d1_bars([bar], Timeframe.W1)[0]
+
+    assert payload["period_key"] == (2025, 2)
+    assert payload["ts"] == datetime(2025, 1, 6, 4, tzinfo=UTC)
+    assert payload["source_start"] == payload["ts"]
+    assert payload["source_end"] == payload["ts"]
 
 
 @pytest.mark.asyncio
