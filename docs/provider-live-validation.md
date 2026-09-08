@@ -88,11 +88,15 @@ administrators.
 The remaining credentialed blockers are Alpaca, Tradier, and MarketData.app;
 SEC EDGAR also needs an operator contact User-Agent. A provider may have a
 green live probe and remain non-routable when any external constraint cannot
-yet be accounted safely. Tiingo, FINRA, and FMP are in that state because their
-monthly bandwidth ceilings are now explicit but the runtime does not yet meter
-response bytes. FRED v1 and Nasdaq Trader remain non-routable because their
-official documentation publishes throttling behavior without a numeric
-ceiling. IBKR remains a descriptor without an authenticated account adapter.
+yet be accounted safely. The runtime now records observed HTTP request counts,
+response bytes, and selected provider headers for instrumented adapters,
+including Tiingo, FINRA, FMP, Binance, FRED, and tokenized providers. That
+telemetry is durable in `provider_request_log`, but byte ceilings and dynamic
+response-header/account budgets are not yet reserved or enforced in quota
+windows, so Tiingo, FINRA, and FMP remain non-routable. FRED v1 and Nasdaq
+Trader remain non-routable because their official documentation publishes
+throttling behavior without a numeric ceiling. IBKR remains a descriptor
+without an authenticated account adapter.
 
 The public tokenized matrix is maintained separately in
 `tests/live/test_tokenized_providers_live.py`. It covers xStocks, Robinhood

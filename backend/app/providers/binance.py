@@ -30,6 +30,7 @@ from typing import Any
 import httpx
 
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +114,7 @@ class BinanceProvider:
                     },
                     timeout=30,
                 )
+                observe_response(r)
                 r.raise_for_status()
                 klines = r.json()
             except httpx.HTTPStatusError:
@@ -193,6 +195,7 @@ class BinanceProvider:
                 params={"symbol": binance_sym},
                 timeout=10,
             )
+            observe_response(r)
             r.raise_for_status()
             return float(r.json()["price"])
         except httpx.HTTPStatusError:
@@ -244,6 +247,7 @@ def _cached_usdt_pairs() -> list[dict]:
         return _usdt_pairs
     try:
         r = httpx.get(f"{_BASE}/exchangeInfo", timeout=30)
+        observe_response(r)
         r.raise_for_status()
         symbols = r.json().get("symbols", [])
         pairs = [

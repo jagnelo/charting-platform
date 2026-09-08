@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextvars
 import logging
 import random
 import time
@@ -34,6 +35,8 @@ from app.providers import (
     supported_provider_names,
 )
 from app.providers.errors import ProviderNotConfiguredError, ProviderRateLimitError
+from app.providers.telemetry import activate as activate_provider_telemetry
+from app.providers.telemetry import deactivate as deactivate_provider_telemetry
 from app.services.provider_support import (
     SUPPORT_STATUS_SUPPORTED,
     SUPPORT_STATUS_UNKNOWN,
@@ -1071,11 +1074,22 @@ async def execute_provider_call(
 
         semaphore = _get_semaphore(resolved.policy, resolved.provider_name)
         started = time.perf_counter()
+        measurement, measurement_token = activate_provider_telemetry()
         try:
             async with semaphore:
+                # ``run_in_executor`` does not propagate ContextVar state by
+                # itself.  Copy the context after activation so synchronous
+                # adapters can report transport bytes from their worker
+                # thread without changing their domain return types.
+                invocation_context = contextvars.copy_context()
                 result = await loop.run_in_executor(
-                    None, lambda: invoke(resolved.provider, provider_symbol)
+                    None,
+                    invocation_context.run,
+                    lambda: invoke(resolved.provider, provider_symbol),
                 )
+            log_row.http_requests = measurement.http_requests
+            log_row.response_bytes = measurement.response_bytes
+            log_row.response_headers = dict(measurement.response_headers)
             count = response_items(result) if response_items is not None else None
             is_empty = result is None or count == 0
             if treat_empty_as_failure and is_empty:
@@ -1113,6 +1127,9 @@ async def execute_provider_call(
                 result=result,
             )
         except Exception as exc:
+            log_row.http_requests = measurement.http_requests
+            log_row.response_bytes = measurement.response_bytes
+            log_row.response_headers = dict(measurement.response_headers)
             rate_error = provider_rate_limit_error(
                 resolved.provider_name,
                 exc,
@@ -1208,6 +1225,8 @@ async def execute_provider_call(
                     min(1.0, 0.2 * (resolved.health.failure_streak + 1)) + random.random() * 0.15
                 )
             continue
+        finally:
+            deactivate_provider_telemetry(measurement_token)
 
     if not chain and instrument_id is not None:
         raise ProviderNoDataError(

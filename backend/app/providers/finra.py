@@ -17,6 +17,7 @@ import httpx
 from app.config import settings
 from app.providers.base import MarketEventRecord, ShortInterestRecord
 from app.providers.errors import ProviderNotConfiguredError
+from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +79,7 @@ class FINRAProvider:
             },
             timeout=30,
         )
+        observe_response(response)
         response.raise_for_status()
         raw = response.json()
         rows = raw.get("data", raw) if isinstance(raw, dict) else raw
@@ -174,6 +176,7 @@ class FINRAProvider:
             },
             timeout=30,
         )
+        observe_response(response)
         response.raise_for_status()
         raw = response.json()
         rows = raw.get("data", raw) if isinstance(raw, dict) else raw
@@ -237,6 +240,7 @@ def _access_token(client_id: str, client_secret: str) -> str:
         headers={"Accept": "application/json"},
         timeout=30,
     )
+    observe_response(response)
     response.raise_for_status()
     body = response.json()
     token = str(body.get("access_token") or "").strip() if isinstance(body, dict) else ""

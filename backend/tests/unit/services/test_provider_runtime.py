@@ -14,15 +14,94 @@ from app.models.provider_runtime import (
     ProviderEntitlementRevision,
     ProviderHealthState,
     ProviderPolicy,
+    ProviderRequestLog,
 )
+from app.providers.telemetry import observe_response
 from app.services.provider_runtime import (
+    ResolvedProvider,
     TokenBucket,
     _get_bucket,
     _get_semaphore,
+    execute_provider_call,
     resolve_provider_chain,
     seed_provider_runtime,
 )
 from tests.unit.conftest import AsyncSessionAdapter
+
+
+@pytest.mark.asyncio
+async def test_execute_provider_call_persists_transport_measurement(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    source = DataSource(name="measured-provider", is_active=True)
+    db.add(source)
+    db.flush()
+    policy = ProviderPolicy(
+        data_source_id=source.id,
+        capability=ProviderCapability.LATEST_PRICE,
+        is_enabled=True,
+        max_concurrency=1,
+        quota_scope="api_key",
+        quota_source="unit-test contract",
+        quota_contract={
+            "reset": "rolling",
+            "dimensions": [
+                {
+                    "name": "requests_per_minute",
+                    "limit": 10,
+                    "window_seconds": 60,
+                    "unit": "requests",
+                    "scope": "api_key",
+                    "source": "unit-test contract",
+                }
+            ],
+        },
+        score_floor=Decimal("0"),
+        score_ceiling=Decimal("100"),
+        learned_weight=Decimal("0"),
+        effective_score=Decimal("0"),
+    )
+    health = ProviderHealthState(
+        data_source_id=source.id,
+        capability=ProviderCapability.LATEST_PRICE,
+        ewma_latency_ms=Decimal("0"),
+        ewma_success_rate=Decimal("1"),
+        ewma_completeness=Decimal("1"),
+        ewma_freshness=Decimal("1"),
+        ewma_consistency=Decimal("1"),
+        observed_score=Decimal("0"),
+    )
+    resolved = ResolvedProvider(
+        provider_name="measured-provider",
+        provider=object(),
+        data_source=source,
+        policy=policy,
+        health=health,
+    )
+
+    async def fake_chain(*_args, **_kwargs):
+        return [resolved]
+
+    monkeypatch.setattr("app.services.provider_runtime.resolve_provider_chain", fake_chain)
+
+    def invoke(_provider, _symbol):
+        response = type(
+            "Response",
+            (),
+            {"content": b"measured-response", "headers": {"x-ratelimit-remaining": "9"}},
+        )()
+        observe_response(response)
+        return 123.45
+
+    await execute_provider_call(
+        async_db,
+        ProviderCapability.LATEST_PRICE,
+        "get_current_price",
+        invoke=invoke,
+    )
+    row = db.execute(select(ProviderRequestLog)).scalar_one()
+    assert row.http_requests == 1
+    assert row.response_bytes == len(b"measured-response")
+    assert row.response_headers == {"x-ratelimit-remaining": "9"}
 
 
 @pytest.mark.asyncio

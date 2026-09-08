@@ -31,6 +31,7 @@ from app.providers.base import (
     ProviderSearchResult,
 )
 from app.providers.errors import ProviderNotConfiguredError
+from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
 
@@ -135,6 +136,7 @@ class _RESTProvider:
             headers=self._auth_headers(),
             timeout=30,
         )
+        observe_response(response)
         response.raise_for_status()
         return response.json()
 

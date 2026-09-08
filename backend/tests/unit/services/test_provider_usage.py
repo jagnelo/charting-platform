@@ -41,6 +41,8 @@ async def test_summarize_provider_usage_tracks_plain_request_counts(db):
                 usage_mode="call_count",
                 usage_unit_label="requests",
                 usage_units=Decimal("1"),
+                http_requests=1,
+                response_bytes=1200,
                 latency_ms=120,
             ),
             ProviderRequestLog(
@@ -54,6 +56,8 @@ async def test_summarize_provider_usage_tracks_plain_request_counts(db):
                 usage_mode="call_count",
                 usage_unit_label="requests",
                 usage_units=Decimal("1"),
+                http_requests=1,
+                response_bytes=800,
                 latency_ms=250,
                 error_type="TimeoutError",
             ),
@@ -68,6 +72,8 @@ async def test_summarize_provider_usage_tracks_plain_request_counts(db):
     assert summary["usage_unit_label"] == "requests"
     assert summary["requests_24h"] == 2
     assert summary["units_24h"] == pytest.approx(2.0)
+    assert summary["response_bytes_24h"] == 2000
+    assert summary["top_operations"][0]["response_bytes"] == 2000
     assert summary["failure_rate_24h"] == pytest.approx(50.0)
     assert summary["timeout_rate_24h"] == pytest.approx(50.0)
     assert summary["top_operations"][0]["operation_family"] == "search_instruments"
@@ -105,6 +111,8 @@ async def test_summarize_provider_usage_tracks_weighted_budget_windows(db):
                 usage_mode="weighted_budget",
                 usage_unit_label="credits",
                 usage_units=Decimal("15"),
+                http_requests=1,
+                response_bytes=4096,
                 latency_ms=100,
             ),
             ProviderRequestLog(
@@ -132,4 +140,5 @@ async def test_summarize_provider_usage_tracks_weighted_budget_windows(db):
     assert summary["current_window_requests"] == 1
     assert summary["current_window_units"] == pytest.approx(15.0)
     assert summary["current_window_utilization_pct"] == pytest.approx(15.0)
+    assert summary["current_window_response_bytes"] == 4096
     assert summary["quota_limit"] == 100

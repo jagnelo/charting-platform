@@ -18,6 +18,7 @@ import httpx
 
 from app.config import settings
 from app.providers.base import TokenizedAssetRecord
+from app.providers.telemetry import observe_response
 
 
 def _decimal(value: Any) -> Decimal | None:
@@ -35,6 +36,7 @@ def _now() -> datetime:
 
 def _http_json(url: str, *, params: dict[str, Any] | None = None, headers: dict[str, str] | None = None) -> Any:
     response = httpx.get(url, params=params, headers=headers, timeout=30)
+    observe_response(response)
     response.raise_for_status()
     return response.json()
 

@@ -3,6 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import (
+    BIGINT,
     JSON,
     Boolean,
     DateTime,
@@ -267,6 +268,9 @@ class ProviderRequestLog(Base, TimestampMixin):
     usage_units: Mapped[Decimal] = mapped_column(
         Numeric(12, 4), nullable=False, default=Decimal("1")
     )
+    http_requests: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    response_bytes: Mapped[int | None] = mapped_column(BIGINT, nullable=True)
+    response_headers: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     response_items: Mapped[int | None] = mapped_column(Integer, nullable=True)
     error_type: Mapped[str | None] = mapped_column(String(80), nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)

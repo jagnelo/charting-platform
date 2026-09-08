@@ -31,6 +31,7 @@ import httpx
 
 from app.config import settings
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
 
@@ -119,6 +120,7 @@ class FREDProvider:
                 },
                 timeout=30,
             )
+            observe_response(r)
             r.raise_for_status()
             observations = r.json().get("observations", [])
         except Exception as exc:
@@ -197,6 +199,7 @@ class FREDProvider:
                 },
                 timeout=10,
             )
+            observe_response(r)
             r.raise_for_status()
             for obs in r.json().get("observations", []):
                 v = obs.get("value", ".")

@@ -31,6 +31,11 @@ def _to_float(value: Decimal | int | float | None) -> float:
     return float(value)
 
 
+def _response_bytes(log: ProviderRequestLog) -> int:
+    """Return observed transport bytes, preserving unknown as zero for sums."""
+    return max(0, int(log.response_bytes or 0))
+
+
 def _percent(numerator: int, denominator: int) -> float:
     if denominator <= 0:
         return 0.0
@@ -158,6 +163,13 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
             now=now,
             quota_window_seconds=int(quota_window_seconds) if quota_window_seconds else None,
         )
+        current_window_logs = [
+            log
+            for log in provider_logs
+            if quota_window_seconds
+            and (_ensure_aware(log.requested_at) or now)
+            >= now - timedelta(seconds=int(quota_window_seconds))
+        ]
         denominator_limit = quota_limit or estimated_quota_limit
         current_window_utilization = (
             (current_window_units / float(denominator_limit)) * 100.0
@@ -173,12 +185,14 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
                     "operation_family": log.operation_family,
                     "requests": 0,
                     "units": 0.0,
+                    "response_bytes": 0,
                     "failures": 0,
                     "successes": 0,
                 },
             )
             row["requests"] += 1
             row["units"] += _to_float(log.usage_units)
+            row["response_bytes"] += _response_bytes(log)
             row["successes"] += 1 if log.success else 0
             row["failures"] += 0 if log.success else 1
 
@@ -186,10 +200,17 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
         for log in last_7d_logs:
             row = capability_agg.setdefault(
                 log.capability.value,
-                {"capability": log.capability.value, "requests": 0, "units": 0.0, "failures": 0},
+                {
+                    "capability": log.capability.value,
+                    "requests": 0,
+                    "units": 0.0,
+                    "response_bytes": 0,
+                    "failures": 0,
+                },
             )
             row["requests"] += 1
             row["units"] += _to_float(log.usage_units)
+            row["response_bytes"] += _response_bytes(log)
             row["failures"] += 0 if log.success else 1
 
         error_counts = Counter(
@@ -240,12 +261,18 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
                 "current_window_requests": current_window_requests,
                 "current_window_units": current_window_units,
                 "current_window_utilization_pct": current_window_utilization,
+                "current_window_response_bytes": sum(
+                    _response_bytes(log) for log in current_window_logs
+                ),
                 "retained_requests": len(provider_logs),
                 "retained_units": sum(_to_float(log.usage_units) for log in provider_logs),
+                "retained_response_bytes": sum(_response_bytes(log) for log in provider_logs),
                 "requests_24h": len(last_24h_logs),
                 "units_24h": sum(_to_float(log.usage_units) for log in last_24h_logs),
+                "response_bytes_24h": sum(_response_bytes(log) for log in last_24h_logs),
                 "requests_7d": len(last_7d_logs),
                 "units_7d": sum(_to_float(log.usage_units) for log in last_7d_logs),
+                "response_bytes_7d": sum(_response_bytes(log) for log in last_7d_logs),
                 "success_rate_24h": _percent(
                     len(last_24h_logs) - len(failures_24h), len(last_24h_logs)
                 ),
