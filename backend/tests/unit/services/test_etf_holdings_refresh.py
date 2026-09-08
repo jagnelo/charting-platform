@@ -52,3 +52,61 @@ async def test_dated_family_refresh_preserves_declared_history_route_evidence(mo
             "history_route_source_url": "https://data.sec.gov/submissions/CIK0001067839.json",
         }
     ]
+
+
+@pytest.mark.asyncio
+async def test_dated_family_refresh_isolates_role_transaction_failures(monkeypatch):
+    class Savepoint:
+        def __init__(self, session):
+            self.session = session
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, _exc, _tb):
+            if exc_type is not None:
+                self.session.closed = False
+            return False
+
+    class Session:
+        closed = False
+
+        def begin_nested(self):
+            return Savepoint(self)
+
+        async def flush(self):
+            return None
+
+    async def fake_instrument(db, *, symbol, name):
+        if db.closed:
+            raise RuntimeError("closed transaction")
+        if symbol == "QQQ":
+            db.closed = True
+            raise RuntimeError("provider integrity failure")
+        return SimpleNamespace(symbol=symbol, name=name)
+
+    async def fake_profile(_db, instrument):
+        return SimpleNamespace(instrument=instrument, adapter_key="invesco", provider_aliases={})
+
+    async def fake_probe(_db, _profile):
+        return SimpleNamespace(status="ready", reason=None)
+
+    async def fake_refresh(_db, profile, *, requested_date):
+        return SimpleNamespace(id=42, composition_date=requested_date)
+
+    monkeypatch.setattr(refresh, "ensure_lightweight_etf_instrument", fake_instrument)
+    monkeypatch.setattr(refresh, "ensure_etf_profile", fake_profile)
+    monkeypatch.setattr(refresh, "_apply_known_route_metadata", lambda _profile: True)
+    monkeypatch.setattr(refresh, "probe_etf_holdings_adapter_route", fake_probe)
+    monkeypatch.setattr(refresh, "refresh_etf_holdings_for_date", fake_refresh)
+
+    summary = await refresh.refresh_benchmark_family_holdings_for_date(
+        Session(),
+        family_key="nasdaq100",
+        requested_date=date(2026, 6, 30),
+        roles=["cap_weight", "equal_weight"],
+    )
+
+    assert summary["failed"] == 1
+    assert summary["refreshed"] == 1
+    assert [leg["status"] for leg in summary["legs"]] == ["failed", "refreshed"]

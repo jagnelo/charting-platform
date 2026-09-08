@@ -3792,3 +3792,15 @@ returned `2,344` adjusted D1 bars through `2025-12-31`; MN/W1 returned expected
 no-data outcomes. Aggregate D1 coverage is `102` instruments / `220,106` bars;
 W1/MN remain zero. This is bounded R1 evidence only; placeholder disposition,
 W1/MN floors, rebalance continuity, and remaining R1–R7 work remain open.
+
+## 2026-09-09 — Dated family refresh transaction isolation
+
+The bounded all-family pass showed that one failed provider/parser leg could invalidate the
+family savepoint and make subsequent roles emit `closed transaction inside context manager`.
+`refresh_benchmark_family_holdings_for_date` now wraps each mapped role in its own savepoint;
+focused service/worker tests passed `6/6`. A live SP500 retry completed `4/4` mapped roles and
+queued `491` canonical history candidates (`1` new, `490` already queued; `69` unresolved).
+Earlier successful legs also persisted SP400 (`3` refreshed plus one unavailable role) and
+Russell 3000 (`1` refreshed plus three unavailable roles). Remaining families must be rerun under
+the corrected boundary; R1/R2–R7 readiness is not claimed and no provider/fallback/acceptance
+policy changed.

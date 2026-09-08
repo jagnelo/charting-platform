@@ -81,6 +81,12 @@ def holdings_snapshot_is_bootstrap_ready(snapshot: ETFHoldingsSnapshot | None) -
 
 @asynccontextmanager
 async def _bootstrap_savepoint(db: AsyncSession):
+    # Lightweight unit-test doubles do not expose SQLAlchemy's savepoint API.
+    # Keep the helper usable with those doubles while production sessions always
+    # take the real nested transaction path.
+    if not hasattr(db, "begin_nested"):
+        yield
+        return
     nested = db.begin_nested()
     if hasattr(nested, "__aenter__"):
         async with nested:
@@ -1113,31 +1119,38 @@ async def refresh_benchmark_family_holdings_for_date(
             continue
 
         try:
-            instrument = await ensure_lightweight_etf_instrument(
-                db,
-                symbol=symbol,
-                name=str(mapping.get("label") or symbol),
-            )
-            profile = await ensure_etf_profile(db, instrument)
-            _apply_known_route_metadata(profile)
-            probe = await probe_etf_holdings_adapter_route(db, profile)
-            if probe.status != "ready":
-                unavailable += 1
-                legs.append(
-                    {
-                        "role": role,
-                        "symbol": symbol,
-                        "status": "route_not_ready",
-                        **route_evidence,
-                        "message": probe.reason or "No usable free holdings route is configured.",
-                    }
+            # Keep each role inside its own savepoint.  A provider/parser
+            # failure can invalidate the current SQLAlchemy transaction (for
+            # example, after an integrity error); without a role boundary the
+            # following roles all report the misleading "closed transaction
+            # inside context manager" error instead of running independently.
+            async with _bootstrap_savepoint(db):
+                instrument = await ensure_lightweight_etf_instrument(
+                    db,
+                    symbol=symbol,
+                    name=str(mapping.get("label") or symbol),
                 )
-                continue
-            snapshot = await refresh_etf_holdings_for_date(
-                db,
-                profile,
-                requested_date=requested_date,
-            )
+                profile = await ensure_etf_profile(db, instrument)
+                _apply_known_route_metadata(profile)
+                probe = await probe_etf_holdings_adapter_route(db, profile)
+                if probe.status != "ready":
+                    unavailable += 1
+                    legs.append(
+                        {
+                            "role": role,
+                            "symbol": symbol,
+                            "status": "route_not_ready",
+                            **route_evidence,
+                            "message": probe.reason
+                            or "No usable free holdings route is configured.",
+                        }
+                    )
+                    continue
+                snapshot = await refresh_etf_holdings_for_date(
+                    db,
+                    profile,
+                    requested_date=requested_date,
+                )
         except ETFHoldingsRouteNotReadyError as exc:
             unavailable += 1
             legs.append(

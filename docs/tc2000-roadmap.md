@@ -67,6 +67,24 @@ Playwright `165` passed with `107` documented skips across `272`. Visual parity
 remains `98/104` with the same six unchanged state-oracle diffs; no visual or
 acceptance policy changed.
 
+## 2026-09-09 — Isolate dated family refresh transactions
+
+The first bounded all-family dated maintenance pass exposed a transaction-boundary defect:
+when one provider/parser leg invalidated its SQLAlchemy transaction, later roles in the same
+family reported the misleading `closed transaction inside context manager` error. Each mapped
+role now runs inside its own savepoint, so a failed leg is rolled back without suppressing
+independent roles. A regression test covers failure-then-success continuation, and the focused
+service/worker tests passed (`6/6`).
+
+The live branch worker retry for SP500 completed all four mapped roles (`4` refreshed, `0`
+failed), persisted dated SEC snapshots, and queued `491` canonical member-history candidates
+(`1` new, `490` already queued; `69` unresolved exclusions). The preceding all-family probe
+also persisted SP400 (`3` refreshed, one role explicitly unavailable) and Russell 3000 (`1`
+refreshed, three roles explicitly unavailable) snapshots; the remaining failures are not treated
+as family readiness until rerun under the corrected boundary. No provider, fallback, credential,
+visual, or acceptance policy changed. R1 remains open for complete family/root population,
+placeholder disposition, W1/MN floors, and rebalance continuity.
+
 The exact-tip full integration gate at the current documentation checkpoint
 repeated the same boundary: backend unit/integration, frontend type-check/build,
 compose/provider/runner probes, and functional Playwright all passed

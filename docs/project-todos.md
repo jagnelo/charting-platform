@@ -18107,3 +18107,14 @@ The current source also passes the focused authenticated top-down browser slice 
       Dreyfus government cash).
 - [ ] Resolve or explicitly disposition the EA/cash residuals, add W1/MN history,
       prove dated rebalance continuity, and complete remaining R1–R7 acceptance evidence.
+
+### 2026-09-09 — Dated family refresh transaction isolation
+
+- [x] Isolate each mapped family role in its own SQLAlchemy savepoint so one provider/parser
+      transaction failure cannot cascade as `closed transaction inside context manager`; add a
+      failure-then-success regression test (`6/6` focused service/worker tests passed).
+- [x] Live SP500 retry completed all four mapped roles (`4` refreshed, `0` failed) and queued
+      `491` canonical history candidates (`1` new, `490` already queued; `69` unresolved).
+- [ ] Rerun the remaining families under the corrected boundary and close the broader R1 gaps:
+      complete root/role population, residual disposition, W1/MN history floors, and rebalance
+      continuity. No provider, fallback, credential, visual, or acceptance policy changed.
