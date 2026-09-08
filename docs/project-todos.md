@@ -1,5 +1,12 @@
 # Project TODO Memory
 
+### 2026-09-08 — 100,000-point uPlot interaction validation
+
+- [x] Run the real-browser 100,000-point uPlot history guard; 40 zoom/pan
+      cycles passed without chart replacement inside the 2,500 ms budget.
+- [ ] Add or execute the separate 10,000-row workstation data-budget oracle;
+      this renderer result does not imply row-grid readiness.
+
 ### 2026-09-08 — 100-round pop-out endurance validation
 
 - [x] Run the R6 workstation performance guards with

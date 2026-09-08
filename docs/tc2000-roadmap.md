@@ -5,6 +5,14 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-08
 
+## 2026-09-08 — 100,000-point uPlot interaction validation
+
+The real-browser uPlot guard passed: a full 100,000-point history rendered and
+survived 40 zoom/pan cycles without replacing the chart element, within the
+2,500 ms interaction budget (test runtime `421 ms`). This establishes the
+renderer-level dense-history contract only; the separate 10,000-row workstation
+budget remains open.
+
 ## 2026-09-08 — 100-round pop-out endurance validation
 
 The explicit R6 lifecycle soak passed both workstation performance guards at

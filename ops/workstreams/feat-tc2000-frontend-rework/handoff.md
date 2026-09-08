@@ -8,6 +8,13 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-08 — 100,000-point uPlot interaction validation
+
+The real-browser uPlot performance oracle passed a 100,000-point history and
+40 zoom/pan cycles without replacing the chart, inside the 2,500 ms interaction
+budget (421 ms test runtime). This is renderer-level evidence only; the distinct
+10,000-row workstation data-budget check remains open.
+
 ## 2026-09-08 — 100-round pop-out endurance validation
 
 The R6 workstation performance guards passed at the explicit
