@@ -16,6 +16,7 @@ from app.models.instrument import Instrument
 from app.models.instrument_identity import InstrumentProviderSymbol
 from app.models.listing import InstrumentListing
 from app.providers.base import InstrumentProfile, ListingRecord
+from app.services.provider_runtime import ProviderNoDataError
 
 
 def _make_yf_df(symbol: str, days: int = 10, start_price: float = 150.0):
@@ -275,6 +276,30 @@ class TestInstruments:
 
 
 class TestOHLCV:
+    @patch(
+        "app.services.market_data._fetch_provider",
+        side_effect=ProviderNoDataError("coarse timeframe unavailable"),
+    )
+    def test_coarse_read_materializes_local_d1_when_provider_has_no_data(
+        self, _fetch_provider, client, auth_headers, instrument, ohlcv_bars
+    ):
+        """A provider coarse-timeframe gap must use canonical local D1 evidence."""
+        start = datetime(2024, 1, 1, tzinfo=UTC).isoformat()
+        end = datetime(2024, 4, 30, tzinfo=UTC).isoformat()
+
+        response = client.get(
+            f"/api/v1/ohlcv/{instrument.symbol}/W1",
+            params={"start": start, "end": end},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data
+        assert all(bar["is_derived"] is True for bar in data)
+        assert all(bar["source_timeframe"] == "D1" for bar in data)
+        _fetch_provider.assert_called()
+
     def test_get_ohlcv_cached_data(self, client, auth_headers, instrument, ohlcv_bars):
         """When bars exist in DB, no provider call should be needed."""
         start = datetime(2024, 1, 1, tzinfo=UTC).isoformat()

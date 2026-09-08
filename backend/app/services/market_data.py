@@ -146,6 +146,56 @@ def _is_recoverable_provider_gap(exc: Exception) -> bool:
     )
 
 
+async def _materialize_derived_for_read(
+    db: AsyncSession,
+    instrument: Instrument,
+    timeframe: Timeframe,
+    adjusted: bool,
+) -> list[OHLCVBar]:
+    """Serve a coarse timeframe from canonical D1 evidence when providers gap.
+
+    This is intentionally a read-path fallback, not a provider retry.  It only
+    runs for W1/MN, requires at least one persisted D1 bar, and delegates the
+    period/lineage policy to the shared materializer.  A cold instrument with
+    no D1 evidence remains unavailable instead of receiving fabricated bars.
+    """
+    if timeframe not in (Timeframe.W1, Timeframe.MN):
+        return []
+
+    d1_exists = await db.execute(
+        select(OHLCVBar.id)
+        .where(
+            OHLCVBar.instrument_id == instrument.id,
+            OHLCVBar.timeframe == Timeframe.D1,
+            OHLCVBar.is_adjusted.is_(adjusted),
+        )
+        .limit(1)
+    )
+    if d1_exists.scalar_one_or_none() is None:
+        return []
+
+    from app.services.derived_timeframes import materialize_derived_timeframes
+
+    await materialize_derived_timeframes(db, instrument.id, adjusted=adjusted)
+    await db.commit()
+    rows = list(
+        (
+            await db.execute(
+                select(OHLCVBar)
+                .where(
+                    OHLCVBar.instrument_id == instrument.id,
+                    OHLCVBar.timeframe == timeframe,
+                    OHLCVBar.is_adjusted.is_(adjusted),
+                )
+                .order_by(OHLCVBar.ts)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    return rows
+
+
 async def _fresh_latest_price_from_cache(
     db: AsyncSession,
     instrument: Instrument,
@@ -614,6 +664,7 @@ async def fetch_ohlcv(
         if not repair_slices:
             repair_slices = [(start, end)]
         new_bars: list[OHLCVBar] = []
+        provider_gap: Exception | None = None
         for repair_start, repair_end in repair_slices:
             if not _is_positive_repair_slice(repair_start, repair_end):
                 continue
@@ -624,8 +675,10 @@ async def fetch_ohlcv(
                     )
                 )
             except Exception as exc:
-                if not _is_recoverable_provider_gap(exc) or not cached:
+                if not _is_recoverable_provider_gap(exc):
                     raise
+                if not cached:
+                    provider_gap = exc
                 logger.warning(
                     "Skipping unavailable provider repair slice %s to %s: %s",
                     repair_start,
@@ -662,6 +715,14 @@ async def fetch_ohlcv(
 
         # Re-query after insert so cached reflects actual DB state with valid ORM objects
         cached = list((await db.execute(stmt)).scalars().all())
+        if not cached and provider_gap is not None:
+            cached = [
+                bar
+                for bar in await _materialize_derived_for_read(db, instrument, timeframe, adjusted)
+                if start <= bar.ts <= end
+            ]
+            if not cached:
+                raise provider_gap
 
     cached.sort(key=lambda b: b.ts)
     return cached
@@ -817,9 +878,16 @@ async def fetch_ohlcv_latest(
     if not allow_provider_fetch:
         return rows
 
+    provider_gap: Exception | None = None
     if not rows:
         # DB is cold — fetch the full recent window from the configured provider.
-        new_bars = await _fetch_provider_latest(db, instrument, timeframe, limit, adjusted)
+        try:
+            new_bars = await _fetch_provider_latest(db, instrument, timeframe, limit, adjusted)
+        except Exception as exc:
+            if not _is_recoverable_provider_gap(exc):
+                raise
+            provider_gap = exc
+            new_bars = []
         if new_bars:
             try:
                 await db.execute(
@@ -834,6 +902,10 @@ async def fetch_ohlcv_latest(
             except Exception as e:
                 await db.rollback()
                 logger.error(f"Failed to save bars: {e}")
+        if not rows and provider_gap is not None:
+            rows = await _materialize_derived_for_read(db, instrument, timeframe, adjusted)
+            if not rows:
+                raise provider_gap
     elif len(rows) < limit:
         # DB has a fresh but incomplete latest page. This can happen if an
         # earlier background fetch only inserted a small recent slice; without
@@ -1017,6 +1089,13 @@ async def fetch_ohlcv_page_before(
             # Re-query so we return proper ORM objects and pick up any bars
             # written by the concurrent bulk fetch as well
             rows = list((await db.execute(stmt)).scalars().all())
+
+        if not rows:
+            rows = [
+                row
+                for row in await _materialize_derived_for_read(db, instrument, timeframe, adjusted)
+                if row.ts < before
+            ][-limit:]
 
     rows.sort(key=lambda b: b.ts)
     return rows
