@@ -5,6 +5,17 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-08
 
+## 2026-09-08 — S&P Composite 1500 provider population
+
+The bounded provider slice persisted the mapped SPTM cap-weighted leg for
+`2025-12-31` with zero refresh failures and `1516/1516` resolved holding
+rows. Equal-weight, value, and growth have no verified mapped proxies and were
+reported unavailable. The canonical readiness report exposed the remaining
+identity boundary: all 1,516 rows are `HOLDING-*` placeholders, with zero
+canonical members, zero classified members, and zero member bars. Therefore
+`history_ready=false`; no continuity or D1/W1/MN floor is claimed. Cleanup
+removed all branch-scoped resources.
+
 ## 2026-09-08 — S&P SmallCap 600 provider population
 
 The bounded provider slice persisted three SEC-reconstructed S&P SmallCap 600

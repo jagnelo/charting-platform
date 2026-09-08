@@ -8,6 +8,15 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-08 — S&P Composite 1500 provider population
+
+The bounded provider slice persisted SPTM for `2025-12-31` with zero refresh
+failures and `1516/1516` resolved holding rows. Equal-weight, value, and growth
+have no verified mapped proxies and remain explicitly unavailable. All 1,516
+rows are still `HOLDING-*` placeholders, leaving zero canonical/classified
+members and zero member bars; `history_ready=false` and no continuity or
+D1/W1/MN floor is claimed. Cleanup removed all branch-scoped resources.
+
 ## 2026-09-08 — S&P SmallCap 600 provider population
 
 The bounded provider slice persisted IJR `636/644` resolved rows (eight

@@ -13,6 +13,13 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Latest bounded provider slice persisted S&P Composite 1500 SPTM for
+  2025-12-31 with zero failures and 1516/1516 resolved rows; equal-weight,
+  value, and growth are explicitly unmapped. All 1516 rows remain HOLDING-*
+  placeholders, leaving zero canonical/classified members and zero member bars;
+  history_ready=false with no continuity or D1/W1/MN floor claim. Continue
+  placeholder enrichment, family continuity, and D1/W1/MN floors. Historical
+  receipts below remain authoritative.
   Latest bounded provider slice persisted S&P SmallCap 600 SEC-reconstructed
   IJR 636/644 (eight unresolved), SLYV 461/461, and SLYG 142/142 rows with
   zero failures; equal-weight is explicitly unmapped. IJR retained two

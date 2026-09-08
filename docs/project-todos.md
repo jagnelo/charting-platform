@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-08 — S&P Composite 1500 provider population
+
+- [x] Persist the mapped SPTM cap-weighted leg for `2025-12-31` with zero
+      refresh failures and `1516/1516` resolved holding rows.
+- [x] Keep equal-weight, value, and growth explicitly unavailable because no
+      verified mapped proxies exist for those roles.
+- [ ] Replace all 1,516 `HOLDING-*` placeholders with canonical instruments,
+      then verify classification, continuity, and D1/W1/MN member-bar floors;
+      no readiness is inferred from provider-row resolution alone.
+
 ### 2026-09-08 — S&P SmallCap 600 provider population
 
 - [x] Persist IJR `636/644` resolved rows (eight unresolved), SLYV `461/461`,
