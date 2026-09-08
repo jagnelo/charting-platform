@@ -130,6 +130,7 @@ progress:
     - provider-defined and otherwise unspecified quota reset labels use conservative rolling windows rather than invented UTC epoch buckets; explicit calendar/session resets remain provider-specific
     - FINRA OTC Security Master now has the official synchronous 1,200-requests/minute/IP and 3 MB response contract; source URL configuration and terms/polling review remain required before routing
     - FINRA OTC DAPI pagination now continues safely after provider payload-capped short pages, using authoritative record totals and progress checks instead of assuming every page reaches the requested row limit
+    - transport telemetry retains FINRA pagination and payload-ceiling headers (`record-total`, effective limits, offsets, and response payload maximum) alongside existing provider-native usage headers
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: full live matrix requires the three remaining credential domains (Alpaca, Tradier, MarketData.app) plus an operator-supplied SEC User-Agent; complete NMS/OTC reconciliation and shadow activation remain post-deployment gates

@@ -44,6 +44,9 @@ def test_transport_measurement_records_provider_specific_usage_headers():
         "X-Bapi-Limit": "50",
         "X-Bapi-Limit-Status": "49",
         "X-Bapi-Limit-Reset-Timestamp": "1700000000000",
+        "Record-Total": "250",
+        "Record-Limit": "5000",
+        "Response-Payload-Max-Size": "3",
     }
 
     measurement, token = activate()
@@ -61,4 +64,7 @@ def test_transport_measurement_records_provider_specific_usage_headers():
         "x-bapi-limit": "50",
         "x-bapi-limit-status": "49",
         "x-bapi-limit-reset-timestamp": "1700000000000",
+        "record-total": "250",
+        "record-limit": "5000",
+        "response-payload-max-size": "3",
     }

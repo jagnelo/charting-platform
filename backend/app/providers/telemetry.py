@@ -16,6 +16,13 @@ from typing import Any
 _OBSERVED_HEADERS = (
     "content-length",
     "retry-after",
+    # FINRA Query/DAPI pagination and payload-ceiling evidence.
+    "record-total",
+    "record-offset",
+    "record-limit",
+    "record-max-limit",
+    "total-records-on-page",
+    "response-payload-max-size",
     # Twelve Data exposes credit-pool state with these provider-native names.
     "api-credits-request",
     "api-credits-used",
