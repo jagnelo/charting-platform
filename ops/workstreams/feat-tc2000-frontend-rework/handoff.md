@@ -8,6 +8,15 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-08 — Bounded Russell 2000 canonical enrichment
+
+The isolated stack refreshed IWM/IWN/IWO for `2025-12-31` with zero failures;
+equal-weight remained unavailable. Bounded enrichment processed three
+profiles/snapshots, enriched `101`, and left `4,376` pending. Classified /
+placeholder counts were IWM `77/3`, IWN `34/3`, and IWO `59/3`. No D1/W1/MN
+bars were present, so `history_ready=false`; no continuity or analysis floor
+is claimed. Cleanup removed all branch-scoped resources.
+
 ## 2026-09-08 — Frontend dependency security audit
 
 Production dependency audit is clean (`68` dependencies, zero findings). The

@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-09-08 — Bounded Russell 2000 canonical enrichment
+
+- [x] Refresh IWM/IWN/IWO dated snapshots with zero failures and run bounded
+      enrichment across three profiles, enriching 101 records.
+- [x] Preserve explicit post-run state: IWM 77/3, IWN 34/3, and IWO 59/3
+      classified/placeholder counts; 4,376 records remain pending.
+- [ ] Continue enrichment and populate D1/W1/MN member history; no readiness
+      is inferred from partial classification.
+
 ### 2026-09-08 — Bounded S&P 500 canonical enrichment
 
 - [x] Run bounded enrichment across SPY/RSP/SPYV/SPYG dated snapshots with

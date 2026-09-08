@@ -13,6 +13,13 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Latest bounded Russell 2000 enrichment refreshed IWM/IWN/IWO with zero
+  failures, enriched 101 records, and left 4376 pending; classified /
+  placeholder counts are IWM 77/3, IWN 34/3, and IWO 59/3. No D1/W1/MN bars
+  are present, so history_ready=false. Continue bounded enrichment, canonical
+  history, family continuity, native-window/accessibility/security, dense-data,
+  visual review, and R2-R5 evidence. Historical receipts below remain
+  authoritative.
   Authoritative npm audits report zero production vulnerabilities across 68
   dependencies, but five development-tool findings remain (two critical
   Vitest/coverage, one high Vite, two moderate Vite/esbuild). npm's fixes are

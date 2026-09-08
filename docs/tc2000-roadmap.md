@@ -15,6 +15,16 @@ which are not being applied without compatibility work and a full gate rerun.
 This is an explicit R6 remediation item; production runtime security is clean,
 but the branch is not claiming a vulnerability-free development toolchain.
 
+## 2026-09-08 — Bounded Russell 2000 canonical enrichment
+
+The isolated stack refreshed the three mapped Russell 2000 legs for
+`2025-12-31` with zero failures; equal-weight remained explicitly unavailable.
+The bounded worker processed three profiles/snapshots, enriched `101` records,
+and left `4,376` pending. Post-run classified/placeholder counts were IWM
+`77/3`, IWN `34/3`, and IWO `59/3`. No D1/W1/MN bars were present, so
+`history_ready=false` and no continuity or analysis floor is claimed. Cleanup
+removed all branch-scoped resources.
+
 ## 2026-09-08 — Bounded S&P SmallCap 600 canonical enrichment
 
 The isolated stack refreshed the three mapped SP600 legs for `2025-12-31`
