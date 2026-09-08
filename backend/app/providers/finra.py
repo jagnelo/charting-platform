@@ -155,7 +155,7 @@ class FINRAProvider:
                         f"FINRA async result exceeds configured byte bound ({total_bytes} > {limit})"
                     )
                 chunks.append(body_chunk)
-            observe_response(response, response_bytes=total_bytes)
+            observe_response(response, response_bytes=total_bytes, count_request=False)
             if declared_bytes is not None and declared_bytes != total_bytes:
                 raise ValueError("FINRA async result Content-Length did not match the downloaded body")
             return b"".join(chunks)

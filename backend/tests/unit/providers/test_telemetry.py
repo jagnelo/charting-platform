@@ -38,11 +38,11 @@ def test_streaming_observation_accepts_explicit_measured_bytes_without_materiali
     measurement, token = activate()
     try:
         observe_response(response, response_bytes=0)
-        observe_response(response, response_bytes=7)
+        observe_response(response, response_bytes=7, count_request=False)
     finally:
         deactivate(token)
 
-    assert measurement.http_requests == 2
+    assert measurement.http_requests == 1
     assert measurement.response_bytes == 7
     assert measurement.response_headers == {"record-total": "2"}
 
