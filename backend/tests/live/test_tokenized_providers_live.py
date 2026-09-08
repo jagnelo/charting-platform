@@ -25,10 +25,12 @@ pytestmark = [
 ]
 
 
-def _assert_asset(record):
+def _assert_asset(record, *, require_quote: bool = False):
     assert record is not None
     assert record.provider and record.asset_id and record.symbol
     assert record.raw_payload
+    if require_quote:
+        assert record.price is not None or record.bid is not None or record.ask is not None
 
 
 def test_xstocks_public_asset_and_price():
@@ -37,7 +39,7 @@ def test_xstocks_public_asset_and_price():
     assert rows
     _assert_asset(rows[0])
     priced = provider.get_tokenized_price(rows[0].symbol)
-    _assert_asset(priced)
+    _assert_asset(priced, require_quote=True)
 
 
 def test_robinhood_public_asset_and_price():
@@ -55,7 +57,7 @@ def test_robinhood_public_asset_and_price():
             raise
         time.sleep(1.1)
         priced = provider.get_tokenized_price(rows[0].symbol)
-    _assert_asset(priced)
+    _assert_asset(priced, require_quote=True)
 
 
 def test_bybit_public_xstocks_asset_and_price():
@@ -64,7 +66,7 @@ def test_bybit_public_xstocks_asset_and_price():
     assert rows
     _assert_asset(rows[0])
     priced = provider.get_tokenized_price(rows[0].symbol)
-    _assert_asset(priced)
+    _assert_asset(priced, require_quote=True)
 
 
 def test_gate_public_tradfi_asset_and_orderbook():
@@ -73,7 +75,7 @@ def test_gate_public_tradfi_asset_and_orderbook():
     assert rows
     _assert_asset(rows[0])
     priced = provider.get_tokenized_price(rows[0].symbol)
-    _assert_asset(priced)
+    _assert_asset(priced, require_quote=True)
 
 
 def test_kraken_public_xstocks_asset_and_ticker():
@@ -86,4 +88,4 @@ def test_kraken_public_xstocks_asset_and_ticker():
         return
     _assert_asset(rows[0])
     priced = provider.get_tokenized_price(rows[0].symbol)
-    _assert_asset(priced)
+    _assert_asset(priced, require_quote=True)
