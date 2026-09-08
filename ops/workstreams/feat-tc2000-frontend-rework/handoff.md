@@ -3350,3 +3350,12 @@ integration, frontend `974/974`, build/compose/stack/runner checks, and function
 `165` passed/`106` skipped across `271`). Visual parity is `98/104` with exactly the six unchanged
 state-oracle diffs. No visual/provider/fallback/acceptance policy changed; stack teardown and
 resource audit were clean. Continue R1 canonical provider/history and remaining R2-R7 work.
+
+## 2026-09-08 — Nasdaq provider-route refresh
+
+With network access enabled, the opt-in live checks for QQQ SEC historical reconstruction, QQQE
+current Direxion CSV, and QQQE SEC historical reconstruction passed `3/3` (`413` unrelated tests
+deselected). The adapters returned parseable holdings and satisfied their route/provider/date
+contracts. These probes do not write repository data or establish persisted family snapshots,
+resolved member populations, or D1/W1/MN analysis-ready bars; retain the R1 population/history
+gap and do not infer completeness from route health.

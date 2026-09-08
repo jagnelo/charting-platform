@@ -2522,3 +2522,13 @@ and exactly the six known state-oracle diffs (watchlist-column-editor-open at vi
 workspace-floating at visual-1080p-100/125 and visual-1440p-100/125). No baseline, mask, threshold,
 skip, fallback, provider, or acceptance policy changed; cleanup left no assigned resources. Continue
 the remaining R4 fan-out and R1-R7 roadmap gaps.
+
+## 2026-09-08 — Refresh Nasdaq provider-route probes
+
+The opt-in live provider checks were rerun with network access for the canonical Nasdaq-100
+legs: QQQ SEC historical reconstruction, QQQE current Direxion holdings CSV, and QQQE SEC
+historical reconstruction. All three probes passed (`3/3`, `413` unrelated cases deselected),
+including route/provider/date assertions and parseable holdings rows. This is current route
+evidence only; it does not persist snapshots, resolve the remaining member placeholders, or prove
+D1/W1/MN analysis floors. R1 therefore remains open for durable population, continuity, and
+member-bar history.

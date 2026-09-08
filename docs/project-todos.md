@@ -17680,3 +17680,10 @@ The current source also passes the focused authenticated top-down browser slice 
       `271`; visual parity remains `98/104` with the same six known state-oracle diffs.
 - [ ] Continue remaining R4 fan-out cells, canonical provider/history population, exact V25
       visual approval, native-window/accessibility/security evidence, and dense-data budgets.
+
+### 2026-09-08 — Refresh Nasdaq provider-route probes
+
+- [x] Rerun the opt-in QQQ SEC historical, QQQE current issuer CSV, and QQQE SEC historical
+      provider probes with network access; all `3/3` passed with route/date/row assertions.
+- [ ] Treat this as route health evidence only. Persisted dated snapshots, unresolved member
+      replacement, D1/W1/MN bar floors, and continuity across rebalance dates remain open.
