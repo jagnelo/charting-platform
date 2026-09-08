@@ -285,6 +285,12 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
                 "last_request_at": _ensure_aware(provider_logs[-1].requested_at)
                 if provider_logs
                 else None,
+                # Headers are already filtered by provider telemetry. Expose
+                # the latest snapshot so operators can inspect provider-native
+                # credit/remaining/reset state without reading raw logs.
+                "last_response_headers": dict(provider_logs[-1].response_headers or {})
+                if provider_logs
+                else {},
                 "last_success_at": max(
                     (
                         _ensure_aware(log.completed_at)

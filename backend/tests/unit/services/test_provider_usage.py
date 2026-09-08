@@ -58,6 +58,7 @@ async def test_summarize_provider_usage_tracks_plain_request_counts(db):
                 usage_units=Decimal("1"),
                 http_requests=1,
                 response_bytes=800,
+                response_headers={"x-ratelimit-remaining": "17"},
                 latency_ms=250,
                 error_type="TimeoutError",
             ),
@@ -77,6 +78,7 @@ async def test_summarize_provider_usage_tracks_plain_request_counts(db):
     assert summary["failure_rate_24h"] == pytest.approx(50.0)
     assert summary["timeout_rate_24h"] == pytest.approx(50.0)
     assert summary["top_operations"][0]["operation_family"] == "search_instruments"
+    assert summary["last_response_headers"] == {"x-ratelimit-remaining": "17"}
 
 
 @pytest.mark.asyncio

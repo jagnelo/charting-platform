@@ -26,6 +26,10 @@ _OBSERVED_HEADERS = (
     "x-ratelimit-expiry",
     "x-mbx-used-weight-1m",
     "x-mbx-order-count-1m",
+    # Bybit V5 exposes endpoint/UID state with provider-native headers.
+    "x-bapi-limit",
+    "x-bapi-limit-status",
+    "x-bapi-limit-reset-timestamp",
     "x-ratelimit-limit",
     "x-ratelimit-remaining",
     "x-ratelimit-reset",
