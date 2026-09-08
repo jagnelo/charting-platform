@@ -8,6 +8,14 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-08 — Bounded Russell 1000 canonical enrichment
+
+The bounded worker processed IWB/IWD/IWF dated snapshots with zero failures,
+enriched 100 records, and left 2,176 pending under the per-profile cap. The
+post-run classified/placeholder counts were IWB 70/1, IWD 39/1, and IWF 50/0.
+No D1/W1/MN bars were present; `history_ready=false` and no continuity or
+analysis floor is claimed. Cleanup removed all branch-scoped resources.
+
 ## 2026-09-08 — 10,000-row virtual watchlist validation
 
 The focused virtual-watchlist suite passed `67/67` tests, including the

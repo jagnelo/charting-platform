@@ -5,6 +5,16 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-08
 
+## 2026-09-08 — Bounded Russell 1000 canonical enrichment
+
+After persisting IWB/IWD/IWF `2025-12-31` snapshots, the bounded enrichment
+worker processed all three profiles and snapshots with zero failures, enriched
+100 records, and left `2,176` pending under the configured per-profile cap.
+Post-reconciliation classification counts were IWB `70` plus one placeholder,
+IWD `39` plus one placeholder, and IWF `50` with no placeholder. No D1/W1/MN
+bars were present, so `history_ready=false`; no continuity or analysis floor
+is claimed. Cleanup removed all branch-scoped resources.
+
 ## 2026-09-08 — 10,000-row virtual watchlist validation
 
 The focused virtual-watchlist suite passed `67/67` tests, including the

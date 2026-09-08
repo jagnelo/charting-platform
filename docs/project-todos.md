@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-09-08 — Bounded Russell 1000 canonical enrichment
+
+- [x] Run bounded enrichment across the three Russell 1000 dated snapshots:
+      zero failures and 100 records enriched under the per-profile cap.
+- [x] Preserve explicit post-run state: IWB 70 classified/1 placeholder, IWD
+      39/1, IWF 50/0, with 2,176 records still pending.
+- [ ] Continue bounded enrichment and populate D1/W1/MN member history; no
+      history readiness is inferred from classification progress alone.
+
 ### 2026-09-08 — 10,000-row virtual watchlist validation
 
 - [x] Run the focused virtual-watchlist suite: `67/67` passed, including the
