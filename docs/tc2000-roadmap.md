@@ -5,6 +5,33 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-07
 
+## 2026-09-08 — Promote Study Lab thresholds to Strategy signals
+
+Product commit `9352c43a` closes the direct Study Lab R4 threshold-promotion
+gap for numeric series and range-center artifacts. Both targets now expose an
+explicit `Save as Strategy signal` action, require declared canonical member
+IDs and an immutable source, and persist the source run/code/hash, dataset and
+member lineage, selected output, threshold operator/value, target, adapter,
+and re-evaluation semantics before creating the user-scoped Strategy signal.
+The operation fails closed when canonical instrument identity is unavailable.
+
+Focused component coverage passed `27/27`; frontend type-check and
+`git diff --check` passed. Test commit `290ff9f7` adds the authenticated F9j
+browser proof; the focused live flow passed `1/1` against a seeded,
+branch-scoped Docker stack and verified the signal asset, explicit adapter and
+visible created-signal message.
+
+The final exact-tip gate at `290ff9f7` passed all non-visual stages: backend
+`1350` unit and `385` integration tests, combined coverage `80.96%`, frontend
+`972/972`, production build, compose/provider policy, healthy stack,
+runner-isolation/resource probes, and functional Playwright `164` passed with
+`106` documented skips across `270`. Visual parity remains `98/104` with only
+the six known state-oracle diffs: watchlist-column-editor-open at
+visual-1080p-100/125 and workspace-floating at visual-1080p-100/125 and
+visual-1440p-100/125. No visual baseline, mask, threshold, skip, fallback,
+provider, or acceptance policy changed; cleanup left no assigned resources.
+Continue R1 canonical provider/history readiness and the remaining R2-R7 work.
+
 ## 2026-09-07 — Prove chart EasyScan and Market Gauge promotion in the authenticated browser
 
 Test commit `38f7480a` adds the consuming-UI F8u-scan and F8u-gauge Playwright

@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-08 — Study Lab threshold Strategy-signal promotion
+
+- [x] Add direct `Save as Strategy signal` targets for numeric series and
+      range-center Study Lab artifacts, preserving immutable canonical lineage,
+      explicit threshold adapters, and fail-closed member identity
+      (`9352c43a`).
+- [x] Focused Study Lab coverage passed `27/27`; authenticated F9j browser
+      proof passed `1/1` (`290ff9f7`).
+- [x] Final exact-tip gate recorded backend `1350` unit/`385` integration,
+      combined coverage `80.96%`, frontend `972/972`, and functional
+      Playwright `164` passed with `106` documented skips; visual parity
+      remains `98/104` with only the six known state-oracle diffs.
+- [ ] Continue canonical provider/history readiness and remaining R2-R7
+      roadmap work; do not alter visual policy or promote this feature branch.
+
 ### 2026-09-07 — Authenticated browser proof for chart EasyScan and Market Gauge promotion
 
 - [x] Add and run F8u-scan and F8u-gauge: chart indicator promotion creates

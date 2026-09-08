@@ -8,6 +8,28 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-08 — Promote Study Lab thresholds to Strategy signals
+
+Product commit `9352c43a` adds direct Study Lab `Save as Strategy signal`
+promotion for numeric series and range-center artifacts. The implementation
+requires canonical declared member IDs and immutable source data, then stores
+source run/code/hash, dataset and membership lineage, selected output,
+threshold semantics, target, adapter, and explicit current-data re-evaluation
+semantics before creating the user-scoped signal. Test commit `290ff9f7` adds
+the authenticated F9j proof; focused live coverage passed `1/1` against the
+seeded branch stack.
+
+Focused component coverage passed `27/27`; type-check and diff checks passed.
+The final exact-tip gate passed all non-visual stages: backend `1350` unit and
+`385` integration tests, combined coverage `80.96%`, frontend `972/972`,
+build/compose/provider policy, stack health, runner probes, and functional
+Playwright `164` passed with `106` documented skips across `270`. Visual
+parity remains `98/104` with exactly the six unchanged state-oracle diffs
+(watchlist-column-editor-open at visual-1080p-100/125; workspace-floating at
+visual-1080p-100/125 and visual-1440p-100/125). Cleanup removed assigned
+resources. Continue R1 canonical provider/history and R2-R7 work; do not
+integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-07 — Prove chart EasyScan and Market Gauge promotion in the authenticated browser
 
 Test commit `38f7480a` adds authenticated F8u-scan and F8u-gauge coverage.

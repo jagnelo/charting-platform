@@ -13,6 +13,24 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product commit 9352c43a adds direct Study Lab threshold promotion to
+  Strategy signals for numeric series and range-center artifacts. It requires
+  declared canonical member IDs and immutable source data, and persists source
+  run/code/hash, dataset and membership lineage, selected output, threshold
+  semantics, target, adapter, and current-data re-evaluation semantics before
+  creating the user-scoped signal. Focused component coverage passed 27/27;
+  test commit 290ff9f7 adds authenticated F9j proof and its focused live flow
+  passed 1/1 against the seeded branch-scoped stack. The final exact-tip gate
+  passed all non-visual stages: backend 1350 unit and 385 integration tests,
+  combined coverage 80.96%, frontend 972/972, build/compose/provider policy,
+  stack health, runner probes, and functional Playwright 164 passed with 106
+  documented skips across 270. Visual parity remains 98/104 with exactly six
+  unchanged state-oracle diffs: watchlist-column-editor-open at
+  visual-1080p-100/125 and workspace-floating at visual-1080p-100/125 and
+  visual-1440p-100/125. Continue R1 canonical provider/history readiness and
+  remaining R2-R7 work; preserve visual policy and do not integrate, promote,
+  deploy, or mutate another worktree. Historical receipts below remain
+  authoritative.
   Test commit 38f7480a adds authenticated consuming-UI proof for direct chart
   EasyScan and Market Gauge promotion (F8u-scan/F8u-gauge). Focused live
   coverage passed 2/2 and verified reusable-condition plus EasyScan creation
