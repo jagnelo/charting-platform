@@ -6,7 +6,7 @@ from typing import TypeVar, cast
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
+from app.config import provider_rate_limit_seed, settings
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument
 from app.providers.alpaca import AlpacaProvider
@@ -116,10 +116,11 @@ _DEFAULT_PROVIDER_USAGE_PROFILES: dict[str, dict] = {
 # Keep the admin usage view and runtime reservation contract sourced from the
 # same provider-specific declarations.  Unknown providers intentionally retain
 # ``limit_kind=unknown`` and are not routable.
-for _provider_name, _rate_seed in settings.PROVIDER_RATE_LIMIT_SEEDS.items():
+for _provider_name in settings.PROVIDER_RATE_LIMIT_SEEDS:
     if _provider_name not in _DEFAULT_PROVIDER_USAGE_PROFILES:
         continue
     _profile = _DEFAULT_PROVIDER_USAGE_PROFILES[_provider_name]
+    _rate_seed = provider_rate_limit_seed(_provider_name)
     _contract = _rate_seed.get("quota_contract") if isinstance(_rate_seed, dict) else None
     _dimensions = (_contract or {}).get("dimensions") if isinstance(_contract, dict) else None
     if isinstance(_dimensions, list) and _dimensions:
@@ -378,14 +379,36 @@ def provider_is_configured(name: str) -> bool:
 def get_provider_usage_profile(name: str) -> dict:
     profile = dict(_DEFAULT_PROVIDER_USAGE_PROFILES.get(name, {}))
     override = settings.PROVIDER_USAGE_PROFILE_SEEDS.get(name) or {}
-    if not isinstance(override, dict):
-        return profile
     merged = dict(profile)
-    for key, value in override.items():
-        if key == "operation_costs" and isinstance(value, dict):
-            merged[key] = dict(profile.get(key) or {}) | value
-        else:
-            merged[key] = value
+    if isinstance(override, dict):
+        for key, value in override.items():
+            if key == "operation_costs" and isinstance(value, dict):
+                merged[key] = dict(profile.get(key) or {}) | value
+            else:
+                merged[key] = value
+    rate_seed = provider_rate_limit_seed(name)
+    byte_bounds = dict(rate_seed.get("_byte_reservation_bounds") or {})
+    if byte_bounds:
+        bandwidth_dimensions = [
+            dimension
+            for dimension in rate_seed
+            .get("quota_contract", {})
+            .get("dimensions", [])
+            if isinstance(dimension, dict)
+            and str(dimension.get("unit") or "").lower() in {"byte", "bytes"}
+        ]
+        if bandwidth_dimensions:
+            dimension_name = str(bandwidth_dimensions[0]["name"])
+            merged["mode"] = "multi_dimensional"
+            merged["unit_label"] = "provider_units"
+            merged["operation_costs"] = {
+                **dict(merged.get("operation_costs") or {}),
+                **{operation: 1 for operation in byte_bounds},
+            }
+            merged["dimension_costs"] = {
+                **dict(merged.get("dimension_costs") or {}),
+                dimension_name: byte_bounds,
+            }
     return merged
 
 

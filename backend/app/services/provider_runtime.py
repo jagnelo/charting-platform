@@ -15,7 +15,7 @@ import httpx
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
+from app.config import provider_rate_limit_seed, settings
 from app.models.data_source import DataSource
 from app.models.provider_runtime import (
     ProviderCapability,
@@ -846,7 +846,7 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                     )
                 )
             ).scalar_one_or_none()
-            rate_seed = settings.PROVIDER_RATE_LIMIT_SEEDS.get(provider_name, {})
+            rate_seed = provider_rate_limit_seed(provider_name)
             freshness = settings.PROVIDER_FRESHNESS_SEEDS.get(
                 capability.value,
                 3600

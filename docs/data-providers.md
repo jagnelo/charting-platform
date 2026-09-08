@@ -46,12 +46,12 @@ re-reviewed when credentials or billing plans change.
 | FINRA OTC directory | current `otcSecurityMaster` DAPI snapshot, or configured pipe-delimited OTC/OTCBB mirror | `FINRA_OTC_SYMBOL_DIRECTORY_URL` | Official FINRA synchronous platform ceiling: 1,200 requests/minute/IP and 3 MB maximum response; source-specific polling and redistribution terms still require review | configured source / rolling IP request window | full current DAPI pagination is live-proven; explicit quota is recorded, but adapter remains non-routable until source configuration and terms review are complete |
 | FRED | macro/rates/FX daily series | `FRED_API_KEY` | The deployed adapter uses FRED v1; its official errors page documents 429 throttling but no fixed numeric ceiling, so no limit is inferred from the separate v2 documentation | API key / provider-defined | **not routable until the deployed API version's ceiling is verified** |
 | Nasdaq Trader | official `nasdaqlisted.txt`/`otherlisted.txt` US NMS listing/lifecycle files | none | No numeric public limit in the symbol-directory definition; poll conservatively and record response headers | public service / unknown | **discovery evidence only; quota unknown** |
-| Tiingo | EOD history, search, profiles | `TIINGO_API_KEY` | 500 unique symbols/month, 50/hour, 1,000/day, 1 GB/month (free Starter); monthly bandwidth resets on the first day at midnight Eastern | API key / multiple windows | EOD live-proven; response bytes are now observed and durable, but **not routable until byte-budget reservation/enforcement exists** |
+| Tiingo | EOD history, search, profiles | `TIINGO_API_KEY` | 500 unique symbols/month, 50/hour, 1,000/day, 1 GB/month (free Starter); monthly bandwidth resets on the first day at midnight Eastern | API key / multiple windows | EOD live-proven; response bytes are durable; routing requires complete reviewed `TIINGO_OPERATION_BYTE_BOUNDS` |
 | Twelve Data | multi-timeframe candles, quote, search, US universe | `TWELVE_DATA_API_KEY` | 8 credits/min and 800/day Basic; cost is symbols/endpoint-weighted | API key / minute + day | daily history and configured one-credit operation live-proven |
 | Finnhub | profile/search, earnings events/universe; candle adapter retained for higher entitlements | `FINNHUB_API_KEY` | observed free account 60 calls/min; all plans also have a 30 calls/sec hard cap | token / minute + rolling second | company profile live-proven; free stock candles returned 403 and are explicitly non-routable |
 | Marketstack | daily EOD history and ticker discovery | `MARKETSTACK_API_KEY` | Free-plan pricing publishes 100 requests/month and one year of history; a stale FAQ sentence says 1,000, so the checked-in contract uses the lower 100-request ceiling | key / calendar month | daily history live-proven |
 | EODHD | long-history daily EOD, fundamentals/profile, US exchange list | `EODHD_API_KEY` | Free 20/day and 20/min, one-year history; paid $19.99/month adds 100k/day, 1,000/min, 30+ years | API key / minute + day | daily history live-proven |
-| FMP | stable-API daily history, profile, stock list | `FMP_API_KEY` | observed free account 250 calls/day and 512 MB/30 days; the dashboard does not publish a reset anchor, so the request allowance is enforced conservatively as a rolling 24-hour window and bandwidth is tracked as a rolling 30-day constraint | key / rolling 24-hour request window + rolling 30-day bandwidth | stable EOD history live-proven; response bytes are now observed and durable, but **not routable until byte-budget reservation/enforcement exists** |
+| FMP | stable-API daily history, profile, stock list | `FMP_API_KEY` | observed free account 250 calls/day and 512 MB/30 days; the dashboard does not publish a reset anchor, so the request allowance is enforced conservatively as a rolling 24-hour window and bandwidth is tracked as a rolling 30-day constraint | key / rolling 24-hour request window + rolling 30-day bandwidth | stable EOD history live-proven; response bytes are durable; routing requires complete reviewed `FMP_OPERATION_BYTE_BOUNDS` |
 | Tradier | US daily history, quotes/search; options-capable REST surface | `TRADIER_API_KEY` | 60/min sandbox; 120/min production market-data quota, response headers expose remaining/reset | token / minute | adapter + contract recorded; account live evidence required |
 | MarketData.app | delayed US stocks/options candles (options surface is optional) | `MARKETDATA_APP_API_KEY` | 100 credits/day free, reset 09:30 ET; 50 concurrency; free/trial history limited to one year | key / reset-day + concurrency | adapter + contract recorded; account live evidence required |
 | IBKR | account-bound stocks/options/futures/crypto via read-only Web API descriptor | deployment-specific `IBKR_READ_ONLY_URL` | Global 10 requests/sec/session; `/iserver/marketdata/history` max 5 concurrent; endpoint-specific pacing and a 15-minute penalty box apply | session/account / endpoint | pacing contract recorded; descriptor only, no routing until a funded-account adapter/evidence exists |
@@ -89,6 +89,25 @@ Marketstack's [pricing page](https://marketstack.com/pricing) publishes the
 free 100-request/month plan; its [FAQ](https://marketstack.com/faq) contains a
 conflicting 1,000-request sentence, so the runtime records the lower 100 limit
 and remains gated on account/terms review.
+
+Tiingo and FMP publish bandwidth pools but do not publish one universal maximum
+response size for every adapter operation. The runtime therefore does not
+invent a byte ceiling. An operator who has reviewed the current endpoint
+contract may set complete JSON maps in `TIINGO_OPERATION_BYTE_BOUNDS` and
+`FMP_OPERATION_BYTE_BOUNDS`, for example:
+
+```env
+# Do not copy guessed values: populate each map only with reviewed provider
+# endpoint ceilings. Empty or partial maps intentionally remain non-routable.
+TIINGO_OPERATION_BYTE_BOUNDS={}
+FMP_OPERATION_BYTE_BOUNDS={}
+```
+
+Every operation exposed by the relevant adapter must be present with a positive
+bound. Complete maps move the provider's documented bandwidth pool into the
+same durable multidimensional reservation path as request limits; response
+bytes settle the reservation after execution. Missing, zero, malformed, or
+partial maps leave the provider visible for diagnostics but non-routable.
 
 The platform uses a capability-based provider chain.  For each data type the runtime selects the
 highest-scoring available provider, falls back to the next, and so on.  Initial priorities below

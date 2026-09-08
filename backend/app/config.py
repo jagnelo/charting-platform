@@ -1,5 +1,6 @@
 import json
 import os
+from copy import deepcopy
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -1073,6 +1074,13 @@ class Settings(BaseSettings):
     MARKETDATA_API_KEY: str = ""
     FMP_API_KEY: str = ""
     TIINGO_API_KEY: str = ""
+    # Provider-specific byte ceilings are deliberately empty by default.  A
+    # deployment may set these as JSON maps (operation -> maximum response
+    # bytes) only after reviewing the provider's current endpoint contract.
+    # Without a complete map the corresponding bandwidth-constrained provider
+    # remains fail-closed and non-routable.
+    TIINGO_OPERATION_BYTE_BOUNDS: dict[str, int] = {}
+    FMP_OPERATION_BYTE_BOUNDS: dict[str, int] = {}
     TWELVE_DATA_API_KEY: str = ""
     FINNHUB_API_KEY: str = ""
     MARKETSTACK_API_KEY: str = ""
@@ -1156,6 +1164,8 @@ class Settings(BaseSettings):
         "PROVIDER_FRESHNESS_SEEDS",
         "PROVIDER_USAGE_PROFILE_SEEDS",
         "PROVIDER_LIVE_PROBE_STATUS_SEEDS",
+        "TIINGO_OPERATION_BYTE_BOUNDS",
+        "FMP_OPERATION_BYTE_BOUNDS",
         mode="before",
     )
     @classmethod
@@ -1172,3 +1182,81 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+_BYTE_BOUND_OPERATIONS: dict[str, tuple[str, ...]] = {
+    "tiingo": (
+        "fetch_ohlcv",
+        "fetch_latest_ohlcv",
+        "search_instruments",
+        "get_instrument_profile",
+    ),
+    "fmp": (
+        "fetch_ohlcv",
+        "fetch_latest_ohlcv",
+        "get_instrument_profile",
+        "discover_universe_page",
+    ),
+}
+
+
+def provider_operation_byte_bounds(provider_name: str) -> dict[str, int]:
+    """Return only positive, explicitly configured operation byte bounds."""
+
+    setting_name = f"{provider_name.upper()}_OPERATION_BYTE_BOUNDS"
+    raw = getattr(settings, setting_name, {})
+    if not isinstance(raw, dict):
+        return {}
+    result: dict[str, int] = {}
+    for operation, value in raw.items():
+        try:
+            bound = int(value)
+        except (TypeError, ValueError):
+            continue
+        if str(operation).strip() and bound > 0:
+            result[str(operation).strip()] = bound
+    return result
+
+
+def provider_rate_limit_seed(provider_name: str) -> dict:
+    """Return a provider quota seed with reviewed byte budgets applied.
+
+    Tiingo and FMP publish bandwidth pools but not a universal response-size
+    ceiling.  The base seed therefore remains explicitly untracked.  An
+    operator can promote the provider only by supplying a positive bound for
+    every operation exposed by its adapter; the helper then moves that
+    documented pool into the normal multidimensional reservation contract.
+    """
+
+    seed = deepcopy(settings.PROVIDER_RATE_LIMIT_SEEDS.get(provider_name, {}))
+    required = _BYTE_BOUND_OPERATIONS.get(provider_name)
+    if not required:
+        return seed
+    bounds = provider_operation_byte_bounds(provider_name)
+    if any(operation not in bounds for operation in required):
+        return seed
+    contract = seed.get("quota_contract")
+    if not isinstance(contract, dict):
+        return seed
+    untracked = list(contract.get("untracked_constraints") or [])
+    byte_constraint = next(
+        (
+            item
+            for item in untracked
+            if isinstance(item, dict)
+            and str(item.get("unit") or "").lower() in {"byte", "bytes"}
+        ),
+        None,
+    )
+    if byte_constraint is None:
+        return seed
+    contract["untracked_constraints"] = [item for item in untracked if item is not byte_constraint]
+    dimensions = list(contract.get("dimensions") or [])
+    if not any(item.get("name") == byte_constraint.get("name") for item in dimensions if isinstance(item, dict)):
+        dimensions.append(dict(byte_constraint))
+    contract["dimensions"] = dimensions
+    contract["dimension_costs_required"] = True
+    contract["operation_costs_required"] = True
+    seed["quota_contract"] = contract
+    seed["_byte_reservation_bounds"] = bounds
+    return seed

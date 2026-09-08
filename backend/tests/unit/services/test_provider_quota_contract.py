@@ -5,10 +5,11 @@ import httpx
 import pytest
 from sqlalchemy import select
 
-from app.config import settings
+from app.config import provider_rate_limit_seed, settings
 from app.models.data_source import DataSource
 from app.models.market_data_foundation import ProviderQuotaWindow
 from app.models.provider_runtime import ProviderCapability, ProviderPolicy
+from app.providers.registry import get_provider_usage_profile
 from app.services.provider_routing import (
     reserve_provider_contract,
     reserve_provider_quota,
@@ -97,6 +98,29 @@ def test_known_request_limit_with_untracked_bandwidth_remains_non_routable():
         "quota_contract.untracked_constraints.bandwidth_per_30_days"
         in quota_contract_missing_dimensions(policy)
     )
+
+
+def test_tiingo_byte_pool_requires_complete_operator_bounds_before_promotion(monkeypatch):
+    bounds = {
+        "fetch_ohlcv": 1_000_000,
+        "fetch_latest_ohlcv": 1_000_000,
+        "search_instruments": 100_000,
+        "get_instrument_profile": 100_000,
+    }
+    monkeypatch.setattr(settings, "TIINGO_OPERATION_BYTE_BOUNDS", bounds)
+    seed = provider_rate_limit_seed("tiingo")
+    contract = seed["quota_contract"]
+    assert not contract.get("untracked_constraints")
+    bytes_dimension = next(item for item in contract["dimensions"] if item["unit"] == "bytes")
+    assert bytes_dimension["limit"] == 1024**3
+    assert contract["dimension_costs_required"] is True
+    assert seed["_byte_reservation_bounds"] == bounds
+    profile = get_provider_usage_profile("tiingo")
+    assert profile["dimension_costs"][bytes_dimension["name"]] == bounds
+    assert profile["operation_costs"]["fetch_ohlcv"] == 1
+
+    monkeypatch.setattr(settings, "TIINGO_OPERATION_BYTE_BOUNDS", {"fetch_ohlcv": 1_000_000})
+    assert provider_rate_limit_seed("tiingo")["quota_contract"].get("untracked_constraints")
 
 
 @pytest.mark.asyncio

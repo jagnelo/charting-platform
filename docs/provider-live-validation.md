@@ -77,6 +77,8 @@ The backend deterministic gates pass on the current corrective revision:
 - unit suite: `1384 passed`
 - Docker-backed integration suite: `371 passed` on the current branch; the
   isolated testcontainer resources were cleaned after the run
+- combined unit + Docker-backed coverage gate: `80%` line coverage, above the
+  repository `75%` threshold
 - focused capacity/quota/runtime/provider-support tests: `17 passed`; capacity-admin plus provider API integration: `8 passed`
 - migration compatibility: passed against the previous release head
 
@@ -100,10 +102,14 @@ allowed/used/available token-window headers, and Binance's one-minute used
 weight are reconciled only when each observation proves its matching reviewed
 contract limit; stale or mismatched observations cannot reduce local
 consumption. Other byte ceilings and dynamic response-header/account budgets
-are not yet reserved or enforced in quota windows, so Tiingo and FMP remain
-non-routable. Tiingo's first-of-month Eastern bandwidth reset is represented
-in the durable calendar-window engine, but the provider remains non-routable
-until an operation-specific byte reservation can be justified. FINRA's synchronous short-interest and OTC Daily List
+are not implicitly guessed. Tiingo and FMP remain non-routable unless the
+deployment supplies a positive, provider-reviewed maximum response size for
+every exposed operation through `TIINGO_OPERATION_BYTE_BOUNDS` and
+`FMP_OPERATION_BYTE_BOUNDS` JSON maps. When complete maps are present, the
+runtime reserves the documented bandwidth pool before execution and settles it
+to measured response bytes; incomplete or invalid maps remain fail-closed.
+Tiingo's first-of-month Eastern bandwidth reset and FMP's rolling 30-day
+bandwidth reset are represented in the durable calendar-window engine. FINRA's synchronous short-interest and OTC Daily List
 calls reserve the documented 3 MB maximum response against the 10 GB monthly
 credential budget and settle to measured bytes; its asynchronous
 submit/poll/presigned-download path is implemented as a documentation-faithful
