@@ -71,7 +71,7 @@ async def get_local_ohlcv(
     # and watchlist consumers see the same explicit lineage as normal reads.
     # Seeded browser fixtures intentionally remain source-scoped and must not
     # receive provider-neutral rows during deterministic visual runs.
-    if not bars and not settings.E2E_SEED_MARKET_DATA and timeframe in (Timeframe.W1, Timeframe.MN):
+    if not settings.E2E_SEED_MARKET_DATA and timeframe in (Timeframe.W1, Timeframe.MN):
         d1_exists = await db.execute(
             select(OHLCVBar.id)
             .where(
@@ -82,8 +82,21 @@ async def get_local_ohlcv(
             .limit(1)
         )
         if d1_exists.scalar_one_or_none() is not None:
-            await materialize_derived_timeframes(db, instrument.id, adjusted=adjusted)
-            await db.commit()
+            derived_exists = await db.execute(
+                select(OHLCVBar.id)
+                .where(
+                    OHLCVBar.instrument_id == instrument.id,
+                    OHLCVBar.timeframe == timeframe,
+                    OHLCVBar.is_adjusted.is_(adjusted),
+                    OHLCVBar.is_derived.is_(True),
+                )
+                .limit(1)
+            )
+            if derived_exists.scalar_one_or_none() is None:
+                await materialize_derived_timeframes(db, instrument.id, adjusted=adjusted)
+                await db.commit()
+            # Re-read even when provider rows were already present: a partial
+            # provider series must be merged with derived periods from D1.
             bars = (
                 (
                     await db.execute(

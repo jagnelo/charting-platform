@@ -50,6 +50,67 @@ class TestOHLCVRouter:
         assert all(row["is_derived"] is True for row in payload)
         assert all(row["source_timeframe"] == "D1" for row in payload)
 
+    def test_local_coarse_read_merges_partial_provider_rows_with_derived_periods(
+        self, client, auth_headers, db, instrument, ohlcv_bars
+    ):
+        """A partial provider series must not hide D1-derived coarse periods."""
+        db.add(
+            OHLCVBar(
+                instrument_id=instrument.id,
+                timeframe=Timeframe.W1,
+                ts=datetime(2024, 1, 1, tzinfo=UTC),
+                open=Decimal("999"),
+                high=Decimal("1001"),
+                low=Decimal("998"),
+                close=Decimal("1000"),
+                volume=Decimal("1"),
+                is_adjusted=True,
+                is_derived=False,
+            )
+        )
+        db.flush()
+
+        response = client.get(
+            f"/api/v1/ohlcv/local/{instrument.symbol}/W1",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert any(row["is_derived"] is False and row["close"] == 1000.0 for row in payload)
+        assert any(row["is_derived"] is True for row in payload)
+
+    def test_chart_coarse_local_read_merges_partial_provider_rows(
+        self, client, auth_headers, db, instrument, ohlcv_bars
+    ):
+        """The chart service path applies the same mixed-source contract."""
+        db.add(
+            OHLCVBar(
+                instrument_id=instrument.id,
+                timeframe=Timeframe.W1,
+                ts=datetime(2024, 1, 1, tzinfo=UTC),
+                open=Decimal("999"),
+                high=Decimal("1001"),
+                low=Decimal("998"),
+                close=Decimal("1000"),
+                volume=Decimal("1"),
+                is_adjusted=True,
+                is_derived=False,
+            )
+        )
+        db.flush()
+
+        response = client.get(
+            f"/api/v1/ohlcv/{instrument.symbol}/W1",
+            params={"local_only": "true"},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert any(row["is_derived"] is False and row["close"] == 1000.0 for row in payload)
+        assert any(row["is_derived"] is True for row in payload)
+
     def test_transformed_chart_types_return_server_shape(
         self, client, auth_headers, instrument, monkeypatch
     ):

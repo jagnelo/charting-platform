@@ -176,8 +176,24 @@ async def _materialize_derived_for_read(
 
     from app.services.derived_timeframes import materialize_derived_timeframes
 
-    await materialize_derived_timeframes(db, instrument.id, adjusted=adjusted)
-    await db.commit()
+    # Avoid rebuilding the derived cache on every chart read.  Bulk history
+    # maintenance refreshes this cache after D1 ingestion; a read only needs
+    # to create it when coarse rows are absent entirely.  This also lets a
+    # partial provider series be completed without repeatedly deleting and
+    # recreating already-materialized lineage rows.
+    derived_exists = await db.execute(
+        select(OHLCVBar.id)
+        .where(
+            OHLCVBar.instrument_id == instrument.id,
+            OHLCVBar.timeframe == timeframe,
+            OHLCVBar.is_adjusted.is_(adjusted),
+            OHLCVBar.is_derived.is_(True),
+        )
+        .limit(1)
+    )
+    if derived_exists.scalar_one_or_none() is None:
+        await materialize_derived_timeframes(db, instrument.id, adjusted=adjusted)
+        await db.commit()
     rows = list(
         (
             await db.execute(
@@ -655,12 +671,13 @@ async def fetch_ohlcv(
         # Local-only coarse reads may still be served from canonical adjusted
         # D1 evidence.  Materialization is provider-free and preserves the
         # shared lineage contract; a cold instrument remains an empty read.
-        if not cached and timeframe in (Timeframe.W1, Timeframe.MN):
-            cached = [
-                bar
-                for bar in await _materialize_derived_for_read(db, instrument, timeframe, adjusted)
-                if start <= bar.ts <= end
-            ]
+        # Re-read the complete coarse cache so partial provider coverage is
+        # merged with derived periods rather than returned as an incomplete
+        # local series.
+        if timeframe in (Timeframe.W1, Timeframe.MN):
+            materialized = await _materialize_derived_for_read(db, instrument, timeframe, adjusted)
+            if materialized:
+                cached = [bar for bar in materialized if start <= bar.ts <= end]
         cached.sort(key=lambda b: b.ts)
         return cached
 
@@ -885,10 +902,11 @@ async def fetch_ohlcv_latest(
         return rows
 
     if not allow_provider_fetch:
-        if not rows and timeframe in (Timeframe.W1, Timeframe.MN):
-            rows = await _materialize_derived_for_read(db, instrument, timeframe, adjusted)
-            rows = rows[-limit:] if len(rows) > limit else rows
-            rows.sort(key=lambda b: b.ts)
+        if timeframe in (Timeframe.W1, Timeframe.MN):
+            materialized = await _materialize_derived_for_read(db, instrument, timeframe, adjusted)
+            if materialized:
+                rows = materialized[-limit:] if len(materialized) > limit else materialized
+                rows.sort(key=lambda b: b.ts)
         return rows
 
     provider_gap: Exception | None = None
@@ -1069,12 +1087,10 @@ async def fetch_ohlcv_page_before(
         return rows
 
     if not allow_provider_fetch:
-        if not rows and timeframe in (Timeframe.W1, Timeframe.MN):
-            rows = [
-                row
-                for row in await _materialize_derived_for_read(db, instrument, timeframe, adjusted)
-                if row.ts < before
-            ][-limit:]
+        if timeframe in (Timeframe.W1, Timeframe.MN):
+            materialized = await _materialize_derived_for_read(db, instrument, timeframe, adjusted)
+            if materialized:
+                rows = [row for row in materialized if row.ts < before][-limit:]
         rows.sort(key=lambda b: b.ts)
         return rows
 
