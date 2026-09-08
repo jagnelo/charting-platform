@@ -127,6 +127,7 @@ progress:
     - Twelve Data, Tradier, and Binance provider-native cumulative usage headers are retained and reconciled into their matching durable quota windows only when the observed values prove the reviewed contract limit; stale or mismatched observations cannot reduce local accounting
     - Tiingo's documented first-of-month Eastern bandwidth reset is represented explicitly and durable reservation windows honor the America/New_York calendar boundary; Tiingo remains fail-closed until a reviewed per-operation byte reservation exists
     - FMP's operator-verified 512 MiB bandwidth pool is represented as a rolling 30-day constraint; FMP remains fail-closed until a reviewed per-operation byte reservation exists
+    - provider-defined and otherwise unspecified quota reset labels use conservative rolling windows rather than invented UTC epoch buckets; explicit calendar/session resets remain provider-specific
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: full live matrix requires the three remaining credential domains (Alpaca, Tradier, MarketData.app) plus an operator-supplied SEC User-Agent; complete NMS/OTC reconciliation and shadow activation remain post-deployment gates
