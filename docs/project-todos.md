@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-08 — Bounded eight-family canonical enrichment pass
+
+- [x] Exercise all eight configured family refresh paths and select nine dated
+      snapshots across eight profiles with zero refresh failures.
+- [x] Run the bounded classifier with zero failures: 181 records enriched and
+      4,144 remain pending.
+- [ ] Hydrate canonical D1/W1/MN member bars and verify continuity/analysis
+      floors; this fresh-stack pass found zero such bars and implies no
+      readiness.
+
 ### 2026-09-08 — Bounded Russell 2000 canonical enrichment
 
 - [x] Refresh IWM/IWN/IWO dated snapshots with zero failures and run bounded
