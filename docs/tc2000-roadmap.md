@@ -5,6 +5,17 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-08
 
+## 2026-09-08 — Bounded S&P SmallCap 600 canonical enrichment
+
+The isolated stack refreshed the three mapped SP600 legs for `2025-12-31`
+with zero failures; equal-weight remained explicitly unavailable. The bounded
+worker processed three profiles/snapshots, enriched `76` records, and left
+`1,171` pending. Post-run classified/placeholder counts were IJR `60/2`,
+SLYV `38/7`, and SLYG `6/114`. No D1/W1/MN bars were present, so
+`history_ready=false` and no continuity or analysis floor is claimed. Repeated
+missing optional-provider credentials remained explicit; cleanup removed all
+branch-scoped resources.
+
 ## 2026-09-08 — Seeded authenticated top-down/source workflow slice
 
 The seeded branch-scoped browser run passed `11/11` targeted flows in `44.1s`:

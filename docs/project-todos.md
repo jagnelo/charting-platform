@@ -35,6 +35,15 @@
 - [ ] Repeat the top-down journey against canonical provider-backed data and
       preserve synchronized history/source-readiness evidence.
 
+### 2026-09-08 — Bounded S&P SmallCap 600 canonical enrichment
+
+- [x] Refresh IJR/SLYV/SLYG dated snapshots with zero failures and run bounded
+      enrichment across three profiles, enriching 76 records.
+- [x] Preserve explicit post-run state: IJR 60 classified/2 placeholders,
+      SLYV 38/7, SLYG 6/114, with 1,171 records still pending.
+- [ ] Continue enrichment and populate D1/W1/MN member history; no readiness
+      is inferred from partial classification.
+
 ### 2026-09-08 — Bounded Russell 1000 canonical enrichment
 
 - [x] Run bounded enrichment across the three Russell 1000 dated snapshots:

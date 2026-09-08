@@ -8,6 +8,14 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-08 — Bounded S&P SmallCap 600 canonical enrichment
+
+The isolated stack refreshed IJR/SLYV/SLYG for `2025-12-31` with zero
+failures; equal-weight remained unavailable. Bounded enrichment processed three
+profiles/snapshots, enriched `76`, and left `1,171` pending. Classified /
+placeholder counts were IJR `60/2`, SLYV `38/7`, and SLYG `6/114`. No D1/W1/MN
+bars were present, so `history_ready=false`; cleanup removed all resources.
+
 ## 2026-09-08 — Seeded authenticated top-down/source workflow slice
 
 The seeded browser run passed `11/11` targeted flows in `44.1s`: coverage and
