@@ -3317,3 +3317,22 @@ The branch-scoped stack was torn down immediately afterward. The cleanup receipt
 services, four generated images, four volumes, and the network; no test-container sessions or
 retained resource bytes remained. Native multi-monitor behavior, dense-data budgets, accessibility,
 security, logging, and the six unchanged visual diffs remain separate R5-R6 gaps.
+
+## 2026-09-08 — Chart Plot Library Strategy-signal adapter
+
+Chart Plot Library now promotes compatible single-output indicators directly to Strategy Lab
+signals. The adapter requires a canonical active instrument, emits an immutable chart-plot
+lineage payload (source instrument/timeframe, indicator/output, threshold operator/value, source
+plot, and current-data re-evaluation semantics), and uses the existing code-version signal
+endpoint. Multi-output indicators are rejected with an explicit capability error. Backend
+promotion metadata preserves chart origin while leaving Study Lab-origin responses unchanged.
+
+Focused component coverage passed `25/25`; type-check passed. The exact-tip product commit is
+`b53873c1`. Its exhaustive gate passed all non-visual stages (backend `1,350` unit/`385`
+integration, frontend `974/974`, build/compose/stack/runner checks, and functional Playwright
+`164` passed/`106` skipped across `270`); the unchanged visual matrix remains `98/104` with the
+six known state-oracle diffs. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed. Docker teardown and ownership audit were clean.
+
+Next: continue R1 canonical provider/history population and remaining R2-R7 gaps. Do not treat
+this slice or its green non-visual gate as product completion.

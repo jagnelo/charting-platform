@@ -17651,3 +17651,21 @@ The current source also passes the focused authenticated top-down browser slice 
       paths.
 - [ ] Promote the resulting definition fan-out to every compatible target (column, filter, scan,
       alert, gauge, chart plot, and Strategy Lab signal) with target-specific output validation.
+
+### 2026-09-08 — Chart Plot Library Strategy-signal promotion
+
+- [x] Add an explicit Chart Plot Library → Strategy signal adapter for compatible single-output
+      indicators. The generated immutable code asset records canonical instrument/timeframe,
+      indicator/output, threshold operator/value, source plot, and current-data re-evaluation
+      semantics before creating the user-scoped Strategy Lab signal.
+- [x] Refuse multi-output/structured chart indicators with a stable capability error; no output
+      is selected implicitly. Preserve existing column, filter, scan, gauge, and alert adapters.
+- [x] Add focused component and backend metadata coverage (`25/25` frontend component tests;
+      chart-origin integration assertions), plus authenticated consuming coverage in the existing
+      full browser matrix.
+- [x] Exact-tip gate at product tip `b53873c1`: non-visual stages green (backend `1,350` unit,
+      `385` integration, frontend `974/974`, build/compose/stack/runner checks, and functional
+      Playwright `164` passed/`106` skipped across `270`); visual `98/104` with the six unchanged
+      state-oracle diffs. No visual or provider policy changed.
+- [ ] Remaining R4 fan-out cells, complete canonical provider/history population, exact V25
+      visual approval, native-window/accessibility/security evidence, and dense-data budgets.

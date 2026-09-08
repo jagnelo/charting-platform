@@ -149,6 +149,17 @@ current_blocker: >-
   locked, backend, frontend, build, stack, runner, and functional-browser
   filing reconstruction using its curated CIK/series/class identity; focused
   and live evidence is retained in the durable history below.
+  Product commit b53873c1 adds an explicit Chart Plot Library to Strategy signal adapter for
+  compatible single-output indicators. It persists canonical instrument/timeframe, indicator
+  output, threshold operator/value, source plot, immutable lineage, and current-data
+  re-evaluation semantics; multi-output indicators return a capability error. Focused component
+  coverage passed 25/25 and frontend type-check passed. The exact-tip gate passed every
+  non-visual stage (backend 1350 unit and 385 integration, combined coverage, frontend 974/974,
+  build/compose/stack/runner checks, and functional Playwright 164 passed with 106 documented
+  skips across 270 specs). Visual parity remains 98/104 with exactly the six unchanged
+  state-oracle diffs; no visual/provider/fallback/acceptance policy changed. Docker stack teardown
+  and resource audit were clean. Continue R1 canonical provider/history readiness and remaining
+  R2-R7 work; preserve the visual-only boundary. Historical receipts below remain authoritative.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "The roadmap changes frontend workstation behavior, backend canonical provider/history contracts, authenticated browser workflows, Playwright visual assertions, worker-backed data readiness, and full integration evidence."

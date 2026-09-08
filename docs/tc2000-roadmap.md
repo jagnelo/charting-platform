@@ -2473,10 +2473,32 @@ The TC2000 frontend rework is ready for human review only when all of the follow
 ## Immediate next checkpoint
 
 Continue with the next canonical provider/history slice and compatible chart/list/gauge consumers
-with authenticated evidence. The latest product tip is `704e5c8b`; the exact-tip exhaustive gate
+with authenticated evidence. The latest product tip is `b53873c1`; the exact-tip exhaustive gate
 receipt is recorded above and the documentation tip will be recorded in the follow-up docs commit. All non-visual and functional
 stages pass, while the unchanged six visual state-oracle diffs remain explicit: column-editor-open
 at both 1080p projects and workspace-floating at all four visual projects. Preserve the declared
 provider fallback boundaries and all existing acceptance policy while expanding the remaining
 canonical population/history coverage, richer Study Lab targets, native-window/accessibility/
-security evidence, and dense-data budgets.
+
+## 2026-09-08 — Chart Plot Library Strategy-signal adapter
+
+The Chart Plot Library now exposes an explicit `Strategy signal` target for compatible
+single-output indicators. Promotion requires a canonical active instrument, emits an immutable
+chart-plot lineage record (instrument, timeframe, indicator, output, operator, threshold, and
+current-data re-evaluation semantics), and creates the user-scoped Strategy Lab signal through
+the existing code-version endpoint. Multi-output indicators refuse promotion with an explicit
+capability error rather than silently choosing one series. The backend preserves chart-origin
+metadata and tags without changing the existing Study Lab contract.
+
+Focused component coverage passed `25/25`; type-check passed. At exact product tip `b53873c1`,
+the exhaustive integration gate passed all non-visual stages: backend `1,350` unit and `385`
+integration tests, combined coverage, frontend Vitest `974/974`, build/compose/provider policy,
+stack health, runner isolation, and authenticated Playwright `164` passed with `106` documented
+skips across `270` specs. The unchanged 104-case visual matrix was `98` passed with exactly the
+six previously recorded state-oracle diffs (watchlist-column-editor-open at both 1080p scales;
+workspace-floating at all four projects). No visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed; Docker stack teardown and resource audit were clean.
+
+R4 still has compatible fan-out gaps for some artifact shapes and R1-R3/R5-R6 remain open,
+especially complete provider-backed family population/history, exact visual evidence, native
+window/accessibility/security proof, and dense-data budgets.
