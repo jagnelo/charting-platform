@@ -698,6 +698,7 @@ def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
     assert tiingo["untracked_constraints"][0]["limit"] == 1024**3
     assert fmp["dimensions"][0]["limit"] == 250
     assert fmp["untracked_constraints"][0]["limit"] == 512 * 1024**2
+    assert fmp["untracked_constraints"][0]["reset"] == "rolling_30_days"
 
 
 def test_finra_synchronous_budget_uses_documented_byte_reservation():
