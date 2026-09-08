@@ -51,10 +51,29 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ps/workstreams/feat-tc2000-frontend-rework/session.json"
+  ],
   "docker": {
-    "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-tc2000-frontend-rework-db4ca1c4",
+      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -93,14 +112,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "729661632f5f77c4bcb9b047981fa0e491fa2306",
+  "head": "5d5eb131e0ff9f3acd58d94997bcd5d9a39cd7f4",
   "implementation_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
   "interrupted": false,
-  "last_checkpoint": "2026-09-05T05:28:51.366602+00:00",
+  "last_checkpoint": "2026-09-08T06:07:07.992627+00:00",
   "last_human_progress_update": "2026-09-08T06:05:37.329770+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue canonical provider/history population or the next compatible Study target slice with focused regression coverage, then rerun the exact-tip exhaustive gate at the new coherent tip; preserve visual policy and provider fallback rules.",
-  "plan_hash": "343aaa0860ad64e5a557b022a7247eaede40eb9788425b2df06d673cb48cef00",
+  "plan_hash": "50009523f2d63a1caafc1628ac6a55f429843f75e5beedeee9079abb3a068290",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [],
