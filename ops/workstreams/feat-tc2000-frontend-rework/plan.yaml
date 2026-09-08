@@ -13,6 +13,12 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Latest focused authenticated keyboard/accessibility browser slice passed 5/5
+  flows in 9.5s with no critical diagnostics (workspace tabs, watchlist rows,
+  shell menus, keyboard help, and drawing flyouts). This closes only that R6
+  slice; continue native-window, broader accessibility/security, dense live
+  data, visual-oracle, canonical enrichment/history, and R2-R5 evidence.
+  Historical receipts below remain authoritative.
   Latest bounded S&P 500 enrichment processed four dated snapshots with zero
   failures, enriched 78 records, and left 1518 pending. Classification remains
   partial (SPY 51/449, RSP 50/453, SPYV 40/403, SPYG 25/117 classified/

@@ -8,6 +8,15 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-08 — Authenticated keyboard/accessibility browser slice
+
+Five focused authenticated Playwright flows passed (`5/5`, `9.5s`) against
+the branch-scoped stack: workspace-tab roving focus, watchlist-row keyboard
+actions, shell-menu navigation, keyboard-help discovery, and drawing-flyout
+menu/focus recovery. No critical browser diagnostics were reported. This is a
+bounded slice; native-window, broader accessibility/security, dense live-data,
+visual-oracle, and canonical history evidence remain open.
+
 ## 2026-09-08 — Bounded S&P 500 canonical enrichment
 
 The bounded worker processed SPY/RSP/SPYV/SPYG dated snapshots with zero

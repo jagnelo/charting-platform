@@ -5,6 +5,16 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-08
 
+## 2026-09-08 — Authenticated keyboard/accessibility browser slice
+
+Against the fresh branch-scoped stack, five authenticated Playwright flows
+passed: workspace-tab roving focus, watchlist-row keyboard actions, workstation
+shell-menu navigation, keyboard-help discovery with editor-focus suppression,
+and drawing-flyout menu semantics/focus recovery. The run completed `5/5` in
+`9.5s` with no critical browser diagnostics. This closes only the exercised
+keyboard/accessibility slice; native-window, broader accessibility/security,
+dense live-data, visual-oracle, and canonical history gates remain open.
+
 ## 2026-09-08 — Bounded S&P 500 canonical enrichment
 
 After persisting SPY/RSP/SPYV/SPYG dated snapshots, the bounded enrichment

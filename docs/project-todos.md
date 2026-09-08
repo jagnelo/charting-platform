@@ -9,6 +9,14 @@
 - [ ] Continue bounded enrichment and populate D1/W1/MN member history; no
       readiness is inferred from partial classification.
 
+### 2026-09-08 — Authenticated keyboard/accessibility browser slice
+
+- [x] Run the focused authenticated Playwright keyboard/accessibility slice:
+      workspace tabs, watchlist row actions, shell menus, keyboard help, and
+      drawing flyouts passed `5/5` in `9.5s` with no critical diagnostics.
+- [ ] Extend R6 coverage to native-window behavior, broader accessibility and
+      security checks, dense live-data budgets, and remaining visual oracles.
+
 ### 2026-09-08 — Bounded Russell 1000 canonical enrichment
 
 - [x] Run bounded enrichment across the three Russell 1000 dated snapshots:
