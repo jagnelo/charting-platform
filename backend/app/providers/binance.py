@@ -9,10 +9,10 @@ Capabilities:
 Auth: None required — all endpoints used here are public.
 Rate limits: the current Spot REST documentation exposes a 6,000
 request-weight/minute IP ceiling. The adapter records the exact documented
-weights for single-symbol price (2) and exchange-info discovery (20). Historical
-OHLCV remains non-routable through the runtime until its potentially multi-page
-request count can be reserved before execution; it must never be charged as one
-request by default.
+weights for single-symbol price (2) and exchange-info discovery (20).
+Historical OHLCV calculates its potentially multi-page request count before
+execution so the runtime can reserve the full documented weight; it must never
+be charged as one request by default.
 
 Symbol convention:
   Platform canonical : BTC-USD
@@ -245,9 +245,15 @@ def estimate_ohlcv_request_weight(
 
 
 def estimate_latest_ohlcv_request_weight(timeframe: Timeframe, limit: int) -> int | None:
-    if limit <= 0 or timeframe not in _TF_SECONDS:
+    seconds = _TF_SECONDS.get(timeframe)
+    if limit <= 0 or seconds is None:
         return None
-    return max(1, (int(limit) + _KLINES_LIMIT - 1) // _KLINES_LIMIT) * _KLINES_WEIGHT
+    # ``fetch_latest_ohlcv`` deliberately asks for a 1.4x lookback plus one
+    # day, then trims to ``limit`` bars. Reserve against that actual request
+    # range (with one extra candle for the clock advancing between estimation
+    # and invocation), not merely against the number returned to the caller.
+    requested_candles = int((int(limit) * 1.4) + (86400 / seconds)) + 1
+    return max(1, (requested_candles + _KLINES_LIMIT - 1) // _KLINES_LIMIT) * _KLINES_WEIGHT
 
 
 # ── Module helpers ────────────────────────────────────────────────────────────

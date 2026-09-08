@@ -342,6 +342,7 @@ class TestBinanceOHLCVParsing:
         end = start + timedelta(days=1001)
         assert estimate_ohlcv_request_weight(Timeframe.D1, start, end) == 4
         assert estimate_latest_ohlcv_request_weight(Timeframe.D1, 1001) == 4
+        assert estimate_latest_ohlcv_request_weight(Timeframe.M1, 1000) == 6
 
 
 # ── FRED series map ───────────────────────────────────────────────────────────

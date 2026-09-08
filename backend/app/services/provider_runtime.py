@@ -614,7 +614,7 @@ def provider_contract_operation_costs_configured(
     if not (contract.get("dynamic_endpoint_weights") or contract.get("operation_costs_required")):
         return True
     tracking = _usage_tracking_config(data_source)
-    costs = tracking.get("operation_costs")
+    costs = tracking.get("operation_costs") or contract.get("operation_costs")
     return bool(isinstance(costs, dict) and costs)
 
 
@@ -1129,7 +1129,10 @@ async def execute_provider_call(
 
     for resolved in chain:
         if not provider_contract_operation_cost_known(
-            resolved.policy, resolved.data_source, operation
+            resolved.policy,
+            resolved.data_source,
+            operation,
+            (operation_cost_overrides or {}).get(resolved.provider_name),
         ):
             continue
         usage_mode, usage_unit_label, usage_units = _usage_cost_for_operation(

@@ -316,6 +316,30 @@ def test_operation_and_dimension_costs_may_be_carried_in_reviewed_contract():
     assert provider_contract_operation_cost_known(policy, source, "fetch_short_interest")
 
 
+def test_operation_cost_readiness_uses_reviewed_contract_map():
+    source = DataSource(name="contract-cost-provider", config={})
+    policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.PRICE_HISTORY,
+        quota_contract={
+            "dimensions": [
+                {
+                    "name": "request_weight",
+                    "limit": 100,
+                    "window_seconds": 60,
+                    "unit": "weight",
+                    "scope": "ip",
+                    "source": "operator-review",
+                }
+            ],
+            "reset": "rolling",
+            "dynamic_endpoint_weights": True,
+            "operation_costs": {"fetch_ohlcv": 4},
+        },
+    )
+    assert provider_contract_operation_costs_configured(policy, source)
+
+
 @pytest.mark.asyncio
 async def test_dimension_reservation_settles_observed_bytes_without_charging_request_units(db):
     async_db = AsyncSessionAdapter(db)

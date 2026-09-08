@@ -131,6 +131,89 @@ async def test_execute_provider_call_persists_transport_measurement(db, monkeypa
 
 
 @pytest.mark.asyncio
+async def test_execute_provider_call_applies_dynamic_operation_override(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    source = DataSource(
+        name="binance",
+        is_active=True,
+        config={
+            "usage_tracking": {
+                "mode": "weighted_request",
+                "unit_label": "request_weight",
+                "operation_costs": {"get_current_price": 2},
+            }
+        },
+    )
+    db.add(source)
+    db.flush()
+    policy = ProviderPolicy(
+        data_source_id=source.id,
+        capability=ProviderCapability.PRICE_HISTORY,
+        is_enabled=True,
+        max_concurrency=1,
+        tokens_per_minute=6000,
+        burst_capacity=6000,
+        quota_scope="ip",
+        quota_source="unit-test Binance contract",
+        quota_contract={
+            "reset": "fixed_minute",
+            "dynamic_endpoint_weights": True,
+            "dimensions": [
+                {
+                    "name": "request_weight_per_minute",
+                    "limit": 6000,
+                    "window_seconds": 60,
+                    "unit": "weight",
+                    "scope": "ip",
+                    "source": "unit-test Binance contract",
+                }
+            ],
+        },
+        score_floor=Decimal("0"),
+        score_ceiling=Decimal("100"),
+        learned_weight=Decimal("0"),
+        effective_score=Decimal("0"),
+    )
+    health = ProviderHealthState(
+        data_source_id=source.id,
+        capability=ProviderCapability.PRICE_HISTORY,
+        ewma_latency_ms=Decimal("0"),
+        ewma_success_rate=Decimal("1"),
+        ewma_completeness=Decimal("1"),
+        ewma_freshness=Decimal("1"),
+        ewma_consistency=Decimal("1"),
+        observed_score=Decimal("0"),
+    )
+    resolved = ResolvedProvider(
+        provider_name="binance",
+        provider=object(),
+        data_source=source,
+        policy=policy,
+        health=health,
+    )
+
+    async def fake_chain(*_args, **_kwargs):
+        return [resolved]
+
+    monkeypatch.setattr("app.services.provider_runtime.resolve_provider_chain", fake_chain)
+
+    await execute_provider_call(
+        async_db,
+        ProviderCapability.PRICE_HISTORY,
+        "fetch_ohlcv:1d",
+        operation_cost_overrides={"binance": 4},
+        invoke=lambda _provider, _symbol: [1],
+        response_items=len,
+    )
+
+    request = db.execute(select(ProviderRequestLog)).scalar_one()
+    assert request.usage_units == Decimal("4")
+    window = db.execute(select(ProviderQuotaWindow)).scalar_one()
+    assert window.reserved_units == 0
+    assert window.consumed_units == 4
+
+
+@pytest.mark.asyncio
 async def test_seed_provider_runtime_creates_policies_for_supported_non_seeded_providers(db):
     async_db = AsyncSessionAdapter(db)
 
