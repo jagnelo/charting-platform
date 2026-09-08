@@ -10,6 +10,19 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 
 ## 2026-09-08 — Exact-tip gate after historical enrichment safety fix
 
+## 2026-09-08 — Exact-tip gate after worker Compose wiring
+
+Product commit `abf0bb69` wires the bounded historical-enrichment snapshot cap
+into the branch-scoped worker container. Focused F8u-alert reproduction passed
+`1/1` after a transient timeout in the preceding full run. The exact-tip gate
+rerun passed every non-visual stage: backend `1351` unit/`386` integration,
+frontend Vitest `974/974`, production build/compose/provider policy, healthy
+stack and runner probes, and functional Playwright `165` passed with `106`
+documented skips across `271`. Visual acceptance remains `98/104` with the
+same six state-oracle diffs; no visual-policy, fallback, provider, or
+acceptance-policy changes were made. Continue with opt-in persisted provider
+maintenance and population/continuity/D1-W1-MN evidence.
+
 Commit `c9e017e0` guards the dated-enrichment summary when an instrument has
 no `equity_detail`. The exhaustive gate completed every non-visual stage:
 backend `1351` unit and `386` integration tests, frontend Vitest `974/974`,

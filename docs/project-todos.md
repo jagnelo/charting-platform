@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-08 — Exact-tip gate after worker Compose wiring
+
+- [x] Wire `ETF_HOLDINGS_CLASSIFICATION_MAX_SNAPSHOTS_PER_PROFILE` into the
+      branch-scoped worker service (`abf0bb69`).
+- [x] Exhaustive gate completed all non-visual stages: backend `1351` unit
+      and `386` integration tests, frontend Vitest `974/974`, production
+      build/compose/provider policy, healthy stack and runner probes, and
+      functional Playwright `165` passed with `106` documented skips across
+      `271` tests. A transient F8u-alert timeout from the preceding run was
+      reproduced as a focused `1/1` pass before this rerun.
+- [x] Visual matrix remains `98/104`; only the six unchanged
+      watchlist-column-editor-open/workspace-floating state-oracle diffs fail.
+- [ ] Execute opt-in provider maintenance and verify persisted populations,
+      continuity, and D1/W1/MN member-bar floors.
+
 ### 2026-09-08 — Exact-tip gate after historical enrichment safety fix
 
 - [x] Guard the dated-enrichment summary when an instrument has no
