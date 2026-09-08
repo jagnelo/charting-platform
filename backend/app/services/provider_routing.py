@@ -242,7 +242,11 @@ async def reserve_provider_contract(
         reserved_units = max(1, int(raw_reserved_units))
         window_start = None
         dimension_reset = str(dimension.get("reset") or reset)
-        if "calendar_month" in dimension_reset and int(dimension["window_seconds"]) >= 2_500_000:
+        if dimension_reset == "calendar_month_est" and int(dimension["window_seconds"]) >= 2_500_000:
+            eastern = now.astimezone(ZoneInfo("America/New_York"))
+            reset_local = eastern.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            window_start = reset_local.astimezone(UTC)
+        elif "calendar_month" in dimension_reset and int(dimension["window_seconds"]) >= 2_500_000:
             window_start = datetime(now.year, now.month, 1, tzinfo=UTC)
         elif dimension_reset in {"calendar_day_utc", "calendar_day_gmt"} and int(
             dimension["window_seconds"]

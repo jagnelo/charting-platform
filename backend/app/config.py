@@ -468,6 +468,7 @@ class Settings(BaseSettings):
                         "unit": "bytes",
                         "scope": "api_key",
                         "source": "https://www.tiingo.com/about/pricing",
+                        "reset": "calendar_month_est",
                     }
                 ],
             },

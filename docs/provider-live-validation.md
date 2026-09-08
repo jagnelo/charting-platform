@@ -100,7 +100,9 @@ weight are reconciled only when each observation proves its matching reviewed
 contract limit; stale or mismatched observations cannot reduce local
 consumption. Other byte ceilings and dynamic response-header/account budgets
 are not yet reserved or enforced in quota windows, so Tiingo and FMP remain
-non-routable. FINRA's synchronous short-interest and OTC Daily List
+non-routable. Tiingo's first-of-month Eastern bandwidth reset is represented
+in the durable calendar-window engine, but the provider remains non-routable
+until an operation-specific byte reservation can be justified. FINRA's synchronous short-interest and OTC Daily List
 calls reserve the documented 3 MB maximum response against the 10 GB monthly
 credential budget and settle to measured bytes; its asynchronous
 submit/poll/presigned-download path is implemented as a documentation-faithful

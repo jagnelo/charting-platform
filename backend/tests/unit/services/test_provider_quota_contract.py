@@ -469,6 +469,9 @@ def test_marketdata_app_records_documented_daily_credit_and_concurrency_limits()
 
 
 def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
+    tiingo = settings.PROVIDER_RATE_LIMIT_SEEDS["tiingo"]["quota_contract"]
+    assert tiingo["untracked_constraints"][0]["reset"] == "calendar_month_est"
+
     coingecko = settings.PROVIDER_RATE_LIMIT_SEEDS["coingecko"]["quota_contract"]
     assert [item["reset"] for item in coingecko["dimensions"]] == [
         "rolling",
@@ -627,6 +630,57 @@ async def test_calendar_day_reservation_changes_at_utc_midnight(db):
     )
     assert first is not None and second is not None
     assert first[0].window_started_at != second[0].window_started_at
+
+
+@pytest.mark.asyncio
+async def test_eastern_calendar_month_reservation_follows_tiingo_reset_boundary(db):
+    async_db = AsyncSessionAdapter(db)
+    source = DataSource(name="eastern-month-provider", is_active=True)
+    db.add(source)
+    db.flush()
+    policy = ProviderPolicy(
+        data_source_id=source.id,
+        capability=ProviderCapability.PRICE_HISTORY,
+        quota_scope="api_key",
+        quota_contract={
+            "reset": "provider_defined",
+            "dimensions": [
+                {
+                    "name": "bandwidth_bytes_per_month",
+                    "limit": 1000,
+                    "window_seconds": 2_678_400,
+                    "unit": "bytes",
+                    "scope": "api_key",
+                    "source": "https://www.tiingo.com/about/pricing",
+                    "reset": "calendar_month_est",
+                }
+            ],
+        },
+    )
+    resolved = ResolvedProvider(
+        provider_name="eastern-month-provider",
+        provider=object(),
+        data_source=source,
+        policy=policy,
+        health=None,  # type: ignore[arg-type]
+    )
+    before_reset = await reserve_provider_contract(
+        async_db,
+        resolved=resolved,
+        capability=ProviderCapability.PRICE_HISTORY.value,
+        units=1,
+        now=datetime(2026, 10, 1, 3, 30, tzinfo=UTC),
+    )
+    after_reset = await reserve_provider_contract(
+        async_db,
+        resolved=resolved,
+        capability=ProviderCapability.PRICE_HISTORY.value,
+        units=1,
+        now=datetime(2026, 10, 1, 4, 30, tzinfo=UTC),
+    )
+    assert before_reset is not None and after_reset is not None
+    assert before_reset[0].window_started_at == datetime(2026, 9, 1, 4, tzinfo=UTC)
+    assert after_reset[0].window_started_at == datetime(2026, 10, 1, 4, tzinfo=UTC)
 
 
 def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
