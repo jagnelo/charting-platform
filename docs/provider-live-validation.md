@@ -133,6 +133,12 @@ The still-missing variables are `EDGAR_USER_AGENT`, `ALPACA_API_KEY`,
 those are supplied and their cases pass, the complete 29-case matrix remains
 an open acceptance gate.
 
+The latest network-enabled rerun reached 25/29 before one transient FINRA OTC
+TLS reset; the immediate bounded FINRA OTC retry passed 1/1. Together with the
+three exact missing-credential preflight failures, this preserves the earlier
+effective evidence of 26 passing cases without treating the transient reset as
+a provider contract failure.
+
 The MarketData.app adapter was also checked against the current official API
 root during this checkpoint: versioned resources are under
 `https://api.marketdata.app/v1` (not `/api/v1`). The checked-in contract records
