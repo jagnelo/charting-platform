@@ -18143,3 +18143,16 @@ The current source also passes the focused authenticated top-down browser slice 
       column-editor/floating-workspace state-oracle diffs. Scoped teardown removed all resources.
 - [ ] Visual review/approval, canonical family history/readiness, native-window and broader
       accessibility/security evidence, and the remaining R2–R7 acceptance work remain open.
+
+### 2026-09-08 — Bounded real ARQ canonical-history handoff
+
+- [x] Rebuilt the branch-local stack with the worker cap set to `32` and ran a real dated
+      `sp400` ARQ unit for `2025-12-31`: `MDY`, `MDYV`, and `MDYG` refreshed, equal-weight was
+      explicitly unavailable, and no role failed.
+- [x] The committed snapshots selected exactly `32` canonical members (`401` resolved rows;
+      queue `limited=true`), and all `32` member jobs drained. Selected-member adjusted D1
+      coverage reached `31` instruments / `68,431` bars through `2025-12-31`; W1/MN remained
+      zero. Worker effective cap was verified as `32`; teardown removed all resources.
+- [ ] Continue full-family canonical population, placeholder disposition, W1/MN floors, dated
+      rebalance continuity, and the remaining R2–R7 evidence. The prior uncapped probe was
+      interrupted and is not treated as a receipt; no provider/fallback/acceptance policy changed.

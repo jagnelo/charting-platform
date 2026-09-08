@@ -3849,3 +3849,14 @@ changed. Scoped teardown and resource accounting were clean.
 This moves the branch back to a complete non-visual gate with the known visual review boundary;
 it does not close canonical family/history readiness, native-window or broader accessibility/
 security evidence, or the remaining R2–R7 acceptance work.
+
+## 2026-09-08 — Bounded real ARQ canonical-history handoff
+
+With `BENCHMARK_FAMILY_MEMBER_HISTORY_MAX_INSTRUMENTS_PER_SNAPSHOT=32` applied to the worker,
+the real branch-local ARQ path refreshed the dated `sp400` unit for `2025-12-31`: MDY, MDYV, and
+MDYG refreshed through SEC reconstruction, equal-weight was explicitly unavailable, and no role
+failed. The queue selected exactly 32 canonical members from 401 resolved rows and drained all
+32 member jobs. Selected-member adjusted D1 history covered 31 instruments and 68,431 bars
+through 2025-12-31; W1/MN returned no usable data. Worker configuration and clean teardown were
+verified. This narrows R1's worker-handoff gap but does not claim full-family readiness,
+placeholder disposition, rebalance continuity, or R2–R7 completion.

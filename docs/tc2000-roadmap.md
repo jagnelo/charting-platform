@@ -3111,3 +3111,19 @@ Vitest/build, compose/provider/runner and health probes, and functional Playwrig
 watchlist-column-editor-open and workspace-floating state-oracle diffs. No visual baseline,
 threshold, skip, provider, fallback, or acceptance policy changed; canonical family/history
 readiness and the remaining R2–R7 evidence remain open.
+
+## 2026-09-08 — Bounded real ARQ canonical-history handoff
+
+The branch-local stack was rebuilt with `BENCHMARK_FAMILY_MEMBER_HISTORY_MAX_INSTRUMENTS_PER_SNAPSHOT=32`
+applied to the worker service. A real ARQ `sp400` dated refresh for `2025-12-31` completed with
+three refreshed SEC-backed roles (`MDY`, `MDYV`, `MDYG`), one explicitly unavailable equal-weight
+role, and zero failed roles. The committed snapshots exposed `401` resolved member rows; the
+worker selected exactly `32` canonical members, marked the queue as limited, and enqueued `32`
+member-history jobs. After the queue drained, the selected set had adjusted D1 history for `31`
+instruments (`68,431` bars, newest `2025-12-31`); W1/MN remained unavailable with zero bars.
+The worker's effective cap was verified as `32`, and teardown removed all branch resources.
+
+This is the first bounded real worker handoff receipt for a non-Nasdaq family, not complete R1
+readiness: placeholder disposition, full-family population, W1/MN floors, rebalance continuity,
+and R2–R7 evidence remain open. The earlier uncapped attempt was interrupted and discarded as
+non-qualifying evidence; no provider, fallback, credential, visual, or acceptance policy changed.
