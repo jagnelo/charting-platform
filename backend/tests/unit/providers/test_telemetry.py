@@ -32,6 +32,21 @@ def test_observation_without_active_call_is_ignored():
     observe_response(response)
 
 
+def test_streaming_observation_accepts_explicit_measured_bytes_without_materializing_content():
+    response = MagicMock()
+    response.headers = {"record-total": "2"}
+    measurement, token = activate()
+    try:
+        observe_response(response, response_bytes=0)
+        observe_response(response, response_bytes=7)
+    finally:
+        deactivate(token)
+
+    assert measurement.http_requests == 2
+    assert measurement.response_bytes == 7
+    assert measurement.response_headers == {"record-total": "2"}
+
+
 def test_transport_measurement_records_provider_specific_usage_headers():
     response = MagicMock()
     response.content = b"credits"

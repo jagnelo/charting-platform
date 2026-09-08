@@ -1,5 +1,5 @@
 from datetime import date
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from app.config import settings
 from app.providers import finra
@@ -100,18 +100,18 @@ def test_finra_async_query_flow_honors_location_and_presigned_download(monkeypat
     pending_response.content = b'{"requestId":"job-123","status":"pending"}'
     pending_response.json.return_value = {"requestId": "job-123", "status": "pending"}
     pending_response.raise_for_status.return_value = None
-    result_response = Mock(status_code=200)
+    result_response = MagicMock(status_code=200)
     result_response.headers = {"content-length": "12"}
-    result_response.content = b"result-bytes"
+    result_response.iter_bytes.return_value = [b"result-", b"bytes"]
     result_response.raise_for_status.return_value = None
+    result_response.__enter__.return_value = result_response
+    result_response.__exit__.return_value = None
 
     with (
         patch.object(finra, "_token_cache", None),
         patch("app.providers.finra.httpx.post", side_effect=[token_response, submit_response]) as post,
-        patch(
-            "app.providers.finra.httpx.get",
-            side_effect=[pending_response, result_response],
-        ) as get,
+        patch("app.providers.finra.httpx.get", return_value=pending_response) as get,
+        patch("app.providers.finra.httpx.stream", return_value=result_response) as stream,
     ):
         provider = FINRAProvider()
         job = provider.submit_async_dataset(
@@ -126,27 +126,29 @@ def test_finra_async_query_flow_honors_location_and_presigned_download(monkeypat
     assert result == b"result-bytes"
     assert post.call_args_list[1].kwargs["json"] == {"limit": 100000, "async": True}
     assert get.call_args_list[0].kwargs["headers"]["Authorization"] == "Bearer token"
-    assert "Authorization" not in get.call_args_list[1].kwargs["headers"]
+    assert "Authorization" not in stream.call_args.kwargs["headers"]
 
 
 def test_finra_async_result_requires_a_positive_bound(monkeypatch):
     monkeypatch.setattr(settings, "FINRA_ASYNC_MAX_RESULT_BYTES", 0)
-    with patch("app.providers.finra.httpx.get") as get:
+    with patch("app.providers.finra.httpx.stream") as stream:
         try:
             FINRAProvider().download_async_result("https://signed.example.test/result")
         except ValueError as exc:
             assert "requires FINRA_ASYNC_MAX_RESULT_BYTES" in str(exc)
         else:
             raise AssertionError("unbounded FINRA async downloads must fail closed")
-    get.assert_not_called()
+    stream.assert_not_called()
 
 
 def test_finra_async_result_rejects_declared_payload_above_bound():
-    response = Mock(status_code=200)
+    response = MagicMock(status_code=200)
     response.headers = {"content-length": "2048"}
-    response.content = b"small"
+    response.iter_bytes.return_value = [b"small"]
     response.raise_for_status.return_value = None
-    with patch("app.providers.finra.httpx.get", return_value=response):
+    response.__enter__.return_value = response
+    response.__exit__.return_value = None
+    with patch("app.providers.finra.httpx.stream", return_value=response):
         try:
             FINRAProvider().download_async_result(
                 "https://signed.example.test/result", max_bytes=1024

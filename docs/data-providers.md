@@ -436,7 +436,8 @@ current security master.
 FINRA's asynchronous Query API result payloads are documented as unbounded.
 The adapter therefore requires a positive `FINRA_ASYNC_MAX_RESULT_BYTES` (or
 an explicit per-call bound), validates `Content-Length` when supplied, and
-rejects bodies above the bound. This is only an adapter safety guard; the
+enforces the limit while streaming chunks so oversized bodies are not
+materialized in memory. This is only an adapter safety guard; the
 async capability remains non-routable until durable monthly bandwidth
 accounting can reserve and settle the provider's 10 GiB credential budget.
 

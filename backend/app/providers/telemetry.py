@@ -55,13 +55,16 @@ class ProviderTransportMeasurement:
     response_bytes: int = 0
     response_headers: dict[str, str] = field(default_factory=dict)
 
-    def observe(self, response: Any) -> None:
+    def observe(self, response: Any, *, response_bytes: int | None = None) -> None:
         self.http_requests += 1
-        content = getattr(response, "content", b"")
-        if isinstance(content, bytes):
-            self.response_bytes += len(content)
-        elif isinstance(content, bytearray):
-            self.response_bytes += len(content)
+        if response_bytes is None:
+            content = getattr(response, "content", b"")
+            if isinstance(content, bytes):
+                self.response_bytes += len(content)
+            elif isinstance(content, bytearray):
+                self.response_bytes += len(content)
+        else:
+            self.response_bytes += max(0, int(response_bytes))
         headers = getattr(response, "headers", None)
         if headers is None:
             return
@@ -93,7 +96,7 @@ def deactivate(token: Token) -> None:
     _current.reset(token)
 
 
-def observe_response(response: Any) -> None:
+def observe_response(response: Any, *, response_bytes: int | None = None) -> None:
     measurement = _current.get()
     if measurement is not None:
-        measurement.observe(response)
+        measurement.observe(response, response_bytes=response_bytes)
