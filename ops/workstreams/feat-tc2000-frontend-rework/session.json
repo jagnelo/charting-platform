@@ -51,12 +51,27 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [
-    "ps/workstreams/feat-tc2000-frontend-rework/session.json"
-  ],
+  "dirty_paths": [],
   "docker": {
-    "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-tc2000-frontend-rework-db4ca1c4",
+      "charting-stack-feat-tc2000-frontend-rework-db4ca1c4"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -95,10 +110,10 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "dbefacaec4cbf7bdbeac909c0b79c647d8e1b4dc",
+  "head": "fe7799c803054a17c416d4abf3e40bc3a4fb1ac2",
   "implementation_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
   "interrupted": false,
-  "last_checkpoint": "2026-09-08T06:37:26.747816+00:00",
+  "last_checkpoint": "2026-09-08T06:42:13.201952+00:00",
   "last_human_progress_update": "2026-09-08T06:41:59.597979+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue canonical provider/history population or the next compatible Study target slice with focused regression coverage, then rerun the exact-tip exhaustive gate at the new coherent tip; preserve visual policy and provider fallback rules.",
