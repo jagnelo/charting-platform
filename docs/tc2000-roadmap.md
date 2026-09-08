@@ -5,6 +5,17 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-08
 
+## 2026-09-08 — Bounded S&P MidCap 400 canonical enrichment
+
+The isolated stack refreshed all three mapped SP400 legs for the requested
+`2025-12-31` date (MDY's latest disclosed composition was `2025-09-30`), with
+zero failures; equal-weight remained explicitly unavailable. The bounded
+worker processed three profiles/snapshots, enriched `113` records, and left
+`824` pending. Post-run classified/placeholder counts were MDY `76/0`, MDYV
+`56/9`, and MDYG `47/9`. No D1/W1/MN bars were present, so `history_ready`
+remains false and no continuity or analysis floor is claimed. Cleanup removed
+all branch-scoped resources.
+
 ## 2026-09-08 — Authenticated keyboard/accessibility browser slice
 
 Against the fresh branch-scoped stack, five authenticated Playwright flows

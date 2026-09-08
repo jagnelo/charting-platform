@@ -17,6 +17,15 @@
 - [ ] Extend R6 coverage to native-window behavior, broader accessibility and
       security checks, dense live-data budgets, and remaining visual oracles.
 
+### 2026-09-08 — Bounded S&P MidCap 400 canonical enrichment
+
+- [x] Refresh MDY/MDYV/MDYG dated snapshots with zero failures and run the
+      bounded worker across three profiles, enriching 113 records.
+- [x] Preserve explicit post-run state: MDY 76 classified/0 placeholders,
+      MDYV 56/9, MDYG 47/9, with 824 records still pending.
+- [ ] Continue enrichment and populate D1/W1/MN member history; no readiness
+      is inferred from partial classification.
+
 ### 2026-09-08 — Bounded Russell 1000 canonical enrichment
 
 - [x] Run bounded enrichment across the three Russell 1000 dated snapshots:
