@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-09 — Canonical Nasdaq provider path rechecked
+
+- [x] Verify representative canonical QQQ/SPY/NVDA identities resolve to active
+      Nasdaq provider symbols and that Nasdaq is first in the price-history
+      chain.
+- [x] Run one bounded QQQ D1 fetch through `bulk_fetch_instrument`; `2,344`
+      adjusted bars persisted through `2025-12-31` on the fresh scoped stack.
+- [ ] Re-run bounded family member history under an explicit rate/concurrency
+      budget and establish D1/W1/MN continuity; this probe does not claim
+      family-wide readiness.
+
 ### 2026-09-08 — Controlled network-scale workstation row-budget oracle
 
 - [x] Add an opt-in, capped 10,000-identity E2E fixture that is explicitly

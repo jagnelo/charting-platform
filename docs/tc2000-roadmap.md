@@ -5,6 +5,18 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-08
 
+## 2026-09-09 — Canonical Nasdaq provider path rechecked through service runtime
+
+After the earlier bounded Nasdaq-100 queue reported provider exhaustion, a
+fresh seeded branch-scoped stack was inspected without changing provider
+policy. QQQ, SPY, and NVDA each resolved to an active Nasdaq symbol binding,
+and Nasdaq ranked first in the price-history chain. A bounded QQQ D1 fetch
+through the same `bulk_fetch_instrument` service used by workers persisted
+`2,344` adjusted bars through `2025-12-31` successfully. This narrows the
+earlier empty-bar result to run-level conditions such as concurrent/rate-limit
+exhaustion rather than a missing canonical symbol binding or Docker/network
+failure; it does not claim family-wide history, continuity, or readiness.
+
 ## 2026-09-08 — Controlled network-scale workstation row-budget oracle
 
 The branch now has an opt-in, explicitly non-canonical dense-universe fixture

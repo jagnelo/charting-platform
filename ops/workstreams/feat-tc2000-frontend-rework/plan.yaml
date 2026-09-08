@@ -13,6 +13,15 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  A fresh seeded runtime recheck confirmed active Nasdaq bindings for QQQ, SPY,
+  and NVDA, Nasdaq first in the price-history chain, and a bounded QQQ D1
+  bulk-fetch success of 2344 adjusted bars through 2025-12-31. The earlier
+  empty-bar queue therefore remains a run-level concurrency/rate-limit
+  investigation, not evidence of missing Docker/network access. Family-wide
+  D1/W1/MN continuity/readiness, canonical dense-data evidence, development-
+  tool security remediation, native-window/accessibility/security checks,
+  visual review, and R2-R7 evidence remain open. Historical receipts below
+  remain authoritative.
   The exact-tip full integration gate at the current documentation checkpoint
   repeated the expected boundary: all non-visual stages passed, functional
   Playwright passed 165 with 107 documented skips across 272, and visual parity

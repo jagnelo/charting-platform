@@ -8,6 +8,17 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-09 — Canonical Nasdaq provider path rechecked through service runtime
+
+The earlier dated queue's empty-bar result was rechecked on a fresh seeded
+stack without changing provider policy. QQQ, SPY, and NVDA had active Nasdaq
+provider-symbol bindings, and Nasdaq ranked first for price history. A bounded
+QQQ D1 call through `bulk_fetch_instrument` persisted `2,344` adjusted bars
+through `2025-12-31`. This makes a missing binding or Docker/network failure
+unlikely and points to run-level concurrency/rate-limit exhaustion as the next
+diagnostic hypothesis. Family-wide D1/W1/MN continuity and readiness remain
+open.
+
 ## 2026-09-08 — Controlled network-scale workstation row-budget oracle
 
 The implementation adds an opt-in, capped 10,000-identity E2E fixture marked
