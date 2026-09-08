@@ -35,6 +35,21 @@ class TestOHLCVRouter:
         assert response.json()[0]["source_timeframe"] == "D1"
         assert response.json()[0]["source_bar_count"] == 4
 
+    def test_local_coarse_read_materializes_from_canonical_d1(
+        self, client, auth_headers, instrument, ohlcv_bars
+    ):
+        """Provider-free local reads derive W1 from persisted D1 evidence."""
+        response = client.get(
+            f"/api/v1/ohlcv/local/{instrument.symbol}/W1",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload
+        assert all(row["is_derived"] is True for row in payload)
+        assert all(row["source_timeframe"] == "D1" for row in payload)
+
     def test_transformed_chart_types_return_server_shape(
         self, client, auth_headers, instrument, monkeypatch
     ):

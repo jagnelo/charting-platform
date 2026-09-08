@@ -13,6 +13,7 @@ from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.user import User
 from app.schemas.ohlcv import OHLCVBarOut
 from app.services.bar_transforms import TRANSFORM_REGISTRY, apply_transform
+from app.services.derived_timeframes import materialize_derived_timeframes
 from app.services.market_data import fetch_ohlcv, fetch_ohlcv_latest, fetch_ohlcv_page_before
 from app.services.provider_runtime import ProviderNoDataError
 
@@ -64,6 +65,37 @@ async def get_local_ohlcv(
         .scalars()
         .all()
     )
+    # Local reads never call providers, but a real canonical cache may contain
+    # only adjusted D1 evidence when W1/MN were unavailable upstream.  Build
+    # those coarse rows from the shared provider-neutral materializer so chart
+    # and watchlist consumers see the same explicit lineage as normal reads.
+    # Seeded browser fixtures intentionally remain source-scoped and must not
+    # receive provider-neutral rows during deterministic visual runs.
+    if not bars and not settings.E2E_SEED_MARKET_DATA and timeframe in (Timeframe.W1, Timeframe.MN):
+        d1_exists = await db.execute(
+            select(OHLCVBar.id)
+            .where(
+                OHLCVBar.instrument_id == instrument.id,
+                OHLCVBar.timeframe == Timeframe.D1,
+                OHLCVBar.is_adjusted.is_(adjusted),
+            )
+            .limit(1)
+        )
+        if d1_exists.scalar_one_or_none() is not None:
+            await materialize_derived_timeframes(db, instrument.id, adjusted=adjusted)
+            await db.commit()
+            bars = (
+                (
+                    await db.execute(
+                        select(OHLCVBar)
+                        .where(*predicates)
+                        .order_by(OHLCVBar.ts.desc())
+                        .limit(limit)
+                    )
+                )
+                .scalars()
+                .all()
+            )
     return list(reversed(bars))
 
 
