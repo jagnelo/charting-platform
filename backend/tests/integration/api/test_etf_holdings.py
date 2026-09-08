@@ -201,7 +201,7 @@ def test_admin_family_history_refresh_queues_deduplicated_local_members(
         "2024-01-02T00:00:00+00:00",
     )
     assert redis.calls[-1][1]["_job_id"] == (
-        "watchlist-source-history:20:MN,W1,D1:end=2024-01-02T00:00:00+00:00"
+        "watchlist-source-history:20:D1,W1,MN:end=2024-01-02T00:00:00+00:00"
     )
 
 
