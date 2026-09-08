@@ -38,7 +38,11 @@ from app.routers import (
     workspaces,
 )
 from app.services.alert_engine import run_alert_check
-from app.services.e2e_seed import seed_e2e_instruments, seed_e2e_market_data
+from app.services.e2e_seed import (
+    seed_e2e_instruments,
+    seed_e2e_large_universe,
+    seed_e2e_market_data,
+)
 from app.services.provider_runtime import seed_provider_runtime
 from app.services.workstation_bootstrap import ensure_core_workstation_identities
 
@@ -56,6 +60,8 @@ async def lifespan(app: FastAPI):
         await seed_provider_runtime(db)
         if settings.E2E_SEED_INSTRUMENTS:
             await seed_e2e_instruments(db)
+        if settings.E2E_SEED_LARGE_UNIVERSE:
+            await seed_e2e_large_universe(db, settings.E2E_SEED_LARGE_UNIVERSE_COUNT)
         if settings.E2E_SEED_MARKET_DATA:
             await seed_e2e_market_data(db)
         # The curated identity bootstrap is not market-data or holdings
@@ -137,4 +143,8 @@ async def health():
         "version": "2.0.0",
         "e2e_seed_instruments": settings.E2E_SEED_INSTRUMENTS,
         "e2e_seed_market_data": settings.E2E_SEED_MARKET_DATA,
+        "e2e_seed_large_universe": settings.E2E_SEED_LARGE_UNIVERSE,
+        "e2e_seed_large_universe_count": (
+            settings.E2E_SEED_LARGE_UNIVERSE_COUNT if settings.E2E_SEED_LARGE_UNIVERSE else 0
+        ),
     }

@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     E2E_SEED_INSTRUMENTS: bool = False
     E2E_SEED_MARKET_DATA: bool = False
+    # Optional controlled dense-universe identities for the network-scale
+    # workstation performance oracle. Disabled by default and never presented
+    # as canonical provider data.
+    E2E_SEED_LARGE_UNIVERSE: bool = False
+    E2E_SEED_LARGE_UNIVERSE_COUNT: int = 10_000
     RESEARCH_JOB_DIR: str = "/tmp/charting-research/jobs"
     RESEARCH_RESULT_DIR: str = "/tmp/charting-research/results"
 

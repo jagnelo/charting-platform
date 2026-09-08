@@ -203,4 +203,66 @@ test.describe('TC2000 workstation performance guards', () => {
     }
     await browserDiagnostics.expectNoCriticalIssues()
   })
+
+  test('hydrates a 10,000-row personal watchlist over the network within the row budget', async ({ page, request, loggedIn, browserDiagnostics }) => {
+    test.skip(process.env.E2E_SEED_LARGE_UNIVERSE !== 'true', 'requires the opt-in controlled dense-universe fixture')
+    test.setTimeout(120_000)
+
+    const token = await page.evaluate(() => localStorage.getItem('access_token'))
+    const headers = token ? { Authorization: `Bearer ${token}` } : undefined
+    const instrumentIds: number[] = []
+    let pageNumber = 1
+    while (instrumentIds.length < 10_000) {
+      const response = await request.get('/api/v1/instruments/browse', {
+        headers,
+        params: { q: 'E2E_ROW_', page: pageNumber, page_size: 200 },
+      })
+      expect(response.ok()).toBeTruthy()
+      const body = await response.json() as { total: number; items: Array<{ id: number }> }
+      expect(body.total).toBeGreaterThanOrEqual(10_000)
+      instrumentIds.push(...body.items.map(item => item.id))
+      if (!body.items.length) break
+      pageNumber += 1
+    }
+    expect(instrumentIds).toHaveLength(10_000)
+
+    const name = `E2E 10k network budget ${Date.now().toString(36)}`
+    const created = await request.post('/api/v1/watchlists', {
+      headers,
+      data: { name },
+    })
+    expect(created.status()).toBe(200)
+    const watchlist = await created.json() as { id: number }
+    const seeded = await request.post(`/api/v1/watchlists/${watchlist.id}/seed`, {
+      headers,
+      data: { instrument_ids: instrumentIds },
+    })
+    expect(seeded.status()).toBe(200)
+    await seeded.dispose()
+
+    try {
+      await page.goto('/chart')
+      await page.getByRole('button', { name: 'Add tool', exact: true }).click()
+      const toolMenu = page.locator('.workstation__tool-library-menu')
+      await expect(toolMenu).toBeVisible({ timeout: 10_000 })
+      await toolMenu.getByRole('menuitem', { name: 'WatchList', exact: true }).click()
+      const watchlistTab = page.locator('.lm_tab').filter({ hasText: 'WatchList' }).last()
+      await expect(watchlistTab).toBeVisible({ timeout: 10_000 })
+      if (!(await watchlistTab.evaluate(node => node.classList.contains('lm_active')))) await watchlistTab.click()
+      const personal = page.locator('.tool-window--active .personal-watchlist-tool').last()
+      await expect(personal).toBeVisible({ timeout: 10_000 })
+      const select = personal.getByRole('combobox', { name: 'Personal watchlist', exact: true })
+      await expect(select.locator('option', { hasText: name })).toHaveCount(1, { timeout: 30_000 })
+      await select.selectOption({ label: name })
+      const virtualWatchlist = personal.locator('.watchlist')
+      await expect(virtualWatchlist).toHaveAttribute('data-row-count', '10000', { timeout: 30_000 })
+      await expect(virtualWatchlist).toHaveAttribute('data-row-budget', 'within')
+      await expect.poll(async () => Number(await virtualWatchlist.getAttribute('data-rendered-row-count'))).toBeLessThan(100)
+      await expect.poll(() => virtualWatchlist.locator('.watchlist__row').count()).toBeLessThan(100)
+      await browserDiagnostics.expectNoCriticalIssues()
+    } finally {
+      const deleted = await request.delete(`/api/v1/watchlists/${watchlist.id}`, { headers })
+      expect([200, 204, 404]).toContain(deleted.status())
+    }
+  })
 })

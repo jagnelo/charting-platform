@@ -4,6 +4,8 @@ from app.config import settings
 def test_health_exposes_fixture_mode(client, monkeypatch):
     monkeypatch.setattr(settings, "E2E_SEED_INSTRUMENTS", True)
     monkeypatch.setattr(settings, "E2E_SEED_MARKET_DATA", True)
+    monkeypatch.setattr(settings, "E2E_SEED_LARGE_UNIVERSE", True)
+    monkeypatch.setattr(settings, "E2E_SEED_LARGE_UNIVERSE_COUNT", 10_000)
 
     response = client.get("/health")
 
@@ -13,4 +15,6 @@ def test_health_exposes_fixture_mode(client, monkeypatch):
         "version": "2.0.0",
         "e2e_seed_instruments": True,
         "e2e_seed_market_data": True,
+        "e2e_seed_large_universe": True,
+        "e2e_seed_large_universe_count": 10_000,
     }

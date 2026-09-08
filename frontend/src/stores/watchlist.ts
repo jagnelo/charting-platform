@@ -23,6 +23,12 @@ export interface WatchlistQuote {
 const pendingWatchlistCreates = new Map<string, Promise<Watchlist | null>>()
 const pendingWatchlistItems = new Map<string, Promise<WatchlistItem | null>>()
 
+// Keep dense watchlists from opening one browser connection per symbol. The
+// workstation can contain thousands of rows, while the quote endpoint remains
+// symbol-oriented; a small worker pool preserves eager quote hydration without
+// exhausting Chromium or the API connection pool.
+const EAGER_QUOTE_CONCURRENCY = 24
+
 function markWatchlistCreateResult(watchlist: Watchlist, created: boolean): Watchlist {
   // Keep the marker non-enumerable so the canonical Watchlist shape remains
   // unchanged for persisted state and existing consumers.
@@ -493,8 +499,10 @@ export const useWatchlistStore = defineStore('watchlist', () => {
     const unique = [...new Set(symbols.map(s => s?.toUpperCase()).filter(Boolean))]
     const toFetch = unique.filter(s => force || !priceMap.value[s])
     if (!toFetch.length) return
-    await Promise.allSettled(
-      toFetch.map(async (symbol) => {
+    let nextIndex = 0
+    async function fetchNext() {
+      while (nextIndex < toFetch.length) {
+        const symbol = toFetch[nextIndex++]
         try {
           const bars: Array<{ open: number; high: number; low: number; close: number; volume?: number }> = await api.get(
             localOnly ? `/ohlcv/local/${symbol}/D1` : `/ohlcv/${symbol}/D1`,
@@ -539,8 +547,9 @@ export const useWatchlistStore = defineStore('watchlist', () => {
             }
           }
         } catch { /* no bars */ }
-      })
-    )
+        }
+    }
+    await Promise.all(Array.from({ length: Math.min(EAGER_QUOTE_CONCURRENCY, toFetch.length) }, fetchNext))
   }
 
   function requestFocusWatchlist(id: number) {

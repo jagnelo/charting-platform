@@ -1,13 +1,23 @@
+import pytest
+
 from app.services.e2e_seed import (
     _E2E_BENCHMARK_PROXY_NAMES,
     _E2E_HOLDINGS,
     _E2E_INDUSTRIES,
     _E2E_MARKET_NAMES,
+    seed_e2e_large_universe,
 )
 from app.services.top_down_taxonomy import (
     BENCHMARK_FAMILY_REGISTRY,
     benchmark_family_proxy_symbols,
 )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("count", [0, -1, 10_001])
+async def test_large_universe_rejects_unbounded_counts(count):
+    with pytest.raises(ValueError, match="between 1 and 10000"):
+        await seed_e2e_large_universe(None, count)  # type: ignore[arg-type]
 
 
 def test_controlled_top_down_fixture_covers_all_select_sector_etfs():

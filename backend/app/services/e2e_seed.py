@@ -24,6 +24,50 @@ _E2E_BENCHMARK_PROXY_NAMES = {
     for symbol in benchmark_family_proxy_symbols()
 }
 
+_E2E_LARGE_UNIVERSE_PREFIX = "E2E_ROW_"
+
+
+async def seed_e2e_large_universe(db: AsyncSession, count: int = 10_000) -> None:
+    """Materialize a bounded controlled universe for network-scale UI probes.
+
+    These identities deliberately carry controlled-fixture provenance and no
+    market data, holdings, or provider entitlement. The flag is opt-in so the
+    normal seeded acceptance stack remains small and canonical claims cannot
+    accidentally include the stress universe.
+    """
+
+    if count < 1 or count > 10_000:
+        raise ValueError("E2E large-universe count must be between 1 and 10000")
+    asset_class = await _get_or_create_asset_class(db)
+    instrument_type = await _get_or_create_instrument_type(db, asset_class.id)
+    symbols = [f"{_E2E_LARGE_UNIVERSE_PREFIX}{index:05d}" for index in range(1, count + 1)]
+    existing = {
+        symbol.upper()
+        for symbol in (
+            await db.execute(select(Instrument.symbol).where(Instrument.symbol.in_(symbols)))
+        )
+        .scalars()
+        .all()
+    }
+    for symbol in symbols:
+        if symbol in existing:
+            continue
+        db.add(
+            Instrument(
+                symbol=symbol,
+                name=f"Controlled dense-universe instrument {symbol.removeprefix(_E2E_LARGE_UNIVERSE_PREFIX)}",
+                currency="USD",
+                instrument_type_id=instrument_type.id,
+                is_active=True,
+                field_provenance={
+                    "seed": "e2e",
+                    "controlled_fixture": True,
+                    "stress_universe": "workstation_row_budget",
+                },
+            )
+        )
+    await db.flush()
+
 
 async def seed_e2e_instruments(db: AsyncSession) -> None:
     """Seed deterministic workstation symbols for browser tests without provider I/O.
