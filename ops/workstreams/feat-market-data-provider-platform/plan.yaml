@@ -122,5 +122,5 @@ progress:
     - savepoint-safe durable quota-window creation under concurrent workers, with full seeded Compose/browser validation
   total: 15
   current_phase: credentialed_live_validation
-  current_blocker: full live matrix requires the remaining Alpaca, Tradier, MarketData.app, and SEC User-Agent inputs; complete NMS/OTC reconciliation and shadow activation remain post-deployment gates
+  current_blocker: full live matrix requires the three remaining credential domains (Alpaca, Tradier, MarketData.app) plus an operator-supplied SEC User-Agent; complete NMS/OTC reconciliation and shadow activation remain post-deployment gates
   next_action: obtain the three missing credential domains (plus an operator-supplied SEC User-Agent), run the complete 29-case live matrix, then reassess readiness; do not activate routing or deploy before that evidence
