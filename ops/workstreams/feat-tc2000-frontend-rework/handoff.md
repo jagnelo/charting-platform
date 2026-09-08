@@ -8,6 +8,14 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-08 — Bounded S&P 500 canonical enrichment
+
+The bounded worker processed SPY/RSP/SPYV/SPYG dated snapshots with zero
+failures, enriched 78 records, and left 1,518 pending. Classified/placeholder
+counts were SPY 51/449, RSP 50/453, SPYV 40/403, and SPYG 25/117. Optional
+provider credentials were absent and reported explicitly; no D1/W1/MN bars
+were present, leaving `history_ready=false`. Cleanup removed all resources.
+
 ## 2026-09-08 — Bounded Russell 1000 canonical enrichment
 
 The bounded worker processed IWB/IWD/IWF dated snapshots with zero failures,

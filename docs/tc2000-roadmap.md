@@ -5,6 +5,17 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-08
 
+## 2026-09-08 — Bounded S&P 500 canonical enrichment
+
+After persisting SPY/RSP/SPYV/SPYG dated snapshots, the bounded enrichment
+worker processed all four profiles and snapshots with zero failures, enriched
+`78` records, and left `1,518` pending under the per-profile cap. Classified
+plus placeholder counts were SPY `51/449`, RSP `50/453`, SPYV `40/403`, and
+SPYG `25/117`. Missing optional Massive and Alpha Vantage credentials were
+reported explicitly. No D1/W1/MN bars were present, so `history_ready=false`
+and no continuity or analysis floor is claimed. Cleanup removed all
+branch-scoped resources.
+
 ## 2026-09-08 — Bounded Russell 1000 canonical enrichment
 
 After persisting IWB/IWD/IWF `2025-12-31` snapshots, the bounded enrichment

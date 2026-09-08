@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-09-08 — Bounded S&P 500 canonical enrichment
+
+- [x] Run bounded enrichment across SPY/RSP/SPYV/SPYG dated snapshots with
+      zero failures and 78 records enriched under the per-profile cap.
+- [x] Preserve explicit post-run state: SPY 51/449, RSP 50/453, SPYV 40/403,
+      and SPYG 25/117 classified/placeholder counts; 1,518 remain pending.
+- [ ] Continue bounded enrichment and populate D1/W1/MN member history; no
+      readiness is inferred from partial classification.
+
 ### 2026-09-08 — Bounded Russell 1000 canonical enrichment
 
 - [x] Run bounded enrichment across the three Russell 1000 dated snapshots:

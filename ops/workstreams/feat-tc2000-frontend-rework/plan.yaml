@@ -13,6 +13,13 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Latest bounded S&P 500 enrichment processed four dated snapshots with zero
+  failures, enriched 78 records, and left 1518 pending. Classification remains
+  partial (SPY 51/449, RSP 50/453, SPYV 40/403, SPYG 25/117 classified/
+  placeholder), optional provider credentials are absent, and D1/W1/MN bars
+  remain unavailable so history_ready=false. Continue bounded enrichment,
+  canonical history, R2-R5, native-window/accessibility/security, and visual
+  review. Historical receipts below remain authoritative.
   Latest bounded enrichment processed three Russell 1000 dated snapshots with
   zero failures, enriched 100 records, and left 2176 pending under the cap;
   classification remains partial and D1/W1/MN bars are absent, so
