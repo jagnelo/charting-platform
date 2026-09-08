@@ -105,8 +105,26 @@ describe('VirtualWatchlistTool', () => {
     })
 
     expect(wrapper.find('.watchlist__controls b').text()).toBe('10000')
+    expect(wrapper.get('.watchlist').attributes('data-row-count')).toBe('10000')
+    expect(wrapper.get('.watchlist').attributes('data-row-budget')).toBe('within')
+    expect(Number(wrapper.get('.watchlist').attributes('data-rendered-row-count'))).toBeLessThan(100)
     expect(wrapper.findAll('.watchlist__row').length).toBeLessThan(100)
     expect(wrapper.find('.watchlist__scroll > div').attributes('style')).toContain('height:')
+  })
+
+  it('marks a row universe above the dense-workstation budget without truncating it', () => {
+    const rowsAboveBudget = Array.from({ length: 10_001 }, (_, index) => ({
+      instrumentId: index + 1,
+      symbol: `OVER${index + 1}`,
+      name: `Instrument ${index + 1}`,
+    }))
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: { label: 'Over-budget universe', rows: rowsAboveBudget },
+    })
+
+    expect(wrapper.get('.watchlist').attributes('data-row-count')).toBe('10001')
+    expect(wrapper.get('.watchlist').attributes('data-row-budget')).toBe('exceeded')
+    expect(wrapper.findAll('.watchlist__row').length).toBeLessThan(100)
   })
 
   it('virtualizes wide column sets instead of creating one cell per column in every visible row', () => {

@@ -1,5 +1,5 @@
 <template>
-  <section class="watchlist" :class="{ 'watchlist--columns-open': columnMenuOpen, 'watchlist--sets-open': columnSetMenuOpen, 'watchlist--condition-open': Boolean(conditionFilterState || pythonConditionState), 'watchlist--grouped': hasColumnGroups, 'watchlist--plot-drop-active': plotDropActive }" :aria-label="label" :aria-busy="loading ? 'true' : 'false'" @click="contextMenu = null" @keydown.esc="handleWatchlistEscape" @dragenter.prevent="dragOverPlot" @dragover.prevent="dragOverPlot" @dragleave="dragLeavePlot" @drop.prevent="dropPlot">
+  <section class="watchlist" :class="{ 'watchlist--columns-open': columnMenuOpen, 'watchlist--sets-open': columnSetMenuOpen, 'watchlist--condition-open': Boolean(conditionFilterState || pythonConditionState), 'watchlist--grouped': hasColumnGroups, 'watchlist--plot-drop-active': plotDropActive }" :aria-label="label" :aria-busy="loading ? 'true' : 'false'" :data-row-count="filteredRows.length" :data-rendered-row-count="virtualItems.length" :data-row-budget="workstationRowBudgetState(filteredRows.length)" @click="contextMenu = null" @keydown.esc="handleWatchlistEscape" @dragenter.prevent="dragOverPlot" @dragover.prevent="dragOverPlot" @dragleave="dragLeavePlot" @drop.prevent="dropPlot">
     <p v-if="plotDropActive" class="watchlist__plot-drop-hint" role="status" aria-live="polite" aria-atomic="true">Drop to add the chart plot as a numeric column</p>
     <p v-if="dropError" class="watchlist__drop-error" role="alert" aria-live="assertive" aria-atomic="true">{{ dropError }}</p>
     <p v-if="loading" class="watchlist__loading-status" role="status" aria-live="polite" aria-atomic="true">{{ loadingLabel }}</p>
@@ -127,6 +127,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type CSSPro
 import { api } from '@/lib/api'
 import { fetchCodeAssets } from '@/lib/workstation/libraryQueries'
 import { CHART_PLOT_DRAG_MIME, clearAnalysisDrag, hasActiveAnalysisDrag, readAnalysisDrag, scheduleAnalysisDragCleanup, type ChartAnalysisDragPayload, type TechnicalConditionDragPayload } from '@/lib/workstation/plotDrag'
+import { workstationRowBudgetState } from '@/lib/workstation/performanceBudget'
 import WorkstationGlyph from '@/components/workstation/WorkstationGlyph.vue'
 
 export interface WatchlistRow {
