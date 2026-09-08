@@ -409,6 +409,33 @@ def get_provider_usage_profile(name: str) -> dict:
                 **dict(merged.get("dimension_costs") or {}),
                 dimension_name: byte_bounds,
             }
+    if name == "finra":
+        try:
+            async_result_bound = int(settings.FINRA_ASYNC_MAX_RESULT_BYTES or 0)
+        except (TypeError, ValueError):
+            async_result_bound = 0
+        if async_result_bound > 0:
+            bandwidth_dimension = "download_bytes_per_calendar_month"
+            merged["operation_costs"] = {
+                **dict(merged.get("operation_costs") or {}),
+                "download_async_result": 1,
+            }
+            merged["dimension_costs"] = {
+                **dict(merged.get("dimension_costs") or {}),
+                # The signed result leg does not consume FINRA's API request
+                # minute dimensions; its only provider budget is downloaded
+                # bytes.  An operation-specific empty map is intentional and
+                # is interpreted as "do not charge this dimension".
+                "synchronous_requests_per_minute": {
+                    "download_async_result": {},
+                },
+                bandwidth_dimension: {
+                    **dict(
+                        (merged.get("dimension_costs") or {}).get(bandwidth_dimension) or {}
+                    ),
+                    "download_async_result": async_result_bound,
+                },
+            }
     return merged
 
 

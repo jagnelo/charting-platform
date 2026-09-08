@@ -123,6 +123,30 @@ def test_tiingo_byte_pool_requires_complete_operator_bounds_before_promotion(mon
     assert provider_rate_limit_seed("tiingo")["quota_contract"].get("untracked_constraints")
 
 
+def test_finra_async_download_requires_positive_bound_for_monthly_reservation(monkeypatch):
+    source = DataSource(
+        name="finra",
+        config={"usage_tracking": settings.PROVIDER_USAGE_PROFILE_SEEDS["finra"]},
+    )
+    seed = settings.PROVIDER_RATE_LIMIT_SEEDS["finra"]
+    policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.SHORT_INTEREST,
+        quota_contract=seed["quota_contract"],
+    )
+    assert not provider_contract_operation_cost_known(policy, source, "download_async_result")
+
+    monkeypatch.setattr(settings, "FINRA_ASYNC_MAX_RESULT_BYTES", 4 * 1024 * 1024)
+    source.config = {"usage_tracking": get_provider_usage_profile("finra")}
+    profile = source.config["usage_tracking"]
+    assert profile["operation_costs"]["download_async_result"] == 1
+    assert (
+        profile["dimension_costs"]["download_bytes_per_calendar_month"]["download_async_result"]
+        == 4 * 1024 * 1024
+    )
+    assert provider_contract_operation_cost_known(policy, source, "download_async_result")
+
+
 @pytest.mark.asyncio
 async def test_quota_windows_are_isolated_by_dimension(db):
     async_db = AsyncSessionAdapter(db)

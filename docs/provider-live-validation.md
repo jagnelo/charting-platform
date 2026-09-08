@@ -113,8 +113,9 @@ bandwidth reset are represented in the durable calendar-window engine. FINRA's s
 calls reserve the documented 3 MB maximum response against the 10 GB monthly
 credential budget and settle to measured bytes; its asynchronous
 submit/poll/presigned-download path is implemented as a documentation-faithful
-direct adapter but remains non-routable until the unbounded async-result byte
-budget is safely reserved. FRED v1 and Nasdaq Trader remain non-routable because
+direct adapter. A positive `FINRA_ASYNC_MAX_RESULT_BYTES` promotes the signed
+download operation into the durable monthly byte reservation; the default `0`
+remains non-routable because provider results are otherwise unbounded. FRED v1 and Nasdaq Trader remain non-routable because
 their official documentation publishes throttling behavior without a numeric
 ceiling. IBKR remains a descriptor without an authenticated account adapter.
 

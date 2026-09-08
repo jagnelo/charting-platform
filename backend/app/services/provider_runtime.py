@@ -254,6 +254,11 @@ def _dimension_costs_for_operation(
                     continue
                 family = _operation_family(operation)
                 raw = raw.get(family, raw.get(operation))
+                if isinstance(raw, dict) and not raw:
+                    # A nested empty operation entry explicitly means that
+                    # this quota dimension does not apply to the operation.
+                    result[name] = 0
+                    continue
             if raw is not None:
                 value = raw
         try:

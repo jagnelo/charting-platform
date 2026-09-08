@@ -17,6 +17,7 @@ from app.models.provider_runtime import (
     ProviderPolicy,
     ProviderRequestLog,
 )
+from app.providers.registry import get_provider_usage_profile
 from app.providers.telemetry import observe_response
 from app.services.provider_runtime import (
     ResolvedProvider,
@@ -247,9 +248,83 @@ async def test_execute_provider_call_applies_dynamic_operation_override(db, monk
 
     request = db.execute(select(ProviderRequestLog)).scalar_one()
     assert request.usage_units == Decimal("4")
-    window = db.execute(select(ProviderQuotaWindow)).scalar_one()
+    windows = db.execute(select(ProviderQuotaWindow)).scalars().all()
+    assert [item.dimension for item in windows] == ["request_weight_per_minute"]
+    window = windows[0]
     assert window.reserved_units == 0
     assert window.consumed_units == 4
+
+
+@pytest.mark.asyncio
+async def test_finra_async_download_settles_measured_bytes_in_monthly_window(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, "FINRA_ASYNC_MAX_RESULT_BYTES", 4 * 1024 * 1024)
+    source = DataSource(
+        name="finra",
+        is_active=True,
+        config={"usage_tracking": get_provider_usage_profile("finra")},
+    )
+    db.add(source)
+    db.flush()
+    policy = ProviderPolicy(
+        data_source_id=source.id,
+        capability=ProviderCapability.SHORT_INTEREST,
+        is_enabled=True,
+        max_concurrency=1,
+        quota_scope="ip",
+        quota_source="unit-test FINRA contract",
+        quota_contract=settings.PROVIDER_RATE_LIMIT_SEEDS["finra"]["quota_contract"],
+        score_floor=Decimal("0"),
+        score_ceiling=Decimal("100"),
+        learned_weight=Decimal("0"),
+        effective_score=Decimal("0"),
+    )
+    health = ProviderHealthState(
+        data_source_id=source.id,
+        capability=ProviderCapability.SHORT_INTEREST,
+        ewma_latency_ms=Decimal("0"),
+        ewma_success_rate=Decimal("1"),
+        ewma_completeness=Decimal("1"),
+        ewma_freshness=Decimal("1"),
+        ewma_consistency=Decimal("1"),
+        observed_score=Decimal("0"),
+    )
+    resolved = ResolvedProvider(
+        provider_name="finra",
+        provider=object(),
+        data_source=source,
+        policy=policy,
+        health=health,
+    )
+
+    async def fake_chain(*_args, **_kwargs):
+        return [resolved]
+
+    monkeypatch.setattr("app.services.provider_runtime.resolve_provider_chain", fake_chain)
+
+    def invoke(_provider, _symbol):
+        response = type(
+            "Response",
+            (),
+            {"content": b"async-result", "headers": {"content-length": "12"}},
+        )()
+        observe_response(response)
+        return response.content
+
+    await execute_provider_call(
+        async_db,
+        ProviderCapability.SHORT_INTEREST,
+        "download_async_result",
+        invoke=invoke,
+        response_items=len,
+    )
+
+    windows = db.execute(select(ProviderQuotaWindow)).scalars().all()
+    assert [item.dimension for item in windows] == ["download_bytes_per_calendar_month"]
+    window = windows[0]
+    assert window.dimension == "download_bytes_per_calendar_month"
+    assert window.consumed_units == len(b"async-result")
+    assert window.reserved_units == 0
 
 
 @pytest.mark.asyncio
