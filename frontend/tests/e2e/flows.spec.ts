@@ -4852,6 +4852,36 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
+  test('F8u-signal — single-output chart indicators promote into a Strategy signal', async ({ page, browserDiagnostics }) => {
+    test.setTimeout(60_000)
+    const instrumentLoaded = page.waitForResponse(response => response.request().method() === 'GET' && response.url().includes('/api/v1/instruments/SPY') && response.ok())
+    await page.goto('/chart/SPY')
+    await instrumentLoaded
+    await expect(page.getByRole('region', { name: 'Major US benchmarks' })).toBeVisible({ timeout: 10_000 })
+    // The persisted Golden Layout can mount a chart root before its panel-scoped
+    // instrument hydration completes. Wait for the bounded initial data window
+    // so promotion observes the same canonical instrument as the chart surface.
+    await page.waitForTimeout(2_000)
+    const chart = page.locator('.chart-tool:visible').last()
+    await expect(chart).toBeVisible({ timeout: 10_000 })
+    const plots = chart.locator('button[aria-label="Chart plot library"]')
+    await plots.click()
+    await chart.locator('select[aria-label="Add indicator plot"]').selectOption('rsi')
+    await expect(chart.locator('.chart-plots__menu')).toHaveCount(0, { timeout: 10_000 })
+    await plots.click()
+    await chart.locator('select[aria-label="Promotion plot"]').selectOption({ index: 1 })
+    await page.getByRole('combobox', { name: 'Plot promotion target' }).selectOption('signal')
+    await page.getByRole('combobox', { name: 'Plot promotion operator' }).selectOption('gte')
+    await page.getByRole('spinbutton', { name: 'Plot promotion threshold' }).fill('70')
+    await page.getByRole('textbox', { name: 'Plot promotion name' }).fill('RSI Strategy signal')
+    const assetCreate = page.waitForResponse(response => response.request().method() === 'POST' && response.url().includes('/api/v1/code/assets') && response.ok())
+    const signalCreate = page.waitForResponse(response => response.request().method() === 'POST' && response.url().includes('/api/v1/strategy-lab/signals/from-code/') && response.ok())
+    await page.getByRole('button', { name: 'Copy', exact: true }).click()
+    await Promise.all([assetCreate, signalCreate])
+    await expect(page.locator('.chart-plots__promotion-status')).toContainText('Strategy signal', { timeout: 15_000 })
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
   test('F8u-filter — chart indicators promote into a persisted watchlist filter', async ({ page, browserDiagnostics }) => {
     test.setTimeout(60_000)
     await page.goto('/chart/SPY')
