@@ -1,5 +1,13 @@
 # Project TODO Memory
 
+### 2026-09-08 — 100-round pop-out endurance validation
+
+- [x] Run the R6 workstation performance guards with
+      `TC2000_POP_OUT_CHURN_ROUNDS=100`; both tests passed in `1.7` minutes,
+      preserving canvas/tool counts and bounded lifecycle recovery.
+- [ ] Extend R6 evidence to native-window behavior, dense-data budgets,
+      accessibility/security, and the remaining visual-oracle review.
+
 ### 2026-09-08 — Russell 3000 provider population
 
 - [x] Persist IWV `2602/2605` resolved iShares rows for `2025-12-31` with

@@ -5,6 +5,15 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-08
 
+## 2026-09-08 — 100-round pop-out endurance validation
+
+The explicit R6 lifecycle soak passed both workstation performance guards at
+`TC2000_POP_OUT_CHURN_ROUNDS=100`: initial two-window recovery and repeated
+multi-window churn completed in `1.7` minutes. The oracle preserved tool and
+canvas counts, returned to one page after every round, and stayed within its
+memory bounds where Chromium exposed them. The isolated stack was torn down
+and scoped cleanup removed all generated resources.
+
 ## 2026-09-08 — Russell 3000 provider population
 
 The bounded iShares slice persisted the mapped IWV cap-weighted leg for

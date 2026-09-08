@@ -8,6 +8,15 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-08 — 100-round pop-out endurance validation
+
+The R6 workstation performance guards passed at the explicit
+`TC2000_POP_OUT_CHURN_ROUNDS=100` setting: both initial two-window recovery and
+repeated multi-window churn passed in `1.7` minutes, with bounded canvas/tool
+counts and one-page convergence after each round. Cleanup removed all
+branch-scoped resources. Native-window, dense-data, accessibility/security,
+and visual-oracle evidence remain open.
+
 ## 2026-09-08 — Russell 3000 provider population
 
 The bounded iShares refresh persisted IWV for `2025-12-31` with zero failures

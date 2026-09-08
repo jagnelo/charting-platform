@@ -13,6 +13,11 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Latest R6 lifecycle soak passed both workstation performance guards at the
+  explicit 100-round pop-out setting in 1.7 minutes, preserving tool/canvas
+  counts and one-page convergence after every round. Continue native-window,
+  dense-data, accessibility/security, visual-oracle, canonical enrichment,
+  and R2-R5 evidence. Historical receipts below remain authoritative.
   Latest bounded provider slice persisted Russell 3000 IWV for 2025-12-31 with
   zero failures and 2602/2605 resolved rows (2599 canonical, three
   placeholders); equal-weight, value, and growth are explicitly unmapped.
