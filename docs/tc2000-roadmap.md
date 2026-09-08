@@ -3,7 +3,7 @@
 Status: active implementation roadmap  
 Branch: `feat/tc2000-frontend-rework`  
 Parent: `staging`  
-Last reconciled: 2026-09-07
+Last reconciled: 2026-09-08
 
 ## 2026-09-08 — Promote Study Lab thresholds to Strategy signals
 
@@ -2473,8 +2473,10 @@ The TC2000 frontend rework is ready for human review only when all of the follow
 ## Immediate next checkpoint
 
 Continue with the next canonical provider/history slice and compatible chart/list/gauge consumers
-with authenticated evidence. The latest product tip is `b53873c1`; the exact-tip exhaustive gate
-receipt is recorded above and the documentation tip will be recorded in the follow-up docs commit. All non-visual and functional
+with authenticated evidence. The latest product/test tip is `4361fa5c` (product behavior from
+`b53873c1`); its focused F8u-signal flow passed `1/1`, and the exact-tip exhaustive gate returned
+`165` functional passes with `106` documented skips across `271`, plus `98/104` visual passes with
+the same six known state-oracle diffs. All non-visual and functional
 stages pass, while the unchanged six visual state-oracle diffs remain explicit: column-editor-open
 at both 1080p projects and workspace-floating at all four visual projects. Preserve the declared
 provider fallback boundaries and all existing acceptance policy while expanding the remaining
@@ -2502,3 +2504,21 @@ fallback, or acceptance policy changed; Docker stack teardown and resource audit
 R4 still has compatible fan-out gaps for some artifact shapes and R1-R3/R5-R6 remain open,
 especially complete provider-backed family population/history, exact visual evidence, native
 window/accessibility/security proof, and dense-data budgets.
+
+## 2026-09-08 — Authenticated browser proof for chart Strategy-signal promotion
+
+Test commit `4361fa5c` adds the consuming-UI F8u-signal Playwright flow. It hydrates a canonical
+SPY instrument, adds RSI to the real chart, selects the Chart Plot Library Strategy-signal target,
+submits a `>= 70` threshold, and verifies both code-asset and Strategy Lab signal responses plus
+the visible created-signal status. The bounded instrument-attach wait covers the real hydration
+race without weakening the product's fail-closed canonical-instrument guard. Focused live coverage
+passed `1/1` against the seeded branch-scoped Docker stack with clean diagnostics and teardown.
+
+The exact-tip gate at `4361fa5c` passed all non-visual stages: backend `1,350` unit and `385`
+integration tests, frontend `974/974`, production build, compose/provider policy, healthy stack,
+runner-isolation/resource probes, and authenticated functional Playwright `165` passed with `106`
+documented skips across `271`. The unchanged visual matrix completed `104` cases with `98` passes
+and exactly the six known state-oracle diffs (watchlist-column-editor-open at visual-1080p-100/125;
+workspace-floating at visual-1080p-100/125 and visual-1440p-100/125). No baseline, mask, threshold,
+skip, fallback, provider, or acceptance policy changed; cleanup left no assigned resources. Continue
+the remaining R4 fan-out and R1-R7 roadmap gaps.

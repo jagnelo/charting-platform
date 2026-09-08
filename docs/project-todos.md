@@ -17669,3 +17669,14 @@ The current source also passes the focused authenticated top-down browser slice 
       state-oracle diffs. No visual or provider policy changed.
 - [ ] Remaining R4 fan-out cells, complete canonical provider/history population, exact V25
       visual approval, native-window/accessibility/security evidence, and dense-data budgets.
+
+### 2026-09-08 — Authenticated chart Strategy-signal proof
+
+- [x] Add F8u-signal consuming-UI coverage: canonical SPY hydration, RSI chart plot,
+      `>= 70` Strategy-signal promotion, code-asset and signal-response assertions, and
+      visible success status (`4361fa5c`, focused `1/1`).
+- [x] Exact-tip gate at `4361fa5c`: backend `1,350` unit/`385` integration, frontend
+      `974/974`, functional Playwright `165` passed with `106` documented skips across
+      `271`; visual parity remains `98/104` with the same six known state-oracle diffs.
+- [ ] Continue remaining R4 fan-out cells, canonical provider/history population, exact V25
+      visual approval, native-window/accessibility/security evidence, and dense-data budgets.

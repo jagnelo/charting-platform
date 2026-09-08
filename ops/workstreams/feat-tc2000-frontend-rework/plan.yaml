@@ -160,6 +160,13 @@ current_blocker: >-
   state-oracle diffs; no visual/provider/fallback/acceptance policy changed. Docker stack teardown
   and resource audit were clean. Continue R1 canonical provider/history readiness and remaining
   R2-R7 work; preserve the visual-only boundary. Historical receipts below remain authoritative.
+  Test commit 4361fa5c adds authenticated F8u-signal coverage for canonical SPY RSI threshold
+  promotion; focused live coverage passed 1/1. At exact tip 4361fa5c the full gate passed 165
+  functional Playwright cases with 106 documented skips across 271 and returned 98/104 visual
+  passes with the same six known state-oracle diffs. Stack teardown and resource audit were clean;
+  no visual/provider/fallback/acceptance policy changed. Continue R1 canonical provider/history
+  readiness and remaining R2-R7 work; preserve the visual-only boundary. Historical receipts below
+  remain authoritative.
 planning_state: ready
 local_validation_profile: full_stack_browser
 local_validation_reason: "The roadmap changes frontend workstation behavior, backend canonical provider/history contracts, authenticated browser workflows, Playwright visual assertions, worker-backed data readiness, and full integration evidence."

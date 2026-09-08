@@ -3336,3 +3336,17 @@ acceptance policy changed. Docker teardown and ownership audit were clean.
 
 Next: continue R1 canonical provider/history population and remaining R2-R7 gaps. Do not treat
 this slice or its green non-visual gate as product completion.
+
+## 2026-09-08 — Authenticated chart Strategy-signal proof
+
+Test commit `4361fa5c` adds F8u-signal coverage for the consuming chart flow: canonical SPY
+hydration, RSI plot selection, `>= 70` threshold promotion, code-asset and Strategy Lab signal
+response assertions, and visible success status. Focused live coverage passed `1/1` against the
+seeded branch-scoped stack; the bounded attach wait handles the observed hydration race while the
+product remains fail-closed when canonical identity is absent.
+
+At exact tip `4361fa5c`, the full gate passed all non-visual stages (backend `1,350` unit/`385`
+integration, frontend `974/974`, build/compose/stack/runner checks, and functional Playwright
+`165` passed/`106` skipped across `271`). Visual parity is `98/104` with exactly the six unchanged
+state-oracle diffs. No visual/provider/fallback/acceptance policy changed; stack teardown and
+resource audit were clean. Continue R1 canonical provider/history and remaining R2-R7 work.
