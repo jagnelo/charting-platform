@@ -22,6 +22,7 @@ Earnings date approximation:
 from __future__ import annotations
 
 import logging
+import re
 import time
 from datetime import UTC, datetime
 
@@ -51,6 +52,12 @@ _exchange_directory_ts: float = 0.0
 _profile_cache: dict[str, tuple[float, InstrumentProfile | None]] = {}
 
 
+def _normalize_search_text(value: str) -> str:
+    """Normalize issuer search text while retaining token boundaries."""
+
+    return re.sub(r"[^A-Z0-9]+", " ", value.upper()).strip()
+
+
 class EdgarProvider:
     name = "edgar"
     base_url = "https://data.sec.gov"
@@ -73,6 +80,11 @@ class EdgarProvider:
         needle = query.strip().upper()
         if not needle or limit <= 0:
             return []
+        # Issuer disclosures commonly include punctuation (for example
+        # ``Electronic Arts Inc.``), while the SEC directory stores the same
+        # title without it. Keep ticker substring matching intact and add a
+        # punctuation-insensitive title comparison for bounded name bridges.
+        normalized_needle = _normalize_search_text(needle)
         self._ensure_ticker_map(self._headers())
         matches = [
             ProviderSearchResult(
@@ -81,7 +93,12 @@ class EdgarProvider:
                 instrument_type="EQUITY",
             )
             for ticker, entry in _ticker_map.items()
-            if needle in ticker or needle in str(entry.get("title") or "").upper()
+            if needle in ticker
+            or needle in str(entry.get("title") or "").upper()
+            or (
+                normalized_needle
+                and normalized_needle in _normalize_search_text(str(entry.get("title") or ""))
+            )
         ]
         matches.sort(key=lambda item: (0 if item.symbol == needle else 1, item.symbol))
         return matches[:limit]

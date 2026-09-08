@@ -18094,3 +18094,16 @@ The current source also passes the focused authenticated top-down browser slice 
       dated snapshots/rebalance continuity, complete family/root coverage, and
       final canonical readiness remain open. Value/growth roles remain explicitly
       unavailable and no provider/fallback/acceptance policy changed.
+
+### 2026-09-09 — SEC name normalization and INSM follow-up
+
+- [x] Normalize punctuation in the bounded SEC issuer-title search bridge (`2/2`
+      focused tests; Ruff clean) without changing symbol guessing, listing guards,
+      or acceptance policy.
+- [x] Rebuilt-stack reconciliation promoted `INSMED`; its new canonical member
+      job returned `2,344` adjusted D1 bars through `2025-12-31`, with expected
+      MN/W1 no-data outcomes. The snapshots now hold `100` and `101` canonical
+      rows (`102` in union) and three explicit residual placeholders (EA twice,
+      Dreyfus government cash).
+- [ ] Resolve or explicitly disposition the EA/cash residuals, add W1/MN history,
+      prove dated rebalance continuity, and complete remaining R1–R7 acceptance evidence.

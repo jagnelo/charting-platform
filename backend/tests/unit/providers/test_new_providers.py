@@ -686,6 +686,22 @@ class TestEdgarTickerMap:
 
         assert [(item.symbol, item.name) for item in results] == [("AAPL", "Apple Inc.")]
 
+    def test_search_instruments_normalizes_issuer_punctuation(self):
+        import app.providers.edgar as edgar_module
+
+        edgar_module._ticker_map = {
+            "EA": {"cik": 712515, "title": "ELECTRONIC ARTS INC"},
+            "INSM": {"cik": 1104506, "title": "INSMED INC"},
+        }
+        edgar_module._ticker_map_ts = edgar_module._ticker_map_ts + 9999999
+
+        provider = EdgarProvider()
+
+        assert [item.symbol for item in provider.search_instruments("Electronic Arts Inc.")] == [
+            "EA"
+        ]
+        assert [item.symbol for item in provider.search_instruments("Insmed, Inc.")] == ["INSM"]
+
     def test_ensure_ticker_map_parses_sec_json(self):
         import app.providers.edgar as edgar_module
 

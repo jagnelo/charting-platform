@@ -3775,3 +3775,20 @@ visual, or acceptance policy changed.
 This checkpoint updates `docs/tc2000-roadmap.md`, `docs/project-todos.md`, and
 `ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl` with the exact
 runtime receipt; no application source or visual acceptance artifact changed.
+
+## 2026-09-09 — SEC title normalization and INSM canonical follow-up
+
+`backend/app/providers/edgar.py` now compares normalized issuer-title tokens in
+the bounded SEC search bridge, preserving exact ticker matching and all existing
+profile/listing checks. Focused provider tests passed `2/2`; Ruff and
+`git diff --check` passed. The rebuilt stack confirmed `INSMED` for `Insmed Inc.`
+and reconciliation promoted its placeholder instrument. Snapshot `1` now has
+`100` non-placeholder canonical rows and snapshot `2` has `101` (`102` in the
+union); Electronic Arts remains a placeholder in both snapshots because the
+current SEC issuer directory has no EA entry, and Dreyfus government cash remains
+explicitly unresolved. The history queue selected `107` canonical instruments,
+queued one new job, and reported three unresolved exclusions. The new INSM job
+returned `2,344` adjusted D1 bars through `2025-12-31`; MN/W1 returned expected
+no-data outcomes. Aggregate D1 coverage is `102` instruments / `220,106` bars;
+W1/MN remain zero. This is bounded R1 evidence only; placeholder disposition,
+W1/MN floors, rebalance continuity, and remaining R1–R7 work remain open.

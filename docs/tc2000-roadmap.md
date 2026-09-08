@@ -3052,3 +3052,24 @@ history evidence, not family readiness: auditable placeholder enrichment,
 W1/MN floors, rebalance continuity across multiple dated snapshots, and the
 remaining families/roots are still open. No provider, fallback, credential,
 visual, or acceptance policy changed.
+
+## 2026-09-09 — SEC issuer-name normalization and canonical history follow-up
+
+The SEC issuer search bridge now normalizes punctuation and legal-name separators
+for bounded title matching (for example, `Insmed, Inc.` against `INSMED Inc`) while
+retaining exact ticker matching and the existing profile/listing acceptance gates.
+Focused provider coverage passed `2/2`; Ruff and diff checks passed. This is a
+search-precision fix only: it does not guess symbols or relax the US-listing guard.
+
+On the rebuilt branch stack, follow-up reconciliation promoted `INSMED` from its
+placeholder instrument. The exact SEC snapshots now contain `100` and `101`
+non-placeholder canonical rows (`102` canonical instruments in the union); three
+rows remain explicit placeholders: Electronic Arts in both snapshots (the current
+SEC directory exposes no matching EA issuer entry) and a Dreyfus government cash row.
+The queue selected `107` canonical instruments, queued one new member job, and
+reported three unresolved exclusions; the new INSM D1 job returned `2,344` adjusted
+bars through `2025-12-31`, with expected MN/W1 no-data outcomes. Aggregate D1
+coverage is `102` instruments / `220,106` bars; W1/MN remain unavailable. This is
+bounded R1 evidence, not family readiness: residual disposition, W1/MN floors,
+rebalance continuity, and remaining families/roots remain open. No visual or
+acceptance policy changed.
