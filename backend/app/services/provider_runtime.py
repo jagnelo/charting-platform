@@ -282,6 +282,7 @@ def _capability_seed_order() -> dict[ProviderCapability, list[str]]:
             settings.OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY
         )
         or [settings.DEFAULT_OPTIONS_PROVIDER],
+        ProviderCapability.TOKENIZED_ASSETS: list(settings.TOKENIZED_PROVIDER_PRIORITY),
     }
     for key, providers in settings.PROVIDER_CHAIN_SEEDS.items():
         try:

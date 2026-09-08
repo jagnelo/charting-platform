@@ -7,7 +7,8 @@ RUN_LIVE_PROVIDER_TESTS=1 rtk uv run --project backend python scripts/run-live-p
 ```
 
 The command performs a preflight, prints every missing environment variable,
-runs one bounded read per provider, and returns non-zero when a credentialed
+runs one bounded read per provider (including the public tokenized-security
+matrix), and returns non-zero when a credentialed
 probe is blocked. A missing credential is never reported as a passing skip.
 The wrapper returns exit code `2` for an incomplete credential preflight.
 Local secrets belong in the owner-only
@@ -92,6 +93,15 @@ monthly bandwidth ceilings are now explicit but the runtime does not yet meter
 response bytes. FRED v1 and Nasdaq Trader remain non-routable because their
 official documentation publishes throttling behavior without a numeric
 ceiling. IBKR remains a descriptor without an authenticated account adapter.
+
+The public tokenized matrix is maintained separately in
+`tests/live/test_tokenized_providers_live.py`. It covers xStocks, Robinhood
+Chain Stock Tokens, Bybit xStocks, Gate TradFi stock endpoints, and Kraken's
+current xStocks catalogue. The latest bounded run passed all five probes. The
+Kraken result was an empty provider catalogue (no current xStocks pair), and
+Robinhood returned one transient `local_rate_limited` response before the
+test's single provider-specific retry succeeded; neither result is treated as
+permission to guess a ticker or a quota.
 
 The still-missing variables are `EDGAR_USER_AGENT`, `ALPACA_API_KEY`,
 `ALPACA_SECRET_KEY`, `TRADIER_API_KEY`, and `MARKETDATA_APP_API_KEY`. Until

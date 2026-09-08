@@ -55,6 +55,14 @@ re-reviewed when credentials or billing plans change.
 | Tradier | US daily history, quotes/search; options-capable REST surface | `TRADIER_API_KEY` | 60/min sandbox; 120/min production market-data quota, response headers expose remaining/reset | token / minute | adapter + contract recorded; account live evidence required |
 | MarketData.app | delayed US stocks/options candles (options surface is optional) | `MARKETDATA_APP_API_KEY` | 100 credits/day free, reset 09:30 ET; 50 concurrency; free/trial history limited to one year | key / reset-day + concurrency | adapter + contract recorded; account live evidence required |
 | IBKR | account-bound stocks/options/futures/crypto via read-only Web API descriptor | deployment-specific `IBKR_READ_ONLY_URL` | Global 10 requests/sec/session; `/iserver/marketdata/history` max 5 concurrent; endpoint-specific pacing and a 15-minute penalty box apply | session/account / endpoint | pacing contract recorded; descriptor only, no routing until a funded-account adapter/evidence exists |
+| xStocks (Backed) | tokenized equity/ETF catalogue, deployments, indicative prices, multipliers, supply and corporate actions | none for documented public reads; optional `XSTOCKS_API_KEY` | Numeric public quota is not published | public endpoint / unknown | public metadata/price probe passed; non-routable until quota is verified |
+| Robinhood Chain Stock Tokens | tokenized-stock catalogue, chain deployments, multiplier, indicative bid/ask and corporate actions | none for documented public reads | 60 requests/sec for the public Stock Token API; cached responses and edge `429` responses apply | public IP / rolling second | bounded live asset + quote probe passed; read-only and non-routable until entitlement is promoted |
+| Bybit xStocks | xStocks spot instrument catalogue and ticker bid/ask/last | none for public market-data endpoints | 600 HTTP requests per 5 seconds per IP outer limit; endpoint/UID limits and response headers are additional constraints | IP + endpoint/UID / rolling | bounded live asset + ticker probe passed; endpoint/UID accounting required before routing |
+| Gate TradFi stock API | public US stock-token symbol catalogue and order-book bid/ask | none for public symbol/order-book endpoints | 5 requests/sec/IP for stock public endpoints | IP + endpoint / rolling | bounded live symbol + order-book probe passed; non-routable until endpoint accounting is wired |
+| Kraken xStocks | provider-native xStocks pair discovery and public ticker when such pairs are published | none | Kraken public safe-frequency guidance is approximately 1 request/sec; pair/IP accounting applies | IP/pair / rolling | live catalogue probe passed with no currently published xStocks pair; no synthetic mapping is created |
+| Ondo Global Markets | catalogue-only candidate for tokenized US stocks/ETFs | onboarding/API credentials required | Provider terms and quota not publicly verified in this branch | account / unknown | descriptor only; not routable |
+| Dinari | catalogue-only tokenized-equity infrastructure candidate | partner/API access required | Commercial terms and quota not publicly verified in this branch | account / unknown | descriptor only; not routable |
+| Alpaca tokenization network | catalogue-only tokenization-network candidate, distinct from Alpaca market-data keys | authorized-participant access required | Market-data credentials do not entitle tokenization-network access | account / unknown | descriptor only; not routable |
 | yfinance | legacy broad fallback, options/futures compatibility only | none | No official quota/SLA; unofficial scraping | unknown | legacy-only and disabled by default |
 | ETF holdings internal | platform's issuer/SEC holdings ingestion | internal configuration | Internal job/provider budgets, not an external market-data API | internal | generic bridge only; issuer-specific work remains on ETF branch |
 
@@ -86,6 +94,40 @@ the source page set is incomplete and never presents NMS/SEC evidence as proof
 of complete OTC coverage. Closing that gate requires an operator-approved OTC
 source with documented terms and a verified quota contract; no undocumented
 scraping endpoint is substituted.
+
+### Tokenized securities boundary
+
+Tokenized products are first-class instruments, not ticker aliases. Each stored
+instrument receives a stable provider-scoped `domain_key` and retains the
+provider asset ID, chain/network, contract deployment(s), token ISIN when
+published, underlying symbol/ISIN, multiplier, supply, backing classification,
+and corporate-action payload. The economic underlying is linked only when the
+existing canonical instrument match is unambiguous; a ticker collision leaves
+the relationship unresolved rather than merging two securities.
+
+The current public adapters are read-only. They do not submit orders, mint,
+redeem, transfer tokens, or index wallets. Tokenized perpetuals and other
+derivatives remain separate derivative instruments. xStocks and Robinhood
+expose issuer/product metadata and indicative prices; Bybit, Gate, and Kraken
+expose exchange-native market surfaces. A provider returning no current
+xStocks pairs is recorded as an empty catalogue, never as evidence that a
+traditional share is the same token.
+
+The runtime records provider-specific quota dimensions and refuses to route a
+tokenized provider when any dimension is unknown, weighted per endpoint, or
+requires response-header/account accounting that is not yet implemented. The
+live matrix is explicit and bounded:
+
+```sh
+RUN_LIVE_PROVIDER_TESTS=1 rtk uv run --project backend pytest \
+  tests/live/test_tokenized_providers_live.py -m live --no-header -q --no-cov
+```
+
+The latest verified run passed all five public probes. One Robinhood read
+required a single provider-specific retry after the edge returned
+`local_rate_limited`, and the Kraken catalogue returned no current xStocks
+pair. That evidence is retained as a routing/coverage fact, not hidden by a
+generic retry or an invented symbol.
 
 | Provider   | Role        | Auth required           | Cost     |
 |------------|-------------|-------------------------|----------|

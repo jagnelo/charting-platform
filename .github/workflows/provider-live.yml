@@ -37,6 +37,7 @@ jobs:
       FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
       TRADIER_API_KEY: ${{ secrets.TRADIER_API_KEY }}
       MARKETDATA_APP_API_KEY: ${{ secrets.MARKETDATA_APP_API_KEY }}
+      XSTOCKS_API_KEY: ${{ secrets.XSTOCKS_API_KEY }}
 
     steps:
       - uses: actions/checkout@v4

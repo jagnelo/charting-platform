@@ -2,6 +2,7 @@ from datetime import UTC, datetime, timedelta
 
 from app.models.data_source import DataSource
 from app.models.provider_runtime import ProviderCapability, ProviderCapacityEvent
+from app.models.tokenized_asset import TokenizedAssetDetail
 
 
 def test_capacity_events_are_admin_only_and_expose_reset_evidence(client, admin_headers, db):
@@ -32,3 +33,32 @@ def test_capacity_events_are_admin_only_and_expose_reset_evidence(client, admin_
     assert row["status_code"] == 429
     assert row["scope"] == "api_key"
     assert row["response_headers"]["retry-after"] == "30"
+
+
+def test_tokenized_assets_are_admin_only_and_preserve_provider_identity(
+    client, admin_headers, db, instrument
+):
+    db.add(
+        TokenizedAssetDetail(
+            instrument_id=instrument.id,
+            provider_asset_id="x:AAPL",
+            provider_name="xstocks",
+            token_symbol="xAAPL",
+            underlying_symbol="AAPL",
+            backing_type="fully_backed",
+            deployments=[{"network": "solana", "address": "So111"}],
+            provenance={"provider": "xstocks"},
+        )
+    )
+    db.commit()
+
+    assert client.get("/api/v1/market-data/tokenized-assets").status_code == 401
+    response = client.get(
+        "/api/v1/market-data/tokenized-assets?provider=xstocks", headers=admin_headers
+    )
+    assert response.status_code == 200
+    row = response.json()[0]
+    assert row["provider"] == "xstocks"
+    assert row["provider_asset_id"] == "x:AAPL"
+    assert row["token_symbol"] == "xAAPL"
+    assert row["deployments"][0]["address"] == "So111"

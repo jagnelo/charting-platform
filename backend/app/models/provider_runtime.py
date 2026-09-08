@@ -40,6 +40,7 @@ class ProviderCapability(str, enum.Enum):
     CRYPTO_HISTORY = "crypto_history"
     OPTIONS_CURRENT = "options_current"
     MARKET_EVENTS = "market_events"
+    TOKENIZED_ASSETS = "tokenized_assets"
 
 
 class ProviderPolicy(Base, TimestampMixin):

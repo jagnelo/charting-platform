@@ -158,6 +158,40 @@ class OptionQuotePointRecord:
     raw_payload: dict[str, Any] | None = None
 
 
+@dataclass(slots=True)
+class TokenizedAssetRecord:
+    """Provider observation for a tokenized security or tokenized ETF.
+
+    The token is deliberately represented independently from its economic
+    underlying.  ``asset_id`` is provider-native and ``contract_address`` is
+    chain-scoped; neither may be replaced by a ticker symbol.
+    """
+
+    provider: str
+    asset_id: str
+    symbol: str
+    name: str
+    underlying_symbol: str | None = None
+    underlying_isin: str | None = None
+    isin: str | None = None
+    network: str | None = None
+    chain_id: int | None = None
+    contract_address: str | None = None
+    currency: str | None = "USD"
+    price: Decimal | None = None
+    bid: Decimal | None = None
+    ask: Decimal | None = None
+    multiplier: Decimal | None = None
+    circulating_supply: Decimal | None = None
+    total_supply: Decimal | None = None
+    status: str | None = None
+    backing_type: str | None = None
+    collateral: dict[str, Any] = field(default_factory=dict)
+    corporate_actions: list[dict[str, Any]] = field(default_factory=list)
+    observed_at: datetime | None = None
+    raw_payload: dict[str, Any] = field(default_factory=dict)
+
+
 @runtime_checkable
 class ProviderDescriptor(Protocol):
     name: str
@@ -261,6 +295,19 @@ class OptionQuoteHistoryProvider(ProviderDescriptor, Protocol):
         start: datetime,
         end: datetime,
     ) -> list[OptionQuotePointRecord]: ...
+
+
+@runtime_checkable
+class TokenizedAssetProvider(ProviderDescriptor, Protocol):
+    """Provider-specific metadata and indicative quote surface for tokenized assets."""
+
+    def discover_tokenized_assets(
+        self, *, page: int = 0, page_size: int = 100
+    ) -> list[TokenizedAssetRecord]: ...
+
+    def get_tokenized_asset(self, identifier: str) -> TokenizedAssetRecord | None: ...
+
+    def get_tokenized_price(self, identifier: str) -> TokenizedAssetRecord | None: ...
 
 
 class MarketDataProvider(

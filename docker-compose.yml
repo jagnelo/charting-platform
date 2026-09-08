@@ -107,6 +107,7 @@ services:
       DEFAULT_DISCOVERY_PROVIDER: ${DEFAULT_DISCOVERY_PROVIDER:-alpaca}
       DEFAULT_OPTIONS_PROVIDER: ${DEFAULT_OPTIONS_PROVIDER:-yfinance}
       IDENTIFIER_PROVIDER_PRIORITY: ${IDENTIFIER_PROVIDER_PRIORITY:-["openfigi"]}
+      TOKENIZED_PROVIDER_PRIORITY: ${TOKENIZED_PROVIDER_PRIORITY:-["robinhood_tokens","xstocks","bybit_xstocks","gate_tradfi","kraken_xstocks"]}
       PROVIDER_CHAIN_SEEDS:      ${PROVIDER_CHAIN_SEEDS:-{"price_history":["alpaca","nasdaq","alpha_vantage","binance","fred"],"latest_price":["alpaca","nasdaq","alpha_vantage","binance","fred"],"universe_discovery":["alpaca","massive","alpha_vantage","binance","coingecko"],"instrument_events":["alpaca","edgar"],"instrument_metadata":["edgar","coingecko"],"instrument_search":["edgar","alpaca","massive","alpha_vantage","coingecko"],"option_chain":["yfinance"]}}
       OPENFIGI_API_KEY:        ${OPENFIGI_API_KEY:-}
       OPENFIGI_TIMEOUT_SECONDS: ${OPENFIGI_TIMEOUT_SECONDS:-10}
@@ -135,6 +136,7 @@ services:
       FMP_API_KEY:              ${FMP_API_KEY:-}
       TRADIER_API_KEY:          ${TRADIER_API_KEY:-}
       MARKETDATA_APP_API_KEY:   ${MARKETDATA_APP_API_KEY:-}
+      XSTOCKS_API_KEY:           ${XSTOCKS_API_KEY:-}
       IBKR_READ_ONLY_URL:       ${IBKR_READ_ONLY_URL:-}
       COINBASE_API_KEY:         ${COINBASE_API_KEY:-}
       KRAKEN_API_KEY:           ${KRAKEN_API_KEY:-}
@@ -212,6 +214,7 @@ services:
       DEFAULT_DISCOVERY_PROVIDER: ${DEFAULT_DISCOVERY_PROVIDER:-alpaca}
       DEFAULT_OPTIONS_PROVIDER: ${DEFAULT_OPTIONS_PROVIDER:-yfinance}
       IDENTIFIER_PROVIDER_PRIORITY: ${IDENTIFIER_PROVIDER_PRIORITY:-["openfigi"]}
+      TOKENIZED_PROVIDER_PRIORITY: ${TOKENIZED_PROVIDER_PRIORITY:-["robinhood_tokens","xstocks","bybit_xstocks","gate_tradfi","kraken_xstocks"]}
       PROVIDER_CHAIN_SEEDS:      ${PROVIDER_CHAIN_SEEDS:-{"price_history":["alpaca","nasdaq","alpha_vantage","binance","fred"],"latest_price":["alpaca","nasdaq","alpha_vantage","binance","fred"],"universe_discovery":["alpaca","massive","alpha_vantage","binance","coingecko"],"instrument_events":["alpaca","edgar"],"instrument_metadata":["edgar","coingecko"],"instrument_search":["edgar","alpaca","massive","alpha_vantage","coingecko"],"option_chain":["yfinance"]}}
       OPENFIGI_API_KEY:        ${OPENFIGI_API_KEY:-}
       OPENFIGI_TIMEOUT_SECONDS: ${OPENFIGI_TIMEOUT_SECONDS:-10}
@@ -240,6 +243,7 @@ services:
       FMP_API_KEY:              ${FMP_API_KEY:-}
       TRADIER_API_KEY:          ${TRADIER_API_KEY:-}
       MARKETDATA_APP_API_KEY:   ${MARKETDATA_APP_API_KEY:-}
+      XSTOCKS_API_KEY:           ${XSTOCKS_API_KEY:-}
       IBKR_READ_ONLY_URL:       ${IBKR_READ_ONLY_URL:-}
       COINBASE_API_KEY:         ${COINBASE_API_KEY:-}
       KRAKEN_API_KEY:           ${KRAKEN_API_KEY:-}

@@ -73,4 +73,44 @@ OPTIONAL_PROVIDER_DESCRIPTORS = {
     "kraken": ConfiguredProvider(
         "kraken", "https://api.kraken.com", "Optional crypto/futures market-data provider."
     ),
+    "xstocks": ConfiguredProvider(
+        "xstocks",
+        "https://api.xstocks.fi/api/v2",
+        "Public xStocks tokenized-equity/ETF metadata, prices, multipliers and corporate actions; public quota is not documented.",
+    ),
+    "robinhood_tokens": ConfiguredProvider(
+        "robinhood_tokens",
+        "https://api.robinhood.com/rhj",
+        "Robinhood Chain Stock Token public assets, prices and corporate actions.",
+    ),
+    "bybit_xstocks": ConfiguredProvider(
+        "bybit_xstocks",
+        "https://api.bybit.com",
+        "Bybit public xStocks instrument metadata and market tickers.",
+    ),
+    "gate_tradfi": ConfiguredProvider(
+        "gate_tradfi",
+        "https://api.gateio.ws/api/v4",
+        "Gate public TradFi/xStocks symbol and order-book data.",
+    ),
+    "kraken_xstocks": ConfiguredProvider(
+        "kraken_xstocks",
+        "https://api.kraken.com/0/public",
+        "Kraken public xStocks pair metadata and ticker data.",
+    ),
+    "ondo_global_markets": ConfiguredProvider(
+        "ondo_global_markets",
+        "https://api.ondo.finance",
+        "Catalogue-only tokenized US stock/ETF API; onboarding is required.",
+    ),
+    "dinari": ConfiguredProvider(
+        "dinari",
+        "https://api.dinari.com",
+        "Catalogue-only tokenized-equity infrastructure; partner access is required.",
+    ),
+    "alpaca_itn": ConfiguredProvider(
+        "alpaca_itn",
+        "https://api.alpaca.markets",
+        "Catalogue-only tokenization network; authorized-participant access is required.",
+    ),
 }

@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import require_admin
 from app.database import get_db
 from app.models.exchange import Exchange
+from app.models.instrument import Instrument
 from app.models.market_data_foundation import (
     ExchangeCalendarException,
     ExchangeSessionRule,
@@ -26,10 +27,65 @@ from app.models.market_data_foundation import (
     ShortInterestObservation,
 )
 from app.models.provider_runtime import ProviderCapability, ProviderCapacityEvent
+from app.models.tokenized_asset import TokenizedAssetDetail
 from app.models.user import User
 from app.services.market_data_monitoring import build_shadow_report
 
 router = APIRouter(prefix="/market-data", tags=["market-data-admin"])
+
+
+@router.get("/tokenized-assets")
+async def list_tokenized_assets(
+    provider: str | None = None,
+    instrument_id: int | None = None,
+    limit: int = Query(default=100, ge=1, le=500),
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    """Expose persisted token/product metadata to backend operators only."""
+
+    query = (
+        select(TokenizedAssetDetail, Instrument)
+        .join(Instrument, Instrument.id == TokenizedAssetDetail.instrument_id)
+        .order_by(TokenizedAssetDetail.updated_at.desc())
+        .limit(limit)
+    )
+    if provider:
+        query = query.where(TokenizedAssetDetail.provider_name == provider)
+    if instrument_id is not None:
+        query = query.where(TokenizedAssetDetail.instrument_id == instrument_id)
+    rows = (await db.execute(query)).all()
+    return [
+        {
+            "instrument": {
+                "id": instrument.id,
+                "symbol": instrument.symbol,
+                "name": instrument.name,
+                "domain_key": instrument.domain_key,
+                "is_active": instrument.is_active,
+            },
+            "provider": detail.provider_name,
+            "provider_asset_id": detail.provider_asset_id,
+            "token_symbol": detail.token_symbol,
+            "isin": detail.isin,
+            "underlying_instrument_id": detail.underlying_instrument_id,
+            "underlying_symbol": detail.underlying_symbol,
+            "underlying_isin": detail.underlying_isin,
+            "backing_type": detail.backing_type,
+            "multiplier": detail.multiplier,
+            "circulating_supply": detail.circulating_supply,
+            "total_supply": detail.total_supply,
+            "status": detail.status,
+            "is_derivative": detail.is_derivative,
+            "deployments": detail.deployments,
+            "collateral": detail.collateral,
+            "corporate_actions": detail.corporate_actions,
+            "provenance": detail.provenance,
+            "description": detail.description,
+            "updated_at": detail.updated_at,
+        }
+        for detail, instrument in rows
+    ]
 
 
 @router.get("/identity/quarantine")

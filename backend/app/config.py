@@ -98,6 +98,13 @@ class Settings(BaseSettings):
     ALLOW_PAID_PROVIDER_ROUTING: bool = False
     IDENTIFIER_PROVIDER_PRIORITY: list[str] = ["openfigi"]
     OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY: list[str] = []
+    TOKENIZED_PROVIDER_PRIORITY: list[str] = [
+        "robinhood_tokens",
+        "xstocks",
+        "bybit_xstocks",
+        "gate_tradfi",
+        "kraken_xstocks",
+    ]
     PROVIDER_CHAIN_SEEDS: dict[str, list[str]] = {
         # Alpaca exposes an assets/discovery endpoint but no instrument-search
         # operation. Keep it out of this chain; stale policies from older
@@ -119,6 +126,13 @@ class Settings(BaseSettings):
             "nasdaq",
             "finra_otc_directory",
             "alpha_vantage",
+        ],
+        "tokenized_assets": [
+            "robinhood_tokens",
+            "xstocks",
+            "bybit_xstocks",
+            "gate_tradfi",
+            "kraken_xstocks",
         ],
     }
     # Provider-specific, documentation-backed budgets.  An omitted provider
@@ -319,6 +333,87 @@ class Settings(BaseSettings):
             },
             "quota_scope": "ip_or_pair",
             "quota_source": "Kraken REST rate-limit documentation",
+        },
+        "xstocks": {
+            "quota_contract": {
+                "dimensions": [],
+                "unknown_dimensions": ["public provider quota/rate limit"],
+                "source": "https://docs.xstocks.fi/apis/openapi",
+            },
+            "quota_scope": "public_endpoint",
+            "quota_source": "xStocks API documentation (numeric public limit not published)",
+        },
+        "robinhood_tokens": {
+            "quota_contract": {
+                "dimensions": [
+                    {
+                        "name": "public_requests_per_second",
+                        "limit": 60,
+                        "window_seconds": 1,
+                        "unit": "requests",
+                        "scope": "ip",
+                        "source": "https://docs.robinhood.com/chain/stock-token-apis/",
+                    }
+                ],
+                "reset": "rolling",
+            },
+            "quota_scope": "ip",
+            "quota_source": "Robinhood Chain Stock Token API documentation",
+        },
+        "bybit_xstocks": {
+            "quota_contract": {
+                "dimensions": [
+                    {
+                        "name": "http_requests_per_five_seconds",
+                        "limit": 600,
+                        "window_seconds": 5,
+                        "unit": "requests",
+                        "scope": "ip",
+                        "source": "https://bybit-exchange.github.io/docs/v5/rate-limit",
+                    }
+                ],
+                "reset": "rolling",
+                "provider_headers_required": True,
+                "untracked_constraints": ["provider_response_headers", "endpoint_and_uid_limits"],
+            },
+            "quota_scope": "ip_and_endpoint",
+            "quota_source": "Bybit V5 rate-limit documentation",
+        },
+        "gate_tradfi": {
+            "quota_contract": {
+                "dimensions": [
+                    {
+                        "name": "stock_public_requests_per_second",
+                        "limit": 5,
+                        "window_seconds": 1,
+                        "unit": "requests",
+                        "scope": "ip",
+                        "source": "https://www.gate.com/docs/developers/apiv4/en/stock/",
+                    }
+                ],
+                "reset": "rolling",
+                "provider_headers_required": True,
+                "untracked_constraints": ["provider_response_headers"],
+            },
+            "quota_scope": "ip_and_endpoint",
+            "quota_source": "Gate API v4 stock documentation",
+        },
+        "kraken_xstocks": {
+            "quota_contract": {
+                "dimensions": [
+                    {
+                        "name": "public_safe_frequency",
+                        "limit": 1,
+                        "window_seconds": 1,
+                        "unit": "requests",
+                        "scope": "ip_or_pair",
+                        "source": "https://support.kraken.com/articles/206548367-what-are-the-api-rate-limits-",
+                    }
+                ],
+                "reset": "rolling",
+            },
+            "quota_scope": "ip_or_pair",
+            "quota_source": "Kraken public API rate-limit documentation",
         },
         "tiingo": {
             "quota_contract": {
@@ -789,6 +884,78 @@ class Settings(BaseSettings):
             "venue_coverage": "Legacy adapter dependent",
             "freshness_semantics": "Unofficial/delayed",
         },
+        "xstocks": {
+            "configured_plan": "public-read",
+            "is_free": True,
+            "authentication_required": False,
+            "usage_terms": "Public xStocks read endpoints; numeric public quota is not published and routing remains disabled until verified.",
+            "history_depth": "Current metadata, price, supply, multiplier and corporate-action observations",
+            "venue_coverage": "xStocks tokenized equities and ETFs across published chain deployments",
+            "freshness_semantics": "Cached/current provider endpoint response",
+        },
+        "robinhood_tokens": {
+            "configured_plan": "public-read",
+            "is_free": True,
+            "authentication_required": False,
+            "usage_terms": "Public read-only Stock Token API; endpoint cache windows and 60 requests/second limit apply.",
+            "history_depth": "Current assets, prices and processed corporate actions",
+            "venue_coverage": "Robinhood Chain Stock Tokens",
+            "freshness_semantics": "Cached live quote and issuer action response",
+        },
+        "bybit_xstocks": {
+            "configured_plan": "public-market-data",
+            "is_free": True,
+            "authentication_required": False,
+            "usage_terms": "Bybit public market-data endpoints; IP and endpoint limits apply.",
+            "history_depth": "Current instrument and ticker metadata",
+            "venue_coverage": "Bybit xStocks symbols",
+            "freshness_semantics": "Public exchange endpoint response",
+        },
+        "gate_tradfi": {
+            "configured_plan": "public-market-data",
+            "is_free": True,
+            "authentication_required": False,
+            "usage_terms": "Gate public TradFi market-data endpoints; stock endpoint limits apply.",
+            "history_depth": "Current symbols and order-book observations",
+            "venue_coverage": "Gate TradFi/xStocks symbols",
+            "freshness_semantics": "Public exchange endpoint response",
+        },
+        "kraken_xstocks": {
+            "configured_plan": "public-market-data",
+            "is_free": True,
+            "authentication_required": False,
+            "usage_terms": "Kraken public market-data endpoints and safe-frequency guidance apply.",
+            "history_depth": "Current pair and ticker observations",
+            "venue_coverage": "Kraken xStocks pairs where published",
+            "freshness_semantics": "Public exchange endpoint response",
+        },
+        "ondo_global_markets": {
+            "configured_plan": "onboarding-required",
+            "is_free": False,
+            "authentication_required": True,
+            "usage_terms": "API access requires Ondo onboarding; terms and pricing must be reviewed before implementation.",
+            "history_depth": "Provider-dependent",
+            "venue_coverage": "Ondo Global Markets tokenized US stocks and ETFs",
+            "freshness_semantics": "Provider-dependent",
+        },
+        "dinari": {
+            "configured_plan": "partner-access-required",
+            "is_free": False,
+            "authentication_required": True,
+            "usage_terms": "Partner/API access and commercial terms required.",
+            "history_depth": "Provider-dependent",
+            "venue_coverage": "Dinari tokenized-equity products",
+            "freshness_semantics": "Provider-dependent",
+        },
+        "alpaca_itn": {
+            "configured_plan": "authorized-participant-required",
+            "is_free": False,
+            "authentication_required": True,
+            "usage_terms": "Authorized-participant tokenization integration; not enabled by ordinary Alpaca market-data credentials.",
+            "history_depth": "Provider-dependent",
+            "venue_coverage": "Alpaca tokenization network products",
+            "freshness_semantics": "Provider-dependent",
+        },
     }
     # Provider-native bounded probe evidence. A configured credential and a
     # reviewed plan still do not admit a provider whose probe has not passed.
@@ -813,6 +980,14 @@ class Settings(BaseSettings):
         "fmp": "passed",
         "tradier": "not_run",
         "marketdata_app": "not_run",
+        "xstocks": "passed",
+        "robinhood_tokens": "passed",
+        "bybit_xstocks": "passed",
+        "gate_tradfi": "passed",
+        "kraken_xstocks": "passed",
+        "ondo_global_markets": "not_run",
+        "dinari": "not_run",
+        "alpaca_itn": "not_run",
         "yfinance": "not_required",
     }
     OPENFIGI_API_KEY: str = ""
@@ -828,6 +1003,7 @@ class Settings(BaseSettings):
     EODHD_API_KEY: str = ""
     TRADIER_API_KEY: str = ""
     MARKETDATA_APP_API_KEY: str = ""
+    XSTOCKS_API_KEY: str = ""
     IBKR_READ_ONLY_URL: str = ""
     COINBASE_API_KEY: str = ""
     KRAKEN_API_KEY: str = ""
@@ -882,6 +1058,13 @@ class Settings(BaseSettings):
     @field_validator("IDENTIFIER_PROVIDER_PRIORITY", mode="before")
     @classmethod
     def parse_identifier_provider_priority(cls, v):
+        if isinstance(v, str):
+            return json.loads(v)
+        return v
+
+    @field_validator("TOKENIZED_PROVIDER_PRIORITY", mode="before")
+    @classmethod
+    def parse_tokenized_provider_priority(cls, v):
         if isinstance(v, str):
             return json.loads(v)
         return v

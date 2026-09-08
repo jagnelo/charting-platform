@@ -115,6 +115,7 @@ from app.models.strategy import (
     StrategyVersion,
 )
 from app.models.synthetic_constituent import SyntheticConstituent
+from app.models.tokenized_asset import TokenizedAssetDetail
 from app.models.user import User
 from app.models.watchlist import Watchlist, WatchlistItem
 from app.models.watchlist_history import WatchlistHistoryRefreshRun
@@ -196,6 +197,7 @@ __all__ = [
     "FutureDetail",
     "OptionDetail",
     "ForexDetail",
+    "TokenizedAssetDetail",
     "InstrumentListing",
     "MarketMapCache",
     "MarketMapSnapshot",

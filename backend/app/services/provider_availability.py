@@ -72,6 +72,11 @@ def representative_request(capability: ProviderCapability) -> dict[str, Any]:
             "start": (datetime.now(UTC) - timedelta(days=7)).date().isoformat(),
             "end": datetime.now(UTC).date().isoformat(),
         },
+        ProviderCapability.TOKENIZED_ASSETS: {
+            "symbol": "AAPL",
+            "page": 0,
+            "page_size": 1,
+        },
     }
     return dict(values[capability])
 
@@ -146,6 +151,7 @@ async def default_probe(
         ProviderCapability.CRYPTO_HISTORY: "fetch_latest_ohlcv",
         ProviderCapability.OPTIONS_CURRENT: "fetch_option_chain",
         ProviderCapability.MARKET_EVENTS: "fetch_market_events",
+        ProviderCapability.TOKENIZED_ASSETS: "discover_tokenized_assets",
     }.get(capability)
     if method_name is None:
         raise RuntimeError(f"no representative probe contract for {capability.value}")
@@ -192,6 +198,8 @@ async def default_probe(
             "start": now - timedelta(days=request["days"]),
             "end": now,
         }
+    if capability == ProviderCapability.TOKENIZED_ASSETS:
+        args = {"page": request["page"], "page_size": request["page_size"]}
     result = method(**args)
     return await result if inspect.isawaitable(result) else result
 

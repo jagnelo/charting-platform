@@ -102,6 +102,7 @@ def main() -> int:
         [
             ".venv/bin/pytest",
             "tests/live/test_market_data_providers_live.py",
+            "tests/live/test_tokenized_providers_live.py",
             "-m",
             "live",
             "--no-header",

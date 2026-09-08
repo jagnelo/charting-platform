@@ -25,6 +25,7 @@ from app.providers.base import (
     PriceHistoryProvider,
     ProviderDescriptor,
     ShortInterestProvider,
+    TokenizedAssetProvider,
 )
 from app.providers.binance import BinanceProvider
 from app.providers.coingecko import CoinGeckoProvider
@@ -47,6 +48,13 @@ from app.providers.optional_market_data import (
     TiingoProvider,
     TradierProvider,
     TwelveDataProvider,
+)
+from app.providers.tokenized import (
+    BybitXStocksProvider,
+    GateTradfiProvider,
+    KrakenXStocksProvider,
+    RobinhoodTokenProvider,
+    XStocksProvider,
 )
 from app.providers.yfinance import YFinanceProvider
 
@@ -81,6 +89,11 @@ _PROVIDERS: dict[str, ProviderDescriptor] = {
     "fmp": FMPProvider(),
     "tradier": TradierProvider(),
     "marketdata_app": MarketDataAppProvider(),
+    "xstocks": XStocksProvider(),
+    "robinhood_tokens": RobinhoodTokenProvider(),
+    "bybit_xstocks": BybitXStocksProvider(),
+    "gate_tradfi": GateTradfiProvider(),
+    "kraken_xstocks": KrakenXStocksProvider(),
 }
 # Keep descriptor-only entries visible for broker/crypto integrations that do
 # not yet have a concrete adapter. ``setdefault`` preserves concrete classes.
@@ -138,6 +151,7 @@ def _capability_names(provider: ProviderDescriptor) -> list[str]:
         (("discover_universe_page", "supported_discovery_types"), "universe_discovery"),
         (("list_option_expirations", "fetch_option_chain"), "option_chain"),
         (("fetch_option_quote_history",), "option_quote_history"),
+        (("discover_tokenized_assets", "get_tokenized_asset", "get_tokenized_price"), "tokenized_assets"),
     ]
     capabilities = [
         name for required_methods, name in capabilities if _supports(provider, *required_methods)
@@ -234,6 +248,14 @@ def get_short_interest_provider(name: str) -> ShortInterestProvider:
 
 def get_market_event_provider(name: str) -> MarketEventProvider:
     return _require_capability(name, ("fetch_market_events",), "market events")
+
+
+def get_tokenized_asset_provider(name: str) -> TokenizedAssetProvider:
+    return _require_capability(
+        name,
+        ("discover_tokenized_assets", "get_tokenized_asset", "get_tokenized_price"),
+        "tokenized assets",
+    )
 
 
 def get_option_chain_provider(name: str) -> OptionChainProvider:
