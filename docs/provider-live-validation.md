@@ -74,7 +74,7 @@ RUN_LIVE_PROVIDER_TESTS=1 rtk uv run --project backend pytest \
 
 The backend deterministic gates pass on the current corrective revision:
 
-- unit suite: `1370 passed`
+- unit suite: `1371 passed`
 - Docker-backed integration suite: `370 passed`
 - focused capacity/quota/runtime/provider-support tests: `17 passed`; capacity-admin plus provider API integration: `8 passed`
 - migration compatibility: passed against the previous release head
@@ -98,8 +98,10 @@ response-header/account
 budgets are not yet reserved or enforced in quota windows, so Tiingo and FMP
 remain non-routable. FINRA's synchronous short-interest and OTC Daily List
 calls reserve the documented 3 MB maximum response against the 10 GB monthly
-credential budget and settle to measured bytes; its asynchronous dataset path
-is not implemented. FRED v1 and Nasdaq Trader remain non-routable because
+credential budget and settle to measured bytes; its asynchronous
+submit/poll/presigned-download path is implemented as a documentation-faithful
+direct adapter but remains non-routable until the unbounded async-result byte
+budget is safely reserved. FRED v1 and Nasdaq Trader remain non-routable because
 their official documentation publishes throttling behavior without a numeric
 ceiling. IBKR remains a descriptor without an authenticated account adapter.
 

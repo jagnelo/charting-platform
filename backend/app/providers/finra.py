@@ -8,6 +8,7 @@ is intentionally schema-tolerant; unknown rows are preserved in raw_payload.
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
@@ -24,10 +25,86 @@ logger = logging.getLogger(__name__)
 _token_cache: tuple[str, datetime] | None = None
 
 
+@dataclass(slots=True)
+class FINRAAsyncJob:
+    """State returned by FINRA's three-leg asynchronous Query API flow."""
+
+    status_url: str
+    request_id: str | None = None
+    status: str = "pending"
+    result_link: str | None = None
+    expires: str | None = None
+    raw_payload: dict[str, Any] = field(default_factory=dict)
+
+
 class FINRAProvider:
     name = "finra"
     base_url = "https://api.finra.org"
     description = "FINRA consolidated short-interest and market datasets"
+
+    def submit_async_dataset(
+        self, dataset_url: str, payload: dict[str, Any] | None = None
+    ) -> FINRAAsyncJob:
+        """Submit a FINRA Query API dataset request for asynchronous execution.
+
+        FINRA returns no result body for the first leg. The ``Location`` header
+        is the authoritative status URL and must be polled by the caller no
+        more than once per minute until the job completes.
+        """
+
+        token = self._authenticated_token()
+        body = dict(payload or {})
+        body["async"] = True
+        response = httpx.post(
+            dataset_url,
+            json=body,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+            },
+            timeout=30,
+        )
+        observe_response(response)
+        response.raise_for_status()
+        status_url = str(response.headers.get("location") or "").strip()
+        if not status_url:
+            raise RuntimeError("FINRA async response did not contain a Location status URL")
+        request_id = status_url.rstrip("/").rsplit("/", 1)[-1] or None
+        return FINRAAsyncJob(status_url=status_url, request_id=request_id)
+
+    def poll_async_dataset(self, status_url: str) -> FINRAAsyncJob:
+        """Poll one FINRA async status URL; callers own the polling schedule."""
+
+        token = self._authenticated_token()
+        response = httpx.get(
+            status_url,
+            headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
+            timeout=30,
+        )
+        observe_response(response)
+        response.raise_for_status()
+        payload = response.json() if response.content else {}
+        body = payload if isinstance(payload, dict) else {}
+        return FINRAAsyncJob(
+            status_url=status_url,
+            request_id=str(body.get("requestId") or "").strip() or None,
+            status=str(body.get("status") or ("complete" if response.status_code == 200 else "pending")),
+            result_link=str(body.get("resultLink") or "").strip() or None,
+            expires=str(body.get("expires") or "").strip() or None,
+            raw_payload=body,
+        )
+
+    def download_async_result(self, result_link: str) -> bytes:
+        """Download a completed presigned result without forwarding OAuth credentials."""
+
+        link = str(result_link or "").strip()
+        if not link:
+            raise ValueError("FINRA async resultLink is required")
+        response = httpx.get(link, headers={"Accept": "application/octet-stream"}, timeout=120)
+        observe_response(response)
+        response.raise_for_status()
+        return bytes(response.content)
 
     def fetch_short_interest(
         self,

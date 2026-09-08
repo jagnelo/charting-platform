@@ -82,3 +82,47 @@ def test_finra_otc_daily_list_normalizes_lifecycle_events(monkeypatch):
         {"fieldName": "calendarDay", "compareType": "GTE", "fieldValue": "2018-12-01"},
         {"fieldName": "calendarDay", "compareType": "LTE", "fieldValue": "2018-12-31"},
     ]
+
+
+def test_finra_async_query_flow_honors_location_and_presigned_download(monkeypatch):
+    monkeypatch.setattr(settings, "FINRA_CLIENT_ID", "client")
+    monkeypatch.setattr(settings, "FINRA_CLIENT_SECRET", "secret")
+    token_response = Mock()
+    token_response.json.return_value = {"access_token": "token", "expires_in": 3600}
+    token_response.raise_for_status.return_value = None
+    submit_response = Mock(status_code=202)
+    submit_response.headers = {"location": "https://api.example.test/async-requests/job-123"}
+    submit_response.content = b""
+    submit_response.raise_for_status.return_value = None
+    pending_response = Mock(status_code=202)
+    pending_response.headers = {}
+    pending_response.content = b'{"requestId":"job-123","status":"pending"}'
+    pending_response.json.return_value = {"requestId": "job-123", "status": "pending"}
+    pending_response.raise_for_status.return_value = None
+    result_response = Mock(status_code=200)
+    result_response.headers = {}
+    result_response.content = b"result-bytes"
+    result_response.raise_for_status.return_value = None
+
+    with (
+        patch.object(finra, "_token_cache", None),
+        patch("app.providers.finra.httpx.post", side_effect=[token_response, submit_response]) as post,
+        patch(
+            "app.providers.finra.httpx.get",
+            side_effect=[pending_response, result_response],
+        ) as get,
+    ):
+        provider = FINRAProvider()
+        job = provider.submit_async_dataset(
+            "https://api.example.test/data/group/equity/name/dataset",
+            {"limit": 100000},
+        )
+        pending = provider.poll_async_dataset(job.status_url)
+        result = provider.download_async_result("https://signed.example.test/result")
+
+    assert job.request_id == "job-123"
+    assert pending.status == "pending"
+    assert result == b"result-bytes"
+    assert post.call_args_list[1].kwargs["json"] == {"limit": 100000, "async": True}
+    assert get.call_args_list[0].kwargs["headers"]["Authorization"] == "Bearer token"
+    assert "Authorization" not in get.call_args_list[1].kwargs["headers"]
