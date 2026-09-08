@@ -52,6 +52,45 @@ def test_benchmark_family_dated_refresh_is_explicitly_disabled_by_default(monkey
     assert result == {"skipped": True, "reason": "benchmark family refresh disabled"}
 
 
+def test_etf_classification_refresh_passes_snapshot_cap(monkeypatch):
+    class Session:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def commit(self):
+            return None
+
+    calls: list[dict] = []
+
+    async def fake_reconcile(_db, **kwargs):
+        calls.append(kwargs)
+        return {"processed": 0, "enriched": 0, "remaining": 0}
+
+    monkeypatch.setattr(settings, "ETF_HOLDINGS_CLASSIFICATION_REFRESH_ENABLED", True)
+    monkeypatch.setattr(settings, "ETF_HOLDINGS_CLASSIFICATION_MAX_PROFILES", 3)
+    monkeypatch.setattr(settings, "ETF_HOLDINGS_CLASSIFICATION_MAX_ENRICHMENTS_PER_PROFILE", 9)
+    monkeypatch.setattr(settings, "ETF_HOLDINGS_CLASSIFICATION_MAX_SNAPSHOTS_PER_PROFILE", 4)
+    monkeypatch.setattr("app.database.AsyncSessionLocal", lambda: Session())
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.reconcile_all_etf_holdings_classifications",
+        fake_reconcile,
+    )
+
+    result = asyncio.run(etf_holdings_tasks.reconcile_etf_holdings_classifications_task({}))
+
+    assert result == {"processed": 0, "enriched": 0, "remaining": 0}
+    assert calls == [
+        {
+            "max_profiles": 3,
+            "max_enrichments_per_profile": 9,
+            "max_snapshots_per_profile": 4,
+        }
+    ]
+
+
 def test_benchmark_family_dated_refresh_fans_out_idempotent_units(monkeypatch):
     calls: list[tuple[str, tuple[object, ...], dict]] = []
 
