@@ -799,7 +799,13 @@ class Settings(BaseSettings):
             "configured_plan": "unreviewed",
             "is_free": True,
             "authentication_required": False,
-            "usage_terms": "Public FINRA OTC Security Master DAPI; source terms, polling allowance, and redistribution boundary require operator review.",
+            "usage_terms": (
+                "Public FINRA OTC Security Master DAPI; current FINRA API Terms of Service "
+                "restrict licensed materials to authorized users/permitted uses and prohibit "
+                "bulk-distributor/service-bureau use. Source terms, polling allowance, "
+                "completeness/retention, and redistribution boundary require operator review: "
+                "https://developer.finra.org/finra-api-terms-service"
+            ),
             "history_depth": "Current as-of-date OTC security-master snapshot",
             "venue_coverage": "FINRA OTC securities represented by the configured DAPI source",
             "freshness_semantics": "Provider as-of-date partition and response time",
@@ -947,7 +953,14 @@ class Settings(BaseSettings):
             "configured_plan": "public-dataset",
             "is_free": True,
             "authentication_required": True,
-            "usage_terms": "FINRA public Query API dataset; API credential, OAuth, usage limits, and terms apply.",
+            "usage_terms": (
+                "FINRA public Query API dataset; API credential, OAuth, usage limits, and "
+                "dataset-specific terms apply. The current API Terms of Service restrict "
+                "licensed materials to authorized users/permitted uses, prohibit bulk "
+                "distributor or service-bureau use and non-API extraction, and do not "
+                "grant redistribution by possession of a credential: "
+                "https://developer.finra.org/finra-api-terms-service"
+            ),
             "history_depth": "Publication-dependent short-interest history",
             "venue_coverage": "US securities covered by FINRA consolidated short interest",
             "freshness_semantics": "Periodic publication; not real-time",

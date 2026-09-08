@@ -42,7 +42,7 @@ re-reviewed when credentials or billing plans change.
 | Coinbase Exchange | public crypto candles, ticker, USD products | none | 10 public requests/sec, burst up to 15 | IP / rolling | contract recorded; keyless live evidence required |
 | Kraken | public crypto OHLC, ticker, USD pairs | none | safe public frequency <=1 request/sec; pair/IP limits apply | IP/pair / rolling | contract recorded; keyless live evidence required |
 | CoinGecko Demo | crypto search, metadata, market-cap universe | `COINGECKO_API_KEY` | 100 calls/min and 10,000 calls/month | Demo key / minute + calendar month | credentialed search live-proven |
-| FINRA | consolidated short interest (OAuth Query API), OTC Daily List lifecycle/corporate-action deltas, and generic asynchronous Query API jobs | `FINRA_CLIENT_ID`, `FINRA_CLIENT_SECRET` | 1,200 synchronous requests/minute/IP; 20 asynchronous submissions/minute/dataset/account; max 5,000 records and 3 MB per synchronous response; public credential capped at 10 GB downloaded/month | OAuth client / IP + dataset/account + calendar-month credential bandwidth | synchronous datasets live-proven; async submit/poll/presigned-download flow is fixture-tested but remains non-routable until unbounded async-result byte accounting is safely reserved |
+| FINRA | consolidated short interest (OAuth Query API), OTC Daily List lifecycle/corporate-action deltas, and generic asynchronous Query API jobs | `FINRA_CLIENT_ID`, `FINRA_CLIENT_SECRET` | 1,200 synchronous requests/minute/IP; 20 asynchronous submissions/minute/dataset/account; max 5,000 records and 3 MB per synchronous response; public credential capped at 10 GB downloaded/month | OAuth client / IP + dataset/account + calendar-month credential bandwidth | synchronous datasets live-proven; async submit/poll/presigned-download flow is fixture-tested and becomes routable only with a positive reviewed result-byte bound; the default unbounded path remains fail-closed |
 | FINRA OTC directory | current `otcSecurityMaster` DAPI snapshot, or configured pipe-delimited OTC/OTCBB mirror | `FINRA_OTC_SYMBOL_DIRECTORY_URL` | Official FINRA synchronous platform ceiling: 1,200 requests/minute/IP and 3 MB maximum response; source-specific polling and redistribution terms still require review | configured source / rolling IP request window | full current DAPI pagination is live-proven; explicit quota is recorded, but adapter remains non-routable until source configuration and terms review are complete |
 | FRED | macro/rates/FX daily series | `FRED_API_KEY` | The deployed adapter uses FRED v1; its official errors page documents 429 throttling but no fixed numeric ceiling, so no limit is inferred from the separate v2 documentation | API key / provider-defined | **not routable until the deployed API version's ceiling is verified** |
 | Nasdaq Trader | official `nasdaqlisted.txt`/`otherlisted.txt` US NMS listing/lifecycle files | none | No numeric public limit in the symbol-directory definition; poll conservatively and record response headers | public service / unknown | **discovery evidence only; quota unknown** |
@@ -181,9 +181,17 @@ pacing contract is recorded, but no capability is routable until a funded
 account/session adapter is supplied and tested. Credentials, quota, and
 personal-use/redistribution terms are never inferred from an API key alone.
 FINRA now uses its OAuth client flow and has the documented synchronous quota
-ceiling recorded; credential, terms, and live evidence are still required. A
-provider becomes routable only after the governance record and live evidence
-satisfy the contract.
+ceiling recorded; credential, terms, and live evidence are still required. The
+current [FINRA API Terms of Service](https://developer.finra.org/finra-api-terms-service)
+restrict licensed materials to authorized users and permitted uses, prohibit
+bulk-distributor/service-bureau use and access outside the licensed APIs, and
+may change. The implementation therefore keeps legal entitlement separate from
+quota/live evidence: FINRA data remains non-redistributable by default until
+the operator records the applicable dataset terms and downstream audience. The
+async result byte bound is an application safety/accounting requirement, not a
+claim that FINRA publishes a provider-wide maximum result size. A provider
+becomes routable only after the governance record and live evidence satisfy the
+contract.
 
 ## Market-data platform boundary
 
