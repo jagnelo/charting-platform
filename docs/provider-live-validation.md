@@ -75,9 +75,8 @@ RUN_LIVE_PROVIDER_TESTS=1 rtk uv run --project backend pytest \
 The backend deterministic gates pass on the current corrective revision:
 
 - unit suite: `1384 passed`
-- Docker-backed integration suite: historical baseline `370 passed`; a
-  post-tokenized/transport-usage rerun is still pending because the local
-  Docker socket currently rejects access (`permission denied`)
+- Docker-backed integration suite: `371 passed` on the current branch; the
+  isolated testcontainer resources were cleaned after the run
 - focused capacity/quota/runtime/provider-support tests: `17 passed`; capacity-admin plus provider API integration: `8 passed`
 - migration compatibility: passed against the previous release head
 
