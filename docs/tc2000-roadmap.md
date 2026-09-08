@@ -26,6 +26,22 @@ Playwright `165` passed with `107` documented skips across `272`. Visual parity
 remains `98/104` with the same six unchanged state-oracle diffs; no visual or
 acceptance policy changed.
 
+## 2026-09-08 — Canonical Nasdaq-100 dated refresh and queue handoff
+
+With the branch-scoped Docker stack available, a bounded dated `nasdaq100`
+refresh ran for `2025-12-31` through the real worker path. The SEC-backed QQQ
+and QQQE legs refreshed successfully (snapshot IDs `1` and `2`); value and
+growth remained explicitly unavailable because no verified mapped proxy exists.
+The committed snapshots queued seven canonical member-history jobs across
+`MN`, `W1`, and `D1`, while reporting `197` unresolved/placeholder rows rather
+than substituting them. A bounded classifier enriched `30` records with zero
+failures and left `174` pending. Worker logs then showed the configured
+provider chain exhausted for the requested member bars; no D1/W1/MN bars were
+persisted in this fresh stack. This is a successful canonical refresh,
+classification, and queue handoff, but it does not establish history,
+continuity, or family readiness. No credentials, provider policy, or fallback
+was changed.
+
 ## 2026-09-08 — Expose workstation dense-row budget telemetry
 
 The virtual watchlist now exposes provider-neutral DOM telemetry for the

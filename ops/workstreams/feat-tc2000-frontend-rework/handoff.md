@@ -26,6 +26,17 @@ compose/provider/runner probes, and functional Playwright `165` passed with
 same six unchanged state-oracle diffs. Stack teardown and scoped cleanup
 completed; no visual or acceptance policy changed.
 
+## 2026-09-08 — Canonical Nasdaq-100 dated refresh and queue handoff
+
+The branch-scoped stack ran a real dated `nasdaq100` worker refresh for
+`2025-12-31`. SEC-backed QQQ and QQQE refreshed (snapshot IDs `1` and `2`);
+value/growth were explicitly unavailable. Seven canonical member-history jobs
+were queued across `MN`, `W1`, and `D1`, with `197` unresolved/placeholders
+excluded. Bounded classification enriched `30` records with zero failures and
+left `174` pending. Provider exhaustion left zero fresh-stack D1/W1/MN bars,
+so history/continuity/readiness remain open. No provider or fallback policy was
+changed.
+
 ## 2026-09-08 — Expose workstation dense-row budget telemetry
 
 Product commit `8c9af988` adds explicit `data-row-count`,

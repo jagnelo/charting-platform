@@ -14,6 +14,16 @@
       data when a supported dense universe and history are available; this
       controlled fixture does not establish canonical R1/R2 readiness.
 
+### 2026-09-08 — Canonical Nasdaq-100 dated refresh and queue handoff
+
+- [x] Run the real worker path for a dated `nasdaq100` refresh: QQQ and QQQE
+      refreshed from SEC-backed routes; value/growth remained explicitly
+      unavailable.
+- [x] Queue seven canonical member-history jobs and run bounded classification;
+      30 records were enriched with zero failures and 174 remain pending.
+- [ ] Provide usable adjusted D1/W1/MN member bars and continuity; this run's
+      configured provider chain exhausted without persisting bars.
+
 ### 2026-09-08 — Expose workstation dense-row budget telemetry
 
 - [x] Add provider-neutral row-universe, mounted-window, and within/exceeded
