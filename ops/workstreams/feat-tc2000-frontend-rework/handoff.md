@@ -8,6 +8,15 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-08 — Russell 3000 provider population
+
+The bounded iShares refresh persisted IWV for `2025-12-31` with zero failures
+and `2602/2605` resolved rows (`2599` canonical and three placeholders).
+Equal-weight, value, and growth are explicitly unmapped. IWV weights were
+complete but classification pending; all D1/W1/MN bar counts were zero and
+`history_ready=false`. No continuity or analysis floor is claimed. Cleanup
+removed all branch-scoped resources.
+
 ## 2026-09-08 — Russell 1000 provider population
 
 The bounded iShares refresh persisted IWB `1014/1017`, IWD `873/876`, and IWF

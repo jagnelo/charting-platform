@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-09-08 — Russell 3000 provider population
+
+- [x] Persist IWV `2602/2605` resolved iShares rows for `2025-12-31` with
+      zero refresh failures (`2599` canonical and three placeholders).
+- [x] Keep equal-weight, value, and growth explicitly unavailable because no
+      verified mapped proxies exist.
+- [ ] Finish IWV placeholder enrichment and classification, then verify
+      continuity plus D1/W1/MN floors before claiming readiness.
+
 ### 2026-09-08 — Russell 1000 provider population
 
 - [x] Persist IWB `1014/1017`, IWD `873/876`, and IWF `393/396` resolved
