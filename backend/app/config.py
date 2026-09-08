@@ -188,7 +188,10 @@ class Settings(BaseSettings):
                         "source": "https://www.alphavantage.co/support/",
                     }
                 ],
-                "reset": "provider_defined_daily",
+                # The provider publishes the daily allowance but not a reset
+                # timezone. A rolling 24-hour reservation is conservative and
+                # avoids assuming an undocumented calendar boundary.
+                "reset": "rolling",
             },
             "quota_scope": "api_key",
             "quota_source": "Alpha Vantage support documentation",
@@ -277,6 +280,7 @@ class Settings(BaseSettings):
                         "unit": "requests",
                         "scope": "demo_api_key",
                         "source": "https://www.coingecko.com/en/api/pricing",
+                        "reset": "rolling",
                     },
                     {
                         "name": "calls_per_month",
@@ -285,9 +289,10 @@ class Settings(BaseSettings):
                         "unit": "requests",
                         "scope": "demo_api_key",
                         "source": "https://www.coingecko.com/en/api/pricing",
+                        "reset": "calendar_month",
                     },
                 ],
-                "reset": "calendar_month_for_monthly_dimension",
+                "reset": "per_dimension",
             },
             "tokens_per_minute": 100,
             "quota_scope": "demo_api_key",
@@ -479,6 +484,7 @@ class Settings(BaseSettings):
                         "unit": "credits",
                         "scope": "api_key",
                         "source": "https://twelvedata.com/pricing",
+                        "reset": "fixed_minute",
                     },
                     {
                         "name": "credits_per_day",
@@ -487,9 +493,10 @@ class Settings(BaseSettings):
                         "unit": "credits",
                         "scope": "api_key",
                         "source": "https://twelvedata.com/pricing",
+                        "reset": "calendar_day_utc",
                     },
                 ],
-                "reset": "provider_defined",
+                "reset": "per_dimension",
                 "operation_costs_required": True,
             },
             "tokens_per_minute": 8,
@@ -532,6 +539,7 @@ class Settings(BaseSettings):
                         "unit": "requests",
                         "scope": "api_key",
                         "source": "https://eodhd.com/",
+                        "reset": "rolling",
                     },
                     {
                         "name": "requests_per_day",
@@ -540,9 +548,10 @@ class Settings(BaseSettings):
                         "unit": "requests",
                         "scope": "api_key",
                         "source": "https://eodhd.com/",
+                        "reset": "calendar_day_gmt",
                     },
                 ],
-                "reset": "provider_defined",
+                "reset": "per_dimension",
             },
             "tokens_per_minute": 20,
             "quota_scope": "api_key",

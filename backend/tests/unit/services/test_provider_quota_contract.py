@@ -466,6 +466,76 @@ def test_marketdata_app_records_documented_daily_credit_and_concurrency_limits()
     assert seed.get("max_concurrency") is None
 
 
+def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
+    coingecko = settings.PROVIDER_RATE_LIMIT_SEEDS["coingecko"]["quota_contract"]
+    assert [item["reset"] for item in coingecko["dimensions"]] == [
+        "rolling",
+        "calendar_month",
+    ]
+
+    twelve = settings.PROVIDER_RATE_LIMIT_SEEDS["twelve_data"]["quota_contract"]
+    assert [item["reset"] for item in twelve["dimensions"]] == [
+        "fixed_minute",
+        "calendar_day_utc",
+    ]
+
+    eodhd = settings.PROVIDER_RATE_LIMIT_SEEDS["eodhd"]["quota_contract"]
+    assert [item["reset"] for item in eodhd["dimensions"]] == [
+        "rolling",
+        "calendar_day_gmt",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_calendar_day_reservation_changes_at_utc_midnight(db):
+    async_db = AsyncSessionAdapter(db)
+    source = DataSource(name="calendar-day-provider", is_active=True)
+    db.add(source)
+    db.flush()
+    policy = ProviderPolicy(
+        data_source_id=source.id,
+        capability=ProviderCapability.PRICE_HISTORY,
+        quota_scope="api_key",
+        quota_contract={
+            "reset": "per_dimension",
+            "dimensions": [
+                {
+                    "name": "credits_per_day",
+                    "limit": 1,
+                    "window_seconds": 86400,
+                    "unit": "credits",
+                    "scope": "api_key",
+                    "source": "unit-test",
+                    "reset": "calendar_day_utc",
+                }
+            ],
+        },
+    )
+    resolved = ResolvedProvider(
+        provider_name="calendar-day-provider",
+        provider=object(),
+        data_source=source,
+        policy=policy,
+        health=None,  # type: ignore[arg-type]
+    )
+    first = await reserve_provider_contract(
+        async_db,
+        resolved=resolved,
+        capability=ProviderCapability.PRICE_HISTORY.value,
+        units=1,
+        now=datetime(2026, 9, 5, 23, 59, tzinfo=UTC),
+    )
+    second = await reserve_provider_contract(
+        async_db,
+        resolved=resolved,
+        capability=ProviderCapability.PRICE_HISTORY.value,
+        units=1,
+        now=datetime(2026, 9, 6, 0, 1, tzinfo=UTC),
+    )
+    assert first is not None and second is not None
+    assert first[0].window_started_at != second[0].window_started_at
+
+
 def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
     finnhub = settings.PROVIDER_RATE_LIMIT_SEEDS["finnhub"]["quota_contract"]
     assert {item["limit"] for item in finnhub["dimensions"]} == {30, 60}
