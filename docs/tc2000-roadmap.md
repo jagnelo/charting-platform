@@ -5,6 +5,23 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-08
 
+## 2026-09-08 — Provider-enabled coarse reads share canonical history
+
+The normal provider-enabled range, latest-page, and historical-page OHLCV
+paths now reconcile partial provider W1/MN coverage with the complete
+materialized cache derived from canonical adjusted D1 evidence. Provider rows
+retain calendar-period precedence; uncovered periods expose explicit derived
+lineage, and all period comparisons normalize database timestamps to UTC. The
+focused service/router/derivation gate passes `25/25`. At commit `7bbca0ea`,
+the exact integration gate passed backend unit/integration (`1,370`/`387`,
+`81.06%` combined coverage), frontend Vitest (`975/975`), build, contracts,
+runner probes, stack health, and functional Playwright (`165` passed, `107`
+documented skips). Visual parity remains `98/104` with the six established
+watchlist-column-editor and workspace-floating state-oracle diffs. This is an
+R1 read-consistency closure only; canonical family population, placeholders,
+adjustment/version provenance, raw-versus-derived redesign, rebalance
+continuity, and R2–R7 remain open. No visual or provider policy changed.
+
 ## 2026-09-08 — Merge partial provider coarse reads with canonical derivations
 
 Local and chart OHLCV reads now reconcile partial provider W1/MN coverage with

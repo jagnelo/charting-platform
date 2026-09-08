@@ -8,6 +8,25 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-08 — Provider-enabled coarse-read checkpoint
+
+Product commit `7bbca0ea` extends canonical coarse-history reconciliation to
+normal provider-enabled range, latest-page, and historical-page reads. Partial
+provider W1/MN rows keep period precedence while uncovered periods are merged
+from materialized D1-derived history; database timestamps are normalized to
+UTC before filtering. Focused coverage is `25/25`. The exact full gate passed
+backend unit/integration (`1,370`/`387`, `81.06%`), frontend Vitest (`975/975`),
+build, contracts, probes, stack health, and functional Playwright (`165`
+passed, `107` documented skips). Visual parity is `98/104`, with only the six
+established watchlist-column-editor-open and workspace-floating state-oracle
+diffs. Teardown was clean and no other worktree was touched.
+
+Remaining R1 work is canonical family population, unsupported/placeholder
+disposition, adjustment-factor/version provenance, raw-versus-derived storage
+decisions, and rebalance continuity. R2–R7 are still open. Next action: use
+the refreshed canonical population evidence to close the next bounded R1
+provenance/readiness seam, then rerun the exact gate.
+
 ## 2026-09-08 — Canonical derived W1/MN timeframe materialization
 
 The bulk maintenance path now rebuilds local W1/MN bars from persisted
