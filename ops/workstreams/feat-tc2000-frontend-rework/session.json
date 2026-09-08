@@ -51,7 +51,9 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ps/workstreams/feat-tc2000-frontend-rework/session.json"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -110,24 +112,24 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "0089204f3654c90ad09bcc7b4de05b2b9f56222c",
+  "head": "0a72a74cd219c67ee444e5a171aa6fd96fad5fe0",
   "implementation_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
   "interrupted": false,
   "last_checkpoint": "2026-09-08T07:09:43.964399+00:00",
-  "last_human_progress_update": "2026-09-08T07:09:22.974595+00:00",
+  "last_human_progress_update": "2026-09-08T07:23:03.506030+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue canonical provider/history population or the next compatible Study target slice with focused regression coverage, then rerun the exact-tip exhaustive gate at the new coherent tip; preserve visual policy and provider fallback rules.",
-  "plan_hash": "e23da486b8b926cf144e49a87ca7cd5e943040303200a640a5639e7c52d5c0e4",
+  "plan_hash": "ac46e4e66492d319dc357c5be98850a7e1fb3708bb019b5e71e15073899a8ca4",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [],
   "progress": {
     "completed": [],
-    "current_blocker": "Eight-family bounded enrichment completed with zero refresh/classification failures: 181 records enriched, 4144 pending, and the fresh-stack readiness query found zero canonical D1/W1/MN member bars. Continue canonical history hydration, continuity/floors, and remaining R2-R7 evidence; dev npm graph still has five audit findings requiring major tooling upgrades.",
+    "current_blocker": "Canonical QQQ history queue now proves 27 eligible members queued, 23/27 with adjusted D1 bars above the 252-bar floor (45199 bars), while 74 placeholders remain excluded and W1/MN providers exhaust without data. Eight-family population remains partial (4144 pending); development npm graph still has five audit findings.",
     "current_phase": "R1_canonical_enrichment_history",
-    "next_action": "Select the next bounded canonical history or compatible R2-R5 consumer slice, preserving provider/fallback policy, then rerun focused regression and the exact-tip gate after coherent product changes.",
+    "next_action": "Continue bounded canonical placeholder enrichment and history queues for supported roles, then select the next compatible R2-R6 implementation/evidence slice while preserving explicit W1/MN/provider gaps and rerun the exact-tip gate after product changes.",
     "total": 10,
-    "updated_at": "2026-09-08T07:09:22.973555+00:00"
+    "updated_at": "2026-09-08T07:23:03.505251+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
