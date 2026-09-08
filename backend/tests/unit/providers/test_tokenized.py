@@ -1,4 +1,7 @@
 from decimal import Decimal
+from unittest.mock import Mock, patch
+
+import httpx
 
 from app.providers.registry import list_provider_capabilities
 from app.providers.tokenized import (
@@ -91,3 +94,25 @@ def test_gate_and_kraken_records_keep_provider_symbols_distinct_from_underlyings
     kraken = KrakenXStocksProvider._record({"symbol": "AAPLx", "base": "AAPL", "quote": "USD"})
     assert gate.symbol == "AAPLx" and gate.underlying_symbol == "AAPL"
     assert kraken.symbol == "AAPLx" and kraken.underlying_symbol == "AAPL"
+
+
+def test_robinhood_price_retries_one_bounded_provider_throttle():
+    rate_limited = httpx.Response(
+        429,
+        headers={"retry-after": "0"},
+        request=httpx.Request("GET", "https://api.robinhood.com/rhj/prices/AAPLx"),
+    )
+    ok = Mock()
+    ok.raise_for_status.return_value = None
+    ok.json.return_value = {"quotes": [{"bid": "99", "ask": "101"}]}
+    asset = RobinhoodTokenProvider._record({"id": "rh-aapl", "tokenSymbol": "AAPLx"})
+    with (
+        patch.object(RobinhoodTokenProvider, "get_tokenized_asset", return_value=asset),
+        patch("app.providers.tokenized.httpx.get", side_effect=[rate_limited, ok]) as get,
+        patch("app.providers.tokenized.time.sleep") as sleep,
+    ):
+        result = RobinhoodTokenProvider().get_tokenized_price("AAPLx")
+    assert result is not None
+    assert result.bid == Decimal("99")
+    assert get.call_count == 2
+    sleep.assert_called_once()

@@ -10,6 +10,7 @@ redemption, trading and wallet-transfer APIs are outside this subsystem.
 
 from __future__ import annotations
 
+import time
 from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
@@ -39,6 +40,38 @@ def _http_json(url: str, *, params: dict[str, Any] | None = None, headers: dict[
     observe_response(response)
     response.raise_for_status()
     return response.json()
+
+
+def _http_json_bounded_rate_retry(
+    url: str,
+    *,
+    params: dict[str, Any] | None = None,
+    headers: dict[str, str] | None = None,
+    max_attempts: int = 3,
+) -> Any:
+    """Retry one public read after a provider 429, using bounded backoff.
+
+    This is intentionally separate from the generic transport helper: the
+    Robinhood public edge documents a per-second limit but can emit an
+    occasional local throttle. Only this provider-specific read gets a small,
+    finite retry budget, and every response remains observable telemetry.
+    """
+
+    attempts = max(1, min(int(max_attempts), 3))
+    for attempt in range(attempts):
+        try:
+            return _http_json(url, params=params, headers=headers)
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 429 or attempt == attempts - 1:
+                raise
+            retry_after = exc.response.headers.get("retry-after")
+            try:
+                delay = float(str(retry_after).strip()) if retry_after else 0.0
+            except (TypeError, ValueError):
+                delay = 0.0
+            if delay <= 0:
+                delay = min(1.0 * (2**attempt), 5.0)
+            time.sleep(min(delay, 5.0))
 
 
 def _network_chain_id(deployment: dict[str, Any]) -> tuple[str | None, int | None, str | None]:
@@ -193,7 +226,7 @@ class RobinhoodTokenProvider:
     def get_tokenized_price(self, identifier: str) -> TokenizedAssetRecord | None:
         asset = self.get_tokenized_asset(identifier)
         symbol = asset.symbol if asset else identifier
-        payload = _http_json(f"{self.base_url}/prices/{symbol}")
+        payload = _http_json_bounded_rate_retry(f"{self.base_url}/prices/{symbol}")
         quotes = payload.get("quotes", []) if isinstance(payload, dict) else []
         quote = next((row for row in quotes if isinstance(row, dict)), None)
         if quote is None:

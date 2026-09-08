@@ -123,11 +123,12 @@ RUN_LIVE_PROVIDER_TESTS=1 rtk uv run --project backend pytest \
   tests/live/test_tokenized_providers_live.py -m live --no-header -q --no-cov
 ```
 
-The latest verified run passed all five public probes. One Robinhood read
-required a single provider-specific retry after the edge returned
-`local_rate_limited`, and the Kraken catalogue returned no current xStocks
-pair. That evidence is retained as a routing/coverage fact, not hidden by a
-generic retry or an invented symbol.
+The latest verified run passed all five public probes. Robinhood's public
+price edge returned `local_rate_limited` during one run; its adapter now uses a
+finite provider-specific retry budget, honors `Retry-After` when present, and
+surfaces repeated 429s. The Kraken catalogue returned no current xStocks pair.
+That evidence is retained as a routing/coverage fact, not hidden by a generic
+retry or an invented symbol.
 
 | Provider   | Role        | Auth required           | Cost     |
 |------------|-------------|-------------------------|----------|
