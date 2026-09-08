@@ -18079,3 +18079,18 @@ The current source also passes the focused authenticated top-down browser slice 
       canonical symbols plus `115` placeholder rows.
 - [ ] Continue auditable placeholder enrichment, W1/MN history, rebalance
       continuity, and the remaining R2–R7 acceptance evidence.
+
+### 2026-09-09 — Bounded Nasdaq canonical enrichment/history audit
+
+- [x] Reran the dated QQQ/QQQE refresh and bounded classification on the seeded
+      branch stack with zero classification failures; the exact snapshots now
+      expose `99` and `101` non-placeholder canonical rows (`106` in the union),
+      while explicit placeholder rows remain unresolved.
+- [x] Awaited all `106` canonical-member history jobs. Adjusted D1 history is
+      present for `100` instruments and `99` meet the `252`-bar floor through
+      `2025-12-31` (range `51–2,344` bars); the queue reported `4` unresolved
+      member exclusions.
+- [ ] W1/MN bars remain unavailable; auditable placeholder enrichment, multiple
+      dated snapshots/rebalance continuity, complete family/root coverage, and
+      final canonical readiness remain open. Value/growth roles remain explicitly
+      unavailable and no provider/fallback/acceptance policy changed.

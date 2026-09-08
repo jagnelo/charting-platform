@@ -3034,3 +3034,21 @@ the name bridge is enabled for a ticker-bearing row only when an identifier
 profile was rejected (such as a foreign listing). The corrected implementation
 again passed the exact gate with backend `1,357` unit and `386` integration tests,
 functional `165/272`, and unchanged visual `98/104` with the same six diffs.
+
+## 2026-09-09 — Bounded Nasdaq canonical enrichment and history audit
+
+The fresh seeded stack reran the dated QQQ/QQQE maintenance path and completed
+bounded classification without failures. The exact snapshots contain `101` and
+`103` resolved rows, of which `99` and `101` are non-placeholder canonical rows;
+their union is `106` canonical instruments. The two placeholder rows in each
+snapshot remain explicit and are not treated as usable members. Value and growth
+roles remain unavailable because no verified proxy is configured.
+
+All `106` queued canonical-member ARQ jobs returned results. Adjusted D1 history
+is present for `100` instruments (`99` meet the `252`-bar floor; the observed
+range is `51–2,344` bars), ending at `2025-12-31`; no W1 or MN bars were returned.
+The queue reported `4` unresolved member exclusions. This is stronger bounded
+history evidence, not family readiness: auditable placeholder enrichment,
+W1/MN floors, rebalance continuity across multiple dated snapshots, and the
+remaining families/roots are still open. No provider, fallback, credential,
+visual, or acceptance policy changed.

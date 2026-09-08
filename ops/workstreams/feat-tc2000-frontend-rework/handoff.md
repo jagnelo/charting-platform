@@ -3754,3 +3754,24 @@ The follow-up refinement preserves duplicate-symbol collapse by enabling the
 name bridge with a reported ticker only after an identifier profile is rejected.
 The corrected implementation passed the same exact gate again; no provider,
 fallback, visual, or acceptance policy changed.
+
+## 2026-09-09 — Bounded Nasdaq canonical enrichment/history audit
+
+The fresh branch-scoped seeded stack reran the dated QQQ/QQQE refresh and
+bounded classification with zero failures. Snapshot `1` has `101` resolved rows
+(`99` non-placeholder canonical) and snapshot `2` has `103` resolved rows
+(`101` non-placeholder canonical), for `106` canonical instruments in the union;
+the two placeholder rows in each snapshot remain explicit. Value/growth roles
+remain unavailable because no verified proxy is configured.
+
+All `106` queued canonical-member ARQ jobs returned. Adjusted D1 history exists
+for `100` instruments; `99` meet the `252`-bar floor, with `51–2,344` bars and
+latest timestamp `2025-12-31`. W1 and MN returned no usable data, and the queue
+reported `4` unresolved exclusions. This narrows the R1 gap but does not establish
+family readiness: placeholder enrichment, W1/MN floors, rebalance continuity,
+and complete family/root coverage remain open. No provider, fallback, credential,
+visual, or acceptance policy changed.
+
+This checkpoint updates `docs/tc2000-roadmap.md`, `docs/project-todos.md`, and
+`ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl` with the exact
+runtime receipt; no application source or visual acceptance artifact changed.
