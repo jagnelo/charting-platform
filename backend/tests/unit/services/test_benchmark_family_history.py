@@ -87,8 +87,52 @@ async def test_family_history_plan_deduplicates_members_and_preserves_pending_le
     assert plan["limited"] is True
     assert plan["timeframes"] == ["D1"]
     assert plan["legs"][0]["selected_count"] == 2
+    assert plan["legs"][0]["member_disposition"] == {
+        "canonical": 2,
+        "placeholder": 0,
+        "unresolved": 1,
+        "excluded": 0,
+    }
     assert plan["legs"][1]["status"] == "pending"
     assert plan["legs"][1]["message"] == "holdings_snapshot_not_loaded"
+    assert plan["legs"][1]["member_disposition"] == {
+        "canonical": 0,
+        "placeholder": 0,
+        "unresolved": 0,
+        "excluded": 0,
+    }
+
+
+@pytest.mark.asyncio
+async def test_family_history_plan_reports_placeholder_and_excluded_dispositions(monkeypatch):
+    async def fake_resolve(_db, _user_id, _source_id, *, as_of):
+        assert as_of is None
+        return SimpleNamespace(
+            descriptor=SimpleNamespace(
+                membership_version="sp500-v1",
+                provenance={"availability": "available", "placeholder_member_count": 2},
+            ),
+            members=(SimpleNamespace(instrument_id=10), SimpleNamespace(instrument_id=10)),
+            exclusions=(
+                {"reason": "unresolved_holding"},
+                {"reason": "unresolved_holding"},
+                {"reason": "unresolved_holding"},
+                {"reason": "cash_holding"},
+                {"reason": "non_equity_holding"},
+            ),
+        )
+
+    monkeypatch.setattr(history, "resolve_watchlist_source", fake_resolve)
+    plan = await history.plan_benchmark_family_history_refresh(
+        object(), family_keys=[history.normalize_family_keys(None)[0]], roles=["cap_weight"]
+    )
+
+    assert plan["legs"][0]["member_disposition"] == {
+        "canonical": 1,
+        "placeholder": 2,
+        "unresolved": 1,
+        "excluded": 2,
+    }
 
 
 @pytest.mark.asyncio

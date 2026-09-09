@@ -22,6 +22,7 @@ class BenchmarkFamilyHistoryRefreshLegOut(BaseModel):
     selected_count: int = 0
     deduplicated_count: int = 0
     excluded_count: int = 0
+    member_disposition: dict[str, int] = Field(default_factory=dict)
     membership_version: str | None = None
     history_route_status: str = "not_reported"
     history_route_provider: str | None = None
