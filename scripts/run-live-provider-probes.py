@@ -14,6 +14,7 @@ import importlib.util
 import os
 import subprocess
 from pathlib import Path
+from uuid import uuid4
 
 from dotenv import load_dotenv
 
@@ -205,7 +206,11 @@ def main() -> int:
                     "--no-cov",
                 ],
                 cwd=ROOT / "backend",
-                env={**os.environ, "RUN_LIVE_PROVIDER_TESTS": "1"},
+                env={
+                    **os.environ,
+                    "RUN_LIVE_PROVIDER_TESTS": "1",
+                    "PROVIDER_LIVE_RUN_ID": str(uuid4()),
+                },
             )
     except ProviderLiveRunAlreadyActive as exc:
         print(f"live provider probes: blocked by local key-use lock: {exc}")

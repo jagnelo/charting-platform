@@ -22,6 +22,13 @@ Before invoking pytest, the wrapper acquires an exclusive local lock at
 with code `3` without making provider calls. This coordinates local worktrees
 only; GitHub and deployed environments still need separate provider accounts,
 environment concurrency controls, or an operator-approved shared-key window.
+Each live pytest process also appends measured per-provider operation, HTTP
+request, and response-byte totals to the external
+`~/.config/charting-platform/provider-live-usage.jsonl` ledger (override with
+`PROVIDER_LIVE_USAGE_LEDGER`). This supplements, rather than replaces, the
+application database's durable runtime quota windows; it makes direct live-test
+consumption visible across local sessions without storing credentials or
+payloads.
 Local secrets belong in the owner-only
 `~/.config/charting-platform/app.env`. Worktree runtime setup links the ignored
 `.env` and `backend/.env.dev` paths to that external source. Set

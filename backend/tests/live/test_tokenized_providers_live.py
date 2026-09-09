@@ -17,6 +17,7 @@ from app.providers.tokenized import (
     RobinhoodTokenProvider,
     XStocksProvider,
 )
+from tests.live.live_usage import record_observation
 
 pytestmark = [
     pytest.mark.live,
@@ -35,7 +36,7 @@ def _assert_asset(record, *, require_quote: bool = False):
         assert record.price is not None or record.bid is not None or record.ask is not None
 
 
-def _observed_read(call):
+def _observed_read(call, provider_name: str):
     """Require live tokenized reads to contribute transport evidence."""
 
     measurement, token = activate_provider_telemetry()
@@ -45,11 +46,21 @@ def _observed_read(call):
         # A rejected request is still useful live evidence: the provider
         # response must have crossed the adapter and been observed before the
         # caller decides whether a bounded retry is allowed.
+        record_observation(
+            provider_name,
+            http_requests=measurement.http_requests,
+            response_bytes=measurement.response_bytes,
+        )
         assert measurement.http_requests > 0
         assert measurement.response_bytes > 0
         raise
     finally:
         deactivate_provider_telemetry(token)
+    record_observation(
+        provider_name,
+        http_requests=measurement.http_requests,
+        response_bytes=measurement.response_bytes,
+    )
     assert measurement.http_requests > 0
     assert measurement.response_bytes > 0
     return result, measurement
@@ -58,12 +69,12 @@ def _observed_read(call):
 def test_xstocks_public_asset_and_price():
     provider = XStocksProvider()
     rows, measurement = _observed_read(
-        lambda: provider.discover_tokenized_assets(page=0, page_size=1)
+        lambda: provider.discover_tokenized_assets(page=0, page_size=1), "xstocks"
     )
     assert rows
     _assert_asset(rows[0])
     priced, quote_measurement = _observed_read(
-        lambda: provider.get_tokenized_price(rows[0].symbol)
+        lambda: provider.get_tokenized_price(rows[0].symbol), "xstocks"
     )
     assert quote_measurement.http_requests >= 2
     _assert_asset(priced, require_quote=True)
@@ -72,13 +83,13 @@ def test_xstocks_public_asset_and_price():
 def test_robinhood_public_asset_and_price():
     provider = RobinhoodTokenProvider()
     rows, _ = _observed_read(
-        lambda: provider.discover_tokenized_assets(page=0, page_size=1)
+        lambda: provider.discover_tokenized_assets(page=0, page_size=1), "robinhood_tokens"
     )
     assert rows
     _assert_asset(rows[0])
     try:
         priced, quote_measurement = _observed_read(
-            lambda: provider.get_tokenized_price(rows[0].symbol)
+            lambda: provider.get_tokenized_price(rows[0].symbol), "robinhood_tokens"
         )
     except httpx.HTTPStatusError as exc:
         # Robinhood's public edge occasionally returns its documented local
@@ -88,7 +99,7 @@ def test_robinhood_public_asset_and_price():
             raise
         time.sleep(1.1)
         priced, quote_measurement = _observed_read(
-            lambda: provider.get_tokenized_price(rows[0].symbol)
+            lambda: provider.get_tokenized_price(rows[0].symbol), "robinhood_tokens"
         )
     assert quote_measurement.http_requests >= 2
     _assert_asset(priced, require_quote=True)
@@ -97,13 +108,13 @@ def test_robinhood_public_asset_and_price():
 def test_bybit_public_xstocks_asset_and_price():
     provider = BybitXStocksProvider()
     rows, measurement = _observed_read(
-        lambda: provider.discover_tokenized_assets(page=0, page_size=1)
+        lambda: provider.discover_tokenized_assets(page=0, page_size=1), "bybit_xstocks"
     )
     assert rows
     assert measurement.response_bytes > 0
     _assert_asset(rows[0])
     priced, quote_measurement = _observed_read(
-        lambda: provider.get_tokenized_price(rows[0].symbol)
+        lambda: provider.get_tokenized_price(rows[0].symbol), "bybit_xstocks"
     )
     assert quote_measurement.http_requests >= 2
     _assert_asset(priced, require_quote=True)
@@ -115,7 +126,7 @@ def test_gate_public_tradfi_asset_and_orderbook():
     # a small bounded page and require one quote-bearing symbol so this test
     # proves the market-data surface rather than merely catalogue metadata.
     rows, measurement = _observed_read(
-        lambda: provider.discover_tokenized_assets(page=0, page_size=5)
+        lambda: provider.discover_tokenized_assets(page=0, page_size=5), "gate_tradfi"
     )
     assert rows
     assert measurement.response_bytes > 0
@@ -123,11 +134,13 @@ def test_gate_public_tradfi_asset_and_orderbook():
     for row in rows:
         _assert_asset(row)
         priced, quote_measurement = _observed_read(
-            lambda row=row: provider.get_tokenized_price(row.symbol)
+            lambda row=row: provider.get_tokenized_price(row.symbol), "gate_tradfi"
         )
         assert quote_measurement.http_requests >= 2
         _assert_asset(priced)
-        if priced and (priced.price is not None or priced.bid is not None or priced.ask is not None):
+        if priced and (
+            priced.price is not None or priced.bid is not None or priced.ask is not None
+        ):
             quote_record = priced
             break
     _assert_asset(quote_record, require_quote=True)
@@ -136,7 +149,7 @@ def test_gate_public_tradfi_asset_and_orderbook():
 def test_kraken_public_xstocks_asset_and_ticker():
     provider = KrakenXStocksProvider()
     rows, measurement = _observed_read(
-        lambda: provider.discover_tokenized_assets(page=0, page_size=1)
+        lambda: provider.discover_tokenized_assets(page=0, page_size=1), "kraken_xstocks"
     )
     assert measurement.response_bytes > 0
     # Kraken currently publishes no pair whose provider-native metadata marks
@@ -146,7 +159,7 @@ def test_kraken_public_xstocks_asset_and_ticker():
         return
     _assert_asset(rows[0])
     priced, quote_measurement = _observed_read(
-        lambda: provider.get_tokenized_price(rows[0].symbol)
+        lambda: provider.get_tokenized_price(rows[0].symbol), "kraken_xstocks"
     )
     assert quote_measurement.http_requests >= 2
     _assert_asset(priced, require_quote=True)
