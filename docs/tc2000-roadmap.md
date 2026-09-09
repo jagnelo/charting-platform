@@ -5,6 +5,33 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-09
 
+## 2026-09-09 — Pop-out landmark and transient Boolean promotion
+
+At product commit `caff874b`, hydrated workstation pop-outs now expose a named,
+focusable main landmark (`TC2000 <tool> pop-out`) and move focus into it after
+hydration. This gives keyboard and assistive-technology users a deterministic
+entry point without changing the rendered tool surface or pop-out geometry.
+The focused pop-out view suite passed `27/27`; frontend type-check and diff
+checks passed.
+
+The earlier F8u-boolean failure passed in isolation (`1/1`) against a fresh
+seeded stack. The governed functional suite then passed `165` cases with `107`
+documented skips across `272`; the exact Docker-backed gate passed every
+non-visual stage (backend `1,372` unit / `387` integration, `81.10%` combined
+coverage, frontend Vitest `989/989`, build, compose/provider/runner and
+stack-health probes, performance, uPlot, and acceptance policy). Visual parity
+completed `104` cases with `98` passes and exactly the six established
+state-oracle diffs: `watchlist-column-editor-open.png` at visual-1080p-100/125
+and `workspace-floating.png` at visual-1080p-100/125 and visual-1440p-100/125.
+The gate exits at `e2e-visual` for those unchanged diffs; scoped teardown
+removed all assigned containers, volumes, images, and test sessions cleanly.
+
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. R1 canonical family/provider-history readiness and R2-R7
+evidence remain open; continue the next bounded evidence-backed R1 or
+compatible Study target slice and rerun the exact gate at the next coherent
+tip.
+
 ## 2026-09-09 — Snapshot generation queue recovery
 
 At product commit `d70d072a`, workstation snapshot persistence now records the
