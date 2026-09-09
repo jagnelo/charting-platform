@@ -4517,3 +4517,35 @@ functional Playwright `165/272` with `107` documented skips. Visual parity is
 teardown and resource cleanup were clean. R1 remains bounded by incomplete
 family population, W1/MN provider coverage, placeholder disposition,
 adjustment-factor/version and raw/derived storage evidence; R2–R7 remain open.
+
+## 2026-09-09 — Pop-out landmark and transient Boolean promotion checkpoint
+
+Product commit `caff874b` gives the workstation pop-out document a named,
+focusable main landmark (`TC2000 <tool> pop-out`) and moves keyboard focus into
+it after pop-out hydration. This keeps the detached tool discoverable to
+assistive technology and gives keyboard users a deterministic starting point
+without changing the rendered tool surface or pop-out geometry. The focused
+pop-out view suite passed `27/27`; frontend type-check and diff checks passed.
+
+The earlier F8u-boolean failure was reproduced against a fresh seeded stack and
+then passed in isolation (`1/1`). A complete functional-file rerun passed
+`161/163` executed cases with `2` documented skips; the only failure was an
+unrelated provider-evidence timing assertion. The exact Docker-backed gate at
+this tip then passed every non-visual stage: backend unit/integration
+`1,372/387` with `81.10%` combined coverage, frontend Vitest `989/989`, build,
+compose/provider/runner and stack-health probes, performance, uPlot, and
+functional Playwright `165/272` with `107` documented skips. Visual parity
+completed `104` cases with `98` passes and the same six established
+state-oracle diffs: `watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125. The gate
+therefore exits at `e2e-visual`; scoped teardown removed all assigned
+containers, volumes, images, and test sessions cleanly.
+
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed, and no other worktree was touched. R1 remains active for
+complete canonical family/provider-history readiness, placeholder disposition,
+cadence/effective-time and adjustment-factor/version provenance,
+raw-versus-derived storage, and broader continuity; R2-R7 remain open.
+Next action: continue the next bounded evidence-backed R1 or compatible Study
+target slice while preserving the six visual state-oracle assertions and rerun
+the exact gate at the next coherent tip.
