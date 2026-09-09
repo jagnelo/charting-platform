@@ -112,11 +112,25 @@ def test_bybit_public_xstocks_asset_and_price():
     )
     assert rows
     assert measurement.response_bytes > 0
+    # Bybit documents endpoint/UID-specific state in these response headers.
+    # When the public edge emits them, telemetry must retain only the
+    # allow-listed names; the current unauthenticated public edge may omit
+    # them, which is itself evidence for keeping routing fail-closed.
+    assert set(measurement.response_headers) <= {
+        "x-bapi-limit",
+        "x-bapi-limit-status",
+        "x-bapi-limit-reset-timestamp",
+    }
     _assert_asset(rows[0])
     priced, quote_measurement = _observed_read(
         lambda: provider.get_tokenized_price(rows[0].symbol), "bybit_xstocks"
     )
     assert quote_measurement.http_requests >= 2
+    assert set(quote_measurement.response_headers) <= {
+        "x-bapi-limit",
+        "x-bapi-limit-status",
+        "x-bapi-limit-reset-timestamp",
+    }
     _assert_asset(priced, require_quote=True)
 
 

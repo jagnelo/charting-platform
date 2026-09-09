@@ -57,7 +57,7 @@ re-reviewed when credentials or billing plans change.
 | IBKR | account-bound stocks/options/futures/crypto via read-only Web API descriptor | deployment-specific `IBKR_READ_ONLY_URL` | Global 10 requests/sec/session; `/iserver/marketdata/history` max 5 concurrent; endpoint-specific pacing and a 15-minute penalty box apply | session/account / endpoint | pacing contract recorded; descriptor only, no routing until a funded-account adapter/evidence exists |
 | xStocks (Backed) | tokenized equity/ETF catalogue, deployments, indicative prices, multipliers, supply and corporate actions | none for documented public reads; optional `XSTOCKS_API_KEY` | Numeric public quota is not published | public endpoint / unknown | public metadata/price probe passed; non-routable until quota is verified |
 | Robinhood Chain Stock Tokens | tokenized-stock catalogue, chain deployments, multiplier, indicative bid/ask and corporate actions | none for documented public reads | 60 requests/sec for the public Stock Token API; cached responses and edge `429` responses apply | public IP / rolling second | bounded live asset + quote probe passed; read-only and non-routable until entitlement is promoted |
-| Bybit xStocks | xStocks spot instrument catalogue and ticker bid/ask/last | none for public market-data endpoints | 600 HTTP requests per 5 seconds per IP outer limit; endpoint/UID limits and response headers are additional constraints | IP + endpoint/UID / rolling | bounded live asset + ticker probe passed; endpoint/UID accounting required before routing |
+| Bybit xStocks | xStocks spot instrument catalogue and ticker bid/ask/last | none for public market-data endpoints | 600 HTTP requests per 5 seconds per IP outer limit; API limits are rolling per second per UID and endpoint, with `X-Bapi-Limit*` headers documented but not emitted by the current unauthenticated public edge | IP + endpoint/UID / rolling | bounded live asset + ticker probe passed; endpoint/UID accounting and reliable native-header state required before routing |
 | Gate TradFi stock API | public US stock-token symbol catalogue and order-book bid/ask | none for public symbol/order-book endpoints | 5 requests/sec/IP for each documented public TradFi stock endpoint (`/stock/symbols`, `/stock/symbols/detail`, `/stock/market/{symbol}/orderbook`) | IP / rolling | bounded live symbol + order-book probe passed; the runtime applies a conservative aggregate 5-request/sec capability window |
 | Kraken xStocks | provider-native xStocks pair discovery and public ticker when such pairs are published | none | Kraken public safe-frequency guidance is approximately 1 request/sec; pair/IP accounting applies | IP/pair / rolling | live catalogue probe passed with no currently published xStocks pair; no synthetic mapping is created |
 | Ondo Global Markets | catalogue-only candidate for tokenized US stocks/ETFs | onboarding/API credentials required | Provider terms and quota not publicly verified in this branch | account / unknown | descriptor only; not routable |
@@ -184,9 +184,14 @@ reserve one. Robinhood additionally reserves four requests: one asset lookup
 plus the bounded three-attempt quote retry worst case. This prevents a
 successful quote response or a bounded retry from being recorded as fewer
 requests than the adapter may actually make.
+Bybit's official [rate-limit contract](https://bybit-exchange.github.io/docs/v5/rate-limit)
+publishes both the 600/5-second/IP outer ceiling and rolling per-second
+endpoint/UID limits. The current public xStocks responses were live-probed and
+did not emit the documented `X-Bapi-Limit*` headers; the adapter retains those
+headers if they appear, but absence is not converted into a guessed allowance.
 Bybit remaining-limit headers are reconciled only when they exactly match the
-reviewed coarse outer contract, but endpoint/UID limits are dynamic and keep
-that route non-routable until they are modeled. Gate's public stock contract is
+reviewed coarse outer contract, but endpoint/UID limits and reliable native
+header state keep that route non-routable until they are modeled. Gate's public stock contract is
 static and IP-scoped in the official provider-wide rate-limit table, so its
 public read route is eligible after the bounded live probe; any returned
 remaining-limit headers remain observational rather than a routing
