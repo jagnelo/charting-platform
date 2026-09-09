@@ -558,6 +558,7 @@ export interface BenchmarkFamilyMemberBarHistoryState {
   snapshot_id?: number | null
   composition_date?: string | null
   placeholder_member_count?: number
+  unresolved_member_count?: number
   timeframes: BenchmarkFamilyMemberBarHistoryTimeframeState[]
 }
 

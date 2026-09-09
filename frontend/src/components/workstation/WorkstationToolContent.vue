@@ -2405,7 +2405,7 @@ function familyLatestDisclosureLabel(role: { snapshots?: Array<{ composition_dat
   const parserVersion = snapshot.parser_version ? ` · parser ${snapshot.parser_version}` : ''
   return `latest ${snapshot.composition_date ?? 'date unavailable'}${asOf}${publishedAt}${knownAt} · ${counts} · ${snapshot.source_provider?.trim() || 'source unavailable'}${sourceIdentifier}${cadence}${parserVersion}`
 }
-function familyMemberBarHistoryLabel(role: { member_bar_history?: { status?: string; placeholder_member_count?: number; timeframes?: Array<{ timeframe: string; required_bar_count?: number; covered_member_count: number; member_count: number; analysis_ready_member_count: number }> } }) {
+function familyMemberBarHistoryLabel(role: { member_bar_history?: { status?: string; placeholder_member_count?: number; unresolved_member_count?: number; timeframes?: Array<{ timeframe: string; required_bar_count?: number; covered_member_count: number; member_count: number; analysis_ready_member_count: number }> } }) {
   const history = role.member_bar_history
   if (!history || history.status === 'no_snapshot') return 'no member bars'
   if (!history.timeframes?.length) return history.status
@@ -2416,7 +2416,8 @@ function familyMemberBarHistoryLabel(role: { member_bar_history?: { status?: str
     return `${timeframe} ${item.analysis_ready_member_count}/${item.member_count} ready${Number.isFinite(floor) && floor > 0 ? ` · floor ${floor}` : ''} · ${item.covered_member_count}/${item.member_count} covered`
   })
   const placeholders = history.placeholder_member_count ? ` · placeholders ${history.placeholder_member_count}` : ''
-  return `${history.status} · ${timeframeLabels.join(' · ')}${placeholders}`
+  const unresolved = history.unresolved_member_count ? ` · unresolved ${history.unresolved_member_count}` : ''
+  return `${history.status} · ${timeframeLabels.join(' · ')}${placeholders}${unresolved}`
 }
 function familyReadinessReasonsLabel(role: { composite_readiness_reasons?: string[] }) {
   const reasons = (role.composite_readiness_reasons ?? []).filter(reason => reason.trim())
@@ -2489,10 +2490,11 @@ function familyCanonicalRoleEvidenceLabel(coverage: BenchmarkFamilyCoverageState
     const historyRoute = `${role.history_route_status?.replace(/_/g, ' ') || 'not reported'}${role.history_route_provider ? ` · ${role.history_route_provider}` : ''}${role.history_route_policy ? ` · ${role.history_route_policy.replace(/_/g, ' ')}` : ''}${role.history_route_source_url ? ` · source ${role.history_route_source_url}` : ''}`
     const refresh = `${role.holdings_refresh_status?.replace(/_/g, ' ') || 'not reported'}${role.holdings_refresh_provider ? ` · ${role.holdings_refresh_provider}` : ''}${role.holdings_refresh_failure_reason ? ` · reason ${role.holdings_refresh_failure_reason}` : ''}${role.holdings_refresh_last_checked_at ? ` · checked ${role.holdings_refresh_last_checked_at.slice(0, 10)}` : ''}${role.holdings_refresh_last_success_at ? ` · success ${role.holdings_refresh_last_success_at.slice(0, 10)}` : ''}${role.holdings_refresh_last_failure_at ? ` · failed ${role.holdings_refresh_last_failure_at.slice(0, 10)}` : ''}${role.holdings_refresh_composition_date ? ` · composition ${role.holdings_refresh_composition_date.slice(0, 10)}` : ''}`
     const entitlement = `${role.entitlement_status?.replace(/_/g, ' ') || 'not reported'}${role.entitlement_provider ? ` · ${role.entitlement_provider}` : ''}${role.entitlement_live_probe_status ? ` · probe ${role.entitlement_live_probe_status.replace(/_/g, ' ')}` : ''}${role.entitlement_revision != null ? ` · rev ${role.entitlement_revision}` : ''}${role.entitlement_effective_at ? ` · effective ${role.entitlement_effective_at.slice(0, 10)}` : ''}${role.entitlement_review_due_at ? ` · review due ${role.entitlement_review_due_at.slice(0, 10)}` : ''}`
+    const unresolved = role.member_bar_history?.unresolved_member_count != null ? ` · unresolved ${role.member_bar_history.unresolved_member_count}` : ''
     const barHistory = (role.member_bar_history?.timeframes ?? []).map(item => `${item.timeframe} ${item.analysis_ready_member_count}/${item.member_count} analysis-ready · ${item.covered_member_count} covered · ${item.bar_count} bars${item.required_bar_count ? ` · floor ${item.required_bar_count}` : ''}${item.source_lineage ? ` · lineage ${item.source_lineage.replace(/_/g, ' ')}` : ''}${item.provider_member_count != null || item.derived_member_count != null ? ` · members provider ${item.provider_member_count ?? 0}, derived ${item.derived_member_count ?? 0}` : ''}${item.provider_only_member_count != null || item.derived_only_member_count != null || item.mixed_member_count != null ? ` · member split provider-only ${item.provider_only_member_count ?? 0}, derived-only ${item.derived_only_member_count ?? 0}, mixed ${item.mixed_member_count ?? 0}` : ''}${item.oldest || item.newest ? ` · range ${item.oldest?.slice(0, 10) || 'unknown'} to ${item.newest?.slice(0, 10) || 'unknown'}` : ''}`).join(', ') || 'not reported'
     const reasons = role.composite_readiness_reasons?.join(', ') || 'not reported'
     const readinessEvidence = ` · availability ${availability} · status ${role.status ?? 'not reported'} · history bars ${barHistory} · route ${route} · history route ${historyRoute} · refresh ${refresh} · entitlement ${entitlement} · readiness reasons ${reasons}`
-    return `${name} · verification ${verification} · adapter ${adapter}${adapterStatus ? ` (${adapterStatus})` : ''}${confidence ? ` · ${confidence}` : ''} · ${members}${placeholders} · ${weighted} · ${classified} · ${pointInTime} · ${history} · readiness ${role.composite_readiness_status ?? 'unknown'}${snapshotEvidence}${continuityEvidence} · capabilities ${entitlementCapabilities}${snapshotSourceEvidence}${readinessEvidence}`
+    return `${name} · verification ${verification} · adapter ${adapter}${adapterStatus ? ` (${adapterStatus})` : ''}${confidence ? ` · ${confidence}` : ''} · ${members}${placeholders}${unresolved} · ${weighted} · ${classified} · ${pointInTime} · ${history} · readiness ${role.composite_readiness_status ?? 'unknown'}${snapshotEvidence}${continuityEvidence} · capabilities ${entitlementCapabilities}${snapshotSourceEvidence}${readinessEvidence}`
   }).join('; ')}`
 }
 function latestFamilyRatio(ratio: { points: Array<{ value: number }> }) {

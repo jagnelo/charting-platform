@@ -352,6 +352,7 @@ class BenchmarkFamilyMemberBarHistoryOut(BaseModel):
     snapshot_id: int | None = None
     composition_date: date | None = None
     placeholder_member_count: int = Field(default=0, ge=0)
+    unresolved_member_count: int = Field(default=0, ge=0)
     timeframes: list[BenchmarkFamilyMemberBarHistoryTimeframeOut] = Field(default_factory=list)
 
 
