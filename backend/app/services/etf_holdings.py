@@ -2733,9 +2733,14 @@ async def get_constituent_timeline(
             .order_by(ETFHoldingsSnapshot.composition_date.asc())
         )
     ).all()
+    latest_by_date: dict[date, tuple[ETFHolding, ETFHoldingsSnapshot]] = {}
+    for row, snapshot in rows:
+        current = latest_by_date.get(snapshot.composition_date)
+        if current is None or _snapshot_revision_key(snapshot) > _snapshot_revision_key(current[1]):
+            latest_by_date[snapshot.composition_date] = (row, snapshot)
     points: list[ETFConstituentTimelinePoint] = []
     previous_weight: Decimal | None = None
-    for row, snapshot in rows:
+    for row, snapshot in sorted(latest_by_date.values(), key=lambda item: item[1].composition_date):
         weight_delta = None
         if row.weight is not None and previous_weight is not None:
             weight_delta = row.weight - previous_weight

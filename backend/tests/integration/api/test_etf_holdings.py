@@ -1134,6 +1134,26 @@ def test_transition_timeline_reports_adjacent_snapshot_churn(client, admin_heade
     ]
     assert aapl_series["last_weight"] == "0.03000000"
 
+    latest_snapshot = client.get("/api/v1/etf-holdings/TURN/latest", headers=auth_headers)
+    assert latest_snapshot.status_code == 200
+    aapl_id = next(
+        row["constituent_instrument_id"]
+        for row in latest_snapshot.json()["holdings"]
+        if row["reported_symbol"] == "AAPL"
+    )
+    constituent_timeline = client.get(
+        f"/api/v1/etf-holdings/TURN/constituents/{aapl_id}/timeline",
+        headers=auth_headers,
+    )
+    assert constituent_timeline.status_code == 200
+    constituent_points = constituent_timeline.json()
+    assert [point["composition_date"] for point in constituent_points] == [
+        "2026-05-01",
+        "2026-05-15",
+        "2026-06-01",
+    ]
+    assert constituent_points[1]["weight"] == "0.05500000"
+
     latest_only = client.get(
         "/api/v1/etf-holdings/TURN/transitions?limit=1",
         headers=auth_headers,
