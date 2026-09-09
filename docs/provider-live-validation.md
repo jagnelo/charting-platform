@@ -176,10 +176,10 @@ The still-missing variables are `ALPACA_API_KEY`, `ALPACA_SECRET_KEY`,
 `TRADIER_API_KEY`, and `MARKETDATA_APP_API_KEY`. `EDGAR_USER_AGENT` is not
 missing for the recorded local run, but remains an explicit per-environment
 configuration requirement. Until the three credential domains are supplied
-and their cases pass, the complete 29-case matrix remains an open acceptance
+and their cases pass, the complete 30-case matrix remains an open acceptance
 gate.
 
-The latest network-enabled rerun passed 26/29 cases with positive transport
+The latest network-enabled rerun passed 27/30 cases with positive transport
 observations across every available keyless and credentialed adapter, including
 all five tokenized providers. The only three failures were exact credential
 preflight failures for `ALPACA_API_KEY`/`ALPACA_SECRET_KEY`, `TRADIER_API_KEY`,
