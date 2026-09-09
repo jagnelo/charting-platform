@@ -99,7 +99,7 @@ The backend deterministic gates pass on the current corrective revision:
 - unit suite: `1384 passed`
 - Docker-backed integration suite: `371 passed` on the current branch; the
   isolated testcontainer resources were cleaned after the run
-- latest combined unit + Docker-backed coverage gate: `1804 passed`, `80.22%`
+- latest combined unit + Docker-backed coverage gate: `1807 passed`, `80.22%`
   line coverage, above the repository `75%` threshold
 - focused capacity/quota/runtime/provider-support tests: `17 passed`; capacity-admin plus provider API integration: `8 passed`
 - migration compatibility: passed against the previous release head
@@ -109,6 +109,11 @@ with provider scope, status, filtered reset headers, retry time, and the
 originating request-log link. The backend-only
 `/api/v1/market-data/capacity-events` endpoint exposes this evidence to
 administrators.
+
+Provider error text is centrally redacted before it reaches durable request
+logs, health state, capacity events, or live-probe failure output. The redactor
+removes configured secret values and credential-bearing URL/header values, and
+the persistence regression covers transport URLs that include an API key.
 
 The remaining credentialed blockers are Alpaca, Tradier, and MarketData.app.
 The authoritative rerun supplied a temporary non-secret SEC EDGAR User-Agent

@@ -18,6 +18,7 @@ from app.models.provider_runtime import (
     ProviderCapacityEvent,
     ProviderHealthState,
     ProviderPolicy,
+    ProviderRequestLog,
 )
 from app.services.provider_runtime import (
     ProviderRateLimitError,
@@ -191,7 +192,9 @@ async def test_execute_provider_call_persists_typed_capacity_event(db, monkeypat
     response = httpx.Response(
         429,
         headers={"Retry-After": "11", "Authorization": "must-not-be-stored"},
-        request=httpx.Request("GET", "https://provider.example/data"),
+        request=httpx.Request(
+            "GET", "https://provider.example/data?apiKey=transport-secret&symbol=AAPL"
+        ),
     )
     upstream = httpx.HTTPStatusError(
         "429 Too Many Requests", request=response.request, response=response
@@ -215,6 +218,11 @@ async def test_execute_provider_call_persists_typed_capacity_event(db, monkeypat
     assert event.scope == "test"
     assert event.retry_at is not None
     assert event.response_headers == {"retry-after": "11"}
+    assert "transport-secret" not in (event.message or "")
+    request_log = db.execute(select(ProviderRequestLog)).scalar_one()
+    assert "transport-secret" not in (request_log.error_message or "")
+    health = db.execute(select(ProviderHealthState)).scalar_one()
+    assert "transport-secret" not in (health.last_error_message or "")
 
 
 @pytest.mark.asyncio

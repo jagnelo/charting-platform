@@ -37,7 +37,11 @@ from app.providers import (
     provider_supports_instrument,
     supported_provider_names,
 )
-from app.providers.errors import ProviderNotConfiguredError, ProviderRateLimitError
+from app.providers.errors import (
+    ProviderNotConfiguredError,
+    ProviderRateLimitError,
+    redact_provider_message,
+)
 from app.providers.telemetry import activate as activate_provider_telemetry
 from app.providers.telemetry import deactivate as deactivate_provider_telemetry
 from app.services.provider_support import (
@@ -1250,7 +1254,7 @@ async def _record_result(
     log_row.response_items = response_items
     if error is not None:
         log_row.error_type = error.__class__.__name__
-        log_row.error_message = str(error)
+        log_row.error_message = redact_provider_message(error)
 
     health.ewma_latency_ms = _ewma(health.ewma_latency_ms, Decimal(str(latency_ms)))
     health.ewma_success_rate = _ewma(
@@ -1274,7 +1278,9 @@ async def _record_result(
         health.failure_streak += 1
         health.last_failure_at = now
         health.last_error_type = error.__class__.__name__ if error else "ProviderError"
-        health.last_error_message = str(error) if error else "Provider call failed"
+        health.last_error_message = (
+            redact_provider_message(error) if error else "Provider call failed"
+        )
         policy.learned_weight = _ewma(policy.learned_weight, Decimal("-4"))
         if health.failure_streak >= 3 and policy.cooldown_seconds:
             health.circuit_open_until = now + timedelta(seconds=policy.cooldown_seconds)
@@ -1490,7 +1496,7 @@ async def execute_provider_call(
                         scope=rate_error.scope or resolved.policy.quota_scope,
                         status_code=rate_error.status_code,
                         error_type=rate_error.__class__.__name__,
-                        message=str(rate_error)[:4000],
+                        message=redact_provider_message(rate_error)[:4000],
                         retry_at=rate_error.retry_at,
                         response_headers=_capacity_response_headers(rate_error.headers),
                         observed_at=datetime.now(UTC),
@@ -1548,7 +1554,7 @@ async def execute_provider_call(
                     status=SUPPORT_STATUS_UNSUPPORTED,
                     provider_symbol=provider_symbol,
                     error_type=exc.__class__.__name__,
-                    error_message=str(exc),
+                    error_message=redact_provider_message(exc),
                 )
             remaining = [
                 r.provider_name for r in chain if r.provider_name != resolved.provider_name
@@ -1592,7 +1598,7 @@ async def execute_provider_call(
             "provider_runtime: all providers exhausted for %s/%s — last error: %s",
             capability.value,
             operation,
-            last_error,
+            redact_provider_message(last_error),
         )
         raise last_error
     raise RuntimeError(f"No enabled providers available for capability '{capability.value}'")

@@ -2,8 +2,74 @@
 
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from typing import Any
+
+_QUERY_SECRET_RE = re.compile(
+    r"(?i)([?&](?:api[_-]?key|access[_-]?key|token|client[_-]?secret|secret(?:[_-]?key)?|authorization)=)[^&\s'\"]+"
+)
+_HEADER_SECRET_RE = re.compile(
+    r"(?i)(\b(?:authorization|x-[a-z0-9-]*(?:key|token|secret))\s*[:=]\s*(?:bearer\s+)?)['\"]?[^\s,;]+"
+)
+_SECRET_SETTING_NAMES = (
+    "SECRET_KEY",
+    "OPENFIGI_API_KEY",
+    "MASSIVE_API_KEY",
+    "MARKETDATA_API_KEY",
+    "ALPHA_VANTAGE_API_KEY",
+    "COINGECKO_API_KEY",
+    "FRED_API_KEY",
+    "FINRA_CLIENT_ID",
+    "FINRA_CLIENT_SECRET",
+    "TIINGO_API_KEY",
+    "TWELVE_DATA_API_KEY",
+    "FINNHUB_API_KEY",
+    "MARKETSTACK_API_KEY",
+    "EODHD_API_KEY",
+    "FMP_API_KEY",
+    "TRADIER_API_KEY",
+    "MARKETDATA_APP_API_KEY",
+    "XSTOCKS_API_KEY",
+    "COINBASE_API_KEY",
+    "KRAKEN_API_KEY",
+    "ALPACA_API_KEY",
+    "ALPACA_SECRET_KEY",
+)
+
+
+def redact_provider_message(message: object) -> str:
+    """Remove provider credentials from errors before logging or persistence.
+
+    Providers occasionally echo query credentials in HTTP error URLs or even
+    include the configured key in a human-readable quota message.  Error text
+    is persisted in provider request/health/capacity rows and is also surfaced
+    by live probes, so redaction must happen at the shared typed-error boundary
+    rather than relying on each adapter to remember it independently.
+    """
+
+    text = str(message)
+    try:
+        # Import lazily to keep this low-level error module independent from
+        # settings initialization and avoid a provider/config import cycle.
+        from app.config import settings
+
+        configured_values = {
+            str(getattr(settings, name, "") or "").strip()
+            for name in _SECRET_SETTING_NAMES
+        }
+        for value in sorted(
+            (value for value in configured_values if len(value) >= 4),
+            key=len,
+            reverse=True,
+        ):
+            text = text.replace(value, "<redacted>")
+    except Exception:
+        # Redaction must never mask the original provider failure. Pattern
+        # based URL/header redaction below still protects unknown test values.
+        pass
+    text = _QUERY_SECRET_RE.sub(r"\1<redacted>", text)
+    return _HEADER_SECRET_RE.sub(r"\1<redacted>", text)
 
 
 class ProviderNotConfiguredError(RuntimeError):
@@ -20,7 +86,7 @@ class ProviderResponseError(RuntimeError):
         *,
         status_code: int | None = None,
     ) -> None:
-        super().__init__(message)
+        super().__init__(redact_provider_message(message))
         self.provider_name = provider_name
         self.status_code = status_code
 
@@ -38,7 +104,7 @@ class ProviderRateLimitError(RuntimeError):
         scope: str | None = None,
         headers: dict[str, str] | None = None,
     ) -> None:
-        super().__init__(message)
+        super().__init__(redact_provider_message(message))
         self.provider_name = provider_name
         self.retry_at = retry_at
         self.status_code = status_code
@@ -102,7 +168,7 @@ def raise_for_provider_error_envelope(
         return
     if detail in (None, ""):
         detail = f"provider returned status={status or 'error'}"
-    safe_detail = str(detail).strip()[:500]
+    safe_detail = redact_provider_message(str(detail).strip())[:500]
     lowered = safe_detail.lower()
     if any(
         marker in lowered
