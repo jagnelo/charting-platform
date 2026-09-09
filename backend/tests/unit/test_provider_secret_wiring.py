@@ -115,6 +115,7 @@ def test_live_workflow_is_manual_environment_scoped_and_maps_each_secret():
     assert "FINRA_ASYNC_MAX_RESULT_BYTES: ${{ vars.FINRA_ASYNC_MAX_RESULT_BYTES || '0' }}" in workflow
     assert "TIINGO_OPERATION_BYTE_BOUNDS: ${{ vars.TIINGO_OPERATION_BYTE_BOUNDS || '{}' }}" in workflow
     assert "FMP_OPERATION_BYTE_BOUNDS: ${{ vars.FMP_OPERATION_BYTE_BOUNDS || '{}' }}" in workflow
+    assert "MARKETSTACK_DISCOVERY_EXCHANGE: ${{ vars.MARKETSTACK_DISCOVERY_EXCHANGE || '' }}" in workflow
 
 
 def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
@@ -138,6 +139,7 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     assert statuses["nasdaq"].startswith("non-routable:")
     assert statuses["xstocks"].startswith("non-routable:")
     assert statuses["bybit_xstocks"].startswith("non-routable:")
+    assert statuses["marketstack discovery"] == "non-routable: MARKETSTACK_DISCOVERY_EXCHANGE is unset"
     assert statuses["tiingo"].startswith("non-routable:")
     assert statuses["fmp"] == "non-routable: FMP_OPERATION_BYTE_BOUNDS is not valid JSON"
 
@@ -152,3 +154,7 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     statuses = routing_safety_preflight()
     assert statuses["tiingo"] == "routable"
     assert statuses["fmp"] == "routable"
+
+    monkeypatch.setenv("MARKETSTACK_DISCOVERY_EXCHANGE", "XNAS")
+    statuses = routing_safety_preflight()
+    assert statuses["marketstack discovery"] == "routable"

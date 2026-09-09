@@ -16,6 +16,9 @@ bound and the operation-level Tiingo/FMP byte-bound maps. A direct adapter read
 can therefore be green while its provider remains non-routable: missing,
 invalid, partial, or non-positive safety controls are reported explicitly and
 never guessed.
+The same preflight reports whether the non-secret
+`MARKETSTACK_DISCOVERY_EXCHANGE` venue scope is configured; history can still
+be probed with only the key, but discovery remains non-routable without it.
 Before invoking pytest, the wrapper acquires an exclusive local lock at
 `~/.config/charting-platform/provider-live.lock` (override with
 `PROVIDER_LIVE_LOCK_FILE`). A second worktree on the same host therefore exits

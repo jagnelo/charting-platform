@@ -102,6 +102,11 @@ def routing_safety_preflight() -> dict[str, str]:
     result["bybit_xstocks"] = (
         "non-routable: endpoint/UID limits require provider-native header state"
     )
+    result["marketstack discovery"] = (
+        "routable"
+        if os.getenv("MARKETSTACK_DISCOVERY_EXCHANGE", "").strip()
+        else "non-routable: MARKETSTACK_DISCOVERY_EXCHANGE is unset"
+    )
 
     for provider, operations in BYTE_BOUND_OPERATIONS.items():
         variable = f"{provider.upper()}_OPERATION_BYTE_BOUNDS"
