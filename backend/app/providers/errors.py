@@ -65,6 +65,8 @@ def raise_for_provider_error_envelope(
     status = str(payload.get("status") or payload.get("s") or "").strip().lower()
     ret_code = payload.get("retCode", payload.get("ret_code"))
     ret_code_error = ret_code not in (None, "", 0, "0")
+    error_code = payload.get("error_code")
+    error_code_error = error_code not in (None, "", 0, "0", 200, "200")
     raw_error = payload.get("error")
     if isinstance(raw_error, list | tuple):
         error_detail = "; ".join(str(item) for item in raw_error if item not in (None, ""))
@@ -78,18 +80,25 @@ def raise_for_provider_error_envelope(
             error_detail = errors
     ret_message = payload.get("retMsg", payload.get("ret_msg"))
     ret_message_detail = ret_message if ret_code_error else None
+    error_message_detail = payload.get("error_message") if error_code_error else None
     detail = (
         payload.get("Error Message")
         or error_detail
         or payload.get("errmsg")
         or ret_message_detail
+        or error_message_detail
         or (
             payload.get("message") or payload.get("detail")
             if status in {"error", "failed", "failure"}
             else None
         )
     )
-    if detail in (None, "") and not ret_code_error and status not in {"error", "failed", "failure"}:
+    if (
+        detail in (None, "")
+        and not ret_code_error
+        and not error_code_error
+        and status not in {"error", "failed", "failure"}
+    ):
         return
     if detail in (None, ""):
         detail = f"provider returned status={status or 'error'}"

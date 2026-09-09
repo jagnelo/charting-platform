@@ -27,8 +27,13 @@ from app.providers.binance import (
     estimate_ohlcv_request_weight,
 )
 from app.providers.coingecko import CoinGeckoProvider
+from app.providers.crypto_market_data import KrakenProvider
 from app.providers.edgar import EdgarProvider, _ensure_ticker_map
-from app.providers.errors import ProviderNotConfiguredError, ProviderRateLimitError
+from app.providers.errors import (
+    ProviderNotConfiguredError,
+    ProviderRateLimitError,
+    ProviderResponseError,
+)
 from app.providers.fred import FREDProvider, fred_series_for, is_fred_symbol
 from app.providers.massive import MassiveProvider
 from app.providers.registry import (
@@ -566,6 +571,50 @@ class TestAlphaVantageProvider:
         assert page["quotes"][0]["symbol"] == "MSFT"
         assert page["quotes"][0]["status"] == "active"
 
+    def test_http_success_error_message_is_typed(self):
+        response = MagicMock()
+        response.status_code = 200
+        response.json.return_value = {"Error Message": "Invalid API call."}
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.alpha_vantage.settings") as configured,
+            patch("app.providers.alpha_vantage.httpx.get", return_value=response),
+        ):
+            configured.ALPHA_VANTAGE_API_KEY = "key"
+            with pytest.raises(ProviderResponseError) as exc_info:
+                AlphaVantageProvider().fetch_ohlcv(
+                    "AAPL",
+                    Timeframe.D1,
+                    datetime(2024, 1, 1, tzinfo=UTC),
+                    datetime(2024, 2, 1, tzinfo=UTC),
+                )
+        assert exc_info.value.provider_name == "alpha_vantage"
+
+    def test_csv_endpoint_error_message_is_typed(self):
+        response = MagicMock()
+        response.status_code = 200
+        response.text = '{"Error Message":"Invalid API call."}'
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.alpha_vantage.settings") as configured,
+            patch("app.providers.alpha_vantage.httpx.get", return_value=response),
+        ):
+            configured.ALPHA_VANTAGE_API_KEY = "key"
+            with pytest.raises(ProviderResponseError):
+                AlphaVantageProvider().discover_universe_page("EQUITY", 0)
+
+
+class TestCryptoProviderErrorEnvelopes:
+    def test_kraken_http_success_error_array_is_typed(self):
+        response = MagicMock()
+        response.status_code = 200
+        response.json.return_value = {"error": ["EQuery:Unknown asset pair"]}
+        response.raise_for_status.return_value = None
+        with patch("app.providers.crypto_market_data.httpx.get", return_value=response):
+            with pytest.raises(ProviderResponseError) as exc_info:
+                KrakenProvider().get_current_price("BTC-USD")
+        assert exc_info.value.provider_name == "kraken"
+
 
 class TestFREDOHLCVParsing:
     def test_scalar_observation_becomes_ohlc_bar(self):
@@ -637,6 +686,29 @@ class TestFREDOHLCVParsing:
             mock_settings.FRED_API_KEY = "key"
             with pytest.raises(ProviderRateLimitError):
                 provider.get_current_price("^TNX")
+
+    def test_http_success_error_code_is_typed(self):
+        provider = FREDProvider()
+        response = MagicMock()
+        response.status_code = 200
+        response.json.return_value = {
+            "error_code": 400,
+            "error_message": "Bad series request",
+        }
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.fred.settings") as configured,
+            patch("app.providers.fred.httpx.get", return_value=response),
+        ):
+            configured.FRED_API_KEY = "key"
+            with pytest.raises(ProviderResponseError) as exc_info:
+                provider.fetch_ohlcv(
+                    "^TNX",
+                    Timeframe.D1,
+                    datetime(2024, 1, 1, tzinfo=UTC),
+                    datetime(2024, 2, 1, tzinfo=UTC),
+                )
+        assert exc_info.value.provider_name == "fred"
 
 
 # ── CoinGecko ─────────────────────────────────────────────────────────────────

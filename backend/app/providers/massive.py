@@ -16,7 +16,7 @@ import httpx
 
 from app.config import settings
 from app.providers.base import ProviderSearchResult
-from app.providers.errors import ProviderNotConfiguredError
+from app.providers.errors import ProviderNotConfiguredError, raise_for_provider_error_envelope
 from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
@@ -54,6 +54,7 @@ class MassiveProvider:
         observe_response(response)
         response.raise_for_status()
         payload = response.json()
+        raise_for_provider_error_envelope(self.name, payload, response.status_code)
         return payload if isinstance(payload, dict) else None
 
     def search_instruments(self, query: str, *, limit: int = 10) -> list[ProviderSearchResult]:

@@ -29,7 +29,7 @@ import httpx
 
 from app.config import settings
 from app.providers.base import InstrumentProfile, ListingRecord, ProviderSearchResult
-from app.providers.errors import ProviderNotConfiguredError
+from app.providers.errors import ProviderNotConfiguredError, raise_for_provider_error_envelope
 from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
@@ -73,7 +73,9 @@ class CoinGeckoProvider:
         )
         observe_response(r)
         r.raise_for_status()
-        return r.json()
+        payload = r.json()
+        raise_for_provider_error_envelope(self.name, payload, r.status_code)
+        return payload
 
     # ── Search ────────────────────────────────────────────────────────────────
 
@@ -219,6 +221,7 @@ def _ensure_coin_list(headers: dict) -> None:
         observe_response(r)
         r.raise_for_status()
         coins = r.json()
+        raise_for_provider_error_envelope("coingecko", coins, r.status_code)
         mapping: dict[str, list[dict]] = {}
         for c in coins:
             sym = (c.get("symbol") or "").lower()

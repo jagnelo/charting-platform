@@ -32,7 +32,12 @@ import httpx
 
 from app.config import settings
 from app.models.ohlcv import OHLCVBar, Timeframe
-from app.providers.errors import ProviderNotConfiguredError, ProviderRateLimitError
+from app.providers.errors import (
+    ProviderNotConfiguredError,
+    ProviderRateLimitError,
+    ProviderResponseError,
+    raise_for_provider_error_envelope,
+)
 from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
@@ -157,11 +162,15 @@ class FREDProvider:
             )
             observe_response(r)
             r.raise_for_status()
-            observations = r.json().get("observations", [])
+            payload = r.json()
+            raise_for_provider_error_envelope("fred", payload, r.status_code)
+            observations = payload.get("observations", [])
         except httpx.HTTPStatusError as exc:
             _raise_typed_rate_limit(exc)
             logger.warning("fred fetch_ohlcv %s (%s): %s", symbol, series_id, exc)
             return []
+        except (ProviderRateLimitError, ProviderResponseError):
+            raise
         except Exception as exc:
             logger.warning("fred fetch_ohlcv %s (%s): %s", symbol, series_id, exc)
             return []
@@ -241,13 +250,17 @@ class FREDProvider:
             )
             observe_response(r)
             r.raise_for_status()
-            for obs in r.json().get("observations", []):
+            payload = r.json()
+            raise_for_provider_error_envelope("fred", payload, r.status_code)
+            for obs in payload.get("observations", []):
                 v = obs.get("value", ".")
                 if v != "." and v:
                     return float(v)
         except httpx.HTTPStatusError as exc:
             _raise_typed_rate_limit(exc)
             logger.debug("fred get_current_price %s: %s", symbol, exc)
+        except (ProviderRateLimitError, ProviderResponseError):
+            raise
         except Exception as exc:
             logger.debug("fred get_current_price %s: %s", symbol, exc)
         return None

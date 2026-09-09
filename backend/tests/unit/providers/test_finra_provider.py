@@ -1,8 +1,11 @@
 from datetime import date
 from unittest.mock import MagicMock, Mock, patch
 
+import pytest
+
 from app.config import settings
 from app.providers import finra
+from app.providers.errors import ProviderResponseError
 from app.providers.finra import FINRAProvider
 
 
@@ -43,6 +46,28 @@ def test_finra_parser_keeps_publication_and_raw_provenance(monkeypatch):
         {"fieldName": "symbolCode", "compareType": "EQUAL", "fieldValue": "AAPL"},
         {"fieldName": "settlementDate", "compareType": "GTE", "fieldValue": "2026-08-01"},
     ]
+
+
+def test_finra_http_success_failed_status_is_typed(monkeypatch):
+    monkeypatch.setattr(settings, "FINRA_CLIENT_ID", "client")
+    monkeypatch.setattr(settings, "FINRA_CLIENT_SECRET", "secret")
+    token_response = Mock()
+    token_response.json.return_value = {"access_token": "token", "expires_in": 3600}
+    token_response.status_code = 200
+    token_response.raise_for_status.return_value = None
+    status_response = Mock()
+    status_response.status_code = 200
+    status_response.content = b'{"status":"failed","message":"query rejected"}'
+    status_response.json.return_value = {"status": "failed", "message": "query rejected"}
+    status_response.raise_for_status.return_value = None
+    with (
+        patch.object(finra, "_token_cache", None),
+        patch("app.providers.finra.httpx.post", return_value=token_response),
+        patch("app.providers.finra.httpx.get", return_value=status_response),
+    ):
+        with pytest.raises(ProviderResponseError) as exc_info:
+            FINRAProvider().poll_async_dataset("https://example.test/status")
+    assert exc_info.value.provider_name == "finra"
 
 
 def test_finra_otc_daily_list_normalizes_lifecycle_events(monkeypatch):

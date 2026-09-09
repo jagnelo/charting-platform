@@ -8,6 +8,7 @@ from typing import Any
 import httpx
 
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.providers.errors import raise_for_provider_error_envelope
 from app.providers.telemetry import observe_response
 
 _TF_SECONDS = {
@@ -22,6 +23,12 @@ _TF_SECONDS = {
     Timeframe.D1: 86400,
     Timeframe.W1: 604800,
 }
+
+
+def _json_payload(response: httpx.Response, provider_name: str) -> Any:
+    payload = response.json()
+    raise_for_provider_error_envelope(provider_name, payload, response.status_code)
+    return payload
 
 
 class CoinbaseProvider:
@@ -59,7 +66,7 @@ class CoinbaseProvider:
         )
         observe_response(response)
         response.raise_for_status()
-        rows = response.json()
+        rows = _json_payload(response, self.name)
         bars: list[OHLCVBar] = []
         for row in rows if isinstance(rows, list) else []:
             if not isinstance(row, list) or len(row) < 6:
@@ -113,7 +120,7 @@ class CoinbaseProvider:
         )
         observe_response(response)
         response.raise_for_status()
-        payload = response.json()
+        payload = _json_payload(response, self.name)
         return (
             float(payload["price"]) if isinstance(payload, dict) and payload.get("price") else None
         )
@@ -126,7 +133,7 @@ class CoinbaseProvider:
         response.raise_for_status()
         products = [
             item
-            for item in response.json()
+            for item in _json_payload(response, self.name)
             if isinstance(item, dict)
             and item.get("quote_currency") == "USD"
             and item.get("status") == "online"
@@ -179,7 +186,7 @@ class KrakenProvider:
         )
         observe_response(response)
         response.raise_for_status()
-        payload = response.json()
+        payload = _json_payload(response, self.name)
         result = payload.get("result", {}) if isinstance(payload, dict) else {}
         rows = next(
             (value for key, value in result.items() if key != "last" and isinstance(value, list)),
@@ -240,7 +247,7 @@ class KrakenProvider:
         )
         observe_response(response)
         response.raise_for_status()
-        result = response.json().get("result", {})
+        result = _json_payload(response, self.name).get("result", {})
         row = next(iter(result.values()), {})
         return float(row["c"][0]) if isinstance(row, dict) and row.get("c") else None
 
@@ -250,7 +257,7 @@ class KrakenProvider:
         response = httpx.get(f"{self.base_url}/AssetPairs", timeout=30)
         observe_response(response)
         response.raise_for_status()
-        result = response.json().get("result", {})
+        result = _json_payload(response, self.name).get("result", {})
         products = [
             item
             for item in result.values()

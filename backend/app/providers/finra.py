@@ -17,7 +17,7 @@ import httpx
 
 from app.config import settings
 from app.providers.base import MarketEventRecord, ShortInterestRecord
-from app.providers.errors import ProviderNotConfiguredError
+from app.providers.errors import ProviderNotConfiguredError, raise_for_provider_error_envelope
 from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
@@ -85,6 +85,7 @@ class FINRAProvider:
         observe_response(response)
         response.raise_for_status()
         payload = response.json() if response.content else {}
+        raise_for_provider_error_envelope(self.name, payload, response.status_code)
         body = payload if isinstance(payload, dict) else {}
         return FINRAAsyncJob(
             status_url=status_url,
@@ -213,6 +214,7 @@ class FINRAProvider:
         observe_response(response)
         response.raise_for_status()
         raw = response.json()
+        raise_for_provider_error_envelope(self.name, raw, response.status_code)
         rows = raw.get("data", raw) if isinstance(raw, dict) else raw
         if not isinstance(rows, list):
             return []
@@ -310,6 +312,7 @@ class FINRAProvider:
         observe_response(response)
         response.raise_for_status()
         raw = response.json()
+        raise_for_provider_error_envelope(self.name, raw, response.status_code)
         rows = raw.get("data", raw) if isinstance(raw, dict) else raw
         if not isinstance(rows, list):
             return []
@@ -374,6 +377,7 @@ def _access_token(client_id: str, client_secret: str) -> str:
     observe_response(response)
     response.raise_for_status()
     body = response.json()
+    raise_for_provider_error_envelope("finra", body, response.status_code)
     token = str(body.get("access_token") or "").strip() if isinstance(body, dict) else ""
     if not token:
         raise RuntimeError("FINRA OAuth response did not contain access_token")

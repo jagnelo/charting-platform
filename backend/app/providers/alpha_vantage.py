@@ -13,7 +13,12 @@ import httpx
 from app.config import settings
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.providers.base import MarketEventRecord, ProviderSearchResult
-from app.providers.errors import ProviderNotConfiguredError, ProviderRateLimitError
+from app.providers.errors import (
+    ProviderNotConfiguredError,
+    ProviderRateLimitError,
+    ProviderResponseError,
+    raise_for_provider_error_envelope,
+)
 from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
@@ -37,6 +42,7 @@ class AlphaVantageProvider:
         observe_response(response)
         response.raise_for_status()
         payload = response.json()
+        raise_for_provider_error_envelope(self.name, payload, response.status_code)
         if isinstance(payload, dict) and (payload.get("Note") or payload.get("Information")):
             raise ProviderRateLimitError(
                 self.name, str(payload.get("Note") or payload.get("Information"))
@@ -52,6 +58,8 @@ class AlphaVantageProvider:
         observe_response(response)
         response.raise_for_status()
         text = response.text
+        if "Error Message" in text:
+            raise ProviderResponseError(self.name, text[:240])
         if "Thank you for using Alpha Vantage" in text or "higher API call volume" in text:
             raise ProviderRateLimitError(self.name, text[:240])
         return text
