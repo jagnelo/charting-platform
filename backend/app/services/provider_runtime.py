@@ -176,6 +176,33 @@ def _is_positive_operation_cost(value: Any) -> bool:
     return parsed.is_finite() and parsed > 0
 
 
+def _positive_integer_cost(value: Any) -> int | None:
+    """Return a positive integral reservation amount, otherwise ``None``."""
+
+    if isinstance(value, bool):
+        return None
+    try:
+        parsed = Decimal(str(value))
+    except (TypeError, ValueError, ArithmeticError):
+        return None
+    if not parsed.is_finite() or parsed <= 0 or parsed != parsed.to_integral_value():
+        return None
+    return int(parsed)
+
+
+_DIMENSION_RATE_UNITS = {
+    "request",
+    "requests",
+    "credit",
+    "credits",
+    "weight",
+    "symbol",
+    "symbols",
+    "unique_symbol",
+    "unique_symbols",
+}
+
+
 def _entitlement_seed(provider_name: str, capability: ProviderCapability) -> dict[str, Any]:
     """Return the reviewed free-source declaration for one capability."""
     raw = settings.PROVIDER_ENTITLEMENT_SEEDS.get(provider_name) or {}
@@ -264,36 +291,52 @@ def _dimension_costs_for_operation(
     contract = dict(policy.quota_contract or {})
     explicit = tracking.get("dimension_costs") or contract.get("dimension_costs")
     result: dict[str, int] = {}
+    family = _operation_family(operation)
     for dimension in quota_dimensions(policy):
         name = str(dimension["name"])
         unit = str(dimension.get("unit") or "").strip().lower()
         if unit in {"concurrent_requests", "concurrency"}:
             result[name] = 1
             continue
-        value: Any = default_units
-        if isinstance(explicit, dict):
-            raw = explicit.get(name)
-            if isinstance(raw, dict):
-                if not raw:
-                    # An explicitly empty operation map means this quota
-                    # dimension does not apply to this adapter operation (for
-                    # example FINRA's asynchronous budget for a synchronous
-                    # POST). It must not be charged as one request.
+        raw_map = explicit.get(name) if isinstance(explicit, dict) else None
+        if raw_map is not None:
+            if not isinstance(raw_map, dict):
+                raise ProviderQuotaUnknownError(
+                    f"No valid reviewed dimension cost for {data_source.name}/{operation}/{name}"
+                )
+            if not raw_map:
+                # An explicitly empty map means that the dimension does not
+                # apply to this operation only for ordinary request-like
+                # dimensions (for example FINRA's async budget on a sync POST).
+                if unit in _DIMENSION_RATE_UNITS:
                     result[name] = 0
                     continue
-                family = _operation_family(operation)
-                raw = raw.get(family, raw.get(operation))
-                if isinstance(raw, dict) and not raw:
-                    # A nested empty operation entry explicitly means that
-                    # this quota dimension does not apply to the operation.
-                    result[name] = 0
+                if contract.get("dimension_costs_required"):
+                    raise ProviderQuotaUnknownError(
+                        f"No valid reviewed dimension cost for {data_source.name}/{operation}/{name}"
+                    )
+            else:
+                raw_value = raw_map.get(family, raw_map.get(operation))
+                if isinstance(raw_value, dict):
+                    if not raw_value and unit in _DIMENSION_RATE_UNITS:
+                        result[name] = 0
+                        continue
+                    raise ProviderQuotaUnknownError(
+                        f"No valid reviewed dimension cost for {data_source.name}/{operation}/{name}"
+                    )
+                if raw_value is not None:
+                    parsed = _positive_integer_cost(raw_value)
+                    if parsed is None:
+                        raise ProviderQuotaUnknownError(
+                            f"No valid reviewed dimension cost for {data_source.name}/{operation}/{name}"
+                        )
+                    result[name] = parsed
                     continue
-            if raw is not None:
-                value = raw
-        try:
-            result[name] = max(1, int(Decimal(str(value))))
-        except (ArithmeticError, TypeError, ValueError):
-            result[name] = max(1, int(default_units))
+                if contract.get("dimension_costs_required") and unit not in _DIMENSION_RATE_UNITS:
+                    raise ProviderQuotaUnknownError(
+                        f"No valid reviewed dimension cost for {data_source.name}/{operation}/{name}"
+                    )
+        result[name] = max(1, int(default_units))
     if contract.get("dimension_costs_required") and not explicit:
         return {}
     return result
@@ -471,19 +514,31 @@ def provider_contract_operation_cost_known(
         for dimension in quota_dimensions(policy):
             raw = dimension_costs.get(str(dimension["name"]))
             unit = str(dimension.get("unit") or "").lower()
-            if unit in {
-                "request",
-                "requests",
-                "credit",
-                "credits",
-                "weight",
-                "symbol",
-                "symbols",
-                "unique_symbol",
-                "unique_symbols",
-            }:
+            if unit in {"concurrent_requests", "concurrency"}:
                 continue
-            if not isinstance(raw, dict) or not (family in raw or operation in raw):
+            if raw is None:
+                if unit in _DIMENSION_RATE_UNITS:
+                    continue
+                return False
+            if not isinstance(raw, dict):
+                return False
+            if not raw:
+                if unit in _DIMENSION_RATE_UNITS:
+                    continue
+                return False
+            if family in raw:
+                dimension_cost = raw[family]
+            elif operation in raw:
+                dimension_cost = raw[operation]
+            else:
+                if unit in _DIMENSION_RATE_UNITS:
+                    continue
+                return False
+            if isinstance(dimension_cost, dict):
+                if not dimension_cost and unit in _DIMENSION_RATE_UNITS:
+                    continue
+                return False
+            if _positive_integer_cost(dimension_cost) is None:
                 return False
     if any(
         str(dimension.get("unit") or "").lower()

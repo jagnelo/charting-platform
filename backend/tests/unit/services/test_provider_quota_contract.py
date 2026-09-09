@@ -19,8 +19,10 @@ from app.services.provider_routing import (
     settle_provider_contract,
 )
 from app.services.provider_runtime import (
+    ProviderQuotaUnknownError,
     ProviderRateLimitError,
     ResolvedProvider,
+    _dimension_costs_for_operation,
     _observed_dimension_totals,
     policy_has_known_quota,
     provider_contract_operation_cost_known,
@@ -638,6 +640,31 @@ def test_byte_dimension_requires_explicit_operation_bound():
         },
     )
     assert provider_contract_operation_cost_known(policy, source, "fetch_short_interest")
+    source.config["usage_tracking"]["dimension_costs"]["requests_per_minute"] = {
+        "fetch_short_interest": 0
+    }
+    assert not provider_contract_operation_cost_known(
+        policy, source, "fetch_short_interest"
+    )
+    with pytest.raises(ProviderQuotaUnknownError):
+        _dimension_costs_for_operation(
+            policy, source, "fetch_short_interest", default_units=1
+        )
+    source.config["usage_tracking"]["dimension_costs"].pop("requests_per_minute")
+    for invalid_bound in (0, -1, True, 1.5, "not-a-bound"):
+        source.config["usage_tracking"]["dimension_costs"][
+            "download_bytes_per_month"
+        ]["fetch_short_interest"] = invalid_bound
+        assert not provider_contract_operation_cost_known(
+            policy, source, "fetch_short_interest"
+        )
+        with pytest.raises(ProviderQuotaUnknownError):
+            _dimension_costs_for_operation(
+                policy, source, "fetch_short_interest", default_units=1
+            )
+    source.config["usage_tracking"]["dimension_costs"][
+        "download_bytes_per_month"
+    ]["fetch_short_interest"] = 3_000_000
     source.config["usage_tracking"].pop("dimension_costs")
     assert not provider_contract_operation_cost_known(policy, source, "fetch_short_interest")
 
