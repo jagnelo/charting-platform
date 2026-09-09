@@ -199,6 +199,7 @@
         <span v-if="historyRefreshMessage" role="status">{{ historyRefreshMessage }}</span>
         <span class="sr-only" aria-label="Market Map history member disposition evidence">{{ watchlistHistoryDispositionLabel(historyStatus) }}</span>
         <span class="sr-only" aria-label="Market Map history membership timing evidence">{{ watchlistHistoryTimingLabel(historyStatus) }}</span>
+        <span class="sr-only" aria-label="Market Map history adjustment provenance evidence">{{ watchlistHistoryAdjustmentLabel(historyStatus) }}</span>
         <span class="sr-only" aria-label="Market Map history lineage evidence">{{ watchlistHistoryLineageLabel(historyStatus) }}</span>
       </template>
       <span v-if="historyRun" class="market-map-tool__history-run" role="status">Run {{ historyRun.id }} · {{ historyRun.status }}<template v-if="historyRun.progress"> · {{ historyRunProgress }}</template></span>
@@ -701,6 +702,20 @@ function watchlistHistoryTimingLabel(status: WatchlistSourceHistoryStatus): stri
     .map(([key, value]) => `${key.replace(/_/g, ' ')}=${value.replace(/_/g, ' ')}`)
     .join(', ')
   return `Membership timing: ${effective} · ${known} · provenance ${timing || 'not reported'}`
+}
+
+function watchlistHistoryAdjustmentLabel(status: WatchlistSourceHistoryStatus): string {
+  const adjustment = status.timeframes
+    .map(history => {
+      const provenance = history.adjustment_provenance ?? {}
+      const mode = provenance.mode?.replace(/_/g, ' ') || 'not reported'
+      const source = provenance.source_kind?.replace(/_/g, ' ') || 'not reported'
+      const factor = provenance.factor_status?.replace(/_/g, ' ') || 'not reported'
+      const version = provenance.factor_version ? ` · factor version ${provenance.factor_version}` : ' · factor version not reported'
+      return `${history.timeframe} ${mode} · source ${source} · factor ${factor}${version}`
+    })
+    .join(', ')
+  return adjustment ? `History adjustment provenance: ${adjustment}` : 'History adjustment provenance: not reported'
 }
 
 function watchlistHistoryLineageLabel(status: WatchlistSourceHistoryStatus): string {

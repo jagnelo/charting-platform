@@ -183,6 +183,7 @@ class WatchlistSourceHistoryTimeframeStatus(BaseModel):
     provider_bar_count: int = Field(default=0, ge=0)
     derived_bar_count: int = Field(default=0, ge=0)
     source_lineage: str = "unavailable"
+    adjustment_provenance: dict[str, object] = Field(default_factory=dict)
     oldest: datetime | None = None
     newest: datetime | None = None
     in_progress_count: int = 0

@@ -37,6 +37,32 @@ ANALYSIS_REQUIRED_BAR_COUNTS = {
 }
 
 
+def _adjustment_provenance(
+    provider_member_count: int, derived_member_count: int
+) -> dict[str, object]:
+    """Return explicit adjustment lineage without inventing provider factors."""
+
+    if provider_member_count and derived_member_count:
+        source_kind = "mixed_provider_and_derived"
+        factor_status = "mixed_provider_native_opaque_and_inherited_from_canonical_d1"
+    elif provider_member_count:
+        source_kind = "provider_observation"
+        factor_status = "provider_native_opaque"
+    elif derived_member_count:
+        source_kind = "derived_from_canonical_d1"
+        factor_status = "inherited_from_canonical_d1"
+    else:
+        source_kind = "unavailable"
+        factor_status = "not_observed"
+    return {
+        "mode": "split_adjusted",
+        "source_kind": source_kind,
+        "factor_status": factor_status,
+        "factor_version": None,
+        "contract_version": 1,
+    }
+
+
 def normalize_source_ids(source_ids: list[str] | None) -> list[str]:
     """Deduplicate explicit source IDs while preserving the caller's order."""
 
@@ -338,6 +364,7 @@ async def build_watchlist_source_history_status(
             if derived_member_count
             else "unavailable"
         )
+        adjustment_provenance = _adjustment_provenance(provider_member_count, derived_member_count)
         timeframe_statuses.append(
             {
                 "timeframe": timeframe.value,
@@ -360,6 +387,7 @@ async def build_watchlist_source_history_status(
                 "provider_bar_count": provider_bar_count,
                 "derived_bar_count": derived_bar_count,
                 "source_lineage": source_lineage,
+                "adjustment_provenance": adjustment_provenance,
                 "oldest": row.oldest if row is not None else None,
                 "newest": row.newest if row is not None else None,
                 **{f"{key}_count": value for key, value in progress_counts.items()},

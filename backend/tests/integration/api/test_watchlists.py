@@ -1586,6 +1586,13 @@ class TestWatchlistsCrud:
                 "provider_bar_count": len(ohlcv_bars),
                 "derived_bar_count": 0,
                 "source_lineage": "provider_only",
+                "adjustment_provenance": {
+                    "mode": "split_adjusted",
+                    "source_kind": "provider_observation",
+                    "factor_status": "provider_native_opaque",
+                    "factor_version": None,
+                    "contract_version": 1,
+                },
                 "oldest": ohlcv_bars[0].ts.isoformat().replace("+00:00", "Z"),
                 "newest": ohlcv_bars[-1].ts.isoformat().replace("+00:00", "Z"),
                 "in_progress_count": 1,

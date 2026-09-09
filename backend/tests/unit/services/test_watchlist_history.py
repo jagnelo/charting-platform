@@ -301,6 +301,13 @@ async def test_watchlist_history_status_uses_local_coverage_and_worker_progress(
             "provider_bar_count": 250,
             "derived_bar_count": 0,
             "source_lineage": "provider_only",
+            "adjustment_provenance": {
+                "mode": "split_adjusted",
+                "source_kind": "provider_observation",
+                "factor_status": "provider_native_opaque",
+                "factor_version": None,
+                "contract_version": 1,
+            },
             "oldest": datetime(2024, 1, 2, tzinfo=UTC),
             "newest": datetime(2025, 1, 2, tzinfo=UTC),
             "in_progress_count": 1,
@@ -392,6 +399,14 @@ async def test_watchlist_history_status_separates_covered_from_analysis_ready(mo
     assert d1["provider_bar_count"] == 250
     assert d1["derived_bar_count"] == 2
     assert d1["source_lineage"] == "provider_and_derived"
+    assert d1["adjustment_provenance"] == {
+        "mode": "split_adjusted",
+        "source_kind": "mixed_provider_and_derived",
+        "factor_status": "mixed_provider_native_opaque_and_inherited_from_canonical_d1",
+        "factor_version": None,
+        "contract_version": 1,
+    }
     w1 = next(item for item in status["timeframes"] if item["timeframe"] == "W1")
     assert w1["source_lineage"] == "derived_only"
     assert w1["derived_only_member_count"] == 1
+    assert w1["adjustment_provenance"]["factor_status"] == "inherited_from_canonical_d1"

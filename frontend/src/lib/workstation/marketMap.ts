@@ -135,6 +135,13 @@ export interface WatchlistHistoryTimeframeStatus {
   provider_bar_count?: number
   derived_bar_count?: number
   source_lineage?: 'provider_only' | 'derived_only' | 'provider_and_derived' | 'unavailable' | string
+  adjustment_provenance?: {
+    mode?: string
+    source_kind?: string
+    factor_status?: string
+    factor_version?: string | null
+    contract_version?: number
+  }
   oldest?: string | null
   newest?: string | null
   in_progress_count: number
