@@ -115,11 +115,11 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "e19f1b76604e371d74b976cfcfe42da9609ddd48",
+  "head": "0c1f1b0b3bc16c002e214fa5ec83b4dd090870b0",
   "implementation_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
   "interrupted": false,
-  "last_checkpoint": "2026-09-09T05:02:36.965211+00:00",
-  "last_human_progress_update": "2026-09-09T05:02:10.280144+00:00",
+  "last_checkpoint": "2026-09-09T05:35:02.347212+00:00",
+  "last_human_progress_update": "2026-09-09T05:34:39.581172+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue canonical provider/history population or the next compatible Study target slice with focused regression coverage, then rerun the exact-tip exhaustive gate at the new coherent tip; preserve visual policy and provider fallback rules.",
   "plan_hash": "6f3bbfc100ce0e96b519a7f878621325545f0679a4f30f940f1abde97607b0fa",
@@ -132,11 +132,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Canonical history identity is order-independent and timezone-safe; derived W1/MN coverage has provider-neutral lineage; provider states expose adjustment/source kind; family coverage exposes composition, as-of, publication, known timestamps, source identifiers, cadence, and parser version; rebalance transitions, weight evolution, and constituent timelines collapse same-date disclosure revisions to the latest known effective-date revision; Market Map and workstation readiness surfaces carry the same provenance; SEC fallback filings now preserve acceptance publication time. The canonical snapshot remains partial: 20 mapped roles, 12 unavailable, 0 failed; 56 capped member slots yielded 44 instruments and 94,540 adjusted D1 bars through 2025-12-31, with provider W1/MN still zero. Full family population, placeholder disposition, explicit cadence/effective-time evidence beyond exposed timestamps, adjustment-factor/version provenance beyond state metadata, raw-versus-derived storage decisions, and six established visual diffs remain open.",
+    "current_blocker": "Canonical history identity is order-independent and timezone-safe; derived W1/MN coverage has provider-neutral lineage; provider states expose adjustment and source provenance including explicit opaque-factor status; family coverage exposes composition, as-of, publication, known timestamps, source identifiers, cadence, and parser version; rebalance transitions, weight evolution, and constituent timelines collapse same-date disclosure revisions to the latest known effective-date revision; Market Map and workstation readiness surfaces carry the same provenance; SEC fallback filings preserve acceptance publication time. The canonical snapshot remains partial: 20 mapped roles, 12 unavailable, 0 failed; 56 capped member slots yielded 44 instruments and 94,540 adjusted D1 bars through 2025-12-31, with provider W1/MN still zero. Full family population, placeholder disposition, explicit cadence/effective-time evidence beyond exposed timestamps, rebuildable adjustment-factor/version provenance, raw-versus-derived storage decisions, six established visual diffs, and R2-R7 remain open.",
     "current_phase": "R1_canonical_provider_history_readiness",
     "next_action": "Continue the bounded canonical member and point-in-time provenance audit; implement the next evidence-backed R1 seam or compatible Study target slice, run focused checks, then rerun the exact-tip exhaustive gate at the new coherent tip while preserving visual policy and provider fallback rules.",
     "total": 10,
-    "updated_at": "2026-09-09T05:02:10.280069+00:00"
+    "updated_at": "2026-09-09T05:34:39.580886+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

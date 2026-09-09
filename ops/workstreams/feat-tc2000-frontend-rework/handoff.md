@@ -8,6 +8,35 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-09 — Explicit adjustment-provenance checkpoint
+
+Product commit `0c1f1b0b` adds an explicit nested `adjustment_provenance`
+contract to provider-backed and derived dataset states. Provider observations
+report their adjustment mode and mark factors as provider-native opaque or not
+applied; derived W1/MN states report inheritance from canonical D1. The
+factor version remains null because no provider contract supplies event-level
+factors, so this seam records the limitation instead of inventing provenance.
+`CoverageSummaryTool` accepts the existing `extra_data` envelope without
+changing visible behavior. Focused market-data, derived-timeframe,
+coverage-router, Ruff, format, diff, and frontend type checks passed.
+
+The exact Docker-backed gate passed backend unit/integration (`1,371`/`387`,
+`81.07%` combined coverage), frontend Vitest (`975/975`), build, contracts,
+probes, stack health, and functional Playwright (`165` passed, `107` documented
+skips). Visual parity remains `98/104` with the six established
+watchlist-column-editor-open/workspace-floating diffs. Teardown removed all
+scoped resources cleanly; no other worktree was touched and no visual or
+acceptance policy changed.
+
+R1 remains active. This does not close factor/version provenance or the
+raw-versus-derived storage redesign. Canonical family population remains
+partial (20 mapped roles, 12 unavailable, 0 failed; 44 instruments and 94,540
+adjusted D1 bars from 56 capped member slots; provider W1/MN still zero).
+Full population, placeholder disposition, cadence/effective-time evidence,
+rebuildable factor storage, and R2-R7 remain open. Next action: continue the
+bounded canonical member and point-in-time provenance audit or compatible Study
+target slice, then rerun the exact gate at the next coherent tip.
+
 ## 2026-09-09 — SEC publication provenance checkpoint
 
 Changeset scope: `backend/app/services/etf_holdings_edgar.py`,

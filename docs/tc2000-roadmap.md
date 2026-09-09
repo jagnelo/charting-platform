@@ -5,6 +5,39 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-09
 
+## 2026-09-09 — Exact-tip gate after explicit adjustment provenance
+
+At commit `0c1f1b0b`, canonical dataset-state responses now expose nested
+adjustment provenance. Provider observations identify their requested mode
+(`split_adjusted` or `raw`) and explicitly mark adjustment factors as
+provider-native and opaque/unavailable; locally derived W1/MN observations
+identify inheritance from canonical D1. `factor_version` remains null because
+the provider contracts do not expose per-event factors; no factors are
+fabricated and no prices, precedence, fallback, or storage policy changed.
+The typed coverage consumer accepts the existing `extra_data` envelope without
+changing rendered UI behavior. Focused market-data, derived-timeframe,
+coverage-router, Ruff, format, diff, and frontend type checks passed.
+
+The exact Docker-backed integration gate passed repository/workstream,
+dependency/lint/format/type-check, migration compatibility, backend unit and
+integration tests (`1,371`/`387`, `81.07%` combined coverage), frontend Vitest
+(`975/975`), uPlot and visual-policy checks, frontend build, compose/provider/
+runner and stack-health probes, and functional Playwright (`165` passed,
+`107` documented skips across `272`). Visual parity completed `104` cases with
+`98` passes and exactly the six established state-oracle diffs:
+watchlist-column-editor-open at 1080p 100/125 and workspace-floating at 1080p
+100/125 and 1440p 100/125. Scoped teardown removed all containers, volumes,
+network, images, and test sessions cleanly. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed.
+
+R1 remains open: provider adjustment factors and versioned/rebuildable raw
+versus derived storage are not yet available; canonical family population is
+still partial (20 mapped roles, 12 unavailable, 0 failed; 56 capped member
+slots yielded 44 instruments and 94,540 adjusted D1 bars through 2025-12-31,
+with provider W1/MN still zero). Full family population, placeholder
+disposition, explicit cadence/effective-time evidence beyond exposed
+timestamps, and R2-R7 evidence remain open.
+
 ## 2026-09-09 — Exact-tip gate after SEC publication provenance
 
 At commit `e19f1b76604e371d74b976cfcfe42da9609ddd48`, the SEC fallback
