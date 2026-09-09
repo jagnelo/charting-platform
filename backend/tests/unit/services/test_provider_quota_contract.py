@@ -32,8 +32,8 @@ from app.services.provider_runtime import (
 from tests.unit.conftest import AsyncSessionAdapter
 
 INTENTIONAL_QUOTA_UNKNOWN_PROVIDERS = {
-    # Public/provider-internal surfaces without a reviewed numeric contract in
-    # this branch. They stay visible to diagnostics but cannot be routed.
+    # Public/provider-internal surfaces without a complete reviewed contract
+    # in this branch. They stay visible to diagnostics but cannot be routed.
     "etf_holdings_internal",
     "fred",
     "nasdaq",
@@ -78,7 +78,7 @@ def test_registered_providers_are_explicitly_quota_reviewed_or_intentionally_unk
 
 
 @pytest.mark.asyncio
-async def test_seed_never_invents_generic_limits_for_unverified_provider(db):
+async def test_seed_records_fred_numeric_ceiling_without_inventing_scope_or_terms(db):
     async_db = AsyncSessionAdapter(db)
     await seed_provider_runtime(async_db)
     source = db.execute(select(DataSource).where(DataSource.name == "fred")).scalar_one()
@@ -88,7 +88,16 @@ async def test_seed_never_invents_generic_limits_for_unverified_provider(db):
             ProviderPolicy.capability == ProviderCapability.PRICE_HISTORY,
         )
     ).scalar_one()
-    assert policy.quota_contract is None
+    assert policy.quota_contract is not None
+    dimension = policy.quota_contract["dimensions"][0]
+    assert dimension["limit"] == 120
+    assert dimension["window_seconds"] == 60
+    assert dimension["scope"] == "provider_defined"
+    assert {
+        "rate_limit_scope",
+        "provider_adjustable_limits",
+        "series_terms_and_redistribution",
+    } <= set(policy.quota_contract["untracked_constraints"])
     assert policy.tokens_per_minute is None
     assert policy.burst_capacity is None
     assert policy.max_concurrency is None

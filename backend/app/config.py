@@ -232,6 +232,28 @@ class Settings(BaseSettings):
             "quota_scope": "ip",
             "quota_source": "SEC fair-access policy",
         },
+        "fred": {
+            "quota_contract": {
+                "dimensions": [
+                    {
+                        "name": "requests_per_minute",
+                        "limit": 120,
+                        "window_seconds": 60,
+                        "unit": "requests",
+                        "scope": "provider_defined",
+                        "source": "https://fred.stlouisfed.org/docs/api/fred/errors.html",
+                    }
+                ],
+                "reset": "rolling",
+                "untracked_constraints": [
+                    "rate_limit_scope",
+                    "provider_adjustable_limits",
+                    "series_terms_and_redistribution",
+                ],
+            },
+            "quota_scope": "provider_defined",
+            "quota_source": "FRED v1 errors and API terms",
+        },
         "finra": {
             "quota_contract": {
                 "dimensions": [
@@ -838,7 +860,7 @@ class Settings(BaseSettings):
             "freshness_semantics": "Lookup response time",
         },
         "fred": {
-            "configured_plan": "free-api-key",
+            "configured_plan": "unreviewed",
             "is_free": True,
             "authentication_required": True,
             "usage_terms": (

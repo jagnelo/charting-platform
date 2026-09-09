@@ -75,6 +75,19 @@ def routing_safety_preflight() -> dict[str, str]:
     except ValueError:
         result["finra async result bytes"] = "non-routable: bound is not an integer"
 
+    # These providers have a useful live read but still lack one or more
+    # provider-specific admission dimensions. Keep the gap visible next to
+    # the byte-bound controls rather than letting a passing probe imply safe
+    # routing.
+    result["fred"] = (
+        "non-routable: FRED v1 rate-limit scope, adjustable-limit, and series-terms review required"
+    )
+    result["nasdaq"] = "non-routable: official public polling allowance is not published"
+    result["xstocks"] = "non-routable: numeric public quota is not published"
+    result["bybit_xstocks"] = (
+        "non-routable: endpoint/UID limits require provider-native header state"
+    )
+
     for provider, operations in BYTE_BOUND_OPERATIONS.items():
         variable = f"{provider.upper()}_OPERATION_BYTE_BOUNDS"
         raw = os.getenv(variable, "").strip()

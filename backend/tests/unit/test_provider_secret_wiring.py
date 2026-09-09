@@ -102,6 +102,10 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("FMP_OPERATION_BYTE_BOUNDS", "not-json")
     statuses = routing_safety_preflight()
     assert statuses["finra async result bytes"].startswith("non-routable:")
+    assert statuses["fred"].startswith("non-routable:")
+    assert statuses["nasdaq"].startswith("non-routable:")
+    assert statuses["xstocks"].startswith("non-routable:")
+    assert statuses["bybit_xstocks"].startswith("non-routable:")
     assert statuses["tiingo"].startswith("non-routable:")
     assert statuses["fmp"] == "non-routable: FMP_OPERATION_BYTE_BOUNDS is not valid JSON"
 
