@@ -70,4 +70,7 @@ def test_live_workflow_is_manual_environment_scoped_and_maps_each_secret():
     for name in PROVIDER_SECRET_NAMES:
         assert f"{name}: ${{{{ secrets.{name} }}}}" in workflow
     for name in PROVIDER_SAFETY_SETTINGS:
-        assert f"{name}: ${{{{ vars.{name} }}}}" in workflow
+        assert f"{name}:" in workflow
+    assert "FINRA_ASYNC_MAX_RESULT_BYTES: ${{ vars.FINRA_ASYNC_MAX_RESULT_BYTES || '0' }}" in workflow
+    assert "TIINGO_OPERATION_BYTE_BOUNDS: ${{ vars.TIINGO_OPERATION_BYTE_BOUNDS || '{}' }}" in workflow
+    assert "FMP_OPERATION_BYTE_BOUNDS: ${{ vars.FMP_OPERATION_BYTE_BOUNDS || '{}' }}" in workflow
