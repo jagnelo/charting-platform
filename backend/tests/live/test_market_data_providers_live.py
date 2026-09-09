@@ -369,3 +369,11 @@ def test_finnhub_credentialed_company_profile():
     assert events
     assert all(event.event_time.tzinfo is not None for event in events)
     assert any(event.eps_actual is not None or event.eps_estimate is not None for event in events)
+    calendar_events, _ = _observed_read(
+        lambda: FinnhubProvider().fetch_market_events(
+            start=date.today() - timedelta(days=7),
+            end=date.today() + timedelta(days=45),
+        ),
+        "finnhub",
+    )
+    assert all(event.effective_date is not None for event in calendar_events)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
@@ -55,6 +55,7 @@ def test_optional_adapters_are_concrete_and_capability_visible():
     assert "instrument_search" in list_provider_capabilities("tiingo")
     assert "universe_discovery" in list_provider_capabilities("eodhd")
     assert "instrument_events" in list_provider_capabilities("finnhub")
+    assert "market_events" in list_provider_capabilities("finnhub")
 
 
 def test_twelve_data_parses_intraday_values():
@@ -176,6 +177,40 @@ def test_finnhub_parses_documented_earnings_actual_and_estimate_fields():
     assert events[0].eps_actual == Decimal("2.18")
     assert events[0].eps_estimate == Decimal("2.10")
     assert events[0].eps_surprise == Decimal("0.08")
+
+
+def test_finnhub_parses_documented_forward_earnings_calendar():
+    provider = FinnhubProvider()
+    payload = {
+        "earningsCalendar": [
+            {
+                "date": "2024-01-02",
+                "symbol": "AAPL",
+                "hour": "amc",
+                "epsEstimate": 2.10,
+                "revenueEstimate": 117000000000,
+            }
+        ]
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ) as get,
+    ):
+        configured.FINNHUB_API_KEY = "demo"
+        events = provider.fetch_market_events(start=date(2024, 1, 1), end=date(2024, 1, 3))
+
+    assert len(events) == 1
+    assert events[0].event_type == "earnings"
+    assert events[0].effective_date == date(2024, 1, 2)
+    assert events[0].raw_payload["hour"] == "amc"
+    assert get.call_args.kwargs["params"] == {
+        "from": "2024-01-01",
+        "to": "2024-01-03",
+        "token": "demo",
+    }
 
 
 def test_daily_adapters_parse_common_rows():

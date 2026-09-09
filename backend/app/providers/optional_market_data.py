@@ -17,7 +17,7 @@ provider adjustment policy before promoting a series to canonical data.
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from math import ceil
 from typing import Any
@@ -32,6 +32,7 @@ from app.providers.base import (
     InstrumentEventRecord,
     InstrumentProfile,
     ListingRecord,
+    MarketEventRecord,
     ProviderSearchResult,
 )
 from app.providers.errors import (
@@ -864,6 +865,43 @@ class FinnhubProvider(_RESTProvider):
                     eps_surprise=_decimal(row.get("surprise")),
                     eps_surprise_pct=_decimal(row.get("surprisePercent")),
                     raw_payload=str(row),
+                )
+            )
+        return events
+
+    def fetch_market_events(
+        self,
+        *,
+        start: date | None = None,
+        end: date | None = None,
+    ) -> list[MarketEventRecord]:
+        """Normalize Finnhub's forward/historical earnings calendar."""
+
+        params: dict[str, Any] = {}
+        if start is not None:
+            params["from"] = start.isoformat()
+        if end is not None:
+            params["to"] = end.isoformat()
+        rows = self._rows(self._get("calendar/earnings", params), "earningsCalendar")
+        events: list[MarketEventRecord] = []
+        for row in rows:
+            event_time = _timestamp(row.get("date"))
+            if event_time is None:
+                continue
+            event_date = event_time.date()
+            if (start and event_date < start) or (end and event_date > end):
+                continue
+            symbol = str(row.get("symbol") or "").strip().upper()
+            event_key = f"finnhub:earnings_calendar:{symbol or 'market'}:{event_date.isoformat()}"
+            events.append(
+                MarketEventRecord(
+                    event_type="earnings",
+                    event_key=event_key,
+                    event_time=event_time,
+                    effective_date=event_date,
+                    title=f"Finnhub earnings calendar {symbol}".strip(),
+                    source_version="calendar/earnings",
+                    raw_payload=row,
                 )
             )
         return events
