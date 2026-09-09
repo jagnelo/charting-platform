@@ -31,6 +31,13 @@ pagination or compound lookup must change that map before the operation can be
 treated as quota-safe. No operation silently inherits a universal request cost
 when a provider contract declares operation-level accounting.
 
+The same explicit accounting applies to the one-request surfaces of Alpaca,
+Massive, FRED, OpenFIGI, Coinbase, Kraken, Marketstack, Finnhub, FMP, Tiingo,
+and Tradier. Range/pagination-dependent history operations are either charged
+from a caller-computed estimate (for example Alpaca, Coinbase, Kraken,
+Marketstack, and Twelve Data) or remain fail-closed behind their reviewed byte
+maps; they are not represented by a misleading fixed one-request profile.
+
 ## Provider capability and quota ledger
 
 The table below is the checked-in contract used by `ProviderPolicy` and the

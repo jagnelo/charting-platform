@@ -746,6 +746,44 @@ class Settings(BaseSettings):
     }
     PROVIDER_FRESHNESS_SEEDS: dict[str, int] = {}
     PROVIDER_USAGE_PROFILE_SEEDS: dict[str, dict] = {
+        # These adapters use one upstream request for each listed operation.
+        # Historical operations whose request count depends on range/paging
+        # are intentionally omitted and receive a caller-supplied estimate
+        # from the market-data service instead of a guessed one-request cost.
+        "alpaca": {
+            "mode": "call_count",
+            "unit_label": "requests",
+            "operation_costs": {
+                "get_current_price": 1,
+                "fetch_instrument_events": 1,
+                "discover_universe_page": 1,
+            },
+        },
+        "massive": {
+            "mode": "call_count",
+            "unit_label": "requests",
+            "operation_costs": {
+                "search_instruments": 1,
+                "discover_universe_page": 1,
+            },
+        },
+        "fred": {
+            "mode": "call_count",
+            "unit_label": "requests",
+            "operation_costs": {
+                "fetch_ohlcv": 1,
+                "fetch_latest_ohlcv": 1,
+                "get_current_price": 1,
+            },
+        },
+        "openfigi": {
+            "mode": "call_count",
+            "unit_label": "requests",
+            "operation_costs": {
+                "fetch_stable_identifiers": 1,
+                "resolve_instrument_profile": 1,
+            },
+        },
         # Binance publishes exact weights for the two single-request adapter
         # operations below.  ``fetch_ohlcv`` is intentionally absent: one
         # adapter call may page through an arbitrary historical range and
@@ -793,6 +831,22 @@ class Settings(BaseSettings):
                 "fetch_ohlcv": 1,
                 "fetch_latest_ohlcv": 1,
                 "get_current_price": 1,
+            },
+        },
+        "coinbase": {
+            "mode": "call_count",
+            "unit_label": "requests",
+            "operation_costs": {
+                "get_current_price": 1,
+                "discover_universe_page": 1,
+            },
+        },
+        "kraken": {
+            "mode": "call_count",
+            "unit_label": "requests",
+            "operation_costs": {
+                "get_current_price": 1,
+                "discover_universe_page": 1,
             },
         },
         "finra": {
@@ -859,6 +913,57 @@ class Settings(BaseSettings):
                 "get_current_price": 1,
                 "get_instrument_profile": 10,
                 "discover_universe_page": 1,
+            },
+        },
+        "tiingo": {
+            "mode": "multi_dimensional",
+            "unit_label": "provider_units",
+            "operation_costs": {
+                "fetch_ohlcv": 1,
+                "fetch_latest_ohlcv": 1,
+                "search_instruments": 1,
+                "get_instrument_profile": 1,
+            },
+        },
+        "finnhub": {
+            "mode": "call_count",
+            "unit_label": "requests",
+            "operation_costs": {
+                "fetch_ohlcv": 1,
+                "fetch_latest_ohlcv": 1,
+                "get_current_price": 1,
+                "search_instruments": 1,
+                "get_instrument_profile": 1,
+                "fetch_instrument_events": 1,
+                "fetch_market_events": 1,
+                "discover_universe_page": 1,
+            },
+        },
+        "marketstack": {
+            "mode": "call_count",
+            "unit_label": "requests",
+            "operation_costs": {
+                "discover_universe_page": 1,
+            },
+        },
+        "fmp": {
+            "mode": "multi_dimensional",
+            "unit_label": "provider_units",
+            "operation_costs": {
+                "fetch_ohlcv": 1,
+                "fetch_latest_ohlcv": 1,
+                "get_instrument_profile": 1,
+                "discover_universe_page": 1,
+            },
+        },
+        "tradier": {
+            "mode": "call_count",
+            "unit_label": "requests",
+            "operation_costs": {
+                "fetch_ohlcv": 1,
+                "fetch_latest_ohlcv": 1,
+                "get_current_price": 1,
+                "search_instruments": 1,
             },
         },
         # A metadata lookup resolves the provider-native coin id through

@@ -965,6 +965,33 @@ def test_alpha_vantage_profile_covers_each_single_query_operation():
     }
 
 
+def test_single_request_provider_profiles_are_explicit():
+    expected = {
+        "alpaca": {
+            "get_current_price": 1,
+            "fetch_instrument_events": 1,
+            "discover_universe_page": 1,
+        },
+        "massive": {"search_instruments": 1, "discover_universe_page": 1},
+        "fred": {"fetch_ohlcv": 1, "fetch_latest_ohlcv": 1, "get_current_price": 1},
+        "openfigi": {
+            "fetch_stable_identifiers": 1,
+            "resolve_instrument_profile": 1,
+        },
+        "coinbase": {"get_current_price": 1, "discover_universe_page": 1},
+        "kraken": {"get_current_price": 1, "discover_universe_page": 1},
+        "marketstack": {"discover_universe_page": 1},
+        "tradier": {
+            "fetch_ohlcv": 1,
+            "fetch_latest_ohlcv": 1,
+            "get_current_price": 1,
+            "search_instruments": 1,
+        },
+    }
+    for provider_name, operation_costs in expected.items():
+        assert get_provider_usage_profile(provider_name)["operation_costs"] == operation_costs
+
+
 def test_twelve_data_cumulative_credit_headers_update_only_matching_minute_window():
     policy = ProviderPolicy(
         data_source_id=1,
