@@ -75,28 +75,15 @@
     "worktree_id": "feat-market-data-provider-platform-252f410b51"
   },
   "dirty_paths": [
-    "ps/workstreams/feat-market-data-provider-platform/session.json"
+    "ackend/app/providers/alpaca.py",
+    "backend/tests/unit/providers/test_new_providers.py",
+    "ops/workstreams/feat-market-data-provider-platform/handoff.md",
+    "ops/workstreams/feat-market-data-provider-platform/plan.yaml",
+    "ops/workstreams/feat-market-data-provider-platform/validation.jsonl"
   ],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-market-data-provider-platform-252f410b",
-      "charting-stack-feat-market-data-provider-platform-252f410b"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
-    "worktree_id": "feat-market-data-provider-platform-252f410b51"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
   },
   "docker_ready": {
     "ready": true,
@@ -112,14 +99,14 @@
   "goal_request_state": "planning_required",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "4ff40814c296ea5386bca27f14198ea25c8ffbb8",
+  "head": "a5279918805df23ebcc5e4b0f97ab318544fe7cf",
   "implementation_sha": "4ff40814c296ea5386bca27f14198ea25c8ffbb8",
   "last_checkpoint": "2026-09-09T04:24:59.584683+00:00",
   "last_human_progress_update": "2026-09-09T03:16:33.016146+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
-  "plan_hash": "45f328b70ea5d6f3d0707fe816c5b7e2a2bc01844cb458f50e3a0f79cfeb408f",
+  "plan_hash": "489a41a48f193b28cbf1901c5b2bef546a949786061676e233ad33e3f9d245f7",
   "planning_required": true,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -149,7 +136,7 @@
     "total": 15,
     "updated_at": "2026-09-09T03:16:33.015953+00:00"
   },
-  "remote": "4ff40814c296ea5386bca27f14198ea25c8ffbb8",
+  "remote": "a5279918805df23ebcc5e4b0f97ab318544fe7cf",
   "remote_sha": "4ff40814c296ea5386bca27f14198ea25c8ffbb8",
   "remote_synchronized": true,
   "retained_docker_resources": [],
