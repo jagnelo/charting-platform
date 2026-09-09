@@ -1,8 +1,8 @@
 <template>
-  <section class="tool-window" :data-window-key="windowKey" :class="{ 'tool-window--active': active }" @keydown.escape="closeMenuToTrigger">
+  <section class="tool-window" :data-window-key="windowKey" :class="{ 'tool-window--active': active }" :aria-labelledby="titleId" @keydown.escape="closeMenuToTrigger">
     <header class="tool-window__header">
       <span class="tool-window__drag-handle" draggable="true" aria-label="Drag tool" title="Drag tool" @dragstart="emit('dragstart', $event)"><span class="tool-window__drag-glyph" aria-hidden="true" /></span>
-      <strong class="tool-window__title">{{ title }}</strong>
+      <strong :id="titleId" class="tool-window__title">{{ title }}</strong>
       <span v-if="symbol" class="tool-window__symbol">{{ symbol }}</span>
       <div class="tool-window__actions">
         <span v-if="timeframe" class="tool-window__link-swatch" :style="{ background: dashboardLinkGroupColor(timeframeLinkGroup) }" :title="`${dashboardLinkGroupLabel(timeframeLinkGroup)} timeframe link`" aria-hidden="true" />
@@ -41,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref, useId } from 'vue'
 import type { LinkGroup } from '@/stores/workspace'
 import { dashboardLinkGroupColor, dashboardLinkGroupLabel } from '@/stores/dashboardLinks'
 
@@ -71,6 +71,7 @@ const emit = defineEmits<{
   close: []
 }>()
 
+const titleId = useId()
 const menuOpen = ref(false)
 const menuRoot = ref<HTMLElement | null>(null)
 const menuTrigger = ref<HTMLButtonElement | null>(null)

@@ -8,6 +8,9 @@ describe('ToolWindow', () => {
     const wrapper = mount(ToolWindow, { props: { title: 'Chart', symbol: 'SPY', linkGroup: 'blue' } })
 
     expect(wrapper.find('[aria-label="Drag tool"]').attributes('draggable')).toBe('true')
+    const titleId = wrapper.find('.tool-window__title').attributes('id')
+    expect(titleId).toBeTruthy()
+    expect(wrapper.find('.tool-window').attributes('aria-labelledby')).toBe(titleId)
     expect(wrapper.find('[aria-label="Open tool menu"]').exists()).toBe(true)
     expect(wrapper.find('[aria-label="Maximize tool"]').exists()).toBe(true)
     expect(wrapper.find('[aria-label="Float tool"]').exists()).toBe(true)
