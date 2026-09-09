@@ -14,6 +14,7 @@ from app.services.market_data import (
     fetch_ohlcv,
     fetch_ohlcv_latest,
     fetch_ohlcv_page_before,
+    persist_price_history_bars,
 )
 from app.services.ohlcv_coverage import (
     CoverageStatus,
@@ -197,6 +198,88 @@ async def test_provider_dataset_state_marks_opaque_adjustment_factors_explicitly
         "factor_version": None,
         "contract_version": 1,
     }
+
+
+@pytest.mark.asyncio
+async def test_provider_upsert_promotes_a_matching_derived_bar_to_provider_lineage(
+    db, instrument, monkeypatch
+):
+    from app.models.data_source import DataSource
+    from app.models.ohlcv import OHLCVBar
+
+    async def _skip_observation_record(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(
+        "app.services.market_data._record_bar_observations", _skip_observation_record
+    )
+    source = DataSource(name="provider-lineage-source")
+    db.add(source)
+    db.flush()
+    ts = datetime(2026, 1, 5, tzinfo=UTC)
+    db.add(
+        OHLCVBar(
+            instrument_id=instrument.id,
+            timeframe=Timeframe.W1,
+            ts=ts,
+            open=Decimal("90"),
+            high=Decimal("95"),
+            low=Decimal("89"),
+            close=Decimal("92"),
+            volume=Decimal("100"),
+            is_adjusted=True,
+            is_derived=True,
+            source_timeframe=Timeframe.D1.value,
+            derivation_method="d1_ohlcv_xnys_calendar_aggregation",
+            derived_at=datetime(2026, 1, 6, tzinfo=UTC),
+            source_bar_count=5,
+            source_start=datetime(2026, 1, 1, tzinfo=UTC),
+            source_end=datetime(2026, 1, 5, tzinfo=UTC),
+        )
+    )
+    db.flush()
+
+    await persist_price_history_bars(
+        AsyncSessionAdapter(db),
+        instrument,
+        data_source_id=source.id,
+        provider_symbol="AAPL",
+        timeframe=Timeframe.W1,
+        adjusted=True,
+        bars=[
+            OHLCVBar(
+                instrument_id=instrument.id,
+                data_source_id=source.id,
+                timeframe=Timeframe.W1,
+                ts=ts,
+                open=Decimal("100"),
+                high=Decimal("110"),
+                low=Decimal("99"),
+                close=Decimal("105"),
+                volume=Decimal("200"),
+                is_adjusted=True,
+            )
+        ],
+    )
+    row = (
+        db.query(OHLCVBar)
+        .filter(
+            OHLCVBar.instrument_id == instrument.id,
+            OHLCVBar.timeframe == Timeframe.W1,
+            OHLCVBar.ts == ts,
+        )
+        .one()
+    )
+
+    assert row.close == Decimal("105")
+    assert row.data_source_id == source.id
+    assert row.is_derived is False
+    assert row.source_timeframe is None
+    assert row.derivation_method is None
+    assert row.derived_at is None
+    assert row.source_bar_count is None
+    assert row.source_start is None
+    assert row.source_end is None
 
 
 def _provider_coarse_bar(instrument_id: int, ts: datetime):

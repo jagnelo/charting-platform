@@ -383,6 +383,37 @@ async def _record_bar_observations(
     )
 
 
+def _provider_bar_upsert_statement():
+    """Build the canonical provider-bar upsert and reset derived lineage.
+
+    A provider W1/MN observation may arrive after a locally materialised row
+    for the same period.  Updating only OHLCV values would leave the old
+    ``is_derived`` marker and source metadata attached to provider evidence.
+    Keep the unique bar key stable while explicitly promoting the row back to
+    provider lineage and clearing the D1 derivation fields.
+    """
+    insert_stmt = pg_insert(OHLCVBar)
+    return insert_stmt.on_conflict_do_update(
+        index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"],
+        set_={
+            "open": insert_stmt.excluded.open,
+            "high": insert_stmt.excluded.high,
+            "low": insert_stmt.excluded.low,
+            "close": insert_stmt.excluded.close,
+            "volume": insert_stmt.excluded.volume,
+            "vwap": insert_stmt.excluded.vwap,
+            "data_source_id": insert_stmt.excluded.data_source_id,
+            "is_derived": False,
+            "source_timeframe": None,
+            "derivation_method": None,
+            "derived_at": None,
+            "source_bar_count": None,
+            "source_start": None,
+            "source_end": None,
+        },
+    )
+
+
 async def _touch_ohlcv_dataset_state(
     db: AsyncSession,
     instrument: Instrument,
@@ -461,21 +492,10 @@ async def persist_price_history_bars(
         provider_symbol=provider_symbol,
         observed_at=observed_at,
     )
-    insert_stmt = pg_insert(OHLCVBar)
     if use_upsert:
-        insert_stmt = insert_stmt.on_conflict_do_update(
-            index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"],
-            set_={
-                "open": insert_stmt.excluded.open,
-                "high": insert_stmt.excluded.high,
-                "low": insert_stmt.excluded.low,
-                "close": insert_stmt.excluded.close,
-                "volume": insert_stmt.excluded.volume,
-                "vwap": insert_stmt.excluded.vwap,
-                "data_source_id": insert_stmt.excluded.data_source_id,
-            },
-        )
+        insert_stmt = _provider_bar_upsert_statement()
     else:
+        insert_stmt = pg_insert(OHLCVBar)
         insert_stmt = insert_stmt.on_conflict_do_nothing(
             index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"]
         )
@@ -545,9 +565,7 @@ async def recompute_synthetic_ohlcv(
                 if new_bars:
                     try:
                         await db.execute(
-                            pg_insert(OHLCVBar).on_conflict_do_nothing(
-                                index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"]
-                            ),
+                            _provider_bar_upsert_statement(),
                             [_bar_as_dict(b) for b in new_bars],
                         )
                         await db.commit()
@@ -731,25 +749,8 @@ async def fetch_ohlcv(
         if new_bars:
             try:
                 await db.execute(
-                    pg_insert(OHLCVBar).on_conflict_do_nothing(
-                        index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"]
-                    ),
-                    [
-                        {
-                            "instrument_id": b.instrument_id,
-                            "data_source_id": b.data_source_id,
-                            "timeframe": b.timeframe,
-                            "ts": b.ts,
-                            "open": b.open,
-                            "high": b.high,
-                            "low": b.low,
-                            "close": b.close,
-                            "volume": b.volume,
-                            "vwap": b.vwap,
-                            "is_adjusted": b.is_adjusted,
-                        }
-                        for b in new_bars
-                    ],
+                    _provider_bar_upsert_statement(),
+                    [_bar_as_dict(b) for b in new_bars],
                 )
                 await db.commit()
             except Exception as e:
@@ -948,9 +949,7 @@ async def fetch_ohlcv_latest(
         if new_bars:
             try:
                 await db.execute(
-                    pg_insert(OHLCVBar).on_conflict_do_nothing(
-                        index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"]
-                    ),
+                    _provider_bar_upsert_statement(),
                     [_bar_as_dict(b) for b in new_bars],
                 )
                 await db.commit()
@@ -987,17 +986,7 @@ async def fetch_ohlcv_latest(
             if repair_bars:
                 try:
                     await db.execute(
-                        pg_insert(OHLCVBar).on_conflict_do_update(
-                            index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"],
-                            set_={
-                                "open": pg_insert(OHLCVBar).excluded.open,
-                                "high": pg_insert(OHLCVBar).excluded.high,
-                                "low": pg_insert(OHLCVBar).excluded.low,
-                                "close": pg_insert(OHLCVBar).excluded.close,
-                                "volume": pg_insert(OHLCVBar).excluded.volume,
-                                "vwap": pg_insert(OHLCVBar).excluded.vwap,
-                            },
-                        ),
+                        _provider_bar_upsert_statement(),
                         [_bar_as_dict(b) for b in repair_bars],
                     )
                     await db.commit()
@@ -1020,17 +1009,7 @@ async def fetch_ohlcv_latest(
         if new_bars:
             try:
                 await db.execute(
-                    pg_insert(OHLCVBar).on_conflict_do_update(
-                        index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"],
-                        set_={
-                            "open": pg_insert(OHLCVBar).excluded.open,
-                            "high": pg_insert(OHLCVBar).excluded.high,
-                            "low": pg_insert(OHLCVBar).excluded.low,
-                            "close": pg_insert(OHLCVBar).excluded.close,
-                            "volume": pg_insert(OHLCVBar).excluded.volume,
-                            "vwap": pg_insert(OHLCVBar).excluded.vwap,
-                        },
-                    ),
+                    _provider_bar_upsert_statement(),
                     [_bar_as_dict(b) for b in new_bars],
                 )
                 await db.commit()
@@ -1143,9 +1122,7 @@ async def fetch_ohlcv_page_before(
         if fetched:
             try:
                 await db.execute(
-                    pg_insert(OHLCVBar).on_conflict_do_nothing(
-                        index_elements=["instrument_id", "timeframe", "ts", "is_adjusted"]
-                    ),
+                    _provider_bar_upsert_statement(),
                     [_bar_as_dict(b) for b in fetched],
                 )
                 await db.commit()
@@ -1186,6 +1163,15 @@ def _bar_as_dict(b: OHLCVBar) -> dict:
         "volume": b.volume,
         "vwap": b.vwap,
         "is_adjusted": b.is_adjusted,
+        # Provider ingestion must never preserve a stale local derivation
+        # marker when it promotes a row with the same canonical key.
+        "is_derived": False,
+        "source_timeframe": None,
+        "derivation_method": None,
+        "derived_at": None,
+        "source_bar_count": None,
+        "source_start": None,
+        "source_end": None,
     }
 
 
