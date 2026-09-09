@@ -112,10 +112,10 @@
   "goal_request_state": "planning_required",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "2915952cfb8f7f24ce9e5495d93f489bc03c54cb",
+  "head": "cea4ccbf760b8eda798783debeed34e29114e45e",
   "implementation_sha": "2a45396e9e7d6f916e8b22464e0e2ccf60a0b6b1",
-  "last_checkpoint": "2026-09-09T06:27:31.063517+00:00",
-  "last_human_progress_update": "2026-09-09T06:27:17.827486+00:00",
+  "last_checkpoint": "2026-09-09T06:28:13.504225+00:00",
+  "last_human_progress_update": "2026-09-09T06:28:11.774648+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -130,16 +130,26 @@
   ],
   "progress": {
     "completed": [
+      "AC-IDENTITY",
+      "AC-SERIES",
+      "AC-CALENDAR",
       "AC-ROUTING",
-      "AC-TEST"
+      "AC-REFRESH",
+      "AC-DATA",
+      "AC-OPTIONS",
+      "AC-OPS",
+      "AC-COMPAT",
+      "AC-TEST",
+      "AC-QUOTA-SAFETY",
+      "AC-RATE-FAILURE"
     ],
     "current_blocker": "Live matrix is 26/29 with explicit missing ALPACA_API_KEY plus ALPACA_SECRET_KEY, TRADIER_API_KEY, and MARKETDATA_APP_API_KEY; FINRA async byte bound, Tiingo/FMP operation byte maps, GitHub environment verification, legal/source review, and complete NMS/OTC reconciliation remain gates.",
     "current_phase": "credentialed_live_validation",
     "next_action": "Keep routing fail-closed; obtain the three missing credential domains and trusted GitHub/deployment configuration, then rerun all 29 live cases and complete the operator/legal reconciliation gates before any promotion or shadow activation.",
     "total": 15,
-    "updated_at": "2026-09-09T06:27:17.827203+00:00"
+    "updated_at": "2026-09-09T06:28:11.774515+00:00"
   },
-  "remote": "2915952cfb8f7f24ce9e5495d93f489bc03c54cb",
+  "remote": "cea4ccbf760b8eda798783debeed34e29114e45e",
   "remote_sha": "2a45396e9e7d6f916e8b22464e0e2ccf60a0b6b1",
   "remote_synchronized": true,
   "retained_docker_resources": [],
