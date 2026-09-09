@@ -54,9 +54,10 @@ def raise_for_provider_error_envelope(
     """Reject explicit provider error envelopes even when HTTP succeeded.
 
     Providers use different success/error markers: JSON ``status``/``s``,
-    FMP's ``Error Message``, Bybit's ``retCode``, Kraken's non-empty ``error``
-    list, and several ``errmsg``/``errors`` forms. Only top-level, unambiguous
-    markers are inspected so ordinary nested data fields remain untouched.
+    FMP's ``Error Message``, Bybit's ``retCode`` (where non-zero is failure),
+    Kraken's non-empty ``error`` list, and several ``errmsg``/``errors`` forms.
+    Only top-level, unambiguous markers are inspected so ordinary nested data
+    fields remain untouched.
     """
 
     if not isinstance(payload, dict):
@@ -75,12 +76,13 @@ def raise_for_provider_error_envelope(
             error_detail = "; ".join(str(item) for item in errors if item not in (None, ""))
         else:
             error_detail = errors
+    ret_message = payload.get("retMsg", payload.get("ret_msg"))
+    ret_message_detail = ret_message if ret_code_error else None
     detail = (
         payload.get("Error Message")
         or error_detail
         or payload.get("errmsg")
-        or payload.get("retMsg")
-        or payload.get("ret_msg")
+        or ret_message_detail
         or (
             payload.get("message") or payload.get("detail")
             if status in {"error", "failed", "failure"}

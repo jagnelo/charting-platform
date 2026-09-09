@@ -141,3 +141,16 @@ def test_tokenized_http_success_error_envelopes_do_not_create_synthetic_records(
             else:
                 BybitXStocksProvider().get_tokenized_price("AAPLx")
     assert exc_info.value.provider_name in {"kraken_xstocks", "bybit_xstocks"}
+
+
+def test_bybit_success_retcode_and_retmsg_are_not_error_envelope():
+    response = Mock()
+    response.raise_for_status.return_value = None
+    response.status_code = 200
+    response.json.return_value = {
+        "retCode": 0,
+        "retMsg": "OK",
+        "result": {"list": []},
+    }
+    with patch("app.providers.tokenized.httpx.get", return_value=response):
+        assert BybitXStocksProvider().discover_tokenized_assets(page=0, page_size=1) == []
