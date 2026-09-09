@@ -95,6 +95,72 @@ _PROVIDERS: dict[str, ProviderDescriptor] = {
     "gate_tradfi": GateTradfiProvider(),
     "kraken_xstocks": KrakenXStocksProvider(),
 }
+
+# Provider capability is not enough to route an instrument safely.  Several
+# public adapters expose a method with the same shape as equity OHLCV while
+# accepting only crypto (Coinbase/Kraken/Binance are the important examples).
+# Keep this allow-list explicit and fail closed when an instrument class is
+# known.  The values intentionally use both top-level asset classes and
+# instrument-type aliases because the database models distinguish, for
+# example, Equity/ETF from Derivative/Option.
+_PROVIDER_INSTRUMENT_KINDS: dict[str, frozenset[str]] = {
+    "alpaca": frozenset({"equity", "stock", "etf", "crypto", "cryptocurrency", "crypto_spot"}),
+    "alpha_vantage": frozenset({"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency"}),
+    "massive": frozenset({"equity", "stock", "etf"}),
+    "edgar": frozenset({"equity", "stock", "etf", "reit", "mutual_fund", "closed_end_fund"}),
+    "nasdaq": frozenset({"equity", "stock", "etf", "reit", "mutual_fund", "closed_end_fund"}),
+    "finra": frozenset({"equity", "stock", "etf", "reit", "mutual_fund", "closed_end_fund"}),
+    "finra_otc_directory": frozenset({"equity", "stock", "etf", "reit", "mutual_fund", "closed_end_fund"}),
+    "tiingo": frozenset({"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency"}),
+    "twelve_data": frozenset({"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency", "future"}),
+    "finnhub": frozenset({"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency"}),
+    "marketstack": frozenset({"equity", "stock", "etf"}),
+    "eodhd": frozenset({"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency", "future"}),
+    "fmp": frozenset({"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency", "future"}),
+    "tradier": frozenset({"equity", "stock", "etf", "option", "options"}),
+    "marketdata_app": frozenset({"equity", "stock", "etf", "option", "options"}),
+    "ibkr": frozenset({"equity", "stock", "etf", "option", "options", "future", "forex", "currency", "crypto", "cryptocurrency"}),
+    "yfinance": frozenset({"equity", "stock", "etf", "option", "options", "future", "forex", "currency", "crypto", "cryptocurrency", "index"}),
+    "binance": frozenset({"crypto", "cryptocurrency", "crypto_spot"}),
+    "coinbase": frozenset({"crypto", "cryptocurrency", "crypto_spot"}),
+    "kraken": frozenset({"crypto", "cryptocurrency", "crypto_spot", "future"}),
+    "coingecko": frozenset({"crypto", "cryptocurrency", "crypto_spot"}),
+    "fred": frozenset({"macro", "currency", "forex", "fixed_income"}),
+    "openfigi": frozenset({
+        "equity", "stock", "etf", "option", "options", "future", "forex", "currency",
+        "crypto", "cryptocurrency", "index", "fixed_income", "commodity",
+    }),
+    "etf_holdings_internal": frozenset({"equity", "etf"}),
+}
+
+
+def _instrument_kind(value: str | None) -> str:
+    """Normalize model/provider class labels into stable routing tokens."""
+
+    return "".join(character for character in str(value or "").strip().lower() if character.isalnum())
+
+
+def provider_supports_instrument(
+    provider_name: str,
+    *,
+    asset_class: str | None,
+    instrument_type: str | None = None,
+) -> bool:
+    """Return whether a provider is explicitly admitted for an instrument kind.
+
+    A known instrument must never be sent to an unmapped provider.  Unknown
+    providers therefore fail closed instead of silently inheriting a broad
+    method-level capability such as ``fetch_ohlcv``.
+    """
+
+    supported = _PROVIDER_INSTRUMENT_KINDS.get(provider_name, frozenset())
+    if not supported:
+        return False
+    return any(
+        _instrument_kind(value) in {_instrument_kind(item) for item in supported}
+        for value in (asset_class, instrument_type)
+        if value
+    )
 # Keep descriptor-only entries visible for broker/crypto integrations that do
 # not yet have a concrete adapter. ``setdefault`` preserves concrete classes.
 for _name, _descriptor in OPTIONAL_PROVIDER_DESCRIPTORS.items():

@@ -12,6 +12,7 @@ from app.providers.registry import (
     list_provider_capabilities,
     provider_configuration_required,
     provider_is_configured,
+    provider_supports_instrument,
 )
 
 
@@ -57,6 +58,20 @@ class TestProviderRegistry:
 
     def test_crypto_provider_exposes_explicit_crypto_history_capability(self):
         assert "crypto_history" in list_provider_capabilities("binance")
+
+    def test_instrument_routing_does_not_treat_crypto_ohlcv_as_equity_support(self):
+        assert provider_supports_instrument(
+            "alpaca", asset_class="Equity", instrument_type="Stock"
+        )
+        assert not provider_supports_instrument(
+            "kraken", asset_class="Equity", instrument_type="Stock"
+        )
+        assert provider_supports_instrument(
+            "kraken", asset_class="Cryptocurrency", instrument_type="Crypto Spot"
+        )
+        assert not provider_supports_instrument(
+            "unknown_provider", asset_class="Equity", instrument_type="Stock"
+        )
 
     def test_openfigi_is_registered_as_identifier_provider(self):
         provider = get_identifier_provider("openfigi")

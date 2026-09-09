@@ -55,6 +55,7 @@ from app.providers.registry import (
     list_provider_capabilities,
     provider_configuration_required,
     provider_is_configured,
+    provider_supports_instrument,
     provider_symbol_for_instrument,
     supported_provider_names,
 )
@@ -115,5 +116,6 @@ __all__ = [
     "provider_configuration_required",
     "provider_symbol_for_instrument",
     "provider_is_configured",
+    "provider_supports_instrument",
     "supported_provider_names",
 ]

@@ -16,7 +16,9 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import provider_rate_limit_seed, settings
+from app.models.asset_class import AssetClass, InstrumentType
 from app.models.data_source import DataSource
+from app.models.instrument import Instrument
 from app.models.provider_runtime import (
     ProviderCapability,
     ProviderCapacityEvent,
@@ -32,6 +34,7 @@ from app.providers import (
     list_provider_capabilities,
     provider_configuration_required,
     provider_is_configured,
+    provider_supports_instrument,
     supported_provider_names,
 )
 from app.providers.errors import ProviderNotConfiguredError, ProviderRateLimitError
@@ -1102,6 +1105,16 @@ async def resolve_provider_chain(
     binding_ids = (
         await get_provider_binding_ids(db, instrument_id) if instrument_id is not None else set()
     )
+    instrument_routing: tuple[str, str] | None = None
+    if instrument_id is not None:
+        instrument_routing = (
+            await db.execute(
+                select(AssetClass.name, InstrumentType.name)
+                .join(InstrumentType, InstrumentType.asset_class_id == AssetClass.id)
+                .join(Instrument, Instrument.instrument_type_id == InstrumentType.id)
+                .where(Instrument.id == instrument_id)
+            )
+        ).one_or_none()
     resolved: list[ResolvedProvider] = []
     current_environment = settings.APP_ENV.strip().lower()
     for policy, health, data_source, entitlement in rows:
@@ -1142,6 +1155,16 @@ async def resolve_provider_chain(
         except KeyError:
             continue
         if capability.value not in list_provider_capabilities(data_source.name):
+            continue
+        if instrument_routing is not None and not provider_supports_instrument(
+            data_source.name,
+            asset_class=instrument_routing[0],
+            instrument_type=instrument_routing[1],
+        ):
+            # Method-level compatibility (for example ``fetch_ohlcv``) does
+            # not imply that the provider understands this instrument.  Keep
+            # routing class-aware so equity symbols cannot fall through to a
+            # crypto-only exchange adapter.
             continue
         allowed_environments = {
             str(value).strip().lower() for value in entitlement.enabled_environments
