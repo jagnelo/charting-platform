@@ -267,6 +267,7 @@
           class="market-map-tool__canvas-map"
           role="img"
           :aria-label="`${visibleLayoutCells.length} Market Map members`"
+          :aria-describedby="marketMapAccessibilityId"
           @mousemove="handleCanvasHover"
           @mouseleave="hoveredCell = null"
           @click="selectCanvasCell"
@@ -278,6 +279,7 @@
           <strong>{{ group.label }}</strong><small>{{ group.member_count }} members</small>
         </div>
         <small v-if="useCanvasTiles" class="market-map-tool__canvas-hint">Large universe · canvas rendering · click a tile to select</small>
+        <span v-if="useCanvasTiles" :id="marketMapAccessibilityId" class="sr-only">{{ marketMapAccessibilitySummary }}</span>
         <p v-if="!visibleCells.length" class="market-map-tool__status">No covered members match this group.</p>
         <p v-else-if="visibleLayoutCells.length < visibleCells.length" class="market-map-tool__status">{{ visibleCells.length - visibleLayoutCells.length }} member(s) have no valid area value and are excluded from tile geometry.</p>
       </div>
@@ -297,6 +299,7 @@ import { invalidateCodeAssets } from '@/lib/workstation/libraryQueries'
 import { resolveCanonicalSymbols } from '@/lib/instruments'
 import BreadthConditionTreeEditor, { type BreadthConditionNode } from './BreadthConditionTreeEditor.vue'
 import { marketMapPythonUniverse } from '@/lib/workstation/marketMapPublication'
+import { describeMarketMap } from '@/lib/workstation/marketMapAccessibility'
 import { cancelWatchlistHistoryRefreshRun, deleteMarketMapSnapshot, fetchBenchmarkFamilyCoverage, fetchMarketMap, fetchMarketMapSnapshot, fetchMarketMapSnapshots, fetchWatchlistHistoryRefreshRun, fetchWatchlistSourceHistoryStatus, layoutMarketMapCells, layoutMarketMapGroupsFromLayout, refreshWatchlistSourceHistory, saveMarketMapSnapshot, type BenchmarkFamilyCoverage, type BenchmarkFamilyCoverageRole, type MarketMapLayoutCell, type MarketMapLayoutGroup, type WatchlistHistoryRefreshRun, type WatchlistSourceHistoryStatus } from '@/lib/workstation/marketMap'
 import type { MarketMap, MarketMapAreaMetric, MarketMapCell, MarketMapColorMetric, MarketMapGroupBy, MarketMapNumericAreaField, MarketMapSnapshotSummary, Timeframe, WatchlistSource, WatchlistSourceKind } from '@/types'
 
@@ -915,6 +918,30 @@ const visibleCells = computed(() => {
 const visibleLayoutCells = computed<MarketMapLayoutCell[]>(() => layoutMarketMapCells(visibleCells.value))
 const visibleLayoutGroups = computed<MarketMapLayoutGroup[]>(() => layoutMarketMapGroupsFromLayout(visibleLayoutCells.value))
 const useCanvasTiles = computed(() => visibleLayoutCells.value.length > LARGE_MAP_CANVAS_THRESHOLD)
+const marketMapAccessibilityId = computed(() => `market-map-summary-${(sourceId.value || 'empty').replace(/[^a-z0-9_-]+/gi, '-')}`)
+const marketMapAccessibilitySummary = computed(() => {
+  const current = map.value
+  if (!current) return ''
+  return describeMarketMap({
+    sourceName: current.source.name,
+    period: current.period,
+    timeframe: current.timeframe,
+    adjustment: current.adjustment,
+    areaMetric: current.area_metric,
+    colorMetric: current.color_metric,
+    freshness: current.freshness,
+    requestedCount: current.requested_count,
+    evaluatedCount: current.evaluated_count,
+    coverage: current.coverage,
+    colorCoverage: current.color_coverage,
+    areaCoverage: current.area_coverage,
+    visibleCount: visibleLayoutCells.value.length,
+    groupCount: visibleLayoutGroups.value.length,
+    selectedCount: selectedIds.value.length,
+    warningCount: current.warnings.length,
+    exclusionCount: current.exclusions.length,
+  })
+})
 const canvasSearchMatch = computed(() => {
   const query = canvasSearch.value.trim().toLowerCase()
   if (!query) return null
@@ -1708,4 +1735,5 @@ onUnmounted(() => {
 .market-map-tool__tile--unknown { background: #3c4652 !important; }
 .market-map-tool__tile--selected { outline: 2px solid #f7d87b; outline-offset: -2px; z-index: 2; }
 .market-map-tool__hover { position: absolute; right: 12px; bottom: 12px; z-index: 5; display: flex; flex-direction: column; gap: 2px; max-width: 300px; padding: 8px 10px; border: 1px solid #60758d; background: #18222e; box-shadow: 0 4px 18px #0008; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 </style>

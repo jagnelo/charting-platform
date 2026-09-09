@@ -511,6 +511,10 @@ describe('MarketMapTool', () => {
 
     expect(wrapper.find('canvas.market-map-tool__canvas-map').exists()).toBe(true)
     expect(wrapper.find('canvas.market-map-tool__canvas-map').attributes('aria-label')).toBe('10000 Market Map members')
+    const canvasSummaryId = wrapper.find('canvas.market-map-tool__canvas-map').attributes('aria-describedby')
+    expect(canvasSummaryId).toBeTruthy()
+    expect(wrapper.find(`#${canvasSummaryId}`).text()).toContain('market map for 1D D1')
+    expect(wrapper.find(`#${canvasSummaryId}`).text()).toContain('10000 visible members')
     expect(wrapper.findAll('.market-map-tool__tile')).toHaveLength(0)
     expect(wrapper.find('.market-map-tool__canvas-hint').text()).toContain('canvas rendering')
     expect(context.fillRect).toHaveBeenCalled()
