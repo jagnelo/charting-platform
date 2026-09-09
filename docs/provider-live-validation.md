@@ -79,6 +79,19 @@ key supports the compact latest-100 daily response rather than full history,
 Finnhub's free key rejected stock candles but supports company profiles, and
 FMP history now uses its current `/stable` API instead of `/api/v3`.
 
+Additional bounded checks on 2026-09-09 covered the provider-specific surfaces
+that the original one-read matrix did not exercise: Finnhub profile,
+historical earnings, and forward earnings-calendar normalization passed in one
+case (`3` requests, `170,868` response bytes); EODHD daily/weekly/monthly
+history plus the free-plan Fundamentals entitlement check and FMP history plus
+profile passed (`3/3` cases, successful ledger totals EODHD `4` requests/
+`2,522` bytes and FMP `2` requests/`3,857` bytes). The EODHD free key's
+Fundamentals `403` is retained as explicit non-entitlement evidence, not
+treated as an empty profile or a successful capability. Alpha Vantage's IPO
+calendar is fixture-covered and remains pending a fresh provider 25/day window
+for a live read. Optional-provider HTTP failures now redact credentials from
+direct/live tracebacks while retaining typed 429/reset evidence.
+
 On 2026-09-05, with network access, a temporary non-secret SEC User-Agent, and
 the official FINRA OTC Security Master URL, the public/keyless matrix passed
 `9/9`, including full SEC ticker/exchange-directory pagination, full Nasdaq
