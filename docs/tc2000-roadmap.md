@@ -3565,14 +3565,15 @@ The TC2000 frontend rework is ready for human review only when all of the follow
 ## Immediate next checkpoint
 
 Continue with the next canonical provider/history slice and compatible chart/list/gauge consumers
-with authenticated evidence. The latest product/test tip is `4361fa5c` (product behavior from
-`b53873c1`); its focused F8u-signal flow passed `1/1`, and the exact-tip exhaustive gate returned
-`165` functional passes with `106` documented skips across `271`, plus `98/104` visual passes with
-the same six known state-oracle diffs. All non-visual and functional
-stages pass, while the unchanged six visual state-oracle diffs remain explicit: column-editor-open
-at both 1080p projects and workspace-floating at all four visual projects. Preserve the declared
+with authenticated evidence. The latest product tip is `251c8ace` (product behavior from
+`9a80c8f7`); the focused OHLCV lineage/accessibility checks passed, and the exact-tip exhaustive
+gate returned `165` functional passes with `107` documented skips across `272`, plus `98/104`
+visual passes with the same six known state-oracle diffs. All non-visual and functional stages
+pass, while the unchanged six visual state-oracle diffs remain explicit: column-editor-open at
+both 1080p projects and workspace-floating at all four visual projects. Preserve the declared
 provider fallback boundaries and all existing acceptance policy while expanding the remaining
 canonical population/history coverage, richer Study Lab targets, native-window/accessibility/
+security evidence, dense-data budgets, and R2-R7 work.
 
 ## 2026-09-08 — Chart Plot Library Strategy-signal adapter
 
