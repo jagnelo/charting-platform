@@ -2300,7 +2300,17 @@ def test_admin_can_refresh_issuer_holdings_for_specific_date(
 
     dates = client.get("/api/v1/etf-holdings/ARKX/dates", headers=auth_headers)
     assert dates.status_code == 200
-    assert dates.json()[0]["composition_date"] == "2026-05-29"
+    date_row = dates.json()[0]
+    assert date_row["composition_date"] == "2026-05-29"
+    assert date_row["published_at"] is None
+    assert date_row["parser_version"] == "ark-csv-v1"
+    assert date_row["source_identifier"] == "ARKX"
+    assert date_row["timing_provenance"] == {
+        "composition_date": "requested_date_fallback",
+        "as_of_date": "requested_date",
+        "known_at": "ingestion_time_fallback",
+        "published_at": "not_reported",
+    }
 
 
 def test_admin_dated_ishares_refresh_preserves_returned_composition_date(

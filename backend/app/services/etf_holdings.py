@@ -2616,21 +2616,41 @@ async def list_available_dates(
         .scalars()
         .all()
     )
-    return [
-        ETFHoldingsDateOut(
-            snapshot_id=row.id,
-            composition_date=row.composition_date,
-            as_of_date=row.as_of_date,
-            known_at=row.known_at,
-            provenance=row.provenance,
-            source_provider=row.source_provider,
-            row_count=row.row_count,
-            resolved_count=row.resolved_count,
-            unresolved_count=row.unresolved_count,
-            source_quality=row.source_quality,
+    dates: list[ETFHoldingsDateOut] = []
+    for row in rows:
+        extra_data = row.extra_data if isinstance(row.extra_data, dict) else {}
+        legal_metadata = extra_data.get("legal_metadata")
+        if not isinstance(legal_metadata, dict):
+            legal_metadata = {}
+        timing = legal_metadata.get("timing_provenance")
+        dates.append(
+            ETFHoldingsDateOut(
+                snapshot_id=row.id,
+                composition_date=row.composition_date,
+                as_of_date=row.as_of_date,
+                known_at=row.known_at,
+                published_at=row.published_at,
+                cadence=(
+                    str(legal_metadata["cadence"])
+                    if legal_metadata.get("cadence") is not None
+                    else None
+                ),
+                parser_version=row.parser_version,
+                timing_provenance=(
+                    {str(key): str(value) for key, value in timing.items() if value is not None}
+                    if isinstance(timing, dict)
+                    else {}
+                ),
+                provenance=row.provenance,
+                source_provider=row.source_provider,
+                source_identifier=row.source_identifier,
+                row_count=row.row_count,
+                resolved_count=row.resolved_count,
+                unresolved_count=row.unresolved_count,
+                source_quality=row.source_quality,
+            )
         )
-        for row in rows
-    ]
+    return dates
 
 
 async def get_nearest_snapshot(

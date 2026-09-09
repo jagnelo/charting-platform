@@ -75,6 +75,16 @@ const dates = [
     composition_date: '2026-06-07',
     as_of_date: '2026-06-07',
     known_at: '2026-06-07T04:00:00Z',
+    published_at: '2026-06-07T05:00:00Z',
+    cadence: 'month_end',
+    parser_version: 'issuer-csv-v1',
+    source_identifier: 'SPY-20260607',
+    timing_provenance: {
+      composition_date: 'provider_reported',
+      as_of_date: 'provider_reported',
+      known_at: 'published_at_fallback',
+      published_at: 'provider_reported',
+    },
     provenance: 'issuer_current_holdings',
     source_provider: 'issuer-test',
     row_count: 2,
@@ -483,6 +493,10 @@ describe('ETFHoldingsView', () => {
     expect(wrapper.text()).toContain('+2.00%')
     expect(wrapper.text()).toContain('USD 4,000')
     expect(wrapper.text()).toContain('NASDAQ · US')
+    const snapshotOption = wrapper.findAll('.toolbar select')[2]?.findAll('option')[0]
+    expect(snapshotOption?.attributes('title')).toContain(
+      'timing as of date=provider reported, composition date=provider reported, known at=published at fallback, published at=provider reported',
+    )
 
     await wrapper.find('.detail-title button').trigger('click')
     expect(routerPush).toHaveBeenCalledWith('/chart/MSFT')

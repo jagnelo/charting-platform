@@ -330,8 +330,13 @@ export interface ETFHoldingsDate {
   composition_date: string
   as_of_date?: string | null
   known_at?: string | null
+  published_at?: string | null
+  cadence?: string | null
+  parser_version?: string | null
+  timing_provenance?: Record<string, string>
   provenance: string
   source_provider: string
+  source_identifier?: string | null
   row_count: number
   resolved_count: number
   unresolved_count: number

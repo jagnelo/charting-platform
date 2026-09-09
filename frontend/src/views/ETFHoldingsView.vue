@@ -100,6 +100,7 @@
                 v-for="option in snapshotOptions"
                 :key="option.snapshot_id"
                 :value="String(option.snapshot_id)"
+                :title="snapshotOptionMetadata(option)"
               >
                 {{ option.composition_date }}
               </option>
@@ -642,6 +643,22 @@ const canCompareOverlapFamily = computed(() =>
     || overlapQuery.value.trim()
   )
 )
+
+function snapshotOptionMetadata(option: ETFHoldingsDate): string {
+  const details = [
+    option.as_of_date ? `as of ${option.as_of_date}` : null,
+    option.published_at ? `published ${option.published_at}` : null,
+    option.source_provider ? `provider ${option.source_provider}` : null,
+    option.source_identifier ? `source ${option.source_identifier}` : null,
+    option.cadence ? `cadence ${option.cadence}` : null,
+    option.parser_version ? `parser ${option.parser_version}` : null,
+  ].filter(Boolean)
+  const timing = Object.entries(option.timing_provenance ?? {})
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${key.replace(/_/g, ' ')}=${value.replace(/_/g, ' ')}`)
+  if (timing.length) details.push(`timing ${timing.join(', ')}`)
+  return details.join(' · ') || 'Disclosure metadata not reported'
+}
 
 async function loadProfiles(search = profileSearch.value.trim(), autoSelectFirst = !selectedProfile.value) {
   const seq = ++profileLoadSeq

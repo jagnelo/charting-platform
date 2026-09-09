@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-09 — ETF snapshot selector disclosure provenance
+
+- [x] Carry publication time, cadence, parser version, source identifier, and
+      explicit timing-basis labels through the authenticated snapshot-date
+      history endpoint without changing provider precedence or fallback rules.
+- [x] Expose the same metadata through native snapshot-option titles so date
+      selection remains compact while provenance is available to keyboard and
+      assistive users.
+- [ ] Continue the bounded canonical family/member history audit; this selector
+      metadata does not establish complete family population or W1/MN readiness.
+
 ### 2026-09-08 — Canonical derived W1/MN timeframe materialization
 
 - [x] Add explicit OHLCV derivation lineage (`is_derived`, source timeframe,

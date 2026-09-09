@@ -342,8 +342,13 @@ class ETFHoldingsDateOut(BaseModel):
     composition_date: date
     as_of_date: date | None = None
     known_at: datetime | None = None
+    published_at: datetime | None = None
+    cadence: str | None = None
+    parser_version: str | None = None
+    timing_provenance: dict[str, str] = Field(default_factory=dict)
     provenance: str
     source_provider: str
+    source_identifier: str | None = None
     row_count: int
     resolved_count: int
     unresolved_count: int
