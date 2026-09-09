@@ -8,6 +8,7 @@ import math
 from collections import defaultdict
 from collections.abc import Mapping
 from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
@@ -234,37 +235,67 @@ async def _family_member_bar_history(
             func.count(OHLCVBar.id).label("bar_count"),
             func.min(OHLCVBar.ts).label("oldest"),
             func.max(OHLCVBar.ts).label("newest"),
+            OHLCVBar.is_derived,
         )
         .where(
             OHLCVBar.instrument_id.in_(member_ids),
             OHLCVBar.timeframe.in_(tuple(_FAMILY_MEMBER_BAR_REQUIREMENTS)),
             OHLCVBar.is_adjusted.is_(True),
         )
-        .group_by(OHLCVBar.timeframe, OHLCVBar.instrument_id)
+        .group_by(OHLCVBar.timeframe, OHLCVBar.instrument_id, OHLCVBar.is_derived)
     )
     if as_of is not None:
         bars_query = bars_query.where(OHLCVBar.ts <= as_of)
     bar_rows = (await db.execute(bars_query)).all()
 
-    by_timeframe: dict[Timeframe, list[tuple[int, int, datetime | None, datetime | None]]] = (
-        defaultdict(list)
-    )
-    for timeframe, instrument_id, bar_count, oldest, newest in bar_rows:
-        by_timeframe[timeframe].append((int(instrument_id), int(bar_count), oldest, newest))
+    # Aggregate provider and locally derived rows per member before applying
+    # readiness floors.  A member may legitimately have provider W1/MN rows
+    # for some periods and derived rows for uncovered periods; counting the
+    # grouped rows directly would double-count that member and could inflate
+    # coverage beyond 100 percent.
+    by_timeframe: dict[Timeframe, dict[int, dict[str, Any]]] = defaultdict(dict)
+    for timeframe, instrument_id, bar_count, oldest, newest, is_derived in bar_rows:
+        member = by_timeframe[timeframe].setdefault(
+            int(instrument_id),
+            {
+                "bar_count": 0,
+                "provider_bar_count": 0,
+                "derived_bar_count": 0,
+                "oldest": None,
+                "newest": None,
+            },
+        )
+        count = int(bar_count)
+        member["bar_count"] += count
+        if bool(is_derived):
+            member["derived_bar_count"] += count
+        else:
+            member["provider_bar_count"] += count
+        if oldest is not None and (member["oldest"] is None or oldest < member["oldest"]):
+            member["oldest"] = oldest
+        if newest is not None and (member["newest"] is None or newest > member["newest"]):
+            member["newest"] = newest
 
     timeframes: list[BenchmarkFamilyMemberBarHistoryTimeframeOut] = []
     for timeframe, required_bar_count in _FAMILY_MEMBER_BAR_REQUIREMENTS.items():
-        rows = by_timeframe.get(timeframe, [])
+        rows = list(by_timeframe.get(timeframe, {}).values())
         covered_count = len(rows)
-        ready_count = sum(
-            1 for _instrument_id, count, _oldest, _newest in rows if count >= required_bar_count
+        ready_count = sum(1 for row in rows if row["bar_count"] >= required_bar_count)
+        provider_member_count = sum(1 for row in rows if row["provider_bar_count"] > 0)
+        derived_member_count = sum(1 for row in rows if row["derived_bar_count"] > 0)
+        provider_bar_count = sum(int(row["provider_bar_count"]) for row in rows)
+        derived_bar_count = sum(int(row["derived_bar_count"]) for row in rows)
+        source_lineage = (
+            "provider_and_derived"
+            if provider_member_count and derived_member_count
+            else "provider_only"
+            if provider_member_count
+            else "derived_only"
+            if derived_member_count
+            else "unavailable"
         )
-        oldest_values = [
-            oldest for _instrument_id, _count, oldest, _newest in rows if oldest is not None
-        ]
-        newest_values = [
-            newest for _instrument_id, _count, _oldest, newest in rows if newest is not None
-        ]
+        oldest_values = [row["oldest"] for row in rows if row["oldest"] is not None]
+        newest_values = [row["newest"] for row in rows if row["newest"] is not None]
         timeframes.append(
             BenchmarkFamilyMemberBarHistoryTimeframeOut(
                 timeframe=timeframe.value,
@@ -274,7 +305,12 @@ async def _family_member_bar_history(
                 coverage_percent=round((covered_count / len(member_ids)) * 100, 2),
                 analysis_ready_member_count=ready_count,
                 analysis_ready_percent=round((ready_count / len(member_ids)) * 100, 2),
-                bar_count=sum(count for _instrument_id, count, _oldest, _newest in rows),
+                bar_count=sum(int(row["bar_count"]) for row in rows),
+                provider_member_count=provider_member_count,
+                derived_member_count=derived_member_count,
+                provider_bar_count=provider_bar_count,
+                derived_bar_count=derived_bar_count,
+                source_lineage=source_lineage,
                 oldest=min(oldest_values) if oldest_values else None,
                 newest=max(newest_values) if newest_values else None,
             )

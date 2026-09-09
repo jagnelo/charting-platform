@@ -11,6 +11,11 @@ export interface BenchmarkFamilyMemberBarHistoryTimeframe {
   analysis_ready_member_count: number
   analysis_ready_percent: number
   bar_count: number
+  provider_member_count?: number
+  derived_member_count?: number
+  provider_bar_count?: number
+  derived_bar_count?: number
+  source_lineage?: string
   oldest?: string | null
   newest?: string | null
   required_bar_count?: number
@@ -67,6 +72,8 @@ export interface BenchmarkFamilyCoverageRole {
   holdings_refresh_composition_date?: string | null
   member_bar_history?: {
     status: string
+    snapshot_id?: number | null
+    composition_date?: string | null
     placeholder_member_count: number
     timeframes: BenchmarkFamilyMemberBarHistoryTimeframe[]
   }

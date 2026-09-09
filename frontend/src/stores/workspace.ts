@@ -541,6 +541,11 @@ export interface BenchmarkFamilyMemberBarHistoryTimeframeState {
   analysis_ready_member_count: number
   analysis_ready_percent: number
   bar_count: number
+  provider_member_count?: number
+  derived_member_count?: number
+  provider_bar_count?: number
+  derived_bar_count?: number
+  source_lineage?: string
   oldest?: string | null
   newest?: string | null
 }

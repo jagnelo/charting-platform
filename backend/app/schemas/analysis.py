@@ -331,6 +331,11 @@ class BenchmarkFamilyMemberBarHistoryTimeframeOut(BaseModel):
     analysis_ready_member_count: int = 0
     analysis_ready_percent: float = Field(default=0.0, ge=0, le=100)
     bar_count: int = 0
+    provider_member_count: int = Field(default=0, ge=0)
+    derived_member_count: int = Field(default=0, ge=0)
+    provider_bar_count: int = Field(default=0, ge=0)
+    derived_bar_count: int = Field(default=0, ge=0)
+    source_lineage: str = "unavailable"
     oldest: datetime | None = None
     newest: datetime | None = None
 
