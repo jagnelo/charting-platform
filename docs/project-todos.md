@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-09-09 — Snapshot generation queue recovery
+
+- [x] Keep the generation owned by an in-flight workstation snapshot PUT and
+      retry newer local layout/tool edits after the older request settles.
+- [x] Regress the exact timing race with a deferred PUT and preserve the
+      existing functional, provider, fallback, and visual acceptance policy.
+- [ ] Continue R1 canonical family/member history readiness and the broader
+      R6-R7 resilience/accessibility proof across live workflows.
+
 ### 2026-09-09 — OHLCV range lineage and adjustment provenance accessibility
 
 - [x] Return provider/derived/unknown counts, source lineage/timeframes, and an

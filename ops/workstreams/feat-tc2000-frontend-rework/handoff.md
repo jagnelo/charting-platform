@@ -8,6 +8,33 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-09 — Snapshot generation queue recovery checkpoint
+
+Product commit `d70d072a` records the generation owned by an in-flight
+workstation snapshot PUT and retries the trailing generation after that older
+request settles. This prevents a newer layout or promotion edit from being
+silently dropped when its timer fires during the previous PUT. The workspace
+store regression holds the first PUT open through the newer timer and verifies
+that the newer snapshot is sent after the older response.
+
+Focused workspace-store tests passed `71/71`; the Chart Plot Library suite
+passed `25/25`; frontend type-check and diff checks passed. The exact
+Docker-backed gate passed backend unit/integration (`1,372`/`387`, `81.10%`
+combined coverage), frontend Vitest (`988/988`), build, contracts, probes,
+stack health, performance, uPlot, acceptance policy, and functional Playwright
+(`165` passed, `107` documented skips across `272`). Visual parity remains
+`98/104` with only the six established watchlist-column-editor-open and
+workspace-floating diffs; the gate exits at e2e-visual for that known
+boundary. Scoped teardown removed all assigned resources and test sessions
+cleanly. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed, and no other worktree was touched.
+
+R1 remains active for complete canonical family/provider-history readiness,
+adjustment-factor and raw-versus-derived provenance, and broader continuity;
+R2-R7 remain open. Next action: continue the next bounded evidence-backed R1
+or compatible Study target slice, then rerun the exact gate at the next
+coherent tip.
+
 ## 2026-09-09 — OHLCV range lineage and adjustment provenance checkpoint
 
 Product commit `9a80c8f7` adds explicit provider/derived/unknown counts,

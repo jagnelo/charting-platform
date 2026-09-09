@@ -5,6 +5,37 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-09
 
+## 2026-09-09 — Snapshot generation queue recovery
+
+At product commit `d70d072a`, workstation snapshot persistence now records the
+generation owned by the in-flight PUT. If a newer local layout or tool edit
+arrives before that request settles, the trailing save retries against the
+newest generation instead of incorrectly concluding that the edit was already
+persisted. This closes the full-suite timing race that could leave a promoted
+watchlist filter visible locally but absent from the canonical workspace
+snapshot. The regression test holds the first PUT open while the newer timer
+fires and verifies the second PUT is issued only after the older request
+settles.
+
+The focused workspace-store suite passed `71/71`, the Chart Plot Library suite
+passed `25/25`, frontend type-check and diff checks passed, and the exact
+Docker-backed gate passed backend unit/integration (`1,372`/`387`, `81.10%`
+combined coverage), frontend Vitest (`988/988`), build, compose/provider/
+runner and research-runner probes, stack health, performance, uPlot,
+acceptance policy, and functional Playwright (`165` passed, `107` documented
+skips across `272`). Visual parity remains `98/104` with exactly the six
+established state-oracle diffs: `watchlist-column-editor-open.png` at
+visual-1080p-100/125 and `workspace-floating.png` at
+visual-1080p-100/125 and 1440p-100/125. The gate exits at the visual stage only
+for those established diffs; scoped teardown removed all stack resources and
+test sessions cleanly. No visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed.
+
+R1 remains open for full canonical family population, W1/MN provider history,
+placeholder disposition, explicit cadence/effective-time evidence beyond the
+timing metadata, rebuildable adjustment-factor/raw-versus-derived storage
+provenance, and broader continuity/readiness proof; R2-R7 remain open.
+
 ## 2026-09-09 — OHLCV range lineage and adjustment provenance accessibility
 
 At product commit `9a80c8f7`, canonical OHLCV range readiness now returns
