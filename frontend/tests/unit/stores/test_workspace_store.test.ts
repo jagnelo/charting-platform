@@ -717,6 +717,8 @@ describe('workspace store layout tabs', () => {
     await vi.waitFor(() => expect(apiPut).toHaveBeenCalledTimes(1), { timeout: 1_000 })
     store.workspace.tabs[0].windows[0].configuration = { expression: '=NVDA/XLK' }
     store.scheduleSnapshot()
+    await new Promise(resolve => setTimeout(resolve, 400))
+    expect(apiPut).toHaveBeenCalledTimes(1)
     oldResponse.resolve({ ...store.workspace, revision: 5, tabs: [{ ...store.workspace.tabs[0], windows: [{ ...store.workspace.tabs[0].windows[0], configuration: { expression: '=SPY/RSP' } }] }] })
 
     await vi.waitFor(() => expect(apiPut).toHaveBeenCalledTimes(2), { timeout: 1_500 })

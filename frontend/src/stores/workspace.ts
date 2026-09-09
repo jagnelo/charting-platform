@@ -1102,6 +1102,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   let leaderTimer: ReturnType<typeof setInterval> | null = null
   let snapshotTimer: ReturnType<typeof setTimeout> | null = null
   let snapshotSavePromise: Promise<void> | null = null
+  let snapshotPersistingGeneration: number | null = null
   let lastLocalWorkspaceMutationAt = 0
   const recentLinkGroupOverrides = new Map<string, { group: LinkGroup; symbol: string; at: number }>()
   const recentActiveWindowOverrides = new Map<string, { windowKey: string; at: number }>()
@@ -2671,7 +2672,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   async function saveSnapshot() {
     if (snapshotSavePromise) {
-      const waitingGeneration = snapshotGeneration
+      // A newer edit can arrive while this request is pending. Compare the
+      // live generation with the one owned by the in-flight request so that a
+      // waiting save retries instead of treating the newer edit as persisted.
+      const waitingGeneration = snapshotPersistingGeneration ?? snapshotGeneration
       await snapshotSavePromise
       if (workspace.value && snapshotGeneration !== waitingGeneration) return saveSnapshot()
       return
@@ -2679,6 +2683,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!workspace.value) return
     const current = workspace.value
     const generation = snapshotGeneration
+    snapshotPersistingGeneration = generation
     const persist = (async () => {
       try {
         const saved = await api.put<WorkspaceState>(`/workspaces/${current.id}/snapshot`, snapshotPayload(current))
@@ -2729,7 +2734,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     try {
       await persist
     } finally {
-      if (snapshotSavePromise === persist) snapshotSavePromise = null
+      if (snapshotSavePromise === persist) {
+        snapshotSavePromise = null
+        snapshotPersistingGeneration = null
+      }
     }
   }
 
