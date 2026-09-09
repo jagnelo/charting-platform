@@ -8,6 +8,17 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-09 — Exact-tip gate after holdings timing provenance
+
+At commit `c49db774`, the exact gate passed backend unit/integration
+(`1,370`/`387`, `81.06%` combined), frontend Vitest (`975/975`), build,
+contracts, probes, stack health, and functional Playwright (`165` passed,
+`107` documented skips). Visual parity remained `98/104` with exactly the six
+established watchlist-column-editor-open/workspace-floating diffs. Docker
+teardown was clean and no other worktree was touched. No visual, provider,
+fallback, or acceptance policy changed.
+
+## 2026-09-09 — Constituent timeline revision checkpoint
 ## 2026-09-09 — Constituent timeline revision checkpoint
 
 Product commit `e228f13d` applies latest-known-per-composition-date revision
