@@ -156,6 +156,13 @@ Robinhood returned one transient `local_rate_limited` response before the
 test's single provider-specific retry succeeded; neither result is treated as
 permission to guess a ticker or a quota.
 
+The complete manifest-driven matrix also wraps every available non-tokenized
+provider read in transport telemetry and requires at least one observed HTTP
+request and positive response bytes. SEC and Nasdaq directory pagination is
+cache-aware: the cache-populating read must produce transport evidence, while
+subsequent locally served pages are validated for completeness without being
+misreported as new network calls.
+
 The still-missing variables are `ALPACA_API_KEY`, `ALPACA_SECRET_KEY`,
 `TRADIER_API_KEY`, and `MARKETDATA_APP_API_KEY`. `EDGAR_USER_AGENT` is not
 missing for the recorded local run, but remains an explicit per-environment
@@ -163,11 +170,14 @@ configuration requirement. Until the three credential domains are supplied
 and their cases pass, the complete 29-case matrix remains an open acceptance
 gate.
 
-The latest network-enabled rerun reached 25/29 before one transient FINRA OTC
-TLS reset; the immediate bounded FINRA OTC retry passed 1/1. Together with the
-three exact missing-credential preflight failures, this preserves the earlier
-effective evidence of 26 passing cases without treating the transient reset as
-a provider contract failure.
+The latest network-enabled rerun passed 26/29 cases with positive transport
+observations across every available keyless and credentialed adapter, including
+all five tokenized providers. The only three failures were exact credential
+preflight failures for `ALPACA_API_KEY`/`ALPACA_SECRET_KEY`, `TRADIER_API_KEY`,
+and `MARKETDATA_APP_API_KEY`; the wrapper returned exit code 2 and made no
+acceptance claim. FINRA asynchronous result bytes and Tiingo/FMP operation byte
+maps were also reported non-routable because no positive reviewed bounds were
+configured.
 
 The MarketData.app adapter was also checked against the current official API
 root during this checkpoint: versioned resources are under
