@@ -2785,7 +2785,7 @@ async def get_weight_evolution(
         stmt = stmt.where(ETFHoldingsSnapshot.composition_date >= start_date)
     if end_date is not None:
         stmt = stmt.where(ETFHoldingsSnapshot.composition_date <= end_date)
-    snapshots = (await db.execute(stmt)).scalars().all()
+    snapshots = _collapse_snapshot_revisions((await db.execute(stmt)).scalars().all())
     if not snapshots:
         return ETFHoldingsWeightEvolutionOut(
             etf_symbol=instrument.symbol,

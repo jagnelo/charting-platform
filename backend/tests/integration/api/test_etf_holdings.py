@@ -1119,6 +1119,21 @@ def test_transition_timeline_reports_adjacent_snapshot_churn(client, admin_heade
     assert second["largest_additions"][0]["symbol"] == "NVDA"
     assert second["largest_reweights"][0]["weight_delta"] == "-0.02500000"
 
+    evolution = client.get(
+        "/api/v1/etf-holdings/TURN/weight-evolution?limit=10",
+        headers=auth_headers,
+    )
+    assert evolution.status_code == 200
+    evolution_body = evolution.json()
+    assert evolution_body["snapshot_count"] == 3
+    aapl_series = next(row for row in evolution_body["series"] if row["symbol"] == "AAPL")
+    assert [point["composition_date"] for point in aapl_series["points"]] == [
+        "2026-05-01",
+        "2026-05-15",
+        "2026-06-01",
+    ]
+    assert aapl_series["last_weight"] == "0.03000000"
+
     latest_only = client.get(
         "/api/v1/etf-holdings/TURN/transitions?limit=1",
         headers=auth_headers,
