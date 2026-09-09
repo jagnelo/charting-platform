@@ -190,6 +190,13 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     assert statuses["tiingo"] == "routable"
     assert statuses["fmp"] == "routable"
 
+    monkeypatch.setenv(
+        "TIINGO_OPERATION_BYTE_BOUNDS",
+        '{"fetch_ohlcv": 1, "fetch_latest_ohlcv": 1, "get_current_price": true, "bulk_fetch": 1, "search_instruments": 1, "get_instrument_profile": 1}',
+    )
+    statuses = routing_safety_preflight()
+    assert statuses["tiingo"].startswith("non-routable: missing positive bounds")
+
     monkeypatch.setenv("MARKETSTACK_DISCOVERY_EXCHANGE", "XNAS")
     statuses = routing_safety_preflight()
     assert statuses["marketstack discovery"] == "routable"

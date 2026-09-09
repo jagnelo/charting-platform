@@ -1558,10 +1558,9 @@ def provider_operation_byte_bounds(provider_name: str) -> dict[str, int]:
         return {}
     result: dict[str, int] = {}
     for operation, value in raw.items():
-        try:
-            bound = int(value)
-        except (TypeError, ValueError):
+        if isinstance(value, bool) or not isinstance(value, int):
             continue
+        bound = value
         if str(operation).strip() and bound > 0:
             result[str(operation).strip()] = bound
     return result

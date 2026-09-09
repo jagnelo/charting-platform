@@ -561,6 +561,7 @@ def provider_missing_routing_controls(name: str) -> list[str]:
         []
         if all(
             isinstance(configured_map.get(operation), int)
+            and not isinstance(configured_map.get(operation), bool)
             and configured_map[operation] > 0
             for operation in operations
         )

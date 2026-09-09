@@ -274,6 +274,12 @@ def test_tiingo_byte_pool_requires_complete_operator_bounds_before_promotion(mon
     monkeypatch.setattr(settings, "TIINGO_OPERATION_BYTE_BOUNDS", {"fetch_ohlcv": 1_000_000})
     assert provider_rate_limit_seed("tiingo")["quota_contract"].get("untracked_constraints")
 
+    malformed = dict(bounds)
+    malformed["get_current_price"] = True
+    monkeypatch.setattr(settings, "TIINGO_OPERATION_BYTE_BOUNDS", malformed)
+    seed = provider_rate_limit_seed("tiingo")
+    assert seed["quota_contract"].get("untracked_constraints")
+
 
 def test_finra_async_download_requires_positive_bound_for_monthly_reservation(monkeypatch):
     source = DataSource(

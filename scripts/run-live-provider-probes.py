@@ -186,6 +186,7 @@ def routing_safety_preflight() -> dict[str, str]:
             for operation in operations
             if operation not in parsed
             or not isinstance(parsed[operation], int)
+            or isinstance(parsed[operation], bool)
             or parsed[operation] <= 0
         ]
         result[provider] = (
