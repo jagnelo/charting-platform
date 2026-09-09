@@ -236,6 +236,31 @@ class TestProviderRegistry:
         assert provider_missing_routing_controls("finra") == []
         monkeypatch.setattr(
             settings,
+            "TIINGO_OPERATION_BYTE_BOUNDS",
+            {
+                "fetch_ohlcv": 1,
+                "fetch_latest_ohlcv": 1,
+                "search_instruments": 1,
+                "get_instrument_profile": 1,
+            },
+        )
+        assert provider_missing_routing_controls("tiingo") == [
+            "TIINGO_OPERATION_BYTE_BOUNDS"
+        ]
+        monkeypatch.setattr(
+            settings,
+            "TIINGO_OPERATION_BYTE_BOUNDS",
+            {
+                "fetch_ohlcv": 1,
+                "fetch_latest_ohlcv": 1,
+                "get_current_price": 1,
+                "bulk_fetch": 1,
+                "search_instruments": 1,
+                "get_instrument_profile": 1,
+            },
+        )
+        monkeypatch.setattr(
+            settings,
             "FINRA_OTC_OPERATION_COSTS",
             {"discover_universe_page": 3, "reconcile_universe_page": 3},
         )

@@ -1543,6 +1543,12 @@ _BYTE_BOUND_OPERATIONS: dict[str, tuple[str, ...]] = {
 }
 
 
+def provider_required_operation_byte_bounds(provider_name: str) -> tuple[str, ...]:
+    """Return the complete reviewed byte-bound operation set for a provider."""
+
+    return _BYTE_BOUND_OPERATIONS.get(provider_name, ())
+
+
 def provider_operation_byte_bounds(provider_name: str) -> dict[str, int]:
     """Return only positive, explicitly configured operation byte bounds."""
 

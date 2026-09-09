@@ -6,7 +6,11 @@ from typing import TypeVar, cast
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import provider_rate_limit_seed, settings
+from app.config import (
+    provider_rate_limit_seed,
+    provider_required_operation_byte_bounds,
+    settings,
+)
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument
 from app.providers.alpaca import AlpacaProvider
@@ -550,10 +554,9 @@ def provider_missing_routing_controls(name: str) -> list[str]:
     configured_map = getattr(settings, required[0], {}) or {}
     if not isinstance(configured_map, dict):
         return list(required)
-    operations = {
-        "tiingo": ("fetch_ohlcv", "fetch_latest_ohlcv", "search_instruments", "get_instrument_profile"),
-        "fmp": ("fetch_ohlcv", "fetch_latest_ohlcv", "get_instrument_profile", "discover_universe_page"),
-    }[name]
+    operations = provider_required_operation_byte_bounds(name)
+    if not operations:
+        return list(required)
     return (
         []
         if all(
