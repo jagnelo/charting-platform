@@ -241,6 +241,10 @@ def _dimension_costs_for_operation(
     result: dict[str, int] = {}
     for dimension in quota_dimensions(policy):
         name = str(dimension["name"])
+        unit = str(dimension.get("unit") or "").strip().lower()
+        if unit in {"concurrent_requests", "concurrency"}:
+            result[name] = 1
+            continue
         value: Any = default_units
         if isinstance(explicit, dict):
             raw = explicit.get(name)

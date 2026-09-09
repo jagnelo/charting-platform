@@ -708,21 +708,21 @@ async def test_in_flight_concurrency_dimension_is_released_not_consumed(db):
         async_db,
         resolved=resolved,
         capability=ProviderCapability.PRICE_HISTORY.value,
-        units=1,
+        units=5,
         now=now,
     )
     second = await reserve_provider_contract(
         async_db,
         resolved=resolved,
         capability=ProviderCapability.PRICE_HISTORY.value,
-        units=1,
+        units=7,
         now=now,
     )
     exhausted = await reserve_provider_contract(
         async_db,
         resolved=resolved,
         capability=ProviderCapability.PRICE_HISTORY.value,
-        units=1,
+        units=2,
         now=now,
     )
     assert first is not None and second is not None and exhausted is None

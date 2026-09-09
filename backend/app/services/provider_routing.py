@@ -341,7 +341,9 @@ async def reserve_provider_contract(
         raw_reserved_units = (dimension_units or {}).get(dimension_name, units)
         if int(raw_reserved_units) <= 0:
             continue
-        reserved_units = max(1, int(raw_reserved_units))
+        # One invocation occupies one concurrent slot regardless of how many
+        # request/credit units the provider-specific operation costs.
+        reserved_units = 1 if is_in_flight else max(1, int(raw_reserved_units))
         window_start, rolling = _window_start_for_dimension(dimension, reset=reset, now=now)
         window = await reserve_provider_quota(
             db,
