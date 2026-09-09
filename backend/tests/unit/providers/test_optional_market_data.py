@@ -60,10 +60,46 @@ def test_optional_adapters_are_concrete_and_capability_visible():
 def test_twelve_data_parses_intraday_values():
     provider = TwelveDataProvider()
     payload = {
-        "meta": {"symbol": "AAPL"},
+        "meta": {"symbol": "AAPL", "exchange_timezone": "America/New_York"},
         "values": [
             {
                 "datetime": "2024-01-02 14:30:00",
+                "open": "185.0",
+                "high": "186.0",
+                "low": "184.5",
+                "close": "185.5",
+                "volume": "1000",
+            }
+        ],
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ) as get,
+    ):
+        configured.TWELVE_DATA_API_KEY = "demo"
+        bars = provider.fetch_ohlcv(
+            "AAPL",
+            Timeframe.M5,
+            datetime(2024, 1, 2, 14, tzinfo=UTC),
+            datetime(2024, 1, 2, 15, tzinfo=UTC),
+        )
+    assert len(bars) == 1
+    assert bars[0].close == 185.5
+    assert bars[0].is_adjusted is False
+    assert bars[0].ts == datetime(2024, 1, 2, 14, 30, tzinfo=UTC)
+    assert get.call_args.kwargs["params"]["timezone"] == "UTC"
+
+
+def test_twelve_data_parses_daily_exchange_local_timestamp_as_utc():
+    provider = TwelveDataProvider()
+    payload = {
+        "meta": {"symbol": "AAPL", "exchange_timezone": "America/New_York"},
+        "values": [
+            {
+                "datetime": "2024-01-02 16:00:00",
                 "open": "185.0",
                 "high": "186.0",
                 "low": "184.5",
@@ -79,13 +115,13 @@ def test_twelve_data_parses_intraday_values():
         configured.TWELVE_DATA_API_KEY = "demo"
         bars = provider.fetch_ohlcv(
             "AAPL",
-            Timeframe.M5,
-            datetime(2024, 1, 2, 14, tzinfo=UTC),
-            datetime(2024, 1, 2, 15, tzinfo=UTC),
+            Timeframe.D1,
+            datetime(2024, 1, 2, 20, tzinfo=UTC),
+            datetime(2024, 1, 3, tzinfo=UTC),
         )
+
     assert len(bars) == 1
-    assert bars[0].close == 185.5
-    assert bars[0].is_adjusted is False
+    assert bars[0].ts == datetime(2024, 1, 2, 21, tzinfo=UTC)
 
 
 def test_finnhub_parses_parallel_candle_arrays():

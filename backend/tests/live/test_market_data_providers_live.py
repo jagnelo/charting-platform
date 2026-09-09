@@ -330,6 +330,16 @@ def test_optional_credentialed_provider_small_read(provider, credentials, symbol
         assert profile is not None
         assert profile.symbol == symbol
         assert profile.name and profile.exchange
+    if provider.name == "twelve_data":
+        intraday_start = datetime.now(UTC) - timedelta(days=5)
+        intraday_rows, _ = _observed_read(
+            lambda: provider.fetch_ohlcv(
+                symbol, Timeframe.M5, intraday_start, datetime.now(UTC)
+            ),
+            provider.name,
+        )
+        assert intraday_rows
+        assert all(row.ts.tzinfo is not None and row.close > 0 for row in intraday_rows)
     if provider.name == "eodhd":
         # EODHD documents the same EOD endpoint with d/w/m period selectors;
         # exercise the two non-daily adapter paths in the bounded live case.

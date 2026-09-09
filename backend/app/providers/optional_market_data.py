@@ -21,6 +21,7 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from math import ceil
 from typing import Any
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import httpx
 
@@ -124,7 +125,7 @@ def _decimal(value: Any) -> Decimal | None:
         return None
 
 
-def _timestamp(value: Any) -> datetime | None:
+def _timestamp(value: Any, *, timezone_name: str | None = None) -> datetime | None:
     if value in (None, ""):
         return None
     if isinstance(value, datetime):
@@ -147,7 +148,15 @@ def _timestamp(value: Any) -> datetime | None:
                     continue
             else:
                 return None
-    return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
+    if parsed.tzinfo is None:
+        if timezone_name:
+            try:
+                parsed = parsed.replace(tzinfo=ZoneInfo(timezone_name))
+            except ZoneInfoNotFoundError:
+                return None
+        else:
+            parsed = parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC) if timezone_name else parsed
 
 
 def _bounded_datetime(value: datetime) -> datetime:
@@ -227,9 +236,15 @@ class _RESTProvider:
         instrument_id: int | None,
         data_source_id: int | None,
         timestamp_keys: tuple[str, ...] = ("timestamp", "datetime", "date", "t"),
+        timestamp_timezone: str | None = None,
     ) -> OHLCVBar | None:
         ts = next(
-            (_timestamp(row.get(key)) for key in timestamp_keys if row.get(key) is not None), None
+            (
+                _timestamp(row.get(key), timezone_name=timestamp_timezone)
+                for key in timestamp_keys
+                if row.get(key) is not None
+            ),
+            None,
         )
         values = {
             "open": next(
@@ -447,18 +462,30 @@ class TwelveDataProvider(_RESTProvider):
                 bounded_end,
                 cursor + timedelta(seconds=_TF_SECONDS[timeframe] * _TWELVE_DATA_POINTS_PER_REQUEST),
             )
-            payload = self._get(
-                "time_series",
-                {
-                    "symbol": symbol.upper(),
-                    "interval": interval,
-                    # With both boundaries present Twelve Data returns the
-                    # complete bounded range, up to its 5,000-point cap.
-                    "start_date": cursor.isoformat(),
-                    "end_date": chunk_end.isoformat(),
-                    "format": "JSON",
-                },
+            request_params = {
+                "symbol": symbol.upper(),
+                "interval": interval,
+                # With both boundaries present Twelve Data returns the
+                # complete bounded range, up to its 5,000-point cap.
+                "start_date": cursor.isoformat(),
+                "end_date": chunk_end.isoformat(),
+                "format": "JSON",
+            }
+            # Twelve Data emits intraday equity timestamps in the requested
+            # timezone. Request UTC so the canonical parser has an explicit
+            # boundary; daily/weekly/monthly timestamps are always exchange
+            # local per the provider contract and are handled from metadata.
+            request_timezone = None if timeframe in {Timeframe.D1, Timeframe.W1, Timeframe.MN} else "UTC"
+            if request_timezone:
+                request_params["timezone"] = request_timezone
+            payload = self._get("time_series", request_params)
+            metadata = payload.get("meta") if isinstance(payload, dict) else None
+            exchange_timezone = (
+                str(metadata.get("exchange_timezone") or "").strip()
+                if isinstance(metadata, dict)
+                else ""
             )
+            timestamp_timezone = request_timezone or exchange_timezone or None
             for row in self._rows(payload, "values"):
                 bar = self._bar(
                     row,
@@ -466,6 +493,7 @@ class TwelveDataProvider(_RESTProvider):
                     instrument_id=instrument_id,
                     data_source_id=data_source_id,
                     timestamp_keys=("datetime", "timestamp"),
+                    timestamp_timezone=timestamp_timezone,
                 )
                 if bar and bounded_start <= bar.ts < bounded_end:
                     bars_by_timestamp[bar.ts] = bar
