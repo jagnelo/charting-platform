@@ -1,6 +1,8 @@
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 
 from app.models.data_source import DataSource
+from app.models.provider_observation import LatestPriceSnapshot
 from app.models.provider_runtime import ProviderCapability, ProviderCapacityEvent
 from app.models.tokenized_asset import TokenizedAssetDetail
 
@@ -50,6 +52,19 @@ def test_tokenized_assets_are_admin_only_and_preserve_provider_identity(
             provenance={"provider": "xstocks"},
         )
     )
+    source = DataSource(name="xstocks-admin-test", is_active=True)
+    db.add(source)
+    db.flush()
+    db.add(
+        LatestPriceSnapshot(
+            instrument_id=instrument.id,
+            data_source_id=source.id,
+            provider_symbol="xAAPL",
+            observed_at=datetime.now(UTC),
+            fetched_at=datetime.now(UTC),
+            price=Decimal("123.45"),
+        )
+    )
     db.commit()
 
     assert client.get("/api/v1/market-data/tokenized-assets").status_code == 401
@@ -62,3 +77,5 @@ def test_tokenized_assets_are_admin_only_and_preserve_provider_identity(
     assert row["provider_asset_id"] == "x:AAPL"
     assert row["token_symbol"] == "xAAPL"
     assert row["deployments"][0]["address"] == "So111"
+    assert row["latest_price"] == 123.45
+    assert row["latest_price_provider_symbol"] == "xAAPL"

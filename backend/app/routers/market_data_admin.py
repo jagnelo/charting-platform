@@ -26,6 +26,7 @@ from app.models.market_data_foundation import (
     ProviderShadowObservation,
     ShortInterestObservation,
 )
+from app.models.provider_observation import LatestPriceSnapshot
 from app.models.provider_runtime import ProviderCapability, ProviderCapacityEvent
 from app.models.tokenized_asset import TokenizedAssetDetail
 from app.models.user import User
@@ -55,6 +56,20 @@ async def list_tokenized_assets(
     if instrument_id is not None:
         query = query.where(TokenizedAssetDetail.instrument_id == instrument_id)
     rows = (await db.execute(query)).all()
+    instrument_ids = [instrument.id for _, instrument in rows]
+    snapshots_by_instrument: dict[int, LatestPriceSnapshot] = {}
+    if instrument_ids:
+        snapshots = (
+            await db.execute(
+                select(LatestPriceSnapshot)
+                .where(LatestPriceSnapshot.instrument_id.in_(instrument_ids))
+                .order_by(LatestPriceSnapshot.fetched_at.desc())
+            )
+        ).scalars().all()
+        snapshots_by_instrument = {
+            snapshot.instrument_id: snapshot
+            for snapshot in reversed(snapshots)
+        }
     return [
         {
             "instrument": {
@@ -82,6 +97,14 @@ async def list_tokenized_assets(
             "corporate_actions": detail.corporate_actions,
             "provenance": detail.provenance,
             "description": detail.description,
+            "latest_price": (
+                float(snapshot.price)
+                if (snapshot := snapshots_by_instrument.get(instrument.id))
+                else None
+            ),
+            "latest_price_provider_symbol": snapshot.provider_symbol if snapshot else None,
+            "latest_price_observed_at": snapshot.observed_at if snapshot else None,
+            "latest_price_fetched_at": snapshot.fetched_at if snapshot else None,
             "updated_at": detail.updated_at,
         }
         for detail, instrument in rows
