@@ -333,9 +333,14 @@ class BenchmarkFamilyMemberBarHistoryTimeframeOut(BaseModel):
     bar_count: int = 0
     provider_member_count: int = Field(default=0, ge=0)
     derived_member_count: int = Field(default=0, ge=0)
+    provider_only_member_count: int = Field(default=0, ge=0)
+    derived_only_member_count: int = Field(default=0, ge=0)
+    mixed_member_count: int = Field(default=0, ge=0)
     provider_bar_count: int = Field(default=0, ge=0)
     derived_bar_count: int = Field(default=0, ge=0)
-    source_lineage: str = "unavailable"
+    source_lineage: Literal[
+        "provider_only", "derived_only", "provider_and_derived", "unavailable"
+    ] = "unavailable"
     oldest: datetime | None = None
     newest: datetime | None = None
 

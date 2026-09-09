@@ -1027,6 +1027,9 @@ class TestWorkspaces:
         assert daily["bar_count"] == 253
         assert daily["provider_member_count"] == 2
         assert daily["derived_member_count"] == 0
+        assert daily["provider_only_member_count"] == 2
+        assert daily["derived_only_member_count"] == 0
+        assert daily["mixed_member_count"] == 0
         assert daily["provider_bar_count"] == 253
         assert daily["derived_bar_count"] == 0
         assert daily["source_lineage"] == "provider_only"
@@ -1035,6 +1038,9 @@ class TestWorkspaces:
         assert weekly["analysis_ready_member_count"] == 0
         assert weekly["provider_member_count"] == 1
         assert weekly["derived_member_count"] == 1
+        assert weekly["provider_only_member_count"] == 0
+        assert weekly["derived_only_member_count"] == 0
+        assert weekly["mixed_member_count"] == 1
         assert weekly["provider_bar_count"] == 1
         assert weekly["derived_bar_count"] == 1
         assert weekly["bar_count"] == 2

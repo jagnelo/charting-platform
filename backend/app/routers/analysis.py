@@ -283,6 +283,15 @@ async def _family_member_bar_history(
         ready_count = sum(1 for row in rows if row["bar_count"] >= required_bar_count)
         provider_member_count = sum(1 for row in rows if row["provider_bar_count"] > 0)
         derived_member_count = sum(1 for row in rows if row["derived_bar_count"] > 0)
+        provider_only_member_count = sum(
+            1 for row in rows if row["provider_bar_count"] > 0 and row["derived_bar_count"] == 0
+        )
+        derived_only_member_count = sum(
+            1 for row in rows if row["derived_bar_count"] > 0 and row["provider_bar_count"] == 0
+        )
+        mixed_member_count = sum(
+            1 for row in rows if row["provider_bar_count"] > 0 and row["derived_bar_count"] > 0
+        )
         provider_bar_count = sum(int(row["provider_bar_count"]) for row in rows)
         derived_bar_count = sum(int(row["derived_bar_count"]) for row in rows)
         source_lineage = (
@@ -308,6 +317,9 @@ async def _family_member_bar_history(
                 bar_count=sum(int(row["bar_count"]) for row in rows),
                 provider_member_count=provider_member_count,
                 derived_member_count=derived_member_count,
+                provider_only_member_count=provider_only_member_count,
+                derived_only_member_count=derived_only_member_count,
+                mixed_member_count=mixed_member_count,
                 provider_bar_count=provider_bar_count,
                 derived_bar_count=derived_bar_count,
                 source_lineage=source_lineage,
