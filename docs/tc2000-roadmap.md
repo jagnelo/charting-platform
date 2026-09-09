@@ -5,6 +5,40 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-09
 
+## 2026-09-09 — Exact-tip gate after disclosure timing provenance
+
+At product commit `a5be2a2f`, benchmark-family coverage now preserves the
+origin of each disclosure timestamp instead of treating every date as equally
+authoritative. Dated and latest provider refreshes classify composition date,
+as-of date, known-at time, and publication time as provider-reported,
+requested-date/profile fallbacks, or ingestion-time fallbacks; SEC fallback
+ingestion records filing acceptance as the known/publication basis. The
+provenance map is retained in snapshot legal metadata, serialized by the
+coverage API, and exposed in typed Market Map/workstation readiness labels.
+No timestamp is inferred beyond the existing documented fallback, and visible
+layout, provider precedence, fallback routing, and visual policy remain
+unchanged.
+
+The focused timing regressions passed (`3` tests; the narrow command exits
+non-zero only because the repository-wide `55%` coverage threshold is not met
+by that intentionally small slice); Ruff, format, diff, frontend type-check,
+and affected Market Map units (`36/36`) passed. The exact Docker-backed
+integration gate passed backend unit and integration tests (`1,371`/`387`),
+`81.09%` combined coverage, frontend Vitest (`975/975`), build,
+compose/provider/runner and health probes, functional Playwright (`165`
+passed, `107` documented skips across `272`), performance, uPlot, and
+acceptance-policy checks. Visual parity remains `98/104` with the same six
+established state-oracle diffs: column editor at 1080p 100/125 and floating
+workspace at 1080p 100/125 and 1440p 100/125. The gate exits at the visual
+stage only because those established diffs remain; scoped teardown removed all
+stack resources and test sessions cleanly. No baseline, mask, threshold, skip,
+provider, fallback, or acceptance policy changed.
+
+R1 remains open for full canonical family population, W1/MN provider history,
+placeholder disposition, explicit cadence/effective-time evidence beyond the
+new timing basis, and rebuildable adjustment-factor/raw-versus-derived storage
+provenance; R2-R7 remain open.
+
 ## 2026-09-09 — Exact-tip gate after unresolved member accounting
 
 At product commit `29d5407a`, benchmark-family member-bar readiness now keeps

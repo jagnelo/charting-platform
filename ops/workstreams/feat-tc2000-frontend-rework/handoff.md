@@ -8,6 +8,38 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-09 — Disclosure timing provenance checkpoint
+
+Product commit `a5be2a2f` makes the timing basis of benchmark-family
+disclosures explicit. Provider refresh paths classify composition date,
+as-of date, known-at time, and publication time as provider-reported or as a
+specific requested-date, profile, published-at, filing-acceptance, or
+ingestion-time fallback. SEC fallback keeps filing acceptance as the known and
+published basis. The map is retained in snapshot legal metadata, carried by
+the coverage API, and rendered by typed Market Map/workstation readiness
+labels. No unreported date is presented as provider fact; layout, precedence,
+fallback routing, and visual acceptance policy are unchanged.
+
+Focused timing regressions passed (`3` tests; the narrow command's non-zero
+exit is only the repository-wide `55%` coverage threshold), affected Market
+Map units passed `36/36`, and Ruff, format, diff, and frontend type-check
+passed. The exact Docker-backed gate passed backend unit/integration
+(`1,371`/`387`, `81.09%` combined coverage), frontend Vitest (`975/975`),
+build, contracts, probes, stack health, performance, uPlot, acceptance policy,
+and functional Playwright (`165` passed, `107` documented skips across `272`).
+Visual parity remains `98/104` with the six established
+watchlist-column-editor-open/workspace-floating diffs; the gate exits at
+e2e-visual only for those diffs. Teardown removed all scoped stack resources
+and test sessions. No other worktree was touched and no visual, provider,
+fallback, or acceptance policy changed.
+
+R1 remains active: canonical family/provider history population is partial,
+with unresolved and placeholder rows now explicit but still requiring an
+evidence-backed disposition; cadence/effective-time, adjustment-factor, and
+raw-versus-derived storage evidence remain open. R2-R7 remain open. Next
+action: continue the next bounded R1 provenance or compatible Study target
+slice, then rerun the exact gate at the next coherent tip.
+
 ## 2026-09-09 — Unresolved member accounting checkpoint
 
 Product commit `29d5407a` makes unresolved family holding rows explicit in the
