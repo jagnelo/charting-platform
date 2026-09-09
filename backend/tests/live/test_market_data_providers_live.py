@@ -36,6 +36,8 @@ from app.providers.optional_market_data import (
     TradierProvider,
     TwelveDataProvider,
 )
+from app.providers.telemetry import activate as activate_provider_telemetry
+from app.providers.telemetry import deactivate as deactivate_provider_telemetry
 
 pytestmark = [
     pytest.mark.live,
@@ -57,14 +59,33 @@ def _require(*names: str) -> None:
         pytest.fail(f"missing live provider credentials: {', '.join(missing)}")
 
 
+def _observed_read(call):
+    """Require every live adapter operation to report a real HTTP response."""
+
+    measurement, token = activate_provider_telemetry()
+    try:
+        result = call()
+    except BaseException:
+        assert measurement.http_requests > 0
+        assert measurement.response_bytes > 0
+        raise
+    finally:
+        deactivate_provider_telemetry(token)
+    assert measurement.http_requests > 0
+    assert measurement.response_bytes > 0
+    return result, measurement
+
+
 def test_openfigi_keyless_mapping():
-    rows = OpenFigiProvider().fetch_stable_identifiers("SPY", exchange_code="US")
+    rows, _ = _observed_read(
+        lambda: OpenFigiProvider().fetch_stable_identifiers("SPY", exchange_code="US")
+    )
     assert rows and any(row.identifier_type == "COMPOSITE_FIGI" for row in rows)
 
 
 def test_sec_edgar_keyless_profile():
     _require("EDGAR_USER_AGENT")
-    profile = EdgarProvider().get_instrument_profile("AAPL")
+    profile, _ = _observed_read(lambda: EdgarProvider().get_instrument_profile("AAPL"))
     assert profile is not None and profile.name and profile.extra.get("cik")
 
 
@@ -76,8 +97,18 @@ def test_sec_edgar_full_ticker_exchange_directory_pagination_is_complete():
     rows: list[dict] = []
     offset = 0
     declared_total: int | None = None
+    first_page = True
     while True:
-        page = provider.discover_universe_page("EQUITY", offset)
+        if first_page:
+            page, _ = _observed_read(
+                lambda: provider.discover_universe_page("EQUITY", offset)
+            )
+            first_page = False
+        else:
+            # Subsequent pages are served from the provider's documented
+            # in-process directory cache; validate pagination locally without
+            # pretending that a second HTTP response occurred.
+            page = provider.discover_universe_page("EQUITY", offset)
         page_rows = page["quotes"]
         assert page_rows
         if declared_total is None:
@@ -95,7 +126,9 @@ def test_sec_edgar_full_ticker_exchange_directory_pagination_is_complete():
 
 def test_nasdaq_trader_keyless_directory():
     provider = NasdaqProvider()
-    equities = provider.discover_universe_page("EQUITY", 0)
+    equities, _ = _observed_read(lambda: provider.discover_universe_page("EQUITY", 0))
+    # The first EQUITY read above populates the shared directory cache. The
+    # ETF read is therefore a local projection of that same observed source.
     etfs = provider.discover_universe_page("ETF", 0)
     assert equities["quotes"] and etfs["quotes"]
     assert equities["source_files"] == ["nasdaqlisted", "otherlisted"]
@@ -141,30 +174,32 @@ def test_nasdaq_trader_full_directory_pagination_is_complete():
 
 def test_binance_keyless_crypto_history():
     start, end = _bounds()
-    rows = BinanceProvider().fetch_latest_ohlcv("BTC-USD", Timeframe.D1, 1)
+    rows, _ = _observed_read(lambda: BinanceProvider().fetch_latest_ohlcv("BTC-USD", Timeframe.D1, 1))
     assert rows and rows[-1].close > 0
 
 
 def test_coinbase_keyless_crypto_history():
-    rows = CoinbaseProvider().fetch_latest_ohlcv("BTC-USD", Timeframe.D1, 1)
+    rows, _ = _observed_read(lambda: CoinbaseProvider().fetch_latest_ohlcv("BTC-USD", Timeframe.D1, 1))
     assert rows and rows[-1].close > 0
 
 
 def test_kraken_keyless_crypto_history():
-    rows = KrakenProvider().fetch_latest_ohlcv("BTC-USD", Timeframe.D1, 1)
+    rows, _ = _observed_read(lambda: KrakenProvider().fetch_latest_ohlcv("BTC-USD", Timeframe.D1, 1))
     assert rows and rows[-1].close > 0
 
 
 def test_alpaca_credentialed_history():
     _require("ALPACA_API_KEY", "ALPACA_SECRET_KEY")
     start, end = _bounds()
-    rows = AlpacaProvider().fetch_ohlcv("AAPL", Timeframe.D1, start, end)
+    rows, _ = _observed_read(
+        lambda: AlpacaProvider().fetch_ohlcv("AAPL", Timeframe.D1, start, end)
+    )
     assert rows and rows[-1].close > 0
 
 
 def test_massive_credentialed_reference():
     _require("MASSIVE_API_KEY")
-    rows = MassiveProvider().search_instruments("AAPL", limit=1)
+    rows, _ = _observed_read(lambda: MassiveProvider().search_instruments("AAPL", limit=1))
     assert rows
     assert all("AAPL" in f"{row.symbol} {row.name}".upper() for row in rows)
 
@@ -172,26 +207,28 @@ def test_massive_credentialed_reference():
 def test_alpha_vantage_credentialed_daily():
     _require("ALPHA_VANTAGE_API_KEY")
     start, end = _bounds()
-    rows = AlphaVantageProvider().fetch_ohlcv("AAPL", Timeframe.D1, start, end)
+    rows, _ = _observed_read(
+        lambda: AlphaVantageProvider().fetch_ohlcv("AAPL", Timeframe.D1, start, end)
+    )
     assert rows and rows[-1].close > 0
 
 
 def test_coingecko_credentialed_search():
     _require("COINGECKO_API_KEY")
-    rows = CoinGeckoProvider().search_instruments("bitcoin", limit=1)
+    rows, _ = _observed_read(lambda: CoinGeckoProvider().search_instruments("bitcoin", limit=1))
     assert rows and rows[0].symbol == "BTC-USD"
 
 
 def test_fred_credentialed_series():
     _require("FRED_API_KEY")
     start, end = _bounds()
-    rows = FREDProvider().fetch_ohlcv("^IRX", Timeframe.D1, start, end)
+    rows, _ = _observed_read(lambda: FREDProvider().fetch_ohlcv("^IRX", Timeframe.D1, start, end))
     assert rows and all(row.close > 0 for row in rows)
 
 
 def test_finra_credentialed_short_interest():
     _require("FINRA_CLIENT_ID", "FINRA_CLIENT_SECRET")
-    rows = FINRAProvider().fetch_short_interest("AAPL")
+    rows, _ = _observed_read(lambda: FINRAProvider().fetch_short_interest("AAPL"))
     assert rows
     assert all(row.settlement_date and row.short_position is not None for row in rows)
     assert any((row.source_identifier or "").upper() == "AAPL" for row in rows)
@@ -200,7 +237,9 @@ def test_finra_credentialed_short_interest():
 def test_finra_credentialed_otc_daily_list():
     _require("FINRA_CLIENT_ID", "FINRA_CLIENT_SECRET")
     end = date.today()
-    rows = FINRAProvider().fetch_market_events(start=end - timedelta(days=45), end=end)
+    rows, _ = _observed_read(
+        lambda: FINRAProvider().fetch_market_events(start=end - timedelta(days=45), end=end)
+    )
     assert rows
     for row in rows:
         assert row.event_key.startswith("finra:otc_daily_list:")
@@ -210,7 +249,9 @@ def test_finra_otc_directory_credentialed_source():
     """Prove the operator-approved complete OTC source returns a bounded page."""
 
     _require("FINRA_OTC_SYMBOL_DIRECTORY_URL")
-    page = FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
+    page, _ = _observed_read(
+        lambda: FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
+    )
     assert page["quotes"]
     assert page["total"] >= len(page["quotes"])
     assert page["source_files"] == [os.environ["FINRA_OTC_SYMBOL_DIRECTORY_URL"].strip()]
@@ -233,7 +274,7 @@ def test_finra_otc_directory_credentialed_source():
 def test_optional_credentialed_provider_small_read(provider, credentials, symbol):
     _require(*credentials)
     start, end = _bounds()
-    rows = provider.fetch_ohlcv(symbol, Timeframe.D1, start, end)
+    rows, _ = _observed_read(lambda: provider.fetch_ohlcv(symbol, Timeframe.D1, start, end))
     assert rows
     assert all(row.ts.tzinfo is not None for row in rows)
     assert all(row.close > 0 for row in rows)
@@ -243,7 +284,7 @@ def test_finnhub_credentialed_company_profile():
     """The observed free key does not entitle the stock-candle endpoint."""
 
     _require("FINNHUB_API_KEY")
-    profile = FinnhubProvider().get_instrument_profile("AAPL")
+    profile, _ = _observed_read(lambda: FinnhubProvider().get_instrument_profile("AAPL"))
     assert profile is not None
     assert profile.symbol == "AAPL"
     assert profile.name and profile.exchange
