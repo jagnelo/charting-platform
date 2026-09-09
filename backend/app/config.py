@@ -559,28 +559,29 @@ class Settings(BaseSettings):
                 "dimensions": [
                     {
                         "name": "requests_per_minute",
-                        "limit": 20,
+                        "limit": 1000,
                         "window_seconds": 60,
                         "unit": "requests",
                         "scope": "api_key",
-                        "source": "https://eodhd.com/",
+                        "source": "https://eodhd.com/financial-apis/api-limits",
                         "reset": "rolling",
                     },
                     {
-                        "name": "requests_per_day",
+                        "name": "calls_per_day",
                         "limit": 20,
                         "window_seconds": 86400,
-                        "unit": "requests",
+                        "unit": "calls",
                         "scope": "api_key",
-                        "source": "https://eodhd.com/",
+                        "source": "https://eodhd.com/financial-apis/api-limits",
                         "reset": "calendar_day_gmt",
                     },
                 ],
                 "reset": "per_dimension",
+                "operation_costs_required": True,
             },
-            "tokens_per_minute": 20,
+            "tokens_per_minute": 1000,
             "quota_scope": "api_key",
-            "quota_source": "EODHD free plan documentation",
+            "quota_source": "EODHD API limits documentation",
         },
         "fmp": {
             "quota_contract": {
@@ -745,6 +746,17 @@ class Settings(BaseSettings):
                     "fetch_short_interest": 3145728,
                     "fetch_market_events": 3145728,
                 }
+            },
+        },
+        "eodhd": {
+            "mode": "credit_count",
+            "unit_label": "calls",
+            "operation_costs": {
+                "fetch_ohlcv": 1,
+                "fetch_latest_ohlcv": 1,
+                "get_current_price": 1,
+                "get_instrument_profile": 10,
+                "discover_universe_page": 1,
             },
         },
     }

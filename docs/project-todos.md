@@ -36,14 +36,20 @@ current capability/quota ledger.
       OTC Security Master, Tiingo, Twelve Data, Finnhub company profile,
       Marketstack, EODHD, and FMP (`13/13`). Fix the free-plan mismatches found
       by those probes instead of accepting skips or empty lists.
+- [x] Correct EODHD's provider contract to distinguish its documented 1,000
+      requests/minute transport ceiling from the separate 20 API-calls/day
+      free-plan budget, and charge the documented 10-call fundamentals cost.
 - [x] Add safe cross-worktree env links, complete backend/worker Compose
       pass-through, and a manual GitHub environment-scoped live workflow.
       Routine push/PR CI receives no provider credentials. GitHub environment
       creation/upload is externally blocked until the repository-owner
       `jagnelo` account is authenticated in `gh`; the active
       `jagnelo-symbiotech` account received HTTP 403.
-- [ ] Supply and live-prove `EDGAR_USER_AGENT`, Alpaca Trading API key/secret,
-      a Tradier individual token, and a MarketData.app token. Positive live
+- [ ] Supply and live-prove Alpaca Trading API key/secret, a Tradier individual
+      token, and a MarketData.app token. The authoritative local matrix already
+      passed SEC EDGAR with an operator-supplied temporary contact User-Agent;
+      every deployment/CI environment must configure its own non-secret value.
+      Positive live
       evidence is now a runtime routing prerequisite, so merely configuring a
       missing key cannot activate those providers. No 30-day observation run
       may start before this gate and the NMS/OTC reconciliation gate are

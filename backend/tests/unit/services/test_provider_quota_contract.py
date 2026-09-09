@@ -690,6 +690,10 @@ def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
         "rolling",
         "calendar_day_gmt",
     ]
+    assert [item["limit"] for item in eodhd["dimensions"]] == [1000, 20]
+    assert [item["unit"] for item in eodhd["dimensions"]] == ["requests", "calls"]
+    assert eodhd["operation_costs_required"] is True
+    assert settings.PROVIDER_USAGE_PROFILE_SEEDS["eodhd"]["operation_costs"]["get_instrument_profile"] == 10
 
 
 def test_twelve_data_cumulative_credit_headers_update_only_matching_minute_window():
