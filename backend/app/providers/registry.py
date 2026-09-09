@@ -429,6 +429,16 @@ _CONFIGURATION_SETTINGS: dict[str, tuple[str, ...]] = {
     "marketstack": ("MARKETSTACK_API_KEY", "MARKETSTACK_DISCOVERY_EXCHANGE"),
 }
 
+# These controls do not authenticate a provider. They bound provider-specific
+# response/usage dimensions before the runtime can admit a route. Keep them
+# separate from credential diagnostics so an operator can distinguish
+# "credential missing" from "credential present but quota safety incomplete".
+_ROUTING_CONTROL_SETTINGS: dict[str, tuple[str, ...]] = {
+    "finra": ("FINRA_ASYNC_MAX_RESULT_BYTES",),
+    "tiingo": ("TIINGO_OPERATION_BYTE_BOUNDS",),
+    "fmp": ("FMP_OPERATION_BYTE_BOUNDS",),
+}
+
 
 def provider_configuration_required(name: str) -> bool:
     """Return whether the adapter needs explicit non-credential configuration."""
@@ -462,6 +472,42 @@ def provider_missing_settings(name: str) -> list[str]:
         if not value or (setting_name == "EDGAR_USER_AGENT" and "contact@example.com" in value):
             missing.append(setting_name)
     return missing
+
+
+def provider_routing_control_settings(name: str) -> tuple[str, ...]:
+    """Return non-secret routing-safety setting names for operator diagnostics."""
+
+    return _ROUTING_CONTROL_SETTINGS.get(name, ())
+
+
+def provider_missing_routing_controls(name: str) -> list[str]:
+    """Return missing provider-specific routing controls without their values."""
+
+    required = provider_routing_control_settings(name)
+    if not required:
+        return []
+    if name == "finra":
+        try:
+            configured = int(getattr(settings, "FINRA_ASYNC_MAX_RESULT_BYTES", 0) or 0)
+        except (TypeError, ValueError):
+            configured = 0
+        return [] if configured > 0 else list(required)
+    configured_map = getattr(settings, required[0], {}) or {}
+    if not isinstance(configured_map, dict):
+        return list(required)
+    operations = {
+        "tiingo": ("fetch_ohlcv", "fetch_latest_ohlcv", "search_instruments", "get_instrument_profile"),
+        "fmp": ("fetch_ohlcv", "fetch_latest_ohlcv", "get_instrument_profile", "discover_universe_page"),
+    }[name]
+    return (
+        []
+        if all(
+            isinstance(configured_map.get(operation), int)
+            and configured_map[operation] > 0
+            for operation in operations
+        )
+        else list(required)
+    )
 
 
 def provider_is_configured(name: str) -> bool:

@@ -113,6 +113,12 @@ class TestProvidersRouter:
             value.isupper() and " " not in value
             for value in unreviewed["missing_environment_variables"]
         )
+        assert "required_routing_control_variables" in unreviewed
+        assert "missing_routing_control_variables" in unreviewed
+        assert all(
+            value.isupper() and " " not in value
+            for value in unreviewed["missing_routing_control_variables"]
+        )
 
         target = rows[0]
         provider = target["provider"]

@@ -36,6 +36,10 @@ missing environment-variable names for each provider. These are names only;
 secret values are never returned. This lets operators distinguish an absent
 credential or non-secret scope setting from an unreviewed entitlement or quota
 contract without turning the diagnostics endpoint into a secret store.
+Routing-safety controls are exposed separately: FINRA's positive async result
+bound and the complete Tiingo/FMP operation-byte maps have their own required
+and missing-variable fields, so a configured credential cannot be mistaken for
+safe routing when response-size accounting is still incomplete.
 
 The same explicit accounting applies to the one-request surfaces of Alpaca,
 Massive, FRED, OpenFIGI, Coinbase, Kraken, Marketstack, Finnhub, FMP, Tiingo,

@@ -34,8 +34,10 @@ from app.providers import (
     list_provider_capabilities,
     provider_configuration_required,
     provider_is_configured,
+    provider_missing_routing_controls,
     provider_missing_settings,
     provider_required_settings,
+    provider_routing_control_settings,
     provider_supports_instrument,
     supported_provider_names,
 )
@@ -1656,6 +1658,12 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
             "credentials_configured": provider_is_configured(data_source.name),
             "required_environment_variables": list(provider_required_settings(data_source.name)),
             "missing_environment_variables": provider_missing_settings(data_source.name),
+            "required_routing_control_variables": list(
+                provider_routing_control_settings(data_source.name)
+            ),
+            "missing_routing_control_variables": provider_missing_routing_controls(
+                data_source.name
+            ),
             "entitlement_state": (
                 "reviewed"
                 if str(entitlement.configured_plan or "").strip().lower() != "unreviewed"

@@ -12,8 +12,10 @@ from app.providers.registry import (
     list_provider_capabilities,
     provider_configuration_required,
     provider_is_configured,
+    provider_missing_routing_controls,
     provider_missing_settings,
     provider_required_settings,
+    provider_routing_control_settings,
     provider_supports_instrument,
 )
 
@@ -151,6 +153,46 @@ class TestProviderRegistry:
             "MARKETDATA_API_KEY",
         )
         assert provider_missing_settings("massive") == []
+
+    def test_routing_control_diagnostics_report_names_without_values(self, monkeypatch):
+        monkeypatch.setattr(settings, "FINRA_ASYNC_MAX_RESULT_BYTES", 0)
+        monkeypatch.setattr(settings, "TIINGO_OPERATION_BYTE_BOUNDS", {})
+        monkeypatch.setattr(settings, "FMP_OPERATION_BYTE_BOUNDS", {})
+        assert provider_routing_control_settings("finra") == (
+            "FINRA_ASYNC_MAX_RESULT_BYTES",
+        )
+        assert provider_missing_routing_controls("finra") == [
+            "FINRA_ASYNC_MAX_RESULT_BYTES"
+        ]
+        assert provider_missing_routing_controls("tiingo") == [
+            "TIINGO_OPERATION_BYTE_BOUNDS"
+        ]
+        assert provider_missing_routing_controls("fmp") == ["FMP_OPERATION_BYTE_BOUNDS"]
+
+        monkeypatch.setattr(settings, "FINRA_ASYNC_MAX_RESULT_BYTES", 1024)
+        monkeypatch.setattr(
+            settings,
+            "TIINGO_OPERATION_BYTE_BOUNDS",
+            {
+                "fetch_ohlcv": 1,
+                "fetch_latest_ohlcv": 1,
+                "search_instruments": 1,
+                "get_instrument_profile": 1,
+            },
+        )
+        monkeypatch.setattr(
+            settings,
+            "FMP_OPERATION_BYTE_BOUNDS",
+            {
+                "fetch_ohlcv": 1,
+                "fetch_latest_ohlcv": 1,
+                "get_instrument_profile": 1,
+                "discover_universe_page": 1,
+            },
+        )
+        assert provider_missing_routing_controls("finra") == []
+        assert provider_missing_routing_controls("tiingo") == []
+        assert provider_missing_routing_controls("fmp") == []
 
     def test_yfinance_is_available_as_price_history_provider(self):
         provider = get_price_history_provider("yfinance")
