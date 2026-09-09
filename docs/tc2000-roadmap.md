@@ -5,6 +5,21 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-08
 
+## 2026-09-09 — Canonical history queue identity is order-independent
+
+The shared canonical history job key now treats timeframe requests as an
+unordered set: retries using `D1,W1,MN` and `MN,W1,D1` resolve to the same
+instrument/bound identity, while the worker still receives the caller's
+requested order. This prevents duplicate provider work during bounded family
+and watchlist maintenance. Focused history/bootstrap coverage passes `33/33`.
+At commit `df66cd1f`, the exact gate passed backend unit/integration
+(`1,370`/`387`, `81.06%` combined coverage), frontend Vitest (`975/975`),
+build, contracts, probes, stack health, and functional Playwright (`165`
+passed, `107` documented skips). Visual parity remains `98/104` with the six
+established state-oracle diffs; teardown removed all scoped resources. This is
+an R1 maintenance-idempotence closure only; canonical family population,
+point-in-time provenance/continuity, and R2–R7 remain open.
+
 ## 2026-09-08 — Provider-enabled coarse reads share canonical history
 
 The normal provider-enabled range, latest-page, and historical-page OHLCV
