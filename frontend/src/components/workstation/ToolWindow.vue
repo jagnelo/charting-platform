@@ -1,5 +1,5 @@
 <template>
-  <section class="tool-window" :data-window-key="windowKey" :class="{ 'tool-window--active': active }" :aria-labelledby="titleId" @keydown.escape="closeMenuToTrigger">
+  <section class="tool-window" role="group" :data-window-key="windowKey" :class="{ 'tool-window--active': active }" :aria-labelledby="titleId" @keydown.escape="closeMenuToTrigger">
     <header class="tool-window__header">
       <span class="tool-window__drag-handle" draggable="true" aria-label="Drag tool" title="Drag tool" @dragstart="emit('dragstart', $event)"><span class="tool-window__drag-glyph" aria-hidden="true" /></span>
       <strong :id="titleId" class="tool-window__title">{{ title }}</strong>
@@ -41,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref, useId } from 'vue'
+import { getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import type { LinkGroup } from '@/stores/workspace'
 import { dashboardLinkGroupColor, dashboardLinkGroupLabel } from '@/stores/dashboardLinks'
 
@@ -71,7 +71,12 @@ const emit = defineEmits<{
   close: []
 }>()
 
-const titleId = useId()
+// Golden Layout renders each tool into a detached Vue root. Vue's useId()
+// intentionally derives IDs from the root's inherited SSR counter, so every
+// detached root would otherwise receive the same value (for example, v-0).
+// Component UIDs remain globally unique across those roots and keep the
+// labelled tool relationship valid without changing visible layout.
+const titleId = `tool-window-title-${getCurrentInstance()?.uid ?? 0}`
 const menuOpen = ref(false)
 const menuRoot = ref<HTMLElement | null>(null)
 const menuTrigger = ref<HTMLButtonElement | null>(null)

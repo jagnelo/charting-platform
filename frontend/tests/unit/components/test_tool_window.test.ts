@@ -10,6 +10,7 @@ describe('ToolWindow', () => {
     expect(wrapper.find('[aria-label="Drag tool"]').attributes('draggable')).toBe('true')
     const titleId = wrapper.find('.tool-window__title').attributes('id')
     expect(titleId).toBeTruthy()
+    expect(wrapper.find('.tool-window').attributes('role')).toBe('group')
     expect(wrapper.find('.tool-window').attributes('aria-labelledby')).toBe(titleId)
     expect(wrapper.find('[aria-label="Open tool menu"]').exists()).toBe(true)
     expect(wrapper.find('[aria-label="Maximize tool"]').exists()).toBe(true)
@@ -38,6 +39,22 @@ describe('ToolWindow', () => {
     expect(wrapper.emitted('update:linkGroup')?.[0]).toEqual(['yellow'])
     expect(wrapper.find('.tool-window__link-swatch').attributes('style')).toContain('background')
     expect(wrapper.find('[aria-label="Chart symbol link group"] option[value="yellow"]').text()).toBe('Yellow')
+  })
+
+  it('keeps labelled-region ids unique across detached tool roots', () => {
+    const first = mount(ToolWindow, { props: { title: 'Chart' } })
+    const second = mount(ToolWindow, { props: { title: 'Chart' } })
+
+    const firstId = first.find('.tool-window__title').attributes('id')
+    const secondId = second.find('.tool-window__title').attributes('id')
+    expect(firstId).toBeTruthy()
+    expect(secondId).toBeTruthy()
+    expect(firstId).not.toBe(secondId)
+    expect(first.find('.tool-window').attributes('aria-labelledby')).toBe(firstId)
+    expect(second.find('.tool-window').attributes('aria-labelledby')).toBe(secondId)
+
+    first.unmount()
+    second.unmount()
   })
 
   it('keeps timeframe linking distinct from symbol linking and uses MN for monthly bars', async () => {
