@@ -147,10 +147,26 @@ export interface WatchlistSourceHistoryStatus {
   selected_instrument_count: number
   limited: boolean
   excluded_count: number
+  member_disposition?: Record<string, number>
   overall_status: WatchlistHistoryStatusKind
   analysis_ready?: boolean
   analysis_ready_status?: WatchlistHistoryStatusKind
   timeframes: WatchlistHistoryTimeframeStatus[]
+  message?: string | null
+}
+
+export interface WatchlistSourceHistoryRefreshSource {
+  source_id: string
+  source_kind?: string | null
+  name: string
+  locked: boolean
+  status: string
+  member_count: number
+  selected_count: number
+  deduplicated_count: number
+  excluded_count: number
+  member_disposition?: Record<string, number>
+  membership_version?: string | null
   message?: string | null
 }
 
@@ -166,6 +182,7 @@ export interface WatchlistSourceHistoryRefreshResult {
   queued: number
   already_queued: number
   queue_unavailable: boolean
+  sources?: WatchlistSourceHistoryRefreshSource[]
   message?: string | null
 }
 

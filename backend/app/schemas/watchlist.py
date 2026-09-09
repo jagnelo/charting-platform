@@ -120,6 +120,7 @@ class WatchlistSourceHistoryRefreshSourceOut(BaseModel):
     selected_count: int = 0
     deduplicated_count: int = 0
     excluded_count: int = 0
+    member_disposition: dict[str, int] = Field(default_factory=dict)
     membership_version: str | None = None
     message: str | None = None
 
@@ -194,6 +195,7 @@ class WatchlistSourceHistoryStatus(BaseModel):
     selected_instrument_count: int = 0
     limited: bool = False
     excluded_count: int = 0
+    member_disposition: dict[str, int] = Field(default_factory=dict)
     overall_status: str
     # ``overall_status`` intentionally preserves the legacy covered/worker
     # contract.  These fields answer the stricter workstation question without

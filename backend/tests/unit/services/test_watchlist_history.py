@@ -68,6 +68,51 @@ async def test_watchlist_history_plan_uses_user_scope_and_deduplicates_members(m
     assert plan["sources"][0]["selected_count"] == 2
     assert plan["sources"][1]["deduplicated_count"] == 1
     assert plan["sources"][1]["locked"] is True
+    assert plan["sources"][1]["member_disposition"] == {
+        "canonical": 2,
+        "placeholder": 0,
+        "unresolved": 1,
+        "excluded": 0,
+    }
+
+
+@pytest.mark.asyncio
+async def test_watchlist_history_plan_reports_all_member_dispositions(monkeypatch):
+    async def fake_resolve(_db, _user_id, source_id, *, as_of):
+        return SimpleNamespace(
+            descriptor=SimpleNamespace(
+                source_id=source_id,
+                source_kind="index_membership",
+                name="Mixed",
+                locked=True,
+                membership_version="mixed-v1",
+                provenance={"placeholder_member_count": 2},
+            ),
+            members=(
+                SimpleNamespace(instrument_id=10),
+                SimpleNamespace(instrument_id=10),
+                SimpleNamespace(instrument_id=20),
+            ),
+            exclusions=(
+                {"reason": "unresolved_holding"},
+                {"reason": "unresolved_holding"},
+                {"reason": "unresolved_holding"},
+                {"reason": "cash_holding"},
+                {"reason": "non_equity_holding"},
+            ),
+        )
+
+    monkeypatch.setattr(history, "resolve_watchlist_source", fake_resolve)
+    plan = await history.plan_watchlist_source_history_refresh(
+        object(), 7, source_ids=["market-group:mixed"], timeframes=["D1"]
+    )
+
+    assert plan["sources"][0]["member_disposition"] == {
+        "canonical": 2,
+        "placeholder": 2,
+        "unresolved": 1,
+        "excluded": 2,
+    }
 
 
 @pytest.mark.asyncio
@@ -94,6 +139,12 @@ async def test_watchlist_history_plan_retains_unavailable_source(monkeypatch):
             "selected_count": 0,
             "deduplicated_count": 0,
             "excluded_count": 0,
+            "member_disposition": {
+                "canonical": 0,
+                "placeholder": 0,
+                "unresolved": 0,
+                "excluded": 0,
+            },
             "membership_version": None,
             "message": "watchlist:missing is not visible",
         }
@@ -160,6 +211,12 @@ async def test_watchlist_history_status_uses_local_coverage_and_worker_progress(
                     "name": "S&P 500 — Cap weight",
                     "locked": True,
                     "excluded_count": 1,
+                    "member_disposition": {
+                        "canonical": 2,
+                        "placeholder": 0,
+                        "unresolved": 1,
+                        "excluded": 0,
+                    },
                     "membership_version": "sp500-v1",
                     "message": None,
                 }
@@ -203,6 +260,12 @@ async def test_watchlist_history_status_uses_local_coverage_and_worker_progress(
     assert status["analysis_ready_status"] == "pending"
     assert status["selected_instrument_count"] == 2
     assert status["excluded_count"] == 1
+    assert status["member_disposition"] == {
+        "canonical": 2,
+        "placeholder": 0,
+        "unresolved": 1,
+        "excluded": 0,
+    }
     assert status["timeframes"] == [
         {
             "timeframe": "D1",

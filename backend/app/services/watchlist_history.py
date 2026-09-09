@@ -16,6 +16,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.services.member_dispositions import MEMBER_DISPOSITION_KEYS, member_disposition_counts
 from app.services.watchlist_sources import (
     PENDING_SOURCE_AVAILABILITIES,
     resolve_watchlist_source,
@@ -113,6 +114,7 @@ async def plan_watchlist_source_history_refresh(
                     "selected_count": 0,
                     "deduplicated_count": 0,
                     "excluded_count": 0,
+                    "member_disposition": dict.fromkeys(MEMBER_DISPOSITION_KEYS, 0),
                     "membership_version": None,
                     "message": str(exc),
                 }
@@ -146,6 +148,9 @@ async def plan_watchlist_source_history_refresh(
                 "selected_count": selected_count,
                 "deduplicated_count": len(members) - selected_count,
                 "excluded_count": len(resolved.exclusions),
+                "member_disposition": member_disposition_counts(
+                    members, resolved.descriptor, list(resolved.exclusions)
+                ),
                 "membership_version": resolved.descriptor.membership_version,
                 "message": (
                     None
@@ -351,6 +356,9 @@ async def build_watchlist_source_history_status(
         "selected_instrument_count": plan["selected_instrument_count"],
         "limited": plan["limited"],
         "excluded_count": source.get("excluded_count", 0),
+        "member_disposition": source.get(
+            "member_disposition", dict.fromkeys(MEMBER_DISPOSITION_KEYS, 0)
+        ),
         "overall_status": overall_status,
         "analysis_ready": analysis_ready,
         "analysis_ready_status": analysis_ready_status,

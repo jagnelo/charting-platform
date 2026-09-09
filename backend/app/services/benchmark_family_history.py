@@ -9,7 +9,6 @@ is contacted while building a Market Map, breadth view, or watchlist response.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from datetime import UTC, date, datetime, time
 from typing import Any
 
@@ -20,6 +19,7 @@ from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
 from app.models.instrument import Instrument
 from app.models.ohlcv import Timeframe
 from app.services.etf_holdings import is_equity_holding_type, is_placeholder_symbol
+from app.services.member_dispositions import MEMBER_DISPOSITION_KEYS, member_disposition_counts
 from app.services.top_down_taxonomy import BENCHMARK_FAMILY_REGISTRY
 from app.services.watchlist_sources import (
     PENDING_SOURCE_AVAILABILITIES,
@@ -30,42 +30,6 @@ DEFAULT_HISTORY_TIMEFRAMES = (Timeframe.MN.value, Timeframe.W1.value, Timeframe.
 MAX_HISTORY_INSTRUMENTS = 5000
 MAX_HISTORY_SNAPSHOTS = 512
 BENCHMARK_FAMILY_ROLES = ("cap_weight", "equal_weight", "value", "growth")
-_MEMBER_DISPOSITION_KEYS = ("canonical", "placeholder", "unresolved", "excluded")
-
-
-def _member_disposition(
-    members: list[Any], descriptor: Any, exclusions: tuple[dict, ...] | list[dict]
-) -> dict[str, int]:
-    """Return stable canonical/placeholder/unresolved/excluded counts for a plan leg.
-
-    ``resolve_watchlist_source`` intentionally publishes only canonical members;
-    placeholder rows are retained in descriptor provenance while unresolved and
-    non-member rows are represented by exclusion reasons. Keep the aggregate
-    ``excluded_count`` API unchanged and add this explicit breakdown for admin
-    history maintenance consumers.
-    """
-
-    provenance = getattr(descriptor, "provenance", {}) or {}
-    placeholder_count = 0
-    if isinstance(provenance, Mapping):
-        try:
-            placeholder_count = max(0, int(provenance.get("placeholder_member_count", 0) or 0))
-        except (TypeError, ValueError):
-            placeholder_count = 0
-    unresolved_rows = sum(
-        1 for exclusion in exclusions if exclusion.get("reason") == "unresolved_holding"
-    )
-    excluded_rows = sum(
-        1
-        for exclusion in exclusions
-        if exclusion.get("reason") in {"cash_holding", "derivative_holding", "non_equity_holding"}
-    )
-    return {
-        "canonical": len({int(member.instrument_id) for member in members}),
-        "placeholder": placeholder_count,
-        "unresolved": max(0, unresolved_rows - placeholder_count),
-        "excluded": excluded_rows,
-    }
 
 
 def history_end_for_date(value: date) -> datetime:
@@ -313,7 +277,7 @@ async def plan_benchmark_family_history_refresh(
                         "selected_count": 0,
                         "deduplicated_count": 0,
                         "excluded_count": 0,
-                        "member_disposition": dict.fromkeys(_MEMBER_DISPOSITION_KEYS, 0),
+                        "member_disposition": dict.fromkeys(MEMBER_DISPOSITION_KEYS, 0),
                         **route_evidence,
                         "message": str(exc),
                     }
@@ -354,7 +318,7 @@ async def plan_benchmark_family_history_refresh(
                     "selected_count": selected_count,
                     "deduplicated_count": len(members) - selected_count,
                     "excluded_count": len(resolved.exclusions),
-                    "member_disposition": _member_disposition(
+                    "member_disposition": member_disposition_counts(
                         members, resolved.descriptor, resolved.exclusions
                     ),
                     "membership_version": resolved.descriptor.membership_version,

@@ -197,6 +197,7 @@
         <span v-for="history in historyStatus.timeframes" :key="history.timeframe">{{ watchlistHistoryTimeframeLabel(history) }}</span>
         <span v-if="historyStatus.limited">Bounded to {{ historyStatus.selected_instrument_count }} of {{ historyStatus.available_instrument_count }}</span>
         <span v-if="historyRefreshMessage" role="status">{{ historyRefreshMessage }}</span>
+        <span class="sr-only" aria-label="Market Map history member disposition evidence">{{ watchlistHistoryDispositionLabel(historyStatus) }}</span>
       </template>
       <span v-if="historyRun" class="market-map-tool__history-run" role="status">Run {{ historyRun.id }} · {{ historyRun.status }}<template v-if="historyRun.progress"> · {{ historyRunProgress }}</template></span>
       <button v-if="sourceId" type="button" aria-label="Refresh Market Map history" :disabled="historyRefreshing || historyLoading" @click="refreshHistory">{{ historyRefreshing ? 'Queueing…' : 'Refresh history' }}</button>
@@ -680,6 +681,14 @@ function watchlistHistoryTimeframeLabel(history: WatchlistSourceHistoryStatus['t
     ? ` · analysis-ready ${history.analysis_ready_member_count}/${history.member_count}${history.required_bar_count ? ` (floor ${history.required_bar_count})` : ''}`
     : ''
   return `${history.covered_member_count}/${history.member_count} ${history.timeframe} members covered${ready} · ${history.bar_count} bars${range}`
+}
+
+function watchlistHistoryDispositionLabel(status: WatchlistSourceHistoryStatus): string {
+  const disposition = Object.entries(status.member_disposition ?? {})
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${key} ${value}`)
+    .join(', ')
+  return disposition ? `Member disposition: ${disposition}` : 'Member disposition: not reported'
 }
 
 function benchmarkRoleLatestSnapshotLabel(role: BenchmarkFamilyCoverageRole): string {
