@@ -190,6 +190,36 @@ class TestProvidersRouter:
         assert invalid_contract.status_code == 400
         assert "quota_contract is incomplete" in invalid_contract.json()["detail"]
 
+        unverified_contract = client.patch(
+            quota_url,
+            headers=admin_headers,
+            json={
+                "quota_contract": {
+                    "reset": "provider_defined",
+                    "unknown_dimensions": ["provider_terms"],
+                    "dimensions": [
+                        {
+                            "name": "requests_per_minute",
+                            "limit": 60,
+                            "window_seconds": 60,
+                            "unit": "requests",
+                            "scope": "account",
+                            "source": "https://provider.example/limits",
+                        }
+                    ],
+                },
+                "quota_source": "provider documentation pending terms review",
+            },
+        )
+        assert unverified_contract.status_code == 200
+        unverified_row = next(
+            row
+            for row in client.get("/api/v1/providers/policies", headers=admin_headers).json()
+            if row["provider"] == "finnhub" and row["capability"] == "price_history"
+        )
+        assert unverified_row["quota_verified_at"] is None
+        assert unverified_row["routing_eligible"] is False
+
     def test_entitlements_are_seeded_and_patchable(self, client, admin_headers):
         rows = client.get("/api/v1/providers/entitlements", headers=admin_headers)
         assert rows.status_code == 200

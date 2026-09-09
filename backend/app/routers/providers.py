@@ -428,13 +428,8 @@ async def update_provider_policy(
 
     changes = body.model_dump(exclude_unset=True)
     quota_fields = {"max_concurrency", "tokens_per_minute", "burst_capacity", "cooldown_seconds"}
-    if quota_fields.intersection(changes):
-        if "quota_contract" not in changes:
-            raise HTTPException(
-                400,
-                "Provider limits require an explicit replacement documentation-backed "
-                "quota_contract; individual numeric defaults are not accepted",
-            )
+    candidate_contract_missing: list[str] = []
+    if "quota_contract" in changes and changes.get("quota_contract") is not None:
         candidate_contract = changes.get("quota_contract")
         if not isinstance(candidate_contract, dict):
             raise HTTPException(400, "quota_contract must be a JSON object")
@@ -442,11 +437,18 @@ async def update_provider_policy(
             capability=capability_enum,
             quota_contract=candidate_contract,
         )
-        missing_dimensions = quota_contract_missing_dimensions(candidate_policy)
-        if missing_dimensions:
+        candidate_contract_missing = quota_contract_missing_dimensions(candidate_policy)
+    if quota_fields.intersection(changes):
+        if "quota_contract" not in changes:
             raise HTTPException(
                 400,
-                "quota_contract is incomplete: " + ", ".join(missing_dimensions),
+                "Provider limits require an explicit replacement documentation-backed "
+                "quota_contract; individual numeric defaults are not accepted",
+            )
+        if candidate_contract_missing:
+            raise HTTPException(
+                400,
+                "quota_contract is incomplete: " + ", ".join(candidate_contract_missing),
             )
         quota_source = str(changes.get("quota_source", policy.quota_source) or "").strip()
         if not quota_source:
@@ -456,10 +458,16 @@ async def update_provider_policy(
             )
     for field_name, value in changes.items():
         setattr(policy, field_name, value)
-    if changes.get("quota_contract") is not None:
-        policy.quota_verified_at = datetime.now(UTC)
-    elif "quota_contract" in changes:
-        policy.quota_verified_at = None
+    if "quota_contract" in changes:
+        # A contract containing unknown/untracked dimensions is useful audit
+        # evidence, but it is not a verified admission contract. Keep the
+        # timestamp empty so admin diagnostics cannot present a fail-closed
+        # policy as documentation-approved.
+        policy.quota_verified_at = (
+            datetime.now(UTC)
+            if changes.get("quota_contract") is not None and not candidate_contract_missing
+            else None
+        )
     if body.base_priority is not None and body.is_pinned is None:
         policy.is_pinned = True
     await db.flush()

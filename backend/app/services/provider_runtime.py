@@ -605,12 +605,20 @@ def _apply_policy_defaults(
         )
         if contract_refreshed:
             policy.quota_contract = dict(seeded_contract)
-            policy.quota_verified_at = datetime.now(UTC)
+            policy.quota_verified_at = (
+                datetime.now(UTC)
+                if not quota_contract_missing_dimensions(policy)
+                else None
+            )
     if policy.quota_scope is None and rate_seed.get("quota_scope"):
         policy.quota_scope = str(rate_seed["quota_scope"])
     if policy.quota_source is None and rate_seed.get("quota_source"):
         policy.quota_source = str(rate_seed["quota_source"])
-    if policy.quota_verified_at is None and policy.quota_contract:
+    if (
+        policy.quota_verified_at is None
+        and policy.quota_contract
+        and not quota_contract_missing_dimensions(policy)
+    ):
         policy.quota_verified_at = datetime.now(UTC)
     policy.freshness_seconds = _int_or(policy.freshness_seconds, freshness_seconds)
     if policy.score_floor is None:
@@ -963,11 +971,11 @@ async def seed_provider_runtime(db: AsyncSession) -> None:
                     quota_contract=rate_seed.get("quota_contract"),
                     quota_scope=rate_seed.get("quota_scope"),
                     quota_source=rate_seed.get("quota_source"),
-                    quota_verified_at=datetime.now(UTC)
-                    if rate_seed.get("quota_contract")
-                    else None,
+                    quota_verified_at=None,
                     freshness_seconds=freshness,
                 )
+                if rate_seed.get("quota_contract") and not quota_contract_missing_dimensions(policy):
+                    policy.quota_verified_at = datetime.now(UTC)
                 db.add(policy)
             entitlement = (
                 await db.execute(
