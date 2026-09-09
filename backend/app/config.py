@@ -376,6 +376,12 @@ class Settings(BaseSettings):
                 ],
                 "reset": "rolling",
             },
+            # Coinbase documents a lazy-fill public token bucket: 10 requests
+            # per second with a burst capacity of 15. Keep the local bucket
+            # aligned with that provider-native burst instead of leaving a
+            # process-local limiter unspecified.
+            "tokens_per_minute": 600,
+            "burst_capacity": 15,
             "quota_scope": "ip",
             "quota_source": "Coinbase Exchange REST rate-limit documentation",
         },

@@ -29,7 +29,14 @@ from app.providers.binance import (
     estimate_ohlcv_request_weight,
 )
 from app.providers.coingecko import CoinGeckoProvider
-from app.providers.crypto_market_data import KrakenProvider
+from app.providers.crypto_market_data import (
+    CoinbaseProvider,
+    KrakenProvider,
+    estimate_coinbase_latest_ohlcv_request_count,
+    estimate_coinbase_ohlcv_request_count,
+    estimate_kraken_latest_ohlcv_request_count,
+    estimate_kraken_ohlcv_request_count,
+)
 from app.providers.edgar import EdgarProvider, _ensure_ticker_map
 from app.providers.errors import (
     ProviderNotConfiguredError,
@@ -381,6 +388,65 @@ class TestBinanceOHLCVParsing:
         assert estimate_ohlcv_request_weight(Timeframe.D1, start, end) == 4
         assert estimate_latest_ohlcv_request_weight(Timeframe.D1, 1001) == 4
         assert estimate_latest_ohlcv_request_weight(Timeframe.M1, 1000) == 6
+
+
+# ── Coinbase/Kraken paginated OHLCV ──────────────────────────────────────────
+
+
+class TestCryptoOHLCVPagination:
+    def test_coinbase_history_pages_300_candle_ranges(self):
+        provider = CoinbaseProvider()
+        start = datetime(2024, 1, 1, tzinfo=UTC)
+        end = start + timedelta(minutes=301)
+        first = [[start.timestamp(), "1", "2", "1.5", "1.75", "10"]]
+        second_ts = start + timedelta(minutes=300)
+        second = [[second_ts.timestamp(), "2", "3", "2.5", "2.75", "20"]]
+        responses = [
+            httpx.Response(
+                200,
+                json=first,
+                request=httpx.Request("GET", "https://api.exchange.coinbase.com"),
+            ),
+            httpx.Response(
+                200,
+                json=second,
+                request=httpx.Request("GET", "https://api.exchange.coinbase.com"),
+            ),
+        ]
+        with patch("app.providers.crypto_market_data.httpx.get", side_effect=responses) as get:
+            bars = provider.fetch_ohlcv("BTC-USD", Timeframe.M1, start, end)
+
+        assert get.call_count == 2
+        assert [bar.ts for bar in bars] == [start, second_ts]
+        assert estimate_coinbase_ohlcv_request_count(Timeframe.M1, start, end) == 2
+        assert estimate_coinbase_latest_ohlcv_request_count(Timeframe.M1, 301) == 2
+
+    def test_kraken_history_follows_provider_last_cursor(self):
+        provider = KrakenProvider()
+        start = datetime(2024, 1, 1, tzinfo=UTC)
+        end = start + timedelta(minutes=721)
+        first_row = [start.timestamp(), "1", "2", "1.5", "1.75", "1.7", "10"]
+        second_ts = start + timedelta(minutes=720)
+        second_row = [second_ts.timestamp(), "2", "3", "2.5", "2.75", "2.7", "20"]
+        responses = [
+            httpx.Response(
+                200,
+                json={"result": {"XXBTZUSD": [first_row], "last": int((start + timedelta(minutes=719)).timestamp())}},
+                request=httpx.Request("GET", "https://api.kraken.com/0/public/OHLC"),
+            ),
+            httpx.Response(
+                200,
+                json={"result": {"XXBTZUSD": [second_row], "last": int(second_ts.timestamp())}},
+                request=httpx.Request("GET", "https://api.kraken.com/0/public/OHLC"),
+            ),
+        ]
+        with patch("app.providers.crypto_market_data.httpx.get", side_effect=responses) as get:
+            bars = provider.fetch_ohlcv("BTC-USD", Timeframe.M1, start, end)
+
+        assert get.call_count == 2
+        assert [bar.ts for bar in bars] == [start, second_ts]
+        assert estimate_kraken_ohlcv_request_count(Timeframe.M1, start, end) == 2
+        assert estimate_kraken_latest_ohlcv_request_count(Timeframe.M1, 721) == 2
 
 
 # ── FRED series map ───────────────────────────────────────────────────────────

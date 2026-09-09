@@ -1400,6 +1400,16 @@ def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
     assert fmp["untracked_constraints"][0]["reset"] == "rolling_30_days"
 
 
+def test_coinbase_public_token_bucket_matches_documented_burst():
+    seed = settings.PROVIDER_RATE_LIMIT_SEEDS["coinbase"]
+    assert seed["tokens_per_minute"] == 600
+    assert seed["burst_capacity"] == 15
+    dimension = seed["quota_contract"]["dimensions"][0]
+    assert dimension["limit"] == 10
+    assert dimension["window_seconds"] == 1
+    assert dimension["scope"] == "ip"
+
+
 def test_finra_synchronous_budget_uses_documented_byte_reservation():
     seed = settings.PROVIDER_RATE_LIMIT_SEEDS["finra"]
     contract = seed["quota_contract"]

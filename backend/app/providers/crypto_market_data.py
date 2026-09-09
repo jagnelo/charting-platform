@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from math import ceil
 from typing import Any
 
 import httpx
@@ -23,6 +24,65 @@ _TF_SECONDS = {
     Timeframe.D1: 86400,
     Timeframe.W1: 604800,
 }
+
+_COINBASE_CANDLES_PER_REQUEST = 300
+_KRAKEN_CANDLES_PER_REQUEST = 720
+
+
+def _estimate_request_count(
+    timeframe: Timeframe,
+    start: datetime,
+    end: datetime,
+    *,
+    candles_per_request: int,
+) -> int | None:
+    seconds = _TF_SECONDS.get(timeframe)
+    if seconds is None or end <= start:
+        return 0 if end <= start else None
+    span_seconds = max(0.0, (end - start).total_seconds())
+    return max(1, ceil(span_seconds / (seconds * candles_per_request)))
+
+
+def estimate_coinbase_ohlcv_request_count(
+    timeframe: Timeframe, start: datetime, end: datetime
+) -> int | None:
+    """Estimate Coinbase candle calls for its documented 300-candle page cap."""
+
+    return _estimate_request_count(
+        timeframe,
+        start,
+        end,
+        candles_per_request=_COINBASE_CANDLES_PER_REQUEST,
+    )
+
+
+def estimate_coinbase_latest_ohlcv_request_count(timeframe: Timeframe, limit: int) -> int | None:
+    if limit <= 0:
+        return 0
+    if timeframe not in _TF_SECONDS:
+        return None
+    return max(1, ceil(limit / _COINBASE_CANDLES_PER_REQUEST))
+
+
+def estimate_kraken_ohlcv_request_count(
+    timeframe: Timeframe, start: datetime, end: datetime
+) -> int | None:
+    """Estimate Kraken OHLC calls for its documented 720-candle page cap."""
+
+    return _estimate_request_count(
+        timeframe,
+        start,
+        end,
+        candles_per_request=_KRAKEN_CANDLES_PER_REQUEST,
+    )
+
+
+def estimate_kraken_latest_ohlcv_request_count(timeframe: Timeframe, limit: int) -> int | None:
+    if limit <= 0:
+        return 0
+    if timeframe not in _TF_SECONDS:
+        return None
+    return max(1, ceil(limit / _KRAKEN_CANDLES_PER_REQUEST))
 
 
 def _json_payload(response: httpx.Response, provider_name: str) -> Any:
@@ -48,32 +108,38 @@ class CoinbaseProvider:
         data_source_id: int | None = None,
     ) -> list[OHLCVBar]:
         seconds = _TF_SECONDS.get(timeframe)
-        if seconds is None:
+        if seconds is None or end <= start:
             return []
         product = _coinbase_product(symbol)
-        # Coinbase caps each response at 300 candles. One request per call is
-        # intentional; callers must page through the queue and remain within
-        # the documented 10 req/sec/IP budget.
-        limit_end = min(end, start + timedelta(seconds=seconds * 300))
-        response = httpx.get(
-            f"{self.base_url}/products/{product}/candles",
-            params={
-                "granularity": seconds,
-                "start": start.isoformat(),
-                "end": limit_end.isoformat(),
-            },
-            timeout=30,
-        )
-        observe_response(response)
-        response.raise_for_status()
-        rows = _json_payload(response, self.name)
-        bars: list[OHLCVBar] = []
-        for row in rows if isinstance(rows, list) else []:
-            if not isinstance(row, list) or len(row) < 6:
-                continue
-            ts = datetime.fromtimestamp(float(row[0]), tz=UTC)
-            bars.append(
-                OHLCVBar(
+        # Coinbase caps each response at 300 candles. Page the requested range
+        # explicitly and deduplicate boundary candles; the caller's runtime
+        # reservation is computed by ``estimate_coinbase_ohlcv_request_count``.
+        bars_by_timestamp: dict[datetime, OHLCVBar] = {}
+        cursor = start
+        while cursor < end:
+            limit_end = min(
+                end,
+                cursor + timedelta(seconds=seconds * _COINBASE_CANDLES_PER_REQUEST),
+            )
+            response = httpx.get(
+                f"{self.base_url}/products/{product}/candles",
+                params={
+                    "granularity": seconds,
+                    "start": cursor.isoformat(),
+                    "end": limit_end.isoformat(),
+                },
+                timeout=30,
+            )
+            observe_response(response)
+            response.raise_for_status()
+            rows = _json_payload(response, self.name)
+            for row in rows if isinstance(rows, list) else []:
+                if not isinstance(row, list) or len(row) < 6:
+                    continue
+                ts = datetime.fromtimestamp(float(row[0]), tz=UTC)
+                if not start <= ts < end:
+                    continue
+                bars_by_timestamp[ts] = OHLCVBar(
                     instrument_id=instrument_id,
                     data_source_id=data_source_id,
                     timeframe=timeframe,
@@ -85,8 +151,8 @@ class CoinbaseProvider:
                     volume=float(row[5]),
                     is_adjusted=False,
                 )
-            )
-        return sorted((bar for bar in bars if start <= bar.ts < end), key=lambda bar: bar.ts)
+            cursor = limit_end
+        return [bars_by_timestamp[ts] for ts in sorted(bars_by_timestamp)]
 
     def fetch_latest_ohlcv(
         self,
@@ -98,12 +164,15 @@ class CoinbaseProvider:
         instrument_id: int | None = None,
         data_source_id: int | None = None,
     ) -> list[OHLCVBar]:
+        if limit <= 0:
+            return []
         seconds = _TF_SECONDS.get(timeframe, 86400)
+        end = datetime.now(UTC)
         return self.fetch_ohlcv(
             symbol,
             timeframe,
-            datetime.now(UTC) - timedelta(seconds=seconds * min(limit, 300)),
-            datetime.now(UTC),
+            end - timedelta(seconds=seconds * limit),
+            end,
             adjusted=adjusted,
             instrument_id=instrument_id,
             data_source_id=data_source_id,
@@ -111,7 +180,7 @@ class CoinbaseProvider:
 
     def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime:
         return datetime.now(UTC) - timedelta(
-            seconds=_TF_SECONDS.get(timeframe, 86400) * min(limit, 300)
+            seconds=_TF_SECONDS.get(timeframe, 86400) * max(limit, 1)
         )
 
     def get_current_price(self, symbol: str) -> float | None:
@@ -175,32 +244,42 @@ class KrakenProvider:
         data_source_id: int | None = None,
     ) -> list[OHLCVBar]:
         interval = max(1, _TF_SECONDS.get(timeframe, 86400) // 60)
-        response = httpx.get(
-            f"{self.base_url}/OHLC",
-            params={
-                "pair": _kraken_pair(symbol),
-                "interval": interval,
-                "since": int(start.timestamp()),
-            },
-            timeout=30,
-        )
-        observe_response(response)
-        response.raise_for_status()
-        payload = _json_payload(response, self.name)
-        result = payload.get("result", {}) if isinstance(payload, dict) else {}
-        rows = next(
-            (value for key, value in result.items() if key != "last" and isinstance(value, list)),
-            [],
-        )
-        bars: list[OHLCVBar] = []
-        for row in rows:
-            if not isinstance(row, list) or len(row) < 7:
-                continue
-            ts = datetime.fromtimestamp(float(row[0]), tz=UTC)
-            if not start <= ts < end:
-                continue
-            bars.append(
-                OHLCVBar(
+        if end <= start:
+            return []
+        bars_by_timestamp: dict[datetime, OHLCVBar] = {}
+        cursor = start
+        seen_cursors: set[int] = set()
+        while cursor < end:
+            cursor_seconds = int(cursor.timestamp())
+            if cursor_seconds in seen_cursors:
+                break
+            seen_cursors.add(cursor_seconds)
+            response = httpx.get(
+                f"{self.base_url}/OHLC",
+                params={
+                    "pair": _kraken_pair(symbol),
+                    "interval": interval,
+                    "since": cursor_seconds,
+                },
+                timeout=30,
+            )
+            observe_response(response)
+            response.raise_for_status()
+            payload = _json_payload(response, self.name)
+            result = payload.get("result", {}) if isinstance(payload, dict) else {}
+            rows = next(
+                (value for key, value in result.items() if key != "last" and isinstance(value, list)),
+                [],
+            )
+            max_timestamp: datetime | None = None
+            for row in rows:
+                if not isinstance(row, list) or len(row) < 7:
+                    continue
+                ts = datetime.fromtimestamp(float(row[0]), tz=UTC)
+                max_timestamp = max(max_timestamp, ts) if max_timestamp else ts
+                if not start <= ts < end:
+                    continue
+                bars_by_timestamp[ts] = OHLCVBar(
                     instrument_id=instrument_id,
                     data_source_id=data_source_id,
                     timeframe=timeframe,
@@ -212,8 +291,24 @@ class KrakenProvider:
                     volume=float(row[6]),
                     is_adjusted=False,
                 )
-            )
-        return bars
+            provider_last = result.get("last") if isinstance(result, dict) else None
+            try:
+                provider_last_dt = (
+                    datetime.fromtimestamp(float(provider_last), tz=UTC)
+                    if provider_last is not None
+                    else None
+                )
+            except (TypeError, ValueError, OverflowError):
+                provider_last_dt = None
+            next_cursor = cursor + timedelta(seconds=_TF_SECONDS.get(timeframe, 86400))
+            if max_timestamp is not None:
+                next_cursor = max(next_cursor, max_timestamp + timedelta(seconds=_TF_SECONDS.get(timeframe, 86400)))
+            if provider_last_dt is not None:
+                next_cursor = max(next_cursor, provider_last_dt + timedelta(seconds=_TF_SECONDS.get(timeframe, 86400)))
+            if not rows or next_cursor <= cursor:
+                break
+            cursor = next_cursor
+        return [bars_by_timestamp[ts] for ts in sorted(bars_by_timestamp)]
 
     def fetch_latest_ohlcv(
         self,
@@ -225,11 +320,13 @@ class KrakenProvider:
         instrument_id: int | None = None,
         data_source_id: int | None = None,
     ) -> list[OHLCVBar]:
+        if limit <= 0:
+            return []
         end = datetime.now(UTC)
         return self.fetch_ohlcv(
             symbol,
             timeframe,
-            end - timedelta(seconds=_TF_SECONDS.get(timeframe, 86400) * min(limit, 720)),
+            end - timedelta(seconds=_TF_SECONDS.get(timeframe, 86400) * limit),
             end,
             adjusted=adjusted,
             instrument_id=instrument_id,
@@ -238,7 +335,7 @@ class KrakenProvider:
 
     def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime:
         return datetime.now(UTC) - timedelta(
-            seconds=_TF_SECONDS.get(timeframe, 86400) * min(limit, 720)
+            seconds=_TF_SECONDS.get(timeframe, 86400) * max(limit, 1)
         )
 
     def get_current_price(self, symbol: str) -> float | None:

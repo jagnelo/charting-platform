@@ -115,6 +115,7 @@ progress:
     - admin status exposes exact missing quota-contract dimensions, entitlement review state, and weighted/credit operation-cost readiness
     - typed 429/418/quota capacity events persist reset headers and retry timestamps and are exposed through backend admin diagnostics
     - Binance exact request-weight accounting for single-symbol price (2) and exchange-info discovery (20); weighted local buckets charge the documented units and historical candles reserve their calculated multi-page weight before execution
+    - Coinbase and Kraken crypto OHLC pagination now follows each provider's documented candle-page ceiling (300 and 720 respectively); explicit/latest/bulk paths reserve the calculated page count before execution instead of silently truncating history or charging one request
     - Marketstack's conservative 100-request/month free-plan contract and IBKR's documented 10-request/second plus five-concurrent-history pacing contract
     - MarketData.app now uses the documented `/v1` API root, records its 100-credit 09:30 America/New_York reset window, and enforces the 50-request account-wide concurrency ceiling through a durable release-only in-flight quota dimension; adapter request-path/auth and concurrency regressions are covered
     - CIK evidence is issuer-only: profile ingestion links normalized SEC CIKs to `Issuer`, generic security domain-key selection excludes CIK, and new instrument-level CIK writes are rejected while legacy lookup remains compatible

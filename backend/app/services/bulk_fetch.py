@@ -31,6 +31,10 @@ from app.models.provider_runtime import ProviderCapability
 from app.providers import provider_symbol_for_instrument
 from app.providers.alpaca import estimate_ohlcv_request_count
 from app.providers.binance import estimate_ohlcv_request_weight
+from app.providers.crypto_market_data import (
+    estimate_coinbase_ohlcv_request_count,
+    estimate_kraken_ohlcv_request_count,
+)
 from app.services.market_data import _record_bar_observations, _touch_ohlcv_dataset_state
 from app.services.provider_runtime import execute_provider_call
 
@@ -220,9 +224,13 @@ async def _do_fetch_and_store(
     """Request from EPOCH and upsert all returned bars. Returns new-bar count."""
     alpaca_cost = estimate_ohlcv_request_count(timeframe, EPOCH_START, end)
     binance_cost = estimate_ohlcv_request_weight(timeframe, EPOCH_START, end)
+    coinbase_cost = estimate_coinbase_ohlcv_request_count(timeframe, EPOCH_START, end)
+    kraken_cost = estimate_kraken_ohlcv_request_count(timeframe, EPOCH_START, end)
     operation_cost_overrides = {
         **({"alpaca": alpaca_cost} if alpaca_cost is not None else {}),
         **({"binance": binance_cost} if binance_cost is not None else {}),
+        **({"coinbase": coinbase_cost} if coinbase_cost is not None else {}),
+        **({"kraken": kraken_cost} if kraken_cost is not None else {}),
     }
     execution = await execute_provider_call(
         db,
