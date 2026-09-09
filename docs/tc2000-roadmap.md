@@ -3,7 +3,7 @@
 Status: active implementation roadmap  
 Branch: `feat/tc2000-frontend-rework`  
 Parent: `staging`  
-Last reconciled: 2026-09-08
+Last reconciled: 2026-09-09
 
 ## 2026-09-09 — Canonical history queue identity is order-independent
 
