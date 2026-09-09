@@ -216,6 +216,19 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
+  it('announces an unavailable pop-out tool as an assertive recovery alert', async () => {
+    routeState.params = { windowKey: 'missing-tool' }
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+
+    const recovery = wrapper.get('.workstation__missing-tool')
+    expect(recovery.text()).toBe('The requested tool is unavailable. It remains in the source workspace.')
+    expect(recovery.attributes('role')).toBe('alert')
+    expect(recovery.attributes('aria-live')).toBe('assertive')
+    wrapper.unmount()
+  })
+
   it('hydrates missing shared market analysis when a pop-out opens after the leader refresh', async () => {
     const wrapper = mount(WorkstationView, {
       global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },

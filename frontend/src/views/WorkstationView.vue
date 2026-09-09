@@ -190,7 +190,7 @@
         @timeframe="setLinkedTimeframe"
         @close="closePopoutTool"
       />
-      <div v-else class="workstation__missing-tool">The requested tool is unavailable. It remains in the source workspace.</div>
+      <div v-else class="workstation__missing-tool" role="alert" aria-live="assertive">The requested tool is unavailable. It remains in the source workspace.</div>
       <span id="workstation-popout-context" class="sr-only">This is a browser-managed pop-out window. Placement across monitors and window controls are controlled by the browser and operating system.</span>
     </main>
     <main v-else-if="!isPopout && !goldenLayoutConfig" class="workstation__layout-state" role="status">
