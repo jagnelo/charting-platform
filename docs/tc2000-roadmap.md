@@ -5,6 +5,23 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-09
 
+## 2026-09-09 — Exact-tip gate after cadence/parser provenance
+
+At commit `32b005ab`, the exact integration gate passed repository/workstream,
+dependency/lint/format/type-check, migration compatibility, backend unit and
+integration tests (`1,370`/`387`, `81.07%` combined coverage), frontend Vitest
+(`975/975`), uPlot and visual-policy checks, frontend build, compose/provider/
+runner and stack-health probes, and functional Playwright (`165` passed, `107`
+documented skips across `272`). Visual parity completed `104` cases with `98`
+passes and exactly the six established state-oracle diffs: watchlist-column-
+editor-open at 1080p 100/125 and workspace-floating at 1080p 100/125 and
+1440p 100/125. Scoped teardown removed all containers, volumes, network,
+images, and test sessions cleanly. Holdings coverage now exposes retained
+cadence and parser-version metadata through the API and workstation readiness
+surfaces; no cadence is inferred when the source does not report one. No
+visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. R1 and R2-R7 remain open.
+
 ## 2026-09-09 — Exact-tip gate after frontend disclosure provenance
 
 At commit `a1c41196`, the exact integration gate passed repository/workstream,

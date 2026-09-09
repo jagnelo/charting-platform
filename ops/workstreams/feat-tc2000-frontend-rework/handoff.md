@@ -8,6 +8,27 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-09 — Cadence/parser provenance checkpoint
+
+Product commit `32b005ab` carries retained holdings cadence and parser-version
+metadata from snapshot legal metadata through the coverage API and typed
+Market Map/workstation readiness surfaces. The focused Docker-backed coverage
+regression passed `1/1`; type-check, Ruff, diff checks, and Market Map unit
+coverage passed (`36/36`). The exact gate passed backend unit/integration
+(`1,370`/`387`, `81.07%` combined), frontend Vitest (`975/975`), build,
+contracts, probes, stack health, and functional Playwright (`165` passed,
+`107` documented skips). Visual parity remains `98/104` with the six
+established watchlist-column-editor-open/workspace-floating diffs. Docker
+teardown was clean and no other worktree was touched.
+
+R1 remains open for full canonical family population, placeholder disposition,
+explicit cadence/effective-time evidence beyond exposed timestamps, adjustment-
+factor/version provenance beyond available parser/cadence metadata,
+raw-versus-derived storage decisions, and broader rebalance/history coverage.
+R2-R7 remain open. Next action: continue the bounded family-member and
+point-in-time provenance audit, implement the next evidence-backed seam, run
+focused checks, and rerun the exact gate.
+
 ## 2026-09-09 — Frontend disclosure-provenance checkpoint
 
 Product commit `a1c41196` carries holdings publication date, known-at timing,
