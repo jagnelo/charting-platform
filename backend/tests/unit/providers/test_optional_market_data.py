@@ -143,6 +143,41 @@ def test_daily_adapters_parse_common_rows():
         assert bars[0].close == 10.5
 
 
+@pytest.mark.parametrize(
+    ("timeframe", "period"),
+    [(Timeframe.W1, "w"), (Timeframe.MN, "m")],
+)
+def test_eodhd_uses_documented_weekly_and_monthly_periods(timeframe, period):
+    provider = EODHDProvider()
+    payload = [
+        {
+            "date": "2024-01-02",
+            "open": 10,
+            "high": 11,
+            "low": 9,
+            "close": 10.5,
+            "volume": 42,
+        }
+    ]
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ) as get,
+    ):
+        configured.EODHD_API_KEY = "demo"
+        bars = provider.fetch_ohlcv(
+            "AAPL",
+            timeframe,
+            datetime(2024, 1, 1, tzinfo=UTC),
+            datetime(2024, 2, 1, tzinfo=UTC),
+        )
+
+    assert bars and bars[0].close == 10.5
+    assert get.call_args.kwargs["params"]["period"] == period
+
+
 def test_marketstack_follows_response_pagination_and_reserves_each_page():
     provider = MarketstackProvider()
     start = datetime(2024, 1, 1, tzinfo=UTC)

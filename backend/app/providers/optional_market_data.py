@@ -975,6 +975,12 @@ class EODHDProvider(_RESTProvider):
     key_setting = "EODHD_API_KEY"
     key_param = "api_token"
 
+    _PERIOD = {
+        Timeframe.D1: "d",
+        Timeframe.W1: "w",
+        Timeframe.MN: "m",
+    }
+
     def fetch_ohlcv(
         self,
         symbol: str,
@@ -986,14 +992,15 @@ class EODHDProvider(_RESTProvider):
         instrument_id: int | None = None,
         data_source_id: int | None = None,
     ) -> list[OHLCVBar]:
-        if timeframe is not Timeframe.D1:
+        period = self._PERIOD.get(timeframe)
+        if not period:
             return []
         payload = self._get(
             f"eod/{symbol.upper()}.US",
             {
                 "from": _bounded_datetime(start).date().isoformat(),
                 "to": _bounded_datetime(end).date().isoformat(),
-                "period": "d",
+                "period": period,
                 "fmt": "json",
             },
         )
