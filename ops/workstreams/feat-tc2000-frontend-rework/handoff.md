@@ -8,6 +8,22 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-09 — Timezone-safe history-bound checkpoint
+
+Product commit `d420350c` normalizes queued historical end bounds to explicit
+UTC before constructing the worker payload. Together with the preceding
+order-independent timeframe key, equivalent retry requests now share one
+status/idempotence identity without changing caller-visible timeframe order.
+Focused history/bootstrap coverage is `33/33`; the exact gate passed backend
+unit/integration (`1,370`/`387`, `81.06%`), frontend Vitest (`975/975`), build,
+contracts, probes, stack health, and functional Playwright (`165` passed,
+`107` documented skips). Visual parity remains `98/104` with the six
+established watchlist-column-editor-open/workspace-floating diffs. Docker
+teardown was clean and no other worktree was touched.
+
+Next action: continue the bounded R1 canonical population/provenance and
+rebalance-continuity audit, then rerun the exact gate at the next product tip.
+
 ## 2026-09-09 — Canonical history queue identity checkpoint
 
 Commit `df66cd1f` records the order-independent canonical history job identity.

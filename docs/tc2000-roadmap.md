@@ -5,6 +5,21 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-09
 
+## 2026-09-09 — Queue historical bounds are timezone-safe
+
+Canonical history queue payloads now normalize the requested historical end
+bound to an explicit UTC ISO value before the worker job is created. Combined
+with order-independent timeframe identity, retries using equivalent naive or
+timezone-aware bounds cannot split status/idempotence records or silently use
+the host's local timezone. Focused history/bootstrap coverage remains `33/33`.
+The exact gate at commit `d420350c` passed backend unit/integration
+(`1,370`/`387`, `81.06%` combined coverage), frontend Vitest (`975/975`),
+build, contracts, probes, stack health, and functional Playwright (`165`
+passed, `107` documented skips). Visual parity remains `98/104` with the six
+established state-oracle diffs; scoped teardown was clean. This is an R1 queue
+identity/serialization closure only; canonical family population,
+point-in-time provenance/continuity, and R2-R7 remain open.
+
 ## 2026-09-09 — Canonical history queue identity is order-independent
 
 The shared canonical history job key now treats timeframe requests as an
