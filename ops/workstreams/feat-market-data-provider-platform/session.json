@@ -78,25 +78,8 @@
     "ps/workstreams/feat-market-data-provider-platform/session.json"
   ],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-market-data-provider-platform-252f410b",
-      "charting-stack-feat-market-data-provider-platform-252f410b"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
-    "worktree_id": "feat-market-data-provider-platform-252f410b51"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
   },
   "docker_ready": {
     "ready": true,
@@ -112,14 +95,14 @@
   "goal_request_state": "planning_required",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "08bc363e66d8c8727d487014f83a0aaa3bc68f6f",
+  "head": "7e8a3bf0936f2647354854ddcddca38b7dc588d7",
   "implementation_sha": "08bc363e66d8c8727d487014f83a0aaa3bc68f6f",
   "last_checkpoint": "2026-09-09T23:37:38.333366+00:00",
   "last_human_progress_update": "2026-09-09T23:25:50.179245+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
-  "plan_hash": "1e53c898038a2bd76cab45ba916721576757618550aecf9a4324ebdc208d2c3e",
+  "plan_hash": "9a4cf58954c349696c2612cfa3b68cb7fdb801872a60414a7b2ad0179b43fe57",
   "planning_required": true,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -149,7 +132,7 @@
     "total": 15,
     "updated_at": "2026-09-09T23:25:50.179129+00:00"
   },
-  "remote": "08bc363e66d8c8727d487014f83a0aaa3bc68f6f",
+  "remote": "7e8a3bf0936f2647354854ddcddca38b7dc588d7",
   "remote_sha": "08bc363e66d8c8727d487014f83a0aaa3bc68f6f",
   "remote_synchronized": true,
   "retained_docker_resources": [],
