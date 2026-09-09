@@ -192,6 +192,21 @@ class TestProvidersRouter:
         assert cleared_row["quota_verified_at"] is None
         assert cleared_row["routing_eligible"] is False
 
+        clear_contract = client.patch(
+            quota_url,
+            headers=admin_headers,
+            json={"quota_contract": None},
+        )
+        assert clear_contract.status_code == 200
+        cleared_contract_row = next(
+            row
+            for row in client.get("/api/v1/providers/policies", headers=admin_headers).json()
+            if row["provider"] == "finnhub" and row["capability"] == "price_history"
+        )
+        assert cleared_contract_row["quota_contract"] is None
+        assert cleared_contract_row["quota_verified_at"] is None
+        assert cleared_contract_row["routing_eligible"] is False
+
         restore_contract = client.patch(
             quota_url,
             headers=admin_headers,

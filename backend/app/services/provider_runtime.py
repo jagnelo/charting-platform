@@ -600,8 +600,17 @@ def _apply_policy_defaults(
         # provenance differs or whose policy is explicitly pinned for manual
         # operator control.
         same_seed_source = policy.quota_source == rate_seed.get("quota_source")
-        contract_refreshed = policy.quota_contract is None or (
-            same_seed_source and not policy.is_pinned and policy.quota_contract != seeded_contract
+        # New rows receive the seed contract at construction time below. Do
+        # not treat an existing NULL contract as a missing default: an
+        # operator may have deliberately removed it to quarantine routing,
+        # and diagnostics must not silently restore admission on the next
+        # seed pass. Existing, seed-owned contracts may still refresh when
+        # deployment configuration changes.
+        contract_refreshed = (
+            policy.quota_contract is not None
+            and same_seed_source
+            and not policy.is_pinned
+            and policy.quota_contract != seeded_contract
         )
         if contract_refreshed:
             policy.quota_contract = dict(seeded_contract)
