@@ -121,6 +121,35 @@ def _apply_snapshot_visibility(statement):
     return statement.where(*_visible_snapshot_conditions())
 
 
+def _snapshot_revision_key(snapshot: ETFHoldingsSnapshot) -> tuple[datetime, int]:
+    """Order revisions so one effective composition date has one canonical view."""
+
+    known_at = snapshot.known_at or _date_end(snapshot.composition_date)
+    if known_at.tzinfo is None:
+        known_at = known_at.replace(tzinfo=UTC)
+    else:
+        known_at = known_at.astimezone(UTC)
+    return known_at, snapshot.id
+
+
+def _collapse_snapshot_revisions(
+    snapshots: list[ETFHoldingsSnapshot],
+) -> list[ETFHoldingsSnapshot]:
+    """Collapse source revisions by composition date for rebalance timelines.
+
+    A revised issuer disclosure is a new auditable snapshot, but it is not a
+    separate rebalance boundary. Timeline consumers should compare the latest
+    known revision for each effective composition date.
+    """
+
+    latest_by_date: dict[date, ETFHoldingsSnapshot] = {}
+    for snapshot in snapshots:
+        current = latest_by_date.get(snapshot.composition_date)
+        if current is None or _snapshot_revision_key(snapshot) > _snapshot_revision_key(current):
+            latest_by_date[snapshot.composition_date] = snapshot
+    return sorted(latest_by_date.values(), key=lambda item: (item.composition_date, item.id))
+
+
 def _hash_payload(payload: Any) -> str:
     text = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
@@ -2201,7 +2230,7 @@ async def get_holdings_transition_timeline(
         stmt = stmt.where(ETFHoldingsSnapshot.composition_date >= start_date)
     if end_date is not None:
         stmt = stmt.where(ETFHoldingsSnapshot.composition_date <= end_date)
-    snapshots = (await db.execute(stmt)).scalars().all()
+    snapshots = _collapse_snapshot_revisions((await db.execute(stmt)).scalars().all())
     if len(snapshots) < 2:
         return ETFHoldingsTransitionTimelineOut(
             etf_symbol=instrument.symbol,

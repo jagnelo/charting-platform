@@ -1072,6 +1072,20 @@ def test_transition_timeline_reports_adjacent_snapshot_churn(client, admin_heade
         )
         assert response.status_code == 200
 
+    revision = client.post(
+        "/api/v1/etf-holdings/TURN/ingest",
+        json={
+            "composition_date": "2026-05-15",
+            "known_at": "2026-05-16T00:00:00Z",
+            "source_provider": "manual-test-revision",
+            "rows": [
+                {"symbol": "AAPL", "name": "Apple Inc.", "weight": "0.05500000"},
+            ],
+        },
+        headers=admin_headers,
+    )
+    assert revision.status_code == 200
+
     timeline = client.get(
         "/api/v1/etf-holdings/TURN/transitions",
         headers=auth_headers,
@@ -1088,10 +1102,11 @@ def test_transition_timeline_reports_adjacent_snapshot_churn(client, admin_heade
     first = body["transitions"][0]
     assert first["left_snapshot"]["composition_date"] == "2026-05-01"
     assert first["right_snapshot"]["composition_date"] == "2026-05-15"
+    assert first["right_snapshot"]["known_at"] == "2026-05-16T00:00:00Z"
     assert first["added"] == 0
     assert first["removed"] == 1
     assert first["changed"] == 1
-    assert first["gross_weight_churn"] == "0.07000000"
+    assert first["gross_weight_churn"] == "0.07500000"
     assert first["largest_removals"][0]["symbol"] == "MSFT"
     assert first["largest_reweights"][0]["symbol"] == "AAPL"
 
@@ -1102,7 +1117,7 @@ def test_transition_timeline_reports_adjacent_snapshot_churn(client, admin_heade
     assert second["removed"] == 0
     assert second["changed"] == 1
     assert second["largest_additions"][0]["symbol"] == "NVDA"
-    assert second["largest_reweights"][0]["weight_delta"] == "-0.02000000"
+    assert second["largest_reweights"][0]["weight_delta"] == "-0.02500000"
 
     latest_only = client.get(
         "/api/v1/etf-holdings/TURN/transitions?limit=1",
