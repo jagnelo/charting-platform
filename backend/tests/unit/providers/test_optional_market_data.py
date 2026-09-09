@@ -18,6 +18,7 @@ from app.providers.optional_market_data import (
     MarketDataAppProvider,
     MarketstackProvider,
     TiingoProvider,
+    TradierProvider,
     TwelveDataProvider,
     estimate_marketstack_latest_ohlcv_request_count,
     estimate_marketstack_ohlcv_request_count,
@@ -276,6 +277,53 @@ def test_marketdata_app_inherited_current_price_uses_one_documented_credit():
             assert provider.get_current_price("AAPL") == 101.0
 
     assert get.call_args.args[0] == "https://api.marketdata.app/v1/stocks/candles/D/AAPL"
+
+
+def test_tradier_parses_documented_nested_history_and_singleton_quote_search_shapes():
+    provider = TradierProvider()
+    start = datetime(2024, 1, 1, tzinfo=UTC)
+    end = datetime(2024, 1, 3, tzinfo=UTC)
+    history = {
+        "history": {
+            "day": {
+                "date": "2024-01-02",
+                "open": "100",
+                "high": "102",
+                "low": "99",
+                "close": "101",
+                "volume": "1234",
+            }
+        }
+    }
+    with patch.object(provider, "_get", return_value=history):
+        bars = provider.fetch_ohlcv("AAPL", Timeframe.D1, start, end)
+    assert len(bars) == 1
+    assert bars[0].close == 101.0
+
+    with patch.object(
+        provider,
+        "_get",
+        return_value={"quotes": {"quote": {"symbol": "AAPL", "last": "101.5"}}},
+    ):
+        assert provider.get_current_price("AAPL") == 101.5
+
+    with patch.object(
+        provider,
+        "_get",
+        return_value={
+            "securities": {
+                "security": {
+                    "symbol": "AAPL",
+                    "description": "Apple Inc.",
+                    "exchange": "Q",
+                    "type": "stock",
+                }
+            }
+        },
+    ):
+        rows = provider.search_instruments("Apple")
+    assert rows and rows[0].symbol == "AAPL"
+    assert rows[0].name == "Apple Inc."
 
 
 def test_missing_credentials_never_make_optional_call():

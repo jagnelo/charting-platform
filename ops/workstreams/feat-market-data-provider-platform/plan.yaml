@@ -165,6 +165,7 @@ progress:
     - FINRA authenticated short-interest and Daily List calls now reserve the cold OAuth token request plus the dataset POST (two requests), while warm token-cache calls remain safely over-reserved
     - SEC EDGAR profile and filing-event operations now reserve the cold ticker-directory lookup plus submissions request (two requests), with live transport evidence for the compound metadata path
     - the complete Docker-backed gate after class-aware routing passes (`1785/1785`, `80.11%`), including the two previously failing AAPL OHLCV integration cases
+    - Tradier's documented nested `history.day|week|month` and `securities.security` JSON wrappers, including singleton-object forms, are normalized by the concrete adapter and covered by provider fixtures
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: full live matrix requires the three remaining credential domains (Alpaca, Tradier, MarketData.app) and a fresh Alpha Vantage daily window or separate key after the provider-declared 25-requests/day response; the GitHub `jagnelo` live environment is not externally verifiable until owner authentication is restored; FRED scope/adjustable-limit/series-terms review, Nasdaq polling allowance, xStocks public quota, Bybit xStocks endpoint/UID limits, FINRA OTC source terms/redistribution approval, complete reviewed Tiingo/FMP byte maps, complete NMS/OTC reconciliation, and shadow activation remain post-deployment or operator-review gates; each deployment must also provide its own non-secret SEC User-Agent

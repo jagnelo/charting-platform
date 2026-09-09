@@ -527,6 +527,31 @@ class TradierProvider(_RESTProvider):
         key = self._key()
         return {"Authorization": f"Bearer {key}", "Accept": "application/json"} if key else {}
 
+    @staticmethod
+    def _nested_rows(payload: Any, container: str, row_key: str) -> list[dict[str, Any]]:
+        """Normalize Tradier's XML-to-JSON wrapper and singleton-object forms.
+
+        Tradier documents responses such as ``{"history": {"day": [...]}}``
+        and ``{"securities": {"security": [...]}}``. Its JSON conversion
+        can also emit one object instead of an array when only one row exists.
+        Do not flatten arbitrary payloads: preserving the endpoint-specific
+        wrapper keeps malformed/provider-error responses distinguishable.
+        """
+
+        if not isinstance(payload, dict):
+            return []
+        wrapped = payload.get(container)
+        if isinstance(wrapped, list):
+            return [row for row in wrapped if isinstance(row, dict)]
+        if not isinstance(wrapped, dict):
+            return []
+        rows = wrapped.get(row_key)
+        if isinstance(rows, list):
+            return [row for row in rows if isinstance(row, dict)]
+        if isinstance(rows, dict):
+            return [rows]
+        return []
+
     def fetch_ohlcv(
         self,
         symbol: str,
@@ -552,7 +577,11 @@ class TradierProvider(_RESTProvider):
                 "end": _bounded_datetime(end).date().isoformat(),
             },
         )
-        rows = self._rows(payload, "history")
+        rows = self._nested_rows(payload, "history", {"daily": "day", "weekly": "week", "monthly": "month"}[interval])
+        if not rows:
+            # Keep compatibility with a flat fixture/provider response while
+            # still preferring the documented nested shape above.
+            rows = self._rows(payload, "history")
         return sorted(
             [
                 bar
@@ -569,13 +598,15 @@ class TradierProvider(_RESTProvider):
 
     def get_current_price(self, symbol: str) -> float | None:
         payload = self._get("markets/quotes", {"symbols": symbol.upper()})
-        quotes = payload.get("quotes", {}).get("quote") if isinstance(payload, dict) else None
-        row = quotes[0] if isinstance(quotes, list) and quotes else quotes
+        rows = self._nested_rows(payload, "quotes", "quote")
+        row = rows[0] if rows else None
         return _number(row.get("last")) if isinstance(row, dict) else None
 
     def search_instruments(self, query: str, *, limit: int = 10) -> list[ProviderSearchResult]:
         payload = self._get("markets/search", {"q": query, "indexes": "false"})
-        rows = self._rows(payload, "securities")
+        rows = self._nested_rows(payload, "securities", "security")
+        if not rows:
+            rows = self._rows(payload, "securities")
         return [
             ProviderSearchResult(
                 symbol=str(row.get("symbol") or "").upper(),
