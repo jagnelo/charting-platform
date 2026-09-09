@@ -74,3 +74,14 @@ def test_live_workflow_is_manual_environment_scoped_and_maps_each_secret():
     assert "FINRA_ASYNC_MAX_RESULT_BYTES: ${{ vars.FINRA_ASYNC_MAX_RESULT_BYTES || '0' }}" in workflow
     assert "TIINGO_OPERATION_BYTE_BOUNDS: ${{ vars.TIINGO_OPERATION_BYTE_BOUNDS || '{}' }}" in workflow
     assert "FMP_OPERATION_BYTE_BOUNDS: ${{ vars.FMP_OPERATION_BYTE_BOUNDS || '{}' }}" in workflow
+
+
+def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
+    example = (ROOT / "backend/.env.example").read_text()
+    assert "FINRA_OTC_SYMBOL_DIRECTORY_URL=" in example
+    assert "FINRA_OTC_SYMBOL_DIRECTORY_URL=https://" not in example
+    assert "FINRA_ASYNC_MAX_RESULT_BYTES=0" in example
+    assert "TIINGO_OPERATION_BYTE_BOUNDS={}" in example
+    assert "FMP_OPERATION_BYTE_BOUNDS={}" in example
+    for name in ("IBKR_READ_ONLY_URL", "COINBASE_API_KEY", "KRAKEN_API_KEY"):
+        assert f"{name}=" in example
