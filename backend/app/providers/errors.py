@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Any
 
 _QUERY_SECRET_RE = re.compile(
-    r"(?i)([?&](?:api[_-]?key|access[_-]?key|token|client[_-]?secret|secret(?:[_-]?key)?|authorization)=)[^&\s'\"]+"
+    r"(?i)([?&](?:api[_-]?(?:key|token|secret)|access[_-]?key|token|client[_-]?secret|secret(?:[_-]?key)?|authorization)=)[^&\s'\"]+"
 )
 _HEADER_SECRET_RE = re.compile(
     r"(?i)(\b(?:authorization|x-[a-z0-9-]*(?:key|token|secret))\s*[:=]\s*(?:bearer\s+)?)['\"]?[^\s,;]+"

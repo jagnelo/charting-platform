@@ -4,6 +4,7 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
+import httpx
 import pytest
 
 from app.models.ohlcv import Timeframe
@@ -545,3 +546,43 @@ def test_http_success_rate_limit_envelope_is_typed_capacity_failure():
         with pytest.raises(ProviderRateLimitError) as exc_info:
             provider.get_instrument_profile("AAPL")
     assert exc_info.value.provider_name == "finnhub"
+
+
+def test_http_status_failure_redacts_query_credentials_and_preserves_status():
+    provider = EODHDProvider()
+    response = MagicMock(status_code=403, headers={})
+    request = httpx.Request(
+        "GET", "https://eodhd.com/api/fundamentals/AAPL.US?api_token=demo-secret"
+    )
+    failure = httpx.HTTPStatusError(
+        "Client error '403 Forbidden' for url 'https://eodhd.com/api/fundamentals/AAPL.US?api_token=demo-secret'",
+        request=request,
+        response=response,
+    )
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch("app.providers.optional_market_data.httpx.get", side_effect=failure),
+    ):
+        configured.EODHD_API_KEY = "demo-secret"
+        with pytest.raises(ProviderResponseError) as exc_info:
+            provider.get_instrument_profile("AAPL")
+    assert exc_info.value.status_code == 403
+    assert "demo-secret" not in str(exc_info.value)
+    assert "<redacted>" in str(exc_info.value)
+
+
+def test_http_status_rate_limit_preserves_reset_header():
+    provider = FinnhubProvider()
+    response = MagicMock(status_code=429, headers={"Retry-After": "7"})
+    request = httpx.Request("GET", "https://finnhub.io/api/v1/profile2?token=demo-secret")
+    failure = httpx.HTTPStatusError("429 Too Many Requests", request=request, response=response)
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch("app.providers.optional_market_data.httpx.get", side_effect=failure),
+    ):
+        configured.FINNHUB_API_KEY = "demo-secret"
+        with pytest.raises(ProviderRateLimitError) as exc_info:
+            provider.get_instrument_profile("AAPL")
+    assert exc_info.value.status_code == 429
+    assert exc_info.value.retry_at is not None
+    assert "demo-secret" not in str(exc_info.value)

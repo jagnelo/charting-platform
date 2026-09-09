@@ -20,6 +20,7 @@ from app.providers.binance import BinanceProvider
 from app.providers.coingecko import CoinGeckoProvider
 from app.providers.crypto_market_data import CoinbaseProvider, KrakenProvider
 from app.providers.edgar import EdgarProvider
+from app.providers.errors import ProviderResponseError
 from app.providers.finra import FINRAProvider
 from app.providers.finra_otc_directory import FINRAOTCDirectoryProvider
 from app.providers.fred import FREDProvider
@@ -353,6 +354,22 @@ def test_optional_credentialed_provider_small_read(provider, credentials, symbol
             )
             assert period_rows
             assert all(row.ts.tzinfo is not None and row.close > 0 for row in period_rows)
+    if provider.name == "fmp":
+        profile, _ = _observed_read(
+            lambda: provider.get_instrument_profile(symbol), provider.name
+        )
+        assert profile is not None
+        assert profile.symbol == symbol
+        assert profile.name and profile.exchange
+
+
+def test_eodhd_free_plan_profile_entitlement_is_explicit():
+    """The configured free EODHD key is EOD-only; do not treat 403 as no data."""
+
+    _require("EODHD_API_KEY")
+    with pytest.raises(ProviderResponseError) as exc_info:
+        _observed_read(lambda: EODHDProvider().get_instrument_profile("AAPL"), "eodhd")
+    assert exc_info.value.status_code == 403
 
 
 def test_finnhub_credentialed_company_profile():

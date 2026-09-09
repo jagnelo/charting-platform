@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from email.utils import parsedate_to_datetime
 from math import ceil
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -37,7 +38,10 @@ from app.providers.base import (
 )
 from app.providers.errors import (
     ProviderNotConfiguredError,
+    ProviderRateLimitError,
+    ProviderResponseError,
     raise_for_provider_error_envelope,
+    redact_provider_message,
 )
 from app.providers.telemetry import observe_response
 
@@ -59,6 +63,63 @@ _TF_SECONDS: dict[Timeframe, int] = {
 }
 _TWELVE_DATA_POINTS_PER_REQUEST = 5000
 _MARKETSTACK_POINTS_PER_REQUEST = 100
+
+
+def _retry_at_from_headers(headers: dict[str, str]) -> datetime | None:
+    """Parse provider reset headers without inventing a reset when absent."""
+
+    retry_after = headers.get("retry-after") or headers.get("Retry-After")
+    if retry_after:
+        try:
+            return datetime.now(UTC) + timedelta(seconds=max(0, float(retry_after)))
+        except (TypeError, ValueError, OverflowError):
+            try:
+                parsed = parsedate_to_datetime(retry_after)
+                return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
+            except (TypeError, ValueError, OverflowError):
+                pass
+    now = datetime.now(UTC)
+    for name in ("x-ratelimit-reset", "x-rate-limit-reset", "ratelimit-reset"):
+        value = headers.get(name) or headers.get(name.title())
+        if not value:
+            continue
+        try:
+            raw = float(value)
+        except (TypeError, ValueError, OverflowError):
+            continue
+        return datetime.fromtimestamp(raw, tz=UTC) if raw > 1_000_000_000 else now + timedelta(seconds=max(0, raw))
+    return None
+
+
+def _raise_http_error(provider_name: str, exc: httpx.HTTPStatusError) -> None:
+    """Convert optional-provider HTTP failures into safe typed errors.
+
+    httpx includes the complete request URL in ``HTTPStatusError``. Query-key
+    providers therefore must not re-raise that exception directly: a live-test
+    traceback or an unhandled log would expose the configured credential.
+    """
+
+    response = exc.response
+    status_code = getattr(response, "status_code", None)
+    headers = dict(getattr(response, "headers", {}) or {})
+    message = redact_provider_message(str(exc))
+    lowered = message.lower()
+    if status_code in {418, 429} or any(
+        marker in lowered
+        for marker in ("rate limit", "rate_limit", "too many request", "quota", "throttl")
+    ):
+        raise ProviderRateLimitError(
+            provider_name,
+            message or f"{provider_name} request rate-limited",
+            retry_at=_retry_at_from_headers(headers),
+            status_code=status_code,
+            headers=headers,
+        ) from exc
+    raise ProviderResponseError(
+        provider_name,
+        message or f"{provider_name} request failed",
+        status_code=status_code,
+    ) from exc
 
 
 def estimate_twelve_data_ohlcv_request_count(
@@ -201,14 +262,19 @@ class _RESTProvider:
             raise ProviderNotConfiguredError(
                 f"{self.name} requires {self.key_setting}; configure it before routing"
             )
-        response = httpx.get(
-            f"{self.base_url.rstrip('/')}/{path.lstrip('/')}",
-            params=self._auth_params(params),
-            headers=self._auth_headers(),
-            timeout=30,
-        )
-        observe_response(response)
-        response.raise_for_status()
+        try:
+            response = httpx.get(
+                f"{self.base_url.rstrip('/')}/{path.lstrip('/')}",
+                params=self._auth_params(params),
+                headers=self._auth_headers(),
+                timeout=30,
+            )
+            observe_response(response)
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            _raise_http_error(self.name, exc)
+        except httpx.RequestError as exc:
+            raise ProviderResponseError(self.name, redact_provider_message(str(exc))) from exc
         payload = response.json()
         raise_for_provider_error_envelope(self.name, payload, response.status_code)
         return payload
