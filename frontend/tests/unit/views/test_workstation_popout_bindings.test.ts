@@ -200,6 +200,19 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
+  it('names and focuses the pop-out landmark for keyboard users', async () => {
+    const wrapper = mount(WorkstationView, {
+      attachTo: document.body,
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+
+    const popout = wrapper.get('.workstation__popout')
+    expect(popout.attributes('aria-label')).toBe('TC2000 Benchmarks pop-out')
+    expect(popout.attributes('tabindex')).toBe('-1')
+    await vi.waitFor(() => expect(document.activeElement).toBe(popout.element))
+    wrapper.unmount()
+  })
+
   it('hydrates missing shared market analysis when a pop-out opens after the leader refresh', async () => {
     const wrapper = mount(WorkstationView, {
       global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },

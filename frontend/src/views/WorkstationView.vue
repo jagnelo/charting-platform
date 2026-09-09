@@ -162,7 +162,7 @@
     <main v-else-if="!isPopout && workspaceDockPending" class="workstation__layout-state" role="status">
       Reloading workspace…
     </main>
-    <main v-if="isPopout" class="workstation__popout">
+    <main v-if="isPopout" ref="popoutRoot" class="workstation__popout" tabindex="-1" :aria-label="popoutLabel">
       <WorkstationToolContent
         v-if="popoutTool"
         :tool="popoutTool"
@@ -247,6 +247,7 @@ const keyboardHelpTrigger = ref<HTMLButtonElement | null>(null)
 const keyboardHelpMenuRoot = ref<HTMLElement | null>(null)
 const recentSymbolsTrigger = ref<HTMLButtonElement | null>(null)
 const recentSymbolsMenuRoot = ref<HTMLElement | null>(null)
+const popoutRoot = ref<HTMLElement | null>(null)
 const workspaceMenuStyle = ref<Record<string, string>>({})
 const keyboardHelpMenuStyle = ref<Record<string, string>>({})
 const toolLibraryMenuStyle = ref<Record<string, string>>({})
@@ -676,6 +677,10 @@ const dataState = computed(() => {
 })
 const footerMessage = computed(() => symbolProxyNotice.value ?? humanizeWorkspaceError(workspaceStore.error))
 const isPopout = computed(() => route.path.startsWith('/popout/'))
+const popoutLabel = computed(() => {
+  const title = popoutTool.value?.title?.trim() || 'workstation tool'
+  return `TC2000 ${title} pop-out`
+})
 
 /** Keep raw transport diagnostics out of the dense workstation status bar.
  * Detailed errors remain available as the native tooltip and in browser/backend
@@ -2032,6 +2037,13 @@ onMounted(async () => {
   }
   await nextTick()
   if (!isPopout.value) await refreshMarketData()
+  if (isPopout.value) {
+    // A browser pop-out is a separate top-level document. Move initial focus
+    // into its named landmark so keyboard and assistive users do not land on
+    // an empty document body before the detached tool finishes mounting.
+    await nextTick()
+    popoutRoot.value?.focus({ preventScroll: true })
+  }
 
 })
 
