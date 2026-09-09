@@ -185,26 +185,26 @@ class TestAlpacaCredentialWarning:
             mock_settings.ALPACA_SECRET_KEY = "secret"
             assert provider._ok() is True
 
-    def test_fetch_ohlcv_returns_empty_list_when_no_credentials(self):
+    def test_fetch_ohlcv_raises_when_no_credentials(self):
         provider = AlpacaProvider()
         with patch("app.providers.alpaca.settings") as mock_settings:
             mock_settings.ALPACA_API_KEY = ""
             mock_settings.ALPACA_SECRET_KEY = ""
-            result = provider.fetch_ohlcv(
-                "AAPL",
-                Timeframe.D1,
-                datetime(2024, 1, 1, tzinfo=UTC),
-                datetime(2024, 2, 1, tzinfo=UTC),
-            )
-        assert result == []
+            with pytest.raises(ProviderNotConfiguredError):
+                provider.fetch_ohlcv(
+                    "AAPL",
+                    Timeframe.D1,
+                    datetime(2024, 1, 1, tzinfo=UTC),
+                    datetime(2024, 2, 1, tzinfo=UTC),
+                )
 
-    def test_discover_universe_page_returns_empty_dict_shape_when_no_credentials(self):
+    def test_discover_universe_page_raises_when_no_credentials(self):
         provider = AlpacaProvider()
         with patch("app.providers.alpaca.settings") as mock_settings:
             mock_settings.ALPACA_API_KEY = ""
             mock_settings.ALPACA_SECRET_KEY = ""
-            result = provider.discover_universe_page("EQUITY", 0)
-        assert result == {"total": 0, "quotes": []}
+            with pytest.raises(ProviderNotConfiguredError):
+                provider.discover_universe_page("EQUITY", 0)
 
 
 # ── Alpaca OHLCV bar parsing ──────────────────────────────────────────────────

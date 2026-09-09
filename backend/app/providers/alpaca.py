@@ -28,6 +28,7 @@ from app.config import settings
 from app.models.instrument_event import EventTimeHint, InstrumentEventType
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.providers.base import InstrumentEventRecord
+from app.providers.errors import ProviderNotConfiguredError
 from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
@@ -96,6 +97,21 @@ class AlpacaProvider:
             )
         return has_creds
 
+    def _require_configured(self) -> None:
+        """Fail explicitly when the account credentials are absent.
+
+        An empty provider result is a valid no-observation outcome, not proof
+        that a credentialed adapter was unavailable.  Keeping this distinction
+        lets the runtime record configuration failures and select a fallback
+        without silently treating an unconfigured Alpaca account as empty
+        market data.
+        """
+
+        if not self._ok():
+            raise ProviderNotConfiguredError(
+                "alpaca requires ALPACA_API_KEY and ALPACA_SECRET_KEY"
+            )
+
     # ── Price History ─────────────────────────────────────────────────────────
 
     def fetch_ohlcv(
@@ -109,8 +125,7 @@ class AlpacaProvider:
         instrument_id: int | None = None,
         data_source_id: int | None = None,
     ) -> list[OHLCVBar]:
-        if not self._ok():
-            return []
+        self._require_configured()
         tf_str = _TF_MAP.get(timeframe)
         if tf_str is None:
             return []
@@ -201,8 +216,7 @@ class AlpacaProvider:
     # ── Latest Price ──────────────────────────────────────────────────────────
 
     def get_current_price(self, symbol: str) -> float | None:
-        if not self._ok():
-            return None
+        self._require_configured()
         is_crypto = _is_crypto(symbol)
         alpaca_sym = _to_alpaca_crypto(symbol) if is_crypto else symbol
         url = f"{_DATA_BASE}/{'crypto' if is_crypto else 'stocks'}/bars/latest"
@@ -222,8 +236,7 @@ class AlpacaProvider:
     # ── Corporate Actions (Events) ────────────────────────────────────────────
 
     def fetch_instrument_events(self, symbol: str) -> list[InstrumentEventRecord]:
-        if not self._ok():
-            return []
+        self._require_configured()
         now = datetime.now(UTC)
         since = (now - timedelta(days=365 * 10)).strftime("%Y-%m-%d")
         until = (now + timedelta(days=90)).strftime("%Y-%m-%d")
@@ -321,8 +334,7 @@ class AlpacaProvider:
     # ── Universe Discovery ────────────────────────────────────────────────────
 
     def discover_universe_page(self, quote_type: str, offset: int) -> dict[str, Any]:
-        if not self._ok():
-            return {"total": 0, "quotes": []}
+        self._require_configured()
         asset_class = {"EQUITY": "us_equity", "CRYPTOCURRENCY": "crypto"}.get(quote_type)
         if asset_class is None:
             return {"total": 0, "quotes": []}
