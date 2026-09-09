@@ -259,7 +259,7 @@ class Settings(BaseSettings):
                         "window_seconds": 2678400,
                         "unit": "bytes",
                         "scope": "public_credential",
-                        "source": "https://developer.finra.org/support-old",
+                        "source": "https://developer.finra.org/support",
                         "reset": "calendar_month",
                     }
                 ],
