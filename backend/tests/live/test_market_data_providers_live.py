@@ -353,3 +353,9 @@ def test_finnhub_credentialed_company_profile():
     assert profile is not None
     assert profile.symbol == "AAPL"
     assert profile.name and profile.exchange
+    events, _ = _observed_read(
+        lambda: FinnhubProvider().fetch_instrument_events("AAPL"), "finnhub"
+    )
+    assert events
+    assert all(event.event_time.tzinfo is not None for event in events)
+    assert any(event.eps_actual is not None or event.eps_estimate is not None for event in events)

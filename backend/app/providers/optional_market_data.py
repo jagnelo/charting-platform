@@ -826,8 +826,13 @@ class FinnhubProvider(_RESTProvider):
                     title=f"Finnhub earnings {symbol.upper()}",
                     source_event_key=f"finnhub:earnings:{symbol.upper()}:{event_time.date().isoformat()}",
                     fetched_at=fetched_at,
-                    eps_estimate=_decimal(row.get("epsEstimate")),
-                    eps_actual=_decimal(row.get("epsActual")),
+                    # Finnhub's documented earnings-surprise payload names
+                    # these fields ``estimate``/``actual``. Accept the
+                    # explicit EPS aliases as a compatibility shape only;
+                    # do not discard provider values when the documented
+                    # names are returned.
+                    eps_estimate=_decimal(row.get("estimate", row.get("epsEstimate"))),
+                    eps_actual=_decimal(row.get("actual", row.get("epsActual"))),
                     eps_surprise=_decimal(row.get("surprise")),
                     eps_surprise_pct=_decimal(row.get("surprisePercent")),
                     raw_payload=str(row),

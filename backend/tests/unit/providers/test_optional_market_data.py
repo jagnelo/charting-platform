@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -111,6 +112,34 @@ def test_finnhub_parses_parallel_candle_arrays():
             datetime(2024, 1, 3, tzinfo=UTC),
         )
     assert [(bar.open, bar.close) for bar in bars] == [(100.0, 101.0)]
+
+
+def test_finnhub_parses_documented_earnings_actual_and_estimate_fields():
+    provider = FinnhubProvider()
+    payload = [
+        {
+            "symbol": "AAPL",
+            "period": "2024-01-01",
+            "actual": 2.18,
+            "estimate": 2.10,
+            "surprise": 0.08,
+            "surprisePercent": 3.81,
+        }
+    ]
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ),
+    ):
+        configured.FINNHUB_API_KEY = "demo"
+        events = provider.fetch_instrument_events("AAPL")
+
+    assert len(events) == 1
+    assert events[0].eps_actual == Decimal("2.18")
+    assert events[0].eps_estimate == Decimal("2.10")
+    assert events[0].eps_surprise == Decimal("0.08")
 
 
 def test_daily_adapters_parse_common_rows():
