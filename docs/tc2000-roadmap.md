@@ -5,6 +5,39 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-09
 
+## 2026-09-09 — Explicit history queue disposition readiness
+
+At product commit `96bfea6e`, the admin canonical history-refresh planner now
+reports the same provider-neutral member disposition breakdown as the
+persisted benchmark-family snapshot contract: `canonical`, `placeholder`,
+`unresolved`, and `excluded`. The legacy aggregate `unresolved_count` and
+`excluded_count` fields remain intact for existing consumers, while ready and
+pending legs expose the explicit map and error legs return a deterministic
+zero-valued map. Canonical counts continue to use unique resolved
+security/equity IDs; placeholder provenance and exclusion reasons are not
+silently promoted to canonical readiness. No provider precedence, fallback,
+storage, UI layout, visual baseline, or acceptance policy changed.
+
+The focused planner contract suite passed `25/25`; the Docker-backed ETF
+history API integration suite passed `65/65`; frontend type-check, Ruff,
+format, and diff checks passed. The exact Docker-backed gate passed backend
+unit/integration (`1,373`/`387`), the full frontend suite and build, compose/
+provider/runner/research-runner probes, stack health, performance, acceptance
+policy, and functional Playwright (`165` passed, `107` documented skips across
+`272`). Visual parity remains `98/104` with exactly the six established
+state-oracle diffs: `watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125. The gate
+exits at `e2e-visual` only for those unchanged diffs; scoped teardown removed
+all assigned resources and test sessions cleanly. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed.
+
+R1 remains active for complete family/provider-history readiness, W1/MN
+coverage and continuity, cadence/effective-time and adjustment-factor/version
+provenance, raw-versus-derived storage, and broader canonical population;
+R2-R7 remain open. Next action: continue the next bounded evidence-backed R1
+history/provenance seam while preserving the six visual state-oracle
+assertions and rerun the exact gate at the next coherent tip.
+
 ## 2026-09-09 — Explicit family member disposition readiness
 
 At product commit `7333b328`, the benchmark-family snapshot contract now

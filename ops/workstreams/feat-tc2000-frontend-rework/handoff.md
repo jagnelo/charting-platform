@@ -8,6 +8,35 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-09 — Explicit history queue disposition readiness checkpoint
+
+Product commit `96bfea6e` extends the admin canonical history-refresh planner
+with the provider-neutral `canonical`, `placeholder`, `unresolved`, and
+`excluded` disposition map already used by persisted family snapshots. Legacy
+`unresolved_count`/`excluded_count` fields remain compatible; canonical counts
+stay scoped to unique resolved security/equity IDs, and unresolved/error legs
+return deterministic zero maps. No provider, fallback, storage, UI, visual, or
+acceptance policy changed.
+
+Focused planner coverage passed `25/25`; the Docker-backed ETF history API
+integration suite passed `65/65`; frontend type-check, Ruff, format, and diff
+checks passed. The exact Docker-backed gate passed backend unit/integration
+(`1,373`/`387`), full frontend/build and contract/probe stages, and functional
+Playwright (`165` passed, `107` documented skips across `272`). Visual parity
+remains `98/104` with exactly six established state-oracle diffs:
+`watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125. The gate
+exits at e2e-visual only for those unchanged diffs; scoped teardown removed all
+assigned containers, volumes, images, and test sessions cleanly. No visual
+baseline, mask, threshold, skip, provider, fallback, or acceptance policy
+changed, and no other worktree was touched.
+
+R1 remains active for complete canonical family/provider-history readiness,
+W1/MN continuity, cadence/effective-time and adjustment-factor/version
+provenance, raw-versus-derived storage, and broader population. R2-R7 remain
+open. Next action: continue the next bounded evidence-backed R1 history or
+provenance seam, then rerun the exact gate at the next coherent tip.
+
 ## 2026-09-09 — Explicit family member disposition readiness checkpoint
 
 Product commit `7333b328` adds provider-neutral `canonical`, `placeholder`,

@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-09 — Explicit history queue disposition readiness
+
+- [x] Expose canonical, placeholder, unresolved, and excluded dispositions on
+      admin canonical history-refresh legs while preserving legacy aggregate
+      counts and deterministic zero maps for unresolved/error legs.
+- [x] Regress duplicate canonical IDs, placeholder provenance, and
+      cash/non-equity exclusion reasons; focused planner coverage passed 25/25,
+      the Docker-backed ETF history API suite passed 65/65, and the exact gate
+      preserved 165 functional passes, 107 documented skips, and the six
+      established visual diffs with clean teardown.
+- [ ] Complete family/provider history, W1/MN continuity, cadence/effective
+      timing, adjustment-factor/version provenance, and raw-versus-derived
+      storage evidence; preserve unchanged provider/fallback and visual policy.
+
 ### 2026-09-09 — Explicit family member disposition readiness
 
 - [x] Return provider-neutral `canonical`, `placeholder`, `unresolved`, and
