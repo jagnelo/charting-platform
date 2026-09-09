@@ -223,6 +223,8 @@ def _usage_cost_for_operation(
     data_source: DataSource,
     operation: str,
     policy: ProviderPolicy | None = None,
+    *,
+    operation_cost_override: int | Decimal | None = None,
 ) -> tuple[str, str, Decimal]:
     tracking = _usage_tracking_config(data_source)
     mode = str(tracking.get("mode") or "call_count")
@@ -230,15 +232,17 @@ def _usage_cost_for_operation(
     contract = dict(policy.quota_contract or {}) if policy is not None else {}
     operation_costs = tracking.get("operation_costs") or contract.get("operation_costs") or {}
     family = _operation_family(operation)
-    raw_cost = 1
-    if isinstance(operation_costs, dict):
-        raw_cost = operation_costs.get(family, operation_costs.get(operation, 1))
-    try:
-        cost = Decimal(str(raw_cost))
-    except Exception:
-        cost = Decimal("1")
-    if cost <= 0:
-        cost = Decimal("1")
+    if operation_cost_override is not None:
+        raw_cost = operation_cost_override
+    elif isinstance(operation_costs, dict):
+        raw_cost = operation_costs.get(family, operation_costs.get(operation))
+    else:
+        raw_cost = None
+    if not _is_positive_operation_cost(raw_cost):
+        raise ProviderQuotaUnknownError(
+            f"No valid reviewed operation cost for {data_source.name}/{operation}"
+        )
+    cost = Decimal(str(raw_cost))
     return mode, unit_label, cost
 
 
@@ -1387,14 +1391,13 @@ async def execute_provider_call(
             resolved_usage_identity,
         ):
             continue
+        override = (operation_cost_overrides or {}).get(resolved.provider_name)
         usage_mode, usage_unit_label, usage_units = _usage_cost_for_operation(
             resolved.data_source,
             operation,
             resolved.policy,
+            operation_cost_override=override,
         )
-        override = (operation_cost_overrides or {}).get(resolved.provider_name)
-        if override is not None:
-            usage_units = Decimal(str(max(1, int(override))))
         dimension_units = _dimension_costs_for_operation(
             resolved.policy,
             resolved.data_source,
