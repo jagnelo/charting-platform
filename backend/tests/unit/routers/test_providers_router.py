@@ -120,6 +120,15 @@ class TestProvidersRouter:
             for value in unreviewed["missing_routing_control_variables"]
         )
 
+        otc = next(
+            row
+            for row in rows
+            if row["provider"] == "finra_otc_directory"
+            and row["capability"] == "universe_discovery"
+        )
+        assert otc["routing_eligible"] is False
+        assert "FINRA_OTC_OPERATION_COSTS" in otc["missing_routing_control_variables"]
+
         target = rows[0]
         provider = target["provider"]
         capability = target["capability"]

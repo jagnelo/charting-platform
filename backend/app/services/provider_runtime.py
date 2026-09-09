@@ -1157,6 +1157,13 @@ async def resolve_provider_chain(
             and not provider_is_configured(data_source.name)
         ) or (entitlement.authentication_required and not provider_is_configured(data_source.name)):
             continue
+        # Non-secret provider safety controls (reviewed byte bounds, operation
+        # costs, terms/polling gates, and similar provider-specific admission
+        # inputs) are part of routing eligibility. Diagnostics still expose
+        # the exact missing names, but a configured credential/source alone
+        # must never bypass these controls.
+        if provider_missing_routing_controls(data_source.name):
+            continue
         if (
             data_source.name == "yfinance"
             and capability
@@ -1674,6 +1681,7 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
                 policy.is_enabled
                 and policy_has_known_quota(policy)
                 and provider_is_configured(data_source.name)
+                and not provider_missing_routing_controls(data_source.name)
                 and str(entitlement.configured_plan or "").strip().lower() != "unreviewed"
                 and str(entitlement.live_probe_status or "not_run").strip().lower()
                 in {"passed", "not_required"}

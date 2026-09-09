@@ -582,6 +582,22 @@ async def test_otc_directory_requires_explicit_source_before_resolution(db, monk
     await seed_provider_runtime(async_db)
     chain = await resolve_provider_chain(async_db, ProviderCapability.UNIVERSE_DISCOVERY)
 
+    # A source URL is necessary but not sufficient: response-dependent DAPI
+    # pagination also requires the reviewed operation/terms controls.
+    assert all(item.provider_name != "finra_otc_directory" for item in chain)
+
+    monkeypatch.setattr(
+        settings,
+        "FINRA_OTC_OPERATION_COSTS",
+        {"discover_universe_page": 3, "reconcile_universe_page": 3},
+    )
+    monkeypatch.setattr(settings, "FINRA_OTC_TERMS_REVIEWED", True)
+    monkeypatch.setattr(settings, "FINRA_OTC_COMPLETENESS_REVIEWED", True)
+    monkeypatch.setattr(settings, "FINRA_OTC_REDISTRIBUTION_REVIEWED", True)
+    monkeypatch.setattr(settings, "FINRA_OTC_POLL_INTERVAL_SECONDS", 900)
+    await seed_provider_runtime(async_db)
+    chain = await resolve_provider_chain(async_db, ProviderCapability.UNIVERSE_DISCOVERY)
+
     assert any(item.provider_name == "finra_otc_directory" for item in chain)
 
 
