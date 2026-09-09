@@ -51,7 +51,7 @@ dependencies:
   - staging baseline at 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
   - feat/etf-holdings-constituents owns ETF constituent provider adapters; this branch consumes compatible canonical identities only
   - feat/etf-holdings-constituents is active in parallel and may overlap on ETF identity/discovery evidence; reconcile contracts at integration without changing its adapter ownership
-  - configured provider credentials and terms are explicit; unavailable or quota-unknown providers remain visible but non-routable and do not block unrelated providers
+  - configured provider credentials and terms are explicit; unavailable or quota-unknown providers remain visible but non-routable and do not block unrelated providers; account-wide usage outside the shared application database is only trusted when a provider-native cumulative usage observation is reconciled
 acceptance_criteria:
   - id: AC-IDENTITY
     text: New and reconciled US-listed securities use stable FIGI-domain keys where applicable, issuer identity is separate from security identity, effective-dated listing/provider-symbol history is retained, and unresolved candidates are quarantined without silent merges.

@@ -25,6 +25,17 @@ variables. Keep required reviewers enabled. Ordinary push/PR CI deliberately
 receives no provider secrets and makes no external provider calls, so a forked
 PR cannot spend quotas or exfiltrate keys.
 
+Provider usage is account- and/or IP-scoped by the vendor, not branch-scoped.
+The durable request log and quota windows preserve usage across application
+restarts and workers that share the same database, but a separate worktree,
+CI database, deployment, or unrelated client using the same credential is not
+visible to that local ledger unless the provider exposes a cumulative usage
+header that the adapter safely reconciles. Credentialed live probes therefore
+consume the same external allowance as the application and any parallel
+development branch. Do not run the live matrix concurrently against a shared
+key; use separate provider accounts/keys per environment when account-wide
+isolation is required.
+
 Deployments use a target-owned secret store, never the developer-machine file.
 The RPi deployment already requires `/opt/charting-platform/shared/app.env`
 with mode `0600`; the release Compose contract passes its provider variables
