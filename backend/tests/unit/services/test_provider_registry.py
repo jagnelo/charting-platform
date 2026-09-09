@@ -143,6 +143,15 @@ class TestProviderRegistry:
             "MARKETSTACK_DISCOVERY_EXCHANGE",
         ]
 
+    def test_massive_legacy_alias_satisfies_required_settings(self, monkeypatch):
+        monkeypatch.setattr(settings, "MASSIVE_API_KEY", "")
+        monkeypatch.setattr(settings, "MARKETDATA_API_KEY", "legacy-key")
+        assert provider_required_settings("massive") == (
+            "MASSIVE_API_KEY",
+            "MARKETDATA_API_KEY",
+        )
+        assert provider_missing_settings("massive") == []
+
     def test_yfinance_is_available_as_price_history_provider(self):
         provider = get_price_history_provider("yfinance")
         assert provider.name == "yfinance"

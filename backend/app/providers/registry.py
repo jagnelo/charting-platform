@@ -441,6 +441,8 @@ def provider_required_settings(name: str) -> tuple[str, ...]:
 
     required = list(_CONFIGURATION_SETTINGS.get(name, ()))
     required.extend(_AUTH_SETTINGS.get(name, ()))
+    if name == "massive":
+        required.append("MARKETDATA_API_KEY")
     if name == "edgar":
         required.append("EDGAR_USER_AGENT")
     return tuple(dict.fromkeys(required))
@@ -450,6 +452,11 @@ def provider_missing_settings(name: str) -> list[str]:
     """Return missing required setting names for operator diagnostics only."""
 
     missing = []
+    if name == "massive" and any(
+        bool(str(getattr(settings, setting_name, "") or "").strip())
+        for setting_name in ("MASSIVE_API_KEY", "MARKETDATA_API_KEY")
+    ):
+        return missing
     for setting_name in provider_required_settings(name):
         value = str(getattr(settings, setting_name, "") or "").strip()
         if not value or (setting_name == "EDGAR_USER_AGENT" and "contact@example.com" in value):
