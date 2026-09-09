@@ -346,9 +346,18 @@ export interface ETFHoldingsDate {
 export interface ETFHoldingsWeightEvolutionPoint {
   snapshot_id: number
   composition_date: string
+  as_of_date?: string | null
+  known_at?: string | null
+  published_at?: string | null
   weight?: number | string | null
   shares?: number | string | null
   market_value?: number | string | null
+  source_provider: string
+  source_identifier?: string | null
+  cadence?: string | null
+  parser_version?: string | null
+  timing_provenance?: Record<string, string>
+  provenance: string
 }
 
 export interface ETFHoldingsWeightEvolutionSeries {

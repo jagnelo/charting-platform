@@ -132,6 +132,24 @@ def _snapshot_revision_key(snapshot: ETFHoldingsSnapshot) -> tuple[datetime, int
     return known_at, snapshot.id
 
 
+def _snapshot_legal_metadata(snapshot: ETFHoldingsSnapshot) -> dict[str, Any]:
+    extra_data = snapshot.extra_data if isinstance(snapshot.extra_data, dict) else {}
+    legal_metadata = extra_data.get("legal_metadata")
+    return legal_metadata if isinstance(legal_metadata, dict) else {}
+
+
+def _snapshot_cadence(snapshot: ETFHoldingsSnapshot) -> str | None:
+    cadence = _snapshot_legal_metadata(snapshot).get("cadence")
+    return str(cadence) if cadence is not None else None
+
+
+def _snapshot_timing_provenance(snapshot: ETFHoldingsSnapshot) -> dict[str, str]:
+    timing = _snapshot_legal_metadata(snapshot).get("timing_provenance")
+    if not isinstance(timing, dict):
+        return {}
+    return {str(key): str(value) for key, value in timing.items() if value is not None}
+
+
 def _collapse_snapshot_revisions(
     snapshots: list[ETFHoldingsSnapshot],
 ) -> list[ETFHoldingsSnapshot]:
@@ -2618,11 +2636,6 @@ async def list_available_dates(
     )
     dates: list[ETFHoldingsDateOut] = []
     for row in rows:
-        extra_data = row.extra_data if isinstance(row.extra_data, dict) else {}
-        legal_metadata = extra_data.get("legal_metadata")
-        if not isinstance(legal_metadata, dict):
-            legal_metadata = {}
-        timing = legal_metadata.get("timing_provenance")
         dates.append(
             ETFHoldingsDateOut(
                 snapshot_id=row.id,
@@ -2630,17 +2643,9 @@ async def list_available_dates(
                 as_of_date=row.as_of_date,
                 known_at=row.known_at,
                 published_at=row.published_at,
-                cadence=(
-                    str(legal_metadata["cadence"])
-                    if legal_metadata.get("cadence") is not None
-                    else None
-                ),
+                cadence=_snapshot_cadence(row),
                 parser_version=row.parser_version,
-                timing_provenance=(
-                    {str(key): str(value) for key, value in timing.items() if value is not None}
-                    if isinstance(timing, dict)
-                    else {}
-                ),
+                timing_provenance=_snapshot_timing_provenance(row),
                 provenance=row.provenance,
                 source_provider=row.source_provider,
                 source_identifier=row.source_identifier,
@@ -2778,11 +2783,16 @@ async def get_constituent_timeline(
                 composition_date=snapshot.composition_date,
                 as_of_date=snapshot.as_of_date,
                 known_at=snapshot.known_at,
+                published_at=snapshot.published_at,
                 weight=row.weight,
                 weight_delta_from_previous=weight_delta,
                 shares=row.shares,
                 market_value=row.market_value,
                 source_provider=snapshot.source_provider,
+                source_identifier=snapshot.source_identifier,
+                cadence=_snapshot_cadence(snapshot),
+                parser_version=snapshot.parser_version,
+                timing_provenance=_snapshot_timing_provenance(snapshot),
                 provenance=snapshot.provenance,
             )
         )
@@ -2839,9 +2849,18 @@ async def get_weight_evolution(
                 ETFHoldingsWeightEvolutionPointOut(
                     snapshot_id=snapshot.id,
                     composition_date=snapshot.composition_date,
+                    as_of_date=snapshot.as_of_date,
+                    known_at=snapshot.known_at,
+                    published_at=snapshot.published_at,
                     weight=row.weight,
                     shares=row.shares,
                     market_value=row.market_value,
+                    source_provider=snapshot.source_provider,
+                    source_identifier=snapshot.source_identifier,
+                    cadence=_snapshot_cadence(snapshot),
+                    parser_version=snapshot.parser_version,
+                    timing_provenance=_snapshot_timing_provenance(snapshot),
+                    provenance=snapshot.provenance,
                 )
             )
 

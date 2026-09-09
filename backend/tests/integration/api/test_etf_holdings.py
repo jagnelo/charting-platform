@@ -992,7 +992,21 @@ def test_weight_evolution_reports_top_historical_weight_movers(client, admin_hea
             "/api/v1/etf-holdings/EVOL/ingest",
             json={
                 "composition_date": composition_date,
+                "as_of_date": composition_date,
+                "published_at": (
+                    "2026-05-01T12:00:00Z" if composition_date == "2026-05-01" else None
+                ),
                 "source_provider": "manual-test",
+                "source_identifier": "evol-history.csv",
+                "legal_metadata": {
+                    "cadence": "biweekly",
+                    "timing_provenance": {
+                        "composition_date": "provider_reported",
+                        "as_of_date": "provider_reported",
+                        "known_at": "ingestion_time",
+                        "published_at": "provider_reported",
+                    },
+                },
                 "rows": rows,
             },
             headers=admin_headers,
@@ -1014,6 +1028,20 @@ def test_weight_evolution_reports_top_historical_weight_movers(client, admin_hea
     assert body["series"][0]["last_weight"] == "0.07000000"
     assert body["series"][0]["weight_delta"] == "0.03000000"
     assert len(body["series"][0]["points"]) == 3
+    first_point = body["series"][0]["points"][0]
+    assert first_point["as_of_date"] == "2026-05-01"
+    assert first_point["published_at"] == "2026-05-01T12:00:00Z"
+    assert first_point["source_provider"] == "manual-test"
+    assert first_point["source_identifier"] == "evol-history.csv"
+    assert first_point["cadence"] == "biweekly"
+    assert first_point["parser_version"] == "manual-v1"
+    assert first_point["timing_provenance"] == {
+        "composition_date": "provider_reported",
+        "as_of_date": "provider_reported",
+        "known_at": "ingestion_time",
+        "published_at": "provider_reported",
+    }
+    assert first_point["provenance"] == "issuer_current_holdings"
 
     latest = client.get("/api/v1/etf-holdings/EVOL/latest", headers=auth_headers)
     assert latest.status_code == 200
@@ -1034,6 +1062,10 @@ def test_weight_evolution_reports_top_historical_weight_movers(client, admin_hea
     assert points[0]["weight_delta_from_previous"] is None
     assert points[1]["weight_delta_from_previous"] == "0.01000000"
     assert points[2]["weight_delta_from_previous"] == "0.02000000"
+    assert points[0]["published_at"] == "2026-05-01T12:00:00Z"
+    assert points[0]["source_identifier"] == "evol-history.csv"
+    assert points[0]["cadence"] == "biweekly"
+    assert points[0]["timing_provenance"]["published_at"] == "provider_reported"
 
 
 def test_transition_timeline_reports_adjacent_snapshot_churn(client, admin_headers, auth_headers):

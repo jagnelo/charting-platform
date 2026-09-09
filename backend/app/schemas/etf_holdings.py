@@ -373,20 +373,34 @@ class ETFConstituentTimelinePoint(BaseModel):
     composition_date: date
     as_of_date: date | None = None
     known_at: datetime | None = None
+    published_at: datetime | None = None
     weight: Decimal | None = None
     weight_delta_from_previous: Decimal | None = None
     shares: Decimal | None = None
     market_value: Decimal | None = None
     source_provider: str
+    source_identifier: str | None = None
+    cadence: str | None = None
+    parser_version: str | None = None
+    timing_provenance: dict[str, str] = Field(default_factory=dict)
     provenance: str
 
 
 class ETFHoldingsWeightEvolutionPointOut(BaseModel):
     snapshot_id: int
     composition_date: date
+    as_of_date: date | None = None
+    known_at: datetime | None = None
+    published_at: datetime | None = None
     weight: Decimal | None = None
     shares: Decimal | None = None
     market_value: Decimal | None = None
+    source_provider: str
+    source_identifier: str | None = None
+    cadence: str | None = None
+    parser_version: str | None = None
+    timing_provenance: dict[str, str] = Field(default_factory=dict)
+    provenance: str
 
 
 class ETFHoldingsWeightEvolutionSeriesOut(BaseModel):
