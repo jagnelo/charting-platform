@@ -305,6 +305,16 @@ def test_finra_async_download_requires_positive_bound_for_monthly_reservation(mo
     assert provider_contract_operation_cost_known(policy, source, "download_async_result")
 
 
+def test_finra_async_boolean_bound_does_not_promote_bandwidth_profile(monkeypatch):
+    monkeypatch.setattr(settings, "FINRA_ASYNC_MAX_RESULT_BYTES", True)
+    profile = get_provider_usage_profile("finra")
+    assert "download_async_result" not in profile["operation_costs"]
+    assert (
+        "download_async_result"
+        not in profile["dimension_costs"]["download_bytes_per_calendar_month"]
+    )
+
+
 def test_finra_authenticated_dataset_usage_covers_cold_oauth_token_request():
     profile = get_provider_usage_profile("finra")
     assert profile["operation_costs"]["fetch_short_interest"] == 2

@@ -179,6 +179,11 @@ class TestProviderRegistry:
         assert provider_missing_routing_controls("finra") == [
             "FINRA_ASYNC_MAX_RESULT_BYTES"
         ]
+        monkeypatch.setattr(settings, "FINRA_ASYNC_MAX_RESULT_BYTES", True)
+        assert provider_missing_routing_controls("finra") == [
+            "FINRA_ASYNC_MAX_RESULT_BYTES"
+        ]
+        monkeypatch.setattr(settings, "FINRA_ASYNC_MAX_RESULT_BYTES", 1024)
         assert provider_routing_control_settings("finra_otc_directory") == (
             "FINRA_OTC_OPERATION_COSTS",
             "FINRA_OTC_TERMS_REVIEWED",
@@ -284,6 +289,11 @@ class TestProviderRegistry:
         monkeypatch.setattr(settings, "FINRA_OTC_REDISTRIBUTION_REVIEWED", True)
         monkeypatch.setattr(settings, "FINRA_OTC_POLL_INTERVAL_SECONDS", 900)
         assert provider_missing_routing_controls("finra_otc_directory") == []
+        monkeypatch.setattr(settings, "FINRA_OTC_POLL_INTERVAL_SECONDS", True)
+        assert provider_missing_routing_controls("finra_otc_directory") == [
+            "FINRA_OTC_POLL_INTERVAL_SECONDS"
+        ]
+        monkeypatch.setattr(settings, "FINRA_OTC_POLL_INTERVAL_SECONDS", 900)
         monkeypatch.setattr(
             settings,
             "FINRA_OTC_OPERATION_COSTS",
@@ -296,6 +306,11 @@ class TestProviderRegistry:
         monkeypatch.setattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 60)
         monkeypatch.setattr(settings, "FRED_SERIES_TERMS_REVIEWED", True)
         assert provider_missing_routing_controls("fred") == []
+        monkeypatch.setattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", True)
+        assert provider_missing_routing_controls("fred") == [
+            "FRED_REVIEWED_REQUESTS_PER_MINUTE"
+        ]
+        monkeypatch.setattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 60)
         fred_seed = provider_rate_limit_seed("fred")
         assert fred_seed["quota_scope"] == "api_key"
         assert fred_seed["quota_contract"]["unknown_dimensions"] == []

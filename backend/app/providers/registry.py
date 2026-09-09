@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import (
+    provider_positive_integer,
     provider_rate_limit_seed,
     provider_required_operation_byte_bounds,
     settings,
@@ -503,11 +504,10 @@ def provider_missing_routing_controls(name: str) -> list[str]:
     if not required:
         return []
     if name == "finra":
-        try:
-            configured = int(getattr(settings, "FINRA_ASYNC_MAX_RESULT_BYTES", 0) or 0)
-        except (TypeError, ValueError):
-            configured = 0
-        return [] if configured > 0 else list(required)
+        configured = provider_positive_integer(
+            getattr(settings, "FINRA_ASYNC_MAX_RESULT_BYTES", 0)
+        )
+        return [] if configured is not None else list(required)
     if name == "finra_otc_directory":
         configured_map = getattr(settings, "FINRA_OTC_OPERATION_COSTS", {}) or {}
         operations = ("discover_universe_page", "reconcile_universe_page")
@@ -527,26 +527,22 @@ def provider_missing_routing_controls(name: str) -> list[str]:
             missing.append("FINRA_OTC_COMPLETENESS_REVIEWED")
         if not bool(getattr(settings, "FINRA_OTC_REDISTRIBUTION_REVIEWED", False)):
             missing.append("FINRA_OTC_REDISTRIBUTION_REVIEWED")
-        try:
-            poll_interval = int(getattr(settings, "FINRA_OTC_POLL_INTERVAL_SECONDS", 0) or 0)
-        except (TypeError, ValueError):
-            poll_interval = 0
-        if poll_interval <= 0:
+        poll_interval = provider_positive_integer(
+            getattr(settings, "FINRA_OTC_POLL_INTERVAL_SECONDS", 0)
+        )
+        if poll_interval is None:
             missing.append("FINRA_OTC_POLL_INTERVAL_SECONDS")
         return list(dict.fromkeys(missing))
     if name == "fred":
         scope = str(getattr(settings, "FRED_REVIEWED_LIMIT_SCOPE", "") or "").strip()
-        try:
-            reviewed_limit = int(
-                getattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 0) or 0
-            )
-        except (TypeError, ValueError):
-            reviewed_limit = 0
+        reviewed_limit = provider_positive_integer(
+            getattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 0)
+        )
         terms_reviewed = bool(getattr(settings, "FRED_SERIES_TERMS_REVIEWED", False))
         missing: list[str] = []
         if scope not in {"api_key", "account", "ip", "deployment"}:
             missing.append("FRED_REVIEWED_LIMIT_SCOPE")
-        if not 0 < reviewed_limit <= 120:
+        if reviewed_limit is None or reviewed_limit > 120:
             missing.append("FRED_REVIEWED_REQUESTS_PER_MINUTE")
         if not terms_reviewed:
             missing.append("FRED_SERIES_TERMS_REVIEWED")
@@ -621,11 +617,10 @@ def get_provider_usage_profile(name: str) -> dict:
                 dimension_name: byte_bounds,
             }
     if name == "finra":
-        try:
-            async_result_bound = int(settings.FINRA_ASYNC_MAX_RESULT_BYTES or 0)
-        except (TypeError, ValueError):
-            async_result_bound = 0
-        if async_result_bound > 0:
+        async_result_bound = provider_positive_integer(
+            settings.FINRA_ASYNC_MAX_RESULT_BYTES
+        )
+        if async_result_bound is not None:
             bandwidth_dimension = "download_bytes_per_calendar_month"
             merged["operation_costs"] = {
                 **dict(merged.get("operation_costs") or {}),
@@ -651,12 +646,10 @@ def get_provider_usage_profile(name: str) -> dict:
         operation_costs = getattr(settings, "FINRA_OTC_OPERATION_COSTS", {}) or {}
         if isinstance(operation_costs, dict):
             reviewed_costs = {
-                str(operation).strip(): int(cost)
+                str(operation).strip(): cost
                 for operation, cost in operation_costs.items()
                 if str(operation).strip()
-                and isinstance(cost, int)
-                and not isinstance(cost, bool)
-                and cost > 0
+                and provider_positive_integer(cost) is not None
             }
             if reviewed_costs:
                 merged["operation_costs"] = {

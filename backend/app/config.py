@@ -1549,6 +1549,14 @@ def provider_required_operation_byte_bounds(provider_name: str) -> tuple[str, ..
     return _BYTE_BOUND_OPERATIONS.get(provider_name, ())
 
 
+def provider_positive_integer(value: object) -> int | None:
+    """Return a reviewed positive integer without coercing booleans or floats."""
+
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        return None
+    return value
+
+
 def provider_operation_byte_bounds(provider_name: str) -> dict[str, int]:
     """Return only positive, explicitly configured operation byte bounds."""
 
@@ -1558,10 +1566,8 @@ def provider_operation_byte_bounds(provider_name: str) -> dict[str, int]:
         return {}
     result: dict[str, int] = {}
     for operation, value in raw.items():
-        if isinstance(value, bool) or not isinstance(value, int):
-            continue
-        bound = value
-        if str(operation).strip() and bound > 0:
+        bound = provider_positive_integer(value)
+        if str(operation).strip() and bound is not None:
             result[str(operation).strip()] = bound
     return result
 
@@ -1584,15 +1590,15 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
         # series-rights review may remove those unknown dimensions. This is a
         # configuration-controlled admission gate, never a guessed fallback.
         scope = str(getattr(settings, "FRED_REVIEWED_LIMIT_SCOPE", "") or "").strip()
-        try:
-            reviewed_limit = int(getattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 0) or 0)
-        except (TypeError, ValueError):
-            reviewed_limit = 0
+        reviewed_limit = provider_positive_integer(
+            getattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 0)
+        )
         terms_reviewed = bool(getattr(settings, "FRED_SERIES_TERMS_REVIEWED", False))
         allowed_scopes = {"api_key", "account", "ip", "deployment"}
         if (
             scope in allowed_scopes
-            and 0 < reviewed_limit <= 120
+            and reviewed_limit is not None
+            and reviewed_limit <= 120
             and terms_reviewed
             and isinstance(seed.get("quota_contract"), dict)
         ):
