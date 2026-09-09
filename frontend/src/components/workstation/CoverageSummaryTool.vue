@@ -43,7 +43,8 @@
         </div>
         <p v-if="rangeValidationError" class="coverage-summary__range-message coverage-summary__range-message--error" role="alert" aria-live="assertive" aria-atomic="true">{{ rangeValidationError }}</p>
         <p v-else-if="rangeError" class="coverage-summary__range-message coverage-summary__range-message--error" role="alert" aria-live="assertive" aria-atomic="true">{{ rangeError }}</p>
-        <div v-else-if="rangeAssessment" class="coverage-summary__assessment" role="status" aria-live="polite" aria-atomic="true" :class="`coverage-summary__assessment--${rangeAssessment.status}`">
+        <div v-else-if="rangeAssessment" class="coverage-summary__assessment" role="status" aria-live="polite" aria-atomic="true" :class="`coverage-summary__assessment--${rangeAssessment.status}`" :aria-describedby="rangeAccessibilityId">
+          <span :id="rangeAccessibilityId" class="sr-only">{{ rangeAccessibilitySummary }}</span>
           <div><span>Status</span><strong>{{ rangeAssessment.status }}</strong></div>
           <div><span>Bars</span><strong>{{ rangeAssessment.bar_count.toLocaleString() }}</strong></div>
           <div><span>Covered</span><strong>{{ formatRange(rangeAssessment.covered_start, rangeAssessment.covered_end) }}</strong></div>
@@ -63,14 +64,34 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, useId, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
+import { describeOhlcvCoverage } from '@/lib/workstation/ohlcvCoverageAccessibility'
 
 interface CoverageRange { oldest: string | null; newest: string | null; bar_count: number }
 interface DatasetState { dataset_type: string; dataset_key: string; status: 'fresh' | 'stale' | 'pending' | 'failed'; updated_at?: string | null; extra_data?: Record<string, unknown> | null }
 interface OhlcvCoverageSlice { start: string; end: string }
-interface OhlcvCoverageAssessment { status: 'ready' | 'partial' | 'missing' | 'stale'; covered_start: string | null; covered_end: string | null; bar_count: number; missing_slices: OhlcvCoverageSlice[]; explanation: string }
+interface OhlcvCoverageAssessment {
+  status: 'ready' | 'partial' | 'missing' | 'stale'
+  covered_start: string | null
+  covered_end: string | null
+  bar_count: number
+  missing_slices: OhlcvCoverageSlice[]
+  explanation: string
+  lineage?: {
+    provider_bar_count?: number
+    derived_bar_count?: number
+    unknown_bar_count?: number
+    source_lineage?: string
+    source_timeframes?: string[]
+  }
+  adjustment_provenance?: {
+    mode?: string
+    factor_status?: string
+    factor_version?: string | null
+  }
+}
 
 const props = defineProps<{ symbol: string; configuration?: Record<string, unknown> }>()
 const queryClient = useQueryClient()
@@ -92,6 +113,26 @@ const rangeAdjusted = ref(props.configuration?.coverage_adjusted !== false)
 const rangeLoading = ref(false)
 const rangeError = ref('')
 const rangeAssessment = ref<OhlcvCoverageAssessment | null>(null)
+const rangeAccessibilityId = useId()
+const rangeAccessibilitySummary = computed(() => {
+  const assessment = rangeAssessment.value
+  if (!assessment) return ''
+  const lineage = assessment.lineage ?? {}
+  const adjustment = assessment.adjustment_provenance ?? {}
+  return describeOhlcvCoverage({
+    timeframe: rangeTimeframe.value,
+    status: assessment.status,
+    barCount: assessment.bar_count,
+    sourceLineage: lineage.source_lineage ?? 'unavailable',
+    providerBarCount: lineage.provider_bar_count ?? 0,
+    derivedBarCount: lineage.derived_bar_count ?? 0,
+    unknownBarCount: lineage.unknown_bar_count ?? 0,
+    sourceTimeframes: lineage.source_timeframes ?? [],
+    adjustmentMode: adjustment.mode ?? (rangeAdjusted.value ? 'split_adjusted' : 'raw'),
+    factorStatus: adjustment.factor_status ?? 'not_reported',
+    factorVersion: adjustment.factor_version,
+  })
+})
 let requestId = 0
 let rangeRequestId = 0
 

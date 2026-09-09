@@ -18,7 +18,7 @@ from app.schemas.coverage import (
     LocalCoverageRangeOut,
     OhlcvCoverageOut,
 )
-from app.services.ohlcv_coverage import assess_ohlcv_coverage
+from app.services.ohlcv_coverage import assess_ohlcv_coverage, summarize_ohlcv_lineage
 
 router = APIRouter(prefix="/coverage", tags=["coverage"])
 
@@ -72,6 +72,7 @@ async def instrument_ohlcv_coverage(
         freshness_seconds=86_400 if timeframe == Timeframe.D1 else None,
         calendar="XNYS" if (instrument.currency or "").upper() == "USD" else None,
     )
+    lineage = summarize_ohlcv_lineage(bars, adjusted=adjusted)
     return OhlcvCoverageOut(
         instrument_id=instrument.id,
         symbol=instrument.symbol,
@@ -88,6 +89,14 @@ async def instrument_ohlcv_coverage(
             {"start": gap_start, "end": gap_end} for gap_start, gap_end in assessment.missing_slices
         ],
         explanation=assessment.explanation,
+        lineage={
+            "provider_bar_count": lineage.provider_bar_count,
+            "derived_bar_count": lineage.derived_bar_count,
+            "unknown_bar_count": lineage.unknown_bar_count,
+            "source_lineage": lineage.source_lineage,
+            "source_timeframes": list(lineage.source_timeframes),
+        },
+        adjustment_provenance=lineage.adjustment_provenance,
     )
 
 

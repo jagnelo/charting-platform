@@ -151,6 +151,20 @@ class TestCoverageRouter:
             {"start": "2026-01-05T00:00:00Z", "end": "2026-01-09T00:00:00Z"}
         ]
         assert body["provenance"] == "canonical_local_database"
+        assert body["lineage"] == {
+            "provider_bar_count": 3,
+            "derived_bar_count": 0,
+            "unknown_bar_count": 0,
+            "source_lineage": "provider_only",
+            "source_timeframes": [],
+        }
+        assert body["adjustment_provenance"] == {
+            "mode": "split_adjusted",
+            "source_kind": "provider_observation",
+            "factor_status": "provider_native_opaque",
+            "factor_version": None,
+            "contract_version": 1,
+        }
         assert "provider" not in body
 
     def test_rejects_reversed_coverage_ranges(self, client, auth_headers, instrument):
@@ -165,3 +179,64 @@ class TestCoverageRouter:
 
         assert response.status_code == 422
         assert response.json()["detail"]["code"] == "invalid_coverage_range"
+
+    def test_range_readiness_reports_mixed_provider_and_derived_lineage(
+        self, client, auth_headers, db, instrument
+    ):
+        start = datetime(2026, 2, 2, tzinfo=UTC)
+        db.add_all(
+            [
+                OHLCVBar(
+                    instrument_id=instrument.id,
+                    timeframe=Timeframe.W1,
+                    ts=start,
+                    open=Decimal("10"),
+                    high=Decimal("11"),
+                    low=Decimal("9"),
+                    close=Decimal("10"),
+                    is_adjusted=True,
+                    is_derived=False,
+                ),
+                OHLCVBar(
+                    instrument_id=instrument.id,
+                    timeframe=Timeframe.W1,
+                    ts=start + timedelta(days=7),
+                    open=Decimal("11"),
+                    high=Decimal("12"),
+                    low=Decimal("10"),
+                    close=Decimal("11"),
+                    is_adjusted=True,
+                    is_derived=True,
+                    source_timeframe="D1",
+                ),
+            ]
+        )
+        db.flush()
+
+        response = client.get(
+            f"/api/v1/coverage/instruments/{instrument.symbol}/ohlcv",
+            params={
+                "timeframe": "W1",
+                "start": "2026-02-02T00:00:00Z",
+                "end": "2026-02-09T00:00:00Z",
+                "mode": "historical",
+            },
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["lineage"] == {
+            "provider_bar_count": 1,
+            "derived_bar_count": 1,
+            "unknown_bar_count": 0,
+            "source_lineage": "provider_and_derived",
+            "source_timeframes": ["D1"],
+        }
+        assert body["adjustment_provenance"] == {
+            "mode": "split_adjusted",
+            "source_kind": "mixed_provider_and_derived",
+            "factor_status": "mixed_provider_native_opaque_and_inherited_from_canonical_d1",
+            "factor_version": None,
+            "contract_version": 1,
+        }

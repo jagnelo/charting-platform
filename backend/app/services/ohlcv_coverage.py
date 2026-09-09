@@ -34,6 +34,80 @@ class OhlcvCoverageAssessment:
     explanation: str
 
 
+@dataclass(frozen=True, slots=True)
+class OhlcvLineageSummary:
+    """Explicit source and adjustment lineage for a covered bar range.
+
+    Provider APIs expose the requested adjustment mode but do not expose the
+    event-level factors used to produce adjusted prices.  Keep that limitation
+    explicit, and distinguish it from locally derived coarse bars inheriting
+    the canonical D1 adjustment contract.
+    """
+
+    provider_bar_count: int
+    derived_bar_count: int
+    unknown_bar_count: int
+    source_lineage: str
+    source_timeframes: tuple[str, ...]
+    adjustment_provenance: dict[str, object]
+
+
+def summarize_ohlcv_lineage(bars: Sequence[OHLCVBar], *, adjusted: bool) -> OhlcvLineageSummary:
+    """Summarize provider/derived lineage without naming an unknown provider."""
+
+    provider_count = sum(1 for bar in bars if bar.is_derived is False)
+    derived_count = sum(1 for bar in bars if bar.is_derived is True)
+    unknown_count = len(bars) - provider_count - derived_count
+    if provider_count and derived_count:
+        source_lineage = "provider_and_derived"
+    elif provider_count:
+        source_lineage = "provider_only"
+    elif derived_count:
+        source_lineage = "derived_only"
+    else:
+        source_lineage = "unavailable"
+
+    source_timeframes = tuple(
+        sorted(
+            {
+                str(bar.source_timeframe)
+                for bar in bars
+                if bar.is_derived is True and bar.source_timeframe
+            }
+        )
+    )
+    if not bars:
+        source_kind = "unavailable"
+        factor_status = "not_observed"
+    elif provider_count and derived_count:
+        source_kind = "mixed_provider_and_derived"
+        factor_status = "mixed_provider_native_opaque_and_inherited_from_canonical_d1"
+    elif provider_count:
+        source_kind = "provider_observation"
+        factor_status = "provider_native_opaque" if adjusted else "not_applied"
+    elif derived_count:
+        source_kind = "derived_from_canonical_d1"
+        factor_status = "inherited_from_canonical_d1"
+    else:
+        source_kind = "unavailable"
+        factor_status = "not_observed"
+
+    return OhlcvLineageSummary(
+        provider_bar_count=provider_count,
+        derived_bar_count=derived_count,
+        unknown_bar_count=unknown_count,
+        source_lineage=source_lineage,
+        source_timeframes=source_timeframes,
+        adjustment_provenance={
+            "mode": "split_adjusted" if adjusted else "raw",
+            "source_kind": source_kind,
+            "factor_status": factor_status,
+            "factor_version": None,
+            "contract_version": 1,
+        },
+    )
+
+
 def _as_utc(value: datetime) -> datetime:
     return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
 

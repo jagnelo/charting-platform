@@ -24,6 +24,8 @@ describe('CoverageSummaryTool', () => {
           bar_count: 248,
           missing_slices: [{ start: '2025-03-10T00:00:00Z', end: '2025-03-11T00:00:00Z' }],
           explanation: 'One internal gap was found in the requested range.',
+          lineage: { provider_bar_count: 240, derived_bar_count: 8, unknown_bar_count: 0, source_lineage: 'provider_and_derived', source_timeframes: ['D1'] },
+          adjustment_provenance: { mode: 'split_adjusted', factor_status: 'mixed_provider_native_opaque_and_inherited_from_canonical_d1', factor_version: null },
         }
       }
       return {
@@ -54,6 +56,8 @@ describe('CoverageSummaryTool', () => {
     expect(wrapper.text()).toContain('Missing slices (1)')
     expect(wrapper.text()).toContain('3/10/2025')
     expect(wrapper.find('.coverage-summary__assessment[role="status"]').attributes('aria-live')).toBe('polite')
+    expect(wrapper.find('.coverage-summary__assessment[role="status"]').text()).toContain('provider and derived')
+    expect(wrapper.find('.coverage-summary__assessment[role="status"] .sr-only').text()).toContain('factor status mixed provider native opaque and inherited from canonical d1')
   })
 
   it('prevents reversed ranges and persists serializable controls', async () => {

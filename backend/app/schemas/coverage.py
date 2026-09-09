@@ -39,6 +39,22 @@ class OhlcvCoverageSliceOut(BaseModel):
     end: datetime
 
 
+class OhlcvLineageOut(BaseModel):
+    provider_bar_count: int = Field(ge=0)
+    derived_bar_count: int = Field(ge=0)
+    unknown_bar_count: int = Field(ge=0)
+    source_lineage: str
+    source_timeframes: list[str] = Field(default_factory=list)
+
+
+class OhlcvAdjustmentProvenanceOut(BaseModel):
+    mode: str
+    source_kind: str
+    factor_status: str
+    factor_version: str | None = None
+    contract_version: int = Field(ge=1)
+
+
 class OhlcvCoverageOut(BaseModel):
     instrument_id: int
     symbol: str
@@ -53,4 +69,6 @@ class OhlcvCoverageOut(BaseModel):
     bar_count: int = Field(ge=0)
     missing_slices: list[OhlcvCoverageSliceOut] = Field(default_factory=list)
     explanation: str
+    lineage: OhlcvLineageOut
+    adjustment_provenance: OhlcvAdjustmentProvenanceOut
     provenance: str = "canonical_local_database"
