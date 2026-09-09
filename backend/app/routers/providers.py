@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -35,6 +35,7 @@ from app.services.provider_maintenance import (
 )
 from app.services.provider_runtime import (
     list_provider_status,
+    quota_contract_missing_dimensions,
     record_entitlement_revision,
     seed_provider_runtime,
 )
@@ -47,11 +48,11 @@ class ProviderPolicyUpdate(BaseModel):
     is_enabled: bool | None = None
     is_pinned: bool | None = None
     auto_weight_enabled: bool | None = None
-    base_priority: int | None = None
-    max_concurrency: int | None = None
-    tokens_per_minute: int | None = None
-    burst_capacity: int | None = None
-    cooldown_seconds: int | None = None
+    base_priority: int | None = Field(default=None, ge=0)
+    max_concurrency: int | None = Field(default=None, ge=1)
+    tokens_per_minute: int | None = Field(default=None, ge=1)
+    burst_capacity: int | None = Field(default=None, ge=1)
+    cooldown_seconds: int | None = Field(default=None, ge=1)
     quota_contract: dict | None = None
     quota_scope: str | None = None
     quota_source: str | None = None
@@ -427,14 +428,32 @@ async def update_provider_policy(
 
     changes = body.model_dump(exclude_unset=True)
     quota_fields = {"max_concurrency", "tokens_per_minute", "burst_capacity", "cooldown_seconds"}
-    if quota_fields.intersection(changes) and not (
-        changes.get("quota_contract") or policy.quota_contract
-    ):
-        raise HTTPException(
-            400,
-            "Provider limits require a documentation-backed quota_contract; "
-            "individual numeric defaults are not accepted",
+    if quota_fields.intersection(changes):
+        if "quota_contract" not in changes:
+            raise HTTPException(
+                400,
+                "Provider limits require an explicit replacement documentation-backed "
+                "quota_contract; individual numeric defaults are not accepted",
+            )
+        candidate_contract = changes.get("quota_contract")
+        if not isinstance(candidate_contract, dict):
+            raise HTTPException(400, "quota_contract must be a JSON object")
+        candidate_policy = ProviderPolicy(
+            capability=capability_enum,
+            quota_contract=candidate_contract,
         )
+        missing_dimensions = quota_contract_missing_dimensions(candidate_policy)
+        if missing_dimensions:
+            raise HTTPException(
+                400,
+                "quota_contract is incomplete: " + ", ".join(missing_dimensions),
+            )
+        quota_source = str(changes.get("quota_source", policy.quota_source) or "").strip()
+        if not quota_source:
+            raise HTTPException(
+                400,
+                "Provider limits require quota_source provenance",
+            )
     for field_name, value in changes.items():
         setattr(policy, field_name, value)
     if changes.get("quota_contract") is not None:

@@ -153,6 +153,43 @@ class TestProvidersRouter:
         )
         assert changed["auto_weight_enabled"] is False
 
+        quota_target = next(
+            row
+            for row in refreshed
+            if row["provider"] == "finnhub" and row["capability"] == "price_history"
+        )
+        quota_url = "/api/v1/providers/policies/finnhub/price_history"
+        missing_contract = client.patch(
+            quota_url,
+            headers=admin_headers,
+            json={"tokens_per_minute": 60},
+        )
+        assert missing_contract.status_code == 400
+        assert "explicit replacement" in missing_contract.json()["detail"]
+
+        complete_contract = client.patch(
+            quota_url,
+            headers=admin_headers,
+            json={
+                "tokens_per_minute": 60,
+                "quota_contract": quota_target["quota_contract"],
+                "quota_source": quota_target["quota_source"],
+            },
+        )
+        assert complete_contract.status_code == 200
+
+        invalid_contract = client.patch(
+            quota_url,
+            headers=admin_headers,
+            json={
+                "tokens_per_minute": 60,
+                "quota_contract": {"dimensions": []},
+                "quota_source": "test",
+            },
+        )
+        assert invalid_contract.status_code == 400
+        assert "quota_contract is incomplete" in invalid_contract.json()["detail"]
+
     def test_entitlements_are_seeded_and_patchable(self, client, admin_headers):
         rows = client.get("/api/v1/providers/entitlements", headers=admin_headers)
         assert rows.status_code == 200
