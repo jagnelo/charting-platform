@@ -299,8 +299,10 @@ class BenchmarkFamilyCoverageSnapshotOut(BaseModel):
     composition_date: date
     as_of_date: date | None = None
     known_at: datetime | None = None
+    published_at: datetime | None = None
     provenance: str
     source_provider: str
+    source_identifier: str | None = None
     source_quality: str
     completeness_status: str
     row_count: int

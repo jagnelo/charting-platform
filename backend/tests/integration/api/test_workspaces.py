@@ -659,9 +659,12 @@ class TestWorkspaces:
         first = ETFHoldingsSnapshot(
             etf_profile_id=profile.id,
             composition_date=datetime(2026, 6, 30, tzinfo=UTC).date(),
+            as_of_date=datetime(2026, 6, 30, tzinfo=UTC).date(),
             known_at=datetime(2026, 7, 1, tzinfo=UTC),
+            published_at=datetime(2026, 7, 2, 12, 0, tzinfo=UTC),
             provenance="issuer_native",
             source_provider="issuer",
+            source_identifier="issuer-2026-06-30",
             source_quality="issuer_disclosed",
             completeness_status="complete",
             row_count=10,
@@ -710,6 +713,11 @@ class TestWorkspaces:
             "2027-06-30",
             "2026-06-30",
         ]
+        dated_snapshot = roles["cap_weight"]["snapshots"][1]
+        assert dated_snapshot["as_of_date"] == "2026-06-30"
+        assert dated_snapshot["known_at"] == "2026-07-01T00:00:00Z"
+        assert dated_snapshot["published_at"] == "2026-07-02T12:00:00Z"
+        assert dated_snapshot["source_identifier"] == "issuer-2026-06-30"
         assert roles["cap_weight"]["continuity_status"] == "gapped"
         assert roles["cap_weight"]["continuity_gap_count"] == 1
         assert roles["cap_weight"]["continuity_max_interval_days"] == 365
