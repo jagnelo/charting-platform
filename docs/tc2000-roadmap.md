@@ -5,6 +5,35 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-09
 
+## 2026-09-09 — Exact-tip gate after unresolved member accounting
+
+At product commit `29d5407a`, benchmark-family member-bar readiness now keeps
+excluded holding rows explicit: canonical members, placeholder members, and
+unresolved member rows are counted separately, with
+`unresolved_member_count` carried through the API and typed Market Map/
+workstation provenance surfaces. The readiness denominator therefore cannot
+silently shrink when a holding row has no resolved instrument; visible layout,
+provider precedence, fallback behavior, and visual policy remain unchanged.
+
+Focused family-readiness coverage passed `23/23`; the targeted unresolved-row
+regression passed, affected Market Map units passed `36/36`, frontend
+type-check passed, and Ruff, format, and diff checks passed. The exact
+Docker-backed integration gate passed backend unit and integration tests
+(`1,371`/`387`), `81.08%` combined coverage, frontend Vitest (`975/975`),
+build, compose/provider/runner and health probes, functional Playwright
+(`165` passed, `107` documented skips across `272`), performance, uPlot, and
+acceptance-policy checks. Visual parity remains `98/104` with the same six
+established state-oracle diffs: column editor at 1080p 100/125 and floating
+workspace at 1080p 100/125 and 1440p 100/125. The gate exits at the visual
+stage only because those established diffs remain; scoped teardown removed all
+stack resources and test sessions cleanly. No baseline, mask, threshold, skip,
+provider, fallback, or acceptance policy changed.
+
+R1 remains open for full canonical family population, W1/MN provider history,
+placeholder disposition, explicit cadence/effective-time evidence, and
+rebuildable adjustment-factor/raw-versus-derived storage provenance; R2-R7
+remain open.
+
 ## 2026-09-09 — Exact-tip gate after mixed lineage provenance assertion
 
 At product commit `b81cda8a`, the Market Map regression now asserts the

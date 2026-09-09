@@ -8,6 +8,35 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-09 — Unresolved member accounting checkpoint
+
+Product commit `29d5407a` makes unresolved family holding rows explicit in the
+member-bar readiness contract. Canonical and placeholder member IDs remain
+separate from unresolved rows lacking a resolved equity instrument, and the
+new `unresolved_member_count` is carried into the typed Market Map and
+workstation provenance labels. The readiness denominator no longer silently
+shrinks; visible layout, provider precedence, fallback behavior, and visual
+acceptance policy are unchanged.
+
+Focused family-readiness coverage passed `23/23`, the unresolved-row
+integration regression passed, affected Market Map units passed `36/36`, and
+frontend type-check, Ruff, format, and diff checks passed. The exact
+Docker-backed gate passed backend unit/integration (`1,371`/`387`, `81.08%`
+combined coverage), frontend Vitest (`975/975`), build, contracts, probes,
+stack health, performance, uPlot, and functional Playwright (`165` passed,
+`107` documented skips across `272`). Visual parity remains `98/104` with the
+six established watchlist-column-editor-open/workspace-floating diffs. The
+gate exits at the visual stage only for those established diffs; teardown
+removed all scoped containers, images, volumes, network, and test sessions.
+
+R1 remains active for full canonical family/provider history population,
+placeholder disposition, explicit cadence/effective-time evidence,
+rebuildable adjustment-factor/raw-versus-derived storage provenance, and
+broader W1/MN history. R2-R7 remain open. Next action: continue the next
+evidence-backed R1 seam or compatible Study target slice, then rerun the exact
+gate at the next coherent tip. No integration, promotion, deployment, or
+other worktree mutation occurred.
+
 ## 2026-09-09 — Explicit adjustment-provenance checkpoint
 
 Product commit `0c1f1b0b` adds an explicit nested `adjustment_provenance`
