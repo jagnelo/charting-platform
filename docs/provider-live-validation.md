@@ -11,6 +11,11 @@ runs one bounded read per provider (including the public tokenized-security
 matrix), and returns non-zero when a credentialed
 probe is blocked. A missing credential is never reported as a passing skip.
 The wrapper returns exit code `2` for an incomplete credential preflight.
+It also prints a routing-safety preflight for FINRA's asynchronous result-byte
+bound and the operation-level Tiingo/FMP byte-bound maps. A direct adapter read
+can therefore be green while its provider remains non-routable: missing,
+invalid, partial, or non-positive safety controls are reported explicitly and
+never guessed.
 Local secrets belong in the owner-only
 `~/.config/charting-platform/app.env`. Worktree runtime setup links the ignored
 `.env` and `backend/.env.dev` paths to that external source. Set
