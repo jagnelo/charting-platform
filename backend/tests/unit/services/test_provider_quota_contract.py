@@ -973,6 +973,78 @@ def test_provider_native_tradier_and_binance_counters_require_contract_match():
         SimpleNamespace(response_headers={"x-mbx-used-weight-1m": "42"}),
     ) == {"request_weight_per_minute": 42}
 
+    bybit_policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.TOKENIZED_ASSETS,
+        quota_contract={
+            "reset": "rolling",
+            "dimensions": [
+                {
+                    "name": "http_requests_per_five_seconds",
+                    "limit": 600,
+                    "window_seconds": 5,
+                    "unit": "requests",
+                    "scope": "ip",
+                    "source": "https://bybit-exchange.github.io/docs/v5/rate-limit",
+                }
+            ],
+        },
+    )
+    assert _observed_dimension_totals(
+        bybit_policy,
+        SimpleNamespace(
+            response_headers={
+                "x-bapi-limit": "600",
+                "x-bapi-limit-status": "587",
+            }
+        ),
+    ) == {"http_requests_per_five_seconds": 13}
+    assert _observed_dimension_totals(
+        bybit_policy,
+        SimpleNamespace(
+            response_headers={
+                "x-bapi-limit": "100",
+                "x-bapi-limit-status": "87",
+            }
+        ),
+    ) == {}
+
+    gate_policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.TOKENIZED_ASSETS,
+        quota_contract={
+            "reset": "rolling",
+            "dimensions": [
+                {
+                    "name": "stock_public_requests_per_second",
+                    "limit": 5,
+                    "window_seconds": 1,
+                    "unit": "requests",
+                    "scope": "ip",
+                    "source": "https://www.gate.com/docs/developers/apiv4/en/stock/",
+                }
+            ],
+        },
+    )
+    assert _observed_dimension_totals(
+        gate_policy,
+        SimpleNamespace(
+            response_headers={
+                "x-ratelimit-limit": "5",
+                "x-ratelimit-remaining": "3",
+            }
+        ),
+    ) == {"stock_public_requests_per_second": 2}
+    assert _observed_dimension_totals(
+        gate_policy,
+        SimpleNamespace(
+            response_headers={
+                "x-ratelimit-limit": "10",
+                "x-ratelimit-remaining": "8",
+            }
+        ),
+    ) == {}
+
 
 @pytest.mark.asyncio
 async def test_calendar_day_reservation_changes_at_utc_midnight(db):

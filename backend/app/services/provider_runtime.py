@@ -359,6 +359,41 @@ def _observed_dimension_totals(policy: ProviderPolicy, measurement: Any) -> dict
                 continue
             if 0 <= weight_used <= limit:
                 totals[name] = weight_used
+            continue
+        if (
+            unit in {"request", "requests"}
+            and "bybit-exchange.github.io" in source
+            and window_seconds == 5
+        ):
+            # Bybit exposes the endpoint/UID limit and remaining status on
+            # every V5 response. Reconcile only when the response confirms
+            # the exact reviewed coarse contract; endpoint- and UID-specific
+            # constraints remain separately untracked and therefore keep this
+            # provider non-routable until those dimensions are modeled.
+            try:
+                header_limit = int(headers["x-bapi-limit"])
+                remaining = int(headers["x-bapi-limit-status"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            if header_limit == limit and 0 <= remaining <= header_limit:
+                totals[name] = header_limit - remaining
+            continue
+        if (
+            unit in {"request", "requests"}
+            and "gate.com/docs/developers/apiv4/en/stock" in source
+            and window_seconds == 1
+        ):
+            # Gate's stock endpoint returns a remaining counter. Do not
+            # consume it when a response reports a different/global limit;
+            # that observation is still retained in the diagnostic header
+            # snapshot for operator review.
+            try:
+                header_limit = int(headers["x-ratelimit-limit"])
+                remaining = int(headers["x-ratelimit-remaining"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            if header_limit == limit and 0 <= remaining <= header_limit:
+                totals[name] = header_limit - remaining
     return totals
 
 
