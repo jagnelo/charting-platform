@@ -5,6 +5,29 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-09
 
+## 2026-09-09 — Exact-tip gate after SEC publication provenance
+
+At commit `e19f1b76604e371d74b976cfcfe42da9609ddd48`, the SEC fallback
+ingestion path now retains the filing acceptance instant as both `known_at` and
+`published_at`; dated and latest refresh routes normalize that metadata to UTC
+while retaining wall-clock fallback behavior for providers that do not report a
+publication time. Focused adapter, refresh, holdings, EDGAR, and Ruff checks
+passed. The exact integration gate passed repository/workstream,
+dependency/lint/format/type-check, migration compatibility, backend unit and
+integration tests (`1,370`/`387`, `81.07%` combined coverage), frontend Vitest
+(`975/975`), uPlot and visual-policy checks, frontend build, compose/provider/
+runner and stack-health probes, and functional Playwright (`165` passed,
+`107` documented skips across `272`). Visual parity completed `104` cases with
+`98` passes and exactly the six established state-oracle diffs:
+watchlist-column-editor-open at 1080p 100/125 and workspace-floating at 1080p
+100/125 and 1440p 100/125. Scoped teardown removed all containers, volumes,
+network, images, and test sessions cleanly. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed. R1 remains
+open for full canonical family population, placeholder disposition, explicit
+cadence/effective-time evidence beyond exposed timestamps,
+adjustment-factor/version provenance beyond state metadata,
+raw-versus-derived storage decisions, and R2-R7 evidence.
+
 ## 2026-09-09 — Exact-tip gate after cadence/parser provenance
 
 At commit `32b005ab`, the exact integration gate passed repository/workstream,

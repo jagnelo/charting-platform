@@ -8,6 +8,37 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-09 — SEC publication provenance checkpoint
+
+Changeset scope: `backend/app/services/etf_holdings_edgar.py`,
+`backend/app/services/etf_holdings_adapters.py`,
+`backend/app/services/etf_holdings_refresh.py`, and the two focused holdings
+tests. Product commit `e19f1b76604e371d74b976cfcfe42da9609ddd48` preserves the
+SEC filing acceptance instant as `known_at` and `published_at` in fallback
+legal metadata, and normalizes explicit metadata to UTC in dated and latest
+refresh ingestion. Providers without publication metadata still use the
+existing wall-clock fallback; provider precedence, fallback routing, storage,
+visual artifacts, and acceptance policy are unchanged.
+
+Focused adapter, refresh, holdings, EDGAR, Ruff, format, and diff checks passed.
+The exact Docker-backed gate at this tip passed backend unit/integration
+(`1,370`/`387`, `81.07%` combined coverage), frontend Vitest (`975/975`),
+build, contracts, probes, stack health, and functional Playwright (`165`
+passed, `107` documented skips across `272`). Visual parity remains `98/104`
+with the six established watchlist-column-editor-open/workspace-floating state
+oracle diffs; teardown removed all scoped resources cleanly.
+
+R1 remains active: canonical family population is partial (20 mapped roles,
+12 unavailable, 0 failed; 56 capped member slots yielded 44 instruments and
+94,540 adjusted D1 bars through 2025-12-31, with provider W1/MN still zero).
+Full population, placeholder disposition, cadence/effective-time evidence
+beyond exposed timestamps, adjustment-factor/version provenance, raw-versus-
+derived storage decisions, and R2-R7 work remain open. Next context: continue
+the bounded canonical member and point-in-time provenance audit, implement the
+next evidence-backed seam, run focused checks, and rerun the exact gate at the
+new coherent tip. No integration, promotion, deployment, or other worktree
+mutation occurred.
+
 ## 2026-09-09 — Cadence/parser provenance checkpoint
 
 Product commit `32b005ab` carries retained holdings cadence and parser-version
