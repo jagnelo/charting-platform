@@ -91,9 +91,11 @@ profile passed (`3/3` cases, successful ledger totals EODHD `4` requests/
 `2,522` bytes and FMP `2` requests/`3,857` bytes). The EODHD free key's
 Fundamentals `403` is retained as explicit non-entitlement evidence, not
 treated as an empty profile or a successful capability. Alpha Vantage's IPO
-calendar is fixture-covered and remains pending a fresh provider 25/day window
-for a live read. Optional-provider HTTP failures now redact credentials from
-direct/live tracebacks while retaining typed 429/reset evidence.
+calendar now has a dedicated live case: the current key returned a valid
+68-byte CSV header with no currently published rows, so the adapter proved
+transport/schema handling without fabricating an event; a positive IPO row
+remains unobserved. Optional-provider HTTP failures now redact credentials
+from direct/live tracebacks while retaining typed 429/reset evidence.
 
 On 2026-09-05, with network access, a temporary non-secret SEC User-Agent, and
 the official FINRA OTC Security Master URL, the public/keyless matrix passed
@@ -223,14 +225,13 @@ be mistaken for complete US listing coverage.
 
 The latest network-enabled rerun, using the existing external keys plus a
 temporary non-secret SEC User-Agent and explicit `MARKETSTACK_DISCOVERY_EXCHANGE=XNAS`,
-collected 31 cases: 28 passed with positive transport observations across every
-available keyless and credentialed adapter, including all five tokenized
-providers, and three failed as exact credential preflight failures for
+collected 32 cases: 28 passed with positive transport observations across the
+available keyless and credentialed adapters, including all five tokenized
+providers and the header-only Alpha Vantage IPO-calendar response. Four failed:
+OpenFIGI returned its provider-native HTTP 429, while
 `ALPACA_API_KEY`/`ALPACA_SECRET_KEY`, `TRADIER_API_KEY`, and
-`MARKETDATA_APP_API_KEY`. The wrapper returned exit code 2 and made no
-acceptance claim. The Bybit assertion was corrected after this run exposed the
-generic `content-length` header already present in the telemetry allow-list;
-the focused rerun then passed. FINRA asynchronous result bytes and Tiingo/FMP
+`MARKETDATA_APP_API_KEY` remained absent. The wrapper returned exit code 2 and
+made no acceptance claim. FINRA asynchronous result bytes and Tiingo/FMP
 operation byte maps were also reported non-routable because no positive
 reviewed bounds were configured.
 

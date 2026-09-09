@@ -242,6 +242,21 @@ def test_alpha_vantage_credentialed_daily():
     assert rows and rows[-1].close > 0
 
 
+def test_alpha_vantage_credentialed_ipo_calendar():
+    """Exercise the separate IPO-calendar operation in a fresh live window."""
+
+    _require("ALPHA_VANTAGE_API_KEY")
+    events, _ = _observed_read(
+        lambda: AlphaVantageProvider().fetch_market_events(), "alpha_vantage"
+    )
+    # Alpha Vantage may legitimately return only the CSV header when no IPO
+    # rows are currently published. Transport and schema evidence still matter;
+    # do not synthesize an event merely to make the live probe non-empty.
+    assert isinstance(events, list)
+    assert all(event.event_type == "ipo" for event in events)
+    assert all(event.effective_date is not None for event in events)
+
+
 def test_coingecko_credentialed_search():
     _require("COINGECKO_API_KEY")
     rows, _ = _observed_read(
