@@ -443,10 +443,11 @@ async def queue_snapshot_member_history(
 
     queued = already_queued = 0
     queue_errors: list[dict[str, str | int]] = []
+    normalized_end = history_end_iso(end)
     for instrument_id in selected_ids:
         job_args = ["task_bulk_fetch_instrument", instrument_id, normalized_timeframes]
-        if end is not None:
-            job_args.extend([None, end.isoformat()])
+        if normalized_end is not None:
+            job_args.extend([None, normalized_end])
         try:
             job = await redis.enqueue_job(
                 *job_args,

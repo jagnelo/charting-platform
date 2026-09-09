@@ -545,7 +545,7 @@ async def test_queue_snapshot_member_history_deduplicates_canonical_members_and_
         10,
         ["D1"],
         None,
-        "2024-01-02T00:00:00",
+        "2024-01-02T00:00:00+00:00",
     )
     assert "end=2024-01-02T00:00:00+00:00" in redis.calls[-2][1]["_job_id"]
 
