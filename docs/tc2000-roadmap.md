@@ -5,6 +5,34 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-09
 
+## 2026-09-09 — Exact-tip gate after mixed member-bar lineage
+
+At product commit `3562919a`, benchmark-family member-bar readiness now
+distinguishes provider-only, derived-only, and mixed members in addition to the
+aggregate provider/derived member and bar counts. Mixed members are aggregated
+once before coverage and readiness floors, while the typed Market Map and
+workstation provenance labels carry the split as assistive evidence. The
+`source_lineage` contract is constrained to its four known states; visible
+layout and provider/fallback policy remain unchanged.
+
+Focused coverage/readiness integration tests passed `9/9`; frontend unit tests
+covering the affected Market Map/store surfaces passed `107/107`, Ruff,
+format, and frontend type-check passed. The exact Docker-backed integration
+gate passed backend unit and integration tests (`1,371`/`387`), `81.08%`
+combined coverage, frontend Vitest (`975/975`), build, compose/provider/runner
+and health probes, functional Playwright (`165` passed, `107` documented
+skips across `272`), performance, uPlot, and acceptance-policy checks.
+Visual parity remains `98/104` with the same six established state-oracle
+diffs: column editor at 1080p 100/125 and floating workspace at 1080p 100/125
+and 1440p 100/125. Scoped teardown removed all stack resources and test
+sessions cleanly. No baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed.
+
+R1 remains open for full canonical family population, W1/MN provider history,
+placeholder disposition, explicit cadence/effective-time evidence, and
+rebuildable adjustment-factor/raw-versus-derived storage provenance; R2-R7
+remain open.
+
 ## 2026-09-09 — Exact-tip gate after member-bar source lineage
 
 At commit `ea1118cc`, benchmark-family member-bar readiness now reports

@@ -4137,6 +4137,33 @@ This moves the branch back to a complete non-visual gate with the known visual r
 it does not close canonical family/history readiness, native-window or broader accessibility/
 security evidence, or the remaining R2–R7 acceptance work.
 
+## 2026-09-09 — Mixed member-bar lineage checkpoint
+
+Product commit `3562919a` extends the member-bar readiness contract with
+`provider_only_member_count`, `derived_only_member_count`, and
+`mixed_member_count`. These counts are calculated after per-member aggregation,
+so one member spanning provider and derived periods is classified as mixed and
+counted once for coverage/readiness. `source_lineage` is now constrained to
+`provider_only`, `derived_only`, `provider_and_derived`, or `unavailable`.
+
+The fields flow through the typed Market Map/workstation state and existing
+assistive provenance labels without changing visible layout, provider
+precedence, fallback, or visual acceptance policy. Focused benchmark-family
+coverage/readiness integration tests passed `9/9`; affected frontend units
+passed `107/107`, Ruff/format/type-check passed. The exact Docker-backed gate
+passed backend `1,371` unit and `387` integration tests (`81.08%` combined
+coverage), frontend Vitest `975/975`, build, compose/provider/runner and health
+probes, functional Playwright `165/272` with `107` documented skips,
+performance, uPlot, and acceptance-policy checks. Visual parity remains
+`98/104` with the same six established screenshot diffs; teardown and resource
+accounting were clean.
+
+R1 is still bounded by partial family/provider history population, missing
+provider adjustment factors and raw/derived storage evidence, placeholder
+disposition, and incomplete cadence/effective-time provenance. R2-R7 remain
+open; the next implementation seam should continue R1 canonical readiness or
+another evidence-backed compatibility target.
+
 ## 2026-09-08 — Bounded real ARQ canonical-history handoff
 
 With `BENCHMARK_FAMILY_MEMBER_HISTORY_MAX_INSTRUMENTS_PER_SNAPSHOT=32` applied to the worker,
