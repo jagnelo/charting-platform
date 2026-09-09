@@ -143,7 +143,7 @@ progress:
     - FRED missing credentials raise the typed provider-not-configured failure instead of returning an empty series/price, preserving honest runtime fallback semantics
     - Alpaca missing API/secret credentials now raise the typed provider-not-configured failure across history, latest-price, event, and discovery operations instead of masquerading as empty data; unsupported symbols/timeframes retain their legitimate empty-result behavior
     - manifest-driven live probes require positive transport observations for every available non-tokenized adapter read, with SEC/Nasdaq directory pagination explicitly cache-aware
-  total: 16
+  total: 15
   current_phase: credentialed_live_validation
   current_blocker: full live matrix requires the three remaining credential domains (Alpaca, Tradier, MarketData.app); the GitHub `jagnelo` live environment is not externally verifiable until owner authentication is restored; FINRA OTC source terms/redistribution approval, complete reviewed Tiingo/FMP byte maps, complete NMS/OTC reconciliation, and shadow activation remain post-deployment or operator-review gates; each deployment must also provide its own non-secret SEC User-Agent
   next_action: restore owner authentication for the `jagnelo` GitHub account, verify or populate the environment's provider secrets and safety variables, obtain the three missing credential domains, configure a deployment-owned SEC User-Agent, run the complete 29-case live matrix, then reassess readiness; do not activate routing or deploy before that evidence, and do not promote Tiingo/FMP until complete reviewed byte-bound maps are supplied
