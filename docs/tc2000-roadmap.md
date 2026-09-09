@@ -5,6 +5,37 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-09
 
+## 2026-09-09 — Explicit family member disposition readiness
+
+At product commit `7333b328`, the benchmark-family snapshot contract now
+reports provider-neutral member dispositions for every persisted snapshot:
+`canonical`, `placeholder`, `unresolved`, and `excluded`. Canonical member IDs
+and readiness denominators remain limited to resolved security/equity rows, so
+cash and other non-member records cannot silently inflate family coverage.
+The existing hidden Market Map evidence label includes the sorted disposition
+counts without changing visible layout, pixels, provider precedence, fallback,
+or acceptance policy. The persisted workspace integration contract passed
+`57/57`; focused Market Map/accessibility/pop-out frontend coverage passed
+`66/66`; type-check, Ruff, and diff checks passed.
+
+The exact Docker-backed gate at this product tip passed all locked and
+non-visual stages, backend unit/integration coverage (`1,372`/`387`), the
+functional Playwright matrix (`165` passed, `107` documented skips across
+`272`), and the four-project visual run's non-failing cases (`98/104`). The
+only visual failures are the six established state-oracle diffs:
+`watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125. Scoped
+teardown removed all assigned containers, volumes, images, and test sessions
+cleanly. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed.
+
+R1 remains active for complete family/provider-history readiness, W1/MN
+coverage and continuity, cadence/effective-time and adjustment-factor/version
+provenance, raw-versus-derived storage, and broader canonical population;
+R2-R7 remain open. Next action: continue the next bounded evidence-backed R1
+history/provenance seam while preserving the six visual state-oracle
+assertions and rerun the exact gate at the next coherent tip.
+
 ## 2026-09-09 — Missing pop-out recovery alert accessibility
 
 At product commit `07bafee7`, the existing missing-tool recovery state for a

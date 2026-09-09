@@ -13,6 +13,19 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product commit 7333b328 adds provider-neutral canonical, placeholder,
+  unresolved, and excluded member dispositions to every persisted
+  benchmark-family snapshot while keeping canonical IDs and readiness
+  denominators scoped to resolved security/equity rows. The mixed snapshot
+  integration regression passed 57/57; focused Market Map/accessibility/
+  pop-out frontend coverage passed 66/66; type-check, Ruff, and diff checks
+  passed. The exact Docker-backed gate passed all non-visual stages and
+  functional Playwright 165 with 107 documented skips across 272; visual
+  parity remains 98/104 with exactly the six established watchlist-column-
+  editor-open/workspace-floating state-oracle diffs. Teardown and resource
+  accounting were clean; no visual baseline, mask, threshold, skip, provider,
+  fallback, or acceptance policy changed. R1 canonical family/provider-
+  history readiness and R2-R7 remain open.
   Product commit 07bafee7 exposes the existing unavailable-popout recovery
   message as an assertive alert/live region for assistive technology. Its
   recovery copy, browser/OS boundary disclosure, layout, provider/fallback
@@ -904,6 +917,7 @@ progress:
     dense-data, and visual-oracle review remain open.
   next_action: "Continue the next bounded evidence-backed R1 or compatible Study target slice, then rerun make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework at the next coherent product/documentation tip while preserving the six visual state-oracle assertions and unchanged visual/provider fallback policy."
 remaining_gaps:
+  - "Product commit 7333b328 adds canonical/placeholder/unresolved/excluded member dispositions to every persisted benchmark-family snapshot while keeping canonical IDs and readiness denominators scoped to resolved security/equity rows. The mixed snapshot workspace integration contract passed 57/57; focused Market Map/accessibility/pop-out frontend coverage passed 66/66; type-check, Ruff, and diff checks passed. The exact gate passed all non-visual stages and functional Playwright 165/272 (107 documented skips); visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs. No visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed; continue R1 history/provenance and R2-R7 evidence."
   - "Product commit 07bafee7 exposes the existing unavailable-popout recovery message as an assertive alert/live region for assistive technology. Focused workstation/pop-out tests passed 28/28; frontend type-check/diff checks passed. The exact gate passed all non-visual stages plus functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed."
   - "Product commit 4daf9b95 makes the concise workstation footer recovery message a polite, atomic status announcement for assistive technology. Focused workstation/pop-out tests passed 27/27 with role=status, aria-live=polite, and aria-atomic=true asserted; frontend type-check/diff checks passed. The exact gate passed all non-visual stages plus functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed."
   - "Product commit 83bcb722 adds a visually hidden accessible description to hydrated workstation pop-outs clarifying that monitor placement and native window controls are browser/OS managed. Focused pop-out tests passed 27/27, frontend type-check/diff checks passed, and the unchanged exact gate passed all non-visual stages plus functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed."

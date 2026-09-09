@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-09 — Explicit family member disposition readiness
+
+- [x] Return provider-neutral `canonical`, `placeholder`, `unresolved`, and
+      `excluded` member dispositions for each persisted benchmark-family
+      snapshot while keeping canonical IDs and readiness denominators scoped to
+      resolved security/equity rows.
+- [x] Regress the mixed snapshot contract with a cash/non-member row; the
+      workspace integration contract passed 57/57 and focused Market Map,
+      accessibility, and pop-out frontend coverage passed 66/66. Type-check,
+      Ruff, and diff checks passed.
+- [ ] Complete family/provider history, W1/MN continuity, cadence/effective
+      timing, adjustment-factor/version provenance, and raw-versus-derived
+      storage evidence; preserve the six established visual state-oracle
+      diffs and unchanged provider/fallback policy.
+
 ### 2026-09-09 — Missing pop-out recovery alert accessibility
 
 - [x] Expose the existing unavailable-pop-out recovery message as an

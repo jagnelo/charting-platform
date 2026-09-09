@@ -8,6 +8,33 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-09 — Explicit family member disposition readiness checkpoint
+
+Product commit `7333b328` adds provider-neutral `canonical`, `placeholder`,
+`unresolved`, and `excluded` dispositions to each persisted benchmark-family
+snapshot. Canonical IDs and readiness denominators remain scoped to resolved
+security/equity rows; a mixed snapshot regression including a cash row passed
+the workspace integration contract (`57/57`). Focused Market Map,
+accessibility, and pop-out frontend coverage passed `66/66`; type-check, Ruff,
+and diff checks passed. The existing hidden evidence label exposes sorted
+disposition counts without changing visible pixels, provider precedence,
+fallback, or visual policy.
+
+The exact Docker-backed gate passed all non-visual stages and functional
+Playwright (`165` passed, `107` documented skips across `272`). Visual parity
+remains `98/104` with exactly the six established state-oracle diffs:
+`watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125. Scoped
+teardown removed all assigned containers, volumes, images, and test sessions
+cleanly. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed, and no other worktree was touched.
+
+R1 remains active for complete canonical family/provider-history readiness,
+W1/MN continuity, cadence/effective-time and adjustment-factor/version
+provenance, raw-versus-derived storage, and broader population. R2-R7 remain
+open. Next action: continue the next bounded evidence-backed R1 history or
+provenance seam, then rerun the exact gate at the next coherent tip.
+
 ## 2026-09-09 — Missing pop-out recovery alert accessibility checkpoint
 
 Product commit `07bafee7` exposes the existing unavailable-popout recovery
