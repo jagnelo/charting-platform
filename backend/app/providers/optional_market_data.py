@@ -56,6 +56,7 @@ _TF_SECONDS: dict[Timeframe, int] = {
     Timeframe.MN: 2592000,
 }
 _TWELVE_DATA_POINTS_PER_REQUEST = 5000
+_MARKETSTACK_POINTS_PER_REQUEST = 100
 
 
 def estimate_twelve_data_ohlcv_request_count(
@@ -82,6 +83,28 @@ def estimate_twelve_data_latest_ohlcv_request_count(timeframe: Timeframe, limit:
         return 0
     span_seconds = max(1.0, limit * seconds * 1.5 + 86400)
     return max(1, ceil(span_seconds / (seconds * _TWELVE_DATA_POINTS_PER_REQUEST)))
+
+
+def estimate_marketstack_ohlcv_request_count(
+    timeframe: Timeframe, start: datetime, end: datetime
+) -> int | None:
+    """Conservatively reserve Marketstack's documented paged EOD response calls."""
+
+    if timeframe is not Timeframe.D1 or end <= start:
+        return 0 if end <= start else None
+    calendar_days = max(1, (end.date() - start.date()).days + 1)
+    return max(1, ceil(calendar_days / _MARKETSTACK_POINTS_PER_REQUEST))
+
+
+def estimate_marketstack_latest_ohlcv_request_count(timeframe: Timeframe, limit: int) -> int | None:
+    """Reserve a calendar-day upper bound for a latest Marketstack EOD read."""
+
+    if timeframe is not Timeframe.D1:
+        return None
+    if limit <= 0:
+        return 0
+    calendar_days = max(1, ceil(limit * 1.5) + 1)
+    return max(1, ceil(calendar_days / _MARKETSTACK_POINTS_PER_REQUEST))
 
 
 def _number(value: Any) -> float | None:
@@ -826,27 +849,61 @@ class MarketstackProvider(_RESTProvider):
     ) -> list[OHLCVBar]:
         if timeframe is not Timeframe.D1:
             return []
-        payload = self._get(
-            "eod",
-            {
-                "symbols": symbol.upper(),
-                "date_from": _bounded_datetime(start).date().isoformat(),
-                "date_to": _bounded_datetime(end).date().isoformat(),
-                "limit": 1000,
-            },
-        )
-        bars = [
-            self._bar(row, timeframe, instrument_id=instrument_id, data_source_id=data_source_id)
-            for row in self._rows(payload, "data")
-        ]
-        return sorted(
-            [
-                bar
-                for bar in bars
-                if bar and _bounded_datetime(start) <= bar.ts < _bounded_datetime(end)
-            ],
-            key=lambda bar: bar.ts,
-        )
+        if end <= start:
+            return []
+        bounded_start = _bounded_datetime(start)
+        bounded_end = _bounded_datetime(end)
+        bars_by_timestamp: dict[datetime, OHLCVBar] = {}
+        offset = 0
+        seen_offsets: set[int] = set()
+        while offset not in seen_offsets:
+            seen_offsets.add(offset)
+            payload = self._get(
+                "eod",
+                {
+                    "symbols": symbol.upper(),
+                    "date_from": bounded_start.date().isoformat(),
+                    "date_to": bounded_end.date().isoformat(),
+                    # Marketstack's documented pagination examples expose a
+                    # 100-row page. Follow the returned metadata rather than
+                    # assuming that a larger requested limit is honoured.
+                    "limit": _MARKETSTACK_POINTS_PER_REQUEST,
+                    "offset": offset,
+                },
+            )
+            rows = self._rows(payload, "data")
+            for row in rows:
+                bar = self._bar(
+                    row, timeframe, instrument_id=instrument_id, data_source_id=data_source_id
+                )
+                if bar and bounded_start <= bar.ts < bounded_end:
+                    bars_by_timestamp[bar.ts] = bar
+
+            pagination = payload.get("pagination") if isinstance(payload, dict) else None
+            if not isinstance(pagination, dict):
+                break
+            try:
+                page_offset = int(pagination.get("offset", offset))
+                count = int(pagination.get("count", len(rows)))
+                total_value = pagination.get("total")
+                total = int(total_value) if total_value is not None else None
+                page_limit = max(
+                    1, int(pagination.get("limit", _MARKETSTACK_POINTS_PER_REQUEST))
+                )
+            except (TypeError, ValueError):
+                break
+            if count <= 0 or page_offset < 0:
+                break
+            next_offset = page_offset + count
+            if next_offset <= offset:
+                break
+            if total is not None and next_offset >= total:
+                break
+            if total is None and count < page_limit:
+                break
+            offset = next_offset
+
+        return [bars_by_timestamp[ts] for ts in sorted(bars_by_timestamp)]
 
     def discover_universe_page(self, quote_type: str, offset: int) -> dict[str, Any]:
         normalized = quote_type.strip().upper()

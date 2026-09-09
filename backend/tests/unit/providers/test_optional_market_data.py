@@ -19,6 +19,8 @@ from app.providers.optional_market_data import (
     MarketstackProvider,
     TiingoProvider,
     TwelveDataProvider,
+    estimate_marketstack_latest_ohlcv_request_count,
+    estimate_marketstack_ohlcv_request_count,
 )
 from app.providers.registry import list_provider_capabilities
 
@@ -138,6 +140,47 @@ def test_daily_adapters_parse_common_rows():
             )
         assert len(bars) == 1
         assert bars[0].close == 10.5
+
+
+def test_marketstack_follows_response_pagination_and_reserves_each_page():
+    provider = MarketstackProvider()
+    start = datetime(2024, 1, 1, tzinfo=UTC)
+    end = datetime(2024, 6, 1, tzinfo=UTC)
+    first_payload = {
+        "pagination": {"limit": 100, "offset": 0, "count": 100, "total": 150},
+        "data": [
+            {
+                "date": "2024-01-02T00:00:00+0000",
+                "open": "10",
+                "high": "11",
+                "low": "9",
+                "close": "10.5",
+                "volume": "42",
+            }
+        ],
+    }
+    second_payload = {
+        "pagination": {"limit": 100, "offset": 100, "count": 50, "total": 150},
+        "data": [
+            {
+                "date": "2024-05-31T00:00:00+0000",
+                "open": "20",
+                "high": "21",
+                "low": "19",
+                "close": "20.5",
+                "volume": "84",
+            }
+        ],
+    }
+    with patch.object(provider, "_get", side_effect=[first_payload, second_payload]) as get:
+        bars = provider.fetch_ohlcv("AAPL", Timeframe.D1, start, end)
+
+    assert get.call_count == 2
+    assert get.call_args_list[0].args[1]["offset"] == 0
+    assert get.call_args_list[1].args[1]["offset"] == 100
+    assert [bar.close for bar in bars] == [10.5, 20.5]
+    assert estimate_marketstack_ohlcv_request_count(Timeframe.D1, start, end) == 2
+    assert estimate_marketstack_latest_ohlcv_request_count(Timeframe.D1, 100) == 2
 
 
 def test_fmp_uses_current_stable_history_endpoint():
