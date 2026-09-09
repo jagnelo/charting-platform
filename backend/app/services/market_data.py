@@ -420,7 +420,13 @@ async def _touch_ohlcv_dataset_state(
     if bars:
         state.coverage_start = min(bar.ts for bar in bars)
         state.coverage_end = max(bar.ts for bar in bars)
-        state.extra_data = {"bar_count": len(bars), "adjusted": adjusted}
+        state.extra_data = {
+            "bar_count": len(bars),
+            "adjusted": adjusted,
+            "adjustment": "split_adjusted" if adjusted else "raw",
+            "source_kind": "provider_observation",
+            "provider_source_id": data_source_id,
+        }
 
 
 async def persist_price_history_bars(

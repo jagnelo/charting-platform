@@ -43,6 +43,13 @@ class TestCoverageRouter:
                     coverage_start=start,
                     coverage_end=start + timedelta(days=1),
                     version=2,
+                    extra_data={
+                        "bar_count": 2,
+                        "adjusted": True,
+                        "adjustment": "split_adjusted",
+                        "source_kind": "provider_observation",
+                        "provider_source_id": 1,
+                    },
                 ),
             ]
         )
@@ -62,7 +69,8 @@ class TestCoverageRouter:
         assert state["dataset_key"] == "D1"
         assert state["status"] == "stale"
         assert state["version"] == 2
-        assert state["extra_data"] is None
+        assert state["extra_data"]["adjustment"] == "split_adjusted"
+        assert state["extra_data"]["source_kind"] == "provider_observation"
         assert "provider" not in body
 
     def test_requires_auth(self, client, instrument):
