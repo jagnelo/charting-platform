@@ -178,6 +178,31 @@ class TestProvidersRouter:
         )
         assert complete_contract.status_code == 200
 
+        clear_scope = client.patch(
+            quota_url,
+            headers=admin_headers,
+            json={"quota_scope": None},
+        )
+        assert clear_scope.status_code == 200
+        cleared_row = next(
+            row
+            for row in client.get("/api/v1/providers/policies", headers=admin_headers).json()
+            if row["provider"] == "finnhub" and row["capability"] == "price_history"
+        )
+        assert cleared_row["quota_verified_at"] is None
+        assert cleared_row["routing_eligible"] is False
+
+        restore_contract = client.patch(
+            quota_url,
+            headers=admin_headers,
+            json={
+                "quota_contract": quota_target["quota_contract"],
+                "quota_scope": quota_target["quota_scope"],
+                "quota_source": quota_target["quota_source"],
+            },
+        )
+        assert restore_contract.status_code == 200
+
         invalid_contract = client.patch(
             quota_url,
             headers=admin_headers,

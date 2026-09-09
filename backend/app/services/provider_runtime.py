@@ -610,10 +610,11 @@ def _apply_policy_defaults(
                 if not quota_contract_missing_dimensions(policy)
                 else None
             )
-    if policy.quota_scope is None and rate_seed.get("quota_scope"):
-        policy.quota_scope = str(rate_seed["quota_scope"])
-    if policy.quota_source is None and rate_seed.get("quota_source"):
-        policy.quota_source = str(rate_seed["quota_source"])
+    # Do not backfill missing policy-level provenance on an existing row. A
+    # scope/source removal may be an intentional operator quarantine, and
+    # restoring the seed here would make a subsequent diagnostics read appear
+    # verified again without an explicit replacement contract. New rows get
+    # both fields in ``seed_provider_runtime`` when they are created.
     if policy.quota_contract:
         contract_missing = quota_contract_missing_dimensions(policy)
         if contract_missing:

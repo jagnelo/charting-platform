@@ -490,6 +490,12 @@ async def update_provider_policy(
             if changes.get("quota_contract") is not None and not candidate_contract_missing
             else None
         )
+    elif {"quota_scope", "quota_source"}.intersection(changes):
+        # Provenance edits without an explicit complete replacement contract
+        # cannot inherit the previous review timestamp. The policy may remain
+        # useful audit state, but routing must wait for a new reviewed
+        # contract to be submitted.
+        policy.quota_verified_at = None
     if body.base_priority is not None and body.is_pinned is None:
         policy.is_pinned = True
     await db.flush()
