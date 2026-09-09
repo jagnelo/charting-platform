@@ -5,6 +5,36 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-09
 
+## 2026-09-09 — Exact-tip gate after chart history provenance accessibility
+
+At product commit `960fd82f`, the typed OHLCV chart contract now retains the
+existing derived/source lineage fields (`is_derived`, source timeframe,
+derivation method, materialization time, source bar count, and observed
+bounds). The chart's existing accessible `Chart workspace` region now adds a
+non-visual loaded-range summary covering bar count, timeframe, adjustment
+state, and provider/derived/unknown lineage; the selected-bar tooltip exposes
+the same provider-observed or derived description. No provider is invented and
+no chart pixels, layout, precedence, fallback, storage, or visual acceptance
+policy changed.
+
+The focused provenance utility and ETF holdings view regressions passed
+(`9/9`), frontend type-check passed, and the diff check passed. The exact
+Docker-backed integration gate passed backend unit and integration tests
+(`1,371`/`387`), `81.09%` combined coverage, frontend Vitest (`975/975`),
+build, compose/provider/runner and health probes, functional Playwright
+(`165` passed, `107` documented skips across `272`), performance, uPlot, and
+acceptance-policy checks. Visual parity remains `98/104` with the same six
+established state-oracle diffs: column editor at visual-1080p-100/125 and
+floating workspace at visual-1080p-100/125 and 1440p-100/125. The gate exits at
+the visual stage only because those established diffs remain; scoped teardown
+removed all stack resources and test sessions cleanly. No baseline, mask,
+threshold, skip, visual, provider, fallback, or acceptance policy changed.
+
+R1 remains open for full canonical family population, W1/MN provider history,
+placeholder disposition, explicit cadence/effective-time evidence beyond the
+new timing metadata, and rebuildable adjustment-factor/raw-versus-derived
+storage provenance; R2-R7 remain open.
+
 ## 2026-09-09 — Exact-tip gate after ETF history-point provenance accessibility
 
 At product commit `a8b3a2cf`, the ETF weight-evolution track now exposes each

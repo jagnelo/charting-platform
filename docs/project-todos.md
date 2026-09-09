@@ -1,5 +1,13 @@
 # Project TODO Memory
 
+### 2026-09-09 — Chart history provenance accessibility
+
+- [x] Carry OHLCV derived/source fields into the typed chart contract.
+- [x] Expose loaded-range and selected-bar provider/derived/adjustment lineage
+      to assistive users without changing chart pixels or visual policy.
+- [ ] Continue the bounded canonical family/member history audit; chart
+      disclosure does not establish W1/MN provider readiness or continuity.
+
 ### 2026-09-09 — ETF history-point provenance accessibility
 
 - [x] Keep point-level composition, weight, disclosure timing, provider/source,
