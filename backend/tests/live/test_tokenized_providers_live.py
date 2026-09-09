@@ -117,6 +117,7 @@ def test_bybit_public_xstocks_asset_and_price():
     # allow-listed names; the current unauthenticated public edge may omit
     # them, which is itself evidence for keeping routing fail-closed.
     assert set(measurement.response_headers) <= {
+        "content-length",
         "x-bapi-limit",
         "x-bapi-limit-status",
         "x-bapi-limit-reset-timestamp",
@@ -127,6 +128,7 @@ def test_bybit_public_xstocks_asset_and_price():
     )
     assert quote_measurement.http_requests >= 2
     assert set(quote_measurement.response_headers) <= {
+        "content-length",
         "x-bapi-limit",
         "x-bapi-limit-status",
         "x-bapi-limit-reset-timestamp",

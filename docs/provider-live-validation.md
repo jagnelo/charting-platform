@@ -209,11 +209,11 @@ subsequent locally served pages are validated for completeness without being
 misreported as new network calls.
 
 The still-missing variables are `ALPACA_API_KEY`, `ALPACA_SECRET_KEY`,
-`TRADIER_API_KEY`, and `MARKETDATA_APP_API_KEY`. `EDGAR_USER_AGENT` is not
-missing for the recorded local run, but remains an explicit per-environment
-configuration requirement. Until the three credential domains are supplied
-and their cases pass, the complete 30-case matrix remains an open acceptance
-gate.
+`TRADIER_API_KEY`, and `MARKETDATA_APP_API_KEY`. `EDGAR_USER_AGENT` was
+supplied as a temporary non-secret override for the latest local run, but
+remains an explicit per-environment configuration requirement. Until the three
+credential domains are supplied and their cases pass, the complete manifest
+matrix remains an open acceptance gate.
 
 Marketstack history and discovery are intentionally separate gates: a key is
 enough for the bounded EOD history probe, while venue discovery also requires
@@ -221,15 +221,18 @@ the non-secret `MARKETSTACK_DISCOVERY_EXCHANGE` MIC/exchange setting. The
 adapter no longer defaults discovery to `XNYS`, so a single-venue read cannot
 be mistaken for complete US listing coverage.
 
-The latest network-enabled rerun passed 26/30 cases with positive transport
-observations across every available keyless and credentialed adapter, including
-all five tokenized providers. Three failures were exact credential preflight
-failures for `ALPACA_API_KEY`/`ALPACA_SECRET_KEY`, `TRADIER_API_KEY`, and
-`MARKETDATA_APP_API_KEY`; the fourth was Alpha Vantage's provider-native
-25-requests/day rate-limit response. The wrapper returned exit code 2 and made
-no acceptance claim. FINRA asynchronous result bytes and Tiingo/FMP operation
-byte maps were also reported non-routable because no positive reviewed bounds
-were configured.
+The latest network-enabled rerun, using the existing external keys plus a
+temporary non-secret SEC User-Agent and explicit `MARKETSTACK_DISCOVERY_EXCHANGE=XNAS`,
+collected 31 cases: 28 passed with positive transport observations across every
+available keyless and credentialed adapter, including all five tokenized
+providers, and three failed as exact credential preflight failures for
+`ALPACA_API_KEY`/`ALPACA_SECRET_KEY`, `TRADIER_API_KEY`, and
+`MARKETDATA_APP_API_KEY`. The wrapper returned exit code 2 and made no
+acceptance claim. The Bybit assertion was corrected after this run exposed the
+generic `content-length` header already present in the telemetry allow-list;
+the focused rerun then passed. FINRA asynchronous result bytes and Tiingo/FMP
+operation byte maps were also reported non-routable because no positive
+reviewed bounds were configured.
 
 The wrapper also reports the remaining provider-specific admission gates
 explicitly: FRED's v1 limit scope/adjustable-limit/series-terms review,
