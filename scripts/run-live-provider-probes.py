@@ -95,7 +95,10 @@ def routing_safety_preflight() -> dict[str, str]:
         "non-routable: FRED v1 numeric rate limit/scope, adjustable-limit, and series-terms review required"
     )
     result["nasdaq"] = "non-routable: official public polling allowance is not published"
-    result["xstocks"] = "non-routable: numeric public quota is not published"
+    result["xstocks"] = (
+        "non-routable: numeric public quota is not published; official US-person, "
+        "jurisdiction, and redistribution eligibility must be reviewed"
+    )
     result["bybit_xstocks"] = (
         "non-routable: endpoint/UID limits require provider-native header state"
     )

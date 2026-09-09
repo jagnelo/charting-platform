@@ -225,8 +225,9 @@ were configured.
 The wrapper also reports the remaining provider-specific admission gates
 explicitly: FRED's v1 limit scope/adjustable-limit/series-terms review,
 Nasdaq Trader's unpublished polling allowance, xStocks' unpublished public
-quota, and Bybit's endpoint/UID header state. A positive live read for any of
-these providers is therefore not treated as routing admission.
+quota plus its official US-person/jurisdiction/redistribution restriction,
+and Bybit's endpoint/UID header state. A positive live read for any of these
+providers is therefore not treated as routing admission.
 
 The MarketData.app adapter was also checked against the current official API
 root during this checkpoint: versioned resources are under
