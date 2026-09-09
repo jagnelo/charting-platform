@@ -97,8 +97,9 @@
       <details v-if="run.warnings?.length" class="study-lab-tool__run-details"><summary>Warnings ({{ run.warnings.length }})</summary><pre>{{ formatMessages(run.warnings) }}</pre></details>
       <details v-if="run.logs" class="study-lab-tool__run-details"><summary>Execution log</summary><pre>{{ run.logs }}</pre></details>
       <details v-if="Object.keys(run.resource_usage ?? {}).length" class="study-lab-tool__run-details"><summary>Resource usage</summary><pre>{{ formatObject(run.resource_usage) }}</pre></details>
-      <div v-if="metricArtifacts.length" class="study-lab-tool__metrics" aria-label="Study metrics"><article v-for="artifact in metricArtifacts" :key="artifact.id" role="status" aria-live="polite" aria-atomic="true" :aria-label="`${artifact.name} metric`" :class="{ 'study-lab-tool__metric--true': artifact.artifact_type === 'boolean' && artifact.payload.value === true, 'study-lab-tool__metric--false': artifact.artifact_type === 'boolean' && artifact.payload.value === false }"><small>{{ artifact.name }}</small><strong>{{ formatMetric(artifact) }}</strong><button type="button" :aria-label="`Export ${artifact.name}`" @click="exportArtifact(artifact)">Export</button></article></div>
-      <article v-for="artifact in nonScalarArtifacts" :key="artifact.id" :aria-label="`${artifact.name} ${artifact.artifact_type} result`">
+      <div v-if="metricArtifacts.length" class="study-lab-tool__metrics" aria-label="Study metrics"><article v-for="artifact in metricArtifacts" :key="artifact.id" role="status" aria-live="polite" aria-atomic="true" :aria-label="`${artifact.name} metric`" :aria-describedby="`study-artifact-${artifact.id}-summary`" :class="{ 'study-lab-tool__metric--true': artifact.artifact_type === 'boolean' && artifact.payload.value === true, 'study-lab-tool__metric--false': artifact.artifact_type === 'boolean' && artifact.payload.value === false }"><span :id="`study-artifact-${artifact.id}-summary`" class="sr-only">{{ describeStudyArtifact(artifact) }}</span><small>{{ artifact.name }}</small><strong>{{ formatMetric(artifact) }}</strong><button type="button" :aria-label="`Export ${artifact.name}`" @click="exportArtifact(artifact)">Export</button></article></div>
+      <article v-for="artifact in nonScalarArtifacts" :key="artifact.id" :aria-label="`${artifact.name} ${artifact.artifact_type} result`" :aria-describedby="`study-artifact-${artifact.id}-summary`">
+        <span :id="`study-artifact-${artifact.id}-summary`" class="sr-only">{{ describeStudyArtifact(artifact) }}</span>
         <div class="study-lab-tool__artifact-header"><strong>{{ artifact.name }}</strong><small>{{ artifact.artifact_type }}</small><button type="button" :aria-label="`Export ${artifact.name}`" @click="exportArtifact(artifact)">Export</button></div>
         <table v-if="artifact.artifact_type === 'table' && tableRows(artifact).length"><caption class="sr-only">{{ artifact.name }} table</caption><thead><tr><th v-for="column in tableColumns(artifact)" :key="column" scope="col">{{ column }}</th></tr></thead><tbody><tr v-for="(row, index) in tableRows(artifact)" :key="index"><td v-for="column in tableColumns(artifact)" :key="column">{{ formatCell(row[column]) }}</td></tr></tbody></table>
         <StudySeriesUPlot v-else-if="artifact.artifact_type === 'series' && seriesData(artifact)" :name="artifact.name" :timestamps="seriesData(artifact)!.timestamps" :values="seriesData(artifact)!.values" />
@@ -124,6 +125,7 @@ import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import { invalidateCodeAssets } from '@/lib/workstation/libraryQueries'
 import { normalizeStudyDashboardPanels } from '@/lib/workstation/studyArtifacts'
+import { describeStudyArtifact } from '@/lib/workstation/studyArtifactAccessibility'
 import StudyBarsUPlot from './StudyBarsUPlot.vue'
 import StudyHistogramUPlot from './StudyHistogramUPlot.vue'
 import StudyHeatmap from './StudyHeatmap.vue'

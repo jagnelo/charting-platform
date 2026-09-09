@@ -34,6 +34,8 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.find('.histogram-chart').exists()).toBe(true)
     expect(wrapper.find('.bars-chart').exists()).toBe(true)
     expect(wrapper.find('.range-chart').exists()).toBe(true)
+    expect(wrapper.find('[aria-label="confidence range result"]').attributes('aria-describedby')).toBe('research-artifact-6-summary')
+    expect(wrapper.find('#research-artifact-6-summary').text()).toContain('confidence range result with 1 observations')
   })
 
   it('exposes selected-run and loading/error states as navigable live regions', async () => {

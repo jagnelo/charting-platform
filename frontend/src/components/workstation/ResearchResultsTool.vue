@@ -43,7 +43,8 @@
       <details v-if="selectedRun.logs" class="research-results-tool__run-details"><summary>Execution log</summary><pre>{{ selectedRun.logs }}</pre></details>
       <details v-if="Object.keys(selectedRun.resource_usage ?? {}).length" class="research-results-tool__run-details"><summary>Resource usage</summary><pre>{{ formatObject(selectedRun.resource_usage) }}</pre></details>
       <div v-if="selectedRun.artifacts.length" class="research-results-tool__artifacts">
-        <article v-for="artifact in selectedRun.artifacts" :key="artifact.id" :aria-label="`${artifact.name} ${artifact.artifact_type} result`">
+        <article v-for="artifact in selectedRun.artifacts" :key="artifact.id" :aria-label="`${artifact.name} ${artifact.artifact_type} result`" :aria-describedby="`research-artifact-${artifact.id}-summary`">
+          <span :id="`research-artifact-${artifact.id}-summary`" class="sr-only">{{ describeStudyArtifact(artifact) }}</span>
           <div class="research-results-tool__artifact-header"><strong>{{ artifact.name }}</strong><small>{{ artifact.artifact_type }}</small><button type="button" :title="`Export ${artifact.name}`" @click="exportArtifact(selectedRun!, artifact)">Export</button></div>
           <div v-if="canPromoteStructuredArtifact(selectedRun, artifact)" class="research-results-tool__artifact-promotions" role="group" :aria-label="`${artifact.name} promotions`">
             <button v-if="artifact.artifact_type === 'scalar'" type="button" :disabled="rerunning || canceling || promoting" :aria-label="`Save column: ${artifact.name}`" @click="promoteStructuredArtifact(selectedRun, artifact, 'column')">{{ promoting ? 'Promoting…' : `Save column: ${artifact.name}` }}</button>
@@ -128,6 +129,7 @@ import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import { normalizeStudyDashboardPanels } from '@/lib/workstation/studyArtifacts'
 import { studyArtifactCapability } from '@/lib/workstation/studyArtifactCapabilities'
+import { describeStudyArtifact } from '@/lib/workstation/studyArtifactAccessibility'
 import StudyBarsUPlot from './StudyBarsUPlot.vue'
 import StudyHistogramUPlot from './StudyHistogramUPlot.vue'
 import StudySeriesUPlot from './StudySeriesUPlot.vue'
