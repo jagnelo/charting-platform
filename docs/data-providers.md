@@ -55,7 +55,7 @@ re-reviewed when credentials or billing plans change.
 | Tradier | US daily history, quotes/search; options-capable REST surface | `TRADIER_API_KEY` | 60/min sandbox; 120/min production market-data quota, response headers expose remaining/reset | token / minute | adapter + contract recorded; account live evidence required |
 | MarketData.app | delayed US stocks/options candles (options surface is optional) | `MARKETDATA_APP_API_KEY` | 100 credits/day free, reset 09:30 ET; 50 account-wide concurrent requests; free/trial history limited to one year | key / reset-day credits + durable in-flight concurrency | adapter and durable concurrency enforcement implemented; account live evidence required |
 | IBKR | account-bound stocks/options/futures/crypto via read-only Web API descriptor | deployment-specific `IBKR_READ_ONLY_URL` | Global 10 requests/sec/session; `/iserver/marketdata/history` max 5 concurrent; endpoint-specific pacing and a 15-minute penalty box apply | session/account / endpoint | pacing contract recorded; descriptor only, no routing until a funded-account adapter/evidence exists |
-| xStocks (Backed) | tokenized equity/ETF catalogue, deployments, indicative prices, multipliers, supply and corporate actions | none for documented public reads; optional `XSTOCKS_API_KEY` | Numeric public quota is not published | public endpoint / unknown | public metadata/price probe passed; non-routable until quota is verified |
+| xStocks (Backed) | tokenized equity/ETF catalogue, deployments, indicative prices, multipliers, supply and corporate actions | none for documented public reads; optional `XSTOCKS_API_KEY` | Numeric public quota is not published; official legal materials state xStocks are not available in the United States or to U.S. persons | public endpoint / unknown | public metadata/price probe passed; non-routable until quota, jurisdiction, and redistribution eligibility are verified |
 | Robinhood Chain Stock Tokens | tokenized-stock catalogue, chain deployments, multiplier, indicative bid/ask and corporate actions | none for documented public reads | 60 requests/sec for the public Stock Token API; cached responses and edge `429` responses apply | public IP / rolling second | bounded live asset + quote probe passed; read-only and non-routable until entitlement is promoted |
 | Bybit xStocks | xStocks spot instrument catalogue and ticker bid/ask/last | none for public market-data endpoints | 600 HTTP requests per 5 seconds per IP outer limit; API limits are rolling per second per UID and endpoint, with `X-Bapi-Limit*` headers documented but not emitted by the current unauthenticated public edge | IP + endpoint/UID / rolling | bounded live asset + ticker probe passed; endpoint/UID accounting and reliable native-header state required before routing |
 | Gate TradFi stock API | public US stock-token symbol catalogue and order-book bid/ask | none for public symbol/order-book endpoints | 5 requests/sec/IP for each documented public TradFi stock endpoint (`/stock/symbols`, `/stock/symbols/detail`, `/stock/market/{symbol}/orderbook`) | IP / rolling | bounded live symbol + order-book probe passed; the runtime applies a conservative aggregate 5-request/sec capability window |
@@ -173,6 +173,13 @@ expose issuer/product metadata and indicative prices; Bybit, Gate, and Kraken
 expose exchange-native market surfaces. A provider returning no current
 xStocks pairs is recorded as an empty catalogue, never as evidence that a
 traditional share is the same token.
+
+xStocks has an additional US eligibility gate: its [official legal notice](https://xstocks.com/us)
+states that xStocks are not available in the United States or to U.S. persons.
+The public metadata adapter may retain non-trading observations for research,
+but those observations cannot be routed as an eligible US data or trading
+source unless the operator documents a lawful, jurisdiction-specific basis and
+redistribution permission.
 
 The runtime records provider-specific quota dimensions and refuses to route a
 tokenized provider when any dimension is unknown, weighted per endpoint, or

@@ -1145,7 +1145,7 @@ class Settings(BaseSettings):
             "configured_plan": "public-read",
             "is_free": True,
             "authentication_required": False,
-            "usage_terms": "Public xStocks read endpoints; numeric public quota is not published and routing remains disabled until verified.",
+            "usage_terms": "Public xStocks read endpoints; numeric public quota is not published. xStocks' official legal materials state they are not available in the United States or to U.S. persons; quota verification and jurisdiction/redistribution review are required before any routing.",
             "history_depth": "Current metadata, price, supply, multiplier and corporate-action observations",
             "venue_coverage": "xStocks tokenized equities and ETFs across published chain deployments",
             "freshness_semantics": "Cached/current provider endpoint response",
