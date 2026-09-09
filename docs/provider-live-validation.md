@@ -16,6 +16,12 @@ bound and the operation-level Tiingo/FMP byte-bound maps. A direct adapter read
 can therefore be green while its provider remains non-routable: missing,
 invalid, partial, or non-positive safety controls are reported explicitly and
 never guessed.
+Before invoking pytest, the wrapper acquires an exclusive local lock at
+`~/.config/charting-platform/provider-live.lock` (override with
+`PROVIDER_LIVE_LOCK_FILE`). A second worktree on the same host therefore exits
+with code `3` without making provider calls. This coordinates local worktrees
+only; GitHub and deployed environments still need separate provider accounts,
+environment concurrency controls, or an operator-approved shared-key window.
 Local secrets belong in the owner-only
 `~/.config/charting-platform/app.env`. Worktree runtime setup links the ignored
 `.env` and `backend/.env.dev` paths to that external source. Set

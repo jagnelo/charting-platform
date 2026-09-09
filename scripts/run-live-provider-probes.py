@@ -10,11 +10,22 @@ credentials return exit code 2; they are never represented as passing skips.
 from __future__ import annotations
 
 import json
+import importlib.util
 import os
 import subprocess
 from pathlib import Path
 
 from dotenv import load_dotenv
+
+_LOCK_SPEC = importlib.util.spec_from_file_location(
+    "provider_live_lock", Path(__file__).with_name("provider_live_lock.py")
+)
+if _LOCK_SPEC is None or _LOCK_SPEC.loader is None:  # pragma: no cover - packaging failure
+    raise ImportError("provider_live_lock.py is unavailable")
+_LOCK_MODULE = importlib.util.module_from_spec(_LOCK_SPEC)
+_LOCK_SPEC.loader.exec_module(_LOCK_MODULE)
+ProviderLiveRunAlreadyActive = _LOCK_MODULE.ProviderLiveRunAlreadyActive
+provider_live_run_lock = _LOCK_MODULE.provider_live_run_lock
 
 ROOT = Path(__file__).resolve().parents[1]
 SHARED_ENV_OVERRIDE = "CHARTING_PLATFORM_SHARED_ENV_FILE"
@@ -179,20 +190,26 @@ def main() -> int:
     print("routing safety preflight:")
     for provider, status in routing_safety_preflight().items():
         print(f"  {provider}: {status}")
-    result = subprocess.run(
-        [
-            ".venv/bin/pytest",
-            "tests/live/test_market_data_providers_live.py",
-            "tests/live/test_tokenized_providers_live.py",
-            "-m",
-            "live",
-            "--no-header",
-            "-q",
-            "--no-cov",
-        ],
-        cwd=ROOT / "backend",
-        env={**os.environ, "RUN_LIVE_PROVIDER_TESTS": "1"},
-    )
+    try:
+        with provider_live_run_lock() as lock_path:
+            print(f"live provider lock: {lock_path}")
+            result = subprocess.run(
+                [
+                    ".venv/bin/pytest",
+                    "tests/live/test_market_data_providers_live.py",
+                    "tests/live/test_tokenized_providers_live.py",
+                    "-m",
+                    "live",
+                    "--no-header",
+                    "-q",
+                    "--no-cov",
+                ],
+                cwd=ROOT / "backend",
+                env={**os.environ, "RUN_LIVE_PROVIDER_TESTS": "1"},
+            )
+    except ProviderLiveRunAlreadyActive as exc:
+        print(f"live provider probes: blocked by local key-use lock: {exc}")
+        return 3
     if result.returncode:
         if missing:
             print("live provider probes: credential preflight incomplete; no acceptance claim")
