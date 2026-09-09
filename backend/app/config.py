@@ -426,15 +426,13 @@ class Settings(BaseSettings):
                         "window_seconds": 1,
                         "unit": "requests",
                         "scope": "ip",
-                        "source": "https://www.gate.com/docs/developers/apiv4/en/stock/",
+                        "source": "https://www.gate.com/docs/developers/apiv4/en/",
                     }
                 ],
                 "reset": "rolling",
-                "provider_headers_required": True,
-                "untracked_constraints": ["provider_response_headers"],
             },
-            "quota_scope": "ip_and_endpoint",
-            "quota_source": "Gate API v4 stock documentation",
+            "quota_scope": "ip",
+            "quota_source": "Gate API v4 stock public endpoint rate-limit documentation",
         },
         "kraken_xstocks": {
             "quota_contract": {

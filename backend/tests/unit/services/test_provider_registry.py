@@ -73,6 +73,23 @@ class TestProviderRegistry:
             "unknown_provider", asset_class="Equity", instrument_type="Stock"
         )
 
+    def test_tokenized_provider_routing_is_class_aware(self):
+        for provider in (
+            "xstocks",
+            "robinhood_tokens",
+            "bybit_xstocks",
+            "gate_tradfi",
+            "kraken_xstocks",
+        ):
+            assert provider_supports_instrument(
+                provider,
+                asset_class="Tokenized Securities",
+                instrument_type="Tokenized Security",
+            )
+            assert not provider_supports_instrument(
+                provider, asset_class="Equity", instrument_type="Stock"
+            )
+
     def test_openfigi_is_registered_as_identifier_provider(self):
         provider = get_identifier_provider("openfigi")
         assert provider.name == "openfigi"

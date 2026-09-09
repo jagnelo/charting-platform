@@ -119,6 +119,15 @@ _PROVIDER_INSTRUMENT_KINDS: dict[str, frozenset[str]] = {
     "fmp": frozenset({"equity", "stock", "etf", "forex", "currency", "crypto", "cryptocurrency", "future"}),
     "tradier": frozenset({"equity", "stock", "etf", "option", "options"}),
     "marketdata_app": frozenset({"equity", "stock", "etf", "option", "options"}),
+    # Tokenized assets are first-class instruments created by
+    # ``tokenized_assets.upsert_tokenized_asset``.  Keep their provider
+    # adapters admissible when a caller routes by the stored instrument ID;
+    # the provider symbol remains distinct from the economic underlying.
+    "xstocks": frozenset({"tokenized_securities", "tokenized_security", "tokenized"}),
+    "robinhood_tokens": frozenset({"tokenized_securities", "tokenized_security", "tokenized"}),
+    "bybit_xstocks": frozenset({"tokenized_securities", "tokenized_security", "tokenized"}),
+    "gate_tradfi": frozenset({"tokenized_securities", "tokenized_security", "tokenized"}),
+    "kraken_xstocks": frozenset({"tokenized_securities", "tokenized_security", "tokenized"}),
     "ibkr": frozenset({"equity", "stock", "etf", "option", "options", "future", "forex", "currency", "crypto", "cryptocurrency"}),
     "yfinance": frozenset({"equity", "stock", "etf", "option", "options", "future", "forex", "currency", "crypto", "cryptocurrency", "index"}),
     "binance": frozenset({"crypto", "cryptocurrency", "crypto_spot"}),

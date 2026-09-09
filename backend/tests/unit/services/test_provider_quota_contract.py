@@ -882,6 +882,19 @@ def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
     assert eodhd["operation_costs_required"] is True
     assert settings.PROVIDER_USAGE_PROFILE_SEEDS["eodhd"]["operation_costs"]["get_instrument_profile"] == 10
 
+    gate = settings.PROVIDER_RATE_LIMIT_SEEDS["gate_tradfi"]["quota_contract"]
+    assert gate.get("untracked_constraints", []) == []
+    assert gate["dimensions"] == [
+        {
+            "name": "stock_public_requests_per_second",
+            "limit": 5,
+            "window_seconds": 1,
+            "unit": "requests",
+            "scope": "ip",
+            "source": "https://www.gate.com/docs/developers/apiv4/en/",
+        }
+    ]
+
 
 def test_twelve_data_cumulative_credit_headers_update_only_matching_minute_window():
     policy = ProviderPolicy(

@@ -383,13 +383,15 @@ def _observed_dimension_totals(policy: ProviderPolicy, measurement: Any) -> dict
             continue
         if (
             unit in {"request", "requests"}
-            and "gate.com/docs/developers/apiv4/en/stock" in source
+            and "gate.com/docs/developers/apiv4/en/" in source
             and window_seconds == 1
         ):
-            # Gate's stock endpoint returns a remaining counter. Do not
-            # consume it when a response reports a different/global limit;
-            # that observation is still retained in the diagnostic header
-            # snapshot for operator review.
+            # Gate documents a 5-qps/IP limit for each public TradFi stock
+            # endpoint. The durable capability window intentionally applies
+            # the same limit across the read-only stock capability, which is
+            # conservative when multiple documented endpoints are polled at
+            # once. Response counters are observational only; they are not a
+            # prerequisite because the published contract is static.
             try:
                 header_limit = int(headers["x-ratelimit-limit"])
                 remaining = int(headers["x-ratelimit-remaining"])
