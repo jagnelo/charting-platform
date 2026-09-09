@@ -1496,6 +1496,33 @@ def test_compound_directory_usage_is_not_undercharged_or_guessed():
     )
 
 
+def test_finra_otc_reviewed_operation_costs_are_explicitly_admitted(monkeypatch):
+    monkeypatch.setattr(
+        settings,
+        "FINRA_OTC_OPERATION_COSTS",
+        {"discover_universe_page": 3, "reconcile_universe_page": 3},
+    )
+    profile = get_provider_usage_profile("finra_otc_directory")
+    assert profile["operation_costs"] == {
+        "discover_universe_page": 3,
+        "reconcile_universe_page": 3,
+    }
+    source = DataSource(
+        name="finra_otc_directory",
+        config={"usage_tracking": profile},
+    )
+    policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.UNIVERSE_DISCOVERY,
+        quota_contract=settings.PROVIDER_RATE_LIMIT_SEEDS["finra_otc_directory"][
+            "quota_contract"
+        ],
+    )
+    assert provider_contract_operation_cost_known(policy, source, "discover_universe_page:OTC:0")
+    assert provider_contract_operation_cost_known(policy, source, "reconcile_universe_page:OTC:0")
+    assert provider_contract_operation_costs_configured(policy, source)
+
+
 def test_coinbase_public_token_bucket_matches_documented_burst():
     seed = settings.PROVIDER_RATE_LIMIT_SEEDS["coinbase"]
     assert seed["tokens_per_minute"] == 600

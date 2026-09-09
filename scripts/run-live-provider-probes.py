@@ -66,6 +66,8 @@ BYTE_BOUND_OPERATIONS = {
     ),
 }
 
+FINRA_OTC_OPERATION_COSTS = ("discover_universe_page", "reconcile_universe_page")
+
 
 def routing_safety_preflight() -> dict[str, str]:
     """Describe safety controls that can block routing after a live read.
@@ -86,6 +88,39 @@ def routing_safety_preflight() -> dict[str, str]:
         )
     except ValueError:
         result["finra async result bytes"] = "non-routable: bound is not an integer"
+
+    finra_otc_missing: list[str] = []
+    raw_finra_otc_costs = os.getenv("FINRA_OTC_OPERATION_COSTS", "").strip()
+    try:
+        finra_otc_costs = json.loads(raw_finra_otc_costs) if raw_finra_otc_costs else {}
+    except json.JSONDecodeError:
+        finra_otc_costs = None
+    if not isinstance(finra_otc_costs, dict):
+        finra_otc_missing.append("FINRA_OTC_OPERATION_COSTS")
+    elif not all(
+        isinstance(finra_otc_costs.get(operation), int)
+        and finra_otc_costs[operation] > 0
+        for operation in FINRA_OTC_OPERATION_COSTS
+    ):
+        finra_otc_missing.append("FINRA_OTC_OPERATION_COSTS")
+    for variable in (
+        "FINRA_OTC_TERMS_REVIEWED",
+        "FINRA_OTC_COMPLETENESS_REVIEWED",
+        "FINRA_OTC_REDISTRIBUTION_REVIEWED",
+    ):
+        if os.getenv(variable, "").strip().lower() not in {"1", "true", "yes"}:
+            finra_otc_missing.append(variable)
+    try:
+        finra_otc_poll = int(os.getenv("FINRA_OTC_POLL_INTERVAL_SECONDS", "0").strip() or "0")
+    except ValueError:
+        finra_otc_poll = 0
+    if finra_otc_poll <= 0:
+        finra_otc_missing.append("FINRA_OTC_POLL_INTERVAL_SECONDS")
+    result["finra otc directory"] = (
+        "routable"
+        if not finra_otc_missing
+        else "non-routable: missing/invalid " + ", ".join(dict.fromkeys(finra_otc_missing))
+    )
 
     # These providers have a useful live read but still lack one or more
     # provider-specific admission dimensions. Keep the gap visible next to

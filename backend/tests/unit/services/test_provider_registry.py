@@ -163,6 +163,11 @@ class TestProviderRegistry:
 
     def test_routing_control_diagnostics_report_names_without_values(self, monkeypatch):
         monkeypatch.setattr(settings, "FINRA_ASYNC_MAX_RESULT_BYTES", 0)
+        monkeypatch.setattr(settings, "FINRA_OTC_OPERATION_COSTS", {})
+        monkeypatch.setattr(settings, "FINRA_OTC_TERMS_REVIEWED", False)
+        monkeypatch.setattr(settings, "FINRA_OTC_COMPLETENESS_REVIEWED", False)
+        monkeypatch.setattr(settings, "FINRA_OTC_REDISTRIBUTION_REVIEWED", False)
+        monkeypatch.setattr(settings, "FINRA_OTC_POLL_INTERVAL_SECONDS", 0)
         monkeypatch.setattr(settings, "FRED_REVIEWED_LIMIT_SCOPE", "")
         monkeypatch.setattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 0)
         monkeypatch.setattr(settings, "FRED_SERIES_TERMS_REVIEWED", False)
@@ -173,6 +178,20 @@ class TestProviderRegistry:
         )
         assert provider_missing_routing_controls("finra") == [
             "FINRA_ASYNC_MAX_RESULT_BYTES"
+        ]
+        assert provider_routing_control_settings("finra_otc_directory") == (
+            "FINRA_OTC_OPERATION_COSTS",
+            "FINRA_OTC_TERMS_REVIEWED",
+            "FINRA_OTC_COMPLETENESS_REVIEWED",
+            "FINRA_OTC_REDISTRIBUTION_REVIEWED",
+            "FINRA_OTC_POLL_INTERVAL_SECONDS",
+        )
+        assert provider_missing_routing_controls("finra_otc_directory") == [
+            "FINRA_OTC_OPERATION_COSTS",
+            "FINRA_OTC_TERMS_REVIEWED",
+            "FINRA_OTC_COMPLETENESS_REVIEWED",
+            "FINRA_OTC_REDISTRIBUTION_REVIEWED",
+            "FINRA_OTC_POLL_INTERVAL_SECONDS",
         ]
         assert provider_routing_control_settings("fred") == (
             "FRED_REVIEWED_LIMIT_SCOPE",
@@ -211,6 +230,16 @@ class TestProviderRegistry:
             },
         )
         assert provider_missing_routing_controls("finra") == []
+        monkeypatch.setattr(
+            settings,
+            "FINRA_OTC_OPERATION_COSTS",
+            {"discover_universe_page": 3, "reconcile_universe_page": 3},
+        )
+        monkeypatch.setattr(settings, "FINRA_OTC_TERMS_REVIEWED", True)
+        monkeypatch.setattr(settings, "FINRA_OTC_COMPLETENESS_REVIEWED", True)
+        monkeypatch.setattr(settings, "FINRA_OTC_REDISTRIBUTION_REVIEWED", True)
+        monkeypatch.setattr(settings, "FINRA_OTC_POLL_INTERVAL_SECONDS", 900)
+        assert provider_missing_routing_controls("finra_otc_directory") == []
         monkeypatch.setattr(settings, "FRED_REVIEWED_LIMIT_SCOPE", "api_key")
         monkeypatch.setattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 60)
         monkeypatch.setattr(settings, "FRED_SERIES_TERMS_REVIEWED", True)

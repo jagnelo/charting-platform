@@ -585,9 +585,15 @@ The source is publicly reachable and full pagination is covered by the live
 probe. FINRA's platform documentation publishes the synchronous 1,200
 requests/minute/IP and 3 MB response ceilings, which are recorded in the
 provider contract. The provider remains non-routable until the source URL is
-explicitly configured and operations records current terms, completeness/
-retention policy, polling allowance, and redistribution boundaries. The Daily
-List adapter remains the lifecycle-delta path and is not substituted for this
+explicitly configured and operations supplies a positive reviewed
+`FINRA_OTC_OPERATION_COSTS` map for both `discover_universe_page` and
+`reconcile_universe_page`. Those costs are conservative charges for the
+response-dependent cold refresh, not a guessed one-request default. Routing
+also requires independent affirmative controls for source terms,
+complete-universe interpretation, redistribution, and a positive
+`FINRA_OTC_POLL_INTERVAL_SECONDS`; these controls record review decisions but
+do not claim FINRA has published a minimum polling interval. The Daily List
+adapter remains the lifecycle-delta path and is not substituted for this
 current security master.
 
 FINRA's asynchronous Query API result payloads are documented as unbounded.
@@ -642,6 +648,11 @@ FINRA_API_BASE_URL=https://api.finra.org
 FINRA_SHORT_INTEREST_URL=
 FINRA_OTC_DAILY_LIST_URL=
 FINRA_OTC_SYMBOL_DIRECTORY_URL=https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster
+FINRA_OTC_OPERATION_COSTS={}
+FINRA_OTC_TERMS_REVIEWED=false
+FINRA_OTC_COMPLETENESS_REVIEWED=false
+FINRA_OTC_REDISTRIBUTION_REVIEWED=false
+FINRA_OTC_POLL_INTERVAL_SECONDS=0
 FINRA_ASYNC_MAX_RESULT_BYTES=0
 
 # Optional adapters (disabled until governance records reviewed entitlements)

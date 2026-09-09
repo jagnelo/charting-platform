@@ -32,6 +32,11 @@ PROVIDER_SECRET_NAMES = {
 }
 PROVIDER_SAFETY_SETTINGS = {
     "FINRA_ASYNC_MAX_RESULT_BYTES",
+    "FINRA_OTC_OPERATION_COSTS",
+    "FINRA_OTC_TERMS_REVIEWED",
+    "FINRA_OTC_COMPLETENESS_REVIEWED",
+    "FINRA_OTC_REDISTRIBUTION_REVIEWED",
+    "FINRA_OTC_POLL_INTERVAL_SECONDS",
     "FRED_REVIEWED_LIMIT_SCOPE",
     "FRED_REVIEWED_REQUESTS_PER_MINUTE",
     "FRED_SERIES_TERMS_REVIEWED",
@@ -147,6 +152,7 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("FMP_OPERATION_BYTE_BOUNDS", "not-json")
     statuses = routing_safety_preflight()
     assert statuses["finra async result bytes"].startswith("non-routable:")
+    assert statuses["finra otc directory"].startswith("non-routable:")
     assert statuses["fred"].startswith("non-routable:")
     assert statuses["nasdaq"].startswith("non-routable:")
     assert statuses["xstocks"].startswith("non-routable:")
@@ -160,6 +166,17 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     monkeypatch.setenv("FRED_SERIES_TERMS_REVIEWED", "true")
     statuses = routing_safety_preflight()
     assert statuses["fred"] == "routable"
+
+    monkeypatch.setenv(
+        "FINRA_OTC_OPERATION_COSTS",
+        '{"discover_universe_page": 3, "reconcile_universe_page": 3}',
+    )
+    monkeypatch.setenv("FINRA_OTC_TERMS_REVIEWED", "true")
+    monkeypatch.setenv("FINRA_OTC_COMPLETENESS_REVIEWED", "true")
+    monkeypatch.setenv("FINRA_OTC_REDISTRIBUTION_REVIEWED", "true")
+    monkeypatch.setenv("FINRA_OTC_POLL_INTERVAL_SECONDS", "900")
+    statuses = routing_safety_preflight()
+    assert statuses["finra otc directory"] == "routable"
 
     monkeypatch.setenv(
         "TIINGO_OPERATION_BYTE_BOUNDS",

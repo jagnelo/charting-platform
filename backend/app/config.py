@@ -1425,6 +1425,17 @@ class Settings(BaseSettings):
     # docs/data-providers.md; keep this empty until operations explicitly
     # approves the source, terms, and polling contract.
     FINRA_OTC_SYMBOL_DIRECTORY_URL: str = ""
+    # The DAPI directory's cold refresh is response/page-count dependent. A
+    # deployment must provide a reviewed conservative request charge for each
+    # runtime operation instead of inheriting a one-request default.
+    FINRA_OTC_OPERATION_COSTS: dict[str, int] = {}
+    # These are independent governance gates: source terms, complete-universe
+    # interpretation, redistribution, and the chosen polling interval must be
+    # reviewed for the exact configured source before routing is admitted.
+    FINRA_OTC_TERMS_REVIEWED: bool = False
+    FINRA_OTC_COMPLETENESS_REVIEWED: bool = False
+    FINRA_OTC_REDISTRIBUTION_REVIEWED: bool = False
+    FINRA_OTC_POLL_INTERVAL_SECONDS: int = 0
     # Async FINRA results are provider-unbounded; keep zero until an
     # operator selects a safe per-download adapter bound. This does not make
     # the async capability routable without durable monthly accounting.
@@ -1479,6 +1490,7 @@ class Settings(BaseSettings):
         "PROVIDER_LIVE_PROBE_STATUS_SEEDS",
         "TIINGO_OPERATION_BYTE_BOUNDS",
         "FMP_OPERATION_BYTE_BOUNDS",
+        "FINRA_OTC_OPERATION_COSTS",
         mode="before",
     )
     @classmethod

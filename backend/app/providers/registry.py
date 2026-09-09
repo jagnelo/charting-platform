@@ -435,6 +435,13 @@ _CONFIGURATION_SETTINGS: dict[str, tuple[str, ...]] = {
 # "credential missing" from "credential present but quota safety incomplete".
 _ROUTING_CONTROL_SETTINGS: dict[str, tuple[str, ...]] = {
     "finra": ("FINRA_ASYNC_MAX_RESULT_BYTES",),
+    "finra_otc_directory": (
+        "FINRA_OTC_OPERATION_COSTS",
+        "FINRA_OTC_TERMS_REVIEWED",
+        "FINRA_OTC_COMPLETENESS_REVIEWED",
+        "FINRA_OTC_REDISTRIBUTION_REVIEWED",
+        "FINRA_OTC_POLL_INTERVAL_SECONDS",
+    ),
     "fred": (
         "FRED_REVIEWED_LIMIT_SCOPE",
         "FRED_REVIEWED_REQUESTS_PER_MINUTE",
@@ -497,6 +504,31 @@ def provider_missing_routing_controls(name: str) -> list[str]:
         except (TypeError, ValueError):
             configured = 0
         return [] if configured > 0 else list(required)
+    if name == "finra_otc_directory":
+        configured_map = getattr(settings, "FINRA_OTC_OPERATION_COSTS", {}) or {}
+        operations = ("discover_universe_page", "reconcile_universe_page")
+        missing: list[str] = []
+        if not isinstance(configured_map, dict):
+            missing.append("FINRA_OTC_OPERATION_COSTS")
+        elif not all(
+            isinstance(configured_map.get(operation), int)
+            and configured_map[operation] > 0
+            for operation in operations
+        ):
+            missing.append("FINRA_OTC_OPERATION_COSTS")
+        if not bool(getattr(settings, "FINRA_OTC_TERMS_REVIEWED", False)):
+            missing.append("FINRA_OTC_TERMS_REVIEWED")
+        if not bool(getattr(settings, "FINRA_OTC_COMPLETENESS_REVIEWED", False)):
+            missing.append("FINRA_OTC_COMPLETENESS_REVIEWED")
+        if not bool(getattr(settings, "FINRA_OTC_REDISTRIBUTION_REVIEWED", False)):
+            missing.append("FINRA_OTC_REDISTRIBUTION_REVIEWED")
+        try:
+            poll_interval = int(getattr(settings, "FINRA_OTC_POLL_INTERVAL_SECONDS", 0) or 0)
+        except (TypeError, ValueError):
+            poll_interval = 0
+        if poll_interval <= 0:
+            missing.append("FINRA_OTC_POLL_INTERVAL_SECONDS")
+        return list(dict.fromkeys(missing))
     if name == "fred":
         scope = str(getattr(settings, "FRED_REVIEWED_LIMIT_SCOPE", "") or "").strip()
         try:
@@ -610,6 +642,21 @@ def get_provider_usage_profile(name: str) -> dict:
                     "download_async_result": async_result_bound,
                 },
             }
+    if name == "finra_otc_directory":
+        operation_costs = getattr(settings, "FINRA_OTC_OPERATION_COSTS", {}) or {}
+        if isinstance(operation_costs, dict):
+            reviewed_costs = {
+                str(operation).strip(): int(cost)
+                for operation, cost in operation_costs.items()
+                if str(operation).strip()
+                and isinstance(cost, int)
+                and cost > 0
+            }
+            if reviewed_costs:
+                merged["operation_costs"] = {
+                    **dict(merged.get("operation_costs") or {}),
+                    **reviewed_costs,
+                }
     return merged
 
 
