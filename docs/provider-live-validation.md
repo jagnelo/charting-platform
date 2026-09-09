@@ -181,8 +181,11 @@ direct adapter. A positive `FINRA_ASYNC_MAX_RESULT_BYTES` promotes the signed
 download operation into the durable monthly byte reservation; the default `0`
 remains non-routable because provider results are otherwise unbounded. FRED v1
 records the official 120-requests/minute threshold but remains non-routable
-while its enforcement scope, adjustable limits, and terms are unresolved;
-Nasdaq Trader's polling allowance remains unpublished. IBKR remains a
+until the deployment supplies the explicit reviewed controls
+`FRED_REVIEWED_LIMIT_SCOPE`, `FRED_REVIEWED_REQUESTS_PER_MINUTE` (1..120), and
+`FRED_SERIES_TERMS_REVIEWED=true`; these controls make the operator's
+conservative decision observable without pretending the provider's adjustable
+scope is fixed. Nasdaq Trader's polling allowance remains unpublished. IBKR remains a
 descriptor without an authenticated account adapter.
 
 The public tokenized matrix is maintained separately in
@@ -223,17 +226,21 @@ the non-secret `MARKETSTACK_DISCOVERY_EXCHANGE` MIC/exchange setting. The
 adapter no longer defaults discovery to `XNYS`, so a single-venue read cannot
 be mistaken for complete US listing coverage.
 
-The latest network-enabled rerun, using the existing external keys plus a
-temporary non-secret SEC User-Agent and explicit `MARKETSTACK_DISCOVERY_EXCHANGE=XNAS`,
-collected 32 cases: 28 passed with positive transport observations across the
-available keyless and credentialed adapters, including all five tokenized
-providers and the header-only Alpha Vantage IPO-calendar response. Four failed:
-OpenFIGI returned its provider-native HTTP 429, while
-`ALPACA_API_KEY`/`ALPACA_SECRET_KEY`, `TRADIER_API_KEY`, and
-`MARKETDATA_APP_API_KEY` remained absent. The wrapper returned exit code 2 and
-made no acceptance claim. FINRA asynchronous result bytes and Tiingo/FMP
-operation byte maps were also reported non-routable because no positive
-reviewed bounds were configured.
+The latest network-enabled rerun at `2026-09-09T18:59:06Z`, using the existing
+external keys plus a temporary non-secret SEC User-Agent and explicit
+`MARKETSTACK_DISCOVERY_EXCHANGE=XNAS`, collected 32 cases: 29 passed with
+positive transport observations across the available keyless and credentialed
+adapters, including all five tokenized providers, OpenFIGI after its prior
+cooldown, and the header-only Alpha Vantage IPO-calendar response. Three failed
+exact credential preflight for `ALPACA_API_KEY`/`ALPACA_SECRET_KEY`,
+`TRADIER_API_KEY`, and `MARKETDATA_APP_API_KEY`. The wrapper returned exit code
+2 and made no acceptance claim. FRED now reports its three explicit missing
+review controls (`FRED_REVIEWED_LIMIT_SCOPE`,
+`FRED_REVIEWED_REQUESTS_PER_MINUTE`, and `FRED_SERIES_TERMS_REVIEWED`) rather
+than an opaque generic blocker. FINRA asynchronous result bytes, Nasdaq polling,
+xStocks quota/legal eligibility, Bybit endpoint/UID state, and Tiingo/FMP
+operation byte maps remain non-routable because their reviewed controls are not
+configured.
 
 The wrapper also reports the remaining provider-specific admission gates
 explicitly: FRED's v1 limit scope/adjustable-limit/series-terms review,

@@ -1,4 +1,4 @@
-from app.config import settings
+from app.config import provider_rate_limit_seed, settings
 from app.providers.registry import (
     get_default_discovery_provider,
     get_default_event_provider,
@@ -163,6 +163,9 @@ class TestProviderRegistry:
 
     def test_routing_control_diagnostics_report_names_without_values(self, monkeypatch):
         monkeypatch.setattr(settings, "FINRA_ASYNC_MAX_RESULT_BYTES", 0)
+        monkeypatch.setattr(settings, "FRED_REVIEWED_LIMIT_SCOPE", "")
+        monkeypatch.setattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 0)
+        monkeypatch.setattr(settings, "FRED_SERIES_TERMS_REVIEWED", False)
         monkeypatch.setattr(settings, "TIINGO_OPERATION_BYTE_BOUNDS", {})
         monkeypatch.setattr(settings, "FMP_OPERATION_BYTE_BOUNDS", {})
         assert provider_routing_control_settings("finra") == (
@@ -170,6 +173,16 @@ class TestProviderRegistry:
         )
         assert provider_missing_routing_controls("finra") == [
             "FINRA_ASYNC_MAX_RESULT_BYTES"
+        ]
+        assert provider_routing_control_settings("fred") == (
+            "FRED_REVIEWED_LIMIT_SCOPE",
+            "FRED_REVIEWED_REQUESTS_PER_MINUTE",
+            "FRED_SERIES_TERMS_REVIEWED",
+        )
+        assert provider_missing_routing_controls("fred") == [
+            "FRED_REVIEWED_LIMIT_SCOPE",
+            "FRED_REVIEWED_REQUESTS_PER_MINUTE",
+            "FRED_SERIES_TERMS_REVIEWED",
         ]
         assert provider_missing_routing_controls("tiingo") == [
             "TIINGO_OPERATION_BYTE_BOUNDS"
@@ -198,6 +211,15 @@ class TestProviderRegistry:
             },
         )
         assert provider_missing_routing_controls("finra") == []
+        monkeypatch.setattr(settings, "FRED_REVIEWED_LIMIT_SCOPE", "api_key")
+        monkeypatch.setattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 60)
+        monkeypatch.setattr(settings, "FRED_SERIES_TERMS_REVIEWED", True)
+        assert provider_missing_routing_controls("fred") == []
+        fred_seed = provider_rate_limit_seed("fred")
+        assert fred_seed["quota_scope"] == "api_key"
+        assert fred_seed["quota_contract"]["unknown_dimensions"] == []
+        assert fred_seed["quota_contract"]["dimensions"][0]["limit"] == 60
+        assert fred_seed["quota_contract"]["dimensions"][0]["scope"] == "api_key"
         assert provider_missing_routing_controls("tiingo") == []
         assert provider_missing_routing_controls("fmp") == []
 

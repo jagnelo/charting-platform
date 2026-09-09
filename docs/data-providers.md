@@ -109,7 +109,14 @@ separate [v2 errors documentation](https://fred.stlouisfed.org/docs/api/fred/v2/
 mentions a 2-requests/second threshold for v2; the runtime deliberately does
 not apply that v2 rule to the v1 adapter. The runtime records the published
 120/minute dimension plus the unresolved enforcement-scope, adjustable-limit,
-and series-rights gates, and keeps FRED non-routable until those are reviewed. The
+and series-rights gates, and keeps FRED non-routable until those are reviewed. An
+operator may promote a deployment only by supplying all three non-secret
+controls: `FRED_REVIEWED_LIMIT_SCOPE` (`api_key`, `account`, `ip`, or
+`deployment`), `FRED_REVIEWED_REQUESTS_PER_MINUTE` (a conservative positive
+integer no greater than 120), and `FRED_SERIES_TERMS_REVIEWED=true`. When all
+three are present, the runtime replaces the unresolved seed dimensions with
+that explicitly reviewed conservative contract; no value is inferred from the
+generic provider defaults. The
 [FRED API terms](https://fred.stlouisfed.org/docs/api/terms_of_use.html) also
 allow the provider to change bandwidth/transaction limits, place
 series-specific copyright restrictions on third-party data, and require a
@@ -401,6 +408,9 @@ timeframes are meaningful.
 **Getting credentials**:
 1. Register at [fred.stlouisfed.org/docs/api/api_key.html](https://fred.stlouisfed.org/docs/api/api_key.html)
 2. Set `FRED_API_KEY` in `.env.dev`
+3. Keep the routing controls at their fail-closed defaults until operations
+   reviews the account scope and series rights; then set the three controls
+   described above in the deployment secret/config store.
 
 ---
 
@@ -611,6 +621,9 @@ ALPACA_DATA_FEED=iex          # iex (free) | sip (paid consolidated feed)
 
 # FRED
 FRED_API_KEY=your_fred_key
+FRED_REVIEWED_LIMIT_SCOPE=
+FRED_REVIEWED_REQUESTS_PER_MINUTE=0
+FRED_SERIES_TERMS_REVIEWED=false
 
 # CoinGecko
 COINGECKO_API_KEY=your_coingecko_demo_key

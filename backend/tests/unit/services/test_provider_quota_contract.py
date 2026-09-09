@@ -117,6 +117,27 @@ async def test_seed_records_fred_v1_numeric_limit_without_applying_v2(db):
 
 
 @pytest.mark.asyncio
+async def test_reviewed_fred_controls_promote_only_the_explicit_conservative_contract(db, monkeypatch):
+    monkeypatch.setattr(settings, "FRED_REVIEWED_LIMIT_SCOPE", "api_key")
+    monkeypatch.setattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 60)
+    monkeypatch.setattr(settings, "FRED_SERIES_TERMS_REVIEWED", True)
+    async_db = AsyncSessionAdapter(db)
+    await seed_provider_runtime(async_db)
+    source = db.execute(select(DataSource).where(DataSource.name == "fred")).scalar_one()
+    policy = db.execute(
+        select(ProviderPolicy).where(
+            ProviderPolicy.data_source_id == source.id,
+            ProviderPolicy.capability == ProviderCapability.PRICE_HISTORY,
+        )
+    ).scalar_one()
+    assert policy.quota_contract["unknown_dimensions"] == []
+    assert policy.quota_contract["dimensions"][0]["limit"] == 60
+    assert policy.quota_contract["dimensions"][0]["scope"] == "api_key"
+    assert quota_contract_missing_dimensions(policy) == []
+    assert policy_has_known_quota(policy)
+
+
+@pytest.mark.asyncio
 async def test_seeded_tiingo_and_fmp_bandwidth_pools_remain_non_routable(db):
     async_db = AsyncSessionAdapter(db)
     await seed_provider_runtime(async_db)

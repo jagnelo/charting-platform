@@ -435,6 +435,11 @@ _CONFIGURATION_SETTINGS: dict[str, tuple[str, ...]] = {
 # "credential missing" from "credential present but quota safety incomplete".
 _ROUTING_CONTROL_SETTINGS: dict[str, tuple[str, ...]] = {
     "finra": ("FINRA_ASYNC_MAX_RESULT_BYTES",),
+    "fred": (
+        "FRED_REVIEWED_LIMIT_SCOPE",
+        "FRED_REVIEWED_REQUESTS_PER_MINUTE",
+        "FRED_SERIES_TERMS_REVIEWED",
+    ),
     "tiingo": ("TIINGO_OPERATION_BYTE_BOUNDS",),
     "fmp": ("FMP_OPERATION_BYTE_BOUNDS",),
 }
@@ -492,6 +497,23 @@ def provider_missing_routing_controls(name: str) -> list[str]:
         except (TypeError, ValueError):
             configured = 0
         return [] if configured > 0 else list(required)
+    if name == "fred":
+        scope = str(getattr(settings, "FRED_REVIEWED_LIMIT_SCOPE", "") or "").strip()
+        try:
+            reviewed_limit = int(
+                getattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 0) or 0
+            )
+        except (TypeError, ValueError):
+            reviewed_limit = 0
+        terms_reviewed = bool(getattr(settings, "FRED_SERIES_TERMS_REVIEWED", False))
+        missing: list[str] = []
+        if scope not in {"api_key", "account", "ip", "deployment"}:
+            missing.append("FRED_REVIEWED_LIMIT_SCOPE")
+        if not 0 < reviewed_limit <= 120:
+            missing.append("FRED_REVIEWED_REQUESTS_PER_MINUTE")
+        if not terms_reviewed:
+            missing.append("FRED_SERIES_TERMS_REVIEWED")
+        return missing
     configured_map = getattr(settings, required[0], {}) or {}
     if not isinstance(configured_map, dict):
         return list(required)

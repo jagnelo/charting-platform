@@ -91,8 +91,27 @@ def routing_safety_preflight() -> dict[str, str]:
     # provider-specific admission dimensions. Keep the gap visible next to
     # the byte-bound controls rather than letting a passing probe imply safe
     # routing.
+    fred_scope = os.getenv("FRED_REVIEWED_LIMIT_SCOPE", "").strip()
+    try:
+        fred_limit = int(os.getenv("FRED_REVIEWED_REQUESTS_PER_MINUTE", "0").strip() or "0")
+    except ValueError:
+        fred_limit = 0
+    fred_terms_reviewed = os.getenv("FRED_SERIES_TERMS_REVIEWED", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+    fred_missing: list[str] = []
+    if fred_scope not in {"api_key", "account", "ip", "deployment"}:
+        fred_missing.append("FRED_REVIEWED_LIMIT_SCOPE")
+    if not 0 < fred_limit <= 120:
+        fred_missing.append("FRED_REVIEWED_REQUESTS_PER_MINUTE")
+    if not fred_terms_reviewed:
+        fred_missing.append("FRED_SERIES_TERMS_REVIEWED")
     result["fred"] = (
-        "non-routable: FRED v1 numeric rate limit/scope, adjustable-limit, and series-terms review required"
+        "routable"
+        if not fred_missing
+        else "non-routable: missing/invalid " + ", ".join(fred_missing)
     )
     result["nasdaq"] = "non-routable: official public polling allowance is not published"
     result["xstocks"] = (

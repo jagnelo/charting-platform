@@ -1403,6 +1403,14 @@ class Settings(BaseSettings):
     NASDAQ_USER_AGENT: str = "charting-platform market-data-universe"
     # FRED (Federal Reserve Economic Data) — rates, macro, forex series
     FRED_API_KEY: str = ""
+    # FRED v1 publishes a 120-requests/minute threshold but leaves the
+    # enforcement scope and adjustable account limit subject to provider
+    # control. Keep the adapter fail-closed until operations records the
+    # deployment's reviewed conservative scope/limit and confirms the series
+    # copyright/redistribution terms for the configured use.
+    FRED_REVIEWED_LIMIT_SCOPE: str = ""
+    FRED_REVIEWED_REQUESTS_PER_MINUTE: int = 0
+    FRED_SERIES_TERMS_REVIEWED: bool = False
     # CoinGecko — crypto universe discovery and metadata (free demo key)
     COINGECKO_API_KEY: str = ""
     # SEC EDGAR — no key required; User-Agent identifies your app to SEC servers
@@ -1534,6 +1542,38 @@ def provider_rate_limit_seed(provider_name: str) -> dict:
     """
 
     seed = deepcopy(settings.PROVIDER_RATE_LIMIT_SEEDS.get(provider_name, {}))
+    if provider_name == "fred":
+        # The public v1 error contract gives a numeric threshold, but not a
+        # durable enforcement scope and permits the provider to adjust limits.
+        # Only an operator-reviewed conservative scope/limit plus an explicit
+        # series-rights review may remove those unknown dimensions. This is a
+        # configuration-controlled admission gate, never a guessed fallback.
+        scope = str(getattr(settings, "FRED_REVIEWED_LIMIT_SCOPE", "") or "").strip()
+        try:
+            reviewed_limit = int(getattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 0) or 0)
+        except (TypeError, ValueError):
+            reviewed_limit = 0
+        terms_reviewed = bool(getattr(settings, "FRED_SERIES_TERMS_REVIEWED", False))
+        allowed_scopes = {"api_key", "account", "ip", "deployment"}
+        if (
+            scope in allowed_scopes
+            and 0 < reviewed_limit <= 120
+            and terms_reviewed
+            and isinstance(seed.get("quota_contract"), dict)
+        ):
+            contract = seed["quota_contract"]
+            contract["unknown_dimensions"] = []
+            for dimension in contract.get("dimensions") or []:
+                if isinstance(dimension, dict) and dimension.get("name") == "requests_per_minute":
+                    dimension["limit"] = reviewed_limit
+                    dimension["scope"] = scope
+            contract["source"] = (
+                f"{contract.get('source', 'FRED v1 errors')} plus operator-reviewed "
+                "deployment admission controls"
+            )
+            seed["quota_scope"] = scope
+            seed["quota_source"] = "FRED v1 documented threshold plus operator-reviewed controls"
+        return seed
     required = _BYTE_BOUND_OPERATIONS.get(provider_name)
     if not required:
         return seed

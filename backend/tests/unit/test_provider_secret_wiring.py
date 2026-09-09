@@ -32,6 +32,9 @@ PROVIDER_SECRET_NAMES = {
 }
 PROVIDER_SAFETY_SETTINGS = {
     "FINRA_ASYNC_MAX_RESULT_BYTES",
+    "FRED_REVIEWED_LIMIT_SCOPE",
+    "FRED_REVIEWED_REQUESTS_PER_MINUTE",
+    "FRED_SERIES_TERMS_REVIEWED",
     "TIINGO_OPERATION_BYTE_BOUNDS",
     "FMP_OPERATION_BYTE_BOUNDS",
 }
@@ -113,6 +116,9 @@ def test_live_workflow_is_manual_environment_scoped_and_maps_each_secret():
     for name in PROVIDER_SAFETY_SETTINGS:
         assert f"{name}:" in workflow
     assert "FINRA_ASYNC_MAX_RESULT_BYTES: ${{ vars.FINRA_ASYNC_MAX_RESULT_BYTES || '0' }}" in workflow
+    assert "FRED_REVIEWED_LIMIT_SCOPE: ${{ vars.FRED_REVIEWED_LIMIT_SCOPE || '' }}" in workflow
+    assert "FRED_REVIEWED_REQUESTS_PER_MINUTE: ${{ vars.FRED_REVIEWED_REQUESTS_PER_MINUTE || '0' }}" in workflow
+    assert "FRED_SERIES_TERMS_REVIEWED: ${{ vars.FRED_SERIES_TERMS_REVIEWED || 'false' }}" in workflow
     assert "TIINGO_OPERATION_BYTE_BOUNDS: ${{ vars.TIINGO_OPERATION_BYTE_BOUNDS || '{}' }}" in workflow
     assert "FMP_OPERATION_BYTE_BOUNDS: ${{ vars.FMP_OPERATION_BYTE_BOUNDS || '{}' }}" in workflow
     assert "MARKETSTACK_DISCOVERY_EXCHANGE: ${{ vars.MARKETSTACK_DISCOVERY_EXCHANGE || '' }}" in workflow
@@ -123,6 +129,9 @@ def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
     assert "FINRA_OTC_SYMBOL_DIRECTORY_URL=" in example
     assert "FINRA_OTC_SYMBOL_DIRECTORY_URL=https://" not in example
     assert "FINRA_ASYNC_MAX_RESULT_BYTES=0" in example
+    assert "FRED_REVIEWED_LIMIT_SCOPE=" in example
+    assert "FRED_REVIEWED_REQUESTS_PER_MINUTE=0" in example
+    assert "FRED_SERIES_TERMS_REVIEWED=false" in example
     assert "TIINGO_OPERATION_BYTE_BOUNDS={}" in example
     assert "FMP_OPERATION_BYTE_BOUNDS={}" in example
     for name in ("IBKR_READ_ONLY_URL", "COINBASE_API_KEY", "KRAKEN_API_KEY"):
@@ -131,6 +140,9 @@ def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
 
 def test_live_preflight_reports_non_routable_safety_controls_without_guessing(monkeypatch):
     monkeypatch.setenv("FINRA_ASYNC_MAX_RESULT_BYTES", "0")
+    monkeypatch.setenv("FRED_REVIEWED_LIMIT_SCOPE", "")
+    monkeypatch.setenv("FRED_REVIEWED_REQUESTS_PER_MINUTE", "0")
+    monkeypatch.setenv("FRED_SERIES_TERMS_REVIEWED", "false")
     monkeypatch.setenv("TIINGO_OPERATION_BYTE_BOUNDS", "{}")
     monkeypatch.setenv("FMP_OPERATION_BYTE_BOUNDS", "not-json")
     statuses = routing_safety_preflight()
@@ -142,6 +154,12 @@ def test_live_preflight_reports_non_routable_safety_controls_without_guessing(mo
     assert statuses["marketstack discovery"] == "non-routable: MARKETSTACK_DISCOVERY_EXCHANGE is unset"
     assert statuses["tiingo"].startswith("non-routable:")
     assert statuses["fmp"] == "non-routable: FMP_OPERATION_BYTE_BOUNDS is not valid JSON"
+
+    monkeypatch.setenv("FRED_REVIEWED_LIMIT_SCOPE", "api_key")
+    monkeypatch.setenv("FRED_REVIEWED_REQUESTS_PER_MINUTE", "60")
+    monkeypatch.setenv("FRED_SERIES_TERMS_REVIEWED", "true")
+    statuses = routing_safety_preflight()
+    assert statuses["fred"] == "routable"
 
     monkeypatch.setenv(
         "TIINGO_OPERATION_BYTE_BOUNDS",
