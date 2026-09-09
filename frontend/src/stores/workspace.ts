@@ -548,7 +548,7 @@ export interface BenchmarkFamilyMemberBarHistoryTimeframeState {
   mixed_member_count?: number
   provider_bar_count?: number
   derived_bar_count?: number
-  source_lineage?: 'provider_only' | 'derived_only' | 'provider_and_derived' | 'unavailable' | string
+  source_lineage?: 'provider_only' | 'derived_only' | 'provider_and_derived' | 'unavailable'
   oldest?: string | null
   newest?: string | null
 }
