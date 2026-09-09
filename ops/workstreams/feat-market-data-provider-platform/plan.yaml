@@ -137,7 +137,7 @@ progress:
     - Robinhood tokenized-price reads use a finite provider-specific 429 retry budget with `Retry-After` support; repeated throttles remain observable and fail rather than entering a retry storm
     - Nasdaq Trader directory polling preserves provider `ETag`/`Last-Modified` validators and reuses parsed files on `304 Not Modified`; this reduces bandwidth without inferring an undocumented polling quota, so routing remains gated on the unknown contract
     - local and RPi Compose backend/worker environments now pass the FINRA async result bound and Tiingo/FMP operation-byte maps; research-runner receives none, with regression coverage for the trusted-process boundary
-    - Bybit V5 and Gate stock response-limit headers are reconciled into durable usage totals only when they exactly match the reviewed coarse contract; additional endpoint/UID/account constraints remain fail-closed and non-routable
+    - Bybit V5 response-limit headers are reconciled into durable usage totals only when they exactly match the reviewed coarse outer contract; endpoint/UID limits remain dynamic and fail-closed. Gate's official public TradFi stock contract is now recorded as 5 requests/second per IP endpoint family, with a conservative aggregate capability window and no invented response-header dependency
     - tokenized live probes require positive transport request/response-byte observations for each public tokenized adapter discovery and quote/order-book read, alongside normalized metadata/quote assertions
     - FRED HTTP 429/418 responses are preserved as typed capacity failures with provider headers and parsed Retry-After timestamps instead of being converted into empty-series/empty-price results; the unreviewed v1 quota ceiling remains non-routable
     - FRED missing credentials raise the typed provider-not-configured failure instead of returning an empty series/price, preserving honest runtime fallback semantics
@@ -149,6 +149,7 @@ progress:
     - the HTTP-success provider error-envelope guard is covered by the full Docker-backed gate (`1779/1779`, `80.14%`), preserving typed failures instead of false empty observations
     - tokenized public adapters now reject Kraken non-empty error lists and Bybit nonzero retCode HTTP-success envelopes as typed failures, preserving registered provider identity and preventing synthetic token records
     - provider resolution now applies an explicit provider/instrument-class allow-list before invocation, so equity/ETF requests cannot fall through to crypto-only OHLCV adapters; unknown provider mappings fail closed and the regression is covered by unit and PostgreSQL-backed OHLCV tests
+    - tokenized-security instruments created by `upsert_tokenized_asset` are explicitly admitted to the five tokenized providers while remaining excluded from ordinary equity routing; the Gate public TradFi stock contract is now recorded as the documented 5-qps/IP static contract with a conservative aggregate capability window
     - the complete Docker-backed gate after class-aware routing passes (`1785/1785`, `80.11%`), including the two previously failing AAPL OHLCV integration cases
   total: 15
   current_phase: credentialed_live_validation
