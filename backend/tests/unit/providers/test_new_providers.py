@@ -599,6 +599,7 @@ class TestFREDOHLCVParsing:
         assert exc_info.value.provider_name == "fred"
         assert exc_info.value.status_code == 429
         assert exc_info.value.headers["retry-after"] == "2"
+        assert exc_info.value.retry_at is not None
 
     def test_latest_price_http_429_is_typed(self):
         provider = FREDProvider()

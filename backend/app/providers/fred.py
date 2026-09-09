@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime, timedelta
+from email.utils import parsedate_to_datetime
 
 import httpx
 
@@ -63,11 +64,24 @@ def _raise_typed_rate_limit(exc: httpx.HTTPStatusError) -> None:
     response = exc.response
     if response.status_code not in {418, 429}:
         return
+    headers = dict(response.headers)
+    retry_at: datetime | None = None
+    retry_after = headers.get("retry-after") or headers.get("Retry-After")
+    if retry_after:
+        try:
+            retry_at = datetime.now(UTC) + timedelta(seconds=max(0, float(retry_after)))
+        except ValueError:
+            try:
+                parsed = parsedate_to_datetime(retry_after)
+                retry_at = parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
+            except (TypeError, ValueError, OverflowError):
+                retry_at = None
     raise ProviderRateLimitError(
         "fred",
         f"FRED request rejected for capacity (HTTP {response.status_code})",
+        retry_at=retry_at,
         status_code=response.status_code,
-        headers=dict(response.headers),
+        headers=headers,
     ) from exc
 
 
