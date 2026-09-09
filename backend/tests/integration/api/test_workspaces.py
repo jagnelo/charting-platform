@@ -1099,7 +1099,7 @@ class TestWorkspaces:
             source_provider="issuer",
             source_quality="issuer_disclosed",
             completeness_status="partial",
-            row_count=3,
+            row_count=4,
             # The ingestion count preserves the materialized placeholder row;
             # readiness must still expose only canonical members.
             resolved_count=2,
@@ -1146,6 +1146,17 @@ class TestWorkspaces:
                     source_row_hash="placeholder-readiness-unresolved",
                     is_resolved=False,
                 ),
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=None,
+                    position=3,
+                    reported_name="Cash collateral",
+                    weight=0.0,
+                    holding_type="cash",
+                    row_type="security",
+                    source_row_hash="placeholder-readiness-excluded-cash",
+                    is_resolved=False,
+                ),
             ]
         )
         db.flush()
@@ -1163,6 +1174,12 @@ class TestWorkspaces:
         history = cap["member_bar_history"]
         assert history["placeholder_member_count"] == 1
         assert history["unresolved_member_count"] == 1
+        assert history["member_disposition"] == {
+            "canonical": 1,
+            "placeholder": 1,
+            "unresolved": 1,
+            "excluded": 1,
+        }
         daily = next(item for item in history["timeframes"] if item["timeframe"] == "D1")
         assert daily["member_count"] == 1
 

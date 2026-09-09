@@ -352,6 +352,10 @@ class BenchmarkFamilyMemberBarHistoryOut(BaseModel):
     status: str = "unavailable"
     snapshot_id: int | None = None
     composition_date: date | None = None
+    # Keep every holdings row's disposition explicit.  Canonical counts are
+    # unique resolved instruments; placeholder counts are unique internal
+    # placeholder instruments; unresolved and excluded counts are row-based.
+    member_disposition: dict[str, int] = Field(default_factory=dict)
     placeholder_member_count: int = Field(default=0, ge=0)
     unresolved_member_count: int = Field(default=0, ge=0)
     timeframes: list[BenchmarkFamilyMemberBarHistoryTimeframeOut] = Field(default_factory=list)

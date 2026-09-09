@@ -78,6 +78,7 @@ export interface BenchmarkFamilyCoverageRole {
     status: string
     snapshot_id?: number | null
     composition_date?: string | null
+    member_disposition?: Record<string, number>
     placeholder_member_count: number
     unresolved_member_count?: number
     timeframes: BenchmarkFamilyMemberBarHistoryTimeframe[]

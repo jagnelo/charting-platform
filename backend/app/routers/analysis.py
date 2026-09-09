@@ -202,43 +202,70 @@ async def _family_member_bar_history(
                 ETFHolding.reported_symbol,
                 ETFHolding.is_resolved,
                 Instrument.symbol,
+                ETFHolding.holding_type,
+                ETFHolding.row_type,
             )
             .outerjoin(Instrument, Instrument.id == ETFHolding.constituent_instrument_id)
             .where(
                 ETFHolding.snapshot_id == snapshot.id,
-                ETFHolding.row_type == "security",
-                ETFHolding.holding_type.in_(EQUITY_HOLDING_TYPE_VALUES),
             )
             .order_by(ETFHolding.id)
         )
     ).all()
+    canonical_ids: set[int] = set()
+    placeholder_ids: set[int] = set()
+    unresolved_member_count = 0
+    excluded_member_count = 0
+    for (
+        _holding_id,
+        instrument_id,
+        _reported_symbol,
+        is_resolved,
+        symbol,
+        holding_type,
+        row_type,
+    ) in member_rows:
+        if row_type != "security" or holding_type not in EQUITY_HOLDING_TYPE_VALUES:
+            excluded_member_count += 1
+        elif not bool(is_resolved) or instrument_id is None or symbol is None:
+            unresolved_member_count += 1
+        elif is_placeholder_symbol(symbol):
+            placeholder_ids.add(int(instrument_id))
+        else:
+            canonical_ids.add(int(instrument_id))
     member_ids = list(
         dict.fromkeys(
             int(instrument_id)
-            for _holding_id, instrument_id, _reported_symbol, is_resolved, symbol in member_rows
+            for (
+                _holding_id,
+                instrument_id,
+                _reported_symbol,
+                is_resolved,
+                symbol,
+                holding_type,
+                row_type,
+            ) in member_rows
             if bool(is_resolved)
             and instrument_id is not None
             and symbol is not None
+            and row_type == "security"
+            and holding_type in EQUITY_HOLDING_TYPE_VALUES
             and not is_placeholder_symbol(symbol)
         )
     )
-    placeholder_member_count = len(
-        {
-            int(instrument_id)
-            for _holding_id, instrument_id, _reported_symbol, is_resolved, symbol in member_rows
-            if bool(is_resolved) and instrument_id is not None and is_placeholder_symbol(symbol)
-        }
-    )
-    unresolved_member_count = sum(
-        1
-        for _holding_id, instrument_id, _reported_symbol, is_resolved, symbol in member_rows
-        if not bool(is_resolved) or instrument_id is None or symbol is None
-    )
+    placeholder_member_count = len(placeholder_ids)
+    member_disposition = {
+        "canonical": len(canonical_ids),
+        "placeholder": placeholder_member_count,
+        "unresolved": unresolved_member_count,
+        "excluded": excluded_member_count,
+    }
     if not member_ids:
         return BenchmarkFamilyMemberBarHistoryOut(
             status="unavailable",
             snapshot_id=snapshot.id,
             composition_date=snapshot.composition_date,
+            member_disposition=member_disposition,
             placeholder_member_count=placeholder_member_count,
             unresolved_member_count=unresolved_member_count,
         )
@@ -353,6 +380,7 @@ async def _family_member_bar_history(
         status=status,
         snapshot_id=snapshot.id,
         composition_date=snapshot.composition_date,
+        member_disposition=member_disposition,
         placeholder_member_count=placeholder_member_count,
         unresolved_member_count=unresolved_member_count,
         timeframes=timeframes,
