@@ -113,6 +113,7 @@ async def test_seed_records_fred_v1_numeric_limit_without_applying_v2(db):
     assert policy.tokens_per_minute is None
     assert policy.burst_capacity is None
     assert policy.max_concurrency is None
+    assert policy.quota_verified_at is None
     assert not policy_has_known_quota(policy)
 
 
@@ -151,6 +152,7 @@ async def test_seeded_tiingo_and_fmp_bandwidth_pools_remain_non_routable(db):
             )
         ).scalar_one()
         assert not policy_has_known_quota(policy)
+        assert policy.quota_verified_at is None
         assert any(
             item.startswith("quota_contract.untracked_constraints.bandwidth_bytes")
             for item in quota_contract_missing_dimensions(policy)
@@ -181,6 +183,7 @@ async def test_runtime_seed_refreshes_provider_generated_contract_after_byte_map
     await seed_provider_runtime(async_db)
     db.refresh(policy)
     assert not policy_has_known_quota(policy)
+    assert policy.quota_verified_at is None
     assert any(
         item.startswith("quota_contract.untracked_constraints.bandwidth_bytes")
         for item in quota_contract_missing_dimensions(policy)

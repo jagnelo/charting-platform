@@ -614,12 +614,15 @@ def _apply_policy_defaults(
         policy.quota_scope = str(rate_seed["quota_scope"])
     if policy.quota_source is None and rate_seed.get("quota_source"):
         policy.quota_source = str(rate_seed["quota_source"])
-    if (
-        policy.quota_verified_at is None
-        and policy.quota_contract
-        and not quota_contract_missing_dimensions(policy)
-    ):
-        policy.quota_verified_at = datetime.now(UTC)
+    if policy.quota_contract:
+        contract_missing = quota_contract_missing_dimensions(policy)
+        if contract_missing:
+            # Existing rows may predate the explicit contract gate and carry
+            # a stale timestamp. Unknown/untracked dimensions are evidence of
+            # an unresolved contract, never a verified admission record.
+            policy.quota_verified_at = None
+        elif policy.quota_verified_at is None:
+            policy.quota_verified_at = datetime.now(UTC)
     policy.freshness_seconds = _int_or(policy.freshness_seconds, freshness_seconds)
     if policy.score_floor is None:
         policy.score_floor = _DEFAULT_SCORE_FLOOR
