@@ -17,6 +17,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
 
 DERIVATION_METHOD = "d1_ohlcv_xnys_calendar_aggregation"
 _BarLike = TypeVar("_BarLike", bound=OHLCVBar)
@@ -167,6 +168,43 @@ async def materialize_derived_timeframes(
                 for payload in payloads
             ]
         )
+        # Keep coverage/freshness state aligned with derived rows. A
+        # provider-neutral state makes the local coverage API explicit about
+        # source timeframe, derivation method, adjustment mode, and version.
+        dataset_key = f"{timeframe.value}:{'adj' if adjusted else 'raw'}"
+        state = (
+            await db.execute(
+                select(InstrumentDatasetState).where(
+                    InstrumentDatasetState.instrument_id == instrument_id,
+                    InstrumentDatasetState.data_source_id.is_(None),
+                    InstrumentDatasetState.dataset_type == "ohlcv",
+                    InstrumentDatasetState.dataset_key == dataset_key,
+                )
+            )
+        ).scalar_one_or_none()
+        if state is None:
+            state = InstrumentDatasetState(
+                instrument_id=instrument_id,
+                data_source_id=None,
+                dataset_type="ohlcv",
+                dataset_key=dataset_key,
+                version=1,
+            )
+            db.add(state)
+        else:
+            state.version = max(1, state.version) + 1
+        state.status = DatasetStatus.FRESH if payloads else DatasetStatus.PENDING
+        state.observed_at = now
+        state.fetched_at = now
+        state.coverage_start = payloads[0]["ts"] if payloads else None
+        state.coverage_end = payloads[-1]["ts"] if payloads else None
+        state.extra_data = {
+            "source_timeframe": Timeframe.D1.value,
+            "derivation_method": DERIVATION_METHOD,
+            "adjusted": adjusted,
+            "derived_bar_count": len(payloads),
+            "provider_periods_excluded": len(provider_periods),
+        }
         result[timeframe.value] = len(payloads)
     await db.flush()
     return result

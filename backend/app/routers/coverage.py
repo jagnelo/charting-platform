@@ -148,6 +148,7 @@ async def instrument_coverage(
                 fetched_at=state.fetched_at,
                 stale_after=state.stale_after,
                 version=state.version,
+                extra_data=state.extra_data,
             )
             for state in states
         ],

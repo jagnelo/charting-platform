@@ -21,6 +21,7 @@ class DatasetCoverageStateOut(BaseModel):
     fetched_at: datetime | None = None
     stale_after: datetime | None = None
     version: int = Field(ge=1)
+    extra_data: dict | None = None
 
 
 class InstrumentCoverageOut(BaseModel):

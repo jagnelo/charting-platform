@@ -6,6 +6,7 @@ import pytest
 from sqlalchemy import select
 
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.models.provider_observation import InstrumentDatasetState
 from app.services.derived_timeframes import (
     DERIVATION_METHOD,
     aggregate_d1_bars,
@@ -111,6 +112,25 @@ async def test_materialize_derived_timeframes_persists_lineage_and_preserves_pro
     assert weekly[1].source_bar_count == 2
     assert weekly[1].source_start.replace(tzinfo=UTC) == datetime(2025, 1, 9, tzinfo=UTC)
     assert weekly[1].source_end.replace(tzinfo=UTC) == datetime(2025, 1, 10, tzinfo=UTC)
+
+    weekly_state = (
+        db.query(InstrumentDatasetState)
+        .filter(
+            InstrumentDatasetState.instrument_id == instrument.id,
+            InstrumentDatasetState.data_source_id.is_(None),
+            InstrumentDatasetState.dataset_key == "W1:adj",
+        )
+        .one()
+    )
+    assert weekly_state.status.value == "fresh"
+    assert weekly_state.version == 1
+    assert weekly_state.extra_data == {
+        "source_timeframe": "D1",
+        "derivation_method": DERIVATION_METHOD,
+        "adjusted": True,
+        "derived_bar_count": 1,
+        "provider_periods_excluded": 1,
+    }
 
     monthly = (
         db.execute(

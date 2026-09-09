@@ -62,6 +62,7 @@ class TestCoverageRouter:
         assert state["dataset_key"] == "D1"
         assert state["status"] == "stale"
         assert state["version"] == 2
+        assert state["extra_data"] is None
         assert "provider" not in body
 
     def test_requires_auth(self, client, instrument):
