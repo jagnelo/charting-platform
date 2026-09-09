@@ -769,6 +769,23 @@ class Settings(BaseSettings):
                 "search_instruments": 1,
             },
         },
+        # Alpha Vantage's adapter performs exactly one ``query`` request for
+        # each of these operation families.  Keep the mapping explicit even
+        # though the provider uses a simple daily request allowance: a future
+        # adapter change that adds pagination or a compound lookup must update
+        # this reviewed contract instead of silently falling back to one.
+        "alpha_vantage": {
+            "mode": "call_count",
+            "unit_label": "requests",
+            "operation_costs": {
+                "search_instruments": 1,
+                "fetch_ohlcv": 1,
+                "fetch_latest_ohlcv": 1,
+                "get_current_price": 1,
+                "discover_universe_page": 1,
+                "fetch_market_events": 1,
+            },
+        },
         "marketdata_app": {
             "mode": "credit_count",
             "unit_label": "credits",

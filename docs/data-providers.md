@@ -24,6 +24,13 @@ supplies, its priority level per capability, and where to configure its credenti
 > live-probe evidence. Alpaca, Tradier, and MarketData.app remain `not_run` in
 > this revision and cannot enter a chain merely because a key is later added.
 
+Operation-cost maps are provider-specific and reviewed against the adapter's
+actual transport shape. Alpha Vantage's search, daily history, latest-price,
+listing, and IPO-calendar operations each reserve one provider query; a future
+pagination or compound lookup must change that map before the operation can be
+treated as quota-safe. No operation silently inherits a universal request cost
+when a provider contract declares operation-level accounting.
+
 ## Provider capability and quota ledger
 
 The table below is the checked-in contract used by `ProviderPolicy` and the

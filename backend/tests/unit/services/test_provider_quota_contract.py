@@ -953,6 +953,18 @@ def test_coingecko_profile_usage_profile_covers_id_resolution_and_metadata():
     }
 
 
+def test_alpha_vantage_profile_covers_each_single_query_operation():
+    profile = get_provider_usage_profile("alpha_vantage")
+    assert profile["operation_costs"] == {
+        "search_instruments": 1,
+        "fetch_ohlcv": 1,
+        "fetch_latest_ohlcv": 1,
+        "get_current_price": 1,
+        "discover_universe_page": 1,
+        "fetch_market_events": 1,
+    }
+
+
 def test_twelve_data_cumulative_credit_headers_update_only_matching_minute_window():
     policy = ProviderPolicy(
         data_source_id=1,
