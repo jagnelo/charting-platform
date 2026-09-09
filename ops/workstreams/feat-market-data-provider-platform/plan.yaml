@@ -138,5 +138,5 @@ progress:
     - local and RPi Compose backend/worker environments now pass the FINRA async result bound and Tiingo/FMP operation-byte maps; research-runner receives none, with regression coverage for the trusted-process boundary
   total: 15
   current_phase: credentialed_live_validation
-  current_blocker: full live matrix requires the three remaining credential domains (Alpaca, Tradier, MarketData.app) plus an operator-supplied SEC User-Agent; FINRA OTC source terms/redistribution approval, complete NMS/OTC reconciliation, and shadow activation remain post-deployment or operator-review gates
-  next_action: obtain the three missing credential domains (plus an operator-supplied SEC User-Agent), run the complete 29-case live matrix, then reassess readiness; do not activate routing or deploy before that evidence
+  current_blocker: full live matrix requires the three remaining credential domains (Alpaca, Tradier, MarketData.app) plus an operator-supplied SEC User-Agent; FINRA OTC source terms/redistribution approval, Tiingo distinct-symbol accounting, complete NMS/OTC reconciliation, and shadow activation remain post-deployment or operator-review gates
+  next_action: obtain the three missing credential domains (plus an operator-supplied SEC User-Agent), run the complete 29-case live matrix, then reassess readiness; do not activate routing or deploy before that evidence, and do not promote Tiingo until its distinct-symbol ledger is implemented
