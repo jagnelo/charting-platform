@@ -42,8 +42,11 @@ and missing-variable fields, so a configured credential cannot be mistaken for
 safe routing when response-size accounting is still incomplete.
 
 The same explicit accounting applies to the one-request surfaces of Alpaca,
-Massive, FRED, OpenFIGI, Coinbase, Kraken, Marketstack, Finnhub, FMP, Tiingo,
-and Tradier. Range/pagination-dependent history operations are either charged
+Massive, Alpha Vantage, FRED, OpenFIGI, Coinbase, Kraken, Marketstack, Finnhub,
+FMP, Tiingo, and Tradier. The deep-history worker's `bulk_fetch` operation is
+also explicitly mapped for the single-request history adapters (Alpha Vantage,
+FRED, Finnhub, and Tradier); it is never charged through an unreviewed
+operation fallback. Range/pagination-dependent history operations are either charged
 from a caller-computed estimate (for example Alpaca, Coinbase, Kraken,
 Marketstack, and Twelve Data) or remain fail-closed behind their reviewed byte
 maps; they are not represented by a misleading fixed one-request profile.

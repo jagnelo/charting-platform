@@ -756,6 +756,7 @@ class Settings(BaseSettings):
             "operation_costs": {
                 "get_current_price": 1,
                 "fetch_instrument_events": 1,
+                "fetch_rfr_ohlcv": 1,
                 "discover_universe_page": 1,
             },
         },
@@ -774,6 +775,8 @@ class Settings(BaseSettings):
                 "fetch_ohlcv": 1,
                 "fetch_latest_ohlcv": 1,
                 "get_current_price": 1,
+                "bulk_fetch": 1,
+                "fetch_rfr_ohlcv": 1,
             },
         },
         "openfigi": {
@@ -820,6 +823,8 @@ class Settings(BaseSettings):
                 "fetch_ohlcv": 1,
                 "fetch_latest_ohlcv": 1,
                 "get_current_price": 1,
+                "bulk_fetch": 1,
+                "fetch_rfr_ohlcv": 1,
                 "discover_universe_page": 1,
                 "fetch_market_events": 1,
             },
@@ -940,6 +945,7 @@ class Settings(BaseSettings):
                 "get_instrument_profile": 1,
                 "fetch_instrument_events": 1,
                 "fetch_market_events": 1,
+                "bulk_fetch": 1,
                 "discover_universe_page": 1,
             },
         },
@@ -971,6 +977,7 @@ class Settings(BaseSettings):
                 "fetch_latest_ohlcv": 1,
                 "get_current_price": 1,
                 "search_instruments": 1,
+                "bulk_fetch": 1,
             },
         },
         # A metadata lookup resolves the provider-native coin id through

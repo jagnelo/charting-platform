@@ -115,7 +115,7 @@
   "head": "86e306fdf85bad5692301676187daaa8fab7c735",
   "implementation_sha": "86e306fdf85bad5692301676187daaa8fab7c735",
   "last_checkpoint": "2026-09-09T22:20:37.798929+00:00",
-  "last_human_progress_update": "2026-09-09T22:07:28.203062+00:00",
+  "last_human_progress_update": "2026-09-09T22:55:56.279498+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -143,11 +143,11 @@
       "AC-QUOTA-SAFETY",
       "AC-RATE-FAILURE"
     ],
-    "current_blocker": "Latest manifest live matrix at 2026-09-09T22:04:20Z is 29/32 with explicit missing ALPACA_API_KEY plus ALPACA_SECRET_KEY, TRADIER_API_KEY, and MARKETDATA_APP_API_KEY; FINRA async byte bound, Tiingo/FMP operation byte maps, GitHub environment verification, legal/source review, and complete NMS/OTC reconciliation remain gates.",
+    "current_blocker": "Latest complete live matrix at 2026-09-09T22:55:11Z is 29/32 with exact missing ALPACA_API_KEY plus ALPACA_SECRET_KEY, TRADIER_API_KEY, and MARKETDATA_APP_API_KEY; strict operation-cost admission rejects unknown and malformed costs, but FINRA async byte bound, FINRA OTC controls, FRED review controls, Nasdaq polling allowance, xStocks quota/legal eligibility, Bybit endpoint/UID state, Tiingo/FMP byte maps, GitHub environment verification, complete NMS/OTC reconciliation, and shadow activation remain gates.",
     "current_phase": "credentialed_live_validation",
-    "next_action": "Keep routing fail-closed; obtain the three missing credential domains and trusted GitHub/deployment configuration, then rerun all 32 live cases and complete the operator/legal reconciliation gates before any promotion or shadow activation.",
+    "next_action": "Keep fail-closed; restore owner authentication for the jagnelo GitHub account, verify or populate environment-scoped secrets and safety variables, obtain the three missing credential domains, configure deployment-owned SEC User-Agent, rerun the complete manifest matrix, and reassess readiness. Do not activate routing or deploy before that evidence; do not promote Tiingo/FMP until complete reviewed byte-bound maps are supplied.",
     "total": 15,
-    "updated_at": "2026-09-09T22:07:28.202887+00:00"
+    "updated_at": "2026-09-09T22:55:56.279417+00:00"
   },
   "remote": "86e306fdf85bad5692301676187daaa8fab7c735",
   "remote_sha": "86e306fdf85bad5692301676187daaa8fab7c735",

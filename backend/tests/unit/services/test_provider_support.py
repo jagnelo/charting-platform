@@ -46,7 +46,11 @@ class _Provider:
 def _resolved_provider(
     db, *, provider_name: str, capability: ProviderCapability, provider: object
 ) -> ResolvedProvider:
-    data_source = DataSource(name=provider_name, is_active=True)
+    data_source = DataSource(
+        name=provider_name,
+        is_active=True,
+        config={"usage_tracking": {"operation_costs": {"get_current_price": 1}}},
+    )
     db.add(data_source)
     db.flush()
     policy = ProviderPolicy(

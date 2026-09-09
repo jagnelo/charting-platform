@@ -166,6 +166,16 @@ def _operation_family(operation: str) -> str:
     return operation.split(":", 1)[0].strip() or operation
 
 
+def _is_positive_operation_cost(value: Any) -> bool:
+    if isinstance(value, bool):
+        return False
+    try:
+        parsed = Decimal(str(value))
+    except (TypeError, ValueError, ArithmeticError):
+        return False
+    return parsed.is_finite() and parsed > 0
+
+
 def _entitlement_seed(provider_name: str, capability: ProviderCapability) -> dict[str, Any]:
     """Return the reviewed free-source declaration for one capability."""
     raw = settings.PROVIDER_ENTITLEMENT_SEEDS.get(provider_name) or {}
@@ -419,28 +429,23 @@ def provider_contract_operation_cost_known(
 ) -> bool:
     """Return whether a quota contract can be safely charged for this call.
 
-    Providers whose allowance is weighted per endpoint, or whose contract
-    explicitly requires credit costs, must not silently fall back to one
-    request == one unit. They remain visible to operators but are non-routable
-    until the operation-cost map is populated.
+    Every routable provider operation must have an explicit reviewed cost (or
+    a caller-supplied estimate). Providers whose allowance is weighted per
+    endpoint, whose contract explicitly requires credit costs, or whose
+    operation map is incomplete must not silently fall back to one request ==
+    one unit. They remain visible to operators but are non-routable until the
+    operation-cost map is populated.
     """
 
     contract = dict(policy.quota_contract or {})
-    if not (contract.get("dynamic_endpoint_weights") or contract.get("operation_costs_required")):
-        # A dimension-cost contract is also operation-specific: a request may
-        # reserve a different unit count for a byte/record budget than for the
-        # request-rate dimension.
-        if not contract.get("dimension_costs_required"):
-            return True
     tracking = _usage_tracking_config(data_source)
     costs = tracking.get("operation_costs") or contract.get("operation_costs")
-    if (
-        contract.get("dynamic_endpoint_weights")
-        or contract.get("operation_costs_required")
-        or contract.get("dimension_costs_required")
-    ):
-        if operation_cost_override is None and (not isinstance(costs, dict) or not costs):
-            return False
+    # A dimension-cost contract is also operation-specific: a request may
+    # reserve a different unit count for a byte/record budget than for the
+    # request-rate dimension. Do not infer a one-request charge for any
+    # provider just because its contract happens to use a simple request unit.
+    if operation_cost_override is None and (not isinstance(costs, dict) or not costs):
+        return False
     if operation is None:
         # A provider may have a cost table while the caller has not named the
         # operation.  Selecting it anyway would silently charge one request
@@ -448,8 +453,13 @@ def provider_contract_operation_cost_known(
         # fail-closed.
         return False
     family = _operation_family(operation)
-    if operation_cost_override is None and not (family in costs or operation in costs):
-        return False
+    if operation_cost_override is not None:
+        if not _is_positive_operation_cost(operation_cost_override):
+            return False
+    else:
+        cost_key = family if family in costs else operation if operation in costs else None
+        if cost_key is None or not _is_positive_operation_cost(costs[cost_key]):
+            return False
     if contract.get("dimension_costs_required"):
         dimension_costs = tracking.get("dimension_costs") or contract.get("dimension_costs")
         if not isinstance(dimension_costs, dict):

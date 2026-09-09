@@ -560,6 +560,37 @@ def test_dynamic_endpoint_contract_is_non_routable_without_operation_costs():
     )
 
 
+def test_simple_request_contract_is_non_routable_without_operation_costs():
+    source = DataSource(name="unprofiled-provider", config={"usage_tracking": {}})
+    policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.LATEST_PRICE,
+        quota_contract={
+            "dimensions": [
+                {
+                    "name": "requests_per_minute",
+                    "limit": 60,
+                    "window_seconds": 60,
+                    "unit": "requests",
+                    "scope": "api_key",
+                    "source": "unit-test",
+                }
+            ],
+            "reset": "rolling",
+        },
+    )
+    assert not provider_contract_operation_cost_known(policy, source, "get_current_price")
+    source.config["usage_tracking"] = {"operation_costs": {"get_current_price": 1}}
+    assert provider_contract_operation_cost_known(policy, source, "get_current_price")
+    source.config["usage_tracking"]["operation_costs"]["get_current_price"] = 0
+    assert not provider_contract_operation_cost_known(policy, source, "get_current_price")
+    source.config["usage_tracking"]["operation_costs"]["get_current_price"] = "not-a-cost"
+    assert not provider_contract_operation_cost_known(policy, source, "get_current_price")
+    assert not provider_contract_operation_cost_known(
+        policy, source, "get_current_price", operation_cost_override=0
+    )
+
+
 def test_byte_dimension_requires_explicit_operation_bound():
     source = DataSource(
         name="byte-provider",
@@ -1000,6 +1031,8 @@ def test_alpha_vantage_profile_covers_each_single_query_operation():
         "fetch_ohlcv": 1,
         "fetch_latest_ohlcv": 1,
         "get_current_price": 1,
+        "bulk_fetch": 1,
+        "fetch_rfr_ohlcv": 1,
         "discover_universe_page": 1,
         "fetch_market_events": 1,
     }
@@ -1013,7 +1046,16 @@ def test_optional_latest_price_profiles_charge_the_actual_quote_operation():
 
 
 def test_deep_history_profiles_charge_the_bulk_fetch_operation():
-    for provider_name in ("tiingo", "eodhd", "fmp", "marketdata_app"):
+    for provider_name in (
+        "alpha_vantage",
+        "fred",
+        "finnhub",
+        "tradier",
+        "tiingo",
+        "eodhd",
+        "fmp",
+        "marketdata_app",
+    ):
         assert get_provider_usage_profile(provider_name)["operation_costs"]["bulk_fetch"] == 1
 
 
@@ -1022,10 +1064,17 @@ def test_single_request_provider_profiles_are_explicit():
         "alpaca": {
             "get_current_price": 1,
             "fetch_instrument_events": 1,
+            "fetch_rfr_ohlcv": 1,
             "discover_universe_page": 1,
         },
         "massive": {"search_instruments": 1, "discover_universe_page": 1},
-        "fred": {"fetch_ohlcv": 1, "fetch_latest_ohlcv": 1, "get_current_price": 1},
+        "fred": {
+            "fetch_ohlcv": 1,
+            "fetch_latest_ohlcv": 1,
+            "get_current_price": 1,
+            "bulk_fetch": 1,
+            "fetch_rfr_ohlcv": 1,
+        },
         "openfigi": {
             "fetch_stable_identifiers": 1,
             "resolve_instrument_profile": 1,
@@ -1038,6 +1087,7 @@ def test_single_request_provider_profiles_are_explicit():
             "fetch_latest_ohlcv": 1,
             "get_current_price": 1,
             "search_instruments": 1,
+            "bulk_fetch": 1,
         },
     }
     for provider_name, operation_costs in expected.items():
