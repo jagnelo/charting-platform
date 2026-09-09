@@ -1013,13 +1013,20 @@ async def refresh_etf_holdings_for_date(
                 "Issuer dated holdings route returned a composition date after the requested "
                 f"date ({composition_date.isoformat()} > {requested_date.isoformat()})."
             )
+        published_at = _datetime_from_value(result_metadata.get("published_at"))
+        known_at = (
+            _datetime_from_value(result_metadata.get("known_at"))
+            or published_at
+            or datetime.now(UTC)
+        )
         snapshot = await ingest_holdings_snapshot(
             db,
             etf_instrument=profile.instrument,
             rows=fetch_result.rows,
             composition_date=composition_date,
             as_of_date=requested_date,
-            known_at=datetime.now(UTC),
+            known_at=known_at,
+            published_at=published_at,
             provenance=str(
                 result_metadata.get("snapshot_provenance") or "issuer_self_snapshotted_holdings"
             ),
@@ -1530,6 +1537,23 @@ def _date_from_value(value: Any) -> date | None:
     return None
 
 
+def _datetime_from_value(value: Any) -> datetime | None:
+    """Parse an optional provider timestamp and normalize it to UTC."""
+
+    if isinstance(value, datetime):
+        parsed = value
+    elif isinstance(value, str) and value.strip():
+        try:
+            parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+        except ValueError:
+            return None
+    else:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
+
+
 def _bool_alias(aliases: dict[str, Any], key: str) -> bool:
     value = aliases.get(key)
     if isinstance(value, bool):
@@ -1849,6 +1873,10 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
     as_of_date = _alias_date(aliases, "holdings_as_of_date") or _date_from_value(
         result_metadata.get("as_of_date")
     )
+    published_at = _datetime_from_value(result_metadata.get("published_at"))
+    known_at = (
+        _datetime_from_value(result_metadata.get("known_at")) or published_at or datetime.now(UTC)
+    )
 
     snapshot = await ingest_holdings_snapshot(
         db,
@@ -1856,7 +1884,8 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
         rows=fetch_result.rows,
         composition_date=composition_date,
         as_of_date=as_of_date,
-        known_at=datetime.now(UTC),
+        known_at=known_at,
+        published_at=published_at,
         provenance=str(
             result_metadata.get("snapshot_provenance") or "issuer_self_snapshotted_holdings"
         ),

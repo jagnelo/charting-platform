@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime
 from types import SimpleNamespace
 
 import pytest
@@ -378,6 +378,8 @@ async def test_dated_refresh_preserves_provider_snapshot_metadata(monkeypatch):
                     "source_quality": "filing_reconstructed_holdings",
                     "completeness_status": "filing_reconstructed",
                     "parser_version": "invesco-sec-v2",
+                    "known_at": "2026-06-01T13:45:30Z",
+                    "published_at": "2026-06-01T13:45:30Z",
                 },
             )
 
@@ -407,6 +409,8 @@ async def test_dated_refresh_preserves_provider_snapshot_metadata(monkeypatch):
     assert captured["source_quality"] == "filing_reconstructed_holdings"
     assert captured["completeness_status"] == "filing_reconstructed"
     assert captured["parser_version"] == "invesco-sec-v2"
+    assert captured["known_at"] == datetime(2026, 6, 1, 13, 45, 30, tzinfo=UTC)
+    assert captured["published_at"] == datetime(2026, 6, 1, 13, 45, 30, tzinfo=UTC)
     assert "SEC EDGAR holdings filings" in captured["notes"]
 
 

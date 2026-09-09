@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import json
 import zipfile
-from datetime import date
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from io import BytesIO
 from types import SimpleNamespace
@@ -21191,6 +21191,7 @@ async def test_recognition_only_adapter_fetches_holdings_through_sec_fallback(mo
                 filing_url="https://www.sec.gov/Archives/edgar/data/1234567/fixture.xml",
                 form="NPORT-P",
                 report_date=date(2026, 5, 31),
+                acceptance_datetime=datetime(2026, 6, 1, 13, 45, 30, tzinfo=UTC),
             )
         ]
 
@@ -21237,6 +21238,8 @@ async def test_recognition_only_adapter_fetches_holdings_through_sec_fallback(mo
     assert result.legal_metadata["source_provider"] == "sec"
     assert result.legal_metadata["route_resolution"] == "sec_edgar_filing_fallback"
     assert result.legal_metadata["snapshot_provenance"] == "sec_nport_reconstructed_holdings"
+    assert result.legal_metadata["known_at"] == "2026-06-01T13:45:30+00:00"
+    assert result.legal_metadata["published_at"] == "2026-06-01T13:45:30+00:00"
 
 
 @pytest.mark.asyncio

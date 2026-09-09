@@ -2977,6 +2977,7 @@ class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
         from app.services.etf_holdings_edgar import (  # noqa: PLC0415
             LEGACY_HOLDINGS_FORMS,
             NPORT_FORMS,
+            _known_at,
             discover_holdings_filings,
         )
         from app.services.etf_holdings_sec import (  # noqa: PLC0415
@@ -3043,6 +3044,7 @@ class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
                             f"{label} {filing.accession_number} had no parseable holdings rows."
                         )
                         continue
+                    filing_known_at = _known_at(filing)
                     return HoldingsFetchResult(
                         rows=rows,
                         raw_text=response.text,
@@ -3060,6 +3062,13 @@ class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
                                 if filing.report_date
                                 else composition_date.isoformat()
                             ),
+                            # SEC acceptance time is the strongest available
+                            # publication/knowledge boundary for a filing
+                            # reconstructed through this fallback route. Keep
+                            # it in the adapter result so refresh ingestion
+                            # does not replace it with wall-clock fetch time.
+                            "known_at": filing_known_at.isoformat(),
+                            "published_at": filing_known_at.isoformat(),
                             "form": filing.form,
                             "accession_number": filing.accession_number,
                             "parser_version": parser_version,

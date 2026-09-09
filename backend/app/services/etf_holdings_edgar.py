@@ -86,10 +86,12 @@ def _acceptance_datetime(value: Any) -> datetime | None:
 
 
 def _known_at(filing: EdgarNportFiling) -> datetime:
-    if filing.acceptance_datetime is not None:
-        return filing.acceptance_datetime
-    if filing.filing_date is not None:
-        return datetime.combine(filing.filing_date, time.min, tzinfo=UTC)
+    acceptance_datetime = getattr(filing, "acceptance_datetime", None)
+    if acceptance_datetime is not None:
+        return acceptance_datetime
+    filing_date = getattr(filing, "filing_date", None)
+    if filing_date is not None:
+        return datetime.combine(filing_date, time.min, tzinfo=UTC)
     return datetime.now(UTC)
 
 
