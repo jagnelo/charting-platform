@@ -1,5 +1,15 @@
 # Project TODO Memory
 
+### 2026-09-09 — Workstation recovery status accessibility
+
+- [x] Announce the existing concise footer recovery message as a polite,
+      atomic status for assistive technology.
+- [x] Preserve transport-error copy, native tooltip detail, footer geometry,
+      provider/fallback behavior, and visual acceptance policy; focused view
+      coverage passed 27/27 and type-check/diff checks passed.
+- [ ] Continue R1 canonical family/member history readiness and broader R6-R7
+      native-window, accessibility, security, and visual proof.
+
 ### 2026-09-09 — Snapshot generation queue recovery
 
 - [x] Keep the generation owned by an in-flight workstation snapshot PUT and

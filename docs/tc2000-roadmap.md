@@ -5,6 +5,30 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-09
 
+## 2026-09-09 — Workstation recovery status accessibility
+
+At product commit `4daf9b95`, the concise workstation footer recovery message
+now exposes a polite, atomic status announcement. Transport failures,
+permission messages, stale-data notices, and browser pop-out recovery guidance
+therefore reach assistive technology without changing their copy, tooltip
+detail, footer layout, provider/fallback behavior, or visual output. The
+focused workstation/pop-out view suite passed `27/27`; frontend type-check and
+diff checks passed.
+
+The exact Docker-backed gate at this product tip passed all non-visual stages
+and the full functional Playwright matrix (`165` passed, `107` documented
+skips across `272`). Visual parity completed `104` cases with `98` passes and
+the same six established state-oracle diffs: `watchlist-column-editor-open.png`
+at visual-1080p-100/125 and `workspace-floating.png` at
+visual-1080p-100/125 and visual-1440p-100/125. The gate exits at `e2e-visual`
+only for those unchanged diffs; scoped teardown removed all assigned
+containers, volumes, images, and test sessions cleanly.
+
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. R1 canonical family/provider-history readiness and R2-R7
+evidence remain open; continue the next bounded evidence-backed R1 or
+compatible Study target slice.
+
 ## 2026-09-09 — Browser-managed pop-out boundary disclosure
 
 At product commit `83bcb722`, hydrated workstation pop-outs now expose an

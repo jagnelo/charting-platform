@@ -4575,3 +4575,29 @@ placeholder disposition, cadence/effective-time and adjustment-factor/version
 provenance, raw-versus-derived storage, and broader continuity; R2-R7 remain
 open. Next action: continue the next bounded evidence-backed R1 or compatible
 Study target slice while preserving the six visual state-oracle assertions.
+
+## 2026-09-09 — Workstation recovery status accessibility
+
+Product commit `4daf9b95` makes the existing concise workstation footer
+recovery message a polite, atomic status announcement. Permission, transport,
+freshness, and browser pop-out recovery guidance is now available to assistive
+technology while copy, native tooltip detail, footer geometry, provider/
+fallback behavior, and visual output remain unchanged. The focused
+workstation/pop-out view suite passed `27/27`; frontend type-check and diff
+checks passed.
+
+The exact Docker-backed gate at this product tip passed every non-visual stage
+and the full functional Playwright matrix (`165` passed, `107` documented
+skips across `272`). Visual parity completed `104` cases with `98` passes and
+the same six established state-oracle diffs: `watchlist-column-editor-open`
+at visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125 and
+visual-1440p-100/125. The gate exits at `e2e-visual` only for those unchanged
+diffs. Scoped teardown removed all assigned containers, volumes, images, and
+test sessions cleanly; no visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed.
+
+R1 remains active for complete canonical family/provider-history readiness,
+placeholder disposition, cadence/effective-time and adjustment-factor/version
+provenance, raw-versus-derived storage, and broader continuity; R2-R7 remain
+open. Next action: continue the next bounded evidence-backed R1 or compatible
+Study target slice while preserving the six visual state-oracle assertions.
