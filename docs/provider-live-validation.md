@@ -101,10 +101,12 @@ originating request-log link. The backend-only
 `/api/v1/market-data/capacity-events` endpoint exposes this evidence to
 administrators.
 
-The remaining credentialed blockers are Alpaca, Tradier, and MarketData.app;
-SEC EDGAR also needs an operator contact User-Agent. A provider may have a
-green live probe and remain non-routable when any external constraint cannot
-yet be accounted safely. Every registered synchronous adapter now reports
+The remaining credentialed blockers are Alpaca, Tradier, and MarketData.app.
+The authoritative rerun supplied a temporary non-secret SEC EDGAR User-Agent
+and passed the EDGAR cases; every deployment and CI environment must still
+provide its own operator contact value. A provider may have a green live probe
+and remain non-routable when any external constraint cannot yet be accounted
+safely. Every registered synchronous adapter now reports
 observed HTTP request counts, response bytes, and selected provider headers
 into the runtime context; that telemetry is durable in
 `provider_request_log`, and the provider usage endpoint exposes the latest
@@ -145,10 +147,12 @@ Robinhood returned one transient `local_rate_limited` response before the
 test's single provider-specific retry succeeded; neither result is treated as
 permission to guess a ticker or a quota.
 
-The still-missing variables are `EDGAR_USER_AGENT`, `ALPACA_API_KEY`,
-`ALPACA_SECRET_KEY`, `TRADIER_API_KEY`, and `MARKETDATA_APP_API_KEY`. Until
-those are supplied and their cases pass, the complete 29-case matrix remains
-an open acceptance gate.
+The still-missing variables are `ALPACA_API_KEY`, `ALPACA_SECRET_KEY`,
+`TRADIER_API_KEY`, and `MARKETDATA_APP_API_KEY`. `EDGAR_USER_AGENT` is not
+missing for the recorded local run, but remains an explicit per-environment
+configuration requirement. Until the three credential domains are supplied
+and their cases pass, the complete 29-case matrix remains an open acceptance
+gate.
 
 The latest network-enabled rerun reached 25/29 before one transient FINRA OTC
 TLS reset; the immediate bounded FINRA OTC retry passed 1/1. Together with the
