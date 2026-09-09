@@ -1,5 +1,6 @@
 <template>
-  <div class="chart-root" ref="rootRef" tabindex="0" role="region" aria-label="Chart workspace" :aria-busy="chartStore.isLoading || (chartStore.bars.length > 0 && !chartReady) ? 'true' : 'false'" :data-linked-timestamp="props.linkedTimestamp || undefined" @keydown.esc="handleChartEscape">
+  <div class="chart-root" ref="rootRef" tabindex="0" role="region" aria-label="Chart workspace" :aria-describedby="`${chartControlId}-provenance`" :aria-busy="chartStore.isLoading || (chartStore.bars.length > 0 && !chartReady) ? 'true' : 'false'" :data-linked-timestamp="props.linkedTimestamp || undefined" @keydown.esc="handleChartEscape">
+    <span :id="`${chartControlId}-provenance`" class="sr-only">{{ chartAriaLabel }}</span>
 
     <!-- Main price chart -->
     <div class="uplot-wrapper" ref="wrapperRef"
@@ -10,7 +11,7 @@
       <div ref="chartRef" />
 
       <!-- TradingView-style OHLCV info — fixed top-left, not cursor-following -->
-      <div class="ohlcv-info" v-if="tooltip.hasData">
+      <div class="ohlcv-info" v-if="tooltip.hasData" :aria-label="tooltip.ariaLabel">
         <span class="tt-date">{{ tooltip.date }}</span>
         <span class="tt-item">O <b>{{ fmt(tooltip.o) }}</b></span>
         <span class="tt-item">H <b>{{ fmt(tooltip.h) }}</b></span>
@@ -241,6 +242,7 @@ import {
 import type { DrawingPoint }   from '@/lib/drawings/types'
 import type { ChartComparisonSeries, ChartDrawing, ChartPythonSeries, DrawingType, IndicatorConfig, PriceAlert, Timeframe, ChartBarType, OHLCVBar } from '@/types'
 import { CHART_BAR_TYPES } from '@/types'
+import { describeOhlcvBarProvenance, summarizeOhlcvProvenance } from '@/lib/workstation/ohlcvProvenance'
 import type { AnyDrawing }     from '@/lib/drawings/types'
 import WorkstationGlyph from '@/components/workstation/WorkstationGlyph.vue'
 
@@ -414,9 +416,10 @@ interface TooltipState {
   date: string
   o: number; h: number; l: number; c: number; v: number
   chg: number | null
+  ariaLabel: string
 }
 const tooltip = ref<TooltipState>({
-  hasData: false, date: '', o: 0, h: 0, l: 0, c: 0, v: 0, chg: null,
+  hasData: false, date: '', o: 0, h: 0, l: 0, c: 0, v: 0, chg: null, ariaLabel: '',
 })
 
 interface InstrumentEvent {
@@ -479,12 +482,20 @@ function updateTooltip(u: uPlot, idx: number | null | undefined) {
   const v = d[5]?.[idx] ?? 0
   const prevClose = idx > 0 ? d[4]?.[idx - 1] ?? null : null
   const chg = prevClose != null && prevClose !== 0 ? ((c - prevClose) / prevClose) * 100 : null
+  const bar = chartStore.bars[idx]
   tooltip.value = {
     hasData: true,
     date: formatDate(ts, chartStore.timeframe),
     o, h, l, c, v, chg,
+    ariaLabel: `${formatDate(ts, chartStore.timeframe)}. Open ${fmt(o)}, high ${fmt(h)}, low ${fmt(l)}, close ${fmt(c)}. ${describeOhlcvBarProvenance(bar)}`,
   }
 }
+
+const chartAriaLabel = computed(() => summarizeOhlcvProvenance(
+  chartStore.bars,
+  chartStore.timeframe,
+  effectiveChartType.value,
+))
 
 // ── UI state ──────────────────────────────────────────────────────────────────
 const isAtLatest        = ref(true)
@@ -3360,6 +3371,18 @@ defineExpose({ jumpToTs })
 </script>
 
 <style scoped>
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .chart-root {
   position: relative;
   display: flex;

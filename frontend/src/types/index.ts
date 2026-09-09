@@ -427,6 +427,13 @@ export interface OHLCVBar {
   volume?: number
   vwap?: number
   is_adjusted: boolean
+  is_derived?: boolean
+  source_timeframe?: string | null
+  derivation_method?: string | null
+  derived_at?: string | null
+  source_bar_count?: number | null
+  source_start?: string | null
+  source_end?: string | null
 }
 
 export interface ChartComparisonSeries {
