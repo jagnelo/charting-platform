@@ -148,7 +148,10 @@ traditional share is the same token.
 
 The runtime records provider-specific quota dimensions and refuses to route a
 tokenized provider when any dimension is unknown, weighted per endpoint, or
-requires response-header/account enforcement that is not yet implemented. The
+requires response-header/account enforcement that is not yet fully modeled.
+Bybit and Gate remaining-limit headers are reconciled only when they exactly
+match their reviewed coarse contract; their additional endpoint/UID/account
+constraints still keep those routes non-routable. The
 live matrix is explicit and bounded:
 
 ```sh
