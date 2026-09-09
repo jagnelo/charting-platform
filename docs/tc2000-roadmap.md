@@ -5,6 +5,31 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-09
 
+## 2026-09-09 — Missing pop-out recovery alert accessibility
+
+At product commit `07bafee7`, the existing missing-tool recovery state for a
+blocked or unavailable workstation pop-out is now exposed as an assertive
+`role="alert"` with `aria-live="assertive"`. Its existing recovery copy,
+layout, browser/OS boundary disclosure, provider/fallback behavior, and
+visual output remain unchanged. The focused workstation/pop-out view suite
+passed `28/28`; frontend type-check and diff checks passed.
+
+The exact Docker-backed gate at this product tip passed every non-visual stage
+and the full functional Playwright matrix (`165` passed, `107` documented
+skips across `272`). Visual parity completed `104` cases with `98` passes and
+the same six established state-oracle diffs: `watchlist-column-editor-open`
+at visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125 and
+visual-1440p-100/125. The gate exits at `e2e-visual` only for those unchanged
+diffs. Scoped teardown removed all assigned containers, volumes, images, and
+test sessions cleanly; no visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed.
+
+R1 remains active for complete canonical family/provider-history readiness,
+placeholder disposition, cadence/effective-time and adjustment-factor/version
+provenance, raw-versus-derived storage, and broader continuity; R2-R7 remain
+open. Next action: continue the next bounded evidence-backed R1 or compatible
+Study target slice while preserving the six visual state-oracle assertions.
+
 ## 2026-09-09 — Workstation recovery status accessibility
 
 At product commit `4daf9b95`, the concise workstation footer recovery message

@@ -8,6 +8,28 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-09 — Missing pop-out recovery alert accessibility checkpoint
+
+Product commit `07bafee7` exposes the existing unavailable-popout recovery
+message as an assertive alert/live region for assistive technology. Its copy,
+browser/OS boundary disclosure, layout, provider/fallback behavior, visual
+output, and acceptance policy remain unchanged. Focused workstation/pop-out
+coverage passed `28/28`; frontend type-check and diff checks passed.
+
+The exact Docker-backed gate passed all non-visual stages and functional
+Playwright (`165` passed, `107` documented skips across `272`). Visual parity
+remains `98/104` with exactly the six established watchlist-column-editor-open
+and workspace-floating diffs, so the gate exits at e2e-visual for that known
+boundary. Scoped teardown and cleanup were clean; no visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed, and no
+other worktree was touched.
+
+R1 remains active for complete canonical family/provider history readiness,
+placeholder disposition, cadence/effective-time and adjustment-factor/version
+provenance, raw-versus-derived storage, and broader continuity; R2-R7 remain
+open. Next action: continue the next bounded evidence-backed R1 or compatible
+Study target slice, then rerun the exact gate at the next coherent tip.
+
 ## 2026-09-09 — Snapshot generation queue recovery checkpoint
 
 Product commit `d70d072a` records the generation owned by an in-flight

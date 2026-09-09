@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-09 — Missing pop-out recovery alert accessibility
+
+- [x] Expose the existing unavailable-pop-out recovery message as an
+      assertive alert/live region for assistive technology.
+- [x] Preserve its copy, browser/OS boundary disclosure, layout,
+      provider/fallback behavior, visual output, and acceptance policy;
+      focused view coverage passed 28/28, with type-check and diff checks
+      green.
+- [ ] Continue R1 canonical family/member history readiness and broader
+      R6-R7 native-window, accessibility, security, and visual proof.
+
 ### 2026-09-09 — Workstation recovery status accessibility
 
 - [x] Announce the existing concise footer recovery message as a polite,
