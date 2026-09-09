@@ -5,6 +5,36 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-09
 
+## 2026-09-09 — Exact-tip gate after ETF disclosure provenance
+
+At product commit `690c1979`, the authenticated ETF snapshot-date history
+endpoint now carries publication time, cadence, parser version, source
+identifier, and the explicit timing-basis map already retained in snapshot
+legal metadata. The frontend's compact snapshot selector exposes the same
+disclosure context through native option titles, keeping date selection
+keyboard/assistive-friendly without changing the rendered layout. No timing
+is promoted to a provider fact when it is absent; provider precedence,
+fallback routing, and visual policy remain unchanged.
+
+The focused Docker-backed ETF dates regression passed (`1/1`), the affected
+ETF holdings frontend unit suite passed (`5/5`), frontend type-check passed,
+and Ruff, format, and diff checks passed. The exact Docker-backed integration
+gate passed backend unit and integration tests (`1,371`/`387`), `81.09%`
+combined coverage, frontend Vitest (`975/975`), build, compose/provider/runner
+and health probes, functional Playwright (`165` passed, `107` documented
+skips across `272`), performance, uPlot, and acceptance-policy checks. Visual
+parity remains `98/104` with the same six established state-oracle diffs:
+column editor at 1080p 100/125 and floating workspace at 1080p 100/125 and
+1440p 100/125. The gate exits at the visual stage only because those
+established diffs remain; scoped teardown removed all stack resources and test
+sessions cleanly. No baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed.
+
+R1 remains open for full canonical family population, W1/MN provider history,
+placeholder disposition, explicit cadence/effective-time evidence beyond the
+new timing metadata, and rebuildable adjustment-factor/raw-versus-derived
+storage provenance; R2-R7 remain open.
+
 ## 2026-09-09 — Exact-tip gate after disclosure timing provenance
 
 At product commit `a5be2a2f`, benchmark-family coverage now preserves the

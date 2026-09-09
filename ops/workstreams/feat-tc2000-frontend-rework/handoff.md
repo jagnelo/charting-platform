@@ -8,6 +8,34 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-09 — ETF snapshot-date provenance checkpoint
+
+Product commit `690c1979` carries publication time, cadence, parser version,
+source identifier, and the explicit timing-basis map through the authenticated
+ETF snapshot-date history endpoint. The compact frontend date selector keeps
+its existing visual shape while exposing the disclosure context through native
+option titles for keyboard and assistive users. Missing timing remains
+explicitly unreported; no provider precedence, fallback, storage, or visual
+acceptance policy changed.
+
+The focused Docker-backed dates regression passed `1/1`; the affected ETF
+holdings unit suite passed `5/5`; frontend type-check, Ruff, format, and diff
+checks passed. The exact Docker-backed gate passed backend unit/integration
+(`1,371`/`387`, `81.09%` combined coverage), frontend Vitest (`975/975`),
+build, contracts, probes, stack health, performance, uPlot, acceptance policy,
+and functional Playwright (`165` passed, `107` documented skips across `272`).
+Visual parity remains `98/104` with the six established
+watchlist-column-editor-open/workspace-floating diffs; the gate exits at
+e2e-visual only for those known diffs. Teardown removed all scoped resources
+and test sessions. No other worktree was touched.
+
+R1 remains active for complete canonical family/provider history population,
+placeholder disposition, cadence/effective-time evidence beyond the timing
+map, adjustment-factor/version provenance, raw-versus-derived storage, and
+broader W1/MN coverage. R2-R7 remain open. Next action: continue the next
+bounded evidence-backed R1 or compatible Study target slice, then rerun the
+exact gate at the next coherent tip.
+
 ## 2026-09-09 — Disclosure timing provenance checkpoint
 
 Product commit `a5be2a2f` makes the timing basis of benchmark-family
