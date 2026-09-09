@@ -143,6 +143,32 @@ def test_daily_adapters_parse_common_rows():
         assert bars[0].close == 10.5
 
 
+def test_tiingo_parses_single_object_metadata_response():
+    provider = TiingoProvider()
+    payload = {
+        "ticker": "AAPL",
+        "name": "Apple Inc.",
+        "exchangeCode": "NASDAQ",
+        "description": "Technology company",
+        "currency": "USD",
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ) as get,
+    ):
+        configured.TIINGO_API_KEY = "demo"
+        profile = provider.get_instrument_profile("AAPL")
+
+    assert profile is not None
+    assert profile.symbol == "AAPL"
+    assert profile.name == "Apple Inc."
+    assert profile.exchange == "NASDAQ"
+    assert get.call_args.args[0] == "https://api.tiingo.com/tiingo/daily/AAPL"
+
+
 @pytest.mark.parametrize(
     ("timeframe", "period"),
     [(Timeframe.W1, "w"), (Timeframe.MN, "m")],

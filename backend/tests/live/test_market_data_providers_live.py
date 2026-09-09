@@ -323,6 +323,13 @@ def test_optional_credentialed_provider_small_read(provider, credentials, symbol
     assert rows
     assert all(row.ts.tzinfo is not None for row in rows)
     assert all(row.close > 0 for row in rows)
+    if provider.name == "tiingo":
+        profile, _ = _observed_read(
+            lambda: provider.get_instrument_profile(symbol), provider.name
+        )
+        assert profile is not None
+        assert profile.symbol == symbol
+        assert profile.name and profile.exchange
     if provider.name == "eodhd":
         # EODHD documents the same EOD endpoint with d/w/m period selectors;
         # exercise the two non-daily adapter paths in the bounded live case.

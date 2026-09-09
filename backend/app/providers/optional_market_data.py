@@ -382,8 +382,11 @@ class TiingoProvider(_RESTProvider):
         ]
 
     def get_instrument_profile(self, symbol: str) -> InstrumentProfile | None:
-        rows = self._rows(self._get(f"tiingo/daily/{symbol.upper()}"))
-        row = rows[0] if rows else None
+        payload = self._get(f"tiingo/daily/{symbol.upper()}")
+        # Tiingo's metadata endpoint returns one object, unlike its price and
+        # search endpoints which return arrays. Keep this endpoint-specific
+        # shape explicit rather than flattening arbitrary provider payloads.
+        row = payload if isinstance(payload, dict) else None
         if not row:
             return None
         ticker = str(row.get("ticker") or symbol).upper()
