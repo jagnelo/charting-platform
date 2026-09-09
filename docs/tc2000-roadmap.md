@@ -5,6 +5,21 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-09
 
+## 2026-09-09 — Weight evolution follows effective-date revisions
+
+Weight-evolution analytics now use the same latest-known-per-composition-date
+selection as rebalance transitions. Corrected disclosures remain retained in
+the audit trail, while historical series no longer contain duplicate points
+or revision-induced deltas for one effective date. The focused Docker-backed
+regression passed `1/1`. At commit `c6b20f95`, the exact gate passed backend
+unit/integration (`1,370`/`387`, `81.06%` combined coverage), frontend Vitest
+(`975/975`), build, contracts, probes, stack health, and functional Playwright
+(`165` passed, `107` documented skips). Visual parity remains `98/104` with
+the six established state-oracle diffs; scoped teardown was clean. R1 still
+needs multi-date family population, explicit cadence/effective-time evidence,
+adjustment-factor/version provenance, placeholder disposition, raw-versus-
+derived decisions, and R2-R7.
+
 ## 2026-09-09 — Rebalance timelines collapse same-date disclosure revisions
 
 Holdings ingestion intentionally retains revised issuer disclosures for audit,

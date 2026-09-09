@@ -27,6 +27,25 @@ Next action: continue the bounded family-member and point-in-time provenance
 audit, implement the next evidence-backed seam, run focused checks, and rerun
 the exact gate.
 
+## 2026-09-09 — Weight-evolution revision checkpoint
+
+Product commit `c6b20f95` applies the effective-date revision collapse to
+weight-evolution analytics as well as rebalance transitions. Same-date
+disclosures remain auditable but no longer create duplicate historical points
+or artificial deltas. The focused Docker-backed regression passed `1/1`; the
+exact gate passed backend unit/integration (`1,370`/`387`, `81.06%`), frontend
+Vitest (`975/975`), build, contracts, probes, stack health, and functional
+Playwright (`165` passed, `107` documented skips). Visual parity remains
+`98/104` with the six established diffs. Docker teardown was clean and no
+other worktree was touched.
+
+R1 remains open for multi-date family population, explicit cadence and
+effective-time evidence, adjustment-factor/version provenance, placeholder
+disposition, and raw-versus-derived storage decisions. R2-R7 remain open.
+Next action: continue the bounded family-member and point-in-time provenance
+audit, implement the next evidence-backed seam, run focused checks, and rerun
+the exact gate.
+
 ## 2026-09-09 — Provider adjustment-provenance checkpoint
 
 Product commit `4ba6285b` enriches provider-backed dataset state with observed
