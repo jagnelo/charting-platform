@@ -323,6 +323,19 @@ def test_optional_credentialed_provider_small_read(provider, credentials, symbol
     assert rows
     assert all(row.ts.tzinfo is not None for row in rows)
     assert all(row.close > 0 for row in rows)
+    if provider.name == "eodhd":
+        # EODHD documents the same EOD endpoint with d/w/m period selectors;
+        # exercise the two non-daily adapter paths in the bounded live case.
+        period_start = datetime.now(UTC) - timedelta(days=90)
+        for timeframe in (Timeframe.W1, Timeframe.MN):
+            period_rows, _ = _observed_read(
+                lambda timeframe=timeframe: provider.fetch_ohlcv(
+                    symbol, timeframe, period_start, end
+                ),
+                provider.name,
+            )
+            assert period_rows
+            assert all(row.ts.tzinfo is not None and row.close > 0 for row in period_rows)
 
 
 def test_finnhub_credentialed_company_profile():
