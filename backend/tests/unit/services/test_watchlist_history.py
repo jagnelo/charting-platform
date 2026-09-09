@@ -39,7 +39,11 @@ async def test_watchlist_history_plan_uses_user_scope_and_deduplicates_members(m
                         "timing_provenance": {
                             "effective_at": "provider_reported",
                             "known_at": "provider_reported",
-                        }
+                        },
+                        "snapshot_published_at": "2026-01-03T00:00:00+00:00",
+                        "snapshot_cadence": "month_end",
+                        "snapshot_parser_version": "sec-v2",
+                        "snapshot_source_identifier": "issuer-feed",
                     },
                 ),
                 members=(SimpleNamespace(instrument_id=10), SimpleNamespace(instrument_id=20)),
@@ -80,6 +84,10 @@ async def test_watchlist_history_plan_uses_user_scope_and_deduplicates_members(m
         "effective_at": "provider_reported",
         "known_at": "provider_reported",
     }
+    assert plan["sources"][0]["published_at"] == "2026-01-03T00:00:00+00:00"
+    assert plan["sources"][0]["cadence"] == "month_end"
+    assert plan["sources"][0]["parser_version"] == "sec-v2"
+    assert plan["sources"][0]["source_identifier"] == "issuer-feed"
     assert plan["sources"][1]["deduplicated_count"] == 1
     assert plan["sources"][1]["locked"] is True
     assert plan["sources"][1]["member_disposition"] == {
@@ -163,6 +171,10 @@ async def test_watchlist_history_plan_retains_unavailable_source(monkeypatch):
             "effective_at": None,
             "known_at": None,
             "timing_provenance": {},
+            "published_at": None,
+            "cadence": None,
+            "parser_version": None,
+            "source_identifier": None,
             "message": "watchlist:missing is not visible",
         }
     ]

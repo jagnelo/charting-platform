@@ -296,6 +296,10 @@ describe('MarketMapTool', () => {
       effective_at: '2026-01-01T00:00:00Z',
       known_at: '2026-01-02T00:00:00Z',
       timing_provenance: { effective_at: 'provider_reported', known_at: 'provider_reported' },
+      published_at: '2026-01-03T00:00:00Z',
+      cadence: 'month_end',
+      parser_version: 'sec-v2',
+      source_identifier: 'issuer-feed',
       overall_status: 'partial',
       analysis_ready: false,
       analysis_ready_status: 'partial',
@@ -319,7 +323,7 @@ describe('MarketMapTool', () => {
     expect(wrapper.find('[aria-label="Market Map history readiness"]').text()).toContain('analysis-ready 0/2 (floor 252)')
     expect(wrapper.find('[aria-label="Market Map history readiness"]').text()).toContain('3 bars · range 2025-01-01 → 2026-06-30')
     expect(wrapper.get('[aria-label="Market Map history member disposition evidence"]').text()).toContain('canonical 1, excluded 4, placeholder 2, unresolved 3')
-    expect(wrapper.get('[aria-label="Market Map history membership timing evidence"]').text()).toContain('effective 2026-01-01T00:00:00Z · known 2026-01-02T00:00:00Z · provenance effective at=provider reported, known at=provider reported')
+    expect(wrapper.get('[aria-label="Market Map history membership timing evidence"]').text()).toContain('effective 2026-01-01T00:00:00Z · known 2026-01-02T00:00:00Z · published 2026-01-03T00:00:00Z · cadence month_end · parser sec-v2 · source issuer-feed · provenance effective at=provider reported, known at=provider reported')
     expect(wrapper.get('[aria-label="Market Map history adjustment provenance evidence"]').text()).toContain('D1 split adjusted · source mixed provider and derived · factor mixed provider native opaque and inherited from canonical d1 · factor version not reported')
     expect(wrapper.get('[aria-label="Market Map history lineage evidence"]').text()).toContain('D1 provider and derived · members provider 1, derived 1 · provider-only 0, derived-only 0, mixed 1 · bars provider 2, derived 1')
     await wrapper.get('[aria-label="Refresh Market Map history"]').trigger('click')

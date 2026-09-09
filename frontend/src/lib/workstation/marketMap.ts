@@ -166,6 +166,10 @@ export interface WatchlistSourceHistoryStatus {
   effective_at?: string | null
   known_at?: string | null
   timing_provenance?: Record<string, string>
+  published_at?: string | null
+  cadence?: string | null
+  parser_version?: string | null
+  source_identifier?: string | null
   overall_status: WatchlistHistoryStatusKind
   analysis_ready?: boolean
   analysis_ready_status?: WatchlistHistoryStatusKind

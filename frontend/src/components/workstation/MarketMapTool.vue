@@ -697,11 +697,15 @@ function watchlistHistoryDispositionLabel(status: WatchlistSourceHistoryStatus):
 function watchlistHistoryTimingLabel(status: WatchlistSourceHistoryStatus): string {
   const effective = status.effective_at ? `effective ${status.effective_at}` : 'effective not reported'
   const known = status.known_at ? `known ${status.known_at}` : 'known not reported'
+  const published = status.published_at ? `published ${status.published_at}` : 'published not reported'
+  const cadence = status.cadence ? `cadence ${status.cadence}` : 'cadence not reported'
+  const parser = status.parser_version ? `parser ${status.parser_version}` : 'parser not reported'
+  const source = status.source_identifier ? `source ${status.source_identifier}` : 'source not reported'
   const timing = Object.entries(status.timing_provenance ?? {})
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([key, value]) => `${key.replace(/_/g, ' ')}=${value.replace(/_/g, ' ')}`)
     .join(', ')
-  return `Membership timing: ${effective} · ${known} · provenance ${timing || 'not reported'}`
+  return `Membership timing: ${effective} · ${known} · ${published} · ${cadence} · ${parser} · ${source} · provenance ${timing || 'not reported'}`
 }
 
 function watchlistHistoryAdjustmentLabel(status: WatchlistSourceHistoryStatus): string {

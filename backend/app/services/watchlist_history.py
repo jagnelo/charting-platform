@@ -145,6 +145,10 @@ async def plan_watchlist_source_history_refresh(
                     "effective_at": None,
                     "known_at": None,
                     "timing_provenance": {},
+                    "published_at": None,
+                    "cadence": None,
+                    "parser_version": None,
+                    "source_identifier": None,
                     "message": str(exc),
                 }
             )
@@ -161,6 +165,8 @@ async def plan_watchlist_source_history_refresh(
 
         provenance = getattr(resolved.descriptor, "provenance", None) or {}
         timing_provenance = provenance.get("timing_provenance")
+        if not isinstance(timing_provenance, dict):
+            timing_provenance = provenance.get("snapshot_timing_provenance")
         if not isinstance(timing_provenance, dict):
             timing_provenance = {}
         availability = str(provenance.get("availability") or "")
@@ -187,6 +193,10 @@ async def plan_watchlist_source_history_refresh(
                 "effective_at": getattr(resolved.descriptor, "effective_at", None),
                 "known_at": getattr(resolved.descriptor, "known_at", None),
                 "timing_provenance": timing_provenance,
+                "published_at": provenance.get("snapshot_published_at"),
+                "cadence": provenance.get("snapshot_cadence"),
+                "parser_version": provenance.get("snapshot_parser_version"),
+                "source_identifier": provenance.get("snapshot_source_identifier"),
                 "message": (
                     None
                     if members
@@ -450,6 +460,10 @@ async def build_watchlist_source_history_status(
         "effective_at": source.get("effective_at"),
         "known_at": source.get("known_at"),
         "timing_provenance": source.get("timing_provenance", {}),
+        "published_at": source.get("published_at"),
+        "cadence": source.get("cadence"),
+        "parser_version": source.get("parser_version"),
+        "source_identifier": source.get("source_identifier"),
         "overall_status": overall_status,
         "analysis_ready": analysis_ready,
         "analysis_ready_status": analysis_ready_status,

@@ -229,6 +229,15 @@ def _holdings_route_provenance(
 ) -> dict[str, object | None]:
     """Expose cached holdings route and quality evidence without probing providers."""
 
+    legal_metadata = {}
+    if snapshot is not None and isinstance(snapshot.extra_data, dict):
+        candidate = snapshot.extra_data.get("legal_metadata")
+        if isinstance(candidate, dict):
+            legal_metadata = candidate
+    timing_provenance = legal_metadata.get("timing_provenance")
+    if not isinstance(timing_provenance, dict):
+        timing_provenance = {}
+
     return {
         "adapter_key": profile.adapter_key if profile is not None else None,
         "adapter_status": profile.adapter_status if profile is not None else None,
@@ -254,6 +263,12 @@ def _holdings_route_provenance(
             if snapshot is not None and snapshot.published_at is not None
             else None
         ),
+        "snapshot_cadence": legal_metadata.get("cadence"),
+        "snapshot_parser_version": snapshot.parser_version if snapshot is not None else None,
+        "snapshot_source_identifier": (
+            snapshot.source_identifier if snapshot is not None else None
+        ),
+        "snapshot_timing_provenance": timing_provenance,
     }
 
 

@@ -208,6 +208,10 @@ class WatchlistSourceHistoryStatus(BaseModel):
     effective_at: datetime | None = None
     known_at: datetime | None = None
     timing_provenance: dict[str, str] = Field(default_factory=dict)
+    published_at: datetime | None = None
+    cadence: str | None = None
+    parser_version: str | None = None
+    source_identifier: str | None = None
     overall_status: str
     # ``overall_status`` intentionally preserves the legacy covered/worker
     # contract.  These fields answer the stricter workstation question without
