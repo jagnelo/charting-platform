@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-09 — ETF history-point provenance accessibility
+
+- [x] Keep point-level composition, weight, disclosure timing, provider/source,
+      cadence, parser, timing-basis, and provider/derived provenance typed in
+      ETF weight-evolution data.
+- [x] Expose that metadata through an accessible labelled evolution track and
+      point titles without changing the workstation layout or provider/fallback
+      policy.
+- [ ] Continue the bounded canonical family/member history audit; accessible
+      point provenance does not establish complete family population or W1/MN
+      readiness.
+
 ### 2026-09-09 — ETF snapshot selector disclosure provenance
 
 - [x] Carry publication time, cadence, parser version, source identifier, and

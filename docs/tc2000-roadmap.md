@@ -5,6 +5,35 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-09
 
+## 2026-09-09 — Exact-tip gate after ETF history-point provenance accessibility
+
+At product commit `a8b3a2cf`, the ETF weight-evolution track now exposes each
+point's existing disclosure and lineage context through an accessible labelled
+`role="img"` track and point metadata titles. The point-specific contract
+includes composition date, weight, as-of/known/published timestamps, provider,
+source identifier, cadence, parser version, timing provenance, and the
+provider/derived provenance envelope. This is a disclosure surface only: no
+provider fact is invented and no workstation layout, precedence, fallback,
+storage, or visual acceptance policy changed.
+
+The focused ETF holdings view regression passed (`5/5`), frontend type-check
+passed, and the diff check passed. The exact Docker-backed integration gate
+passed backend unit and integration tests (`1,371`/`387`), `81.09%` combined
+coverage, frontend Vitest (`975/975`), build, compose/provider/runner and
+health probes, functional Playwright (`165` passed, `107` documented skips
+across `272`), performance, uPlot, and acceptance-policy checks. Visual parity
+remains `98/104` with the same six established state-oracle diffs: column
+editor at 1080p 100/125 and floating workspace at 1080p 100/125 and 1440p
+100/125. The gate exits at the visual stage only because those established
+diffs remain; scoped teardown removed all stack resources and test sessions
+cleanly. No baseline, mask, threshold, skip, visual, provider, fallback, or
+acceptance policy changed.
+
+R1 remains open for full canonical family population, W1/MN provider history,
+placeholder disposition, explicit cadence/effective-time evidence beyond the
+new timing metadata, and rebuildable adjustment-factor/raw-versus-derived
+storage provenance; R2-R7 remain open.
+
 ## 2026-09-09 — Exact-tip gate after ETF history-point provenance
 
 At product commit `9365671f`, ETF constituent timelines and weight-evolution

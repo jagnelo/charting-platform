@@ -51,7 +51,13 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "docs/project-todos.md",
+    "docs/tc2000-roadmap.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -110,11 +116,11 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "ae9475e30396d1716b88abcad479347eaebb1c0c",
+  "head": "a8b3a2cfb89d887212a8e00ee4e7c6956991304a",
   "implementation_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
   "interrupted": false,
-  "last_checkpoint": "2026-09-09T09:23:49.412457+00:00",
-  "last_human_progress_update": "2026-09-09T09:22:37.529000+00:00",
+  "last_checkpoint": "2026-09-09T09:53:53.986800+00:00",
+  "last_human_progress_update": "2026-09-09T09:53:05.216555+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next evidence-backed R1 seam or compatible Study target slice with focused regression coverage, then rerun the exact-tip exhaustive gate at the new coherent tip; preserve visual policy and provider/fallback rules.",
   "plan_hash": "6f3bbfc100ce0e96b519a7f878621325545f0679a4f30f940f1abde97607b0fa",
@@ -127,11 +133,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Canonical family and provider-history readiness remains partial; explicit disclosure timing bases are now persisted and surfaced through coverage, ETF snapshot-date history, constituent timelines, and weight-evolution points alongside unresolved/placeholder and mixed provider/derived provenance. The exact tip gate is green except the six established visual diffs.",
+    "current_blocker": "Canonical family and provider-history readiness remains partial; explicit disclosure timing bases are now persisted and surfaced through coverage, ETF snapshot-date history, constituent timelines, and weight-evolution points, with the latter now exposing accessible point-level provenance, alongside unresolved/placeholder and mixed provider/derived provenance. The exact tip gate is green except the six established visual diffs.",
     "current_phase": "R1_canonical_provider_history_readiness",
     "next_action": "Continue the next evidence-backed R1 seam or compatible Study target slice with focused regression coverage, then rerun the exact-tip exhaustive gate at the new coherent tip; preserve visual policy and provider/fallback rules.",
     "total": 10,
-    "updated_at": "2026-09-09T09:22:37.528911+00:00"
+    "updated_at": "2026-09-09T09:53:05.216479+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
