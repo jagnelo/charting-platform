@@ -51,12 +51,7 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
     "worktree_id": "feat-tc2000-frontend-rework-db4ca1c451"
   },
-  "dirty_paths": [
-    "docs/tc2000-roadmap.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -115,10 +110,10 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "9365671f02dad5f32895ae293dc5ce5ff707e121",
+  "head": "ae9475e30396d1716b88abcad479347eaebb1c0c",
   "implementation_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
   "interrupted": false,
-  "last_checkpoint": "2026-09-09T09:22:52.870382+00:00",
+  "last_checkpoint": "2026-09-09T09:23:49.412457+00:00",
   "last_human_progress_update": "2026-09-09T09:22:37.529000+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next evidence-backed R1 seam or compatible Study target slice with focused regression coverage, then rerun the exact-tip exhaustive gate at the new coherent tip; preserve visual policy and provider/fallback rules.",
