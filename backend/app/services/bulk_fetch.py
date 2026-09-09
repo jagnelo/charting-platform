@@ -29,6 +29,7 @@ from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_runtime import ProviderCapability
 from app.providers import provider_symbol_for_instrument
+from app.providers.alpaca import estimate_ohlcv_request_count
 from app.providers.binance import estimate_ohlcv_request_weight
 from app.services.market_data import _record_bar_observations, _touch_ohlcv_dataset_state
 from app.services.provider_runtime import execute_provider_call
@@ -217,17 +218,19 @@ async def _do_fetch_and_store(
     end: datetime,
 ) -> int:
     """Request from EPOCH and upsert all returned bars. Returns new-bar count."""
+    alpaca_cost = estimate_ohlcv_request_count(timeframe, EPOCH_START, end)
+    binance_cost = estimate_ohlcv_request_weight(timeframe, EPOCH_START, end)
+    operation_cost_overrides = {
+        **({"alpaca": alpaca_cost} if alpaca_cost is not None else {}),
+        **({"binance": binance_cost} if binance_cost is not None else {}),
+    }
     execution = await execute_provider_call(
         db,
         ProviderCapability.PRICE_HISTORY,
         f"bulk_fetch:{timeframe.value}",
         instrument_id=instrument.id,
         usage_identity=lambda provider_name: provider_symbol_for_instrument(instrument, provider_name),
-        operation_cost_overrides=(
-            {"binance": estimate_ohlcv_request_weight(timeframe, EPOCH_START, end)}
-            if estimate_ohlcv_request_weight(timeframe, EPOCH_START, end) is not None
-            else None
-        ),
+        operation_cost_overrides=operation_cost_overrides or None,
         invoke=lambda provider, _provider_symbol: provider.fetch_ohlcv(
             provider_symbol_for_instrument(instrument, provider.name),
             timeframe,

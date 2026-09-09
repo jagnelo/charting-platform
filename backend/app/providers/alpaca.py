@@ -20,6 +20,7 @@ import logging
 import time
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from math import ceil
 from typing import Any
 
 import httpx
@@ -64,6 +65,8 @@ _TF_SECONDS: dict[Timeframe, int] = {
     Timeframe.W1: 604800,
     Timeframe.MN: 2592000,
 }
+
+_BARS_PAGE_SIZE = 1000
 
 # Module-level asset cache: keyed by asset_class string
 _asset_cache: dict[str, list[dict]] = {}
@@ -360,6 +363,36 @@ class AlpacaProvider:
 
 
 # ── Module-level helpers ──────────────────────────────────────────────────────
+
+
+def estimate_ohlcv_request_count(
+    timeframe: Timeframe,
+    start: datetime,
+    end: datetime,
+) -> int | None:
+    """Reserve every conservative page request for an Alpaca bar range.
+
+    The adapter follows ``next_page_token`` with a 1,000-bar page size.  A
+    runtime reservation of one request would therefore undercount long-range
+    history and could admit work beyond the account's documented 200/minute
+    window.  Calendar-time candle counts intentionally overestimate sessions,
+    which is safe before provider execution.
+    """
+    seconds = _TF_SECONDS.get(timeframe)
+    if seconds is None or end <= start:
+        return None
+    candles = max(1, ceil((end - start).total_seconds() / seconds))
+    return max(1, (candles + _BARS_PAGE_SIZE - 1) // _BARS_PAGE_SIZE)
+
+
+def estimate_latest_ohlcv_request_count(timeframe: Timeframe, limit: int) -> int | None:
+    """Estimate pages for the exact lookback used by ``fetch_latest_ohlcv``."""
+    seconds = _TF_SECONDS.get(timeframe)
+    if limit <= 0 or seconds is None:
+        return None
+    lookback_seconds = seconds * limit * 1.4 + 86400
+    candles = max(1, ceil(lookback_seconds / seconds) + 1)
+    return max(1, (candles + _BARS_PAGE_SIZE - 1) // _BARS_PAGE_SIZE)
 
 
 def _is_crypto(symbol: str) -> bool:

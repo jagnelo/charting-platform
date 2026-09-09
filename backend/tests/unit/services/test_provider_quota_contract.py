@@ -251,6 +251,18 @@ def test_finra_async_download_requires_positive_bound_for_monthly_reservation(mo
     assert provider_contract_operation_cost_known(policy, source, "download_async_result")
 
 
+def test_finra_authenticated_dataset_usage_covers_cold_oauth_token_request():
+    profile = get_provider_usage_profile("finra")
+    assert profile["operation_costs"]["fetch_short_interest"] == 2
+    assert profile["operation_costs"]["fetch_market_events"] == 2
+
+
+def test_edgar_metadata_and_events_cover_cold_ticker_directory_lookup():
+    profile = get_provider_usage_profile("edgar")
+    assert profile["operation_costs"]["get_instrument_profile"] == 2
+    assert profile["operation_costs"]["fetch_instrument_events"] == 2
+
+
 @pytest.mark.asyncio
 async def test_quota_windows_are_isolated_by_dimension(db):
     async_db = AsyncSessionAdapter(db)
@@ -874,7 +886,7 @@ def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
     coingecko = settings.PROVIDER_RATE_LIMIT_SEEDS["coingecko"]["quota_contract"]
     assert [item["reset"] for item in coingecko["dimensions"]] == [
         "rolling",
-        "calendar_month",
+        "provider_defined",
     ]
 
     twelve = settings.PROVIDER_RATE_LIMIT_SEEDS["twelve_data"]["quota_contract"]
@@ -919,6 +931,15 @@ def test_tokenized_quote_usage_profiles_charge_asset_and_quote_requests():
         assert profile["operation_costs"]["discover_tokenized_assets"] == 1
         assert profile["operation_costs"]["get_tokenized_asset"] == 1
         assert profile["operation_costs"]["get_tokenized_price"] == 2
+
+
+def test_coingecko_profile_usage_profile_covers_id_resolution_and_metadata():
+    profile = get_provider_usage_profile("coingecko")
+    assert profile["operation_costs"] == {
+        "search_instruments": 1,
+        "discover_universe_page": 1,
+        "get_instrument_profile": 2,
+    }
 
 
 def test_twelve_data_cumulative_credit_headers_update_only_matching_minute_window():

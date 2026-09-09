@@ -299,7 +299,10 @@ current LSEG Lipper promoter target and registry gap.
 | `instrument_events`  | Corporate actions: splits, reverse splits, dividends|
 | `universe_discovery` | ~9 000 active US equities + USDT-quoted crypto      |
 
-**Rate limits**: 200 requests/minute on data endpoints (free IEX feed).
+**Rate limits**: 200 requests/minute on data endpoints (free IEX feed). The
+runtime estimates the complete `next_page_token` history request count from
+the requested range and reserves every conservative 1,000-bar page before
+execution; latest-bar lookbacks use the same bound.
 
 **Getting credentials**:
 1. Create a free account at alpaca.markets
@@ -401,8 +404,13 @@ headers are captured when capacity failures occur.
 - CoinGecko is the authoritative source for crypto universe discovery and metadata.
 - For OHLCV, Binance is preferred; CoinGecko's OHLC endpoint has coarser granularity.
 - Rate limit: 100 calls/minute and 10,000 calls/month on the Demo plan. Both
-  dimensions are reserved independently; the monthly counter resets on the
-  first calendar day.
+  dimensions are reserved independently. CoinGecko publishes the monthly cap
+  but does not specify its reset boundary in the pricing contract, so the
+  runtime uses a conservative provider-defined rolling window until an
+  account-native usage observation confirms the boundary.
+- A metadata lookup consumes two HTTP calls (`/search` provider-ID resolution
+  plus `/coins/{id}`); runtime accounting reserves both calls and the ranked
+  search result avoids ambiguous ticker-to-coin mappings.
 
 **Getting credentials**:
 1. Register at [coingecko.com/en/api](https://www.coingecko.com/en/api)
@@ -433,6 +441,12 @@ for time-sensitive intraday use.
 - Set `EDGAR_USER_AGENT` in `.env.dev` to identify your application, e.g.:
   `EDGAR_USER_AGENT="MyApp myemail@example.com"`
 - SEC guidelines require this header to be set to a real contact.
+
+The first profile or earnings-event lookup in a cold process resolves the
+ticker through `company_tickers.json` and then fetches the issuer submissions
+resource, so runtime accounting reserves two requests for those compound
+operations. Warm directory/profile caches may reduce observed transport
+without weakening the reservation.
 
 **Rate limit**: max 10 requests/second per SEC guidelines.
 
@@ -491,6 +505,11 @@ secrets in commits or chat. Synchronous short-interest and Daily List operations
 have a conservative documented quota contract and can be routed after credential,
 live, and terms gates; the separate OTC security-master directory remains
 non-routable until its current terms and quota are reviewed.
+
+Each authenticated dataset call can include a cold OAuth token request before
+the dataset POST. Runtime accounting therefore reserves two requests for
+short-interest and Daily List operations; a warm token cache may consume only
+the dataset request, but the reservation never undercounts a cold process.
 
 ### FINRA OTC directory (`finra_otc_directory`)
 

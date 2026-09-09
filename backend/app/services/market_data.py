@@ -33,6 +33,10 @@ from app.providers import (
     ensure_data_source,
     provider_symbol_for_instrument,
 )
+from app.providers.alpaca import (
+    estimate_latest_ohlcv_request_count,
+    estimate_ohlcv_request_count,
+)
 from app.providers.base import InstrumentProfile
 from app.providers.binance import (
     estimate_latest_ohlcv_request_weight,
@@ -742,19 +746,19 @@ async def _fetch_provider(
     end: datetime,
     adjusted: bool,
 ) -> list[OHLCVBar]:
+    alpaca_cost = estimate_ohlcv_request_count(timeframe, start, end)
+    binance_cost = estimate_ohlcv_request_weight(timeframe, start, end)
+    operation_cost_overrides = {
+        **({"alpaca": alpaca_cost} if alpaca_cost is not None else {}),
+        **({"binance": binance_cost} if binance_cost is not None else {}),
+    }
     execution = await execute_provider_call(
         db,
         ProviderCapability.PRICE_HISTORY,
         f"fetch_ohlcv:{timeframe.value}",
         instrument_id=instrument.id,
         usage_identity=lambda provider_name: provider_symbol_for_instrument(instrument, provider_name),
-        operation_cost_overrides=(
-            {
-                "binance": estimate_ohlcv_request_weight(timeframe, start, end)
-            }
-            if estimate_ohlcv_request_weight(timeframe, start, end) is not None
-            else None
-        ),
+        operation_cost_overrides=operation_cost_overrides or None,
         invoke=lambda provider, _provider_symbol: provider.fetch_ohlcv(
             provider_symbol_for_instrument(instrument, provider.name),
             timeframe,
@@ -1058,19 +1062,19 @@ async def _fetch_provider_latest(
     adjusted: bool,
 ) -> list[OHLCVBar]:
     """Fetch approximately `limit` recent bars from the configured provider when DB is cold."""
+    alpaca_cost = estimate_latest_ohlcv_request_count(timeframe, limit)
+    binance_cost = estimate_latest_ohlcv_request_weight(timeframe, limit)
+    operation_cost_overrides = {
+        **({"alpaca": alpaca_cost} if alpaca_cost is not None else {}),
+        **({"binance": binance_cost} if binance_cost is not None else {}),
+    }
     execution = await execute_provider_call(
         db,
         ProviderCapability.PRICE_HISTORY,
         f"fetch_latest_ohlcv:{timeframe.value}",
         instrument_id=instrument.id,
         usage_identity=lambda provider_name: provider_symbol_for_instrument(instrument, provider_name),
-        operation_cost_overrides=(
-            {
-                "binance": estimate_latest_ohlcv_request_weight(timeframe, limit)
-            }
-            if estimate_latest_ohlcv_request_weight(timeframe, limit) is not None
-            else None
-        ),
+        operation_cost_overrides=operation_cost_overrides or None,
         invoke=lambda provider, _provider_symbol: provider.fetch_latest_ohlcv(
             provider_symbol_for_instrument(instrument, provider.name),
             timeframe,

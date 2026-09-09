@@ -330,7 +330,11 @@ class Settings(BaseSettings):
                         "unit": "requests",
                         "scope": "demo_api_key",
                         "source": "https://www.coingecko.com/en/api/pricing",
-                        "reset": "calendar_month",
+                        # CoinGecko publishes a monthly cap but does not
+                        # define the reset boundary in the pricing contract.
+                        # Keep admission conservative until the account's
+                        # provider-native usage endpoint proves the boundary.
+                        "reset": "provider_defined",
                     },
                 ],
                 "reset": "per_dimension",
@@ -755,9 +759,12 @@ class Settings(BaseSettings):
         "finra": {
             "mode": "multi_dimensional",
             "unit_label": "requests",
+            # A cold OAuth token cache adds one token request before each
+            # authenticated dataset request. Reserve the conservative
+            # two-request upper bound even when a warm process reuses a token.
             "operation_costs": {
-                "fetch_short_interest": 1,
-                "fetch_market_events": 1,
+                "fetch_short_interest": 2,
+                "fetch_market_events": 2,
             },
             # FINRA documents a 3 MB maximum synchronous response. Reserve
             # that upper bound against the credential's monthly download
@@ -770,6 +777,20 @@ class Settings(BaseSettings):
                 }
             },
         },
+        # A cold SEC metadata/event lookup resolves the ticker through the
+        # cached public directory and then fetches submissions. Reserve both
+        # requests even when a warm process can reuse the directory cache.
+        "edgar": {
+            "mode": "call_count",
+            "unit_label": "requests",
+            "operation_costs": {
+                "search_instruments": 1,
+                "discover_universe_page": 1,
+                "get_instrument_profile": 2,
+                "fetch_instrument_events": 2,
+                "fetch_fundamental_facts": 1,
+            },
+        },
         "eodhd": {
             "mode": "credit_count",
             "unit_label": "calls",
@@ -779,6 +800,18 @@ class Settings(BaseSettings):
                 "get_current_price": 1,
                 "get_instrument_profile": 10,
                 "discover_universe_page": 1,
+            },
+        },
+        # A metadata lookup resolves the provider-native coin id through
+        # /search and then fetches /coins/{id}. Reserve both HTTP calls so
+        # quota accounting cannot under-report this compound operation.
+        "coingecko": {
+            "mode": "call_count",
+            "unit_label": "requests",
+            "operation_costs": {
+                "search_instruments": 1,
+                "discover_universe_page": 1,
+                "get_instrument_profile": 2,
             },
         },
         # Every tokenized quote adapter first resolves the provider asset and

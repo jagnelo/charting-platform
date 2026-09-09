@@ -22,7 +22,6 @@ CoinGecko's role here is universe discovery and rich metadata.
 from __future__ import annotations
 
 import logging
-import time
 from typing import Any
 
 import httpx
@@ -36,14 +35,6 @@ logger = logging.getLogger(__name__)
 
 _BASE = "https://api.coingecko.com/api/v3"
 _PAGE_SIZE = 250
-_COIN_LIST_TTL = 3600 * 12  # 12 hours (list rarely changes)
-_COIN_LIST_SLEEP = 1.0  # polite delay between coin-list fetch and first use
-
-# Module-level coin list cache  {symbol_lower → [{id, symbol, name}]}
-_coin_list: dict[str, list[dict]] = {}
-_coin_list_ts: float = 0.0
-_coin_list_all: list[dict] = []  # ordered list for discovery pagination
-
 
 class CoinGeckoProvider:
     name = "coingecko"
@@ -201,40 +192,32 @@ class CoinGeckoProvider:
 
 
 def _resolve_id(platform_symbol: str, headers: dict) -> str | None:
-    """Resolve a platform symbol like BTC-USD to a CoinGecko coin ID."""
+    """Resolve a platform symbol like BTC-USD to a CoinGecko coin ID.
+
+    ``/coins/list`` is not ordered by market relevance, so choosing the first
+    row for an ambiguous ticker can map BTC to an unrelated small token.  The
+    provider's ranked search endpoint returns the canonical result first; an
+    exact-symbol match is still required before accepting that result.
+    """
     base = platform_symbol.split("-")[0].lower()
-    _ensure_coin_list(headers)
-    candidates = _coin_list.get(base)
+    r = httpx.get(
+        f"{_BASE}/search",
+        params={"query": base},
+        headers=headers,
+        timeout=20,
+    )
+    observe_response(r)
+    r.raise_for_status()
+    payload = r.json()
+    raise_for_provider_error_envelope("coingecko", payload, r.status_code)
+    candidates = [
+        item
+        for item in (payload.get("coins") or [])
+        if str(item.get("symbol") or "").lower() == base
+    ]
     if not candidates:
         return None
-    # Prefer exact symbol match; take first candidate
     return candidates[0]["id"]
-
-
-def _ensure_coin_list(headers: dict) -> None:
-    global _coin_list, _coin_list_ts, _coin_list_all
-    now = time.monotonic()
-    if _coin_list and (now - _coin_list_ts) < _COIN_LIST_TTL:
-        return
-    try:
-        r = httpx.get(f"{_BASE}/coins/list", headers=headers, timeout=30)
-        observe_response(r)
-        r.raise_for_status()
-        coins = r.json()
-        raise_for_provider_error_envelope("coingecko", coins, r.status_code)
-        mapping: dict[str, list[dict]] = {}
-        for c in coins:
-            sym = (c.get("symbol") or "").lower()
-            if sym:
-                mapping.setdefault(sym, []).append(c)
-        _coin_list = mapping
-        _coin_list_all = coins
-        _coin_list_ts = now
-    except httpx.HTTPStatusError:
-        raise
-    except httpx.RequestError as exc:
-        logger.warning("coingecko _ensure_coin_list: %s", exc)
-        raise
 
 
 def _market_to_quote(coin: dict) -> dict[str, Any]:

@@ -99,8 +99,8 @@ The backend deterministic gates pass on the current corrective revision:
 - unit suite: `1384 passed`
 - Docker-backed integration suite: `371 passed` on the current branch; the
   isolated testcontainer resources were cleaned after the run
-- combined unit + Docker-backed coverage gate: `1758 passed`, `80.11%` line
-  coverage, above the repository `75%` threshold
+- latest combined unit + Docker-backed coverage gate: `1798 passed`, `80.18%`
+  line coverage, above the repository `75%` threshold
 - focused capacity/quota/runtime/provider-support tests: `17 passed`; capacity-admin plus provider API integration: `8 passed`
 - migration compatibility: passed against the previous release head
 
@@ -157,6 +157,13 @@ The Kraken result was an empty provider catalogue (no current xStocks pair),
 and Robinhood returned one transient `local_rate_limited` response before the
 test's single provider-specific retry succeeded; neither result is treated as
 permission to guess a ticker or a quota.
+
+The CoinGecko credentialed probes also cover the compound metadata operation:
+the provider resolves a ticker through ranked `/search` results and then reads
+the canonical `/coins/{id}` profile. The bounded live probe verified
+`BTC-USD` resolves to Bitcoin and observed at least two upstream requests;
+runtime accounting reserves both calls. This avoids selecting the first
+ambiguous row from `/coins/list`.
 
 The complete manifest-driven matrix also wraps every available non-tokenized
 provider read in transport telemetry and requires at least one observed HTTP

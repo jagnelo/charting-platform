@@ -17,6 +17,8 @@ from app.providers.alpaca import (
     AlpacaProvider,
     _is_crypto,
     _to_alpaca_crypto,
+    estimate_latest_ohlcv_request_count,
+    estimate_ohlcv_request_count,
 )
 from app.providers.alpha_vantage import AlphaVantageProvider
 from app.providers.binance import (
@@ -238,6 +240,14 @@ class TestAlpacaCredentialWarning:
 
 
 class TestAlpacaOHLCVParsing:
+    def test_history_request_count_covers_all_bar_pages(self):
+        start = datetime(2020, 1, 1, tzinfo=UTC)
+        end = start + timedelta(days=2501)
+        assert estimate_ohlcv_request_count(Timeframe.D1, start, end) == 3
+
+    def test_latest_request_count_covers_provider_lookback(self):
+        assert estimate_latest_ohlcv_request_count(Timeframe.M1, 1000) == 3
+
     def test_fetch_ohlcv_parses_stock_bars(self):
         provider = AlpacaProvider()
         fake_response = {
@@ -735,6 +745,47 @@ class TestCoinGeckoCredentialWarning:
             mock_settings.COINGECKO_API_KEY = "demo-key-123"
             headers = provider._headers()
         assert headers == {"x-cg-demo-api-key": "demo-key-123"}
+
+    def test_profile_uses_ranked_symbol_search_before_metadata_fetch(self):
+        provider = CoinGeckoProvider()
+        search_response = MagicMock()
+        search_response.status_code = 200
+        search_response.content = b"search"
+        search_response.headers = {}
+        search_response.raise_for_status.return_value = None
+        search_response.json.return_value = {
+            "coins": [
+                {"id": "bitcoin", "symbol": "BTC", "name": "Bitcoin"},
+                {"id": "unrelated-btc", "symbol": "BTC", "name": "Unrelated BTC"},
+            ]
+        }
+        profile_response = MagicMock()
+        profile_response.status_code = 200
+        profile_response.content = b"profile"
+        profile_response.headers = {}
+        profile_response.raise_for_status.return_value = None
+        profile_response.json.return_value = {
+            "id": "bitcoin",
+            "symbol": "btc",
+            "name": "Bitcoin",
+            "description": {"en": ""},
+            "market_data": {},
+            "platforms": {},
+            "links": {"homepage": [""]},
+        }
+        with (
+            patch("app.providers.coingecko.settings") as configured,
+            patch(
+                "app.providers.coingecko.httpx.get",
+                side_effect=[search_response, profile_response],
+            ) as get,
+        ):
+            configured.COINGECKO_API_KEY = "demo-key-123"
+            profile = provider.get_instrument_profile("BTC-USD")
+
+        assert profile is not None
+        assert profile.extra["coingecko_id"] == "bitcoin"
+        assert get.call_count == 2
 
     def test_discovery_returns_empty_for_non_crypto(self):
         provider = CoinGeckoProvider()

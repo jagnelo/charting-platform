@@ -85,8 +85,14 @@ def test_openfigi_keyless_mapping():
 
 def test_sec_edgar_keyless_profile():
     _require("EDGAR_USER_AGENT")
-    profile, _ = _observed_read(lambda: EdgarProvider().get_instrument_profile("AAPL"))
+    import app.providers.edgar as edgar_module
+
+    edgar_module._ticker_map = {}
+    edgar_module._ticker_map_ts = 0.0
+    edgar_module._profile_cache = {}
+    profile, measurement = _observed_read(lambda: EdgarProvider().get_instrument_profile("AAPL"))
     assert profile is not None and profile.name and profile.extra.get("cik")
+    assert measurement.http_requests >= 2
 
 
 def test_sec_edgar_full_ticker_exchange_directory_pagination_is_complete():
@@ -217,6 +223,16 @@ def test_coingecko_credentialed_search():
     _require("COINGECKO_API_KEY")
     rows, _ = _observed_read(lambda: CoinGeckoProvider().search_instruments("bitcoin", limit=1))
     assert rows and rows[0].symbol == "BTC-USD"
+
+
+def test_coingecko_credentialed_profile_observes_id_resolution_request():
+    _require("COINGECKO_API_KEY")
+    profile, measurement = _observed_read(
+        lambda: CoinGeckoProvider().get_instrument_profile("BTC-USD")
+    )
+    assert profile is not None
+    assert profile.extra["coingecko_id"] == "bitcoin"
+    assert measurement.http_requests >= 2
 
 
 def test_fred_credentialed_series():
