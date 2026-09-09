@@ -33,7 +33,8 @@ current capability/quota ledger.
 - [x] Store the supplied credentials outside Git in the owner-only shared local
       env source and live-prove non-empty native results for Massive, Alpha
       Vantage, CoinGecko, FRED, FINRA short interest and OTC Daily List, FINRA
-      OTC Security Master, Tiingo, Twelve Data, Finnhub company profile,
+      OTC Security Master, Tiingo, Twelve Data, Finnhub company profile and
+      earnings, Alpha Vantage daily history,
       Marketstack, EODHD, and FMP (`13/13`). Fix the free-plan mismatches found
       by those probes instead of accepting skips or empty lists.
 - [x] Correct the FRED quota record after rechecking the official v1 and v2

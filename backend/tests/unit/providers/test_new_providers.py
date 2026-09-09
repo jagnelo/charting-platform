@@ -6,7 +6,7 @@ All tests are pure-Python / no-network: HTTP calls are mocked where needed.
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 import httpx
@@ -147,7 +147,13 @@ class TestRegistryCapabilities:
 
     def test_alpha_vantage_capabilities(self):
         caps = set(list_provider_capabilities("alpha_vantage"))
-        assert {"instrument_search", "price_history", "latest_price", "universe_discovery"} <= caps
+        assert {
+            "instrument_search",
+            "price_history",
+            "latest_price",
+            "universe_discovery",
+            "market_events",
+        } <= caps
 
 
 # ── Alpaca symbol helpers ─────────────────────────────────────────────────────
@@ -688,6 +694,30 @@ class TestAlphaVantageProvider:
         assert page["total"] == 2
         assert page["quotes"][0]["symbol"] == "MSFT"
         assert page["quotes"][0]["status"] == "active"
+
+    def test_ipo_calendar_becomes_bounded_market_events(self):
+        response = MagicMock()
+        response.text = (
+            "symbol,name,ipoDate,status\n"
+            "NEW,New Corp,2024-01-02,expected\n"
+            "OLD,Old Corp,2023-12-31,completed\n"
+        )
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.alpha_vantage.settings") as mock_settings,
+            patch("app.providers.alpha_vantage.httpx.get", return_value=response) as get,
+        ):
+            mock_settings.ALPHA_VANTAGE_API_KEY = "key"
+            events = AlphaVantageProvider().fetch_market_events(
+                start=date(2024, 1, 1), end=date(2024, 1, 3)
+            )
+
+        assert len(events) == 1
+        assert events[0].event_type == "ipo"
+        assert events[0].event_key == "alpha_vantage:ipo:NEW:2024-01-02"
+        assert events[0].effective_date == date(2024, 1, 2)
+        assert events[0].is_provisional is True
+        assert get.call_args.kwargs["params"]["function"] == "IPO_CALENDAR"
 
     def test_http_success_error_message_is_typed(self):
         response = MagicMock()
