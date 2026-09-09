@@ -78,25 +78,8 @@
     "ps/workstreams/feat-market-data-provider-platform/session.json"
   ],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-market-data-provider-platform-252f410b",
-      "charting-stack-feat-market-data-provider-platform-252f410b"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
-    "worktree_id": "feat-market-data-provider-platform-252f410b51"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
   },
   "docker_ready": {
     "ready": true,
@@ -112,7 +95,7 @@
   "goal_request_state": "planning_required",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "96df88616ec766bceda8a7d571b613dcf07e2083",
+  "head": "b713753761406483f643b51d37a58bf7fae563e0",
   "implementation_sha": "96df88616ec766bceda8a7d571b613dcf07e2083",
   "last_checkpoint": "2026-09-09T23:48:32.264857+00:00",
   "last_human_progress_update": "2026-09-09T23:25:50.179245+00:00",
@@ -149,7 +132,7 @@
     "total": 15,
     "updated_at": "2026-09-09T23:25:50.179129+00:00"
   },
-  "remote": "96df88616ec766bceda8a7d571b613dcf07e2083",
+  "remote": "b713753761406483f643b51d37a58bf7fae563e0",
   "remote_sha": "96df88616ec766bceda8a7d571b613dcf07e2083",
   "remote_synchronized": true,
   "retained_docker_resources": [],
