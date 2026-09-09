@@ -22,6 +22,7 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 - FRED's adapter now preserves HTTP 429/418 responses as typed `ProviderRateLimitError` capacity failures, including provider response headers and parsed `Retry-After` timestamps, instead of converting quota rejection into an empty-series/empty-price result; the absence of a reviewed v1 numeric ceiling still keeps it non-routable.
 - FRED missing credentials now raise `ProviderNotConfiguredError` rather than returning an empty series/price, so provider fallback can distinguish absent configuration from a valid no-observation result.
 - Alpaca missing API/secret credentials now raise `ProviderNotConfiguredError` across history, latest-price, corporate-action, and discovery operations; unsupported symbols/timeframes remain ordinary empty-result cases.
+- Alpaca and SEC EDGAR no longer swallow upstream HTTP status failures into empty or synthetic results; they propagate status errors to the runtime's typed capacity/reset handling.
 
 ## Current implementation boundary
 

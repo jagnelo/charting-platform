@@ -155,7 +155,12 @@ class AlpacaProvider:
                 observe_response(r)
                 r.raise_for_status()
                 data = r.json()
-            except Exception as exc:
+            except httpx.HTTPStatusError:
+                # Let provider_runtime convert 429/418 into a typed,
+                # reset-aware capacity failure instead of returning partial
+                # bars as if the provider had no observations.
+                raise
+            except httpx.RequestError as exc:
                 logger.warning("alpaca fetch_ohlcv %s: %s", symbol, exc)
                 break
 
@@ -229,7 +234,9 @@ class AlpacaProvider:
             r.raise_for_status()
             bar = r.json().get("bars", {}).get(alpaca_sym)
             return float(bar["c"]) if bar else None
-        except Exception as exc:
+        except httpx.HTTPStatusError:
+            raise
+        except (httpx.RequestError, KeyError, TypeError, ValueError) as exc:
             logger.debug("alpaca get_current_price %s: %s", symbol, exc)
             return None
 
@@ -255,7 +262,9 @@ class AlpacaProvider:
             observe_response(r)
             r.raise_for_status()
             raw = r.json()
-        except Exception as exc:
+        except httpx.HTTPStatusError:
+            raise
+        except httpx.RequestError as exc:
             logger.warning("alpaca fetch_instrument_events %s: %s", symbol, exc)
             return []
 
@@ -413,7 +422,9 @@ def _cached_assets(headers: dict, asset_class: str) -> list[dict]:
         _asset_cache[asset_class] = assets
         _asset_cache_ts = now
         return assets
-    except Exception as exc:
+    except httpx.HTTPStatusError:
+        raise
+    except httpx.RequestError as exc:
         logger.warning("alpaca _cached_assets %s: %s", asset_class, exc)
         return _asset_cache.get(asset_class, [])
 

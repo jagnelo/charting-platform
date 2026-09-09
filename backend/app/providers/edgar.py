@@ -146,7 +146,11 @@ class EdgarProvider:
             observe_response(r)
             r.raise_for_status()
             sub = r.json()
-        except Exception as exc:
+        except httpx.HTTPStatusError:
+            # The runtime owns typed 429/418 conversion and circuit handling;
+            # do not turn an upstream rejection into a synthetic profile.
+            raise
+        except httpx.RequestError as exc:
             logger.warning("edgar get_instrument_profile %s (CIK %d): %s", symbol, cik, exc)
             # Fall back to minimal profile from ticker map
             profile = InstrumentProfile(
@@ -243,7 +247,9 @@ class EdgarProvider:
             observe_response(r)
             r.raise_for_status()
             sub = r.json()
-        except Exception as exc:
+        except httpx.HTTPStatusError:
+            raise
+        except httpx.RequestError as exc:
             logger.warning("edgar fetch_instrument_events %s (CIK %d): %s", symbol, cik, exc)
             return []
 
@@ -292,7 +298,9 @@ class EdgarProvider:
             observe_response(response)
             response.raise_for_status()
             payload = response.json()
-        except Exception as exc:
+        except httpx.HTTPStatusError:
+            raise
+        except httpx.RequestError as exc:
             logger.warning("edgar company facts %s: %s", cik, exc)
             return []
         facts = payload.get("facts") if isinstance(payload, dict) else None
@@ -390,7 +398,9 @@ def _ensure_ticker_map(headers: dict) -> None:
         _ticker_map = mapping
         _ticker_map_ts = now
         logger.info("edgar: loaded %d ticker→CIK mappings", len(mapping))
-    except Exception as exc:
+    except httpx.HTTPStatusError:
+        raise
+    except httpx.RequestError as exc:
         logger.warning("edgar _ensure_ticker_map: %s", exc)
 
 
@@ -453,5 +463,7 @@ def _ensure_exchange_directory(headers: dict) -> None:
         _exchange_directory = directory
         _exchange_directory_ts = now
         logger.info("edgar: loaded %d ticker/exchange listings", len(directory))
-    except Exception as exc:
+    except httpx.HTTPStatusError:
+        raise
+    except httpx.RequestError as exc:
         logger.warning("edgar _ensure_exchange_directory: %s", exc)

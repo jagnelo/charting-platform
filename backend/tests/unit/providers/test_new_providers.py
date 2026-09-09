@@ -206,6 +206,28 @@ class TestAlpacaCredentialWarning:
             with pytest.raises(ProviderNotConfiguredError):
                 provider.discover_universe_page("EQUITY", 0)
 
+    def test_http_status_failures_are_not_converted_to_empty_history(self):
+        provider = AlpacaProvider()
+        response = httpx.Response(
+            429,
+            headers={"retry-after": "2"},
+            request=httpx.Request("GET", "https://data.alpaca.markets/v2/stocks/bars"),
+        )
+        with (
+            patch("app.providers.alpaca.settings") as configured,
+            patch("app.providers.alpaca.httpx.get", return_value=response),
+        ):
+            configured.ALPACA_API_KEY = "key"
+            configured.ALPACA_SECRET_KEY = "secret"
+            configured.ALPACA_DATA_FEED = "iex"
+            with pytest.raises(httpx.HTTPStatusError):
+                provider.fetch_ohlcv(
+                    "AAPL",
+                    Timeframe.D1,
+                    datetime(2024, 1, 1, tzinfo=UTC),
+                    datetime(2024, 2, 1, tzinfo=UTC),
+                )
+
 
 # ── Alpaca OHLCV bar parsing ──────────────────────────────────────────────────
 
@@ -761,6 +783,26 @@ class TestEdgarTickerMap:
 
         assert edgar_module._ticker_map["AAPL"] == {"cik": 320193, "title": "Apple Inc."}
         assert edgar_module._ticker_map["MSFT"] == {"cik": 789019, "title": "Microsoft Corporation"}
+
+    def test_sec_http_status_failure_is_not_converted_to_synthetic_profile(self):
+        import app.providers.edgar as edgar_module
+
+        edgar_module._ticker_map = {"AAPL": {"cik": 320193, "title": "Apple Inc."}}
+        edgar_module._ticker_map_ts = edgar_module._ticker_map_ts + 9999999
+        edgar_module._profile_cache = {}
+        response = httpx.Response(
+            429,
+            headers={"retry-after": "3"},
+            request=httpx.Request("GET", "https://data.sec.gov/submissions/CIK0000320193.json"),
+        )
+        provider = EdgarProvider()
+        with (
+            patch("app.providers.edgar.settings") as configured,
+            patch("app.providers.edgar.httpx.get", return_value=response),
+        ):
+            configured.EDGAR_USER_AGENT = "charting-platform test test@example.invalid"
+            with pytest.raises(httpx.HTTPStatusError):
+                provider.get_instrument_profile("AAPL")
 
     def test_get_instrument_profile_returns_none_for_unknown_ticker(self):
         import app.providers.edgar as edgar_module
