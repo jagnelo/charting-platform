@@ -267,8 +267,40 @@ function weightEvolutionPayload() {
         max_weight: '0.07000000',
         observation_count: 2,
         points: [
-          { snapshot_id: 54, composition_date: '2026-06-06', weight: '0.05000000' },
-          { snapshot_id: 55, composition_date: '2026-06-07', weight: '0.07000000' },
+          {
+            snapshot_id: 54,
+            composition_date: '2026-06-06',
+            as_of_date: '2026-06-06',
+            known_at: '2026-06-06T04:00:00Z',
+            published_at: '2026-06-06T05:00:00Z',
+            weight: '0.05000000',
+            source_provider: 'issuer-test',
+            source_identifier: 'SPY-20260606',
+            cadence: 'month_end',
+            parser_version: 'issuer-csv-v1',
+            timing_provenance: {
+              composition_date: 'provider_reported',
+              as_of_date: 'provider_reported',
+            },
+            provenance: 'issuer_current_holdings',
+          },
+          {
+            snapshot_id: 55,
+            composition_date: '2026-06-07',
+            as_of_date: '2026-06-07',
+            known_at: '2026-06-07T04:00:00Z',
+            published_at: '2026-06-07T05:00:00Z',
+            weight: '0.07000000',
+            source_provider: 'issuer-test',
+            source_identifier: 'SPY-20260607',
+            cadence: 'month_end',
+            parser_version: 'issuer-csv-v1',
+            timing_provenance: {
+              composition_date: 'provider_reported',
+              as_of_date: 'provider_reported',
+            },
+            provenance: 'issuer_current_holdings',
+          },
         ],
       },
     ],
@@ -484,6 +516,11 @@ describe('ETFHoldingsView', () => {
     expect(wrapper.text()).toContain('Weight evolution')
     expect(wrapper.text()).toContain('2 snapshots')
     expect(wrapper.text()).toContain('1 mover')
+    const evolutionTrack = wrapper.find('.evolution-track')
+    expect(evolutionTrack.attributes('role')).toBe('img')
+    expect(evolutionTrack.attributes('aria-label')).toContain('provider issuer-test')
+    expect(evolutionTrack.attributes('aria-label')).toContain('timing as of date=provider reported, composition date=provider reported')
+    expect(wrapper.find('.evolution-dot').attributes('title')).toContain('source SPY-20260606')
     expect(wrapper.text()).toContain('Turnover timeline')
     expect(wrapper.text()).toContain('1 transitions')
     expect(wrapper.text()).toContain('2.00% churn')

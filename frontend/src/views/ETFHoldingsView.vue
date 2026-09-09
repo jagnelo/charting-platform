@@ -347,13 +347,18 @@
                 <strong>{{ series.symbol }}</strong>
                 <span>{{ series.name }}</span>
               </div>
-              <div class="evolution-track" aria-hidden="true">
+              <div
+                class="evolution-track"
+                role="img"
+                :aria-label="evolutionTrackLabel(series)"
+              >
                 <span
                   v-for="point in series.points"
                   :key="`${series.key}:${point.snapshot_id}`"
                   class="evolution-dot"
                   :class="evolutionDotClass(series, point.weight)"
                   :style="{ left: `${evolutionDotOffset(series, point.weight)}%` }"
+                  :title="evolutionPointMetadata(point)"
                 />
               </div>
               <div class="evolution-row__meta">
@@ -560,6 +565,7 @@ import type {
   ETFHoldingsTransition,
   ETFHoldingsTransitionTimeline,
   ETFHoldingsWeightEvolution,
+  ETFHoldingsWeightEvolutionPoint,
   ETFHoldingsWeightEvolutionSeries,
   ETFProfile,
 } from '@/types'
@@ -1006,6 +1012,30 @@ function formatSignedWeight(value: number | string | null | undefined) {
   if (value == null || value === '') return '—'
   const n = numeric(value) * 100
   return `${n > 0 ? '+' : ''}${n.toFixed(2)}%`
+}
+
+function evolutionPointMetadata(point: ETFHoldingsWeightEvolutionPoint) {
+  const timing = Object.entries(point.timing_provenance ?? {})
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${key.replace(/_/g, ' ')}=${value.replace(/_/g, ' ')}`)
+  return [
+    point.composition_date,
+    `weight ${formatWeight(point.weight)}`,
+    point.as_of_date ? `as of ${point.as_of_date}` : null,
+    point.known_at ? `known ${point.known_at}` : null,
+    point.published_at ? `published ${point.published_at}` : null,
+    point.source_provider ? `provider ${point.source_provider}` : null,
+    point.source_identifier ? `source ${point.source_identifier}` : null,
+    point.cadence ? `cadence ${point.cadence}` : null,
+    point.parser_version ? `parser ${point.parser_version}` : null,
+    timing.length ? `timing ${timing.join(', ')}` : null,
+    point.provenance ? `provenance ${point.provenance}` : null,
+  ].filter(Boolean).join(' · ')
+}
+
+function evolutionTrackLabel(series: ETFHoldingsWeightEvolutionSeries) {
+  const points = series.points.map(evolutionPointMetadata).join('; ')
+  return `${series.symbol} weight history: ${points || 'no disclosed points'}`
 }
 
 function formatPercentValue(value: number | string | null | undefined) {
