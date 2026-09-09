@@ -19,6 +19,13 @@ a secure operator channel. The deployment intentionally does not pull secrets
 from GitHub or from a developer worktree, and release bundles never contain
 them. Compose passes provider credentials only to `backend` and `worker`.
 
+Tokenized quote polling is opt-in and disabled by default. If the deployment
+has reviewed provider entitlements and quota contracts, set
+`TOKENIZED_ASSET_REFRESH_ENABLED=true` and a bounded
+`TOKENIZED_ASSET_REFRESH_MAX_ASSETS` in the shared `app.env`; the same values
+must reach both `backend` and `worker`. Unknown provider quotas remain
+non-routable even when this schedule is enabled.
+
 ```bash
 make rpi-preflight
 make rpi-bundle COMMIT=<full-validated-master-sha>

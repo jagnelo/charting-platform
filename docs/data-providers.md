@@ -181,6 +181,15 @@ surfaces repeated 429s. The Kraken catalogue returned no current xStocks pair.
 That evidence is retained as a routing/coverage fact, not hidden by a generic
 retry or an invented symbol.
 
+Persisted tokenized products can also receive bounded quote refreshes through
+the normal provider runtime. Set `TOKENIZED_ASSET_REFRESH_ENABLED=true` and a
+conservative `TOKENIZED_ASSET_REFRESH_MAX_ASSETS` in the backend and worker
+environment to enable the opt-in 15-minute schedule. Each quote uses the
+provider asset ID as its usage identity, reserves documented quota dimensions
+before the request, records transport telemetry, and stores a separate
+`LatestPriceSnapshot` for the token instrument. The schedule is disabled by
+default and never calls a provider during evaluation.
+
 | Provider   | Role        | Auth required           | Cost     |
 |------------|-------------|-------------------------|----------|
 | alpaca     | Primary     | API key + secret        | Free     |

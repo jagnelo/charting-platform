@@ -42,6 +42,10 @@ current capability/quota ledger.
 - [x] Enforce MarketData.app's documented 50-request account-wide concurrency
       ceiling with a durable release-only in-flight quota dimension shared by
       direct calls and queued workload leases.
+- [x] Add an opt-in bounded tokenized quote-refresh worker path. Persisted token
+      products route provider-asset IDs through durable quota reservations and
+      retain separate token price snapshots; the schedule is disabled by
+      default and is passed only to backend/worker deployments.
 - [x] Add safe cross-worktree env links, complete backend/worker Compose
       pass-through, and a manual GitHub environment-scoped live workflow.
       Routine push/PR CI receives no provider credentials. GitHub environment
