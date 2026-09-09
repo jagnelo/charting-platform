@@ -46,6 +46,7 @@ def provider_live_run_lock(
     lock_path = _lock_path(path)
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     handle = lock_path.open("a+", encoding="utf-8")
+    acquired = False
     try:
         try:
             fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -56,6 +57,7 @@ def provider_live_run_lock(
             raise ProviderLiveRunAlreadyActive(
                 f"another provider live run already holds {lock_path}{detail}"
             ) from exc
+        acquired = True
 
         payload = {
             "run_id": str(uuid4()),
@@ -69,10 +71,13 @@ def provider_live_run_lock(
         handle.flush()
         yield lock_path
     finally:
-        try:
-            handle.seek(0)
-            handle.truncate()
-            handle.flush()
-            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
-        finally:
+        if acquired:
+            try:
+                handle.seek(0)
+                handle.truncate()
+                handle.flush()
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+            finally:
+                handle.close()
+        else:
             handle.close()

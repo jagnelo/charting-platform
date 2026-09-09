@@ -30,6 +30,8 @@ def test_provider_live_lock_rejects_second_owner(tmp_path: Path):
     lock_path = tmp_path / "provider-live.lock"
 
     with provider_live_run_lock(lock_path):
+        original_metadata = lock_path.read_text()
         with pytest.raises(ProviderLiveRunAlreadyActive):
             with provider_live_run_lock(lock_path):
                 pass
+        assert lock_path.read_text() == original_metadata
