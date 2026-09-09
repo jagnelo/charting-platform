@@ -92,6 +92,8 @@ services:
       APP_ENV:           production
       E2E_SEED_INSTRUMENTS: ${E2E_SEED_INSTRUMENTS:-false}
       E2E_SEED_MARKET_DATA: ${E2E_SEED_MARKET_DATA:-false}
+      TOKENIZED_ASSET_REFRESH_ENABLED: ${TOKENIZED_ASSET_REFRESH_ENABLED:-false}
+      TOKENIZED_ASSET_REFRESH_MAX_ASSETS: ${TOKENIZED_ASSET_REFRESH_MAX_ASSETS:-100}
       APP_HOST:          "0.0.0.0"
       APP_PORT:          "8000"
       # Secrets / deployment-specific — set these in a root-level .env file
@@ -196,6 +198,8 @@ services:
       APP_ENV:           production
       E2E_SEED_INSTRUMENTS: ${E2E_SEED_INSTRUMENTS:-false}
       E2E_SEED_MARKET_DATA: ${E2E_SEED_MARKET_DATA:-false}
+      TOKENIZED_ASSET_REFRESH_ENABLED: ${TOKENIZED_ASSET_REFRESH_ENABLED:-false}
+      TOKENIZED_ASSET_REFRESH_MAX_ASSETS: ${TOKENIZED_ASSET_REFRESH_MAX_ASSETS:-100}
       # Provider-backed hydration is opt-in. The API still materialises the
       # canonical identity/taxonomy synchronously; a cold sweep must never
       # starve the workstation API during login or factory reset.

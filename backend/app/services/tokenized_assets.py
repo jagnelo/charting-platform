@@ -186,3 +186,92 @@ async def refresh_tokenized_assets(
         refreshed.append({"provider": resolved.provider_name, "assets": count})
     await db.commit()
     return {"status": "refreshed", "providers": refreshed, "assets": sum(item["assets"] for item in refreshed)}
+
+
+async def refresh_tokenized_prices(
+    db: AsyncSession,
+    *,
+    provider_name: str | None = None,
+    max_assets: int = 100,
+) -> dict[str, Any]:
+    """Refresh bounded tokenized quotes through the provider runtime.
+
+    Discovery and quote reads are intentionally separate operations: a public
+    catalogue response does not imply a current price, and quote polling must
+    consume the provider's own durable quota contract.  The provider asset ID
+    is used as the request identity rather than the economic underlying ticker.
+    """
+
+    limit = max(1, min(int(max_assets), 1000))
+    query = (
+        select(TokenizedAssetDetail, Instrument)
+        .join(Instrument, Instrument.id == TokenizedAssetDetail.instrument_id)
+        .where(Instrument.is_active.is_(True))
+        .order_by(TokenizedAssetDetail.updated_at.asc(), TokenizedAssetDetail.id.asc())
+        .limit(limit)
+    )
+    if provider_name:
+        query = query.where(TokenizedAssetDetail.provider_name == provider_name)
+
+    rows = (await db.execute(query)).all()
+    refreshed: list[dict[str, Any]] = []
+    failures: list[dict[str, Any]] = []
+    for detail, instrument in rows:
+        identifier = detail.provider_asset_id or detail.token_symbol
+        if not identifier:
+            failures.append(
+                {
+                    "instrument_id": instrument.id,
+                    "provider": detail.provider_name,
+                    "error": "missing_provider_asset_id",
+                }
+            )
+            continue
+        try:
+            execution = await execute_provider_call(
+                db,
+                ProviderCapability.TOKENIZED_ASSETS,
+                "get_tokenized_price",
+                instrument_id=instrument.id,
+                provider_symbol=identifier,
+                usage_identity=identifier,
+                provider_name=detail.provider_name,
+                invoke=lambda provider, _symbol, identifier=identifier: provider.get_tokenized_price(
+                    identifier
+                ),
+                response_items=lambda value: 1 if value is not None else 0,
+                treat_empty_as_failure=True,
+            )
+            record = execution.result
+            if not isinstance(record, TokenizedAssetRecord):
+                raise TypeError("tokenized provider returned an invalid record")
+            await upsert_tokenized_asset(db, record, source_payload=record.raw_payload)
+            refreshed.append(
+                {
+                    "instrument_id": instrument.id,
+                    "provider": execution.provider_name,
+                    "provider_asset_id": identifier,
+                    "observed_at": record.observed_at.isoformat()
+                    if record.observed_at
+                    else None,
+                }
+            )
+        except Exception as exc:  # noqa: BLE001 - retain per-asset coverage evidence.
+            failures.append(
+                {
+                    "instrument_id": instrument.id,
+                    "provider": detail.provider_name,
+                    "provider_asset_id": identifier,
+                    "error": str(exc)[:500],
+                }
+            )
+
+    await db.commit()
+    return {
+        "status": "refreshed" if refreshed else ("failed" if failures else "no_assets"),
+        "requested": len(rows),
+        "refreshed": len(refreshed),
+        "failed": len(failures),
+        "quotes": refreshed,
+        "failures": failures,
+    }

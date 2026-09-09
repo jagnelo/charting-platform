@@ -173,3 +173,16 @@ async def reconcile_market_universe(ctx: dict) -> dict:
         coverage = await record_core_daily_coverage(db)
         await db.commit()
         return {"reconciliation": reconciliation, "coverage": coverage}
+
+
+async def refresh_tokenized_asset_prices(ctx: dict) -> dict:
+    """Refresh a bounded tokenized quote batch through durable provider routing."""
+
+    from app.config import settings
+    from app.services.tokenized_assets import refresh_tokenized_prices
+
+    async with AsyncSessionLocal() as db:
+        return await refresh_tokenized_prices(
+            db,
+            max_assets=settings.TOKENIZED_ASSET_REFRESH_MAX_ASSETS,
+        )

@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 from decimal import Decimal
+from types import SimpleNamespace
 
 import pytest
 from sqlalchemy import select
@@ -8,7 +9,8 @@ from app.models.instrument import Instrument
 from app.models.provider_observation import LatestPriceSnapshot
 from app.models.tokenized_asset import TokenizedAssetDetail
 from app.providers.base import TokenizedAssetRecord
-from app.services.tokenized_assets import upsert_tokenized_asset
+from app.services import tokenized_assets
+from app.services.tokenized_assets import refresh_tokenized_prices, upsert_tokenized_asset
 from tests.unit.conftest import AsyncSessionAdapter
 
 
@@ -73,3 +75,82 @@ async def test_upsert_does_not_guess_ambiguous_underlying(db, instrument_type, i
         select(TokenizedAssetDetail).where(TokenizedAssetDetail.instrument_id == token.id)
     ).scalar_one()
     assert detail.underlying_instrument_id is None
+
+
+@pytest.mark.asyncio
+async def test_refresh_tokenized_prices_routes_by_provider_asset_id_and_persists_quote(
+    db, instrument, monkeypatch
+):
+    initial = TokenizedAssetRecord(
+        provider="robinhood_tokens",
+        asset_id="rh-aapl",
+        symbol="AAPLx",
+        name="Apple Stock Token",
+        underlying_symbol=instrument.symbol,
+        raw_payload={"id": "rh-aapl"},
+    )
+    await upsert_tokenized_asset(AsyncSessionAdapter(db), initial)
+    calls = []
+
+    async def fake_execute(_db, _capability, operation, **kwargs):
+        calls.append((operation, kwargs["provider_name"], kwargs["provider_symbol"], kwargs["usage_identity"]))
+        return SimpleNamespace(
+            provider_name="robinhood_tokens",
+            result=TokenizedAssetRecord(
+                provider="robinhood_tokens",
+                asset_id="rh-aapl",
+                symbol="AAPLx",
+                name="Apple Stock Token",
+                price=Decimal("123.45"),
+                bid=Decimal("123.40"),
+                ask=Decimal("123.50"),
+                underlying_symbol=instrument.symbol,
+                observed_at=datetime.now(UTC),
+                raw_payload={"quote": {"bid": "123.40", "ask": "123.50"}},
+            ),
+        )
+
+    monkeypatch.setattr(tokenized_assets, "execute_provider_call", fake_execute)
+    result = await refresh_tokenized_prices(AsyncSessionAdapter(db), max_assets=10)
+
+    assert result["status"] == "refreshed"
+    assert result["requested"] == 1
+    assert result["refreshed"] == 1
+    assert result["failed"] == 0
+    assert calls == [("get_tokenized_price", "robinhood_tokens", "rh-aapl", "rh-aapl")]
+    token_detail = db.execute(
+        select(TokenizedAssetDetail).where(TokenizedAssetDetail.provider_asset_id == "rh-aapl")
+    ).scalar_one()
+    snapshot = db.execute(
+        select(LatestPriceSnapshot).where(
+            LatestPriceSnapshot.instrument_id == token_detail.instrument_id
+        )
+    ).scalar_one()
+    # The token has a distinct instrument ID from the underlying; locate the
+    # quote through the token's provider symbol rather than the economic ticker.
+    assert snapshot.provider_symbol == "AAPLx"
+    assert snapshot.price == Decimal("123.45")
+
+
+@pytest.mark.asyncio
+async def test_refresh_tokenized_prices_keeps_per_asset_failure_evidence(db, instrument, monkeypatch):
+    initial = TokenizedAssetRecord(
+        provider="robinhood_tokens",
+        asset_id="rh-aapl",
+        symbol="AAPLx",
+        name="Apple Stock Token",
+        raw_payload={},
+    )
+    await upsert_tokenized_asset(AsyncSessionAdapter(db), initial)
+
+    async def fake_execute(*_args, **_kwargs):
+        raise RuntimeError("provider unavailable")
+
+    monkeypatch.setattr(tokenized_assets, "execute_provider_call", fake_execute)
+    result = await refresh_tokenized_prices(AsyncSessionAdapter(db), max_assets=10)
+
+    assert result["status"] == "failed"
+    assert result["requested"] == 1
+    assert result["refreshed"] == 0
+    assert result["failed"] == 1
+    assert result["failures"][0]["provider_asset_id"] == "rh-aapl"
