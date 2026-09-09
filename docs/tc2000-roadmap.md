@@ -5,6 +5,37 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-09
 
+## 2026-09-09 — Generic watchlist history lineage evidence
+
+At product tip `7fe87c3a` (feature `d5c2e7af` plus the required formatter-only
+follow-up), generic watchlist history status now reports provider-versus-derived
+bar lineage per timeframe, including provider/derived member counts, exclusive
+and mixed member splits, bar totals, and a normalized lineage label. Readiness
+floors are evaluated after combining each member's provider and derived rows, so
+a member split across storage lineages cannot be incorrectly classified below
+the D1/W1/MN analysis floors. Market Map exposes the contract only through a
+hidden accessibility summary; visible layout, pixels, provider precedence,
+fallback, storage, and acceptance policy are unchanged.
+
+Focused watchlist-history units passed `7/7`; Market Map Vitest passed `36/36`;
+frontend type-check, Ruff check/format, and diff checks passed. The exact
+Docker-backed gate passed dependency, migration, lint, backend unit/integration
+coverage (`1,374`/`387`, `68%`), frontend/build/probe stages, and functional
+Playwright (`165` passed, `107` documented skips across `272`). Visual parity
+completed `104` cases with `98` passes and exactly the six established
+state-oracle diffs: `watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125. The gate
+exits at `e2e-visual` only for those unchanged diffs; scoped teardown removed
+all assigned resources and test sessions cleanly. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed.
+
+R1 remains active for complete family/provider-history readiness, W1/MN
+continuity, cadence/effective-time and adjustment-factor/version provenance,
+raw-versus-derived storage, and broader canonical population; R2-R7 remain
+open. Next action: continue the next bounded evidence-backed R1 history or
+provenance seam while preserving the six visual state-oracle assertions and
+rerun the exact gate at the next coherent tip.
+
 ## 2026-09-09 — Unified watchlist history disposition evidence
 
 At product commit `bda0f964`, the generic user-scoped history refresh and

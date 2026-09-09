@@ -8,6 +8,34 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-09 — Generic watchlist history lineage evidence checkpoint
+
+Product tip `7fe87c3a` (`d5c2e7af` plus a formatter-only follow-up) aligns
+generic watchlist history status with the benchmark-family lineage contract.
+Each requested timeframe now reports provider/derived member counts, exclusive
+and mixed member splits, provider/derived bar totals, and a normalized lineage
+label. Per-member provider and derived bars are combined before the D1/W1/MN
+analysis floors are applied, preventing a mixed member split across storage
+lineages from being marked below its actual floor. Market Map exposes this
+through hidden accessibility evidence only; no visible layout, pixels,
+provider, fallback, storage, or acceptance policy changed.
+
+Focused watchlist-history units passed `7/7`; Market Map Vitest passed `36/36`;
+frontend type-check, Ruff check/format, and diff checks passed. The exact
+Docker-backed gate passed all non-visual stages, backend unit/integration
+coverage (`1,374`/`387`, `68%`), and functional Playwright (`165` passed,
+`107` documented skips across `272`). Visual parity was `98/104` with exactly
+the six established watchlist-column-editor-open/workspace-floating diffs. The
+gate stopped at `e2e-visual` for those unchanged diffs; teardown removed all
+assigned containers, volumes, images, and test sessions cleanly. No other
+worktree was touched.
+
+R1 remains active for complete family/provider-history readiness, W1/MN
+continuity, cadence/effective-time and adjustment-factor/version provenance,
+raw-versus-derived storage, and broader canonical population. R2-R7 remain
+open. Next action: continue the next bounded evidence-backed R1 history or
+provenance seam and rerun the exact gate at the next coherent tip.
+
 ## 2026-09-09 — Unified watchlist history disposition evidence checkpoint
 
 Product commit `bda0f964` shares one provider-neutral member disposition

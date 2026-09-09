@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-09 — Generic watchlist history lineage evidence
+
+- [x] Report provider-versus-derived bar lineage per timeframe, including
+      member splits, mixed members, bar totals, and the normalized source label;
+      combine both lineages per member before applying D1/W1/MN readiness floors.
+- [x] Keep the evidence hidden from the visible Market Map and preserve all
+      provider, fallback, storage, visual, and acceptance policy; focused
+      watchlist-history units passed 7/7, Market Map Vitest 36/36, and the exact
+      gate preserved 165 functional passes, 107 documented skips, and the six
+      established visual diffs with clean teardown.
+- [ ] Complete family/provider history, W1/MN continuity, cadence/effective
+      timing, adjustment-factor/version provenance, raw-versus-derived storage,
+      and broader canonical population evidence.
+
 ### 2026-09-09 — Unified watchlist history disposition evidence
 
 - [x] Carry canonical, placeholder, unresolved, and excluded dispositions

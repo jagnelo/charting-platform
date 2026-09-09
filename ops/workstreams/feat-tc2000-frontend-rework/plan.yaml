@@ -13,6 +13,23 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tip 7fe87c3a (feature d5c2e7af plus a formatter-only follow-up) now
+  reports provider-versus-derived lineage for every generic watchlist history
+  timeframe: provider/derived member counts, provider-only/derived-only/mixed
+  member splits, provider/derived bar totals, and a normalized source lineage.
+  Per-member provider and derived bars are combined before applying the D1/W1/MN
+  analysis floors, so mixed storage lineages cannot understate readiness. Hidden
+  Market Map accessibility evidence exposes the contract without visible,
+  provider, fallback, storage, visual, or acceptance-policy changes. Focused
+  watchlist-history units passed 7/7; Market Map Vitest passed 36/36;
+  frontend type-check, Ruff check/format, and diff checks passed. The exact
+  Docker-backed gate passed all non-visual stages, backend unit/integration
+  coverage 1374/387 at 68%, and functional Playwright 165 with 107 documented
+  skips across 272. Visual parity remains 98/104 with exactly the six
+  established state-oracle diffs; teardown and resource accounting were clean.
+  R1 family/provider-history readiness, W1/MN continuity, cadence/effective-time,
+  adjustment-factor/version provenance, raw-versus-derived storage, broader
+  canonical population, and R2-R7 evidence remain open.
   Product commit bda0f964 aligns generic watchlist history planning/status and
   refresh-source responses with the benchmark-family disposition contract:
   canonical, placeholder, unresolved, and excluded. Aggregate exclusion
@@ -633,6 +650,22 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
+    Product tip 7fe87c3a (feature d5c2e7af plus a formatter-only follow-up)
+    now reports provider-versus-derived lineage for every generic watchlist
+    history timeframe, including provider/derived member counts, exclusive and
+    mixed member splits, bar totals, and a normalized source lineage. Per-member
+    provider and derived bars are combined before D1/W1/MN analysis floors are
+    applied, so mixed storage lineages cannot understate readiness. Focused
+    watchlist-history units passed 7/7; Market Map Vitest passed 36/36;
+    frontend type-check, Ruff check/format, and diff checks passed. The exact
+    Docker-backed gate passed all non-visual stages, backend unit/integration
+    coverage 1374/387 at 68%, and functional Playwright 165 with 107
+    documented skips across 272. Visual parity remains 98/104 with exactly the
+    six established state-oracle diffs; teardown and resource accounting were
+    clean. R1 family/provider-history readiness, W1/MN continuity,
+    cadence/effective-time, adjustment-factor/version provenance,
+    raw-versus-derived storage, broader canonical population, and R2-R7 remain
+    open.
     Product commit bda0f964 aligns generic watchlist history planning/status
     and refresh-source responses with the benchmark-family disposition
     contract: canonical, placeholder, unresolved, and excluded. Aggregate
@@ -968,7 +1001,7 @@ progress:
     rule, or acceptance policy changed; assigned stack teardown and resource accounting were clean.
     Canonical provider/history, richer Study targets, native-window/accessibility/security,
     dense-data, and visual-oracle review remain open.
-  next_action: "Continue the next bounded evidence-backed R1 or compatible Study target slice, then rerun make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework at the next coherent product/documentation tip while preserving the six visual state-oracle assertions and unchanged visual/provider fallback policy."
+  next_action: "Continue the next bounded evidence-backed R1 history or provenance seam, then rerun make validate-integration INTEGRATION_BRANCH=feat/tc2000-frontend-rework at the next coherent product/documentation tip while preserving the six visual state-oracle assertions and unchanged visual/provider fallback policy."
 remaining_gaps:
   - "Product commit bda0f964 aligns generic watchlist history planning/status and refresh-source responses with the benchmark-family disposition contract: canonical/placeholder/unresolved/excluded. Aggregate exclusion behavior remains compatible, unavailable sources return deterministic zero maps, and Market Map exposes the map only through hidden accessibility evidence. Focused backend history planner/status coverage passed 7/7; Docker-backed watchlist API regressions passed 2/2; adjacent benchmark/watchlist units passed 32/32; Market Map coverage passed 36/36; type-check/Ruff/format/diff checks passed; and the exact gate passed backend unit/integration 1374/387, frontend Vitest 990/990, and functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; teardown was clean and no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue R1 history/provenance and R2-R7 evidence."
   - "Product commit 96bfea6e extends the admin canonical history-refresh planner with canonical/placeholder/unresolved/excluded member dispositions while preserving legacy aggregate counts and deterministic zero maps for unresolved/error legs. Focused planner coverage passed 25/25; the Docker-backed ETF history API suite passed 65/65; frontend type-check, Ruff, format, and diff checks passed; and the exact gate passed backend unit/integration 1373/387 plus functional Playwright 165/272 (107 documented skips). Visual parity remains 98/104 with exactly the six established watchlist-column-editor-open/workspace-floating diffs; teardown was clean and no visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue R1 history/provenance and R2-R7 evidence."
