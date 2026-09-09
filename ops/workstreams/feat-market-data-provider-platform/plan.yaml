@@ -136,6 +136,7 @@ progress:
     - provider-defined and otherwise unspecified quota reset labels use conservative rolling windows rather than invented UTC epoch buckets; explicit calendar/session resets remain provider-specific
     - FINRA OTC Security Master now has the official synchronous 1,200-requests/minute/IP and 3 MB response contract; source URL configuration and terms/polling review remain required before routing
     - FINRA OTC DAPI pagination now continues safely after provider payload-capped short pages, using authoritative record totals and progress checks instead of assuming every page reaches the requested row limit
+    - Nasdaq's two-file directory refresh reserves two transport calls; FINRA OTC's response-dependent partition/page count is marked operation-cost unknown and remains fail-closed rather than being charged as one request
     - transport telemetry retains FINRA pagination and payload-ceiling headers (`record-total`, effective limits, offsets, and response payload maximum) alongside existing provider-native usage headers
     - Robinhood tokenized-price reads use a finite provider-specific 429 retry budget with `Retry-After` support; repeated throttles remain observable and fail rather than entering a retry storm
     - Nasdaq Trader directory polling preserves provider `ETag`/`Last-Modified` validators and reuses parsed files on `304 Not Modified`; this reduces bandwidth without inferring an undocumented polling quota, so routing remains gated on the unknown contract

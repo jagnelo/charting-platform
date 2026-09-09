@@ -306,6 +306,12 @@ class Settings(BaseSettings):
                 ],
                 "reset": "rolling",
                 "maximum_synchronous_response_bytes": 3 * 1024**2,
+                # A cold snapshot requires the partition lookup plus a
+                # response-dependent number of DAPI pages. Do not charge one
+                # request when the page count cannot be known before the
+                # provider response; the adapter remains fail-closed until an
+                # operator supplies a reviewed bound/profile.
+                "operation_costs_required": True,
             },
             "tokens_per_minute": 1200,
             "quota_scope": "ip",
@@ -796,6 +802,25 @@ class Settings(BaseSettings):
                 "fetch_instrument_events": 2,
                 "fetch_fundamental_facts": 1,
             },
+        },
+        # A cold Nasdaq refresh reads both official directory files. ETag and
+        # Last-Modified revalidation still perform one conditional request per
+        # file, so reserve both transport calls whenever the cache is refreshed.
+        "nasdaq": {
+            "mode": "call_count",
+            "unit_label": "requests",
+            "operation_costs": {
+                "discover_universe_page": 2,
+            },
+        },
+        # FINRA OTC DAPI page count depends on the authoritative record-total
+        # and payload-capped response sizes. An empty map is deliberate: the
+        # quota contract marks operation costs required, so routing remains
+        # non-routable until an operator supplies a positive reviewed bound.
+        "finra_otc_directory": {
+            "mode": "call_count",
+            "unit_label": "requests",
+            "operation_costs": {},
         },
         "eodhd": {
             "mode": "credit_count",

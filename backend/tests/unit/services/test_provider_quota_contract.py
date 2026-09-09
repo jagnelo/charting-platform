@@ -1400,6 +1400,30 @@ def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
     assert fmp["untracked_constraints"][0]["reset"] == "rolling_30_days"
 
 
+def test_compound_directory_usage_is_not_undercharged_or_guessed():
+    nasdaq_profile = get_provider_usage_profile("nasdaq")
+    assert nasdaq_profile["operation_costs"]["discover_universe_page"] == 2
+
+    finra_seed = settings.PROVIDER_RATE_LIMIT_SEEDS["finra_otc_directory"]
+    assert finra_seed["quota_contract"]["operation_costs_required"] is True
+    finra_profile = get_provider_usage_profile("finra_otc_directory")
+    assert finra_profile["operation_costs"] == {}
+    source = DataSource(
+        name="finra_otc_directory",
+        config={"usage_tracking": finra_profile},
+    )
+    policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.UNIVERSE_DISCOVERY,
+        quota_contract=finra_seed["quota_contract"],
+    )
+    assert not provider_contract_operation_cost_known(
+        policy,
+        source,
+        "discover_universe_page",
+    )
+
+
 def test_coinbase_public_token_bucket_matches_documented_burst():
     seed = settings.PROVIDER_RATE_LIMIT_SEEDS["coinbase"]
     assert seed["tokens_per_minute"] == 600
