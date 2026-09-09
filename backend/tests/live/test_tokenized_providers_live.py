@@ -62,7 +62,10 @@ def test_xstocks_public_asset_and_price():
     )
     assert rows
     _assert_asset(rows[0])
-    priced, _ = _observed_read(lambda: provider.get_tokenized_price(rows[0].symbol))
+    priced, quote_measurement = _observed_read(
+        lambda: provider.get_tokenized_price(rows[0].symbol)
+    )
+    assert quote_measurement.http_requests >= 2
     _assert_asset(priced, require_quote=True)
 
 
@@ -74,7 +77,9 @@ def test_robinhood_public_asset_and_price():
     assert rows
     _assert_asset(rows[0])
     try:
-        priced, _ = _observed_read(lambda: provider.get_tokenized_price(rows[0].symbol))
+        priced, quote_measurement = _observed_read(
+            lambda: provider.get_tokenized_price(rows[0].symbol)
+        )
     except httpx.HTTPStatusError as exc:
         # Robinhood's public edge occasionally returns its documented local
         # throttle even below the published 60 req/s limit.  Record the first
@@ -82,7 +87,10 @@ def test_robinhood_public_asset_and_price():
         if exc.response.status_code != 429:
             raise
         time.sleep(1.1)
-        priced, _ = _observed_read(lambda: provider.get_tokenized_price(rows[0].symbol))
+        priced, quote_measurement = _observed_read(
+            lambda: provider.get_tokenized_price(rows[0].symbol)
+        )
+    assert quote_measurement.http_requests >= 2
     _assert_asset(priced, require_quote=True)
 
 
@@ -94,7 +102,10 @@ def test_bybit_public_xstocks_asset_and_price():
     assert rows
     assert measurement.response_bytes > 0
     _assert_asset(rows[0])
-    priced, _ = _observed_read(lambda: provider.get_tokenized_price(rows[0].symbol))
+    priced, quote_measurement = _observed_read(
+        lambda: provider.get_tokenized_price(rows[0].symbol)
+    )
+    assert quote_measurement.http_requests >= 2
     _assert_asset(priced, require_quote=True)
 
 
@@ -111,7 +122,10 @@ def test_gate_public_tradfi_asset_and_orderbook():
     quote_record = None
     for row in rows:
         _assert_asset(row)
-        priced, _ = _observed_read(lambda row=row: provider.get_tokenized_price(row.symbol))
+        priced, quote_measurement = _observed_read(
+            lambda row=row: provider.get_tokenized_price(row.symbol)
+        )
+        assert quote_measurement.http_requests >= 2
         _assert_asset(priced)
         if priced and (priced.price is not None or priced.bid is not None or priced.ask is not None):
             quote_record = priced
@@ -131,5 +145,8 @@ def test_kraken_public_xstocks_asset_and_ticker():
     if not rows:
         return
     _assert_asset(rows[0])
-    priced, _ = _observed_read(lambda: provider.get_tokenized_price(rows[0].symbol))
+    priced, quote_measurement = _observed_read(
+        lambda: provider.get_tokenized_price(rows[0].symbol)
+    )
+    assert quote_measurement.http_requests >= 2
     _assert_asset(priced, require_quote=True)
