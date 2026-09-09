@@ -8,6 +8,36 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-09 — Unified watchlist history disposition evidence checkpoint
+
+Product commit `bda0f964` shares one provider-neutral member disposition
+accounting contract across generic watchlist history planning/status and the
+benchmark-family admin queue: `canonical`, `placeholder`, `unresolved`, and
+`excluded`. Legacy aggregate exclusion behavior remains compatible,
+unavailable sources return zero maps, and Market Map exposes the map only in a
+hidden accessible label. No visible layout, pixels, provider, fallback,
+storage, or acceptance policy changed.
+
+Focused backend history planner/status coverage passed `7/7`; the focused
+Docker-backed watchlist API regressions passed `2/2`; adjacent benchmark and
+watchlist unit coverage passed `32/32`; Market Map coverage passed `36/36`;
+frontend type-check and Ruff/format/diff checks passed. The exact gate passed
+backend unit/integration (`1,374`/`387`), frontend Vitest (`990/990`), full
+build/probe stages, and functional Playwright (`165` passed, `107` documented
+skips across `272`). Visual parity remains `98/104` with exactly six
+established state-oracle diffs: watchlist-column-editor-open at
+visual-1080p-100/125 and workspace-floating at visual-1080p-100/125 and
+visual-1440p-100/125. The gate exits at e2e-visual only for those unchanged
+diffs; scoped teardown removed all assigned resources and test sessions
+cleanly. No visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed, and no other worktree was touched.
+
+R1 remains active for complete canonical family/provider-history readiness,
+W1/MN continuity, cadence/effective-time and adjustment-factor/version
+provenance, raw-versus-derived storage, and broader population. R2-R7 remain
+open. Next action: continue the next bounded evidence-backed R1 history or
+provenance seam, then rerun the exact gate at the next coherent tip.
+
 ## 2026-09-09 — Explicit history queue disposition readiness checkpoint
 
 Product commit `96bfea6e` extends the admin canonical history-refresh planner

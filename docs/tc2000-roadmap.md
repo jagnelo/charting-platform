@@ -5,6 +5,38 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-09
 
+## 2026-09-09 — Unified watchlist history disposition evidence
+
+At product commit `bda0f964`, the generic user-scoped history refresh and
+read-only status contracts now carry the same provider-neutral member
+disposition map as benchmark-family maintenance: `canonical`, `placeholder`,
+`unresolved`, and `excluded`. Aggregate `excluded_count` behavior remains
+compatible, unavailable sources return deterministic zero maps, and canonical
+counts use unique resolved members. Market Map exposes the map only through a
+hidden accessible evidence label, so visible layout and pixels are unchanged.
+
+The focused backend history planner/status suite passed `7/7`; the focused
+Docker-backed watchlist API regressions passed `2/2`; the adjacent benchmark
+history and watchlist unit suites passed `32/32`; frontend Market Map coverage
+passed `36/36`, type-check passed, and Ruff/format/diff checks passed. The exact
+Docker-backed gate passed backend unit/integration (`1,374`/`387`), frontend
+Vitest (`990/990`), build, compose/provider/runner/research-runner probes,
+stack health, performance, acceptance policy, and functional Playwright
+(`165` passed, `107` documented skips across `272`). Visual parity remains
+`98/104` with exactly the six established state-oracle diffs:
+`watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125. The gate
+exits at `e2e-visual` only for those unchanged diffs; scoped teardown removed
+all assigned resources and test sessions cleanly. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed.
+
+R1 remains active for complete family/provider-history readiness, W1/MN
+coverage and continuity, cadence/effective-time and adjustment-factor/version
+provenance, raw-versus-derived storage, and broader canonical population;
+R2-R7 remain open. Next action: continue the next bounded evidence-backed R1
+history/provenance seam while preserving the six visual state-oracle
+assertions and rerun the exact gate at the next coherent tip.
+
 ## 2026-09-09 — Explicit history queue disposition readiness
 
 At product commit `96bfea6e`, the admin canonical history-refresh planner now

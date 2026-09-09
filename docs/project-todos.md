@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-09 — Unified watchlist history disposition evidence
+
+- [x] Carry canonical, placeholder, unresolved, and excluded dispositions
+      through generic watchlist history planning/status and refresh-source
+      contracts while preserving aggregate exclusion behavior.
+- [x] Expose the generic history disposition map through hidden Market Map
+      accessibility evidence; focused backend coverage passed 7/7, the
+      Docker-backed watchlist API regressions passed 2/2, adjacent history
+      units passed 32/32, and Market Map coverage passed 36/36.
+- [ ] Complete family/provider history, W1/MN continuity, cadence/effective
+      timing, adjustment-factor/version provenance, and raw-versus-derived
+      storage evidence; preserve unchanged provider/fallback and visual policy.
+
 ### 2026-09-09 — Explicit history queue disposition readiness
 
 - [x] Expose canonical, placeholder, unresolved, and excluded dispositions on

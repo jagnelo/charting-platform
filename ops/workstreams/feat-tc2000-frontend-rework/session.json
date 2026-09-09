@@ -110,14 +110,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "96bfea6e6caf6b9d5e49ed39e9ac063ed1ec163c",
-  "implementation_sha": "96bfea6e6caf6b9d5e49ed39e9ac063ed1ec163c",
+  "head": "bda0f9646cbbd168645f2199e656418a827c11a6",
+  "implementation_sha": "bda0f9646cbbd168645f2199e656418a827c11a6",
   "interrupted": false,
-  "last_checkpoint": "2026-09-09T20:36:30Z",
-  "last_human_progress_update": "2026-09-09T20:36:30Z",
+  "last_checkpoint": "2026-09-09T21:11:10Z",
+  "last_human_progress_update": "2026-09-09T21:11:10Z",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded evidence-backed R1 history or provenance seam; preserve the six visual state-oracle assertions and provider/fallback rules and rerun the exact gate at the next coherent tip.",
-  "plan_hash": "5172be3610df4b68548e4fc9155e22400b1d03b33fda5bfa679e3aaf389ca0fc",
+  "plan_hash": "2903887b9a2abd3a9d034721ccb73df986ee977dfc4058b7d542672b154a7121",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -129,11 +129,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Canonical family/provider-history readiness remains partial. Product 96bfea6e now reports canonical/placeholder/unresolved/excluded dispositions on both persisted family snapshots and admin history-refresh legs while preserving legacy aggregate counts and canonical denominator rules; focused planner coverage passed 25/25 and the Docker-backed ETF history API suite passed 65/65. The exact Docker-backed gate passed all non-visual stages and functional Playwright 165 with 107 documented skips across 272; visual parity remains 98/104 with exactly six established state-oracle diffs. Teardown and resource accounting were clean, and no visual/provider/fallback/acceptance policy changed. W1/MN continuity, cadence/effective-time, adjustment-factor/version, raw-versus-derived storage, complete population, and R2-R7 evidence remain open.",
+    "current_blocker": "Canonical family/provider-history readiness remains partial. Product bda0f964 now carries canonical/placeholder/unresolved/excluded dispositions through generic watchlist history planning/status and benchmark-family admin history legs while preserving aggregate exclusion and canonical denominator rules; focused backend history planner/status coverage passed 7/7, adjacent benchmark/watchlist units passed 32/32, Docker-backed watchlist API regressions passed 2/2, and Market Map coverage passed 36/36. The exact Docker-backed gate passed all non-visual stages and functional Playwright 165 with 107 documented skips across 272; visual parity remains 98/104 with exactly six established state-oracle diffs. Teardown and resource accounting were clean, and no visual/provider/fallback/acceptance policy changed. W1/MN continuity, cadence/effective-time, adjustment-factor/version, raw-versus-derived storage, complete population, and R2-R7 evidence remain open.",
     "current_phase": "R1_canonical_provider_history_readiness",
     "next_action": "Continue the next bounded evidence-backed R1 history or provenance seam; preserve the six visual state-oracle assertions and provider/fallback rules and rerun the exact gate at the next coherent tip.",
     "total": 10,
-    "updated_at": "2026-09-09T20:36:30Z"
+    "updated_at": "2026-09-09T21:11:10Z"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
