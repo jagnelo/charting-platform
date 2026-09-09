@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-10 — Provider history promotes derived rows to canonical lineage
+
+- [x] Make provider OHLCV upserts reclaim matching W1/MN keys from local
+      D1-derived rows, clearing `is_derived` and all derivation metadata while
+      preserving provider values/source precedence.
+- [x] Regress the late-provider promotion (`14/14` market-data units), adjacent
+      derived/OHLCV contracts (`13/13`), and OHLCV integration (`19/19`); the
+      exact gate preserved 1,375/387 backend coverage, 165 functional passes,
+      107 documented skips, and the six established visual diffs with clean
+      teardown.
+- [ ] Build a rebuildable adjustment-factor/version model and complete raw-
+      versus-derived storage evidence, family/provider history, W1/MN
+      continuity, cadence beyond source-declared metadata, and canonical
+      population.
+
 ### 2026-09-10 — Generic history source provenance evidence
 
 - [x] Preserve source-declared publication, cadence, parser version, source

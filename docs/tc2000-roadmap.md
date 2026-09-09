@@ -5,6 +5,36 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Provider history promotes derived rows to canonical lineage
+
+At product tip `2a83bd46`, every provider OHLCV persistence path now uses a
+lineage-aware upsert. When a provider W1/MN observation arrives for a key
+previously occupied by a locally materialised D1-derived row, the provider
+values and source are retained while `is_derived` and all D1 derivation
+metadata are cleared. This preserves provider precedence and keeps raw versus
+derived storage evidence truthful; no price transformation, provider fallback,
+visible layout, pixels, or acceptance policy changed.
+
+The focused market-data unit suite passed `14/14`, adjacent derived-timeframe
+and OHLCV router units passed `13/13`, and the OHLCV integration contract
+passed `19/19`; Ruff format/check and diff checks passed. The exact Docker-
+backed gate passed dependency, migration, lint, backend unit/integration
+coverage (`1,375`/`387`, `68%`), frontend/build/probe stages, and functional
+Playwright (`165` passed, `107` documented skips across `272`). Visual parity
+completed `104` cases with `98` passes and exactly the six established
+state-oracle diffs: `watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125. The gate
+exits at `e2e-visual` only for those unchanged diffs; scoped teardown removed
+all assigned resources and test sessions cleanly. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed.
+
+R1 remains active for a rebuildable adjustment-factor/version model, complete
+family/provider-history readiness, W1/MN continuity, cadence beyond
+source-declared metadata, broader canonical population, and further raw versus
+derived evidence; R2-R7 remain open. Next action: continue the next bounded
+evidence-backed R1 history/provenance seam while preserving the six visual
+state-oracle assertions and rerun the exact gate at the next coherent tip.
+
 ## 2026-09-10 — Generic history source provenance evidence
 
 At product tip `4cefce9b`, generic watchlist history now preserves source-

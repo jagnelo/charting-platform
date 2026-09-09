@@ -8,6 +8,33 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Provider history promotes derived rows to canonical lineage checkpoint
+
+Product tip `2a83bd46` makes all provider OHLCV persistence paths lineage-aware.
+A provider W1/MN row now supersedes a matching local D1-derived row and clears
+`is_derived`, `source_timeframe`, derivation method/timestamps, and source-bar
+bounds so provider evidence cannot masquerade as locally derived data. Provider
+precedence and raw-versus-derived storage evidence are therefore preserved;
+prices, fallback behavior, visible UI, pixels, and acceptance policy are
+unchanged.
+
+Focused market-data coverage passed `14/14`; adjacent derived-timeframe/OHLCV
+coverage passed `13/13`; OHLCV integration passed `19/19`; Ruff and diff checks
+passed. The exact Docker-backed gate passed all non-visual stages, backend
+unit/integration coverage (`1,375`/`387`, `68%`), and functional Playwright
+(`165` passed, `107` documented skips across `272`). Visual parity was `98/104`
+with exactly the six established watchlist-column-editor-open/workspace-
+floating diffs. The gate stopped at `e2e-visual` only for those unchanged
+diffs; scoped teardown removed all assigned containers, volumes, images, and
+test sessions cleanly. No other worktree was touched.
+
+R1 remains active for rebuildable adjustment-factor/version provenance,
+complete family/provider-history readiness, W1/MN continuity, cadence beyond
+source-declared metadata, broader canonical population, and further raw versus
+derived evidence. R2-R7 remain open. Next action: continue the next bounded
+evidence-backed R1 history/provenance seam and rerun the exact gate at the next
+coherent tip.
+
 ## 2026-09-10 — Generic history source provenance evidence checkpoint
 
 Product tip `4cefce9b` propagates source-declared publication and parser

@@ -13,6 +13,20 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tip 2a83bd46 makes provider OHLCV persistence lineage-aware: a
+  provider W1/MN observation supersedes a matching local D1-derived row and
+  clears is_derived plus all derivation metadata while retaining provider
+  values/source precedence. Focused market-data units passed 14/14; adjacent
+  derived-timeframe/OHLCV units passed 13/13; OHLCV integration passed 19/19;
+  Ruff and diff checks passed. The exact Docker-backed gate passed all
+  non-visual stages, backend unit/integration coverage 1375/387 at 68%,
+  frontend/build/probe stages, and functional Playwright 165 with 107
+  documented skips across 272. Visual parity remains 98/104 with exactly the
+  six established state-oracle diffs; teardown and resource accounting were
+  clean. R1 rebuildable adjustment-factor/version and remaining raw-versus-
+  derived evidence, family/provider-history readiness, W1/MN continuity,
+  cadence beyond source-declared metadata, broader canonical population, and
+  R2-R7 evidence remain open.
   Product tip 4cefce9b preserves source-declared generic history provenance:
   effective_at, known_at, timing provenance, published_at, cadence, parser
   version, and source identifier when supplied. Unavailable source legs remain
@@ -696,6 +710,20 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
+    Product tip 2a83bd46 makes provider OHLCV persistence lineage-aware: a
+    provider W1/MN observation supersedes a matching local D1-derived row and
+    clears is_derived plus all derivation metadata while retaining provider
+    values/source precedence. Focused market-data units passed 14/14; adjacent
+    derived-timeframe/OHLCV units passed 13/13; OHLCV integration passed 19/19;
+    Ruff and diff checks passed. The exact Docker-backed gate passed all
+    non-visual stages, backend unit/integration coverage 1375/387 at 68%,
+    frontend/build/probe stages, and functional Playwright 165 with 107
+    documented skips across 272. Visual parity remains 98/104 with exactly the
+    six established state-oracle diffs; teardown and resource accounting were
+    clean. R1 rebuildable adjustment-factor/version and remaining raw-versus-
+    derived evidence, family/provider-history readiness, W1/MN continuity,
+    cadence beyond source-declared metadata, broader canonical population, and
+    R2-R7 evidence remain open.
     Product tip 4cefce9b preserves source-declared generic history provenance:
     effective_at, known_at, timing provenance, published_at, cadence, parser
     version, and source identifier when supplied. Unavailable source legs remain
