@@ -20,6 +20,7 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 - External quota accounting boundary: durable logs/windows and distinct-identity claims survive restarts and coordinate workers sharing one database, but separate worktrees/CI/deployments using the same provider account are externally shared and locally invisible unless a provider-native cumulative header is safely reconciled. The live suite is quota-consuming and must not be run concurrently on a shared key.
 - FRED's v1 documentation and terms are now reflected explicitly: 429 throttling exists without a published numeric ceiling, provider-set bandwidth/transaction limits may change, and series-specific copyright/redistribution and non-endorsement requirements apply. FRED remains non-routable until its deployed v1 quota and downstream usage policy are reviewed.
 - FRED's adapter now preserves HTTP 429/418 responses as typed `ProviderRateLimitError` capacity failures, including provider response headers and parsed `Retry-After` timestamps, instead of converting quota rejection into an empty-series/empty-price result; the absence of a reviewed v1 numeric ceiling still keeps it non-routable.
+- FRED missing credentials now raise `ProviderNotConfiguredError` rather than returning an empty series/price, so provider fallback can distinguish absent configuration from a valid no-observation result.
 
 ## Current implementation boundary
 

@@ -83,7 +83,8 @@ two-requests-per-second example is therefore not applied to this adapter. The
 [FRED API terms](https://fred.stlouisfed.org/docs/api/terms_of_use.html) also
 allow the provider to change bandwidth/transaction limits, place
 series-specific copyright restrictions on third-party data, and require a
-non-endorsement notice. The adapter preserves HTTP 429/418 responses as typed
+non-endorsement notice. Missing `FRED_API_KEY` raises an explicit
+`ProviderNotConfiguredError`; HTTP 429/418 responses are preserved as typed
 capacity failures with provider headers and `Retry-After` timestamps rather
 than returning an empty series or price. FRED remains non-routable until the
 deployed v1 quota contract and downstream usage/redistribution policy are

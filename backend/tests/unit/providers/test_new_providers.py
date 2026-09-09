@@ -388,13 +388,13 @@ class TestFREDCredentialWarning:
         with patch("app.providers.fred.settings") as mock_settings:
             mock_settings.FRED_API_KEY = ""
             with caplog.at_level(logging.WARNING, logger="app.providers.fred"):
-                bars = provider.fetch_ohlcv(
-                    "^TNX",
-                    Timeframe.D1,
-                    datetime(2024, 1, 1, tzinfo=UTC),
-                    datetime(2024, 2, 1, tzinfo=UTC),
-                )
-        assert bars == []
+                with pytest.raises(ProviderNotConfiguredError):
+                    provider.fetch_ohlcv(
+                        "^TNX",
+                        Timeframe.D1,
+                        datetime(2024, 1, 1, tzinfo=UTC),
+                        datetime(2024, 2, 1, tzinfo=UTC),
+                    )
         assert "FRED_API_KEY" in caplog.text
 
     def test_unsupported_timeframe_returns_empty(self):

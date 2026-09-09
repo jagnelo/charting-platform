@@ -32,7 +32,7 @@ import httpx
 
 from app.config import settings
 from app.models.ohlcv import OHLCVBar, Timeframe
-from app.providers.errors import ProviderRateLimitError
+from app.providers.errors import ProviderNotConfiguredError, ProviderRateLimitError
 from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
@@ -40,15 +40,15 @@ logger = logging.getLogger(__name__)
 _BASE = "https://api.stlouisfed.org/fred"
 
 
-def _assert_key() -> bool:
-    """Return True if FRED_API_KEY is configured, False (with a warning) if not."""
+def _assert_key() -> None:
+    """Require FRED credentials so missing configuration cannot look like no data."""
     if settings.FRED_API_KEY:
-        return True
+        return
     logger.warning(
-        "fred: FRED_API_KEY is not set — skipping this call and falling back to next provider. "
+        "fred: FRED_API_KEY is not set — refusing this call so the runtime can fall back. "
         "Get a free key at fred.stlouisfed.org/docs/api/api_key.html and set it in .env.dev."
     )
-    return False
+    raise ProviderNotConfiguredError("fred requires FRED_API_KEY")
 
 
 def _raise_typed_rate_limit(exc: httpx.HTTPStatusError) -> None:
@@ -138,8 +138,7 @@ class FREDProvider:
         series_id = _SERIES_MAP.get(symbol)
         if series_id is None:
             return []
-        if not _assert_key():
-            return []
+        _assert_key()
         if timeframe not in (Timeframe.D1, Timeframe.W1, Timeframe.MN):
             return []
 
@@ -225,8 +224,9 @@ class FREDProvider:
 
     def get_current_price(self, symbol: str) -> float | None:
         series_id = _SERIES_MAP.get(symbol)
-        if series_id is None or not _assert_key():
+        if series_id is None:
             return None
+        _assert_key()
         try:
             r = httpx.get(
                 f"{_BASE}/series/observations",
