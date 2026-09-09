@@ -19,6 +19,7 @@ import httpx
 
 from app.config import settings
 from app.providers.base import TokenizedAssetRecord
+from app.providers.errors import raise_for_provider_error_envelope
 from app.providers.telemetry import observe_response
 
 
@@ -35,16 +36,27 @@ def _now() -> datetime:
     return datetime.now(UTC)
 
 
-def _http_json(url: str, *, params: dict[str, Any] | None = None, headers: dict[str, str] | None = None) -> Any:
+def _http_json(
+    url: str,
+    *,
+    provider_name: str | None = None,
+    params: dict[str, Any] | None = None,
+    headers: dict[str, str] | None = None,
+) -> Any:
     response = httpx.get(url, params=params, headers=headers, timeout=30)
     observe_response(response)
     response.raise_for_status()
-    return response.json()
+    payload = response.json()
+    raise_for_provider_error_envelope(
+        provider_name or url.split("/", 3)[2], payload, response.status_code
+    )
+    return payload
 
 
 def _http_json_bounded_rate_retry(
     url: str,
     *,
+    provider_name: str | None = None,
     params: dict[str, Any] | None = None,
     headers: dict[str, str] | None = None,
     max_attempts: int = 3,
@@ -60,7 +72,9 @@ def _http_json_bounded_rate_retry(
     attempts = max(1, min(int(max_attempts), 3))
     for attempt in range(attempts):
         try:
-            return _http_json(url, params=params, headers=headers)
+            return _http_json(
+                url, provider_name=provider_name, params=params, headers=headers
+            )
         except httpx.HTTPStatusError as exc:
             if exc.response.status_code != 429 or attempt == attempts - 1:
                 raise
@@ -126,6 +140,7 @@ class XStocksProvider:
     ) -> list[TokenizedAssetRecord]:
         payload = _http_json(
             f"{self.base_url}/public/assets",
+            provider_name=self.name,
             params={"page": max(0, page), "pageSize": max(1, min(page_size, 100))},
             headers=self._headers(),
         )
@@ -138,13 +153,17 @@ class XStocksProvider:
 
     def get_tokenized_asset(self, identifier: str) -> TokenizedAssetRecord | None:
         payload = _http_json(
-            f"{self.base_url}/public/assets/{identifier}", headers=self._headers()
+            f"{self.base_url}/public/assets/{identifier}",
+            provider_name=self.name,
+            headers=self._headers(),
         )
         return self._record(payload) if isinstance(payload, dict) and payload.get("symbol") else None
 
     def get_tokenized_price(self, identifier: str) -> TokenizedAssetRecord | None:
         payload = _http_json(
-            f"{self.base_url}/public/assets/{identifier}/price-data", headers=self._headers()
+            f"{self.base_url}/public/assets/{identifier}/price-data",
+            provider_name=self.name,
+            headers=self._headers(),
         )
         quote = payload.get("quote") if isinstance(payload, dict) else None
         asset = self.get_tokenized_asset(identifier)
@@ -161,6 +180,7 @@ class XStocksProvider:
         endpoint = "upcoming" if upcoming else "history"
         payload = _http_json(
             f"{self.base_url}/public/corporate-actions/{endpoint}",
+            provider_name=self.name,
             params={
                 "page": max(1, page),
                 "pageSize": max(1, min(page_size, 100)),
@@ -181,7 +201,10 @@ class RobinhoodTokenProvider:
 
     @staticmethod
     def _assets() -> list[dict[str, Any]]:
-        payload = _http_json(f"{RobinhoodTokenProvider.base_url}/assets")
+        payload = _http_json(
+            f"{RobinhoodTokenProvider.base_url}/assets",
+            provider_name=RobinhoodTokenProvider.name,
+        )
         return [row for row in (payload.get("assets", []) if isinstance(payload, dict) else []) if isinstance(row, dict)]
 
     @staticmethod
@@ -226,7 +249,9 @@ class RobinhoodTokenProvider:
     def get_tokenized_price(self, identifier: str) -> TokenizedAssetRecord | None:
         asset = self.get_tokenized_asset(identifier)
         symbol = asset.symbol if asset else identifier
-        payload = _http_json_bounded_rate_retry(f"{self.base_url}/prices/{symbol}")
+        payload = _http_json_bounded_rate_retry(
+            f"{self.base_url}/prices/{symbol}", provider_name=self.name
+        )
         quotes = payload.get("quotes", []) if isinstance(payload, dict) else []
         quote = next((row for row in quotes if isinstance(row, dict)), None)
         if quote is None:
@@ -240,7 +265,9 @@ class RobinhoodTokenProvider:
         return record
 
     def fetch_tokenized_corporate_actions(self, *, symbol: str | None = None) -> list[dict[str, Any]]:
-        payload = _http_json(f"{self.base_url}/corporate-actions")
+        payload = _http_json(
+            f"{self.base_url}/corporate-actions", provider_name=self.name
+        )
         rows = payload.get("corpActions", []) if isinstance(payload, dict) else []
         if symbol:
             rows = [row for row in rows if str(row.get("tokenSymbol", "")).upper() == symbol.upper()]
@@ -263,7 +290,11 @@ class BybitXStocksProvider:
         }
         if cursor:
             params["cursor"] = cursor
-        return _http_json(f"{BybitXStocksProvider.base_url}/v5/market/instruments-info", params=params)
+        return _http_json(
+            f"{BybitXStocksProvider.base_url}/v5/market/instruments-info",
+            provider_name=BybitXStocksProvider.name,
+            params=params,
+        )
 
     @staticmethod
     def _record(row: dict[str, Any], quote: dict[str, Any] | None = None) -> TokenizedAssetRecord:
@@ -323,6 +354,7 @@ class BybitXStocksProvider:
         asset = self.get_tokenized_asset(identifier)
         payload = _http_json(
             f"{self.base_url}/v5/market/tickers",
+            provider_name=self.name,
             params={"category": "spot", "symbol": identifier},
         )
         rows = payload.get("result", {}).get("list", []) if isinstance(payload, dict) else []
@@ -351,6 +383,7 @@ class GateTradfiProvider:
     ) -> list[TokenizedAssetRecord]:
         payload = _http_json(
             f"{self.base_url}/stock/symbols",
+            provider_name=self.name,
             params={"exchange": "us", "page": max(1, page + 1)},
         )
         data = payload.get("data", {}) if isinstance(payload, dict) else {}
@@ -384,7 +417,9 @@ class GateTradfiProvider:
 
     def get_tokenized_asset(self, identifier: str) -> TokenizedAssetRecord | None:
         payload = _http_json(
-            f"{self.base_url}/stock/symbols", params={"exchange": "us", "symbols": identifier}
+            f"{self.base_url}/stock/symbols",
+            provider_name=self.name,
+            params={"exchange": "us", "symbols": identifier},
         )
         data = payload.get("data", {}) if isinstance(payload, dict) else {}
         rows = data.get("list", []) if isinstance(data, dict) else []
@@ -393,7 +428,10 @@ class GateTradfiProvider:
 
     def get_tokenized_price(self, identifier: str) -> TokenizedAssetRecord | None:
         asset = self.get_tokenized_asset(identifier)
-        payload = _http_json(f"{self.base_url}/stock/market/{identifier}/orderbook")
+        payload = _http_json(
+            f"{self.base_url}/stock/market/{identifier}/orderbook",
+            provider_name=self.name,
+        )
         data = payload.get("data", {}) if isinstance(payload, dict) else {}
         bids = data.get("bids", []) if isinstance(data, dict) else []
         asks = data.get("asks", []) if isinstance(data, dict) else []
@@ -428,7 +466,9 @@ class KrakenXStocksProvider:
     def discover_tokenized_assets(
         self, *, page: int = 0, page_size: int = 100
     ) -> list[TokenizedAssetRecord]:
-        payload = _http_json(f"{self.base_url}/AssetPairs")
+        payload = _http_json(
+            f"{self.base_url}/AssetPairs", provider_name=self.name
+        )
         rows = payload.get("result", {}) if isinstance(payload, dict) else {}
         candidates = [
             {"symbol": key, **value}
@@ -466,7 +506,11 @@ class KrakenXStocksProvider:
 
     def get_tokenized_price(self, identifier: str) -> TokenizedAssetRecord | None:
         asset = self.get_tokenized_asset(identifier)
-        payload = _http_json(f"{self.base_url}/Ticker", params={"pair": identifier})
+        payload = _http_json(
+            f"{self.base_url}/Ticker",
+            provider_name=self.name,
+            params={"pair": identifier},
+        )
         result = payload.get("result", {}) if isinstance(payload, dict) else {}
         quote = next(iter(result.values()), {}) if isinstance(result, dict) else {}
         record = asset or self._record({"symbol": identifier}, quote)

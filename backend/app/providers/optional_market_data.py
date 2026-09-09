@@ -34,8 +34,7 @@ from app.providers.base import (
 )
 from app.providers.errors import (
     ProviderNotConfiguredError,
-    ProviderRateLimitError,
-    ProviderResponseError,
+    raise_for_provider_error_envelope,
 )
 from app.providers.telemetry import observe_response
 
@@ -104,49 +103,6 @@ def _bounded_datetime(value: datetime) -> datetime:
     return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
 
 
-def _raise_for_error_envelope(
-    provider_name: str,
-    payload: Any,
-    status_code: int | None = None,
-) -> None:
-    """Reject explicit HTTP-success error shapes without guessing data."""
-
-    if not isinstance(payload, dict):
-        return
-    status = str(payload.get("status") or payload.get("s") or "").strip().lower()
-    detail = (
-        payload.get("Error Message")
-        or payload.get("error")
-        or payload.get("errmsg")
-        or (payload.get("message") if status in {"error", "failed", "failure"} else None)
-    )
-    if detail in (None, "") and status not in {"error", "failed", "failure"}:
-        return
-    if detail in (None, ""):
-        detail = f"provider returned status={status or 'error'}"
-    safe_detail = str(detail).strip()[:500]
-    lowered = safe_detail.lower()
-    if any(
-        marker in lowered
-        for marker in (
-            "rate limit",
-            "rate_limit",
-            "too many request",
-            "quota",
-            "credit limit",
-            "api call frequency",
-            "throttl",
-            "429",
-        )
-    ):
-        raise ProviderRateLimitError(
-            provider_name,
-            safe_detail,
-            status_code=status_code,
-        )
-    raise ProviderResponseError(provider_name, safe_detail, status_code=status_code)
-
-
 class _RESTProvider:
     """Small shared REST/normalisation layer used by the optional adapters.
 
@@ -193,7 +149,7 @@ class _RESTProvider:
         observe_response(response)
         response.raise_for_status()
         payload = response.json()
-        _raise_for_error_envelope(self.name, payload, response.status_code)
+        raise_for_provider_error_envelope(self.name, payload, response.status_code)
         return payload
 
     @staticmethod

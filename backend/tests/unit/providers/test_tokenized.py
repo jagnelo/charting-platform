@@ -2,7 +2,9 @@ from decimal import Decimal
 from unittest.mock import Mock, patch
 
 import httpx
+import pytest
 
+from app.providers.errors import ProviderResponseError
 from app.providers.registry import list_provider_capabilities
 from app.providers.tokenized import (
     BybitXStocksProvider,
@@ -116,3 +118,26 @@ def test_robinhood_price_retries_one_bounded_provider_throttle():
     assert result.bid == Decimal("99")
     assert get.call_count == 2
     sleep.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    ("provider_url", "payload"),
+    [
+        ("https://api.kraken.com/0/public/Ticker", {"error": ["EQuery:Unknown asset pair"]}),
+        ("https://api.bybit.com/v5/market/tickers", {"retCode": 10001, "retMsg": "invalid symbol"}),
+    ],
+)
+def test_tokenized_http_success_error_envelopes_do_not_create_synthetic_records(
+    provider_url, payload
+):
+    response = Mock()
+    response.raise_for_status.return_value = None
+    response.status_code = 200
+    response.json.return_value = payload
+    with patch("app.providers.tokenized.httpx.get", return_value=response):
+        with pytest.raises(ProviderResponseError) as exc_info:
+            if "kraken.com" in provider_url:
+                KrakenXStocksProvider().get_tokenized_price("AAPLx")
+            else:
+                BybitXStocksProvider().get_tokenized_price("AAPLx")
+    assert exc_info.value.provider_name in {"kraken_xstocks", "bybit_xstocks"}
