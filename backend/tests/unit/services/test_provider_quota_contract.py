@@ -943,6 +943,57 @@ async def test_eastern_calendar_month_reservation_follows_tiingo_reset_boundary(
 
 
 @pytest.mark.asyncio
+async def test_eastern_calendar_day_reservation_follows_tiingo_reset_boundary(db):
+    async_db = AsyncSessionAdapter(db)
+    source = DataSource(name="eastern-day-provider", is_active=True)
+    db.add(source)
+    db.flush()
+    policy = ProviderPolicy(
+        data_source_id=source.id,
+        capability=ProviderCapability.PRICE_HISTORY,
+        quota_scope="api_key",
+        quota_contract={
+            "reset": "provider_defined",
+            "dimensions": [
+                {
+                    "name": "requests_per_day",
+                    "limit": 1,
+                    "window_seconds": 86400,
+                    "unit": "requests",
+                    "scope": "api_key",
+                    "source": "https://www.tiingo.com/about/pricing",
+                    "reset": "calendar_day_est",
+                }
+            ],
+        },
+    )
+    resolved = ResolvedProvider(
+        provider_name="eastern-day-provider",
+        provider=object(),
+        data_source=source,
+        policy=policy,
+        health=None,  # type: ignore[arg-type]
+    )
+    before_reset = await reserve_provider_contract(
+        async_db,
+        resolved=resolved,
+        capability=ProviderCapability.PRICE_HISTORY.value,
+        units=1,
+        now=datetime(2026, 9, 9, 3, 30, tzinfo=UTC),
+    )
+    after_reset = await reserve_provider_contract(
+        async_db,
+        resolved=resolved,
+        capability=ProviderCapability.PRICE_HISTORY.value,
+        units=1,
+        now=datetime(2026, 9, 9, 4, 30, tzinfo=UTC),
+    )
+    assert before_reset is not None and after_reset is not None
+    assert before_reset[0].window_started_at == datetime(2026, 9, 8, 4, tzinfo=UTC)
+    assert after_reset[0].window_started_at == datetime(2026, 9, 9, 4, tzinfo=UTC)
+
+
+@pytest.mark.asyncio
 async def test_rolling_thirty_day_reservation_expires_at_exact_fmp_boundary(db):
     async_db = AsyncSessionAdapter(db)
     source = DataSource(name="rolling-thirty-day-provider", is_active=True)
@@ -1019,6 +1070,7 @@ def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
     assert finra_otc["maximum_synchronous_response_bytes"] == 3 * 1024**2
     assert tiingo["dimensions"][0]["name"] == "unique_symbols_per_month"
     assert tiingo["dimensions"][0]["limit"] == 500
+    assert tiingo["dimensions"][0]["reset"] == "calendar_month_est"
     assert tiingo["untracked_constraints"][0]["limit"] == 1024**3
     assert fmp["dimensions"][0]["limit"] == 250
     assert fmp["untracked_constraints"][0]["limit"] == 512 * 1024**2

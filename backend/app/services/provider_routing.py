@@ -54,6 +54,10 @@ def _window_start_for_dimension(
         window_start = datetime(now.year, now.month, 1, tzinfo=UTC)
     elif dimension_reset in {"calendar_day_utc", "calendar_day_gmt"} and window_seconds >= 86400:
         window_start = datetime(now.year, now.month, now.day, tzinfo=UTC)
+    elif dimension_reset == "calendar_day_est" and window_seconds >= 86400:
+        eastern = now.astimezone(ZoneInfo("America/New_York"))
+        reset_local = eastern.replace(hour=0, minute=0, second=0, microsecond=0)
+        window_start = reset_local.astimezone(UTC)
     elif dimension_reset.startswith("09:30") and window_seconds >= 86400:
         eastern = now.astimezone(ZoneInfo("America/New_York"))
         reset_local = eastern.replace(hour=9, minute=30, second=0, microsecond=0)

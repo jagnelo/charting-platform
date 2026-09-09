@@ -463,6 +463,7 @@ class Settings(BaseSettings):
                         "unit": "symbols",
                         "scope": "api_key",
                         "source": "https://www.tiingo.com/about/pricing",
+                        "reset": "calendar_month_est",
                     },
                     {
                         "name": "requests_per_hour",
@@ -479,6 +480,7 @@ class Settings(BaseSettings):
                         "unit": "requests",
                         "scope": "api_key",
                         "source": "https://www.tiingo.com/about/pricing",
+                        "reset": "calendar_day_est",
                     },
                 ],
                 "reset": "provider_defined",
