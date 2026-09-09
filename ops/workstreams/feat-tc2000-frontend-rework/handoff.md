@@ -8,6 +8,33 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-09 — Market Map canvas accessibility checkpoint
+
+Product commit `61304578` adds a hidden `aria-describedby` summary to large
+canvas Market Maps. The summary keeps the existing canvas label and reports
+canonical source/scope, adjustment, metrics, visible member/group counts,
+evaluated/requested coverage, freshness, colour/area coverage, warnings,
+exclusions, and selection count. It does not change visual output, layout,
+keyboard search/selection, provider precedence, fallback, or acceptance policy.
+
+Focused utility and Market Map consumer tests passed `38/38`; frontend
+type-check and diff check passed. The exact Docker-backed gate passed backend
+unit/integration (`1,371`/`387`, `81.10%` combined coverage), frontend Vitest
+(`985/985`), build, contracts, probes, stack health, performance, uPlot,
+acceptance policy, and functional Playwright (`165` passed, `107` documented
+skips across `272`). Visual parity remains `98/104` with only the six
+established watchlist-column-editor-open/workspace-floating diffs, so the gate
+exits at e2e-visual for that known boundary. Teardown removed all scoped
+resources and test sessions cleanly. No other worktree was touched, and no
+visual baseline, provider, fallback, or acceptance policy changed.
+
+R1 remains active for complete canonical family/provider history population,
+placeholder disposition, cadence/effective-time evidence beyond the timing
+metadata, adjustment-factor/version provenance, raw-versus-derived storage,
+and broader W1/MN coverage. R2-R7 remain open. Next action: continue the next
+bounded evidence-backed R1 or compatible Study target slice, then rerun the
+exact gate at the next coherent tip.
+
 ## 2026-09-09 — Study artifact accessibility checkpoint
 
 Product commit `44496b2a` adds a shared non-visual description utility for

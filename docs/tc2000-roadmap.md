@@ -5,6 +5,36 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-09
 
+## 2026-09-09 — Exact-tip gate after Market Map canvas accessibility
+
+At product commit `61304578`, large canvas Market Maps now expose one hidden,
+non-visual summary through `aria-describedby`. It reports the canonical source,
+period/timeframe and adjustment, colour/area metrics, visible members and
+groups, evaluated/requested coverage, freshness, colour/area coverage, warning
+and exclusion counts, and current selection count without duplicating every
+tile in the accessibility tree. The existing canvas label, keyboard member
+search/selection path, layout, provider precedence, fallback behavior, and
+visual output remain unchanged.
+
+The focused Market Map accessibility utility and canvas consumer regressions
+passed `38/38`; frontend type-check and diff check passed. The exact
+Docker-backed integration gate passed backend unit/integration (`1,371`/`387`)
+with `81.10%` combined coverage, frontend Vitest (`985/985`), build,
+compose/provider/runner and stack-health probes, functional Playwright
+(`165` passed, `107` documented skips across `272`), performance, uPlot, and
+acceptance-policy checks. Visual parity remains `98/104` with exactly the six
+established state-oracle diffs: `watchlist-column-editor-open.png` at
+visual-1080p-100/125 and `workspace-floating.png` at
+visual-1080p-100/125 and 1440p-100/125. The gate exits at the visual stage only
+for those established diffs; scoped teardown removed all stack resources and
+test sessions cleanly. No baseline, mask, threshold, skip, visual, provider,
+fallback, or acceptance policy changed.
+
+R1 remains open for full canonical family population, W1/MN provider history,
+placeholder disposition, explicit cadence/effective-time evidence beyond the
+timing metadata, and rebuildable adjustment-factor/raw-versus-derived storage
+provenance; R2-R7 remain open.
+
 ## 2026-09-09 — Exact-tip gate after Study artifact accessibility
 
 At product commit `44496b2a`, Study Lab and persisted Study Results now share

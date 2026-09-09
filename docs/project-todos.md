@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-09-09 — Market Map canvas accessibility
+
+- [x] Add a bounded hidden summary to large canvas maps for source, scope,
+      metrics, coverage, freshness, warnings, exclusions, and selection.
+- [x] Preserve the existing canvas label, keyboard member-search path, visual
+      output, and provider/fallback contracts.
+- [ ] Extend R6 accessibility proof across native windows and full live
+      canonical workflows.
+
 ### 2026-09-09 — Study artifact accessibility
 
 - [x] Add shared assistive summaries for scalar/boolean/series/range/table/bar,
