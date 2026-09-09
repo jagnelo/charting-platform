@@ -748,6 +748,66 @@ async def test_in_flight_concurrency_dimension_is_released_not_consumed(db):
     assert window.reserved_units == 2
 
 
+@pytest.mark.asyncio
+async def test_failed_contract_rolls_back_one_in_flight_slot(db):
+    async_db = AsyncSessionAdapter(db)
+    source = DataSource(name="rollback-concurrency-provider", is_active=True)
+    db.add(source)
+    db.flush()
+    policy = ProviderPolicy(
+        data_source_id=source.id,
+        capability=ProviderCapability.PRICE_HISTORY,
+        quota_scope="api_key",
+        quota_contract={
+            "reset": "rolling",
+            "dimensions": [
+                {
+                    "name": "concurrent_requests",
+                    "limit": 2,
+                    "window_seconds": 1,
+                    "unit": "concurrent_requests",
+                    "scope": "api_key",
+                    "source": "https://provider.example/rate-limits",
+                    "reset": "rolling",
+                },
+                {
+                    "name": "requests_per_minute",
+                    "limit": 1,
+                    "window_seconds": 60,
+                    "unit": "requests",
+                    "scope": "api_key",
+                    "source": "https://provider.example/rate-limits",
+                    "reset": "rolling",
+                },
+            ],
+        },
+    )
+    resolved = ResolvedProvider(
+        provider_name="rollback-concurrency-provider",
+        provider=object(),
+        data_source=source,
+        policy=policy,
+        health=None,  # type: ignore[arg-type]
+    )
+
+    result = await reserve_provider_contract(
+        async_db,
+        resolved=resolved,
+        capability=ProviderCapability.PRICE_HISTORY.value,
+        units=9,
+        dimension_units={"concurrent_requests": 9, "requests_per_minute": 2},
+        now=datetime(2026, 9, 9, 12, 0, tzinfo=UTC),
+    )
+
+    assert result is None
+    db.flush()
+    windows = db.execute(select(ProviderQuotaWindow)).scalars().all()
+    assert {window.dimension: (window.reserved_units, window.consumed_units) for window in windows} == {
+        "concurrent_requests": (0, 0),
+        "requests_per_minute": (0, 0),
+    }
+
+
 def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
     tiingo = settings.PROVIDER_RATE_LIMIT_SEEDS["tiingo"]["quota_contract"]
     assert tiingo["untracked_constraints"][0]["reset"] == "calendar_month_est"

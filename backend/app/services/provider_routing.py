@@ -331,6 +331,16 @@ async def reserve_provider_contract(
         return None
     windows: list[ProviderQuotaWindow] = []
     reset = str((resolved.policy.quota_contract or {}).get("reset") or "")
+    in_flight_dimensions = {
+        str(item["name"])
+        for item in quota_dimensions(resolved.policy)
+        if str(item.get("unit") or "").strip().lower() in _IN_FLIGHT_UNITS
+    }
+    distinct_identity_dimensions = {
+        str(item["name"])
+        for item in quota_dimensions(resolved.policy)
+        if str(item.get("unit") or "").strip().lower() in _DISTINCT_IDENTITY_UNITS
+    }
     for dimension in quota_dimensions(resolved.policy):
         dimension_name = str(dimension["name"])
         dimension_unit = str(dimension.get("unit") or "").strip().lower()
@@ -361,12 +371,13 @@ async def reserve_provider_contract(
         if window is None:
             for prior in windows:
                 prior_name = str(prior.dimension)
-                prior_units = max(0, int((dimension_units or {}).get(prior_name, units)))
-                if prior_name in {
-                    str(item["name"])
-                    for item in quota_dimensions(resolved.policy)
-                    if str(item.get("unit") or "").lower() in _DISTINCT_IDENTITY_UNITS
-                }:
+                # Roll back the actual reservation amount. In-flight
+                # dimensions always reserve one slot, independent of an
+                # operation's request/credit workload units.
+                prior_units = 1 if prior_name in in_flight_dimensions else max(
+                    0, int((dimension_units or {}).get(prior_name, units))
+                )
+                if prior_name in distinct_identity_dimensions:
                     # The identity row is intentionally retained, so convert
                     # its reservation into consumption instead of releasing
                     # the window and allowing another symbol to overrun it.
