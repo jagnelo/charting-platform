@@ -78,7 +78,7 @@ def test_registered_providers_are_explicitly_quota_reviewed_or_intentionally_unk
 
 
 @pytest.mark.asyncio
-async def test_seed_records_fred_numeric_ceiling_without_inventing_scope_or_terms(db):
+async def test_seed_records_fred_v1_limit_as_unknown_without_applying_v2(db):
     async_db = AsyncSessionAdapter(db)
     await seed_provider_runtime(async_db)
     source = db.execute(select(DataSource).where(DataSource.name == "fred")).scalar_one()
@@ -89,15 +89,17 @@ async def test_seed_records_fred_numeric_ceiling_without_inventing_scope_or_term
         )
     ).scalar_one()
     assert policy.quota_contract is not None
-    dimension = policy.quota_contract["dimensions"][0]
-    assert dimension["limit"] == 120
-    assert dimension["window_seconds"] == 60
-    assert dimension["scope"] == "provider_defined"
+    assert policy.quota_contract["dimensions"] == []
     assert {
-        "rate_limit_scope",
+        "v1_numeric_rate_limit_and_scope",
         "provider_adjustable_limits",
         "series_terms_and_redistribution",
-    } <= set(policy.quota_contract["untracked_constraints"])
+    } <= set(policy.quota_contract["unknown_dimensions"])
+    assert {
+        "quota_contract.unknown_dimensions.v1_numeric_rate_limit_and_scope",
+        "quota_contract.unknown_dimensions.provider_adjustable_limits",
+        "quota_contract.unknown_dimensions.series_terms_and_redistribution",
+    } <= set(quota_contract_missing_dimensions(policy))
     assert policy.tokens_per_minute is None
     assert policy.burst_capacity is None
     assert policy.max_concurrency is None

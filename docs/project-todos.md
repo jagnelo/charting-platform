@@ -36,6 +36,12 @@ current capability/quota ledger.
       OTC Security Master, Tiingo, Twelve Data, Finnhub company profile,
       Marketstack, EODHD, and FMP (`13/13`). Fix the free-plan mismatches found
       by those probes instead of accepting skips or empty lists.
+- [x] Correct the FRED quota record after rechecking the official v1 and v2
+      documentation: v1 exposes rate-limit errors but no numeric ceiling or
+      enforcement scope, while the separate v2 2-requests/second rule must not
+      be applied to the v1 adapter. Unknown dimensions are now surfaced
+      explicitly and FRED remains non-routable until its v1 contract and terms
+      are reviewed.
 - [x] Correct EODHD's provider contract to distinguish its documented 1,000
       requests/minute transport ceiling from the separate 20 API-calls/day
       free-plan budget, and charge the documented 10-call fundamentals cost.

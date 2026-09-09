@@ -80,7 +80,7 @@ def routing_safety_preflight() -> dict[str, str]:
     # the byte-bound controls rather than letting a passing probe imply safe
     # routing.
     result["fred"] = (
-        "non-routable: FRED v1 rate-limit scope, adjustable-limit, and series-terms review required"
+        "non-routable: FRED v1 numeric rate limit/scope, adjustable-limit, and series-terms review required"
     )
     result["nasdaq"] = "non-routable: official public polling allowance is not published"
     result["xstocks"] = "non-routable: numeric public quota is not published"

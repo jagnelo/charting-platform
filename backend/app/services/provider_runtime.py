@@ -706,6 +706,12 @@ def quota_contract_missing_dimensions(policy: ProviderPolicy) -> list[str]:
         return ["quota_contract", "quota_scope", "quota_source"]
 
     missing: list[str] = []
+    unknown_dimensions = contract.get("unknown_dimensions")
+    if isinstance(unknown_dimensions, list):
+        for item in unknown_dimensions:
+            name = str(item or "unknown").strip()
+            if name:
+                missing.append(f"quota_contract.unknown_dimensions.{name}")
     untracked = contract.get("untracked_constraints")
     if isinstance(untracked, list):
         for item in untracked:
