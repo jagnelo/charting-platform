@@ -1086,7 +1086,12 @@ class MarketstackProvider(_RESTProvider):
         normalized = quote_type.strip().upper()
         if normalized not in {"EQUITY", "ETF"} or offset < 0:
             return {"total": 0, "quotes": []}
-        payload = self._get("tickers", {"exchange": "XNYS", "limit": 1000, "offset": offset})
+        exchange = str(getattr(settings, "MARKETSTACK_DISCOVERY_EXCHANGE", "") or "").strip().upper()
+        if not exchange:
+            raise ProviderNotConfiguredError(
+                "marketstack universe discovery requires MARKETSTACK_DISCOVERY_EXCHANGE"
+            )
+        payload = self._get("tickers", {"exchange": exchange, "limit": 1000, "offset": offset})
         rows = self._rows(payload, "data")
         quotes = []
         for row in rows:

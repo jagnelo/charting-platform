@@ -374,6 +374,35 @@ def test_marketstack_follows_response_pagination_and_reserves_each_page():
     assert estimate_marketstack_latest_ohlcv_request_count(Timeframe.D1, 100) == 2
 
 
+def test_marketstack_discovery_requires_explicit_exchange_and_preserves_scope():
+    provider = MarketstackProvider()
+    with patch("app.providers.optional_market_data.settings") as configured:
+        configured.MARKETSTACK_DISCOVERY_EXCHANGE = ""
+        with pytest.raises(ProviderNotConfiguredError, match="MARKETSTACK_DISCOVERY_EXCHANGE"):
+            provider.discover_universe_page("EQUITY", 0)
+
+    payload = {
+        "pagination": {"limit": 1000, "offset": 0, "count": 1, "total": 1},
+        "data": [
+            {
+                "symbol": "AAPL",
+                "name": "Apple Inc.",
+                "exchange": "XNAS",
+                "currency": "USD",
+            }
+        ],
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch.object(provider, "_get", return_value=payload) as get,
+    ):
+        configured.MARKETSTACK_DISCOVERY_EXCHANGE = "xnas"
+        page = provider.discover_universe_page("EQUITY", 0)
+
+    assert page["quotes"][0]["exchange"] == "XNAS"
+    assert get.call_args.args[1]["exchange"] == "XNAS"
+
+
 def test_fmp_uses_current_stable_history_endpoint():
     provider = FMPProvider()
     payload = [

@@ -13,6 +13,9 @@ current capability/quota ledger.
 - [x] Add durable multi-dimensional reservations, provider-reset-aware
       deferral, typed 429/418 handling, admin-visible quota state, and
       operation-cost fail-closed behavior for weighted/credit APIs.
+- [x] Remove Marketstack's implicit single-venue (`XNYS`) discovery default;
+      ticker discovery now requires an explicit operator-selected MIC/exchange
+      setting and remains supplementary to the authoritative NMS/OTC census.
 - [x] Replace undocumented Nasdaq quote/history calls with official Nasdaq
       Trader directory evidence; retain Coinbase/Kraken public crypto adapters,
       FINRA OAuth configuration, OTC Daily List lifecycle-event evidence, the

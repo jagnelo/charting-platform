@@ -109,6 +109,7 @@ class TestProviderRegistry:
     def test_otc_directory_is_in_the_default_universe_chain_but_requires_source_config(self):
         assert "finra_otc_directory" in settings.PROVIDER_CHAIN_SEEDS["universe_discovery"]
         assert provider_configuration_required("finra_otc_directory") is True
+        assert provider_configuration_required("marketstack") is True
 
     def test_otc_directory_configuration_is_fail_closed(self, monkeypatch):
         monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", "")
@@ -119,6 +120,13 @@ class TestProviderRegistry:
             "https://example.test/otc-directory.txt",
         )
         assert provider_is_configured("finra_otc_directory") is True
+
+    def test_marketstack_discovery_configuration_is_fail_closed(self, monkeypatch):
+        monkeypatch.setattr(settings, "MARKETSTACK_API_KEY", "demo")
+        monkeypatch.setattr(settings, "MARKETSTACK_DISCOVERY_EXCHANGE", "")
+        assert provider_is_configured("marketstack") is False
+        monkeypatch.setattr(settings, "MARKETSTACK_DISCOVERY_EXCHANGE", "XNAS")
+        assert provider_is_configured("marketstack") is True
 
     def test_yfinance_is_available_as_price_history_provider(self):
         provider = get_price_history_provider("yfinance")

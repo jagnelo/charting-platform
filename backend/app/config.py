@@ -1386,6 +1386,9 @@ class Settings(BaseSettings):
     TWELVE_DATA_API_KEY: str = ""
     FINNHUB_API_KEY: str = ""
     MARKETSTACK_API_KEY: str = ""
+    # Marketstack ticker discovery is venue-scoped. Do not silently default
+    # to one exchange or claim a whole-US universe without operator scope.
+    MARKETSTACK_DISCOVERY_EXCHANGE: str = ""
     EODHD_API_KEY: str = ""
     TRADIER_API_KEY: str = ""
     MARKETDATA_APP_API_KEY: str = ""

@@ -424,6 +424,9 @@ _AUTH_SETTINGS: dict[str, tuple[str, ...]] = {
 # than being mistaken for a valid keyless provider.
 _CONFIGURATION_SETTINGS: dict[str, tuple[str, ...]] = {
     "finra_otc_directory": ("FINRA_OTC_SYMBOL_DIRECTORY_URL",),
+    # A Marketstack ticker read must be explicitly scoped to a provider MIC.
+    # Without this, a single-venue default could be mistaken for US coverage.
+    "marketstack": ("MARKETSTACK_API_KEY", "MARKETSTACK_DISCOVERY_EXCHANGE"),
 }
 
 

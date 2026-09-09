@@ -35,6 +35,10 @@ PROVIDER_SAFETY_SETTINGS = {
     "TIINGO_OPERATION_BYTE_BOUNDS",
     "FMP_OPERATION_BYTE_BOUNDS",
 }
+PROVIDER_CONFIGURATION_SETTINGS = {
+    "FINRA_OTC_SYMBOL_DIRECTORY_URL",
+    "MARKETSTACK_DISCOVERY_EXCHANGE",
+}
 TOKENIZED_REFRESH_SETTINGS = {
     "TOKENIZED_ASSET_REFRESH_ENABLED",
     "TOKENIZED_ASSET_REFRESH_MAX_ASSETS",
@@ -69,6 +73,18 @@ def test_local_and_rpi_compose_pass_provider_safety_settings_to_backend_and_work
         worker = _service_environment(compose, "worker")
         research = _service_environment(compose, "research-runner")
         for name in PROVIDER_SAFETY_SETTINGS:
+            assert f"{name}:" in backend, (relative_path, "backend", name)
+            assert f"{name}:" in worker, (relative_path, "worker", name)
+            assert f"{name}:" not in research, (relative_path, "research-runner", name)
+
+
+def test_local_and_rpi_compose_pass_provider_configuration_to_backend_and_worker_only():
+    for relative_path in ("docker-compose.yml", "deploy/rpi/compose.yml"):
+        compose = (ROOT / relative_path).read_text()
+        backend = _service_environment(compose, "backend")
+        worker = _service_environment(compose, "worker")
+        research = _service_environment(compose, "research-runner")
+        for name in PROVIDER_CONFIGURATION_SETTINGS:
             assert f"{name}:" in backend, (relative_path, "backend", name)
             assert f"{name}:" in worker, (relative_path, "worker", name)
             assert f"{name}:" not in research, (relative_path, "research-runner", name)

@@ -212,6 +212,12 @@ configuration requirement. Until the three credential domains are supplied
 and their cases pass, the complete 30-case matrix remains an open acceptance
 gate.
 
+Marketstack history and discovery are intentionally separate gates: a key is
+enough for the bounded EOD history probe, while venue discovery also requires
+the non-secret `MARKETSTACK_DISCOVERY_EXCHANGE` MIC/exchange setting. The
+adapter no longer defaults discovery to `XNYS`, so a single-venue read cannot
+be mistaken for complete US listing coverage.
+
 The latest network-enabled rerun passed 26/30 cases with positive transport
 observations across every available keyless and credentialed adapter, including
 all five tokenized providers. Three failures were exact credential preflight
