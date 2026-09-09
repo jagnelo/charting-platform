@@ -9,6 +9,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
+import httpx
 import pytest
 
 from app.models.ohlcv import Timeframe
@@ -27,7 +28,7 @@ from app.providers.binance import (
 )
 from app.providers.coingecko import CoinGeckoProvider
 from app.providers.edgar import EdgarProvider, _ensure_ticker_map
-from app.providers.errors import ProviderNotConfiguredError
+from app.providers.errors import ProviderNotConfiguredError, ProviderRateLimitError
 from app.providers.fred import FREDProvider, fred_series_for, is_fred_symbol
 from app.providers.massive import MassiveProvider
 from app.providers.registry import (
@@ -574,6 +575,45 @@ class TestFREDOHLCVParsing:
         assert float(bars[0].open) == float(bars[0].close) == 4.52
         assert float(bars[0].high) == float(bars[0].low) == 4.52
         assert bars[0].volume is None
+
+    def test_http_429_is_typed_instead_of_becoming_empty_success(self):
+        provider = FREDProvider()
+        response = httpx.Response(
+            429,
+            headers={"retry-after": "2", "x-rate-limit-remaining": "0"},
+            request=httpx.Request("GET", "https://api.stlouisfed.org/fred/series/observations"),
+        )
+        with (
+            patch("app.providers.fred.settings") as mock_settings,
+            patch("app.providers.fred.httpx.get", return_value=response),
+        ):
+            mock_settings.FRED_API_KEY = "key"
+            with pytest.raises(ProviderRateLimitError) as exc_info:
+                provider.fetch_ohlcv(
+                    "^TNX",
+                    Timeframe.D1,
+                    datetime(2024, 1, 1, tzinfo=UTC),
+                    datetime(2024, 1, 10, tzinfo=UTC),
+                )
+
+        assert exc_info.value.provider_name == "fred"
+        assert exc_info.value.status_code == 429
+        assert exc_info.value.headers["retry-after"] == "2"
+
+    def test_latest_price_http_429_is_typed(self):
+        provider = FREDProvider()
+        response = httpx.Response(
+            429,
+            headers={"retry-after": "3"},
+            request=httpx.Request("GET", "https://api.stlouisfed.org/fred/series/observations"),
+        )
+        with (
+            patch("app.providers.fred.settings") as mock_settings,
+            patch("app.providers.fred.httpx.get", return_value=response),
+        ):
+            mock_settings.FRED_API_KEY = "key"
+            with pytest.raises(ProviderRateLimitError):
+                provider.get_current_price("^TNX")
 
 
 # ── CoinGecko ─────────────────────────────────────────────────────────────────

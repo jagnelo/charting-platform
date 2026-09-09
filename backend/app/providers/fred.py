@@ -31,6 +31,7 @@ import httpx
 
 from app.config import settings
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.providers.errors import ProviderRateLimitError
 from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
@@ -47,6 +48,27 @@ def _assert_key() -> bool:
         "Get a free key at fred.stlouisfed.org/docs/api/api_key.html and set it in .env.dev."
     )
     return False
+
+
+def _raise_typed_rate_limit(exc: httpx.HTTPStatusError) -> None:
+    """Preserve FRED capacity rejections for runtime quota accounting.
+
+    FRED's v1 terms do not publish a numeric quota that this adapter may
+    assume, but a 429/418 response is still provider-native evidence that the
+    current request must not be treated as an empty data set.  Headers remain
+    observational and are carried to the runtime without inventing a reset
+    window.
+    """
+
+    response = exc.response
+    if response.status_code not in {418, 429}:
+        return
+    raise ProviderRateLimitError(
+        "fred",
+        f"FRED request rejected for capacity (HTTP {response.status_code})",
+        status_code=response.status_code,
+        headers=dict(response.headers),
+    ) from exc
 
 
 # Canonical platform symbol → FRED series ID
@@ -123,6 +145,10 @@ class FREDProvider:
             observe_response(r)
             r.raise_for_status()
             observations = r.json().get("observations", [])
+        except httpx.HTTPStatusError as exc:
+            _raise_typed_rate_limit(exc)
+            logger.warning("fred fetch_ohlcv %s (%s): %s", symbol, series_id, exc)
+            return []
         except Exception as exc:
             logger.warning("fred fetch_ohlcv %s (%s): %s", symbol, series_id, exc)
             return []
@@ -205,6 +231,9 @@ class FREDProvider:
                 v = obs.get("value", ".")
                 if v != "." and v:
                     return float(v)
+        except httpx.HTTPStatusError as exc:
+            _raise_typed_rate_limit(exc)
+            logger.debug("fred get_current_price %s: %s", symbol, exc)
         except Exception as exc:
             logger.debug("fred get_current_price %s: %s", symbol, exc)
         return None
