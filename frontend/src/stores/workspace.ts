@@ -513,8 +513,10 @@ export interface BenchmarkFamilyCoverageSnapshotState {
   composition_date: string
   as_of_date?: string | null
   known_at?: string | null
+  published_at?: string | null
   provenance: string
   source_provider: string
+  source_identifier?: string | null
   source_quality: string
   completeness_status: string
   row_count: number

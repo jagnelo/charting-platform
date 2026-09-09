@@ -2387,7 +2387,7 @@ function familyContinuityLabel(role: { continuity_status?: string; continuity_ga
   const label = labels[status] ?? status
   return role.continuity_snapshot_limit_reached ? `${label} · window capped` : label
 }
-function familyLatestDisclosureLabel(role: { snapshots?: Array<{ composition_date?: string | null; as_of_date?: string | null; known_at?: string | null; source_provider?: string | null; row_count?: number | null; resolved_count?: number | null; unresolved_count?: number | null }> }) {
+function familyLatestDisclosureLabel(role: { snapshots?: Array<{ composition_date?: string | null; as_of_date?: string | null; known_at?: string | null; published_at?: string | null; source_provider?: string | null; source_identifier?: string | null; row_count?: number | null; resolved_count?: number | null; unresolved_count?: number | null }> }) {
   const snapshot = [...(role.snapshots ?? [])]
     .sort((left, right) => String(right.composition_date ?? '').localeCompare(String(left.composition_date ?? '')))[0]
   if (!snapshot) return 'no latest disclosure'
@@ -2398,8 +2398,10 @@ function familyLatestDisclosureLabel(role: { snapshots?: Array<{ composition_dat
     ? `${resolvedCount}/${rowCount} resolved${Number.isFinite(unresolvedCount) && unresolvedCount > 0 ? ` · ${unresolvedCount} unresolved` : ''}`
     : 'resolution unavailable'
   const asOf = snapshot.as_of_date ? ` · as of ${snapshot.as_of_date}` : ''
+  const publishedAt = snapshot.published_at ? ` · published ${snapshot.published_at}` : ''
   const knownAt = snapshot.known_at ? ` · known ${snapshot.known_at}` : ''
-  return `latest ${snapshot.composition_date ?? 'date unavailable'}${asOf}${knownAt} · ${counts} · ${snapshot.source_provider?.trim() || 'source unavailable'}`
+  const sourceIdentifier = snapshot.source_identifier ? ` · source ${snapshot.source_identifier}` : ''
+  return `latest ${snapshot.composition_date ?? 'date unavailable'}${asOf}${publishedAt}${knownAt} · ${counts} · ${snapshot.source_provider?.trim() || 'source unavailable'}${sourceIdentifier}`
 }
 function familyMemberBarHistoryLabel(role: { member_bar_history?: { status?: string; placeholder_member_count?: number; timeframes?: Array<{ timeframe: string; required_bar_count?: number; covered_member_count: number; member_count: number; analysis_ready_member_count: number }> } }) {
   const history = role.member_bar_history
@@ -2473,6 +2475,9 @@ function familyCanonicalRoleEvidenceLabel(coverage: BenchmarkFamilyCoverageState
     const snapshotEvidence = snapshot
       ? ` · snapshot ${snapshot.composition_date?.slice(0, 10) || 'date not reported'}${snapshot.as_of_date ? ` · as-of ${snapshot.as_of_date.slice(0, 10)}` : ''}${snapshot.known_at ? ` · known ${snapshot.known_at.slice(0, 10)}` : ''} · provenance ${snapshot.provenance?.trim() || 'not reported'} · source quality ${snapshot.source_quality?.trim() || 'not reported'} · completeness ${snapshot.completeness_status?.trim() || 'not reported'} · rows ${Number.isFinite(snapshot.row_count) ? snapshot.row_count : 'not reported'} · resolved ${Number.isFinite(snapshot.resolved_count) ? snapshot.resolved_count : 'not reported'} · unresolved ${Number.isFinite(snapshot.unresolved_count) ? snapshot.unresolved_count : 'not reported'}`
       : ' · snapshot evidence unavailable'
+    const snapshotSourceEvidence = snapshot
+      ? `${snapshot.published_at ? ` · published ${snapshot.published_at.slice(0, 10)}` : ''}${snapshot.source_provider ? ` · provider ${snapshot.source_provider.trim()}` : ''}${snapshot.source_identifier ? ` · source ${snapshot.source_identifier}` : ''}`
+      : ''
     const continuityStatus = role.continuity_status?.trim()?.replace(/_/g, ' ') || 'not reported'
     const continuityGaps = (role.continuity_gaps ?? []).map(gap => `${gap.from_date.slice(0, 10)} to ${gap.to_date.slice(0, 10)} (${gap.interval_days}d)`).join(', ')
     const continuityEvidence = ` · continuity ${continuityStatus}${role.continuity_gap_count ? ` · ${role.continuity_gap_count} gap${role.continuity_gap_count === 1 ? '' : 's'}` : ''}${role.continuity_max_interval_days ? ` · max ${role.continuity_max_interval_days}d` : ''}${continuityGaps ? ` · intervals ${continuityGaps}` : ''}${role.continuity_snapshot_limit_reached ? ' · snapshot window capped' : ''}`
@@ -2485,7 +2490,7 @@ function familyCanonicalRoleEvidenceLabel(coverage: BenchmarkFamilyCoverageState
     const barHistory = (role.member_bar_history?.timeframes ?? []).map(item => `${item.timeframe} ${item.analysis_ready_member_count}/${item.member_count} analysis-ready · ${item.covered_member_count} covered · ${item.bar_count} bars${item.required_bar_count ? ` · floor ${item.required_bar_count}` : ''}${item.oldest || item.newest ? ` · range ${item.oldest?.slice(0, 10) || 'unknown'} to ${item.newest?.slice(0, 10) || 'unknown'}` : ''}`).join(', ') || 'not reported'
     const reasons = role.composite_readiness_reasons?.join(', ') || 'not reported'
     const readinessEvidence = ` · availability ${availability} · status ${role.status ?? 'not reported'} · history bars ${barHistory} · route ${route} · history route ${historyRoute} · refresh ${refresh} · entitlement ${entitlement} · readiness reasons ${reasons}`
-    return `${name} · verification ${verification} · adapter ${adapter}${adapterStatus ? ` (${adapterStatus})` : ''}${confidence ? ` · ${confidence}` : ''} · ${members}${placeholders} · ${weighted} · ${classified} · ${pointInTime} · ${history} · readiness ${role.composite_readiness_status ?? 'unknown'}${snapshotEvidence}${continuityEvidence} · capabilities ${entitlementCapabilities}${readinessEvidence}`
+    return `${name} · verification ${verification} · adapter ${adapter}${adapterStatus ? ` (${adapterStatus})` : ''}${confidence ? ` · ${confidence}` : ''} · ${members}${placeholders} · ${weighted} · ${classified} · ${pointInTime} · ${history} · readiness ${role.composite_readiness_status ?? 'unknown'}${snapshotEvidence}${continuityEvidence} · capabilities ${entitlementCapabilities}${snapshotSourceEvidence}${readinessEvidence}`
   }).join('; ')}`
 }
 function latestFamilyRatio(ratio: { points: Array<{ value: number }> }) {

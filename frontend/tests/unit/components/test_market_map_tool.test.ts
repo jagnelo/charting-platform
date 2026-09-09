@@ -2,8 +2,9 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { apiGet, apiPost, loadWatchlistSources, loadWatchlists, resolveWatchlistSource, createWatchlist, addItem, loadUserSettings, toggleFollowedSource, togglePinnedSource, invalidateQueries } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), loadWatchlistSources: vi.fn(), loadWatchlists: vi.fn(), resolveWatchlistSource: vi.fn(), createWatchlist: vi.fn(), addItem: vi.fn(), loadUserSettings: vi.fn(), toggleFollowedSource: vi.fn(), togglePinnedSource: vi.fn(), invalidateQueries: vi.fn() }))
+const defaultSources = vi.hoisted(() => [{ source_id: 'market-group:sp500', source_kind: 'index_membership', name: 'S&P 500', locked: true, can_follow: true, can_clone: true, can_edit_membership: false, member_count: 2, provenance: {} }])
 const sourceState = vi.hoisted(() => ({
-  sources: [{ source_id: 'market-group:sp500', source_kind: 'index_membership', name: 'S&P 500', locked: true, can_follow: true, can_clone: true, can_edit_membership: false, member_count: 2, provenance: {} }],
+  sources: defaultSources,
   watchlists: [],
   loading: false,
   error: '',
@@ -35,6 +36,7 @@ describe('MarketMapTool', () => {
     toggleFollowedSource.mockReset()
     togglePinnedSource.mockReset()
     invalidateQueries.mockReset()
+    sourceState.sources = [...defaultSources]
     sourceState.watchlists = []
     apiPost.mockResolvedValue(response)
     apiGet.mockResolvedValue([])
