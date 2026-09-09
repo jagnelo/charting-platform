@@ -138,6 +138,7 @@ progress:
     - Nasdaq Trader directory polling preserves provider `ETag`/`Last-Modified` validators and reuses parsed files on `304 Not Modified`; this reduces bandwidth without inferring an undocumented polling quota, so routing remains gated on the unknown contract
     - local and RPi Compose backend/worker environments now pass the FINRA async result bound and Tiingo/FMP operation-byte maps; research-runner receives none, with regression coverage for the trusted-process boundary
     - Bybit V5 and Gate stock response-limit headers are reconciled into durable usage totals only when they exactly match the reviewed coarse contract; additional endpoint/UID/account constraints remain fail-closed and non-routable
+    - tokenized live probes require positive transport request/response-byte observations for each public tokenized adapter, alongside normalized metadata/quote assertions
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: full live matrix requires the three remaining credential domains (Alpaca, Tradier, MarketData.app); the GitHub `jagnelo` live environment is not externally verifiable until owner authentication is restored; FINRA OTC source terms/redistribution approval, complete reviewed Tiingo/FMP byte maps, complete NMS/OTC reconciliation, and shadow activation remain post-deployment or operator-review gates; each deployment must also provide its own non-secret SEC User-Agent
