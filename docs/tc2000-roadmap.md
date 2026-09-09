@@ -5,6 +5,21 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-09
 
+## 2026-09-09 — Constituent timelines follow effective-date revisions
+
+Constituent history now selects the latest known disclosure for each effective
+composition date before emitting the timeline. Corrected same-date disclosures
+remain available in source history, while the constituent chart no longer shows
+duplicate dates or revision-only points. The focused Docker-backed regression
+passed `1/1`. At commit `e228f13d`, the exact gate passed backend
+unit/integration (`1,370`/`387`, `81.06%` combined coverage), frontend Vitest
+(`975/975`), build, contracts, probes, stack health, and functional Playwright
+(`165` passed, `107` documented skips). Visual parity remains `98/104` with the
+six established state-oracle diffs; scoped teardown was clean. R1 still needs
+full family population, placeholder disposition, explicit cadence/effective-time
+evidence, adjustment-factor/version provenance, raw-versus-derived decisions,
+and R2-R7.
+
 ## 2026-09-09 — Weight evolution follows effective-date revisions
 
 Weight-evolution analytics now use the same latest-known-per-composition-date

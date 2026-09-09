@@ -8,6 +8,24 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-09 — Constituent timeline revision checkpoint
+
+Product commit `e228f13d` applies latest-known-per-composition-date revision
+selection to constituent timelines. Same-date disclosures remain auditable but
+the analytical series now emits one point per effective date, matching rebalance
+transitions and weight evolution. The focused Docker-backed regression passed
+`1/1`; the exact gate passed backend unit/integration (`1,370`/`387`, `81.06%`),
+frontend Vitest (`975/975`), build, contracts, probes, stack health, and
+functional Playwright (`165` passed, `107` documented skips). Visual parity
+remains `98/104` with the six established diffs. Docker teardown was clean and
+no other worktree was touched.
+
+R1 remains open for full canonical family population, placeholder disposition,
+explicit cadence/effective-time evidence, adjustment-factor/version provenance,
+and raw-versus-derived storage decisions. R2-R7 remain open. Next action:
+continue the bounded family-member and point-in-time provenance audit, implement
+the next evidence-backed seam, run focused checks, and rerun the exact gate.
+
 ## 2026-09-09 — Rebalance revision-continuity checkpoint
 
 Product commit `c0e8ea24` keeps same-date holdings revisions auditable while
