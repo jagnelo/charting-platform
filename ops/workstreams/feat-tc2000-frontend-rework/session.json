@@ -110,14 +110,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "caff874bb4b1a25acd52c53a6d9581525d412f41",
-  "implementation_sha": "caff874bb4b1a25acd52c53a6d9581525d412f41",
+  "head": "83bcb7227c05da6ea62a8cb3b71bd0eb0a39ab7e",
+  "implementation_sha": "83bcb7227c05da6ea62a8cb3b71bd0eb0a39ab7e",
   "interrupted": false,
-  "last_checkpoint": "2026-09-09T17:01:28Z",
-  "last_human_progress_update": "2026-09-09T17:01:28Z",
+  "last_checkpoint": "2026-09-09T17:31:00Z",
+  "last_human_progress_update": "2026-09-09T17:31:00Z",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded evidence-backed R1 or compatible Study target slice; preserve the six visual state-oracle assertions and provider/fallback rules and rerun the exact gate at the next coherent tip.",
-  "plan_hash": "1a7209e88ea0d4d734a0f8b12f48ef712b6fd2723323bd72692b19373a836b0e",
+  "plan_hash": "e65a06d88e6dcc7f9df0e736e65a2e8119d17df464a5d2461ece718c22d76550",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -129,11 +129,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Canonical family/provider-history readiness remains partial; OHLCV ranges now expose provider/derived lineage and explicit opaque/inherited adjustment status, but factor version, raw-versus-derived storage separation, complete family history, and broader continuity remain unresolved. Pop-out documents now have named focusable landmarks with deterministic keyboard focus. The fresh-stack F8u-boolean reproduction passed; the exact tip gate is green except six established visual diffs.",
+    "current_blocker": "Canonical family/provider-history readiness remains partial; OHLCV ranges now expose provider/derived lineage and explicit opaque/inherited adjustment status, but factor version, raw-versus-derived storage separation, complete family history, and broader continuity remain unresolved. Pop-out documents now have named focusable landmarks with deterministic keyboard focus and an accessible browser/OS window-management disclosure. The fresh-stack F8u-boolean reproduction passed; the exact tip gate is green except six established visual diffs.",
     "current_phase": "R1_canonical_provider_history_readiness",
     "next_action": "Continue the next bounded evidence-backed R1 or compatible Study target slice; preserve the six visual state-oracle assertions and provider/fallback rules and rerun the exact gate at the next coherent tip.",
     "total": 10,
-    "updated_at": "2026-09-09T17:01:28Z"
+    "updated_at": "2026-09-09T17:31:00Z"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

@@ -5,6 +5,30 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-09
 
+## 2026-09-09 — Browser-managed pop-out boundary disclosure
+
+At product commit `83bcb722`, hydrated workstation pop-outs now expose an
+accessible description stating that placement across monitors and window
+controls are browser/operating-system managed. The disclosure is hidden from
+the visual surface, keeps the named focusable landmark and post-hydration
+focus introduced by `caff874b`, and avoids implying that the application can
+control native window placement. The focused pop-out view suite passed `27/27`;
+frontend type-check and diff checks passed.
+
+The unchanged exact Docker-backed gate rerun passed every non-visual stage and
+the full functional matrix (`165` passed, `107` documented skips across
+`272`). Visual parity completed `104` cases with `98` passes and exactly the
+same six established state-oracle diffs: `watchlist-column-editor-open.png` at
+visual-1080p-100/125 and `workspace-floating.png` at visual-1080p-100/125 and
+visual-1440p-100/125. The gate exits at `e2e-visual` only for those unchanged
+diffs; scoped teardown removed all assigned containers, volumes, images, and
+test sessions cleanly.
+
+No visual baseline, mask, threshold, skip, provider, fallback, or acceptance
+policy changed. R1 canonical family/provider-history readiness and R2-R7
+evidence remain open; continue the next bounded evidence-backed R1 or
+compatible Study target slice.
+
 ## 2026-09-09 — Pop-out landmark and transient Boolean promotion
 
 At product commit `caff874b`, hydrated workstation pop-outs now expose a named,
