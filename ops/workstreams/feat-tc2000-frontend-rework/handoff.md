@@ -8,6 +8,36 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-09 — Study artifact accessibility checkpoint
+
+Product commit `44496b2a` adds a shared non-visual description utility for
+Study Lab and persisted Study Results. It reports artifact shape and finite /
+missing coverage for scalar/boolean, series, range, table, bar, histogram,
+scatter, heatmap, dashboard, event, and breadth-history results. The consumer
+regions retain their existing pixels, layout, immutability, promotion,
+provider, fallback, and visual-policy contracts.
+
+Focused accessibility and consumer tests passed `64/64`; frontend type-check
+and diff check passed. One initial full-gate run hit an isolated `F8u-filter`
+snapshot-response timeout; the same case passed in an isolated rerun (`5.2s`),
+and the complete exact gate was rerun successfully through functional
+validation. Backend unit/integration passed `1,371`/`387` with `81.09%`
+combined coverage; frontend Vitest passed `983/983`; build, contracts,
+provider/runner probes, stack health, performance, uPlot, acceptance policy,
+and functional Playwright (`165` passed, `107` documented skips across `272`)
+passed. Visual parity remains `98/104` with only the six established
+watchlist-column-editor-open/workspace-floating diffs, so the gate exits at
+e2e-visual for that known boundary. Teardown removed all scoped resources and
+test sessions cleanly. No other worktree was touched, and no visual baseline,
+provider, fallback, or acceptance policy changed.
+
+R1 remains active for complete canonical family/provider history population,
+placeholder disposition, cadence/effective-time evidence beyond the timing
+metadata, adjustment-factor/version provenance, raw-versus-derived storage,
+and broader W1/MN coverage. R2-R7 remain open. Next action: continue the next
+bounded evidence-backed R1 or compatible Study target slice, then rerun the
+exact gate at the next coherent tip.
+
 ## 2026-09-09 — Chart history provenance accessibility checkpoint
 
 Product commit `960fd82f` carries the existing OHLCV derived/source lineage

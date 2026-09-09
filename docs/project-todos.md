@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-09-09 — Study artifact accessibility
+
+- [x] Add shared assistive summaries for scalar/boolean/series/range/table/bar,
+      histogram/scatter/heatmap/dashboard/events/breadth-history artifacts.
+- [x] Wire summaries into Study Lab and persisted research-result regions
+      without changing visual output or promotion contracts.
+- [ ] Extend R6 accessibility proof across native windows and full live
+      canonical workflows.
+
 ### 2026-09-09 — Chart history provenance accessibility
 
 - [x] Carry OHLCV derived/source fields into the typed chart contract.

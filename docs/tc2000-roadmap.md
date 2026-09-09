@@ -5,6 +5,38 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-09
 
+## 2026-09-09 — Exact-tip gate after Study artifact accessibility
+
+At product commit `44496b2a`, Study Lab and persisted Study Results now share
+one non-visual accessibility description for scalar/boolean values, aligned
+series coverage, ranges, tables, bars, histograms, scatter pairs, heatmaps,
+dashboards, events, and breadth-history artifacts. The summaries state the
+shape and finite/missing coverage without changing rendered pixels, layout,
+artifact immutability, promotion contracts, provider precedence, fallback
+behavior, or visual policy.
+
+The focused accessibility and consumer regressions passed `64/64`; frontend
+type-check and diff check passed. An initial full-gate browser run had one
+isolated `F8u-filter` timeout while waiting for a workspace snapshot response;
+the same case passed independently against a freshly rebuilt stack in `5.2s`.
+The complete exact Docker-backed gate was then rerun: backend unit/integration
+passed (`1,371`/`387`), combined backend coverage was `81.09%`, frontend
+Vitest passed `983/983`, build, compose/provider/runner and health probes,
+performance, uPlot, and acceptance-policy checks passed, and functional
+Playwright passed `165` with `107` documented skips across `272`. Visual
+parity remains `98/104` with exactly the six established state-oracle diffs:
+`watchlist-column-editor-open.png` at visual-1080p-100/125 and
+`workspace-floating.png` at visual-1080p-100/125 and 1440p-100/125. The gate
+therefore exits at the visual stage only for those pre-existing diffs; scoped
+teardown removed all stack resources and test sessions cleanly. No baseline,
+mask, threshold, skip, visual, provider, fallback, or acceptance policy
+changed.
+
+R1 remains open for full canonical family population, W1/MN provider history,
+placeholder disposition, explicit cadence/effective-time evidence beyond the
+timing metadata, and rebuildable adjustment-factor/raw-versus-derived storage
+provenance; R2-R7 remain open.
+
 ## 2026-09-09 — Exact-tip gate after chart history provenance accessibility
 
 At product commit `960fd82f`, the typed OHLCV chart contract now retains the
