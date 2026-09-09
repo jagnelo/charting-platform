@@ -301,9 +301,7 @@ async def build_watchlist_source_history_status(
             round((covered_count / len(instrument_ids)) * 100, 2) if instrument_ids else 0.0
         )
         lineage_rows = list(lineage_by_timeframe.get(timeframe.value, {}).values())
-        provider_member_count = sum(
-            1 for item in lineage_rows if item["provider_bar_count"] > 0
-        )
+        provider_member_count = sum(1 for item in lineage_rows if item["provider_bar_count"] > 0)
         derived_member_count = sum(1 for item in lineage_rows if item["derived_bar_count"] > 0)
         provider_only_member_count = sum(
             1
