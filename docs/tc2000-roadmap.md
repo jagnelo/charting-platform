@@ -5,6 +5,22 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-09
 
+## 2026-09-09 — Derived coarse coverage now has canonical state lineage
+
+Derived W1/MN materialization now writes provider-neutral `InstrumentDatasetState`
+records alongside the derived rows. Coverage consumers can therefore see the
+source timeframe (`D1`), deterministic aggregation method, adjustment mode,
+derived-row count, excluded provider-period count, coverage bounds, freshness
+status, and materialization version without inferring provenance from individual
+bars. Focused derivation/coverage coverage passes `7/7`. At commit `da12b587`,
+the exact gate passed backend unit/integration (`1,370`/`387`, `81.06%` combined
+coverage), frontend Vitest (`975/975`), build, contracts, probes, stack health,
+and functional Playwright (`165` passed, `107` documented skips). Visual parity
+remains `98/104` with the six established state-oracle diffs; scoped teardown
+was clean. This is an R1 provenance/readiness closure for derived coarse data
+only; full family population, point-in-time adjustment provenance/continuity,
+and R2-R7 remain open.
+
 ## 2026-09-09 — Queue historical bounds are timezone-safe
 
 Canonical history queue payloads now normalize the requested historical end
