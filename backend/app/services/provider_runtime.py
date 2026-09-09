@@ -776,7 +776,11 @@ def policy_has_known_quota(policy: ProviderPolicy) -> bool:
     """Whether this policy has a complete contract suitable for routing."""
 
     contract = policy.quota_contract or {}
-    return bool(quota_dimensions(policy)) and not bool(contract.get("untracked_constraints"))
+    return (
+        bool(quota_dimensions(policy))
+        and not bool(contract.get("unknown_dimensions"))
+        and not bool(contract.get("untracked_constraints"))
+    )
 
 
 def _retry_at_from_headers(headers: Any, *, now: datetime | None = None) -> datetime | None:

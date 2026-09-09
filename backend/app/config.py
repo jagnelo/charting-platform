@@ -236,13 +236,23 @@ class Settings(BaseSettings):
         },
         "fred": {
             "quota_contract": {
-                # FRED v1 documents that rate limiting exists and returns
-                # HTTP 429, but does not publish a numeric ceiling or its
-                # enforcement scope. FRED v2's separate 2-requests/second
-                # rule must not be applied to this v1 adapter.
-                "dimensions": [],
+                # FRED v1 documents a 120-requests/minute threshold before
+                # HTTP 429, but does not publish its enforcement scope. FRED
+                # v2's separate 2-requests/second rule must not be applied to
+                # this v1 adapter.
+                "dimensions": [
+                    {
+                        "name": "requests_per_minute",
+                        "limit": 120,
+                        "window_seconds": 60,
+                        "unit": "requests",
+                        "scope": "provider_defined",
+                        "source": "https://fred.stlouisfed.org/docs/api/fred/errors.html",
+                        "reset": "rolling",
+                    }
+                ],
                 "unknown_dimensions": [
-                    "v1_numeric_rate_limit_and_scope",
+                    "v1_enforcement_scope",
                     "provider_adjustable_limits",
                     "series_terms_and_redistribution",
                 ],

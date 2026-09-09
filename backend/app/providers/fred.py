@@ -11,11 +11,11 @@ Mapped symbols (platform canonical → FRED series ID):
   Macro           : FEDFUNDS, CPIAUCSL, UNRATE, GDP, T10YIE, VIXCLS
 
 Auth: FRED_API_KEY (free — register at fred.stlouisfed.org/docs/api/api_key.html).
-Rate limits: the deployed v1 endpoint does not provide a fixed contract that
-the runtime can safely assume. FRED v2 documents a two-requests-per-second
-threshold, but that does not automatically apply to this v1 adapter; the
-provider therefore remains non-routable until the deployed endpoint's terms
-are verified and recorded.
+Rate limits: FRED v1 documents up to 120 requests per minute before HTTP 429,
+but does not publish the enforcement scope and permits provider-adjustable
+limits. FRED v2 documents a separate two-requests-per-second threshold, but
+that does not automatically apply to this v1 adapter; the provider therefore
+remains non-routable until the v1 scope and terms are verified and recorded.
 
 FRED returns single scalar observations, not OHLCV.  open=high=low=close=value
 so bars integrate cleanly with the existing OHLCVBar model.
@@ -59,11 +59,11 @@ def _assert_key() -> None:
 def _raise_typed_rate_limit(exc: httpx.HTTPStatusError) -> None:
     """Preserve FRED capacity rejections for runtime quota accounting.
 
-    FRED's v1 terms do not publish a numeric quota that this adapter may
-    assume, but a 429/418 response is still provider-native evidence that the
-    current request must not be treated as an empty data set.  Headers remain
-    observational and are carried to the runtime without inventing a reset
-    window.
+    FRED v1 documents a 120-requests/minute threshold, but its enforcement
+    scope and provider-adjustable limits remain unresolved. A 429/418 response
+    is still provider-native evidence that the current request must not be
+    treated as an empty data set. Headers remain observational and are carried
+    to the runtime without inventing a reset window.
     """
 
     response = exc.response

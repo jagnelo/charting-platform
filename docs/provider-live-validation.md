@@ -148,9 +148,11 @@ credential budget and settle to measured bytes; its asynchronous
 submit/poll/presigned-download path is implemented as a documentation-faithful
 direct adapter. A positive `FINRA_ASYNC_MAX_RESULT_BYTES` promotes the signed
 download operation into the durable monthly byte reservation; the default `0`
-remains non-routable because provider results are otherwise unbounded. FRED v1 and Nasdaq Trader remain non-routable because
-their official documentation publishes throttling behavior without a numeric
-ceiling. IBKR remains a descriptor without an authenticated account adapter.
+remains non-routable because provider results are otherwise unbounded. FRED v1
+records the official 120-requests/minute threshold but remains non-routable
+while its enforcement scope, adjustable limits, and terms are unresolved;
+Nasdaq Trader's polling allowance remains unpublished. IBKR remains a
+descriptor without an authenticated account adapter.
 
 The public tokenized matrix is maintained separately in
 `tests/live/test_tokenized_providers_live.py`. It covers xStocks, Robinhood

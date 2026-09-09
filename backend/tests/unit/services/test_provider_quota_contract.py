@@ -78,7 +78,7 @@ def test_registered_providers_are_explicitly_quota_reviewed_or_intentionally_unk
 
 
 @pytest.mark.asyncio
-async def test_seed_records_fred_v1_limit_as_unknown_without_applying_v2(db):
+async def test_seed_records_fred_v1_numeric_limit_without_applying_v2(db):
     async_db = AsyncSessionAdapter(db)
     await seed_provider_runtime(async_db)
     source = db.execute(select(DataSource).where(DataSource.name == "fred")).scalar_one()
@@ -89,14 +89,24 @@ async def test_seed_records_fred_v1_limit_as_unknown_without_applying_v2(db):
         )
     ).scalar_one()
     assert policy.quota_contract is not None
-    assert policy.quota_contract["dimensions"] == []
+    assert policy.quota_contract["dimensions"] == [
+        {
+            "name": "requests_per_minute",
+            "limit": 120,
+            "window_seconds": 60,
+            "unit": "requests",
+            "scope": "provider_defined",
+            "source": "https://fred.stlouisfed.org/docs/api/fred/errors.html",
+            "reset": "rolling",
+        }
+    ]
     assert {
-        "v1_numeric_rate_limit_and_scope",
+        "v1_enforcement_scope",
         "provider_adjustable_limits",
         "series_terms_and_redistribution",
     } <= set(policy.quota_contract["unknown_dimensions"])
     assert {
-        "quota_contract.unknown_dimensions.v1_numeric_rate_limit_and_scope",
+        "quota_contract.unknown_dimensions.v1_enforcement_scope",
         "quota_contract.unknown_dimensions.provider_adjustable_limits",
         "quota_contract.unknown_dimensions.series_terms_and_redistribution",
     } <= set(quota_contract_missing_dimensions(policy))
