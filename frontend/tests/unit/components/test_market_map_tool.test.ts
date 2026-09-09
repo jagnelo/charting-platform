@@ -293,6 +293,9 @@ describe('MarketMapTool', () => {
       selected_instrument_count: 2,
       limited: false,
       excluded_count: 0,
+      effective_at: '2026-01-01T00:00:00Z',
+      known_at: '2026-01-02T00:00:00Z',
+      timing_provenance: { effective_at: 'provider_reported', known_at: 'provider_reported' },
       overall_status: 'partial',
       analysis_ready: false,
       analysis_ready_status: 'partial',
@@ -316,6 +319,7 @@ describe('MarketMapTool', () => {
     expect(wrapper.find('[aria-label="Market Map history readiness"]').text()).toContain('analysis-ready 0/2 (floor 252)')
     expect(wrapper.find('[aria-label="Market Map history readiness"]').text()).toContain('3 bars · range 2025-01-01 → 2026-06-30')
     expect(wrapper.get('[aria-label="Market Map history member disposition evidence"]').text()).toContain('canonical 1, excluded 4, placeholder 2, unresolved 3')
+    expect(wrapper.get('[aria-label="Market Map history membership timing evidence"]').text()).toContain('effective 2026-01-01T00:00:00Z · known 2026-01-02T00:00:00Z · provenance effective at=provider reported, known at=provider reported')
     expect(wrapper.get('[aria-label="Market Map history lineage evidence"]').text()).toContain('D1 provider and derived · members provider 1, derived 1 · provider-only 0, derived-only 0, mixed 1 · bars provider 2, derived 1')
     await wrapper.get('[aria-label="Refresh Market Map history"]').trigger('click')
     await flushPromises()

@@ -116,6 +116,9 @@ async def plan_watchlist_source_history_refresh(
                     "excluded_count": 0,
                     "member_disposition": dict.fromkeys(MEMBER_DISPOSITION_KEYS, 0),
                     "membership_version": None,
+                    "effective_at": None,
+                    "known_at": None,
+                    "timing_provenance": {},
                     "message": str(exc),
                 }
             )
@@ -131,6 +134,9 @@ async def plan_watchlist_source_history_refresh(
             selected_count += 1
 
         provenance = getattr(resolved.descriptor, "provenance", None) or {}
+        timing_provenance = provenance.get("timing_provenance")
+        if not isinstance(timing_provenance, dict):
+            timing_provenance = {}
         availability = str(provenance.get("availability") or "")
         source_status = (
             "ready"
@@ -152,6 +158,9 @@ async def plan_watchlist_source_history_refresh(
                     members, resolved.descriptor, list(resolved.exclusions)
                 ),
                 "membership_version": resolved.descriptor.membership_version,
+                "effective_at": getattr(resolved.descriptor, "effective_at", None),
+                "known_at": getattr(resolved.descriptor, "known_at", None),
+                "timing_provenance": timing_provenance,
                 "message": (
                     None
                     if members
@@ -410,6 +419,9 @@ async def build_watchlist_source_history_status(
         "member_disposition": source.get(
             "member_disposition", dict.fromkeys(MEMBER_DISPOSITION_KEYS, 0)
         ),
+        "effective_at": source.get("effective_at"),
+        "known_at": source.get("known_at"),
+        "timing_provenance": source.get("timing_provenance", {}),
         "overall_status": overall_status,
         "analysis_ready": analysis_ready,
         "analysis_ready_status": analysis_ready_status,

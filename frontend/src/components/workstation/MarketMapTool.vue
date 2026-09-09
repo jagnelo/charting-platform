@@ -198,6 +198,7 @@
         <span v-if="historyStatus.limited">Bounded to {{ historyStatus.selected_instrument_count }} of {{ historyStatus.available_instrument_count }}</span>
         <span v-if="historyRefreshMessage" role="status">{{ historyRefreshMessage }}</span>
         <span class="sr-only" aria-label="Market Map history member disposition evidence">{{ watchlistHistoryDispositionLabel(historyStatus) }}</span>
+        <span class="sr-only" aria-label="Market Map history membership timing evidence">{{ watchlistHistoryTimingLabel(historyStatus) }}</span>
         <span class="sr-only" aria-label="Market Map history lineage evidence">{{ watchlistHistoryLineageLabel(historyStatus) }}</span>
       </template>
       <span v-if="historyRun" class="market-map-tool__history-run" role="status">Run {{ historyRun.id }} · {{ historyRun.status }}<template v-if="historyRun.progress"> · {{ historyRunProgress }}</template></span>
@@ -690,6 +691,16 @@ function watchlistHistoryDispositionLabel(status: WatchlistSourceHistoryStatus):
     .map(([key, value]) => `${key} ${value}`)
     .join(', ')
   return disposition ? `Member disposition: ${disposition}` : 'Member disposition: not reported'
+}
+
+function watchlistHistoryTimingLabel(status: WatchlistSourceHistoryStatus): string {
+  const effective = status.effective_at ? `effective ${status.effective_at}` : 'effective not reported'
+  const known = status.known_at ? `known ${status.known_at}` : 'known not reported'
+  const timing = Object.entries(status.timing_provenance ?? {})
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${key.replace(/_/g, ' ')}=${value.replace(/_/g, ' ')}`)
+    .join(', ')
+  return `Membership timing: ${effective} · ${known} · provenance ${timing || 'not reported'}`
 }
 
 function watchlistHistoryLineageLabel(status: WatchlistSourceHistoryStatus): string {

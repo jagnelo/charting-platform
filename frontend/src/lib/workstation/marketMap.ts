@@ -156,6 +156,9 @@ export interface WatchlistSourceHistoryStatus {
   limited: boolean
   excluded_count: number
   member_disposition?: Record<string, number>
+  effective_at?: string | null
+  known_at?: string | null
+  timing_provenance?: Record<string, string>
   overall_status: WatchlistHistoryStatusKind
   analysis_ready?: boolean
   analysis_ready_status?: WatchlistHistoryStatusKind

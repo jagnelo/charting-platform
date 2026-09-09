@@ -204,6 +204,9 @@ class WatchlistSourceHistoryStatus(BaseModel):
     limited: bool = False
     excluded_count: int = 0
     member_disposition: dict[str, int] = Field(default_factory=dict)
+    effective_at: datetime | None = None
+    known_at: datetime | None = None
+    timing_provenance: dict[str, str] = Field(default_factory=dict)
     overall_status: str
     # ``overall_status`` intentionally preserves the legacy covered/worker
     # contract.  These fields answer the stricter workstation question without

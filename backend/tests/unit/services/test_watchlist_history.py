@@ -33,6 +33,14 @@ async def test_watchlist_history_plan_uses_user_scope_and_deduplicates_members(m
                     name="Private",
                     locked=False,
                     membership_version="private-v1",
+                    effective_at=datetime(2026, 1, 1, tzinfo=UTC),
+                    known_at=datetime(2026, 1, 2, tzinfo=UTC),
+                    provenance={
+                        "timing_provenance": {
+                            "effective_at": "provider_reported",
+                            "known_at": "provider_reported",
+                        }
+                    },
                 ),
                 members=(SimpleNamespace(instrument_id=10), SimpleNamespace(instrument_id=20)),
                 exclusions=(),
@@ -66,6 +74,12 @@ async def test_watchlist_history_plan_uses_user_scope_and_deduplicates_members(m
     assert plan["selected_instrument_count"] == 2
     assert plan["limited"] is True
     assert plan["sources"][0]["selected_count"] == 2
+    assert plan["sources"][0]["effective_at"] == datetime(2026, 1, 1, tzinfo=UTC)
+    assert plan["sources"][0]["known_at"] == datetime(2026, 1, 2, tzinfo=UTC)
+    assert plan["sources"][0]["timing_provenance"] == {
+        "effective_at": "provider_reported",
+        "known_at": "provider_reported",
+    }
     assert plan["sources"][1]["deduplicated_count"] == 1
     assert plan["sources"][1]["locked"] is True
     assert plan["sources"][1]["member_disposition"] == {
@@ -146,6 +160,9 @@ async def test_watchlist_history_plan_retains_unavailable_source(monkeypatch):
                 "excluded": 0,
             },
             "membership_version": None,
+            "effective_at": None,
+            "known_at": None,
+            "timing_provenance": {},
             "message": "watchlist:missing is not visible",
         }
     ]
