@@ -509,8 +509,8 @@ async def _backfill_sec_holdings(
                     follow_redirects=True,
                 )
                 response.raise_for_status()
-                composition_date, rows = parse_xml(response.text)
-                composition_date = composition_date or filing.report_date
+                parsed_composition_date, rows = parse_xml(response.text)
+                composition_date = parsed_composition_date or filing.report_date
                 if composition_date is None:
                     skipped += 1
                     reason = missing_date_reason
@@ -525,6 +525,8 @@ async def _backfill_sec_holdings(
                     state.failure_reason = reason
                     failures.append({"accession_number": filing.accession_number, "reason": reason})
                     continue
+                acceptance_datetime = getattr(filing, "acceptance_datetime", None)
+                filing_date = getattr(filing, "filing_date", None)
                 snapshot = await ingest_holdings_snapshot(
                     db,
                     etf_instrument=profile.instrument,
@@ -546,6 +548,28 @@ async def _backfill_sec_holdings(
                         "source_format": source_format,
                         "accession_number": filing.accession_number,
                         "form": filing.form,
+                    },
+                    timing_provenance={
+                        "composition_date": (
+                            "provider_reported"
+                            if parsed_composition_date
+                            else "filing_report_date_fallback"
+                        ),
+                        "as_of_date": (
+                            "filing_report_date"
+                            if filing.report_date
+                            else "composition_date_fallback"
+                        ),
+                        "known_at": (
+                            "filing_acceptance_time"
+                            if acceptance_datetime
+                            else "filing_date_fallback"
+                            if filing_date
+                            else "ingestion_time_fallback"
+                        ),
+                        "published_at": (
+                            "filing_acceptance_time" if acceptance_datetime else "not_reported"
+                        ),
                     },
                     notes=notes,
                     # SEC reconstruction already has a dated, filing-scoped

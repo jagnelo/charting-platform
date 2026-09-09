@@ -1247,6 +1247,7 @@ async def ingest_holdings_snapshot(
     raw_payload_text: str | None = None,
     raw_payload_json: dict | None = None,
     legal_metadata: dict | None = None,
+    timing_provenance: dict[str, str] | None = None,
     notes: str | None = None,
     allow_provider_enrichment: bool = True,
 ) -> ETFHoldingsSnapshot:
@@ -1274,6 +1275,11 @@ async def ingest_holdings_snapshot(
         for row in rows
     ]
     now = _now()
+    persisted_legal_metadata = dict(legal_metadata or {})
+    if timing_provenance:
+        persisted_legal_metadata["timing_provenance"] = {
+            str(key): str(value) for key, value in timing_provenance.items()
+        }
     known_at = known_at or published_at or _date_end(composition_date)
     data_source = await ensure_data_source(db, ETF_HOLDINGS_INTERNAL_PROVIDER)
     snapshot_hash = _snapshot_hash(canonical_rows)
@@ -1307,7 +1313,7 @@ async def ingest_holdings_snapshot(
                 parser_version=parser_version,
                 payload_text=raw_payload_text,
                 payload_json=raw_payload_json,
-                legal_metadata=legal_metadata,
+                legal_metadata=persisted_legal_metadata or None,
             )
             db.add(raw_artifact)
             await db.flush()
@@ -1359,7 +1365,9 @@ async def ingest_holdings_snapshot(
         parser_version=parser_version,
         snapshot_hash=snapshot_hash,
         notes=notes,
-        extra_data={"legal_metadata": legal_metadata} if legal_metadata else None,
+        extra_data=(
+            {"legal_metadata": persisted_legal_metadata} if persisted_legal_metadata else None
+        ),
     )
     db.add(snapshot)
     await db.flush()

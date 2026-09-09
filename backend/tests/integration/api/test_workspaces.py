@@ -666,7 +666,17 @@ class TestWorkspaces:
             source_provider="issuer",
             source_identifier="issuer-2026-06-30",
             parser_version="issuer-csv-v2",
-            extra_data={"legal_metadata": {"cadence": "quarter_end"}},
+            extra_data={
+                "legal_metadata": {
+                    "cadence": "quarter_end",
+                    "timing_provenance": {
+                        "composition_date": "provider_reported",
+                        "as_of_date": "provider_reported",
+                        "known_at": "provider_reported",
+                        "published_at": "provider_reported",
+                    },
+                }
+            },
             source_quality="issuer_disclosed",
             completeness_status="complete",
             row_count=10,
@@ -722,6 +732,12 @@ class TestWorkspaces:
         assert dated_snapshot["source_identifier"] == "issuer-2026-06-30"
         assert dated_snapshot["cadence"] == "quarter_end"
         assert dated_snapshot["parser_version"] == "issuer-csv-v2"
+        assert dated_snapshot["timing_provenance"] == {
+            "composition_date": "provider_reported",
+            "as_of_date": "provider_reported",
+            "known_at": "provider_reported",
+            "published_at": "provider_reported",
+        }
         assert roles["cap_weight"]["continuity_status"] == "gapped"
         assert roles["cap_weight"]["continuity_gap_count"] == 1
         assert roles["cap_weight"]["continuity_max_interval_days"] == 365

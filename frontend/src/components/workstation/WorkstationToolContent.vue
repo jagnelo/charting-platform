@@ -2387,7 +2387,7 @@ function familyContinuityLabel(role: { continuity_status?: string; continuity_ga
   const label = labels[status] ?? status
   return role.continuity_snapshot_limit_reached ? `${label} · window capped` : label
 }
-function familyLatestDisclosureLabel(role: { snapshots?: Array<{ composition_date?: string | null; as_of_date?: string | null; known_at?: string | null; published_at?: string | null; source_provider?: string | null; source_identifier?: string | null; cadence?: string | null; parser_version?: string | null; row_count?: number | null; resolved_count?: number | null; unresolved_count?: number | null }> }) {
+function familyLatestDisclosureLabel(role: { snapshots?: Array<{ composition_date?: string | null; as_of_date?: string | null; known_at?: string | null; published_at?: string | null; source_provider?: string | null; source_identifier?: string | null; cadence?: string | null; parser_version?: string | null; timing_provenance?: Record<string, string>; row_count?: number | null; resolved_count?: number | null; unresolved_count?: number | null }> }) {
   const snapshot = [...(role.snapshots ?? [])]
     .sort((left, right) => String(right.composition_date ?? '').localeCompare(String(left.composition_date ?? '')))[0]
   if (!snapshot) return 'no latest disclosure'
@@ -2403,7 +2403,12 @@ function familyLatestDisclosureLabel(role: { snapshots?: Array<{ composition_dat
   const sourceIdentifier = snapshot.source_identifier ? ` · source ${snapshot.source_identifier}` : ''
   const cadence = snapshot.cadence ? ` · cadence ${snapshot.cadence}` : ''
   const parserVersion = snapshot.parser_version ? ` · parser ${snapshot.parser_version}` : ''
-  return `latest ${snapshot.composition_date ?? 'date unavailable'}${asOf}${publishedAt}${knownAt} · ${counts} · ${snapshot.source_provider?.trim() || 'source unavailable'}${sourceIdentifier}${cadence}${parserVersion}`
+  const timing = Object.entries(snapshot.timing_provenance ?? {})
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${key.replace(/_/g, ' ')}=${value.replace(/_/g, ' ')}`)
+    .join(', ')
+  const timingEvidence = timing ? ` · timing ${timing}` : ''
+  return `latest ${snapshot.composition_date ?? 'date unavailable'}${asOf}${publishedAt}${knownAt} · ${counts} · ${snapshot.source_provider?.trim() || 'source unavailable'}${sourceIdentifier}${cadence}${parserVersion}${timingEvidence}`
 }
 function familyMemberBarHistoryLabel(role: { member_bar_history?: { status?: string; placeholder_member_count?: number; unresolved_member_count?: number; timeframes?: Array<{ timeframe: string; required_bar_count?: number; covered_member_count: number; member_count: number; analysis_ready_member_count: number }> } }) {
   const history = role.member_bar_history
@@ -2479,7 +2484,7 @@ function familyCanonicalRoleEvidenceLabel(coverage: BenchmarkFamilyCoverageState
       ? ` · snapshot ${snapshot.composition_date?.slice(0, 10) || 'date not reported'}${snapshot.as_of_date ? ` · as-of ${snapshot.as_of_date.slice(0, 10)}` : ''}${snapshot.known_at ? ` · known ${snapshot.known_at.slice(0, 10)}` : ''} · provenance ${snapshot.provenance?.trim() || 'not reported'} · source quality ${snapshot.source_quality?.trim() || 'not reported'} · completeness ${snapshot.completeness_status?.trim() || 'not reported'} · rows ${Number.isFinite(snapshot.row_count) ? snapshot.row_count : 'not reported'} · resolved ${Number.isFinite(snapshot.resolved_count) ? snapshot.resolved_count : 'not reported'} · unresolved ${Number.isFinite(snapshot.unresolved_count) ? snapshot.unresolved_count : 'not reported'}`
       : ' · snapshot evidence unavailable'
     const snapshotSourceEvidence = snapshot
-      ? `${snapshot.published_at ? ` · published ${snapshot.published_at.slice(0, 10)}` : ''}${snapshot.source_provider ? ` · provider ${snapshot.source_provider.trim()}` : ''}${snapshot.source_identifier ? ` · source ${snapshot.source_identifier}` : ''}${snapshot.cadence ? ` · cadence ${snapshot.cadence}` : ''}${snapshot.parser_version ? ` · parser ${snapshot.parser_version}` : ''}`
+      ? `${snapshot.published_at ? ` · published ${snapshot.published_at.slice(0, 10)}` : ''}${snapshot.source_provider ? ` · provider ${snapshot.source_provider.trim()}` : ''}${snapshot.source_identifier ? ` · source ${snapshot.source_identifier}` : ''}${snapshot.cadence ? ` · cadence ${snapshot.cadence}` : ''}${snapshot.parser_version ? ` · parser ${snapshot.parser_version}` : ''}${Object.keys(snapshot.timing_provenance ?? {}).length ? ` · timing ${Object.entries(snapshot.timing_provenance ?? {}).sort(([left], [right]) => left.localeCompare(right)).map(([key, value]) => `${key.replace(/_/g, ' ')}=${value.replace(/_/g, ' ')}`).join(', ')}` : ''}`
       : ''
     const continuityStatus = role.continuity_status?.trim()?.replace(/_/g, ' ') || 'not reported'
     const continuityGaps = (role.continuity_gaps ?? []).map(gap => `${gap.from_date.slice(0, 10)} to ${gap.to_date.slice(0, 10)} (${gap.interval_days}d)`).join(', ')

@@ -516,6 +516,7 @@ export interface BenchmarkFamilyCoverageSnapshotState {
   published_at?: string | null
   cadence?: string | null
   parser_version?: string | null
+  timing_provenance?: Record<string, string>
   provenance: string
   source_provider: string
   source_identifier?: string | null

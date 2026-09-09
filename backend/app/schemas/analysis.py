@@ -302,6 +302,7 @@ class BenchmarkFamilyCoverageSnapshotOut(BaseModel):
     published_at: datetime | None = None
     cadence: str | None = None
     parser_version: str | None = None
+    timing_provenance: dict[str, str] = Field(default_factory=dict)
     provenance: str
     source_provider: str
     source_identifier: str | None = None

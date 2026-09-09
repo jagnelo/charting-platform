@@ -411,6 +411,12 @@ async def test_dated_refresh_preserves_provider_snapshot_metadata(monkeypatch):
     assert captured["parser_version"] == "invesco-sec-v2"
     assert captured["known_at"] == datetime(2026, 6, 1, 13, 45, 30, tzinfo=UTC)
     assert captured["published_at"] == datetime(2026, 6, 1, 13, 45, 30, tzinfo=UTC)
+    assert captured["timing_provenance"] == {
+        "composition_date": "requested_date_fallback",
+        "as_of_date": "requested_date",
+        "known_at": "provider_reported",
+        "published_at": "provider_reported",
+    }
     assert "SEC EDGAR holdings filings" in captured["notes"]
 
 

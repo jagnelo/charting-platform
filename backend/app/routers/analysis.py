@@ -1108,6 +1108,23 @@ def _wire_datetime(value: datetime | None) -> str | None:
     return encoded.replace("+00:00", "Z")
 
 
+def _snapshot_timing_provenance(snapshot: ETFHoldingsSnapshot) -> dict[str, str]:
+    """Return only the explicitly recorded timing-basis labels for a disclosure."""
+
+    extra_data = snapshot.extra_data if isinstance(snapshot.extra_data, Mapping) else {}
+    legal_metadata = extra_data.get("legal_metadata")
+    if not isinstance(legal_metadata, Mapping):
+        return {}
+    timing = legal_metadata.get("timing_provenance")
+    if not isinstance(timing, Mapping):
+        return {}
+    return {
+        str(key): str(value)
+        for key, value in timing.items()
+        if key is not None and value is not None
+    }
+
+
 def _group_members_at(
     group: MarketGroup,
     as_of: datetime | None,
@@ -3868,6 +3885,7 @@ async def benchmark_family_coverage(
                         else None
                     ),
                     parser_version=row.parser_version,
+                    timing_provenance=_snapshot_timing_provenance(row),
                     provenance=row.provenance,
                     source_provider=row.source_provider,
                     source_identifier=row.source_identifier,

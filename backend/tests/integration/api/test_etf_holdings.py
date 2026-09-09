@@ -2291,6 +2291,12 @@ def test_admin_can_refresh_issuer_holdings_for_specific_date(
     assert legal_metadata["requested_holdings_date"] == "2026-05-29"
     assert legal_metadata["route_resolution"] == "issuer_dated_profile_template"
     assert legal_metadata["artifact_identity_validation"]["status"] == "matched"
+    assert legal_metadata["timing_provenance"] == {
+        "composition_date": "requested_date_fallback",
+        "as_of_date": "requested_date",
+        "known_at": "ingestion_time_fallback",
+        "published_at": "not_reported",
+    }
 
     dates = client.get("/api/v1/etf-holdings/ARKX/dates", headers=auth_headers)
     assert dates.status_code == 200

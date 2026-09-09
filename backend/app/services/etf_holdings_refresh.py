@@ -1005,7 +1005,8 @@ async def refresh_etf_holdings_for_date(
             or result_metadata.get("source_provider")
             or adapter.source_provider
         )
-        composition_date = _date_from_value(result_metadata.get("composition_date"))
+        reported_composition_date = _date_from_value(result_metadata.get("composition_date"))
+        composition_date = reported_composition_date
         if composition_date is None:
             composition_date = requested_date
         if composition_date > requested_date:
@@ -1019,6 +1020,20 @@ async def refresh_etf_holdings_for_date(
             or published_at
             or datetime.now(UTC)
         )
+        timing_provenance = {
+            "composition_date": (
+                "provider_reported" if reported_composition_date else "requested_date_fallback"
+            ),
+            "as_of_date": "requested_date",
+            "known_at": (
+                "provider_reported"
+                if result_metadata.get("known_at")
+                else "published_at_fallback"
+                if published_at
+                else "ingestion_time_fallback"
+            ),
+            "published_at": "provider_reported" if published_at else "not_reported",
+        }
         snapshot = await ingest_holdings_snapshot(
             db,
             etf_instrument=profile.instrument,
@@ -1053,6 +1068,7 @@ async def refresh_etf_holdings_for_date(
                 "terms_note": aliases.get("terms_note"),
                 "artifact_identity_validation": artifact_identity_validation,
             },
+            timing_provenance=timing_provenance,
             notes=(
                 "Reconstructed from SEC EDGAR holdings filings through the ETF profile's "
                 "provider-specific adapter."
@@ -1865,18 +1881,42 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
         or result_metadata.get("source_provider")
         or adapter.source_provider
     )
+    configured_composition_date = _alias_date(aliases, "holdings_composition_date")
+    reported_composition_date = _date_from_value(result_metadata.get("composition_date"))
     composition_date = (
-        _alias_date(aliases, "holdings_composition_date")
-        or _date_from_value(result_metadata.get("composition_date"))
-        or datetime.now(UTC).date()
+        configured_composition_date or reported_composition_date or datetime.now(UTC).date()
     )
-    as_of_date = _alias_date(aliases, "holdings_as_of_date") or _date_from_value(
-        result_metadata.get("as_of_date")
-    )
+    configured_as_of_date = _alias_date(aliases, "holdings_as_of_date")
+    reported_as_of_date = _date_from_value(result_metadata.get("as_of_date"))
+    as_of_date = configured_as_of_date or reported_as_of_date
     published_at = _datetime_from_value(result_metadata.get("published_at"))
     known_at = (
         _datetime_from_value(result_metadata.get("known_at")) or published_at or datetime.now(UTC)
     )
+    timing_provenance = {
+        "composition_date": (
+            "profile_configured"
+            if configured_composition_date
+            else "provider_reported"
+            if reported_composition_date
+            else "ingestion_date_fallback"
+        ),
+        "as_of_date": (
+            "profile_configured"
+            if configured_as_of_date
+            else "provider_reported"
+            if reported_as_of_date
+            else "not_reported"
+        ),
+        "known_at": (
+            "provider_reported"
+            if result_metadata.get("known_at")
+            else "published_at_fallback"
+            if published_at
+            else "ingestion_time_fallback"
+        ),
+        "published_at": "provider_reported" if published_at else "not_reported",
+    }
 
     snapshot = await ingest_holdings_snapshot(
         db,
@@ -1910,6 +1950,7 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
             "probe_confidence": str(probe.confidence),
             "artifact_identity_validation": artifact_identity_validation,
         },
+        timing_provenance=timing_provenance,
         notes=(
             "Reconstructed from SEC EDGAR holdings filings through the ETF profile's "
             "provider-specific adapter."
