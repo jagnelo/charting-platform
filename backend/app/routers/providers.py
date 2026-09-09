@@ -436,8 +436,23 @@ async def update_provider_policy(
         candidate_policy = ProviderPolicy(
             capability=capability_enum,
             quota_contract=candidate_contract,
+            # Validate the complete replacement as it will exist after the
+            # patch. Existing provenance may be reused when omitted, while
+            # an explicit null remains a deliberate fail-closed removal.
+            quota_scope=changes.get("quota_scope", policy.quota_scope),
+            quota_source=changes.get("quota_source", policy.quota_source),
         )
         candidate_contract_missing = quota_contract_missing_dimensions(candidate_policy)
+    candidate_structural_missing = [
+        item
+        for item in candidate_contract_missing
+        if not item.startswith(
+            (
+                "quota_contract.unknown_dimensions.",
+                "quota_contract.untracked_constraints.",
+            )
+        )
+    ]
     if quota_fields.intersection(changes):
         if "quota_contract" not in changes:
             raise HTTPException(
@@ -445,12 +460,17 @@ async def update_provider_policy(
                 "Provider limits require an explicit replacement documentation-backed "
                 "quota_contract; individual numeric defaults are not accepted",
             )
-        if candidate_contract_missing:
+        if candidate_structural_missing:
             raise HTTPException(
                 400,
-                "quota_contract is incomplete: " + ", ".join(candidate_contract_missing),
+                "quota_contract is incomplete: " + ", ".join(candidate_structural_missing),
             )
     if "quota_contract" in changes and changes.get("quota_contract") is not None:
+        if candidate_structural_missing:
+            raise HTTPException(
+                400,
+                "quota_contract is incomplete: " + ", ".join(candidate_structural_missing),
+            )
         if not candidate_contract_missing:
             quota_scope = str(changes.get("quota_scope", policy.quota_scope) or "").strip()
             quota_source = str(changes.get("quota_source", policy.quota_source) or "").strip()

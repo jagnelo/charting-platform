@@ -551,7 +551,9 @@ async def test_otc_directory_requires_explicit_source_before_resolution(db, monk
                             "source": "unit-test",
                         }
                     ],
-                }
+                },
+                "quota_scope": "operator_source",
+                "quota_source": "unit-test FINRA OTC contract",
             },
         },
     )

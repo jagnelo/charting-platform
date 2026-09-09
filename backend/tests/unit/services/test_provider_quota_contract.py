@@ -245,6 +245,7 @@ def test_tiingo_byte_pool_requires_complete_operator_bounds_before_promotion(mon
         data_source_id=1,
         capability=ProviderCapability.PRICE_HISTORY,
         quota_scope=seed["quota_scope"],
+        quota_source=seed["quota_source"],
         quota_contract=contract,
     )
     assert policy_has_known_quota(policy)
@@ -338,6 +339,7 @@ async def test_distinct_identity_dimension_is_durable_and_not_request_counted(db
         data_source_id=source.id,
         capability=ProviderCapability.PRICE_HISTORY,
         quota_scope="api_key",
+        quota_source="unit-test provider contract",
         quota_contract={
             "reset": "provider_defined",
             "dimensions": [
@@ -658,6 +660,7 @@ async def test_dimension_reservation_settles_observed_bytes_without_charging_req
         data_source_id=source.id,
         capability=ProviderCapability.SHORT_INTEREST,
         quota_scope="api_key",
+        quota_source="unit-test provider contract",
         quota_contract={
             "dimensions": [
                 {
@@ -786,6 +789,7 @@ async def test_in_flight_concurrency_dimension_is_released_not_consumed(db):
         data_source_id=source.id,
         capability=ProviderCapability.PRICE_HISTORY,
         quota_scope="api_key",
+        quota_source="unit-test provider contract",
         quota_contract={
             "reset": "rolling",
             "dimensions": [
@@ -863,6 +867,7 @@ async def test_failed_contract_rolls_back_one_in_flight_slot(db):
         data_source_id=source.id,
         capability=ProviderCapability.PRICE_HISTORY,
         quota_scope="api_key",
+        quota_source="unit-test provider contract",
         quota_contract={
             "reset": "rolling",
             "dimensions": [
@@ -1189,6 +1194,7 @@ async def test_calendar_day_reservation_changes_at_utc_midnight(db):
         data_source_id=source.id,
         capability=ProviderCapability.PRICE_HISTORY,
         quota_scope="api_key",
+        quota_source="unit-test provider contract",
         quota_contract={
             "reset": "per_dimension",
             "dimensions": [
@@ -1239,6 +1245,7 @@ async def test_provider_defined_daily_reservation_uses_conservative_rolling_boun
         data_source_id=source.id,
         capability=ProviderCapability.PRICE_HISTORY,
         quota_scope="api_key",
+        quota_source="unit-test provider contract",
         quota_contract={
             "reset": "provider_defined_daily",
             "dimensions": [
@@ -1297,6 +1304,7 @@ async def test_eastern_calendar_month_reservation_follows_tiingo_reset_boundary(
         data_source_id=source.id,
         capability=ProviderCapability.PRICE_HISTORY,
         quota_scope="api_key",
+        quota_source="unit-test provider contract",
         quota_contract={
             "reset": "provider_defined",
             "dimensions": [
@@ -1348,6 +1356,7 @@ async def test_eastern_calendar_day_reservation_follows_tiingo_reset_boundary(db
         data_source_id=source.id,
         capability=ProviderCapability.PRICE_HISTORY,
         quota_scope="api_key",
+        quota_source="unit-test provider contract",
         quota_contract={
             "reset": "provider_defined",
             "dimensions": [
@@ -1399,6 +1408,7 @@ async def test_rolling_thirty_day_reservation_expires_at_exact_fmp_boundary(db):
         data_source_id=source.id,
         capability=ProviderCapability.PRICE_HISTORY,
         quota_scope="api_key",
+        quota_source="unit-test provider contract",
         quota_contract={
             "reset": "provider_defined",
             "dimensions": [
@@ -1550,6 +1560,7 @@ def test_finra_synchronous_budget_uses_documented_byte_reservation():
         data_source_id=1,
         capability=ProviderCapability.SHORT_INTEREST,
         quota_scope=seed["quota_scope"],
+        quota_source=seed["quota_source"],
         quota_contract=contract,
     )
     assert policy_has_known_quota(policy)
@@ -1632,6 +1643,28 @@ def test_missing_quota_contract_is_operator_actionable():
         "quota_scope",
         "quota_source",
     ]
+
+
+def test_complete_dimension_contract_without_policy_provenance_is_non_routable():
+    policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.PRICE_HISTORY,
+        quota_contract={
+            "dimensions": [
+                {
+                    "name": "requests_per_minute",
+                    "limit": 10,
+                    "window_seconds": 60,
+                    "unit": "requests",
+                    "scope": "api_key",
+                    "source": "unit-test provider contract",
+                }
+            ],
+            "reset": "rolling",
+        },
+    )
+    assert quota_contract_missing_dimensions(policy) == ["quota_scope", "quota_source"]
+    assert not policy_has_known_quota(policy)
 
 
 def test_dynamic_operation_cost_readiness_is_exposed_separately():

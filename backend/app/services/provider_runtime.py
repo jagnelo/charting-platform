@@ -725,6 +725,16 @@ def quota_contract_missing_dimensions(policy: ProviderPolicy) -> list[str]:
         return ["quota_contract", "quota_scope", "quota_source"]
 
     missing: list[str] = []
+    # The policy-level provenance is part of the reviewed replacement
+    # contract.  Dimension-level sources alone do not establish which
+    # account/entitlement scope the policy represents, nor which reviewed
+    # contract the runtime is allowed to enforce.  Keep this check in the
+    # runtime admission path as well as the admin PATCH validator so policies
+    # restored from an older database or edited outside the API fail closed.
+    if not str(policy.quota_scope or "").strip():
+        missing.append("quota_scope")
+    if not str(policy.quota_source or "").strip():
+        missing.append("quota_source")
     unknown_dimensions = contract.get("unknown_dimensions")
     if isinstance(unknown_dimensions, list):
         for item in unknown_dimensions:
@@ -790,12 +800,11 @@ def provider_contract_operation_costs_configured(
 def policy_has_known_quota(policy: ProviderPolicy) -> bool:
     """Whether this policy has a complete contract suitable for routing."""
 
-    contract = policy.quota_contract or {}
-    return (
-        bool(quota_dimensions(policy))
-        and not bool(contract.get("unknown_dimensions"))
-        and not bool(contract.get("untracked_constraints"))
-    )
+    # Keep the single completeness predicate authoritative.  In particular,
+    # this includes policy-level scope/source provenance and prevents a
+    # complete-looking JSON contract loaded from an older or externally edited
+    # row from bypassing the same fail-closed checks used by admin updates.
+    return not quota_contract_missing_dimensions(policy) and bool(quota_dimensions(policy))
 
 
 def _retry_at_from_headers(headers: Any, *, now: datetime | None = None) -> datetime | None:
