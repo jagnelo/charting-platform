@@ -4157,3 +4157,26 @@ slots with idempotent overlap reuse. After the handoff no active ARQ queue key r
 coverage across the refreshed snapshots was 44 instruments / 94,540 adjusted D1 bars through
 2025-12-31, while W1/MN remained unavailable. This is bounded R1 evidence only; full population,
 placeholder/rebalance disposition, W1/MN floors, and R2–R7 completion remain open.
+
+## 2026-09-09 — Member-bar source-lineage checkpoint
+
+At product commit `ea1118cc`, the benchmark-family member-bar readiness contract
+reports provider and locally-derived member/bar counts and a stable
+`source_lineage` value (`provider_only`, `derived_only`, `provider_and_derived`,
+or `unavailable`). Aggregation is now per member before readiness floors, so a
+member covered by both provider and derived periods is counted once and its
+combined bar history is evaluated without inflating coverage. The optional
+fields are typed through Market Map/workstation state and exposed in existing
+assistive provenance labels; visible layout and provider/fallback policy are
+unchanged.
+
+Focused coverage/readiness integration tests passed `9/9`; Ruff and frontend
+type-check passed. The exact Docker-backed gate at this tip passed backend
+`1,371` unit and `387` integration tests (`81.08%` combined coverage), frontend
+Vitest `975/975`, build, compose/provider/runner and health probes, and
+functional Playwright `165/272` with `107` documented skips. Visual parity is
+`98/104` with the same six established screenshot diffs (column editor at
+1080p 100/125; floating workspace at 1080p 100/125 and 1440p 100/125); scoped
+teardown and resource cleanup were clean. R1 remains bounded by incomplete
+family population, W1/MN provider coverage, placeholder disposition,
+adjustment-factor/version and raw/derived storage evidence; R2–R7 remain open.
