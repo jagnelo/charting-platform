@@ -9,7 +9,10 @@ from app.config import provider_rate_limit_seed, settings
 from app.models.data_source import DataSource
 from app.models.market_data_foundation import ProviderQuotaIdentity, ProviderQuotaWindow
 from app.models.provider_runtime import ProviderCapability, ProviderPolicy
-from app.providers.registry import get_provider_usage_profile
+from app.providers.registry import (
+    get_provider_usage_profile,
+    supported_provider_names,
+)
 from app.services.provider_routing import (
     reserve_provider_contract,
     reserve_provider_quota,
@@ -27,6 +30,51 @@ from app.services.provider_runtime import (
     seed_provider_runtime,
 )
 from tests.unit.conftest import AsyncSessionAdapter
+
+INTENTIONAL_QUOTA_UNKNOWN_PROVIDERS = {
+    # Public/provider-internal surfaces without a reviewed numeric contract in
+    # this branch. They stay visible to diagnostics but cannot be routed.
+    "etf_holdings_internal",
+    "fred",
+    "nasdaq",
+    "yfinance",
+    "ondo_global_markets",
+    "dinari",
+    "alpaca_itn",
+    "xstocks",
+}
+
+
+def test_registered_providers_are_explicitly_quota_reviewed_or_intentionally_unknown():
+    registered = set(supported_provider_names())
+    assert INTENTIONAL_QUOTA_UNKNOWN_PROVIDERS <= registered
+
+    for provider_name in registered:
+        seed = settings.PROVIDER_RATE_LIMIT_SEEDS.get(provider_name)
+        if provider_name in INTENTIONAL_QUOTA_UNKNOWN_PROVIDERS:
+            if seed is None:
+                continue
+            contract = seed.get("quota_contract") or {}
+            assert (
+                not contract.get("dimensions")
+                or contract.get("unknown_dimensions")
+                or contract.get("untracked_constraints")
+            ), provider_name
+            continue
+
+        assert isinstance(seed, dict), provider_name
+        contract = seed.get("quota_contract")
+        assert isinstance(contract, dict), provider_name
+        dimensions = contract.get("dimensions")
+        assert isinstance(dimensions, list) and dimensions, provider_name
+        assert str(contract.get("reset") or "").strip(), provider_name
+        for dimension in dimensions:
+            assert all(
+                str(dimension.get(field) or "").strip()
+                for field in ("name", "unit", "scope", "source")
+            ), (provider_name, dimension)
+            assert int(dimension["limit"]) > 0, (provider_name, dimension)
+            assert int(dimension["window_seconds"]) > 0, (provider_name, dimension)
 
 
 @pytest.mark.asyncio
