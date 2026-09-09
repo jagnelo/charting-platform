@@ -140,6 +140,7 @@ progress:
     - Bybit V5 and Gate stock response-limit headers are reconciled into durable usage totals only when they exactly match the reviewed coarse contract; additional endpoint/UID/account constraints remain fail-closed and non-routable
     - tokenized live probes require positive transport request/response-byte observations for each public tokenized adapter discovery and quote/order-book read, alongside normalized metadata/quote assertions
     - FRED HTTP 429/418 responses are preserved as typed capacity failures with provider headers instead of being converted into empty-series/empty-price results; the unreviewed v1 quota ceiling remains non-routable
+    - manifest-driven live probes require positive transport observations for every available non-tokenized adapter read, with SEC/Nasdaq directory pagination explicitly cache-aware
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: full live matrix requires the three remaining credential domains (Alpaca, Tradier, MarketData.app); the GitHub `jagnelo` live environment is not externally verifiable until owner authentication is restored; FINRA OTC source terms/redistribution approval, complete reviewed Tiingo/FMP byte maps, complete NMS/OTC reconciliation, and shadow activation remain post-deployment or operator-review gates; each deployment must also provide its own non-secret SEC User-Agent
