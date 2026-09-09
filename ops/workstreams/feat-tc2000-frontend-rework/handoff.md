@@ -8,6 +8,31 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-09 — Generic history membership timing evidence checkpoint
+
+Product tip `31c6565c` preserves resolver-supplied membership `effective_at`,
+`known_at`, and declared timing-provenance labels in generic watchlist history
+status. The Market Map exposes this only through hidden accessibility evidence;
+the implementation deliberately does not infer issuer cadence or fabricate
+timestamps. Visible layout, pixels, provider, fallback, storage, and
+acceptance policy remain unchanged.
+
+Focused watchlist-history units passed `7/7`; Market Map Vitest passed `36/36`;
+frontend type-check, Ruff check/format, and diff checks passed. The exact
+Docker-backed gate passed all non-visual stages, backend unit/integration
+coverage (`1,374`/`387`, `68%`), and functional Playwright (`165` passed,
+`107` documented skips across `272`). Visual parity was `98/104` with exactly
+the six established watchlist-column-editor-open/workspace-floating diffs. The
+gate stopped at `e2e-visual` for those unchanged diffs; teardown removed all
+assigned containers, volumes, images, and test sessions cleanly. No other
+worktree was touched.
+
+R1 remains active for complete family/provider-history readiness, W1/MN
+continuity, source-declared cadence evidence, adjustment-factor/version
+provenance, raw-versus-derived storage, and broader canonical population.
+R2-R7 remain open. Next action: continue the next bounded evidence-backed R1
+history/provenance seam and rerun the exact gate at the next coherent tip.
+
 ## 2026-09-09 — Generic watchlist history lineage evidence checkpoint
 
 Product tip `7fe87c3a` (`d5c2e7af` plus a formatter-only follow-up) aligns

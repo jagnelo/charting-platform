@@ -110,14 +110,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "7fe87c3ab856d36bc67dd340cdde4bd8b050add6",
-  "implementation_sha": "7fe87c3ab856d36bc67dd340cdde4bd8b050add6",
+  "head": "31c6565cf631e84f197dbb04880f7377198edc9b",
+  "implementation_sha": "31c6565cf631e84f197dbb04880f7377198edc9b",
   "interrupted": false,
-  "last_checkpoint": "2026-09-09T21:53:23Z",
-  "last_human_progress_update": "2026-09-09T21:53:23Z",
+  "last_checkpoint": "2026-09-09T22:24:27Z",
+  "last_human_progress_update": "2026-09-09T22:24:27Z",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded evidence-backed R1 history or provenance seam; preserve the six visual state-oracle assertions and provider/fallback rules and rerun the exact gate at the next coherent tip.",
-  "plan_hash": "84bfc4f1e6f71badecb56f71eebb3a28452c2a246c6945ec9f4451712ec8cd11",
+  "plan_hash": "ace0f604e0d63266bb4044ff2994715dea957ec67727fc3e2850fe03d1319229",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -129,11 +129,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product tip 7fe87c3a (feature d5c2e7af plus a formatter-only follow-up) now reports provider-versus-derived lineage for every generic watchlist history timeframe, including provider/derived member counts, exclusive and mixed member splits, bar totals, and a normalized source lineage. Per-member provider and derived bars are combined before D1/W1/MN analysis floors are applied, so mixed storage lineages cannot understate readiness. Focused watchlist-history units passed 7/7; Market Map Vitest passed 36/36; frontend type-check, Ruff check/format, and diff checks passed. The exact Docker-backed gate passed all non-visual stages, backend unit/integration coverage 1374/387 at 68%, and functional Playwright 165 with 107 documented skips across 272. Visual parity remains 98/104 with exactly the six established state-oracle diffs; teardown and resource accounting were clean. R1 family/provider-history readiness, W1/MN continuity, cadence/effective-time, adjustment-factor/version provenance, raw-versus-derived storage, broader canonical population, and R2-R7 evidence remain open.",
+    "current_blocker": "Product tip 31c6565c preserves resolver-supplied membership effective_at, known_at, and declared timing-provenance labels in generic watchlist history status. Hidden Market Map accessibility evidence exposes those values; cadence is not inferred and timestamps are not fabricated. Focused watchlist-history units passed 7/7; Market Map Vitest passed 36/36; frontend type-check, Ruff check/format, and diff checks passed. The exact Docker-backed gate passed all non-visual stages, backend unit/integration coverage 1374/387 at 68%, and functional Playwright 165 with 107 documented skips across 272. Visual parity remains 98/104 with exactly the six established state-oracle diffs; teardown and resource accounting were clean. R1 family/provider-history readiness, W1/MN continuity, source-declared cadence beyond these timestamps, adjustment-factor/version provenance, raw-versus-derived storage, broader canonical population, and R2-R7 evidence remain open.",
     "current_phase": "R1_canonical_provider_history_readiness",
     "next_action": "Continue the next bounded evidence-backed R1 history or provenance seam; preserve the six visual state-oracle assertions and provider/fallback rules and rerun the exact gate at the next coherent tip.",
     "total": 10,
-    "updated_at": "2026-09-09T21:53:23Z"
+    "updated_at": "2026-09-09T22:24:27Z"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

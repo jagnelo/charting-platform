@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-09 — Generic history membership timing evidence
+
+- [x] Preserve resolver-supplied membership `effective_at`, `known_at`, and
+      declared timing-provenance labels in generic history status without
+      inferring cadence or fabricating timestamps.
+- [x] Expose timing only through hidden Market Map accessibility evidence;
+      focused history units passed 7/7, Market Map Vitest 36/36, and the exact
+      gate preserved 165 functional passes, 107 documented skips, and the six
+      established visual diffs with clean teardown.
+- [ ] Complete family/provider history, W1/MN continuity, source-declared
+      cadence evidence, adjustment-factor/version provenance, raw-versus-
+      derived storage, and broader canonical population evidence.
+
 ### 2026-09-09 — Generic watchlist history lineage evidence
 
 - [x] Report provider-versus-derived bar lineage per timeframe, including
