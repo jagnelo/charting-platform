@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-09 — OHLCV range lineage and adjustment provenance accessibility
+
+- [x] Return provider/derived/unknown counts, source lineage/timeframes, and an
+      explicit adjustment-provenance envelope from canonical coverage ranges.
+- [x] Expose the range lineage and opaque/inherited adjustment status through a
+      hidden Coverage Summary accessibility description without changing pixels,
+      provider precedence, fallback, storage, or visual policy.
+- [ ] Complete the R1 canonical family/member history audit, including a
+      rebuildable adjustment-factor/version model and raw-versus-derived
+      storage separation; this slice intentionally leaves `factor_version`
+      unreported when the provider does not expose it.
+
 ### 2026-09-09 — Market Map canvas accessibility
 
 - [x] Add a bounded hidden summary to large canvas maps for source, scope,

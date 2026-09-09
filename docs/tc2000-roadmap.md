@@ -5,6 +5,40 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-09
 
+## 2026-09-09 — OHLCV range lineage and adjustment provenance accessibility
+
+At product commit `9a80c8f7`, canonical OHLCV range readiness now returns
+explicit provider/derived/unknown bar counts, source lineage, derived source
+timeframes, and an adjustment-provenance envelope. The contract deliberately
+keeps provider-native event-level adjustment factors opaque when the provider
+does not expose them, while identifying derived coarse bars as inheriting the
+canonical adjusted D1 contract and leaving `factor_version` unreported rather
+than inventing one. The Coverage Summary tool exposes the same range evidence
+through a hidden accessible description; visible layout, pixels, provider
+precedence, fallback behavior, storage policy, and visual acceptance policy
+remain unchanged.
+
+The focused frontend utility/consumer tests passed `6/6`; the focused backend
+coverage router tests passed `5/5` (the intentionally narrow backend command
+still exits non-zero only when the repository-wide coverage floor is applied).
+Frontend type-check, Ruff, format, and diff checks passed. The exact
+Docker-backed integration gate passed backend unit/integration (`1,372`/`387`,
+`81.10%` combined coverage), frontend Vitest (`987/987`), build,
+compose/provider/runner and research-runner probes, stack health, performance,
+uPlot, acceptance policy, and functional Playwright (`165` passed, `107`
+documented skips across `272`). Visual parity remains `98/104` with exactly
+the six established state-oracle diffs: `watchlist-column-editor-open.png` at
+visual-1080p-100/125 and `workspace-floating.png` at
+visual-1080p-100/125 and 1440p-100/125. The gate exits at the visual stage only
+for those established diffs; scoped teardown removed all stack resources and
+test sessions cleanly. No baseline, mask, threshold, skip, visual, provider,
+fallback, or acceptance policy changed.
+
+R1 remains open for full canonical family population, W1/MN provider history,
+placeholder disposition, explicit cadence/effective-time evidence beyond the
+timing metadata, rebuildable adjustment-factor/raw-versus-derived storage
+provenance, and broader continuity/readiness proof; R2-R7 remain open.
+
 ## 2026-09-09 — Exact-tip gate after Market Map canvas accessibility
 
 At product commit `61304578`, large canvas Market Maps now expose one hidden,

@@ -8,6 +8,38 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-09 — OHLCV range lineage and adjustment provenance checkpoint
+
+Product commit `9a80c8f7` adds explicit provider/derived/unknown counts,
+source-lineage/timeframe fields, and adjustment-provenance status to canonical
+OHLCV coverage ranges. Provider-native event-level factors remain explicitly
+opaque when unreported; derived W1/MN bars identify inheritance from canonical
+D1, and the contract leaves `factor_version` null rather than fabricating a
+version. The Coverage Summary tool exposes this evidence through a hidden
+accessible description without changing visible pixels, layout, provider
+precedence, fallback routing, storage, or visual acceptance policy.
+
+Focused frontend utility/consumer tests passed `6/6`; focused backend coverage
+router tests passed `5/5` (the narrow backend invocation only reports the
+repository-wide coverage-floor exit). Frontend type-check, Ruff, format, and
+diff checks passed. The exact Docker-backed gate passed backend unit/integration
+(`1,372`/`387`, `81.10%` combined coverage), frontend Vitest (`987/987`),
+build, contracts, provider/runner/research-runner probes, stack health,
+performance, uPlot, acceptance policy, and functional Playwright (`165`
+passed, `107` documented skips across `272`). Visual parity remains `98/104`
+with only the six established watchlist-column-editor-open/workspace-floating
+diffs; the gate exits at e2e-visual for that known boundary. Scoped teardown
+removed all assigned resources and test sessions cleanly. No other worktree was
+touched and no visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed.
+
+R1 remains active for complete canonical family/provider history population,
+placeholder disposition, cadence/effective-time evidence beyond timing
+metadata, adjustment-factor/version provenance, raw-versus-derived storage,
+and broader W1/MN continuity/readiness. R2-R7 remain open. Next action:
+continue the next bounded evidence-backed R1 or compatible Study target slice,
+then rerun the exact gate at the next coherent tip.
+
 ## 2026-09-09 — Market Map canvas accessibility checkpoint
 
 Product commit `61304578` adds a hidden `aria-describedby` summary to large
