@@ -113,6 +113,7 @@ progress:
     - worker-only universe lifecycle observations, repeated-missing deactivation, and exchange-aware core D1 coverage
     - paid-routing switches cannot bypass blank or unreviewed provider entitlements
     - admin status exposes exact missing quota-contract dimensions, entitlement review state, and weighted/credit operation-cost readiness
+    - provider-policy status exposes required and missing environment-variable names without returning secret values
     - typed 429/418/quota capacity events persist reset headers and retry timestamps and are exposed through backend admin diagnostics
     - Binance exact request-weight accounting for single-symbol price (2) and exchange-info discovery (20); weighted local buckets charge the documented units and historical candles reserve their calculated multi-page weight before execution
     - Coinbase and Kraken crypto OHLC pagination now follows each provider's documented candle-page ceiling (300 and 720 respectively); explicit/latest/bulk paths reserve the calculated page count before execution instead of silently truncating history or charging one request

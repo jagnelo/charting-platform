@@ -12,6 +12,8 @@ from app.providers.registry import (
     list_provider_capabilities,
     provider_configuration_required,
     provider_is_configured,
+    provider_missing_settings,
+    provider_required_settings,
     provider_supports_instrument,
 )
 
@@ -127,6 +129,19 @@ class TestProviderRegistry:
         assert provider_is_configured("marketstack") is False
         monkeypatch.setattr(settings, "MARKETSTACK_DISCOVERY_EXCHANGE", "XNAS")
         assert provider_is_configured("marketstack") is True
+        assert provider_required_settings("marketstack") == (
+            "MARKETSTACK_API_KEY",
+            "MARKETSTACK_DISCOVERY_EXCHANGE",
+        )
+        assert provider_missing_settings("marketstack") == []
+
+    def test_provider_missing_settings_reports_names_only(self, monkeypatch):
+        monkeypatch.setattr(settings, "MARKETSTACK_API_KEY", "")
+        monkeypatch.setattr(settings, "MARKETSTACK_DISCOVERY_EXCHANGE", "")
+        assert provider_missing_settings("marketstack") == [
+            "MARKETSTACK_API_KEY",
+            "MARKETSTACK_DISCOVERY_EXCHANGE",
+        ]
 
     def test_yfinance_is_available_as_price_history_provider(self):
         provider = get_price_history_provider("yfinance")

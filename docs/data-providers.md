@@ -31,6 +31,12 @@ pagination or compound lookup must change that map before the operation can be
 treated as quota-safe. No operation silently inherits a universal request cost
 when a provider contract declares operation-level accounting.
 
+The backend provider-policy diagnostics also expose the required and currently
+missing environment-variable names for each provider. These are names only;
+secret values are never returned. This lets operators distinguish an absent
+credential or non-secret scope setting from an unreviewed entitlement or quota
+contract without turning the diagnostics endpoint into a secret store.
+
 The same explicit accounting applies to the one-request surfaces of Alpaca,
 Massive, FRED, OpenFIGI, Coinbase, Kraken, Marketstack, Finnhub, FMP, Tiingo,
 and Tradier. Range/pagination-dependent history operations are either charged

@@ -104,6 +104,15 @@ class TestProvidersRouter:
         assert unreviewed["entitlement_state"] == "unreviewed"
         assert unreviewed["routing_eligible"] is False
         assert unreviewed["live_probe_status"] == "passed"
+        assert unreviewed["required_environment_variables"]
+        assert all(
+            value.isupper() and " " not in value
+            for value in unreviewed["required_environment_variables"]
+        )
+        assert all(
+            value.isupper() and " " not in value
+            for value in unreviewed["missing_environment_variables"]
+        )
 
         target = rows[0]
         provider = target["provider"]

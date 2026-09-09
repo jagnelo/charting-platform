@@ -436,6 +436,27 @@ def provider_configuration_required(name: str) -> bool:
     return name in _CONFIGURATION_SETTINGS
 
 
+def provider_required_settings(name: str) -> tuple[str, ...]:
+    """Return required environment-setting names without exposing values."""
+
+    required = list(_CONFIGURATION_SETTINGS.get(name, ()))
+    required.extend(_AUTH_SETTINGS.get(name, ()))
+    if name == "edgar":
+        required.append("EDGAR_USER_AGENT")
+    return tuple(dict.fromkeys(required))
+
+
+def provider_missing_settings(name: str) -> list[str]:
+    """Return missing required setting names for operator diagnostics only."""
+
+    missing = []
+    for setting_name in provider_required_settings(name):
+        value = str(getattr(settings, setting_name, "") or "").strip()
+        if not value or (setting_name == "EDGAR_USER_AGENT" and "contact@example.com" in value):
+            missing.append(setting_name)
+    return missing
+
+
 def provider_is_configured(name: str) -> bool:
     """Return whether the deployment supplied required adapter inputs."""
 
