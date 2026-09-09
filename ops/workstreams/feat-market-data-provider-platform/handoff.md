@@ -13,6 +13,7 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 - Robinhood tokenized-price reads now have a finite provider-specific 429 retry budget with `Retry-After` support; repeated throttles remain observable and fail closed instead of creating a retry storm.
 - Nasdaq Trader directory polling now retains `ETag`/`Last-Modified` validators and conditionally reuses parsed files on `304 Not Modified`; this lowers repeated download load without inventing a numeric polling allowance, so the provider remains discovery-only and non-routable for quota-controlled work.
 - Local and RPi Compose now pass `FINRA_ASYNC_MAX_RESULT_BYTES`, `TIINGO_OPERATION_BYTE_BOUNDS`, and `FMP_OPERATION_BYTE_BOUNDS` to backend and worker only; the research-runner remains isolated, and secret-wiring regression coverage protects this boundary.
+- Tiingo's 500-unique-symbol monthly allowance is now explicitly retained as an untracked provider-specific constraint. A complete byte map cannot promote Tiingo until a durable distinct-symbol ledger exists; repeated calls are never misrepresented as unique-symbol usage.
 - FRED's v1 documentation and terms are now reflected explicitly: 429 throttling exists without a published numeric ceiling, provider-set bandwidth/transaction limits may change, and series-specific copyright/redistribution and non-endorsement requirements apply. FRED remains non-routable until its deployed v1 quota and downstream usage policy are reviewed.
 
 ## Current implementation boundary

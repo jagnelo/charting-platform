@@ -46,7 +46,7 @@ re-reviewed when credentials or billing plans change.
 | FINRA OTC directory | current `otcSecurityMaster` DAPI snapshot, or configured pipe-delimited OTC/OTCBB mirror | `FINRA_OTC_SYMBOL_DIRECTORY_URL` | Official FINRA synchronous platform ceiling: 1,200 requests/minute/IP and 3 MB maximum response; source-specific polling and redistribution terms still require review | configured source / rolling IP request window | full current DAPI pagination is live-proven; explicit quota is recorded, but adapter remains non-routable until source configuration and terms review are complete |
 | FRED | macro/rates/FX daily series | `FRED_API_KEY` | The deployed adapter uses FRED v1; its official errors page documents 429 throttling but no fixed numeric ceiling, so no limit is inferred from the separate v2 documentation | API key / provider-defined | **not routable until the deployed API version's ceiling is verified** |
 | Nasdaq Trader | official `nasdaqlisted.txt`/`otherlisted.txt` US NMS listing/lifecycle files | none | No numeric public limit in the symbol-directory definition; poll conservatively and record response headers | public service / unknown | **discovery evidence only; quota unknown** |
-| Tiingo | EOD history, search, profiles | `TIINGO_API_KEY` | 500 unique symbols/month, 50/hour, 1,000/day, 1 GB/month (free Starter); monthly bandwidth resets on the first day at midnight Eastern | API key / multiple windows | EOD live-proven; response bytes are durable; routing requires complete reviewed `TIINGO_OPERATION_BYTE_BOUNDS` |
+| Tiingo | EOD history, search, profiles | `TIINGO_API_KEY` | 500 unique symbols/month, 50/hour, 1,000/day, 1 GB/month (free Starter); monthly bandwidth resets on the first day at midnight Eastern | API key / multiple windows | EOD live-proven; response bytes are durable; routing requires both complete reviewed `TIINGO_OPERATION_BYTE_BOUNDS` and a durable distinct-symbol ledger (the 500-symbol pool is not request-count accounting) |
 | Twelve Data | multi-timeframe candles, quote, search, US universe | `TWELVE_DATA_API_KEY` | 8 credits/min and 800/day Basic; cost is symbols/endpoint-weighted | API key / minute + day | daily history and configured one-credit operation live-proven |
 | Finnhub | profile/search, earnings events/universe; candle adapter retained for higher entitlements | `FINNHUB_API_KEY` | observed free account 60 calls/min; all plans also have a 30 calls/sec hard cap | token / minute + rolling second | company profile live-proven; free stock candles returned 403 and are explicitly non-routable |
 | Marketstack | daily EOD history and ticker discovery | `MARKETSTACK_API_KEY` | Free-plan pricing publishes 100 requests/month and one year of history; a stale FAQ sentence says 1,000, so the checked-in contract uses the lower 100-request ceiling | key / calendar month | daily history live-proven |
@@ -106,8 +106,12 @@ FMP_OPERATION_BYTE_BOUNDS={}
 Every operation exposed by the relevant adapter must be present with a positive
 bound. Complete maps move the provider's documented bandwidth pool into the
 same durable multidimensional reservation path as request limits; response
-bytes settle the reservation after execution. Missing, zero, malformed, or
-partial maps leave the provider visible for diagnostics but non-routable.
+bytes settle the reservation after execution. Tiingo additionally publishes a
+500-unique-symbol monthly pool, which cannot be represented as one unit per
+request: repeated symbols and multi-symbol operations need a durable distinct
+symbol ledger. Until that ledger exists, Tiingo remains visible for diagnostics
+but non-routable even when its byte map is complete. Missing, zero, malformed,
+or partial maps likewise leave the provider non-routable.
 
 The platform uses a capability-based provider chain.  For each data type the runtime selects the
 highest-scoring available provider, falls back to the next, and so on.  Initial priorities below

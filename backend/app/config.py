@@ -484,6 +484,15 @@ class Settings(BaseSettings):
                 "reset": "provider_defined",
                 "untracked_constraints": [
                     {
+                        "name": "unique_symbols_per_month_accounting",
+                        "limit": 500,
+                        "unit": "unique_symbols",
+                        "scope": "api_key",
+                        "source": "https://www.tiingo.com/about/pricing",
+                        "reset": "calendar_month_est",
+                        "tracking": "distinct provider symbols, not request count",
+                    },
+                    {
                         "name": "bandwidth_bytes_per_month",
                         "limit": 1073741824,
                         "unit": "bytes",

@@ -110,7 +110,9 @@ def test_tiingo_byte_pool_requires_complete_operator_bounds_before_promotion(mon
     monkeypatch.setattr(settings, "TIINGO_OPERATION_BYTE_BOUNDS", bounds)
     seed = provider_rate_limit_seed("tiingo")
     contract = seed["quota_contract"]
-    assert not contract.get("untracked_constraints")
+    assert [item["name"] for item in contract["untracked_constraints"]] == [
+        "unique_symbols_per_month_accounting"
+    ]
     bytes_dimension = next(item for item in contract["dimensions"] if item["unit"] == "bytes")
     assert bytes_dimension["limit"] == 1024**3
     assert contract["dimension_costs_required"] is True
@@ -118,6 +120,14 @@ def test_tiingo_byte_pool_requires_complete_operator_bounds_before_promotion(mon
     profile = get_provider_usage_profile("tiingo")
     assert profile["dimension_costs"][bytes_dimension["name"]] == bounds
     assert profile["operation_costs"]["fetch_ohlcv"] == 1
+    assert not policy_has_known_quota(
+        ProviderPolicy(
+            data_source_id=1,
+            capability=ProviderCapability.PRICE_HISTORY,
+            quota_scope=seed["quota_scope"],
+            quota_contract=contract,
+        )
+    )
 
     monkeypatch.setattr(settings, "TIINGO_OPERATION_BYTE_BOUNDS", {"fetch_ohlcv": 1_000_000})
     assert provider_rate_limit_seed("tiingo")["quota_contract"].get("untracked_constraints")
@@ -884,7 +894,9 @@ def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
     assert finra_otc["dimensions"][0]["limit"] == 1200
     assert finra_otc["dimensions"][0]["scope"] == "ip"
     assert finra_otc["maximum_synchronous_response_bytes"] == 3 * 1024**2
-    assert tiingo["untracked_constraints"][0]["limit"] == 1024**3
+    assert tiingo["untracked_constraints"][0]["name"] == "unique_symbols_per_month_accounting"
+    assert tiingo["untracked_constraints"][0]["limit"] == 500
+    assert tiingo["untracked_constraints"][1]["limit"] == 1024**3
     assert fmp["dimensions"][0]["limit"] == 250
     assert fmp["untracked_constraints"][0]["limit"] == 512 * 1024**2
     assert fmp["untracked_constraints"][0]["window_seconds"] == 2_592_000
