@@ -44,7 +44,7 @@ re-reviewed when credentials or billing plans change.
 | CoinGecko Demo | crypto search, metadata, market-cap universe | `COINGECKO_API_KEY` | 100 calls/min and 10,000 calls/month | Demo key / minute + calendar month | credentialed search live-proven |
 | FINRA | consolidated short interest (OAuth Query API), OTC Daily List lifecycle/corporate-action deltas, and generic asynchronous Query API jobs | `FINRA_CLIENT_ID`, `FINRA_CLIENT_SECRET` | 1,200 synchronous requests/minute/IP; 20 asynchronous submissions/minute/dataset/account; max 5,000 records and 3 MB per synchronous response; public credential capped at 10 GB downloaded/month | OAuth client / IP + dataset/account + calendar-month credential bandwidth | synchronous datasets live-proven; async submit/poll/presigned-download flow is fixture-tested and becomes routable only with a positive reviewed result-byte bound; the default unbounded path remains fail-closed |
 | FINRA OTC directory | current `otcSecurityMaster` DAPI snapshot, or configured pipe-delimited OTC/OTCBB mirror | `FINRA_OTC_SYMBOL_DIRECTORY_URL` | Official FINRA synchronous platform ceiling: 1,200 requests/minute/IP and 3 MB maximum response; source-specific polling and redistribution terms still require review | configured source / rolling IP request window | full current DAPI pagination is live-proven; explicit quota is recorded, but adapter remains non-routable until source configuration and terms review are complete |
-| FRED | macro/rates/FX daily series | `FRED_API_KEY` | The deployed adapter uses FRED v1; its official errors page documents 429 throttling but no fixed numeric ceiling, so no limit is inferred from the separate v2 documentation | API key / provider-defined | **not routable until the deployed API version's ceiling is verified** |
+| FRED | macro/rates/FX daily series | `FRED_API_KEY` | FRED v1 errors document up to 120 requests/minute before HTTP 429; the enforcement scope is not stated, and the terms permit provider-adjusted limits plus series-specific copyright/redistribution restrictions | API key / provider-defined rolling minute | **numeric ceiling recorded; non-routable until scope, adjustable-limit, and terms review are complete** |
 | Nasdaq Trader | official `nasdaqlisted.txt`/`otherlisted.txt` US NMS listing/lifecycle files | none | No numeric public limit in the symbol-directory definition; poll conservatively and record response headers | public service / unknown | **discovery evidence only; quota unknown** |
 | Tiingo | EOD history, search, profiles | `TIINGO_API_KEY` | 500 unique symbols/month, 50/hour, 1,000/day, 1 GB/month (free Starter); monthly bandwidth resets on the first day at midnight Eastern | API key / multiple windows | EOD live-proven; response bytes and distinct provider-symbol claims are durable; routing still requires a complete reviewed `TIINGO_OPERATION_BYTE_BOUNDS` map (the 500-symbol pool is not request-count accounting) |
 | Twelve Data | multi-timeframe candles, quote, search, US universe | `TWELVE_DATA_API_KEY` | 8 credits/min and 800/day Basic; cost is symbols/endpoint-weighted | API key / minute + day | daily history and configured one-credit operation live-proven |
@@ -78,8 +78,10 @@ inventing a numeric polling allowance; quota admission remains disabled until
 Nasdaq publishes a reviewed contract.
 
 The FRED adapter uses the v1 endpoint. Its [v1 errors documentation](https://fred.stlouisfed.org/docs/api/fred/errors.html)
-confirms 429 throttling but does not publish a fixed number; the v2 page's
-two-requests-per-second example is therefore not applied to this adapter. The
+states that up to 120 requests per minute are allowed before HTTP 429, but it
+does not identify the enforcement scope. The runtime records that numeric
+ceiling while leaving scope, provider-adjustable limits, and series rights as
+explicit non-routable review gates; no v2 example is substituted. The
 [FRED API terms](https://fred.stlouisfed.org/docs/api/terms_of_use.html) also
 allow the provider to change bandwidth/transaction limits, place
 series-specific copyright restrictions on third-party data, and require a
@@ -87,8 +89,7 @@ non-endorsement notice. Missing `FRED_API_KEY` raises an explicit
 `ProviderNotConfiguredError`; HTTP 429/418 responses are preserved as typed
 capacity failures with provider headers and `Retry-After` timestamps rather
 than returning an empty series or price. FRED remains non-routable until the
-deployed v1 quota contract and downstream usage/redistribution policy are
-explicitly reviewed.
+scope and downstream usage/redistribution policy are explicitly reviewed.
 Marketstack's [pricing page](https://marketstack.com/pricing) publishes the
 free 100-request/month plan; its [FAQ](https://marketstack.com/faq) contains a
 conflicting 1,000-request sentence, so the runtime records the lower 100 limit

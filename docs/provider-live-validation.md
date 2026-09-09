@@ -179,6 +179,12 @@ acceptance claim. FINRA asynchronous result bytes and Tiingo/FMP operation byte
 maps were also reported non-routable because no positive reviewed bounds were
 configured.
 
+The wrapper also reports the remaining provider-specific admission gates
+explicitly: FRED's v1 limit scope/adjustable-limit/series-terms review,
+Nasdaq Trader's unpublished polling allowance, xStocks' unpublished public
+quota, and Bybit's endpoint/UID header state. A positive live read for any of
+these providers is therefore not treated as routing admission.
+
 The MarketData.app adapter was also checked against the current official API
 root during this checkpoint: versioned resources are under
 `https://api.marketdata.app/v1` (not `/api/v1`). The checked-in contract records
