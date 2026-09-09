@@ -99,6 +99,19 @@ free 100-request/month plan; its [FAQ](https://marketstack.com/faq) contains a
 conflicting 1,000-request sentence, so the runtime records the lower 100 limit
 and remains gated on account/terms review.
 
+Tradier is intentionally configured against the production market-data base URL
+in this branch, so its checked-in 120/minute contract applies only to a
+production token. Tradier's [endpoint guide](https://docs.tradier.com/docs/endpoints)
+states that production brokerage APIs require a Tradier brokerage account,
+partner, or advisor relationship; the sandbox requires a brokerage signup and a
+paper-trading token. A sandbox token must not be placed in `TRADIER_API_KEY`
+while the production contract is active: supporting sandbox mode requires a
+separate provider identity and 60/minute quota seed rather than silently
+reusing the production policy. Tradier's documented JSON wrappers are handled
+explicitly by the adapter: history rows are under `history.day|week|month`,
+search rows under `securities.security`, and single-row responses may be
+objects rather than arrays.
+
 Tiingo and FMP publish bandwidth pools but do not publish one universal maximum
 response size for every adapter operation. The runtime therefore does not
 invent a byte ceiling. An operator who has reviewed the current endpoint
