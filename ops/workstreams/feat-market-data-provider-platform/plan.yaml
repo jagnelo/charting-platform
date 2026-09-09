@@ -146,7 +146,7 @@ progress:
     - SEC EDGAR now rejects a blank deployment User-Agent with ProviderNotConfiguredError; every local, CI, and deployed environment must supply its own descriptive non-secret contact value
     - optional REST adapters now reject explicit HTTP-success error envelopes as typed provider-response failures, and classify rate/quota wording as typed capacity failures instead of returning false empty data
     - manifest-driven live probes require positive transport observations for every available non-tokenized adapter read, with SEC/Nasdaq directory pagination explicitly cache-aware
-    - the HTTP-success provider error-envelope guard is covered by the full Docker-backed gate (`1778/1778`, `80.13%`), preserving typed failures instead of false empty observations
+    - the HTTP-success provider error-envelope guard is covered by the full Docker-backed gate (`1779/1779`, `80.14%`), preserving typed failures instead of false empty observations
     - tokenized public adapters now reject Kraken non-empty error lists and Bybit nonzero retCode HTTP-success envelopes as typed failures, preserving registered provider identity and preventing synthetic token records
   total: 15
   current_phase: credentialed_live_validation
