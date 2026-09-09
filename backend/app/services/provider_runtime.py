@@ -1565,7 +1565,7 @@ async def execute_provider_call(
                     resolved.provider_name,
                     capability.value,
                     operation,
-                    exc,
+                    redact_provider_message(exc),
                     ", ".join(remaining),
                 )
             else:
@@ -1574,7 +1574,7 @@ async def execute_provider_call(
                     resolved.provider_name,
                     capability.value,
                     operation,
-                    exc,
+                    redact_provider_message(exc),
                 )
             if not isinstance(exc, ProviderRateLimitError | ProviderNotConfiguredError):
                 await asyncio.sleep(
