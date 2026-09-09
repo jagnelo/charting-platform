@@ -55,12 +55,14 @@ BYTE_BOUND_OPERATIONS = {
     "tiingo": (
         "fetch_ohlcv",
         "fetch_latest_ohlcv",
+        "get_current_price",
         "search_instruments",
         "get_instrument_profile",
     ),
     "fmp": (
         "fetch_ohlcv",
         "fetch_latest_ohlcv",
+        "get_current_price",
         "get_instrument_profile",
         "discover_universe_page",
     ),

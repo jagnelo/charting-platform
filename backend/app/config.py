@@ -921,6 +921,7 @@ class Settings(BaseSettings):
             "operation_costs": {
                 "fetch_ohlcv": 1,
                 "fetch_latest_ohlcv": 1,
+                "get_current_price": 1,
                 "search_instruments": 1,
                 "get_instrument_profile": 1,
             },
@@ -944,6 +945,7 @@ class Settings(BaseSettings):
             "unit_label": "requests",
             "operation_costs": {
                 "discover_universe_page": 1,
+                "get_current_price": 1,
             },
         },
         "fmp": {
@@ -952,6 +954,7 @@ class Settings(BaseSettings):
             "operation_costs": {
                 "fetch_ohlcv": 1,
                 "fetch_latest_ohlcv": 1,
+                "get_current_price": 1,
                 "get_instrument_profile": 1,
                 "discover_universe_page": 1,
             },
@@ -1513,12 +1516,14 @@ _BYTE_BOUND_OPERATIONS: dict[str, tuple[str, ...]] = {
     "tiingo": (
         "fetch_ohlcv",
         "fetch_latest_ohlcv",
+        "get_current_price",
         "search_instruments",
         "get_instrument_profile",
     ),
     "fmp": (
         "fetch_ohlcv",
         "fetch_latest_ohlcv",
+        "get_current_price",
         "get_instrument_profile",
         "discover_universe_page",
     ),

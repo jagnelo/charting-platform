@@ -215,6 +215,7 @@ class TestProviderRegistry:
             {
                 "fetch_ohlcv": 1,
                 "fetch_latest_ohlcv": 1,
+                "get_current_price": 1,
                 "search_instruments": 1,
                 "get_instrument_profile": 1,
             },
@@ -225,6 +226,7 @@ class TestProviderRegistry:
             {
                 "fetch_ohlcv": 1,
                 "fetch_latest_ohlcv": 1,
+                "get_current_price": 1,
                 "get_instrument_profile": 1,
                 "discover_universe_page": 1,
             },

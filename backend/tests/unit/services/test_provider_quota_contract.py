@@ -165,6 +165,7 @@ async def test_runtime_seed_refreshes_provider_generated_contract_after_byte_map
     complete_bounds = {
         "fetch_ohlcv": 1_000_000,
         "fetch_latest_ohlcv": 1_000_000,
+        "get_current_price": 100_000,
         "search_instruments": 100_000,
         "get_instrument_profile": 100_000,
     }
@@ -227,6 +228,7 @@ def test_tiingo_byte_pool_requires_complete_operator_bounds_before_promotion(mon
     bounds = {
         "fetch_ohlcv": 1_000_000,
         "fetch_latest_ohlcv": 1_000_000,
+        "get_current_price": 100_000,
         "search_instruments": 100_000,
         "get_instrument_profile": 100_000,
     }
@@ -241,6 +243,7 @@ def test_tiingo_byte_pool_requires_complete_operator_bounds_before_promotion(mon
     profile = get_provider_usage_profile("tiingo")
     assert profile["dimension_costs"][bytes_dimension["name"]] == bounds
     assert profile["operation_costs"]["fetch_ohlcv"] == 1
+    assert profile["operation_costs"]["get_current_price"] == 1
     policy = ProviderPolicy(
         data_source_id=1,
         capability=ProviderCapability.PRICE_HISTORY,
@@ -256,6 +259,9 @@ def test_tiingo_byte_pool_requires_complete_operator_bounds_before_promotion(mon
     assert not provider_contract_operation_cost_known(policy, source, "fetch_ohlcv")
     assert provider_contract_operation_cost_known(
         policy, source, "fetch_ohlcv", usage_identity="AAPL"
+    )
+    assert provider_contract_operation_cost_known(
+        policy, source, "get_current_price", usage_identity="AAPL"
     )
 
     monkeypatch.setattr(settings, "TIINGO_OPERATION_BYTE_BOUNDS", {"fetch_ohlcv": 1_000_000})
@@ -994,6 +1000,13 @@ def test_alpha_vantage_profile_covers_each_single_query_operation():
     }
 
 
+def test_optional_latest_price_profiles_charge_the_actual_quote_operation():
+    for provider_name in ("tiingo", "eodhd", "fmp", "marketstack", "marketdata_app"):
+        assert get_provider_usage_profile(provider_name)["operation_costs"][
+            "get_current_price"
+        ] == 1
+
+
 def test_single_request_provider_profiles_are_explicit():
     expected = {
         "alpaca": {
@@ -1009,7 +1022,7 @@ def test_single_request_provider_profiles_are_explicit():
         },
         "coinbase": {"get_current_price": 1, "discover_universe_page": 1},
         "kraken": {"get_current_price": 1, "discover_universe_page": 1},
-        "marketstack": {"discover_universe_page": 1},
+        "marketstack": {"discover_universe_page": 1, "get_current_price": 1},
         "tradier": {
             "fetch_ohlcv": 1,
             "fetch_latest_ohlcv": 1,
