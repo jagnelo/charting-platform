@@ -23,6 +23,7 @@ Created from `staging` at `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`.
 - FRED missing credentials now raise `ProviderNotConfiguredError` rather than returning an empty series/price, so provider fallback can distinguish absent configuration from a valid no-observation result.
 - Alpaca missing API/secret credentials now raise `ProviderNotConfiguredError` across history, latest-price, corporate-action, and discovery operations; unsupported symbols/timeframes remain ordinary empty-result cases.
 - Alpaca and SEC EDGAR no longer swallow upstream HTTP status failures into empty or synthetic results; they propagate status errors to the runtime's typed capacity/reset handling.
+- SEC EDGAR now fails closed when `EDGAR_USER_AGENT` is blank; the descriptive contact value remains a per-environment non-secret deployment requirement.
 
 ## Current implementation boundary
 

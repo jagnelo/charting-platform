@@ -677,6 +677,19 @@ class TestCoinGeckoCredentialWarning:
 
 
 class TestEdgarTickerMap:
+    @pytest.fixture(autouse=True)
+    def _configured_sec_user_agent(self, monkeypatch):
+        monkeypatch.setattr(
+            "app.providers.edgar.settings.EDGAR_USER_AGENT",
+            "charting-platform unit-test test@example.invalid",
+        )
+
+    def test_missing_user_agent_is_explicit(self):
+        with patch("app.providers.edgar.settings") as configured:
+            configured.EDGAR_USER_AGENT = ""
+            with pytest.raises(ProviderNotConfiguredError):
+                EdgarProvider()._headers()
+
     def test_sec_exchange_directory_pages_all_reported_us_venues(self):
         import app.providers.edgar as edgar_module
 

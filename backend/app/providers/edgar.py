@@ -37,6 +37,7 @@ from app.providers.base import (
     ListingRecord,
     ProviderSearchResult,
 )
+from app.providers.errors import ProviderNotConfiguredError
 from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
@@ -63,7 +64,12 @@ class EdgarProvider:
     )
 
     def _headers(self) -> dict[str, str]:
-        return {"User-Agent": settings.EDGAR_USER_AGENT}
+        user_agent = str(settings.EDGAR_USER_AGENT or "").strip()
+        if not user_agent:
+            raise ProviderNotConfiguredError(
+                "edgar requires EDGAR_USER_AGENT with a descriptive contact value"
+            )
+        return {"User-Agent": user_agent}
 
     def search_instruments(self, query: str, *, limit: int = 10) -> list[ProviderSearchResult]:
         """Search the SEC's cached issuer ticker directory without provider fan-out.
