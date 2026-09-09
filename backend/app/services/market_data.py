@@ -48,6 +48,10 @@ from app.providers.crypto_market_data import (
     estimate_kraken_latest_ohlcv_request_count,
     estimate_kraken_ohlcv_request_count,
 )
+from app.providers.optional_market_data import (
+    estimate_twelve_data_latest_ohlcv_request_count,
+    estimate_twelve_data_ohlcv_request_count,
+)
 from app.services.instrument_mastering import ingest_provider_profile, reconcile_instrument_profile
 from app.services.ohlcv_coverage import assess_ohlcv_coverage, missing_range_slices
 from app.services.provider_observations import (
@@ -756,11 +760,13 @@ async def _fetch_provider(
     binance_cost = estimate_ohlcv_request_weight(timeframe, start, end)
     coinbase_cost = estimate_coinbase_ohlcv_request_count(timeframe, start, end)
     kraken_cost = estimate_kraken_ohlcv_request_count(timeframe, start, end)
+    twelve_data_cost = estimate_twelve_data_ohlcv_request_count(timeframe, start, end)
     operation_cost_overrides = {
         **({"alpaca": alpaca_cost} if alpaca_cost is not None else {}),
         **({"binance": binance_cost} if binance_cost is not None else {}),
         **({"coinbase": coinbase_cost} if coinbase_cost is not None else {}),
         **({"kraken": kraken_cost} if kraken_cost is not None else {}),
+        **({"twelve_data": twelve_data_cost} if twelve_data_cost is not None else {}),
     }
     execution = await execute_provider_call(
         db,
@@ -1076,11 +1082,13 @@ async def _fetch_provider_latest(
     binance_cost = estimate_latest_ohlcv_request_weight(timeframe, limit)
     coinbase_cost = estimate_coinbase_latest_ohlcv_request_count(timeframe, limit)
     kraken_cost = estimate_kraken_latest_ohlcv_request_count(timeframe, limit)
+    twelve_data_cost = estimate_twelve_data_latest_ohlcv_request_count(timeframe, limit)
     operation_cost_overrides = {
         **({"alpaca": alpaca_cost} if alpaca_cost is not None else {}),
         **({"binance": binance_cost} if binance_cost is not None else {}),
         **({"coinbase": coinbase_cost} if coinbase_cost is not None else {}),
         **({"kraken": kraken_cost} if kraken_cost is not None else {}),
+        **({"twelve_data": twelve_data_cost} if twelve_data_cost is not None else {}),
     }
     execution = await execute_provider_call(
         db,

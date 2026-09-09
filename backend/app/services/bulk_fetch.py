@@ -35,6 +35,7 @@ from app.providers.crypto_market_data import (
     estimate_coinbase_ohlcv_request_count,
     estimate_kraken_ohlcv_request_count,
 )
+from app.providers.optional_market_data import estimate_twelve_data_ohlcv_request_count
 from app.services.market_data import _record_bar_observations, _touch_ohlcv_dataset_state
 from app.services.provider_runtime import execute_provider_call
 
@@ -226,11 +227,13 @@ async def _do_fetch_and_store(
     binance_cost = estimate_ohlcv_request_weight(timeframe, EPOCH_START, end)
     coinbase_cost = estimate_coinbase_ohlcv_request_count(timeframe, EPOCH_START, end)
     kraken_cost = estimate_kraken_ohlcv_request_count(timeframe, EPOCH_START, end)
+    twelve_data_cost = estimate_twelve_data_ohlcv_request_count(timeframe, EPOCH_START, end)
     operation_cost_overrides = {
         **({"alpaca": alpaca_cost} if alpaca_cost is not None else {}),
         **({"binance": binance_cost} if binance_cost is not None else {}),
         **({"coinbase": coinbase_cost} if coinbase_cost is not None else {}),
         **({"kraken": kraken_cost} if kraken_cost is not None else {}),
+        **({"twelve_data": twelve_data_cost} if twelve_data_cost is not None else {}),
     }
     execution = await execute_provider_call(
         db,

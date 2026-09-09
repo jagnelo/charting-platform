@@ -45,6 +45,11 @@ from app.providers.errors import (
 )
 from app.providers.fred import FREDProvider, fred_series_for, is_fred_symbol
 from app.providers.massive import MassiveProvider
+from app.providers.optional_market_data import (
+    TwelveDataProvider,
+    estimate_twelve_data_latest_ohlcv_request_count,
+    estimate_twelve_data_ohlcv_request_count,
+)
 from app.providers.registry import (
     get_discovery_provider,
     get_event_provider,
@@ -447,6 +452,43 @@ class TestCryptoOHLCVPagination:
         assert [bar.ts for bar in bars] == [start, second_ts]
         assert estimate_kraken_ohlcv_request_count(Timeframe.M1, start, end) == 2
         assert estimate_kraken_latest_ohlcv_request_count(Timeframe.M1, 721) == 2
+
+    def test_twelve_data_history_pages_5000_point_ranges(self):
+        provider = TwelveDataProvider()
+        start = datetime(2024, 1, 1, tzinfo=UTC)
+        end = start + timedelta(days=5001)
+        first = {
+            "values": [
+                {
+                    "datetime": start.isoformat(),
+                    "open": "1",
+                    "high": "2",
+                    "low": "1",
+                    "close": "1.5",
+                    "volume": "10",
+                }
+            ]
+        }
+        second_ts = start + timedelta(days=5000)
+        second = {
+            "values": [
+                {
+                    "datetime": second_ts.isoformat(),
+                    "open": "2",
+                    "high": "3",
+                    "low": "2",
+                    "close": "2.5",
+                    "volume": "20",
+                }
+            ]
+        }
+        with patch.object(provider, "_get", side_effect=[first, second]) as get:
+            bars = provider.fetch_ohlcv("AAPL", Timeframe.D1, start, end)
+
+        assert get.call_count == 2
+        assert [bar.ts for bar in bars] == [start, second_ts]
+        assert estimate_twelve_data_ohlcv_request_count(Timeframe.D1, start, end) == 2
+        assert estimate_twelve_data_latest_ohlcv_request_count(Timeframe.D1, 5001) == 2
 
 
 # ── FRED series map ───────────────────────────────────────────────────────────

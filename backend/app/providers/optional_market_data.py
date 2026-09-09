@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from math import ceil
 from typing import Any
 
 import httpx
@@ -54,6 +55,33 @@ _TF_SECONDS: dict[Timeframe, int] = {
     Timeframe.W1: 604800,
     Timeframe.MN: 2592000,
 }
+_TWELVE_DATA_POINTS_PER_REQUEST = 5000
+
+
+def estimate_twelve_data_ohlcv_request_count(
+    timeframe: Timeframe, start: datetime, end: datetime
+) -> int | None:
+    """Estimate Twelve Data calls for its documented 5,000-point ceiling."""
+
+    seconds = _TF_SECONDS.get(timeframe)
+    if seconds is None:
+        return None
+    if end <= start:
+        return 0
+    span_seconds = max(0.0, (end - start).total_seconds())
+    return max(1, ceil(span_seconds / (seconds * _TWELVE_DATA_POINTS_PER_REQUEST)))
+
+
+def estimate_twelve_data_latest_ohlcv_request_count(timeframe: Timeframe, limit: int) -> int | None:
+    """Reserve the generic REST adapter's lookback padding plus the page cap."""
+
+    seconds = _TF_SECONDS.get(timeframe)
+    if seconds is None:
+        return None
+    if limit <= 0:
+        return 0
+    span_seconds = max(1.0, limit * seconds * 1.5 + 86400)
+    return max(1, ceil(span_seconds / (seconds * _TWELVE_DATA_POINTS_PER_REQUEST)))
 
 
 def _number(value: Any) -> float | None:
@@ -382,37 +410,41 @@ class TwelveDataProvider(_RESTProvider):
         data_source_id: int | None = None,
     ) -> list[OHLCVBar]:
         interval = self._INTERVAL.get(timeframe)
-        if not interval:
+        if not interval or end <= start:
             return []
-        payload = self._get(
-            "time_series",
-            {
-                "symbol": symbol.upper(),
-                "interval": interval,
-                "start_date": _bounded_datetime(start).isoformat(),
-                "end_date": _bounded_datetime(end).isoformat(),
-                "outputsize": 5000,
-                "format": "JSON",
-            },
-        )
-        bars = [
-            self._bar(
-                row,
-                timeframe,
-                instrument_id=instrument_id,
-                data_source_id=data_source_id,
-                timestamp_keys=("datetime", "timestamp"),
+        bounded_start = _bounded_datetime(start)
+        bounded_end = _bounded_datetime(end)
+        bars_by_timestamp: dict[datetime, OHLCVBar] = {}
+        cursor = bounded_start
+        while cursor < bounded_end:
+            chunk_end = min(
+                bounded_end,
+                cursor + timedelta(seconds=_TF_SECONDS[timeframe] * _TWELVE_DATA_POINTS_PER_REQUEST),
             )
-            for row in self._rows(payload, "values")
-        ]
-        return sorted(
-            [
-                bar
-                for bar in bars
-                if bar and _bounded_datetime(start) <= bar.ts < _bounded_datetime(end)
-            ],
-            key=lambda bar: bar.ts,
-        )
+            payload = self._get(
+                "time_series",
+                {
+                    "symbol": symbol.upper(),
+                    "interval": interval,
+                    # With both boundaries present Twelve Data returns the
+                    # complete bounded range, up to its 5,000-point cap.
+                    "start_date": cursor.isoformat(),
+                    "end_date": chunk_end.isoformat(),
+                    "format": "JSON",
+                },
+            )
+            for row in self._rows(payload, "values"):
+                bar = self._bar(
+                    row,
+                    timeframe,
+                    instrument_id=instrument_id,
+                    data_source_id=data_source_id,
+                    timestamp_keys=("datetime", "timestamp"),
+                )
+                if bar and bounded_start <= bar.ts < bounded_end:
+                    bars_by_timestamp[bar.ts] = bar
+            cursor = chunk_end
+        return [bars_by_timestamp[ts] for ts in sorted(bars_by_timestamp)]
 
     def get_current_price(self, symbol: str) -> float | None:
         payload = self._get("price", {"symbol": symbol.upper()})
