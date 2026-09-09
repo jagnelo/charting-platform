@@ -69,3 +69,5 @@ def test_live_workflow_is_manual_environment_scoped_and_maps_each_secret():
     assert "schedule:" not in workflow
     for name in PROVIDER_SECRET_NAMES:
         assert f"{name}: ${{{{ secrets.{name} }}}}" in workflow
+    for name in PROVIDER_SAFETY_SETTINGS:
+        assert f"{name}: ${{{{ vars.{name} }}}}" in workflow

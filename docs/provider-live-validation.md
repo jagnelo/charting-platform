@@ -21,7 +21,11 @@ GitHub uses the separate manually dispatched
 `Credentialed Provider Live Validation` workflow. Configure its
 `provider-live-validation` environment with same-named environment secrets and
 with `EDGAR_USER_AGENT` and `FINRA_OTC_SYMBOL_DIRECTORY_URL` environment
-variables. Keep required reviewers enabled. Ordinary push/PR CI deliberately
+variables. Put the reviewed non-secret safety settings
+`FINRA_ASYNC_MAX_RESULT_BYTES`, `TIINGO_OPERATION_BYTE_BOUNDS`, and
+`FMP_OPERATION_BYTE_BOUNDS` in the same environment's configuration variables;
+the workflow passes them through without inventing defaults. Keep required
+reviewers enabled. Ordinary push/PR CI deliberately
 receives no provider secrets and makes no external provider calls, so a forked
 PR cannot spend quotas or exfiltrate keys.
 
