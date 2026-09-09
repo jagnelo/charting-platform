@@ -190,6 +190,18 @@ class TestProvidersRouter:
         assert invalid_contract.status_code == 400
         assert "quota_contract is incomplete" in invalid_contract.json()["detail"]
 
+        missing_scope_contract = client.patch(
+            quota_url,
+            headers=admin_headers,
+            json={
+                "quota_contract": quota_target["quota_contract"],
+                "quota_scope": None,
+                "quota_source": quota_target["quota_source"],
+            },
+        )
+        assert missing_scope_contract.status_code == 400
+        assert "quota_scope" in missing_scope_contract.json()["detail"]
+
         unverified_contract = client.patch(
             quota_url,
             headers=admin_headers,

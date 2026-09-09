@@ -450,12 +450,14 @@ async def update_provider_policy(
                 400,
                 "quota_contract is incomplete: " + ", ".join(candidate_contract_missing),
             )
-        quota_source = str(changes.get("quota_source", policy.quota_source) or "").strip()
-        if not quota_source:
-            raise HTTPException(
-                400,
-                "Provider limits require quota_source provenance",
-            )
+    if "quota_contract" in changes and changes.get("quota_contract") is not None:
+        if not candidate_contract_missing:
+            quota_scope = str(changes.get("quota_scope", policy.quota_scope) or "").strip()
+            quota_source = str(changes.get("quota_source", policy.quota_source) or "").strip()
+            if not quota_scope:
+                raise HTTPException(400, "Complete quota contracts require quota_scope")
+            if not quota_source:
+                raise HTTPException(400, "Complete quota contracts require quota_source provenance")
     for field_name, value in changes.items():
         setattr(policy, field_name, value)
     if "quota_contract" in changes:
