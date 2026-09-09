@@ -49,6 +49,13 @@ class TestCoverageRouter:
                         "adjustment": "split_adjusted",
                         "source_kind": "provider_observation",
                         "provider_source_id": 1,
+                        "adjustment_provenance": {
+                            "mode": "split_adjusted",
+                            "source_kind": "provider_observation",
+                            "factor_status": "provider_native_opaque",
+                            "factor_version": None,
+                            "contract_version": 1,
+                        },
                     },
                 ),
             ]
@@ -71,6 +78,13 @@ class TestCoverageRouter:
         assert state["version"] == 2
         assert state["extra_data"]["adjustment"] == "split_adjusted"
         assert state["extra_data"]["source_kind"] == "provider_observation"
+        assert state["extra_data"]["adjustment_provenance"] == {
+            "mode": "split_adjusted",
+            "source_kind": "provider_observation",
+            "factor_status": "provider_native_opaque",
+            "factor_version": None,
+            "contract_version": 1,
+        }
         assert "provider" not in body
 
     def test_requires_auth(self, client, instrument):

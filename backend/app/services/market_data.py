@@ -426,6 +426,17 @@ async def _touch_ohlcv_dataset_state(
             "adjustment": "split_adjusted" if adjusted else "raw",
             "source_kind": "provider_observation",
             "provider_source_id": data_source_id,
+            "adjustment_provenance": {
+                "mode": "split_adjusted" if adjusted else "raw",
+                "source_kind": "provider_observation",
+                # Provider APIs expose the requested adjustment mode but do
+                # not return the per-event factors used to build the series.
+                # Keep that limitation explicit instead of inventing a local
+                # factor set that could disagree with the provider payload.
+                "factor_status": "provider_native_opaque" if adjusted else "not_applied",
+                "factor_version": None,
+                "contract_version": 1,
+            },
         }
 
 

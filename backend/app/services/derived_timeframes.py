@@ -204,6 +204,13 @@ async def materialize_derived_timeframes(
             "adjusted": adjusted,
             "derived_bar_count": len(payloads),
             "provider_periods_excluded": len(provider_periods),
+            "adjustment_provenance": {
+                "mode": "split_adjusted" if adjusted else "raw",
+                "source_kind": "derived_from_canonical_d1",
+                "factor_status": "inherited_from_canonical_d1",
+                "factor_version": None,
+                "contract_version": 1,
+            },
         }
         result[timeframe.value] = len(payloads)
     await db.flush()

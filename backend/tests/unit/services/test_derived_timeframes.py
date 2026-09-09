@@ -130,6 +130,13 @@ async def test_materialize_derived_timeframes_persists_lineage_and_preserves_pro
         "adjusted": True,
         "derived_bar_count": 1,
         "provider_periods_excluded": 1,
+        "adjustment_provenance": {
+            "mode": "split_adjusted",
+            "source_kind": "derived_from_canonical_d1",
+            "factor_status": "inherited_from_canonical_d1",
+            "factor_version": None,
+            "contract_version": 1,
+        },
     }
 
     monthly = (

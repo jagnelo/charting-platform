@@ -68,7 +68,7 @@ import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 
 interface CoverageRange { oldest: string | null; newest: string | null; bar_count: number }
-interface DatasetState { dataset_type: string; dataset_key: string; status: 'fresh' | 'stale' | 'pending' | 'failed'; updated_at?: string | null }
+interface DatasetState { dataset_type: string; dataset_key: string; status: 'fresh' | 'stale' | 'pending' | 'failed'; updated_at?: string | null; extra_data?: Record<string, unknown> | null }
 interface OhlcvCoverageSlice { start: string; end: string }
 interface OhlcvCoverageAssessment { status: 'ready' | 'partial' | 'missing' | 'stale'; covered_start: string | null; covered_end: string | null; bar_count: number; missing_slices: OhlcvCoverageSlice[]; explanation: string }
 
