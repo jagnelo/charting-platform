@@ -1278,6 +1278,12 @@ async def execute_provider_call(
             if str(dimension.get("unit") or "").lower()
             in {"symbol", "symbols", "unique_symbol", "unique_symbols"}
         }
+        release_only_dimensions = {
+            str(dimension["name"])
+            for dimension in quota_dimensions(resolved.policy)
+            if str(dimension.get("unit") or "").lower()
+            in {"concurrent_requests", "concurrency"}
+        }
         # A runtime call participates in the same durable multi-dimensional
         # budget used by queued workloads.  This prevents concurrent workers
         # from multiplying a provider/IP/key allowance in process-local
@@ -1313,6 +1319,7 @@ async def execute_provider_call(
                     reserved_dimension_units=dimension_units,
                     consumed_dimension_units={name: 0 for name in dimension_units},
                     consume_on_failure_dimensions=distinct_dimensions,
+                    release_only_dimensions=release_only_dimensions,
                 )
                 continue
         log_row = ProviderRequestLog(
@@ -1375,6 +1382,7 @@ async def execute_provider_call(
                 observed_dimension_totals=_observed_dimension_totals(
                     resolved.policy, measurement
                 ),
+                release_only_dimensions=release_only_dimensions,
             )
             if instrument_id is not None:
                 await record_provider_support(
@@ -1440,6 +1448,7 @@ async def execute_provider_call(
                     resolved.policy, measurement, dimension_units
                 ),
                 consume_on_failure_dimensions=distinct_dimensions,
+                release_only_dimensions=release_only_dimensions,
             )
             latency_ms = int((time.perf_counter() - started) * 1000)
             await _record_result(

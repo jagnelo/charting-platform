@@ -622,13 +622,17 @@ class Settings(BaseSettings):
                         "scope": "api_key",
                         "source": "https://www.marketdata.app/docs/api/rate-limiting/",
                     },
+                    {
+                        "name": "concurrent_requests",
+                        "limit": 50,
+                        "window_seconds": 1,
+                        "unit": "concurrent_requests",
+                        "scope": "api_key",
+                        "source": "https://www.marketdata.app/docs/api/rate-limiting/",
+                        "reset": "rolling",
+                    },
                 ],
                 "reset": "09:30 America/New_York",
-                # This is an account-wide provider ceiling.  It is recorded
-                # as contract metadata; ``ProviderPolicy.max_concurrency`` is
-                # process-local and must not be populated with 50 because
-                # multiple workers could multiply the external ceiling.
-                "concurrent_requests": 50,
                 "operation_costs_required": True,
             },
             "quota_scope": "api_key",

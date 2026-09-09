@@ -39,6 +39,9 @@ current capability/quota ledger.
 - [x] Correct EODHD's provider contract to distinguish its documented 1,000
       requests/minute transport ceiling from the separate 20 API-calls/day
       free-plan budget, and charge the documented 10-call fundamentals cost.
+- [x] Enforce MarketData.app's documented 50-request account-wide concurrency
+      ceiling with a durable release-only in-flight quota dimension shared by
+      direct calls and queued workload leases.
 - [x] Add safe cross-worktree env links, complete backend/worker Compose
       pass-through, and a manual GitHub environment-scoped live workflow.
       Routine push/PR CI receives no provider credentials. GitHub environment

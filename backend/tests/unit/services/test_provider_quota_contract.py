@@ -665,8 +665,87 @@ def test_marketdata_app_records_documented_daily_credit_and_concurrency_limits()
     contract = seed["quota_contract"]
     assert contract["dimensions"][0]["limit"] == 100
     assert contract["reset"] == "09:30 America/New_York"
-    assert contract["concurrent_requests"] == 50
+    assert contract["dimensions"][1]["name"] == "concurrent_requests"
+    assert contract["dimensions"][1]["limit"] == 50
+    assert contract["dimensions"][1]["unit"] == "concurrent_requests"
     assert seed.get("max_concurrency") is None
+
+
+@pytest.mark.asyncio
+async def test_in_flight_concurrency_dimension_is_released_not_consumed(db):
+    async_db = AsyncSessionAdapter(db)
+    source = DataSource(name="concurrency-provider", is_active=True)
+    db.add(source)
+    db.flush()
+    policy = ProviderPolicy(
+        data_source_id=source.id,
+        capability=ProviderCapability.PRICE_HISTORY,
+        quota_scope="api_key",
+        quota_contract={
+            "reset": "rolling",
+            "dimensions": [
+                {
+                    "name": "concurrent_requests",
+                    "limit": 2,
+                    "window_seconds": 1,
+                    "unit": "concurrent_requests",
+                    "scope": "api_key",
+                    "source": "https://provider.example/rate-limits",
+                    "reset": "rolling",
+                }
+            ],
+        },
+    )
+    resolved = ResolvedProvider(
+        provider_name="concurrency-provider",
+        provider=object(),
+        data_source=source,
+        policy=policy,
+        health=None,  # type: ignore[arg-type]
+    )
+    now = datetime(2026, 9, 9, 12, 0, tzinfo=UTC)
+    first = await reserve_provider_contract(
+        async_db,
+        resolved=resolved,
+        capability=ProviderCapability.PRICE_HISTORY.value,
+        units=1,
+        now=now,
+    )
+    second = await reserve_provider_contract(
+        async_db,
+        resolved=resolved,
+        capability=ProviderCapability.PRICE_HISTORY.value,
+        units=1,
+        now=now,
+    )
+    exhausted = await reserve_provider_contract(
+        async_db,
+        resolved=resolved,
+        capability=ProviderCapability.PRICE_HISTORY.value,
+        units=1,
+        now=now,
+    )
+    assert first is not None and second is not None and exhausted is None
+
+    settle_provider_contract(
+        first,
+        units=1,
+        success=True,
+        reserved_dimension_units={"concurrent_requests": 1},
+        consumed_dimension_units={"concurrent_requests": 1},
+        release_only_dimensions={"concurrent_requests"},
+    )
+    released = await reserve_provider_contract(
+        async_db,
+        resolved=resolved,
+        capability=ProviderCapability.PRICE_HISTORY.value,
+        units=1,
+        now=now,
+    )
+    assert released is not None
+    window = db.execute(select(ProviderQuotaWindow)).scalars().one()
+    assert window.consumed_units == 0
+    assert window.reserved_units == 2
 
 
 def test_provider_reset_metadata_preserves_documented_calendar_boundaries():

@@ -65,7 +65,19 @@ async def test_settle_workload_lease_debits_only_its_reserved_windows(db):
         window_started_at=datetime(2026, 9, 1, tzinfo=UTC),
         now=now,
     )
-    assert minute is not None and month is not None
+    concurrent = await reserve_provider_quota(
+        async_db,
+        data_source_id=source.id,
+        capability="price_history",
+        dimension="concurrent_requests",
+        units=1,
+        limit_units=2,
+        window_seconds=1,
+        now=now,
+        rolling=True,
+        release_only=True,
+    )
+    assert minute is not None and month is not None and concurrent is not None
     lease = ProviderWorkloadLease(
         workload_key="calendar-lease",
         capability="price_history",
@@ -73,14 +85,20 @@ async def test_settle_workload_lease_debits_only_its_reserved_windows(db):
         units=1,
         status="reserved",
         lease_expires_at=now,
-        request_metadata={"quota_window_ids": [minute.id]},
+        request_metadata={
+            "quota_window_ids": [minute.id, concurrent.id],
+            "release_only_dimensions": ["concurrent_requests"],
+        },
     )
     db.add(lease)
     db.flush()
     minute.reserved_units = 1
     month.reserved_units = 1
+    concurrent.reserved_units = 1
     await settle_workload_lease(async_db, lease, success=True)
     assert minute.reserved_units == 0
     assert minute.consumed_units == 1
     assert month.reserved_units == 1
     assert month.consumed_units == 0
+    assert concurrent.reserved_units == 0
+    assert concurrent.consumed_units == 0

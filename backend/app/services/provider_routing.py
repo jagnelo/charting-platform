@@ -33,6 +33,7 @@ from app.services.provider_runtime import (
 )
 
 _DISTINCT_IDENTITY_UNITS = {"symbol", "symbols", "unique_symbol", "unique_symbols"}
+_IN_FLIGHT_UNITS = {"concurrent_requests", "concurrency"}
 
 
 def _window_start_for_dimension(
@@ -182,6 +183,7 @@ async def reserve_provider_quota(
     window_started_at: datetime | None = None,
     now: datetime | None = None,
     rolling: bool = False,
+    release_only: bool = False,
 ) -> ProviderQuotaWindow | None:
     """Atomically reserve units in a durable fixed or rolling window."""
 
@@ -248,7 +250,7 @@ async def reserve_provider_quota(
                     raise
             active = (await db.execute(active_query)).scalars().all()
         available = window.limit_units - sum(
-            row.reserved_units + row.consumed_units for row in active
+            row.reserved_units + (0 if release_only else row.consumed_units) for row in active
         )
         if available < units:
             return None
@@ -304,7 +306,9 @@ async def reserve_provider_quota(
             window = (await db.execute(query)).scalar_one_or_none()
             if window is None:
                 raise
-    available = window.limit_units - window.reserved_units - window.consumed_units
+    available = window.limit_units - window.reserved_units - (
+        0 if release_only else window.consumed_units
+    )
     if available < units:
         return None
     window.reserved_units += units
@@ -331,6 +335,7 @@ async def reserve_provider_contract(
         dimension_name = str(dimension["name"])
         dimension_unit = str(dimension.get("unit") or "").strip().lower()
         is_distinct_identity = dimension_unit in _DISTINCT_IDENTITY_UNITS
+        is_in_flight = dimension_unit in _IN_FLIGHT_UNITS
         if is_distinct_identity and not usage_identity:
             return None
         raw_reserved_units = (dimension_units or {}).get(dimension_name, units)
@@ -349,6 +354,7 @@ async def reserve_provider_contract(
             window_started_at=window_start,
             now=now,
             rolling=rolling,
+            release_only=is_in_flight,
         )
         if window is None:
             for prior in windows:
@@ -398,6 +404,7 @@ def settle_provider_contract(
     consumed_dimension_units: dict[str, int] | None = None,
     observed_dimension_totals: dict[str, int] | None = None,
     consume_on_failure_dimensions: set[str] | None = None,
+    release_only_dimensions: set[str] | None = None,
 ) -> None:
     """Move one runtime reservation into consumption without a separate lease."""
 
@@ -413,6 +420,8 @@ def settle_provider_contract(
             int((consumed_dimension_units or {}).get(dimension, settled_units)),
         )
         window.reserved_units = max(0, window.reserved_units - reserved)
+        if dimension in (release_only_dimensions or set()):
+            continue
         if success or dimension in (consume_on_failure_dimensions or set()):
             window.consumed_units += consumed
             observed_total = (observed_dimension_totals or {}).get(dimension)
@@ -487,6 +496,11 @@ async def select_provider(
                 # fixed-size interval of an older window, so settling by
                 # timestamp alone could debit the wrong reservation.
                 "quota_window_ids": [window.id for window in reservations],
+                "release_only_dimensions": [
+                    str(dimension["name"])
+                    for dimension in quota_dimensions(resolved.policy)
+                    if str(dimension.get("unit") or "").lower() in _IN_FLIGHT_UNITS
+                ],
             },
         )
         db.add(lease)
@@ -529,6 +543,11 @@ async def settle_workload_lease(
     units = max(0, consumed_units if consumed_units is not None else lease.units)
     lease_created_at = lease.created_at or datetime.now(UTC)
     metadata = dict(lease.request_metadata or {})
+    release_only_dimensions = {
+        str(value)
+        for value in (metadata.get("release_only_dimensions") or [])
+        if str(value).strip()
+    }
     raw_window_ids = metadata.get("quota_window_ids")
     if isinstance(raw_window_ids, list) and raw_window_ids:
         window_ids: list[int] = []
@@ -576,6 +595,8 @@ async def settle_workload_lease(
         ]
     for window in active_windows:
         window.reserved_units = max(0, window.reserved_units - lease.units)
+        if str(window.dimension) in release_only_dimensions:
+            continue
         if success:
             window.consumed_units += units
             window.cost_cents += cost_cents

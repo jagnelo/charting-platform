@@ -164,6 +164,7 @@ The MarketData.app adapter was also checked against the current official API
 root during this checkpoint: versioned resources are under
 `https://api.marketdata.app/v1` (not `/api/v1`). The checked-in contract records
 the documented 100-credit daily free window, its 09:30 America/New_York reset,
-and the 50-request concurrent ceiling; the adapter path and Bearer-auth shape
-are covered by a fixture test. A credentialed live read is still required before
-this provider can be accepted for routing.
+and the 50-request concurrent ceiling; the adapter path, Bearer-auth shape, and
+durable release-only in-flight reservation are covered by fixture/unit tests.
+A credentialed live read is still required before this provider can be accepted
+for routing.
