@@ -6,7 +6,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from app.models.ohlcv import Timeframe
-from app.providers.errors import ProviderNotConfiguredError
+from app.providers.errors import (
+    ProviderNotConfiguredError,
+    ProviderRateLimitError,
+    ProviderResponseError,
+)
 from app.providers.optional_market_data import (
     EODHDProvider,
     FinnhubProvider,
@@ -241,3 +245,51 @@ def test_missing_credentials_never_make_optional_call():
         with pytest.raises(ProviderNotConfiguredError):
             provider.get_current_price("AAPL")
     get.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("provider", "setting", "payload"),
+    [
+        (
+            TwelveDataProvider(),
+            "TWELVE_DATA_API_KEY",
+            {"status": "error", "message": "invalid symbol"},
+        ),
+        (
+            FMPProvider(),
+            "FMP_API_KEY",
+            {"Error Message": "legacy endpoint is unavailable"},
+        ),
+        (
+            MarketDataAppProvider(),
+            "MARKETDATA_APP_API_KEY",
+            {"s": "error", "errmsg": "invalid token"},
+        ),
+    ],
+)
+def test_http_success_error_envelopes_do_not_become_empty_data(provider, setting, payload):
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ),
+    ):
+        setattr(configured, setting, "demo")
+        with pytest.raises(ProviderResponseError):
+            provider.get_current_price("AAPL")
+
+
+def test_http_success_rate_limit_envelope_is_typed_capacity_failure():
+    provider = FinnhubProvider()
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response({"error": "API rate limit exceeded"}),
+        ),
+    ):
+        configured.FINNHUB_API_KEY = "demo"
+        with pytest.raises(ProviderRateLimitError) as exc_info:
+            provider.get_instrument_profile("AAPL")
+    assert exc_info.value.provider_name == "finnhub"

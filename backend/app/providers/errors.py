@@ -9,6 +9,21 @@ class ProviderNotConfiguredError(RuntimeError):
     """The adapter needs a credential or endpoint that is not configured."""
 
 
+class ProviderResponseError(RuntimeError):
+    """The provider returned an explicit error envelope with HTTP success."""
+
+    def __init__(
+        self,
+        provider_name: str,
+        message: str,
+        *,
+        status_code: int | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.provider_name = provider_name
+        self.status_code = status_code
+
+
 class ProviderRateLimitError(RuntimeError):
     """The provider rejected a request for capacity/quota reasons."""
 

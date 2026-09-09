@@ -144,7 +144,9 @@ progress:
     - Alpaca missing API/secret credentials now raise the typed provider-not-configured failure across history, latest-price, event, and discovery operations instead of masquerading as empty data; unsupported symbols/timeframes retain their legitimate empty-result behavior
     - Alpaca and SEC EDGAR now propagate upstream HTTP status failures instead of converting rejected requests into empty/synthetic data; the centralized runtime can therefore record typed capacity events and reset metadata consistently
     - SEC EDGAR now rejects a blank deployment User-Agent with ProviderNotConfiguredError; every local, CI, and deployed environment must supply its own descriptive non-secret contact value
+    - optional REST adapters now reject explicit HTTP-success error envelopes as typed provider-response failures, and classify rate/quota wording as typed capacity failures instead of returning false empty data
     - manifest-driven live probes require positive transport observations for every available non-tokenized adapter read, with SEC/Nasdaq directory pagination explicitly cache-aware
+    - the HTTP-success provider error-envelope guard is covered by the full Docker-backed gate (`1776/1776`, `80.12%`), preserving typed failures instead of false empty observations
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: full live matrix requires the three remaining credential domains (Alpaca, Tradier, MarketData.app); the GitHub `jagnelo` live environment is not externally verifiable until owner authentication is restored; FINRA OTC source terms/redistribution approval, complete reviewed Tiingo/FMP byte maps, complete NMS/OTC reconciliation, and shadow activation remain post-deployment or operator-review gates; each deployment must also provide its own non-secret SEC User-Agent

@@ -1,10 +1,12 @@
 """Concrete, opt-in adapters for low-cost market-data APIs.
 
 The providers in this module deliberately implement only documented REST
-surfaces and return an empty result when their credential is absent.  They are
-registered so administrators can inspect their capabilities, but they are not
-part of the default chain and have no entitlement seed until terms/quotas have
-been reviewed.  This keeps adding an adapter from silently changing routing.
+surfaces. They are registered so administrators can inspect their capabilities,
+but they are not part of the default chain and have no entitlement seed until
+terms/quotas have been reviewed. Missing credentials and explicit provider
+error envelopes raise typed failures; they are never represented as successful
+empty observations. This keeps adding an adapter from silently changing
+routing.
 
 All adapters normalize provider-specific symbols and response shapes into the
 platform's provider contracts.  Raw response fields are retained in the bar's
@@ -30,7 +32,11 @@ from app.providers.base import (
     ListingRecord,
     ProviderSearchResult,
 )
-from app.providers.errors import ProviderNotConfiguredError
+from app.providers.errors import (
+    ProviderNotConfiguredError,
+    ProviderRateLimitError,
+    ProviderResponseError,
+)
 from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
@@ -98,8 +104,56 @@ def _bounded_datetime(value: datetime) -> datetime:
     return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
 
 
+def _raise_for_error_envelope(
+    provider_name: str,
+    payload: Any,
+    status_code: int | None = None,
+) -> None:
+    """Reject explicit HTTP-success error shapes without guessing data."""
+
+    if not isinstance(payload, dict):
+        return
+    status = str(payload.get("status") or payload.get("s") or "").strip().lower()
+    detail = (
+        payload.get("Error Message")
+        or payload.get("error")
+        or payload.get("errmsg")
+        or (payload.get("message") if status in {"error", "failed", "failure"} else None)
+    )
+    if detail in (None, "") and status not in {"error", "failed", "failure"}:
+        return
+    if detail in (None, ""):
+        detail = f"provider returned status={status or 'error'}"
+    safe_detail = str(detail).strip()[:500]
+    lowered = safe_detail.lower()
+    if any(
+        marker in lowered
+        for marker in (
+            "rate limit",
+            "rate_limit",
+            "too many request",
+            "quota",
+            "credit limit",
+            "api call frequency",
+            "throttl",
+            "429",
+        )
+    ):
+        raise ProviderRateLimitError(
+            provider_name,
+            safe_detail,
+            status_code=status_code,
+        )
+    raise ProviderResponseError(provider_name, safe_detail, status_code=status_code)
+
+
 class _RESTProvider:
-    """Small shared REST/normalisation layer used by the optional adapters."""
+    """Small shared REST/normalisation layer used by the optional adapters.
+
+    Several low-cost APIs return a JSON error envelope with HTTP 200. Treating
+    those payloads as an empty dataset would make quota/auth/provider failures
+    indistinguishable from a legitimate no-observation result.
+    """
 
     key_setting: str = ""
     auth_mode: str = "query"  # query, header, or none
@@ -138,7 +192,9 @@ class _RESTProvider:
         )
         observe_response(response)
         response.raise_for_status()
-        return response.json()
+        payload = response.json()
+        _raise_for_error_envelope(self.name, payload, response.status_code)
+        return payload
 
     @staticmethod
     def _rows(payload: Any, *keys: str) -> list[dict[str, Any]]:

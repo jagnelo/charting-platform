@@ -121,6 +121,12 @@ The platform uses a capability-based provider chain.  For each data type the run
 highest-scoring available provider, falls back to the next, and so on.  Initial priorities below
 reflect `base_priority` seeding; the runtime's EWMA health scores refine ordering over time.
 
+Optional REST adapters also reject provider-native JSON error envelopes that
+arrive with HTTP 200 (for example, Twelve Data `status=error`, FMP `Error
+Message`, Finnhub `error`, or MarketData.app `s=error`). These become typed
+provider failures, and rate/quota wording becomes a typed capacity failure;
+none is silently normalized to an empty bar/profile result.
+
 ### US venue coverage boundary
 
 The official Nasdaq Trader `nasdaqlisted.txt`/`otherlisted.txt` files and SEC
