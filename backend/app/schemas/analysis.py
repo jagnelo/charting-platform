@@ -300,6 +300,8 @@ class BenchmarkFamilyCoverageSnapshotOut(BaseModel):
     as_of_date: date | None = None
     known_at: datetime | None = None
     published_at: datetime | None = None
+    cadence: str | None = None
+    parser_version: str | None = None
     provenance: str
     source_provider: str
     source_identifier: str | None = None

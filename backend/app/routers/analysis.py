@@ -3798,6 +3798,12 @@ async def benchmark_family_coverage(
                     as_of_date=row.as_of_date,
                     known_at=row.known_at,
                     published_at=row.published_at,
+                    cadence=(
+                        (row.extra_data or {}).get("legal_metadata", {}).get("cadence")
+                        if isinstance((row.extra_data or {}).get("legal_metadata"), Mapping)
+                        else None
+                    ),
+                    parser_version=row.parser_version,
                     provenance=row.provenance,
                     source_provider=row.source_provider,
                     source_identifier=row.source_identifier,

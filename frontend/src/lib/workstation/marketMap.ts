@@ -22,6 +22,8 @@ export interface BenchmarkFamilyCoverageSnapshot {
   as_of_date?: string | null
   known_at?: string | null
   published_at?: string | null
+  cadence?: string | null
+  parser_version?: string | null
   provenance?: string | null
   source_provider?: string | null
   source_identifier?: string | null

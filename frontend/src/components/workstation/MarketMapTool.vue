@@ -687,9 +687,11 @@ function benchmarkRoleLatestSnapshotLabel(role: BenchmarkFamilyCoverageRole): st
   const knownAt = snapshot.known_at ? ` · known ${snapshot.known_at.slice(0, 10)}` : ''
   const publishedAt = snapshot.published_at ? ` · published ${snapshot.published_at.slice(0, 10)}` : ''
   const sourceIdentifier = snapshot.source_identifier ? ` · source ${snapshot.source_identifier}` : ''
+  const cadence = snapshot.cadence ? ` · cadence ${snapshot.cadence}` : ''
+  const parserVersion = snapshot.parser_version ? ` · parser ${snapshot.parser_version}` : ''
   const resolved = `${snapshot.resolved_count}/${snapshot.row_count} resolved`
   const source = snapshot.source_provider ? ` · ${snapshot.source_provider}` : ''
-  return `${composition}${asOf}${publishedAt}${knownAt} · ${resolved}${source}${sourceIdentifier}`
+  return `${composition}${asOf}${publishedAt}${knownAt} · ${resolved}${source}${sourceIdentifier}${cadence}${parserVersion}`
 }
 
 function benchmarkRoleRefreshLabel(role: BenchmarkFamilyCoverageRole): string {
@@ -747,7 +749,7 @@ function benchmarkRoleIdentityEvidenceLabel(coverage: BenchmarkFamilyCoverage): 
       ? ` · snapshot ${snapshot.composition_date?.slice(0, 10) || 'date not reported'}${snapshot.as_of_date ? ` · as-of ${snapshot.as_of_date.slice(0, 10)}` : ''}${snapshot.known_at ? ` · known ${snapshot.known_at.slice(0, 10)}` : ''} · provenance ${snapshot.provenance?.trim() || 'not reported'} · source quality ${snapshot.source_quality?.trim() || 'not reported'} · completeness ${snapshot.completeness_status?.trim() || 'not reported'} · rows ${Number.isFinite(snapshot.row_count) ? snapshot.row_count : 'not reported'} · resolved ${Number.isFinite(snapshot.resolved_count) ? snapshot.resolved_count : 'not reported'} · unresolved ${Number.isFinite(snapshot.unresolved_count) ? snapshot.unresolved_count : 'not reported'}`
       : ' · snapshot evidence unavailable'
     const snapshotSourceEvidence = snapshot
-      ? `${snapshot.published_at ? ` · published ${snapshot.published_at.slice(0, 10)}` : ''}${snapshot.source_provider ? ` · provider ${snapshot.source_provider.trim()}` : ''}${snapshot.source_identifier ? ` · source ${snapshot.source_identifier}` : ''}`
+      ? `${snapshot.published_at ? ` · published ${snapshot.published_at.slice(0, 10)}` : ''}${snapshot.source_provider ? ` · provider ${snapshot.source_provider.trim()}` : ''}${snapshot.source_identifier ? ` · source ${snapshot.source_identifier}` : ''}${snapshot.cadence ? ` · cadence ${snapshot.cadence}` : ''}${snapshot.parser_version ? ` · parser ${snapshot.parser_version}` : ''}`
       : ''
     const continuityStatus = role.continuity_status?.trim()?.replace(/_/g, ' ') || 'not reported'
     const continuityGaps = (role.continuity_gaps ?? []).map(gap => `${gap.from_date.slice(0, 10)} to ${gap.to_date.slice(0, 10)} (${gap.interval_days}d)`).join(', ')
