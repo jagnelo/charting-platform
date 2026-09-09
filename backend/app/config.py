@@ -781,6 +781,57 @@ class Settings(BaseSettings):
                 "discover_universe_page": 1,
             },
         },
+        # Every tokenized quote adapter first resolves the provider asset and
+        # then performs its quote/order-book read.  Reserve both HTTP calls;
+        # charging one call here would under-report provider usage and could
+        # admit a second request into a full provider window.
+        "xstocks": {
+            "mode": "call_count",
+            "unit_label": "requests",
+            "operation_costs": {
+                "discover_tokenized_assets": 1,
+                "get_tokenized_asset": 1,
+                "get_tokenized_price": 2,
+                "fetch_tokenized_corporate_actions": 1,
+            },
+        },
+        "robinhood_tokens": {
+            "mode": "call_count",
+            "unit_label": "requests",
+            "operation_costs": {
+                "discover_tokenized_assets": 1,
+                "get_tokenized_asset": 1,
+                "get_tokenized_price": 2,
+                "fetch_tokenized_corporate_actions": 1,
+            },
+        },
+        "bybit_xstocks": {
+            "mode": "call_count",
+            "unit_label": "requests",
+            "operation_costs": {
+                "discover_tokenized_assets": 1,
+                "get_tokenized_asset": 1,
+                "get_tokenized_price": 2,
+            },
+        },
+        "gate_tradfi": {
+            "mode": "call_count",
+            "unit_label": "requests",
+            "operation_costs": {
+                "discover_tokenized_assets": 1,
+                "get_tokenized_asset": 1,
+                "get_tokenized_price": 2,
+            },
+        },
+        "kraken_xstocks": {
+            "mode": "call_count",
+            "unit_label": "requests",
+            "operation_costs": {
+                "discover_tokenized_assets": 1,
+                "get_tokenized_asset": 1,
+                "get_tokenized_price": 2,
+            },
+        },
     }
     # A capability is not usable merely because an adapter exists. These
     # explicit defaults describe the free/public plans that the workstation

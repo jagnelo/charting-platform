@@ -150,7 +150,7 @@ progress:
     - tokenized public adapters now reject Kraken non-empty error lists and Bybit nonzero retCode HTTP-success envelopes as typed failures, preserving registered provider identity and preventing synthetic token records
     - provider resolution now applies an explicit provider/instrument-class allow-list before invocation, so equity/ETF requests cannot fall through to crypto-only OHLCV adapters; unknown provider mappings fail closed and the regression is covered by unit and PostgreSQL-backed OHLCV tests
     - tokenized-security instruments created by `upsert_tokenized_asset` are explicitly admitted to the five tokenized providers while remaining excluded from ordinary equity routing; the Gate public TradFi stock contract is now recorded as the documented 5-qps/IP static contract with a conservative aggregate capability window
-    - persisted tokenized products now have an opt-in bounded quote-refresh path; quote requests route through the durable provider runtime using provider asset IDs as usage identities, retain separate token-instrument price snapshots, and remain disabled by default in the worker schedule
+    - persisted tokenized products now have an opt-in bounded quote-refresh path; quote requests route through the durable provider runtime using provider asset IDs as usage identities, retain separate token-instrument price snapshots, remain disabled by default in the worker schedule, and reserve two upstream requests for adapters whose quote operation resolves metadata before reading the quote/order book
     - the complete Docker-backed gate after class-aware routing passes (`1785/1785`, `80.11%`), including the two previously failing AAPL OHLCV integration cases
   total: 15
   current_phase: credentialed_live_validation

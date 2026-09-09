@@ -907,6 +907,20 @@ def test_provider_reset_metadata_preserves_documented_calendar_boundaries():
     ]
 
 
+def test_tokenized_quote_usage_profiles_charge_asset_and_quote_requests():
+    for provider_name in (
+        "xstocks",
+        "robinhood_tokens",
+        "bybit_xstocks",
+        "gate_tradfi",
+        "kraken_xstocks",
+    ):
+        profile = get_provider_usage_profile(provider_name)
+        assert profile["operation_costs"]["discover_tokenized_assets"] == 1
+        assert profile["operation_costs"]["get_tokenized_asset"] == 1
+        assert profile["operation_costs"]["get_tokenized_price"] == 2
+
+
 def test_twelve_data_cumulative_credit_headers_update_only_matching_minute_window():
     policy = ProviderPolicy(
         data_source_id=1,

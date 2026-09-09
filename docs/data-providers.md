@@ -164,6 +164,11 @@ traditional share is the same token.
 The runtime records provider-specific quota dimensions and refuses to route a
 tokenized provider when any dimension is unknown, weighted per endpoint, or
 requires response-header/account enforcement that is not yet fully modeled.
+Quote refresh accounting also follows the adapters' actual request shape: each
+tokenized `get_tokenized_price` operation reserves two provider requests
+(asset metadata plus quote/order-book), while discovery and asset reads reserve
+one. This prevents a successful quote response from being recorded as a
+single request when the adapter made two upstream calls.
 Bybit remaining-limit headers are reconciled only when they exactly match the
 reviewed coarse outer contract, but endpoint/UID limits are dynamic and keep
 that route non-routable until they are modeled. Gate's public stock contract is
