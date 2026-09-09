@@ -115,11 +115,11 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "da12b5873af9930de8c68623cc7be21b77679727",
+  "head": "4ba6285b3e819660daa5be28a6c3855b17394f76",
   "implementation_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",
   "interrupted": false,
-  "last_checkpoint": "2026-09-09T01:01:23.757858+00:00",
-  "last_human_progress_update": "2026-09-09T01:01:15.086491+00:00",
+  "last_checkpoint": "2026-09-09T01:29:26.226286+00:00",
+  "last_human_progress_update": "2026-09-09T01:29:17.597497+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue canonical provider/history population or the next compatible Study target slice with focused regression coverage, then rerun the exact-tip exhaustive gate at the new coherent tip; preserve visual policy and provider fallback rules.",
   "plan_hash": "6f3bbfc100ce0e96b519a7f878621325545f0679a4f30f940f1abde97607b0fa",
@@ -132,11 +132,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Canonical history identity is order-independent and timezone-safe; derived W1/MN coverage now has provider-neutral dataset lineage. The canonical snapshot remains partial: 20 mapped roles refreshed, 12 unavailable, 0 failed; 56 capped member slots yielded 44 instruments and 94,540 adjusted D1 bars through 2025-12-31, with provider W1/MN still zero. Full family population, placeholder disposition, adjustment-factor/version provenance beyond derived coarse state, raw-versus-derived storage decisions, rebalance continuity, and six established visual state-oracle diffs remain open.",
+    "current_blocker": "Canonical history identity is order-independent and timezone-safe; derived W1/MN coverage has provider-neutral lineage and provider states now expose adjustment/source kind. The canonical snapshot remains partial: 20 mapped roles refreshed, 12 unavailable, 0 failed; 56 capped member slots yielded 44 instruments and 94,540 adjusted D1 bars through 2025-12-31, with provider W1/MN still zero. Full family population, placeholder disposition, adjustment-factor/version provenance beyond derived coarse state, raw-versus-derived storage decisions, rebalance continuity, and six established visual diffs remain open.",
     "current_phase": "R1_canonical_provider_history_readiness",
     "next_action": "Audit the bounded family member set and point-in-time adjustment/rebalance contracts; implement the next concrete evidence-backed seam, run focused checks, then rerun and record the exact integration gate at the new tip.",
     "total": 10,
-    "updated_at": "2026-09-09T01:01:15.086353+00:00"
+    "updated_at": "2026-09-09T01:29:17.597175+00:00"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

@@ -5,6 +5,22 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-09
 
+## 2026-09-09 — Provider dataset states expose adjustment provenance
+
+Provider-backed dataset state now records the observed bar count, whether the
+payload was adjusted, the adjustment mode (`split_adjusted` or `raw`), the
+provider-observation source kind, and the provider source identifier. Coverage
+consumers can distinguish an explicit provider observation from provider-neutral
+derived lineage without changing provider precedence or fallback policy.
+The focused market-data/coverage checks passed `19/19`. At commit `4ba6285b`,
+the exact gate passed backend unit/integration (`1,370`/`387`, `81.06%` combined
+coverage), frontend Vitest (`975/975`), build, contracts, probes, stack health,
+and functional Playwright (`165` passed, `107` documented skips). Visual parity
+remains `98/104` with the six established state-oracle diffs; scoped teardown
+was clean. R1 remains open for adjustment-factor/version provenance beyond
+this state label, full family population, placeholder disposition,
+raw-versus-derived storage decisions, rebalance continuity, and R2-R7.
+
 ## 2026-09-09 — Derived coarse coverage now has canonical state lineage
 
 Derived W1/MN materialization now writes provider-neutral `InstrumentDatasetState`

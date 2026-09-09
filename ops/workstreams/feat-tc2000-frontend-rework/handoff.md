@@ -8,6 +8,27 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-09 — Provider adjustment-provenance checkpoint
+
+Product commit `4ba6285b` enriches provider-backed dataset state with observed
+bar count, adjustment mode (`split_adjusted`/`raw`), provider-observation source
+kind, and provider source identifier. This makes provider observation versus
+provider-neutral derivation explicit to coverage consumers without changing
+provider precedence or fallback policy. Focused market-data/coverage checks are
+`19/19`; the exact gate passed backend unit/integration (`1,370`/`387`, `81.06%`),
+frontend Vitest (`975/975`), build, contracts, probes, stack health, and
+functional Playwright (`165` passed, `107` documented skips). Visual parity
+remains `98/104` with the six established watchlist-column-editor-open and
+workspace-floating diffs. Docker teardown was clean and no other worktree was
+touched.
+
+Remaining R1 work is adjustment-factor/version provenance beyond this state
+label, full canonical family population, placeholder disposition,
+raw-versus-derived storage decisions, and rebalance continuity. R2-R7 remain
+open. Next action: audit the bounded family member set and point-in-time
+adjustment/rebalance contracts, implement the next evidence-backed seam, run
+focused checks, and rerun the exact gate.
+
 ## 2026-09-09 — Derived coverage-state lineage checkpoint
 
 Product commit `da12b587` records provider-neutral W1/MN dataset states when
