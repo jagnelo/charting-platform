@@ -4139,6 +4139,26 @@ security evidence, or the remaining R2–R7 acceptance work.
 
 ## 2026-09-09 — Mixed member-bar lineage checkpoint
 
+## 2026-09-09 — Mixed lineage provenance regression checkpoint
+
+Product commit `b81cda8a` adds a frontend regression assertion for the strict
+`provider_and_derived` lineage state and the provider-only, derived-only, and
+mixed member split in the Market Map/workstation provenance evidence. The
+assertion is backed by the backend's per-member aggregation and does not alter
+visible layout, provider precedence, fallback behavior, or visual policy.
+
+The exact Docker-backed gate passed backend `1,371` unit and `387` integration
+tests (`81.08%` combined coverage), frontend Vitest `975/975`, build,
+compose/provider/runner and health probes, functional Playwright `165/272`
+with `107` documented skips, performance, uPlot, and acceptance-policy checks.
+Visual parity is `98/104` with the same six established screenshot diffs;
+scoped teardown and resource accounting were clean.
+
+R1 remains bounded by partial family/provider history population, missing
+provider adjustment factors and rebuildable raw/derived storage evidence,
+placeholder disposition, and incomplete cadence/effective-time provenance.
+R2-R7 remain open; continue with the next evidence-backed readiness seam.
+
 Product commit `3562919a` extends the member-bar readiness contract with
 `provider_only_member_count`, `derived_only_member_count`, and
 `mixed_member_count`. These counts are calculated after per-member aggregation,

@@ -5,6 +5,30 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-09
 
+## 2026-09-09 — Exact-tip gate after mixed lineage provenance assertion
+
+At product commit `b81cda8a`, the Market Map regression now asserts the
+strict `provider_and_derived` lineage label and the provider-only, derived-only,
+and mixed member split in the hidden workstation provenance evidence. This
+keeps the UI contract aligned with the backend's per-member aggregation while
+leaving visible layout, provider precedence, fallback behavior, and visual
+acceptance policy unchanged.
+
+The exact Docker-backed integration gate passed backend unit and integration
+tests (`1,371`/`387`), `81.08%` combined coverage, frontend Vitest (`975/975`),
+build, compose/provider/runner and health probes, functional Playwright (`165`
+passed, `107` documented skips across `272`), performance, uPlot, and
+acceptance-policy checks. Visual parity remains `98/104` with the same six
+established state-oracle diffs: column editor at 1080p 100/125 and floating
+workspace at 1080p 100/125 and 1440p 100/125. Scoped teardown removed all stack
+resources and test sessions cleanly. No baseline, mask, threshold, skip,
+provider, fallback, or acceptance policy changed.
+
+R1 remains open for full canonical family population, W1/MN provider history,
+placeholder disposition, explicit cadence/effective-time evidence, and
+rebuildable adjustment-factor/raw-versus-derived storage provenance; R2-R7
+remain open.
+
 ## 2026-09-09 — Exact-tip gate after mixed member-bar lineage
 
 At product commit `3562919a`, benchmark-family member-bar readiness now
