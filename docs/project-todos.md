@@ -62,6 +62,10 @@ current capability/quota ledger.
       creation/upload is externally blocked until the repository-owner
       `jagnelo` account is authenticated in `gh`; the active
       `jagnelo-symbiotech` account received HTTP 403.
+- [x] Correct the README provider-routing example so fresh operators see the
+      API-first Alpaca/EDGAR/OpenFIGI defaults and cannot accidentally restore
+      yfinance as the broad default route; yfinance remains an explicit,
+      disabled-by-default legacy/options compatibility path.
 - [ ] Supply and live-prove Alpaca Trading API key/secret, a Tradier individual
       token, and a MarketData.app token. The authoritative local matrix already
       passed SEC EDGAR with an operator-supplied temporary contact User-Agent;

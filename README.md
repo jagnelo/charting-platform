@@ -153,12 +153,15 @@ CORS_ORIGINS=["http://localhost","http://your-nas-ip"]
 ALERT_POLL_INTERVAL=60
 
 # Provider routing
-DEFAULT_MARKET_DATA_PROVIDER=yfinance
-DEFAULT_METADATA_PROVIDER=yfinance
-DEFAULT_EVENT_PROVIDER=yfinance
-DEFAULT_DISCOVERY_PROVIDER=yfinance
+# New-workstation/API-first defaults. yfinance is not an implicit fallback.
+DEFAULT_MARKET_DATA_PROVIDER=alpaca
+DEFAULT_METADATA_PROVIDER=edgar
+DEFAULT_EVENT_PROVIDER=alpaca
+DEFAULT_DISCOVERY_PROVIDER=alpaca
+# Legacy/options compatibility only; keep disabled unless explicitly reviewed.
 DEFAULT_OPTIONS_PROVIDER=yfinance
-IDENTIFIER_PROVIDER_PRIORITY=["yfinance","openfigi"]
+ENABLE_LEGACY_YFINANCE_FALLBACK=false
+IDENTIFIER_PROVIDER_PRIORITY=["openfigi"]
 OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY=[]
 PROVIDER_CHAIN_SEEDS={}
 PROVIDER_RATE_LIMIT_SEEDS={}
@@ -180,7 +183,7 @@ Useful provider envs:
 
 - `IDENTIFIER_PROVIDER_PRIORITY`: seed order for identifier enrichment.
 - `OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY`: seed order for option quote-history providers.
-- `PROVIDER_CHAIN_SEEDS`: JSON object overriding seed chains per capability, for example `{"instrument_metadata":["openfigi","yfinance"]}`.
+- `PROVIDER_CHAIN_SEEDS`: JSON object overriding seed chains per capability, for example `{"instrument_metadata":["edgar","openfigi"]}`. Do not add yfinance unless the legacy/options path has been explicitly reviewed.
 - `PROVIDER_RATE_LIMIT_SEEDS`: JSON object keyed by provider. Values must be
   copied from the provider's current published contract and include a complete
   quota contract; there is no safe generic example or fallback.

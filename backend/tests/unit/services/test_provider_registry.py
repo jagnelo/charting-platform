@@ -43,6 +43,13 @@ def test_backend_env_example_keeps_yfinance_out_of_new_workstation_chains():
         next(line for line in lines if line.startswith("ENABLE_LEGACY_YFINANCE_FALLBACK="))
         == "ENABLE_LEGACY_YFINANCE_FALLBACK=false"
     )
+    readme = Path(__file__).parents[4].joinpath("README.md").read_text()
+    assert "DEFAULT_MARKET_DATA_PROVIDER=alpaca" in readme
+    assert "DEFAULT_METADATA_PROVIDER=edgar" in readme
+    assert "DEFAULT_EVENT_PROVIDER=alpaca" in readme
+    assert "DEFAULT_DISCOVERY_PROVIDER=alpaca" in readme
+    assert 'IDENTIFIER_PROVIDER_PRIORITY=["openfigi"]' in readme
+    assert "ENABLE_LEGACY_YFINANCE_FALLBACK=false" in readme
 
 
 class TestProviderRegistry:
