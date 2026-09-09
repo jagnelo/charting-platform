@@ -113,7 +113,7 @@
   "head": "ad0556049913f204d5c6f363a00e50fba34eeb74",
   "implementation_sha": "25e6ecea5f1be3eca94546d719f97fd9afe5f315",
   "last_checkpoint": "2026-09-09T22:05:20.197482+00:00",
-  "last_human_progress_update": "2026-09-09T06:28:11.774648+00:00",
+  "last_human_progress_update": "2026-09-09T22:07:28.203062+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -141,11 +141,11 @@
       "AC-QUOTA-SAFETY",
       "AC-RATE-FAILURE"
     ],
-    "current_blocker": "Live matrix is 26/29 with explicit missing ALPACA_API_KEY plus ALPACA_SECRET_KEY, TRADIER_API_KEY, and MARKETDATA_APP_API_KEY; FINRA async byte bound, Tiingo/FMP operation byte maps, GitHub environment verification, legal/source review, and complete NMS/OTC reconciliation remain gates.",
+    "current_blocker": "Latest manifest live matrix at 2026-09-09T22:04:20Z is 29/32 with explicit missing ALPACA_API_KEY plus ALPACA_SECRET_KEY, TRADIER_API_KEY, and MARKETDATA_APP_API_KEY; FINRA async byte bound, Tiingo/FMP operation byte maps, GitHub environment verification, legal/source review, and complete NMS/OTC reconciliation remain gates.",
     "current_phase": "credentialed_live_validation",
-    "next_action": "Keep routing fail-closed; obtain the three missing credential domains and trusted GitHub/deployment configuration, then rerun all 29 live cases and complete the operator/legal reconciliation gates before any promotion or shadow activation.",
+    "next_action": "Keep routing fail-closed; obtain the three missing credential domains and trusted GitHub/deployment configuration, then rerun all 32 live cases and complete the operator/legal reconciliation gates before any promotion or shadow activation.",
     "total": 15,
-    "updated_at": "2026-09-09T06:28:11.774515+00:00"
+    "updated_at": "2026-09-09T22:07:28.202887+00:00"
   },
   "remote": "ad0556049913f204d5c6f363a00e50fba34eeb74",
   "remote_sha": "25e6ecea5f1be3eca94546d719f97fd9afe5f315",

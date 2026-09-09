@@ -158,7 +158,8 @@ FMP_OPERATION_BYTE_BOUNDS={}
 
 Every operation exposed by the relevant adapter must be present with a positive
 bound, including `get_current_price`, which uses the adapter's bounded latest
-history request path. Complete maps move the provider's documented bandwidth pool into the
+history request path, and `bulk_fetch`, which is used by the deep-history
+worker. Complete maps move the provider's documented bandwidth pool into the
 same durable multidimensional reservation path as request limits; response
 bytes settle the reservation after execution. Tiingo additionally publishes a
 500-unique-symbol monthly pool, which cannot be represented as one unit per

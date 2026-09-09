@@ -166,6 +166,7 @@ async def test_runtime_seed_refreshes_provider_generated_contract_after_byte_map
         "fetch_ohlcv": 1_000_000,
         "fetch_latest_ohlcv": 1_000_000,
         "get_current_price": 100_000,
+        "bulk_fetch": 1_000_000,
         "search_instruments": 100_000,
         "get_instrument_profile": 100_000,
     }
@@ -229,6 +230,7 @@ def test_tiingo_byte_pool_requires_complete_operator_bounds_before_promotion(mon
         "fetch_ohlcv": 1_000_000,
         "fetch_latest_ohlcv": 1_000_000,
         "get_current_price": 100_000,
+        "bulk_fetch": 1_000_000,
         "search_instruments": 100_000,
         "get_instrument_profile": 100_000,
     }
@@ -262,6 +264,9 @@ def test_tiingo_byte_pool_requires_complete_operator_bounds_before_promotion(mon
     )
     assert provider_contract_operation_cost_known(
         policy, source, "get_current_price", usage_identity="AAPL"
+    )
+    assert provider_contract_operation_cost_known(
+        policy, source, "bulk_fetch:d1", usage_identity="AAPL"
     )
 
     monkeypatch.setattr(settings, "TIINGO_OPERATION_BYTE_BOUNDS", {"fetch_ohlcv": 1_000_000})
@@ -1005,6 +1010,11 @@ def test_optional_latest_price_profiles_charge_the_actual_quote_operation():
         assert get_provider_usage_profile(provider_name)["operation_costs"][
             "get_current_price"
         ] == 1
+
+
+def test_deep_history_profiles_charge_the_bulk_fetch_operation():
+    for provider_name in ("tiingo", "eodhd", "fmp", "marketdata_app"):
+        assert get_provider_usage_profile(provider_name)["operation_costs"]["bulk_fetch"] == 1
 
 
 def test_single_request_provider_profiles_are_explicit():
