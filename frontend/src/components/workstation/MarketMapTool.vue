@@ -198,6 +198,7 @@
         <span v-if="historyStatus.limited">Bounded to {{ historyStatus.selected_instrument_count }} of {{ historyStatus.available_instrument_count }}</span>
         <span v-if="historyRefreshMessage" role="status">{{ historyRefreshMessage }}</span>
         <span class="sr-only" aria-label="Market Map history member disposition evidence">{{ watchlistHistoryDispositionLabel(historyStatus) }}</span>
+        <span class="sr-only" aria-label="Market Map history lineage evidence">{{ watchlistHistoryLineageLabel(historyStatus) }}</span>
       </template>
       <span v-if="historyRun" class="market-map-tool__history-run" role="status">Run {{ historyRun.id }} · {{ historyRun.status }}<template v-if="historyRun.progress"> · {{ historyRunProgress }}</template></span>
       <button v-if="sourceId" type="button" aria-label="Refresh Market Map history" :disabled="historyRefreshing || historyLoading" @click="refreshHistory">{{ historyRefreshing ? 'Queueing…' : 'Refresh history' }}</button>
@@ -689,6 +690,19 @@ function watchlistHistoryDispositionLabel(status: WatchlistSourceHistoryStatus):
     .map(([key, value]) => `${key} ${value}`)
     .join(', ')
   return disposition ? `Member disposition: ${disposition}` : 'Member disposition: not reported'
+}
+
+function watchlistHistoryLineageLabel(status: WatchlistSourceHistoryStatus): string {
+  const lineage = status.timeframes
+    .map(history => {
+      const source = history.source_lineage?.replace(/_/g, ' ') || 'unavailable'
+      const members = `members provider ${history.provider_member_count ?? 0}, derived ${history.derived_member_count ?? 0}`
+      const split = `provider-only ${history.provider_only_member_count ?? 0}, derived-only ${history.derived_only_member_count ?? 0}, mixed ${history.mixed_member_count ?? 0}`
+      const bars = `bars provider ${history.provider_bar_count ?? 0}, derived ${history.derived_bar_count ?? 0}`
+      return `${history.timeframe} ${source} · ${members} · ${split} · ${bars}`
+    })
+    .join(', ')
+  return lineage ? `History lineage: ${lineage}` : 'History lineage: not reported'
 }
 
 function benchmarkRoleLatestSnapshotLabel(role: BenchmarkFamilyCoverageRole): string {

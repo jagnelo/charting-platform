@@ -276,6 +276,14 @@ async def test_watchlist_history_status_uses_local_coverage_and_worker_progress(
             "analysis_ready_percent": 0.0,
             "required_bar_count": 252,
             "bar_count": 250,
+            "provider_member_count": 1,
+            "derived_member_count": 0,
+            "provider_only_member_count": 1,
+            "derived_only_member_count": 0,
+            "mixed_member_count": 0,
+            "provider_bar_count": 250,
+            "derived_bar_count": 0,
+            "source_lineage": "provider_only",
             "oldest": datetime(2024, 1, 2, tzinfo=UTC),
             "newest": datetime(2025, 1, 2, tzinfo=UTC),
             "in_progress_count": 1,
@@ -342,8 +350,9 @@ async def test_watchlist_history_status_separates_covered_from_analysis_ready(mo
                             ),
                         ]
                     return [
-                        (10, SimpleNamespace(value="D1"), 252),
-                        (10, SimpleNamespace(value="W1"), 10),
+                        (10, SimpleNamespace(value="D1"), 250, False),
+                        (10, SimpleNamespace(value="D1"), 2, True),
+                        (10, SimpleNamespace(value="W1"), 10, True),
                     ]
 
             return FakeResult(self.calls)
@@ -356,3 +365,16 @@ async def test_watchlist_history_status_separates_covered_from_analysis_ready(mo
     assert status["overall_status"] == "ready"
     assert status["analysis_ready"] is False
     assert status["analysis_ready_status"] == "partial"
+    d1 = next(item for item in status["timeframes"] if item["timeframe"] == "D1")
+    assert d1["analysis_ready_member_count"] == 1
+    assert d1["provider_member_count"] == 1
+    assert d1["derived_member_count"] == 1
+    assert d1["provider_only_member_count"] == 0
+    assert d1["derived_only_member_count"] == 0
+    assert d1["mixed_member_count"] == 1
+    assert d1["provider_bar_count"] == 250
+    assert d1["derived_bar_count"] == 2
+    assert d1["source_lineage"] == "provider_and_derived"
+    w1 = next(item for item in status["timeframes"] if item["timeframe"] == "W1")
+    assert w1["source_lineage"] == "derived_only"
+    assert w1["derived_only_member_count"] == 1

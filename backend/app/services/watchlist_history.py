@@ -235,6 +235,7 @@ async def build_watchlist_source_history_status(
                     OHLCVBar.instrument_id,
                     OHLCVBar.timeframe,
                     func.count(OHLCVBar.id).label("bar_count"),
+                    OHLCVBar.is_derived,
                 )
                 .where(
                     OHLCVBar.instrument_id.in_(instrument_ids),
@@ -242,7 +243,7 @@ async def build_watchlist_source_history_status(
                     OHLCVBar.is_adjusted.is_(True),
                     *([OHLCVBar.ts <= as_of] if as_of is not None else []),
                 )
-                .group_by(OHLCVBar.instrument_id, OHLCVBar.timeframe)
+                .group_by(OHLCVBar.instrument_id, OHLCVBar.timeframe, OHLCVBar.is_derived)
             )
         ).all()
         if instrument_ids
@@ -250,18 +251,31 @@ async def build_watchlist_source_history_status(
     )
     covered_instruments_by_timeframe: dict[str, set[int]] = {}
     analysis_ready_instruments_by_timeframe: dict[str, set[int]] = {}
+    lineage_by_timeframe: dict[str, dict[int, dict[str, int]]] = {}
     for row in covered_rows:
         # Keep compatibility with lightweight test doubles and older callers
         # that return the pre-floor two-column shape. Production SQL returns
-        # the grouped count needed for analysis readiness.
+        # the grouped count and lineage needed for analysis readiness.
         instrument_id, timeframe = row[0], row[1]
-        covered_instruments_by_timeframe.setdefault(timeframe.value, set()).add(instrument_id)
-        bar_count = int(row[2]) if len(row) > 2 and row[2] is not None else None
-        required = ANALYSIS_REQUIRED_BAR_COUNTS.get(timeframe.value)
-        if bar_count is not None and required is not None and bar_count >= required:
-            analysis_ready_instruments_by_timeframe.setdefault(timeframe.value, set()).add(
-                instrument_id
-            )
+        timeframe_key = timeframe.value
+        covered_instruments_by_timeframe.setdefault(timeframe_key, set()).add(instrument_id)
+        bar_count = int(row[2]) if len(row) > 2 and row[2] is not None else 0
+        member = lineage_by_timeframe.setdefault(timeframe_key, {}).setdefault(
+            int(instrument_id),
+            {"bar_count": 0, "provider_bar_count": 0, "derived_bar_count": 0},
+        )
+        member["bar_count"] += bar_count
+        is_derived = bool(row[3]) if len(row) > 3 else False
+        member["derived_bar_count" if is_derived else "provider_bar_count"] += bar_count
+    for timeframe_key, members in lineage_by_timeframe.items():
+        required = ANALYSIS_REQUIRED_BAR_COUNTS.get(timeframe_key)
+        if required is None:
+            continue
+        analysis_ready_instruments_by_timeframe[timeframe_key] = {
+            instrument_id
+            for instrument_id, member in members.items()
+            if member["bar_count"] >= required
+        }
     progress_by_instrument = progress_by_instrument or {}
     timeframe_statuses: list[dict[str, Any]] = []
     for timeframe in normalized_timeframes:
@@ -286,6 +300,37 @@ async def build_watchlist_source_history_status(
         coverage_percent = (
             round((covered_count / len(instrument_ids)) * 100, 2) if instrument_ids else 0.0
         )
+        lineage_rows = list(lineage_by_timeframe.get(timeframe.value, {}).values())
+        provider_member_count = sum(
+            1 for item in lineage_rows if item["provider_bar_count"] > 0
+        )
+        derived_member_count = sum(1 for item in lineage_rows if item["derived_bar_count"] > 0)
+        provider_only_member_count = sum(
+            1
+            for item in lineage_rows
+            if item["provider_bar_count"] > 0 and item["derived_bar_count"] == 0
+        )
+        derived_only_member_count = sum(
+            1
+            for item in lineage_rows
+            if item["derived_bar_count"] > 0 and item["provider_bar_count"] == 0
+        )
+        mixed_member_count = sum(
+            1
+            for item in lineage_rows
+            if item["provider_bar_count"] > 0 and item["derived_bar_count"] > 0
+        )
+        provider_bar_count = sum(item["provider_bar_count"] for item in lineage_rows)
+        derived_bar_count = sum(item["derived_bar_count"] for item in lineage_rows)
+        source_lineage = (
+            "provider_and_derived"
+            if provider_member_count and derived_member_count
+            else "provider_only"
+            if provider_member_count
+            else "derived_only"
+            if derived_member_count
+            else "unavailable"
+        )
         timeframe_statuses.append(
             {
                 "timeframe": timeframe.value,
@@ -300,6 +345,14 @@ async def build_watchlist_source_history_status(
                 ),
                 "required_bar_count": ANALYSIS_REQUIRED_BAR_COUNTS.get(timeframe.value),
                 "bar_count": int(row.bar_count) if row is not None else 0,
+                "provider_member_count": provider_member_count,
+                "derived_member_count": derived_member_count,
+                "provider_only_member_count": provider_only_member_count,
+                "derived_only_member_count": derived_only_member_count,
+                "mixed_member_count": mixed_member_count,
+                "provider_bar_count": provider_bar_count,
+                "derived_bar_count": derived_bar_count,
+                "source_lineage": source_lineage,
                 "oldest": row.oldest if row is not None else None,
                 "newest": row.newest if row is not None else None,
                 **{f"{key}_count": value for key, value in progress_counts.items()},
