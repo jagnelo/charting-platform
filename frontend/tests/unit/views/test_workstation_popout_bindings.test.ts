@@ -659,6 +659,9 @@ describe('WorkstationView pop-out bindings', () => {
 
     const status = wrapper.find('.workstation__footer span:nth-child(3)')
     expect(status.text()).toBe(expected)
+    expect(status.attributes('role')).toBe('status')
+    expect(status.attributes('aria-live')).toBe('polite')
+    expect(status.attributes('aria-atomic')).toBe('true')
     expect(status.attributes('title')).toContain('API GET /market-groups/etf/SPY/industries')
     harness.workspace.error = null
   })

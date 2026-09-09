@@ -204,7 +204,7 @@
     <footer v-if="!isPopout" class="workstation__footer">
       <span>{{ activeSymbol }}</span>
       <span>{{ chartStore.timeframe }}</span>
-      <span :title="workspaceStore.error ?? symbolProxyNotice ?? undefined">{{ footerMessage }}</span>
+      <span role="status" aria-live="polite" aria-atomic="true" :title="workspaceStore.error ?? symbolProxyNotice ?? undefined">{{ footerMessage }}</span>
       <span class="workstation__data-state" role="status" aria-live="polite" aria-atomic="true" :aria-label="`Market data freshness: ${dataState.label}`" :class="`workstation__data-state--${dataState.kind}`">{{ dataState.label }}</span>
     </footer>
   </div>
