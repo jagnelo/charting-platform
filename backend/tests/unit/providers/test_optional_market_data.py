@@ -305,6 +305,34 @@ def test_eodhd_uses_documented_weekly_and_monthly_periods(timeframe, period):
     assert get.call_args.kwargs["params"]["period"] == period
 
 
+def test_eodhd_fundamentals_uses_documented_v11_endpoint():
+    provider = EODHDProvider()
+    payload = {
+        "General": {
+            "Code": "AAPL",
+            "Name": "Apple Inc.",
+            "CurrencyCode": "USD",
+            "Exchange": "NASDAQ",
+        }
+    }
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ) as get,
+    ):
+        configured.EODHD_API_KEY = "demo"
+        profile = provider.get_instrument_profile("AAPL")
+
+    assert profile is not None
+    assert profile.symbol == "AAPL"
+    assert profile.exchange == "NASDAQ"
+    assert get.call_args.args[0] == (
+        "https://eodhd.com/api/v1.1/fundamentals/AAPL.US"
+    )
+
+
 def test_marketstack_follows_response_pagination_and_reserves_each_page():
     provider = MarketstackProvider()
     start = datetime(2024, 1, 1, tzinfo=UTC)

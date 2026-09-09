@@ -257,14 +257,20 @@ class _RESTProvider:
             result[self.key_param] = self._key()
         return result
 
-    def _get(self, path: str, params: dict[str, Any] | None = None) -> Any:
+    def _get(
+        self,
+        path: str,
+        params: dict[str, Any] | None = None,
+        *,
+        base_url: str | None = None,
+    ) -> Any:
         if self.key_setting and not self._key():
             raise ProviderNotConfiguredError(
                 f"{self.name} requires {self.key_setting}; configure it before routing"
             )
         try:
             response = httpx.get(
-                f"{self.base_url.rstrip('/')}/{path.lstrip('/')}",
+                f"{(base_url or self.base_url).rstrip('/')}/{path.lstrip('/')}",
                 params=self._auth_params(params),
                 headers=self._auth_headers(),
                 timeout=30,
@@ -1114,6 +1120,7 @@ class EODHDProvider(_RESTProvider):
     description = "EODHD optional long-history US EOD data"
     key_setting = "EODHD_API_KEY"
     key_param = "api_token"
+    _FUNDAMENTALS_BASE = "https://eodhd.com/api/v1.1"
 
     _PERIOD = {
         Timeframe.D1: "d",
@@ -1158,7 +1165,11 @@ class EODHDProvider(_RESTProvider):
         )
 
     def get_instrument_profile(self, symbol: str) -> InstrumentProfile | None:
-        payload = self._get(f"fundamentals/{symbol.upper()}.US", {"filter": "General"})
+        payload = self._get(
+            f"fundamentals/{symbol.upper()}.US",
+            {"filter": "General"},
+            base_url=self._FUNDAMENTALS_BASE,
+        )
         row = payload.get("General") if isinstance(payload, dict) else None
         if not isinstance(row, dict):
             return None
