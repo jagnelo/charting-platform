@@ -113,7 +113,7 @@
   "head": "7741d56c27ac4aaa33db60da1f49a6b22d35952e",
   "implementation_sha": "02ab09f40599112049d1c77532327c8c223cd623",
   "last_checkpoint": "2026-09-09T02:19:18.325590+00:00",
-  "last_human_progress_update": "2026-09-09T01:57:26.252709+00:00",
+  "last_human_progress_update": "2026-09-09T02:21:32.615091+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -140,11 +140,11 @@
       "AC-QUOTA-SAFETY",
       "AC-RATE-FAILURE"
     ],
-    "current_blocker": "Full live matrix still requires ALPACA_API_KEY plus ALPACA_SECRET_KEY, TRADIER_API_KEY, and MARKETDATA_APP_API_KEY; FINRA OTC terms/redistribution approval, complete reviewed Tiingo/FMP byte maps, complete NMS/OTC reconciliation, and shadow activation remain explicit operator/deployment gates. Docker-backed validation passed with escalation; each deployment still needs its own non-secret SEC User-Agent.",
+    "current_blocker": "Full live matrix still requires ALPACA_API_KEY plus ALPACA_SECRET_KEY, TRADIER_API_KEY, and MARKETDATA_APP_API_KEY; GitHub provider-live environment verification is blocked by invalid local gh authentication; FINRA OTC terms/redistribution approval, complete reviewed Tiingo/FMP byte maps, complete NMS/OTC reconciliation, and shadow activation remain explicit operator/deployment gates.",
     "current_phase": "credentialed_live_validation",
-    "next_action": "Obtain the three missing credential domains, configure a deployment-owned SEC User-Agent, rerun the complete 29-case live matrix and reassess; do not activate routing or deploy before that evidence, and do not promote Tiingo/FMP until complete reviewed byte-bound maps are supplied.",
+    "next_action": "Restore owner authentication for jagnelo, verify/populate the GitHub provider-live environment, obtain the three missing credential domains, configure a deployment-owned SEC User-Agent, rerun all 29 live cases, then reassess readiness; do not activate routing or deploy before that evidence.",
     "total": 15,
-    "updated_at": "2026-09-09T01:57:26.252631+00:00"
+    "updated_at": "2026-09-09T02:21:32.615010+00:00"
   },
   "remote": "7741d56c27ac4aaa33db60da1f49a6b22d35952e",
   "remote_sha": "02ab09f40599112049d1c77532327c8c223cd623",
