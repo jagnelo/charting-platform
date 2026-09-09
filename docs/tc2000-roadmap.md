@@ -5,6 +5,37 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-09
 
+## 2026-09-09 — Generic history adjustment provenance evidence
+
+At product tip `667577c1`, generic watchlist history status now carries an
+explicit adjustment-provenance envelope per timeframe. It distinguishes
+provider-native opaque factors, derived bars inheriting the canonical adjusted
+D1 contract, mixed provider/derived coverage, and unavailable coverage. The
+contract reports `factor_version` as null when the provider does not expose a
+rebuildable version; no factor set or price transformation is invented. Market
+Map exposes this only through hidden accessibility evidence, with visible
+layout, pixels, provider precedence, fallback, storage, and acceptance policy
+unchanged.
+
+Focused watchlist-history units passed `7/7`; Market Map Vitest passed `36/36`;
+frontend type-check, Ruff check/format, and diff checks passed. The exact
+Docker-backed gate passed dependency, migration, lint, backend unit/integration
+coverage (`1,374`/`387`, `68%`), frontend/build/probe stages, and functional
+Playwright (`165` passed, `107` documented skips across `272`). Visual parity
+completed `104` cases with `98` passes and exactly the six established
+state-oracle diffs: `watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125. The gate
+exits at `e2e-visual` only for those unchanged diffs; scoped teardown removed
+all assigned resources and test sessions cleanly. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed.
+
+R1 remains active for a rebuildable adjustment-factor/version model, raw versus
+derived storage separation, complete family/provider-history readiness, W1/MN
+continuity, cadence beyond source-declared timing, and broader canonical
+population; R2-R7 remain open. Next action: continue the next bounded
+evidence-backed R1 history/provenance seam while preserving the six visual
+state-oracle assertions and rerun the exact gate at the next coherent tip.
+
 ## 2026-09-09 — Generic history membership timing evidence
 
 At product tip `31c6565c`, generic watchlist history status preserves the

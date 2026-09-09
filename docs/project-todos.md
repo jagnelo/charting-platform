@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-09 — Generic history adjustment provenance evidence
+
+- [x] Report provider-native opaque, derived-inherited, mixed, and unavailable
+      adjustment provenance per generic history timeframe; keep `factor_version`
+      null when providers do not expose one.
+- [x] Expose the envelope only through hidden Market Map accessibility evidence;
+      focused history units passed 7/7, Market Map Vitest 36/36, and the exact
+      gate preserved 165 functional passes, 107 documented skips, and the six
+      established visual diffs with clean teardown.
+- [ ] Build a rebuildable adjustment-factor/version model and raw-versus-derived
+      storage separation; complete family/provider history, W1/MN continuity,
+      cadence, and canonical population evidence.
+
 ### 2026-09-09 — Generic history membership timing evidence
 
 - [x] Preserve resolver-supplied membership `effective_at`, `known_at`, and

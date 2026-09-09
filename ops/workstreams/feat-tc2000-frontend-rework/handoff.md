@@ -8,6 +8,33 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-09 — Generic history adjustment provenance evidence checkpoint
+
+Product tip `667577c1` adds an explicit adjustment-provenance envelope to each
+generic watchlist history timeframe. Provider-native opaque factors, derived
+bars inheriting canonical adjusted D1, mixed lineage, and unavailable coverage
+are distinguished; `factor_version` stays null when the provider contract does
+not expose a rebuildable version. Market Map exposes this through hidden
+accessibility evidence only. No prices, provider precedence, fallback,
+storage, visible layout, pixels, or acceptance policy changed.
+
+Focused watchlist-history units passed `7/7`; Market Map Vitest passed `36/36`;
+frontend type-check, Ruff check/format, and diff checks passed. The exact
+Docker-backed gate passed all non-visual stages, backend unit/integration
+coverage (`1,374`/`387`, `68%`), and functional Playwright (`165` passed,
+`107` documented skips across `272`). Visual parity was `98/104` with exactly
+the six established watchlist-column-editor-open/workspace-floating diffs. The
+gate stopped at `e2e-visual` for those unchanged diffs; teardown removed all
+assigned containers, volumes, images, and test sessions cleanly. No other
+worktree was touched.
+
+R1 remains active for a rebuildable adjustment-factor/version model, raw versus
+derived storage separation, complete family/provider-history readiness, W1/MN
+continuity, cadence beyond source-declared timing, and broader canonical
+population. R2-R7 remain open. Next action: continue the next bounded
+evidence-backed R1 history/provenance seam and rerun the exact gate at the next
+coherent tip.
+
 ## 2026-09-09 — Generic history membership timing evidence checkpoint
 
 Product tip `31c6565c` preserves resolver-supplied membership `effective_at`,
