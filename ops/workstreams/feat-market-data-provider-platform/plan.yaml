@@ -148,6 +148,8 @@ progress:
     - manifest-driven live probes require positive transport observations for every available non-tokenized adapter read, with SEC/Nasdaq directory pagination explicitly cache-aware
     - the HTTP-success provider error-envelope guard is covered by the full Docker-backed gate (`1779/1779`, `80.14%`), preserving typed failures instead of false empty observations
     - tokenized public adapters now reject Kraken non-empty error lists and Bybit nonzero retCode HTTP-success envelopes as typed failures, preserving registered provider identity and preventing synthetic token records
+    - provider resolution now applies an explicit provider/instrument-class allow-list before invocation, so equity/ETF requests cannot fall through to crypto-only OHLCV adapters; unknown provider mappings fail closed and the regression is covered by unit and PostgreSQL-backed OHLCV tests
+    - the complete Docker-backed gate after class-aware routing passes (`1785/1785`, `80.11%`), including the two previously failing AAPL OHLCV integration cases
   total: 15
   current_phase: credentialed_live_validation
   current_blocker: full live matrix requires the three remaining credential domains (Alpaca, Tradier, MarketData.app); the GitHub `jagnelo` live environment is not externally verifiable until owner authentication is restored; FINRA OTC source terms/redistribution approval, complete reviewed Tiingo/FMP byte maps, complete NMS/OTC reconciliation, and shadow activation remain post-deployment or operator-review gates; each deployment must also provide its own non-secret SEC User-Agent
