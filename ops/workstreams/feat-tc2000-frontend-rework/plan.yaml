@@ -13,6 +13,23 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tip 4cefce9b preserves source-declared generic history provenance:
+  effective_at, known_at, timing provenance, published_at, cadence, parser
+  version, and source identifier when supplied. Unavailable source legs remain
+  explicit nulls; cadence is not inferred and metadata is not fabricated.
+  Hidden Market Map accessibility evidence exposes the contract without
+  changing prices, visible layout, pixels, provider precedence, fallback,
+  storage, or acceptance policy. Focused watchlist-history units passed 7/7;
+  Market Map Vitest passed 36/36; frontend type-check, Ruff check/format, and
+  diff checks passed. The exact Docker-backed gate passed all non-visual
+  stages, backend unit/integration coverage 1374/387 at 68%, frontend/build/
+  probe stages, and functional Playwright 165 with 107 documented skips across
+  272. Visual parity remains 98/104 with exactly the six established
+  state-oracle diffs; teardown and resource accounting were clean. R1
+  rebuildable adjustment-factor/version and raw-versus-derived storage,
+  family/provider-history readiness, W1/MN continuity, cadence beyond
+  source-declared metadata, broader canonical population, and R2-R7 evidence
+  remain open.
   Product tip 667577c1 adds an explicit adjustment-provenance envelope to each
   generic watchlist history timeframe. It distinguishes provider-native opaque
   factors, derived bars inheriting canonical adjusted D1, mixed lineage, and
@@ -679,6 +696,23 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
+    Product tip 4cefce9b preserves source-declared generic history provenance:
+    effective_at, known_at, timing provenance, published_at, cadence, parser
+    version, and source identifier when supplied. Unavailable source legs remain
+    explicit nulls; cadence is not inferred and metadata is not fabricated.
+    Hidden Market Map accessibility evidence exposes the contract without
+    changing prices, visible layout, pixels, provider precedence, fallback,
+    storage, or acceptance policy. Focused watchlist-history units passed 7/7;
+    Market Map Vitest passed 36/36; frontend type-check, Ruff check/format, and
+    diff checks passed. The exact Docker-backed gate passed all non-visual
+    stages, backend unit/integration coverage 1374/387 at 68%, frontend/build/
+    probe stages, and functional Playwright 165 with 107 documented skips
+    across 272. Visual parity remains 98/104 with exactly the six established
+    state-oracle diffs; teardown and resource accounting were clean. R1
+    rebuildable adjustment-factor/version and raw-versus-derived storage,
+    family/provider-history readiness, W1/MN continuity, cadence beyond
+    source-declared metadata, broader canonical population, and R2-R7 evidence
+    remain open.
     Product tip 667577c1 adds an explicit adjustment-provenance envelope to
     each generic watchlist history timeframe. It distinguishes provider-native
     opaque factors, derived bars inheriting canonical adjusted D1, mixed

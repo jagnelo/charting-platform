@@ -110,14 +110,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "667577c14c7cac142e433e1cf49f7bbc6cb827b3",
-  "implementation_sha": "667577c14c7cac142e433e1cf49f7bbc6cb827b3",
+  "head": "4cefce9b0e0e5a67e9aeff63bb38bdace90797ec",
+  "implementation_sha": "4cefce9b0e0e5a67e9aeff63bb38bdace90797ec",
   "interrupted": false,
-  "last_checkpoint": "2026-09-09T22:55:33Z",
-  "last_human_progress_update": "2026-09-09T22:55:33Z",
+  "last_checkpoint": "2026-09-09T23:25:38Z",
+  "last_human_progress_update": "2026-09-09T23:25:38Z",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded evidence-backed R1 history or provenance seam; preserve the six visual state-oracle assertions and provider/fallback rules and rerun the exact gate at the next coherent tip.",
-  "plan_hash": "8a0d3c8bcaee7701557aa0375671f2e51c3e69de9bb8e206acaca6c249081508",
+  "plan_hash": "f382cc70559b2e7a04312c99b031075a7c0eca2a9d48c31fd9f3f9c4906828f2",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -129,11 +129,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product tip 667577c1 adds an explicit adjustment-provenance envelope to each generic watchlist history timeframe. It distinguishes provider-native opaque factors, derived bars inheriting canonical adjusted D1, mixed lineage, and unavailable coverage; factor_version remains null when providers do not expose a rebuildable version. Hidden Market Map accessibility evidence exposes the envelope without changing prices, visible layout, pixels, provider precedence, fallback, storage, or acceptance policy. Focused watchlist-history units passed 7/7; Market Map Vitest passed 36/36; frontend type-check, Ruff check/format, and diff checks passed. The exact Docker-backed gate passed all non-visual stages, backend unit/integration coverage 1374/387 at 68%, and functional Playwright 165 with 107 documented skips across 272. Visual parity remains 98/104 with exactly the six established state-oracle diffs; teardown and resource accounting were clean. R1 rebuildable adjustment-factor/version and raw-versus-derived storage, family/provider-history readiness, W1/MN continuity, source-declared cadence, broader canonical population, and R2-R7 evidence remain open.",
+    "current_blocker": "Product tip 4cefce9b preserves source-declared generic history provenance: effective_at, known_at, timing provenance, published_at, cadence, parser version, and source identifier when supplied. Unavailable source legs remain explicit nulls; cadence is not inferred and metadata is not fabricated. Hidden Market Map accessibility evidence exposes the contract without changing prices, visible layout, pixels, provider precedence, fallback, storage, or acceptance policy. Focused watchlist-history units passed 7/7; Market Map Vitest passed 36/36; frontend type-check, Ruff check/format, and diff checks passed. The exact Docker-backed gate passed all non-visual stages, backend unit/integration coverage 1374/387 at 68%, frontend/build/probe stages, and functional Playwright 165 with 107 documented skips across 272. Visual parity remains 98/104 with exactly the six established state-oracle diffs; teardown and resource accounting were clean. R1 rebuildable adjustment-factor/version and raw-versus-derived storage, family/provider-history readiness, W1/MN continuity, cadence beyond source-declared metadata, broader canonical population, and R2-R7 evidence remain open.",
     "current_phase": "R1_canonical_provider_history_readiness",
     "next_action": "Continue the next bounded evidence-backed R1 history or provenance seam; preserve the six visual state-oracle assertions and provider/fallback rules and rerun the exact gate at the next coherent tip.",
     "total": 10,
-    "updated_at": "2026-09-09T22:55:33Z"
+    "updated_at": "2026-09-09T23:25:38Z"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

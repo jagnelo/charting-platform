@@ -3,7 +3,38 @@
 Status: active implementation roadmap  
 Branch: `feat/tc2000-frontend-rework`  
 Parent: `staging`  
-Last reconciled: 2026-09-09
+Last reconciled: 2026-09-10
+
+## 2026-09-10 — Generic history source provenance evidence
+
+At product tip `4cefce9b`, generic watchlist history now preserves source-
+declared publication and parser metadata per timeframe, including effective
+and known membership timing, published-at, cadence, parser version, source
+identifier, and declared timing provenance when available. Unavailable source
+legs remain explicit nulls; cadence is not inferred and no source metadata is
+fabricated. Market Map exposes the evidence only through a hidden accessibility
+summary. Visible layout, pixels, provider precedence, fallback, storage, and
+acceptance policy remain unchanged.
+
+Focused watchlist-history units passed `7/7`; Market Map Vitest passed `36/36`;
+frontend type-check, Ruff check/format, and diff checks passed. The exact
+Docker-backed gate passed dependency, migration, lint, backend unit/integration
+coverage (`1,374`/`387`, `68%`), frontend/build/probe stages, and functional
+Playwright (`165` passed, `107` documented skips across `272`). Visual parity
+completed `104` cases with `98` passes and exactly the six established
+state-oracle diffs: `watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125. The gate
+exits at `e2e-visual` only for those unchanged diffs; scoped teardown removed
+all assigned resources and test sessions cleanly. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed.
+
+R1 remains active for a rebuildable adjustment-factor/version model,
+raw-versus-derived storage separation, complete family/provider-history
+readiness, W1/MN continuity, cadence beyond source-declared metadata, and
+broader canonical population; R2-R7 remain open. Next action: continue the
+next bounded evidence-backed R1 history/provenance seam while preserving the
+six visual state-oracle assertions and rerun the exact gate at the next
+coherent tip.
 
 ## 2026-09-09 — Generic history adjustment provenance evidence
 

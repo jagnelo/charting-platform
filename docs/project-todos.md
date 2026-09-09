@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-10 — Generic history source provenance evidence
+
+- [x] Preserve source-declared publication, cadence, parser version, source
+      identifier, effective/known membership timing, and timing provenance in
+      generic history status without inferring cadence or fabricating metadata.
+- [x] Expose the metadata only through hidden Market Map accessibility
+      evidence; focused history units passed 7/7, Market Map Vitest 36/36, and
+      the exact gate preserved 165 functional passes, 107 documented skips,
+      and the six established visual diffs with clean teardown.
+- [ ] Build a rebuildable adjustment-factor/version model and raw-versus-
+      derived storage separation; complete family/provider history, W1/MN
+      continuity, cadence beyond source-declared metadata, and canonical
+      population evidence.
+
 ### 2026-09-09 — Generic history adjustment provenance evidence
 
 - [x] Report provider-native opaque, derived-inherited, mixed, and unavailable
