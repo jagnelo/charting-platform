@@ -162,7 +162,7 @@
     <main v-else-if="!isPopout && workspaceDockPending" class="workstation__layout-state" role="status">
       Reloading workspace…
     </main>
-    <main v-if="isPopout" ref="popoutRoot" class="workstation__popout" tabindex="-1" :aria-label="popoutLabel">
+    <main v-if="isPopout" ref="popoutRoot" class="workstation__popout" tabindex="-1" :aria-label="popoutLabel" aria-describedby="workstation-popout-context">
       <WorkstationToolContent
         v-if="popoutTool"
         :tool="popoutTool"
@@ -191,6 +191,7 @@
         @close="closePopoutTool"
       />
       <div v-else class="workstation__missing-tool">The requested tool is unavailable. It remains in the source workspace.</div>
+      <span id="workstation-popout-context" class="sr-only">This is a browser-managed pop-out window. Placement across monitors and window controls are controlled by the browser and operating system.</span>
     </main>
     <main v-else-if="!isPopout && !goldenLayoutConfig" class="workstation__layout-state" role="status">
       <span v-if="workspaceStore.loading">Loading saved workstation…</span>
@@ -2132,4 +2133,5 @@ onBeforeUnmount(() => {
 .workstation__metrics b { color: #d2dce3; font-weight: 500; text-align: right; }
 .workstation__footer { display: flex; gap: 16px; align-items: center; padding: 0 7px; border-top: 1px solid var(--tc-border); color: var(--tc-text-muted); background: var(--tc-panel-bg); font-size: 10px; }
 .workstation__footer span:first-child { color: #d4e7f4; font-weight: 700; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 </style>
