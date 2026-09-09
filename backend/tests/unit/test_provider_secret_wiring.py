@@ -1,7 +1,16 @@
+import importlib.util
 import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
+
+_LIVE_SCRIPT_SPEC = importlib.util.spec_from_file_location(
+    "provider_live_probe_script", ROOT / "scripts/run-live-provider-probes.py"
+)
+assert _LIVE_SCRIPT_SPEC and _LIVE_SCRIPT_SPEC.loader
+_LIVE_SCRIPT = importlib.util.module_from_spec(_LIVE_SCRIPT_SPEC)
+_LIVE_SCRIPT_SPEC.loader.exec_module(_LIVE_SCRIPT)
+routing_safety_preflight = _LIVE_SCRIPT.routing_safety_preflight
 PROVIDER_SECRET_NAMES = {
     "ALPACA_API_KEY",
     "ALPACA_SECRET_KEY",
@@ -85,3 +94,25 @@ def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
     assert "FMP_OPERATION_BYTE_BOUNDS={}" in example
     for name in ("IBKR_READ_ONLY_URL", "COINBASE_API_KEY", "KRAKEN_API_KEY"):
         assert f"{name}=" in example
+
+
+def test_live_preflight_reports_non_routable_safety_controls_without_guessing(monkeypatch):
+    monkeypatch.setenv("FINRA_ASYNC_MAX_RESULT_BYTES", "0")
+    monkeypatch.setenv("TIINGO_OPERATION_BYTE_BOUNDS", "{}")
+    monkeypatch.setenv("FMP_OPERATION_BYTE_BOUNDS", "not-json")
+    statuses = routing_safety_preflight()
+    assert statuses["finra async result bytes"].startswith("non-routable:")
+    assert statuses["tiingo"].startswith("non-routable:")
+    assert statuses["fmp"] == "non-routable: FMP_OPERATION_BYTE_BOUNDS is not valid JSON"
+
+    monkeypatch.setenv(
+        "TIINGO_OPERATION_BYTE_BOUNDS",
+        '{"fetch_ohlcv": 1, "fetch_latest_ohlcv": 1, "search_instruments": 1, "get_instrument_profile": 1}',
+    )
+    monkeypatch.setenv(
+        "FMP_OPERATION_BYTE_BOUNDS",
+        '{"fetch_ohlcv": 1, "fetch_latest_ohlcv": 1, "get_instrument_profile": 1, "discover_universe_page": 1}',
+    )
+    statuses = routing_safety_preflight()
+    assert statuses["tiingo"] == "routable"
+    assert statuses["fmp"] == "routable"

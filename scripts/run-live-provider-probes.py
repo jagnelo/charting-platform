@@ -9,6 +9,7 @@ credentials return exit code 2; they are never represented as passing skips.
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 from pathlib import Path
@@ -37,6 +38,70 @@ CREDENTIALS = {
     "tradier": ("TRADIER_API_KEY",),
     "marketdata_app": ("MARKETDATA_APP_API_KEY",),
 }
+
+BYTE_BOUND_OPERATIONS = {
+    "tiingo": (
+        "fetch_ohlcv",
+        "fetch_latest_ohlcv",
+        "search_instruments",
+        "get_instrument_profile",
+    ),
+    "fmp": (
+        "fetch_ohlcv",
+        "fetch_latest_ohlcv",
+        "get_instrument_profile",
+        "discover_universe_page",
+    ),
+}
+
+
+def routing_safety_preflight() -> dict[str, str]:
+    """Describe safety controls that can block routing after a live read.
+
+    Direct adapter probes intentionally remain useful even when a provider is
+    non-routable. This report prevents a green adapter read from being
+    mistaken for safe quota admission when a provider publishes a bandwidth
+    pool without universal response-size ceilings.
+    """
+
+    result: dict[str, str] = {}
+    async_bound = os.getenv("FINRA_ASYNC_MAX_RESULT_BYTES", "0").strip() or "0"
+    try:
+        result["finra async result bytes"] = (
+            "routable"
+            if int(async_bound) > 0
+            else "non-routable: positive reviewed bound required"
+        )
+    except ValueError:
+        result["finra async result bytes"] = "non-routable: bound is not an integer"
+
+    for provider, operations in BYTE_BOUND_OPERATIONS.items():
+        variable = f"{provider.upper()}_OPERATION_BYTE_BOUNDS"
+        raw = os.getenv(variable, "").strip()
+        if not raw:
+            result[provider] = f"non-routable: {variable} is unset"
+            continue
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError:
+            result[provider] = f"non-routable: {variable} is not valid JSON"
+            continue
+        if not isinstance(parsed, dict):
+            result[provider] = f"non-routable: {variable} must be a JSON object"
+            continue
+        missing = [
+            operation
+            for operation in operations
+            if operation not in parsed
+            or not isinstance(parsed[operation], int)
+            or parsed[operation] <= 0
+        ]
+        result[provider] = (
+            "routable"
+            if not missing
+            else f"non-routable: missing positive bounds for {', '.join(missing)}"
+        )
+    return result
 
 
 def changed_provider_code() -> bool:
@@ -98,6 +163,9 @@ def main() -> int:
             print(f"  BLOCKED {provider}: missing {', '.join(names)}")
     else:
         print("  all manifest credentials present")
+    print("routing safety preflight:")
+    for provider, status in routing_safety_preflight().items():
+        print(f"  {provider}: {status}")
     result = subprocess.run(
         [
             ".venv/bin/pytest",
