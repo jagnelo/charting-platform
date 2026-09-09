@@ -32,6 +32,7 @@ async def fetch_and_store_instrument_events(db: AsyncSession, instrument: Instru
         ProviderCapability.INSTRUMENT_EVENTS,
         "fetch_instrument_events",
         instrument_id=instrument.id,
+        usage_identity=lambda provider_name: provider_symbol_for_instrument(instrument, provider_name),
         invoke=lambda provider, _provider_symbol: provider.fetch_instrument_events(
             provider_symbol_for_instrument(instrument, provider.name)
         ),

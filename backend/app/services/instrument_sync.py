@@ -641,6 +641,7 @@ async def sync_instruments(db: AsyncSession, limit: int | None = None) -> dict:
                     ProviderCapability.INSTRUMENT_METADATA,
                     "sync_instrument_profile",
                     instrument_id=inst.id,
+                    usage_identity=lambda provider_name: provider_symbol_for_instrument(inst, provider_name),
                     invoke=lambda provider, _provider_symbol: provider.get_instrument_profile(
                         provider_symbol_for_instrument(inst, provider.name)
                     ),

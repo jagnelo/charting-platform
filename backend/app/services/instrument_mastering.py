@@ -688,6 +688,7 @@ async def ensure_external_identifier(
             "fetch_stable_identifiers",
             instrument_id=instrument.id,
             provider_symbol=instrument.symbol,
+            usage_identity=_symbol_for_provider,
             invoke=lambda provider, _ignored_provider_symbol: provider.fetch_stable_identifiers(
                 _symbol_for_provider(provider.name)
             ),

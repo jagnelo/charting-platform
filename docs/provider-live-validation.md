@@ -109,7 +109,8 @@ observed HTTP request counts, response bytes, and selected provider headers
 into the runtime context; that telemetry is durable in
 `provider_request_log`, and the provider usage endpoint exposes the latest
 filtered header snapshot plus active durable quota-window reservations for
-operator inspection. Twelve Data's cumulative
+operator inspection, including the durable distinct-identity count for
+identity-metered dimensions. Twelve Data's cumulative
 `api-credits-used`/`api-credits-left` headers, Tradier's
 allowed/used/available token-window headers, and Binance's one-minute used
 weight are reconciled only when each observation proves its matching reviewed
@@ -122,7 +123,10 @@ every exposed operation through `TIINGO_OPERATION_BYTE_BOUNDS` and
 runtime reserves the documented bandwidth pool before execution and settles it
 to measured response bytes; incomplete or invalid maps remain fail-closed.
 Tiingo's first-of-month Eastern bandwidth reset and FMP's rolling 30-day
-bandwidth reset are represented in the durable calendar-window engine. FINRA's synchronous short-interest and OTC Daily List
+bandwidth reset are represented in the durable calendar-window engine. Tiingo's
+500-symbol monthly pool is enforced by the durable `provider_quota_identity`
+ledger, which claims each normalized provider symbol once per window and does
+not approximate repeated calls as new symbols. FINRA's synchronous short-interest and OTC Daily List
 calls reserve the documented 3 MB maximum response against the 10 GB monthly
 credential budget and settle to measured bytes; its asynchronous
 submit/poll/presigned-download path is implemented as a documentation-faithful

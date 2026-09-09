@@ -363,6 +363,7 @@ def provider_contract_operation_cost_known(
     data_source: DataSource,
     operation: str | None = None,
     operation_cost_override: int | Decimal | None = None,
+    usage_identity: str | None = None,
 ) -> bool:
     """Return whether a quota contract can be safely charged for this call.
 
@@ -404,10 +405,26 @@ def provider_contract_operation_cost_known(
         for dimension in quota_dimensions(policy):
             raw = dimension_costs.get(str(dimension["name"]))
             unit = str(dimension.get("unit") or "").lower()
-            if unit in {"request", "requests", "credit", "credits", "weight"}:
+            if unit in {
+                "request",
+                "requests",
+                "credit",
+                "credits",
+                "weight",
+                "symbol",
+                "symbols",
+                "unique_symbol",
+                "unique_symbols",
+            }:
                 continue
             if not isinstance(raw, dict) or not (family in raw or operation in raw):
                 return False
+    if any(
+        str(dimension.get("unit") or "").lower()
+        in {"symbol", "symbols", "unique_symbol", "unique_symbols"}
+        for dimension in quota_dimensions(policy)
+    ) and not str(usage_identity or "").strip():
+        return False
     return True
 
 
@@ -523,8 +540,20 @@ def _apply_policy_defaults(
     ):
         if getattr(policy, field_name) is None and rate_seed.get(field_name) is not None:
             setattr(policy, field_name, rate_seed[field_name])
-    if policy.quota_contract is None and rate_seed.get("quota_contract"):
-        policy.quota_contract = dict(rate_seed["quota_contract"])
+    seeded_contract = rate_seed.get("quota_contract")
+    if seeded_contract:
+        # Refresh contracts generated from the same repository/provider source
+        # when deployment configuration changes (for example a reviewed
+        # Tiingo byte-bound map is added). Never overwrite a contract whose
+        # provenance differs or whose policy is explicitly pinned for manual
+        # operator control.
+        same_seed_source = policy.quota_source == rate_seed.get("quota_source")
+        contract_refreshed = policy.quota_contract is None or (
+            same_seed_source and not policy.is_pinned and policy.quota_contract != seeded_contract
+        )
+        if contract_refreshed:
+            policy.quota_contract = dict(seeded_contract)
+            policy.quota_verified_at = datetime.now(UTC)
     if policy.quota_scope is None and rate_seed.get("quota_scope"):
         policy.quota_scope = str(rate_seed["quota_scope"])
     if policy.quota_source is None and rate_seed.get("quota_source"):
@@ -1192,6 +1221,7 @@ async def execute_provider_call(
     *,
     instrument_id: int | None = None,
     provider_symbol: str | None = None,
+    usage_identity: str | Callable[[str], str | None] | None = None,
     provider_name: str | None = None,
     operation_cost_overrides: dict[str, int] | None = None,
     invoke: Callable[[Any, str | None], T],
@@ -1211,11 +1241,19 @@ async def execute_provider_call(
     last_error: Exception | None = None
 
     for resolved in chain:
+        resolved_usage_identity = (
+            usage_identity(resolved.provider_name)
+            if callable(usage_identity)
+            else usage_identity
+        )
+        if resolved_usage_identity is None:
+            resolved_usage_identity = provider_symbol
         if not provider_contract_operation_cost_known(
             resolved.policy,
             resolved.data_source,
             operation,
             (operation_cost_overrides or {}).get(resolved.provider_name),
+            resolved_usage_identity,
         ):
             continue
         usage_mode, usage_unit_label, usage_units = _usage_cost_for_operation(
@@ -1234,6 +1272,12 @@ async def execute_provider_call(
         )
         if quota_dimensions(resolved.policy) and not dimension_units:
             continue
+        distinct_dimensions = {
+            str(dimension["name"])
+            for dimension in quota_dimensions(resolved.policy)
+            if str(dimension.get("unit") or "").lower()
+            in {"symbol", "symbols", "unique_symbol", "unique_symbols"}
+        }
         # A runtime call participates in the same durable multi-dimensional
         # budget used by queued workloads.  This prevents concurrent workers
         # from multiplying a provider/IP/key allowance in process-local
@@ -1250,6 +1294,7 @@ async def execute_provider_call(
             capability=capability.value,
             units=max(1, int(usage_units.to_integral_value())),
             dimension_units=dimension_units,
+            usage_identity=resolved_usage_identity,
             now=datetime.now(UTC),
         )
         if reservations is None:
@@ -1267,6 +1312,7 @@ async def execute_provider_call(
                     success=False,
                     reserved_dimension_units=dimension_units,
                     consumed_dimension_units={name: 0 for name in dimension_units},
+                    consume_on_failure_dimensions=distinct_dimensions,
                 )
                 continue
         log_row = ProviderRequestLog(
@@ -1325,6 +1371,7 @@ async def execute_provider_call(
                 consumed_dimension_units=_consumed_dimension_costs(
                     resolved.policy, measurement, dimension_units
                 ),
+                consume_on_failure_dimensions=distinct_dimensions,
                 observed_dimension_totals=_observed_dimension_totals(
                     resolved.policy, measurement
                 ),
@@ -1392,6 +1439,7 @@ async def execute_provider_call(
                 consumed_dimension_units=_consumed_dimension_costs(
                     resolved.policy, measurement, dimension_units
                 ),
+                consume_on_failure_dimensions=distinct_dimensions,
             )
             latency_ms = int((time.perf_counter() - started) * 1000)
             await _record_result(

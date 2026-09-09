@@ -238,6 +238,50 @@ class ProviderQuotaWindow(Base, TimestampMixin):
     )
 
 
+class ProviderQuotaIdentity(Base, TimestampMixin):
+    """Durable distinct-identity claim inside a provider quota window.
+
+    Some provider plans meter a monthly pool by distinct symbols rather than
+    by request.  A row is retained once a request has been admitted so the
+    same symbol cannot be charged as a new identity by another worker or
+    after an application restart.
+    """
+
+    __tablename__ = "provider_quota_identity"
+
+    id: Mapped[int] = mapped_column(BIGINT_ID, primary_key=True, autoincrement=True)
+    data_source_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    capability: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    dimension: Mapped[str] = mapped_column(String(80), nullable=False)
+    window_started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    window_seconds: Mapped[int] = mapped_column(Integer, nullable=False)
+    identity_key: Mapped[str] = mapped_column(String(180), nullable=False)
+
+    data_source: Mapped["DataSource"] = relationship()
+
+    __table_args__ = (
+        UniqueConstraint(
+            "data_source_id",
+            "capability",
+            "dimension",
+            "window_started_at",
+            "window_seconds",
+            "identity_key",
+            name="uq_provider_quota_identity",
+        ),
+        Index(
+            "ix_provider_quota_identity_lookup",
+            "data_source_id",
+            "capability",
+            "dimension",
+            "window_started_at",
+            "window_seconds",
+        ),
+    )
+
+
 class ProviderWorkloadLease(Base, TimestampMixin):
     """Short-lived, observable reservation for a queued market-data workload."""
 

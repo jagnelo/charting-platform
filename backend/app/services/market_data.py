@@ -747,6 +747,7 @@ async def _fetch_provider(
         ProviderCapability.PRICE_HISTORY,
         f"fetch_ohlcv:{timeframe.value}",
         instrument_id=instrument.id,
+        usage_identity=lambda provider_name: provider_symbol_for_instrument(instrument, provider_name),
         operation_cost_overrides=(
             {
                 "binance": estimate_ohlcv_request_weight(timeframe, start, end)
@@ -1062,6 +1063,7 @@ async def _fetch_provider_latest(
         ProviderCapability.PRICE_HISTORY,
         f"fetch_latest_ohlcv:{timeframe.value}",
         instrument_id=instrument.id,
+        usage_identity=lambda provider_name: provider_symbol_for_instrument(instrument, provider_name),
         operation_cost_overrides=(
             {
                 "binance": estimate_latest_ohlcv_request_weight(timeframe, limit)
@@ -1114,6 +1116,7 @@ async def get_current_price_async(
         ProviderCapability.LATEST_PRICE,
         "get_current_price",
         instrument_id=instrument.id,
+        usage_identity=lambda provider_name: provider_symbol_for_instrument(instrument, provider_name),
         invoke=lambda provider, _provider_symbol: provider.get_current_price(
             provider_symbol_for_instrument(instrument, provider.name)
         ),
@@ -1214,6 +1217,7 @@ async def get_provider_profile_async(
             "get_instrument_profile",
             instrument_id=instrument_id,
             provider_symbol=provider_symbol,
+            usage_identity=provider_symbol,
             provider_name=provider_name,
             invoke=lambda provider, actual_symbol: provider.get_instrument_profile(
                 actual_symbol or provider_symbol

@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 from app.config import provider_rate_limit_seed, settings
 from app.models.data_source import DataSource
-from app.models.market_data_foundation import ProviderQuotaWindow
+from app.models.market_data_foundation import ProviderQuotaIdentity, ProviderQuotaWindow
 from app.models.provider_runtime import ProviderCapability, ProviderPolicy
 from app.providers.registry import get_provider_usage_profile
 from app.services.provider_routing import (
@@ -67,6 +67,36 @@ async def test_seeded_tiingo_and_fmp_bandwidth_pools_remain_non_routable(db):
         )
 
 
+@pytest.mark.asyncio
+async def test_runtime_seed_refreshes_provider_generated_contract_after_byte_map_change(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    complete_bounds = {
+        "fetch_ohlcv": 1_000_000,
+        "fetch_latest_ohlcv": 1_000_000,
+        "search_instruments": 100_000,
+        "get_instrument_profile": 100_000,
+    }
+    monkeypatch.setattr(settings, "TIINGO_OPERATION_BYTE_BOUNDS", complete_bounds)
+    await seed_provider_runtime(async_db)
+    source = db.execute(select(DataSource).where(DataSource.name == "tiingo")).scalar_one()
+    policy = db.execute(
+        select(ProviderPolicy).where(
+            ProviderPolicy.data_source_id == source.id,
+            ProviderPolicy.capability == ProviderCapability.PRICE_HISTORY,
+        )
+    ).scalar_one()
+    assert policy_has_known_quota(policy)
+
+    monkeypatch.setattr(settings, "TIINGO_OPERATION_BYTE_BOUNDS", {})
+    await seed_provider_runtime(async_db)
+    db.refresh(policy)
+    assert not policy_has_known_quota(policy)
+    assert any(
+        item.startswith("quota_contract.untracked_constraints.bandwidth_bytes")
+        for item in quota_contract_missing_dimensions(policy)
+    )
+
+
 def test_known_request_limit_with_untracked_bandwidth_remains_non_routable():
     policy = ProviderPolicy(
         data_source_id=1,
@@ -110,9 +140,7 @@ def test_tiingo_byte_pool_requires_complete_operator_bounds_before_promotion(mon
     monkeypatch.setattr(settings, "TIINGO_OPERATION_BYTE_BOUNDS", bounds)
     seed = provider_rate_limit_seed("tiingo")
     contract = seed["quota_contract"]
-    assert [item["name"] for item in contract["untracked_constraints"]] == [
-        "unique_symbols_per_month_accounting"
-    ]
+    assert contract["untracked_constraints"] == []
     bytes_dimension = next(item for item in contract["dimensions"] if item["unit"] == "bytes")
     assert bytes_dimension["limit"] == 1024**3
     assert contract["dimension_costs_required"] is True
@@ -120,13 +148,20 @@ def test_tiingo_byte_pool_requires_complete_operator_bounds_before_promotion(mon
     profile = get_provider_usage_profile("tiingo")
     assert profile["dimension_costs"][bytes_dimension["name"]] == bounds
     assert profile["operation_costs"]["fetch_ohlcv"] == 1
-    assert not policy_has_known_quota(
-        ProviderPolicy(
-            data_source_id=1,
-            capability=ProviderCapability.PRICE_HISTORY,
-            quota_scope=seed["quota_scope"],
-            quota_contract=contract,
-        )
+    policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.PRICE_HISTORY,
+        quota_scope=seed["quota_scope"],
+        quota_contract=contract,
+    )
+    assert policy_has_known_quota(policy)
+    source = DataSource(
+        name="tiingo",
+        config={"usage_tracking": get_provider_usage_profile("tiingo")},
+    )
+    assert not provider_contract_operation_cost_known(policy, source, "fetch_ohlcv")
+    assert provider_contract_operation_cost_known(
+        policy, source, "fetch_ohlcv", usage_identity="AAPL"
     )
 
     monkeypatch.setattr(settings, "TIINGO_OPERATION_BYTE_BOUNDS", {"fetch_ohlcv": 1_000_000})
@@ -186,6 +221,94 @@ async def test_quota_windows_are_isolated_by_dimension(db):
     assert minute is not None and month is not None
     rows = db.execute(select(ProviderQuotaWindow)).scalars().all()
     assert {row.dimension for row in rows} == {"per_minute", "per_month"}
+
+
+@pytest.mark.asyncio
+async def test_distinct_identity_dimension_is_durable_and_not_request_counted(db):
+    async_db = AsyncSessionAdapter(db)
+    source = DataSource(name="distinct-symbol-provider", is_active=True)
+    db.add(source)
+    db.flush()
+    policy = ProviderPolicy(
+        data_source_id=source.id,
+        capability=ProviderCapability.PRICE_HISTORY,
+        quota_scope="api_key",
+        quota_contract={
+            "reset": "provider_defined",
+            "dimensions": [
+                {
+                    "name": "unique_symbols_per_month",
+                    "limit": 2,
+                    "window_seconds": 2_678_400,
+                    "unit": "symbols",
+                    "scope": "api_key",
+                    "source": "https://provider.example/pricing",
+                    "reset": "calendar_month_est",
+                }
+            ],
+        },
+    )
+    resolved = ResolvedProvider(
+        provider_name="distinct-symbol-provider",
+        provider=object(),
+        data_source=source,
+        policy=policy,
+        health=None,  # type: ignore[arg-type]
+    )
+    now = datetime(2026, 9, 9, 12, 0, tzinfo=UTC)
+    first = await reserve_provider_contract(
+        async_db,
+        resolved=resolved,
+        capability=ProviderCapability.PRICE_HISTORY.value,
+        units=1,
+        usage_identity="aapl",
+        now=now,
+    )
+    repeat = await reserve_provider_contract(
+        async_db,
+        resolved=resolved,
+        capability=ProviderCapability.PRICE_HISTORY.value,
+        units=1,
+        usage_identity="AAPL",
+        now=now,
+    )
+    second = await reserve_provider_contract(
+        async_db,
+        resolved=resolved,
+        capability=ProviderCapability.PRICE_HISTORY.value,
+        units=1,
+        usage_identity="MSFT",
+        now=now,
+    )
+    exhausted = await reserve_provider_contract(
+        async_db,
+        resolved=resolved,
+        capability=ProviderCapability.PRICE_HISTORY.value,
+        units=1,
+        usage_identity="NVDA",
+        now=now,
+    )
+    assert first is not None and len(first) == 1
+    assert repeat == []
+    assert second is not None and len(second) == 1
+    assert exhausted is None
+    identities = db.execute(select(ProviderQuotaIdentity)).scalars().all()
+    assert {row.identity_key for row in identities} == {"AAPL", "MSFT"}
+    settle_provider_contract(
+        first,
+        units=1,
+        success=False,
+        reserved_dimension_units={"unique_symbols_per_month": 1},
+        consumed_dimension_units={"unique_symbols_per_month": 1},
+        consume_on_failure_dimensions={"unique_symbols_per_month"},
+    )
+    db.flush()
+    window = db.execute(
+        select(ProviderQuotaWindow).where(
+            ProviderQuotaWindow.dimension == "unique_symbols_per_month"
+        )
+    ).scalar_one()
+    assert window.consumed_units == 1
 
 
 @pytest.mark.asyncio
@@ -894,9 +1017,9 @@ def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
     assert finra_otc["dimensions"][0]["limit"] == 1200
     assert finra_otc["dimensions"][0]["scope"] == "ip"
     assert finra_otc["maximum_synchronous_response_bytes"] == 3 * 1024**2
-    assert tiingo["untracked_constraints"][0]["name"] == "unique_symbols_per_month_accounting"
-    assert tiingo["untracked_constraints"][0]["limit"] == 500
-    assert tiingo["untracked_constraints"][1]["limit"] == 1024**3
+    assert tiingo["dimensions"][0]["name"] == "unique_symbols_per_month"
+    assert tiingo["dimensions"][0]["limit"] == 500
+    assert tiingo["untracked_constraints"][0]["limit"] == 1024**3
     assert fmp["dimensions"][0]["limit"] == 250
     assert fmp["untracked_constraints"][0]["limit"] == 512 * 1024**2
     assert fmp["untracked_constraints"][0]["window_seconds"] == 2_592_000

@@ -18,6 +18,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.market_data_foundation import (
+    ProviderQuotaIdentity,
     ProviderQuotaWindow,
     ProviderRoutingDecision,
     ProviderWorkloadLease,
@@ -31,7 +32,93 @@ from app.services.provider_runtime import (
     resolve_provider_chain,
 )
 
+_DISTINCT_IDENTITY_UNITS = {"symbol", "symbols", "unique_symbol", "unique_symbols"}
 
+
+def _window_start_for_dimension(
+    dimension: dict[str, Any],
+    *,
+    reset: str,
+    now: datetime,
+) -> tuple[datetime | None, bool]:
+    """Resolve a documented fixed/calendar boundary or rolling window."""
+
+    window_start = None
+    dimension_reset = str(dimension.get("reset") or reset)
+    window_seconds = int(dimension["window_seconds"])
+    if dimension_reset == "calendar_month_est" and window_seconds >= 2_500_000:
+        eastern = now.astimezone(ZoneInfo("America/New_York"))
+        reset_local = eastern.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        window_start = reset_local.astimezone(UTC)
+    elif "calendar_month" in dimension_reset and window_seconds >= 2_500_000:
+        window_start = datetime(now.year, now.month, 1, tzinfo=UTC)
+    elif dimension_reset in {"calendar_day_utc", "calendar_day_gmt"} and window_seconds >= 86400:
+        window_start = datetime(now.year, now.month, now.day, tzinfo=UTC)
+    elif dimension_reset.startswith("09:30") and window_seconds >= 86400:
+        eastern = now.astimezone(ZoneInfo("America/New_York"))
+        reset_local = eastern.replace(hour=9, minute=30, second=0, microsecond=0)
+        if eastern < reset_local:
+            reset_local -= timedelta(days=1)
+        window_start = reset_local.astimezone(UTC)
+    rolling = window_start is None and (
+        "rolling" in dimension_reset
+        or dimension_reset in {"provider_defined", "provider_defined_daily", "per_dimension"}
+    )
+    return window_start, rolling
+
+
+async def _claim_distinct_identity(
+    db: AsyncSession,
+    *,
+    data_source_id: int,
+    capability: str,
+    dimension: str,
+    window_started_at: datetime,
+    window_seconds: int,
+    identity_key: str,
+) -> bool:
+    """Claim one distinct provider identity, coordinating concurrent workers."""
+
+    normalized = identity_key.strip().upper()
+    if not normalized:
+        return False
+    query = select(ProviderQuotaIdentity).where(
+        ProviderQuotaIdentity.data_source_id == data_source_id,
+        ProviderQuotaIdentity.capability == capability,
+        ProviderQuotaIdentity.dimension == dimension,
+        ProviderQuotaIdentity.window_started_at == window_started_at,
+        ProviderQuotaIdentity.window_seconds == window_seconds,
+        ProviderQuotaIdentity.identity_key == normalized,
+    )
+    existing = (await db.execute(query)).scalar_one_or_none()
+    if existing is not None:
+        return False
+    candidate = ProviderQuotaIdentity(
+        data_source_id=data_source_id,
+        capability=capability,
+        dimension=dimension,
+        window_started_at=window_started_at,
+        window_seconds=window_seconds,
+        identity_key=normalized,
+    )
+    try:
+        savepoint = db.begin_nested()
+        if hasattr(savepoint, "__aenter__"):
+            async with savepoint:
+                db.add(candidate)
+                await db.flush()
+        else:
+            with savepoint:
+                db.add(candidate)
+                await db.flush()
+        return True
+    except IntegrityError:
+        # Another worker claimed the same identity between the SELECT and
+        # INSERT. The savepoint keeps the caller transaction usable.
+        existing = (await db.execute(query)).scalar_one_or_none()
+        if existing is None:
+            raise
+        return False
 @dataclass(frozen=True, slots=True)
 class ProviderRequirements:
     capability: ProviderCapability
@@ -46,6 +133,7 @@ class ProviderRequirements:
     terms: set[str] = field(default_factory=set)
     units: int = 1
     priority: int = 100
+    usage_identity: str | None = None
 
 
 def _entitlement_matches(
@@ -226,6 +314,7 @@ async def reserve_provider_contract(
     capability: str,
     units: int,
     dimension_units: dict[str, int] | None = None,
+    usage_identity: str | None = None,
     now: datetime,
 ) -> list[ProviderQuotaWindow] | None:
     """Reserve every documented quota dimension or none of them."""
@@ -236,40 +325,15 @@ async def reserve_provider_contract(
     reset = str((resolved.policy.quota_contract or {}).get("reset") or "")
     for dimension in quota_dimensions(resolved.policy):
         dimension_name = str(dimension["name"])
+        dimension_unit = str(dimension.get("unit") or "").strip().lower()
+        is_distinct_identity = dimension_unit in _DISTINCT_IDENTITY_UNITS
+        if is_distinct_identity and not usage_identity:
+            return None
         raw_reserved_units = (dimension_units or {}).get(dimension_name, units)
         if int(raw_reserved_units) <= 0:
             continue
         reserved_units = max(1, int(raw_reserved_units))
-        window_start = None
-        dimension_reset = str(dimension.get("reset") or reset)
-        if dimension_reset == "calendar_month_est" and int(dimension["window_seconds"]) >= 2_500_000:
-            eastern = now.astimezone(ZoneInfo("America/New_York"))
-            reset_local = eastern.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            window_start = reset_local.astimezone(UTC)
-        elif "calendar_month" in dimension_reset and int(dimension["window_seconds"]) >= 2_500_000:
-            window_start = datetime(now.year, now.month, 1, tzinfo=UTC)
-        elif dimension_reset in {"calendar_day_utc", "calendar_day_gmt"} and int(
-            dimension["window_seconds"]
-        ) >= 86400:
-            window_start = datetime(now.year, now.month, now.day, tzinfo=UTC)
-        elif dimension_reset.startswith("09:30") and int(dimension["window_seconds"]) >= 86400:
-            eastern = now.astimezone(ZoneInfo("America/New_York"))
-            reset_local = eastern.replace(hour=9, minute=30, second=0, microsecond=0)
-            if eastern < reset_local:
-                reset_local -= timedelta(days=1)
-            window_start = reset_local.astimezone(UTC)
-        # A provider-defined reset has no safe calendar boundary unless the
-        # dimension explicitly declares one.  Treat those dimensions as
-        # rolling windows instead of inventing a UTC epoch bucket; this is
-        # conservative for daily/monthly allowances whose reset timezone or
-        # anchor the provider does not publish.
-        rolling = (
-            window_start is None
-            and (
-                "rolling" in dimension_reset
-                or dimension_reset in {"provider_defined", "provider_defined_daily", "per_dimension"}
-            )
-        )
+        window_start, rolling = _window_start_for_dimension(dimension, reset=reset, now=now)
         window = await reserve_provider_quota(
             db,
             data_source_id=resolved.data_source.id,
@@ -285,15 +349,38 @@ async def reserve_provider_contract(
         if window is None:
             for prior in windows:
                 prior_name = str(prior.dimension)
-                prior.reserved_units = max(
-                    0,
-                    prior.reserved_units
-                    - max(
-                        0,
-                        int((dimension_units or {}).get(prior_name, units)),
-                    ),
-                )
+                prior_units = max(0, int((dimension_units or {}).get(prior_name, units)))
+                if prior_name in {
+                    str(item["name"])
+                    for item in quota_dimensions(resolved.policy)
+                    if str(item.get("unit") or "").lower() in _DISTINCT_IDENTITY_UNITS
+                }:
+                    # The identity row is intentionally retained, so convert
+                    # its reservation into consumption instead of releasing
+                    # the window and allowing another symbol to overrun it.
+                    prior.reserved_units = max(0, prior.reserved_units - prior_units)
+                    prior.consumed_units += prior_units
+                else:
+                    prior.reserved_units = max(0, prior.reserved_units - prior_units)
             return None
+        if is_distinct_identity:
+            # A symbol claim is retained once admitted. If the subsequent
+            # provider call fails, settling the distinct dimension still
+            # consumes the one claimed identity; this avoids under-counting
+            # against a provider pool that meters attempted symbols.
+            identity_start = window.window_started_at
+            claimed = await _claim_distinct_identity(
+                db,
+                data_source_id=resolved.data_source.id,
+                capability=capability,
+                dimension=dimension_name,
+                window_started_at=identity_start,
+                window_seconds=int(dimension["window_seconds"]),
+                identity_key=str(usage_identity),
+            )
+            if not claimed:
+                window.reserved_units = max(0, window.reserved_units - reserved_units)
+                continue
         windows.append(window)
     return windows
 
@@ -306,6 +393,7 @@ def settle_provider_contract(
     reserved_dimension_units: dict[str, int] | None = None,
     consumed_dimension_units: dict[str, int] | None = None,
     observed_dimension_totals: dict[str, int] | None = None,
+    consume_on_failure_dimensions: set[str] | None = None,
 ) -> None:
     """Move one runtime reservation into consumption without a separate lease."""
 
@@ -321,7 +409,7 @@ def settle_provider_contract(
             int((consumed_dimension_units or {}).get(dimension, settled_units)),
         )
         window.reserved_units = max(0, window.reserved_units - reserved)
-        if success:
+        if success or dimension in (consume_on_failure_dimensions or set()):
             window.consumed_units += consumed
             observed_total = (observed_dimension_totals or {}).get(dimension)
             if observed_total is not None:
@@ -362,7 +450,10 @@ async def select_provider(
             rejected[resolved.provider_name] = "quota_unknown"
             continue
         if not provider_contract_operation_cost_known(
-            resolved.policy, resolved.data_source, requirements.operation
+            resolved.policy,
+            resolved.data_source,
+            requirements.operation,
+            usage_identity=requirements.usage_identity,
         ):
             rejected[resolved.provider_name] = "operation_cost_unknown"
             continue
@@ -371,6 +462,7 @@ async def select_provider(
             resolved=resolved,
             capability=requirements.capability.value,
             units=requirements.units,
+            usage_identity=requirements.usage_identity,
             now=current,
         )
         if reservations is None:

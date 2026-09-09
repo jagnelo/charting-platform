@@ -204,6 +204,7 @@ async def list_option_expirations(
             ProviderCapability.OPTION_CHAIN,
             "list_option_expirations",
             instrument_id=underlying.id,
+            usage_identity=lambda provider_name: provider_symbol_for_instrument(underlying, provider_name),
             invoke=lambda provider, _provider_symbol: provider.list_option_expirations(
                 provider_symbol_for_instrument(underlying, provider.name)
             ),
@@ -370,6 +371,7 @@ async def sync_option_chain_snapshot(
             ProviderCapability.OPTION_CHAIN,
             f"fetch_option_chain:{expiration.isoformat()}",
             instrument_id=underlying.id,
+            usage_identity=lambda provider_name: provider_symbol_for_instrument(underlying, provider_name),
             invoke=lambda provider, _provider_symbol: provider.fetch_option_chain(
                 provider_symbol_for_instrument(underlying, provider.name),
                 expiration=expiration,
@@ -662,6 +664,7 @@ async def sync_option_quote_history(
             ProviderCapability.OPTION_QUOTE_HISTORY,
             "fetch_option_quote_history",
             instrument_id=option_instrument.id,
+            usage_identity=lambda provider_name: provider_symbol_for_instrument(option_instrument, provider_name),
             invoke=lambda provider, _provider_symbol: provider.fetch_option_quote_history(
                 provider_symbol_for_instrument(option_instrument, provider.name),
                 start=start,

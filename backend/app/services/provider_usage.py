@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.models.data_source import DataSource
-from app.models.market_data_foundation import ProviderQuotaWindow
+from app.models.market_data_foundation import ProviderQuotaIdentity, ProviderQuotaWindow
 from app.models.provider_runtime import ProviderRequestLog
 from app.services.provider_runtime import seed_provider_runtime
 
@@ -126,6 +126,18 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
         .scalars()
         .all()
     )
+    quota_identities = (
+        (
+            await db.execute(
+                select(ProviderQuotaIdentity).where(
+                    ProviderQuotaIdentity.window_started_at <= now,
+                    ProviderQuotaIdentity.window_started_at >= now - timedelta(days=400),
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
 
     logs_by_source: dict[int, list[ProviderRequestLog]] = defaultdict(list)
     for log in logs:
@@ -133,6 +145,16 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
             logs_by_source[log.data_source_id].append(log)
 
     active_windows_by_source: dict[int, list[dict[str, Any]]] = defaultdict(list)
+    identity_counts: Counter[tuple[int, str, datetime, int]] = Counter(
+        (
+            identity.data_source_id,
+            identity.dimension,
+            _ensure_aware(identity.window_started_at),
+            int(identity.window_seconds),
+        )
+        for identity in quota_identities
+        if _ensure_aware(identity.window_started_at) is not None
+    )
     for window in quota_windows:
         started_at = _ensure_aware(window.window_started_at)
         if started_at is None:
@@ -155,6 +177,15 @@ async def summarize_provider_usage(db: AsyncSession) -> list[dict[str, Any]]:
                     int(window.limit_units)
                     - int(window.reserved_units)
                     - int(window.consumed_units),
+                ),
+                "distinct_identity_count": identity_counts.get(
+                    (
+                        window.data_source_id,
+                        window.dimension,
+                        started_at,
+                        window_seconds,
+                    ),
+                    0,
                 ),
             }
         )
