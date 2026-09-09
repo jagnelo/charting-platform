@@ -99,6 +99,7 @@ def routing_safety_preflight() -> dict[str, str]:
         finra_otc_missing.append("FINRA_OTC_OPERATION_COSTS")
     elif not all(
         isinstance(finra_otc_costs.get(operation), int)
+        and not isinstance(finra_otc_costs.get(operation), bool)
         and finra_otc_costs[operation] > 0
         for operation in FINRA_OTC_OPERATION_COSTS
     ):

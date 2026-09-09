@@ -240,6 +240,14 @@ class TestProviderRegistry:
         monkeypatch.setattr(settings, "FINRA_OTC_REDISTRIBUTION_REVIEWED", True)
         monkeypatch.setattr(settings, "FINRA_OTC_POLL_INTERVAL_SECONDS", 900)
         assert provider_missing_routing_controls("finra_otc_directory") == []
+        monkeypatch.setattr(
+            settings,
+            "FINRA_OTC_OPERATION_COSTS",
+            {"discover_universe_page": True, "reconcile_universe_page": 3},
+        )
+        assert provider_missing_routing_controls("finra_otc_directory") == [
+            "FINRA_OTC_OPERATION_COSTS"
+        ]
         monkeypatch.setattr(settings, "FRED_REVIEWED_LIMIT_SCOPE", "api_key")
         monkeypatch.setattr(settings, "FRED_REVIEWED_REQUESTS_PER_MINUTE", 60)
         monkeypatch.setattr(settings, "FRED_SERIES_TERMS_REVIEWED", True)

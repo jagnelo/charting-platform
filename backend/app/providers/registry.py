@@ -512,6 +512,7 @@ def provider_missing_routing_controls(name: str) -> list[str]:
             missing.append("FINRA_OTC_OPERATION_COSTS")
         elif not all(
             isinstance(configured_map.get(operation), int)
+            and not isinstance(configured_map.get(operation), bool)
             and configured_map[operation] > 0
             for operation in operations
         ):
@@ -650,6 +651,7 @@ def get_provider_usage_profile(name: str) -> dict:
                 for operation, cost in operation_costs.items()
                 if str(operation).strip()
                 and isinstance(cost, int)
+                and not isinstance(cost, bool)
                 and cost > 0
             }
             if reviewed_costs:

@@ -12,10 +12,11 @@ matrix), and returns non-zero when a credentialed
 probe is blocked. A missing credential is never reported as a passing skip.
 The wrapper returns exit code `2` for an incomplete credential preflight.
 It also prints a routing-safety preflight for FINRA's asynchronous result-byte
-bound and the operation-level Tiingo/FMP byte-bound maps. A direct adapter read
-can therefore be green while its provider remains non-routable: missing,
-invalid, partial, or non-positive safety controls are reported explicitly and
-never guessed.
+bound, FINRA OTC's reviewed operation-cost/terms/completeness/redistribution/
+poll controls, and the operation-level Tiingo/FMP byte-bound maps. A direct
+adapter read can therefore be green while its provider remains non-routable:
+missing, invalid, partial, or non-positive safety controls are reported
+explicitly and never guessed.
 The same preflight reports whether the non-secret
 `MARKETSTACK_DISCOVERY_EXCHANGE` venue scope is configured; history can still
 be probed with only the key, but discovery remains non-routable without it.
@@ -43,10 +44,13 @@ GitHub uses the separate manually dispatched
 `provider-live-validation` environment with same-named environment secrets and
 with `EDGAR_USER_AGENT` and `FINRA_OTC_SYMBOL_DIRECTORY_URL` environment
 variables. Put the reviewed non-secret safety settings
-`FINRA_ASYNC_MAX_RESULT_BYTES`, `TIINGO_OPERATION_BYTE_BOUNDS`, and
-`FMP_OPERATION_BYTE_BOUNDS` in the same environment's configuration variables;
-the workflow passes them through without inventing defaults. Keep required
-reviewers enabled. Ordinary push/PR CI deliberately
+`FINRA_ASYNC_MAX_RESULT_BYTES`, `FINRA_OTC_OPERATION_COSTS`,
+`FINRA_OTC_TERMS_REVIEWED`, `FINRA_OTC_COMPLETENESS_REVIEWED`,
+`FINRA_OTC_REDISTRIBUTION_REVIEWED`, `FINRA_OTC_POLL_INTERVAL_SECONDS`,
+`TIINGO_OPERATION_BYTE_BOUNDS`, and `FMP_OPERATION_BYTE_BOUNDS` in the same
+environment's configuration variables; the workflow passes them through
+without inventing defaults. Keep required reviewers enabled. Ordinary
+push/PR CI deliberately
 receives no provider secrets and makes no external provider calls, so a forked
 PR cannot spend quotas or exfiltrate keys.
 
