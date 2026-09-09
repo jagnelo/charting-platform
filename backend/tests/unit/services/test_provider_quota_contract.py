@@ -930,7 +930,8 @@ def test_tokenized_quote_usage_profiles_charge_asset_and_quote_requests():
         profile = get_provider_usage_profile(provider_name)
         assert profile["operation_costs"]["discover_tokenized_assets"] == 1
         assert profile["operation_costs"]["get_tokenized_asset"] == 1
-        assert profile["operation_costs"]["get_tokenized_price"] == 2
+        expected_price_cost = 4 if provider_name == "robinhood_tokens" else 2
+        assert profile["operation_costs"]["get_tokenized_price"] == expected_price_cost
 
 
 def test_coingecko_profile_usage_profile_covers_id_resolution_and_metadata():
@@ -1403,6 +1404,7 @@ def test_operator_plan_limits_are_recorded_without_ignoring_bandwidth_caps():
 def test_compound_directory_usage_is_not_undercharged_or_guessed():
     nasdaq_profile = get_provider_usage_profile("nasdaq")
     assert nasdaq_profile["operation_costs"]["discover_universe_page"] == 2
+    assert nasdaq_profile["operation_costs"]["reconcile_universe_page"] == 2
 
     finra_seed = settings.PROVIDER_RATE_LIMIT_SEEDS["finra_otc_directory"]
     assert finra_seed["quota_contract"]["operation_costs_required"] is True

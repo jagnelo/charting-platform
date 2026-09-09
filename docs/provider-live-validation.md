@@ -179,14 +179,15 @@ configuration requirement. Until the three credential domains are supplied
 and their cases pass, the complete 30-case matrix remains an open acceptance
 gate.
 
-The latest network-enabled rerun passed 27/30 cases with positive transport
+The latest network-enabled rerun passed 26/30 cases with positive transport
 observations across every available keyless and credentialed adapter, including
-all five tokenized providers. The only three failures were exact credential
-preflight failures for `ALPACA_API_KEY`/`ALPACA_SECRET_KEY`, `TRADIER_API_KEY`,
-and `MARKETDATA_APP_API_KEY`; the wrapper returned exit code 2 and made no
-acceptance claim. FINRA asynchronous result bytes and Tiingo/FMP operation byte
-maps were also reported non-routable because no positive reviewed bounds were
-configured.
+all five tokenized providers. Three failures were exact credential preflight
+failures for `ALPACA_API_KEY`/`ALPACA_SECRET_KEY`, `TRADIER_API_KEY`, and
+`MARKETDATA_APP_API_KEY`; the fourth was Alpha Vantage's provider-native
+25-requests/day rate-limit response. The wrapper returned exit code 2 and made
+no acceptance claim. FINRA asynchronous result bytes and Tiingo/FMP operation
+byte maps were also reported non-routable because no positive reviewed bounds
+were configured.
 
 The wrapper also reports the remaining provider-specific admission gates
 explicitly: FRED's v1 limit scope/adjustable-limit/series-terms review,

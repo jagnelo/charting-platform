@@ -811,6 +811,7 @@ class Settings(BaseSettings):
             "unit_label": "requests",
             "operation_costs": {
                 "discover_universe_page": 2,
+                "reconcile_universe_page": 2,
             },
         },
         # FINRA OTC DAPI page count depends on the authoritative record-total
@@ -865,7 +866,11 @@ class Settings(BaseSettings):
             "operation_costs": {
                 "discover_tokenized_assets": 1,
                 "get_tokenized_asset": 1,
-                "get_tokenized_price": 2,
+                # The asset lookup costs one request and the bounded
+                # provider-specific quote retry may consume up to three
+                # attempts after HTTP 429, so reserve the four-request
+                # worst-case operation rather than undercharging throttles.
+                "get_tokenized_price": 4,
                 "fetch_tokenized_corporate_actions": 1,
             },
         },
