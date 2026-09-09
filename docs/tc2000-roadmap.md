@@ -5,6 +5,23 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-09
 
+## 2026-09-09 — Rebalance timelines collapse same-date disclosure revisions
+
+Holdings ingestion intentionally retains revised issuer disclosures for audit,
+but the rebalance transition timeline now collapses revisions sharing one
+effective composition date and compares the latest known revision. This keeps
+source history intact while preventing a corrected disclosure from appearing
+as a phantom rebalance boundary. The focused Docker-backed regression passed
+`1/1` (with the suite-wide coverage threshold intentionally disabled for the
+single-test run). At commit `c0e8ea24`, the exact gate passed backend
+unit/integration (`1,370`/`387`, `81.06%` combined coverage), frontend Vitest
+(`975/975`), build, contracts, probes, stack health, and functional Playwright
+(`165` passed, `107` documented skips). Visual parity remains `98/104` with
+the six established state-oracle diffs; scoped teardown was clean. R1 still
+needs multi-date population, explicit cadence/effective-time evidence,
+adjustment-factor/version provenance, placeholder disposition, raw-versus-
+derived decisions, and R2-R7.
+
 ## 2026-09-09 — Provider dataset states expose adjustment provenance
 
 Provider-backed dataset state now records the observed bar count, whether the
