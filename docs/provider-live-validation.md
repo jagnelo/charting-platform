@@ -150,9 +150,11 @@ ceiling. IBKR remains a descriptor without an authenticated account adapter.
 The public tokenized matrix is maintained separately in
 `tests/live/test_tokenized_providers_live.py`. It covers xStocks, Robinhood
 Chain Stock Tokens, Bybit xStocks, Gate TradFi stock endpoints, and Kraken's
-current xStocks catalogue. The latest bounded run passed all five probes. The
-Kraken result was an empty provider catalogue (no current xStocks pair), and
-Robinhood returned one transient `local_rate_limited` response before the
+current xStocks catalogue. The latest bounded run passed all five probes, and
+the quote assertions observed at least two upstream requests for every
+successful quote operation (metadata resolution plus quote/order-book read).
+The Kraken result was an empty provider catalogue (no current xStocks pair),
+and Robinhood returned one transient `local_rate_limited` response before the
 test's single provider-specific retry succeeded; neither result is treated as
 permission to guess a ticker or a quota.
 
