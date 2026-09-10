@@ -115,7 +115,7 @@
   "head": "4ed964cf91e79da94a9ad4f6d1dbe82ea1f765c2",
   "implementation_sha": "4ed964cf91e79da94a9ad4f6d1dbe82ea1f765c2",
   "last_checkpoint": "2026-09-10T02:57:16.064456+00:00",
-  "last_human_progress_update": "2026-09-10T02:51:43.092300+00:00",
+  "last_human_progress_update": "2026-09-10T02:58:56.972415+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
@@ -143,11 +143,11 @@
       "AC-QUOTA-SAFETY",
       "AC-RATE-FAILURE"
     ],
-    "current_blocker": "Latest complete live matrix at 2026-09-10T01:52:55Z remains 31/34: all seven tokenized probes, including xStocks and Robinhood corporate-action reads, passed; exact credential preflight is missing ALPACA_API_KEY plus ALPACA_SECRET_KEY, TRADIER_API_KEY, and MARKETDATA_APP_API_KEY. Dedicated tokenized corporate-action capability coverage is green and the clean backend gate passes 1855/1855, but FINRA async byte bound, FINRA OTC controls, FRED review controls, Nasdaq polling allowance, xStocks quota/legal eligibility, Bybit endpoint/UID state, Tiingo/FMP byte maps, GitHub environment verification, complete NMS/OTC reconciliation, and shadow activation remain acceptance gates.",
+    "current_blocker": "Latest complete live matrix at 2026-09-10T02:55:25Z remains 31/34: all seven tokenized probes, including xStocks and Robinhood corporate-action reads, passed; exact credential preflight is missing ALPACA_API_KEY plus ALPACA_SECRET_KEY, TRADIER_API_KEY, and MARKETDATA_APP_API_KEY. Dedicated tokenized corporate-action capability coverage is green and the clean backend gate passes 1855/1855, but FINRA async byte bound, FINRA OTC controls, FRED review controls, Nasdaq polling allowance, xStocks quota/legal eligibility, Bybit endpoint/UID state, Tiingo/FMP byte maps, GitHub environment verification, complete NMS/OTC reconciliation, and shadow activation remain acceptance gates.",
     "current_phase": "credentialed_live_validation",
     "next_action": "Keep all provider routing fail-closed; restore owner authentication for the jagnelo GitHub account, configure missing environment-scoped credentials and reviewed controls, rerun the complete manifest live matrix, and reassess readiness. Do not activate routing or deploy before that evidence.",
     "total": 15,
-    "updated_at": "2026-09-10T02:51:43.091970+00:00"
+    "updated_at": "2026-09-10T02:58:56.972167+00:00"
   },
   "remote": "4ed964cf91e79da94a9ad4f6d1dbe82ea1f765c2",
   "remote_sha": "4ed964cf91e79da94a9ad4f6d1dbe82ea1f765c2",
