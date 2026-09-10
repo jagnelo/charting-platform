@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-10 — Market Map range and cache boundaries normalize to UTC
+
+- [x] Canonicalize Market Map membership, period, bar, reference, watermark,
+      provider-snapshot, and cache-key timestamps to UTC.
+- [x] Focused Market Map regression coverage passed `8/8`; the full backend
+      unit suite passed `1,445/1,445` at `68%`; Ruff, formatting, and diff
+      checks passed.
+- [x] The exact gate passed non-visual stages, backend integration (`387/387`
+      with `81.39%` combined coverage), frontend Vitest (`991/991`) and build,
+      and functional Playwright (`165` passed, `107` documented skips across
+      `272`); visual parity was `98/104` with exactly the six protected diffs
+      and clean scoped teardown.
+- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
+      the bounded lineage path, canonical population, and dense-data evidence;
+      preserve protected visual assertions and the no-integration boundary.
+
 ### 2026-09-10 — Market-data range boundaries normalize at the public service edge
 
 - [x] Normalize public market-data range and pagination boundaries to UTC

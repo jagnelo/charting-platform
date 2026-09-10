@@ -5,6 +5,32 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Market Map range and cache boundaries normalize to UTC
+
+At product tip `b5b6a5f9`, Market Map now canonicalizes naive and offset-aware
+timestamps to UTC across membership evaluation, custom/preset period bounds,
+bar eligibility and returns, reference/source watermarks, provider snapshot
+windows, and cache-key serialization. Equivalent requests expressed in
+different offsets therefore select the same historical bars and cache identity
+instead of depending on the database or caller timezone.
+
+Focused Market Map regressions passed `8/8`; the complete backend unit suite
+passed `1,445/1,445` with `68%` total coverage; Ruff, formatting, and diff
+checks passed. The exact branch-scoped Docker gate passed all non-visual stages,
+backend integration (`387/387`, `81.39%` combined coverage), frontend Vitest
+(`991/991`) and build, and functional Playwright (`165` passed, `107`
+documented skips across `272`). Visual parity completed `104` cases with `98`
+passes and exactly the six established protected state-oracle diffs
+(watchlist-column-editor-open at visual-1080p-100/125 and workspace-floating at
+visual-1080p-100/125 and visual-1440p-100/125); clean branch-scoped teardown
+removed the stack and four images. No visual baseline, mask, threshold, skip,
+provider, fallback, or acceptance policy changed.
+
+This closes the Market Map timestamp-boundary seam only. Full provider/family
+history breadth, W1/MN continuity beyond the bounded lineage path, canonical
+population, dense-data evidence, and R2-R7 goals remain open; continue without
+integration or deployment.
+
 ## 2026-09-10 — Market-data range boundaries normalize at the public service edge
 
 At product tip `36c42c43`, all public market-data range and pagination

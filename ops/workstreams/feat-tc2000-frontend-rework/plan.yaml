@@ -13,6 +13,21 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tip b5b6a5f9 closes the Market Map timestamp-boundary seam:
+  membership evaluation, custom/preset period bounds, bar eligibility and
+  returns, reference/source watermarks, provider snapshot windows, and cache
+  key serialization now normalize naive and offset-aware values to UTC.
+  Focused Market Map regressions passed 8/8; full backend unit passed 1445/1445
+  at 68%; Ruff, formatting, and diff checks passed. The exact Docker-backed
+  gate passed backend integration 387/387 with 81.39% combined coverage,
+  frontend Vitest 991/991 and build, functional Playwright 165 passed with 107
+  documented skips across 272, and all non-visual stages. Visual parity remains
+  98/104 with exactly the six established protected diffs; clean branch-scoped
+  teardown removed the stack and four images. No visual baseline, mask,
+  threshold, skip, provider, fallback, or acceptance policy changed. Continue
+  full provider/family history breadth, W1/MN continuity beyond the bounded
+  lineage seam, canonical population, dense-data evidence, and R2-R7 goals; the
+  no-integration/no-deployment boundary holds.
   Product tip 36c42c43 closes the public market-data range-boundary timestamp
   seam: public OHLCV range and page-before inputs, cache-coverage comparisons,
   provider fetch windows, and latest-window calculations now normalize naive

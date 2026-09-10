@@ -99,14 +99,14 @@
   "goal_request_state": "ready",
   "goal_state": "resumed_after_takeover",
   "goal_unavailable_reason": null,
-  "head": "36c42c430e0336966ffc93b983f6d24bb4a52d53",
-  "implementation_sha": "36c42c430e0336966ffc93b983f6d24bb4a52d53",
+  "head": "b5b6a5f976d62a6b8ccdfc1c93199f54f0c482a3",
+  "implementation_sha": "b5b6a5f976d62a6b8ccdfc1c93199f54f0c482a3",
   "interrupted": false,
-  "last_checkpoint": "2026-09-10T22:11:25Z",
-  "last_human_progress_update": "2026-09-10T22:11:25Z",
+  "last_checkpoint": "2026-09-10T22:40:09Z",
+  "last_human_progress_update": "2026-09-10T22:40:09Z",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue provider/family history, W1/MN continuity beyond the bounded seam, canonical population, and R6 dense-data evidence; preserve the six protected visual state-oracle assertions and rerun the exact gate after the next coherent product change.",
-  "plan_hash": "c0e5cedbe9e7ac3f18288bc1d64a9bdc2f703d743834253387cd3dd150f7d6df",
+  "plan_hash": "a057b74e836fd719172bd004e616d7d6c8f808f2a190ca8f1cf843713745b56a",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -119,11 +119,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product tip 36c42c43 closes the public market-data range-boundary timestamp seam: public OHLCV range and page-before inputs, cache-coverage comparisons, provider fetch windows, and latest-window calculations now normalize naive and offset-aware values to UTC. Focused market-data regressions passed 22/22; full backend unit passed 1443/1443 at 68%; Ruff, formatting, and diff checks passed. The valid branch-assigned STACK_URL reproduction of the earlier F8r Python Library failure passed 1/1. The exact Docker-backed gate passed backend integration 387/387 with 81.38% combined coverage, frontend Vitest 991/991 and build, functional Playwright 165 passed with 107 documented skips across 272, and all non-visual stages. Visual parity remains 98/104 with exactly the six established protected diffs; clean branch-scoped teardown removed the stack and four images. No visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue full provider/family history breadth, W1/MN continuity beyond the bounded lineage seam, canonical population, dense-data evidence, and R2-R7 goals; the no-integration/no-deployment boundary holds.",
+    "current_blocker": "Product tip b5b6a5f9 closes the Market Map timestamp-boundary seam: membership evaluation, custom/preset period bounds, bar eligibility and returns, reference/source watermarks, provider snapshot windows, and cache-key serialization now normalize naive and offset-aware values to UTC. Focused Market Map regressions passed 8/8; full backend unit passed 1445/1445 at 68%; Ruff, formatting, and diff checks passed. The exact Docker-backed gate passed backend integration 387/387 with 81.39% combined coverage, frontend Vitest 991/991 and build, functional Playwright 165 passed with 107 documented skips across 272, and all non-visual stages. Visual parity remains 98/104 with exactly the six established protected diffs; clean branch-scoped teardown removed the stack and four images. No visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue full provider/family history breadth, W1/MN continuity beyond the bounded lineage seam, canonical population, dense-data evidence, and R2-R7 goals; the no-integration/no-deployment boundary holds.",
     "current_phase": "R1_canonical_provider_history_readiness",
     "next_action": "Continue provider/family history, W1/MN continuity beyond the bounded seam, canonical population, and R6 dense-data evidence; preserve the six protected visual state-oracle assertions and rerun the exact gate after the next coherent product change.",
     "total": 25,
-    "updated_at": "2026-09-10T22:11:25Z"
+    "updated_at": "2026-09-10T22:40:09Z"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

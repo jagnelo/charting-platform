@@ -8,6 +8,29 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Market Map range and cache boundaries normalize to UTC
+
+Product tip `b5b6a5f976d62a6b8ccdfc1c93199f54f0c482a3` closes the Market Map
+timestamp-boundary seam. Membership evaluation, custom/preset period bounds,
+bar eligibility and returns, reference/source watermarks, provider snapshot
+windows, and cache-key serialization now normalize naive and offset-aware
+values to UTC, so equivalent requests share one historical selection and cache
+identity.
+
+Focused Market Map regressions passed `8/8`; the full backend unit suite passed
+`1,445/1,445` at `68%`, with Ruff, formatting, and diff checks clean. The exact
+Docker-backed gate passed backend integration (`387/387`, `81.39%` combined
+coverage), frontend Vitest (`991/991`) and build, all functional coverage
+(`165` passed, `107` documented skips across `272`), and all other non-visual
+stages. Visual parity remains `98/104` with exactly the six established
+protected diffs; clean scoped teardown removed the stack and four images. No
+baseline, mask, threshold, skip, provider, fallback, or acceptance policy
+changed.
+
+Full provider/family history breadth, W1/MN continuity beyond the bounded
+lineage path, canonical population, dense-data evidence, and R2-R7 remain open.
+Do not integrate, promote, deploy, or mutate another worktree.
+
 ## 2026-09-10 — Market-data range boundaries normalize at the public service edge
 
 Product tip `36c42c430e0336966ffc93b983f6d24bb4a52d53` closes the public
