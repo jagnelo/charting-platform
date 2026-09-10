@@ -562,6 +562,13 @@ The focused Nasdaq suite passed `11/11`; Ruff and diff checks passed. The
 authoritative gate remains unverified because Docker preflight is currently
 unavailable.
 
+Alpha Vantage JSON and CSV adapters now reject invalid containers, malformed
+search/history rows, incomplete listing or IPO rows, invalid dates/numbers, and
+non-rate-limit HTTP failures while preserving documented rate-limit/error
+handling. The focused Alpha Vantage suite passed `16/16`; Ruff and diff checks
+passed. The authoritative gate remains unverified because Docker preflight is
+currently unavailable.
+
 FRED history and latest-price paths now preserve typed non-rate-limit HTTP
 failures and reject invalid observation containers, mixed rows, invalid dates,
 and non-finite values while retaining the documented `.` missing-data marker.
