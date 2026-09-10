@@ -92,6 +92,8 @@ class TestProviderRegistry:
             "bybit_xstocks",
             "gate_tradfi",
             "kraken_xstocks",
+            "dinari",
+            "ondo_global_markets",
         ):
             assert provider_supports_instrument(
                 provider,
@@ -111,6 +113,26 @@ class TestProviderRegistry:
             pass
         else:
             raise AssertionError("bybit_xstocks should not expose corporate-action capability")
+
+    def test_tokenized_provider_credentials_are_explicit_and_fail_closed(self, monkeypatch):
+        monkeypatch.setattr(settings, "DINARI_API_KEY_ID", "")
+        monkeypatch.setattr(settings, "DINARI_API_SECRET_KEY", "")
+        assert provider_required_settings("dinari") == (
+            "DINARI_API_KEY_ID",
+            "DINARI_API_SECRET_KEY",
+        )
+        assert provider_is_configured("dinari") is False
+        monkeypatch.setattr(settings, "DINARI_API_KEY_ID", "id")
+        monkeypatch.setattr(settings, "DINARI_API_SECRET_KEY", "secret")
+        assert provider_is_configured("dinari") is True
+
+        monkeypatch.setattr(settings, "ONDO_GLOBAL_MARKETS_API_KEY", "")
+        assert provider_required_settings("ondo_global_markets") == (
+            "ONDO_GLOBAL_MARKETS_API_KEY",
+        )
+        assert provider_is_configured("ondo_global_markets") is False
+        monkeypatch.setattr(settings, "ONDO_GLOBAL_MARKETS_API_KEY", "key")
+        assert provider_is_configured("ondo_global_markets") is True
 
     def test_openfigi_is_registered_as_identifier_provider(self):
         provider = get_identifier_provider("openfigi")

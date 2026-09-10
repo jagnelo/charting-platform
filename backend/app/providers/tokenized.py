@@ -674,10 +674,506 @@ class KrakenXStocksProvider:
         return record
 
 
+def _iso_datetime(value: Any, provider_name: str, field: str) -> datetime:
+    """Parse an RFC3339 value without turning malformed provider data into ``now``."""
+
+    if not isinstance(value, str) or not value.strip():
+        raise ProviderResponseError(provider_name, f"provider returned an invalid {field} timestamp")
+    try:
+        parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+    except (TypeError, ValueError) as exc:
+        raise ProviderResponseError(provider_name, f"provider returned an invalid {field} timestamp") from exc
+    return parsed.astimezone(UTC) if parsed.tzinfo else parsed.replace(tzinfo=UTC)
+
+
+def _dinari_token_location(tokens: list[Any]) -> tuple[str | None, int | None, str | None]:
+    """Extract the first valid CAIP-10 EVM location while retaining all tokens."""
+
+    for token in tokens:
+        if not isinstance(token, str) or not token.strip():
+            raise ProviderResponseError("dinari", "provider returned an invalid token address")
+        value = token.strip()
+        if "/" not in value or ":" not in value.split("/", 1)[0]:
+            continue
+        namespace, chain = value.split("/", 1)[0].split(":", 1)
+        try:
+            chain_id = int(chain)
+        except (TypeError, ValueError):
+            continue
+        if chain_id > 0 and chain.strip() and value.split("/", 1)[1].strip():
+            return namespace, chain_id, value.split("/", 1)[1].strip()
+    return None, None, None
+
+
+class DinariTokenProvider:
+    """Dinari dShare read-only market-data adapter.
+
+    Dinari publishes a partner-authenticated API with provider-native Stock
+    UUIDs.  The adapter deliberately keeps those UUIDs as ``asset_id`` and
+    only records composite FIGI/CIK/CUSIP values as underlying metadata.
+    """
+
+    name = "dinari"
+    base_url = "https://api-enterprise.sbt.dinari.com/api/v2"
+    description = "Dinari dShare tokenized-stock metadata, prices, quotes, and history"
+
+    def _base_url(self) -> str:
+        value = str(getattr(settings, "DINARI_API_BASE_URL", "") or "").strip().rstrip("/")
+        return value or self.base_url
+
+    def _headers(self) -> dict[str, str]:
+        key_id = str(getattr(settings, "DINARI_API_KEY_ID", "") or "").strip()
+        secret = str(getattr(settings, "DINARI_API_SECRET_KEY", "") or "").strip()
+        return {"X-API-Key-Id": key_id, "X-API-Secret-Key": secret}
+
+    def _stocks(self, *, page: int = 0, page_size: int = 100) -> list[dict[str, Any]]:
+        # The published v2 API retains page/page_size compatibility while
+        # cursor pagination is being introduced.  Do not silently use an
+        # opaque cursor that this protocol cannot persist between calls.
+        payload = _http_json(
+            f"{self._base_url()}/market_data/stocks/",
+            provider_name=self.name,
+            params={
+                "page": max(1, page + 1),
+                "page_size": max(1, min(page_size, 100)),
+            },
+            headers=self._headers(),
+        )
+        if isinstance(payload, list):
+            rows = payload
+        elif isinstance(payload, dict):
+            rows = payload.get("data")
+            metadata = payload.get("pagination_metadata")
+            if not isinstance(metadata, dict):
+                raise ProviderResponseError(self.name, "provider omitted pagination metadata")
+        else:
+            rows = None
+        if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+            raise ProviderResponseError(self.name, "provider returned an invalid stock row container")
+        return rows
+
+    def _record(self, payload: dict[str, Any]) -> TokenizedAssetRecord:
+        asset_id = str(payload.get("id") or "").strip()
+        symbol = str(payload.get("symbol") or "").strip()
+        name = str(payload.get("display_name") or payload.get("name") or "").strip()
+        tokens = payload.get("tokens")
+        if (
+            not asset_id
+            or not symbol
+            or not name
+            or not isinstance(payload.get("is_tradable"), bool)
+            or not isinstance(payload.get("is_fractionable"), bool)
+            or not isinstance(tokens, list)
+        ):
+            raise ProviderResponseError(self.name, "provider returned an incomplete Stock record")
+        network, chain_id, address = _dinari_token_location(tokens)
+        return TokenizedAssetRecord(
+            provider=self.name,
+            asset_id=asset_id,
+            symbol=symbol,
+            name=name,
+            underlying_symbol=symbol,
+            network=network,
+            chain_id=chain_id,
+            contract_address=address,
+            currency="USD",
+            status="active" if payload.get("is_tradable") else "inactive",
+            backing_type="fully_backed_dshare",
+            collateral={
+                "tokens": tokens,
+                "composite_figi": payload.get("composite_figi"),
+                "cik": payload.get("cik"),
+                "cusip": payload.get("cusip"),
+                "is_fractionable": payload.get("is_fractionable"),
+                "description": payload.get("description"),
+            },
+            observed_at=_now(),
+            raw_payload=payload,
+        )
+
+    def _stock_id(self, identifier: str) -> str | None:
+        asset = self.get_tokenized_asset(identifier)
+        return asset.asset_id if asset is not None else None
+
+    def discover_tokenized_assets(
+        self, *, page: int = 0, page_size: int = 100
+    ) -> list[TokenizedAssetRecord]:
+        return [self._record(row) for row in self._stocks(page=page, page_size=page_size)]
+
+    def get_tokenized_asset(self, identifier: str) -> TokenizedAssetRecord | None:
+        needle = str(identifier or "").strip().lower()
+        if not needle:
+            return None
+        rows = self._stocks(page=0, page_size=100)
+        row = next(
+            (
+                item
+                for item in rows
+                if str(item.get("id") or "").strip().lower() == needle
+                or str(item.get("symbol") or "").strip().lower() == needle
+            ),
+            None,
+        )
+        return self._record(row) if row is not None else None
+
+    def get_tokenized_price(self, identifier: str) -> TokenizedAssetRecord | None:
+        asset = self.get_tokenized_asset(identifier)
+        if asset is None:
+            return None
+        payload = _required_object(
+            _http_json(
+                f"{self._base_url()}/market_data/stocks/{asset.asset_id}/current_price",
+                provider_name=self.name,
+                headers=self._headers(),
+            ),
+            self.name,
+            "stock price",
+        )
+        if str(payload.get("stock_id") or "") != asset.asset_id:
+            raise ProviderResponseError(self.name, "provider returned a price for a different Stock")
+        price = _decimal(payload.get("price"))
+        if price is None or not price.is_finite():
+            raise ProviderResponseError(self.name, "provider returned an invalid Stock price")
+        observed_at = _iso_datetime(payload.get("timestamp"), self.name, "Stock price")
+        asset.price = price
+        asset.observed_at = observed_at
+        asset.raw_payload = {"asset": asset.raw_payload, "price": payload}
+        return asset
+
+    def get_tokenized_quote(self, identifier: str) -> TokenizedAssetRecord | None:
+        asset = self.get_tokenized_asset(identifier)
+        if asset is None:
+            return None
+        payload = _required_object(
+            _http_json(
+                f"{self._base_url()}/market_data/stocks/{asset.asset_id}/current_quote",
+                provider_name=self.name,
+                headers=self._headers(),
+            ),
+            self.name,
+            "stock quote",
+        )
+        if str(payload.get("stock_id") or "") != asset.asset_id:
+            raise ProviderResponseError(self.name, "provider returned a quote for a different Stock")
+        bid = _decimal(payload.get("bid_price"))
+        ask = _decimal(payload.get("ask_price"))
+        if bid is None or ask is None or not bid.is_finite() or not ask.is_finite():
+            raise ProviderResponseError(self.name, "provider returned an invalid Stock quote")
+        asset.bid = bid
+        asset.ask = ask
+        asset.observed_at = _iso_datetime(payload.get("timestamp"), self.name, "Stock quote")
+        asset.raw_payload = {"asset": asset.raw_payload, "quote": payload}
+        return asset
+
+    def fetch_tokenized_historical_prices(
+        self, identifier: str, *, timespan: str = "DAY"
+    ) -> list[dict[str, Any]]:
+        """Return Dinari's aggregate price points without inventing OHLCV volume."""
+
+        allowed = {"DAY", "WEEK", "MONTH", "YEAR"}
+        normalized_timespan = str(timespan or "").strip().upper()
+        if normalized_timespan not in allowed:
+            raise ProviderResponseError(self.name, "unsupported Dinari historical timespan")
+        stock_id = self._stock_id(identifier)
+        if stock_id is None:
+            return []
+        payload = _http_json(
+            f"{self._base_url()}/market_data/stocks/{stock_id}/historical_prices/",
+            provider_name=self.name,
+            params={"timespan": normalized_timespan},
+            headers=self._headers(),
+        )
+        if not isinstance(payload, list) or any(not isinstance(row, dict) for row in payload):
+            raise ProviderResponseError(self.name, "provider returned an invalid historical price row container")
+        result: list[dict[str, Any]] = []
+        for row in payload:
+            try:
+                timestamp = int(row["timestamp"])
+            except (KeyError, TypeError, ValueError) as exc:
+                raise ProviderResponseError(self.name, "provider returned an invalid historical price timestamp") from exc
+            if timestamp <= 0:
+                raise ProviderResponseError(self.name, "provider returned an invalid historical price timestamp")
+            values = {field: _decimal(row.get(field)) for field in ("open", "high", "low", "close")}
+            if any(value is None or not value.is_finite() for value in values.values()):
+                raise ProviderResponseError(self.name, "provider returned an invalid historical price row")
+            result.append(
+                {
+                    "stock_id": stock_id,
+                    "timespan": normalized_timespan,
+                    "timestamp": datetime.fromtimestamp(timestamp, tz=UTC),
+                    **values,
+                    "raw_payload": row,
+                }
+            )
+        return result
+
+    def fetch_tokenized_news(self, identifier: str, *, limit: int = 10) -> list[dict[str, Any]]:
+        stock_id = self._stock_id(identifier)
+        if stock_id is None:
+            return []
+        payload = _http_json(
+            f"{self._base_url()}/market_data/stocks/{stock_id}/news",
+            provider_name=self.name,
+            params={"limit": max(1, min(int(limit), 25))},
+            headers=self._headers(),
+        )
+        if not isinstance(payload, list) or any(not isinstance(row, dict) for row in payload):
+            raise ProviderResponseError(self.name, "provider returned an invalid stock news row container")
+        result: list[dict[str, Any]] = []
+        for row in payload:
+            required = ("article_url", "description", "image_url", "published_dt", "publisher")
+            if any(not str(row.get(field) or "").strip() for field in required):
+                raise ProviderResponseError(self.name, "provider returned an incomplete stock news article")
+            published_at = _iso_datetime(row["published_dt"], self.name, "stock news")
+            result.append({**row, "published_dt": published_at})
+        return result
+
+    def fetch_tokenized_dividends(self, identifier: str) -> list[dict[str, Any]]:
+        stock_id = self._stock_id(identifier)
+        if stock_id is None:
+            return []
+        payload = _http_json(
+            f"{self._base_url()}/market_data/stocks/{stock_id}/dividends",
+            provider_name=self.name,
+            headers=self._headers(),
+        )
+        if not isinstance(payload, list) or any(not isinstance(row, dict) for row in payload):
+            raise ProviderResponseError(self.name, "provider returned an invalid stock dividend row container")
+        return payload
+
+    def fetch_tokenized_splits(self, identifier: str) -> list[dict[str, Any]]:
+        stock_id = self._stock_id(identifier)
+        if stock_id is None:
+            return []
+        payload = _http_json(
+            f"{self._base_url()}/market_data/stocks/{stock_id}/splits",
+            provider_name=self.name,
+            params={"page": 1, "page_size": 100},
+            headers=self._headers(),
+        )
+        if isinstance(payload, list):
+            rows = payload
+        elif isinstance(payload, dict):
+            rows = payload.get("data")
+            if not isinstance(payload.get("pagination_metadata"), dict):
+                raise ProviderResponseError(self.name, "provider omitted split pagination metadata")
+        else:
+            rows = None
+        if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+            raise ProviderResponseError(self.name, "provider returned an invalid stock split row container")
+        return rows
+
+
+class OndoGlobalMarketsProvider:
+    """Ondo Stocks (legacy GM) authenticated metadata and price adapter."""
+
+    name = "ondo_global_markets"
+    base_url = "https://api.gm.ondo.finance"
+    description = "Ondo Stocks tokenized US stock/ETF metadata and indicative prices"
+
+    def _headers(self) -> dict[str, str]:
+        key = str(getattr(settings, "ONDO_GLOBAL_MARKETS_API_KEY", "") or "").strip()
+        return {"x-api-key": key}
+
+    @staticmethod
+    def _location(addresses: list[Any]) -> tuple[str | None, int | None, str | None]:
+        for item in addresses:
+            if not isinstance(item, dict):
+                raise ProviderResponseError("ondo_global_markets", "provider returned an invalid contract address")
+            chain = str(item.get("networkChainId") or "").strip()
+            address = str(item.get("address") or "").strip()
+            if not chain or not address:
+                raise ProviderResponseError("ondo_global_markets", "provider returned an incomplete contract address")
+            try:
+                network, chain_id_text = chain.rsplit("-", 1)
+                chain_id = int(chain_id_text)
+            except (TypeError, ValueError):
+                continue
+            if chain_id > 0:
+                return network, chain_id, address
+        return None, None, None
+
+    def _metadata(self) -> list[dict[str, Any]]:
+        payload = _http_json(
+            f"{self.base_url}/v1/assets/all/metadata",
+            provider_name=self.name,
+            headers=self._headers(),
+        )
+        if not isinstance(payload, list) or any(not isinstance(row, dict) for row in payload):
+            raise ProviderResponseError(self.name, "provider returned an invalid metadata row container")
+        return payload
+
+    def _record(self, payload: dict[str, Any]) -> TokenizedAssetRecord:
+        symbol = str(payload.get("symbol") or "").strip()
+        underlying_symbol = str(payload.get("ticker") or "").strip()
+        name = str(payload.get("displayName") or payload.get("underlyingName") or "").strip()
+        tags = payload.get("tags")
+        addresses = payload.get("addresses")
+        if not symbol or not underlying_symbol or not name or not isinstance(tags, dict):
+            raise ProviderResponseError(self.name, "provider returned incomplete asset metadata")
+        if not isinstance(addresses, list):
+            raise ProviderResponseError(self.name, "provider returned an invalid asset address container")
+        network, chain_id, address = self._location(addresses)
+        return TokenizedAssetRecord(
+            provider=self.name,
+            asset_id=symbol,
+            symbol=symbol,
+            name=name,
+            underlying_symbol=underlying_symbol,
+            underlying_isin=str(payload.get("isin") or "") or None,
+            network=network,
+            chain_id=chain_id,
+            contract_address=address,
+            currency="USD",
+            status="active",
+            backing_type="fully_backed_ondo_stock",
+            collateral={
+                "addresses": addresses,
+                "tags": tags,
+                "coingecko_id": payload.get("coingeckoId"),
+                "coinmarketcap_id": payload.get("coinmarketCapId"),
+                "logo_uri": payload.get("logoURI"),
+            },
+            observed_at=_now(),
+            raw_payload=payload,
+        )
+
+    def discover_tokenized_assets(
+        self, *, page: int = 0, page_size: int = 100
+    ) -> list[TokenizedAssetRecord]:
+        rows = self._metadata()
+        start = max(0, page) * max(1, page_size)
+        return [self._record(row) for row in rows[start : start + max(1, page_size)]]
+
+    def get_tokenized_asset(self, identifier: str) -> TokenizedAssetRecord | None:
+        needle = str(identifier or "").strip().lower()
+        if not needle:
+            return None
+        row = next(
+            (
+                item
+                for item in self._metadata()
+                if str(item.get("symbol") or "").strip().lower() == needle
+                or str(item.get("ticker") or "").strip().lower() == needle
+            ),
+            None,
+        )
+        return self._record(row) if row is not None else None
+
+    def get_tokenized_price(self, identifier: str) -> TokenizedAssetRecord | None:
+        asset = self.get_tokenized_asset(identifier)
+        if asset is None:
+            return None
+        payload = _required_object(
+            _http_json(
+                f"{self.base_url}/v1/assets/{asset.symbol}/prices/latest",
+                provider_name=self.name,
+                headers=self._headers(),
+            ),
+            self.name,
+            "asset price",
+        )
+        primary = payload.get("primaryMarket")
+        underlying = payload.get("underlyingMarket")
+        if not isinstance(primary, dict) or not isinstance(underlying, dict):
+            raise ProviderResponseError(self.name, "provider returned an incomplete asset price")
+        if str(primary.get("symbol") or "") != asset.symbol:
+            raise ProviderResponseError(self.name, "provider returned a price for a different asset")
+        price = _decimal(primary.get("price"))
+        if price is None or not price.is_finite():
+            raise ProviderResponseError(self.name, "provider returned an invalid asset price")
+        timestamp = payload.get("timestamp")
+        try:
+            observed_at = datetime.fromtimestamp(float(timestamp) / 1000, tz=UTC)
+        except (TypeError, ValueError, OverflowError, OSError) as exc:
+            raise ProviderResponseError(self.name, "provider returned an invalid asset price timestamp") from exc
+        asset.price = price
+        asset.observed_at = observed_at
+        asset.raw_payload = {"asset": asset.raw_payload, "price": payload}
+        return asset
+
+    def fetch_tokenized_ohlc(
+        self,
+        identifier: str,
+        *,
+        interval: str = "1day",
+        range_: str = "1day",
+        market: str = "primary",
+    ) -> list[dict[str, Any]]:
+        """Return display-only Ondo OHLC candles with explicit market scope."""
+
+        allowed_ranges = {
+            "1min": {"1day"},
+            "5min": {"1day"},
+            "15min": {"1day"},
+            "1hour": {"1month"},
+            "4hour": {"1month"},
+            "12hour": {"3month"},
+            "1day": {"3month", "6month", "1year", "all"},
+        }
+        normalized_interval = str(interval or "").strip().lower()
+        normalized_range = str(range_ or "").strip().lower()
+        if normalized_range not in allowed_ranges.get(normalized_interval, set()):
+            raise ProviderResponseError(self.name, "unsupported Ondo OHLC interval/range pair")
+        normalized_market = str(market or "").strip().lower()
+        if normalized_market not in {"primary", "underlying", "both"}:
+            raise ProviderResponseError(self.name, "unsupported Ondo OHLC market")
+        asset = self.get_tokenized_asset(identifier)
+        if asset is None:
+            return []
+        payload = _required_object(
+            _http_json(
+                f"{self.base_url}/v1/assets/{asset.symbol}/prices/ohlc",
+                provider_name=self.name,
+                params={"interval": normalized_interval, "range": normalized_range},
+                headers=self._headers(),
+            ),
+            self.name,
+            "OHLC response",
+        )
+        markets = ("primaryMarket", "underlyingMarket") if normalized_market == "both" else (
+            ("primaryMarket",) if normalized_market == "primary" else ("underlyingMarket",)
+        )
+        result: list[dict[str, Any]] = []
+        for market_key in markets:
+            market_body = _required_object(payload.get(market_key), self.name, market_key)
+            expected_symbol = asset.symbol if market_key == "primaryMarket" else asset.underlying_symbol
+            actual_symbol = str(market_body.get("symbol") or market_body.get("ticker") or "").strip()
+            if not expected_symbol or actual_symbol != expected_symbol:
+                raise ProviderResponseError(self.name, "provider returned OHLC for a different asset")
+            rows = market_body.get("data")
+            if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+                raise ProviderResponseError(self.name, f"provider returned an invalid {market_key} row container")
+            for row in rows:
+                try:
+                    timestamp = int(row["timestamp"])
+                except (KeyError, TypeError, ValueError) as exc:
+                    raise ProviderResponseError(self.name, "provider returned an invalid OHLC timestamp") from exc
+                if timestamp <= 0:
+                    raise ProviderResponseError(self.name, "provider returned an invalid OHLC timestamp")
+                values = {field: _decimal(row.get(field)) for field in ("open", "high", "low", "close")}
+                if any(value is None or not value.is_finite() for value in values.values()):
+                    raise ProviderResponseError(self.name, "provider returned an invalid OHLC row")
+                result.append(
+                    {
+                        "market": "primary" if market_key == "primaryMarket" else "underlying",
+                        "symbol": actual_symbol,
+                        "interval": normalized_interval,
+                        "range": normalized_range,
+                        "timestamp": datetime.fromtimestamp(timestamp / 1000, tz=UTC),
+                        **values,
+                        "raw_payload": row,
+                    }
+                )
+        return result
+
+
 TOKENIZED_PROVIDERS = (
     XStocksProvider,
     RobinhoodTokenProvider,
     BybitXStocksProvider,
     GateTradfiProvider,
     KrakenXStocksProvider,
+    DinariTokenProvider,
+    OndoGlobalMarketsProvider,
 )

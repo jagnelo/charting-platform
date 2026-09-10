@@ -59,8 +59,10 @@ from app.providers.optional_market_data import (
 )
 from app.providers.tokenized import (
     BybitXStocksProvider,
+    DinariTokenProvider,
     GateTradfiProvider,
     KrakenXStocksProvider,
+    OndoGlobalMarketsProvider,
     RobinhoodTokenProvider,
     XStocksProvider,
 )
@@ -103,6 +105,8 @@ _PROVIDERS: dict[str, ProviderDescriptor] = {
     "bybit_xstocks": BybitXStocksProvider(),
     "gate_tradfi": GateTradfiProvider(),
     "kraken_xstocks": KrakenXStocksProvider(),
+    "dinari": DinariTokenProvider(),
+    "ondo_global_markets": OndoGlobalMarketsProvider(),
 }
 
 # Provider capability is not enough to route an instrument safely.  Several
@@ -137,6 +141,8 @@ _PROVIDER_INSTRUMENT_KINDS: dict[str, frozenset[str]] = {
     "bybit_xstocks": frozenset({"tokenized_securities", "tokenized_security", "tokenized"}),
     "gate_tradfi": frozenset({"tokenized_securities", "tokenized_security", "tokenized"}),
     "kraken_xstocks": frozenset({"tokenized_securities", "tokenized_security", "tokenized"}),
+    "dinari": frozenset({"tokenized_securities", "tokenized_security", "tokenized"}),
+    "ondo_global_markets": frozenset({"tokenized_securities", "tokenized_security", "tokenized"}),
     "ibkr": frozenset({"equity", "stock", "etf", "option", "options", "future", "forex", "currency", "crypto", "cryptocurrency"}),
     "yfinance": frozenset({"equity", "stock", "etf", "option", "options", "future", "forex", "currency", "crypto", "cryptocurrency", "index"}),
     "binance": frozenset({"crypto", "cryptocurrency", "crypto_spot"}),
@@ -437,6 +443,8 @@ _AUTH_SETTINGS: dict[str, tuple[str, ...]] = {
     "marketdata_app": ("MARKETDATA_APP_API_KEY",),
     "ibkr": ("IBKR_READ_ONLY_SESSION_COOKIE",),
     "finra": ("FINRA_CLIENT_ID", "FINRA_CLIENT_SECRET"),
+    "dinari": ("DINARI_API_KEY_ID", "DINARI_API_SECRET_KEY"),
+    "ondo_global_markets": ("ONDO_GLOBAL_MARKETS_API_KEY",),
 }
 
 # Some adapters need an operator-approved source/configuration value even

@@ -87,8 +87,8 @@ re-reviewed when credentials or billing plans change.
 | Bybit xStocks | xStocks spot instrument catalogue and ticker bid/ask/last | none for public market-data endpoints | 600 HTTP requests per 5 seconds per IP outer limit; API limits are rolling per second per UID and endpoint, with `X-Bapi-Limit*` headers documented but not emitted by the current unauthenticated public edge | IP + endpoint/UID / rolling | bounded live asset + ticker probe passed; endpoint/UID accounting and reliable native-header state required before routing |
 | Gate TradFi stock API | public US stock-token symbol catalogue and order-book bid/ask | none for public symbol/order-book endpoints | 5 requests/sec/IP for each documented public TradFi stock endpoint (`/stock/symbols`, `/stock/symbols/detail`, `/stock/market/{symbol}/orderbook`) | IP / rolling | bounded live symbol + order-book probe passed; the runtime applies a conservative aggregate 5-request/sec capability window |
 | Kraken xStocks | provider-native xStocks pair discovery and public ticker when such pairs are published | none | Kraken public safe-frequency guidance is approximately 1 request/sec; pair/IP accounting applies | IP/pair / rolling | live catalogue probe passed with no currently published xStocks pair; no synthetic mapping is created |
-| Ondo Global Markets | catalogue-only candidate for tokenized US stocks/ETFs | onboarding/API credentials required | Provider terms and quota not publicly verified in this branch | account / unknown | descriptor only; not routable |
-| Dinari | catalogue-only tokenized-equity infrastructure candidate | partner/API access required | Commercial terms and quota not publicly verified in this branch | account / unknown | descriptor only; not routable |
+| Ondo Global Markets | authenticated tokenized US stock/ETF metadata, chain addresses/ISIN/tags, indicative latest prices, and display-only OHLC candles (primary token + underlying stock) | `ONDO_GLOBAL_MARKETS_API_KEY` | OpenAPI documents HTTP 429/account rate limiting but no numeric quota; endpoint caching and display-only/non-oracle restrictions apply | API key/account / provider-defined | concrete metadata/latest-price/OHLC adapter is fixture-covered; no live credential evidence yet; remains non-routable until account terms/quota are reviewed |
+| Dinari | partner-authenticated dShare stock/ETF metadata, provider UUIDs, CAIP-10 deployments, FIGI/CIK/CUSIP metadata, current fair price, bid/ask quote, DAY/WEEK/MONTH/YEAR aggregate history, news, dividends, and splits | `DINARI_API_KEY_ID`, `DINARI_API_SECRET_KEY` | Numeric account/partner quota is not published; US SIP/NBBO quotes are metered and may incur per-query fees, with display/redistribution and partner-approval requirements | API key ID/secret + partner account / provider-defined | concrete read-only adapter is fixture-covered; no live credential evidence yet; remains non-routable until commercial, US eligibility, quota, and redistribution terms are reviewed |
 | Alpaca tokenization network | catalogue-only tokenization-network candidate, distinct from Alpaca market-data keys | authorized-participant access required | Market-data credentials do not entitle tokenization-network access | account / unknown | descriptor only; not routable |
 | yfinance | legacy broad fallback, options/futures compatibility only | none | No official quota/SLA; unofficial scraping | unknown | legacy-only and disabled by default |
 | ETF holdings internal | platform's issuer/SEC holdings ingestion | internal configuration | Internal job/provider budgets, not an external market-data API | internal | generic bridge only; issuer-specific work remains on ETF branch |
@@ -213,7 +213,10 @@ The current public adapters are read-only. They do not submit orders, mint,
 redeem, transfer tokens, or index wallets. Tokenized perpetuals and other
 derivatives remain separate derivative instruments. xStocks and Robinhood
 expose issuer/product metadata and indicative prices; Bybit, Gate, and Kraken
-expose exchange-native market surfaces. A provider returning no current
+expose exchange-native market surfaces. Dinari exposes provider UUID-based
+metadata, fair price/quote, aggregate history, news, dividends, and splits;
+Ondo exposes chain/ISIN metadata, indicative prices, and display-only OHLC
+candles for both token and underlying markets. A provider returning no current
 xStocks pairs is recorded as an empty catalogue, never as evidence that a
 traditional share is the same token.
 
@@ -224,16 +227,41 @@ but those observations cannot be routed as an eligible US data or trading
 source unless the operator documents a lawful, jurisdiction-specific basis and
 redistribution permission.
 
+Dinari's [stock-data guide](https://docs.dinari.com/docs/stock-data) documents
+provider-native Stock UUIDs, aggregate DAY/WEEK/MONTH/YEAR history, news, and
+live price/quote endpoints. Its [pricing guide](https://docs.dinari.com/docs/pricing-quotes)
+distinguishes the computed fair price from bid/ask quotes, and notes that US
+SIP/NBBO data is metered. The adapter never treats CIK/CUSIP/FIGI fields as the
+token's primary identity and never fabricates volume for the aggregate history.
+Dinari's [US-customer requirements](https://docs.dinari.com/docs/us) make partner
+approval, regulatory, data-security, and redistribution review a deployment
+gate, so having a key alone does not make this provider routable.
+
+Ondo's [API overview](https://docs.ondo.finance/api-reference/overview) and
+[OpenAPI contract](https://docs.ondo.finance/openapi.json) document the API-key
+protected metadata, latest-price, and OHLC endpoints. The OHLC adapter accepts
+only the provider's published interval/range pairs and returns primary-token
+and underlying-stock candles separately. Ondo explicitly marks price feeds as
+display-only and not suitable as an oracle; its OpenAPI documents HTTP 429 but
+does not publish a numeric quota, so this provider remains fail-closed pending
+account-specific terms and usage evidence.
+
 The runtime records provider-specific quota dimensions and refuses to route a
 tokenized provider when any dimension is unknown, weighted per endpoint, or
 requires response-header/account enforcement that is not yet fully modeled.
 Quote refresh accounting also follows the adapters' actual request shape. The
 standard tokenized `get_tokenized_price` operations reserve two provider
 requests (asset metadata plus quote/order-book), while discovery and asset reads
-reserve one. Robinhood additionally reserves four requests: one asset lookup
-plus the bounded three-attempt quote retry worst case. This prevents a
-successful quote response or a bounded retry from being recorded as fewer
-requests than the adapter may actually make.
+reserve one. Dinari's quote, historical, news, dividend, and split operations,
+and Ondo's OHLC operation, likewise reserve two requests because each resolves
+provider metadata before the data read. Robinhood additionally reserves four
+requests: one asset lookup plus the bounded three-attempt quote retry worst
+case. This prevents a successful quote response or bounded retry from being
+recorded as fewer requests than the adapter may actually make. Dinari's history
+deliberately returns aggregate OHLC without inventing volume; Ondo's OHLC
+interval/range combinations are validated against the provider's published
+finite matrix and every candle retains explicit primary-versus-underlying
+market scope. Both adapters preserve raw provider payloads for provenance.
 Bybit's official [rate-limit contract](https://bybit-exchange.github.io/docs/v5/rate-limit)
 publishes both the 600/5-second/IP outer ceiling and rolling per-second
 endpoint/UID limits. The current public xStocks responses were live-probed and

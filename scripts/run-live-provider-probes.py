@@ -50,6 +50,8 @@ CREDENTIALS = {
     "tradier": ("TRADIER_API_KEY",),
     "marketdata_app": ("MARKETDATA_APP_API_KEY",),
     "ibkr": ("IBKR_READ_ONLY_URL", "IBKR_READ_ONLY_SESSION_COOKIE"),
+    "dinari": ("DINARI_API_KEY_ID", "DINARI_API_SECRET_KEY"),
+    "ondo_global_markets": ("ONDO_GLOBAL_MARKETS_API_KEY",),
 }
 
 BYTE_BOUND_OPERATIONS = {

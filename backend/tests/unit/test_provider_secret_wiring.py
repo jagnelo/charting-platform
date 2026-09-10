@@ -33,6 +33,9 @@ PROVIDER_SECRET_NAMES = {
     "TRADIER_API_KEY",
     "MARKETDATA_APP_API_KEY",
     "XSTOCKS_API_KEY",
+    "DINARI_API_KEY_ID",
+    "DINARI_API_SECRET_KEY",
+    "ONDO_GLOBAL_MARKETS_API_KEY",
     "IBKR_READ_ONLY_SESSION_COOKIE",
 }
 PROVIDER_SAFETY_SETTINGS = {
@@ -152,7 +155,12 @@ def test_backend_env_example_preserves_fail_closed_provider_safety_contract():
     assert "FRED_SERIES_TERMS_REVIEWED=false" in example
     assert "TIINGO_OPERATION_BYTE_BOUNDS={}" in example
     assert "FMP_OPERATION_BYTE_BOUNDS={}" in example
-    for name in ("IBKR_READ_ONLY_URL", "COINBASE_API_KEY", "KRAKEN_API_KEY"):
+    for name in (
+        "IBKR_READ_ONLY_URL",
+        "COINBASE_API_KEY",
+        "KRAKEN_API_KEY",
+        "DINARI_API_BASE_URL",
+    ):
         assert f"{name}=" in example
 
 

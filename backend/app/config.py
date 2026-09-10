@@ -110,6 +110,8 @@ class Settings(BaseSettings):
         "bybit_xstocks",
         "gate_tradfi",
         "kraken_xstocks",
+        "dinari",
+        "ondo_global_markets",
     ]
     PROVIDER_CHAIN_SEEDS: dict[str, list[str]] = {
         # Alpaca exposes an assets/discovery endpoint but no instrument-search
@@ -139,6 +141,8 @@ class Settings(BaseSettings):
             "bybit_xstocks",
             "gate_tradfi",
             "kraken_xstocks",
+            "dinari",
+            "ondo_global_markets",
         ],
         "tokenized_corporate_actions": ["robinhood_tokens", "xstocks"],
     }
@@ -500,6 +504,24 @@ class Settings(BaseSettings):
             },
             "quota_scope": "ip_or_pair",
             "quota_source": "Kraken public API rate-limit documentation",
+        },
+        "dinari": {
+            "quota_contract": {
+                "dimensions": [],
+                "unknown_dimensions": ["account/partner request limits and commercial data entitlements"],
+                "source": "https://docs.dinari.com/reference",
+            },
+            "quota_scope": "api_key_id_and_partner_account",
+            "quota_source": "Dinari Enterprise API documentation (numeric limit not published)",
+        },
+        "ondo_global_markets": {
+            "quota_contract": {
+                "dimensions": [],
+                "unknown_dimensions": ["account rate limit and endpoint cache/usage terms"],
+                "source": "https://docs.ondo.finance/api-reference/overview",
+            },
+            "quota_scope": "api_key_and_account",
+            "quota_source": "Ondo Stocks API OpenAPI (429 is documented; numeric limit not published)",
         },
         "tiingo": {
             "quota_contract": {
@@ -1100,6 +1122,30 @@ class Settings(BaseSettings):
                 "get_tokenized_price": 2,
             },
         },
+        "dinari": {
+            "mode": "call_count",
+            "unit_label": "requests",
+            "operation_costs": {
+                "discover_tokenized_assets": 1,
+                "get_tokenized_asset": 1,
+                "get_tokenized_price": 2,
+                "get_tokenized_quote": 2,
+                "fetch_tokenized_historical_prices": 2,
+                "fetch_tokenized_news": 2,
+                "fetch_tokenized_dividends": 2,
+                "fetch_tokenized_splits": 2,
+            },
+        },
+        "ondo_global_markets": {
+            "mode": "call_count",
+            "unit_label": "requests",
+            "operation_costs": {
+                "discover_tokenized_assets": 1,
+                "get_tokenized_asset": 1,
+                "get_tokenized_price": 2,
+                "fetch_tokenized_ohlc": 2,
+            },
+        },
     }
     # A capability is not usable merely because an adapter exists. These
     # explicit defaults describe the free/public plans that the workstation
@@ -1379,8 +1425,8 @@ class Settings(BaseSettings):
             "configured_plan": "onboarding-required",
             "is_free": False,
             "authentication_required": True,
-            "usage_terms": "API access requires Ondo onboarding; terms and pricing must be reviewed before implementation.",
-            "history_depth": "Provider-dependent",
+            "usage_terms": "Ondo Stocks API access requires onboarding and an API key; the OpenAPI documents HTTP 429 but no numeric quota. Price feeds are display-only, and jurisdiction/redistribution terms require review before routing.",
+            "history_depth": "Published OHLC 1min-1day intervals with finite ranges through all history; adapter exposes metadata, current price, and OHLC.",
             "venue_coverage": "Ondo Global Markets tokenized US stocks and ETFs",
             "freshness_semantics": "Provider-dependent",
         },
@@ -1397,9 +1443,9 @@ class Settings(BaseSettings):
             "configured_plan": "partner-access-required",
             "is_free": False,
             "authentication_required": True,
-            "usage_terms": "Partner/API access and commercial terms required.",
-            "history_depth": "Provider-dependent",
-            "venue_coverage": "Dinari tokenized-equity products",
+            "usage_terms": "Dinari Enterprise API requires partner API-key ID/secret and commercial/redistribution review; the published market-data API is best-effort and does not publish a numeric quota. US NBBO quote usage may incur a per-query fee and display-only restrictions.",
+            "history_depth": "Published DAY/WEEK/MONTH/YEAR aggregate history; adapter exposes metadata, price, quote, and history.",
+            "venue_coverage": "Dinari dShares tokenized US stocks and ETFs",
             "freshness_semantics": "Provider-dependent",
         },
         "alpaca_itn": {
@@ -1470,6 +1516,10 @@ class Settings(BaseSettings):
     TRADIER_API_KEY: str = ""
     MARKETDATA_APP_API_KEY: str = ""
     XSTOCKS_API_KEY: str = ""
+    DINARI_API_KEY_ID: str = ""
+    DINARI_API_SECRET_KEY: str = ""
+    DINARI_API_BASE_URL: str = "https://api-enterprise.sbt.dinari.com/api/v2"
+    ONDO_GLOBAL_MARKETS_API_KEY: str = ""
     IBKR_READ_ONLY_URL: str = ""
     IBKR_READ_ONLY_SESSION_COOKIE: str = ""
     IBKR_READ_ONLY_VERIFY_TLS: bool = True

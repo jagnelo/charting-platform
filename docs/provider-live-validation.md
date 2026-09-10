@@ -273,11 +273,13 @@ interactive and session-bound; no options/futures capability is claimed, and
 raw bars are never labeled as adjusted. Live evidence still requires an
 operator-owned `IBKR_READ_ONLY_URL` and `IBKR_READ_ONLY_SESSION_COOKIE`.
 
-The public tokenized matrix is maintained separately in
+The public and credentialed tokenized matrix is maintained separately in
 `tests/live/test_tokenized_providers_live.py`. It covers xStocks, Robinhood
-Chain Stock Tokens, Bybit xStocks, Gate TradFi stock endpoints, and Kraken's
-current xStocks catalogue. The latest bounded run at `2026-09-10T02:50:33Z`
-passed all seven probes,
+Chain Stock Tokens, Bybit xStocks, Gate TradFi stock endpoints, Kraken's
+current xStocks catalogue, Dinari dShares, and Ondo Global Markets. Public
+cases can run keylessly; Dinari and Ondo require their exact credentials and
+fail explicitly during preflight when absent. The latest bounded public run at
+`2026-09-10T02:50:33Z` passed all seven public probes,
 including xStocks and Robinhood corporate-action reads, and
 the quote assertions observed at least two upstream requests for every
 successful quote operation (metadata resolution plus quote/order-book read).
@@ -637,6 +639,15 @@ passed `1/1` after the adapter accepted the documented `null` empty-book shape,
 validated object rows and finite decimal prices, and rejected scalar/malformed
 rows. All seven tokenized probes remained green.
 
+The tokenized live suite now also contains credentialed Dinari and Ondo
+probes. Dinari's case exercises provider UUID discovery, fair price, bid/ask
+quote, DAY aggregate history, and bounded news; Ondo's case exercises metadata,
+latest indicative price, and a bounded primary-market OHLC read. Both cases
+require their exact environment variables (`DINARI_API_KEY_ID` plus
+`DINARI_API_SECRET_KEY`, or `ONDO_GLOBAL_MARKETS_API_KEY`) and fail explicitly
+when absent; they are never skipped as evidence. Their adapters also have
+fixture coverage for malformed identity, timestamp, numeric, and OHLC shapes.
+
 The latest authoritative `make test-backend-coverage` gate passed
 `1963/1963`, with `89` warnings and `80.48%` coverage in `458.04s`, using
 isolated PostgreSQL/Redis testcontainer session
@@ -746,3 +757,20 @@ than collapsed. Legacy receipts without the field are normalized to
 authoritative backend gate passed `1970/1970`, with `89` warnings and `80.53%`
 coverage in `501.31s`, using isolated PostgreSQL/Redis testcontainer session
 `ce2882bf-eb46-4cc4-82b7-947dc03324b6`, cleaned without host-wide pruning.
+
+The Dinari/Ondo implementation follow-up added two credentialed tokenized live
+cases to the manifest. A post-change attempt at `2026-09-10T14:29Z` collected
+37 tests; the exact Dinari and Ondo credential preflights failed because
+`DINARI_API_KEY_ID`/`DINARI_API_SECRET_KEY` and
+`ONDO_GLOBAL_MARKETS_API_KEY` are not present in this environment, so neither
+provider made an upstream call. The run recorded 23 available-provider
+aggregate telemetry rows (57 requests and 11,625,293 response bytes) only in
+an operator-owned ledger outside Git. The existing Alpaca, Tradier,
+MarketData.app, and IBKR credential gates and Alpha Vantage daily-capacity
+responses remain open; no live acceptance claim is made.
+
+Focused Dinari/Ondo and surrounding registry/quota/secret coverage passed
+`122/122`, Ruff and diff checks passed, and the authoritative Docker-backed
+combined gate passed `1994/1994` with `89` warnings and `80.50%` coverage in
+`521.76s` (isolated PostgreSQL/Redis session
+`3f19adca-0e0a-4f86-97b3-04e03a7c45d3`, cleaned without host-wide pruning).

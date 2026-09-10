@@ -1,15 +1,19 @@
+from datetime import UTC, datetime
 from decimal import Decimal
 from unittest.mock import Mock, patch
 
 import httpx
 import pytest
 
+from app.config import settings
 from app.providers.errors import ProviderRateLimitError, ProviderResponseError
 from app.providers.registry import list_provider_capabilities
 from app.providers.tokenized import (
     BybitXStocksProvider,
+    DinariTokenProvider,
     GateTradfiProvider,
     KrakenXStocksProvider,
+    OndoGlobalMarketsProvider,
     RobinhoodTokenProvider,
     XStocksProvider,
 )
@@ -216,6 +220,215 @@ def test_bybit_success_retcode_and_retmsg_are_not_error_envelope():
     }
     with patch("app.providers.tokenized.httpx.get", return_value=response):
         assert BybitXStocksProvider().discover_tokenized_assets(page=0, page_size=1) == []
+
+
+def _response(payload):
+    response = Mock()
+    response.raise_for_status.return_value = None
+    response.status_code = 200
+    response.json.return_value = payload
+    return response
+
+
+def _dinari_stock():
+    return {
+        "id": "7f6de6f0-8c15-4c5b-9d7d-9c8d3c16f001",
+        "name": "Apple Inc.",
+        "display_name": "Apple",
+        "symbol": "AAPL",
+        "is_fractionable": True,
+        "is_tradable": True,
+        "tokens": ["eip155:1/0xabc"],
+        "composite_figi": "BBG000B9XRY4",
+        "cusip": "037833100",
+        "cik": "0000320193",
+    }
+
+
+def test_dinari_metadata_preserves_uuid_chain_and_issuer_identifiers(monkeypatch):
+    monkeypatch.setattr(settings, "DINARI_API_KEY_ID", "id-secret")
+    monkeypatch.setattr(settings, "DINARI_API_SECRET_KEY", "secret-value")
+    response = _response({"data": [_dinari_stock()], "pagination_metadata": {"next": None}})
+    with patch("app.providers.tokenized.httpx.get", return_value=response) as get:
+        rows = DinariTokenProvider().discover_tokenized_assets(page=0, page_size=25)
+    assert len(rows) == 1
+    record = rows[0]
+    assert record.asset_id == "7f6de6f0-8c15-4c5b-9d7d-9c8d3c16f001"
+    assert record.symbol == "AAPL"
+    assert record.network == "eip155"
+    assert record.chain_id == 1
+    assert record.contract_address == "0xabc"
+    assert record.collateral["composite_figi"] == "BBG000B9XRY4"
+    assert record.collateral["cik"] == "0000320193"
+    assert get.call_args.kwargs["headers"] == {
+        "X-API-Key-Id": "id-secret",
+        "X-API-Secret-Key": "secret-value",
+    }
+    assert get.call_args.kwargs["params"] == {"page": 1, "page_size": 25}
+
+
+def test_dinari_current_price_quote_and_history_validate_provider_identity():
+    stock = _dinari_stock()
+    responses = [
+        _response([stock]),
+        _response(
+            {
+                "stock_id": stock["id"],
+                "price": "201.25",
+                "timestamp": "2026-09-10T12:00:00Z",
+            }
+        ),
+    ]
+    with patch("app.providers.tokenized.httpx.get", side_effect=responses) as get:
+        record = DinariTokenProvider().get_tokenized_price(stock["id"])
+    assert record is not None
+    assert record.price == Decimal("201.25")
+    assert record.observed_at == datetime(2026, 9, 10, 12, tzinfo=UTC)
+    assert get.call_count == 2
+
+    with patch(
+        "app.providers.tokenized.httpx.get",
+        side_effect=[
+            _response([stock]),
+            _response(
+                {
+                    "stock_id": stock["id"],
+                    "bid_price": "201.20",
+                    "bid_size": "10",
+                    "ask_price": "201.30",
+                    "ask_size": "12",
+                    "timestamp": "2026-09-10T12:00:01Z",
+                }
+            ),
+        ],
+    ):
+        quote = DinariTokenProvider().get_tokenized_quote(stock["id"])
+    assert quote is not None
+    assert quote.bid == Decimal("201.20")
+    assert quote.ask == Decimal("201.30")
+
+    with patch(
+        "app.providers.tokenized.httpx.get",
+        side_effect=[
+            _response([stock]),
+            _response(
+                [
+                    {
+                        "timestamp": 1_757_500_800,
+                        "open": 199,
+                        "high": 203,
+                        "low": 198,
+                        "close": 201,
+                    }
+                ]
+            ),
+        ],
+    ):
+        history = DinariTokenProvider().fetch_tokenized_historical_prices(stock["id"])
+    assert history[0]["stock_id"] == stock["id"]
+    assert history[0]["close"] == Decimal("201")
+    assert history[0]["timespan"] == "DAY"
+
+
+def test_dinari_history_news_and_split_shapes_fail_closed():
+    stock = _dinari_stock()
+    with patch(
+        "app.providers.tokenized.httpx.get",
+        side_effect=[_response([stock]), _response([{"timestamp": 1, "open": 1}])],
+    ):
+        with pytest.raises(ProviderResponseError, match="invalid historical price row"):
+            DinariTokenProvider().fetch_tokenized_historical_prices("AAPL")
+    with patch(
+        "app.providers.tokenized.httpx.get",
+        side_effect=[_response([stock]), _response([{"article_url": "https://example.test"}])],
+    ):
+        with pytest.raises(ProviderResponseError, match="incomplete stock news"):
+            DinariTokenProvider().fetch_tokenized_news("AAPL")
+    with patch(
+        "app.providers.tokenized.httpx.get",
+        side_effect=[_response([stock]), _response({"data": [], "pagination_metadata": {"next": None}})],
+    ):
+        assert DinariTokenProvider().fetch_tokenized_splits("AAPL") == []
+
+
+def _ondo_metadata():
+    return {
+        "symbol": "AAPLon",
+        "ticker": "AAPL",
+        "underlyingName": "Apple",
+        "displayName": "Apple (Ondo Tokenized)",
+        "addresses": [
+            {"networkChainId": "ethereum-1", "address": "0xdef", "decimals": 18},
+        ],
+        "tags": {"assetClass": "Equities", "instrumentType": "Stock"},
+        "isin": "US0378331005",
+    }
+
+
+def test_ondo_metadata_and_price_keep_both_market_identities():
+    metadata = _ondo_metadata()
+    with patch(
+        "app.providers.tokenized.httpx.get",
+        side_effect=[
+            _response([metadata]),
+            _response(
+                {
+                    "primaryMarket": {"symbol": "AAPLon", "price": "171.38"},
+                    "underlyingMarket": {"ticker": "AAPL", "price": "228.33"},
+                    "timestamp": 1_757_500_800_000,
+                }
+            ),
+        ],
+    ) as get:
+        record = OndoGlobalMarketsProvider().get_tokenized_price("AAPL")
+    assert record is not None
+    assert record.asset_id == "AAPLon"
+    assert record.underlying_symbol == "AAPL"
+    assert record.underlying_isin == "US0378331005"
+    assert record.network == "ethereum"
+    assert record.chain_id == 1
+    assert record.price == Decimal("171.38")
+    assert get.call_count == 2
+
+
+def test_ondo_ohlc_requires_documented_interval_range_and_validates_both_markets():
+    metadata = _ondo_metadata()
+    ohlc = {
+        "interval": "1day",
+        "range": "3month",
+        "primaryMarket": {
+            "symbol": "AAPLon",
+            "data": [{"timestamp": 1_757_500_800_000, "open": "1", "high": "2", "low": "1", "close": "2"}],
+        },
+        "underlyingMarket": {
+            "ticker": "AAPL",
+            "data": [{"timestamp": 1_757_500_800_000, "open": "1", "high": "2", "low": "1", "close": "2"}],
+        },
+    }
+    with patch(
+        "app.providers.tokenized.httpx.get", side_effect=[_response([metadata]), _response(ohlc)]
+    ):
+        rows = OndoGlobalMarketsProvider().fetch_tokenized_ohlc(
+            "AAPLon", range_="3month", market="both"
+        )
+    assert {row["market"] for row in rows} == {"primary", "underlying"}
+    assert rows[0]["close"] == Decimal("2")
+    with pytest.raises(ProviderResponseError, match="interval/range"):
+        OndoGlobalMarketsProvider().fetch_tokenized_ohlc("AAPLon", interval="1min", range_="1month")
+
+
+@pytest.mark.parametrize(
+    ("provider", "payload"),
+    [
+        (DinariTokenProvider(), {"data": "invalid", "pagination_metadata": {}}),
+        (OndoGlobalMarketsProvider(), {"symbol": "AAPLon", "tags": {}, "addresses": "invalid"}),
+    ],
+)
+def test_new_tokenized_provider_metadata_containers_fail_closed(provider, payload):
+    response = _response(payload if provider.name == "dinari" else [payload])
+    with patch("app.providers.tokenized.httpx.get", return_value=response):
+        with pytest.raises(ProviderResponseError):
+            provider.discover_tokenized_assets(page=0, page_size=1)
 
 
 @pytest.mark.parametrize(

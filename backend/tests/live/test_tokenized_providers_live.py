@@ -12,8 +12,10 @@ from app.providers.telemetry import activate as activate_provider_telemetry
 from app.providers.telemetry import deactivate as deactivate_provider_telemetry
 from app.providers.tokenized import (
     BybitXStocksProvider,
+    DinariTokenProvider,
     GateTradfiProvider,
     KrakenXStocksProvider,
+    OndoGlobalMarketsProvider,
     RobinhoodTokenProvider,
     XStocksProvider,
 )
@@ -34,6 +36,12 @@ def _assert_asset(record, *, require_quote: bool = False):
     assert record.raw_payload
     if require_quote:
         assert record.price is not None or record.bid is not None or record.ask is not None
+
+
+def _require(*names: str) -> None:
+    missing = [name for name in names if not os.getenv(name, "").strip()]
+    if missing:
+        pytest.fail(f"missing live provider credentials: {', '.join(missing)}")
 
 
 def _observed_read(call, provider_name: str):
@@ -202,3 +210,59 @@ def test_kraken_public_xstocks_asset_and_ticker():
     )
     assert quote_measurement.http_requests >= 2
     _assert_asset(priced, require_quote=True)
+
+
+def test_dinari_credentialed_stock_metadata_price_quote_history_and_news():
+    _require("DINARI_API_KEY_ID", "DINARI_API_SECRET_KEY")
+    provider = DinariTokenProvider()
+    rows, measurement = _observed_read(
+        lambda: provider.discover_tokenized_assets(page=0, page_size=1), "dinari"
+    )
+    assert rows
+    _assert_asset(rows[0])
+    identifier = rows[0].asset_id
+    priced, price_measurement = _observed_read(
+        lambda: provider.get_tokenized_price(identifier), "dinari"
+    )
+    assert price_measurement.http_requests >= 2
+    _assert_asset(priced, require_quote=True)
+    quoted, quote_measurement = _observed_read(
+        lambda: provider.get_tokenized_quote(identifier), "dinari"
+    )
+    assert quote_measurement.http_requests >= 2
+    _assert_asset(quoted, require_quote=True)
+    history, history_measurement = _observed_read(
+        lambda: provider.fetch_tokenized_historical_prices(identifier, timespan="DAY"), "dinari"
+    )
+    assert history_measurement.http_requests >= 2
+    assert isinstance(history, list)
+    news, news_measurement = _observed_read(
+        lambda: provider.fetch_tokenized_news(identifier, limit=1), "dinari"
+    )
+    assert news_measurement.http_requests >= 2
+    assert isinstance(news, list)
+    assert measurement.http_requests == 1
+
+
+def test_ondo_credentialed_metadata_price_and_ohlc():
+    _require("ONDO_GLOBAL_MARKETS_API_KEY")
+    provider = OndoGlobalMarketsProvider()
+    rows, measurement = _observed_read(
+        lambda: provider.discover_tokenized_assets(page=0, page_size=1), "ondo_global_markets"
+    )
+    assert rows
+    _assert_asset(rows[0])
+    priced, price_measurement = _observed_read(
+        lambda: provider.get_tokenized_price(rows[0].symbol), "ondo_global_markets"
+    )
+    assert price_measurement.http_requests >= 2
+    _assert_asset(priced, require_quote=True)
+    candles, ohlc_measurement = _observed_read(
+        lambda: provider.fetch_tokenized_ohlc(
+            rows[0].symbol, interval="1day", range_="1day", market="primary"
+        ),
+        "ondo_global_markets",
+    )
+    assert ohlc_measurement.http_requests >= 2
+    assert isinstance(candles, list)
+    assert measurement.http_requests == 1

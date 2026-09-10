@@ -1065,12 +1065,35 @@ def test_tokenized_quote_usage_profiles_charge_asset_and_quote_requests():
         "bybit_xstocks",
         "gate_tradfi",
         "kraken_xstocks",
+        "dinari",
+        "ondo_global_markets",
     ):
         profile = get_provider_usage_profile(provider_name)
         assert profile["operation_costs"]["discover_tokenized_assets"] == 1
         assert profile["operation_costs"]["get_tokenized_asset"] == 1
         expected_price_cost = 4 if provider_name == "robinhood_tokens" else 2
         assert profile["operation_costs"]["get_tokenized_price"] == expected_price_cost
+        if provider_name == "dinari":
+            assert profile["operation_costs"]["get_tokenized_quote"] == 2
+
+
+def test_tokenized_history_operations_charge_the_metadata_resolution_and_data_read():
+    assert settings.PROVIDER_USAGE_PROFILE_SEEDS["dinari"]["operation_costs"] == {
+        "discover_tokenized_assets": 1,
+        "get_tokenized_asset": 1,
+        "get_tokenized_price": 2,
+        "get_tokenized_quote": 2,
+        "fetch_tokenized_historical_prices": 2,
+        "fetch_tokenized_news": 2,
+        "fetch_tokenized_dividends": 2,
+        "fetch_tokenized_splits": 2,
+    }
+    assert settings.PROVIDER_USAGE_PROFILE_SEEDS["ondo_global_markets"]["operation_costs"] == {
+        "discover_tokenized_assets": 1,
+        "get_tokenized_asset": 1,
+        "get_tokenized_price": 2,
+        "fetch_tokenized_ohlc": 2,
+    }
 
 
 def test_coingecko_profile_usage_profile_covers_id_resolution_and_metadata():

@@ -1,5 +1,32 @@
 # Project TODO Memory
 
+### 2026-09-10 — Tokenized-security provider adapters (Dinari and Ondo)
+
+- [x] Replace the Dinari and Ondo descriptor-only entries with concrete,
+      read-only adapters. Dinari now preserves Stock UUIDs, CAIP-10 token
+      deployments, FIGI/CIK/CUSIP metadata, fair price, bid/ask quote,
+      DAY/WEEK/MONTH/YEAR aggregate history, news, dividends, and splits.
+      Ondo now preserves chain addresses/ISIN/tags, latest indicative price,
+      and primary/underlying display-only OHLC candles with the provider's
+      documented interval/range matrix.
+- [x] Wire exact credentials (`DINARI_API_KEY_ID`,
+      `DINARI_API_SECRET_KEY`, and `ONDO_GLOBAL_MARKETS_API_KEY`) through
+      settings, registry, local/RPi Compose, GitHub manual live validation,
+      usage profiles, and fail-closed unknown-quota contracts. No credentials
+      or payloads are tracked in Git.
+- [x] Add fixture tests for provider-native identity, malformed containers,
+      finite numeric/timestamp validation, market-scope preservation, and
+      exact two-request metadata-plus-data usage accounting.
+- [ ] Run the credentialed Dinari and Ondo live cases with operator-owned
+      credentials and record provider-native quota/cache/redistribution terms.
+      Missing credentials remain explicit live preflight failures, not skips;
+      both providers remain non-routable while numeric account quotas and
+      commercial/US eligibility terms are unknown.
+- [ ] Add a separate canonical OHLC/event bridge only after its storage and
+      capability contract is approved; current tokenized history/news methods
+      are intentionally adapter-level and do not silently become generic US
+      venue history or corporate-action coverage.
+
 ### 2026-09-10 — IBKR read-only gateway adapter
 
 - [x] Replace the descriptor-only IBKR market-data entry with a concrete,

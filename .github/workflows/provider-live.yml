@@ -54,6 +54,10 @@ jobs:
       FMP_OPERATION_BYTE_BOUNDS: ${{ vars.FMP_OPERATION_BYTE_BOUNDS || '{}' }}
       TRADIER_API_KEY: ${{ secrets.TRADIER_API_KEY }}
       MARKETDATA_APP_API_KEY: ${{ secrets.MARKETDATA_APP_API_KEY }}
+      DINARI_API_KEY_ID: ${{ secrets.DINARI_API_KEY_ID }}
+      DINARI_API_SECRET_KEY: ${{ secrets.DINARI_API_SECRET_KEY }}
+      DINARI_API_BASE_URL: ${{ vars.DINARI_API_BASE_URL || 'https://api-enterprise.sbt.dinari.com/api/v2' }}
+      ONDO_GLOBAL_MARKETS_API_KEY: ${{ secrets.ONDO_GLOBAL_MARKETS_API_KEY }}
       IBKR_READ_ONLY_URL: ${{ vars.IBKR_READ_ONLY_URL || '' }}
       IBKR_READ_ONLY_SESSION_COOKIE: ${{ secrets.IBKR_READ_ONLY_SESSION_COOKIE }}
       IBKR_READ_ONLY_VERIFY_TLS: ${{ vars.IBKR_READ_ONLY_VERIFY_TLS || 'true' }}
