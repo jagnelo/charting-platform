@@ -591,6 +591,8 @@ def source_classification_for_as_of(
     evidence = metadata.get("industry") or {}
     system = str(evidence.get("classification_system") or "unknown")
     if as_of is not None:
+        evaluation_at = as_of if as_of.tzinfo is not None else as_of.replace(tzinfo=UTC)
+        evaluation_at = evaluation_at.astimezone(UTC)
         observed_text = evidence.get("observed_at") or evidence.get("known_at")
         if not observed_text:
             return None, system
@@ -600,7 +602,7 @@ def source_classification_for_as_of(
             return None, system
         if observed_at.tzinfo is None:
             observed_at = observed_at.replace(tzinfo=UTC)
-        if observed_at > as_of:
+        if observed_at > evaluation_at:
             return None, system
     return label, system
 

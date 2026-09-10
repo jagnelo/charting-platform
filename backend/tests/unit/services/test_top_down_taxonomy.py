@@ -300,6 +300,21 @@ def test_source_classification_requires_timestamp_for_point_in_time_reads():
     assert system == "SEC_SIC"
 
 
+def test_source_classification_normalises_offsetless_historical_cutoff():
+    label, system = source_classification_for_as_of(
+        industry="Semiconductors",
+        sector=None,
+        field_provenance={
+            "industry": {
+                "classification_system": "SEC_SIC",
+                "observed_at": "2026-08-09T23:59:59+00:00",
+            }
+        },
+        as_of=datetime(2026, 8, 10),
+    )
+    assert (label, system) == ("Semiconductors", "SEC_SIC")
+
+
 def test_source_classification_keeps_unknown_namespace_visible_for_current_reads():
     label, system = source_classification_for_as_of(
         industry="Unmapped Provider Label",

@@ -33,7 +33,11 @@ from app.routers.analysis import (
     _volume_ratio_50,
     _wire_datetime,
 )
-from app.routers.market_groups import _holdings_snapshot_at, holdings_snapshot_source_filter
+from app.routers.market_groups import (
+    _historical_profile_payloads,
+    _holdings_snapshot_at,
+    holdings_snapshot_source_filter,
+)
 
 
 def _bar(instrument_id: int, year: int, month: int, close: str) -> OHLCVBar:
@@ -382,6 +386,36 @@ def test_industry_snapshot_cutoff_requires_known_at_provenance():
     sql = str(statement.compile(compile_kwargs={"literal_binds": True}))
     assert "known_at IS NOT NULL" in sql
     assert "composition_date <= '2024-03-10'" in sql
+
+
+@pytest.mark.asyncio
+async def test_historical_profile_snapshot_cutoff_requires_fetch_proof():
+    class Result:
+        def scalars(self):
+            return self
+
+        def all(self):
+            return []
+
+    class FakeDB:
+        statement = None
+
+        async def execute(self, statement):
+            self.statement = statement
+            return Result()
+
+    db = FakeDB()
+    result = await _historical_profile_payloads(
+        db,
+        {7},
+        datetime(2024, 3, 10),
+    )
+
+    assert result == {}
+    sql = str(db.statement.compile(compile_kwargs={"literal_binds": True}))
+    assert "observed_at <= '2024-03-10 00:00:00+00:00'" in sql
+    assert "fetched_at IS NOT NULL" in sql
+    assert "fetched_at <= '2024-03-10 00:00:00+00:00'" in sql
 
 
 def test_relative_rotation_sampling_retains_latest_aligned_observation():
