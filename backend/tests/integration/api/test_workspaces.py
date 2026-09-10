@@ -869,9 +869,11 @@ class TestWorkspaces:
     ):
         from datetime import UTC, datetime, timedelta
 
+        from app.models.data_source import DataSource
         from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
         from app.models.instrument import EquityDetail, Instrument
         from app.models.ohlcv import OHLCVBar, Timeframe
+        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
 
         seeded = client.get("/api/v1/market-groups", headers=auth_headers)
         assert seeded.status_code == 200
@@ -886,6 +888,14 @@ class TestWorkspaces:
         db.flush()
         profile = ETFProfile(instrument_id=spy.id, adapter_key="spdr", adapter_status="resolved")
         db.add(profile)
+        db.flush()
+        factor_source = DataSource(
+            name="factor-history-provider",
+            base_url="https://provider.example/history",
+            description="Adjustment provenance fixture",
+            is_active=True,
+        )
+        db.add(factor_source)
         db.flush()
         snapshot = ETFHoldingsSnapshot(
             etf_profile_id=profile.id,
@@ -944,6 +954,7 @@ class TestWorkspaces:
                     close=100,
                     volume=1_000,
                     is_adjusted=True,
+                    data_source_id=factor_source.id,
                 )
                 for offset in range(252)
             ]
@@ -958,6 +969,7 @@ class TestWorkspaces:
                     close=100,
                     volume=1_000,
                     is_adjusted=True,
+                    data_source_id=factor_source.id,
                 )
             ]
             + [
@@ -985,7 +997,26 @@ class TestWorkspaces:
                     close=101,
                     volume=1_001,
                     is_adjusted=True,
+                    data_source_id=factor_source.id,
                 ),
+            ]
+        )
+        db.add_all(
+            [
+                InstrumentDatasetState(
+                    instrument_id=current.id,
+                    data_source_id=factor_source.id,
+                    dataset_type="ohlcv",
+                    dataset_key="D1:adj",
+                    status=DatasetStatus.FRESH,
+                    extra_data={
+                        "adjustment_provenance": {
+                            "factor_status": "rebuildable_split_factors",
+                            "factor_version": "afv1-family",
+                        }
+                    },
+                )
+                for current in (instrument, instrument_b)
             ]
         )
         db.add_all(
@@ -1049,6 +1080,16 @@ class TestWorkspaces:
         assert daily["provider_bar_count"] == 253
         assert daily["derived_bar_count"] == 0
         assert daily["source_lineage"] == "provider_only"
+        assert daily["adjustment_provenance"] == {
+            "mode": "split_adjusted",
+            "source_kind": "provider_observation",
+            "factor_status": "rebuildable_split_factors",
+            "factor_version": "afv1-family",
+            "contract_version": 1,
+            "factor_versioned_member_count": 2,
+            "factor_opaque_member_count": 0,
+            "factor_unavailable_member_count": 0,
+        }
         weekly = next(item for item in history["timeframes"] if item["timeframe"] == "W1")
         assert weekly["covered_member_count"] == 1
         assert weekly["analysis_ready_member_count"] == 0

@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -155,7 +155,11 @@ from app.services.research_jobs import (
     read_research_progress,
 )
 from app.services.top_down_taxonomy import benchmark_family_registry
-from app.services.watchlist_history import ANALYSIS_REQUIRED_BAR_COUNTS
+from app.services.watchlist_history import (
+    ANALYSIS_REQUIRED_BAR_COUNTS,
+    adjustment_provenance_for_lineage,
+    state_factor_evidence,
+)
 from app.services.watchlist_sources import resolve_watchlist_source
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
@@ -278,13 +282,19 @@ async def _family_member_bar_history(
             func.min(OHLCVBar.ts).label("oldest"),
             func.max(OHLCVBar.ts).label("newest"),
             OHLCVBar.is_derived,
+            OHLCVBar.data_source_id,
         )
         .where(
             OHLCVBar.instrument_id.in_(member_ids),
             OHLCVBar.timeframe.in_(tuple(_FAMILY_MEMBER_BAR_REQUIREMENTS)),
             OHLCVBar.is_adjusted.is_(True),
         )
-        .group_by(OHLCVBar.timeframe, OHLCVBar.instrument_id, OHLCVBar.is_derived)
+        .group_by(
+            OHLCVBar.timeframe,
+            OHLCVBar.instrument_id,
+            OHLCVBar.is_derived,
+            OHLCVBar.data_source_id,
+        )
     )
     if as_of is not None:
         bars_query = bars_query.where(OHLCVBar.ts <= as_of)
@@ -296,13 +306,17 @@ async def _family_member_bar_history(
     # grouped rows directly would double-count that member and could inflate
     # coverage beyond 100 percent.
     by_timeframe: dict[Timeframe, dict[int, dict[str, Any]]] = defaultdict(dict)
-    for timeframe, instrument_id, bar_count, oldest, newest, is_derived in bar_rows:
+    for row in bar_rows:
+        timeframe, instrument_id, bar_count, oldest, newest, is_derived = row[:6]
+        data_source_id = row[6] if len(row) > 6 else None
         member = by_timeframe[timeframe].setdefault(
             int(instrument_id),
             {
+                "instrument_id": int(instrument_id),
                 "bar_count": 0,
                 "provider_bar_count": 0,
                 "derived_bar_count": 0,
+                "provider_source_ids": set(),
                 "oldest": None,
                 "newest": None,
             },
@@ -313,10 +327,46 @@ async def _family_member_bar_history(
             member["derived_bar_count"] += count
         else:
             member["provider_bar_count"] += count
+            if data_source_id is not None:
+                member["provider_source_ids"].add(int(data_source_id))
         if oldest is not None and (member["oldest"] is None or oldest < member["oldest"]):
             member["oldest"] = oldest
         if newest is not None and (member["newest"] is None or newest > member["newest"]):
             member["newest"] = newest
+
+    provider_source_ids = {
+        source_id
+        for members in by_timeframe.values()
+        for member in members.values()
+        for source_id in member.get("provider_source_ids", set())
+    }
+    has_derived_rows = any(
+        member.get("derived_bar_count", 0) > 0
+        for members in by_timeframe.values()
+        for member in members.values()
+    )
+    state_rows: list[tuple[Any, ...]] = []
+    if provider_source_ids or has_derived_rows:
+        state_filters = [InstrumentDatasetState.data_source_id.is_(None)]
+        if provider_source_ids:
+            state_filters.append(InstrumentDatasetState.data_source_id.in_(provider_source_ids))
+        state_rows = (
+            await db.execute(
+                select(
+                    InstrumentDatasetState.instrument_id,
+                    InstrumentDatasetState.data_source_id,
+                    InstrumentDatasetState.dataset_key,
+                    InstrumentDatasetState.extra_data,
+                ).where(
+                    InstrumentDatasetState.instrument_id.in_(member_ids),
+                    InstrumentDatasetState.dataset_type == "ohlcv",
+                    or_(*state_filters),
+                    InstrumentDatasetState.dataset_key.in_(
+                        [f"{timeframe.value}:adj" for timeframe in _FAMILY_MEMBER_BAR_REQUIREMENTS]
+                    ),
+                )
+            )
+        ).all()
 
     timeframes: list[BenchmarkFamilyMemberBarHistoryTimeframeOut] = []
     for timeframe, required_bar_count in _FAMILY_MEMBER_BAR_REQUIREMENTS.items():
@@ -345,6 +395,18 @@ async def _family_member_bar_history(
             if derived_member_count
             else "unavailable"
         )
+        lineage_rows = list(rows)
+        factor_evidence = state_factor_evidence(
+            lineage_rows,
+            state_rows,
+            timeframe.value,
+        )
+        adjustment_provenance = adjustment_provenance_for_lineage(
+            provider_member_count,
+            derived_member_count,
+        )
+        if factor_evidence:
+            adjustment_provenance.update(factor_evidence)
         oldest_values = [row["oldest"] for row in rows if row["oldest"] is not None]
         newest_values = [row["newest"] for row in rows if row["newest"] is not None]
         timeframes.append(
@@ -365,6 +427,7 @@ async def _family_member_bar_history(
                 provider_bar_count=provider_bar_count,
                 derived_bar_count=derived_bar_count,
                 source_lineage=source_lineage,
+                adjustment_provenance=adjustment_provenance,
                 oldest=min(oldest_values) if oldest_values else None,
                 newest=max(newest_values) if newest_values else None,
             )

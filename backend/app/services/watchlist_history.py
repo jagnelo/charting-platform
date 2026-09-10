@@ -38,7 +38,7 @@ ANALYSIS_REQUIRED_BAR_COUNTS = {
 }
 
 
-def _adjustment_provenance(
+def adjustment_provenance_for_lineage(
     provider_member_count: int, derived_member_count: int
 ) -> dict[str, object]:
     """Return explicit adjustment lineage without inventing provider factors."""
@@ -64,7 +64,7 @@ def _adjustment_provenance(
     }
 
 
-def _state_factor_evidence(
+def state_factor_evidence(
     lineage_rows: list[dict[str, Any]],
     state_rows: list[tuple[Any, ...]],
     timeframe_key: str,
@@ -534,8 +534,10 @@ async def build_watchlist_source_history_status(
             if derived_member_count
             else "unavailable"
         )
-        adjustment_provenance = _adjustment_provenance(provider_member_count, derived_member_count)
-        factor_evidence = _state_factor_evidence(
+        adjustment_provenance = adjustment_provenance_for_lineage(
+            provider_member_count, derived_member_count
+        )
+        factor_evidence = state_factor_evidence(
             lineage_rows,
             state_rows,
             timeframe.value,

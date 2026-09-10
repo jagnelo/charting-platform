@@ -342,6 +342,7 @@ class BenchmarkFamilyMemberBarHistoryTimeframeOut(BaseModel):
     source_lineage: Literal[
         "provider_only", "derived_only", "provider_and_derived", "unavailable"
     ] = "unavailable"
+    adjustment_provenance: dict[str, object] = Field(default_factory=dict)
     oldest: datetime | None = None
     newest: datetime | None = None
 

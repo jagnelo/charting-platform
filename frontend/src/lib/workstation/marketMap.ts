@@ -19,6 +19,16 @@ export interface BenchmarkFamilyMemberBarHistoryTimeframe {
   provider_bar_count?: number
   derived_bar_count?: number
   source_lineage?: 'provider_only' | 'derived_only' | 'provider_and_derived' | 'unavailable'
+  adjustment_provenance?: {
+    mode?: string
+    source_kind?: string
+    factor_status?: string
+    factor_version?: string | null
+    factor_versioned_member_count?: number
+    factor_opaque_member_count?: number
+    factor_unavailable_member_count?: number
+    contract_version?: number
+  }
   oldest?: string | null
   newest?: string | null
   required_bar_count?: number
