@@ -5,6 +5,34 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Accessible storage evidence consumer
+
+At product tip `285f1942`, the Coverage Summary tool now includes the
+raw/provider storage reconciliation result in its existing screen-reader-only
+range description. Users of assistive technology can distinguish reconciled,
+missing, mismatched, orphaned, and not-observed source evidence without a
+visible layout or pixel change. No prices, provider routing, fallback
+behavior, visual baseline, mask, threshold, skip, or acceptance policy
+changed.
+
+The focused frontend accessibility test passed `4/4`, with type-check green;
+the preceding backend storage/coverage contract passed `8/8` and backend
+unit-only suite `1,387/1,387`. The exact Docker-backed gate passed all
+non-visual stages, backend unit/integration coverage (`1,387`/`387`,
+`68%`/`81.19%`), frontend Vitest (`990/990`), and functional Playwright
+(`165` passed, `107` documented skips across `272`). Visual parity completed
+`104` cases with `98` passes and the same six established state-oracle diffs:
+`watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125. Scoped
+teardown removed all assigned resources and test sessions cleanly.
+
+R1 remains active for provider-supplied dividend-factor coverage and factor
+application/rebuild verification, complete family/provider-history readiness,
+W1/MN continuity, cadence beyond source-declared metadata, and broader
+canonical population; R2-R7 remain open. Next action: continue the next
+bounded evidence-backed R1 history/provenance seam and rerun the exact gate at
+the next coherent tip.
+
 ## 2026-09-10 — Raw/provider storage reconciliation evidence
 
 At product tip `49d87f6f`, adjusted OHLCV coverage now reports explicit storage

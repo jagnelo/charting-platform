@@ -13,6 +13,20 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tip 285f1942 carries raw/provider storage reconciliation status and
+  counts into the Coverage Summary tool's existing screen-reader-only range
+  description. Assistive-technology users can distinguish reconciled, missing,
+  mismatched, orphaned, and not-observed evidence; visible layout and pixels
+  are unchanged. No prices, routing, fallback, visual policy, or acceptance
+  policy changed. Focused frontend accessibility coverage passed 4/4 and
+  type-check passed; backend storage/coverage passed 8/8 and backend unit-only
+  passed 1387/1387. The exact Docker-backed gate passed all non-visual stages,
+  backend unit/integration 1387/387 at 68%/81.19%, frontend 990/990, and
+  functional Playwright 165 with 107 documented skips across 272. Visual
+  parity remains 98/104 with the same six established state-oracle diffs;
+  teardown and resource accounting were clean. Provider dividend-factor
+  application/rebuild verification, family/provider-history readiness, W1/MN
+  continuity, cadence, canonical population, and R2-R7 remain open.
   Product tip 49d87f6f adds additive adjusted-OHLCV coverage evidence comparing
   canonical provider bars with matching raw MarketBarObservation rows. The
   contract distinguishes reconciled, missing, mismatched, orphaned, and
@@ -798,6 +812,21 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
+    Product tip 285f1942 carries raw/provider storage reconciliation status and
+    counts into the Coverage Summary tool's existing screen-reader-only range
+    description. Assistive-technology users can distinguish reconciled,
+    missing, mismatched, orphaned, and not-observed evidence; visible layout
+    and pixels are unchanged. No prices, routing, fallback, visual policy, or
+    acceptance policy changed. Focused frontend accessibility coverage passed
+    4/4 and type-check passed; backend storage/coverage passed 8/8 and backend
+    unit-only passed 1387/1387. The exact Docker-backed gate passed all
+    non-visual stages, backend unit/integration 1387/387 at 68%/81.19%,
+    frontend 990/990, and functional Playwright 165 with 107 documented skips
+    across 272. Visual parity remains 98/104 with the same six established
+    state-oracle diffs; teardown and resource accounting were clean. Provider
+    dividend-factor application/rebuild verification, family/provider-history
+    readiness, W1/MN continuity, cadence, canonical population, and R2-R7
+    remain open.
     Product tip 49d87f6f adds additive adjusted-OHLCV coverage evidence
     comparing canonical provider bars with matching raw
     MarketBarObservation rows. The contract distinguishes reconciled,

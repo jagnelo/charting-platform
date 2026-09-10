@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-10 — Accessible storage evidence consumer
+
+- [x] Carry raw/provider storage reconciliation status and counts through the
+      Coverage Summary tool's existing screen-reader-only range description,
+      without visible layout or pixel changes.
+- [x] Regress the frontend consumer (`4/4`) and type-check; the exact gate
+      preserved `1,387/387` backend, `990/990` frontend, `165` functional
+      passes, `107` documented skips, and the six visual diffs with clean
+      teardown.
+- [ ] Add provider-supplied dividend factors and factor-application/rebuild
+      verification; continue family/provider history, W1/MN continuity,
+      cadence, and canonical population.
+
 ### 2026-09-10 — Raw/provider storage reconciliation evidence
 
 - [x] Add provider-bar versus raw-observation reconciliation evidence to the

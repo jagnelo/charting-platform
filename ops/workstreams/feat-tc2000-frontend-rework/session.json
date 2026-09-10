@@ -110,14 +110,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "49d87f6ff1c42516dec96eadfd0b410e25691a8d",
-  "implementation_sha": "49d87f6ff1c42516dec96eadfd0b410e25691a8d",
+  "head": "285f194257f37d1e4593d110a3a5ed11d262687a",
+  "implementation_sha": "285f194257f37d1e4593d110a3a5ed11d262687a",
   "interrupted": false,
-  "last_checkpoint": "2026-09-10T02:45:00Z",
-  "last_human_progress_update": "2026-09-10T02:45:00Z",
+  "last_checkpoint": "2026-09-10T03:10:00Z",
+  "last_human_progress_update": "2026-09-10T03:10:00Z",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded evidence-backed R1 history or provenance seam; preserve the six visual state-oracle assertions and provider/fallback rules and rerun the exact gate at the next coherent tip.",
-  "plan_hash": "f2b22c223b3219eed613a97c4d96f6c0117a8dc7c9dbc1995679ad6fd833aab4",
+  "plan_hash": "c8e23da1248961bae6785c4f4b20a0f7de6724630e39a83cd30b8cd711815b7e",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -129,11 +129,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product tip 49d87f6f adds additive adjusted-OHLCV coverage evidence comparing canonical provider bars with matching raw MarketBarObservation rows. The contract distinguishes reconciled, missing, mismatched, orphaned, and not-observed states; derived rows are excluded from raw-observation requirements. Prices, routing, fallback, visible layout, pixels, and acceptance policy are unchanged. Focused storage/coverage checks passed 8/8 and the backend unit-only suite passed 1387/1387; Ruff, format, and diff checks passed. The exact Docker-backed gate passed all non-visual stages, backend unit/integration coverage 1387/387 at 68%/81.19%, frontend 990/990, and functional Playwright 165 with 107 documented skips across 272. Visual parity remains 98/104 with exactly the six established state-oracle diffs; teardown and resource accounting were clean. Provider dividend-factor application and rebuild verification, family/provider-history readiness, W1/MN continuity, cadence beyond source-declared metadata, broader canonical population, and R2-R7 remain open.",
+    "current_blocker": "Product tip 285f1942 carries raw/provider storage reconciliation status and counts into the Coverage Summary tool's existing screen-reader-only range description. Assistive-technology users can distinguish reconciled, missing, mismatched, orphaned, and not-observed evidence; visible layout and pixels are unchanged. No prices, routing, fallback, visual policy, or acceptance policy changed. Focused frontend accessibility coverage passed 4/4 and type-check passed; backend storage/coverage passed 8/8 and backend unit-only passed 1387/1387. The exact Docker-backed gate passed all non-visual stages, backend unit/integration coverage 1387/387 at 68%/81.19%, frontend 990/990, and functional Playwright 165 with 107 documented skips across 272. Visual parity remains 98/104 with exactly the six established state-oracle diffs; teardown and resource accounting were clean. Provider dividend-factor application and rebuild verification, family/provider-history readiness, W1/MN continuity, cadence beyond source-declared metadata, broader canonical population, and R2-R7 remain open.",
     "current_phase": "R1_canonical_provider_history_readiness",
     "next_action": "Continue the next bounded evidence-backed R1 history or provenance seam; preserve the six visual state-oracle assertions and provider/fallback rules and rerun the exact gate at the next coherent tip.",
     "total": 10,
-    "updated_at": "2026-09-10T02:45:00Z"
+    "updated_at": "2026-09-10T03:10:00Z"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

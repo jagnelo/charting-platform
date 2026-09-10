@@ -8,6 +8,30 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Accessible storage evidence checkpoint
+
+Product tip `285f1942` carries raw/provider storage reconciliation status and
+counts into the Coverage Summary tool's existing screen-reader-only range
+description. Assistive-technology users can distinguish reconciled, missing,
+mismatched, orphaned, and not-observed evidence; visible layout and pixels are
+unchanged. No prices, routing, fallback, visual policy, or acceptance policy
+changed.
+
+Focused frontend accessibility coverage passed `4/4` and type-check passed;
+backend storage/coverage coverage passed `8/8` and backend unit-only passed
+`1,387/1,387`. The exact Docker-backed gate passed all non-visual stages,
+backend unit/integration `1,387`/`387` (`68%`/`81.19%`), frontend Vitest
+`990/990`, and functional Playwright `165` with `107` documented skips across
+`272`. Visual parity remained `98/104` with exactly the six established
+watchlist-column-editor-open/workspace-floating diffs; teardown removed all
+assigned resources and sessions cleanly.
+
+R1 remains active for provider dividend-factor application/rebuild
+verification, family/provider-history readiness, W1/MN continuity,
+source-declared cadence, and broader canonical population. R2-R7 remain open.
+Next action: continue the next bounded evidence-backed R1 history/provenance
+seam and rerun the exact gate.
+
 ## 2026-09-10 — Raw/provider storage reconciliation checkpoint
 
 Product tip `49d87f6f` adds additive adjusted-OHLCV coverage evidence comparing
