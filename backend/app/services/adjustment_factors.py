@@ -17,6 +17,10 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.adjustment_factor import AdjustmentFactorObservation
 from app.models.instrument_event import InstrumentEvent, InstrumentEventType
 
 
@@ -96,3 +100,68 @@ def build_adjustment_factor_snapshot(
         status="rebuildable_split_factors",
         event_count=len(ordered),
     )
+
+
+async def persist_adjustment_factor_observations(
+    db: AsyncSession,
+    *,
+    instrument_id: int,
+    data_source_id: int,
+    provider_symbol: str | None,
+    events: Iterable[InstrumentEvent],
+) -> int:
+    """Persist normalized split/dividend evidence for one provider response.
+
+    The operation is intentionally portable across the unit-test SQLite
+    adapter and production Postgres. It updates the same natural key in place,
+    preserving one durable observation per source event while allowing a later
+    provider response to fill corrected payload values.
+    """
+
+    relevant = [
+        event
+        for event in events
+        if event.event_type in {InstrumentEventType.SPLIT, InstrumentEventType.DIVIDEND}
+        and event.source_event_key
+    ]
+    if not relevant:
+        return 0
+    snapshot = build_adjustment_factor_snapshot(relevant)
+    persisted = 0
+    for event in relevant:
+        factor_type = event.event_type.value
+        effective_at = _as_utc(event.event_time)
+        existing = (
+            await db.execute(
+                select(AdjustmentFactorObservation).where(
+                    AdjustmentFactorObservation.instrument_id == instrument_id,
+                    AdjustmentFactorObservation.data_source_id == data_source_id,
+                    AdjustmentFactorObservation.factor_type == factor_type,
+                    AdjustmentFactorObservation.effective_at == effective_at,
+                    AdjustmentFactorObservation.source_event_key == event.source_event_key,
+                )
+            )
+        ).scalar_one_or_none()
+        values = {
+            "instrument_id": instrument_id,
+            "data_source_id": data_source_id,
+            "provider_symbol": provider_symbol,
+            "factor_type": factor_type,
+            "effective_at": effective_at,
+            "factor": event.split_ratio if factor_type == InstrumentEventType.SPLIT.value else None,
+            "amount": event.dividend_amount
+            if factor_type == InstrumentEventType.DIVIDEND.value
+            else None,
+            "source_event_key": event.source_event_key,
+            "observed_at": _as_utc(event.fetched_at),
+            "factor_version": snapshot.version,
+            "raw_payload": event.raw_payload,
+        }
+        if existing is None:
+            db.add(AdjustmentFactorObservation(**values))
+        else:
+            for key, value in values.items():
+                setattr(existing, key, value)
+        persisted += 1
+    await db.flush()
+    return persisted

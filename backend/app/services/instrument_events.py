@@ -16,6 +16,7 @@ from app.models.instrument_event import (
 from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
 from app.models.provider_runtime import ProviderCapability
 from app.providers import provider_symbol_for_instrument
+from app.services.adjustment_factors import persist_adjustment_factor_observations
 from app.services.instrument_mastering import ensure_external_identifier
 from app.services.provider_runtime import execute_provider_call
 
@@ -95,6 +96,14 @@ async def fetch_and_store_instrument_events(db: AsyncSession, instrument: Instru
         )
         await db.execute(stmt)
         inserted += 1
+
+    await persist_adjustment_factor_observations(
+        db,
+        instrument_id=instrument.id,
+        data_source_id=execution.data_source.id,
+        provider_symbol=provider_symbol_for_instrument(instrument, execution.provider_name),
+        events=events,
+    )
 
     state_stmt = (
         pg_insert(InstrumentEventFetchState)

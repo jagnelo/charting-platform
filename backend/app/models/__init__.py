@@ -1,4 +1,5 @@
 from app.models.alert_firing_event import AlertFiringEvent
+from app.models.adjustment_factor import AdjustmentFactorObservation
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.base import TimestampMixin
 from app.models.basket import Basket, BasketMember, BasketSnapshot, BasketSnapshotMember
@@ -108,6 +109,7 @@ from app.models.workstation import (
 
 __all__ = [
     "TimestampMixin",
+    "AdjustmentFactorObservation",
     "User",
     "Exchange",
     "AssetClass",
