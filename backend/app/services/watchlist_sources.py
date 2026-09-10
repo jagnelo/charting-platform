@@ -6,7 +6,7 @@ import hashlib
 import json
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,6 +34,13 @@ PENDING_SOURCE_AVAILABILITIES = frozenset(
         "membership_not_loaded",
     }
 )
+
+
+def _as_utc(value: datetime) -> datetime:
+    """Normalize historical source cutoffs and persisted timestamps to UTC."""
+
+    normalized = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+    return normalized.astimezone(UTC)
 
 
 def _holdings_snapshot_availability(
@@ -152,22 +159,28 @@ def _watchlist_item_active_at(item: object, as_of: datetime | None) -> bool:
 
     if as_of is None:
         return True
+    evaluation_at = _as_utc(as_of)
     added_at = getattr(item, "added_at", None)
     left_at = getattr(item, "left_screener_at", None)
-    return bool(added_at is not None and added_at <= as_of and (left_at is None or left_at > as_of))
+    return bool(
+        added_at is not None
+        and _as_utc(added_at) <= evaluation_at
+        and (left_at is None or _as_utc(left_at) > evaluation_at)
+    )
 
 
 def _watchlist_item_as_of_exclusion(item: object, as_of: datetime | None) -> dict | None:
     if as_of is None or _watchlist_item_active_at(item, as_of):
         return None
+    evaluation_at = _as_utc(as_of)
     added_at = getattr(item, "added_at", None)
-    if added_at is not None and added_at > as_of:
+    if added_at is not None and _as_utc(added_at) > evaluation_at:
         return {
             "instrument_id": getattr(item, "instrument_id", None),
             "reason": "membership_not_known_at_as_of",
         }
     left_at = getattr(item, "left_screener_at", None)
-    if left_at is not None and left_at <= as_of:
+    if left_at is not None and _as_utc(left_at) <= evaluation_at:
         return {
             "instrument_id": getattr(item, "instrument_id", None),
             "reason": "membership_not_active_at_as_of",
@@ -592,7 +605,7 @@ def _saved_explicit_known_at_exclusions(
     if as_of is None:
         return ()
     known_at = item.updated_at or item.created_at
-    if known_at is not None and known_at <= as_of:
+    if known_at is not None and _as_utc(known_at) <= _as_utc(as_of):
         return ()
     return tuple(
         {
@@ -1077,7 +1090,7 @@ async def resolve_watchlist_source(
         selected_ids = _combo_member_ids(watchlists, payload)
         selected_at_as_of = _combo_member_ids(watchlists, payload, as_of=as_of)
         as_of_exclusions: list[dict] = []
-        if as_of is not None and combo.updated_at > as_of:
+        if as_of is not None and _as_utc(combo.updated_at) > _as_utc(as_of):
             return ResolvedWatchlistSource(
                 descriptor=_combo_descriptor(combo, 0, dependency_versions),
                 members=(),
@@ -1178,10 +1191,11 @@ async def resolve_watchlist_source(
             ETFHoldingsSnapshot.etf_profile_id == profile.id
         )
         if as_of is not None:
+            evaluation_at = _as_utc(as_of)
             statement = statement.where(
-                ETFHoldingsSnapshot.composition_date <= as_of.date(),
+                ETFHoldingsSnapshot.composition_date <= evaluation_at.date(),
                 ETFHoldingsSnapshot.known_at.is_not(None),
-                ETFHoldingsSnapshot.known_at <= as_of,
+                ETFHoldingsSnapshot.known_at <= evaluation_at,
             )
         snapshot = (
             await db.execute(
@@ -1357,10 +1371,11 @@ async def resolve_watchlist_source(
             ETFHoldingsSnapshot.etf_profile_id == profile.id
         )
         if as_of is not None:
+            evaluation_at = _as_utc(as_of)
             statement = statement.where(
-                ETFHoldingsSnapshot.composition_date <= as_of.date(),
+                ETFHoldingsSnapshot.composition_date <= evaluation_at.date(),
                 ETFHoldingsSnapshot.known_at.is_not(None),
-                ETFHoldingsSnapshot.known_at <= as_of,
+                ETFHoldingsSnapshot.known_at <= evaluation_at,
             )
         snapshot = (
             await db.execute(
