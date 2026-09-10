@@ -562,6 +562,13 @@ The focused Nasdaq suite passed `11/11`; Ruff and diff checks passed. The
 authoritative gate remains unverified because Docker preflight is currently
 unavailable.
 
+CoinGecko HTTP, search, ranked symbol resolution, profile, and market-discovery
+paths now reject invalid containers, malformed or mixed rows, incomplete
+identities, malformed nested metadata, and non-rate-limit HTTP failures while
+preserving typed capacity errors. The focused CoinGecko suite passed `17/17`;
+Ruff and diff checks passed. The authoritative gate remains unverified because
+Docker preflight is currently unavailable.
+
 Alpha Vantage JSON and CSV adapters now reject invalid containers, malformed
 search/history rows, incomplete listing or IPO rows, invalid dates/numbers, and
 non-rate-limit HTTP failures while preserving documented rate-limit/error
