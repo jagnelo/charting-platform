@@ -1447,6 +1447,43 @@ class TestEdgarTickerMap:
         assert all(len(row["identity_ambiguity"]) == 2 for row in duplicate_rows)
         assert page["quotes"][-1]["symbol"] == "OK"
 
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            {"fields": ["cik", "name", "ticker"], "data": [[1, "One", "ONE", "EXTRA"]]},
+            {"fields": ["cik", "name", "ticker"], "data": [[1, "One"], "not-a-row"]},
+            {"data": [{"cik": 1}, "not-a-row"]},
+            {"0": {"cik": 1, "name": "One"}, "1": "not-a-row"},
+        ],
+    )
+    def test_sec_exchange_directory_rejects_malformed_rows(self, payload):
+        import app.providers.edgar as edgar_module
+
+        edgar_module._exchange_directory = []
+        edgar_module._exchange_directory_ts = 0.0
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = payload
+        mock_resp.raise_for_status.return_value = None
+
+        with patch("app.providers.edgar.httpx.get", return_value=mock_resp):
+            with pytest.raises(ProviderResponseError, match="SEC EDGAR exchange directory"):
+                EdgarProvider().discover_universe_page("EQUITY", 0)
+
+    def test_sec_ticker_directory_rejects_malformed_rows(self):
+        import app.providers.edgar as edgar_module
+
+        edgar_module._ticker_map = {}
+        edgar_module._ticker_map_ts = 0.0
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {
+            "0": {"ticker": "AAPL", "cik_str": "not-a-cik", "title": "Apple"},
+        }
+        mock_resp.raise_for_status.return_value = None
+
+        with patch("app.providers.edgar.httpx.get", return_value=mock_resp):
+            with pytest.raises(ProviderResponseError, match="SEC EDGAR ticker directory"):
+                edgar_module._ensure_ticker_map({"User-Agent": "test test@example.invalid"})
+
     def test_search_instruments_uses_cached_sec_directory(self):
         import app.providers.edgar as edgar_module
 
@@ -1591,3 +1628,39 @@ class TestEdgarTickerMap:
         titles = [e.title for e in events]
         assert any("Quarterly" in t for t in titles)
         assert any("Annual" in t for t in titles)
+
+    def test_fetch_instrument_events_rejects_misaligned_filing_arrays(self):
+        import app.providers.edgar as edgar_module
+
+        edgar_module._ticker_map = {"AAPL": {"cik": 320193, "title": "Apple Inc."}}
+        edgar_module._ticker_map_ts = edgar_module._ticker_map_ts + 9999999
+        response = MagicMock()
+        response.json.return_value = {
+            "filings": {
+                "recent": {
+                    "form": ["10-Q"],
+                    "filingDate": [],
+                    "accessionNumber": ["0000320193-24-000010"],
+                }
+            }
+        }
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.edgar.settings") as configured,
+            patch("app.providers.edgar.httpx.get", return_value=response),
+        ):
+            configured.EDGAR_USER_AGENT = "test test@example.invalid"
+            with pytest.raises(ProviderResponseError, match="misaligned filing arrays"):
+                EdgarProvider().fetch_instrument_events("AAPL")
+
+    def test_fetch_fundamental_facts_rejects_malformed_nested_rows(self):
+        response = MagicMock()
+        response.json.return_value = {"facts": {"us-gaap": {"Revenue": {"units": {"USD": [42]}}}}}
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.edgar.settings") as configured,
+            patch("app.providers.edgar.httpx.get", return_value=response),
+        ):
+            configured.EDGAR_USER_AGENT = "test test@example.invalid"
+            with pytest.raises(ProviderResponseError, match="malformed observation"):
+                EdgarProvider().fetch_fundamental_facts("320193")
