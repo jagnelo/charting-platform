@@ -97,14 +97,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "58dd692680a9e30e85b63159ebb1a9497594c56c",
-  "implementation_sha": "58dd692680a9e30e85b63159ebb1a9497594c56c",
+  "head": "7eb10de17162956a665c99830267bbf0497d7868",
+  "implementation_sha": "7eb10de17162956a665c99830267bbf0497d7868",
   "interrupted": false,
-  "last_checkpoint": "2026-09-10T15:43:09Z",
-  "last_human_progress_update": "2026-09-10T15:43:09Z",
+  "last_checkpoint": "2026-09-10T16:13:32Z",
+  "last_human_progress_update": "2026-09-10T16:13:32Z",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue provider/family history, W1/MN continuity beyond the bounded seam, canonical population, and R6 dense-data evidence; preserve the six protected visual state-oracle assertions and rerun the exact gate after the next coherent product change.",
-  "plan_hash": "95b520b03b38aafa23339ca720acfeb193a9f6ba74528e367a9e8105ceb92df6",
+  "plan_hash": "6ec225d170f8b65a8fbfffb71e9f4b0c06255d0821472e9fb9b2a357060ca6a6",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -116,11 +116,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product tip 58dd6926 makes explicit provider-factor materialization take precedence over an existing local_split_ratio derived row at the same key. Provider rows remain immutable; provider_adjustment_factor may upgrade local split-derived state, and the split-only path cannot downgrade provider-factor rows or overwrite unrelated derived lineage. Focused adjustment-factor coverage passed 19/19; full backend unit passed 1428/1428 at 67.87%, with Ruff, format, and diff checks clean. The exact gate passed backend integration 387/387, frontend/runtime checks, and functional Playwright 165 passed with 107 documented skips across 272. Visual parity remains 98/104 with exactly the six protected diffs; the gate exited 1 at e2e-visual after clean teardown. Continue provider/family history, W1/MN continuity beyond the bounded seam, canonical population, and dense-data evidence; R2-R5 and R7 remain open and the no-integration/no-deployment boundary holds.",
+    "current_blocker": "Product tip 7eb10de1 makes generic source-history status method-aware for derived D1 rows, reading method-specific local factor state only for the derived lineage present in covered bars. Verified factor version/status is retained; missing, mixed, or incomplete evidence remains conservative. Focused watchlist-history coverage passed 9/9; full backend unit passed 1429/1429 at 67.88%, with Ruff, format, and diff checks clean. The exact gate passed backend integration 387/387, frontend/runtime checks, and functional Playwright 165 passed with 107 documented skips across 272. Visual parity remains 98/104 with exactly the six protected diffs; the gate exited 1 at e2e-visual after clean teardown. Continue full provider/family history, W1/MN continuity beyond the bounded seam, canonical population, and dense-data evidence; R2-R5 and R7 remain open and the no-integration/no-deployment boundary holds.",
     "current_phase": "R1_canonical_provider_history_readiness",
     "next_action": "Continue provider/family history, W1/MN continuity beyond the bounded seam, canonical population, and R6 dense-data evidence; preserve the six protected visual state-oracle assertions and rerun the exact gate after the next coherent product change.",
     "total": 25,
-    "updated_at": "2026-09-10T15:43:09Z"
+    "updated_at": "2026-09-10T16:13:32Z"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

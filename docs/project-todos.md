@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-10 — D1 history exposes local provider-factor lineage
+
+- [x] Make generic source-history status read method-specific D1 derived state
+      and attach factor evidence only to the corresponding covered lineage.
+- [x] Focused watchlist-history coverage passed `9/9`; full backend unit
+      coverage passed `1,429/1,429` at `67.88%`; Ruff, formatting, and diff
+      checks passed.
+- [x] The exact gate passed backend integration `387/387`, frontend/runtime
+      checks, and functional Playwright (`165` passed, `107` documented skips
+      across `272`); visual parity remains `98/104` with exactly the six
+      protected diffs and clean scoped teardown.
+- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
+      the bounded lineage path, canonical population, and dense-data evidence;
+      preserve protected visual assertions and the no-fallback boundary.
+
 ### 2026-09-10 — Explicit provider-factor precedence
 
 - [x] Make explicit provider-factor materialization upgrade an existing

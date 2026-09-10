@@ -5,6 +5,33 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — D1 history exposes local provider-factor lineage
+
+At product tip `7eb10de1`, generic watchlist source-history status now reads
+method-specific D1 derived state (`D1:adj:local_split_ratio` and
+`D1:adj:provider_adjustment_factor`) and associates it with the derived rows
+that are actually covered. This preserves a verified factor version/status for
+local provider-adjusted D1 history instead of collapsing it to unavailable;
+provider-source state remains separate, and mixed or incomplete evidence stays
+conservative. Focused watchlist-history coverage passed `9/9`; the full backend
+unit suite passed `1,429/1,429` with `67.88%` coverage; Ruff, formatting, and
+diff checks passed.
+
+The exact branch-scoped gate passed backend integration `387/387`, frontend
+Vitest/type-check/build, uPlot and visual-policy checks, compose/health/
+performance checks, and functional Playwright (`165` passed, `107` documented
+skips across `272`). Visual parity remains `98/104` with exactly the six
+protected state-oracle diffs (`watchlist-column-editor-open` at
+visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125 and
+visual-1440p-100/125); the gate exited `1` at `e2e-visual` after clean
+branch-scoped teardown. No visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed.
+
+This closes the D1 local-factor history display seam only. Full provider/family
+history breadth, W1/MN continuity beyond the bounded lineage path, canonical
+population, and dense-data evidence remain open; continue without integration
+or deployment.
+
 ## 2026-09-10 — Explicit provider-factor precedence
 
 At product tip `58dd6926`, explicit provider-factor materialization now has

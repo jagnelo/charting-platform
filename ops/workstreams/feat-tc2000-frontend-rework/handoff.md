@@ -8,6 +8,23 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — D1 history exposes local provider-factor lineage
+
+Product tip `7eb10de1` makes generic source-history status method-aware for
+derived D1 rows, reading `D1:adj:local_split_ratio` and
+`D1:adj:provider_adjustment_factor` state only for the derived lineage present
+in the covered bars. Verified factor version/status is retained; missing,
+mixed, or incomplete evidence remains conservative. Focused watchlist-history
+coverage passed `9/9`; full backend unit coverage passed `1,429/1,429` at
+`67.88%`; Ruff, formatting, and diff checks passed.
+
+The exact gate passed backend integration `387/387`, frontend/runtime checks,
+and functional Playwright (`165` passed, `107` documented skips across `272`).
+Visual parity remains `98/104` with exactly the six protected diffs; the gate
+exited `1` at `e2e-visual` after clean branch-scoped teardown. No visual or
+acceptance policy changed. Continue provider/family history, W1/MN continuity
+beyond the bounded seam, canonical population, and dense-data evidence.
+
 ## 2026-09-10 — Explicit provider-factor precedence
 
 Product tip `58dd6926` makes explicit provider-factor materialization win over
