@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-10 — Point-in-time adjustment-factor provenance
+
+- [x] Bound normalized adjustment observations and legacy event fallback rows
+      to each dataset's `coverage_end`, so future events cannot contaminate a
+      historical range's factor version.
+- [x] Focused factor/market-data coverage passed `5/5`; the full backend unit
+      suite passed `1,408/1,408` at `67.76%` coverage against the `55%`
+      threshold; Ruff, formatting, and diff checks passed.
+- [ ] Continue provider factor application/rebuild, family/provider history,
+      W1/MN continuity, canonical population, and live 100k-point evidence;
+      preserve the six protected visual assertions and rerun the exact gate
+      after the next coherent product change.
+
 ### 2026-09-10 — Exact integration gate at the coherent product tip
 
 - [x] Run the prescribed branch-scoped gate at product tip `02bc0bd8`:

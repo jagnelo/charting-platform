@@ -5,6 +5,24 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Point-in-time adjustment-factor provenance
+
+At product tip `95f3b67a`, canonical adjusted dataset-state provenance now
+limits normalized adjustment observations and legacy event fallback rows to
+events effective on or before the dataset's `coverage_end`. A later corporate
+action can no longer change the factor version reported for an earlier
+historical range. Focused factor/market-data coverage passed `5/5`; the full
+backend unit suite passed `1,408/1,408` with `67.76%` coverage against the
+configured `55%` threshold; Ruff, formatting, and diff checks passed. No
+prices, bars, provider routing, fallback, visible layout, pixels, visual
+baselines, thresholds, skips, or acceptance policy changed.
+
+R1/R6 remain active for provider-factor application/rebuild verification,
+family/provider-history readiness, W1/MN continuity, canonical population, and
+the live 100k-point proof; R2-R5 and R7 remain open. Rerun the exact gate after
+the next coherent product change while preserving the six protected visual
+assertions.
+
 ## 2026-09-10 — Exact integration gate receipt at the coherent product tip
 
 The prescribed `make validate-integration` gate ran against product tip

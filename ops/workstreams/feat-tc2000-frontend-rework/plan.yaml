@@ -13,6 +13,17 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tip 95f3b67a bounds normalized adjustment observations and legacy
+  event fallback rows to events effective on or before each dataset's
+  coverage_end, preventing future corporate actions from contaminating a
+  historical factor version. Focused factor/market-data coverage passed 5/5;
+  the full backend unit suite passed 1408/1408 at 67.76% coverage against the
+  configured 55% threshold; Ruff, formatting, and diff checks passed. No
+  prices, bars, provider routing, fallback, visible layout, pixels, visual
+  baselines, thresholds, skips, or acceptance policy changed. Continue the
+  next bounded R1/R6 provider-factor/history/provenance and dense-data seam;
+  rerun the exact gate after the next coherent product change while preserving
+  the six protected assertions.
   The exact branch-scoped integration gate ran at coherent product tip
   02bc0bd8. Backend unit coverage passed 1407/1407; backend integration passed
   387/387 with 81.30% combined coverage; frontend Vitest, type-check/build,

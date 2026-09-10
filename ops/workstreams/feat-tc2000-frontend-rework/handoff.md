@@ -8,6 +8,22 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Point-in-time adjustment-factor provenance
+
+Product tip `95f3b67a` bounds normalized adjustment observations and the
+legacy event fallback to events effective on or before the dataset's
+`coverage_end`. Future corporate actions therefore cannot alter the factor
+version reported for an earlier historical range. Focused factor/market-data
+coverage passed `5/5`; the full backend unit suite passed `1,408/1,408` at
+`67.76%` coverage against the configured `55%` threshold; Ruff, formatting,
+and diff checks passed. No prices, bars, provider routing, fallback, visible
+layout, pixels, visual baselines, thresholds, skips, or acceptance policy
+changed.
+
+Continue the next bounded R1/R6 provider-factor/history/provenance and
+dense-data seam, preserve the six protected visual assertions, and rerun the
+exact gate after the next coherent product change.
+
 ## 2026-09-10 — Exact integration gate receipt at the coherent product tip
 
 The prescribed branch-scoped gate ran at product tip `02bc0bd8`. Backend unit
