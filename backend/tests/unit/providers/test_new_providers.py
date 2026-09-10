@@ -516,6 +516,62 @@ class TestBinanceOHLCVParsing:
                 )
         assert exc_info.value.provider_name == "binance"
 
+    @pytest.mark.parametrize(
+        "row",
+        [
+            {"open_time": 1704153600000},
+            [1704153600000, "1", "2"],
+            [1704153600000, "NaN", "2", "1", "1.5", "10"],
+        ],
+    )
+    def test_malformed_klines_rows_are_typed(self, row):
+        response = MagicMock()
+        response.json.return_value = [row]
+        response.raise_for_status.return_value = None
+        with patch("app.providers.binance.httpx.get", return_value=response):
+            with pytest.raises(ProviderResponseError) as exc_info:
+                BinanceProvider().fetch_ohlcv(
+                    "BTC-USD",
+                    Timeframe.D1,
+                    datetime(2024, 1, 2, tzinfo=UTC),
+                    datetime(2024, 1, 3, tzinfo=UTC),
+                )
+        assert exc_info.value.provider_name == "binance"
+
+    def test_non_progressing_klines_page_is_typed(self):
+        start_ms = int(datetime(2024, 1, 2, tzinfo=UTC).timestamp() * 1000)
+        response = MagicMock()
+        response.json.return_value = [
+            [start_ms, "1", "2", "1", "1.5", "10"],
+            [start_ms, "1", "2", "1", "1.5", "10"],
+        ]
+        response.raise_for_status.return_value = None
+        with patch("app.providers.binance.httpx.get", return_value=response):
+            with pytest.raises(ProviderResponseError, match="not increasing"):
+                BinanceProvider().fetch_ohlcv(
+                    "BTC-USD",
+                    Timeframe.D1,
+                    datetime(2024, 1, 2, tzinfo=UTC),
+                    datetime(2024, 1, 3, tzinfo=UTC),
+                )
+
+    def test_rate_limit_http_is_typed(self):
+        response = httpx.Response(
+            429,
+            headers={"Retry-After": "2"},
+            request=httpx.Request("GET", "https://api.binance.com/api/v3/klines"),
+        )
+        with patch("app.providers.binance.httpx.get", return_value=response):
+            with pytest.raises(ProviderRateLimitError) as exc_info:
+                BinanceProvider().fetch_ohlcv(
+                    "BTC-USD",
+                    Timeframe.D1,
+                    datetime(2024, 1, 2, tzinfo=UTC),
+                    datetime(2024, 1, 3, tzinfo=UTC),
+                )
+        assert exc_info.value.provider_name == "binance"
+        assert exc_info.value.status_code == 429
+
     def test_malformed_exchange_info_payload_is_typed(self):
         mock_resp = MagicMock()
         mock_resp.json.return_value = {"symbols": {}}
@@ -524,6 +580,22 @@ class TestBinanceOHLCVParsing:
             with pytest.raises(ProviderResponseError) as exc_info:
                 BinanceProvider().discover_universe_page("CRYPTOCURRENCY", 0)
         assert exc_info.value.provider_name == "binance"
+
+    def test_malformed_exchange_info_rows_are_typed(self):
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"symbols": [{"symbol": "BTCUSDT", "quoteAsset": "USDT"}]}
+        mock_resp.raise_for_status.return_value = None
+        with patch("app.providers.binance.httpx.get", return_value=mock_resp):
+            with pytest.raises(ProviderResponseError, match="invalid baseAsset"):
+                BinanceProvider().discover_universe_page("CRYPTOCURRENCY", 0)
+
+    def test_malformed_ticker_payload_is_typed(self):
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"price": "Infinity"}
+        mock_resp.raise_for_status.return_value = None
+        with patch("app.providers.binance.httpx.get", return_value=mock_resp):
+            with pytest.raises(ProviderResponseError, match="non-finite"):
+                BinanceProvider().get_current_price("BTC-USD")
 
     def test_historical_weight_estimate_rounds_up_per_1000_candle_page(self):
         start = datetime(2024, 1, 1, tzinfo=UTC)
