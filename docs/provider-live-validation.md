@@ -437,3 +437,15 @@ suite passed `115/115`; the authoritative gate completed at
 `2026-09-10T06:35Z` with `1876 passed`, `89` warnings, and `80.36%` line
 coverage in `389.90s`. Testcontainer session
 `795d0dc3-df37-451b-af3c-62eb6ad3d0ce` was cleaned without host-wide pruning.
+
+Binance, Nasdaq Trader, FINRA Query API, and the FINRA OTC directory now also
+fail closed on transport errors, malformed JSON, invalid response shapes, and
+incomplete directory payloads. Binance rejects malformed candle rows instead
+of silently dropping them; Nasdaq accepts the official `ACT Symbol` header and
+approved `Symbol` mirror variation while retaining identity-header validation;
+FINRA OAuth, short-interest, Daily List, async status, and OTC DAPI paths all
+preserve typed redacted provider failures. The focused provider/directory/
+instrumentation suite passed `138/138`; the corrected authoritative gate
+completed at `2026-09-10T07:08Z` with `1885 passed`, `89` warnings, and
+`80.37%` line coverage in `369.50s`. Testcontainer session
+`43c93bbd-d914-4259-ad39-21197ad67ed7` was cleaned without host-wide pruning.
