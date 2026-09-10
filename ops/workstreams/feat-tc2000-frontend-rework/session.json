@@ -97,14 +97,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "64bb88299f0208965cb8eb2df56ecd45abb49256",
-  "implementation_sha": "64bb88299f0208965cb8eb2df56ecd45abb49256",
+  "head": "edce3e824744afbe891e79b69b03eb03e50df107",
+  "implementation_sha": "edce3e824744afbe891e79b69b03eb03e50df107",
   "interrupted": false,
-  "last_checkpoint": "2026-09-10T17:54:12Z",
-  "last_human_progress_update": "2026-09-10T17:54:12Z",
+  "last_checkpoint": "2026-09-10T18:23:59Z",
+  "last_human_progress_update": "2026-09-10T18:23:59Z",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue provider/family history, W1/MN continuity beyond the bounded seam, canonical population, and R6 dense-data evidence; preserve the six protected visual state-oracle assertions and rerun the exact gate after the next coherent product change.",
-  "plan_hash": "bdec0a1dedf79496b106c1e6396a2f048dbc34c1850eac0977769536cd263383",
+  "plan_hash": "af43c85a67ae4b17c7b15318287c616307b7579f49fcc5447b2659f36f55e1e0",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -116,11 +116,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product tip 64bb8829 bounds range coverage factor-state projection by the requested inclusive end: persisted coverage_end and fetched_at must both be present and no later than the end; missing temporal proof remains conservatively unavailable. Focused coverage/watchlist/family regression coverage passed 20/20; full backend unit passed 1432/1432 at 68.00%, with Ruff, format, and diff checks clean. The exact gate passed all non-visual stages and functional Playwright 165 passed with 107 documented skips across 272. Visual parity remains 98/104 with exactly the six protected diffs; the gate exited 1 at e2e-visual after clean teardown. No visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue full provider/family history, W1/MN continuity beyond the bounded lineage seam, canonical population, and dense-data evidence; R2-R5 and R7 remain open and the no-integration/no-deployment boundary holds.",
+    "current_blocker": "Product tip edce3e824 fixes range-coverage state selection to honor explicit dataset_keys precedence before recency, so lineage-specific D1 factor state cannot be shadowed by generic D1:adj fallback state. Focused coverage-router coverage passed 10/10; full backend unit passed 1433/1433 at 68.00%, with Ruff, format, and diff checks clean. The exact gate passed all non-visual stages and functional Playwright 165 passed with 107 documented skips across 272. Backend integration passed 387/387 with 81.36% combined coverage. Visual parity remains 98/104 with exactly the six protected diffs; the gate exited 1 at e2e-visual after clean teardown. No visual baseline, mask, threshold, skip, provider, fallback, or acceptance policy changed. Continue full provider/family history, W1/MN continuity beyond the bounded lineage seam, canonical population, and dense-data evidence; R2-R5 and R7 remain open and the no-integration/no-deployment boundary holds.",
     "current_phase": "R1_canonical_provider_history_readiness",
     "next_action": "Continue provider/family history, W1/MN continuity beyond the bounded seam, canonical population, and R6 dense-data evidence; preserve the six protected visual state-oracle assertions and rerun the exact gate after the next coherent product change.",
     "total": 25,
-    "updated_at": "2026-09-10T17:54:12Z"
+    "updated_at": "2026-09-10T18:23:59Z"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

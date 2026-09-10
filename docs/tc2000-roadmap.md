@@ -5,6 +5,30 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Coverage resolution honors explicit lineage-key precedence
+
+At product tip `edce3e824`, range coverage now orders persisted dataset state by
+the caller's explicit `dataset_keys` precedence before applying recency. A
+lineage-specific key such as `D1:adj:local_split_ratio` therefore cannot be
+silently shadowed by the generic `D1:adj` fallback when both are present; the
+existing conservative temporal checks remain unchanged.
+
+The focused coverage-router suite passed `10/10`; the complete backend unit
+suite passed `1,433/1,433` at `68.00%`; Ruff, formatting, and diff checks
+passed. The exact branch-scoped Docker gate passed all non-visual stages and
+functional Playwright (`165` passed, `107` documented skips across `272`).
+Visual parity remains `98/104` with exactly the six protected state-oracle
+diffs (watchlist-column-editor-open at visual-1080p-100/125 and
+workspace-floating at visual-1080p-100/125 and visual-1440p-100/125); the gate
+exited `1` at `e2e-visual` after clean branch-scoped teardown. No visual
+baseline, mask, threshold, skip, provider, fallback, or acceptance policy
+changed.
+
+This closes one bounded coverage-state precedence seam only. Full
+provider/family history breadth, W1/MN continuity beyond the bounded lineage
+path, canonical population, dense-data evidence, and R2-R7 goals remain open;
+continue without integration or deployment.
+
 ## 2026-09-10 — Range coverage factor provenance honors requested end
 
 At product tip `64bb8829`, the range coverage endpoint now bounds factor-state

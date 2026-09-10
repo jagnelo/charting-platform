@@ -8,6 +8,22 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Coverage resolution honors explicit lineage-key precedence
+
+Product tip `edce3e824` fixes range-coverage state selection to honor the
+explicit `dataset_keys` order before recency. Method-specific D1 factor state
+can no longer be hidden by a generic `D1:adj` row when both exist; temporal
+coverage and fetch-time safeguards remain intact.
+
+Focused coverage-router coverage passed `10/10`; the full backend unit suite
+passed `1,433/1,433` at `68.00%`; Ruff, formatting, and diff checks passed.
+The exact Docker-backed gate passed all non-visual stages and functional
+Playwright (`165` passed, `107` documented skips across `272`). Visual parity
+remains `98/104` with the same six protected diffs; the gate exited `1` at
+`e2e-visual` after clean branch-scoped teardown. No visual or acceptance policy
+changed. Continue the open provider/family history, W1/MN continuity,
+canonical-population, and dense-data work without integration or deployment.
+
 ## 2026-09-10 — Range coverage factor provenance honors requested end
 
 Product tip `64bb8829` closes the adjacent coverage-range provenance seam:
