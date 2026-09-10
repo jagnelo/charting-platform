@@ -182,6 +182,14 @@ def _number(value: Any) -> float | None:
         return None
 
 
+def _strict_int(value: Any, provider_name: str, field: str, *, minimum: int = 0) -> int:
+    """Parse provider pagination counters without coercing booleans/floats."""
+
+    if isinstance(value, bool) or not isinstance(value, int) or value < minimum:
+        raise ProviderResponseError(provider_name, f"provider returned an invalid {field}")
+    return value
+
+
 def _decimal(value: Any) -> Decimal | None:
     try:
         if value in (None, ""):
@@ -1358,21 +1366,27 @@ class MarketstackProvider(_RESTProvider):
                 raise ProviderResponseError(
                     self.name, "provider omitted pagination metadata for an EOD page"
                 )
-            try:
-                page_offset = int(pagination.get("offset", offset))
-                count = int(pagination.get("count", len(rows)))
-                total_value = pagination.get("total")
-                total = int(total_value) if total_value is not None else None
-                page_limit = max(
-                    1, int(pagination.get("limit", _MARKETSTACK_POINTS_PER_REQUEST))
-                )
-            except (TypeError, ValueError) as exc:
+            page_offset = _strict_int(
+                pagination.get("offset", offset), self.name, "EOD pagination offset"
+            )
+            count = _strict_int(
+                pagination.get("count", len(rows)), self.name, "EOD pagination count", minimum=1
+            )
+            total_value = pagination.get("total")
+            total = (
+                _strict_int(total_value, self.name, "EOD pagination total")
+                if total_value is not None
+                else None
+            )
+            page_limit = _strict_int(
+                pagination.get("limit", _MARKETSTACK_POINTS_PER_REQUEST),
+                self.name,
+                "EOD pagination limit",
+                minimum=1,
+            )
+            if total is not None and total < page_offset + count:
                 raise ProviderResponseError(
-                    self.name, "provider returned invalid EOD pagination metadata"
-                ) from exc
-            if count <= 0 or page_offset < 0:
-                raise ProviderResponseError(
-                    self.name, "provider returned non-progressing EOD pagination metadata"
+                    self.name, "provider returned contradictory EOD pagination metadata"
                 )
             next_offset = page_offset + count
             if next_offset <= offset:

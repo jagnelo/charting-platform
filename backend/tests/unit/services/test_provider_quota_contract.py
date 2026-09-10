@@ -1802,6 +1802,39 @@ def test_partial_contract_is_non_routable_instead_of_dropping_a_dimension():
     assert "quota_contract.dimensions[1].source" in quota_contract_missing_dimensions(policy)
 
 
+@pytest.mark.parametrize("invalid_value", [True, False, 1.5, "10"])
+def test_quota_dimension_limits_and_windows_reject_non_strict_positive_integers(invalid_value):
+    policy = ProviderPolicy(
+        data_source_id=1,
+        capability=ProviderCapability.PRICE_HISTORY,
+        quota_scope="api_key",
+        quota_source="unit-test",
+        quota_contract={
+            "dimensions": [
+                {
+                    "name": "requests_per_minute",
+                    "limit": invalid_value,
+                    "window_seconds": 60,
+                    "unit": "requests",
+                    "scope": "api_key",
+                    "source": "unit-test",
+                }
+            ],
+            "reset": "rolling",
+        },
+    )
+    assert not policy_has_known_quota(policy)
+    assert "quota_contract.dimensions[0].limit" in quota_contract_missing_dimensions(policy)
+
+    policy.quota_contract["dimensions"][0]["limit"] = 10
+    policy.quota_contract["dimensions"][0]["window_seconds"] = invalid_value
+    assert not policy_has_known_quota(policy)
+    assert (
+        "quota_contract.dimensions[0].window_seconds"
+        in quota_contract_missing_dimensions(policy)
+    )
+
+
 def test_missing_quota_contract_is_operator_actionable():
     policy = ProviderPolicy(data_source_id=1, capability=ProviderCapability.PRICE_HISTORY)
     assert quota_contract_missing_dimensions(policy) == [

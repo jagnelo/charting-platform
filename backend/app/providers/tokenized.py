@@ -529,9 +529,15 @@ class BybitXStocksProvider:
         payload = self._instruments(limit=page_size)
         rows = _required_nested_rows(payload, self.name, ("result", "list"))
         if page > 0:
-            # Bybit uses an opaque cursor; callers needing subsequent pages use
-            # discover_tokenized_page and persist the cursor in the job state.
-            return []
+            # Bybit uses an opaque cursor; returning an empty page here would
+            # look like a completed catalogue and silently truncate discovery.
+            # Callers needing subsequent pages must use discover_tokenized_page
+            # and persist the provider cursor in job state.
+            raise ProviderResponseError(
+                self.name,
+                "Bybit tokenized discovery uses opaque cursor pagination; "
+                "use discover_tokenized_page for subsequent pages",
+            )
         return [self._record(row) for row in rows]
 
     def discover_tokenized_page(

@@ -40,6 +40,8 @@ def test_read_live_usage_ledger_aggregates_redacted_rows(tmp_path, monkeypatch):
     assert result["providers"]["fred"]["http_requests"] == 4
     assert result["providers"]["fred"]["http_requests_24h"] == 3
     assert result["providers"]["fred"]["runs_7d"] == 2
+    assert result["providers"]["fred"]["runs_30d"] == 2
+    assert result["providers"]["fred"]["operations_30d"] == 3
     assert result["providers"]["fred"]["failed_runs"] == 1
     assert result["providers"]["coinbase"]["last_response_headers"] == {
         "x-rate-limit-remaining": "9"
@@ -53,6 +55,49 @@ def test_read_live_usage_ledger_reports_missing_file(tmp_path, monkeypatch):
 
     assert result["status"] == "unavailable"
     assert result["reason"] == "ledger_missing"
+
+
+def test_read_live_usage_ledger_keeps_headers_from_latest_observation_not_file_order(
+    tmp_path, monkeypatch
+):
+    now = datetime(2026, 9, 10, 12, 0, tzinfo=UTC)
+    ledger = tmp_path / "provider-live-usage.jsonl"
+    ledger.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "at": "2026-09-10T11:00:00+00:00",
+                        "provider": "coinbase",
+                        "operations": 1,
+                        "http_requests": 1,
+                        "response_bytes": 10,
+                        "exit_status": 0,
+                        "response_headers": {"x-rate-limit-remaining": "9"},
+                    }
+                ),
+                json.dumps(
+                    {
+                        "at": "2026-09-10T11:30:00+00:00",
+                        "provider": "coinbase",
+                        "operations": 1,
+                        "http_requests": 1,
+                        "response_bytes": 10,
+                        "exit_status": 0,
+                        "response_headers": {},
+                    }
+                ),
+            ]
+        )
+        + "\n"
+    )
+    monkeypatch.setattr(settings, "PROVIDER_LIVE_USAGE_LEDGER", str(ledger))
+
+    result = read_live_usage_ledger(now=now)
+
+    summary = result["providers"]["coinbase"]
+    assert summary["last_observation_at"] == datetime(2026, 9, 10, 11, 30, tzinfo=UTC)
+    assert summary["last_response_headers"] == {}
 
 
 @pytest.mark.asyncio

@@ -51,6 +51,11 @@ the same `PROVIDER_LIVE_USAGE_LEDGER` path, the authenticated
 per provider plus ledger status/row counts. It never merges direct-test usage
 into runtime quota reservations, exposes the ledger path, or makes routing
 depend on the file; an absent or unreadable ledger is reported as unavailable.
+The per-provider live object includes all-time totals plus rolling 24-hour,
+7-day, and 30-day request/operation/byte totals. The 30-day view is useful for
+rolling bandwidth pools (for example FMP); calendar-reset allowances still
+require provider-native reset evidence or operator reconciliation and are not
+inferred from these rolling counters.
 Local secrets belong in the owner-only
 `~/.config/charting-platform/app.env`. Worktree runtime setup links the ignored
 `.env` and `backend/.env.dev` paths to that external source. Set

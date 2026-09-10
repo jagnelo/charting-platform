@@ -274,6 +274,13 @@ def test_bybit_success_retcode_and_retmsg_are_not_error_envelope():
         assert BybitXStocksProvider().discover_tokenized_assets(page=0, page_size=1) == []
 
 
+def test_bybit_page_parameter_cannot_silently_truncate_cursor_catalogue():
+    response = _response({"retCode": 0, "retMsg": "OK", "result": {"list": []}})
+    with patch("app.providers.tokenized.httpx.get", return_value=response):
+        with pytest.raises(ProviderResponseError, match="opaque cursor pagination"):
+            BybitXStocksProvider().discover_tokenized_assets(page=1, page_size=1)
+
+
 def _response(payload):
     response = Mock()
     response.raise_for_status.return_value = None

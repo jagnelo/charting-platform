@@ -82,6 +82,10 @@ def _empty_live_usage() -> dict[str, Any]:
         "operations_7d": 0,
         "http_requests_7d": 0,
         "response_bytes_7d": 0,
+        "runs_30d": 0,
+        "operations_30d": 0,
+        "http_requests_30d": 0,
+        "response_bytes_30d": 0,
         "last_observation_at": None,
         "usage_scopes": [],
         "last_response_headers": {},
@@ -145,6 +149,7 @@ def read_live_usage_ledger(*, now: datetime | None = None) -> dict[str, Any]:
 
     last_24h = current - timedelta(hours=24)
     last_7d = current - timedelta(days=7)
+    last_30d = current - timedelta(days=30)
     providers: dict[str, dict[str, Any]] = defaultdict(_empty_live_usage)
     rows = 0
     invalid_rows = 0
@@ -222,11 +227,14 @@ def read_live_usage_ledger(*, now: datetime | None = None) -> dict[str, Any]:
                 summary["operations"] += operations
                 summary["http_requests"] += requests
                 summary["response_bytes"] += response_bytes
-                if safe_headers:
+                prior_observation = summary["last_observation_at"]
+                if prior_observation is None or observed_at >= prior_observation:
+                    # A merged ledger is not guaranteed to be line-ordered.
+                    # Keep the header snapshot attached to the chronologically
+                    # latest observation, including an empty snapshot when the
+                    # latest provider response exposed no capacity headers.
                     summary["last_response_headers"] = safe_headers
-                summary["last_observation_at"] = max(
-                    summary["last_observation_at"], observed_at
-                ) if summary["last_observation_at"] else observed_at
+                    summary["last_observation_at"] = observed_at
                 if observed_at >= last_24h:
                     summary["runs_24h"] += 1
                     summary["operations_24h"] += operations
@@ -237,6 +245,11 @@ def read_live_usage_ledger(*, now: datetime | None = None) -> dict[str, Any]:
                     summary["operations_7d"] += operations
                     summary["http_requests_7d"] += requests
                     summary["response_bytes_7d"] += response_bytes
+                if observed_at >= last_30d:
+                    summary["runs_30d"] += 1
+                    summary["operations_30d"] += operations
+                    summary["http_requests_30d"] += requests
+                    summary["response_bytes_30d"] += response_bytes
     except OSError:
         return {
             "status": "unavailable",

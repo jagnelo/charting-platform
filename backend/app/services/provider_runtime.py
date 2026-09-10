@@ -15,7 +15,7 @@ import httpx
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import provider_rate_limit_seed, settings
+from app.config import provider_positive_integer, provider_rate_limit_seed, settings
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.data_source import DataSource
 from app.models.instrument import Instrument
@@ -773,15 +773,12 @@ def quota_dimensions(policy: ProviderPolicy) -> list[dict[str, Any]]:
     for item in dimensions:
         if not isinstance(item, dict):
             return []
-        try:
-            limit = int(item.get("limit"))
-            window_seconds = int(item.get("window_seconds"))
-        except (TypeError, ValueError):
+        limit = provider_positive_integer(item.get("limit"))
+        window_seconds = provider_positive_integer(item.get("window_seconds"))
+        if limit is None or window_seconds is None:
             return []
         if (
-            limit <= 0
-            or window_seconds <= 0
-            or not str(item.get("name") or "").strip()
+            not str(item.get("name") or "").strip()
             or not str(item.get("unit") or "").strip()
             or not str(item.get("source") or "").strip()
             or not str(item.get("scope") or policy.quota_scope or "").strip()
@@ -847,10 +844,7 @@ def quota_contract_missing_dimensions(policy: ProviderPolicy) -> list[str]:
         for field_name in ("name", "limit", "window_seconds", "unit", "scope", "source"):
             value = item.get(field_name)
             if field_name in {"limit", "window_seconds"}:
-                try:
-                    valid = int(value) > 0
-                except (TypeError, ValueError):
-                    valid = False
+                valid = provider_positive_integer(value) is not None
             else:
                 valid = bool(str(value or "").strip())
             if not valid:

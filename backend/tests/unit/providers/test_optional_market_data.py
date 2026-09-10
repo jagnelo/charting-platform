@@ -557,6 +557,40 @@ def test_marketstack_invalid_pagination_is_typed_instead_of_truncating_history()
     assert exc_info.value.provider_name == "marketstack"
 
 
+@pytest.mark.parametrize(
+    "pagination",
+    [
+        {"offset": True, "count": 1, "total": 1},
+        {"offset": 0, "count": 1.5, "total": 1},
+        {"offset": 0, "count": 1, "total": "1"},
+        {"offset": 0, "count": 1, "total": 0},
+    ],
+)
+def test_marketstack_pagination_counters_require_strict_integer_metadata(pagination):
+    provider = MarketstackProvider()
+    payload = {
+        "pagination": pagination,
+        "data": [
+            {
+                "date": "2024-01-02T00:00:00+0000",
+                "open": "10",
+                "high": "11",
+                "low": "9",
+                "close": "10.5",
+                "volume": "42",
+            }
+        ],
+    }
+    with patch.object(provider, "_get", return_value=payload):
+        with pytest.raises(ProviderResponseError, match="pagination"):
+            provider.fetch_ohlcv(
+                "AAPL",
+                Timeframe.D1,
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2024, 2, 1, tzinfo=UTC),
+            )
+
+
 def test_marketstack_discovery_requires_explicit_exchange_and_preserves_scope():
     provider = MarketstackProvider()
     with patch("app.providers.optional_market_data.settings") as configured:
