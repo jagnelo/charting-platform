@@ -46,6 +46,7 @@ owned_paths:
   - docs/project-todos.md
   - ops/workstreams/feat-market-data-provider-platform/
   - scripts/run-live-provider-probes.py
+  - scripts/merge-provider-live-usage.py
   - scripts/worktree-runtime.py
 dependencies:
   - staging baseline at 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
@@ -164,6 +165,7 @@ progress:
     - backend provider-usage diagnostics optionally read that redacted external ledger and expose separate live-test totals/status per provider; the file is deployment-mounted/configured explicitly, never merged into runtime reservations, and never required for routing
     - provider-usage summary regression proves cross-session live-ledger totals remain separate from runtime request counts and durable quota-window availability; focused usage/router/live-ledger tests pass 13/13 and the authoritative Docker-backed gate passes 1860/1860 with 80.38% line coverage
     - the manual GitHub live workflow writes the redacted live ledger to runner temp storage and uploads it for 90-day operator reconciliation under an always-run artifact step; provider secret-wiring tests enforce the contract and routine CI remains secret-free
+    - scripts/merge-provider-live-usage.py provides lock-protected, allow-listed, deduplicating reconciliation of downloaded local/GitHub receipts without changing routing or runtime reservations; focused receipt/secret-wiring tests pass 12/12 and the authoritative gate passes 1862/1862
     - FRED missing credentials raise the typed provider-not-configured failure instead of returning an empty series/price, preserving honest runtime fallback semantics
     - Alpaca missing API/secret credentials now raise the typed provider-not-configured failure across history, latest-price, event, and discovery operations instead of masquerading as empty data; unsupported symbols/timeframes retain their legitimate empty-result behavior
     - Alpaca and SEC EDGAR now propagate upstream HTTP status failures instead of converting rejected requests into empty/synthetic data; the centralized runtime can therefore record typed capacity events and reset metadata consistently

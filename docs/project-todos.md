@@ -78,6 +78,10 @@ current capability/quota ledger.
       artifacts contain no credentials or payloads and remain separate from
       runtime quota reservations. Operator reconciliation is still required
       because provider account usage is not branch- or runner-scoped.
+- [x] Add a lock-protected sanitizer/merger for downloaded local/GitHub usage
+      receipts. It allow-lists aggregate fields, deduplicates run/provider rows,
+      rejects malformed input without printing values, and never promotes CI
+      observations into provider routing or runtime quota reservations.
 - [x] Correct the README provider-routing example so fresh operators see the
       API-first Alpaca/EDGAR/OpenFIGI defaults and cannot accidentally restore
       yfinance as the broad default route; yfinance remains an explicit,

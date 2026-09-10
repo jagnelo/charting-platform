@@ -1,9 +1,18 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 from pathlib import Path
 
 from tests.live import live_usage
+
+_MERGER_SPEC = importlib.util.spec_from_file_location(
+    "merge_provider_live_usage",
+    Path(__file__).resolve().parents[3] / "scripts/merge-provider-live-usage.py",
+)
+assert _MERGER_SPEC and _MERGER_SPEC.loader
+_MERGER = importlib.util.module_from_spec(_MERGER_SPEC)
+_MERGER_SPEC.loader.exec_module(_MERGER)
 
 
 def test_live_usage_ledger_aggregates_observed_counts_without_payloads(
@@ -40,3 +49,91 @@ def test_live_usage_ledger_aggregates_observed_counts_without_payloads(
         },
     ]
     assert live_usage.flush_observations(0) is None
+
+
+def test_merge_provider_live_usage_sanitizes_and_deduplicates_receipts(tmp_path: Path):
+    first = tmp_path / "first.jsonl"
+    second = tmp_path / "second.jsonl"
+    destination = tmp_path / "owner" / "provider-live-usage.jsonl"
+    first.write_text(
+        json.dumps(
+            {
+                "at": "2026-09-10T05:00:00+00:00",
+                "run_id": "github-1",
+                "provider": "fred",
+                "operations": 1,
+                "http_requests": 2,
+                "response_bytes": 100,
+                "exit_status": 0,
+                "payload": "must-not-be-copied",
+            }
+        )
+        + "\n"
+    )
+    second.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "at": "2026-09-10T05:00:01+00:00",
+                        "run_id": "github-1",
+                        "provider": "fred",
+                        "operations": 9,
+                        "http_requests": 9,
+                        "response_bytes": 9,
+                        "exit_status": 0,
+                    }
+                ),
+                json.dumps(
+                    {
+                        "at": "2026-09-10T05:00:02+00:00",
+                        "run_id": "github-1",
+                        "provider": "coinbase",
+                        "operations": 1,
+                        "http_requests": 1,
+                        "response_bytes": 20,
+                        "exit_status": 0,
+                    }
+                ),
+            ]
+        )
+        + "\n"
+    )
+
+    result = _MERGER.merge_receipts([first, second], destination)
+
+    assert result["accepted"] == 2
+    assert result["duplicates"] == 1
+    assert result["rejected"] == 0
+    rows = [json.loads(line) for line in destination.read_text().splitlines()]
+    assert len(rows) == 2
+    assert all("payload" not in row for row in rows)
+    assert {row["provider"] for row in rows} == {"fred", "coinbase"}
+    assert destination.stat().st_mode & 0o077 == 0
+
+
+def test_merge_provider_live_usage_rejects_malformed_rows_without_exposing_values(
+    tmp_path: Path,
+):
+    source = tmp_path / "receipt.jsonl"
+    destination = tmp_path / "provider-live-usage.jsonl"
+    source.write_text(
+        "not-json\n"
+        + json.dumps(
+            {
+                "at": "2026-09-10T05:00:00+00:00",
+                "provider": "fred",
+                "operations": 1,
+                "http_requests": 1,
+                "response_bytes": 10,
+                "exit_status": 0,
+            }
+        )
+        + "\n"
+    )
+
+    result = _MERGER.merge_receipts([source], destination)
+
+    assert result["accepted"] == 1
+    assert result["rejected"] == 1
+    assert len(destination.read_text().splitlines()) == 1

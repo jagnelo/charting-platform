@@ -68,11 +68,29 @@ operator reconciliation and is not automatically merged into runtime quota
 reservations. Downloaded receipts may be merged into an operator-owned ledger
 only after checking provider/account scope and avoiding duplicate runs.
 
+Use the checked-in sanitizer/merger for downloaded GitHub receipts:
+
+```sh
+backend/.venv/bin/python scripts/merge-provider-live-usage.py \
+  --destination ~/.config/charting-platform/provider-live-usage.jsonl \
+  ./provider-live-usage-<run-id>/provider-live-usage.jsonl
+```
+
+It takes an exclusive lock, writes only the allow-listed aggregate fields,
+deduplicates rows by `run_id` and provider (or by a canonical row fingerprint
+when no run ID exists), tightens the destination to owner-only mode where the
+filesystem permits, and returns exit code `2` if any source rows were rejected.
+
 The workflow/artifact contract is covered by the provider secret-wiring tests;
 the focused wiring and usage suite passed `13/13`, and the authoritative gate
 after this change passed `1860` tests with `80.38%` coverage and 89 warnings in
 `393.90s`. Testcontainer session
 `ed0b76f0-f94e-4dfe-b994-d9a24c67250c` was cleaned without host-wide pruning.
+
+The receipt merger is covered by focused live-usage tests and the full backend
+gate. It is intentionally an operator reconciliation tool: it does not infer
+provider limits, change routing, or treat CI artifact counts as provider-native
+cumulative usage.
 
 Provider usage is account- and/or IP-scoped by the vendor, not branch-scoped.
 The durable request log and quota windows preserve usage across application
