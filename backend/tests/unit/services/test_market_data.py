@@ -501,6 +501,79 @@ async def test_provider_dataset_state_limits_factor_provenance_to_coverage_end(d
 
 
 @pytest.mark.asyncio
+async def test_provider_dataset_state_limits_legacy_event_fallback_to_coverage_end(db, instrument):
+    from app.models.data_source import DataSource
+    from app.models.instrument_event import EventTimeHint, InstrumentEvent, InstrumentEventType
+    from app.models.ohlcv import OHLCVBar
+    from app.models.provider_observation import InstrumentDatasetState
+
+    source = DataSource(name="point-in-time-legacy-factor-provider")
+    db.add(source)
+    db.flush()
+    db.add_all(
+        [
+            InstrumentEvent(
+                instrument_id=instrument.id,
+                event_type=InstrumentEventType.SPLIT,
+                event_time=datetime(2025, 6, 10, tzinfo=UTC),
+                time_hint=EventTimeHint.UNKNOWN,
+                title="Past split",
+                source=source.name,
+                source_event_key="split:2025-06-10",
+                split_ratio=Decimal("2"),
+                fetched_at=datetime(2025, 6, 11, tzinfo=UTC),
+            ),
+            InstrumentEvent(
+                instrument_id=instrument.id,
+                event_type=InstrumentEventType.SPLIT,
+                event_time=datetime(2026, 6, 10, tzinfo=UTC),
+                time_hint=EventTimeHint.UNKNOWN,
+                title="Future split",
+                source=source.name,
+                source_event_key="split:2026-06-10",
+                split_ratio=Decimal("3"),
+                fetched_at=datetime(2026, 6, 11, tzinfo=UTC),
+            ),
+        ]
+    )
+    bar = OHLCVBar(
+        instrument_id=instrument.id,
+        timeframe=Timeframe.D1,
+        ts=datetime(2026, 1, 2, tzinfo=UTC),
+        open=Decimal("10"),
+        high=Decimal("11"),
+        low=Decimal("9"),
+        close=Decimal("10"),
+        is_adjusted=True,
+    )
+    db.add(bar)
+    db.flush()
+
+    await _touch_ohlcv_dataset_state(
+        AsyncSessionAdapter(db),
+        instrument,
+        data_source_id=source.id,
+        timeframe=Timeframe.D1,
+        adjusted=True,
+        bars=[bar],
+        fetched_at=datetime(2026, 1, 3, tzinfo=UTC),
+    )
+
+    state = (
+        db.query(InstrumentDatasetState)
+        .filter(
+            InstrumentDatasetState.instrument_id == instrument.id,
+            InstrumentDatasetState.data_source_id == source.id,
+            InstrumentDatasetState.dataset_key == "D1:adj",
+        )
+        .one()
+    )
+    provenance = state.extra_data["adjustment_provenance"]
+    assert provenance["factor_status"] == "rebuildable_split_factors"
+    assert provenance["factor_observation_count"] == 1
+
+
+@pytest.mark.asyncio
 async def test_provider_upsert_promotes_a_matching_derived_bar_to_provider_lineage(
     db, instrument, monkeypatch
 ):
