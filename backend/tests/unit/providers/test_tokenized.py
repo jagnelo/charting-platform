@@ -391,6 +391,85 @@ def test_ondo_metadata_and_price_keep_both_market_identities():
     assert get.call_count == 2
 
 
+def test_ondo_market_summary_preserves_primary_history_and_underlying_metrics():
+    metadata = _ondo_metadata()
+    market = {
+        "primaryMarket": {
+            "symbol": "AAPLon",
+            "price": "171.38",
+            "priceChange24h": "1.25",
+            "priceChangePct24h": "0.73",
+            "priceHistory24h": [
+                {"timestamp": 1_757_500_800_000, "price": "170.00"},
+                {"timestamp": 1_757_504_400_000, "price": "171.38"},
+            ],
+            "totalHolders": 7,
+            "sharesMultiplier": "1",
+            "tradableSessions": ["regular", "overnight"],
+        },
+        "underlyingMarket": {
+            "ticker": "AAPL",
+            "name": "Apple Inc.",
+            "price": "228.33",
+            "priceHigh52w": "260.10",
+            "priceLow52w": "164.08",
+            "volume": "1851321",
+            "averageVolume": "3610882",
+            "sharesOutstanding": "15000000000",
+            "marketCap": "3424950000000",
+        },
+        "timestamp": 1_757_504_400_000,
+    }
+    with patch(
+        "app.providers.tokenized.httpx.get",
+        side_effect=[_response([metadata]), _response(market)],
+    ) as get:
+        result = OndoGlobalMarketsProvider().fetch_tokenized_market_data("AAPLon")
+    assert result is not None
+    assert result["symbol"] == "AAPLon"
+    assert result["primary_market"]["price"] == Decimal("171.38")
+    assert result["primary_market"]["price_history_24h"][1]["price"] == Decimal("171.38")
+    assert result["primary_market"]["total_holders"] == 7
+    assert result["primary_market"]["tradable_sessions"] == ["regular", "overnight"]
+    assert result["underlying_market"]["name"] == "Apple Inc."
+    assert result["underlying_market"]["market_cap"] == Decimal("3424950000000")
+    assert get.call_count == 2
+
+
+@pytest.mark.parametrize(
+    "market",
+    [
+        {
+            "primaryMarket": {"symbol": "AAPLon", "price": "bad"},
+            "underlyingMarket": {"ticker": "AAPL", "name": "Apple", "price": "1"},
+            "timestamp": 1_757_504_400_000,
+        },
+        {
+            "primaryMarket": {
+                "symbol": "AAPLon",
+                "price": "1",
+                "priceHistory24h": "invalid",
+            },
+            "underlyingMarket": {"ticker": "AAPL", "name": "Apple", "price": "1"},
+            "timestamp": 1_757_504_400_000,
+        },
+        {
+            "primaryMarket": {"symbol": "AAPLon", "price": "1"},
+            "underlyingMarket": {"ticker": "AAPL", "name": "Apple", "price": "1"},
+            "timestamp": 0,
+        },
+    ],
+)
+def test_ondo_market_summary_rejects_malformed_provider_fields(market):
+    metadata = _ondo_metadata()
+    with patch(
+        "app.providers.tokenized.httpx.get",
+        side_effect=[_response([metadata]), _response(market)],
+    ):
+        with pytest.raises(ProviderResponseError):
+            OndoGlobalMarketsProvider().fetch_tokenized_market_data("AAPLon")
+
+
 def test_ondo_ohlc_requires_documented_interval_range_and_validates_both_markets():
     metadata = _ondo_metadata()
     ohlc = {

@@ -1092,6 +1092,146 @@ class OndoGlobalMarketsProvider:
         asset.raw_payload = {"asset": asset.raw_payload, "price": payload}
         return asset
 
+    def fetch_tokenized_market_data(self, identifier: str) -> dict[str, Any] | None:
+        """Return Ondo's primary-token and underlying-stock market summary.
+
+        The endpoint is display-oriented and may be cached by Ondo. Keep the
+        two market identities separate and normalize only documented numeric
+        fields; omitted optional metrics remain omitted rather than becoming
+        fabricated zeros.
+        """
+
+        asset = self.get_tokenized_asset(identifier)
+        if asset is None:
+            return None
+        payload = _required_object(
+            _http_json(
+                f"{self.base_url}/v1/assets/{asset.symbol}/market",
+                provider_name=self.name,
+                headers=self._headers(),
+            ),
+            self.name,
+            "asset market data",
+        )
+        primary = _required_object(payload.get("primaryMarket"), self.name, "primary market")
+        underlying = _required_object(
+            payload.get("underlyingMarket"), self.name, "underlying market"
+        )
+        if str(primary.get("symbol") or "").strip() != asset.symbol:
+            raise ProviderResponseError(self.name, "provider returned market data for a different asset")
+        if str(underlying.get("ticker") or "").strip() != asset.underlying_symbol:
+            raise ProviderResponseError(
+                self.name, "provider returned underlying market data for a different asset"
+            )
+
+        def _required_decimal(body: dict[str, Any], field: str, context: str) -> Decimal:
+            value = _decimal(body.get(field))
+            if value is None or not value.is_finite():
+                raise ProviderResponseError(self.name, f"provider returned an invalid {context} {field}")
+            return value
+
+        def _optional_decimal(body: dict[str, Any], field: str, context: str) -> Decimal | None:
+            if field not in body or body.get(field) is None:
+                return None
+            return _required_decimal(body, field, context)
+
+        def _optional_nonnegative_int(body: dict[str, Any], field: str, context: str) -> int | None:
+            if field not in body or body.get(field) is None:
+                return None
+            value = body.get(field)
+            if isinstance(value, bool):
+                raise ProviderResponseError(self.name, f"provider returned an invalid {context} {field}")
+            try:
+                parsed = int(value)
+            except (TypeError, ValueError) as exc:
+                raise ProviderResponseError(
+                    self.name, f"provider returned an invalid {context} {field}"
+                ) from exc
+            if parsed < 0 or str(value).strip() != str(parsed):
+                raise ProviderResponseError(self.name, f"provider returned an invalid {context} {field}")
+            return parsed
+
+        primary_history: list[dict[str, Any]] = []
+        if "priceHistory24h" in primary:
+            rows = primary["priceHistory24h"]
+            if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+                raise ProviderResponseError(self.name, "provider returned an invalid primary price history")
+            for row in rows:
+                try:
+                    timestamp = int(row["timestamp"])
+                except (KeyError, TypeError, ValueError) as exc:
+                    raise ProviderResponseError(
+                        self.name, "provider returned an invalid primary price-history timestamp"
+                    ) from exc
+                if timestamp <= 0:
+                    raise ProviderResponseError(
+                        self.name, "provider returned an invalid primary price-history timestamp"
+                    )
+                primary_history.append(
+                    {
+                        "timestamp": datetime.fromtimestamp(timestamp / 1000, tz=UTC),
+                        "price": _required_decimal(row, "price", "primary price history"),
+                        "raw_payload": row,
+                    }
+                )
+
+        sessions: list[str] | None = None
+        if "tradableSessions" in primary:
+            raw_sessions = primary["tradableSessions"]
+            if not isinstance(raw_sessions, list) or any(
+                not isinstance(session, str) or not session.strip() for session in raw_sessions
+            ):
+                raise ProviderResponseError(self.name, "provider returned invalid tradable sessions")
+            sessions = [session.strip() for session in raw_sessions]
+
+        timestamp = payload.get("timestamp")
+        try:
+            observed_at = datetime.fromtimestamp(float(timestamp) / 1000, tz=UTC)
+        except (TypeError, ValueError, OverflowError, OSError) as exc:
+            raise ProviderResponseError(self.name, "provider returned an invalid market-data timestamp") from exc
+        if observed_at <= datetime(1970, 1, 1, tzinfo=UTC):
+            raise ProviderResponseError(self.name, "provider returned an invalid market-data timestamp")
+
+        primary_data: dict[str, Any] = {
+            "symbol": asset.symbol,
+            "price": _required_decimal(primary, "price", "primary market"),
+            "price_change_24h": _optional_decimal(primary, "priceChange24h", "primary market"),
+            "price_change_pct_24h": _optional_decimal(
+                primary, "priceChangePct24h", "primary market"
+            ),
+            "price_history_24h": primary_history,
+            "total_holders": _optional_nonnegative_int(primary, "totalHolders", "primary market"),
+            "shares_multiplier": _optional_decimal(primary, "sharesMultiplier", "primary market"),
+            "tradable_sessions": sessions,
+        }
+        underlying_data: dict[str, Any] = {
+            "ticker": asset.underlying_symbol,
+            "name": str(underlying.get("name") or "").strip(),
+            "price": _required_decimal(underlying, "price", "underlying market"),
+        }
+        if not underlying_data["name"]:
+            raise ProviderResponseError(self.name, "provider returned an incomplete underlying market name")
+        for source_field, target_field in (
+            ("priceHigh52w", "price_high_52w"),
+            ("priceLow52w", "price_low_52w"),
+            ("volume", "volume"),
+            ("averageVolume", "average_volume"),
+            ("sharesOutstanding", "shares_outstanding"),
+            ("marketCap", "market_cap"),
+        ):
+            underlying_data[target_field] = _optional_decimal(
+                underlying, source_field, "underlying market"
+            )
+        return {
+            "provider": self.name,
+            "symbol": asset.symbol,
+            "underlying_symbol": asset.underlying_symbol,
+            "observed_at": observed_at,
+            "primary_market": primary_data,
+            "underlying_market": underlying_data,
+            "raw_payload": payload,
+        }
+
     def fetch_tokenized_ohlc(
         self,
         identifier: str,

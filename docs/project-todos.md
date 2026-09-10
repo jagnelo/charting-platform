@@ -1,5 +1,19 @@
 # Project TODO Memory
 
+### 2026-09-10 — Ondo market-summary surface
+
+- [x] Add strict normalization for Ondo's documented per-asset market summary:
+      primary-token price changes, 24-hour price-history points, holder and
+      session metadata, plus underlying company price, 52-week, volume,
+      shares-outstanding, and market-cap fields. Preserve primary versus
+      underlying identities and raw provenance; omitted optional values remain
+      absent.
+- [x] Charge the metadata lookup plus market-summary read as two provider
+      requests and extend the credentialed live case to exercise the surface.
+- [ ] Run the credentialed live case after `ONDO_GLOBAL_MARKETS_API_KEY` is
+      provisioned; account quota/cache and display-only terms remain separate
+      governance gates.
+
 ### 2026-09-10 — Tokenized-security provider adapters (Dinari and Ondo)
 
 - [x] Replace the Dinari and Ondo descriptor-only entries with concrete,

@@ -87,7 +87,7 @@ re-reviewed when credentials or billing plans change.
 | Bybit xStocks | xStocks spot instrument catalogue and ticker bid/ask/last | none for public market-data endpoints | 600 HTTP requests per 5 seconds per IP outer limit; API limits are rolling per second per UID and endpoint, with `X-Bapi-Limit*` headers documented but not emitted by the current unauthenticated public edge | IP + endpoint/UID / rolling | bounded live asset + ticker probe passed; endpoint/UID accounting and reliable native-header state required before routing |
 | Gate TradFi stock API | public US stock-token symbol catalogue and order-book bid/ask | none for public symbol/order-book endpoints | 5 requests/sec/IP for each documented public TradFi stock endpoint (`/stock/symbols`, `/stock/symbols/detail`, `/stock/market/{symbol}/orderbook`) | IP / rolling | bounded live symbol + order-book probe passed; the runtime applies a conservative aggregate 5-request/sec capability window |
 | Kraken xStocks | provider-native xStocks pair discovery and public ticker when such pairs are published | none | Kraken public safe-frequency guidance is approximately 1 request/sec; pair/IP accounting applies | IP/pair / rolling | live catalogue probe passed with no currently published xStocks pair; no synthetic mapping is created |
-| Ondo Global Markets | authenticated tokenized US stock/ETF metadata, chain addresses/ISIN/tags, indicative latest prices, and display-only OHLC candles (primary token + underlying stock) | `ONDO_GLOBAL_MARKETS_API_KEY` | OpenAPI documents HTTP 429/account rate limiting but no numeric quota; endpoint caching and display-only/non-oracle restrictions apply | API key/account / provider-defined | concrete metadata/latest-price/OHLC adapter is fixture-covered; no live credential evidence yet; remains non-routable until account terms/quota are reviewed |
+| Ondo Global Markets | authenticated tokenized US stock/ETF metadata, chain addresses/ISIN/tags, indicative latest prices, display-only primary/underlying market summaries (including 24-hour price history and underlying metrics), and OHLC candles | `ONDO_GLOBAL_MARKETS_API_KEY` | OpenAPI documents HTTP 429/account rate limiting but no numeric quota; endpoint caching and display-only/non-oracle restrictions apply | API key/account / provider-defined | concrete metadata/latest-price/market-summary/OHLC adapter is fixture-covered; no live credential evidence yet; remains non-routable until account terms/quota are reviewed |
 | Dinari | partner-authenticated dShare stock/ETF metadata, provider UUIDs, CAIP-10 deployments, FIGI/CIK/CUSIP metadata, current fair price, bid/ask quote, DAY/WEEK/MONTH/YEAR aggregate history, news, dividends, and splits | `DINARI_API_KEY_ID`, `DINARI_API_SECRET_KEY` | Numeric account/partner quota is not published; US SIP/NBBO quotes are metered and may incur per-query fees, with display/redistribution and partner-approval requirements | API key ID/secret + partner account / provider-defined | concrete read-only adapter is fixture-covered; no live credential evidence yet; remains non-routable until commercial, US eligibility, quota, and redistribution terms are reviewed |
 | Alpaca tokenization network | catalogue-only tokenization-network candidate, distinct from Alpaca market-data keys | authorized-participant access required | Market-data credentials do not entitle tokenization-network access | account / unknown | descriptor only; not routable |
 | yfinance | legacy broad fallback, options/futures compatibility only | none | No official quota/SLA; unofficial scraping | unknown | legacy-only and disabled by default |
@@ -215,8 +215,11 @@ derivatives remain separate derivative instruments. xStocks and Robinhood
 expose issuer/product metadata and indicative prices; Bybit, Gate, and Kraken
 expose exchange-native market surfaces. Dinari exposes provider UUID-based
 metadata, fair price/quote, aggregate history, news, dividends, and splits;
-Ondo exposes chain/ISIN metadata, indicative prices, and display-only OHLC
-candles for both token and underlying markets. A provider returning no current
+Ondo exposes chain/ISIN metadata, indicative prices, display-only primary and
+underlying market summaries, and OHLC candles for both token and underlying
+markets. Its market summary preserves 24-hour price-history points,
+holder/multiplier/session metadata, and underlying 52-week, volume,
+shares-outstanding, and market-cap fields without inventing omitted values. A provider returning no current
 xStocks pairs is recorded as an empty catalogue, never as evidence that a
 traditional share is the same token.
 
@@ -237,9 +240,11 @@ Dinari's [US-customer requirements](https://docs.dinari.com/docs/us) make partne
 approval, regulatory, data-security, and redistribution review a deployment
 gate, so having a key alone does not make this provider routable.
 
-Ondo's [API overview](https://docs.ondo.finance/api-reference/overview) and
-[OpenAPI contract](https://docs.ondo.finance/openapi.json) document the API-key
-protected metadata, latest-price, and OHLC endpoints. The OHLC adapter accepts
+Ondo's [API overview](https://docs.ondo.finance/api-reference/overview),
+[market-data endpoint](https://docs.ondo.finance/api-reference/assets/get-market-data-for-an-asset),
+and [OpenAPI contract](https://docs.ondo.finance/openapi.json) document the
+API-key protected metadata, latest-price, market-summary, and OHLC endpoints.
+The OHLC adapter accepts
 only the provider's published interval/range pairs and returns primary-token
 and underlying-stock candles separately. Ondo explicitly marks price feeds as
 display-only and not suitable as an oracle; its OpenAPI documents HTTP 429 but
@@ -253,7 +258,8 @@ Quote refresh accounting also follows the adapters' actual request shape. The
 standard tokenized `get_tokenized_price` operations reserve two provider
 requests (asset metadata plus quote/order-book), while discovery and asset reads
 reserve one. Dinari's quote, historical, news, dividend, and split operations,
-and Ondo's OHLC operation, likewise reserve two requests because each resolves
+and Ondo's market-summary and OHLC operations likewise reserve two requests
+because each resolves
 provider metadata before the data read. Robinhood additionally reserves four
 requests: one asset lookup plus the bounded three-attempt quote retry worst
 case. This prevents a successful quote response or bounded retry from being

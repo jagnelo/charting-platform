@@ -1143,6 +1143,7 @@ class Settings(BaseSettings):
                 "discover_tokenized_assets": 1,
                 "get_tokenized_asset": 1,
                 "get_tokenized_price": 2,
+                "fetch_tokenized_market_data": 2,
                 "fetch_tokenized_ohlc": 2,
             },
         },

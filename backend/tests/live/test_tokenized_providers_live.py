@@ -257,6 +257,14 @@ def test_ondo_credentialed_metadata_price_and_ohlc():
     )
     assert price_measurement.http_requests >= 2
     _assert_asset(priced, require_quote=True)
+    market, market_measurement = _observed_read(
+        lambda: provider.fetch_tokenized_market_data(rows[0].symbol),
+        "ondo_global_markets",
+    )
+    assert market_measurement.http_requests >= 2
+    assert market is not None
+    assert market["primary_market"]["symbol"] == rows[0].symbol
+    assert market["underlying_market"]["ticker"] == rows[0].underlying_symbol
     candles, ohlc_measurement = _observed_read(
         lambda: provider.fetch_tokenized_ohlc(
             rows[0].symbol, interval="1day", range_="1day", market="primary"
