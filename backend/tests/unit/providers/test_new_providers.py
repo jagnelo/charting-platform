@@ -436,6 +436,44 @@ class TestBinanceOHLCVParsing:
         assert float(bars[0].open) == 42000.0
         assert float(bars[0].close) == 42500.0
 
+    def test_transport_failure_is_typed(self):
+        failure = httpx.ConnectError(
+            "connection failed",
+            request=httpx.Request("GET", "https://api.binance.com/api/v3/klines"),
+        )
+        with patch("app.providers.binance.httpx.get", side_effect=failure):
+            with pytest.raises(ProviderResponseError) as exc_info:
+                BinanceProvider().fetch_ohlcv(
+                    "BTC-USD",
+                    Timeframe.D1,
+                    datetime(2024, 1, 2, tzinfo=UTC),
+                    datetime(2024, 1, 3, tzinfo=UTC),
+                )
+        assert exc_info.value.provider_name == "binance"
+
+    def test_malformed_klines_payload_is_typed(self):
+        mock_resp = MagicMock()
+        mock_resp.json.side_effect = ValueError("not json")
+        mock_resp.raise_for_status.return_value = None
+        with patch("app.providers.binance.httpx.get", return_value=mock_resp):
+            with pytest.raises(ProviderResponseError) as exc_info:
+                BinanceProvider().fetch_ohlcv(
+                    "BTC-USD",
+                    Timeframe.D1,
+                    datetime(2024, 1, 2, tzinfo=UTC),
+                    datetime(2024, 1, 3, tzinfo=UTC),
+                )
+        assert exc_info.value.provider_name == "binance"
+
+    def test_malformed_exchange_info_payload_is_typed(self):
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"symbols": {}}
+        mock_resp.raise_for_status.return_value = None
+        with patch("app.providers.binance.httpx.get", return_value=mock_resp):
+            with pytest.raises(ProviderResponseError) as exc_info:
+                BinanceProvider().discover_universe_page("CRYPTOCURRENCY", 0)
+        assert exc_info.value.provider_name == "binance"
+
     def test_historical_weight_estimate_rounds_up_per_1000_candle_page(self):
         start = datetime(2024, 1, 1, tzinfo=UTC)
         end = start + timedelta(days=1001)

@@ -17,7 +17,11 @@ import httpx
 
 from app.config import settings
 from app.providers.base import MarketEventRecord, ShortInterestRecord
-from app.providers.errors import ProviderNotConfiguredError, raise_for_provider_error_envelope
+from app.providers.errors import (
+    ProviderNotConfiguredError,
+    ProviderResponseError,
+    raise_for_provider_error_envelope,
+)
 from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
@@ -55,21 +59,24 @@ class FINRAProvider:
         token = self._authenticated_token()
         body = dict(payload or {})
         body["async"] = True
-        response = httpx.post(
-            dataset_url,
-            json=body,
-            headers={
-                "Authorization": f"Bearer {token}",
-                "Accept": "application/json",
-                "Content-Type": "application/json",
-            },
-            timeout=30,
-        )
+        try:
+            response = httpx.post(
+                dataset_url,
+                json=body,
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                },
+                timeout=30,
+            )
+        except httpx.RequestError as exc:
+            raise ProviderResponseError(self.name, f"transport failure: {exc}") from exc
         observe_response(response)
         response.raise_for_status()
         status_url = str(response.headers.get("location") or "").strip()
         if not status_url:
-            raise RuntimeError("FINRA async response did not contain a Location status URL")
+            raise ProviderResponseError("finra", "async response did not contain a Location status URL")
         request_id = status_url.rstrip("/").rsplit("/", 1)[-1] or None
         return FINRAAsyncJob(status_url=status_url, request_id=request_id)
 
@@ -77,16 +84,24 @@ class FINRAProvider:
         """Poll one FINRA async status URL; callers own the polling schedule."""
 
         token = self._authenticated_token()
-        response = httpx.get(
-            status_url,
-            headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
-            timeout=30,
-        )
+        try:
+            response = httpx.get(
+                status_url,
+                headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
+                timeout=30,
+            )
+        except httpx.RequestError as exc:
+            raise ProviderResponseError(self.name, f"transport failure: {exc}") from exc
         observe_response(response)
         response.raise_for_status()
-        payload = response.json() if response.content else {}
+        try:
+            payload = response.json() if response.content else {}
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError(self.name, "FINRA async status returned invalid JSON") from exc
         raise_for_provider_error_envelope(self.name, payload, response.status_code)
-        body = payload if isinstance(payload, dict) else {}
+        if not isinstance(payload, dict):
+            raise ProviderResponseError(self.name, "FINRA async status returned an invalid object")
+        body = payload
         return FINRAAsyncJob(
             status_url=status_url,
             request_id=str(body.get("requestId") or "").strip() or None,
@@ -201,23 +216,29 @@ class FINRAProvider:
                 }
             )
         payload = {"compareFilters": filters, "limit": 1000, "offset": 0}
-        response = httpx.post(
-            endpoint,
-            json=payload,
-            headers={
-                "Authorization": f"Bearer {token}",
-                "Accept": "application/json",
-                "Content-Type": "application/json",
-            },
-            timeout=30,
-        )
+        try:
+            response = httpx.post(
+                endpoint,
+                json=payload,
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                },
+                timeout=30,
+            )
+        except httpx.RequestError as exc:
+            raise ProviderResponseError(self.name, f"transport failure: {exc}") from exc
         observe_response(response)
         response.raise_for_status()
-        raw = response.json()
+        try:
+            raw = response.json()
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError(self.name, "FINRA short-interest response returned invalid JSON") from exc
         raise_for_provider_error_envelope(self.name, raw, response.status_code)
         rows = raw.get("data", raw) if isinstance(raw, dict) else raw
         if not isinstance(rows, list):
-            return []
+            raise ProviderResponseError(self.name, "FINRA short-interest response returned an invalid rows array")
         result: list[ShortInterestRecord] = []
         for row in rows:
             if not isinstance(row, dict):
@@ -299,23 +320,29 @@ class FINRAProvider:
         payload: dict[str, Any] = {"limit": 5000, "offset": 0}
         if filters:
             payload["compareFilters"] = filters
-        response = httpx.post(
-            endpoint,
-            json=payload,
-            headers={
-                "Authorization": f"Bearer {token}",
-                "Accept": "application/json",
-                "Content-Type": "application/json",
-            },
-            timeout=30,
-        )
+        try:
+            response = httpx.post(
+                endpoint,
+                json=payload,
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                },
+                timeout=30,
+            )
+        except httpx.RequestError as exc:
+            raise ProviderResponseError(self.name, f"transport failure: {exc}") from exc
         observe_response(response)
         response.raise_for_status()
-        raw = response.json()
+        try:
+            raw = response.json()
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError(self.name, "FINRA OTC daily-list response returned invalid JSON") from exc
         raise_for_provider_error_envelope(self.name, raw, response.status_code)
         rows = raw.get("data", raw) if isinstance(raw, dict) else raw
         if not isinstance(rows, list):
-            return []
+            raise ProviderResponseError(self.name, "FINRA OTC daily-list response returned an invalid rows array")
         result: list[MarketEventRecord] = []
         for row in rows:
             if not isinstance(row, dict):
@@ -367,20 +394,28 @@ def _access_token(client_id: str, client_secret: str) -> str:
     now = datetime.now(UTC)
     if _token_cache and _token_cache[1] > now:
         return _token_cache[0]
-    response = httpx.post(
-        str(getattr(settings, "FINRA_TOKEN_URL", "") or ""),
-        params={"grant_type": "client_credentials"},
-        auth=(client_id, client_secret),
-        headers={"Accept": "application/json"},
-        timeout=30,
-    )
+    try:
+        response = httpx.post(
+            str(getattr(settings, "FINRA_TOKEN_URL", "") or ""),
+            params={"grant_type": "client_credentials"},
+            auth=(client_id, client_secret),
+            headers={"Accept": "application/json"},
+            timeout=30,
+        )
+    except httpx.RequestError as exc:
+        raise ProviderResponseError("finra", f"transport failure: {exc}") from exc
     observe_response(response)
     response.raise_for_status()
-    body = response.json()
+    try:
+        body = response.json()
+    except (TypeError, ValueError) as exc:
+        raise ProviderResponseError("finra", "FINRA OAuth response returned invalid JSON") from exc
     raise_for_provider_error_envelope("finra", body, response.status_code)
-    token = str(body.get("access_token") or "").strip() if isinstance(body, dict) else ""
+    if not isinstance(body, dict):
+        raise ProviderResponseError("finra", "FINRA OAuth response returned an invalid object")
+    token = str(body.get("access_token") or "").strip()
     if not token:
-        raise RuntimeError("FINRA OAuth response did not contain access_token")
+        raise ProviderResponseError("finra", "FINRA OAuth response did not contain access_token")
     try:
         expires_in = int(body.get("expires_in") or 3600) if isinstance(body, dict) else 3600
     except (TypeError, ValueError):

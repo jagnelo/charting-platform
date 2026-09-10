@@ -1,6 +1,10 @@
 from unittest.mock import MagicMock, patch
 
+import httpx
+import pytest
+
 import app.providers.nasdaq as nasdaq
+from app.providers.errors import ProviderResponseError
 from app.providers.nasdaq import NasdaqProvider, _parse_file
 
 
@@ -112,3 +116,27 @@ def test_nasdaq_is_not_a_price_provider():
     from app.providers.registry import list_provider_capabilities
 
     assert list_provider_capabilities("nasdaq") == ["universe_discovery"]
+
+
+def test_nasdaq_transport_failure_is_typed():
+    nasdaq._cache = None
+    nasdaq._file_cache.clear()
+    failure = httpx.ConnectError(
+        "connection failed",
+        request=httpx.Request("GET", "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"),
+    )
+    with patch("app.providers.nasdaq.httpx.get", side_effect=failure):
+        with pytest.raises(ProviderResponseError) as exc_info:
+            NasdaqProvider().discover_universe_page("EQUITY", 0)
+    assert exc_info.value.provider_name == "nasdaq"
+
+
+def test_nasdaq_malformed_directory_is_typed():
+    nasdaq._cache = None
+    nasdaq._file_cache.clear()
+    response = MagicMock(status_code=200, text="not a Nasdaq directory")
+    response.raise_for_status.return_value = None
+    with patch("app.providers.nasdaq.httpx.get", return_value=response):
+        with pytest.raises(ProviderResponseError) as exc_info:
+            NasdaqProvider().discover_universe_page("EQUITY", 0)
+    assert exc_info.value.provider_name == "nasdaq"

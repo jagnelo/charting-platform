@@ -1,10 +1,11 @@
 from unittest.mock import Mock, patch
 
+import httpx
 import pytest
 
 import app.providers.finra_otc_directory as directory
 from app.config import settings
-from app.providers.errors import ProviderNotConfiguredError
+from app.providers.errors import ProviderNotConfiguredError, ProviderResponseError
 from app.providers.finra_otc_directory import FINRAOTCDirectoryProvider
 
 
@@ -121,3 +122,31 @@ def test_finra_otc_directory_continues_after_payload_capped_short_page(monkeypat
 
     assert [row["symbol"] for row in rows] == ["AAA", "BBB"]
     assert [call.kwargs["json"]["offset"] for call in post.call_args_list] == [0, 1]
+
+
+def test_finra_otc_directory_transport_failure_is_typed(monkeypatch):
+    monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", "https://example.test/otc.txt")
+    failure = httpx.ConnectError(
+        "connection failed",
+        request=httpx.Request("GET", "https://example.test/otc.txt"),
+    )
+    with patch.object(directory, "_cache", None), patch(
+        "app.providers.finra_otc_directory.httpx.get", side_effect=failure
+    ):
+        with pytest.raises(ProviderResponseError) as exc_info:
+            FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
+    assert exc_info.value.provider_name == "finra_otc_directory"
+
+
+def test_finra_otc_dapi_malformed_payload_is_typed(monkeypatch):
+    dapi_url = "https://api.finra.org/data/group/otcMarket/name/otcSecurityMaster"
+    monkeypatch.setattr(settings, "FINRA_OTC_SYMBOL_DIRECTORY_URL", dapi_url)
+    partitions = Mock()
+    partitions.raise_for_status.return_value = None
+    partitions.json.side_effect = ValueError("not json")
+    with patch.object(directory, "_cache", None), patch(
+        "app.providers.finra_otc_directory.httpx.get", return_value=partitions
+    ):
+        with pytest.raises(ProviderResponseError) as exc_info:
+            FINRAOTCDirectoryProvider().discover_universe_page("OTC", 0)
+    assert exc_info.value.provider_name == "finra_otc_directory"

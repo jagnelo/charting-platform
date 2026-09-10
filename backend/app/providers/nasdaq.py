@@ -15,6 +15,7 @@ from typing import Any
 import httpx
 
 from app.config import settings
+from app.providers.errors import ProviderResponseError
 from app.providers.telemetry import observe_response
 
 _BASE = "https://www.nasdaqtrader.com/dynamic/SymDir"
@@ -62,19 +63,32 @@ def _directory_rows() -> list[dict[str, Any]]:
                 request_headers["If-None-Match"] = validators["etag"]
             if validators.get("last-modified"):
                 request_headers["If-Modified-Since"] = validators["last-modified"]
-        response = httpx.get(
-            url,
-            headers=request_headers,
-            timeout=30,
-        )
+        try:
+            response = httpx.get(
+                url,
+                headers=request_headers,
+                timeout=30,
+            )
+        except httpx.RequestError as exc:
+            raise ProviderResponseError("nasdaq", f"transport failure: {exc}") from exc
         observe_response(response)
         if response.status_code == 304:
             if cached_file is None:
-                raise RuntimeError(f"Nasdaq returned 304 without a local {source_name} cache")
+                raise ProviderResponseError(
+                    "nasdaq", f"304 response without a local {source_name} cache"
+                )
             rows.extend(cached_file[0])
             continue
-        response.raise_for_status()
-        parsed = _parse_file(source_name, response.text)
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError:
+            raise
+        try:
+            parsed = _parse_file(source_name, response.text)
+        except (TypeError, ValueError, csv.Error) as exc:
+            raise ProviderResponseError(
+                "nasdaq", f"malformed {source_name} directory response: {exc}"
+            ) from exc
         rows.extend(parsed)
         response_headers = {
             str(key).lower(): str(value)
@@ -88,6 +102,15 @@ def _directory_rows() -> list[dict[str, Any]]:
 
 def _parse_file(source_name: str, text: str) -> list[dict[str, Any]]:
     reader = csv.DictReader(io.StringIO(text), delimiter="|")
+    required_columns = (
+        {"Symbol", "Security Name"}
+        if source_name == "nasdaqlisted"
+        else {"ACT Symbol", "Security Name", "Exchange"}
+    )
+    if not reader.fieldnames or not required_columns.issubset(set(reader.fieldnames)):
+        raise ValueError(
+            f"missing required columns for {source_name}: {sorted(required_columns)}"
+        )
     parsed: list[dict[str, Any]] = []
     for row in reader:
         first_value = next(iter(row.values()), "") if row else ""

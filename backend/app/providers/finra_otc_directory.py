@@ -19,7 +19,7 @@ from urllib.parse import urlsplit
 import httpx
 
 from app.config import settings
-from app.providers.errors import ProviderNotConfiguredError
+from app.providers.errors import ProviderNotConfiguredError, ProviderResponseError
 from app.providers.telemetry import observe_response
 
 _PAGE_SIZE = 1000
@@ -68,16 +68,19 @@ def _directory_rows() -> list[dict[str, Any]]:
     if _is_dapi_source(url):
         rows = _fetch_dapi_rows(url)
     else:
-        response = httpx.get(
-            url,
-            headers={"User-Agent": settings.NASDAQ_USER_AGENT, "Accept": "text/plain"},
-            timeout=30,
-        )
+        try:
+            response = httpx.get(
+                url,
+                headers={"User-Agent": settings.NASDAQ_USER_AGENT, "Accept": "text/plain"},
+                timeout=30,
+            )
+        except httpx.RequestError as exc:
+            raise ProviderResponseError("finra_otc_directory", f"transport failure: {exc}") from exc
         observe_response(response)
         response.raise_for_status()
         rows = _parse_directory(response.text)
     if not rows:
-        raise ValueError("FINRA OTC symbol directory returned no valid rows")
+        raise ProviderResponseError("finra_otc_directory", "directory returned no valid rows")
     _cache = (now, rows)
     return list(rows)
 
@@ -97,10 +100,22 @@ def _dapi_partitions_url(url: str) -> str:
 
 def _fetch_dapi_rows(url: str) -> list[dict[str, Any]]:
     headers = {"User-Agent": settings.NASDAQ_USER_AGENT, "Accept": "application/json"}
-    partitions_response = httpx.get(_dapi_partitions_url(url), headers=headers, timeout=30)
+    try:
+        partitions_response = httpx.get(_dapi_partitions_url(url), headers=headers, timeout=30)
+    except httpx.RequestError as exc:
+        raise ProviderResponseError("finra_otc_directory", f"transport failure: {exc}") from exc
     observe_response(partitions_response)
     partitions_response.raise_for_status()
-    partitions_payload = partitions_response.json()
+    try:
+        partitions_payload = partitions_response.json()
+    except (TypeError, ValueError) as exc:
+        raise ProviderResponseError(
+            "finra_otc_directory", "DAPI partitions response returned invalid JSON"
+        ) from exc
+    if not isinstance(partitions_payload, dict):
+        raise ProviderResponseError(
+            "finra_otc_directory", "DAPI partitions response returned an invalid object"
+        )
     partitions = [
         str(partition)
         for item in partitions_payload.get("availablePartitions", [])
@@ -109,49 +124,60 @@ def _fetch_dapi_rows(url: str) -> list[dict[str, Any]]:
         if str(partition).strip()
     ]
     if not partitions:
-        raise ValueError("FINRA OTC DAPI returned no available asOfDate partitions")
+        raise ProviderResponseError("finra_otc_directory", "DAPI returned no available partitions")
     as_of_date = max(partitions)
 
     rows: list[dict[str, Any]] = []
     offset = 0
     total: int | None = None
     while True:
-        response = httpx.post(
-            url,
-            headers={**headers, "Content-Type": "application/json"},
-            json={
-                "compareFilters": [
-                    {
-                        "fieldName": "asOfDate",
-                        "fieldValue": as_of_date,
-                        "compareType": "EQUAL",
-                    }
-                ],
-                "sortFields": ["+issueSymbolIdentifier"],
-                "limit": _DAPI_PAGE_SIZE,
-                "offset": offset,
-            },
-            timeout=30,
-        )
+        try:
+            response = httpx.post(
+                url,
+                headers={**headers, "Content-Type": "application/json"},
+                json={
+                    "compareFilters": [
+                        {
+                            "fieldName": "asOfDate",
+                            "fieldValue": as_of_date,
+                            "compareType": "EQUAL",
+                        }
+                    ],
+                    "sortFields": ["+issueSymbolIdentifier"],
+                    "limit": _DAPI_PAGE_SIZE,
+                    "offset": offset,
+                },
+                timeout=30,
+            )
+        except httpx.RequestError as exc:
+            raise ProviderResponseError("finra_otc_directory", f"transport failure: {exc}") from exc
         observe_response(response)
         response.raise_for_status()
-        payload = response.json()
+        try:
+            payload = response.json()
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError(
+                "finra_otc_directory", "DAPI page returned invalid JSON"
+            ) from exc
         if not isinstance(payload, list):
-            raise ValueError("FINRA OTC DAPI returned a non-array page")
+            raise ProviderResponseError("finra_otc_directory", "DAPI page returned a non-array")
         if total is None:
             try:
                 total = int(response.headers["record-total"])
             except (KeyError, TypeError, ValueError) as exc:
-                raise ValueError("FINRA OTC DAPI omitted record-total") from exc
+                raise ProviderResponseError("finra_otc_directory", "DAPI omitted record-total") from exc
             if total < 1:
-                raise ValueError("FINRA OTC DAPI returned an empty current security master")
+                raise ProviderResponseError("finra_otc_directory", "DAPI returned an empty security master")
         if not payload:
-            raise ValueError("FINRA OTC DAPI ended before record-total was reached")
-        rows.extend(_normalize_dapi_row(row) for row in payload if isinstance(row, dict))
+            raise ProviderResponseError("finra_otc_directory", "DAPI ended before record-total")
+        try:
+            rows.extend(_normalize_dapi_row(row) for row in payload if isinstance(row, dict))
+        except ValueError as exc:
+            raise ProviderResponseError("finra_otc_directory", str(exc)) from exc
         previous_offset = offset
         offset += len(payload)
         if offset <= previous_offset or offset > total:
-            raise ValueError("FINRA OTC DAPI returned an invalid pagination progress")
+            raise ProviderResponseError("finra_otc_directory", "DAPI returned invalid pagination progress")
         if offset >= total:
             break
         # FINRA may return fewer rows than requested when the response-payload
@@ -159,7 +185,9 @@ def _fetch_dapi_rows(url: str) -> list[dict[str, Any]]:
         # paging from the number actually returned instead of treating a
         # short page as an incomplete universe.
     if len(rows) != total:
-        raise ValueError(f"FINRA OTC DAPI returned {len(rows)} rows, expected {total}")
+        raise ProviderResponseError(
+            "finra_otc_directory", f"DAPI returned {len(rows)} rows, expected {total}"
+        )
     return rows
 
 

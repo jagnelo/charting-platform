@@ -1,6 +1,7 @@
 from datetime import date
 from unittest.mock import MagicMock, Mock, patch
 
+import httpx
 import pytest
 
 from app.config import settings
@@ -182,3 +183,33 @@ def test_finra_async_result_rejects_declared_payload_above_bound():
             assert "exceeds configured byte bound" in str(exc)
         else:
             raise AssertionError("declared FINRA async payload over bound must fail closed")
+
+
+def test_finra_transport_failure_is_typed(monkeypatch):
+    monkeypatch.setattr(settings, "FINRA_CLIENT_ID", "client")
+    monkeypatch.setattr(settings, "FINRA_CLIENT_SECRET", "secret")
+    failure = httpx.ConnectError(
+        "connection failed",
+        request=httpx.Request("POST", "https://api.finra.org/token"),
+    )
+    with patch.object(finra, "_token_cache", None), patch(
+        "app.providers.finra.httpx.post", side_effect=failure
+    ):
+        with pytest.raises(ProviderResponseError) as exc_info:
+            FINRAProvider().fetch_short_interest("AAPL")
+    assert exc_info.value.provider_name == "finra"
+
+
+def test_finra_malformed_oauth_payload_is_typed(monkeypatch):
+    monkeypatch.setattr(settings, "FINRA_CLIENT_ID", "client")
+    monkeypatch.setattr(settings, "FINRA_CLIENT_SECRET", "secret")
+    token_response = Mock()
+    token_response.status_code = 200
+    token_response.raise_for_status.return_value = None
+    token_response.json.side_effect = ValueError("not json")
+    with patch.object(finra, "_token_cache", None), patch(
+        "app.providers.finra.httpx.post", return_value=token_response
+    ):
+        with pytest.raises(ProviderResponseError) as exc_info:
+            FINRAProvider().fetch_short_interest("AAPL")
+    assert exc_info.value.provider_name == "finra"

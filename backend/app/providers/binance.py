@@ -30,7 +30,7 @@ from typing import Any
 import httpx
 
 from app.models.ohlcv import OHLCVBar, Timeframe
-from app.providers.errors import raise_for_provider_error_envelope
+from app.providers.errors import ProviderResponseError, raise_for_provider_error_envelope
 from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
@@ -126,7 +126,14 @@ class BinanceProvider:
                 raise
             except httpx.RequestError as exc:
                 logger.warning("binance fetch_ohlcv %s: %s", symbol, exc)
-                raise
+                raise ProviderResponseError("binance", f"transport failure: {exc}") from exc
+            except (TypeError, ValueError, IndexError, KeyError) as exc:
+                raise ProviderResponseError(
+                    "binance", f"malformed klines response: {exc}"
+                ) from exc
+
+            if not isinstance(klines, list):
+                raise ProviderResponseError("binance", "malformed klines response: expected a list")
 
             if not klines:
                 break
@@ -150,8 +157,10 @@ class BinanceProvider:
                             is_adjusted=True,
                         )
                     )
-                except (IndexError, ValueError):
-                    continue
+                except (IndexError, TypeError, ValueError) as exc:
+                    raise ProviderResponseError(
+                        "binance", f"malformed klines row: {exc}"
+                    ) from exc
 
             # Advance cursor past the last returned open_time
             last_open_ms = klines[-1][0]
@@ -209,7 +218,9 @@ class BinanceProvider:
             raise
         except httpx.RequestError as exc:
             logger.debug("binance get_current_price %s: %s", symbol, exc)
-            raise
+            raise ProviderResponseError("binance", f"transport failure: {exc}") from exc
+        except (TypeError, ValueError, KeyError) as exc:
+            raise ProviderResponseError("binance", f"malformed ticker response: {exc}") from exc
 
     # ── Universe Discovery ────────────────────────────────────────────────────
 
@@ -290,11 +301,16 @@ def _cached_usdt_pairs() -> list[dict]:
         r.raise_for_status()
         payload = r.json()
         raise_for_provider_error_envelope("binance", payload, r.status_code)
-        symbols = payload.get("symbols", [])
+        if not isinstance(payload, dict) or not isinstance(payload.get("symbols"), list):
+            raise ProviderResponseError(
+                "binance", "malformed exchange-info response: expected symbols list"
+            )
+        symbols = payload["symbols"]
         pairs = [
             s
             for s in symbols
-            if s.get("quoteAsset") == "USDT"
+            if isinstance(s, dict)
+            and s.get("quoteAsset") == "USDT"
             and s.get("status") == "TRADING"
             and s.get("isSpotTradingAllowed")
         ]
@@ -305,8 +321,9 @@ def _cached_usdt_pairs() -> list[dict]:
         raise
     except httpx.RequestError as exc:
         logger.warning("binance _cached_usdt_pairs: %s", exc)
-        raise
-
+        raise ProviderResponseError("binance", f"transport failure: {exc}") from exc
+    except (TypeError, ValueError, KeyError) as exc:
+        raise ProviderResponseError("binance", f"malformed exchange-info response: {exc}") from exc
 
 def _pair_to_quote(pair: dict) -> dict[str, Any]:
     base = pair.get("baseAsset", "")
