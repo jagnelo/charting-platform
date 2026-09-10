@@ -263,7 +263,7 @@ the non-secret `MARKETSTACK_DISCOVERY_EXCHANGE` MIC/exchange setting. The
 adapter no longer defaults discovery to `XNYS`, so a single-venue read cannot
 be mistaken for complete US listing coverage.
 
-The latest network-enabled rerun at `2026-09-10T02:55:25Z`, using the existing
+The latest network-enabled rerun at `2026-09-10T03:16:52Z`, using the existing
 external keys plus a temporary non-secret SEC User-Agent and explicit
 `MARKETSTACK_DISCOVERY_EXCHANGE=XNAS`, collected 34 cases: 31 passed with
 positive transport observations across the available keyless and credentialed
@@ -272,7 +272,9 @@ OpenFIGI after its prior cooldown, and the header-only Alpha Vantage IPO-calenda
 response. Three failed
 exact credential preflight for `ALPACA_API_KEY`/`ALPACA_SECRET_KEY`,
 `TRADIER_API_KEY`, and `MARKETDATA_APP_API_KEY`. The wrapper returned exit code
-2 and made no acceptance claim. FRED now reports its three explicit missing
+2 and made no acceptance claim. The newly implemented Tradier expiration and
+current-chain live reads remained unexecuted because `TRADIER_API_KEY` is still
+absent; this is an explicit credential failure, not a live skip. FRED now reports its three explicit missing
 review controls (`FRED_REVIEWED_LIMIT_SCOPE`,
 `FRED_REVIEWED_REQUESTS_PER_MINUTE`, and `FRED_SERIES_TERMS_REVIEWED`) rather
 than an opaque generic blocker. FINRA asynchronous result bytes, Nasdaq polling,
