@@ -5,6 +5,37 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Rebuildable split-factor provenance fingerprint
+
+At product tip `64a17354`, the provider dataset-state path now fingerprints a
+complete persisted split-event set as a deterministic `afv1-…` adjustment
+factor version. Events are sorted and canonically encoded before hashing, so
+the same source inputs can be reproduced independently. Dividend events,
+missing/invalid split ratios, and absent event evidence remain explicitly
+opaque because dividend amounts alone do not define a provider's adjustment
+factor convention. No provider response, price, fallback, visible layout,
+pixel, or acceptance policy changed.
+
+The focused adjustment-factor and market-data suites passed `18/18`, adjacent
+derived-timeframe/OHLCV units passed `13/13`, and the Docker-backed OHLCV
+integration contract passed `19/19`; Ruff, formatting, and diff checks passed.
+The exact Docker-backed gate passed all non-visual stages, backend
+unit/integration coverage (`1,379`/`387`, `68%`/`81.16%`), frontend Vitest
+(`990/990`), and functional Playwright (`165` passed, `107` documented skips
+across `272`). Visual parity completed `104` cases with `98` passes and the
+same six established state-oracle diffs: `watchlist-column-editor-open` at
+visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125 and
+visual-1440p-100/125. Scoped teardown removed all assigned resources and test
+sessions cleanly. No visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed.
+
+R1 remains active for broader factor-event persistence and dividend-factor
+coverage, raw-versus-derived storage separation, complete family/provider-
+history readiness, W1/MN continuity, cadence beyond source-declared metadata,
+and broader canonical population; R2-R7 remain open. Next action: continue
+the next bounded evidence-backed R1 history/provenance seam and rerun the exact
+gate at the next coherent tip.
+
 ## 2026-09-10 — Provider history promotes derived rows to canonical lineage
 
 At product tip `2a83bd46`, every provider OHLCV persistence path now uses a

@@ -110,14 +110,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "2a83bd4626a8f3badf10581e635d86db7e039380",
-  "implementation_sha": "2a83bd4626a8f3badf10581e635d86db7e039380",
+  "head": "64a17354e41f74aa41947ae93842ff163854e25e",
+  "implementation_sha": "64a17354e41f74aa41947ae93842ff163854e25e",
   "interrupted": false,
-  "last_checkpoint": "2026-09-09T23:56:38Z",
-  "last_human_progress_update": "2026-09-09T23:56:38Z",
+  "last_checkpoint": "2026-09-10T00:34:25Z",
+  "last_human_progress_update": "2026-09-10T00:34:25Z",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded evidence-backed R1 history or provenance seam; preserve the six visual state-oracle assertions and provider/fallback rules and rerun the exact gate at the next coherent tip.",
-  "plan_hash": "05b7c1347b899211b95e94fac40aa74f2d34e2893056f053b21d9e90a4fb45ba",
+  "plan_hash": "8713a3187997d6ef448d131203f61035f50c3b226cc5917b32024bd178805252",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -129,11 +129,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product tip 2a83bd46 makes provider OHLCV persistence lineage-aware: a provider W1/MN observation supersedes a matching local D1-derived row and clears is_derived plus all derivation metadata while retaining provider values/source precedence. Focused market-data units passed 14/14; adjacent derived-timeframe/OHLCV units passed 13/13; OHLCV integration passed 19/19; Ruff and diff checks passed. The exact Docker-backed gate passed all non-visual stages, backend unit/integration coverage 1375/387 at 68%, frontend/build/probe stages, and functional Playwright 165 with 107 documented skips across 272. Visual parity remains 98/104 with exactly the six established state-oracle diffs; teardown and resource accounting were clean. R1 rebuildable adjustment-factor/version and remaining raw-versus-derived evidence, family/provider-history readiness, W1/MN continuity, cadence beyond source-declared metadata, broader canonical population, and R2-R7 evidence remain open.",
+    "current_blocker": "Product tip 64a17354 fingerprints complete persisted split events as a deterministic afv1 adjustment-factor version in provider OHLCV dataset provenance; dividend, incomplete, and absent factor evidence remains explicitly opaque. Focused adjustment-factor/market-data coverage passed 18/18; adjacent derived-timeframe/OHLCV units passed 13/13; OHLCV integration passed 19/19; Ruff, format, and diff checks passed. The exact Docker-backed gate passed all non-visual stages, backend unit/integration coverage 1379/387 at 68%/81.16%, frontend 990/990, and functional Playwright 165 with 107 documented skips across 272. Visual parity remains 98/104 with exactly the six established state-oracle diffs; teardown and resource accounting were clean. Durable factor-event/dividend coverage, raw-versus-derived storage, family/provider-history readiness, W1/MN continuity, cadence beyond source-declared metadata, broader canonical population, and R2-R7 remain open.",
     "current_phase": "R1_canonical_provider_history_readiness",
     "next_action": "Continue the next bounded evidence-backed R1 history or provenance seam; preserve the six visual state-oracle assertions and provider/fallback rules and rerun the exact gate at the next coherent tip.",
     "total": 10,
-    "updated_at": "2026-09-09T23:56:38Z"
+    "updated_at": "2026-09-10T00:34:25Z"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

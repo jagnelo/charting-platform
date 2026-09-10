@@ -13,6 +13,20 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tip 64a17354 fingerprints complete persisted split events as a
+  deterministic afv1 adjustment-factor version in provider OHLCV dataset
+  provenance. Dividend, incomplete, and absent factor evidence remains
+  explicitly opaque. Focused adjustment-factor/market-data coverage passed
+  18/18; adjacent derived-timeframe/OHLCV units passed 13/13; OHLCV
+  integration passed 19/19; Ruff, format, and diff checks passed. The exact
+  Docker-backed gate passed all non-visual stages, backend unit/integration
+  coverage 1379/387 at 68%/81.16%, frontend 990/990, and functional
+  Playwright 165 with 107 documented skips across 272. Visual parity remains
+  98/104 with exactly the six established state-oracle diffs; teardown and
+  resource accounting were clean. Durable factor-event/dividend coverage,
+  raw-versus-derived storage, family/provider-history readiness, W1/MN
+  continuity, cadence beyond source-declared metadata, broader canonical
+  population, and R2-R7 remain open.
   Product tip 2a83bd46 makes provider OHLCV persistence lineage-aware: a
   provider W1/MN observation supersedes a matching local D1-derived row and
   clears is_derived plus all derivation metadata while retaining provider
@@ -710,6 +724,20 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
+    Product tip 64a17354 fingerprints complete persisted split events as a
+    deterministic afv1 adjustment-factor version in provider OHLCV dataset
+    provenance; dividend, incomplete, and absent factor evidence remains
+    explicitly opaque. Focused adjustment-factor/market-data coverage passed
+    18/18; adjacent derived-timeframe/OHLCV units passed 13/13; OHLCV
+    integration passed 19/19; Ruff, format, and diff checks passed. The exact
+    Docker-backed gate passed all non-visual stages, backend unit/integration
+    coverage 1379/387 at 68%/81.16%, frontend 990/990, and functional
+    Playwright 165 with 107 documented skips across 272. Visual parity remains
+    98/104 with exactly the six established state-oracle diffs; teardown and
+    resource accounting were clean. Durable factor-event/dividend coverage,
+    raw-versus-derived storage, family/provider-history readiness, W1/MN
+    continuity, cadence beyond source-declared metadata, broader canonical
+    population, and R2-R7 remain open.
     Product tip 2a83bd46 makes provider OHLCV persistence lineage-aware: a
     provider W1/MN observation supersedes a matching local D1-derived row and
     clears is_derived plus all derivation metadata while retaining provider

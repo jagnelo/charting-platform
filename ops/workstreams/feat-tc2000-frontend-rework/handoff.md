@@ -8,6 +8,31 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Rebuildable split-factor provenance fingerprint checkpoint
+
+Product tip `64a17354` now fingerprints complete persisted split events as a
+stable `afv1-…` adjustment-factor version in provider OHLCV dataset-state
+provenance. Event ordering and canonical encoding make the version
+rebuildable. Dividend events, incomplete split inputs, and absent events stay
+opaque because the available event data does not define a provider's full
+dividend-adjustment convention. Provider payloads, prices, fallback, visible
+layout, pixels, and acceptance policy are unchanged.
+
+Focused adjustment-factor/market-data coverage passed `18/18`; adjacent
+derived-timeframe/OHLCV coverage passed `13/13`; OHLCV integration passed
+`19/19`; Ruff, formatting, and diff checks passed. The exact Docker-backed
+gate passed all non-visual stages, backend unit/integration `1,379`/`387`,
+frontend Vitest `990/990`, and functional Playwright `165` with `107`
+documented skips across `272`. Visual parity remained `98/104` with exactly
+the six established state-oracle diffs; teardown removed all assigned
+resources and sessions cleanly.
+
+R1 remains active for durable factor-event/dividend coverage, raw-versus-
+derived storage separation, family/provider-history readiness, W1/MN
+continuity, cadence beyond source-declared metadata, and broader canonical
+population. R2-R7 remain open. Next action: continue the next bounded
+evidence-backed R1 history/provenance seam and rerun the exact gate.
+
 ## 2026-09-10 — Provider history promotes derived rows to canonical lineage checkpoint
 
 Product tip `2a83bd46` makes all provider OHLCV persistence paths lineage-aware.

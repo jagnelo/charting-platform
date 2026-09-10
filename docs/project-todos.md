@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-10 — Rebuildable split-factor provenance fingerprint
+
+- [x] Canonically fingerprint complete persisted split events as a stable
+      `afv1-…` adjustment-factor version in provider dataset provenance.
+- [x] Keep dividend, incomplete, and absent factor inputs explicitly opaque;
+      focused factor/market-data coverage passed 18/18, adjacent OHLCV/
+      derived-timeframe coverage 13/13, OHLCV integration 19/19, and the exact
+      gate preserved 1,379/387 backend, 990/990 frontend, 165 functional
+      passes, 107 documented skips, and the six visual diffs with clean
+      teardown.
+- [ ] Extend the model to durable factor-event persistence and provider
+      dividend-factor coverage; complete raw-versus-derived storage evidence,
+      family/provider history, W1/MN continuity, cadence beyond source-
+      declared metadata, and canonical population.
+
 ### 2026-09-10 — Provider history promotes derived rows to canonical lineage
 
 - [x] Make provider OHLCV upserts reclaim matching W1/MN keys from local
