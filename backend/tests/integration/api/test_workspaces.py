@@ -745,6 +745,11 @@ class TestWorkspaces:
             {"from_date": "2026-06-30", "to_date": "2027-06-30", "interval_days": 365}
         ]
         assert roles["cap_weight"]["continuity_snapshot_limit_reached"] is False
+        assert roles["cap_weight"]["observed_cadence_status"] == "observed_cadence"
+        assert roles["cap_weight"]["observed_cadence_sample_count"] == 1
+        assert roles["cap_weight"]["observed_cadence_median_interval_days"] == 365.0
+        assert roles["cap_weight"]["observed_cadence_min_interval_days"] == 365
+        assert roles["cap_weight"]["observed_cadence_max_interval_days"] == 365
         assert roles["equal_weight"]["status"] == "mapping_unavailable"
         assert roles["value"]["status"] == "mapping_unavailable"
         assert roles["growth"]["status"] == "mapping_unavailable"
@@ -762,10 +767,17 @@ class TestWorkspaces:
         assert [row["composition_date"] for row in historical_cap["snapshots"]] == ["2026-06-30"]
         assert historical_cap["continuity_status"] == "single_snapshot"
         assert historical_cap["continuity_gap_count"] == 0
+        assert historical_cap["observed_cadence_status"] == "single_snapshot"
+        assert historical_cap["observed_cadence_sample_count"] == 0
+        assert historical_cap["observed_cadence_median_interval_days"] is None
         assert historical.json()["universe_provenance"]["point_in_time"] is True
         assert (
             historical.json()["universe_provenance"]["continuity_policy"]
             == "observed_snapshot_intervals_gt_45_days"
+        )
+        assert (
+            historical.json()["universe_provenance"]["observed_cadence_semantics"]
+            == "diagnostic_of_returned_snapshot_date_intervals_only"
         )
 
     def test_benchmark_family_coverage_resolves_entitlements_by_snapshot_provider(

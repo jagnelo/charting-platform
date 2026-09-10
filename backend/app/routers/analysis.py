@@ -133,6 +133,7 @@ from app.schemas.market_map import (
 )
 from app.services.benchmark_family_coverage import (
     OBSERVED_CONTINUITY_MAX_INTERVAL_DAYS,
+    assess_observed_holdings_cadence,
     assess_observed_holdings_continuity,
 )
 from app.services.breadth import (
@@ -3899,6 +3900,11 @@ async def benchmark_family_coverage(
         continuity_status = "not_applicable"
         continuity_gaps: list[BenchmarkFamilyCoverageGapOut] = []
         continuity_snapshot_limit_reached = False
+        observed_cadence_status = "not_applicable"
+        observed_cadence_sample_count = 0
+        observed_cadence_median_interval_days: float | None = None
+        observed_cadence_min_interval_days: int | None = None
+        observed_cadence_max_interval_days: int | None = None
         selected_snapshot: ETFHoldingsSnapshot | None = None
         source: DataSource | None = None
         entitlement_source: DataSource | None = None
@@ -3991,6 +3997,9 @@ async def benchmark_family_coverage(
             continuity = assess_observed_holdings_continuity(
                 [snapshot.composition_date for snapshot in snapshots],
             )
+            cadence = assess_observed_holdings_cadence(
+                [snapshot.composition_date for snapshot in snapshots],
+            )
             continuity_status = continuity.status
             continuity_gaps = [
                 BenchmarkFamilyCoverageGapOut(
@@ -4000,6 +4009,11 @@ async def benchmark_family_coverage(
                 )
                 for gap in continuity.gaps
             ]
+            observed_cadence_status = cadence.status
+            observed_cadence_sample_count = cadence.sample_count
+            observed_cadence_median_interval_days = cadence.median_interval_days
+            observed_cadence_min_interval_days = cadence.min_interval_days
+            observed_cadence_max_interval_days = cadence.max_interval_days
             resolved_snapshots = [snapshot for snapshot in snapshots if snapshot.resolved_count > 0]
             selected_snapshot = next(
                 (row for row in snapshot_rows if row.resolved_count > 0),
@@ -4209,6 +4223,11 @@ async def benchmark_family_coverage(
                 ),
                 continuity_gaps=continuity_gaps,
                 continuity_snapshot_limit_reached=continuity_snapshot_limit_reached,
+                observed_cadence_status=observed_cadence_status,
+                observed_cadence_sample_count=observed_cadence_sample_count,
+                observed_cadence_median_interval_days=observed_cadence_median_interval_days,
+                observed_cadence_min_interval_days=observed_cadence_min_interval_days,
+                observed_cadence_max_interval_days=observed_cadence_max_interval_days,
                 member_bar_history=member_bar_history,
                 entitlement_status=entitlement_status,
                 entitlement_provider=entitlement_source.name if entitlement_source else None,
@@ -4279,6 +4298,7 @@ async def benchmark_family_coverage(
             "coverage_semantics": "role_independent_dated_holdings_snapshots",
             "continuity_policy": "observed_snapshot_intervals_gt_45_days",
             "continuity_semantics": "diagnostic_of_returned_snapshot_dates_only",
+            "observed_cadence_semantics": "diagnostic_of_returned_snapshot_date_intervals_only",
             "point_in_time": as_of is not None,
             "snapshot_limit": limit,
         },

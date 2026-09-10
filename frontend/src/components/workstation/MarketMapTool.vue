@@ -818,6 +818,18 @@ function benchmarkRoleIdentityEvidenceLabel(coverage: BenchmarkFamilyCoverage): 
     const continuityStatus = role.continuity_status?.trim()?.replace(/_/g, ' ') || 'not reported'
     const continuityGaps = (role.continuity_gaps ?? []).map(gap => `${gap.from_date.slice(0, 10)} to ${gap.to_date.slice(0, 10)} (${gap.interval_days}d)`).join(', ')
     const continuityEvidence = ` · continuity ${continuityStatus}${role.continuity_gap_count ? ` · ${role.continuity_gap_count} gap${role.continuity_gap_count === 1 ? '' : 's'}` : ''}${role.continuity_max_interval_days ? ` · max ${role.continuity_max_interval_days}d` : ''}${continuityGaps ? ` · intervals ${continuityGaps}` : ''}${role.continuity_snapshot_limit_reached ? ' · snapshot window capped' : ''}`
+    const observedCadenceStatus = role.observed_cadence_status?.trim()
+    const observedCadenceLabel = observedCadenceStatus
+      ? ({ no_snapshot: 'no snapshot', single_snapshot: 'single disclosure', observed_cadence: 'measured', no_interval: 'no interval' } as Record<string, string>)[observedCadenceStatus] ?? observedCadenceStatus.replace(/_/g, ' ')
+      : ''
+    const observedCadenceMedian = role.observed_cadence_median_interval_days == null
+      ? null
+      : Number.isInteger(role.observed_cadence_median_interval_days)
+        ? String(role.observed_cadence_median_interval_days)
+        : role.observed_cadence_median_interval_days.toFixed(1)
+    const observedCadenceEvidence = observedCadenceStatus
+      ? ` · observed cadence ${observedCadenceLabel}${role.observed_cadence_sample_count ? ` · ${role.observed_cadence_sample_count} interval${role.observed_cadence_sample_count === 1 ? '' : 's'}` : ''}${observedCadenceMedian ? ` · median ${observedCadenceMedian}d` : ''}${role.observed_cadence_min_interval_days ? ` · min ${role.observed_cadence_min_interval_days}d` : ''}${role.observed_cadence_max_interval_days ? ` · max ${role.observed_cadence_max_interval_days}d` : ''}`
+      : ''
     const entitlementCapabilities = Object.entries(role.entitlement_capabilities ?? {}).sort(([left], [right]) => left.localeCompare(right)).map(([key, value]) => `${key.replace(/_/g, ' ')}=${String(value).replace(/_/g, ' ')}`).join(', ') || 'not reported'
     const availability = role.available === true ? 'available' : role.available === false ? 'unavailable' : 'not reported'
     const members = Number.isFinite(role.member_count) ? `members ${role.member_count}` : 'members not reported'
@@ -840,7 +852,7 @@ function benchmarkRoleIdentityEvidenceLabel(coverage: BenchmarkFamilyCoverage): 
     const entitlement = `${role.entitlement_status?.replace(/_/g, ' ') || 'not reported'}${role.entitlement_provider ? ` · ${role.entitlement_provider}` : ''}${role.entitlement_live_probe_status ? ` · probe ${role.entitlement_live_probe_status.replace(/_/g, ' ')}` : ''}${role.entitlement_revision != null ? ` · rev ${role.entitlement_revision}` : ''}${role.entitlement_effective_at ? ` · effective ${role.entitlement_effective_at.slice(0, 10)}` : ''}${role.entitlement_review_due_at ? ` · review due ${role.entitlement_review_due_at.slice(0, 10)}` : ''}`
     const reasons = role.composite_readiness_reasons?.join(', ') || 'not reported'
     const readinessEvidence = ` · availability ${availability} · status ${role.status || 'not reported'} · ${members}${placeholders}${unresolved}${weighted}${classified} · point-in-time ${pointInTime} · history ${history} · bars ${barHistory} · readiness ${role.composite_readiness_status || 'not reported'} (${reasons}) · route ${route} · history route ${historyRoute} · refresh ${refresh} · entitlement ${entitlement}`
-    return `${name} · verification ${verification} · adapter ${adapter}${status ? ` (${status})` : ''}${confidence ? ` · ${confidence}` : ''}${snapshotEvidence}${continuityEvidence} · capabilities ${entitlementCapabilities}${snapshotSourceEvidence}${readinessEvidence}`
+    return `${name} · verification ${verification} · adapter ${adapter}${status ? ` (${status})` : ''}${confidence ? ` · ${confidence}` : ''}${snapshotEvidence}${continuityEvidence}${observedCadenceEvidence} · capabilities ${entitlementCapabilities}${snapshotSourceEvidence}${readinessEvidence}`
   }).join(' | ')}`
 }
 

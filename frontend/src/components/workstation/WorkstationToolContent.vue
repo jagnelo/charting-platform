@@ -2489,6 +2489,18 @@ function familyCanonicalRoleEvidenceLabel(coverage: BenchmarkFamilyCoverageState
     const continuityStatus = role.continuity_status?.trim()?.replace(/_/g, ' ') || 'not reported'
     const continuityGaps = (role.continuity_gaps ?? []).map(gap => `${gap.from_date.slice(0, 10)} to ${gap.to_date.slice(0, 10)} (${gap.interval_days}d)`).join(', ')
     const continuityEvidence = ` · continuity ${continuityStatus}${role.continuity_gap_count ? ` · ${role.continuity_gap_count} gap${role.continuity_gap_count === 1 ? '' : 's'}` : ''}${role.continuity_max_interval_days ? ` · max ${role.continuity_max_interval_days}d` : ''}${continuityGaps ? ` · intervals ${continuityGaps}` : ''}${role.continuity_snapshot_limit_reached ? ' · snapshot window capped' : ''}`
+    const observedCadenceStatus = role.observed_cadence_status?.trim()
+    const observedCadenceLabel = observedCadenceStatus
+      ? ({ no_snapshot: 'no snapshot', single_snapshot: 'single disclosure', observed_cadence: 'measured', no_interval: 'no interval' } as Record<string, string>)[observedCadenceStatus] ?? observedCadenceStatus.replace(/_/g, ' ')
+      : ''
+    const observedCadenceMedian = role.observed_cadence_median_interval_days == null
+      ? null
+      : Number.isInteger(role.observed_cadence_median_interval_days)
+        ? String(role.observed_cadence_median_interval_days)
+        : role.observed_cadence_median_interval_days.toFixed(1)
+    const observedCadenceEvidence = observedCadenceStatus
+      ? ` · observed cadence ${observedCadenceLabel}${role.observed_cadence_sample_count ? ` · ${role.observed_cadence_sample_count} interval${role.observed_cadence_sample_count === 1 ? '' : 's'}` : ''}${observedCadenceMedian ? ` · median ${observedCadenceMedian}d` : ''}${role.observed_cadence_min_interval_days ? ` · min ${role.observed_cadence_min_interval_days}d` : ''}${role.observed_cadence_max_interval_days ? ` · max ${role.observed_cadence_max_interval_days}d` : ''}`
+      : ''
     const entitlementCapabilities = Object.entries(role.entitlement_capabilities ?? {}).sort(([left], [right]) => left.localeCompare(right)).map(([key, value]) => `${key.replace(/_/g, ' ')}=${String(value).replace(/_/g, ' ')}`).join(', ') || 'not reported'
     const availability = role.available === true ? 'available' : role.available === false ? 'unavailable' : 'not reported'
     const route = `${role.holdings_route_status?.replace(/_/g, ' ') || 'not reported'}${role.holdings_route_provider ? ` · ${role.holdings_route_provider}` : ''}${role.holdings_route_adapter_key ? ` · adapter ${role.holdings_route_adapter_key}` : ''}`
@@ -2510,7 +2522,7 @@ function familyCanonicalRoleEvidenceLabel(coverage: BenchmarkFamilyCoverageState
     }).join(', ') || 'not reported'
     const reasons = role.composite_readiness_reasons?.join(', ') || 'not reported'
     const readinessEvidence = ` · availability ${availability} · status ${role.status ?? 'not reported'} · history bars ${barHistory} · route ${route} · history route ${historyRoute} · refresh ${refresh} · entitlement ${entitlement} · readiness reasons ${reasons}${dispositionEvidence}`
-    return `${name} · verification ${verification} · adapter ${adapter}${adapterStatus ? ` (${adapterStatus})` : ''}${confidence ? ` · ${confidence}` : ''} · ${members}${placeholders}${unresolved} · ${weighted} · ${classified} · ${pointInTime} · ${history} · readiness ${role.composite_readiness_status ?? 'unknown'}${snapshotEvidence}${continuityEvidence} · capabilities ${entitlementCapabilities}${snapshotSourceEvidence}${readinessEvidence}`
+    return `${name} · verification ${verification} · adapter ${adapter}${adapterStatus ? ` (${adapterStatus})` : ''}${confidence ? ` · ${confidence}` : ''} · ${members}${placeholders}${unresolved} · ${weighted} · ${classified} · ${pointInTime} · ${history} · readiness ${role.composite_readiness_status ?? 'unknown'}${snapshotEvidence}${continuityEvidence}${observedCadenceEvidence} · capabilities ${entitlementCapabilities}${snapshotSourceEvidence}${readinessEvidence}`
   }).join('; ')}`
 }
 function latestFamilyRatio(ratio: { points: Array<{ value: number }> }) {

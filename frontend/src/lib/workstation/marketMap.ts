@@ -70,6 +70,11 @@ export interface BenchmarkFamilyCoverageRole {
   continuity_max_interval_days?: number | null
   continuity_gaps?: Array<{ from_date: string; to_date: string; interval_days: number }>
   continuity_snapshot_limit_reached?: boolean
+  observed_cadence_status?: 'not_applicable' | 'no_snapshot' | 'single_snapshot' | 'observed_cadence' | 'no_interval' | string
+  observed_cadence_sample_count?: number
+  observed_cadence_median_interval_days?: number | null
+  observed_cadence_min_interval_days?: number | null
+  observed_cadence_max_interval_days?: number | null
   holdings_route_adapter_key?: string | null
   holdings_route_provider?: string | null
   holdings_route_status?: string | null

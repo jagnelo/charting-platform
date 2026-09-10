@@ -388,6 +388,11 @@ class BenchmarkFamilyCoverageRoleOut(BaseModel):
     continuity_max_interval_days: int | None = Field(default=None, ge=1)
     continuity_gaps: list[BenchmarkFamilyCoverageGapOut] = Field(default_factory=list)
     continuity_snapshot_limit_reached: bool = False
+    observed_cadence_status: str = "no_snapshot"
+    observed_cadence_sample_count: int = Field(default=0, ge=0)
+    observed_cadence_median_interval_days: float | None = Field(default=None, ge=1)
+    observed_cadence_min_interval_days: int | None = Field(default=None, ge=1)
+    observed_cadence_max_interval_days: int | None = Field(default=None, ge=1)
     member_bar_history: BenchmarkFamilyMemberBarHistoryOut = Field(
         default_factory=BenchmarkFamilyMemberBarHistoryOut
     )

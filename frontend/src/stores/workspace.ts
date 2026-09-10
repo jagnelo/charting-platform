@@ -598,6 +598,11 @@ export interface BenchmarkFamilyCoverageRoleState {
   continuity_max_interval_days?: number | null
   continuity_gaps?: BenchmarkFamilyCoverageGapState[]
   continuity_snapshot_limit_reached?: boolean
+  observed_cadence_status?: 'not_applicable' | 'no_snapshot' | 'single_snapshot' | 'observed_cadence' | 'no_interval' | string
+  observed_cadence_sample_count?: number
+  observed_cadence_median_interval_days?: number | null
+  observed_cadence_min_interval_days?: number | null
+  observed_cadence_max_interval_days?: number | null
   member_bar_history?: BenchmarkFamilyMemberBarHistoryState
   entitlement_status?: string
   entitlement_provider?: string | null
