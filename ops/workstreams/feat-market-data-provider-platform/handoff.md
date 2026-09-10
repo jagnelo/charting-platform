@@ -166,3 +166,5 @@ Update this handoff at each coherent boundary.
 - Corrected the live routing-safety manifest so FMP's reviewed byte-bound requirement includes the stable `fetch_market_events` operation already required by backend policy. A regression test now guards the complete operation set; the focused secret-wiring suite passes `8/8`, Ruff, compilation, and diff checks pass. This changes no routing entitlement: FMP remains fail-closed until the operator supplies a complete reviewed byte-bound map.
 
 - The complete backend unit suite after this correction passes `1486/1486` with 37 warnings. This is unit evidence only; the latest authoritative Docker-backed full gate remains `1855/1855` because the Docker daemon is unavailable in this worktree.
+
+- The Docker runtime became reachable again and the authoritative combined backend unit/integration coverage gate passed `1857/1857` with `80.36%` line coverage and 89 warnings, above the 75% threshold. Isolated testcontainer session `1848ca60-2c47-437f-a9b1-6ae9c50a05c4` was cleaned without host-wide pruning. This supersedes the earlier unavailable-daemon status; no provider routing or acceptance gate was relaxed.
