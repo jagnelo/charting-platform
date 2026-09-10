@@ -49,6 +49,50 @@ def test_finra_parser_keeps_publication_and_raw_provenance(monkeypatch):
     ]
 
 
+@pytest.mark.parametrize(
+    "row",
+    [
+        "not-a-row",
+        {"settlementDate": "2026-08-29", "shortPercentFloat": "not-a-number"},
+        {"settlementDate": "not-a-date", "shortPosition": "1200"},
+    ],
+)
+def test_finra_short_interest_rejects_malformed_rows(monkeypatch, row):
+    monkeypatch.setattr(settings, "FINRA_SHORT_INTEREST_URL", "https://example.test/short")
+    monkeypatch.setattr(settings, "FINRA_CLIENT_ID", "client")
+    monkeypatch.setattr(settings, "FINRA_CLIENT_SECRET", "secret")
+    token_response = Mock()
+    token_response.json.return_value = {"access_token": "token", "expires_in": 3600}
+    token_response.raise_for_status.return_value = None
+    response = Mock()
+    response.json.return_value = {"data": [row]}
+    response.raise_for_status.return_value = None
+    with (
+        patch.object(finra, "_token_cache", None),
+        patch("app.providers.finra.httpx.post", side_effect=[token_response, response]),
+    ):
+        with pytest.raises(ProviderResponseError, match="FINRA short-interest"):
+            FINRAProvider().fetch_short_interest("AAPL")
+
+
+def test_finra_daily_list_rejects_mixed_rows(monkeypatch):
+    monkeypatch.setattr(settings, "FINRA_OTC_DAILY_LIST_URL", "https://example.test/daily")
+    monkeypatch.setattr(settings, "FINRA_CLIENT_ID", "client")
+    monkeypatch.setattr(settings, "FINRA_CLIENT_SECRET", "secret")
+    token_response = Mock()
+    token_response.json.return_value = {"access_token": "token", "expires_in": 3600}
+    token_response.raise_for_status.return_value = None
+    response = Mock()
+    response.json.return_value = [{"calendarDay": "2026-08-29"}, 42]
+    response.raise_for_status.return_value = None
+    with (
+        patch.object(finra, "_token_cache", None),
+        patch("app.providers.finra.httpx.post", side_effect=[token_response, response]),
+    ):
+        with pytest.raises(ProviderResponseError, match="FINRA OTC daily-list"):
+            FINRAProvider().fetch_market_events()
+
+
 def test_finra_http_success_failed_status_is_typed(monkeypatch):
     monkeypatch.setattr(settings, "FINRA_CLIENT_ID", "client")
     monkeypatch.setattr(settings, "FINRA_CLIENT_SECRET", "secret")

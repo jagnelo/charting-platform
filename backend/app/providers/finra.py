@@ -242,32 +242,43 @@ class FINRAProvider:
         rows = raw.get("data", raw) if isinstance(raw, dict) else raw
         if not isinstance(rows, list):
             raise ProviderResponseError(self.name, "FINRA short-interest response returned an invalid rows array")
+        if any(not isinstance(row, dict) for row in rows):
+            raise ProviderResponseError(self.name, "FINRA short-interest response returned a malformed row")
         result: list[ShortInterestRecord] = []
         for row in rows:
-            if not isinstance(row, dict):
-                continue
-            settlement = _parse_date(row.get("settlementDate") or row.get("settlement_date"))
+            settlement_value = row.get("settlementDate") or row.get("settlement_date")
+            settlement = _parse_date(settlement_value)
             if settlement is None:
-                continue
+                raise ProviderResponseError(
+                    self.name, "FINRA short-interest response returned an invalid settlement date"
+                )
+            try:
+                short_position = _strict_decimal(
+                    row.get("currentShortPositionQuantity")
+                    or row.get("shortPosition")
+                    or row.get("short_position")
+                )
+                short_percent_float = _strict_decimal(
+                    row.get("shortPercentFloat") or row.get("short_percent_float")
+                )
+                days_to_cover = _strict_decimal(
+                    row.get("daysToCoverQuantity")
+                    or row.get("daysToCover")
+                    or row.get("days_to_cover")
+                )
+            except ValueError as exc:
+                raise ProviderResponseError(
+                    self.name, "FINRA short-interest response returned an invalid numeric field"
+                ) from exc
             result.append(
                 ShortInterestRecord(
                     settlement_date=settlement,
                     publication_date=_parse_date(
                         row.get("publicationDate") or row.get("publication_date")
                     ),
-                    short_position=_decimal(
-                        row.get("currentShortPositionQuantity")
-                        or row.get("shortPosition")
-                        or row.get("short_position")
-                    ),
-                    short_percent_float=_decimal(
-                        row.get("shortPercentFloat") or row.get("short_percent_float")
-                    ),
-                    days_to_cover=_decimal(
-                        row.get("daysToCoverQuantity")
-                        or row.get("daysToCover")
-                        or row.get("days_to_cover")
-                    ),
+                    short_position=short_position,
+                    short_percent_float=short_percent_float,
+                    days_to_cover=days_to_cover,
                     source_identifier=str(
                         row.get("issueIdentifier")
                         or row.get("issueSymbolIdentifier")
@@ -346,10 +357,10 @@ class FINRAProvider:
         rows = raw.get("data", raw) if isinstance(raw, dict) else raw
         if not isinstance(rows, list):
             raise ProviderResponseError(self.name, "FINRA OTC daily-list response returned an invalid rows array")
+        if any(not isinstance(row, dict) for row in rows):
+            raise ProviderResponseError(self.name, "FINRA OTC daily-list response returned a malformed row")
         result: list[MarketEventRecord] = []
         for row in rows:
-            if not isinstance(row, dict):
-                continue
             event_date = _parse_date(row.get("calendarDay")) or _parse_date(row.get("exDate"))
             if (start and event_date and event_date < start) or (
                 end and event_date and event_date > end
@@ -470,8 +481,15 @@ def _daily_list_event_type(row: dict[str, Any]) -> str:
     return "otc_daily_list"
 
 
-def _decimal(value: Any) -> Decimal | None:
-    try:
-        return Decimal(str(value)) if value not in (None, "") else None
-    except Exception:
+def _strict_decimal(value: Any) -> Decimal | None:
+    if value in (None, ""):
         return None
+    if isinstance(value, bool):
+        raise ValueError("boolean is not a numeric FINRA value")
+    try:
+        number = Decimal(str(value).strip())
+    except Exception as exc:
+        raise ValueError("invalid FINRA numeric value") from exc
+    if not number.is_finite():
+        raise ValueError("non-finite FINRA numeric value")
+    return number
