@@ -622,3 +622,12 @@ isolated PostgreSQL/Redis testcontainer session
 `e6ae1ca0-d42b-473d-a83a-90751305ae08`. The testcontainer was cleaned without
 host-wide pruning. No credentials or provider payloads were persisted, and no
 frontend or ETF-constituent files were changed.
+
+The Alpha Vantage quota handling was then tightened without changing its
+routing entitlement: explicit daily-capacity messages, including the observed
+CSV `Information` shape, now carry a provider-specific rolling 24-hour retry
+timestamp. Other informational responses do not receive an invented delay.
+Focused Alpha Vantage coverage passed `18/18`; the authoritative gate passed
+`1964/1964`, with `89` warnings and `80.49%` coverage in `421.20s`, using
+isolated PostgreSQL/Redis testcontainer session
+`26146598-40dc-4c1a-b5cc-100ad6ed6d3b`, cleaned without host-wide pruning.

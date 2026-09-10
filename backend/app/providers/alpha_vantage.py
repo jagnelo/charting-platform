@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import io
 import logging
+import re
 from datetime import UTC, date, datetime, timedelta
 from math import isfinite
 from typing import Any
@@ -24,6 +25,7 @@ from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
 _BASE = "https://www.alphavantage.co/query"
+_DAILY_CAPACITY_RE = re.compile(r"\b(?:requests?|calls?)\s+per\s+day\b", re.IGNORECASE)
 
 
 class AlphaVantageProvider:
@@ -63,8 +65,11 @@ class AlphaVantageProvider:
             raise ProviderResponseError(self.name, "Alpha Vantage returned invalid JSON") from exc
         raise_for_provider_error_envelope(self.name, payload, response.status_code)
         if isinstance(payload, dict) and (payload.get("Note") or payload.get("Information")):
+            message = str(payload.get("Note") or payload.get("Information"))
             raise ProviderRateLimitError(
-                self.name, str(payload.get("Note") or payload.get("Information"))
+                self.name,
+                message,
+                retry_at=_retry_at_for_capacity_message(message),
             )
         if not isinstance(payload, dict):
             raise ProviderResponseError(self.name, "Alpha Vantage returned an invalid response object")
@@ -104,7 +109,14 @@ class AlphaVantageProvider:
             or "higher api call volume" in lowered
             or _csv_information_message(text)
         ):
-            raise ProviderRateLimitError(self.name, text[:240])
+            raise ProviderRateLimitError(
+                self.name,
+                text[:240],
+                retry_at=_retry_at_for_capacity_message(
+                    text,
+                    assume_daily_for_csv_information=_csv_information_message(text),
+                ),
+            )
         return text
     def search_instruments(self, query: str, *, limit: int = 10) -> list[ProviderSearchResult]:
         if not query.strip() or limit <= 0:
@@ -296,3 +308,23 @@ def _csv_information_message(text: str) -> bool:
         return False
     message = lines[1].replace(",", "").strip().lower()
     return message.startswith(("informa", "note", "errormessage"))
+
+
+def _retry_at_for_capacity_message(
+    message: str,
+    *,
+    now: datetime | None = None,
+    assume_daily_for_csv_information: bool = False,
+) -> datetime | None:
+    """Return Alpha Vantage's provider-specific daily-capacity retry window.
+
+    The free-plan quota is documented as 25 requests/day, but Alpha Vantage
+    does not include a reset timestamp in the observed JSON or CSV capacity
+    responses.  Only an explicit daily marker (or the provider's CSV
+    ``Information`` quota shape) receives the reviewed 24-hour retry window;
+    other informational messages remain observable without a guessed delay.
+    """
+
+    if not _DAILY_CAPACITY_RE.search(message) and not assume_daily_for_csv_information:
+        return None
+    return (now or datetime.now(UTC)) + timedelta(days=1)

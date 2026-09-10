@@ -1326,13 +1326,33 @@ class TestAlphaVantageProvider:
         response = MagicMock(status_code=200)
         response.text = "symbol,name,ipoDate,priceRangeLow,priceRangeHigh,currency,exchange\nI,n,f,o,r,m,a\n"
         response.raise_for_status.return_value = None
+        before = datetime.now(UTC) + timedelta(days=1)
         with (
             patch("app.providers.alpha_vantage.settings") as configured,
             patch("app.providers.alpha_vantage.httpx.get", return_value=response),
         ):
             configured.ALPHA_VANTAGE_API_KEY = "key"
-            with pytest.raises(ProviderRateLimitError):
+            with pytest.raises(ProviderRateLimitError) as exc_info:
                 AlphaVantageProvider().fetch_market_events()
+        after = datetime.now(UTC) + timedelta(days=1)
+        assert before <= exc_info.value.retry_at <= after
+
+    def test_json_daily_capacity_message_gets_provider_window(self):
+        response = MagicMock(status_code=200)
+        response.json.return_value = {
+            "Information": "The standard API call frequency is 25 requests per day."
+        }
+        response.raise_for_status.return_value = None
+        before = datetime.now(UTC) + timedelta(days=1)
+        with (
+            patch("app.providers.alpha_vantage.settings") as configured,
+            patch("app.providers.alpha_vantage.httpx.get", return_value=response),
+        ):
+            configured.ALPHA_VANTAGE_API_KEY = "key"
+            with pytest.raises(ProviderRateLimitError) as exc_info:
+                AlphaVantageProvider().search_instruments("AAPL")
+        after = datetime.now(UTC) + timedelta(days=1)
+        assert before <= exc_info.value.retry_at <= after
 
 
 class TestCryptoProviderErrorEnvelopes:

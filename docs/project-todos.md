@@ -122,6 +122,10 @@ current capability/quota ledger.
       Greeks; operation costs are explicit and the credentialed live matrix
       exercises both reads when a production token is available. No sandbox
       token or undocumented quota is promoted.
+- [x] Preserve Alpha Vantage's provider-specific daily-capacity semantics in
+      runtime deferral: explicit 25-requests/day messages, including the
+      observed CSV `Information` response, now produce a rolling 24-hour retry
+      timestamp instead of a generic cooldown or an immediate retry storm.
 - [ ] Supply and live-prove Alpaca Trading API key/secret, a Tradier individual
       token, and a MarketData.app token. The authoritative local matrix already
       passed SEC EDGAR with an operator-supplied temporary contact User-Agent;
