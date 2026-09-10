@@ -83,7 +83,11 @@ type PythonPlot = {
 type ScanPlot = { screener_id: number; name: string; metric: 'count' | 'percentage'; color?: string; hidden?: boolean; instance_key?: string }
 type ScanAsset = { screenerId: number; name: string; metric: 'count' | 'percentage'; points: number }
 const props = defineProps<{ sourceWindowKey: string; linkGroup: string; pythonPlots?: PythonPlot[]; scanPlots?: ScanPlot[] }>()
-const emit = defineEmits<{ 'update:python-plots': [plots: PythonPlot[]]; 'update:scan-plots': [plots: ScanPlot[]] }>()
+const emit = defineEmits<{
+  'update:python-plots': [plots: PythonPlot[]]
+  'update:scan-plots': [plots: ScanPlot[]]
+  configuration: [windowKey: string, configuration: Record<string, unknown>]
+}>()
 const chartStore = usePanelStore(inject<string>('panelId', 'chart')); const open = ref(false); const catalog = INDICATOR_CATALOG; const workspaceStore = useWorkspaceStore()
 const queryClient = useQueryClient()
 const toggleButton = ref<HTMLButtonElement | null>(null)
@@ -473,7 +477,19 @@ async function promoteSelected() {
       if (!columns.some((column: any) => column?.key === columnKey)) {
         const column = { key: columnKey, name: promotionName.value, screener_id: scan.id, timeframe: chartStore.timeframe }
         const configuredKeys = Array.isArray(target.configuration.column_keys) ? target.configuration.column_keys : []
-        target.configuration = { ...target.configuration, condition_columns: [...columns, column], column_keys: configuredKeys.includes(columnKey) ? configuredKeys : [...configuredKeys, columnKey] }
+        // Golden Layout keeps the target watchlist component mounted. Preserve
+        // its reactive configuration object so the newly promoted Boolean
+        // column is rendered immediately instead of only being persisted for a
+        // later remount.
+        Object.assign(target.configuration, {
+          condition_columns: [...columns, column],
+          column_keys: configuredKeys.includes(columnKey) ? configuredKeys : [...configuredKeys, columnKey],
+        })
+        // The chart and watchlists may be mounted by separate Golden Layout
+        // Vue roots. Publish the complete target configuration through the
+        // parent contract as well as updating the shared store reference, so
+        // the mounted target receives the same reactive patch immediately.
+        emit('configuration', target.instance_key, { ...target.configuration })
         workspaceStore.scheduleSnapshot()
       }
       promotionStatus.value = `Copied ${label(item)} to ${target.title || target.instance_key} Boolean column`
@@ -482,7 +498,11 @@ async function promoteSelected() {
       if (promotionTarget.value === 'filter') {
         const target = watchlistTargets.value.find(window => window.instance_key === selectedFilterTarget.value)
         if (!target) throw new Error('Select a watchlist window before applying a filter')
-        target.configuration = { ...target.configuration, condition_screener_id: scan.id, condition_filter_mode: 'active' }
+        // Keep the mounted watchlist's configuration identity intact for the
+        // active filter update as well; replacing it can leave the visible
+        // Golden Layout tool observing the previous object.
+        Object.assign(target.configuration, { condition_screener_id: scan.id, condition_filter_mode: 'active' })
+        emit('configuration', target.instance_key, { ...target.configuration })
         workspaceStore.scheduleSnapshot()
         promotionStatus.value = `Copied ${label(item)} to ${target.title || target.instance_key} filter`
         return

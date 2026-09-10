@@ -427,6 +427,7 @@ describe('ChartPlotLibrary', () => {
     }
     workspace.activeTabKey = 'test'
     const scheduleSnapshot = vi.spyOn(workspace, 'scheduleSnapshot').mockImplementation(() => {})
+    const targetConfiguration = workspace.activeTab!.windows[1].configuration
     apiMock.post.mockImplementation((path: string) => path.startsWith('/screeners/from-condition/') ? Promise.resolve({ id: 99 }) : Promise.resolve({}))
     const chart = usePanelStore('column-promotion-test')
     chart.setIndicators([{ type: 'rsi', params: { period: 14 }, style: { color: '#ff0000', lineWidth: 1 }, pane: 'separate' }])
@@ -446,6 +447,7 @@ describe('ChartPlotLibrary', () => {
       condition_columns: [{ key: 'condition:rsi-bool-column', name: 'RSI bool column', screener_id: 99, timeframe: 'D1' }],
       column_keys: ['condition:rsi-bool-column'],
     })
+    expect(workspace.activeTab?.windows[1].configuration).toBe(targetConfiguration)
     expect(scheduleSnapshot).toHaveBeenCalled()
     expect(wrapper.get('[role="status"]').text()).toContain('Boolean column')
   })

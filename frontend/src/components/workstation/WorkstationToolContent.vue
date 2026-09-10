@@ -266,7 +266,7 @@
         <!-- Use the literal kebab-case event contract so the virtual component
              listener and typed emitter remain identical after template
              compilation. -->
-        <ChartPlotLibrary class="chart-tool__plots" :source-window-key="tool.instance_key" :link-group="localLinkGroup" :python-plots="configuredPythonPlots" :scan-plots="configuredScanPlots" @update:python-plots="updatePythonPlots" @update:scan-plots="updateScanPlots" />
+        <ChartPlotLibrary class="chart-tool__plots" :source-window-key="tool.instance_key" :link-group="localLinkGroup" :python-plots="configuredPythonPlots" :scan-plots="configuredScanPlots" @update:python-plots="updatePythonPlots" @update:scan-plots="updateScanPlots" @configuration="(windowKey, configuration) => emit('configuration', windowKey, configuration)" />
         <div class="chart-tool__compare" aria-label="Chart comparisons">
           <input v-model="comparisonDraft" aria-label="Comparison symbol" placeholder="Compare" @keydown.enter.prevent="addComparisonSymbol(comparisonDraft)" />
           <button type="button" title="Add comparison" @click="addComparisonSymbol(comparisonDraft)">＋</button>
