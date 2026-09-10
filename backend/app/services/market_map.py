@@ -68,24 +68,25 @@ def _membership_evaluation_timestamp(
     """
 
     if request.as_of is not None:
-        return request.as_of
+        return _as_utc(request.as_of)
     source = source_id or request.source_id
     if request.end is not None and source.startswith(
         ("benchmark-family:", "etf-holdings:", "market-group:", "explicit-list:")
     ):
-        return request.end
+        return _as_utc(request.end)
     return None
 
 
 def _period_bounds(request: MarketMapRequest, latest: datetime) -> tuple[datetime | None, datetime]:
     period = request.period.upper()
-    end = min(item for item in (request.end, request.as_of, latest) if item is not None)
+    start = _as_utc(request.start) if request.start is not None else None
+    end = min(_as_utc(item) for item in (request.end, request.as_of, latest) if item is not None)
     if period == "CUSTOM":
-        return request.start, end
+        return start, end
     if period in {"YTD", "MTD"}:
         if period == "MTD":
-            return datetime(end.year, end.month, 1, tzinfo=end.tzinfo or UTC), end
-        return datetime(end.year, 1, 1, tzinfo=end.tzinfo or UTC), end
+            return datetime(end.year, end.month, 1, tzinfo=UTC), end
+        return datetime(end.year, 1, 1, tzinfo=UTC), end
     offset = _OFFSETS.get(period)
     if offset is None:
         return None, end
@@ -96,13 +97,20 @@ def _period_bounds(request: MarketMapRequest, latest: datetime) -> tuple[datetim
 
 
 def _return(bars: list[OHLCVBar], period: str, start: datetime | None, end: datetime):
-    eligible = [bar for bar in bars if bar.ts <= end]
+    end_utc = _as_utc(end)
+    start_utc = _as_utc(start) if start is not None else None
+    eligible = [bar for bar in bars if _as_utc(bar.ts) <= end_utc]
     if not eligible:
         return None, None, "no_bars", "No local bars are available."
     latest = eligible[-1]
     if period.upper() == "CUSTOM":
         base = next(
-            (bar for bar in reversed(eligible) if start is not None and bar.ts < start), None
+            (
+                bar
+                for bar in reversed(eligible)
+                if start_utc is not None and _as_utc(bar.ts) < start_utc
+            ),
+            None,
         )
     elif period.upper() in {"YTD", "MTD"}:
         # MTD/YTD performance is measured from the last completed session before
@@ -113,7 +121,12 @@ def _return(bars: list[OHLCVBar], period: str, start: datetime | None, end: date
         # the result explicitly uncovered instead of silently changing the
         # calculation to an in-window return.
         base = next(
-            (bar for bar in reversed(eligible) if start is not None and bar.ts < start), None
+            (
+                bar
+                for bar in reversed(eligible)
+                if start_utc is not None and _as_utc(bar.ts) < start_utc
+            ),
+            None,
         )
     else:
         offset = _OFFSETS.get(period.upper(), 1)
@@ -122,7 +135,7 @@ def _return(bars: list[OHLCVBar], period: str, start: datetime | None, end: date
         return None, latest.ts, "insufficient_history", f"{period} requires more aligned history."
     if not base.close:
         return None, latest.ts, "zero_base_price", "The base close is zero."
-    return float(latest.close / base.close - 1), latest.ts, None, None
+    return float(latest.close / base.close - 1), _as_utc(latest.ts), None, None
 
 
 def _rsi(bars: list[OHLCVBar]):
@@ -628,9 +641,10 @@ def _snapshot_classification(snapshot: InstrumentProfileSnapshot) -> dict[str, o
 
 
 def _as_utc(value: datetime) -> datetime:
-    """Normalize SQLite's naive timestamps before historical comparisons."""
+    """Normalize API and SQLite timestamps to the canonical UTC timeline."""
 
-    return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+    normalized = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+    return normalized.astimezone(UTC)
 
 
 def _entitlement_revision_for(
@@ -931,7 +945,12 @@ def _cache_key(
     therefore cannot silently reuse an older map result.
     """
 
-    payload = request.model_dump(mode="json") | {
+    payload = request.model_dump(mode="json")
+    for field in ("start", "end", "as_of"):
+        value = getattr(request, field)
+        if value is not None:
+            payload[field] = _as_utc(value).isoformat()
+    payload |= {
         "calculation_version": "market-map-v1",
         "membership_version": membership_version,
         "member_ids": sorted(member_ids),
@@ -1023,8 +1042,10 @@ async def build_market_map(
         )
         for item in sorted(missing_ids)
     ]
-    end_hint = request.end or request.as_of or datetime.now(UTC)
-    history_start = (request.start or end_hint) - timedelta(days=500)
+    end_hint = _as_utc(request.end or request.as_of or datetime.now(UTC))
+    history_start = (_as_utc(request.start) if request.start is not None else end_hint) - timedelta(
+        days=500
+    )
     try:
         timeframe = Timeframe(request.timeframe)
     except ValueError as exc:
@@ -1049,7 +1070,7 @@ async def build_market_map(
     bars_by_id: dict[int, list[OHLCVBar]] = defaultdict(list)
     for bar in bars:
         bars_by_id[bar.instrument_id].append(bar)
-    latest = max((bar.ts for rows in bars_by_id.values() for bar in rows), default=None)
+    latest = max((_as_utc(bar.ts) for rows in bars_by_id.values() for bar in rows), default=None)
     if latest is None:
         latest = end_hint
     period_start, period_end = _period_bounds(request, latest)
@@ -1273,7 +1294,7 @@ async def build_market_map(
         reference_bars, reference_summary = build_equal_reference_series(reference_bars_by_id)
         reference_series_method = str(reference_summary.get("method"))
         if reference_bars and reference_source_bars:
-            first_timestamp = min(bar.ts for bar in reference_source_bars)
+            first_timestamp = min(_as_utc(bar.ts) for bar in reference_source_bars)
             reference_bars = [
                 SimpleNamespace(ts=first_timestamp, close=100.0, volume=None),
                 *reference_bars,
@@ -1291,9 +1312,9 @@ async def build_market_map(
         else (None, None, None, None)
     )
     source_bar_watermark = max(
-        (bar.ts for rows in bars_by_id.values() for bar in rows), default=None
+        (_as_utc(bar.ts) for rows in bars_by_id.values() for bar in rows), default=None
     )
-    reference_bar_watermark = max((bar.ts for bar in reference_bars), default=None)
+    reference_bar_watermark = max((_as_utc(bar.ts) for bar in reference_bars), default=None)
     events_by_id, event_watermark = (
         await _events_by_instrument(db, member_ids, period_end)
         if request.color_metric == "breadth" and _condition_requires_events(request.condition)
@@ -1367,7 +1388,7 @@ async def build_market_map(
         instrument = instruments.get(instrument_id)
         if instrument is None:
             continue
-        rows = [bar for bar in bars_by_id.get(instrument_id, []) if bar.ts <= period_end]
+        rows = [bar for bar in bars_by_id.get(instrument_id, []) if _as_utc(bar.ts) <= period_end]
         result, observed, code, message = _return(rows, request.period, period_start, period_end)
         warnings: list[MarketMapWarning] = []
         if code:

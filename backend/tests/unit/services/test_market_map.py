@@ -3,8 +3,12 @@ from types import SimpleNamespace
 
 import pytest
 
+from app.schemas.market_map import MarketMapRequest
 from app.services.market_map import (
+    _as_utc,
+    _cache_key,
     _condition_tree_matches_declared,
+    _period_bounds,
     _profile_field_conflict,
     _return,
 )
@@ -107,6 +111,58 @@ def test_market_map_mtd_does_not_fall_back_to_first_in_window_bar():
     assert observed == datetime(2024, 1, 2, tzinfo=UTC)
     assert code == "insufficient_history"
     assert message == "MTD requires more aligned history."
+
+
+def test_market_map_timestamps_normalize_to_utc_for_ranges_and_returns():
+    offset = datetime.fromisoformat("2024-01-02T00:00:00+02:00")
+    assert _as_utc(offset) == datetime(2024, 1, 1, 22, tzinfo=UTC)
+    assert _as_utc(datetime(2024, 1, 1, 22)) == datetime(2024, 1, 1, 22, tzinfo=UTC)
+
+    request = MarketMapRequest(
+        source_id="benchmark-family:us:cap_weight",
+        period="CUSTOM",
+        start=datetime.fromisoformat("2024-01-01T23:00:00+02:00"),
+        end=offset,
+    )
+    period_start, period_end = _period_bounds(request, offset)
+    assert period_start == datetime(2024, 1, 1, 21, tzinfo=UTC)
+    assert period_end == datetime(2024, 1, 1, 22, tzinfo=UTC)
+
+    value, observed, code, message = _return(
+        [
+            _bar(datetime(2024, 1, 1, 20, 30), 100),
+            _bar(datetime(2024, 1, 1, 21, 30), 110),
+        ],
+        "CUSTOM",
+        period_start,
+        period_end,
+    )
+    assert value == pytest.approx(0.1)
+    assert observed == datetime(2024, 1, 1, 21, 30, tzinfo=UTC)
+    assert code is None
+    assert message is None
+
+
+def test_market_map_cache_key_collapses_equivalent_timestamp_offsets():
+    request_utc = MarketMapRequest(
+        source_id="benchmark-family:us:cap_weight",
+        period="CUSTOM",
+        start=datetime(2024, 1, 1, 21, tzinfo=UTC),
+        end=datetime(2024, 1, 1, 22, tzinfo=UTC),
+    )
+    request_offset = request_utc.model_copy(
+        update={
+            "start": datetime.fromisoformat("2024-01-01T23:00:00+02:00"),
+            "end": datetime.fromisoformat("2024-01-02T00:00:00+02:00"),
+        }
+    )
+    kwargs = {
+        "membership_version": "v1",
+        "member_ids": [1, 2],
+        "bar_watermark": datetime(2024, 1, 1, 22, tzinfo=UTC),
+        "reference_watermark": None,
+    }
+    assert _cache_key(request_utc, **kwargs) == _cache_key(request_offset, **kwargs)
 
 
 def test_python_breadth_tree_match_ignores_only_runner_metadata():
