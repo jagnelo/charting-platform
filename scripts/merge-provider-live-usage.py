@@ -39,6 +39,9 @@ def _normalise_row(value: Any) -> dict[str, Any] | None:
     provider = str(value.get("provider") or "").strip()
     if not provider or len(provider) > 128:
         return None
+    usage_scope = str(value.get("usage_scope") or "unspecified").strip()
+    if not usage_scope or len(usage_scope) > 128 or not usage_scope.isprintable():
+        return None
     try:
         observed = datetime.fromisoformat(str(value.get("at") or ""))
     except (TypeError, ValueError):
@@ -55,6 +58,7 @@ def _normalise_row(value: Any) -> dict[str, Any] | None:
         return None
     row: dict[str, Any] = {
         "at": observed.isoformat(),
+        "usage_scope": usage_scope,
         "provider": provider,
         **{field: int(item) for field, item in values.items()},
     }
@@ -69,7 +73,12 @@ def _normalise_row(value: Any) -> dict[str, Any] | None:
 def _row_key(row: dict[str, Any]) -> tuple[str, ...]:
     run_id = str(row.get("run_id") or "").strip()
     if run_id:
-        return ("run", run_id, str(row["provider"]))
+        return (
+            "run",
+            run_id,
+            str(row.get("usage_scope") or "unspecified"),
+            str(row["provider"]),
+        )
     canonical = json.dumps(row, sort_keys=True, separators=(",", ":")).encode()
     return ("row", hashlib.sha256(canonical).hexdigest())
 

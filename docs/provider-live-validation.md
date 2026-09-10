@@ -33,6 +33,11 @@ request, and response-byte totals to the external
 application database's durable runtime quota windows; it makes direct live-test
 consumption visible across local sessions without storing credentials or
 payloads.
+Set the non-secret `PROVIDER_LIVE_USAGE_SCOPE` label separately for each local
+environment, GitHub environment, and deployment account. The scope is written
+into each receipt and is part of merger deduplication, so identical run IDs
+from different environments cannot be silently collapsed. An omitted scope is
+reported as `unspecified` and should be treated as a reconciliation warning.
 When an operator mounts that redacted ledger into a backend deployment and sets
 the same `PROVIDER_LIVE_USAGE_LEDGER` path, the authenticated
 `/api/v1/providers/usage` response exposes a separate `live_test_usage` object
@@ -59,6 +64,8 @@ without inventing defaults. Keep required reviewers enabled. Ordinary
 push/PR CI deliberately
 receives no provider secrets and makes no external provider calls, so a forked
 PR cannot spend quotas or exfiltrate keys.
+The workflow labels receipts with a GitHub repository/environment usage scope;
+the scope is non-secret and does not grant provider access.
 
 The manual GitHub workflow sets `PROVIDER_LIVE_USAGE_LEDGER` to a runner
 temporary path and uploads the aggregate-only JSONL receipt with
@@ -77,7 +84,7 @@ backend/.venv/bin/python scripts/merge-provider-live-usage.py \
 ```
 
 It takes an exclusive lock, writes only the allow-listed aggregate fields,
-deduplicates rows by `run_id` and provider (or by a canonical row fingerprint
+deduplicates rows by `run_id`, usage scope, and provider (or by a canonical row fingerprint
 when no run ID exists), tightens the destination to owner-only mode where the
 filesystem permits, and returns exit code `2` if any source rows were rejected.
 
@@ -93,6 +100,9 @@ provider limits, change routing, or treat CI artifact counts as provider-native
 cumulative usage.
 
 Provider usage is account- and/or IP-scoped by the vendor, not branch-scoped.
+Receipt scopes are operator labels for reconciliation, not provider-native
+identity proofs; they must be assigned consistently with the actual account or
+IP boundary.
 The durable request log and quota windows preserve usage across application
 restarts and workers that share the same database, but a separate worktree,
 CI database, deployment, or unrelated client using the same credential is not
@@ -715,3 +725,13 @@ counts. Focused monitoring tests passed `5/5`; the authoritative
 `80.53%` coverage in `388.46s`, using isolated PostgreSQL/Redis testcontainer
 session `2f99f994-7fc5-4944-b43c-6b3308512d79`, cleaned without host-wide
 pruning. This remains observational and does not enable routing.
+
+Direct live receipts now include the non-secret `PROVIDER_LIVE_USAGE_SCOPE`
+label. Scope is surfaced in per-provider `/api/v1/providers/usage` aggregates,
+passed through local/GitHub/Compose wiring, and included in merger
+deduplication; a same-named run/provider from another scope is retained rather
+than collapsed. Legacy receipts without the field are normalized to
+`unspecified`. Focused ledger/usage/router/wiring tests passed `26/26`; the
+authoritative backend gate passed `1970/1970`, with `89` warnings and `80.53%`
+coverage in `501.31s`, using isolated PostgreSQL/Redis testcontainer session
+`ce2882bf-eb46-4cc4-82b7-947dc03324b6`, cleaned without host-wide pruning.

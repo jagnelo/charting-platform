@@ -51,6 +51,13 @@
       authoritative backend gate passes `1969/1969` with `80.53%` coverage and
       89 warnings (testcontainer session
       `2f99f994-7fc5-4944-b43c-6b3308512d79`, cleaned without host-wide pruning).
+- [x] Add non-secret `PROVIDER_LIVE_USAGE_SCOPE` labels to direct live receipts,
+      API summaries, CI/Compose wiring, and merger deduplication so usage from
+      separate environments cannot be silently conflated. Legacy rows normalize
+      to `unspecified`. Focused ledger/usage/router/wiring coverage passes
+      `26/26`; the authoritative backend gate passes `1970/1970` with `80.53%`
+      coverage and 89 warnings (testcontainer session
+      `ce2882bf-eb46-4cc4-82b7-947dc03324b6`, cleaned without host-wide pruning).
 
 ### 2026-09-10 — Optional provider response-contract hardening
 

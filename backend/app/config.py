@@ -1477,6 +1477,9 @@ class Settings(BaseSettings):
     # ledger is outside the application database and is never required for
     # routing; an absent/unmounted file is reported as unavailable.
     PROVIDER_LIVE_USAGE_LEDGER: str = ""
+    # Non-secret environment/account label carried by direct live-test receipts
+    # so operators cannot silently merge usage from different environments.
+    PROVIDER_LIVE_USAGE_SCOPE: str = ""
     LATEST_PRICE_SNAPSHOT_RETENTION_DAYS: int = 30
     INSTRUMENT_SEARCH_SNAPSHOT_RETENTION_DAYS: int = 14
     UNIVERSE_DISCOVERY_SNAPSHOT_RETENTION_DAYS: int = 30

@@ -23,6 +23,7 @@ jobs:
       # Keep it in the runner temp area and upload it as a redacted artifact
       # below; never place provider credentials or payloads in the artifact.
       PROVIDER_LIVE_USAGE_LEDGER: ${{ runner.temp }}/provider-live-usage.jsonl
+      PROVIDER_LIVE_USAGE_SCOPE: github:${{ github.repository }}:${{ github.environment }}
       EDGAR_USER_AGENT: ${{ vars.EDGAR_USER_AGENT }}
       FINRA_OTC_SYMBOL_DIRECTORY_URL: ${{ vars.FINRA_OTC_SYMBOL_DIRECTORY_URL }}
       FINRA_OTC_OPERATION_COSTS: ${{ vars.FINRA_OTC_OPERATION_COSTS || '{}' }}

@@ -37,6 +37,7 @@ def test_live_usage_ledger_aggregates_observed_counts_without_payloads(
             "provider": "coinbase",
             "response_bytes": 25,
             "run_id": "run-test",
+            "usage_scope": "unspecified",
         },
         {
             "at": rows[1]["at"],
@@ -46,6 +47,7 @@ def test_live_usage_ledger_aggregates_observed_counts_without_payloads(
             "provider": "fred",
             "response_bytes": 150,
             "run_id": "run-test",
+            "usage_scope": "unspecified",
         },
     ]
     assert live_usage.flush_observations(0) is None
@@ -120,6 +122,33 @@ def test_merge_provider_live_usage_sanitizes_and_deduplicates_receipts(tmp_path:
     assert all("payload" not in row for row in rows)
     assert {row["provider"] for row in rows} == {"fred", "coinbase"}
     assert destination.stat().st_mode & 0o077 == 0
+
+
+def test_merge_provider_live_usage_keeps_same_run_separate_by_usage_scope(tmp_path: Path):
+    first = tmp_path / "first.jsonl"
+    second = tmp_path / "second.jsonl"
+    destination = tmp_path / "provider-live-usage.jsonl"
+    base = {
+        "at": "2026-09-10T05:00:00+00:00",
+        "run_id": "shared-run-id",
+        "provider": "fred",
+        "operations": 1,
+        "http_requests": 1,
+        "response_bytes": 10,
+        "exit_status": 0,
+    }
+    first.write_text(json.dumps({**base, "usage_scope": "local-dev"}) + "\n")
+    second.write_text(json.dumps({**base, "usage_scope": "github-provider-live"}) + "\n")
+
+    result = _MERGER.merge_receipts([first, second], destination)
+
+    assert result["accepted"] == 2
+    assert result["duplicates"] == 0
+    rows = [json.loads(line) for line in destination.read_text().splitlines()]
+    assert {row["usage_scope"] for row in rows} == {
+        "local-dev",
+        "github-provider-live",
+    }
 
 
 def test_merge_provider_live_usage_rejects_malformed_rows_without_exposing_values(

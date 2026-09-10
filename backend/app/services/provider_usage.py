@@ -83,6 +83,7 @@ def _empty_live_usage() -> dict[str, Any]:
         "http_requests_7d": 0,
         "response_bytes_7d": 0,
         "last_observation_at": None,
+        "usage_scopes": [],
     }
 
 
@@ -138,6 +139,9 @@ def read_live_usage_ledger(*, now: datetime | None = None) -> dict[str, Any]:
                 try:
                     row = json.loads(line)
                     provider = str(row.get("provider") or "").strip()
+                    usage_scope = str(row.get("usage_scope") or "unspecified").strip()
+                    if not usage_scope or len(usage_scope) > 128 or not usage_scope.isprintable():
+                        raise ValueError("invalid live usage scope")
                     observed_at = datetime.fromisoformat(str(row.get("at") or ""))
                     if observed_at.tzinfo is None:
                         observed_at = observed_at.replace(tzinfo=UTC)
@@ -162,6 +166,8 @@ def read_live_usage_ledger(*, now: datetime | None = None) -> dict[str, Any]:
                 rows += 1
                 latest = max(latest, observed_at) if latest else observed_at
                 summary = providers[provider]
+                if usage_scope not in summary["usage_scopes"]:
+                    summary["usage_scopes"].append(usage_scope)
                 summary["status"] = "available"
                 summary["runs"] += 1
                 summary["failed_runs"] += int(exit_status not in (None, 0))
@@ -196,7 +202,13 @@ def read_live_usage_ledger(*, now: datetime | None = None) -> dict[str, Any]:
         "rows": rows,
         "invalid_rows": invalid_rows,
         "last_observation_at": latest,
-        "providers": dict(providers),
+        "providers": {
+            provider: {
+                **summary,
+                "usage_scopes": sorted(summary["usage_scopes"]),
+            }
+            for provider, summary in providers.items()
+        },
     }
 
 

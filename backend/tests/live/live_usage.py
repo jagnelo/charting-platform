@@ -48,10 +48,12 @@ def flush_observations(exit_status: int) -> Path | None:
 
     run_id = os.getenv("PROVIDER_LIVE_RUN_ID", "").strip() or f"pid-{os.getpid()}"
     now = datetime.now(UTC).isoformat()
+    usage_scope = os.getenv("PROVIDER_LIVE_USAGE_SCOPE", "").strip() or "unspecified"
     rows = [
         {
             "at": now,
             "run_id": run_id,
+            "usage_scope": usage_scope,
             "provider": provider,
             "operations": values["operations"],
             "http_requests": values["http_requests"],

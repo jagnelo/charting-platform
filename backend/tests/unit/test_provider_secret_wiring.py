@@ -120,6 +120,7 @@ def test_live_workflow_is_manual_environment_scoped_and_maps_each_secret():
     assert "pull_request_target" not in workflow
     assert "schedule:" not in workflow
     assert "PROVIDER_LIVE_USAGE_LEDGER: ${{ runner.temp }}/provider-live-usage.jsonl" in workflow
+    assert "PROVIDER_LIVE_USAGE_SCOPE: github:${{ github.repository }}:${{ github.environment }}" in workflow
     assert "uses: actions/upload-artifact@v4" in workflow
     assert "name: provider-live-usage-${{ github.run_id }}" in workflow
     assert "if: always()" in workflow
