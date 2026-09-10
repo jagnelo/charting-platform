@@ -82,13 +82,26 @@ class MassiveProvider:
         except (TypeError, ValueError) as exc:
             raise ProviderResponseError(self.name, "Massive returned invalid JSON") from exc
         raise_for_provider_error_envelope(self.name, payload, response.status_code)
-        return payload if isinstance(payload, dict | list) else None
+        if not isinstance(payload, dict | list):
+            raise ProviderResponseError(self.name, "Massive returned an invalid response container")
+        return payload
 
     def _get(self, params: dict[str, Any]) -> dict[str, Any] | None:
         """Read the legacy ticker endpoint (kept for compatibility with callers/tests)."""
 
         payload = self._get_path(_TICKERS_PATH, params)
-        return payload if isinstance(payload, dict) else None
+        if not isinstance(payload, dict):
+            raise ProviderResponseError(self.name, "Massive ticker endpoint returned an invalid object")
+        return payload
+
+    @staticmethod
+    def _rows(payload: dict[str, Any], operation: str) -> list[dict[str, Any]]:
+        rows = payload.get("results", [])
+        if not isinstance(rows, list):
+            raise ProviderResponseError("massive", f"Massive {operation} returned an invalid results array")
+        if any(not isinstance(row, dict) for row in rows):
+            raise ProviderResponseError("massive", f"Massive {operation} returned a malformed row")
+        return rows
 
     def search_instruments(self, query: str, *, limit: int = 10) -> list[ProviderSearchResult]:
         needle = query.strip()
@@ -105,7 +118,7 @@ class MassiveProvider:
                 order="asc",
             )
         )
-        return [self._result(row) for row in (payload or {}).get("results", [])[:limit]]
+        return [self._result(row) for row in self._rows(payload, "search")[:limit]]
 
     def discover_universe_page(self, quote_type: str, offset: int) -> dict[str, Any]:
         if quote_type.strip().upper() not in {"EQUITY", "EQUITIES", "STOCK", "STOCKS"}:
@@ -123,7 +136,7 @@ class MassiveProvider:
                 cursor=cursor,
             )
         )
-        rows = (payload or {}).get("results", [])
+        rows = self._rows(payload, "ticker discovery")
         quotes = [
             {
                 "symbol": result.symbol,
@@ -199,20 +212,22 @@ class MassiveProvider:
             ipo_status=status.strip().lower() if status and status.strip() else None,
         )
         raw_payload = self._get_path(_IPOS_PATH, params)
-        payload = raw_payload if isinstance(raw_payload, dict) else {}
-        events = [
-            event
-            for row in payload.get("results", [])
-            if isinstance(row, dict)
-            for event in [self._ipo_event(row)]
-            if event is not None
-            and (start is None or event.effective_date is None or event.effective_date >= start)
-            and (end is None or event.effective_date is None or event.effective_date <= end)
-        ]
+        if not isinstance(raw_payload, dict):
+            raise ProviderResponseError(self.name, "Massive IPO endpoint returned an invalid object")
+        payload = raw_payload
+        events = []
+        for row in self._rows(payload, "IPO calendar"):
+            event = self._ipo_event(row)
+            if (start is None or event.effective_date >= start) and (
+                end is None or event.effective_date <= end
+            ):
+                events.append(event)
         next_url = payload.get("next_url")
+        if next_url is not None and not isinstance(next_url, str):
+            raise ProviderResponseError(self.name, "Massive IPO endpoint returned an invalid next_url")
         return {
             "events": events,
-            "next_url": next_url if isinstance(next_url, str) else None,
+            "next_url": next_url,
             "complete": not isinstance(next_url, str) or not next_url,
         }
 
@@ -237,13 +252,19 @@ class MassiveProvider:
         elif isinstance(raw_payload, dict):
             rows = raw_payload.get("results", [])
         else:
-            rows = []
+            raise ProviderResponseError(self.name, "Massive market-holiday endpoint returned an invalid container")
+        if not isinstance(rows, list):
+            raise ProviderResponseError(self.name, "Massive market-holiday endpoint returned an invalid results array")
+        if any(not isinstance(row, dict) for row in rows):
+            raise ProviderResponseError(self.name, "Massive market-holiday endpoint returned a malformed row")
         events: list[MarketEventRecord] = []
         for row in rows:
-            if not isinstance(row, dict):
-                continue
             event_date = _parse_date(row.get("date"))
-            if event_date is None or (start and event_date < start) or (end and event_date > end):
+            if event_date is None:
+                raise ProviderResponseError(
+                    self.name, "Massive market-holiday endpoint returned an invalid date"
+                )
+            if (start and event_date < start) or (end and event_date > end):
                 continue
             exchange = str(row.get("exchange") or "market").strip().upper()
             status = str(row.get("status") or "unknown").strip().lower()
@@ -263,18 +284,18 @@ class MassiveProvider:
         return events
 
     @staticmethod
-    def _ipo_event(row: dict[str, Any]) -> MarketEventRecord | None:
+    def _ipo_event(row: dict[str, Any]) -> MarketEventRecord:
         symbol = str(row.get("ticker") or "").strip().upper()
         stable_key = symbol or str(row.get("isin") or row.get("us_code") or "").strip()
         if not stable_key:
-            return None
+            raise ProviderResponseError("massive", "Massive IPO endpoint returned a row without an identity")
         effective_date = _parse_date(
             row.get("listing_date")
             or row.get("issue_start_date")
             or row.get("announced_date")
         )
         if effective_date is None:
-            return None
+            raise ProviderResponseError("massive", "Massive IPO endpoint returned a row without a valid date")
         status = str(row.get("ipo_status") or "").strip().lower()
         event_time = _parse_datetime(row.get("last_updated")) or datetime.combine(
             effective_date, datetime.min.time(), tzinfo=UTC
@@ -292,9 +313,14 @@ class MassiveProvider:
 
     @staticmethod
     def _result(row: dict[str, Any]) -> ProviderSearchResult:
+        if not isinstance(row, dict):
+            raise ProviderResponseError("massive", "Massive ticker endpoint returned a malformed row")
+        symbol = str(row.get("ticker") or "").strip().upper()
+        if not symbol:
+            raise ProviderResponseError("massive", "Massive ticker endpoint returned a row without a ticker")
         return ProviderSearchResult(
-            symbol=str(row.get("ticker") or "").upper(),
-            name=str(row.get("name") or row.get("ticker") or ""),
+            symbol=symbol,
+            name=str(row.get("name") or symbol),
             exchange=str(row.get("primary_exchange") or row.get("exchange") or ""),
             instrument_type=str(row.get("type") or "EQUITY").upper(),
         )

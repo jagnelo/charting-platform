@@ -862,6 +862,26 @@ class TestMassiveReferenceProvider:
         assert get.call_args_list[1].kwargs["params"].get("cursor") is None
         assert get.call_args_list[2].kwargs["params"]["cursor"] == "abc"
 
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            {"results": "not-an-array"},
+            {"results": [{"name": "Missing ticker"}, 42]},
+        ],
+    )
+    def test_search_rejects_malformed_reference_rows(self, payload):
+        response = MagicMock()
+        response.json.return_value = payload
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.massive.settings") as mock_settings,
+            patch("app.providers.massive.httpx.get", return_value=response),
+        ):
+            mock_settings.MASSIVE_API_KEY = "key"
+            mock_settings.MARKETDATA_API_KEY = ""
+            with pytest.raises(ProviderResponseError, match="Massive"):
+                MassiveProvider().search_instruments("AAPL")
+
     def test_ipo_calendar_normalizes_bounds_status_and_cursor_without_following_pages(self):
         response = MagicMock()
         response.json.return_value = {
@@ -906,6 +926,27 @@ class TestMassiveReferenceProvider:
         assert get.call_args.args[0] == "https://api.massive.com/vX/reference/ipos"
         assert get.call_args.kwargs["params"]["ipo_status"] == "upcoming"
 
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            {"results": ["not-a-row"]},
+            {"results": [{"ticker": "NO_DATE"}]},
+            {"results": [{"listing_date": "2024-01-02"}]},
+        ],
+    )
+    def test_ipo_calendar_rejects_malformed_rows(self, payload):
+        response = MagicMock()
+        response.json.return_value = payload
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.massive.settings") as mock_settings,
+            patch("app.providers.massive.httpx.get", return_value=response),
+        ):
+            mock_settings.MASSIVE_API_KEY = "key"
+            mock_settings.MARKETDATA_API_KEY = ""
+            with pytest.raises(ProviderResponseError, match="Massive"):
+                MassiveProvider().fetch_market_events()
+
     def test_market_holidays_normalize_array_rows_and_early_close(self):
         response = MagicMock()
         response.json.return_value = [
@@ -939,6 +980,26 @@ class TestMassiveReferenceProvider:
         assert events[1].event_time == datetime(2024, 11, 29, 14, 30, tzinfo=UTC)
         assert events[1].raw_payload["close"] == "2024-11-29T18:00:00.000Z"
         assert get.call_args.args[0] == "https://api.massive.com/v1/marketstatus/upcoming"
+
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            {"results": [{"exchange": "NYSE"}]},
+            {"results": [{"date": "not-a-date"}, "not-a-row"]},
+        ],
+    )
+    def test_market_holidays_reject_malformed_rows(self, payload):
+        response = MagicMock()
+        response.json.return_value = payload
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.massive.settings") as mock_settings,
+            patch("app.providers.massive.httpx.get", return_value=response),
+        ):
+            mock_settings.MASSIVE_API_KEY = "key"
+            mock_settings.MARKETDATA_API_KEY = ""
+            with pytest.raises(ProviderResponseError, match="Massive market-holiday"):
+                MassiveProvider().fetch_market_holidays()
 
     def test_ipo_calendar_http_429_is_typed_and_redacted(self):
         response = MagicMock()
