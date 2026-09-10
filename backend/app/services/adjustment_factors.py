@@ -31,6 +31,9 @@ class AdjustmentFactorSnapshot:
     version: str | None
     status: str
     event_count: int
+    rebuildable_event_count: int = 0
+    opaque_event_count: int = 0
+    factor_kinds: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,6 +44,9 @@ class PersistedAdjustmentFactorProvenance:
     status: str
     observation_count: int
     distinct_versions: tuple[str, ...] = ()
+    rebuildable_observation_count: int = 0
+    opaque_observation_count: int = 0
+    factor_kinds: tuple[str, ...] = ()
 
 
 def _as_utc(value: datetime) -> datetime:
@@ -85,6 +91,26 @@ def build_adjustment_factor_snapshot(
     if not relevant:
         return AdjustmentFactorSnapshot(version=None, status="not_observed", event_count=0)
 
+    rebuildable_events = [
+        event
+        for event in relevant
+        if _event_factor(event) is not None
+        and _event_factor(event) > 0
+        and bool(event.source_event_key)
+    ]
+    factor_kinds = tuple(
+        sorted(
+            {
+                "provider_supplied"
+                if event.adjustment_factor is not None
+                else "split_ratio"
+                if event.event_type is InstrumentEventType.SPLIT
+                else "opaque"
+                for event in relevant
+            }
+        )
+    )
+
     if any(
         _event_factor(event) is None or _event_factor(event) <= 0 or not event.source_event_key
         for event in relevant
@@ -93,6 +119,9 @@ def build_adjustment_factor_snapshot(
             version=None,
             status="provider_native_opaque_incomplete_factor_set",
             event_count=len(relevant),
+            rebuildable_event_count=len(rebuildable_events),
+            opaque_event_count=len(relevant) - len(rebuildable_events),
+            factor_kinds=factor_kinds,
         )
 
     ordered = sorted(
@@ -129,6 +158,9 @@ def build_adjustment_factor_snapshot(
             else "rebuildable_split_factors"
         ),
         event_count=len(ordered),
+        rebuildable_event_count=len(rebuildable_events),
+        opaque_event_count=len(relevant) - len(rebuildable_events),
+        factor_kinds=factor_kinds,
     )
 
 
@@ -157,6 +189,28 @@ def summarize_persisted_adjustment_factor_provenance(
             observation_count=0,
         )
 
+    rebuildable_observations = [
+        observation
+        for observation in relevant
+        if observation.factor is not None
+        and observation.factor > 0
+        and bool(observation.source_event_key)
+        and bool(observation.factor_version)
+    ]
+    factor_kinds = tuple(
+        sorted(
+            {
+                str(observation.factor_kind)
+                if observation.factor_kind
+                else "split_ratio"
+                if observation.factor_type == InstrumentEventType.SPLIT.value
+                and observation.factor is not None
+                else "opaque"
+                for observation in relevant
+            }
+        )
+    )
+
     if any(
         observation.factor is None
         or observation.factor <= 0
@@ -177,6 +231,9 @@ def summarize_persisted_adjustment_factor_provenance(
                     }
                 )
             ),
+            rebuildable_observation_count=len(rebuildable_observations),
+            opaque_observation_count=len(relevant) - len(rebuildable_observations),
+            factor_kinds=factor_kinds,
         )
 
     versions = tuple(
@@ -190,6 +247,9 @@ def summarize_persisted_adjustment_factor_provenance(
             status="provider_native_opaque_inconsistent_factor_set",
             observation_count=len(relevant),
             distinct_versions=versions,
+            rebuildable_observation_count=len(rebuildable_observations),
+            opaque_observation_count=len(relevant) - len(rebuildable_observations),
+            factor_kinds=factor_kinds,
         )
     return PersistedAdjustmentFactorProvenance(
         version=versions[0],
@@ -207,6 +267,9 @@ def summarize_persisted_adjustment_factor_provenance(
         ),
         observation_count=len(relevant),
         distinct_versions=versions,
+        rebuildable_observation_count=len(rebuildable_observations),
+        opaque_observation_count=len(relevant) - len(rebuildable_observations),
+        factor_kinds=factor_kinds,
     )
 
 

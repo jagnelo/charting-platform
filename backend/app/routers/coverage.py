@@ -134,6 +134,14 @@ async def instrument_ohlcv_coverage(
                 lineage.adjustment_provenance["factor_status"] = str(
                     state_provenance.get("factor_status") or "rebuildable_split_factors"
                 )
+            for key in (
+                "factor_observation_count",
+                "factor_rebuildable_observation_count",
+                "factor_opaque_observation_count",
+                "factor_kinds",
+            ):
+                if key in state_provenance:
+                    lineage.adjustment_provenance[key] = state_provenance[key]
     return OhlcvCoverageOut(
         instrument_id=instrument.id,
         symbol=instrument.symbol,

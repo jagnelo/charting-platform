@@ -459,6 +459,7 @@ async def _touch_ohlcv_dataset_state(
         state.coverage_end = max(bar.ts for bar in bars)
         factor_version = None
         factor_status = "not_applied" if not adjusted else "provider_native_opaque"
+        factor_evidence: dict[str, object] = {}
         if adjusted:
             normalized_rows = (
                 (
@@ -478,6 +479,16 @@ async def _touch_ohlcv_dataset_state(
                 )
                 factor_status = persisted_provenance.status
                 factor_version = persisted_provenance.version
+                factor_evidence = {
+                    "factor_observation_count": persisted_provenance.observation_count,
+                    "factor_rebuildable_observation_count": (
+                        persisted_provenance.rebuildable_observation_count
+                    ),
+                    "factor_opaque_observation_count": (
+                        persisted_provenance.opaque_observation_count
+                    ),
+                    "factor_kinds": list(persisted_provenance.factor_kinds),
+                }
             else:
                 source_name = (
                     await db.execute(select(DataSource.name).where(DataSource.id == data_source_id))
@@ -507,6 +518,14 @@ async def _touch_ohlcv_dataset_state(
                     if factor_snapshot.status != "not_observed":
                         factor_status = factor_snapshot.status
                         factor_version = factor_snapshot.version
+                        factor_evidence = {
+                            "factor_observation_count": factor_snapshot.event_count,
+                            "factor_rebuildable_observation_count": (
+                                factor_snapshot.rebuildable_event_count
+                            ),
+                            "factor_opaque_observation_count": factor_snapshot.opaque_event_count,
+                            "factor_kinds": list(factor_snapshot.factor_kinds),
+                        }
         state.extra_data = {
             "bar_count": len(bars),
             "adjusted": adjusted,
@@ -524,6 +543,7 @@ async def _touch_ohlcv_dataset_state(
                 "factor_status": factor_status,
                 "factor_version": factor_version,
                 "contract_version": 1,
+                **factor_evidence,
             },
         }
 

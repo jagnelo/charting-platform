@@ -90,6 +90,10 @@ interface OhlcvCoverageAssessment {
     mode?: string
     factor_status?: string
     factor_version?: string | null
+    factor_observation_count?: number | null
+    factor_rebuildable_observation_count?: number | null
+    factor_opaque_observation_count?: number | null
+    factor_kinds?: string[]
   }
   storage_evidence?: {
     status?: string
@@ -164,7 +168,10 @@ const rangeAccessibilitySummary = computed(() => {
       ? String(cadence.median_interval_days)
       : cadence.median_interval_days.toFixed(2)
   const cadenceDescription = `Observed cadence ${cadenceLabel[cadence.status ?? ''] ?? cadence.status ?? 'not reported'}${cadence.sample_count ? ` · ${cadence.sample_count} interval${cadence.sample_count === 1 ? '' : 's'}` : ''}${medianInterval ? ` · median ${medianInterval}d` : ''}${cadence.min_interval_days != null ? ` · min ${cadence.min_interval_days}d` : ''}${cadence.max_interval_days != null ? ` · max ${cadence.max_interval_days}d` : ''}. This is diagnostic of returned bar timestamps only.`
-  return `${coverageDescription} ${storageDescription} ${cadenceDescription}`
+  const factorEvidenceDescription = adjustment.factor_observation_count == null
+    ? ''
+    : ` Adjustment inputs ${adjustment.factor_observation_count} observed; ${adjustment.factor_rebuildable_observation_count ?? 0} rebuildable, ${adjustment.factor_opaque_observation_count ?? 0} opaque${adjustment.factor_kinds?.length ? ` (${adjustment.factor_kinds.join(', ')})` : ''}. This is input audit evidence, not proof that prices were recalculated locally.`
+  return `${coverageDescription} ${storageDescription} ${cadenceDescription}${factorEvidenceDescription}`
 })
 let requestId = 0
 let rangeRequestId = 0

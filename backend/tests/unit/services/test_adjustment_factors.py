@@ -60,6 +60,9 @@ def test_split_factor_snapshot_is_stable_and_order_independent():
     assert first == second
     assert first.status == "rebuildable_split_factors"
     assert first.event_count == 2
+    assert first.rebuildable_event_count == 2
+    assert first.opaque_event_count == 0
+    assert first.factor_kinds == ("split_ratio",)
     assert first.version == "afv1-ca98881ebcfac8db36594c89dddd9ede60ee793928b8f1c7f09cf798cd944dda"
 
 
@@ -78,6 +81,9 @@ def test_dividend_event_keeps_adjustment_factors_explicitly_opaque():
     assert snapshot.version is None
     assert snapshot.status == "provider_native_opaque_incomplete_factor_set"
     assert snapshot.event_count == 1
+    assert snapshot.rebuildable_event_count == 0
+    assert snapshot.opaque_event_count == 1
+    assert snapshot.factor_kinds == ("opaque",)
 
 
 def test_provider_supplied_dividend_factor_is_rebuildable():
@@ -95,6 +101,9 @@ def test_provider_supplied_dividend_factor_is_rebuildable():
 
     assert snapshot.status == "rebuildable_provider_factors"
     assert snapshot.event_count == 1
+    assert snapshot.rebuildable_event_count == 1
+    assert snapshot.opaque_event_count == 0
+    assert snapshot.factor_kinds == ("provider_supplied",)
     assert snapshot.version is not None and snapshot.version.startswith("afv1-")
 
 
@@ -111,6 +120,8 @@ def test_missing_split_ratio_does_not_create_a_rebuildable_version():
 
     assert snapshot.version is None
     assert snapshot.status == "provider_native_opaque_incomplete_factor_set"
+    assert snapshot.rebuildable_event_count == 0
+    assert snapshot.opaque_event_count == 1
 
 
 def test_persisted_factor_provenance_requires_one_consistent_rebuildable_version():
@@ -135,6 +146,9 @@ def test_persisted_factor_provenance_requires_one_consistent_rebuildable_version
     assert summary.version == "afv1-stable"
     assert summary.observation_count == 2
     assert summary.distinct_versions == ("afv1-stable",)
+    assert summary.rebuildable_observation_count == 2
+    assert summary.opaque_observation_count == 0
+    assert summary.factor_kinds == ("split_ratio",)
 
 
 def test_persisted_factor_provenance_surfaces_mixed_versions_as_opaque():
@@ -158,6 +172,8 @@ def test_persisted_factor_provenance_surfaces_mixed_versions_as_opaque():
     assert summary.version is None
     assert summary.status == "provider_native_opaque_inconsistent_factor_set"
     assert summary.distinct_versions == ("afv1-new", "afv1-old")
+    assert summary.rebuildable_observation_count == 2
+    assert summary.opaque_observation_count == 0
 
 
 def test_persisted_factor_provenance_does_not_promote_missing_version():
@@ -174,6 +190,8 @@ def test_persisted_factor_provenance_does_not_promote_missing_version():
 
     assert summary.version is None
     assert summary.status == "provider_native_opaque_incomplete_factor_set"
+    assert summary.rebuildable_observation_count == 0
+    assert summary.opaque_observation_count == 1
 
 
 def test_persisted_provider_dividend_factor_is_rebuildable():
@@ -193,6 +211,9 @@ def test_persisted_provider_dividend_factor_is_rebuildable():
     assert summary.status == "rebuildable_provider_factors"
     assert summary.version == "afv1-provider-dividend"
     assert summary.observation_count == 1
+    assert summary.rebuildable_observation_count == 1
+    assert summary.opaque_observation_count == 0
+    assert summary.factor_kinds == ("provider_supplied",)
 
 
 @pytest.mark.asyncio

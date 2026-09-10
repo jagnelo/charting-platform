@@ -214,6 +214,10 @@ class TestCoverageRouter:
                             "source_kind": "provider_observation",
                             "factor_status": "rebuildable_split_factors",
                             "factor_version": "afv1-test-version",
+                            "factor_observation_count": 2,
+                            "factor_rebuildable_observation_count": 2,
+                            "factor_opaque_observation_count": 0,
+                            "factor_kinds": ["split_ratio"],
                             "contract_version": 1,
                         }
                     },
@@ -238,6 +242,10 @@ class TestCoverageRouter:
             "source_kind": "provider_observation",
             "factor_status": "rebuildable_split_factors",
             "factor_version": "afv1-test-version",
+            "factor_observation_count": 2,
+            "factor_rebuildable_observation_count": 2,
+            "factor_opaque_observation_count": 0,
+            "factor_kinds": ["split_ratio"],
             "contract_version": 1,
         }
 

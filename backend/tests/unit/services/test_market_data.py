@@ -348,6 +348,10 @@ async def test_provider_dataset_state_prefers_durable_factor_observation_provena
         "factor_status": "rebuildable_split_factors",
         "factor_version": "afv1-durable",
         "contract_version": 1,
+        "factor_observation_count": 1,
+        "factor_rebuildable_observation_count": 1,
+        "factor_opaque_observation_count": 0,
+        "factor_kinds": ["split_ratio"],
     }
 
 
@@ -415,6 +419,10 @@ async def test_provider_dataset_state_applies_provider_dividend_factor_provenanc
         "factor_status": "rebuildable_provider_factors",
         "factor_version": "afv1-provider-dividend",
         "contract_version": 1,
+        "factor_observation_count": 1,
+        "factor_rebuildable_observation_count": 1,
+        "factor_opaque_observation_count": 0,
+        "factor_kinds": ["provider_supplied"],
     }
 
 
