@@ -697,8 +697,8 @@ async def test_provider_enabled_range_merges_partial_coarse_rows_with_derived_hi
         AsyncSessionAdapter(db),
         instrument,
         Timeframe.W1,
-        provider_ts,
-        datetime(2024, 1, 31, tzinfo=UTC),
+        datetime(2024, 1, 1, 2, tzinfo=timezone(timedelta(hours=2))),
+        datetime(2024, 1, 31, 2, tzinfo=timezone(timedelta(hours=2))),
         allow_provider_fetch=True,
     )
 
@@ -765,12 +765,16 @@ async def test_provider_enabled_historical_page_merges_partial_coarse_rows_with_
         AsyncSessionAdapter(db),
         instrument,
         Timeframe.W1,
-        datetime(2024, 6, 1, tzinfo=UTC),
+        datetime(2024, 6, 1, 2, tzinfo=timezone(timedelta(hours=2))),
         500,
         allow_provider_fetch=True,
     )
 
     assert any(row.is_derived is False and row.close == Decimal("1000") for row in rows)
     assert any(row.is_derived is True for row in rows)
-    assert all(row.ts.replace(tzinfo=UTC) < datetime(2024, 6, 1, tzinfo=UTC) for row in rows)
+    assert all(
+        row.ts.replace(tzinfo=UTC)
+        < datetime(2024, 6, 1, tzinfo=timezone(timedelta(hours=2))).astimezone(UTC)
+        for row in rows
+    )
     assert rows == sorted(rows, key=lambda row: row.ts)

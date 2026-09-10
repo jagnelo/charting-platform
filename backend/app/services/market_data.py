@@ -97,7 +97,7 @@ async def _latest_window_start(
 ) -> datetime:
     chain = await resolve_provider_chain(db, ProviderCapability.PRICE_HISTORY)
     if chain:
-        return chain[0].provider.latest_window_start(timeframe, limit)
+        return _as_utc(chain[0].provider.latest_window_start(timeframe, limit))
     return datetime.now(UTC) - timedelta(seconds=TIMEFRAME_SECONDS[timeframe] * limit)
 
 
@@ -756,15 +756,13 @@ async def fetch_ohlcv(
     *,
     allow_provider_fetch: bool = True,
 ) -> list[OHLCVBar]:
+    start = _as_utc(start)
+    end = _as_utc(end) if end is not None else datetime.now(UTC)
+
     # Synthetic instruments use computed OHLCV, not an external provider.
     if instrument.is_synthetic:
         bars = await recompute_synthetic_ohlcv(db, instrument, timeframe)
-        if end is None:
-            end = datetime.now(UTC)
         return [b for b in bars if b.ts >= start and b.ts <= end]
-
-    if end is None:
-        end = datetime.now(UTC)
 
     predicates = [
         OHLCVBar.instrument_id == instrument.id,
@@ -881,9 +879,7 @@ _TF_STALENESS: dict[Timeframe, timedelta] = {
 def _needs_fetch(cached: list[OHLCVBar], timeframe: Timeframe) -> bool:
     if not cached:
         return True
-    latest = max(b.ts for b in cached)
-    if latest.tzinfo is None:
-        latest = latest.replace(tzinfo=UTC)
+    latest = _as_utc(max(b.ts for b in cached))
     threshold = _TF_STALENESS.get(timeframe, timedelta(minutes=20))
     return (datetime.now(UTC) - latest) > threshold
 
@@ -907,10 +903,8 @@ def _needs_fetch_for_range(
     if not cached:
         return True
 
-    if start.tzinfo is None:
-        start = start.replace(tzinfo=UTC)
-    if end.tzinfo is None:
-        end = end.replace(tzinfo=UTC)
+    start = _as_utc(start)
+    end = _as_utc(end)
 
     threshold = _TF_STALENESS.get(timeframe, timedelta(minutes=20))
     range_is_historical = end <= (datetime.now(UTC) - threshold)
@@ -934,6 +928,9 @@ async def _fetch_provider(
     end: datetime,
     adjusted: bool,
 ) -> list[OHLCVBar]:
+    start = _as_utc(start)
+    end = _as_utc(end)
+
     execution = await execute_provider_call(
         db,
         ProviderCapability.PRICE_HISTORY,
@@ -1126,6 +1123,8 @@ async def fetch_ohlcv_page_before(
     For synthetic instruments the full computed series is filtered instead of
     hitting the external provider.
     """
+    before = _as_utc(before)
+
     if instrument.is_synthetic:
         from app.models.synthetic_constituent import SyntheticConstituent
 
