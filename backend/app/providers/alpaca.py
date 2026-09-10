@@ -284,6 +284,11 @@ class AlpacaProvider:
             ex_dt = _parse_date(d.get("ex_date") or "")
             pay_dt = _parse_date(d.get("pay_date") or "")
             amount = _safe_decimal(d.get("rate"))
+            # Some corporate-action feeds include the provider's already
+            # computed multiplicative price factor. Preserve it only when it
+            # is explicitly named; a dividend amount alone is not enough to
+            # reconstruct a provider's adjustment convention.
+            adjustment_factor = _explicit_adjustment_factor(d)
             raw = str(d)
             if ex_dt:
                 events.append(
@@ -295,6 +300,7 @@ class AlpacaProvider:
                         source_event_key=f"alpaca_exdiv_{d.get('id', ex_dt.date())}",
                         fetched_at=fetched,
                         dividend_amount=amount,
+                        adjustment_factor=adjustment_factor,
                         raw_payload=raw,
                     )
                 )
@@ -308,6 +314,7 @@ class AlpacaProvider:
                         source_event_key=f"alpaca_div_{d.get('id', pay_dt.date())}",
                         fetched_at=fetched,
                         dividend_amount=amount,
+                        adjustment_factor=adjustment_factor,
                         raw_payload=raw,
                     )
                 )
@@ -368,6 +375,15 @@ def _safe_decimal(v: Any) -> Decimal | None:
         return Decimal(str(v)) if v is not None else None
     except Exception:
         return None
+
+
+def _explicit_adjustment_factor(payload: dict[str, Any]) -> Decimal | None:
+    """Read an explicitly provider-labelled multiplicative factor only."""
+
+    for key in ("adjustment_factor", "adjustmentFactor"):
+        if key in payload:
+            return _safe_decimal(payload.get(key))
+    return None
 
 
 def _safe_ratio(new_rate: Any, old_rate: Any) -> Decimal | None:

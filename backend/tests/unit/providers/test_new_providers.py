@@ -7,10 +7,12 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime
+from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+from app.models.instrument_event import InstrumentEventType
 from app.models.ohlcv import Timeframe
 from app.providers.alpaca import (
     AlpacaProvider,
@@ -252,6 +254,72 @@ class TestAlpacaOHLCVParsing:
         assert float(bars[0].open) == 185.0
         assert float(bars[0].close) == 186.0
         assert float(bars[1].open) == 186.0
+
+
+class TestAlpacaCorporateActions:
+    def test_fetch_instrument_events_preserves_explicit_dividend_factor(self):
+        provider = AlpacaProvider()
+        fake_response = {
+            "corporate_actions": {
+                "cash_dividends": [
+                    {
+                        "id": "div-1",
+                        "ex_date": "2024-06-10",
+                        "pay_date": "2024-06-20",
+                        "rate": "0.25",
+                        "adjustment_factor": "0.9975",
+                    }
+                ]
+            }
+        }
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = fake_response
+        mock_resp.raise_for_status.return_value = None
+
+        with (
+            patch("app.providers.alpaca.settings") as mock_settings,
+            patch("app.providers.alpaca.httpx.get", return_value=mock_resp),
+        ):
+            mock_settings.ALPACA_API_KEY = "key"
+            mock_settings.ALPACA_SECRET_KEY = "secret"
+            events = provider.fetch_instrument_events("AAPL")
+
+        dividend = next(
+            event for event in events if event.event_type is InstrumentEventType.DIVIDEND
+        )
+        assert dividend.dividend_amount == Decimal("0.25")
+        assert dividend.adjustment_factor == Decimal("0.9975")
+
+    def test_fetch_instrument_events_does_not_derive_factor_from_amount(self):
+        provider = AlpacaProvider()
+        fake_response = {
+            "corporate_actions": {
+                "cash_dividends": [
+                    {
+                        "id": "div-2",
+                        "ex_date": "2024-06-10",
+                        "pay_date": "2024-06-20",
+                        "rate": "0.25",
+                    }
+                ]
+            }
+        }
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = fake_response
+        mock_resp.raise_for_status.return_value = None
+
+        with (
+            patch("app.providers.alpaca.settings") as mock_settings,
+            patch("app.providers.alpaca.httpx.get", return_value=mock_resp),
+        ):
+            mock_settings.ALPACA_API_KEY = "key"
+            mock_settings.ALPACA_SECRET_KEY = "secret"
+            events = provider.fetch_instrument_events("AAPL")
+
+        dividend = next(
+            event for event in events if event.event_type is InstrumentEventType.DIVIDEND
+        )
+        assert dividend.adjustment_factor is None
 
 
 # ── Binance symbol helpers ────────────────────────────────────────────────────
