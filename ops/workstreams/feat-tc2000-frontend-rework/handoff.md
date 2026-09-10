@@ -8,6 +8,25 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Range coverage factor provenance honors requested end
+
+Product tip `64bb8829` closes the adjacent coverage-range provenance seam:
+range coverage now accepts factor state only when persisted `coverage_end` and
+`fetched_at` are both present and no later than the requested inclusive end.
+Future or temporally unverifiable state is excluded rather than projected into
+an earlier historical window; provider and local lineage remain distinct.
+
+Focused coverage/watchlist/family regression coverage passed `20/20`; the full
+backend unit suite passed `1,432/1,432` at `68.00%`; Ruff, formatting, and diff
+checks passed. The exact Docker-backed gate passed all non-visual stages and
+functional Playwright (`165` passed, `107` documented skips across `272`).
+Visual parity remains `98/104` with exactly the six protected diffs; the gate
+exited `1` at `e2e-visual` after clean branch-scoped teardown. No visual
+baseline, mask, threshold, skip, provider, fallback, or acceptance policy
+changed. Continue provider/family history breadth, W1/MN continuity beyond the
+bounded lineage seam, canonical population, and R6 dense-data evidence; do not
+integrate or deploy.
+
 ## 2026-09-10 — Historical factor evidence honors `as_of`
 
 Product tip `a8b7d304` makes factor-evidence resolution point-in-time safe for

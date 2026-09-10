@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-10 — Range coverage factor provenance honors requested end
+
+- [x] Bound range coverage factor-state projection by the requested inclusive
+      end using temporal `coverage_end` and `fetched_at`; keep missing proof
+      conservative and prevent future state from appearing in earlier ranges.
+- [x] Focused coverage/watchlist/family regression coverage passed `20/20`; the
+      full backend unit suite passed `1,432/1,432` at `68.00%`; Ruff, formatting,
+      and diff checks passed.
+- [x] The exact gate passed all non-visual stages and functional Playwright
+      (`165` passed, `107` documented skips across `272`); visual parity remains
+      `98/104` with exactly the six protected diffs and clean scoped teardown.
+- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
+      the bounded lineage path, canonical population, and dense-data evidence;
+      preserve protected visual assertions and the no-integration boundary.
+
 ### 2026-09-10 — Historical factor evidence honors `as_of`
 
 - [x] Pass dated history cutoffs into generic and benchmark-family factor

@@ -5,6 +5,31 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Range coverage factor provenance honors requested end
+
+At product tip `64bb8829`, the range coverage endpoint now bounds factor-state
+projection by the requested inclusive `end`: persisted factor state must carry
+both `coverage_end` and `fetched_at`, and both must be no later than that end.
+Rows without temporal proof remain conservatively unavailable, so a later
+provider/local factor version cannot be projected into an earlier coverage
+window.
+
+Focused coverage/watchlist/family regression coverage passed `20/20`; the
+complete backend unit suite passed `1,432/1,432` at `68.00%`; Ruff, formatting,
+and diff checks passed. The exact branch-scoped Docker gate passed all
+non-visual stages and functional Playwright (`165` passed, `107` documented
+skips across `272`). Visual parity remains `98/104` with exactly the six
+protected state-oracle diffs (watchlist-column-editor-open at
+visual-1080p-100/125 and workspace-floating at visual-1080p-100/125 and
+visual-1440p-100/125); the gate exited `1` at `e2e-visual` after clean
+branch-scoped teardown. No visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed.
+
+This closes the adjacent range-coverage point-in-time provenance seam only.
+Full provider/family history breadth, W1/MN continuity beyond the bounded
+lineage path, canonical population, dense-data evidence, and R2-R7 goals remain
+open; continue without integration or deployment.
+
 ## 2026-09-10 — Historical factor evidence honors `as_of`
 
 At product tip `a8b7d304`, generic watchlist and benchmark-family history now
