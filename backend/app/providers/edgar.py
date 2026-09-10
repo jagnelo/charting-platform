@@ -59,7 +59,14 @@ def is_valid_edgar_user_agent(value: str | None) -> bool:
     """Return whether a SEC contact value is descriptive rather than example text."""
 
     normalized = str(value or "").strip().lower()
-    return bool(normalized) and "example.com" not in normalized
+    placeholder_markers = (
+        "example.com",
+        "myemail@",
+        "your.email",
+        "<",
+        ">",
+    )
+    return bool(normalized) and not any(marker in normalized for marker in placeholder_markers)
 
 
 class EdgarProvider:

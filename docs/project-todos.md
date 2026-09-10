@@ -38,6 +38,13 @@
       Ruff and diff checks clean; the authoritative backend gate passes
       `1968/1968` with `80.51%` coverage and 89 warnings (testcontainer session
       `59baf5db-b0e7-42fe-8ef9-221e13084cec`, cleaned without host-wide pruning).
+- [x] Remove invalid SEC placeholders from root/backend environment examples
+      and the provider guide, and reject `myemail@` plus angle-bracket
+      documentation placeholders in the shared validator, live preflight, and
+      live-test helper. Focused SEC/secret-wiring coverage remains `32/32`; the
+      authoritative backend gate passes `1968/1968` with `80.52%` coverage and
+      89 warnings (testcontainer session
+      `4ac59081-aebf-41f3-b579-a0784fcaf418`, cleaned without host-wide pruning).
 
 ### 2026-09-10 — Optional provider response-contract hardening
 

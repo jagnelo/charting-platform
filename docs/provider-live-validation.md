@@ -696,3 +696,13 @@ isolated PostgreSQL/Redis testcontainer session
 `59baf5db-b0e7-42fe-8ef9-221e13084cec`, cleaned without host-wide pruning.
 This hardens preflight only; each trusted environment still needs its own
 non-placeholder SEC User-Agent.
+
+The checked-in root/backend environment examples now leave `EDGAR_USER_AGENT`
+blank and explicitly state that the setting is fail-closed until an operator
+supplies a real contact. The provider guide uses an angle-bracket documentation
+example and explains that it is rejected. Shared validation also rejects
+`myemail@` and angle-bracket placeholders. Focused SEC/secret-wiring coverage
+remained `32/32`; the authoritative gate passed `1968/1968`, with `89`
+warnings and `80.52%` coverage in `412.46s`, using isolated PostgreSQL/Redis
+testcontainer session `4ac59081-aebf-41f3-b579-a0784fcaf418`, cleaned without
+host-wide pruning.

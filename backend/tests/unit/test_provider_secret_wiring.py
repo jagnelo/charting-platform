@@ -218,6 +218,8 @@ def test_live_credential_preflight_rejects_placeholder_sec_contact(monkeypatch):
     assert setting_is_configured("EDGAR_USER_AGENT") is False
     monkeypatch.setenv("EDGAR_USER_AGENT", "charting-platform your.email@example.com")
     assert setting_is_configured("EDGAR_USER_AGENT") is False
+    monkeypatch.setenv("EDGAR_USER_AGENT", "ChartingPlatform <real contact email>")
+    assert setting_is_configured("EDGAR_USER_AGENT") is False
     monkeypatch.setenv("EDGAR_USER_AGENT", "charting-platform ops@example.invalid")
     assert setting_is_configured("EDGAR_USER_AGENT") is True
 

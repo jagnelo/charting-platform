@@ -59,7 +59,13 @@ def _require(*names: str) -> None:
     missing = []
     for name in names:
         value = os.getenv(name, "").strip()
-        if not value or (name == "EDGAR_USER_AGENT" and "example.com" in value.lower()):
+        if not value or (
+            name == "EDGAR_USER_AGENT"
+            and any(
+                marker in value.lower()
+                for marker in ("example.com", "myemail@", "your.email", "<", ">")
+            )
+        ):
             missing.append(name)
     if missing:
         pytest.fail(f"missing live provider credentials: {', '.join(missing)}")

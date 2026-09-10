@@ -85,7 +85,9 @@ def setting_is_configured(name: str) -> bool:
     value = os.getenv(name, "").strip()
     if not value:
         return False
-    if name == "EDGAR_USER_AGENT" and "example.com" in value.lower():
+    if name == "EDGAR_USER_AGENT" and any(
+        marker in value.lower() for marker in ("example.com", "myemail@", "your.email", "<", ">")
+    ):
         return False
     return True
 

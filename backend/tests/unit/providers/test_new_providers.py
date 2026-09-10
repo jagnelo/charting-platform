@@ -1723,6 +1723,10 @@ class TestEdgarTickerMap:
             with pytest.raises(ProviderNotConfiguredError):
                 EdgarProvider()._headers()
 
+            configured.EDGAR_USER_AGENT = "ChartingPlatform <real contact email>"
+            with pytest.raises(ProviderNotConfiguredError):
+                EdgarProvider()._headers()
+
     def test_sec_exchange_directory_pages_all_reported_us_venues(self):
         import app.providers.edgar as edgar_module
 

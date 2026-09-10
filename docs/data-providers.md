@@ -529,8 +529,10 @@ for time-sensitive intraday use.
 
 **Configuration**:
 - Set `EDGAR_USER_AGENT` in `.env.dev` to identify your application, e.g.:
-  `EDGAR_USER_AGENT="MyApp myemail@example.com"`
-- SEC guidelines require this header to be set to a real contact.
+  `EDGAR_USER_AGENT="ChartingPlatform <real contact email>"`
+- The angle-bracket value above is documentation-only and is rejected by the
+  runtime. Replace it with a real contact before enabling SEC calls; blank or
+  placeholder values fail closed.
 
 The first profile or earnings-event lookup in a cold process resolves the
 ticker through `company_tickers.json` and then fetches the issuer submissions
@@ -664,7 +666,8 @@ FRED_SERIES_TERMS_REVIEWED=false
 COINGECKO_API_KEY=your_coingecko_demo_key
 
 # SEC EDGAR — no key, but User-Agent is required
-EDGAR_USER_AGENT=charting-platform your.email@example.com
+# Set a real application/contact value before enabling SEC calls; blank is intentionally fail-closed.
+EDGAR_USER_AGENT=
 
 # OpenFIGI (optional)
 OPENFIGI_API_KEY=your_openfigi_key
