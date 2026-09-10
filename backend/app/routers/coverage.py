@@ -73,6 +73,32 @@ async def instrument_ohlcv_coverage(
         calendar="XNYS" if (instrument.currency or "").upper() == "USD" else None,
     )
     lineage = summarize_ohlcv_lineage(bars, adjusted=adjusted)
+    if adjusted:
+        dataset_state = (
+            await db.execute(
+                select(InstrumentDatasetState)
+                .where(
+                    InstrumentDatasetState.instrument_id == instrument.id,
+                    InstrumentDatasetState.data_source_id.is_not(None),
+                    InstrumentDatasetState.dataset_type == "ohlcv",
+                    InstrumentDatasetState.dataset_key == f"{timeframe.value}:adj",
+                )
+                .order_by(InstrumentDatasetState.observed_at.desc())
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        state_provenance = (
+            (dataset_state.extra_data or {}).get("adjustment_provenance")
+            if dataset_state is not None
+            else None
+        )
+        if isinstance(state_provenance, dict):
+            factor_version = state_provenance.get("factor_version")
+            if isinstance(factor_version, str) and factor_version:
+                lineage.adjustment_provenance["factor_version"] = factor_version
+                lineage.adjustment_provenance["factor_status"] = str(
+                    state_provenance.get("factor_status") or "rebuildable_split_factors"
+                )
     return OhlcvCoverageOut(
         instrument_id=instrument.id,
         symbol=instrument.symbol,

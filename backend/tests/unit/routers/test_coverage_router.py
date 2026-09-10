@@ -167,6 +167,72 @@ class TestCoverageRouter:
         }
         assert "provider" not in body
 
+    def test_range_coverage_exposes_verified_adjustment_factor_version(
+        self, client, auth_headers, db, instrument
+    ):
+        from app.models.data_source import DataSource
+        from app.models.ohlcv import OHLCVBar, Timeframe
+        from app.models.provider_observation import DatasetStatus, InstrumentDatasetState
+
+        source = DataSource(name="coverage-factor-provider")
+        db.add(source)
+        db.flush()
+        start = datetime(2026, 1, 2, tzinfo=UTC)
+        db.add_all(
+            [
+                OHLCVBar(
+                    instrument_id=instrument.id,
+                    data_source_id=source.id,
+                    timeframe=Timeframe.D1,
+                    ts=start,
+                    open=Decimal("10"),
+                    high=Decimal("11"),
+                    low=Decimal("9"),
+                    close=Decimal("10"),
+                    is_adjusted=True,
+                ),
+                InstrumentDatasetState(
+                    instrument_id=instrument.id,
+                    data_source_id=source.id,
+                    dataset_type="ohlcv",
+                    dataset_key="D1:adj",
+                    status=DatasetStatus.FRESH,
+                    observed_at=start,
+                    fetched_at=start,
+                    version=1,
+                    extra_data={
+                        "adjustment_provenance": {
+                            "mode": "split_adjusted",
+                            "source_kind": "provider_observation",
+                            "factor_status": "rebuildable_split_factors",
+                            "factor_version": "afv1-test-version",
+                            "contract_version": 1,
+                        }
+                    },
+                ),
+            ]
+        )
+        db.flush()
+
+        response = client.get(
+            f"/api/v1/coverage/instruments/{instrument.symbol}/ohlcv",
+            params={
+                "timeframe": "D1",
+                "start": start.isoformat(),
+                "end": start.isoformat(),
+            },
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        assert response.json()["adjustment_provenance"] == {
+            "mode": "split_adjusted",
+            "source_kind": "provider_observation",
+            "factor_status": "rebuildable_split_factors",
+            "factor_version": "afv1-test-version",
+            "contract_version": 1,
+        }
+
     def test_rejects_reversed_coverage_ranges(self, client, auth_headers, instrument):
         response = client.get(
             f"/api/v1/coverage/instruments/{instrument.symbol}/ohlcv",
