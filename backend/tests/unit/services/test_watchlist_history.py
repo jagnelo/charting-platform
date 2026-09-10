@@ -19,6 +19,51 @@ def test_watchlist_history_normalizers_dedupe_sources_and_timeframes():
         history.normalize_history_timeframes(["TICK"])
 
 
+def test_state_factor_evidence_does_not_project_future_state_into_historical_views():
+    lineage = [
+        {
+            "instrument_id": 10,
+            "provider_bar_count": 252,
+            "derived_bar_count": 0,
+            "provider_source_ids": {7},
+        }
+    ]
+    future_state = [
+        (
+            10,
+            7,
+            "D1:adj",
+            {
+                "adjustment_provenance": {
+                    "factor_status": "rebuildable_split_factors",
+                    "factor_version": "afv1-future",
+                }
+            },
+            datetime(2025, 2, 1, tzinfo=UTC),
+            datetime(2025, 2, 2, tzinfo=UTC),
+        )
+    ]
+
+    assert (
+        history.state_factor_evidence(
+            lineage,
+            future_state,
+            "D1",
+            as_of=datetime(2025, 1, 31, tzinfo=UTC),
+        )
+        is None
+    )
+
+    evidence = history.state_factor_evidence(
+        lineage,
+        future_state,
+        "D1",
+        as_of=datetime(2025, 2, 2, tzinfo=UTC),
+    )
+    assert evidence is not None
+    assert evidence["factor_version"] == "afv1-future"
+
+
 @pytest.mark.asyncio
 async def test_watchlist_history_plan_uses_user_scope_and_deduplicates_members(monkeypatch):
     calls = []

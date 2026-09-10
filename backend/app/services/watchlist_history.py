@@ -9,7 +9,7 @@ existing isolated bulk-history worker.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import func, or_, select
@@ -64,10 +64,19 @@ def adjustment_provenance_for_lineage(
     }
 
 
+def _as_utc(value: datetime) -> datetime:
+    """Normalize persisted or caller timestamps before point-in-time checks."""
+
+    normalized = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+    return normalized.astimezone(UTC)
+
+
 def state_factor_evidence(
     lineage_rows: list[dict[str, Any]],
     state_rows: list[tuple[Any, ...]],
     timeframe_key: str,
+    *,
+    as_of: datetime | None = None,
 ) -> dict[str, object] | None:
     """Summarize durable factor evidence for covered members.
 
@@ -82,10 +91,25 @@ def state_factor_evidence(
         return None
 
     states: dict[tuple[int, int | None, str], tuple[str | None, str]] = {}
+    cutoff = _as_utc(as_of) if as_of is not None else None
     for row in state_rows:
         if len(row) < 4:
             continue
         instrument_id, data_source_id, dataset_key, extra_data = row[:4]
+        if cutoff is not None and len(row) >= 6:
+            coverage_end, fetched_at = row[4], row[5]
+            # Dataset state is a point-in-time claim, not just a current cache
+            # label. A state fetched after the requested historical cutoff, or
+            # whose covered range extends beyond it, cannot certify that dated
+            # slice. Treat it as absent so the caller reports unavailable
+            # evidence rather than projecting future provenance backwards.
+            if (
+                coverage_end is None
+                or fetched_at is None
+                or _as_utc(coverage_end) > cutoff
+                or _as_utc(fetched_at) > cutoff
+            ):
+                continue
         valid_dataset_keys = {f"{timeframe_key}:adj"}
         if timeframe_key == Timeframe.D1.value:
             valid_dataset_keys.update(
@@ -493,6 +517,8 @@ async def build_watchlist_source_history_status(
                     InstrumentDatasetState.data_source_id,
                     InstrumentDatasetState.dataset_key,
                     InstrumentDatasetState.extra_data,
+                    InstrumentDatasetState.coverage_end,
+                    InstrumentDatasetState.fetched_at,
                 ).where(
                     InstrumentDatasetState.instrument_id.in_(instrument_ids),
                     InstrumentDatasetState.dataset_type == "ohlcv",
@@ -570,6 +596,7 @@ async def build_watchlist_source_history_status(
             lineage_rows,
             state_rows,
             timeframe.value,
+            as_of=as_of,
         )
         if factor_evidence:
             adjustment_provenance.update(factor_evidence)

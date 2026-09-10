@@ -364,6 +364,8 @@ async def _family_member_bar_history(
                     InstrumentDatasetState.data_source_id,
                     InstrumentDatasetState.dataset_key,
                     InstrumentDatasetState.extra_data,
+                    InstrumentDatasetState.coverage_end,
+                    InstrumentDatasetState.fetched_at,
                 ).where(
                     InstrumentDatasetState.instrument_id.in_(member_ids),
                     InstrumentDatasetState.dataset_type == "ohlcv",
@@ -414,6 +416,7 @@ async def _family_member_bar_history(
             lineage_rows,
             state_rows,
             timeframe.value,
+            as_of=as_of,
         )
         adjustment_provenance = adjustment_provenance_for_lineage(
             provider_member_count,
