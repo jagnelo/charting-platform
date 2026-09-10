@@ -13,6 +13,24 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tip e2263da9 makes the canonical OHLCV coverage endpoint read the
+  null-source derived W1/MN dataset state for derived-only ranges, exposing
+  the inherited D1 factor version to the workstation contract. Mixed
+  provider/derived ranges remain conservative and do not claim one factor
+  version. No prices, bars, provider routing, fallback, visible layout, pixels,
+  or acceptance policy changed. Focused derived-timeframe, adjustment-factor,
+  market-data, and coverage-router coverage passed 38/38; Ruff, format, and
+  diff checks passed. The exact Docker-backed gate completed its
+  migration-compatibility stage (reported skipped because no migration changes
+  existed from its comparison tip) and all other non-visual stages, backend
+  unit/integration 1393/387 with 81.21% combined coverage, frontend Vitest
+  990/990, and functional Playwright 165 with 107 documented skips across
+  272. Visual parity remains 98/104 with exactly the six established
+  state-oracle diffs; teardown and resource accounting were clean. Broader
+  provider factor application/rebuild verification, family/provider-history
+  readiness, W1/MN continuity, cadence, canonical population, and R2-R7
+  remain open. Continue the next bounded evidence-backed R1
+  history/provenance seam and rerun the exact gate at the next coherent tip.
   Product tip ef5f2caa carries a verified canonical D1 factor_version into
   derived W1/MN dataset provenance when every contributing provider D1 source
   agrees on one rebuildable split or provider-factor version. Mixed, missing,
@@ -865,6 +883,24 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
+    Product tip e2263da9 makes the canonical OHLCV coverage endpoint read the
+    null-source derived W1/MN dataset state for derived-only ranges, exposing
+    the inherited D1 factor version to the workstation contract. Mixed
+    provider/derived ranges remain conservative and do not claim one factor
+    version. No prices, bars, provider routing, fallback, visible layout, pixels,
+    or acceptance policy changed. Focused derived-timeframe, adjustment-factor,
+    market-data, and coverage-router coverage passed 38/38; Ruff, format, and
+    diff checks passed. The exact Docker-backed gate completed its
+    migration-compatibility stage (reported skipped because no migration changes
+    existed from its comparison tip) and all other non-visual stages, backend
+    unit/integration 1393/387 with 81.21% combined coverage, frontend Vitest
+    990/990, and functional Playwright 165 with 107 documented skips across
+    272. Visual parity remains 98/104 with exactly the six established
+    state-oracle diffs; teardown and resource accounting were clean. Broader
+    provider factor application/rebuild verification, family/provider-history
+    readiness, W1/MN continuity, cadence, canonical population, and R2-R7
+    remain open. Continue the next bounded evidence-backed R1
+    history/provenance seam and rerun the exact gate at the next coherent tip.
     Product tip ef5f2caa carries a verified canonical D1 factor_version into
     derived W1/MN dataset provenance when every contributing provider D1 source
     agrees on one rebuildable split or provider-factor version. Mixed, missing,

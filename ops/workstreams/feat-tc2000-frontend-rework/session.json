@@ -110,14 +110,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "ef5f2caad07d389970876bb8c0c13f3c791c1dbc",
-  "implementation_sha": "ef5f2caad07d389970876bb8c0c13f3c791c1dbc",
+  "head": "e2263da9bafb9232a80840a834f7cc831e748585",
+  "implementation_sha": "e2263da9bafb9232a80840a834f7cc831e748585",
   "interrupted": false,
-  "last_checkpoint": "2026-09-10T04:55:19Z",
-  "last_human_progress_update": "2026-09-10T04:55:19Z",
+  "last_checkpoint": "2026-09-10T05:22:40Z",
+  "last_human_progress_update": "2026-09-10T05:22:40Z",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the next bounded evidence-backed R1 history or provenance seam; preserve the six visual state-oracle assertions and provider/fallback rules and rerun the exact gate at the next coherent tip.",
-  "plan_hash": "72a202315af8c9817f26d192b6d16760a975d49c5107a32eb97e95753b0a5890",
+  "plan_hash": "91b09af31ee019b572d5ceeafd9a99014047caa534fbcecf891414ef2ff179c3",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -129,11 +129,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product tip ef5f2caa carries a verified canonical D1 factor_version into derived W1/MN dataset provenance when every contributing provider D1 source agrees on one rebuildable split or provider-factor version. Mixed, missing, opaque, raw, or incomplete evidence remains explicitly unversioned. No prices, bars, provider routing, fallback, visible layout, pixels, or acceptance policy changed. Focused derived-timeframe, adjustment-factor, market-data, and coverage-router coverage passed 37/37; Ruff, format, and diff checks passed. The exact Docker-backed gate completed its migration-compatibility stage (reported skipped because no migration changes existed from its comparison tip) and all other non-visual stages, backend unit/integration 1392/387 with 81.20% combined coverage, frontend Vitest 990/990, and functional Playwright 165 with 107 documented skips across 272. Visual parity remains 98/104 with exactly the six established state-oracle diffs; teardown and resource accounting were clean. Broader provider factor application/rebuild verification, family/provider-history readiness, W1/MN continuity, cadence, canonical population, and R2-R7 remain open.",
+    "current_blocker": "Product tip e2263da9 makes derived-only W1/MN coverage ranges expose the inherited canonical D1 factor_version from the null-source derived dataset state; mixed provider/derived ranges remain conservative. No prices, bars, provider routing, fallback, visible layout, pixels, or acceptance policy changed. Focused derived-timeframe, adjustment-factor, market-data, and coverage-router coverage passed 38/38; Ruff, format, and diff checks passed. The exact Docker-backed gate completed its migration-compatibility stage (reported skipped because no migration changes existed from its comparison tip) and all other non-visual stages, backend unit/integration 1393/387 with 81.21% combined coverage, frontend Vitest 990/990, and functional Playwright 165 with 107 documented skips across 272. Visual parity remains 98/104 with exactly the six established state-oracle diffs; teardown and resource accounting were clean. Broader provider factor application/rebuild verification, family/provider-history readiness, W1/MN continuity, cadence, canonical population, and R2-R7 remain open.",
     "current_phase": "R1_canonical_provider_history_readiness",
     "next_action": "Continue the next bounded evidence-backed R1 history or provenance seam; preserve the six visual state-oracle assertions and provider/fallback rules and rerun the exact gate at the next coherent tip.",
     "total": 10,
-    "updated_at": "2026-09-10T04:55:19Z"
+    "updated_at": "2026-09-10T05:22:40Z"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

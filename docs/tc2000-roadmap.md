@@ -5,6 +5,33 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Derived factor provenance reaches coverage consumers
+
+At product tip `e2263da9`, the canonical OHLCV coverage endpoint now reads
+the null-source derived W1/MN dataset state for derived-only ranges, exposing
+the inherited D1 factor version to the workstation accessibility contract.
+Mixed provider/derived ranges remain conservative and do not claim one factor
+version. No prices, bars, provider routing, fallback behavior, visible layout,
+pixels, or acceptance policy changed.
+
+The focused derived-timeframe, adjustment-factor, market-data, and coverage
+router suite passed `38/38`, with Ruff, formatting, and diff checks passing.
+The exact Docker-backed gate completed its migration-compatibility stage
+(reported skipped because no migration changes existed from its comparison
+tip) and all other non-visual stages: backend unit/integration `1,393`/`387`
+with `81.21%` combined coverage, frontend Vitest `990/990`, and functional
+Playwright `165` with `107` documented skips across `272`. Visual parity
+remained `98/104` with exactly the six established state-oracle diffs:
+`watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125. Scoped
+teardown removed all assigned resources and test sessions cleanly.
+
+R1 remains active for broader provider factor application/rebuild verification,
+complete family/provider-history readiness, W1/MN continuity, cadence beyond
+source-declared metadata, and canonical population; R2-R7 remain open. Next
+action: continue the next bounded evidence-backed R1 history/provenance seam
+and rerun the exact gate at the next coherent tip.
+
 ## 2026-09-10 — Derived timeframe factor-lineage propagation
 
 At product tip `ef5f2caa`, derived W1/MN dataset states now retain a verified

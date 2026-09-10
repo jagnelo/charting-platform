@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-10 — Derived factor provenance reaches coverage consumers
+
+- [x] Read the null-source derived W1/MN dataset state for derived-only
+      coverage ranges so inherited canonical D1 factor versions reach the
+      workstation contract; keep mixed lineage conservative.
+- [x] Regress the focused derived-timeframe, factor, market-data, and coverage
+      router contract (`38/38`); the exact gate preserved `1,393/387`
+      backend, `990/990` frontend, `165` functional passes, `107` documented
+      skips, and the six established visual diffs with clean teardown.
+- [ ] Continue broader factor application/rebuild verification and family /
+      provider history, W1/MN continuity, cadence, and canonical population.
+
 ### 2026-09-10 — Derived timeframe factor-lineage propagation
 
 - [x] Preserve a verified canonical D1 `factor_version` on derived W1/MN
