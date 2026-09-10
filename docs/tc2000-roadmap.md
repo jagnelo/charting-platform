@@ -12,7 +12,9 @@ provider bars and raw observations by instrument, source, timeframe, UTC
 timestamp, and adjustment mode. Offset-aware timestamps are normalized to UTC
 before matching, so a D1/W1 or raw/adjusted row cannot satisfy the wrong
 evidence record. Focused storage-reconciliation and coverage-router coverage
-passed `11/11`; Ruff, formatting, and diff checks passed. Prices, bars,
+passed `11/11`; the full backend unit suite passed `1,403/1,403` with
+`67.75%` coverage against its `55%` threshold; Ruff, formatting, and diff
+checks passed. Prices, bars,
 provider routing, fallback, visible layout, pixels, visual baselines,
 thresholds, skips, and acceptance policy are unchanged.
 

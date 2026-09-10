@@ -15,7 +15,9 @@ complete provider-observation identity: instrument, data source, timeframe,
 UTC-normalized timestamp, and raw versus adjusted mode. This prevents a
 same-timestamp D1/W1 or raw/adjusted observation from being counted against
 the wrong provider bar. Focused storage-reconciliation plus coverage-router
-coverage passed `11/11`; Ruff, formatting, and diff checks passed. No prices,
+coverage passed `11/11`; the full backend unit suite passed `1,403/1,403` at
+`67.75%` coverage against its `55%` threshold; Ruff, formatting, and diff
+checks passed. No prices,
 bars, provider routing, fallback, visual baseline, threshold, skip, or
 acceptance policy changed.
 

@@ -6,8 +6,10 @@
       identity (instrument, source, timeframe, UTC timestamp, and raw versus
       adjusted mode), preventing cross-view evidence collisions.
 - [x] Normalize offset-aware timestamps to UTC and regress the focused storage
-      and coverage-router contract (`11/11`); Ruff, formatting, and diff checks
-      passed without changing visible or visual policy.
+      and coverage-router contract (`11/11`); the full backend unit suite also
+      passed `1,403/1,403` at `67.75%` coverage against the `55%` threshold.
+      Ruff, formatting, and diff checks passed without changing visible or
+      visual policy.
 - [ ] Rerun the exact Docker-backed gate at `bab365e9`, then at the current
       coherent tip, and continue provider factor application/rebuild,
       family/provider history, W1/MN continuity, cadence, and population.
