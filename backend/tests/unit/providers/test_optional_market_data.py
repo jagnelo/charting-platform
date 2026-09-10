@@ -214,6 +214,40 @@ def test_finnhub_parses_documented_forward_earnings_calendar():
     }
 
 
+def test_fmp_parses_documented_stable_earnings_calendar():
+    provider = FMPProvider()
+    payload = [
+        {
+            "date": "2024-01-02",
+            "symbol": "AAPL",
+            "epsActual": 2.18,
+            "epsEstimated": 2.10,
+            "revenueActual": 119000000000,
+            "revenueEstimated": 117000000000,
+        }
+    ]
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ) as get,
+    ):
+        configured.FMP_API_KEY = "demo"
+        events = provider.fetch_market_events(start=date(2024, 1, 1), end=date(2024, 1, 3))
+
+    assert len(events) == 1
+    assert events[0].event_type == "earnings"
+    assert events[0].event_key == "fmp:earnings_calendar:AAPL:2024-01-02"
+    assert events[0].effective_date == date(2024, 1, 2)
+    assert events[0].raw_payload["epsEstimated"] == 2.10
+    assert get.call_args.kwargs["params"] == {
+        "from": "2024-01-01",
+        "to": "2024-01-03",
+        "apikey": "demo",
+    }
+
+
 def test_daily_adapters_parse_common_rows():
     row = {
         "date": "2024-01-02",

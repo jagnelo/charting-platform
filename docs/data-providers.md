@@ -78,7 +78,7 @@ re-reviewed when credentials or billing plans change.
 | Finnhub | profile/search, historical earnings, forward earnings calendar, and universe; candle adapter retained for higher entitlements | `FINNHUB_API_KEY` | observed free account 60 calls/min; all plans also have a 30 calls/sec hard cap | token / minute + rolling second | profile, historical earnings, and forward calendar live-proven; free stock candles returned 403 and are explicitly non-routable |
 | Marketstack | daily EOD history and venue-scoped ticker discovery | `MARKETSTACK_API_KEY`, `MARKETSTACK_DISCOVERY_EXCHANGE` | Free-plan pricing publishes 100 requests/month and one year of history; a stale FAQ sentence says 1,000, so the checked-in contract uses the lower 100-request ceiling; EOD responses expose 100-row pagination metadata | key / calendar month | history follows returned pagination and reserves a conservative page count before execution; discovery is fail-closed until an explicit MIC/exchange code is configured, and is supplementary rather than complete US venue reconciliation; daily history live-proven |
 | EODHD | long-history daily EOD, fixture-covered fundamentals/profile adapter, US exchange list | `EODHD_API_KEY` | Free 20 API calls/day and 1,000 requests/minute; EOD free history is limited to one year; the supplied free key returned HTTP 403 for Fundamentals, while the official plan description limits free access to EOD history and exchange lists; data-heavy endpoints consume multiple calls (fundamentals/options 10, intraday/technical/news 5) | API key / minute requests + GMT calendar-day call budget | EOD daily/weekly/monthly history live-proven; Fundamentals is explicitly non-routable for the current free entitlement and its 403 is retained as typed evidence |
-| FMP | stable-API daily history, profile, stock list | `FMP_API_KEY` | observed free account 250 calls/day and 512 MB/30 days; the dashboard does not publish a reset anchor, so the request allowance is enforced conservatively as a rolling 24-hour window and bandwidth is tracked as a rolling 30-day constraint | key / rolling 24-hour request window + rolling 30-day bandwidth | stable EOD history live-proven; response bytes are durable; routing requires complete reviewed `FMP_OPERATION_BYTE_BOUNDS` |
+| FMP | stable-API daily history, profile, stock list, and earnings calendar | `FMP_API_KEY` | observed free account 250 calls/day and 512 MB/30 days; the dashboard does not publish a reset anchor, so the request allowance is enforced conservatively as a rolling 24-hour window and bandwidth is tracked as a rolling 30-day constraint | key / rolling 24-hour request window + rolling 30-day bandwidth | stable EOD history and `earnings-calendar` normalization live-proven for the configured key; response bytes are durable; routing requires complete reviewed `FMP_OPERATION_BYTE_BOUNDS` |
 | Tradier | US daily history, quotes/search; options-capable REST surface | `TRADIER_API_KEY` | 60/min sandbox; 120/min production market-data quota, response headers expose remaining/reset | token / minute | adapter + contract recorded; account live evidence required |
 | MarketData.app | delayed US stocks/options candles (options surface is optional) | `MARKETDATA_APP_API_KEY` | 100 credits/day free, reset 09:30 ET; 50 account-wide concurrent requests; free/trial history limited to one year | key / reset-day credits + durable in-flight concurrency | adapter and durable concurrency enforcement implemented; account live evidence required |
 | IBKR | account-bound stocks/options/futures/crypto via read-only Web API descriptor | deployment-specific `IBKR_READ_ONLY_URL` | Global 10 requests/sec/session; `/iserver/marketdata/history` max 5 concurrent; endpoint-specific pacing and a 15-minute penalty box apply | session/account / endpoint | pacing contract recorded; descriptor only, no routing until a funded-account adapter/evidence exists |
@@ -161,8 +161,9 @@ FMP_OPERATION_BYTE_BOUNDS={}
 
 Every operation exposed by the relevant adapter must be present with a positive
 bound, including `get_current_price`, which uses the adapter's bounded latest
-history request path, and `bulk_fetch`, which is used by the deep-history
-worker. Complete maps move the provider's documented bandwidth pool into the
+history request path, `bulk_fetch`, which is used by the deep-history worker,
+and FMP's `fetch_market_events`, which calls the stable earnings calendar.
+Complete maps move the provider's documented bandwidth pool into the
 same durable multidimensional reservation path as request limits; response
 bytes settle the reservation after execution. Tiingo additionally publishes a
 500-unique-symbol monthly pool, which cannot be represented as one unit per
@@ -712,7 +713,7 @@ receiving equity symbols) will be naturally deprioritised by the circuit-breaker
 | Historical earnings dates    | edgar             | —               |
 | US options chains            | yfinance (explicit legacy), Tradier/MarketData.app when entitled | *(no default current-chain route)* |
 | Futures / commodities        | yfinance (explicit legacy) | optional IBKR descriptor |
-| Forward earnings estimates   | *(excluded)*      | *(capability stub)* |
+| Forward earnings estimates   | Finnhub forward calendar; FMP `earnings-calendar` | Finnhub and FMP calendars are live-proven for configured keys; FMP routing remains byte-bound gated |
 | Analyst price targets        | *(excluded)*      | *(capability stub)* |
 
 Remaining gaps are tracked in [project-todos.md](project-todos.md).

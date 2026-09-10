@@ -235,6 +235,7 @@ class TestProviderRegistry:
                 "get_current_price": 1,
                 "bulk_fetch": 1,
                 "get_instrument_profile": 1,
+                "fetch_market_events": 1,
                 "discover_universe_page": 1,
             },
         )

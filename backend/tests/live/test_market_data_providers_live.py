@@ -376,6 +376,16 @@ def test_optional_credentialed_provider_small_read(provider, credentials, symbol
         assert profile is not None
         assert profile.symbol == symbol
         assert profile.name and profile.exchange
+        calendar_events, _ = _observed_read(
+            lambda: provider.fetch_market_events(
+                start=date.today() - timedelta(days=7),
+                end=date.today() + timedelta(days=45),
+            ),
+            provider.name,
+        )
+        assert calendar_events
+        assert all(event.event_type == "earnings" for event in calendar_events)
+        assert all(event.effective_date is not None for event in calendar_events)
 
 
 def test_eodhd_free_plan_profile_entitlement_is_explicit():

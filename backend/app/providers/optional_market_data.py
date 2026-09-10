@@ -1288,6 +1288,53 @@ class FMPProvider(_RESTProvider):
             },
         )
 
+    def fetch_market_events(
+        self,
+        *,
+        start: date | None = None,
+        end: date | None = None,
+    ) -> list[MarketEventRecord]:
+        """Normalize FMP's stable earnings-calendar rows.
+
+        The stable endpoint returns one row per issuer/date and may include
+        actual and estimated EPS/revenue fields.  Those provider-specific
+        values remain in ``raw_payload`` because ``MarketEventRecord`` is the
+        market-wide event contract; instrument-level persistence can enrich
+        them later without discarding the source response.
+        """
+
+        params: dict[str, Any] = {}
+        if start is not None:
+            params["from"] = start.isoformat()
+        if end is not None:
+            params["to"] = end.isoformat()
+        rows = self._rows(self._get("earnings-calendar", params))
+        events: list[MarketEventRecord] = []
+        for row in rows:
+            event_time = _timestamp(
+                row.get("date")
+                or row.get("earningsDate")
+                or row.get("announcementDate")
+            )
+            if event_time is None:
+                continue
+            event_date = event_time.date()
+            if (start and event_date < start) or (end and event_date > end):
+                continue
+            symbol = str(row.get("symbol") or "").strip().upper()
+            events.append(
+                MarketEventRecord(
+                    event_type="earnings",
+                    event_key=f"fmp:earnings_calendar:{symbol or 'market'}:{event_date.isoformat()}",
+                    event_time=event_time,
+                    effective_date=event_date,
+                    title=f"FMP earnings calendar {symbol}".strip(),
+                    source_version="earnings-calendar",
+                    raw_payload=row,
+                )
+            )
+        return events
+
     def discover_universe_page(self, quote_type: str, offset: int) -> dict[str, Any]:
         normalized = quote_type.strip().upper()
         if normalized not in {"EQUITY", "ETF"} or offset < 0:

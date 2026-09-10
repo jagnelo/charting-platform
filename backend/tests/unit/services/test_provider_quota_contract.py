@@ -1096,6 +1096,10 @@ def test_optional_latest_price_profiles_charge_the_actual_quote_operation():
         ] == 1
 
 
+def test_fmp_profile_charges_market_event_calendar_operation():
+    assert get_provider_usage_profile("fmp")["operation_costs"]["fetch_market_events"] == 1
+
+
 def test_deep_history_profiles_charge_the_bulk_fetch_operation():
     for provider_name in (
         "alpha_vantage",

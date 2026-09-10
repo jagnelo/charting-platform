@@ -101,6 +101,17 @@ transport/schema handling without fabricating an event; a positive IPO row
 remains unobserved. Optional-provider HTTP failures now redact credentials
 from direct/live tracebacks while retaining typed 429/reset evidence.
 
+On 2026-09-10, the configured FMP key also passed the bounded stable
+`earnings-calendar` probe alongside profile/history (`3` upstream requests,
+`9,444` response bytes). The adapter returned non-empty normalized earnings
+events with inclusive date bounds; the raw EPS/revenue estimate fields remain
+preserved in event provenance. This is positive transport/shape evidence for
+the configured account, not a promotion of FMP routing: the rolling 30-day
+bandwidth pool still requires a complete operator-reviewed
+`FMP_OPERATION_BYTE_BOUNDS` map, and analyst-estimate/price-target endpoints
+remain outside this adapter until their plan entitlements are separately
+validated.
+
 On 2026-09-05, with network access, a temporary non-secret SEC User-Agent, and
 the official FINRA OTC Security Master URL, the public/keyless matrix passed
 `9/9`, including full SEC ticker/exchange-directory pagination, full Nasdaq

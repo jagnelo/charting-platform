@@ -95,7 +95,9 @@ current capability/quota ledger.
       add QuantLib American-option Greeks with explicit model/input provenance
       and the existing Black-Scholes fallback. Concrete opt-in REST adapters
       now normalize Tiingo, Twelve Data, Finnhub, Marketstack, EODHD, and FMP
-      history/profile surfaces without entering default routing.
+      history/profile/event surfaces without entering default routing. FMP's
+      stable `earnings-calendar` adapter is fixture- and live-covered; routing
+      remains byte-bound gated and analyst surfaces remain an explicit gate.
 - [x] Add the first concrete non-price paths: raw SEC Company Facts, FINRA
       short-interest normalisation, Alpha Vantage market-event calendar records,
       durable persistence helpers, and explicit crypto/futures/options capability
@@ -10408,8 +10410,11 @@ What remains:
 - Credentialed live validation and entitlement review for the optional adapters.
 - Add/validate a dedicated `OptionChainProvider` with real greeks and a forward-earnings
   `EventProvider` only when the selected plan/API contract supports those surfaces.
-- Implement `fmp` provider (FMP): `EventProvider` for forward earnings + analyst data,
-  `InstrumentMetadataProvider` for richer fundamentals
+- Validate/activate the FMP stable `earnings-calendar` event surface and add
+  analyst-estimate/price-target adapters only when the selected plan/API
+  contract supports those surfaces. The earnings-calendar adapter now has
+  fixture and configured-key live evidence; routing still requires reviewed
+  byte bounds, and analyst-estimate/price-target coverage remains open.
 - Optionally implement `ibkr` provider (IBKR TWS): comprehensive coverage for priority instruments,
   requires IB Gateway sidecar and a pacing-aware scheduler queue
 - Demote yfinance options/events capabilities to last-resort once paid providers are active
