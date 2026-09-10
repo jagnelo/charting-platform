@@ -533,3 +533,10 @@ authoritative gate was attempted at `2026-09-10T08:53:03Z`, but Docker Desktop
 returned HTTP 500 from its local API during the preflight before tests started;
 therefore this change has no new full-gate acceptance claim until the isolated
 Docker validation can run.
+
+FINRA short-interest and OTC Daily List adapters now reject mixed or scalar
+rows, invalid short-interest settlement dates, and malformed or non-finite
+numeric fields instead of silently dropping records or creating partial
+observations. The focused FINRA suite passed `13/13`; Ruff and diff checks
+passed. The authoritative gate remains unverified because Docker preflight is
+currently unavailable.
