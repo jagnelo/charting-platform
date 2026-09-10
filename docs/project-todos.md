@@ -1,5 +1,14 @@
 # Project TODO Memory
 
+### 2026-09-10 — IBKR historical pacing contract correction
+
+- [x] Reconcile the descriptor-only IBKR quota record with the current official
+      historical-market-data documentation: retain the 10 requests/second
+      session ceiling, add the 50 historical requests/minute ceiling, retain
+      the five-concurrent-history limit, and record the 1,000-bar response cap
+      as an endpoint constraint. The adapter remains intentionally non-routable
+      until a funded/session-bound read-only adapter and live evidence exist.
+
 ### 2026-09-10 — Live usage attribution and provider-capacity evidence
 
 - [x] Extend the external direct-live usage ledger to retain a bounded,

@@ -733,6 +733,14 @@ class Settings(BaseSettings):
                         "source": "https://ibkrcampus.com/docs/web-api/v1/pacing-limitations",
                     },
                     {
+                        "name": "historical_requests_per_minute",
+                        "limit": 50,
+                        "window_seconds": 60,
+                        "unit": "requests",
+                        "scope": "authenticated_session",
+                        "source": "https://ibkrcampus.com/docs/web-api/v1/endpoints/market-data/historical-market-data",
+                    },
+                    {
                         "name": "historical_requests_concurrent",
                         "limit": 5,
                         "window_seconds": 1,
@@ -743,9 +751,15 @@ class Settings(BaseSettings):
                 ],
                 "reset": "rolling",
                 "endpoint_specific_limits": True,
+                "endpoint_constraints": {
+                    "iserver/marketdata/history": {
+                        "max_response_points": 1000,
+                        "source": "https://ibkrcampus.com/docs/web-api/v1/endpoints/market-data/historical-market-data",
+                    }
+                },
             },
             "quota_scope": "authenticated_session",
-            "quota_source": "IBKR Web API pacing limitations",
+            "quota_source": "IBKR Web API historical market-data and pacing documentation",
         },
     }
     PROVIDER_FRESHNESS_SEEDS: dict[str, int] = {}

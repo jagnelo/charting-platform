@@ -854,10 +854,14 @@ def test_marketstack_and_ibkr_use_provider_specific_pacing_contracts():
     assert marketstack["dimensions"][0]["window_seconds"] == 2678400
 
     ibkr = settings.PROVIDER_RATE_LIMIT_SEEDS["ibkr"]["quota_contract"]
-    assert {dimension["limit"] for dimension in ibkr["dimensions"]} == {5, 10}
+    assert {dimension["limit"] for dimension in ibkr["dimensions"]} == {5, 10, 50}
     assert all(
         dimension["source"].startswith("https://ibkrcampus.com/")
         for dimension in ibkr["dimensions"]
+    )
+    assert (
+        ibkr["endpoint_constraints"]["iserver/marketdata/history"]["max_response_points"]
+        == 1000
     )
 
 
