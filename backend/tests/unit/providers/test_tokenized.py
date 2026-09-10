@@ -156,6 +156,42 @@ def test_bybit_success_retcode_and_retmsg_are_not_error_envelope():
         assert BybitXStocksProvider().discover_tokenized_assets(page=0, page_size=1) == []
 
 
+def test_xstocks_corporate_actions_use_bounded_history_page_and_filter_invalid_rows():
+    response = Mock()
+    response.raise_for_status.return_value = None
+    response.status_code = 200
+    response.json.return_value = {
+        "nodes": [{"id": "split-1"}, "not-an-event"],
+    }
+    with patch("app.providers.tokenized.httpx.get", return_value=response) as get:
+        rows = XStocksProvider().fetch_tokenized_corporate_actions(
+            symbol="xAAPL", page=0, page_size=1000
+        )
+    assert rows == [{"id": "split-1"}]
+    get.assert_called_once()
+    assert get.call_args.kwargs["params"] == {
+        "page": 1,
+        "pageSize": 100,
+        "symbol": "xAAPL",
+    }
+
+
+def test_robinhood_corporate_actions_filter_by_token_symbol():
+    response = Mock()
+    response.raise_for_status.return_value = None
+    response.status_code = 200
+    response.json.return_value = {
+        "corpActions": [
+            {"tokenSymbol": "AAPLx", "type": "dividend"},
+            {"tokenSymbol": "MSFTx", "type": "dividend"},
+            "not-an-event",
+        ],
+    }
+    with patch("app.providers.tokenized.httpx.get", return_value=response):
+        rows = RobinhoodTokenProvider().fetch_tokenized_corporate_actions(symbol="aaplx")
+    assert rows == [{"tokenSymbol": "AAPLx", "type": "dividend"}]
+
+
 def test_tokenized_http_rate_limit_is_typed_redacted_and_keeps_retry_metadata():
     response = httpx.Response(
         429,

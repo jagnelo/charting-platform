@@ -216,7 +216,8 @@ descriptor without an authenticated account adapter.
 The public tokenized matrix is maintained separately in
 `tests/live/test_tokenized_providers_live.py`. It covers xStocks, Robinhood
 Chain Stock Tokens, Bybit xStocks, Gate TradFi stock endpoints, and Kraken's
-current xStocks catalogue. The latest bounded run passed all five probes, and
+current xStocks catalogue. The latest bounded run passed all seven probes,
+including xStocks and Robinhood corporate-action reads, and
 the quote assertions observed at least two upstream requests for every
 successful quote operation (metadata resolution plus quote/order-book read).
 The Kraken result was an empty provider catalogue (no current xStocks pair),
@@ -260,9 +261,9 @@ the non-secret `MARKETSTACK_DISCOVERY_EXCHANGE` MIC/exchange setting. The
 adapter no longer defaults discovery to `XNYS`, so a single-venue read cannot
 be mistaken for complete US listing coverage.
 
-The latest network-enabled rerun at `2026-09-10T01:04:34Z`, using the existing
+The latest network-enabled rerun at `2026-09-10T01:52:55Z`, using the existing
 external keys plus a temporary non-secret SEC User-Agent and explicit
-`MARKETSTACK_DISCOVERY_EXCHANGE=XNAS`, collected 32 cases: 29 passed with
+`MARKETSTACK_DISCOVERY_EXCHANGE=XNAS`, collected 34 cases: 31 passed with
 positive transport observations across the available keyless and credentialed
 adapters, including all five tokenized providers, OpenFIGI after its prior
 cooldown, and the header-only Alpha Vantage IPO-calendar response. Three failed

@@ -327,9 +327,10 @@ class RobinhoodTokenProvider:
             f"{self.base_url}/corporate-actions", provider_name=self.name
         )
         rows = payload.get("corpActions", []) if isinstance(payload, dict) else []
+        rows = [row for row in rows if isinstance(row, dict)]
         if symbol:
             rows = [row for row in rows if str(row.get("tokenSymbol", "")).upper() == symbol.upper()]
-        return [row for row in rows if isinstance(row, dict)]
+        return rows
 
 
 class BybitXStocksProvider:

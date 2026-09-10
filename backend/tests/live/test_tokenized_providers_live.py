@@ -80,6 +80,17 @@ def test_xstocks_public_asset_and_price():
     _assert_asset(priced, require_quote=True)
 
 
+def test_xstocks_public_corporate_actions():
+    provider = XStocksProvider()
+    events, measurement = _observed_read(
+        lambda: provider.fetch_tokenized_corporate_actions(page=1, page_size=1),
+        "xstocks",
+    )
+    assert isinstance(events, list)
+    assert all(isinstance(event, dict) for event in events)
+    assert measurement.http_requests == 1
+
+
 def test_robinhood_public_asset_and_price():
     provider = RobinhoodTokenProvider()
     rows, _ = _observed_read(
@@ -103,6 +114,16 @@ def test_robinhood_public_asset_and_price():
         )
     assert quote_measurement.http_requests >= 2
     _assert_asset(priced, require_quote=True)
+
+
+def test_robinhood_public_corporate_actions():
+    provider = RobinhoodTokenProvider()
+    events, measurement = _observed_read(
+        lambda: provider.fetch_tokenized_corporate_actions(), "robinhood_tokens"
+    )
+    assert isinstance(events, list)
+    assert all(isinstance(event, dict) for event in events)
+    assert measurement.http_requests == 1
 
 
 def test_bybit_public_xstocks_asset_and_price():
