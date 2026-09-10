@@ -8,6 +8,28 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Local split provenance carried into coarse views
+
+Product tip `8259e5e2` makes W1/MN materialization recognize fully local
+split-derived D1 rows and carry their verified factor version into the
+provider-neutral coarse-timeframe state. Mixed provider/local D1 input is
+versioned only when every contributing source agrees; missing, opaque, or
+conflicting evidence remains unversioned. Aggregation, provider precedence,
+fallback, prices, bars, layout, pixels, and acceptance policy are unchanged.
+
+The focused derived-timeframe suite passed `5/5`; the full backend unit suite
+passed `1,418/1,418` at `67.82%` coverage; Ruff, formatting, and diff checks
+passed. The exact gate reran at this tip with backend unit/integration
+`1,418/1,418` and `387/387`; frontend Vitest/type-check/build, compose,
+health, performance, acceptance, and functional Playwright passed (`165`
+passed, `107` documented skips across `272`). Visual parity remained `98/104`
+with exactly the six protected state-oracle diffs and the gate exited `2` at
+`e2e-visual`. Scoped containers, volumes, images, network, and testcontainer
+sessions were cleaned up.
+
+Next bounded work remains provider/family history, W1/MN continuity beyond
+this local lineage path, canonical population, and dense-data evidence.
+
 ## 2026-09-10 — Local split-adjusted materialization behind explicit lineage
 
 Product tip `1fc650a7` adds an authenticated `POST

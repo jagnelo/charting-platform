@@ -5,6 +5,34 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Local split provenance carried into coarse views
+
+At product tip `8259e5e2`, W1/MN materialization now recognizes a fully local
+split-derived D1 series and carries its verified factor version into the
+provider-neutral coarse-timeframe dataset state. When provider and local
+derived D1 rows coexist, versions must agree; missing, opaque, or conflicting
+evidence remains explicitly unversioned. This closes provenance continuity
+only; it does not change aggregation, provider precedence, fallback, prices,
+bars, visible layout, pixels, or acceptance policy.
+
+The focused derived-timeframe suite passed `5/5`; the complete backend unit
+suite passed `1,418/1,418` with `67.82%` coverage against the configured `55%`
+threshold; Ruff, formatting, and diff checks passed. The exact branch-scoped
+gate reran at this tip: backend unit/integration passed `1,418/1,418` and
+`387/387`; frontend Vitest, type-check/build, compose, health, performance,
+acceptance, and functional Playwright passed (`165` passed, `107` documented
+skips across `272`). Visual parity remained `98/104` with exactly the six
+protected state-oracle diffs (`watchlist-column-editor-open` at
+visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125 and
+visual-1440p-100/125). The gate exited `2` at `e2e-visual` after clean scoped
+teardown; no visual baseline, mask, threshold, skip, provider, fallback, or
+acceptance policy changed.
+
+R1/R6 remain active for provider/family history, W1/MN continuity beyond this
+lineage seam, canonical population, and dense-data evidence; R2-R5 and R7
+remain open. Preserve the six protected visual assertions and rerun the exact
+gate after the next coherent product change.
+
 ## 2026-09-10 — Local split-adjusted materialization behind explicit lineage
 
 At product tip `1fc650a7`, the backend now exposes an authenticated local

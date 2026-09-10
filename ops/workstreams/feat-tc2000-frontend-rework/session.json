@@ -97,14 +97,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "742085a5478ea9098cc680ea2d4436ce6a8d7c4a",
-  "implementation_sha": "1fc650a7d2e52ee017026175827dab2aafe94764",
+  "head": "8259e5e2997e88aec0bee51dddd54e35d2c4f7b7",
+  "implementation_sha": "8259e5e2997e88aec0bee51dddd54e35d2c4f7b7",
   "interrupted": false,
-  "last_checkpoint": "2026-09-10T12:04:16Z",
-  "last_human_progress_update": "2026-09-10T12:04:16Z",
+  "last_checkpoint": "2026-09-10T12:37:49Z",
+  "last_human_progress_update": "2026-09-10T12:37:49Z",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue provider/family history, W1/MN continuity, canonical population, and R6 dense-data evidence; preserve the six protected visual state-oracle assertions and rerun the exact gate after the next coherent product change.",
-  "plan_hash": "fcf6b3bb6b313ea497f1b70d6505a1cc16a8a9d22bf996426b0f5dd8e3d7d7ab",
+  "plan_hash": "7cf6fe14c8943a32465e553f9d493edb673c88d2d9cdda8334af8741e5b7832e",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -116,11 +116,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product tip 1fc650a7 adds authenticated local split-adjusted materialization behind the explicit OHLCV lineage selector. It reads one identified raw provider source, applies complete version-consistent split-only factors, persists local derived rows without replacing provider-adjusted collisions, and records local_split_ratio provenance and factor version; unsupported, ambiguous, incomplete, dividend, and no-data cases remain structured receipts. Focused materializer/router coverage passed 15/15 and 12/12; the exact gate passed backend unit/integration 1417/1417 and 387/387 with 81.32% combined coverage, frontend Vitest/type-check/build, compose, health, performance, acceptance, and functional Playwright 165 with 107 documented skips across 272. Visual parity remains 98/104 with exactly the six protected state-oracle diffs after clean scoped teardown. The live 100k-point proof remains unclaimed. Continue provider/family history, W1/MN continuity, canonical population, and dense-data evidence; R2-R5 and R7 remain open.",
+    "current_blocker": "Product tip 8259e5e2 carries a verified local_split_ratio factor version from fully local split-derived D1 rows into provider-neutral W1/MN materialization state. Mixed provider/local D1 evidence is versioned only when all contributing sources agree; missing, opaque, or conflicting evidence remains explicitly unversioned. Focused derived-timeframe coverage passed 5/5; the exact gate passed backend unit/integration 1418/1418 and 387/387, frontend Vitest/type-check/build, compose, health, performance, acceptance, and functional Playwright 165 with 107 documented skips across 272. Visual parity remains 98/104 with exactly the six protected state-oracle diffs after clean scoped teardown. The live 100k-point proof remains unclaimed. Continue provider/family history, W1/MN continuity beyond this seam, canonical population, and dense-data evidence; R2-R5 and R7 remain open.",
     "current_phase": "R1_canonical_provider_history_readiness",
     "next_action": "Continue provider/family history, W1/MN continuity, canonical population, and R6 dense-data evidence; preserve the six protected visual state-oracle assertions and rerun the exact gate after the next coherent product change.",
     "total": 25,
-    "updated_at": "2026-09-10T12:04:16Z"
+    "updated_at": "2026-09-10T12:37:49Z"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

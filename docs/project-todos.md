@@ -1,5 +1,17 @@
 # Project TODO Memory
 
+### 2026-09-10 — Local split provenance carried into coarse views
+
+- [x] Carry a verified `local_split_ratio` factor version from fully local
+      split-derived D1 bars into provider-neutral W1/MN dataset provenance.
+- [x] Require agreement across provider and local D1 evidence; preserve an
+      explicitly unversioned state for missing, opaque, or conflicting inputs.
+- [x] Focused derived-timeframe coverage passed `5/5`; full backend unit
+      coverage passed `1,418/1,418` at `67.82%`; Ruff, formatting, and diff
+      checks passed; the exact gate preserved the six protected visual diffs.
+- [ ] Continue provider/family history, W1/MN continuity beyond this lineage
+      seam, canonical population, and dense-data evidence.
+
 ### 2026-09-10 — Local split-adjusted materialization behind explicit lineage
 
 - [x] Add authenticated local split-adjusted materialization behind the
