@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-09-10 — Observed OHLCV cadence contract
+
+- [x] Expose canonical returned-bar cadence as additive coverage evidence:
+      distinct UTC timestamp status, sample count, median/minimum/maximum
+      interval days, and an explicit diagnostic-only semantics label that does
+      not infer provider schedules or missing-observation completeness.
+- [x] Carry the evidence through the Coverage Summary accessibility contract;
+      focused service/router coverage passed `26/26`, the frontend consumer
+      passed `4/4`, and type-check, Ruff, formatting, and diff checks passed
+      without visible layout or pixel changes.
+- [x] Re-run the exact gate: backend `1,399/387` (`81.23%`), frontend
+      `990/990`, functional `165` with `107` documented skips, visual `98/104`
+      with the six established diffs, and clean teardown.
+- [ ] Continue broader provider factor application/rebuild verification and
+      family/provider history, W1/MN continuity, broader cadence, and canonical
+      population evidence.
+
 ### 2026-09-10 — Benchmark-family observed cadence evidence
 
 - [x] Measure distinct composition-date spacing for each benchmark-family

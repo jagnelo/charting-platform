@@ -5,6 +5,36 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Observed OHLCV cadence contract
+
+At product tip `9e9026be`, the canonical OHLCV coverage endpoint now reports
+observed cadence measured from the distinct UTC bar timestamps returned for the
+requested range. The additive contract exposes status, sample count, and
+median/minimum/maximum interval days, with explicit semantics that this is
+diagnostic of returned bar timestamps only. It does not infer an official
+provider schedule or completeness for missing observations. Coverage Summary
+surfaces the evidence through its existing screen-reader-only range
+description; visible layout, prices, bars, provider routing, fallback,
+visual baselines, thresholds, skips, and acceptance policy are unchanged.
+
+Focused service/router coverage passed `26/26`; the Coverage Summary frontend
+suite passed `4/4`; frontend type-check, Ruff, formatting, and diff checks were
+green. The exact Docker-backed gate completed migration compatibility (skipped
+because no migration changes existed from its comparison tip) and every other
+non-visual stage: backend unit/integration `1,399`/`387` with `81.23%`
+combined coverage, frontend Vitest `990/990`, functional Playwright `165`
+with `107` documented skips across `272`, frontend build, compose/provider/
+runner/health/performance/acceptance checks, and clean scoped teardown.
+Visual parity remained `98/104` with exactly the six established state-oracle
+diffs: `watchlist-column-editor-open` at visual-1080p-100/125 and
+`workspace-floating` at visual-1080p-100/125 and visual-1440p-100/125.
+
+R1 remains active for broader provider factor application/rebuild verification,
+complete family/provider-history readiness, W1/MN continuity, broader cadence
+and canonical population evidence; R2-R7 remain open. Next action: continue
+the next bounded evidence-backed R1 history/provenance seam and rerun the exact
+gate at the next coherent tip.
+
 ## 2026-09-10 — Benchmark-family observed cadence evidence
 
 At implementation tip `011c1ee1`, benchmark-family coverage now reports
