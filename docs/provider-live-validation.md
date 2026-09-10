@@ -540,3 +540,10 @@ numeric fields instead of silently dropping records or creating partial
 observations. The focused FINRA suite passed `13/13`; Ruff and diff checks
 passed. The authoritative gate remains unverified because Docker preflight is
 currently unavailable.
+
+SEC EDGAR ticker and exchange directories, filing arrays, and Company Facts
+nested observations now reject malformed rows, table-width mismatches,
+misaligned arrays, and invalid nested containers instead of truncating or
+filtering provider data. The focused EDGAR suite passed `21/21`; Ruff and diff
+checks passed. The authoritative gate remains unverified because Docker
+preflight is currently unavailable.
