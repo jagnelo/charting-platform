@@ -8,6 +8,27 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Benchmark-family history exposes factor lineage
+
+Product tip `78d1e042` fixes the benchmark-family member-history seam: the
+family aggregate now carries `OHLCVBar.derivation_method`, records each
+member's derived methods, and queries method-specific D1 state for local split
+and provider adjustment-factor lineage. Verified factor version/status is
+returned only for the corresponding covered lineage; missing, mixed, or
+incomplete evidence remains conservative.
+
+Focused family-history coverage passed `1/1`; the full backend unit suite
+passed `1,430/1,430` at `67.98%`; Ruff, formatting, and diff checks passed.
+The exact Docker-backed gate passed all non-visual stages and functional
+Playwright (`165` passed, `107` documented skips across `272`). Visual parity
+remains `98/104` with exactly the six protected diffs; the gate exited `1` at
+`e2e-visual` after clean branch-scoped teardown. No visual baseline, mask,
+threshold, skip, provider, fallback, or acceptance policy changed.
+
+Next: continue provider/family history breadth, W1/MN continuity beyond the
+bounded lineage seam, canonical population, and dense-data evidence. Keep the
+branch at review boundary; do not integrate or deploy.
+
 ## 2026-09-10 — D1 history exposes local provider-factor lineage
 
 Product tip `7eb10de1` makes generic source-history status method-aware for

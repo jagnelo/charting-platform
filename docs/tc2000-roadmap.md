@@ -5,6 +5,31 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Benchmark-family history exposes factor lineage
+
+At product tip `78d1e042`, benchmark-family member history now selects and
+groups `OHLCVBar.derivation_method`, retains the per-member derived methods,
+and reads method-specific D1 state for both `local_split_ratio` and
+`provider_adjustment_factor`. Family adjustment provenance therefore exposes
+verified factor version/status when the covered bars carry that lineage, while
+missing, mixed, or incomplete evidence remains conservative and provider rows
+remain distinct.
+
+The focused family-history regression passed `1/1`; the complete backend unit
+suite passed `1,430/1,430` at `67.98%`; Ruff, formatting, and diff checks
+passed. The exact branch-scoped Docker gate passed its non-visual stages and
+functional Playwright (`165` passed, `107` documented skips across `272`).
+Visual parity remains `98/104` with exactly the six protected state-oracle
+diffs (watchlist-column-editor-open at visual-1080p-100/125 and
+workspace-floating at visual-1080p-100/125 and visual-1440p-100/125); the gate
+exited `1` at `e2e-visual` after clean scoped teardown. No visual baseline,
+mask, threshold, skip, provider, fallback, or acceptance policy changed.
+
+This closes the family member factor-lineage display seam only. Full
+provider/family history breadth, W1/MN continuity beyond the bounded lineage
+path, canonical population, dense-data evidence, and R2-R7 goals remain open;
+continue without integration or deployment.
+
 ## 2026-09-10 — D1 history exposes local provider-factor lineage
 
 At product tip `7eb10de1`, generic watchlist source-history status now reads

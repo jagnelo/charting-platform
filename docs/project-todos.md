@@ -1,5 +1,20 @@
 # Project TODO Memory
 
+### 2026-09-10 — Benchmark-family history exposes factor lineage
+
+- [x] Make benchmark-family member history retain `derivation_method` and
+      read method-specific D1 factor state for covered derived bars, including
+      provider-adjustment-factor version/status evidence.
+- [x] Focused family-history regression passed `1/1`; full backend unit
+      coverage passed `1,430/1,430` at `67.98%`; Ruff, formatting, and diff
+      checks passed.
+- [x] The exact gate passed all non-visual stages and functional Playwright
+      (`165` passed, `107` documented skips across `272`); visual parity remains
+      `98/104` with exactly the six protected diffs and clean scoped teardown.
+- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
+      the bounded lineage path, canonical population, and dense-data evidence;
+      preserve protected visual assertions and the no-integration boundary.
+
 ### 2026-09-10 — D1 history exposes local provider-factor lineage
 
 - [x] Make generic source-history status read method-specific D1 derived state
