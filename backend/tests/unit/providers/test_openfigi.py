@@ -162,3 +162,19 @@ def test_openfigi_invalid_json_is_typed(monkeypatch):
     with pytest.raises(ProviderResponseError) as exc_info:
         OpenFigiProvider().fetch_stable_identifiers("AAPL")
     assert exc_info.value.provider_name == "openfigi"
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"data": []},
+        [{"data": ["invalid"]}],
+        [{"unexpected": []}],
+    ],
+)
+def test_openfigi_malformed_mapping_shapes_are_typed(monkeypatch, payload):
+    monkeypatch.setattr("app.providers.openfigi.httpx.Client", FakeClient)
+    FakeClient.next_payload = payload
+    with pytest.raises(ProviderResponseError) as exc_info:
+        OpenFigiProvider().fetch_stable_identifiers("AAPL")
+    assert exc_info.value.provider_name == "openfigi"

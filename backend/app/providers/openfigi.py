@@ -7,7 +7,12 @@ import httpx
 
 from app.config import settings
 from app.providers.base import IdentifierRecord, InstrumentProfile, ListingRecord
-from app.providers.errors import ProviderResponseError
+from app.providers.errors import (
+    ProviderRateLimitError,
+    ProviderResponseError,
+    raise_for_provider_error_envelope,
+    redact_provider_message,
+)
 from app.providers.telemetry import observe_response
 
 logger = logging.getLogger(__name__)
@@ -42,7 +47,7 @@ class OpenFigiProvider:
         )
         if not results:
             return []
-        rows = [row for row in results[0] if isinstance(row, dict)]
+        rows = results[0]
         if exchange_code:
             expected_exchange = str(exchange_code).strip().upper()
             rows = [
@@ -115,19 +120,54 @@ class OpenFigiProvider:
             raise ProviderResponseError(self.name, str(exc)) from exc
         observe_response(response)
         if hasattr(response, "raise_for_status"):
-            response.raise_for_status()
+            try:
+                response.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                status_code = getattr(response, "status_code", None)
+                headers = {
+                    key.lower(): value
+                    for key, value in dict(getattr(response, "headers", {}) or {}).items()
+                    if key.lower() in {"retry-after", "x-ratelimit-limit", "x-ratelimit-remaining", "x-ratelimit-reset"}
+                }
+                message = redact_provider_message(str(exc))
+                if status_code in {418, 429}:
+                    raise ProviderRateLimitError(
+                        self.name,
+                        message or "OpenFIGI request rate-limited",
+                        status_code=status_code,
+                        headers=headers,
+                    ) from exc
+                raise ProviderResponseError(
+                    self.name,
+                    message or "OpenFIGI request failed",
+                    status_code=status_code,
+                ) from exc
         elif getattr(response, "status_code", 200) != 200:
-            return []
+            status_code = getattr(response, "status_code", None)
+            if status_code in {418, 429}:
+                raise ProviderRateLimitError(
+                    self.name, "OpenFIGI request rate-limited", status_code=status_code
+                )
+            raise ProviderResponseError(
+                self.name, "OpenFIGI request failed", status_code=status_code
+            )
 
         try:
             raw_payload = response.json()
         except (TypeError, ValueError) as exc:
             raise ProviderResponseError(self.name, "OpenFIGI returned invalid JSON") from exc
-        if isinstance(raw_payload, dict):
-            raw_payload = [raw_payload]
-        if not raw_payload or not isinstance(raw_payload, list):
-            return []
-        return [item.get("data") or [] for item in raw_payload if isinstance(item, dict)]
+        raise_for_provider_error_envelope(self.name, raw_payload, response.status_code)
+        if not isinstance(raw_payload, list) or len(raw_payload) != len(payload):
+            raise ProviderResponseError(self.name, "OpenFIGI returned an invalid mapping response")
+        results: list[list[dict[str, Any]]] = []
+        for item in raw_payload:
+            if not isinstance(item, dict) or "data" not in item:
+                raise ProviderResponseError(self.name, "OpenFIGI omitted mapping data")
+            rows = item["data"]
+            if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+                raise ProviderResponseError(self.name, "OpenFIGI returned invalid mapping rows")
+            results.append(rows)
+        return results
 
     def _identifier_records_from_mapping(
         self,
