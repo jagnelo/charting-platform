@@ -74,29 +74,10 @@
     "worktree": "/Users/jagnelo/Documents/Projects/charting-platform/.ai/worktrees/feat-market-data-provider-platform",
     "worktree_id": "feat-market-data-provider-platform-252f410b51"
   },
-  "dirty_paths": [
-    "ps/workstreams/feat-market-data-provider-platform/session.json"
-  ],
+  "dirty_paths": [],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-market-data-provider-platform-252f410b",
-      "charting-stack-feat-market-data-provider-platform-252f410b"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
-    "worktree_id": "feat-market-data-provider-platform-252f410b51"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///Users/jagnelo/.docker/run/docker.sock"
   },
   "docker_ready": {
     "ready": true,
@@ -112,14 +93,14 @@
   "goal_request_state": "planning_required",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "4771e80739ed185fb69d554725eebbf45ef056b5",
+  "head": "e5bc0b9435aec2518714e24ecc64401a4b16cd84",
   "implementation_sha": "4771e80739ed185fb69d554725eebbf45ef056b5",
   "last_checkpoint": "2026-09-10T01:06:42.613747+00:00",
   "last_human_progress_update": "2026-09-10T01:06:32.765997+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "continue implementation from the branch workstream",
   "parent_branch": "staging",
-  "plan_hash": "fbefbf2d1008f521325b250f639255ca11683eeb180b5da7d1dc7a942ad202a1",
+  "plan_hash": "d10bcbad221bb39f0443b5e62a4273f2a840d1cb7011c3262c07d1cbdba19c94",
   "planning_required": true,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -149,7 +130,7 @@
     "total": 15,
     "updated_at": "2026-09-10T01:06:32.765876+00:00"
   },
-  "remote": "4771e80739ed185fb69d554725eebbf45ef056b5",
+  "remote": "e5bc0b9435aec2518714e24ecc64401a4b16cd84",
   "remote_sha": "4771e80739ed185fb69d554725eebbf45ef056b5",
   "remote_synchronized": true,
   "retained_docker_resources": [],
