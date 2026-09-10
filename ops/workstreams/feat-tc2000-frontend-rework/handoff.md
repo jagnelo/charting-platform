@@ -8,6 +8,26 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Explicit local split-factor rebuild contract
+
+Product tip `4af7917f` adds a pure local split-ratio rebuilder. It applies
+cumulative pre-event price scaling and inverse volume scaling to raw bars only
+when persisted split observations are complete and share one factor version;
+the result is an immutable derived value object and never mutates raw/provider
+ORM rows. Dividend amounts, provider-labelled factors, incomplete inputs, and
+mixed versions return explicit unsupported/opaque results instead of guessing
+a source convention. Focused adjustment-factor coverage passed `14/14`; the
+full backend unit suite passed `1,413/1,413` at `67.78%` coverage; Ruff,
+formatting, and diff checks passed. No provider routing, fallback, API
+response, visible layout, pixel, visual baseline, threshold, skip, or
+acceptance policy changed.
+
+Next bounded work: wire this only behind an explicit derived-view contract
+after storage identity and consumer semantics are specified; continue provider
+and family history readiness plus R6 dense-data proof, then rerun the exact
+gate at the next coherent tip while preserving all six protected visual
+assertions.
+
 ## 2026-09-10 — Exact integration gate rerun after factor-cutoff regression
 
 The prescribed `make validate-integration` gate reran from branch HEAD

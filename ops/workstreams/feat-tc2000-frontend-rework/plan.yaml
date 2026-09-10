@@ -13,6 +13,19 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tip 4af7917f adds a pure local split-ratio rebuilder for raw bars.
+  Complete, version-consistent split observations produce cumulative
+  pre-event price scaling and inverse volume scaling in immutable derived
+  values; dividend/provider-oriented, incomplete, or mixed-version inputs
+  return explicit unsupported/opaque states. Focused adjustment-factor
+  coverage passed 14/14; the full backend unit suite passed 1413/1413 at
+  67.78% coverage against the configured 55% threshold; Ruff, formatting,
+  and diff checks passed. Raw/provider ORM rows are not mutated and no
+  provider routing, fallback, API response, visible layout, pixel, visual
+  baseline, threshold, skip, or acceptance policy changed. Next bounded work
+  is to specify and wire an explicit derived-view contract, then continue the
+  R1/R6 provider/family history and dense-data seam and rerun the exact gate
+  while preserving the six protected visual assertions.
   The exact branch-scoped integration gate reran from HEAD e1fa2478 after the
   point-in-time factor-cutoff regression. Backend unit passed 1409/1409;
   backend integration passed 387/387; frontend Vitest, type-check/build,

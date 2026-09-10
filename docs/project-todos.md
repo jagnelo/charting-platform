@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-10 — Explicit local split-factor rebuild contract
+
+- [x] Add a pure local split-ratio rebuilder that applies cumulative
+      pre-event price factors and inverse volume scaling to raw bars while
+      returning immutable derived lineage.
+- [x] Reject dividend/provider-oriented factors, incomplete inputs, and mixed
+      factor versions with explicit unsupported/opaque states; do not mutate
+      raw/provider bars or infer a provider convention.
+- [x] Focused adjustment-factor coverage passed `14/14`; the full backend unit
+      suite passed `1,413/1,413` at `67.78%` coverage against the `55%`
+      threshold; Ruff, formatting, and diff checks passed.
+- [ ] Specify and wire an explicit persisted derived-view contract; continue
+      provider/family history, W1/MN continuity, canonical population, and
+      live 100k-point evidence while preserving the six protected visual
+      assertions and rerunning the exact gate at the next coherent tip.
+
 ### 2026-09-10 — Exact integration gate rerun after factor-cutoff regression
 
 - [x] Rerun the prescribed branch-scoped gate from HEAD `e1fa2478` after the

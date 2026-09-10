@@ -5,6 +5,30 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Explicit local split-factor rebuild contract
+
+At product tip `4af7917f`, the adjustment-factor service now provides a pure
+local split-ratio rebuilder. Given raw OHLCV bars and one complete,
+version-consistent set of persisted split observations, it applies cumulative
+pre-event price factors, inversely scales volume, preserves timestamps, and
+returns explicit derived lineage without mutating raw/provider ORM rows.
+Dividend amounts and provider-labelled factors are rejected with structured
+unsupported states because their orientation/convention is source-specific;
+incomplete or mixed-version inputs return the existing opaque provenance
+states. This is the first executable application/rebuild seam, not a claim
+that provider-native dividend conventions are reproducible or that any stored
+provider bars were silently rewritten.
+
+The focused adjustment-factor suite passed `14/14`; the complete backend unit
+suite passed `1,413/1,413` with `67.78%` coverage against the configured `55%`
+threshold; Ruff, formatting, and diff checks passed. No provider routing,
+fallback, API response, visible layout, pixel, visual baseline, threshold,
+skip, or acceptance policy changed. R1/R6 remain active for wiring an
+explicitly selected derived view, provider/family history readiness, W1/MN
+continuity, canonical population, and live 100k-point evidence; R2-R5 and R7
+remain open. Rerun the exact gate at the next coherent documentation tip
+while preserving the six protected visual assertions.
+
 ## 2026-09-10 — Exact integration gate rerun after factor-cutoff regression
 
 The prescribed `make validate-integration` gate reran from branch HEAD
