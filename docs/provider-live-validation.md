@@ -524,3 +524,12 @@ with typed provider errors. Focused OpenFIGI tests passed `8/8`; the
 authoritative gate completed at `2026-09-10T08:42Z` with `1907 passed`,
 `89` warnings, and `80.35%` line coverage in `410.96s`. Testcontainer session
 `fddece92-aebf-488b-a824-68f4068db334` was cleaned without host-wide pruning.
+
+Alpaca OHLCV and latest-price paths now reject malformed or mixed bar rows,
+missing required OHLC fields, non-finite numeric values, and invalid pagination
+tokens instead of skipping observations or leaking generic exceptions. The
+focused Alpaca suite passed `30/30`; Ruff and diff checks passed. A follow-up
+authoritative gate was attempted at `2026-09-10T08:53:03Z`, but Docker Desktop
+returned HTTP 500 from its local API during the preflight before tests started;
+therefore this change has no new full-gate acceptance claim until the isolated
+Docker validation can run.
