@@ -70,6 +70,7 @@ class AlphaVantageProvider:
                 self.name,
                 message,
                 retry_at=_retry_at_for_capacity_message(message),
+                headers=dict(response.headers),
             )
         if not isinstance(payload, dict):
             raise ProviderResponseError(self.name, "Alpha Vantage returned an invalid response object")
@@ -104,18 +105,20 @@ class AlphaVantageProvider:
         if "Error Message" in text:
             raise ProviderResponseError(self.name, text[:240])
         lowered = text.lower()
+        csv_information = _csv_information_message(text)
         if (
             "thank you for using alpha vantage" in lowered
             or "higher api call volume" in lowered
-            or _csv_information_message(text)
+            or csv_information
         ):
             raise ProviderRateLimitError(
                 self.name,
                 text[:240],
                 retry_at=_retry_at_for_capacity_message(
                     text,
-                    assume_daily_for_csv_information=_csv_information_message(text),
+                    assume_daily_for_csv_information=csv_information,
                 ),
+                headers=dict(response.headers),
             )
         return text
     def search_instruments(self, query: str, *, limit: int = 10) -> list[ProviderSearchResult]:

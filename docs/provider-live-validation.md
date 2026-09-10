@@ -631,3 +631,11 @@ Focused Alpha Vantage coverage passed `18/18`; the authoritative gate passed
 `1964/1964`, with `89` warnings and `80.49%` coverage in `421.20s`, using
 isolated PostgreSQL/Redis testcontainer session
 `26146598-40dc-4c1a-b5cc-100ad6ed6d3b`, cleaned without host-wide pruning.
+
+The follow-up Alpha Vantage refinement also preserves response headers on
+body-level capacity errors, allowing the runtime to retain any allow-listed
+provider-native remaining/reset evidence. Focused coverage remained `18/18`;
+the follow-up authoritative gate passed `1964/1964`, with `89` warnings and
+`80.49%` coverage in `396.81s`, using isolated PostgreSQL/Redis testcontainer
+session `343bdfb7-6f4d-41e8-99a0-d1a9802f5db2`, cleaned without host-wide
+pruning.

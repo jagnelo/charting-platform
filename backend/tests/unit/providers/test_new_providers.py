@@ -1342,6 +1342,7 @@ class TestAlphaVantageProvider:
         response.json.return_value = {
             "Information": "The standard API call frequency is 25 requests per day."
         }
+        response.headers = {"X-RateLimit-Remaining": "0"}
         response.raise_for_status.return_value = None
         before = datetime.now(UTC) + timedelta(days=1)
         with (
@@ -1353,6 +1354,7 @@ class TestAlphaVantageProvider:
                 AlphaVantageProvider().search_instruments("AAPL")
         after = datetime.now(UTC) + timedelta(days=1)
         assert before <= exc_info.value.retry_at <= after
+        assert exc_info.value.headers == {"X-RateLimit-Remaining": "0"}
 
 
 class TestCryptoProviderErrorEnvelopes:
