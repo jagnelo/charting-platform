@@ -51,38 +51,77 @@ async def _canonical_d1_factor_version(
         .scalars()
         .all()
     )
-    if not source_ids:
-        return None
+    versions: set[str] = set()
+    if source_ids:
+        states = (
+            (
+                await db.execute(
+                    select(InstrumentDatasetState).where(
+                        InstrumentDatasetState.instrument_id == instrument_id,
+                        InstrumentDatasetState.data_source_id.in_(source_ids),
+                        InstrumentDatasetState.dataset_type == "ohlcv",
+                        InstrumentDatasetState.dataset_key == "D1:adj",
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        if len(states) != len(source_ids):
+            return None
 
-    states = (
+        for state in states:
+            provenance = (state.extra_data or {}).get("adjustment_provenance")
+            if not isinstance(provenance, dict):
+                return None
+            status = provenance.get("factor_status")
+            version = provenance.get("factor_version")
+            if status not in {"rebuildable_split_factors", "rebuildable_provider_factors"}:
+                return None
+            if not isinstance(version, str) or not version:
+                return None
+            versions.add(version)
+
+    local_rows = (
         (
             await db.execute(
-                select(InstrumentDatasetState).where(
-                    InstrumentDatasetState.instrument_id == instrument_id,
-                    InstrumentDatasetState.data_source_id.in_(source_ids),
-                    InstrumentDatasetState.dataset_type == "ohlcv",
-                    InstrumentDatasetState.dataset_key == "D1:adj",
+                select(OHLCVBar.id).where(
+                    OHLCVBar.instrument_id == instrument_id,
+                    OHLCVBar.timeframe == Timeframe.D1,
+                    OHLCVBar.is_adjusted.is_(True),
+                    OHLCVBar.is_derived.is_(True),
+                    OHLCVBar.derivation_method == "local_split_ratio",
                 )
             )
         )
         .scalars()
         .all()
     )
-    if len(states) != len(source_ids):
-        return None
-
-    versions: set[str] = set()
-    for state in states:
-        provenance = (state.extra_data or {}).get("adjustment_provenance")
+    if local_rows:
+        local_state = (
+            await db.execute(
+                select(InstrumentDatasetState).where(
+                    InstrumentDatasetState.instrument_id == instrument_id,
+                    InstrumentDatasetState.data_source_id.is_(None),
+                    InstrumentDatasetState.dataset_type == "ohlcv",
+                    InstrumentDatasetState.dataset_key == "D1:adj:local_split_ratio",
+                )
+            )
+        ).scalar_one_or_none()
+        if local_state is None:
+            return None
+        provenance = (local_state.extra_data or {}).get("adjustment_provenance")
         if not isinstance(provenance, dict):
             return None
-        status = provenance.get("factor_status")
-        version = provenance.get("factor_version")
-        if status not in {"rebuildable_split_factors", "rebuildable_provider_factors"}:
+        if provenance.get("factor_status") != "rebuildable_split_factors":
             return None
-        if not isinstance(version, str) or not version:
+        local_version = provenance.get("factor_version")
+        if not isinstance(local_version, str) or not local_version:
             return None
-        versions.add(version)
+        versions.add(local_version)
+
+    if not versions:
+        return None
     return versions.pop() if len(versions) == 1 else None
 
 
