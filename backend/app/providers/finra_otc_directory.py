@@ -19,7 +19,13 @@ from urllib.parse import urlsplit
 import httpx
 
 from app.config import settings
-from app.providers.errors import ProviderNotConfiguredError, ProviderResponseError
+from app.providers.errors import (
+    ProviderNotConfiguredError,
+    ProviderRateLimitError,
+    ProviderResponseError,
+    provider_response_headers,
+    provider_retry_at_from_headers,
+)
 from app.providers.telemetry import observe_response
 
 _PAGE_SIZE = 1000
@@ -66,7 +72,10 @@ def _directory_rows() -> list[dict[str, Any]]:
         return list(_cache[1])
     url = FINRAOTCDirectoryProvider._source_url()
     if _is_dapi_source(url):
-        rows = _fetch_dapi_rows(url)
+        try:
+            rows = _fetch_dapi_rows(url)
+        except ValueError as exc:
+            raise ProviderResponseError("finra_otc_directory", str(exc)) from exc
     else:
         try:
             response = httpx.get(
@@ -77,8 +86,13 @@ def _directory_rows() -> list[dict[str, Any]]:
         except httpx.RequestError as exc:
             raise ProviderResponseError("finra_otc_directory", f"transport failure: {exc}") from exc
         observe_response(response)
-        response.raise_for_status()
-        rows = _parse_directory(response.text)
+        _raise_for_provider_status(response)
+        try:
+            rows = _parse_directory(response.text)
+        except csv.Error as exc:
+            raise ProviderResponseError(
+                "finra_otc_directory", "legacy directory returned malformed CSV"
+            ) from exc
     if not rows:
         raise ProviderResponseError("finra_otc_directory", "directory returned no valid rows")
     _cache = (now, rows)
@@ -105,7 +119,7 @@ def _fetch_dapi_rows(url: str) -> list[dict[str, Any]]:
     except httpx.RequestError as exc:
         raise ProviderResponseError("finra_otc_directory", f"transport failure: {exc}") from exc
     observe_response(partitions_response)
-    partitions_response.raise_for_status()
+    _raise_for_provider_status(partitions_response)
     try:
         partitions_payload = partitions_response.json()
     except (TypeError, ValueError) as exc:
@@ -152,7 +166,7 @@ def _fetch_dapi_rows(url: str) -> list[dict[str, Any]]:
         except httpx.RequestError as exc:
             raise ProviderResponseError("finra_otc_directory", f"transport failure: {exc}") from exc
         observe_response(response)
-        response.raise_for_status()
+        _raise_for_provider_status(response)
         try:
             payload = response.json()
         except (TypeError, ValueError) as exc:
@@ -216,23 +230,37 @@ def _normalize_dapi_row(row: dict[str, Any]) -> dict[str, Any]:
 
 
 def _parse_directory(text: str) -> list[dict[str, Any]]:
-    reader = csv.DictReader(io.StringIO(text), delimiter="|")
+    if not isinstance(text, str):
+        raise ProviderResponseError("finra_otc_directory", "legacy directory returned non-text data")
+    reader = csv.DictReader(io.StringIO(text), delimiter="|", strict=True)
     if not reader.fieldnames:
-        return []
+        raise ProviderResponseError("finra_otc_directory", "legacy directory omitted CSV headers")
     fields = {str(field).strip().lower() for field in reader.fieldnames if field}
     required = {"issue_sym_id", "issue_short_nm", "status", "mkt_cat"}
     if not required.issubset(fields):
-        return []
+        raise ProviderResponseError(
+            "finra_otc_directory", "legacy directory omitted required CSV columns"
+        )
     result: list[dict[str, Any]] = []
     for row in reader:
+        if None in row or any(value is None for value in row.values()):
+            raise ProviderResponseError(
+                "finra_otc_directory", "legacy directory returned a malformed CSV row"
+            )
         normalized = {
             str(key).strip().lower(): str(value or "").strip() for key, value in row.items() if key
         }
         symbol = normalized.get("issue_sym_id", "").upper()
         if not symbol:
-            continue
+            raise ProviderResponseError(
+                "finra_otc_directory", "legacy directory returned a row without issue_sym_id"
+            )
         status = normalized.get("status", "").upper()
         market_category = normalized.get("mkt_cat", "")
+        if not normalized.get("issue_short_nm") or not status or not market_category:
+            raise ProviderResponseError(
+                "finra_otc_directory", "legacy directory returned an incomplete CSV row"
+            )
         result.append(
             {
                 "symbol": symbol,
@@ -251,3 +279,27 @@ def _parse_directory(text: str) -> list[dict[str, Any]]:
             }
         )
     return result
+
+
+def _raise_for_provider_status(response: Any) -> None:
+    """Convert FINRA OTC HTTP failures into typed, redacted provider errors."""
+
+    try:
+        response.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        headers = provider_response_headers(response)
+        status_code = getattr(response, "status_code", None)
+        if status_code in {418, 429}:
+            raise ProviderRateLimitError(
+                "finra_otc_directory",
+                f"FINRA OTC directory request rejected for capacity (HTTP {status_code})",
+                status_code=status_code,
+                retry_at=provider_retry_at_from_headers(headers),
+                scope="ip",
+                headers=headers,
+            ) from exc
+        raise ProviderResponseError(
+            "finra_otc_directory",
+            f"FINRA OTC directory request failed with HTTP {status_code}",
+            status_code=status_code,
+        ) from exc

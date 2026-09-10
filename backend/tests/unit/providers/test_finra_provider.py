@@ -6,7 +6,7 @@ import pytest
 
 from app.config import settings
 from app.providers import finra
-from app.providers.errors import ProviderResponseError
+from app.providers.errors import ProviderRateLimitError, ProviderResponseError
 from app.providers.finra import FINRAProvider
 
 
@@ -255,6 +255,33 @@ def test_finra_transport_failure_is_typed(monkeypatch):
         with pytest.raises(ProviderResponseError) as exc_info:
             FINRAProvider().fetch_short_interest("AAPL")
     assert exc_info.value.provider_name == "finra"
+
+
+def test_finra_http_rate_limit_preserves_provider_capacity_evidence(monkeypatch):
+    monkeypatch.setattr(settings, "FINRA_CLIENT_ID", "client")
+    monkeypatch.setattr(settings, "FINRA_CLIENT_SECRET", "secret")
+    token_response = Mock()
+    token_response.status_code = 200
+    token_response.json.return_value = {"access_token": "token", "expires_in": 3600}
+    token_response.raise_for_status.return_value = None
+    response = httpx.Response(
+        429,
+        headers={"Retry-After": "7", "X-RateLimit-Remaining": "0", "Authorization": "secret"},
+        request=httpx.Request("POST", "https://example.test/short"),
+        json={"message": "too many requests"},
+    )
+    with (
+        patch.object(finra, "_token_cache", None),
+        patch("app.providers.finra.httpx.post", side_effect=[token_response, response]),
+    ):
+        with pytest.raises(ProviderRateLimitError) as exc_info:
+            FINRAProvider().fetch_short_interest("AAPL")
+    error = exc_info.value
+    assert error.provider_name == "finra"
+    assert error.status_code == 429
+    assert error.scope == "ip"
+    assert error.retry_at is not None
+    assert error.headers == {"retry-after": "7", "x-ratelimit-remaining": "0"}
 
 
 def test_finra_malformed_oauth_payload_is_typed(monkeypatch):

@@ -19,8 +19,10 @@ from app.config import settings
 from app.providers.base import MarketEventRecord, ShortInterestRecord
 from app.providers.errors import (
     ProviderNotConfiguredError,
+    ProviderRateLimitError,
     ProviderResponseError,
     provider_response_headers,
+    provider_retry_at_from_headers,
     raise_for_provider_error_envelope,
 )
 from app.providers.telemetry import observe_response
@@ -74,7 +76,7 @@ class FINRAProvider:
         except httpx.RequestError as exc:
             raise ProviderResponseError(self.name, f"transport failure: {exc}") from exc
         observe_response(response)
-        response.raise_for_status()
+        _raise_for_http_status(response)
         status_url = str(response.headers.get("location") or "").strip()
         if not status_url:
             raise ProviderResponseError("finra", "async response did not contain a Location status URL")
@@ -94,7 +96,7 @@ class FINRAProvider:
         except httpx.RequestError as exc:
             raise ProviderResponseError(self.name, f"transport failure: {exc}") from exc
         observe_response(response)
-        response.raise_for_status()
+        _raise_for_http_status(response)
         try:
             payload = response.json() if response.content else {}
         except (TypeError, ValueError) as exc:
@@ -148,7 +150,7 @@ class FINRAProvider:
                 # Capture headers and request count without touching response.content;
                 # streaming responses are not materialized before the bound check.
                 observe_response(response, response_bytes=0)
-                response.raise_for_status()
+                _raise_for_http_status(response)
                 declared = response.headers.get("content-length")
                 declared_bytes: int | None = None
                 if declared is not None:
@@ -236,7 +238,7 @@ class FINRAProvider:
         except httpx.RequestError as exc:
             raise ProviderResponseError(self.name, f"transport failure: {exc}") from exc
         observe_response(response)
-        response.raise_for_status()
+        _raise_for_http_status(response)
         try:
             raw = response.json()
         except (TypeError, ValueError) as exc:
@@ -353,7 +355,7 @@ class FINRAProvider:
         except httpx.RequestError as exc:
             raise ProviderResponseError(self.name, f"transport failure: {exc}") from exc
         observe_response(response)
-        response.raise_for_status()
+        _raise_for_http_status(response)
         try:
             raw = response.json()
         except (TypeError, ValueError) as exc:
@@ -426,7 +428,7 @@ def _access_token(client_id: str, client_secret: str) -> str:
     except httpx.RequestError as exc:
         raise ProviderResponseError("finra", f"transport failure: {exc}") from exc
     observe_response(response)
-    response.raise_for_status()
+    _raise_for_http_status(response)
     try:
         body = response.json()
     except (TypeError, ValueError) as exc:
@@ -448,6 +450,30 @@ def _access_token(client_id: str, client_secret: str) -> str:
     cache_seconds = min(1800, max(60, expires_in - 60))
     _token_cache = (token, now + timedelta(seconds=cache_seconds))
     return token
+
+
+def _raise_for_http_status(response: Any) -> None:
+    """Convert FINRA HTTP failures into typed, redacted provider errors."""
+
+    try:
+        response.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        headers = provider_response_headers(response)
+        status_code = getattr(response, "status_code", None)
+        if status_code in {418, 429}:
+            raise ProviderRateLimitError(
+                "finra",
+                f"FINRA request rejected for capacity (HTTP {status_code})",
+                status_code=status_code,
+                retry_at=provider_retry_at_from_headers(headers),
+                scope="ip",
+                headers=headers,
+            ) from exc
+        raise ProviderResponseError(
+            "finra",
+            f"FINRA request failed with HTTP {status_code}",
+            status_code=status_code,
+        ) from exc
 
 
 def _parse_date(value: Any) -> date | None:

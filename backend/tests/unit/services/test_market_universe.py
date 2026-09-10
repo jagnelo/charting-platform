@@ -253,3 +253,45 @@ async def test_universe_reconciliation_follows_cursor_until_explicit_completion(
     assert result["status"] == "complete"
     assert result["runs"][0]["observed"] == 2
     assert result["runs"][0]["expected"] == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "quotes,match",
+    [
+        ("not-an-array", "non-array quotes page"),
+        ([{"name": "Missing symbol"}], "without a symbol"),
+        ([{"symbol": "AAPL"}, "malformed"], "non-object quote row"),
+    ],
+)
+async def test_universe_reconciliation_rejects_malformed_quote_pages(
+    db, monkeypatch, quotes, match
+):
+    from app.services import market_universe
+
+    source = DataSource(name="fixture-malformed-page", base_url="https://example.test")
+    db.add(source)
+    db.flush()
+    provider = SimpleNamespace(supported_discovery_types=lambda: ["EQUITY"])
+    resolved = SimpleNamespace(provider_name="fixture-malformed-page", data_source=source)
+
+    async def resolve_fixture(*_args, **_kwargs):
+        return [resolved]
+
+    async def malformed_page(*_args, **_kwargs):
+        return SimpleNamespace(
+            result={"quotes": quotes, "complete": True},
+            data_source=source,
+        )
+
+    monkeypatch.setattr(market_universe, "resolve_provider_chain", resolve_fixture)
+    monkeypatch.setattr(market_universe, "get_discovery_provider", lambda _name: provider)
+    monkeypatch.setattr(market_universe, "execute_provider_call", malformed_page)
+
+    result = await reconcile_us_universe(
+        AsyncSessionAdapter(db), provider_name="fixture-malformed-page"
+    )
+
+    assert result["status"] == "failed"
+    run = db.query(MarketUniverseReconciliationRun).one()
+    assert match in (run.error or "")

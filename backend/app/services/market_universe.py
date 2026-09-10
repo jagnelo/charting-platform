@@ -372,10 +372,10 @@ async def _reconcile_rows(
     active_keys: set[tuple[str, str | None, str]] = set()
     for quote in rows:
         if not isinstance(quote, dict):
-            continue
+            raise ValueError("discovery provider returned a non-object quote row")
         symbol = _row_symbol(quote)
         if not symbol:
-            continue
+            raise ValueError("discovery provider returned a quote row without a symbol")
         normalized_type = _row_type(quote, quote_type)
         exchange = await ensure_exchange(db, quote.get("exchange"))
         exchange_mic = normalize_exchange_mic(quote.get("exchange"))
@@ -710,7 +710,14 @@ async def reconcile_us_universe(
                         observed_at=observed_at,
                         fetched_at=observed_at,
                     )
-                    page_rows = [row for row in (page.get("quotes") or []) if isinstance(row, dict)]
+                    raw_page_rows = page.get("quotes")
+                    if raw_page_rows is None:
+                        raw_page_rows = []
+                    if not isinstance(raw_page_rows, list):
+                        raise ValueError("discovery provider returned a non-array quotes page")
+                    if any(not isinstance(row, dict) for row in raw_page_rows):
+                        raise ValueError("discovery provider returned a non-object quote row")
+                    page_rows = list(raw_page_rows)
                     rows.extend(page_rows)
                     declared_total = page.get("total")
                     if declared_total is not None:

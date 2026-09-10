@@ -410,6 +410,28 @@ class TestAlpacaOHLCVParsing:
                     datetime(2024, 1, 5, tzinfo=UTC),
                 )
 
+    @pytest.mark.parametrize(
+        "actions,match",
+        [
+            ({"forward_splits": "not-an-array"}, "invalid forward_splits"),
+            ({"reverse_splits": [{"ex_date": "not-a-date"}]}, "reverse split"),
+            ({"cash_dividends": [{"ex_date": "2024-01-02", "rate": "NaN"}]}, "cash-dividend"),
+            ({"cash_dividends": [{"rate": "1"}]}, "cash dividend without"),
+        ],
+    )
+    def test_corporate_actions_reject_malformed_collections_and_rows(self, actions, match):
+        response = MagicMock()
+        response.json.return_value = {"corporate_actions": actions}
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.alpaca.settings") as configured,
+            patch("app.providers.alpaca.httpx.get", return_value=response),
+        ):
+            configured.ALPACA_API_KEY = "key"
+            configured.ALPACA_SECRET_KEY = "secret"
+            with pytest.raises(ProviderResponseError, match=match):
+                AlpacaProvider().fetch_instrument_events("AAPL")
+
 
 # ── Binance symbol helpers ────────────────────────────────────────────────────
 

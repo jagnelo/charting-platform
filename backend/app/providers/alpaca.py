@@ -320,10 +320,18 @@ class AlpacaProvider:
         events: list[InstrumentEventRecord] = []
         fetched = now
 
-        for s in ca.get("forward_splits") or []:
+        for s in _corporate_action_rows(ca, "forward_splits"):
             dt = _parse_date(s.get("ex_date") or s.get("effective_date") or "")
             if dt is None:
-                continue
+                raise ProviderResponseError(
+                    self.name, "Alpaca returned a forward split without a valid date"
+                )
+            split_ratio = _safe_ratio(s.get("new_rate"), s.get("old_rate"))
+            if s.get("new_rate") is not None or s.get("old_rate") is not None:
+                if split_ratio is None or split_ratio <= 0:
+                    raise ProviderResponseError(
+                        self.name, "Alpaca returned an invalid forward split ratio"
+                    )
             events.append(
                 InstrumentEventRecord(
                     event_type=InstrumentEventType.SPLIT,
@@ -332,15 +340,23 @@ class AlpacaProvider:
                     title=f"Forward Split {symbol}",
                     source_event_key=f"alpaca_fwd_split_{s.get('id', dt.date())}",
                     fetched_at=fetched,
-                    split_ratio=_safe_ratio(s.get("new_rate"), s.get("old_rate")),
+                    split_ratio=split_ratio,
                     raw_payload=str(s),
                 )
             )
 
-        for s in ca.get("reverse_splits") or []:
+        for s in _corporate_action_rows(ca, "reverse_splits"):
             dt = _parse_date(s.get("ex_date") or s.get("effective_date") or "")
             if dt is None:
-                continue
+                raise ProviderResponseError(
+                    self.name, "Alpaca returned a reverse split without a valid date"
+                )
+            split_ratio = _safe_ratio(s.get("new_rate"), s.get("old_rate"))
+            if s.get("new_rate") is not None or s.get("old_rate") is not None:
+                if split_ratio is None or split_ratio <= 0:
+                    raise ProviderResponseError(
+                        self.name, "Alpaca returned an invalid reverse split ratio"
+                    )
             events.append(
                 InstrumentEventRecord(
                     event_type=InstrumentEventType.SPLIT,
@@ -349,15 +365,23 @@ class AlpacaProvider:
                     title=f"Reverse Split {symbol}",
                     source_event_key=f"alpaca_rev_split_{s.get('id', dt.date())}",
                     fetched_at=fetched,
-                    split_ratio=_safe_ratio(s.get("new_rate"), s.get("old_rate")),
+                    split_ratio=split_ratio,
                     raw_payload=str(s),
                 )
             )
 
-        for d in ca.get("cash_dividends") or []:
+        for d in _corporate_action_rows(ca, "cash_dividends"):
             ex_dt = _parse_date(d.get("ex_date") or "")
             pay_dt = _parse_date(d.get("pay_date") or "")
             amount = _safe_decimal(d.get("rate"))
+            if d.get("rate") is not None and amount is None:
+                raise ProviderResponseError(
+                    self.name, "Alpaca returned an invalid cash-dividend rate"
+                )
+            if ex_dt is None and pay_dt is None:
+                raise ProviderResponseError(
+                    self.name, "Alpaca returned a cash dividend without a valid date"
+                )
             raw = str(d)
             if ex_dt:
                 events.append(
@@ -468,7 +492,8 @@ def _parse_date(s: str) -> datetime | None:
 
 def _safe_decimal(v: Any) -> Decimal | None:
     try:
-        return Decimal(str(v)) if v is not None else None
+        value = Decimal(str(v)) if v is not None else None
+        return value if value is not None and value.is_finite() else None
     except Exception:
         return None
 
@@ -476,10 +501,24 @@ def _safe_decimal(v: Any) -> Decimal | None:
 def _safe_ratio(new_rate: Any, old_rate: Any) -> Decimal | None:
     try:
         if new_rate is not None and old_rate is not None:
-            return Decimal(str(new_rate)) / Decimal(str(old_rate))
+            value = Decimal(str(new_rate)) / Decimal(str(old_rate))
+            return value if value.is_finite() else None
     except Exception:
         pass
     return None
+
+
+def _corporate_action_rows(payload: dict[str, Any], field: str) -> list[dict[str, Any]]:
+    """Validate a provider action collection before normalizing its rows."""
+
+    value = payload.get(field)
+    if value is None:
+        return []
+    if not isinstance(value, list) or any(not isinstance(row, dict) for row in value):
+        raise ProviderResponseError(
+            "alpaca", f"Alpaca returned an invalid {field} collection"
+        )
+    return value
 
 
 def _cached_assets(headers: dict, asset_class: str) -> list[dict]:
