@@ -170,6 +170,72 @@ class TestOHLCVRouter:
         assert derived.status_code == 200
         assert derived.json() and all(row["is_derived"] is True for row in derived.json())
 
+    def test_local_before_normalizes_offset_aware_boundary(
+        self, client, auth_headers, db, instrument
+    ):
+        """Direct local pagination compares an offset-aware cutoff on UTC storage."""
+        db.add_all(
+            [
+                OHLCVBar(
+                    instrument_id=instrument.id,
+                    timeframe=Timeframe.D1,
+                    ts=datetime(2040, 1, 1, tzinfo=UTC),
+                    open=Decimal("10"),
+                    high=Decimal("12"),
+                    low=Decimal("9"),
+                    close=Decimal("11"),
+                    is_adjusted=True,
+                    is_derived=False,
+                ),
+                OHLCVBar(
+                    instrument_id=instrument.id,
+                    timeframe=Timeframe.D1,
+                    ts=datetime(2040, 1, 2, tzinfo=UTC),
+                    open=Decimal("20"),
+                    high=Decimal("22"),
+                    low=Decimal("19"),
+                    close=Decimal("21"),
+                    is_adjusted=True,
+                    is_derived=False,
+                ),
+            ]
+        )
+        db.flush()
+
+        response = client.get(
+            f"/api/v1/ohlcv/local/{instrument.symbol}/D1",
+            params={"before": "2040-01-02T02:00:00+02:00"},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        assert [row["close"] for row in response.json()] == [11.0]
+
+    def test_chart_range_normalizes_offset_aware_boundaries(
+        self, client, auth_headers, instrument, monkeypatch
+    ):
+        calls: list[tuple] = []
+
+        async def _range(*args, **_kwargs):
+            calls.append(args)
+            return []
+
+        monkeypatch.setattr("app.routers.ohlcv.fetch_ohlcv", _range)
+        response = client.get(
+            f"/api/v1/ohlcv/{instrument.symbol}/D1",
+            params={
+                "start": "2040-01-01T02:00:00+02:00",
+                "end": "2040-01-02T02:00:00+02:00",
+                "local_only": "true",
+            },
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        assert calls
+        assert calls[0][3] == datetime(2040, 1, 1, tzinfo=UTC)
+        assert calls[0][4] == datetime(2040, 1, 2, tzinfo=UTC)
+
     def test_chart_coarse_local_read_merges_partial_provider_rows(
         self, client, auth_headers, db, instrument, ohlcv_bars
     ):

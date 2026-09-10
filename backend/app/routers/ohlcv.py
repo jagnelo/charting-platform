@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -20,6 +20,7 @@ from app.services.adjustment_factors import (
 from app.services.bar_transforms import TRANSFORM_REGISTRY, apply_transform
 from app.services.derived_timeframes import materialize_derived_timeframes
 from app.services.market_data import fetch_ohlcv, fetch_ohlcv_latest, fetch_ohlcv_page_before
+from app.services.ohlcv_coverage import _as_utc
 from app.services.provider_runtime import ProviderNoDataError
 
 router = APIRouter(prefix="/ohlcv", tags=["ohlcv"])
@@ -54,10 +55,8 @@ async def materialize_local_split(
 ):
     """Build a persisted local split-adjusted view from canonical raw bars."""
 
-    if start is not None and start.tzinfo is None:
-        start = start.replace(tzinfo=UTC)
-    if end is not None and end.tzinfo is None:
-        end = end.replace(tzinfo=UTC)
+    start = _as_utc(start) if start is not None else None
+    end = _as_utc(end) if end is not None else None
     if start is not None and end is not None and end < start:
         raise HTTPException(
             422,
@@ -93,10 +92,8 @@ async def materialize_local_provider(
 ):
     """Build a local adjusted view from explicit provider adjustment factors."""
 
-    if start is not None and start.tzinfo is None:
-        start = start.replace(tzinfo=UTC)
-    if end is not None and end.tzinfo is None:
-        end = end.replace(tzinfo=UTC)
+    start = _as_utc(start) if start is not None else None
+    end = _as_utc(end) if end is not None else None
     if start is not None and end is not None and end < start:
         raise HTTPException(
             422,
@@ -138,6 +135,7 @@ async def get_local_ohlcv(
     _: User = Depends(get_current_user),
 ):
     """Canonical local read path; never triggers provider fan-out."""
+    before = _as_utc(before) if before is not None else None
     instrument = (
         await db.execute(select(Instrument).where(Instrument.symbol == symbol.upper()))
     ).scalar_one_or_none()
@@ -149,8 +147,6 @@ async def get_local_ohlcv(
         OHLCVBar.is_adjusted.is_(adjusted),
     ]
     if before is not None:
-        if before.tzinfo is None:
-            before = before.replace(tzinfo=UTC)
         predicates.append(OHLCVBar.ts < before)
     if view == "provider":
         predicates.append(OHLCVBar.is_derived.is_(False))
@@ -263,6 +259,10 @@ async def get_ohlcv_transformed(
             400, f"Unknown bar_type '{bar_type}'. Valid: {list(TRANSFORM_REGISTRY)}"
         )
 
+    start = _as_utc(start) if start is not None else None
+    end = _as_utc(end) if end is not None else None
+    before = _as_utc(before) if before is not None else None
+
     result = await db.execute(select(Instrument).where(Instrument.symbol == symbol.upper()))
     instrument = result.scalar_one_or_none()
     if instrument is None:
@@ -273,8 +273,6 @@ async def get_ohlcv_transformed(
     # Fetch enough raw bars to feed the transform (transforms may collapse bars)
     fetch_limit = PAGE_SIZE * 3
     if before is not None:
-        if before.tzinfo is None:
-            before = before.replace(tzinfo=UTC)
         try:
             raw_bars = await fetch_ohlcv_page_before(
                 db,
@@ -290,10 +288,6 @@ async def get_ohlcv_transformed(
                 404, f"No OHLCV data available for instrument '{symbol}' on {timeframe.value}."
             ) from exc
     elif start is not None:
-        if start.tzinfo is None:
-            start = start.replace(tzinfo=UTC)
-        if end and end.tzinfo is None:
-            end = end.replace(tzinfo=UTC)
         try:
             raw_bars = await fetch_ohlcv(
                 db,
@@ -366,6 +360,9 @@ async def get_ohlcv(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    start = _as_utc(start) if start is not None else None
+    end = _as_utc(end) if end is not None else None
+    before = _as_utc(before) if before is not None else None
     result = await db.execute(select(Instrument).where(Instrument.symbol == symbol.upper()))
     instrument = result.scalar_one_or_none()
     if instrument is None:
@@ -377,8 +374,6 @@ async def get_ohlcv(
 
     if before is not None:
         # Paginated: return the PAGE_SIZE bars immediately before `before`
-        if before.tzinfo is None:
-            before = before.replace(tzinfo=UTC)
         try:
             bars = await fetch_ohlcv_page_before(
                 db,
@@ -398,10 +393,6 @@ async def get_ohlcv(
 
     if start is not None:
         # Explicit range query (used by alert engine, screener, sparklines, etc.)
-        if start.tzinfo is None:
-            start = start.replace(tzinfo=UTC)
-        if end and end.tzinfo is None:
-            end = end.replace(tzinfo=UTC)
         try:
             bars = await fetch_ohlcv(
                 db,
