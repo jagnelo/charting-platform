@@ -73,6 +73,11 @@ current capability/quota ledger.
       creation/upload is externally blocked until the repository-owner
       `jagnelo` account is authenticated in `gh`; the active
       `jagnelo-symbiotech` account received HTTP 403.
+- [x] Persist GitHub live-run aggregate usage receipts in a 90-day redacted
+      artifact from runner-temporary storage, including failed/blocked runs;
+      artifacts contain no credentials or payloads and remain separate from
+      runtime quota reservations. Operator reconciliation is still required
+      because provider account usage is not branch- or runner-scoped.
 - [x] Correct the README provider-routing example so fresh operators see the
       API-first Alpaca/EDGAR/OpenFIGI defaults and cannot accidentally restore
       yfinance as the broad default route; yfinance remains an explicit,
