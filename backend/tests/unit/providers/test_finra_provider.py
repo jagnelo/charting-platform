@@ -185,6 +185,19 @@ def test_finra_async_result_rejects_declared_payload_above_bound():
             raise AssertionError("declared FINRA async payload over bound must fail closed")
 
 
+def test_finra_async_result_transport_failure_is_typed():
+    failure = httpx.ConnectError(
+        "connection failed",
+        request=httpx.Request("GET", "https://signed.example.test/result"),
+    )
+    with patch("app.providers.finra.httpx.stream", side_effect=failure):
+        with pytest.raises(ProviderResponseError) as exc_info:
+            FINRAProvider().download_async_result(
+                "https://signed.example.test/result", max_bytes=1024
+            )
+    assert exc_info.value.provider_name == "finra"
+
+
 def test_finra_transport_failure_is_typed(monkeypatch):
     monkeypatch.setattr(settings, "FINRA_CLIENT_ID", "client")
     monkeypatch.setattr(settings, "FINRA_CLIENT_SECRET", "secret")

@@ -138,43 +138,46 @@ class FINRAProvider:
                 "FINRA async result download requires FINRA_ASYNC_MAX_RESULT_BYTES "
                 "or an explicit max_bytes bound"
             )
-        with httpx.stream(
-            "GET", link, headers={"Accept": "application/octet-stream"}, timeout=120
-        ) as response:
-            # Capture headers and request count without touching response.content;
-            # streaming responses are not materialized before the bound check.
-            observe_response(response, response_bytes=0)
-            response.raise_for_status()
-            declared = response.headers.get("content-length")
-            declared_bytes: int | None = None
-            if declared is not None:
-                try:
-                    declared_bytes = int(str(declared).strip())
-                except (TypeError, ValueError) as exc:
-                    raise ValueError(
-                        "FINRA async result returned an invalid Content-Length"
-                    ) from exc
-                if declared_bytes < 0:
-                    raise ValueError("FINRA async result returned a negative Content-Length")
-                if declared_bytes > limit:
-                    raise ValueError(
-                        "FINRA async result exceeds configured byte bound "
-                        f"({declared_bytes} > {limit})"
-                    )
-            chunks: list[bytes] = []
-            total_bytes = 0
-            for chunk in response.iter_bytes():
-                body_chunk = bytes(chunk)
-                total_bytes += len(body_chunk)
-                if total_bytes > limit:
-                    raise ValueError(
-                        f"FINRA async result exceeds configured byte bound ({total_bytes} > {limit})"
-                    )
-                chunks.append(body_chunk)
-            observe_response(response, response_bytes=total_bytes, count_request=False)
-            if declared_bytes is not None and declared_bytes != total_bytes:
-                raise ValueError("FINRA async result Content-Length did not match the downloaded body")
-            return b"".join(chunks)
+        try:
+            with httpx.stream(
+                "GET", link, headers={"Accept": "application/octet-stream"}, timeout=120
+            ) as response:
+                # Capture headers and request count without touching response.content;
+                # streaming responses are not materialized before the bound check.
+                observe_response(response, response_bytes=0)
+                response.raise_for_status()
+                declared = response.headers.get("content-length")
+                declared_bytes: int | None = None
+                if declared is not None:
+                    try:
+                        declared_bytes = int(str(declared).strip())
+                    except (TypeError, ValueError) as exc:
+                        raise ValueError(
+                            "FINRA async result returned an invalid Content-Length"
+                        ) from exc
+                    if declared_bytes < 0:
+                        raise ValueError("FINRA async result returned a negative Content-Length")
+                    if declared_bytes > limit:
+                        raise ValueError(
+                            "FINRA async result exceeds configured byte bound "
+                            f"({declared_bytes} > {limit})"
+                        )
+                chunks: list[bytes] = []
+                total_bytes = 0
+                for chunk in response.iter_bytes():
+                    body_chunk = bytes(chunk)
+                    total_bytes += len(body_chunk)
+                    if total_bytes > limit:
+                        raise ValueError(
+                            f"FINRA async result exceeds configured byte bound ({total_bytes} > {limit})"
+                        )
+                    chunks.append(body_chunk)
+                observe_response(response, response_bytes=total_bytes, count_request=False)
+                if declared_bytes is not None and declared_bytes != total_bytes:
+                    raise ValueError("FINRA async result Content-Length did not match the downloaded body")
+                return b"".join(chunks)
+        except httpx.RequestError as exc:
+            raise ProviderResponseError(self.name, f"transport failure: {exc}") from exc
 
     def fetch_short_interest(
         self,
