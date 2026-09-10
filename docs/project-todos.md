@@ -18,6 +18,13 @@
       and the final authoritative Docker-backed gate passed `1966/1966` with
       `80.52%` coverage (testcontainer session
       `bc90810e-baba-4963-84c1-ef58081f42ce`, cleaned without host-wide pruning).
+- [x] Rerun the complete matrix with a temporary descriptive SEC User-Agent and
+      reviewed XNAS discovery override: `29/34` passed at `2026-09-10T11:24Z`.
+      The five failures are missing Alpaca, Tradier, and MarketData.app
+      credential domains plus typed Alpha Vantage daily-capacity responses;
+      tokenized probes remained green. A follow-up Finnhub isolation passed
+      `1/1` with the operator-owned env. This is evidence only, not acceptance;
+      deployment-owned SEC contact configuration remains required.
 
 ### 2026-09-10 — Optional provider response-contract hardening
 

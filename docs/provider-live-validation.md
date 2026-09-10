@@ -666,3 +666,14 @@ clean. The final authoritative `make test-backend-coverage` gate passed
 isolated PostgreSQL/Redis testcontainer session
 `bc90810e-baba-4963-84c1-ef58081f42ce`, cleaned without host-wide pruning.
 This does not change the live-matrix blockers or constitute provider acceptance.
+
+The next complete matrix rerun at `2026-09-10T11:24Z` supplied a temporary
+descriptive SEC User-Agent and the reviewed `XNAS` Marketstack discovery scope.
+It collected 34 cases and passed `29/34`; the five failures were explicit
+missing `ALPACA_API_KEY`/`ALPACA_SECRET_KEY`, `TRADIER_API_KEY`, and
+`MARKETDATA_APP_API_KEY` credential preflights plus typed Alpha Vantage
+25-requests/day capacity responses for daily history and IPO-calendar reads.
+All tokenized probes remained green. A separate Finnhub credentialed profile,
+historical-earnings, and forward-calendar isolation passed `1/1` with the
+operator-owned env. The temporary SEC value is not a deployment configuration;
+each trusted environment must supply its own non-secret contact value.
