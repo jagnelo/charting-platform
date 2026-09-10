@@ -333,6 +333,36 @@ def _option_contract_from_row(
     )
 
 
+def _parallel_candle_rows(payload: Any, provider_name: str) -> list[dict[str, Any]]:
+    """Validate providers that encode candles as parallel arrays.
+
+    Finnhub and MarketData.app both use this shape.  A non-success status or
+    mismatched array lengths is a malformed/provider response, not a valid
+    empty series; silently zipping such arrays would discard observations.
+    """
+
+    if not isinstance(payload, dict):
+        raise ProviderResponseError(provider_name, "provider returned an invalid candle object")
+    status = str(payload.get("s") or "").strip().lower()
+    if status == "no_data":
+        return []
+    if status != "ok":
+        raise ProviderResponseError(
+            provider_name, f"provider returned an invalid candle status: {status or '<missing>'}"
+        )
+    fields = ("t", "o", "h", "l", "c", "v")
+    arrays = [payload.get(field) for field in fields]
+    if any(not isinstance(values, list) for values in arrays):
+        raise ProviderResponseError(provider_name, "provider returned invalid candle arrays")
+    lengths = {len(values) for values in arrays}
+    if len(lengths) != 1:
+        raise ProviderResponseError(provider_name, "provider returned mismatched candle arrays")
+    return [
+        {"t": ts, "o": open_, "h": high, "l": low, "c": close, "v": volume}
+        for ts, open_, high, low, close, volume in zip(*arrays)
+    ]
+
+
 class _RESTProvider:
     """Small shared REST/normalisation layer used by the optional adapters.
 
@@ -393,6 +423,10 @@ class _RESTProvider:
             payload = response.json()
         except (TypeError, ValueError) as exc:
             raise ProviderResponseError(self.name, "provider returned invalid JSON") from exc
+        if not isinstance(payload, dict | list):
+            raise ProviderResponseError(
+                self.name, "provider returned an invalid JSON shape"
+            )
         raise_for_provider_error_envelope(self.name, payload, response.status_code)
         return payload
 
@@ -934,19 +968,7 @@ class MarketDataAppProvider(_RESTProvider):
                 "to": _bounded_datetime(end).date().isoformat(),
             },
         )
-        if not isinstance(payload, dict) or payload.get("s") not in {"ok", "no_data"}:
-            return []
-        rows = [
-            {"t": ts, "o": o, "h": high, "l": low, "c": close, "v": volume}
-            for ts, o, high, low, close, volume in zip(
-                payload.get("t", []),
-                payload.get("o", []),
-                payload.get("h", []),
-                payload.get("l", []),
-                payload.get("c", []),
-                payload.get("v", []),
-            )
-        ]
+        rows = _parallel_candle_rows(payload, self.name)
         return sorted(
             [
                 bar
@@ -1008,19 +1030,7 @@ class FinnhubProvider(_RESTProvider):
                 "to": int(_bounded_datetime(end).timestamp()),
             },
         )
-        if not isinstance(payload, dict) or payload.get("s") not in {"ok", "no_data"}:
-            return []
-        rows = [
-            {"t": ts, "o": open_, "h": high, "l": low, "c": close, "v": volume}
-            for ts, open_, high, low, close, volume in zip(
-                payload.get("t", []),
-                payload.get("o", []),
-                payload.get("h", []),
-                payload.get("l", []),
-                payload.get("c", []),
-                payload.get("v", []),
-            )
-        ]
+        rows = _parallel_candle_rows(payload, self.name)
         bars = [
             self._bar(row, timeframe, instrument_id=instrument_id, data_source_id=data_source_id)
             for row in rows

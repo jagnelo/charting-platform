@@ -153,6 +153,48 @@ def test_finnhub_parses_parallel_candle_arrays():
     assert [(bar.open, bar.close) for bar in bars] == [(100.0, 101.0)]
 
 
+def test_finnhub_invalid_candle_status_is_typed():
+    provider = FinnhubProvider()
+    payload = {"s": "unexpected", "t": [], "o": [], "h": [], "l": [], "c": [], "v": []}
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ),
+    ):
+        configured.FINNHUB_API_KEY = "demo"
+        with pytest.raises(ProviderResponseError) as exc_info:
+            provider.fetch_ohlcv(
+                "AAPL",
+                Timeframe.D1,
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2024, 1, 3, tzinfo=UTC),
+            )
+    assert exc_info.value.provider_name == "finnhub"
+
+
+def test_marketdata_app_mismatched_candle_arrays_are_typed():
+    provider = MarketDataAppProvider()
+    payload = {"s": "ok", "t": [1], "o": [100], "h": [], "l": [99], "c": [101], "v": [10]}
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch(
+            "app.providers.optional_market_data.httpx.get",
+            return_value=_response(payload),
+        ),
+    ):
+        configured.MARKETDATA_APP_API_KEY = "demo"
+        with pytest.raises(ProviderResponseError) as exc_info:
+            provider.fetch_ohlcv(
+                "AAPL",
+                Timeframe.D1,
+                datetime(2024, 1, 1, tzinfo=UTC),
+                datetime(2024, 1, 3, tzinfo=UTC),
+            )
+    assert exc_info.value.provider_name == "marketdata_app"
+
+
 def test_finnhub_parses_documented_earnings_actual_and_estimate_fields():
     provider = FinnhubProvider()
     payload = [
@@ -681,6 +723,19 @@ def test_malformed_json_is_a_typed_provider_failure():
     provider = TwelveDataProvider()
     response = _response({})
     response.json.side_effect = ValueError("not json")
+    with (
+        patch("app.providers.optional_market_data.settings") as configured,
+        patch("app.providers.optional_market_data.httpx.get", return_value=response),
+    ):
+        configured.TWELVE_DATA_API_KEY = "demo"
+        with pytest.raises(ProviderResponseError) as exc_info:
+            provider.get_current_price("AAPL")
+    assert exc_info.value.provider_name == "twelve_data"
+
+
+def test_scalar_json_success_payload_is_a_typed_provider_failure():
+    provider = TwelveDataProvider()
+    response = _response("not an object or array")
     with (
         patch("app.providers.optional_market_data.settings") as configured,
         patch("app.providers.optional_market_data.httpx.get", return_value=response),
