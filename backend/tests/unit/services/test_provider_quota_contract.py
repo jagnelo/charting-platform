@@ -1126,6 +1126,7 @@ def test_single_request_provider_profiles_are_explicit():
             "search_instruments": 1,
             "discover_universe_page": 1,
             "fetch_market_events": 1,
+            "fetch_market_holidays": 1,
         },
         "fred": {
             "fetch_ohlcv": 1,

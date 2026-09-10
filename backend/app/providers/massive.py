@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 _BASE = "https://api.massive.com"
 _TICKERS_PATH = "/v3/reference/tickers"
 _IPOS_PATH = "/vX/reference/ipos"
+_MARKET_HOLIDAYS_PATH = "/v1/marketstatus/upcoming"
 _PAGE_SIZE = 1000
 
 
@@ -52,7 +53,7 @@ class MassiveProvider:
             if value is not None
         }
 
-    def _get_path(self, path: str, params: dict[str, Any]) -> dict[str, Any] | None:
+    def _get_path(self, path: str, params: dict[str, Any]) -> dict[str, Any] | list[Any] | None:
         if not self._api_key():
             raise ProviderNotConfiguredError(
                 "massive requires MASSIVE_API_KEY (or MARKETDATA_API_KEY)"
@@ -81,12 +82,13 @@ class MassiveProvider:
         except (TypeError, ValueError) as exc:
             raise ProviderResponseError(self.name, "Massive returned invalid JSON") from exc
         raise_for_provider_error_envelope(self.name, payload, response.status_code)
-        return payload if isinstance(payload, dict) else None
+        return payload if isinstance(payload, dict | list) else None
 
     def _get(self, params: dict[str, Any]) -> dict[str, Any] | None:
         """Read the legacy ticker endpoint (kept for compatibility with callers/tests)."""
 
-        return self._get_path(_TICKERS_PATH, params)
+        payload = self._get_path(_TICKERS_PATH, params)
+        return payload if isinstance(payload, dict) else None
 
     def search_instruments(self, query: str, *, limit: int = 10) -> list[ProviderSearchResult]:
         needle = query.strip()
@@ -196,7 +198,8 @@ class MassiveProvider:
             cursor=cursor,
             ipo_status=status.strip().lower() if status and status.strip() else None,
         )
-        payload = self._get_path(_IPOS_PATH, params) or {}
+        raw_payload = self._get_path(_IPOS_PATH, params)
+        payload = raw_payload if isinstance(raw_payload, dict) else {}
         events = [
             event
             for row in payload.get("results", [])
@@ -212,6 +215,52 @@ class MassiveProvider:
             "next_url": next_url if isinstance(next_url, str) else None,
             "complete": not isinstance(next_url, str) or not next_url,
         }
+
+    def fetch_market_holidays(
+        self,
+        *,
+        start: date | None = None,
+        end: date | None = None,
+    ) -> list[MarketEventRecord]:
+        """Fetch Massive's forward market-holiday/early-close calendar.
+
+        This is its own metered operation rather than being folded into the
+        IPO call, so an IPO read never silently triggers a second upstream
+        request.
+        """
+
+        if start and end and start > end:
+            return []
+        raw_payload = self._get_path(_MARKET_HOLIDAYS_PATH, self._params())
+        if isinstance(raw_payload, list):
+            rows = raw_payload
+        elif isinstance(raw_payload, dict):
+            rows = raw_payload.get("results", [])
+        else:
+            rows = []
+        events: list[MarketEventRecord] = []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            event_date = _parse_date(row.get("date"))
+            if event_date is None or (start and event_date < start) or (end and event_date > end):
+                continue
+            exchange = str(row.get("exchange") or "market").strip().upper()
+            status = str(row.get("status") or "unknown").strip().lower()
+            events.append(
+                MarketEventRecord(
+                    event_type="market_holiday",
+                    event_key=f"massive:market_holiday:{exchange}:{event_date.isoformat()}:{status}",
+                    event_time=_parse_datetime(row.get("open"))
+                    or datetime.combine(event_date, datetime.min.time(), tzinfo=UTC),
+                    effective_date=event_date,
+                    title=str(row.get("name") or f"{exchange} {status}"),
+                    source_version="v1/marketstatus/upcoming",
+                    is_provisional=True,
+                    raw_payload=dict(row),
+                )
+            )
+        return events
 
     @staticmethod
     def _ipo_event(row: dict[str, Any]) -> MarketEventRecord | None:

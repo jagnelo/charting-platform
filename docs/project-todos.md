@@ -10473,9 +10473,10 @@ Free-source provider direction confirmed from primary sources:
     - `424B*`
   - this will help us detect issuers moving through the IPO funnel earlier than a structured calendar sometimes will
   - but EDGAR should not be presented as an exact listing-date authority because it is filing-driven, not listing-calendar-driven
-- **Massive market-holiday data** is also worth folding into the same subsystem:
+- **Massive market-holiday data** is now exposed by the same backend adapter:
   - `GET /v1/marketstatus/upcoming` is forward-looking and included in Stocks Basic Free
-  - this is not an IPO feed, but it is a good example of a free market-calendar input that belongs in the same page/widget layer
+  - normalized `market_holiday` events preserve exchange, status, open/close, and raw payload fields
+  - persistence/reconciliation with the versioned exchange-session calendar remains open; this provider read is not itself a canonical holiday authority
 - **Finnhub** can be kept as an evaluation candidate, not a committed provider yet:
   - official docs expose `/calendar/ipo?from=...&to=...`
   - Finnhub also offers a free API key

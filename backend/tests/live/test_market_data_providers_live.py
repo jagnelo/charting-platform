@@ -239,6 +239,15 @@ def test_massive_credentialed_reference():
     assert isinstance(events, list)
     assert all(event.event_type == "ipo" for event in events)
     assert all(event.effective_date is not None for event in events)
+    holidays, _ = _observed_read(
+        lambda: MassiveProvider().fetch_market_holidays(
+            start=date.today(), end=date.today() + timedelta(days=365)
+        ),
+        "massive",
+    )
+    assert isinstance(holidays, list)
+    assert all(event.event_type == "market_holiday" for event in holidays)
+    assert all(event.effective_date is not None for event in holidays)
 
 
 def test_alpha_vantage_credentialed_daily():

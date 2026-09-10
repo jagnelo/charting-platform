@@ -694,6 +694,9 @@ Massive's IPO-calendar adapter uses the documented
 [`reference/ipos`](https://massive.com/docs/rest/stocks/corporate-actions) endpoint.
 Each cursor page is an independently metered request; the adapter returns the
 continuation URL without silently following it, and applies date bounds locally.
+The same adapter also exposes the documented
+[`marketstatus/upcoming`](https://massive.com/docs/rest/indices/market-operations)
+forward holiday and early-close feed as normalized `market_holiday` events.
 
 Priority within a chain is refined at runtime by health scores (EWMA latency, success rate,
 completeness).  A provider that consistently fails for a given symbol class (e.g. Binance
@@ -720,6 +723,7 @@ receiving equity symbols) will be naturally deprioritised by the circuit-breaker
 | Futures / commodities        | yfinance (explicit legacy) | optional IBKR descriptor |
 | Forward earnings estimates   | Finnhub forward calendar; FMP `earnings-calendar` | Finnhub and FMP calendars are live-proven for configured keys; FMP routing remains byte-bound gated |
 | IPO calendar                 | Massive `reference/ipos`; Alpha Vantage `IPO_CALENDAR` | Massive returns cursor-paged IPO rows; each page is charged separately and date bounds are applied locally |
+| Market holidays / early closes | Massive `marketstatus/upcoming` | Forward-only exchange rows with open/close/status provenance; one request per refresh |
 | Analyst price targets        | *(excluded)*      | *(capability stub)* |
 
 Remaining gaps are tracked in [project-todos.md](project-todos.md).

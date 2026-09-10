@@ -767,6 +767,7 @@ class Settings(BaseSettings):
                 "search_instruments": 1,
                 "discover_universe_page": 1,
                 "fetch_market_events": 1,
+                "fetch_market_holidays": 1,
             },
         },
         "fred": {

@@ -680,6 +680,40 @@ class TestMassiveReferenceProvider:
         assert get.call_args.args[0] == "https://api.massive.com/vX/reference/ipos"
         assert get.call_args.kwargs["params"]["ipo_status"] == "upcoming"
 
+    def test_market_holidays_normalize_array_rows_and_early_close(self):
+        response = MagicMock()
+        response.json.return_value = [
+            {
+                "date": "2024-11-28",
+                "exchange": "NYSE",
+                "name": "Thanksgiving",
+                "status": "closed",
+            },
+            {
+                "date": "2024-11-29",
+                "exchange": "NASDAQ",
+                "name": "Thanksgiving",
+                "open": "2024-11-29T14:30:00.000Z",
+                "close": "2024-11-29T18:00:00.000Z",
+                "status": "early-close",
+            },
+        ]
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.massive.settings") as mock_settings,
+            patch("app.providers.massive.httpx.get", return_value=response) as get,
+        ):
+            mock_settings.MASSIVE_API_KEY = "key"
+            mock_settings.MARKETDATA_API_KEY = ""
+            events = MassiveProvider().fetch_market_holidays(
+                start=date(2024, 11, 28), end=date(2024, 11, 29)
+            )
+        assert [event.event_type for event in events] == ["market_holiday", "market_holiday"]
+        assert events[0].event_key == "massive:market_holiday:NYSE:2024-11-28:closed"
+        assert events[1].event_time == datetime(2024, 11, 29, 14, 30, tzinfo=UTC)
+        assert events[1].raw_payload["close"] == "2024-11-29T18:00:00.000Z"
+        assert get.call_args.args[0] == "https://api.massive.com/v1/marketstatus/upcoming"
+
     def test_ipo_calendar_http_429_is_typed_and_redacted(self):
         response = MagicMock()
         response.status_code = 429
