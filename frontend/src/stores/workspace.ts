@@ -1654,6 +1654,37 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
+  /**
+   * Return whether a serialized snapshot already contains a structural local
+   * edit relative to the last server-acknowledged workspace.  A save can pick
+   * up a late observational/configuration mutation while its request is in
+   * flight; that must not make the original user action look like an older
+   * snapshot.  Conversely, when the request started before a newly opened
+   * tool, the newer generation still needs the retry path so the tool is not
+   * recovered away by an older conflict.
+   */
+  function snapshotHasStructuralLocalChange(
+    payload: ReturnType<typeof snapshotPayload>,
+    baseline: WorkspaceState | null,
+  ) {
+    if (!baseline
+      || payload.name !== baseline.name
+      || payload.schema_version !== baseline.schema_version
+      || !sameJson(payload.settings, baseline.settings)
+      || payload.tabs.length !== baseline.tabs.length) return Boolean(baseline)
+    for (const baseTab of baseline.tabs) {
+      const tab = payload.tabs.find(candidate => candidate.stable_key === baseTab.stable_key)
+      if (!tab
+        || tab.name !== baseTab.name
+        || tab.position !== baseTab.position
+        || tab.windows.length !== baseTab.windows.length) return true
+      const baselineKeys = new Set(baseTab.windows.map(window => window.instance_key))
+      const payloadKeys = new Set(tab.windows.map(window => window.instance_key))
+      if (baselineKeys.size !== payloadKeys.size || [...baselineKeys].some(key => !payloadKeys.has(key))) return true
+    }
+    return false
+  }
+
   async function preserveConflictRecovery(current: WorkspaceState) {
     const { factory_id: _factoryId, factory_version: _factoryVersion, ...settings } = current.settings
     return api.post<WorkspaceState>('/workspaces', {
@@ -2700,9 +2731,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const current = workspace.value
     const generation = snapshotGeneration
     snapshotPersistingGeneration = generation
+    const payloadAtStart = snapshotPayload(current)
+    const startedWithStructuralLocalChange = snapshotHasStructuralLocalChange(payloadAtStart, persistedWorkspace)
     const persist = (async () => {
       try {
-        const saved = await api.put<WorkspaceState>(`/workspaces/${current.id}/snapshot`, snapshotPayload(current))
+        const saved = await api.put<WorkspaceState>(`/workspaces/${current.id}/snapshot`, payloadAtStart)
         if (generation !== snapshotGeneration) return
         workspace.value = saved
         persistedWorkspace = cloneSerializable(workspace.value)
@@ -2715,7 +2748,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
           // newer local generation while the first PUT is in flight; abandoning
           // the conflict in that case silently loses the edit and leaves the
           // workspace permanently stale.
-          if (generation !== snapshotGeneration) {
+          // If the request started before a newly opened/closed tab or tool,
+          // defer to the newer generation so that edit is included in the
+          // retry.  If the request already contained the structural user edit,
+          // continue reconciliation against the live state; otherwise a late
+          // layout/configuration callback would incorrectly suppress the
+          // recovery copy that preserves the user's original mutation.
+          if (generation !== snapshotGeneration && !startedWithStructuralLocalChange) {
             scheduleSnapshot()
             return
           }

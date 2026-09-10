@@ -749,6 +749,45 @@ describe('workspace store layout tabs', () => {
     expect(store.workspace?.tabs[0].active_window_key).toBe(opened?.instance_key)
   })
 
+  it('keeps recovery semantics when a late local callback follows the mutation under test', async () => {
+    const baseline = {
+      id: 10, user_id: 3, name: 'Personal', is_default: false, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{ id: 20, stable_key: 'personal', name: 'Personal', position: 0, active_window_key: 'chart', layout_config: {}, windows: [
+        { id: 30, instance_key: 'chart', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0 },
+      ] }],
+    }
+    apiGet.mockResolvedValueOnce(baseline)
+    const store = useWorkspaceStore()
+    await store.loadDefault()
+    const opened = store.openTool({ tool_type: 'notes', title: 'Notes', instance_prefix: 'notes', configuration: {} })
+    expect(opened).toBeTruthy()
+
+    let rejectOld!: (cause: Error) => void
+    const oldResponse = new Promise<any>((_resolve, reject) => { rejectOld = reject })
+    const latest = JSON.parse(JSON.stringify(baseline))
+    latest.revision = 5
+    latest.name = 'Remote Personal'
+    const recovery = { ...store.workspace, id: 11, name: 'Personal Recovery', is_default: false, settings: { recovery_of_workspace_id: 10, recovery_of_revision: 4 } }
+    apiPut.mockImplementationOnce(() => oldResponse)
+    apiGet.mockResolvedValueOnce(latest)
+    apiPost.mockResolvedValueOnce(recovery)
+
+    const savePromise = store.saveSnapshot()
+    await vi.waitFor(() => expect(apiPut).toHaveBeenCalledTimes(1), { timeout: 1_000 })
+    // Simulate a late configuration/layout callback while the request is in
+    // flight. The request already contained the locally opened Notes window,
+    // so the conflict must still preserve that edit in a recovery copy.
+    store.workspace!.tabs[0].windows[0].configuration = { symbol: 'SPY' }
+    store.scheduleSnapshot()
+    rejectOld(new Error('API PUT /workspaces/10/snapshot → 409: conflict'))
+
+    await savePromise
+
+    expect(apiGet).toHaveBeenCalledWith('/workspaces/10')
+    expect(apiPost).toHaveBeenCalledWith('/workspaces', expect.objectContaining({ name: 'Personal Recovery', is_default: false }))
+    expect(store.error).toContain('preserved as')
+  })
+
   it('persists layout geometry without deleting tools from an observational key list', async () => {
     const store = useWorkspaceStore()
     store.workspace = {
