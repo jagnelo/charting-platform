@@ -1532,6 +1532,53 @@ class TestCoinGeckoCredentialWarning:
                 CoinGeckoProvider().search_instruments("BTC")
         assert exc_info.value.provider_name == "coingecko"
 
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            {"coins": "not-an-array"},
+            {"coins": [{"id": "bitcoin", "symbol": "BTC"}, "not-a-row"]},
+            {"coins": [{"id": "bitcoin", "name": "Bitcoin"}]},
+        ],
+    )
+    def test_search_rejects_malformed_coin_rows(self, payload):
+        response = MagicMock(status_code=200)
+        response.json.return_value = payload
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.coingecko.settings") as configured,
+            patch("app.providers.coingecko.httpx.get", return_value=response),
+        ):
+            configured.COINGECKO_API_KEY = "demo-key-123"
+            with pytest.raises(ProviderResponseError, match="CoinGecko"):
+                CoinGeckoProvider().search_instruments("BTC")
+
+    @pytest.mark.parametrize("payload", ["not-an-array", [{"symbol": "btc"}, "not-a-row"]])
+    def test_discovery_rejects_malformed_market_rows(self, payload):
+        response = MagicMock(status_code=200)
+        response.json.return_value = payload
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.coingecko.settings") as configured,
+            patch("app.providers.coingecko.httpx.get", return_value=response),
+        ):
+            configured.COINGECKO_API_KEY = "demo-key-123"
+            with pytest.raises(ProviderResponseError, match="CoinGecko"):
+                CoinGeckoProvider().discover_universe_page("CRYPTOCURRENCY", 0)
+
+    def test_non_rate_limit_http_failure_is_typed(self):
+        response = httpx.Response(
+            500,
+            request=httpx.Request("GET", "https://api.coingecko.com/api/v3/search"),
+        )
+        with (
+            patch("app.providers.coingecko.settings") as configured,
+            patch("app.providers.coingecko.httpx.get", return_value=response),
+        ):
+            configured.COINGECKO_API_KEY = "demo-key-123"
+            with pytest.raises(ProviderResponseError) as exc_info:
+                CoinGeckoProvider().search_instruments("BTC")
+        assert exc_info.value.provider_name == "coingecko"
+
     def test_invalid_json_is_typed(self):
         response = MagicMock()
         response.raise_for_status.return_value = None
