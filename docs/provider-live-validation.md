@@ -446,6 +446,15 @@ approved `Symbol` mirror variation while retaining identity-header validation;
 FINRA OAuth, short-interest, Daily List, async status, and OTC DAPI paths all
 preserve typed redacted provider failures. The focused provider/directory/
 instrumentation suite passed `138/138`; the corrected authoritative gate
-completed at `2026-09-10T07:08Z` with `1885 passed`, `89` warnings, and
+completed at `2026-09-10T06:59Z` with `1885 passed`, `89` warnings, and
 `80.37%` line coverage in `369.50s`. Testcontainer session
 `43c93bbd-d914-4259-ad39-21197ad67ed7` was cleaned without host-wide pruning.
+
+The post-change complete manifest matrix reran at `2026-09-10T07:03:12Z` and
+again collected 34 cases: `31 passed` in `40.75s`, with exactly the three
+credential preflight failures for `ALPACA_API_KEY`/`ALPACA_SECRET_KEY`,
+`TRADIER_API_KEY`, and `MARKETDATA_APP_API_KEY`. Binance, Nasdaq, FINRA, and
+the seven tokenized probes therefore have current end-to-end evidence under
+the existing environment. The wrapper returned exit code `2` and made no
+acceptance claim; FINRA async/OTC, FRED, Nasdaq polling, xStocks, Bybit, and
+Tiingo/FMP controls remained fail-closed.
