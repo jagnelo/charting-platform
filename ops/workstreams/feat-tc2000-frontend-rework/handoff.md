@@ -8,6 +8,41 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Local split-adjusted materialization behind explicit lineage
+
+Product tip `1fc650a7` adds an authenticated `POST
+/api/v1/ohlcv/{symbol}/{timeframe}/materialize-local-split` route and service
+behind the persisted `view=canonical|provider|derived` contract. The service
+selects one identified raw provider source, loads persisted split observations
+through the requested range, invokes the pure version-consistent split-only
+rebuilder, persists local derived rows only where provider-adjusted rows do not
+already exist, and records provider-neutral `local_split_ratio` provenance and
+factor version. Provider collisions are preserved; unsupported, ambiguous,
+incomplete, dividend, and no-data cases return structured receipts. Coverage
+lineage recognizes the local-derived state without changing existing D1-derived
+W1/MN semantics.
+
+Focused materializer coverage passed `15/15`; focused OHLCV router coverage
+passed `12/12`; the full backend unit suite passed `1,417/1,417` before the
+exact gate, with Ruff, formatting, and diff checks clean. No provider rows,
+factor conventions, routing, precedence, fallback, visible layout, pixels,
+visual baselines, thresholds, skips, or acceptance policy changed.
+
+The exact branch-scoped gate reran at `1fc650a7`: backend unit/integration
+passed `1,417/1,417` and `387/387` with `81.32%` combined coverage; frontend
+Vitest, type-check/build, compose, health, performance, acceptance, and
+functional Playwright passed (`165` passed, `107` documented skips across
+`272`). Research-runner denials were expected. Visual parity remained `98/104`
+with exactly the six protected state-oracle diffs: `watchlist-column-editor-open`
+at visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125 and
+visual-1440p-100/125. The gate exited `2` at `e2e-visual`; branch-scoped
+containers, volumes, images, network, and testcontainer sessions were cleaned
+up. The live 100k-point proof remains unclaimed.
+
+Next bounded work is provider/family history, W1/MN continuity, canonical
+population, and dense-data evidence. Preserve all six visual assertions and
+rerun the exact gate after the next coherent product change.
+
 ## 2026-09-10 — Explicit local split-factor rebuild contract
 
 Product tip `4af7917f` adds a pure local split-ratio rebuilder. It applies

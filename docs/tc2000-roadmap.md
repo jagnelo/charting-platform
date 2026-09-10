@@ -5,6 +5,40 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Local split-adjusted materialization behind explicit lineage
+
+At product tip `1fc650a7`, the backend now exposes an authenticated local
+split-adjusted materialization route behind the explicit
+`view=canonical|provider|derived` OHLCV contract. It reads one identified raw
+provider source, applies the pure version-consistent split-only rebuilder, and
+persists only local derived rows where provider-adjusted rows do not already
+exist. Provider collisions remain untouched. The receipt and persisted state
+carry provider-neutral `local_split_ratio` provenance plus factor version;
+unsupported, ambiguous, incomplete, dividend, and no-data inputs remain
+structured and are never guessed. Coverage lineage recognizes this local
+derived state while preserving the established D1-derived W1/MN behavior.
+
+Focused materializer coverage passed `15/15`, focused OHLCV router coverage
+passed `12/12`, and the full backend unit suite passed `1,417/1,417` before
+the exact gate. Ruff, formatting, and diff checks passed. No provider rows,
+factor conventions, routing, precedence, fallback, visible layout, pixels,
+visual baselines, thresholds, skips, or acceptance policy changed.
+
+The exact branch-scoped gate reran at this tip: backend unit/integration passed
+`1,417/1,417` and `387/387` with `81.32%` combined coverage; frontend
+Vitest, type-check/build, compose, health, performance, acceptance, and
+functional Playwright passed (`165` passed, `107` documented skips across
+`272`). Research-runner denials were expected. Visual parity remained `98/104`
+with exactly the six protected state-oracle diffs (`watchlist-column-editor-open`
+at visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125 and
+visual-1440p-100/125). The gate exited `2` at `e2e-visual` after clean scoped
+teardown. The live 100k-point proof remains unclaimed.
+
+R1/R6 remain active for provider/family history, W1/MN continuity, canonical
+population, and dense-data evidence; R2-R5 and R7 remain open. Preserve the
+six protected visual assertions and rerun the exact gate after the next
+coherent product change.
+
 ## 2026-09-10 — Explicit local split-factor rebuild contract
 
 At product tip `4af7917f`, the adjustment-factor service now provides a pure

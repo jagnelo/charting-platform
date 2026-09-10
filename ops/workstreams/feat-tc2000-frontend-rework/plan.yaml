@@ -13,6 +13,30 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tip 1fc650a7 adds an authenticated POST materialization route and
+  service for an explicitly selected local split-adjusted OHLCV view. It reads
+  one identified raw provider source, applies the pure version-consistent
+  split-only rebuilder, persists only local derived rows where provider-
+  adjusted rows do not already exist, preserves provider collisions, and
+  records provider-neutral local_split_ratio provenance and factor version.
+  Unsupported, ambiguous, incomplete, dividend, and no-data cases remain
+  explicit structured receipts; no provider rows, factors, routing,
+  precedence, fallback, visible layout, pixels, or acceptance policy changed.
+  Focused materializer/router coverage passed 15/15 and 12/12 respectively;
+  the full backend unit suite passed 1,417/1,417 before the exact gate, with
+  Ruff, formatting, and diff checks clean. The exact branch-scoped gate reran
+  at this product tip: backend unit/integration passed 1,417/1,417 and
+  387/387 with 81.32% combined coverage; frontend Vitest, type-check/build,
+  compose, health, performance, acceptance, and functional Playwright passed
+  (165 passed, 107 documented skips across 272). Research-runner denials
+  were expected. Visual parity again passed 98/104 with exactly the six
+  protected state-oracle diffs (watchlist-column-editor-open at
+  visual-1080p-100/125 and workspace-floating at visual-1080p-100/125 and
+  visual-1440p-100/125). The gate exited 2 at e2e-visual after clean
+  branch-scoped teardown; no visual baseline, mask, threshold, skip, provider,
+  fallback, or acceptance policy changed. The live 100k-point proof remains
+  unclaimed. Continue provider/family history, W1/MN continuity, canonical
+  population, and dense-data evidence while preserving the six assertions.
   Product tip b189478e wires an explicit persisted OHLCV lineage selector,
   view=canonical|provider|derived, through local, provider-capable, and
   transformed reads. Canonical preserves the existing merge; provider and
@@ -1159,6 +1183,22 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
+    Product tip 1fc650a7 adds an authenticated local split-adjusted view
+    materializer behind the explicit OHLCV lineage selector. It reads one
+    identified raw provider source, applies the pure version-consistent
+    split-only rebuilder, persists only local derived rows without replacing
+    provider-adjusted collisions, and records local_split_ratio provenance and
+    factor version. Unsupported, ambiguous, incomplete, dividend, and no-data
+    inputs remain explicit structured receipts. Focused materializer/router
+    coverage passed 15/15 and 12/12; the full backend unit suite passed
+    1,417/1,417 before the exact gate. The exact branch-scoped gate reran at
+    this tip with backend unit/integration 1,417/1,417 and 387/387, 81.32%
+    combined coverage, frontend Vitest/type-check/build, compose, health,
+    performance, acceptance, and functional Playwright 165 passed with 107
+    documented skips across 272. Visual parity remains 98/104 with exactly
+    the six protected state-oracle diffs; clean scoped teardown completed.
+    Continue provider/family history, W1/MN continuity, canonical population,
+    and dense-data evidence while preserving the six assertions.
     Product tip e2263da9 makes the canonical OHLCV coverage endpoint read the
     null-source derived W1/MN dataset state for derived-only ranges, exposing
     the inherited D1 factor version to the workstation contract. Mixed

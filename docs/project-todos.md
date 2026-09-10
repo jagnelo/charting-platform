@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-09-10 — Local split-adjusted materialization behind explicit lineage
+
+- [x] Add authenticated local split-adjusted materialization behind the
+      persisted `view=canonical|provider|derived` OHLCV selector. Read one
+      identified raw provider source, apply complete version-consistent
+      split-only factors, persist local derived rows without replacing provider
+      collisions, and record `local_split_ratio` provenance plus factor version.
+- [x] Return structured unsupported/ambiguous/incomplete/dividend/no-data
+      receipts; preserve raw/provider rows and existing D1-derived W1/MN
+      semantics without changing provider routing, fallback, or visual policy.
+- [x] Focused materializer coverage passed `15/15`; focused router coverage
+      passed `12/12`; full backend unit coverage passed `1,417/1,417` before
+      the exact gate; Ruff, formatting, and diff checks passed.
+- [ ] Continue provider/family history, W1/MN continuity, canonical
+      population, and live 100k-point evidence; preserve the six protected
+      visual assertions and rerun the exact gate after the next coherent tip.
+
 ### 2026-09-10 — Explicit local split-factor rebuild contract
 
 - [x] Add a pure local split-ratio rebuilder that applies cumulative
@@ -11,7 +28,7 @@
 - [x] Focused adjustment-factor coverage passed `14/14`; the full backend unit
       suite passed `1,413/1,413` at `67.78%` coverage against the `55%`
       threshold; Ruff, formatting, and diff checks passed.
-- [ ] Specify and wire an explicit persisted derived-view contract; continue
+- [x] Specify and wire an explicit persisted derived-view contract; continue
       provider/family history, W1/MN continuity, canonical population, and
       live 100k-point evidence while preserving the six protected visual
       assertions and rerunning the exact gate at the next coherent tip.
