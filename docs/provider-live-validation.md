@@ -554,3 +554,10 @@ dates, and invalid pagination metadata instead of silently filtering or
 returning partial reference evidence. The focused Massive suite passed `13/13`;
 Ruff and diff checks passed. The authoritative gate remains unverified because
 Docker preflight is currently unavailable.
+
+Nasdaq Trader directory parsing now rejects inconsistent CSV row widths, missing
+symbol/name values, and malformed official or approved mirror rows while
+preserving intentional test-issue exclusion and ACT Symbol/Symbol compatibility.
+The focused Nasdaq suite passed `11/11`; Ruff and diff checks passed. The
+authoritative gate remains unverified because Docker preflight is currently
+unavailable.
