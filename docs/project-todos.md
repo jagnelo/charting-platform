@@ -1,5 +1,18 @@
 # Project TODO Memory
 
+### 2026-09-10 — Explicit intraday history requests
+
+- [x] Preserve explicit intraday-only history requests: the bulk worker now
+      calls the provider for `H1`/finer requests instead of misclassifying them
+      as skipped because no coarse timeframe appeared in the same request.
+- [x] Keep mixed-request optimization safe under arbitrary caller ordering by
+      waiting until requested coarse timeframes have been attempted; focused
+      bulk-fetch coverage passed `6/6`, and the full backend unit suite passed
+      `1,405/1,405` at `67.76%` coverage against the `55%` threshold.
+- [ ] Rerun the exact Docker-backed gate at `bab365e9`, then at the current
+      coherent tip, and continue provider factor application/rebuild,
+      family/provider history, W1/MN continuity, cadence, and population.
+
 ### 2026-09-10 — Storage reconciliation identity hardening
 
 - [x] Match provider OHLCV bars and raw observations on the complete storage

@@ -5,6 +5,25 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Explicit intraday history requests
+
+At product tip `e8bef95c`, the bulk-history worker no longer silently skips an
+explicit intraday-only request such as `H1`. The coarse-history optimization is
+now applied only when a daily/weekly/monthly prerequisite was actually
+requested and all such requests have completed; caller-supplied timeframe
+ordering no longer changes whether an intraday request reaches the provider.
+Focused bulk-fetch coverage passed `6/6`; the full backend unit suite passed
+`1,405/1,405` with `67.76%` coverage against its `55%` threshold. Ruff,
+formatting, and diff checks passed. Prices, bars, provider routing, fallback,
+visible layout, pixels, visual baselines, thresholds, skips, and acceptance
+policy are unchanged.
+
+R1 remains active for provider factor application/rebuild verification,
+family/provider-history readiness, W1/MN continuity, broader cadence, and
+canonical population evidence; R2-R7 remain open. The exact Docker-backed gate
+still needs to be rerun at `bab365e9` and then at the current coherent tip when
+Docker is responsive.
+
 ## 2026-09-10 — Storage reconciliation identity hardening
 
 At product tip `794d5e35`, canonical OHLCV storage reconciliation now keys

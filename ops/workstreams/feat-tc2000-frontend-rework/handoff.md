@@ -8,6 +8,22 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Explicit intraday history requests
+
+Product tip `e8bef95c` fixes an order-dependent bulk-history guard. An
+intraday-only request (for example `H1`) now reaches the provider instead of
+being silently reported as skipped. For mixed requests, intraday work is only
+short-circuited after every requested coarse timeframe has been attempted and
+returned no data, so custom timeframe ordering is safe. Focused bulk-fetch
+coverage passed `6/6`; the full backend unit suite passed `1,405/1,405` at
+`67.76%` coverage against the configured `55%` threshold. Ruff, formatting,
+and diff checks passed. No prices, bars, provider routing, fallback, visible
+layout, visual baseline, threshold, skip, or acceptance policy changed.
+
+The exact Docker-backed gate remains pending at `bab365e9` and then the current
+coherent tip. Continue the next bounded R1 provider-factor/history seam once
+the branch-scoped Docker stack is available.
+
 ## 2026-09-10 — Storage reconciliation identity hardening
 
 Product tip `794d5e35` makes canonical OHLCV storage reconciliation use the
