@@ -158,6 +158,8 @@ class AlpacaProvider:
                 observe_response(r)
                 r.raise_for_status()
                 data = r.json()
+                if not isinstance(data, dict):
+                    raise ProviderResponseError(self.name, "Alpaca returned an invalid JSON object")
             except httpx.HTTPStatusError:
                 # Let provider_runtime convert 429/418 into a typed,
                 # reset-aware capacity failure instead of returning partial
@@ -165,8 +167,13 @@ class AlpacaProvider:
                 raise
             except httpx.RequestError as exc:
                 raise ProviderResponseError(self.name, str(exc)) from exc
+            except (TypeError, ValueError) as exc:
+                raise ProviderResponseError(self.name, "Alpaca returned invalid JSON") from exc
 
-            for b in data.get("bars", {}).get(alpaca_sym, []):
+            bars_payload = data.get("bars") or {}
+            if not isinstance(bars_payload, dict):
+                raise ProviderResponseError(self.name, "Alpaca returned an invalid bars object")
+            for b in bars_payload.get(alpaca_sym, []):
                 try:
                     ts = datetime.fromisoformat(b["t"].replace("Z", "+00:00"))
                     bars.append(
@@ -234,13 +241,21 @@ class AlpacaProvider:
             r = httpx.get(url, params=params, headers=self._headers(), timeout=10)
             observe_response(r)
             r.raise_for_status()
-            bar = r.json().get("bars", {}).get(alpaca_sym)
+            payload = r.json()
+            if not isinstance(payload, dict):
+                raise ProviderResponseError(self.name, "Alpaca returned an invalid JSON object")
+            bars_payload = payload.get("bars") or {}
+            if not isinstance(bars_payload, dict):
+                raise ProviderResponseError(self.name, "Alpaca returned an invalid bars object")
+            bar = bars_payload.get(alpaca_sym)
             return float(bar["c"]) if bar else None
         except httpx.HTTPStatusError:
             raise
         except httpx.RequestError as exc:
             raise ProviderResponseError(self.name, str(exc)) from exc
-        except (KeyError, TypeError, ValueError) as exc:
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError(self.name, "Alpaca returned invalid JSON") from exc
+        except KeyError as exc:
             logger.debug("alpaca get_current_price %s: %s", symbol, exc)
             return None
 
@@ -266,12 +281,18 @@ class AlpacaProvider:
             observe_response(r)
             r.raise_for_status()
             raw = r.json()
+            if not isinstance(raw, dict):
+                raise ProviderResponseError(self.name, "Alpaca returned an invalid JSON object")
         except httpx.HTTPStatusError:
             raise
         except httpx.RequestError as exc:
             raise ProviderResponseError(self.name, str(exc)) from exc
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError(self.name, "Alpaca returned invalid JSON") from exc
 
         ca = raw.get("corporate_actions") or raw
+        if not isinstance(ca, dict):
+            raise ProviderResponseError(self.name, "Alpaca returned an invalid corporate-actions object")
         events: list[InstrumentEventRecord] = []
         fetched = now
 
@@ -451,7 +472,10 @@ def _cached_assets(headers: dict, asset_class: str) -> list[dict]:
         )
         observe_response(r)
         r.raise_for_status()
-        assets = [a for a in r.json() if a.get("tradable")]
+        payload = r.json()
+        if not isinstance(payload, list):
+            raise ProviderResponseError("alpaca", "Alpaca returned an invalid JSON array")
+        assets = [a for a in payload if isinstance(a, dict) and a.get("tradable")]
         _asset_cache[asset_class] = assets
         _asset_cache_ts = now
         return assets
@@ -459,6 +483,8 @@ def _cached_assets(headers: dict, asset_class: str) -> list[dict]:
         raise
     except httpx.RequestError as exc:
         raise ProviderResponseError("alpaca", str(exc)) from exc
+    except (TypeError, ValueError) as exc:
+        raise ProviderResponseError("alpaca", "Alpaca returned invalid JSON") from exc
 
 
 def _asset_to_quote(asset: dict, quote_type: str) -> dict[str, Any]:

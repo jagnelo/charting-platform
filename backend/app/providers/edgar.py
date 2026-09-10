@@ -152,12 +152,16 @@ class EdgarProvider:
             observe_response(r)
             r.raise_for_status()
             sub = r.json()
+            if not isinstance(sub, dict):
+                raise ProviderResponseError(self.name, "SEC EDGAR returned an invalid JSON object")
         except httpx.HTTPStatusError:
             # The runtime owns typed 429/418 conversion and circuit handling;
             # do not turn an upstream rejection into a synthetic profile.
             raise
         except httpx.RequestError as exc:
             raise ProviderResponseError(self.name, str(exc)) from exc
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError(self.name, "SEC EDGAR returned invalid JSON") from exc
 
         tickers = sub.get("tickers") or [symbol.upper()]
         exchanges = sub.get("exchanges") or []
@@ -233,10 +237,14 @@ class EdgarProvider:
             observe_response(r)
             r.raise_for_status()
             sub = r.json()
+            if not isinstance(sub, dict):
+                raise ProviderResponseError(self.name, "SEC EDGAR returned an invalid JSON object")
         except httpx.HTTPStatusError:
             raise
         except httpx.RequestError as exc:
             raise ProviderResponseError(self.name, str(exc)) from exc
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError(self.name, "SEC EDGAR returned invalid JSON") from exc
 
         events: list[InstrumentEventRecord] = []
         fetched = datetime.now(UTC)
@@ -283,10 +291,14 @@ class EdgarProvider:
             observe_response(response)
             response.raise_for_status()
             payload = response.json()
+            if not isinstance(payload, dict):
+                raise ProviderResponseError(self.name, "SEC EDGAR returned an invalid JSON object")
         except httpx.HTTPStatusError:
             raise
         except httpx.RequestError as exc:
             raise ProviderResponseError(self.name, str(exc)) from exc
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError(self.name, "SEC EDGAR returned invalid JSON") from exc
         facts = payload.get("facts") if isinstance(payload, dict) else None
         if not isinstance(facts, dict):
             return []
@@ -371,6 +383,8 @@ def _ensure_ticker_map(headers: dict) -> None:
         observe_response(r)
         r.raise_for_status()
         raw = r.json()
+        if not isinstance(raw, dict):
+            raise ProviderResponseError("edgar", "SEC EDGAR returned an invalid JSON object")
         mapping: dict[str, dict] = {}
         for entry in raw.values():
             ticker = (entry.get("ticker") or "").upper()
@@ -386,6 +400,8 @@ def _ensure_ticker_map(headers: dict) -> None:
         raise
     except httpx.RequestError as exc:
         raise ProviderResponseError("edgar", str(exc)) from exc
+    except (TypeError, ValueError) as exc:
+        raise ProviderResponseError("edgar", "SEC EDGAR returned invalid JSON") from exc
 
 
 def _ensure_exchange_directory(headers: dict) -> None:
@@ -399,6 +415,8 @@ def _ensure_exchange_directory(headers: dict) -> None:
         observe_response(response)
         response.raise_for_status()
         payload = response.json()
+        if not isinstance(payload, dict):
+            raise ProviderResponseError("edgar", "SEC EDGAR returned an invalid JSON object")
         fields = payload.get("fields") if isinstance(payload, dict) else None
         raw_rows = payload.get("data") if isinstance(payload, dict) else None
         rows: list[dict] = []
@@ -451,3 +469,5 @@ def _ensure_exchange_directory(headers: dict) -> None:
         raise
     except httpx.RequestError as exc:
         raise ProviderResponseError("edgar", str(exc)) from exc
+    except (TypeError, ValueError) as exc:
+        raise ProviderResponseError("edgar", "SEC EDGAR returned invalid JSON") from exc

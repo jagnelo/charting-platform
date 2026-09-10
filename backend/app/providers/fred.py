@@ -173,6 +173,8 @@ class FREDProvider:
             raise
         except httpx.RequestError as exc:
             raise ProviderResponseError("fred", str(exc)) from exc
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError("fred", "FRED returned invalid JSON") from exc
         except Exception as exc:
             logger.warning("fred fetch_ohlcv %s (%s): %s", symbol, series_id, exc)
             return []
@@ -265,6 +267,8 @@ class FREDProvider:
             raise
         except httpx.RequestError as exc:
             raise ProviderResponseError("fred", str(exc)) from exc
+        except (TypeError, ValueError) as exc:
+            raise ProviderResponseError("fred", "FRED returned invalid JSON") from exc
         except Exception as exc:
             logger.debug("fred get_current_price %s: %s", symbol, exc)
         return None

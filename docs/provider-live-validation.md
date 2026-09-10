@@ -412,3 +412,12 @@ empty provider responses remain unchanged. The focused provider suite passed
 `1865 passed`, `89` warnings, and `80.39%` line coverage in `365.39s`.
 Testcontainer session `9aad314f-c0a9-4fd9-b902-83afd574e391` was cleaned
 without host-wide pruning.
+
+The same adapters now validate response shape and malformed JSON explicitly:
+Alpaca bars/latest, corporate-actions, and assets responses, SEC EDGAR
+submissions/facts/directories, and FRED observations all reject invalid
+payloads with typed provider-response failures. The focused provider suite
+passed `109/109`; the authoritative gate completed at `2026-09-10T06:14Z`
+with `1868 passed`, `89` warnings, and `80.35%` line coverage in `544.34s`.
+Testcontainer session `5050159c-29bd-4cba-8846-54785ab4b75a` was cleaned
+without host-wide pruning.

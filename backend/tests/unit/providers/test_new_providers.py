@@ -275,6 +275,27 @@ class TestAlpacaCredentialWarning:
                 )
         assert exc_info.value.provider_name == "alpaca"
 
+    def test_invalid_json_is_typed_instead_of_empty_history(self):
+        provider = AlpacaProvider()
+        response = MagicMock()
+        response.json.side_effect = ValueError("malformed payload")
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.alpaca.settings") as configured,
+            patch("app.providers.alpaca.httpx.get", return_value=response),
+        ):
+            configured.ALPACA_API_KEY = "key"
+            configured.ALPACA_SECRET_KEY = "secret"
+            configured.ALPACA_DATA_FEED = "iex"
+            with pytest.raises(ProviderResponseError) as exc_info:
+                provider.fetch_ohlcv(
+                    "AAPL",
+                    Timeframe.D1,
+                    datetime(2024, 1, 1, tzinfo=UTC),
+                    datetime(2024, 2, 1, tzinfo=UTC),
+                )
+        assert exc_info.value.provider_name == "alpaca"
+
 
 # ── Alpaca OHLCV bar parsing ──────────────────────────────────────────────────
 
@@ -1002,6 +1023,25 @@ class TestFREDOHLCVParsing:
                 )
         assert exc_info.value.provider_name == "fred"
 
+    def test_invalid_json_is_typed_instead_of_empty_history(self):
+        provider = FREDProvider()
+        response = MagicMock()
+        response.json.side_effect = ValueError("malformed payload")
+        response.raise_for_status.return_value = None
+        with (
+            patch("app.providers.fred.settings") as configured,
+            patch("app.providers.fred.httpx.get", return_value=response),
+        ):
+            configured.FRED_API_KEY = "key"
+            with pytest.raises(ProviderResponseError) as exc_info:
+                provider.fetch_ohlcv(
+                    "^TNX",
+                    Timeframe.D1,
+                    datetime(2024, 1, 1, tzinfo=UTC),
+                    datetime(2024, 2, 1, tzinfo=UTC),
+                )
+        assert exc_info.value.provider_name == "fred"
+
 
 # ── CoinGecko ─────────────────────────────────────────────────────────────────
 
@@ -1236,6 +1276,25 @@ class TestEdgarTickerMap:
         with (
             patch("app.providers.edgar.settings") as configured,
             patch("app.providers.edgar.httpx.get", side_effect=failure),
+        ):
+            configured.EDGAR_USER_AGENT = "charting-platform test test@example.invalid"
+            with pytest.raises(ProviderResponseError) as exc_info:
+                provider.get_instrument_profile("AAPL")
+        assert exc_info.value.provider_name == "edgar"
+
+    def test_sec_invalid_json_is_not_converted_to_synthetic_profile(self):
+        import app.providers.edgar as edgar_module
+
+        edgar_module._ticker_map = {"AAPL": {"cik": 320193, "title": "Apple Inc."}}
+        edgar_module._ticker_map_ts = edgar_module._ticker_map_ts + 9999999
+        edgar_module._profile_cache = {}
+        response = MagicMock()
+        response.json.side_effect = ValueError("malformed payload")
+        response.raise_for_status.return_value = None
+        provider = EdgarProvider()
+        with (
+            patch("app.providers.edgar.settings") as configured,
+            patch("app.providers.edgar.httpx.get", return_value=response),
         ):
             configured.EDGAR_USER_AGENT = "charting-platform test test@example.invalid"
             with pytest.raises(ProviderResponseError) as exc_info:
