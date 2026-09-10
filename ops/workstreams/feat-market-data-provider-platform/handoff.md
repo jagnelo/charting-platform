@@ -174,3 +174,5 @@ Update this handoff at each coherent boundary.
 - The live-runner/runtime-policy consistency regression now covers every configured byte-bound provider, not just FMP. Focused secret-wiring coverage passes `9/9`; the authoritative Docker-backed combined gate passes `1858/1858` with `80.36%` line coverage and 89 warnings, using isolated testcontainer session `a083b56f-103c-4e47-9b23-fdd6ccfe7a31`, cleaned without host-wide pruning.
 
 - The branch remains backend-only and clean after the consistency guard; no frontend or ETF-constituent adapter paths were modified. The current live matrix remains explicitly blocked only by the three absent provider credential domains plus the documented provider-specific safety/legal controls; no generic quota fallback or acceptance bypass was introduced.
+
+- The workstream audit now points to the authoritative `2026-09-10T03:36Z` 34-case matrix (31 passed, three exact credential preflight failures) rather than the earlier 02:55 run. The lifecycle checkpoint at commit `3efe5f2f` records the current plan hash, synchronized remote head, and zero retained Docker resources; no routing entitlement or acceptance state changed.
