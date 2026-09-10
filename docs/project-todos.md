@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-09-10 — Conflict recovery after late snapshot callbacks
+
+- [x] Make revisioned workspace saves distinguish a request that predates a
+      structural tool mutation from one that already contains it, preserving
+      the retry safety for stale requests while retaining the user's recovery
+      copy when a late layout/configuration callback races the original edit.
+- [x] Add the regression coverage: workspace-store `72/72`, full frontend
+      Vitest `991/991`, type-check/build, Ruff, formatting, and diff checks all
+      passed; no visual or acceptance policy changed.
+- [ ] Rerun the exact Docker-backed gate at product tip `bab365e9`. The first
+      attempt at provider tip `00849c5b` failed only at F8j-conflict (`164`
+      passed, `107` documented skips across `272`); the fix is committed, but
+      Docker Desktop became unresponsive during the required stack rebuild.
+- [ ] Complete provider factor application/rebuild verification and continue
+      family/provider history, W1/MN continuity, broader cadence, and
+      canonical population evidence.
+
 ### 2026-09-10 — Adjustment-factor input audit evidence
 
 - [x] Carry conservative adjustment-input counts (observed, rebuildable,

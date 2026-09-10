@@ -13,6 +13,32 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tip bab365e9 narrows the revisioned-save generation guard so a late
+  Golden Layout/configuration callback cannot suppress recovery when the
+  request already contained the user's structural tool mutation, while a
+  request that predates a newly opened/closed tool still retries safely. The
+  focused workspace-store suite passed 72/72; full frontend Vitest passed
+  991/991; type-check/build, Ruff, formatting, and diff checks passed. The
+  exact gate at provider tip 00849c5b failed only at functional F8j-conflict:
+  164 passed and 107 documented skips across 272, with the recovery footer
+  not observed. The failure was diagnosed to this late-generation race and
+  fixed in bab365e9. The gate stopped before visual parity after clean scoped
+  teardown. Its exact rerun is pending because Docker Desktop became
+  unresponsive during the required stack rebuild (BuildKit returned HTTP 500
+  from the local Docker socket). No visual baseline, mask, threshold, skip,
+  provider, fallback, or acceptance policy changed. R1 remains active for
+  provider-factor application/rebuild verification, family/provider-history
+  readiness, W1/MN continuity, broader cadence, and canonical population;
+  R2-R7 remain open. Rerun the exact gate at bab365e9 when Docker is
+  responsive, then continue the next bounded evidence-backed R1 seam.
+  Product tip 00849c5b retains explicit provider-supplied dividend factors in
+  Alpaca corporate-action events only when an explicit adjustment-factor field
+  is present; amount-only dividends remain opaque and no factor is derived
+  from a cash amount. Focused provider coverage passed 85/85; Ruff, format,
+  and diff checks passed. The exact gate was attempted at this tip but exposed
+  the F8j-conflict race recorded above. Actual provider factor
+  application/rebuild verification, family/provider-history readiness, W1/MN
+  continuity, broader cadence, canonical population, and R2-R7 remain open.
   Product tip bc703b3a carries conservative adjustment-input evidence from
   durable provider events or normalized observations into canonical adjusted
   OHLCV coverage: observed input count, rebuildable and opaque counts, and

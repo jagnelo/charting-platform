@@ -8,6 +8,34 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Conflict recovery after late snapshot callbacks
+
+Product tip `bab365e9` narrows the revisioned-save generation guard. When a
+request began before a newly opened/closed tool, it still retries so the newer
+structural edit cannot be recovered away. When the request already contained
+the structural edit, a late Golden Layout/configuration callback no longer
+suppresses conflict reconciliation and its recovery copy. This preserves the
+F8j user-facing recovery contract without changing prices, bars, provider
+routing, fallback, visible layout, pixels, visual baselines, thresholds,
+skips, or acceptance policy.
+
+Focused workspace-store coverage passed `72/72`; full frontend Vitest passed
+`991/991`; type-check/build, Ruff, formatting, and diff checks passed. The
+exact gate at provider tip `00849c5b` failed only at functional
+`F8j-conflict` (`164` passed and `107` documented skips across `272`); the
+footer recovery message was not observed and the gate stopped before visual
+parity, after clean scoped teardown. The failure was traced to the late
+generation race and fixed in `bab365e9`. The exact rerun is pending because
+Docker Desktop became unresponsive while rebuilding the branch stack
+(`BuildKit` HTTP 500 from the local Docker socket); no stack or other
+worktree is active.
+
+Next action: rerun `WORKTREE_BUILDER=desktop-linux
+INTEGRATION_BRANCH=feat/tc2000-frontend-rework
+UV_CACHE_DIR=/private/tmp/tc2000-uv-cache make validate-integration` from
+`bab365e9` once Docker is responsive, then continue the bounded R1
+provider-factor application/rebuild and history/provenance work.
+
 ## 2026-09-10 — Adjustment-factor input audit evidence checkpoint
 
 Product tip `bc703b3a` carries conservative adjustment-input evidence from

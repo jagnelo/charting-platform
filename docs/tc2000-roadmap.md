@@ -5,6 +5,35 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Conflict recovery after late snapshot callbacks
+
+At product tip `bab365e9`, the workspace snapshot conflict path now
+distinguishes a request that began before a structural tool mutation from one
+that already contained that mutation. A late Golden Layout/configuration
+callback no longer suppresses the recovery-copy path for the user's original
+tool addition, while the older-request retry path still protects a newly
+opened tool from being recovered away. The change is limited to the
+revisioned-save generation guard and its regression coverage; prices, bars,
+provider routing, fallback, visible layout, pixels, visual baselines,
+thresholds, skips, and acceptance policy are unchanged.
+
+The focused workspace-store suite passed `72/72`; the full frontend Vitest
+suite passed `991/991`; frontend type-check and production build passed; and
+Ruff, formatting, and diff checks were green. The exact Docker-backed gate
+was first run at provider tip `00849c5b` and failed only at functional E2E
+`F8j-conflict`: `164` passed and `107` documented skips across `272`, with
+the recovery footer not observed. The gate performed clean scoped teardown
+before stopping, so its visual stage did not run. The failure was diagnosed
+to the late-generation race and fixed in `bab365e9`; the exact rerun remains
+pending because Docker Desktop became unresponsive while rebuilding the
+branch stack (`BuildKit` returned HTTP 500 from the local Docker socket).
+
+R1 remains active for provider-factor application/rebuild verification,
+family/provider-history readiness, W1/MN continuity, broader cadence and
+canonical population evidence; R2-R7 remain open. Next action: rerun the
+exact gate at `bab365e9` when the branch-scoped Docker stack is available,
+then continue the next bounded evidence-backed R1 seam.
+
 ## 2026-09-10 — Adjustment-factor input audit evidence
 
 At product tip `bc703b3a`, canonical adjusted OHLCV coverage now carries
