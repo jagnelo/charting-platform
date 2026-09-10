@@ -13,6 +13,22 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Product tip 58dd6926 makes explicit provider-factor materialization take
+  precedence over an existing local_split_ratio derived row at the same key.
+  Provider rows remain immutable; provider_adjustment_factor may upgrade local
+  split-derived state, while the split-only path cannot downgrade provider-factor
+  rows or overwrite unrelated derived lineage. Focused adjustment-factor
+  coverage passed 19/19; the full backend unit suite passed 1428/1428 at
+  67.87%; Ruff, formatting, and diff checks passed. The exact branch-scoped
+  gate passed backend integration 387/387, frontend Vitest/type-check/build,
+  uPlot/visual-policy, compose/health/performance, and functional Playwright
+  165 passed with 107 documented skips across 272. Visual parity remains
+  98/104 with exactly the six protected diffs; the gate exited 1 at e2e-visual
+  after clean scoped teardown. No visual baseline, mask, threshold, skip,
+  provider, fallback, or acceptance policy changed. Continue provider/family
+  history, W1/MN continuity beyond the bounded seam, canonical population, and
+  dense-data evidence; preserve the six assertions and the no-integration/
+  no-deployment boundary.
   Product tip dc71bf6c adds authenticated local provider-factor materialization
   behind an explicit provider_supplied adjusted/raw multiplier contract.
   Prices/VWAP multiply and volume scales inversely for pre-event bars; derived
@@ -1256,6 +1272,20 @@ progress:
   total: 10
   current_phase: R1_canonical_provider_history_readiness
   current_blocker: >-
+    Product tip 58dd6926 makes explicit provider-factor materialization take
+    precedence over an existing local_split_ratio derived row at the same key;
+    provider rows remain immutable, provider_adjustment_factor may upgrade
+    local split-derived state, and the split-only path cannot downgrade
+    provider-factor rows or overwrite unrelated derived lineage. Focused
+    adjustment-factor coverage passed 19/19; full backend unit passed 1428/1428
+    at 67.87%, with Ruff, format, and diff checks clean. The exact gate passed
+    backend integration 387/387, frontend/runtime checks, and functional
+    Playwright 165 passed with 107 documented skips across 272. Visual parity
+    remains 98/104 with exactly the six protected diffs; the gate exited 1 at
+    e2e-visual after clean teardown. Continue provider/family history, W1/MN
+    continuity beyond the bounded seam, canonical population, and dense-data
+    evidence; R2-R5 and R7 remain open and the no-integration/no-deployment
+    boundary holds.
     Product tip dc71bf6c adds authenticated local provider-factor materialization
     behind an explicit provider_supplied adjusted/raw multiplier contract;
     derived rows carry provider_adjustment_factor lineage without replacing

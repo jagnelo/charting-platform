@@ -8,6 +8,23 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Explicit provider-factor precedence
+
+Product tip `58dd6926` makes explicit provider-factor materialization win over
+an existing local split-derived row at the same key without mutating provider
+rows. A `provider_adjustment_factor` row may upgrade `local_split_ratio`; the
+split-only path cannot downgrade provider-factor rows or overwrite unrelated
+derived lineage. Focused adjustment-factor coverage passed `19/19`; the full
+backend unit suite passed `1,428/1,428` at `67.87%`; Ruff, formatting, and diff
+checks passed.
+
+The exact gate passed backend integration `387/387`, frontend/runtime checks,
+and functional Playwright (`165` passed, `107` documented skips across `272`).
+Visual parity remains `98/104` with exactly the six protected diffs; the gate
+exited `1` at `e2e-visual` after clean branch-scoped teardown. No visual or
+acceptance policy changed. Continue provider/family history, W1/MN continuity
+beyond the bounded seam, canonical population, and dense-data evidence.
+
 ## 2026-09-10 — Explicit provider-factor materialization and lineage
 
 Product tip `dc71bf6c` adds the authenticated explicit provider-factor local

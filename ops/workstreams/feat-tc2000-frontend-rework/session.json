@@ -97,14 +97,14 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "dc71bf6c1c2934cadea27d1938ce4cdb296e184d",
-  "implementation_sha": "dc71bf6c1c2934cadea27d1938ce4cdb296e184d",
+  "head": "58dd692680a9e30e85b63159ebb1a9497594c56c",
+  "implementation_sha": "58dd692680a9e30e85b63159ebb1a9497594c56c",
   "interrupted": false,
-  "last_checkpoint": "2026-09-10T15:12:06Z",
-  "last_human_progress_update": "2026-09-10T15:12:06Z",
+  "last_checkpoint": "2026-09-10T15:43:09Z",
+  "last_human_progress_update": "2026-09-10T15:43:09Z",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue provider/family history, W1/MN continuity beyond the bounded seam, canonical population, and R6 dense-data evidence; preserve the six protected visual state-oracle assertions and rerun the exact gate after the next coherent product change.",
-  "plan_hash": "61ee65b105b4c0196d8f88b60f128e04f847a06e1a34ec3fc167fa3aaceb4341",
+  "plan_hash": "95b520b03b38aafa23339ca720acfeb193a9f6ba74528e367a9e8105ceb92df6",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -116,11 +116,11 @@
       "AC8",
       "AC9"
     ],
-    "current_blocker": "Product tip dc71bf6c adds authenticated local provider-factor materialization behind an explicit provider_supplied adjusted/raw multiplier contract. Prices/VWAP multiply and volume scales inversely for pre-event bars; derived rows carry provider_adjustment_factor lineage without replacing provider rows, and coverage plus D1-to-W1/MN provenance retain point-in-time checks. Invalid, incomplete, mixed-kind, mixed-version, amount-only, and ambiguous evidence remains opaque. Focused materialization/lineage coverage passed 53/53; full backend unit passed 1427/1427 at 67.86%, with Ruff, format, and diff checks clean. The exact gate passed backend integration 387/387, frontend tests/type-check/build, uPlot/visual policy, compose/health/performance, and functional Playwright 165 passed with 107 documented skips across 272. Visual parity remains 98/104 with exactly the six protected diffs; the gate exited 1 at e2e-visual after clean teardown. Continue provider/family history, W1/MN continuity beyond the bounded seam, canonical population, and dense-data evidence; R2-R5 and R7 remain open.",
+    "current_blocker": "Product tip 58dd6926 makes explicit provider-factor materialization take precedence over an existing local_split_ratio derived row at the same key. Provider rows remain immutable; provider_adjustment_factor may upgrade local split-derived state, and the split-only path cannot downgrade provider-factor rows or overwrite unrelated derived lineage. Focused adjustment-factor coverage passed 19/19; full backend unit passed 1428/1428 at 67.87%, with Ruff, format, and diff checks clean. The exact gate passed backend integration 387/387, frontend/runtime checks, and functional Playwright 165 passed with 107 documented skips across 272. Visual parity remains 98/104 with exactly the six protected diffs; the gate exited 1 at e2e-visual after clean teardown. Continue provider/family history, W1/MN continuity beyond the bounded seam, canonical population, and dense-data evidence; R2-R5 and R7 remain open and the no-integration/no-deployment boundary holds.",
     "current_phase": "R1_canonical_provider_history_readiness",
     "next_action": "Continue provider/family history, W1/MN continuity beyond the bounded seam, canonical population, and R6 dense-data evidence; preserve the six protected visual state-oracle assertions and rerun the exact gate after the next coherent product change.",
     "total": 25,
-    "updated_at": "2026-09-10T15:12:06Z"
+    "updated_at": "2026-09-10T15:43:09Z"
   },
   "remote": "63d64bfe95c98bfe6e550bf69c213ae1cd64a629",
   "remote_sha": "3a41ca2cc90d70ae07c3dcc4db9e0c0fbf4dbff9",

@@ -5,6 +5,32 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Explicit provider-factor precedence
+
+At product tip `58dd6926`, explicit provider-factor materialization now has
+deterministic precedence when a local split-derived row already occupies the
+same symbol/timeframe/timestamp. Provider rows remain immutable; a
+`provider_adjustment_factor` row upgrades an existing `local_split_ratio`
+derived row, while the split-only path cannot downgrade provider-factor
+materialization or overwrite unrelated derived lineage. Focused adjustment-
+factor coverage passed `19/19`; the full backend unit suite passed `1,428/1,428`
+with `67.87%` coverage; Ruff, formatting, and diff checks passed.
+
+The exact branch-scoped gate passed backend integration `387/387`, frontend
+Vitest/type-check/build, uPlot and visual-policy checks, compose/health/
+performance checks, and functional Playwright (`165` passed, `107` documented
+skips across `272`). Visual parity remains `98/104` with exactly the six
+protected state-oracle diffs (`watchlist-column-editor-open` at
+visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125 and
+visual-1440p-100/125); the gate exited `1` at `e2e-visual` after clean
+branch-scoped teardown. No visual baseline, mask, threshold, skip, provider,
+fallback, or acceptance policy changed.
+
+This closes the precedence seam for explicit provider factors only. Provider/
+family history breadth, W1/MN continuity beyond the bounded lineage path,
+canonical population, and dense-data evidence remain open; continue without
+integration or deployment.
+
 ## 2026-09-10 — Explicit provider-factor materialization and lineage
 
 At product tip `dc71bf6c`, the authenticated OHLCV API now exposes an explicit

@@ -1,5 +1,23 @@
 # Project TODO Memory
 
+### 2026-09-10 — Explicit provider-factor precedence
+
+- [x] Make explicit provider-factor materialization upgrade an existing
+      `local_split_ratio` derived row at the same key while keeping provider
+      rows immutable and preventing split-only downgrade or unrelated lineage
+      replacement.
+- [x] Focused adjustment-factor coverage passed `19/19`; full backend unit
+      coverage passed `1,428/1,428` at `67.87%`; Ruff, formatting, and diff
+      checks passed.
+- [x] The exact gate passed backend integration `387/387`, frontend/runtime
+      checks, and functional Playwright (`165` passed, `107` documented skips
+      across `272`); visual parity remains `98/104` with exactly the six
+      protected diffs and clean scoped teardown after the expected visual
+      exit.
+- [ ] Continue provider/family history, W1/MN continuity beyond the bounded
+      path, canonical population, and dense-data evidence; preserve protected
+      visual assertions and the no-fallback/no-integration boundary.
+
 ### 2026-09-10 — Explicit provider-factor materialization and lineage
 
 - [x] Add the authenticated explicit `materialize-local-provider` route and
