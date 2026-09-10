@@ -1,5 +1,21 @@
 # Project TODO Memory
 
+### 2026-09-10 — Market-data cutoff normalization completes the R1 timestamp seam
+
+- [x] Canonicalize naive and offset-aware market-data timestamps to UTC before
+      historical OHLCV bar cutoff comparisons.
+- [x] Focused market-data regression coverage passed `22/22`; the full backend
+      unit suite passed `1,443/1,443` at `68%`; Ruff, formatting, and diff
+      checks passed.
+- [x] The exact gate passed non-visual stages, backend integration (`387/387`
+      with `81.38%` combined coverage), frontend Vitest (`991/991`) and build,
+      and functional Playwright (`165` passed, `107` documented skips across
+      `272`); visual parity was `98/104` with exactly the six protected diffs
+      and clean scoped teardown.
+- [ ] Continue full provider/family history breadth, W1/MN continuity beyond
+      the bounded lineage path, canonical population, and dense-data evidence;
+      preserve protected visual assertions and the no-integration boundary.
+
 ### 2026-09-10 — Watchlist history cutoffs normalize across source and bar reads
 
 - [x] Normalize the shared UTC evaluation cutoff for market-group membership

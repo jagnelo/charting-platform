@@ -8,6 +8,27 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Market-data cutoff normalization completes the R1 timestamp seam
+
+Product tip `2f07b17fffd09d1942564b47ef9166461386db97` closes the shared
+market-data timestamp seam. The `_as_utc` boundary now converts naive and
+offset-aware values to UTC, so historical OHLCV bar cutoffs compare API and
+persisted timestamps on one canonical timeline.
+
+Focused market-data regressions passed `22/22`; the full backend unit suite
+passed `1,443/1,443` at `68%`, with Ruff, formatting, and diff checks clean.
+The exact Docker-backed gate passed all non-visual stages, backend integration
+(`387/387`, `81.38%` combined coverage), frontend Vitest (`991/991`) and build,
+and functional Playwright (`165` passed, `107` documented skips across `272`).
+Visual parity remains `98/104` with exactly the six established protected
+diffs; the gate exited at `e2e-visual` after clean scoped teardown. No visual,
+provider, fallback, or acceptance policy changed.
+
+Open work remains full provider/family history breadth, W1/MN continuity,
+canonical population, dense-data evidence, and R2-R7. Keep the branch at the
+review boundary; do not integrate, promote, deploy, or mutate another
+worktree.
+
 ## 2026-09-10 — Watchlist history cutoffs normalize across source and bar reads
 
 Product tip `7b5069f74d20fc542e01d3bfc5f8adce6ab6fcaf` closes the remaining
