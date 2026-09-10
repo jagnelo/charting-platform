@@ -1,5 +1,16 @@
 # Project TODO Memory
 
+### 2026-09-10 — Optional provider response-contract hardening
+
+- [x] Make Tradier's documented nested history/quote wrappers fail closed on
+      scalar or malformed row containers while preserving valid empty wrappers.
+- [x] Make Marketstack EOD pagination fail closed on missing, malformed,
+      non-progressing, or contradictory metadata instead of truncating history.
+      The focused optional-provider suite passes `32/32`; the authoritative
+      Docker-backed gate passes `1892/1892` with `80.36%` line coverage and
+      89 warnings, and the owned PostgreSQL/Redis testcontainer is cleaned
+      without host-wide pruning.
+
 ### 2026-09-05 — Corrective provider quota and live-evidence gate
 
 This entry supersedes older “provider not built” notes below; historical entries

@@ -483,3 +483,12 @@ allowing false empty-data results. The focused optional-provider suite passed
 `1887 passed`, `89` warnings, and `80.36%` line coverage in `522.57s`.
 Testcontainer session `a9124505-09fa-42a8-825b-60047d50b4af` was cleaned
 without host-wide pruning.
+
+Tradier nested history and quote wrappers now reject scalar or malformed row
+containers while preserving valid empty wrappers. Marketstack EOD pagination
+now rejects missing, malformed, non-progressing, or contradictory metadata
+instead of truncating history. The focused optional-provider suite passed
+`32/32`; the authoritative gate completed at `2026-09-10T07:51Z` with
+`1892 passed`, `89` warnings, and `80.36%` line coverage in `404.68s`.
+Testcontainer session `294f910c-3bf6-4c72-8cf3-7d5c66d132da` was cleaned
+without host-wide pruning.
