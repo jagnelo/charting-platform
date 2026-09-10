@@ -466,3 +466,12 @@ is unchanged. The focused FINRA suite passed `9/9`; the authoritative gate
 completed at `2026-09-10T07:15Z` with `1886 passed`, `89` warnings, and
 `80.36%` line coverage in `416.19s`. Testcontainer session
 `0f4c9b7f-f9a2-43e6-a9a6-9a1cfa2fb7bd` was cleaned without host-wide pruning.
+
+The shared optional-provider REST layer now converts malformed JSON from
+Twelve Data, Finnhub, FMP, Tiingo, EODHD, Marketstack, Tradier, and
+MarketData.app into typed redacted failures instead of leaking parser errors or
+allowing false empty-data results. The focused optional-provider suite passed
+`27/27`; the authoritative gate completed at `2026-09-10T07:27Z` with
+`1887 passed`, `89` warnings, and `80.36%` line coverage in `522.57s`.
+Testcontainer session `a9124505-09fa-42a8-825b-60047d50b4af` was cleaned
+without host-wide pruning.
