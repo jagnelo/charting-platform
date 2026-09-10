@@ -317,3 +317,10 @@ preflight for `ALPACA_API_KEY`/`ALPACA_SECRET_KEY`, `TRADIER_API_KEY`, and
 36.12s`; the wrapper returned exit code `2`, appended only redacted external
 usage telemetry, and made no acceptance claim. The provider-specific routing
 safety controls remain fail-closed.
+
+The authoritative backend gate was rerun in a session-aware invocation at
+`2026-09-10T04:17Z`. It passed `1858` tests with `89` warnings and `80.36%`
+line coverage in `384.90s`, above the 75% threshold. Testcontainer session
+`abb23a71-625c-402e-baa2-3efccac456ec` was cleaned successfully without a
+host-wide prune. This validates the current code unchanged; it does not relax
+the live credential or provider-governance gates.

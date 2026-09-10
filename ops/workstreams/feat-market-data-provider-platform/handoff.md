@@ -178,3 +178,5 @@ Update this handoff at each coherent boundary.
 - The workstream audit now points to the authoritative `2026-09-10T03:36Z` 34-case matrix (31 passed, three exact credential preflight failures) rather than the earlier 02:55 run. The lifecycle checkpoint at commit `3efe5f2f` records the current plan hash, synchronized remote head, and zero retained Docker resources; no routing entitlement or acceptance state changed.
 
 - The continuation live matrix at `2026-09-10T03:59Z` reproduced the same 34-case result (`31 passed`, `3` exact credential preflight failures) in `36.12s`; the wrapper returned exit `2` and made no acceptance claim. This is the latest live evidence and leaves the provider-specific safety/legal controls fail-closed.
+
+- A session-aware authoritative backend gate completed at `2026-09-10T04:17Z`: `1858 passed`, `89` warnings, `80.36%` coverage in `384.90s`. Testcontainer session `abb23a71-625c-402e-baa2-3efccac456ec` was cleaned without host-wide pruning; this adds no routing entitlement.
