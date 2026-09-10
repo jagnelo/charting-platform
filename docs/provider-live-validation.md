@@ -458,3 +458,11 @@ the seven tokenized probes therefore have current end-to-end evidence under
 the existing environment. The wrapper returned exit code `2` and made no
 acceptance claim; FINRA async/OTC, FRED, Nasdaq polling, xStocks, Bybit, and
 Tiingo/FMP controls remained fail-closed.
+
+FINRA's bounded asynchronous presigned-result download now also converts
+stream setup and iteration transport failures into typed redacted provider
+errors; the positive byte-bound and credential-free signed-download behavior
+is unchanged. The focused FINRA suite passed `9/9`; the authoritative gate
+completed at `2026-09-10T07:15Z` with `1886 passed`, `89` warnings, and
+`80.36%` line coverage in `416.19s`. Testcontainer session
+`0f4c9b7f-f9a2-43e6-a9a6-9a1cfa2fb7bd` was cleaned without host-wide pruning.
