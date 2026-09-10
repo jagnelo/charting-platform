@@ -103,7 +103,7 @@ def _raise_http_error(provider_name: str, exc: httpx.HTTPStatusError) -> None:
 
     response = exc.response
     status_code = getattr(response, "status_code", None)
-    headers = dict(getattr(response, "headers", {}) or {})
+    headers = provider_response_headers(response)
     message = redact_provider_message(str(exc))
     lowered = message.lower()
     if status_code in {418, 429} or any(
@@ -174,7 +174,7 @@ def estimate_marketstack_latest_ohlcv_request_count(timeframe: Timeframe, limit:
 
 def _number(value: Any) -> float | None:
     try:
-        if value in (None, "", "null", "None", "-"):
+        if isinstance(value, bool) or value in (None, "", "null", "None", "-"):
             return None
         number = float(value)
         return number if isfinite(number) else None
@@ -225,7 +225,7 @@ def _timestamp(value: Any, *, timezone_name: str | None = None) -> datetime | No
         return None
     if isinstance(value, datetime):
         parsed = value
-    elif isinstance(value, int | float):
+    elif isinstance(value, int | float) and not isinstance(value, bool):
         try:
             parsed = datetime.fromtimestamp(value, tz=UTC)
         except (OverflowError, OSError, ValueError):
@@ -267,7 +267,7 @@ def _option_expiry(value: Any) -> date | None:
         return value.date()
     if isinstance(value, date):
         return value
-    if isinstance(value, int | float):
+    if isinstance(value, int | float) and not isinstance(value, bool):
         try:
             return datetime.fromtimestamp(value, tz=UTC).date()
         except (OverflowError, OSError, ValueError):

@@ -1010,7 +1010,10 @@ def test_http_status_failure_redacts_query_credentials_and_preserves_status():
 
 def test_http_status_rate_limit_preserves_reset_header():
     provider = FinnhubProvider()
-    response = MagicMock(status_code=429, headers={"Retry-After": "7"})
+    response = MagicMock(
+        status_code=429,
+        headers={"Retry-After": "7", "Authorization": "must-not-be-retained"},
+    )
     request = httpx.Request("GET", "https://finnhub.io/api/v1/profile2?token=demo-secret")
     failure = httpx.HTTPStatusError("429 Too Many Requests", request=request, response=response)
     with (
@@ -1023,3 +1026,4 @@ def test_http_status_rate_limit_preserves_reset_header():
     assert exc_info.value.status_code == 429
     assert exc_info.value.retry_at is not None
     assert "demo-secret" not in str(exc_info.value)
+    assert exc_info.value.headers == {"Retry-After": "7"}

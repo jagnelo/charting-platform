@@ -631,6 +631,32 @@ class TestBinanceOHLCVParsing:
 
 
 class TestCryptoOHLCVPagination:
+    @pytest.mark.parametrize("provider_name", ["coinbase", "kraken"])
+    def test_http_capacity_failure_is_typed(self, provider_name):
+        response = httpx.Response(
+            429,
+            json={"error": "too many requests"},
+            headers={"Retry-After": "2", "X-RateLimit-Limit": "15"},
+            request=httpx.Request("GET", "https://provider.example"),
+        )
+        provider = CoinbaseProvider() if provider_name == "coinbase" else KrakenProvider()
+        with patch("app.providers.crypto_market_data.httpx.get", return_value=response):
+            with pytest.raises(ProviderRateLimitError) as exc_info:
+                provider.get_current_price("BTC-USD")
+        assert exc_info.value.provider_name == provider_name
+        assert exc_info.value.status_code == 429
+        assert exc_info.value.headers == {
+            "retry-after": "2",
+            "x-ratelimit-limit": "15",
+        }
+        assert exc_info.value.retry_at is not None
+
+    @pytest.mark.parametrize("provider", [CoinbaseProvider(), KrakenProvider()])
+    def test_unsupported_crypto_timeframe_is_typed(self, provider):
+        start = datetime(2024, 1, 1, tzinfo=UTC)
+        with pytest.raises(ProviderResponseError, match="unsupported crypto timeframe"):
+            provider.fetch_ohlcv("BTC-USD", Timeframe.MN, start, start + timedelta(days=1))
+
     def test_coinbase_transport_failure_is_typed(self):
         failure = httpx.ConnectError(
             "connection failed",
@@ -756,6 +782,33 @@ class TestCryptoOHLCVPagination:
             with pytest.raises(ProviderResponseError):
                 KrakenProvider().get_current_price("BTC-USD")
 
+    @pytest.mark.parametrize("value", ["nan", "inf", "-inf"])
+    def test_crypto_nonfinite_candle_values_are_typed(self, value):
+        start = datetime(2024, 1, 1, tzinfo=UTC)
+        response = httpx.Response(
+            200,
+            json=[[start.timestamp(), value, "2", "1.5", "1.75", "10"]],
+            request=httpx.Request("GET", "https://api.exchange.coinbase.com"),
+        )
+        with patch("app.providers.crypto_market_data.httpx.get", return_value=response):
+            with pytest.raises(ProviderResponseError):
+                CoinbaseProvider().fetch_ohlcv(
+                    "BTC-USD", Timeframe.M1, start, start + timedelta(minutes=1)
+                )
+
+    def test_crypto_out_of_range_candle_timestamp_is_typed(self):
+        start = datetime(2024, 1, 1, tzinfo=UTC)
+        response = httpx.Response(
+            200,
+            json=[["1e300", "1", "2", "1.5", "1.75", "10"]],
+            request=httpx.Request("GET", "https://api.exchange.coinbase.com"),
+        )
+        with patch("app.providers.crypto_market_data.httpx.get", return_value=response):
+            with pytest.raises(ProviderResponseError):
+                CoinbaseProvider().fetch_ohlcv(
+                    "BTC-USD", Timeframe.M1, start, start + timedelta(minutes=1)
+                )
+
     def test_crypto_directory_rows_are_typed(self):
         coinbase_response = httpx.Response(
             200,
@@ -777,6 +830,29 @@ class TestCryptoOHLCVPagination:
             "app.providers.crypto_market_data.httpx.get", return_value=kraken_response
         ):
             with pytest.raises(ProviderResponseError):
+                KrakenProvider().discover_universe_page("CRYPTOCURRENCY", 0)
+
+    def test_crypto_directory_missing_identity_is_typed(self):
+        coinbase_response = httpx.Response(
+            200,
+            json=[{"quote_currency": "USD", "status": "online", "id": "BTC-USD"}],
+            request=httpx.Request("GET", "https://api.exchange.coinbase.com/products"),
+        )
+        with patch(
+            "app.providers.crypto_market_data.httpx.get", return_value=coinbase_response
+        ):
+            with pytest.raises(ProviderResponseError, match="incomplete product identity"):
+                CoinbaseProvider().discover_universe_page("CRYPTOCURRENCY", 0)
+
+        kraken_response = httpx.Response(
+            200,
+            json={"result": {"XXBTZUSD": {"quote": "ZUSD", "wsname": "XBT/USD"}}},
+            request=httpx.Request("GET", "https://api.kraken.com/0/public/AssetPairs"),
+        )
+        with patch(
+            "app.providers.crypto_market_data.httpx.get", return_value=kraken_response
+        ):
+            with pytest.raises(ProviderResponseError, match="incomplete asset-pair identity"):
                 KrakenProvider().discover_universe_page("CRYPTOCURRENCY", 0)
 
     def test_twelve_data_history_pages_5000_point_ranges(self):

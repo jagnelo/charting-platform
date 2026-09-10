@@ -3,15 +3,17 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from math import ceil
+from math import ceil, isfinite
 from typing import Any
 
 import httpx
 
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.providers.errors import (
+    ProviderRateLimitError,
     ProviderResponseError,
     provider_response_headers,
+    provider_retry_at_from_headers,
     raise_for_provider_error_envelope,
 )
 from app.providers.telemetry import observe_response
@@ -112,8 +114,21 @@ def _get_json(
         observe_response(response)
         response.raise_for_status()
         return _json_payload(response, provider_name)
-    except httpx.HTTPStatusError:
-        raise
+    except httpx.HTTPStatusError as exc:
+        headers = provider_response_headers(exc.response)
+        if exc.response.status_code in {418, 429}:
+            raise ProviderRateLimitError(
+                provider_name,
+                f"provider request rejected for capacity (HTTP {exc.response.status_code})",
+                retry_at=provider_retry_at_from_headers(headers),
+                status_code=exc.response.status_code,
+                headers=headers,
+            ) from exc
+        raise ProviderResponseError(
+            provider_name,
+            f"provider request failed with HTTP {exc.response.status_code}",
+            status_code=exc.response.status_code,
+        ) from exc
     except httpx.RequestError as exc:
         raise ProviderResponseError(provider_name, str(exc)) from exc
 
@@ -128,8 +143,23 @@ def _required_candle_rows(payload: Any, provider_name: str, width: int) -> list[
 
 def _candle_float(value: Any, provider_name: str, field: str) -> float:
     try:
-        return float(value)
+        parsed = float(value)
     except (TypeError, ValueError, OverflowError) as exc:
+        raise ProviderResponseError(
+            provider_name, f"provider returned an invalid candle {field}"
+        ) from exc
+    if not isfinite(parsed):
+        raise ProviderResponseError(provider_name, f"provider returned an invalid candle {field}")
+    return parsed
+
+
+def _candle_timestamp(value: Any, provider_name: str, field: str) -> datetime:
+    """Parse a provider epoch value without leaking platform conversion errors."""
+
+    epoch = _candle_float(value, provider_name, field)
+    try:
+        return datetime.fromtimestamp(epoch, tz=UTC)
+    except (OverflowError, OSError, ValueError) as exc:
         raise ProviderResponseError(
             provider_name, f"provider returned an invalid candle {field}"
         ) from exc
@@ -152,7 +182,9 @@ class CoinbaseProvider:
         data_source_id: int | None = None,
     ) -> list[OHLCVBar]:
         seconds = _TF_SECONDS.get(timeframe)
-        if seconds is None or end <= start:
+        if seconds is None:
+            raise ProviderResponseError(self.name, f"unsupported crypto timeframe: {timeframe}")
+        if end <= start:
             return []
         product = _coinbase_product(symbol)
         # Coinbase caps each response at 300 candles. Page the requested range
@@ -176,7 +208,7 @@ class CoinbaseProvider:
                 timeout=30,
             )
             for row in _required_candle_rows(rows, self.name, 6):
-                ts = datetime.fromtimestamp(_candle_float(row[0], self.name, "timestamp"), tz=UTC)
+                ts = _candle_timestamp(row[0], self.name, "timestamp")
                 if not start <= ts < end:
                     continue
                 bars_by_timestamp[ts] = OHLCVBar(
@@ -206,7 +238,9 @@ class CoinbaseProvider:
     ) -> list[OHLCVBar]:
         if limit <= 0:
             return []
-        seconds = _TF_SECONDS.get(timeframe, 86400)
+        seconds = _TF_SECONDS.get(timeframe)
+        if seconds is None:
+            raise ProviderResponseError(self.name, f"unsupported crypto timeframe: {timeframe}")
         end = datetime.now(UTC)
         return self.fetch_ohlcv(
             symbol,
@@ -219,8 +253,11 @@ class CoinbaseProvider:
         )[-limit:]
 
     def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime:
+        seconds = _TF_SECONDS.get(timeframe)
+        if seconds is None:
+            raise ProviderResponseError(self.name, f"unsupported crypto timeframe: {timeframe}")
         return datetime.now(UTC) - timedelta(
-            seconds=_TF_SECONDS.get(timeframe, 86400) * max(limit, 1)
+            seconds=seconds * max(limit, 1)
         )
 
     def get_current_price(self, symbol: str) -> float | None:
@@ -247,12 +284,17 @@ class CoinbaseProvider:
             if item.get("quote_currency") == "USD" and item.get("status") == "online"
         ]
         page = products[offset : offset + 500]
+        for item in page:
+            base_currency = str(item.get("base_currency") or "").strip()
+            product_id = str(item.get("id") or "").strip()
+            if not base_currency or not product_id:
+                raise ProviderResponseError(self.name, "Coinbase returned an incomplete product identity")
         return {
             "total": len(products),
             "quotes": [
                 {
-                    "symbol": f"{item.get('base_currency')}-USD",
-                    "longName": item.get("display_name"),
+                    "symbol": f"{item['base_currency']}-USD",
+                    "longName": str(item.get("display_name") or item["id"]),
                     "exchange": "Coinbase",
                     "quoteType": "CRYPTOCURRENCY",
                     "status": "active",
@@ -282,7 +324,10 @@ class KrakenProvider:
         instrument_id: int | None = None,
         data_source_id: int | None = None,
     ) -> list[OHLCVBar]:
-        interval = max(1, _TF_SECONDS.get(timeframe, 86400) // 60)
+        seconds = _TF_SECONDS.get(timeframe)
+        if seconds is None:
+            raise ProviderResponseError(self.name, f"unsupported crypto timeframe: {timeframe}")
+        interval = max(1, seconds // 60)
         if end <= start:
             return []
         bars_by_timestamp: dict[datetime, OHLCVBar] = {}
@@ -314,9 +359,7 @@ class KrakenProvider:
             rows = _required_candle_rows(row_lists[0], self.name, 7)
             max_timestamp: datetime | None = None
             for row in rows:
-                if not isinstance(row, list) or len(row) < 7:
-                    continue
-                ts = datetime.fromtimestamp(_candle_float(row[0], self.name, "timestamp"), tz=UTC)
+                ts = _candle_timestamp(row[0], self.name, "timestamp")
                 max_timestamp = max(max_timestamp, ts) if max_timestamp else ts
                 if not start <= ts < end:
                     continue
@@ -335,7 +378,7 @@ class KrakenProvider:
             provider_last = result.get("last")
             try:
                 provider_last_dt = (
-                    datetime.fromtimestamp(float(provider_last), tz=UTC)
+                    _candle_timestamp(provider_last, self.name, "OHLC cursor")
                     if provider_last is not None
                     else None
                 )
@@ -343,11 +386,11 @@ class KrakenProvider:
                 raise ProviderResponseError(
                     self.name, "Kraken returned an invalid OHLC cursor"
                 ) from exc
-            next_cursor = cursor + timedelta(seconds=_TF_SECONDS.get(timeframe, 86400))
+            next_cursor = cursor + timedelta(seconds=seconds)
             if max_timestamp is not None:
-                next_cursor = max(next_cursor, max_timestamp + timedelta(seconds=_TF_SECONDS.get(timeframe, 86400)))
+                next_cursor = max(next_cursor, max_timestamp + timedelta(seconds=seconds))
             if provider_last_dt is not None:
-                next_cursor = max(next_cursor, provider_last_dt + timedelta(seconds=_TF_SECONDS.get(timeframe, 86400)))
+                next_cursor = max(next_cursor, provider_last_dt + timedelta(seconds=seconds))
             if not rows or next_cursor <= cursor:
                 break
             cursor = next_cursor
@@ -365,11 +408,14 @@ class KrakenProvider:
     ) -> list[OHLCVBar]:
         if limit <= 0:
             return []
+        seconds = _TF_SECONDS.get(timeframe)
+        if seconds is None:
+            raise ProviderResponseError(self.name, f"unsupported crypto timeframe: {timeframe}")
         end = datetime.now(UTC)
         return self.fetch_ohlcv(
             symbol,
             timeframe,
-            end - timedelta(seconds=_TF_SECONDS.get(timeframe, 86400) * limit),
+            end - timedelta(seconds=seconds * limit),
             end,
             adjusted=adjusted,
             instrument_id=instrument_id,
@@ -377,8 +423,11 @@ class KrakenProvider:
         )[-limit:]
 
     def latest_window_start(self, timeframe: Timeframe, limit: int) -> datetime:
+        seconds = _TF_SECONDS.get(timeframe)
+        if seconds is None:
+            raise ProviderResponseError(self.name, f"unsupported crypto timeframe: {timeframe}")
         return datetime.now(UTC) - timedelta(
-            seconds=_TF_SECONDS.get(timeframe, 86400) * max(limit, 1)
+            seconds=seconds * max(limit, 1)
         )
 
     def get_current_price(self, symbol: str) -> float | None:
@@ -412,12 +461,17 @@ class KrakenProvider:
             item for item in result.values() if str(item.get("quote", "")).upper() in {"ZUSD", "USD"}
         ]
         page = products[offset : offset + 500]
+        for item in page:
+            base = str(item.get("base") or "").strip()
+            pair_name = str(item.get("wsname") or item.get("altname") or "").strip()
+            if not base or not pair_name:
+                raise ProviderResponseError(self.name, "Kraken returned an incomplete asset-pair identity")
         return {
             "total": len(products),
             "quotes": [
                 {
-                    "symbol": f"{item.get('base', '').replace('X', '')}-USD",
-                    "longName": item.get("wsname"),
+                    "symbol": f"{str(item['base']).replace('X', '')}-USD",
+                    "longName": str(item.get("wsname") or item["altname"]),
                     "exchange": "Kraken",
                     "quoteType": "CRYPTOCURRENCY",
                     "status": "active",
