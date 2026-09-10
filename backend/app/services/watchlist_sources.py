@@ -1309,12 +1309,13 @@ async def resolve_watchlist_source(
             raise LookupError("market_group_source_not_found")
         members: list[ResolvedWatchlistMember] = []
         exclusions: list[dict] = []
+        evaluation_at = _as_utc(as_of) if as_of is not None else None
         for item in group.members:
-            if as_of is not None and (
+            if evaluation_at is not None and (
                 item.effective_at is None
                 or item.known_at is None
-                or item.effective_at > as_of
-                or item.known_at > as_of
+                or _as_utc(item.effective_at) > evaluation_at
+                or _as_utc(item.known_at) > evaluation_at
             ):
                 exclusions.append(
                     {"instrument_id": item.instrument_id, "reason": "membership_not_known_at_as_of"}

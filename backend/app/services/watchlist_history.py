@@ -416,8 +416,9 @@ async def build_watchlist_source_history_status(
         OHLCVBar.timeframe.in_(normalized_timeframes),
         OHLCVBar.is_adjusted.is_(True),
     )
-    if as_of is not None:
-        bar_query = bar_query.where(OHLCVBar.ts <= as_of)
+    evaluation_at = _as_utc(as_of) if as_of is not None else None
+    if evaluation_at is not None:
+        bar_query = bar_query.where(OHLCVBar.ts <= evaluation_at)
     bar_rows = (
         (await db.execute(bar_query.group_by(OHLCVBar.timeframe))).all() if instrument_ids else []
     )
@@ -437,7 +438,7 @@ async def build_watchlist_source_history_status(
                     OHLCVBar.instrument_id.in_(instrument_ids),
                     OHLCVBar.timeframe.in_(normalized_timeframes),
                     OHLCVBar.is_adjusted.is_(True),
-                    *([OHLCVBar.ts <= as_of] if as_of is not None else []),
+                    *([OHLCVBar.ts <= evaluation_at] if evaluation_at is not None else []),
                 )
                 .group_by(
                     OHLCVBar.instrument_id,
