@@ -13,6 +13,28 @@ closure_summary: pending
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 current_blocker: >-
+  Implementation tip d33ef30e makes watchlist source-history status consume
+  durable InstrumentDatasetState adjustment provenance for covered canonical
+  provider and derived bars. It exposes versioned, opaque, and unavailable
+  member counts and one aggregate factor version/status only for complete,
+  consistent lineage; legacy provider bars without state evidence remain
+  opaque and mixed provider/derived evidence remains conservative. Market Map
+  carries the counts through its existing assistive provenance label without
+  visible layout or pixel changes. No prices, bars, provider routing, fallback,
+  or acceptance policy changed. Focused watchlist-history coverage passed 8/8;
+  the related Market Map frontend suite passed 36/36; type-check, Ruff,
+  formatting, and diff checks passed. The exact Docker-backed gate completed
+  migration compatibility (skipped because no migration changes existed from
+  its comparison tip) and all other non-visual stages, backend unit/integration
+  1394/387 with 81.21% combined coverage, frontend Vitest 990/990, and
+  functional Playwright 165 with 107 documented skips across 272. Visual parity
+  remains 98/104 with exactly the six established state-oracle diffs; teardown
+  and resource accounting were clean. The first gate attempt exposed and the
+  qualifying run corrected a PostgreSQL GROUP BY omission. Broader provider
+  factor application/rebuild verification, family/provider-history readiness,
+  W1/MN continuity, cadence, canonical population, and R2-R7 remain open.
+  Continue the next bounded evidence-backed R1 history/provenance seam and
+  rerun the exact gate at the next coherent tip.
   Product tip e2263da9 makes the canonical OHLCV coverage endpoint read the
   null-source derived W1/MN dataset state for derived-only ranges, exposing
   the inherited D1 factor version to the workstation contract. Mixed

@@ -5,6 +5,39 @@ Branch: `feat/tc2000-frontend-rework`
 Parent: `staging`  
 Last reconciled: 2026-09-10
 
+## 2026-09-10 — Generic history factor-evidence consumer
+
+At implementation tip `d33ef30e`, watchlist source-history status now joins
+covered canonical provider and derived bars to durable `InstrumentDatasetState`
+adjustment provenance. It reports member-level versioned, opaque, and
+unavailable factor counts, plus one aggregate `factor_version`/`factor_status`
+only when every covered lineage member has complete, consistent rebuildable or
+inherited evidence. Legacy provider bars without source-state evidence remain
+opaque; mixed and incomplete lineage stays conservative. Market Map carries the
+new counts through its existing assistive provenance label without visible
+layout or pixel changes. No prices, bars, provider routing, fallback behavior,
+visual baseline, threshold, skip, or acceptance policy changed.
+
+Focused watchlist-history backend coverage passed `8/8`; the related Market Map
+frontend suite passed `36/36`, frontend type-check passed, and Ruff, formatting,
+and diff checks were green. The exact Docker-backed gate (run against this same
+tree before commit) completed migration compatibility (skipped because no
+migration changes existed from its comparison tip) and all other non-visual
+stages: backend unit/integration `1,394`/`387` with `81.21%` combined coverage,
+frontend Vitest `990/990`, and functional Playwright `165` with `107` documented
+skips across `272`. Visual parity remained `98/104` with exactly the six
+established state-oracle diffs (`watchlist-column-editor-open` at
+visual-1080p-100/125 and `workspace-floating` at visual-1080p-100/125 and
+visual-1440p-100/125); scoped teardown removed all assigned resources and test
+sessions cleanly. A PostgreSQL grouping defect found on the first gate attempt
+was corrected before this qualifying run.
+
+R1 remains active for broader provider factor application/rebuild verification,
+complete family/provider-history readiness, W1/MN continuity, cadence beyond
+source-declared metadata, and canonical population; R2-R7 remain open. Next
+action: continue the next bounded evidence-backed R1 history/provenance seam
+and rerun the exact gate at the next coherent tip.
+
 ## 2026-09-10 — Derived factor provenance reaches coverage consumers
 
 At product tip `e2263da9`, the canonical OHLCV coverage endpoint now reads

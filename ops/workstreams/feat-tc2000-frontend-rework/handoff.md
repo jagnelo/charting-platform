@@ -8,6 +8,34 @@ Created from `staging` at `89bb5c05ad1635156285d392b7c39b3c341ad8f1`.
 - Request: Continue the existing TC2000 workstation V25 parity, provider population, and history gaps from current green staging.
 - Closure authorization: pending; do not integrate or deploy until the human explicitly authorizes closure.
 
+## 2026-09-10 — Generic history factor-evidence consumer checkpoint
+
+Implementation commit `d33ef30e` makes watchlist source-history status consume
+durable `InstrumentDatasetState` adjustment provenance for covered canonical
+provider and derived bars. It exposes versioned, opaque, and unavailable member
+counts and emits one aggregate factor version/status only when all covered
+lineage is complete and consistent. Provider bars with no matching state remain
+opaque, and mixed provider/derived evidence remains conservative. Market Map
+surfaces the counts through its existing screen-reader-only provenance label;
+visible layout and pixels are unchanged. No prices, bars, routing, fallback, or
+acceptance policy changed.
+
+Focused watchlist-history coverage passed `8/8`; the related Market Map frontend
+suite passed `36/36`, type-check, Ruff, formatting, and diff checks passed. The
+exact Docker-backed gate (run against this same tree before commit) completed
+all non-visual stages: backend unit/integration `1,394`/`387` (`81.21%` combined),
+frontend Vitest `990/990`, and functional Playwright `165/272` with `107`
+documented skips. Visual parity remained `98/104` with exactly the six
+established watchlist-column-editor-open/workspace-floating diffs; scoped
+teardown removed all assigned resources and sessions cleanly. The first gate
+attempt exposed a PostgreSQL `GROUP BY` omission, which was fixed before the
+qualifying run.
+
+R1 remains active for broader factor application/rebuild verification,
+family/provider-history readiness, W1/MN continuity, source-declared cadence,
+and canonical population. R2-R7 remain open. Next action: continue the next
+bounded evidence-backed R1 history/provenance seam and rerun the exact gate.
+
 ## 2026-09-10 — Derived factor provenance consumer checkpoint
 
 Product tip `e2263da9` makes the canonical OHLCV coverage endpoint read the

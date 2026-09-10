@@ -1,5 +1,22 @@
 # Project TODO Memory
 
+### 2026-09-10 — Generic history factor-evidence consumer
+
+- [x] Join covered provider/derived history to durable dataset-state factor
+      provenance and expose conservative member counts plus an aggregate
+      version/status only for complete consistent lineage; keep legacy opaque
+      rows and mixed evidence explicit.
+- [x] Carry the evidence through the Market Map assistive provenance label
+      without visible layout or pixel changes; focused watchlist-history and
+      Market Map coverage passed `8/8` and `36/36`, with type-check, Ruff,
+      formatting, and diff checks green.
+- [x] Re-run the exact gate after correcting the PostgreSQL grouping clause:
+      backend `1,394/387` (`81.21%`), frontend `990/990`, functional `165`
+      with `107` documented skips, visual `98/104` with the six established
+      diffs, and clean teardown.
+- [ ] Continue broader factor application/rebuild verification and family /
+      provider history, W1/MN continuity, cadence, and canonical population.
+
 ### 2026-09-10 — Derived factor provenance reaches coverage consumers
 
 - [x] Read the null-source derived W1/MN dataset state for derived-only
